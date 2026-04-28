@@ -1,14 +1,18 @@
 {
   "name": "@praxis/tools",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./test-tools": "./src/test-tools/index.ts"
   },
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@praxis/core": "workspace:*",
+    "zod": "^4.0.0"
+  }
 }

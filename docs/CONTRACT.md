@@ -45,8 +45,24 @@ interface Brief {
 }
 
 interface ToolRegistry {
-  list(): ToolDefinition[];
+  list(): ToolDefinitionSummary[];
   dispatch(name: string, args: unknown): Promise<ToolResult>;
+}
+
+interface ToolDefinitionSummary {
+  name: string;
+  description: string;
+  /** JSON Schema serialization of the input schema. Always present. */
+  inputSchemaJson: unknown;
+  /**
+   * Optional native input schema in the implementation's preferred form.
+   * `InProcessToolRegistry` sets this to the original `z.ZodType` instance.
+   * Engine adapters use it when available, falling back to JSON-Schema-to-Zod
+   * conversion when not. Typed as `unknown` on the contract so implementations
+   * are not forced to depend on Zod.
+   */
+  inputSchemaNative?: unknown;
+  tier: "deterministic" | "grounded" | "model-derived";
 }
 
 type EngineEvent =

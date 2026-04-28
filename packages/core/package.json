@@ -1,6 +1,6 @@
 {
   "name": "@praxis/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -8,7 +8,9 @@
     "./db": "./src/db/index.ts",
     "./db/show": "./src/db/show.ts",
     "./db/migrate": "./src/db/migrate.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./config": "./src/config/index.ts",
+    "./session": "./src/session/index.ts"
   },
   "scripts": {
     "build": "tsc -b",

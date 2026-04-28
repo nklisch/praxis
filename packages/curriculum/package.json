@@ -1,10 +1,12 @@
 {
   "name": "@praxis/curriculum",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./modes": "./src/modes/index.ts",
+    "./brief": "./src/brief/compose.ts"
   },
   "scripts": {
     "build": "tsc -b",
@@ -12,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@praxis/core": "workspace:*",
     "drizzle-orm": "^0.36.0"
   }
 }

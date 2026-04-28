@@ -36,7 +36,14 @@ export interface ToolRegistry {
 export interface ToolDefinitionSummary {
   name: string;
   description: string;
-  inputSchemaJson: unknown; // JSON Schema serialization
+  inputSchemaJson: unknown; // JSON Schema serialization (always present)
+  /**
+   * Optional native input schema in the implementation's preferred form.
+   * For InProcessToolRegistry this is the original `z.ZodType<unknown>` instance.
+   * Engine adapters that need typed schemas (Claude Code SDK MCP, etc.) consume
+   * this when present and fall back to JSON-Schema-to-Zod conversion otherwise.
+   */
+  inputSchemaNative?: unknown;
   tier: "deterministic" | "grounded" | "model-derived";
 }
 
