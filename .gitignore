@@ -1,0 +1,33 @@
+# Node
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Local db / cache
+.praxis/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Tests / coverage
+coverage/
+
+# Drizzle: keep migrations/, ignore meta-cache
+drizzle/meta/_journal.bak

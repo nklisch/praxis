@@ -1,0 +1,561 @@
+# CONTRACT
+
+The plug-and-play interfaces of Praxis. This is the document extension authors read first. `SPEC.md` says what we chose; `ARCHITECTURE.md` says how the pieces fit; this document specifies the typed contracts between them.
+
+All types in this document are TypeScript-flavored pseudocode. Implementations may add fields, but cannot remove or rename without a major version bump per the versioning rules at the bottom.
+
+## How to read this doc
+
+Each section defines one contract. Contracts are **stable surfaces** — extensions that conform to them plug into Praxis without modifying core. The goal is that adding a new engine, tool, mode, subject, or pedagogy pack requires touching only that extension's package, not `@praxis/core`.
+
+## Engine adapter contract
+
+The interface every engine implements. Lives in `@praxis/core/types/engine.ts` and is the only thing `@praxis/engines` imports from `@praxis/core`.
+
+```typescript
+interface Engine {
+  /** Identifier for diagnostics and selection. e.g. "claude-code", "codex", "direct.anthropic". */
+  readonly id: string;
+
+  /**
+   * Engine category. Affects how the framework constrains briefs.
+   * - "looped": engine runs its own internal loop until done.
+   * - "single-shot": engine answers one model call; framework drives loop.
+   */
+  readonly kind: "looped" | "single-shot";
+
+  /** Run a brief, producing an async event stream. Normalized regardless of engine internals. */
+  run(brief: Brief, tools: ToolRegistry): AsyncIterable<EngineEvent>;
+
+  /** Health check / capability probe. Used at session start. */
+  health(): Promise<HealthStatus>;
+}
+
+interface Brief {
+  /** Composed system prompt (mode prompt + persona + scope context). */
+  systemPrompt: string;
+  /** Initial user message that opens the turn. */
+  userMessage: string;
+  /** Selected context (retrieved chunks, relevant memory, current artifact state). */
+  context: BriefContext;
+  /** Cap on internal loop iterations (looped engines), or model calls (single-shot). */
+  maxSteps?: number;
+  /** Generation parameters (temperature, max_tokens, etc.). */
+  generation?: GenerationParams;
+}
+
+interface ToolRegistry {
+  list(): ToolDefinition[];
+  dispatch(name: string, args: unknown): Promise<ToolResult>;
+}
+
+type EngineEvent =
+  | { type: "model_message"; content: string; partial?: boolean }
+  | { type: "tool_call"; toolName: string; args: unknown; callId: string }
+  | { type: "tool_result"; callId: string; result: ToolResult }
+  | { type: "thinking"; content: string }
+  | { type: "error"; error: EngineError }
+  | { type: "final"; usage: TokenUsage };
+
+interface HealthStatus {
+  ok: boolean;
+  detail?: string;
+  capabilities: {
+    vision: boolean;
+    streaming: boolean;
+    nativeMCP: boolean;
+    contextWindow: number;
+  };
+}
+```
+
+**Implementer notes:**
+
+- Looped engines must project their internal trace into the normalized event sequence. Tool calls inside the engine must round-trip through `ToolRegistry.dispatch` — the framework owns tool execution.
+- Single-shot engines drive the loop themselves: call model, dispatch tool calls, feed results back, repeat until the model returns a final message or `maxSteps` is reached.
+- Engines are **stateless across `run()` calls**. Session memory is the framework's concern.
+
+## Tool definition format
+
+Tools live in `@praxis/tools` (or any extension package). Each has a Zod schema, a handler, metadata, and a verification tier.
+
+```typescript
+import { z } from "zod";
+
+interface ToolDefinition<I extends z.ZodType, O extends z.ZodType> {
+  /** Unique tool name. e.g. "math.grade", "course.get_next_lesson". */
+  name: string;
+
+  /** One-paragraph description shown to the model. Be precise. */
+  description: string;
+
+  input: I;
+  output: O;
+
+  /**
+   * Verification tier — how much can the framework trust this tool's output?
+   * - "deterministic": tool result is mathematically/algorithmically certain (sympy, code exec).
+   * - "grounded": tool result comes from a verifiable source (RAG, search w/ citation).
+   * - "model-derived": tool result is produced by an LLM and may be wrong (rubric grading, classification).
+   */
+  tier: "deterministic" | "grounded" | "model-derived";
+
+  /** Side effects on persistent state. */
+  effects: ReadonlyArray<EffectKind>;
+
+  handler(args: z.infer<I>, ctx: ToolContext): Promise<z.infer<O>>;
+}
+
+type EffectKind =
+  | "memory.write"
+  | "artifact.mutate"
+  | "gate.evaluate"
+  | "external.network"
+  | "external.code-exec"
+  | "none";
+
+interface ToolContext {
+  studentId: StudentId;
+  sessionId: SessionId;
+  services: {
+    memory: MemoryService;
+    artifacts: ArtifactsService;
+    vectorStore: VectorStore;
+    sandbox: CodeSandbox;
+    sympy: SymPyService;
+    pedagogyPack: PedagogyPackService;
+  };
+  log: Logger;
+}
+```
+
+Each engine adapter is responsible for translating `ToolDefinition` into its native registration format (MCP for Claude Code, function declarations for Codex, `tool_use` blocks for the Direct adapter).
+
+**Sketch input pattern**: tools that accept sketched work (`sketch.read`, `concept_map.read`, submission tools) return both representations: `{ json: TldrawSnapshot, image: ImageRef }`. The image is rendered server-side from the JSON to ensure consistency. The tutor's prompt instructs that JSON gives structure where shape primitives are used and the image gives the visual artifact otherwise; when they diverge, prefer the image (younger students draw freehand and the JSON carries little semantic content). Sketches are always tier `"grounded"` — the image is the source of truth, derived deterministically from the persisted scene.
+
+## Mode contract
+
+A mode is a configuration: prompt fragments + tool subset + UI surface + artifact scope. Modes live in `@praxis/curriculum` or extension packages.
+
+```typescript
+interface Mode {
+  /** Unique mode name. e.g. "teach", "quiz", "homework", "exam", "study-skills", "configure". */
+  id: string;
+  label: string;
+  description: string;
+  requiredRole: "student" | "configurator";
+
+  /** Prompt fragments composed at session start to form the system prompt. Order matters. */
+  promptFragments: PromptFragment[];
+
+  /** Names of tools available in this mode. */
+  toolNames: string[];
+
+  /** UI surface this mode runs in. */
+  uiSurface: UISurfaceId;
+
+  /** Artifact scope. Restricts what `course.*` and similar tools can see. */
+  artifactScope?: ArtifactScope;
+
+  /** Optional: shape the brief after the framework's default composition. */
+  shapeBrief?(brief: Brief, context: ModeContext): Brief;
+
+  /** Optional: hook called after every event stream completes. */
+  onTurnEnd?(events: EngineEvent[], context: ModeContext): Promise<void>;
+}
+
+interface PromptFragment {
+  id: string;
+  position: "preamble" | "role" | "principles" | "tools" | "context" | "constraints" | "postamble";
+  template: string;       // may contain `{{template_vars}}`
+  customizable: boolean;  // can parent/teacher override in configure UI?
+}
+```
+
+## Artifact schemas
+
+The structured world the agent operates on. All artifacts live in `@praxis/artifacts`.
+
+### Course
+
+```typescript
+interface Course {
+  id: CourseId;
+  studentId: StudentId;
+  title: string;
+  subject: SubjectId;             // e.g. "math.algebra-1", "biology.high-school"
+  gradeLevel: GradeBand;          // e.g. "6-8", "9-12"
+  source: CourseSource;
+  lessons: LessonId[];            // ordered
+  conceptGraphId: ConceptGraphId;
+  gates: GateId[];
+  thresholds: ThresholdConfig;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+type CourseSource =
+  | { kind: "authored"; authorRole: "parent" | "teacher" | "self-directed" }
+  | { kind: "bootstrapped"; sourceMaterials: DocumentId[] }
+  | { kind: "imported"; pack: SubjectPackId };
+
+interface ThresholdConfig {
+  conceptMastery: number;         // 0..1 — required to mark a concept "passed"
+  examPass: number;               // 0..1 — required to pass an exam-gate
+  allowRetake: boolean;
+  decayDays: number;              // days before mastery decays into review-required
+}
+```
+
+### Lesson
+
+```typescript
+interface Lesson {
+  id: LessonId;
+  courseId: CourseId;
+  title: string;
+  conceptIds: ConceptId[];        // ordered by intended sequence
+  references: Reference[];
+  suggestedStrategy: StrategyId;
+  estimatedMinutes: number;
+}
+
+interface Reference {
+  kind: "textbook" | "url" | "video" | "note";
+  source: string;
+  locator?: { page?: number; section?: string; timestamp?: number };
+}
+```
+
+### Assignment / Exam
+
+```typescript
+interface Assignment {
+  id: AssignmentId;
+  courseId: CourseId;
+  kind: "quiz" | "homework" | "exam";
+  title: string;
+  items: AssignmentItem[];
+  conceptIds: ConceptId[];
+  assignedAt: Timestamp;
+  submittedAt?: Timestamp;
+  grade?: Grade;
+}
+
+interface AssignmentItem {
+  id: string;
+  kind: "multiple-choice" | "short-answer" | "free-response" | "math" | "code";
+  prompt: string;
+  options?: string[];             // multiple-choice
+  rubric?: Rubric;                // free-response / exam-quality grading
+}
+
+interface Grade {
+  total: number;                  // 0..1
+  perItem: Array<{ itemId: string; score: number; feedback: string }>;
+  rubricUsed?: Rubric;
+  reviewedBy: "tool" | "rubric-agent" | "needs-human-review";
+}
+```
+
+### Gate
+
+```typescript
+interface Gate {
+  id: GateId;
+  courseId: CourseId;
+  guards: GateTarget;
+  prerequisites: GateId[];
+  successCriteria: SuccessCriteria;
+  state: GateState;
+  evidence: EvidenceRef[];
+}
+
+type GateTarget =
+  | { kind: "concept"; conceptId: ConceptId }
+  | { kind: "lesson"; lessonId: LessonId }
+  | { kind: "topic"; topicId: TopicId }
+  | { kind: "course-completion" };
+
+type SuccessCriteria =
+  | { kind: "mastery-threshold"; conceptIds: ConceptId[]; minScore: number }
+  | { kind: "exam-pass"; assignmentId: AssignmentId; minScore: number }
+  | { kind: "and"; criteria: SuccessCriteria[] }
+  | { kind: "or"; criteria: SuccessCriteria[] };
+
+type GateState =
+  | { kind: "locked"; missingPrerequisites: GateId[] }
+  | { kind: "unlocked"; unlockedAt: Timestamp; evidence: EvidenceRef[] }
+  | { kind: "overridden"; by: ConfiguratorId; reason: string };
+```
+
+### Flashcard / Note
+
+```typescript
+interface Flashcard {
+  id: FlashcardId;
+  studentId: StudentId;
+  conceptId?: ConceptId;
+  front: string;
+  back: string;
+  reviewState: ReviewState;       // FSRS or SM-2 internal state
+  source: { kind: "authored" | "extracted" | "user-created"; ref?: string };
+}
+
+interface Note {
+  id: NoteId;
+  studentId: StudentId;
+  context: NoteContext;
+  format: "cornell" | "feynman" | "free" | "outline" | "sketch";
+  /** Used for text formats: cornell / feynman / free / outline. */
+  body?: string;
+  /** Used for "sketch" format. Excalidraw scene JSON. */
+  sketchScene?: TldrawSnapshot;
+  links: ArtifactRef[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+interface ConceptMapDrawing {
+  id: ConceptMapId;
+  studentId: StudentId;
+  courseId?: CourseId;
+  /** The Excalidraw scene JSON. */
+  scene: TldrawSnapshot;
+  /** Linkage from drawing nodes (by element ID) to canonical concepts. */
+  conceptLinks: Array<{
+    elementId: string;
+    conceptId: ConceptId;
+    confidence: number;             // 0..1, model-derived for fuzzy matches
+  }>;
+  /** Comparison results vs. the canonical concept graph (computed lazily). */
+  divergences?: ConceptMapDivergence[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+interface ConceptMapDivergence {
+  kind: "missing-edge" | "extra-edge" | "mislabeled-direction" | "missing-concept";
+  description: string;
+  elementIds: string[];             // drawing elements involved
+}
+```
+
+## Memory schemas
+
+Memory layers live in `@praxis/memory`. Episodic is source of truth; the four projections are computed.
+
+### Episodic
+
+```typescript
+interface EpisodicEvent {
+  id: EventId;
+  sessionId: SessionId;
+  studentId: StudentId;
+  ts: Timestamp;
+  source: { engineId: string; modeId: string; turnIndex: number };
+  event: EngineEvent;
+  artifactSnapshotIds?: ArtifactSnapshotId[];
+}
+```
+
+Append-only. Indexed by session, student, time, mode, and concept references mentioned in tool calls.
+
+### Semantic (student model)
+
+```typescript
+interface StudentModel {
+  studentId: StudentId;
+  conceptMastery: Map<ConceptId, ConceptMastery>;
+  lastUpdated: Timestamp;
+}
+
+interface ConceptMastery {
+  conceptId: ConceptId;
+  pKnown: number;                 // BKT-style probability of mastery, 0..1
+  uncertainty: number;            // confidence interval width
+  lastPracticedAt?: Timestamp;
+  effectivePKnown: number;        // decay-aware mastery
+  evidence: EventId[];            // episodic events that contributed
+}
+```
+
+### Procedural
+
+```typescript
+interface ProceduralModel {
+  studentId: StudentId;
+  strategies: Map<StrategyId, StrategyPreference>;
+}
+
+interface StrategyPreference {
+  strategyId: StrategyId;
+  preference: number;             // -1..1 — how well student responds
+  evidenceCount: number;
+}
+```
+
+### Affective
+
+```typescript
+interface AffectiveModel {
+  studentId: StudentId;
+  recent: AffectSample[];
+  baseline: { engagement: number; frustration: number; confidence: number };
+}
+
+interface AffectSample {
+  ts: Timestamp;
+  source: "model-inferred" | "explicit-checkin";
+  engagement: number;             // 0..1
+  frustration: number;            // 0..1
+  confidence: number;             // 0..1
+}
+```
+
+### Misconception
+
+```typescript
+interface Misconception {
+  id: MisconceptionId;
+  studentId: StudentId;
+  conceptId: ConceptId;
+  description: string;
+  errorForm: string;              // structured form (e.g., "treats inequality as equality after operation")
+  remediation: { strategyId: StrategyId; rationale: string };
+  evidence: EventId[];
+  status: "active" | "remediated" | "manually-cleared";
+  firstObservedAt: Timestamp;
+  lastObservedAt: Timestamp;
+}
+```
+
+## Knowledge graph schema
+
+Canonical packs and extracted graphs both conform to this shape.
+
+```typescript
+interface ConceptGraph {
+  id: ConceptGraphId;
+  source: "canonical" | "extracted" | "hybrid";
+  standardsRef?: { body: string; version: string };  // e.g. { body: "CCSS-Math", version: "2010" }
+  concepts: Concept[];
+  edges: PrerequisiteEdge[];
+}
+
+interface Concept {
+  id: ConceptId;
+  graphId: ConceptGraphId;
+  name: string;
+  description: string;
+  aliases: string[];              // for cross-graph matching
+  standardsTags: string[];
+  embedding?: number[];
+}
+
+interface PrerequisiteEdge {
+  fromId: ConceptId;
+  toId: ConceptId;
+  strength: number;               // 0..1 — soft graphs admit weak edges
+  source: "canonical" | "extracted" | "manual";
+}
+```
+
+## Pedagogy pack format
+
+A versioned, signed bundle of teaching strategies and research-grounded methods. Lives outside the framework runtime; loaded at boot.
+
+```typescript
+interface PedagogyPack {
+  version: string;                // semver
+  signature: string;              // detached signature over manifest+content
+  manifest: PedagogyManifest;
+  strategies: TeachingStrategy[];
+  studyTechniques: StudyTechnique[];
+  metacognitivePrompts: MetacognitivePrompt[];
+}
+
+interface TeachingStrategy {
+  id: StrategyId;
+  name: string;                   // "worked-examples", "socratic", "elaborative-interrogation"
+  description: string;
+  applicability: {
+    conceptKinds: string[];
+    bloomsLevels: string[];
+    cognitiveLoad: "low" | "medium" | "high";
+  };
+  promptFragment: string;
+  citations: Citation[];
+}
+
+interface StudyTechnique {
+  id: TechniqueId;
+  name: string;                   // "cornell-notes", "feynman-explanation", "spaced-repetition"
+  description: string;
+  uiAffordances: string[];
+  curriculum: { lessons: TechniqueLesson[] };  // for teaching the technique to students
+  citations: Citation[];
+}
+
+interface MetacognitivePrompt {
+  id: string;
+  trigger: "pre-reading" | "post-reading" | "pre-quiz" | "post-error" | "session-end";
+  template: string;
+}
+```
+
+## Client RPC contract
+
+The interface `@praxis/client` exposes to the UI. Mirrors `@praxis/core`'s service surface; transport-agnostic.
+
+```typescript
+interface PraxisClient {
+  session: SessionService;
+  artifacts: ArtifactsService;
+  author: AuthoringService;       // configure-mode-only; gated by lock code
+  memory: MemoryService;
+  config: ConfigService;
+}
+
+interface SessionService {
+  start(opts: { courseId: CourseId; modeId: string }): Promise<SessionHandle>;
+  send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent>;
+  end(sessionId: SessionId): Promise<SessionSummary>;
+  active(): Promise<SessionHandle | null>;
+}
+
+interface ArtifactsService {
+  course(id: CourseId): Promise<Course>;
+  courses(): Promise<Course[]>;
+  gates(courseId: CourseId): Promise<Gate[]>;
+  progress(): Promise<ProgressSnapshot>;
+  flashcards(opts?: { conceptId?: ConceptId; due?: boolean }): Promise<Flashcard[]>;
+  notes(opts?: { courseId?: CourseId }): Promise<Note[]>;
+}
+
+interface AuthoringService {
+  createCourse(input: CreateCourseInput): Promise<Course>;
+  editGate(id: GateId, patch: Partial<Gate>): Promise<Gate>;
+  bootstrap(files: FileRef[], opts: BootstrapOpts): Promise<DraftCourse>;
+  customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
+}
+
+interface MemoryService {
+  studentModel(): Promise<StudentModel>;
+  misconceptions(): Promise<Misconception[]>;
+  procedural(): Promise<ProceduralModel>;
+  affective(): Promise<AffectiveModel>;
+  episodic(opts: { sessionId?: SessionId; range?: TimeRange }): AsyncIterable<EpisodicEvent>;
+  export(): Promise<MemoryExport>;
+  delete(opts: { confirm: true }): Promise<void>;
+}
+```
+
+## Versioning rules
+
+- All packages follow semver.
+- **Major bump required** for: breaking changes to any interface in this document, removal or rename of fields, change of semantics on an existing field.
+- **Minor bump** for: additive optional fields with sensible defaults, new optional methods, new tool definitions, new mode definitions.
+- **Patch bump** for: bug fixes, performance, internal refactors that don't change observed behavior.
+- Engine adapters version independently. The `Engine` interface in `@praxis/core` is the contract; adapters track its major version.
+- Subject packs and pedagogy packs version independently and declare a compatible Praxis range in their manifest.
