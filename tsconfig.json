@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "paths": {
+      "@praxis/core": ["./packages/core/src/index.ts"],
+      "@praxis/core/*": ["./packages/core/src/*.ts"],
+      "@praxis/artifacts": ["./packages/artifacts/src/index.ts"],
+      "@praxis/artifacts/*": ["./packages/artifacts/src/*.ts"],
+      "@praxis/memory": ["./packages/memory/src/index.ts"],
+      "@praxis/memory/*": ["./packages/memory/src/*.ts"],
+      "@praxis/curriculum": ["./packages/curriculum/src/index.ts"],
+      "@praxis/curriculum/*": ["./packages/curriculum/src/*.ts"]
+    }
+  },
+  "include": ["scripts/**/*", "tests/**/*", "drizzle.config.ts"],
+  "exclude": ["node_modules", "packages", "dist"]
+}

@@ -7,9 +7,28 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@praxis/artifacts':
+        specifier: workspace:*
+        version: link:packages/artifacts
+      '@praxis/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@praxis/curriculum':
+        specifier: workspace:*
+        version: link:packages/curriculum
+      '@praxis/memory':
+        specifier: workspace:*
+        version: link:packages/memory
+      drizzle-orm:
+        specifier: ^0.36.0
+        version: 0.36.4(@types/better-sqlite3@7.6.13)(better-sqlite3@12.9.0)
+      uuid:
+        specifier: ^10.0.0
+        version: 10.0.0
     devDependencies:
       '@biomejs/biome':
-        specifier: ^2.0.0
+        specifier: ^2.4.0
         version: 2.4.13
       '@types/node':
         specifier: ^24.0.0
@@ -27,7 +46,11 @@ importers:
         specifier: ^2.1.3
         version: 2.1.9(@types/node@24.12.2)
 
-  packages/artifacts: {}
+  packages/artifacts:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.36.0
+        version: 0.36.4(@types/better-sqlite3@7.6.13)(better-sqlite3@12.9.0)
 
   packages/client: {}
 
@@ -62,7 +85,11 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0
 
-  packages/curriculum: {}
+  packages/curriculum:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.36.0
+        version: 0.36.4(@types/better-sqlite3@7.6.13)(better-sqlite3@12.9.0)
 
   packages/desktop:
     dependencies:
@@ -75,7 +102,11 @@ importers:
 
   packages/engines: {}
 
-  packages/memory: {}
+  packages/memory:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.36.0
+        version: 0.36.4(@types/better-sqlite3@7.6.13)(better-sqlite3@12.9.0)
 
   packages/tools: {}
 

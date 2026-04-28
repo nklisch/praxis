@@ -20,6 +20,14 @@
     "db:show": "tsx scripts/db-show.ts",
     "db:reset": "rm -f .praxis/dev.db && pnpm db:migrate"
   },
+  "dependencies": {
+    "@praxis/artifacts": "workspace:*",
+    "@praxis/core": "workspace:*",
+    "@praxis/curriculum": "workspace:*",
+    "@praxis/memory": "workspace:*",
+    "drizzle-orm": "^0.36.0",
+    "uuid": "^10.0.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.0",
     "@types/node": "^24.0.0",

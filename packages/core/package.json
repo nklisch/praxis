@@ -5,7 +5,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./types": "./src/types/index.ts",
-    "./db": "./src/db/index.ts"
+    "./db": "./src/db/index.ts",
+    "./db/show": "./src/db/show.ts",
+    "./db/migrate": "./src/db/migrate.ts",
+    "./schema": "./src/schema.ts"
   },
   "scripts": {
     "build": "tsc -b",
