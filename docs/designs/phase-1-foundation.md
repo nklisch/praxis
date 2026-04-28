@@ -10,10 +10,10 @@ This design produces the bedrock everything else stands on: a pnpm monorepo with
 
 - **Driver**: `better-sqlite3` (mature, synchronous, well-supported by Drizzle).
 - **ID generation**: UUID v7 via the `uuid` package. Time-sortable. TypeScript brand types provide nominal typing.
-- **Module system**: ESM (`"type": "module"`). Node 22+.
+- **Module system**: ESM (`"type": "module"`). Node 24+.
 - **TypeScript**: 5.6+, strict, `verbatimModuleSyntax: true` so `import type` separation is enforced.
 - **Testing**: vitest 2+. One workspace config; per-package tests collocated as `*.test.ts`.
-- **Lint**: ESLint v9 flat config + `@typescript-eslint`. **Prettier** for formatting.
+- **Lint + format**: Biome 2 (single Rust-based toolchain replacing both ESLint and Prettier). `biome check` runs lint + format checks; `--write` applies fixes.
 - **Embeddings deferred**: `Concept.embedding` exists as an optional TypeScript field, but no embedding column or sqlite-vec virtual table ships in Phase 1. Phase 5 adds `sqlite-vec` setup.
 - **Single SQLite file**: stored at `~/Library/Application Support/Praxis/praxis.db` on macOS, equivalents on other OSes. In dev, defaults to `./.praxis/dev.db`.
 - **`@praxis/core` runtime depends on domain packages' schemas** to assemble the full DB. This is intentional — `@praxis/core` is the orchestrator per `ARCHITECTURE.md`.
@@ -29,8 +29,7 @@ This design produces the bedrock everything else stands on: a pnpm monorepo with
 - `pnpm-workspace.yaml`
 - `tsconfig.base.json`
 - `vitest.workspace.ts`
-- `eslint.config.js`
-- `.prettierrc.json`
+- `biome.json`
 - `.gitignore`
 - `.editorconfig`
 - `.nvmrc`
@@ -47,7 +46,7 @@ This design produces the bedrock everything else stands on: a pnpm monorepo with
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "packageManager": "pnpm@9.12.0",
   "scripts": {
@@ -55,22 +54,18 @@ This design produces the bedrock everything else stands on: a pnpm monorepo with
     "typecheck": "pnpm -r run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:generate": "drizzle-kit generate",
     "db:show": "tsx scripts/db-show.ts",
     "db:reset": "rm -f .praxis/dev.db && pnpm db:migrate"
   },
   "devDependencies": {
-    "@types/node": "^22.7.0",
-    "@typescript-eslint/eslint-plugin": "^8.10.0",
-    "@typescript-eslint/parser": "^8.10.0",
+    "@biomejs/biome": "^2.0.0",
+    "@types/node": "^24.0.0",
     "drizzle-kit": "^0.27.0",
-    "eslint": "^9.13.0",
-    "prettier": "^3.3.3",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
     "vitest": "^2.1.3"
@@ -127,23 +122,61 @@ export default defineWorkspace([
 ]);
 ```
 
-**`eslint.config.js`** — flat config with `@typescript-eslint`'s `recommended-type-checked`. Excludes `dist/`, `.praxis/`, `drizzle/` (generated migrations).
-
-**`.prettierrc.json`**:
+**`biome.json`**:
 
 ```json
 {
-  "printWidth": 100,
-  "semi": true,
-  "singleQuote": false,
-  "trailingComma": "all",
-  "arrowParens": "always"
+  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**/*", "!dist/**", "!.praxis/**", "!drizzle/**", "!node_modules/**"]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "warn"
+      },
+      "style": {
+        "noNonNullAssertion": "warn",
+        "useImportType": "error"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
 }
 ```
 
 **`.gitignore`** must include: `node_modules/`, `dist/`, `.praxis/`, `*.tsbuildinfo`, `.env*`, `coverage/`, `.DS_Store`.
 
-**`.nvmrc`**: `22`
+**`.nvmrc`**: `24`
 
 **`.npmrc`**: `node-linker=isolated`, `auto-install-peers=true`
 
@@ -160,16 +193,15 @@ export default defineWorkspace([
 
 **Implementation Notes**:
 - The pnpm version is pinned via `packageManager` for reproducible installs.
-- `verbatimModuleSyntax: true` enforces that domain packages can only `import type` from `@praxis/core/types` — this is how the architectural rule "client may import types only from core" gets enforced at compile time.
-- ESLint flat config (eslint v9+) is the modern standard; legacy `.eslintrc` is deprecated.
+- `verbatimModuleSyntax: true` enforces that domain packages can only `import type` from `@praxis/core/types` — this is how the architectural rule "client may import types only from core" gets enforced at compile time. Biome's `useImportType` rule reinforces this at the lint layer.
+- Biome 2 is the single toolchain for lint + format. `biome check` lints and verifies formatting; `biome check --write` applies fixes. No ESLint, no Prettier, no `eslint.config.js`, no `.prettierrc`.
 - `vitest.workspace.ts` discovers tests in every package and the root `tests/` dir.
 
 **Acceptance Criteria**:
 - [ ] `pnpm install` succeeds on a clean clone
 - [ ] `pnpm typecheck` passes (no source files yet — checks tsconfig graph)
-- [ ] `pnpm lint` runs without errors
-- [ ] `pnpm format:check` passes on the committed config files
-- [ ] `node --version` matches `.nvmrc`
+- [ ] `pnpm lint` (`biome check .`) runs without errors on committed files
+- [ ] `node --version` matches `.nvmrc` (24+)
 - [ ] `CLAUDE.md` exists and references `docs/CONTRACT.md`
 
 ---
@@ -214,7 +246,7 @@ packages/desktop/{package.json,tsconfig.json,src/index.ts}
     "better-sqlite3": "^11.3.0",
     "drizzle-orm": "^0.36.0",
     "uuid": "^10.0.0",
-    "zod": "^3.23.8"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
@@ -2122,7 +2154,7 @@ Run these in order on a clean clone after implementation:
 - [ ] `pnpm install` succeeds
 - [ ] `pnpm typecheck` passes (project references resolve, all types compile under strict mode)
 - [ ] `pnpm lint` passes
-- [ ] `pnpm format:check` passes
+- [ ] `pnpm lint` (`biome check`) passes (covers both lint and format verification)
 - [ ] `pnpm db:generate` produces a migration in `drizzle/` (run once after schemas land)
 - [ ] `pnpm db:migrate` creates `.praxis/dev.db` and applies migrations without error
 - [ ] `pnpm db:show` lists every expected table with row counts
