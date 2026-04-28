@@ -1,0 +1,17 @@
+{
+  "name": "@praxis/desktop",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@praxis/core": "workspace:*",
+    "@praxis/ui": "workspace:*"
+  }
+}
