@@ -1,4 +1,11 @@
-import type { ToolContext, ToolDefinition } from "@praxis/core/types";
+import type {
+  SymPyCheckEquivalentResult,
+  SymPyCheckSolutionResult,
+  SymPySimplifyResult,
+  SymPySolveEquationResult,
+  ToolContext,
+  ToolDefinition,
+} from "@praxis/core/types";
 import { z } from "zod";
 
 const checkSolutionInput = z.object({
@@ -79,6 +86,60 @@ export const gradeMathOutput = z.discriminatedUnion("kind", [
   checkEquivalentOutput,
 ]);
 
+/** Carry the optional diagnostics fields onto any discriminated output object. */
+function withDiagnostics(
+  base: Record<string, unknown>,
+  source: { needsHumanReview?: boolean; parseError?: string },
+): Record<string, unknown> {
+  return {
+    ...base,
+    ...(source.needsHumanReview !== undefined && { needsHumanReview: source.needsHumanReview }),
+    ...(source.parseError !== undefined && { parseError: source.parseError }),
+  };
+}
+
+function buildCheckSolutionOutput(
+  r: SymPyCheckSolutionResult,
+): z.infer<typeof checkSolutionOutput> {
+  return withDiagnostics(
+    {
+      kind: "check_solution",
+      correct: r.correct,
+      proposedValue: r.proposedValue,
+      expectedSolutions: r.expectedSolutions,
+    },
+    r,
+  ) as z.infer<typeof checkSolutionOutput>;
+}
+
+function buildSolveEquationOutput(
+  r: SymPySolveEquationResult,
+): z.infer<typeof solveEquationOutput> {
+  return withDiagnostics({ kind: "solve_equation", solutions: r.solutions }, r) as z.infer<
+    typeof solveEquationOutput
+  >;
+}
+
+function buildSimplifyOutput(r: SymPySimplifyResult): z.infer<typeof simplifyOutput> {
+  return withDiagnostics(
+    { kind: "simplify", simplified: r.simplified, simplifiedLatex: r.simplifiedLatex },
+    r,
+  ) as z.infer<typeof simplifyOutput>;
+}
+
+function buildCheckEquivalentOutput(
+  r: SymPyCheckEquivalentResult,
+): z.infer<typeof checkEquivalentOutput> {
+  return withDiagnostics(
+    {
+      kind: "check_equivalent",
+      equivalent: r.equivalent,
+      ...(r.difference !== undefined && { difference: r.difference }),
+    },
+    r,
+  ) as z.infer<typeof checkEquivalentOutput>;
+}
+
 export const gradeMathTool: ToolDefinition<typeof gradeMathInput, typeof gradeMathOutput> = {
   name: "grade_math",
   description: `Symbolic math via sympy. Use this for ANY arithmetic, algebra, or equation work — never trust your own arithmetic for grading.
@@ -98,60 +159,40 @@ If parse_error or needs_human_review is set, the input couldn't be parsed cleanl
     const sympy = ctx.services.sympy;
     switch (args.kind) {
       case "check_solution": {
-        const r = await sympy.checkSolution({
-          equation: args.equation,
-          variable: args.variable,
-          proposedValue: args.proposedValue,
-          ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
-        });
-        return {
-          kind: "check_solution" as const,
-          correct: r.correct,
-          proposedValue: r.proposedValue,
-          expectedSolutions: r.expectedSolutions,
-          ...(r.needsHumanReview !== undefined && { needsHumanReview: r.needsHumanReview }),
-          ...(r.parseError !== undefined && { parseError: r.parseError }),
-        };
+        return buildCheckSolutionOutput(
+          await sympy.checkSolution({
+            equation: args.equation,
+            variable: args.variable,
+            proposedValue: args.proposedValue,
+            ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
+          }),
+        );
       }
       case "solve_equation": {
-        const r = await sympy.solveEquation({
-          equation: args.equation,
-          variable: args.variable,
-          ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
-        });
-        return {
-          kind: "solve_equation" as const,
-          solutions: r.solutions,
-          ...(r.needsHumanReview !== undefined && { needsHumanReview: r.needsHumanReview }),
-          ...(r.parseError !== undefined && { parseError: r.parseError }),
-        };
+        return buildSolveEquationOutput(
+          await sympy.solveEquation({
+            equation: args.equation,
+            variable: args.variable,
+            ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
+          }),
+        );
       }
       case "simplify": {
-        const r = await sympy.simplify({
-          expression: args.expression,
-          ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
-        });
-        return {
-          kind: "simplify" as const,
-          simplified: r.simplified,
-          simplifiedLatex: r.simplifiedLatex,
-          ...(r.needsHumanReview !== undefined && { needsHumanReview: r.needsHumanReview }),
-          ...(r.parseError !== undefined && { parseError: r.parseError }),
-        };
+        return buildSimplifyOutput(
+          await sympy.simplify({
+            expression: args.expression,
+            ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
+          }),
+        );
       }
       case "check_equivalent": {
-        const r = await sympy.checkEquivalent({
-          expression1: args.expression1,
-          expression2: args.expression2,
-          ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
-        });
-        return {
-          kind: "check_equivalent" as const,
-          equivalent: r.equivalent,
-          ...(r.difference !== undefined && { difference: r.difference }),
-          ...(r.needsHumanReview !== undefined && { needsHumanReview: r.needsHumanReview }),
-          ...(r.parseError !== undefined && { parseError: r.parseError }),
-        };
+        return buildCheckEquivalentOutput(
+          await sympy.checkEquivalent({
+            expression1: args.expression1,
+            expression2: args.expression2,
+            ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
+          }),
+        );
       }
     }
   },
