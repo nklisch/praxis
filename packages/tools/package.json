@@ -4,7 +4,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./test-tools": "./src/test-tools/index.ts"
+    "./test-tools": "./src/test-tools/index.ts",
+    "./math": "./src/math/index.ts",
+    "./sandbox": "./src/sandbox/index.ts",
+    "./runtime": "./src/runtime/index.ts"
   },
   "scripts": {
     "build": "tsc -b",
@@ -13,6 +16,8 @@
   },
   "dependencies": {
     "@praxis/core": "workspace:*",
+    "isolated-vm": "^6.1.0",
+    "pyodide": "^0.29.3",
     "zod": "^4.0.0"
   }
 }

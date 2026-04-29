@@ -21,14 +21,28 @@ describe("mode registry", () => {
     expect(modes.some((m) => m.id === "teach")).toBe(true);
   });
 
-  it("teachMode has all 5 prompt fragments", () => {
-    expect(teachMode.promptFragments).toHaveLength(5);
+  it("teachMode has all 6 prompt fragments (including tools)", () => {
+    expect(teachMode.promptFragments).toHaveLength(6);
     const positions = teachMode.promptFragments.map((f) => f.position);
     expect(positions).toContain("preamble");
     expect(positions).toContain("role");
     expect(positions).toContain("principles");
+    expect(positions).toContain("tools");
     expect(positions).toContain("constraints");
     expect(positions).toContain("postamble");
+  });
+
+  it("teachMode toolNames includes grade_math and code_sandbox", () => {
+    expect(teachMode.toolNames).toEqual(["grade_math", "code_sandbox"]);
+  });
+
+  it("toolsFragment is between principles and constraints", () => {
+    const positions = teachMode.promptFragments.map((f) => f.position);
+    const principlesIdx = positions.indexOf("principles");
+    const toolsIdx = positions.indexOf("tools");
+    const constraintsIdx = positions.indexOf("constraints");
+    expect(toolsIdx).toBeGreaterThan(principlesIdx);
+    expect(toolsIdx).toBeLessThan(constraintsIdx);
   });
 
   it("principles fragment is not customizable", () => {

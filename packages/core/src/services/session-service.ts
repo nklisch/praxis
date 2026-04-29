@@ -251,14 +251,22 @@ export class SessionServiceImpl implements SessionService {
         memory: null,
         artifacts: null,
         vectorStore: null,
-        sandbox: null,
-        sympy: null,
+        sandbox: this.deps.toolServices.sandbox,
+        sympy: this.deps.toolServices.sympy,
         pedagogyPack: null,
       },
       log: this.deps.log,
     };
+
+    // Phase 4: filter toolDefinitions by mode.toolNames.
+    const enabledNames = new Set(args.mode.toolNames);
+    const enabledTools =
+      enabledNames.size === 0
+        ? this.deps.toolDefinitions // empty array means "all available" for backward compat
+        : this.deps.toolDefinitions.filter((t) => enabledNames.has(t.name));
+
     const tools = new InProcessToolRegistry({
-      tools: this.deps.toolDefinitions,
+      tools: enabledTools,
       context: toolContext,
     });
 

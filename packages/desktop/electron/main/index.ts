@@ -12,6 +12,13 @@ async function bootstrap(): Promise<void> {
   const dbPath = resolveDbPath();
   await applyMigrations(dbPath);
   services = buildServices(dbPath);
+
+  // Preload pyodide in the background so the first tool call is snappy.
+  // Failure is non-fatal — the first call will surface any error.
+  services.pyodide.preload().catch((err) => {
+    console.warn("[praxis] pyodide preload failed:", err);
+  });
+
   mainWindow = createMainWindow();
 
   registerIpcHandlers(services, () => mainWindow?.webContents ?? null);

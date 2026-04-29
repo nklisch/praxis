@@ -1,6 +1,6 @@
 import type { ToolContext } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { InProcessToolRegistry } from "../registry.js";
 import { echoTool, nowTool } from "../test-tools/index.js";
@@ -12,8 +12,14 @@ const ctx: ToolContext = {
     memory: null,
     artifacts: null,
     vectorStore: null,
-    sandbox: null,
-    sympy: null,
+    sandbox: { run: vi.fn() },
+    sympy: {
+      checkSolution: vi.fn(),
+      solveEquation: vi.fn(),
+      simplify: vi.fn(),
+      checkEquivalent: vi.fn(),
+      parseLatex: vi.fn(),
+    },
     pedagogyPack: null,
   },
   log: {

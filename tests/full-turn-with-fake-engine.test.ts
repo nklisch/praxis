@@ -14,16 +14,41 @@ import { closeDb, openDb } from "@praxis/core/db";
 import { runMigrations } from "@praxis/core/db/migrate";
 import { SessionServiceImpl } from "@praxis/core/services";
 import type {
+  CodeSandbox,
   Engine,
   EngineEvent,
   EngineOpenOptions,
   EngineSession,
   HealthStatus,
+  SymPyService,
 } from "@praxis/core/types";
 import { teachMode } from "@praxis/curriculum/modes";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// isolated-vm@6.1.2 prebuilts don't cover Node 25 (ABI 141).
+// @praxis/core/services imports @praxis/tools which exports IsolatedVmHost → isolated-vm.
+// Provide a minimal stub so the module graph loads without a native binary.
+// vi.mock is hoisted by Vitest above all imports.
+vi.mock("isolated-vm", () => ({
+  default: {
+    Isolate: class {
+      async createContext() {
+        return { global: { set: async () => {}, derefInto: () => ({}) }, release: () => {} };
+      }
+      async compileScript(_code: string) {
+        return { run: async () => {} };
+      }
+      dispose() {}
+    },
+    Reference: class {
+      // biome-ignore lint/complexity/noUselessConstructor: mock needs constructor to match API
+      // biome-ignore lint/suspicious/noExplicitAny: mock constructor param
+      constructor(_fn: (...args: any[]) => unknown) {}
+    },
+  },
+}));
 
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 
@@ -79,6 +104,20 @@ const noopLogger = {
   error: () => {},
 };
 
+const mockSympy: SymPyService = {
+  checkSolution: vi.fn(),
+  solveEquation: vi.fn(),
+  simplify: vi.fn(),
+  checkEquivalent: vi.fn(),
+  parseLatex: vi.fn(),
+};
+
+const mockSandbox: CodeSandbox = {
+  run: vi.fn(),
+};
+
+const mockToolServices = { sympy: mockSympy, sandbox: mockSandbox };
+
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), "praxis-test-full-turn-"));
   dbPath = join(tmpDir, "test.db");
@@ -106,6 +145,7 @@ describe("full turn with fake engine", () => {
       log: noopLogger,
       modes,
       toolDefinitions: [],
+      toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
     });
 
@@ -150,6 +190,7 @@ describe("full turn with fake engine", () => {
       log: noopLogger,
       modes,
       toolDefinitions: [],
+      toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
     });
 
@@ -181,6 +222,7 @@ describe("full turn with fake engine", () => {
       log: noopLogger,
       modes,
       toolDefinitions: [],
+      toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
     });
 
@@ -214,6 +256,7 @@ describe("full turn with fake engine", () => {
       log: noopLogger,
       modes,
       toolDefinitions: [],
+      toolServices: mockToolServices,
       engineFactory: () => new CountingFakeEngine(),
     });
 
@@ -241,6 +284,7 @@ describe("full turn with fake engine", () => {
       log: noopLogger,
       modes,
       toolDefinitions: [],
+      toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
     });
 
@@ -273,6 +317,7 @@ describe("full turn with fake engine", () => {
       log: noopLogger,
       modes,
       toolDefinitions: [],
+      toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
     });
 

@@ -11,7 +11,8 @@
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.electron.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "postinstall": "electron-rebuild -f -w isolated-vm"
   },
   "dependencies": {
     "@praxis/client": "workspace:*",
@@ -21,6 +22,7 @@
     "@praxis/ui": "workspace:*"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@types/node": "^24.0.0",
     "@vitejs/plugin-react": "^4.3.1",
     "electron": "41.3.0",

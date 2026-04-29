@@ -4,6 +4,7 @@ import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
 import { roleFragment } from "./fragments/role.js";
+import { toolsFragment } from "./fragments/tools.js";
 
 export const teachMode: Mode = {
   id: "teach",
@@ -15,9 +16,10 @@ export const teachMode: Mode = {
     preambleFragment,
     roleFragment,
     principlesFragment,
+    toolsFragment,
     constraintsFragment,
     postambleFragment,
   ],
-  toolNames: [], // Phase 2: no real tools registered to teach mode yet.
+  toolNames: ["grade_math", "code_sandbox"],
   uiSurface: "chat",
 };

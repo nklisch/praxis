@@ -6,8 +6,14 @@ import { brandId } from "@praxis/core/types";
 import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { teachMode } from "@praxis/curriculum/modes";
 import { createEngine, runOneShot } from "@praxis/engines";
-import { InProcessToolRegistry } from "@praxis/tools";
-import { echoTool, nowTool } from "@praxis/tools/test-tools";
+import {
+  InProcessToolRegistry,
+  IsolatedVmHost,
+  PyodideHost,
+  PyodideSymPyService,
+} from "@praxis/tools";
+import { gradeMathTool } from "@praxis/tools/math";
+import { codeSandboxTool, LocalCodeSandbox } from "@praxis/tools/sandbox";
 import { v7 as uuidv7 } from "uuid";
 
 const consoleLogger: Logger = {
@@ -47,6 +53,12 @@ async function main() {
 
   const studentId = brandId<"StudentId">(uuidv7()); // Phase 2/3: ephemeral student per script run.
   const sessionId = brandId<"SessionId">(uuidv7());
+
+  const pyodide = new PyodideHost({ packages: ["sympy"] });
+  const jsHost = new IsolatedVmHost();
+  const sympy = new PyodideSymPyService(pyodide);
+  const sandbox = new LocalCodeSandbox(jsHost, pyodide);
+
   const toolContext = {
     studentId,
     sessionId,
@@ -54,14 +66,14 @@ async function main() {
       memory: null,
       artifacts: null,
       vectorStore: null,
-      sandbox: null,
-      sympy: null,
+      sandbox,
+      sympy,
       pedagogyPack: null,
     },
     log: consoleLogger,
   };
   const tools = new InProcessToolRegistry({
-    tools: values["no-tools"] ? [] : [echoTool, nowTool],
+    tools: values["no-tools"] ? [] : [gradeMathTool, codeSandboxTool],
     context: toolContext,
   });
 
