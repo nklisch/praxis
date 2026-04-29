@@ -109,6 +109,15 @@ The metacognition coach's dedicated mode. Teaches and practices the principles-t
 - Tools: workspace tools (Cornell, Feynman, concept-map editors), pedagogy-pack content retrieval, scheduling for spaced review.
 - Often spans across courses — study skills generalize.
 
+### `bootstrap`
+
+A pre-curricular mode for authoring a new course from uploaded materials. Available without lock; intended for student self-onboard (UX path 2 in `UX.md`) and for the parent / teacher's first course before lock-gated `configure` is set up.
+
+- Prompt fragments: bootstrap-specific role + tools.
+- Tools: `course.list_documents`, `course.propose_draft`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`, plus `retrieve_from_textbook` for ad-hoc lookup while authoring.
+- The agent runs the conversation: proposes a draft, walks the student through it, applies edits one at a time, persists on confirmation.
+- Phase 11's `configure` mode subsumes bootstrap (lock-gated, with full gate / prompt / memory editors layered on).
+
 ### `configure`
 
 Lock-gated. Parent/teacher (or self-directed learner) authors and tunes.

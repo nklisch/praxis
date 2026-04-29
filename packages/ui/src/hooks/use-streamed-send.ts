@@ -1,4 +1,9 @@
-import type { PraxisClient, RetrievalCitation, SessionId } from "@praxis/core/types";
+import type {
+  PraxisClient,
+  ProposedCourse,
+  RetrievalCitation,
+  SessionId,
+} from "@praxis/core/types";
 import { useState } from "react";
 
 export interface ChatMessage {
@@ -8,6 +13,8 @@ export interface ChatMessage {
   streaming?: boolean;
   /** Citations from retrieve_from_textbook tool calls in this message. */
   citations?: RetrievalCitation[];
+  /** Draft courses from course.show_draft tool calls in this message. */
+  drafts?: ProposedCourse[];
 }
 
 export interface UseStreamedSendResult {
@@ -48,6 +55,7 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     // Track the most recent tool_call name so we know which tool_result to harvest
     let lastToolCallName: string | null = null;
     const accumulatedCitations: RetrievalCitation[] = [];
+    const accumulatedDrafts: ProposedCourse[] = [];
 
     try {
       for await (const event of client.session.send(sessionId, message)) {
@@ -71,19 +79,36 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           // Track the tool name so we know what to expect in tool_result
           lastToolCallName = event.toolName;
         } else if (event.type === "tool_result") {
-          // Harvest citations from retrieve_from_textbook results
+          // Dispatch on tool name — extensible: add new renderable tools here.
           if (lastToolCallName === "retrieve_from_textbook" && event.result.ok) {
             const value = event.result.value as { citations?: RetrievalCitation[] } | undefined;
             if (value?.citations && Array.isArray(value.citations)) {
               accumulatedCitations.push(...(value.citations as RetrievalCitation[]));
             }
+          } else if (lastToolCallName === "course.show_draft" && event.result.ok) {
+            // show_draft returns { kind: "ok", draft: DraftCourseState } or { kind: "not_found" }
+            const value = event.result.value as
+              | { kind: "ok"; draft: { proposed: ProposedCourse } }
+              | { kind: "not_found" }
+              | undefined;
+            if (value?.kind === "ok" && value.draft?.proposed) {
+              accumulatedDrafts.push(value.draft.proposed);
+            }
           }
           lastToolCallName = null;
-          // Update message with accumulated citations
-          if (accumulatedCitations.length > 0) {
+          // Update message with accumulated tool-result data
+          if (accumulatedCitations.length > 0 || accumulatedDrafts.length > 0) {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantMsgId ? { ...m, citations: [...accumulatedCitations] } : m,
+                m.id === assistantMsgId
+                  ? {
+                      ...m,
+                      ...(accumulatedCitations.length > 0 && {
+                        citations: [...accumulatedCitations],
+                      }),
+                      ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
+                    }
+                  : m,
               ),
             );
           }
@@ -103,6 +128,7 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
                 ...m,
                 streaming: false,
                 ...(accumulatedCitations.length > 0 && { citations: [...accumulatedCitations] }),
+                ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
               }
             : m,
         ),

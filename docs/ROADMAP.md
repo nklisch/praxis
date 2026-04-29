@@ -98,15 +98,16 @@ Three integration milestones along the way: **M1** end-to-end tutor session, **M
 
 ## Phase 6: Course + lesson + bootstrap
 
-**Goal:** Bootstrap a course from materials; tutor navigates lessons.
+**Goal:** Author a course conversationally; tutor navigates lessons.
 
 **Build:**
-- Course / Lesson / Reference schemas + state machine
-- Course tools (`course.what_can_i_teach`, `course.start_lesson`, `course.current_concept`, `course.mark_studied`)
-- `course.bootstrap_from_materials` (ingest → extractor agent → draft course)
-- Course context loaded into mode briefs at session bootstrap
+- Course / Lesson / Reference schemas + state machine (`lesson_progress`, `concept_progress` tables)
+- Course-navigation tools in `teach` mode (`course.what_can_i_teach`, `course.start_lesson`, `course.current_concept`, `course.mark_studied`)
+- New `bootstrap` mode + draft-authoring tools (`course.list_documents`, `course.propose_draft`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`) — bootstrap is conversational; the user refines the proposed course in dialogue with the agent
+- Concept-extractor agent: one-shot fresh engine session reading ingested document chunks; returns proposed concepts, edges, lessons; persisted on `course.confirm_draft`
+- Course context loaded into `teach` system prompts at session bootstrap (current lesson, concepts studied/unstudied, references, suggested strategy)
 
-**Test checkpoint:** Drop syllabus + textbook. Bootstrap. Confirm draft course in UI. Start session — tutor opens with the loaded lesson context.
+**Test checkpoint:** Drop syllabus + textbook through Phase 5 ingestion. Open a `bootstrap` session, ask the tutor to draft a course; refine via conversation; confirm. Confirmed course appears in /courses. Open a `teach` session against the new course — the tutor's first message references the active lesson and concepts.
 
 ---
 

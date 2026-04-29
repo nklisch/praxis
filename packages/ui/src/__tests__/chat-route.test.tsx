@@ -5,6 +5,15 @@ import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { ChatRoute } from "../routes/chat.js";
 
+// useSearch requires a RouterProvider — mock it to return no search params.
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-router")>();
+  return {
+    ...actual,
+    useSearch: () => ({}),
+  };
+});
+
 function makeFakeClient(overrides?: Partial<PraxisClient["session"]>): PraxisClient {
   const session: PraxisClient["session"] = {
     active: vi.fn().mockResolvedValue(null),

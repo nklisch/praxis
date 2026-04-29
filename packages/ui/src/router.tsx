@@ -2,6 +2,8 @@ import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/re
 import { Nav } from "./components/nav.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
+import { CourseDetailRoute } from "./routes/course-detail.js";
+import { CoursesRoute } from "./routes/courses.js";
 import { SettingsRoute } from "./routes/settings.js";
 
 const rootRoute = createRootRoute({
@@ -27,7 +29,24 @@ const settingsRoute = createRoute({
   component: SettingsRoute,
 });
 
-const routeTree = rootRoute.addChildren([chatRoute, settingsRoute]);
+const coursesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/courses",
+  component: CoursesRoute,
+});
+
+const courseDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/courses/$courseId",
+  component: CourseDetailRoute,
+});
+
+const routeTree = rootRoute.addChildren([
+  chatRoute,
+  settingsRoute,
+  coursesRoute,
+  courseDetailRoute,
+]);
 
 export const router = createRouter({ routeTree });
 

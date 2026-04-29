@@ -12,6 +12,15 @@ export function Nav() {
           </Link>
         </li>
         <li>
+          <Link
+            to="/courses"
+            activeOptions={{ exact: false }}
+            activeProps={{ className: styles.active }}
+          >
+            Courses
+          </Link>
+        </li>
+        <li>
           <Link to="/settings" activeProps={{ className: styles.active }}>
             Settings
           </Link>

@@ -33,6 +33,6 @@
 }
 
 .active {
-  color: var(--color-text) !important;
+  color: var(--color-text);
   background: var(--color-border);
 }

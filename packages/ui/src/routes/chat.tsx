@@ -1,4 +1,6 @@
-import type { SessionHandle } from "@praxis/core/types";
+import type { SessionHandle, SessionId } from "@praxis/core/types";
+import { brandId } from "@praxis/core/types";
+import { useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
 import { Composer } from "../components/composer.js";
@@ -19,6 +21,15 @@ export function ChatRoute() {
   const [starting, setStarting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // If the user navigated here with ?sessionId=xxx (e.g., from "New course" or
+  // "Start session" buttons), pick up that already-started session instead of
+  // auto-starting a fresh teach session.
+  // biome-ignore lint/suspicious/noExplicitAny: TanStack Router search params typed loosely at root
+  const search = useSearch({ strict: false }) as Record<string, any>;
+  const externalSessionId: SessionId | undefined = search?.sessionId
+    ? brandId<"SessionId">(String(search.sessionId))
+    : undefined;
+
   // Page-image side panel state
   const [pageImageTarget, setPageImageTarget] = useState<{
     documentId: string;
@@ -37,16 +48,39 @@ export function ChatRoute() {
   // Ingestion flow — refresh documents list when ingestion completes
   const ingestion = useIngestion(refreshDocs);
 
-  // Auto-start a session on mount (React 19 double-mount safe).
+  // Session acquisition on mount (React 19 double-mount safe).
+  // If an externalSessionId was passed via search param, resolve that session
+  // via client.session.active() in the single-active-session model.
+  // Otherwise auto-start a fresh teach session (legacy default behaviour).
   useEffect(() => {
     let cancelled = false;
 
-    async function startSession() {
+    async function acquireSession() {
       setStarting(true);
       setStartError(null);
       try {
-        const handle = await client.session.start({ modeId: "teach" });
-        if (!cancelled) setSession(handle);
+        if (externalSessionId) {
+          // Optimistically treat the external id as the active session handle.
+          // client.session.active() returns the most-recent active session;
+          // in the single-session v1 model that's the one we just started.
+          const active = await client.session.active();
+          if (!cancelled) {
+            if (active && active.sessionId === externalSessionId) {
+              setSession(active);
+            } else {
+              // Fallback: build a minimal handle from what we know so chat is
+              // usable even if active() doesn't match yet.
+              setSession({
+                sessionId: externalSessionId,
+                modeId: "bootstrap",
+                startedAt: Date.now() as import("@praxis/core/types").Timestamp,
+              });
+            }
+          }
+        } else {
+          const handle = await client.session.start({ modeId: "teach" });
+          if (!cancelled) setSession(handle);
+        }
       } catch (err) {
         if (!cancelled) {
           setStartError(err instanceof Error ? err.message : String(err));
@@ -56,12 +90,14 @@ export function ChatRoute() {
       }
     }
 
-    startSession();
+    acquireSession();
 
     return () => {
       cancelled = true;
     };
-  }, [client]);
+    // externalSessionId is derived from search params and stable per navigation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client, externalSessionId]);
 
   // Scroll to bottom when the message count changes.
   const messageCount = messages.length;
@@ -144,6 +180,7 @@ export function ChatRoute() {
               content={msg.content}
               {...(msg.streaming !== undefined && { streaming: msg.streaming })}
               {...(msg.citations !== undefined && { citations: msg.citations })}
+              {...(msg.drafts !== undefined && { drafts: msg.drafts })}
               onViewPage={handleViewPage}
             />
           ))}

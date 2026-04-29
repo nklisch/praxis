@@ -602,16 +602,25 @@ interface SessionService {
 
 interface ArtifactsService {
   course(id: CourseId): Promise<Course>;
-  courses(): Promise<Course[]>;
+  /** Phase 6 change: returns CourseSummary[] for the list view; full Course is fetched per-id via course(id). */
+  courses(): Promise<CourseSummary[]>;
+  lessons(courseId: CourseId): Promise<Lesson[]>;
   gates(courseId: CourseId): Promise<Gate[]>;
   progress(): Promise<ProgressSnapshot>;
   flashcards(opts?: { conceptId?: ConceptId; due?: boolean }): Promise<Flashcard[]>;
   notes(opts?: { courseId?: CourseId }): Promise<Note[]>;
 }
 
+/**
+ * v1 ships course-bootstrap as a `bootstrap` mode (Phase 6) and full lock-gated
+ * authoring as `configure` mode (Phase 11). The bootstrap(files, opts) → DraftCourse
+ * interface remains specified for forward-compat with scripted-authoring use cases
+ * but is unimplemented in v1.
+ */
 interface AuthoringService {
   createCourse(input: CreateCourseInput): Promise<Course>;
   editGate(id: GateId, patch: Partial<Gate>): Promise<Gate>;
+  /** Unimplemented in v1 — Phase 6 ships bootstrap as a mode, not a service method. */
   bootstrap(files: FileRef[], opts: BootstrapOpts): Promise<DraftCourse>;
   customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
 }

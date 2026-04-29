@@ -1,5 +1,6 @@
-import type { RetrievalCitation } from "@praxis/core/types";
+import type { ProposedCourse, RetrievalCitation } from "@praxis/core/types";
 import { CitationChip } from "./citation-chip.js";
+import { DraftCard } from "./draft-card.js";
 import styles from "./message.module.css";
 import { SourceCard } from "./source-card.js";
 
@@ -10,6 +11,8 @@ export interface MessageBubbleProps {
   content: string;
   streaming?: boolean | undefined;
   citations?: RetrievalCitation[];
+  /** Draft courses from course.show_draft tool results in this message. */
+  drafts?: ProposedCourse[];
   onViewPage?: (documentId: string, page: number) => void;
 }
 
@@ -50,6 +53,7 @@ export function MessageBubble({
   content,
   streaming = false,
   citations,
+  drafts,
   onViewPage,
 }: MessageBubbleProps) {
   const handleCitationClick = (index: number) => {
@@ -62,6 +66,14 @@ export function MessageBubble({
     <div className={`${styles.bubble} ${styles[role] ?? ""} ${streaming ? styles.streaming : ""}`}>
       <span className={styles.label}>{role === "user" ? "You" : "Tutor"}</span>
       {renderContentWithCitations(content, citations, handleCitationClick)}
+      {drafts && drafts.length > 0 && role === "assistant" && (
+        <div className={styles.drafts}>
+          {drafts.map((draft, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: drafts in a single message are indexed by position
+            <DraftCard key={i} proposed={draft} />
+          ))}
+        </div>
+      )}
       {citations && citations.length > 0 && role === "assistant" && (
         <div className={styles.sources}>
           {citations.map((c) => (

@@ -1,0 +1,101 @@
+.card {
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.header {
+  margin-bottom: 0.75rem;
+}
+
+.title {
+  margin: 0 0 0.15rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text, inherit);
+}
+
+.meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #aaa);
+}
+
+.section {
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sectionSummary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-accent, #6366f1);
+  font-size: 0.82rem;
+  user-select: none;
+  list-style: none;
+  padding: 0.2rem 0;
+}
+
+.sectionSummary::marker,
+.sectionSummary::-webkit-details-marker {
+  display: none;
+}
+
+details[open] .sectionSummary::before {
+  content: "▾ ";
+}
+
+details:not([open]) .sectionSummary::before {
+  content: "▸ ";
+}
+
+.lessonList {
+  margin: 0.5rem 0 0.25rem 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lessonItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.lessonTitle {
+  color: var(--color-text, inherit);
+}
+
+.conceptList {
+  margin: 0.15rem 0 0 1rem;
+  padding: 0;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.conceptItem {
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.8rem;
+}
+
+.flatList {
+  margin: 0.5rem 0 0.25rem 1.25rem;
+  padding: 0;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.flatItem {
+  color: var(--color-text, inherit);
+  line-height: 1.5;
+}

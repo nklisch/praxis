@@ -1,0 +1,65 @@
+.item {
+  list-style: none;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  gap: 1rem;
+}
+
+.btn:hover {
+  border-color: var(--color-accent, #6366f1);
+  background: var(--color-card-bg-hover, rgba(99, 102, 241, 0.06));
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text, inherit);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #aaa);
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.progress {
+  font-size: 0.78rem;
+  color: var(--color-accent, #6366f1);
+  font-weight: 600;
+}
+
+.lessonCount {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #aaa);
+}

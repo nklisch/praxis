@@ -321,7 +321,11 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
     expect(typeof result.conceptGraphId).toBe("string");
 
     // Verify DB rows.
-    const courseRow = db.select().from(courses).where(courses.id ? undefined : undefined).all();
+    const courseRow = db
+      .select()
+      .from(courses)
+      .where(courses.id ? undefined : undefined)
+      .all();
     expect(courseRow).toHaveLength(1);
     expect(courseRow[0]?.title).toBe("Algebra 1");
 
