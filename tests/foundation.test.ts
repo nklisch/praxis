@@ -1,36 +1,22 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { closeDb, openDb } from "@praxis/core/db";
+import { openDb } from "@praxis/core/db";
 import { runMigrations } from "@praxis/core/db/migrate";
 import { listTables } from "@praxis/core/db/show";
 import type { Database } from "better-sqlite3";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
-let tmpDir: string;
-let dbPath: string;
-
-beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "praxis-test-"));
-  dbPath = join(tmpDir, "test.db");
-  process.env.PRAXIS_DB_PATH = dbPath;
-});
-
-afterEach(() => {
-  closeDb();
-  delete process.env.PRAXIS_DB_PATH;
-  rmSync(tmpDir, { recursive: true, force: true });
-});
+import { describe, expect, it } from "vitest";
+import { useTempDb } from "./helpers/db-setup.js";
 
 describe("foundation: migration + schema discovery", () => {
+  // Disable auto-migrate — tests below want to control when migrations run
+  const db = useTempDb({ migrate: false });
+
   it("opens a fresh database and applies migrations", () => {
-    const result = runMigrations({ path: dbPath });
-    expect(result.path).toBe(dbPath);
+    const result = runMigrations({ path: db.dbPath });
+    expect(result.path).toBe(db.dbPath);
   });
 
   it("lists every expected table after migration", () => {
-    runMigrations({ path: dbPath });
-    const tables = listTables({ path: dbPath })
+    runMigrations({ path: db.dbPath });
+    const tables = listTables({ path: db.dbPath })
       .map((t) => t.name)
       .sort();
 
@@ -49,8 +35,9 @@ describe("foundation: migration + schema discovery", () => {
   });
 
   it("enables WAL mode and foreign keys", () => {
-    const { db } = openDb({ path: dbPath });
-    const sqlite = (db as unknown as { $client: Database }).$client;
+    runMigrations({ path: db.dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
+    const sqlite = (client as unknown as { $client: Database }).$client;
     expect((sqlite.pragma("journal_mode") as Array<{ journal_mode: string }>)[0].journal_mode).toBe(
       "wal",
     );
@@ -60,15 +47,16 @@ describe("foundation: migration + schema discovery", () => {
   });
 
   it("cascades episodic delete when a session is deleted", async () => {
-    runMigrations({ path: dbPath });
-    const { db } = openDb({ path: dbPath });
+    runMigrations({ path: db.dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
     const { sessions, episodicEvents } = await import("@praxis/memory/schema");
     const { eq } = await import("drizzle-orm");
 
     const sessionId = "test-session";
     const now = new Date();
 
-    db.insert(sessions)
+    client
+      .insert(sessions)
       .values({
         id: sessionId,
         studentId: "test-student",
@@ -78,7 +66,8 @@ describe("foundation: migration + schema discovery", () => {
       })
       .run();
 
-    db.insert(episodicEvents)
+    client
+      .insert(episodicEvents)
       .values({
         id: "test-event",
         sessionId,
@@ -91,9 +80,9 @@ describe("foundation: migration + schema discovery", () => {
       })
       .run();
 
-    db.delete(sessions).where(eq(sessions.id, sessionId)).run();
+    client.delete(sessions).where(eq(sessions.id, sessionId)).run();
 
-    const remaining = db
+    const remaining = client
       .select()
       .from(episodicEvents)
       .where(eq(episodicEvents.sessionId, sessionId))

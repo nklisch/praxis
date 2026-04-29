@@ -1,63 +1,49 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import {
   providerApiKeyEnvName,
   readEngineConfig,
   writeEngineConfig,
 } from "../config/engine-config.js";
-import { closeDb, openDb } from "../db/index.js";
-import { runMigrations } from "../db/migrate.js";
+import { openDb } from "../db/index.js";
 
-let tmpDir: string;
-let dbPath: string;
-
-beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "praxis-test-"));
-  dbPath = join(tmpDir, "test.db");
-  process.env.PRAXIS_DB_PATH = dbPath;
-  runMigrations({ path: dbPath });
-});
+const db = useTempDb();
 
 afterEach(() => {
-  closeDb();
-  delete process.env.PRAXIS_DB_PATH;
   delete process.env.PRAXIS_ENGINE;
   delete process.env.PRAXIS_MODEL;
   delete process.env.PRAXIS_API_KEY;
   delete process.env.PRAXIS_BASE_URL;
   delete process.env.PRAXIS_EFFORT;
-  rmSync(tmpDir, { recursive: true, force: true });
 });
 
 describe("readEngineConfig", () => {
   it("returns default config on empty DB", () => {
-    const { db } = openDb({ path: dbPath });
-    const config = readEngineConfig(db);
+    const { db: client } = openDb({ path: db.dbPath });
+    const config = readEngineConfig(client);
     expect(config).toEqual({ engineId: "claude-code" });
   });
 
   it("returns written config after writeEngineConfig", () => {
-    const { db } = openDb({ path: dbPath });
-    writeEngineConfig(db, { engineId: "direct.anthropic", model: "claude-sonnet-4-5" });
-    const config = readEngineConfig(db);
+    const { db: client } = openDb({ path: db.dbPath });
+    writeEngineConfig(client, { engineId: "direct.anthropic", model: "claude-sonnet-4-5" });
+    const config = readEngineConfig(client);
     expect(config.engineId).toBe("direct.anthropic");
     expect(config.model).toBe("claude-sonnet-4-5");
   });
 
   it("PRAXIS_ENGINE env var overrides stored value", () => {
-    const { db } = openDb({ path: dbPath });
-    writeEngineConfig(db, { engineId: "direct.anthropic" });
+    const { db: client } = openDb({ path: db.dbPath });
+    writeEngineConfig(client, { engineId: "direct.anthropic" });
     process.env.PRAXIS_ENGINE = "codex";
-    const config = readEngineConfig(db);
+    const config = readEngineConfig(client);
     expect(config.engineId).toBe("codex");
   });
 
   it("PRAXIS_ENGINE with invalid value throws Zod error", () => {
-    const { db } = openDb({ path: dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
     process.env.PRAXIS_ENGINE = "garbage";
-    expect(() => readEngineConfig(db)).toThrow();
+    expect(() => readEngineConfig(client)).toThrow();
   });
 });
 

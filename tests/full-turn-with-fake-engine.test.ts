@@ -7,11 +7,7 @@
  * - session row created with correct modeId
  * - collected events match CANNED_EVENTS (plus framework-emitted user_message)
  */
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { closeDb, openDb } from "@praxis/core/db";
-import { runMigrations } from "@praxis/core/db/migrate";
+import { openDb } from "@praxis/core/db";
 import { SessionServiceImpl } from "@praxis/core/services";
 import type {
   CodeSandbox,
@@ -26,6 +22,7 @@ import { teachMode } from "@praxis/curriculum/modes";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useTempDb } from "./helpers/db-setup.js";
 
 // isolated-vm@6.1.2 prebuilts don't cover Node 25 (ABI 141).
 // @praxis/core/services imports @praxis/tools which exports IsolatedVmHost → isolated-vm.
@@ -94,8 +91,7 @@ class FakeEngine implements Engine {
 
 // ── Test setup ─────────────────────────────────────────────────────────────────
 
-let tmpDir: string;
-let dbPath: string;
+const db = useTempDb();
 
 const noopLogger = {
   debug: () => {},
@@ -119,29 +115,22 @@ const mockSandbox: CodeSandbox = {
 const mockToolServices = { sympy: mockSympy, sandbox: mockSandbox };
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "praxis-test-full-turn-"));
-  dbPath = join(tmpDir, "test.db");
-  process.env.PRAXIS_DB_PATH = dbPath;
   process.env.PRAXIS_ENGINE = "direct.anthropic";
-  runMigrations({ path: dbPath });
 });
 
 afterEach(() => {
-  closeDb();
-  delete process.env.PRAXIS_DB_PATH;
   delete process.env.PRAXIS_ENGINE;
-  rmSync(tmpDir, { recursive: true, force: true });
 });
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe("full turn with fake engine", () => {
   it("persists episodic rows equal to emitted events (plus user_message)", async () => {
-    const { db } = openDb({ path: dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
 
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
-      db,
+      db: client,
       log: noopLogger,
       modes,
       toolDefinitions: [],
@@ -166,7 +155,7 @@ describe("full turn with fake engine", () => {
     expect(collectedEvents[collectedEvents.length - 1]).toMatchObject({ type: "final" });
 
     // Verify episodic rows in DB: user_message row + CANNED_EVENTS rows
-    const rows = db
+    const rows = client
       .select()
       .from(episodicEvents)
       .where(eq(episodicEvents.sessionId, sessionId))
@@ -182,11 +171,11 @@ describe("full turn with fake engine", () => {
   });
 
   it("session row is created with correct engineId and modeId", async () => {
-    const { db } = openDb({ path: dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
 
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
-      db,
+      db: client,
       log: noopLogger,
       modes,
       toolDefinitions: [],
@@ -203,7 +192,7 @@ describe("full turn with fake engine", () => {
     }
     await svc.end(sessionId);
 
-    const sessionRows = db.select().from(sessions).where(eq(sessions.id, sessionId)).all();
+    const sessionRows = client.select().from(sessions).where(eq(sessions.id, sessionId)).all();
     expect(sessionRows.length).toBe(1);
     const sess = sessionRows[0];
     expect(sess).toBeDefined();
@@ -214,11 +203,11 @@ describe("full turn with fake engine", () => {
   });
 
   it("collected events length matches CANNED_EVENTS plus user_message", async () => {
-    const { db } = openDb({ path: dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
 
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
-      db,
+      db: client,
       log: noopLogger,
       modes,
       toolDefinitions: [],
@@ -240,7 +229,7 @@ describe("full turn with fake engine", () => {
   });
 
   it("second send on same session reuses the engine session (open called once)", async () => {
-    const { db } = openDb({ path: dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
 
     let openCount = 0;
     class CountingFakeEngine extends FakeEngine {
@@ -252,7 +241,7 @@ describe("full turn with fake engine", () => {
 
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
-      db,
+      db: client,
       log: noopLogger,
       modes,
       toolDefinitions: [],
@@ -276,11 +265,11 @@ describe("full turn with fake engine", () => {
   });
 
   it("end() marks session as ended; subsequent send yields session.ended error", async () => {
-    const { db } = openDb({ path: dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
 
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
-      db,
+      db: client,
       log: noopLogger,
       modes,
       toolDefinitions: [],
@@ -309,11 +298,11 @@ describe("full turn with fake engine", () => {
   });
 
   it("active() returns null before start; returns handle after start", async () => {
-    const { db } = openDb({ path: dbPath });
+    const { db: client } = openDb({ path: db.dbPath });
 
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
-      db,
+      db: client,
       log: noopLogger,
       modes,
       toolDefinitions: [],
