@@ -1,3 +1,27 @@
+export { LocalEmbeddingService } from "./embeddings.js";
+export type {
+  ChunkParagraphsOptions,
+  HeadingChunkOptions,
+  IngestedChunk,
+  Ingestor,
+  IngestorOptions,
+  IngestorResult,
+  SelectInput,
+  VisionPdfIngestorOptions,
+} from "./ingestion/index.js";
+export {
+  chunkMarkdown,
+  chunkParagraphs,
+  DocxIngestor,
+  EpubIngestor,
+  HtmlIngestor,
+  IngestorRegistry,
+  JsPdfIngestor,
+  MarkdownIngestor,
+  PlainTextIngestor,
+  VISION_PROMPT,
+  VisionPdfIngestor,
+} from "./ingestion/index.js";
 export {
   IsolatedVmHost,
   type IsolatedVmRunOptions,
@@ -10,3 +34,5 @@ export {
   type PyodideRunResult,
   PyodideTimeoutError,
 } from "./pyodide-host.js";
+export { SqliteFtsStore } from "./sqlite-fts-store.js";
+export { SqliteVecStore } from "./sqlite-vec-store.js";

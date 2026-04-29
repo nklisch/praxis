@@ -1,0 +1,16 @@
+Introduction to Biology
+
+Biology is the scientific study of life and living organisms.
+It covers a wide range of topics, from the molecular basis of life
+to the ecology of entire ecosystems.
+
+Cell Theory
+
+All living things are composed of cells. The cell is the basic unit of life.
+All cells come from pre-existing cells through the process of cell division.
+
+Photosynthesis
+
+Plants convert sunlight into chemical energy through photosynthesis.
+This process uses carbon dioxide and water to produce glucose and oxygen.
+The overall equation is: 6CO2 + 6H2O + light energy -> C6H12O6 + 6O2

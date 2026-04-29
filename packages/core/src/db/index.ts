@@ -4,6 +4,7 @@ import Database from "better-sqlite3";
 import { type BetterSQLite3Database, drizzle } from "drizzle-orm/better-sqlite3";
 import { type Schema, schema } from "./all-schemas.js";
 import { resolveDbPath } from "./paths.js";
+import { initFtsStore, initVectorStore } from "./vector-init.js";
 
 export type PraxisDb = BetterSQLite3Database<Schema>;
 
@@ -12,6 +13,12 @@ let cached: { sqlite: Database.Database; db: PraxisDb; path: string } | null = n
 export interface OpenDbOptions {
   path?: string;
   readonly?: boolean;
+  /**
+   * When false, skip sqlite-vec and FTS5 virtual table initialization.
+   * Useful for tooling (e.g., drizzle-kit studio) that doesn't need the
+   * full runtime. Default: true.
+   */
+  initVectors?: boolean;
 }
 
 /** Open (or return cached) Drizzle database. Idempotent within a process. */
@@ -26,6 +33,11 @@ export function openDb(opts: OpenDbOptions = {}): { db: PraxisDb; path: string }
   sqlite.pragma("foreign_keys = ON");
 
   const db = drizzle(sqlite, { schema });
+
+  if (opts.initVectors !== false && !(opts.readonly ?? false)) {
+    initVectorStore(sqlite);
+    initFtsStore(sqlite);
+  }
 
   if (!opts.path) cached = { sqlite, db, path };
   return { db, path };
@@ -42,3 +54,4 @@ export function closeDb(): void {
 export type { Schema } from "./all-schemas.js";
 export { schema } from "./all-schemas.js";
 export { resolveDbPath } from "./paths.js";
+export { initFtsStore, initVectorStore } from "./vector-init.js";
