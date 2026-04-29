@@ -122,6 +122,24 @@ export interface HealthStatus {
   };
 }
 
+/**
+ * Construct an EngineError with sensible defaults. `recoverable` defaults to
+ * false (most engine errors aren't); `cause` is omitted from the object when
+ * undefined (compatible with exactOptionalPropertyTypes).
+ */
+export function engineError(
+  code: string,
+  message: string,
+  opts?: { recoverable?: boolean; cause?: unknown },
+): EngineError {
+  return {
+    code,
+    message,
+    recoverable: opts?.recoverable ?? false,
+    ...(opts?.cause !== undefined && { cause: opts.cause }),
+  };
+}
+
 // Retained for backward-compat with curriculum-internal Brief composition (curriculum-local type).
 // DO NOT add new cross-package usages — engines now accept EngineOpenOptions.
 export interface BriefContext {

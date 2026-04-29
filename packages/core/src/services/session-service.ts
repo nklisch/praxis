@@ -21,7 +21,7 @@ import type {
   Timestamp,
   ToolContext,
 } from "../types/index.js";
-import { brandId } from "../types/index.js";
+import { brandId, engineError } from "../types/index.js";
 import { getOrCreateDefaultStudentId } from "./student.js";
 import type { ServiceDeps } from "./types.js";
 
@@ -93,22 +93,14 @@ export class SessionServiceImpl implements SessionService {
     if (!sessionRow) {
       yield {
         type: "error",
-        error: {
-          code: "session.not_found",
-          message: `Unknown session: ${sessionId}`,
-          recoverable: false,
-        },
+        error: engineError("session.not_found", `Unknown session: ${sessionId}`),
       };
       return;
     }
     if (sessionRow.endedAt) {
       yield {
         type: "error",
-        error: {
-          code: "session.ended",
-          message: "Cannot send to an ended session",
-          recoverable: false,
-        },
+        error: engineError("session.ended", "Cannot send to an ended session"),
       };
       return;
     }
@@ -170,24 +162,17 @@ export class SessionServiceImpl implements SessionService {
             event,
           });
         } catch (cause) {
+          const writeErrorMsg = cause instanceof Error ? cause.message : String(cause);
           yield {
             type: "error",
-            error: {
-              code: "episodic.write_failed",
-              message: cause instanceof Error ? cause.message : String(cause),
-              recoverable: false,
-              cause,
-            },
+            error: engineError("episodic.write_failed", writeErrorMsg, { cause }),
           };
         }
         yield event;
       }
     } catch (cause) {
       const errMsg = cause instanceof Error ? cause.message : String(cause);
-      yield {
-        type: "error",
-        error: { code: "engine.send_failed", message: errMsg, recoverable: false, cause },
-      };
+      yield { type: "error", error: engineError("engine.send_failed", errMsg, { cause }) };
     }
   }
 

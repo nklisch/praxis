@@ -8,6 +8,7 @@ import type {
   EngineSession,
   HealthStatus,
 } from "@praxis/core/types";
+import { engineError } from "@praxis/core/types";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
@@ -112,10 +113,7 @@ class CodexEngineSession implements EngineSession {
 
   async *send(userMessage: string): AsyncIterable<EngineEvent> {
     if (this.closed) {
-      yield {
-        type: "error",
-        error: { code: "session.closed", message: "EngineSession is closed", recoverable: false },
-      };
+      yield { type: "error", error: engineError("session.closed", "EngineSession is closed") };
       return;
     }
     // Apply seed preface only on the first send after open.
