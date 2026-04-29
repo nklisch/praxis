@@ -18,20 +18,31 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:generate": "drizzle-kit generate",
     "db:show": "tsx scripts/db-show.ts",
-    "db:reset": "rm -f .praxis/dev.db && pnpm db:migrate"
+    "db:reset": "rm -f .praxis/dev.db && pnpm db:migrate",
+    "script:run-session": "tsx scripts/run-session.ts",
+    "db:episodic": "tsx scripts/db-episodic.ts"
   },
   "dependencies": {
     "@praxis/artifacts": "workspace:*",
     "@praxis/core": "workspace:*",
     "@praxis/curriculum": "workspace:*",
+    "@praxis/engines": "workspace:*",
     "@praxis/memory": "workspace:*",
+    "@praxis/tools": "workspace:*",
     "drizzle-orm": "^0.36.0",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "^3.0.71",
+    "@ai-sdk/google": "^3.0.64",
+    "@ai-sdk/openai": "^3.0.53",
     "@biomejs/biome": "^2.4.0",
+    "@nklisch/claude-cli-sdk": "link:../claude-cli-sdk",
+    "@openai/codex-sdk": "^0.125.0",
     "@types/node": "^24.0.0",
+    "ai": "^6.0.168",
     "drizzle-kit": "^0.27.0",
+    "ollama-ai-provider-v2": "^1.0.0",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
     "vitest": "^2.1.3"

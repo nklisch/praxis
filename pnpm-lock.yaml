@@ -17,9 +17,15 @@ importers:
       '@praxis/curriculum':
         specifier: workspace:*
         version: link:packages/curriculum
+      '@praxis/engines':
+        specifier: workspace:*
+        version: link:packages/engines
       '@praxis/memory':
         specifier: workspace:*
         version: link:packages/memory
+      '@praxis/tools':
+        specifier: workspace:*
+        version: link:packages/tools
       drizzle-orm:
         specifier: ^0.36.0
         version: 0.36.4(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.9.0)
@@ -27,15 +33,36 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0
     devDependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^3.0.71
+        version: 3.0.71(zod@4.3.6)
+      '@ai-sdk/google':
+        specifier: ^3.0.64
+        version: 3.0.64(zod@4.3.6)
+      '@ai-sdk/openai':
+        specifier: ^3.0.53
+        version: 3.0.53(zod@4.3.6)
       '@biomejs/biome':
         specifier: ^2.4.0
         version: 2.4.13
+      '@nklisch/claude-cli-sdk':
+        specifier: link:../claude-cli-sdk
+        version: link:../claude-cli-sdk
+      '@openai/codex-sdk':
+        specifier: ^0.125.0
+        version: 0.125.0
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.2
+      ai:
+        specifier: ^6.0.168
+        version: 6.0.168(zod@4.3.6)
       drizzle-kit:
         specifier: ^0.27.0
         version: 0.27.2
+      ollama-ai-provider-v2:
+        specifier: ^1.0.0
+        version: 1.5.5(zod@4.3.6)
       tsx:
         specifier: ^4.19.1
         version: 4.21.0
