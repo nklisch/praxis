@@ -28,6 +28,11 @@ Thumbs.db
 
 # Tests / coverage
 coverage/
+# Compiled output that may leak into tests/helpers if a tsc -b picks them up
+tests/helpers/*.js
+tests/helpers/*.d.ts
+tests/helpers/*.js.map
+tests/helpers/*.d.ts.map
 
 # Drizzle: keep migrations/, ignore meta-cache
 drizzle/meta/_journal.bak
