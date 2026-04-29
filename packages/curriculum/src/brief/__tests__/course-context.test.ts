@@ -4,7 +4,7 @@
  * Verifies that the produced PromptFragment contains the expected content
  * about the course title, current lesson, and concept tags.
  */
-import type { CourseStateSnapshot } from "@praxis/core/types";
+import type { CourseStateSnapshot, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it } from "vitest";
 import { composeCourseContextFragment } from "../course-context.js";
@@ -16,17 +16,20 @@ const CONCEPT_ID_2 = brandId<"ConceptId">("concept-2");
 const STUDENT_ID = brandId<"StudentId">("student-1");
 
 function makeSnapshot(overrides: Partial<CourseStateSnapshot> = {}): CourseStateSnapshot {
+  const NOW = 1_700_000_000_000 as Timestamp;
   const course = {
     id: COURSE_ID,
     studentId: STUDENT_ID,
     title: "Algebra 1",
     subject: brandId<"SubjectId">("math"),
-    gradeLevel: "9" as const,
+    gradeLevel: "9-12" as const,
     source: { kind: "bootstrapped" as const, sourceMaterials: [] },
     lessons: [],
     conceptGraphId: brandId<"ConceptGraphId">("graph-1"),
     gates: [],
     thresholds: { conceptMastery: 0.7, examPass: 0.7, allowRetake: true, decayDays: 14 },
+    createdAt: NOW,
+    updatedAt: NOW,
   };
   const lesson = {
     id: LESSON_ID,
@@ -59,9 +62,13 @@ function makeSnapshot(overrides: Partial<CourseStateSnapshot> = {}): CourseState
       ],
     ],
   ]);
+  const lessonRows = conceptsByLesson.get(LESSON_ID) ?? [];
+  if (lessonRows.length < 2 || !lessonRows[0] || !lessonRows[1]) {
+    throw new Error("test fixture must contain two concept rows");
+  }
   const conceptsById = new Map([
-    [CONCEPT_ID_1, conceptsByLesson.get(LESSON_ID)![0]!],
-    [CONCEPT_ID_2, conceptsByLesson.get(LESSON_ID)![1]!],
+    [CONCEPT_ID_1, lessonRows[0]],
+    [CONCEPT_ID_2, lessonRows[1]],
   ]);
   return {
     course,

@@ -67,6 +67,7 @@ const VALID_OUTPUT = {
 /** Create a mock Engine that yields the given text as a model_message. */
 function makeEngine(text: string): Engine {
   const mockHandle: EngineSession = {
+    id: "mock-session",
     send: vi.fn().mockImplementation(async function* () {
       yield { type: "model_message" as const, content: text };
     }),
@@ -111,9 +112,7 @@ describe("runConceptExtractor", () => {
 
   it("throws when response contains no JSON block", async () => {
     const engine = makeEngine("I cannot produce a course plan right now.");
-    await expect(runConceptExtractor({ ...BASE_INPUT, engine })).rejects.toThrow(
-      "no JSON block",
-    );
+    await expect(runConceptExtractor({ ...BASE_INPUT, engine })).rejects.toThrow("no JSON block");
   });
 
   it("throws when JSON is malformed", async () => {

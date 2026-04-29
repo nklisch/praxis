@@ -18,7 +18,6 @@ import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { ArtifactsServiceImpl } from "../services/artifacts-service.js";
-import type { ConceptId, CourseId, LessonId, StudentId } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-a");
