@@ -30,6 +30,8 @@ export const teachMode: Mode = {
     "course.start_lesson",
     "course.current_concept",
     "course.mark_studied",
+    "update_mastery", // ← Phase 7 active-path memory tools
+    "record_misconception",
   ],
   uiSurface: "chat",
 };

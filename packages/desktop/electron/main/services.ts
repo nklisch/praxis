@@ -9,13 +9,18 @@ import {
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
   getOrCreateDefaultStudentId,
+  IndexerOrchestratorImpl,
+  MasteryIndexer,
   MemoryServiceImpl,
+  MisconceptionIndexer,
   SessionServiceImpl,
 } from "@praxis/core/services";
 import { bootstrapMode, teachMode } from "@praxis/curriculum/modes";
 import { createEngine } from "@praxis/engines";
+import { sessions } from "@praxis/memory/schema";
 import { COURSE_TOOLS } from "@praxis/tools/course";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
+import { MEMORY_TOOLS } from "@praxis/tools/memory";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
 import {
   DocxIngestor,
@@ -33,6 +38,7 @@ import {
   VisionPdfIngestor,
 } from "@praxis/tools/runtime";
 import { codeSandboxTool, LocalCodeSandbox } from "@praxis/tools/sandbox";
+import { eq } from "drizzle-orm";
 
 export interface Services {
   session: SessionServiceImpl;
@@ -41,6 +47,7 @@ export interface Services {
   documents: DocumentsServiceImpl;
   artifacts: ArtifactsServiceImpl; // ← Phase 6: exposed for IPC handlers
   bootstrap: BootstrapServiceImpl; // ← Phase 6: exposed for shutdown
+  memory: MemoryServiceImpl; // ← Phase 7: exposed for IPC handlers
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
@@ -106,6 +113,12 @@ export function buildServices(dbPath: string): Services {
     engineResolver: bootstrapEngineResolver,
   });
 
+  // Phase 7: helper to look up the courseId for a given session (used by indexers).
+  const readSessionCourseId = (sessionId: string): string | null => {
+    const row = db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
+    return row?.courseId ?? null;
+  };
+
   // Ingestor registry — all 7 ingestors
   const ingestorRegistry = new IngestorRegistry([
     new PlainTextIngestor(),
@@ -117,6 +130,28 @@ export function buildServices(dbPath: string): Services {
     new VisionPdfIngestor({ visionResolver, pageImageStore }),
   ]);
 
+  // Phase 7: Indexers
+  const masteryIndexer = new MasteryIndexer({
+    db,
+    log,
+    courseStateReader: artifactsService,
+    sessionCourseId: readSessionCourseId,
+  });
+
+  const misconceptionIndexer = new MisconceptionIndexer({
+    db,
+    log,
+    engineResolver: bootstrapEngineResolver,
+    courseStateReader: artifactsService,
+    sessionCourseId: readSessionCourseId,
+  });
+
+  const indexerOrchestrator = new IndexerOrchestratorImpl({
+    db,
+    log,
+    indexers: [masteryIndexer, misconceptionIndexer],
+  });
+
   const modes = new Map([
     [teachMode.id, teachMode],
     [bootstrapMode.id, bootstrapMode], // ← Phase 6
@@ -127,6 +162,7 @@ export function buildServices(dbPath: string): Services {
     codeSandboxTool,
     retrieveFromTextbookTool,
     ...COURSE_TOOLS, // ← Phase 6
+    ...MEMORY_TOOLS, // ← Phase 7
   ];
 
   const deps: ServiceDeps = {
@@ -146,6 +182,7 @@ export function buildServices(dbPath: string): Services {
       courseState: artifactsService, // same instance implements both interfaces
       memory: memoryService, // ← Phase 7
     },
+    indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
   };
 
   const ingestion = new IngestionService({
@@ -172,6 +209,7 @@ export function buildServices(dbPath: string): Services {
     documents: documentsService,
     artifacts: artifactsService,
     bootstrap: bootstrapService,
+    memory: memoryService, // ← Phase 7
     ingestorRegistry,
     pyodide,
     embeddings,

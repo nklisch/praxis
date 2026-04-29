@@ -18,6 +18,8 @@ export const toolsFragment: PromptFragment = {
 - course.start_lesson — mark a lesson as in-progress when the student begins it.
 - course.current_concept — fetch the next un-studied concept of the current lesson.
 - course.mark_studied — record that the student has covered a concept; pass evidenceEventId when you can.
+- update_mastery — emit an explicit mastery signal for a concept (correct, incorrect, slip, hint_requested, timeout, exam_pass, exam_fail). Use when grade_math / code_sandbox alone cannot capture the quality of the student's response — for example, a slip (mechanical error they caught themselves) vs. genuine confusion (incorrect). Always pass evidenceEventId so the signal traces back to the turn.
+- record_misconception — record a specific, persistent wrong mental model the student has demonstrated. Use when you observe a clear pattern of incorrect reasoning (not a one-off arithmetic slip) that will need targeted remediation. Ground it with evidenceEventIds from the turns where the error occurred.
 
 When you cite from retrieve_from_textbook results, refer to them as [1], [2], [3] in the order they appear. The student's UI renders these as clickable chips that show the source chunk; for vision-parsed PDFs, the source card includes a "View page" button so the student can see the original.
 

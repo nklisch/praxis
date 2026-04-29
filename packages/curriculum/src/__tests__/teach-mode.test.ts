@@ -39,6 +39,11 @@ describe("mode registry", () => {
     expect(teachMode.toolNames).toContain("retrieve_from_textbook");
   });
 
+  it("teachMode toolNames includes Phase 7 active-path memory tools", () => {
+    expect(teachMode.toolNames).toContain("update_mastery");
+    expect(teachMode.toolNames).toContain("record_misconception");
+  });
+
   it("toolsFragment is between principles and constraints", () => {
     const positions = teachMode.promptFragments.map((f) => f.position);
     const principlesIdx = positions.indexOf("principles");

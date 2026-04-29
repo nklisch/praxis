@@ -14,6 +14,7 @@ import type {
   AffectiveModel,
   ConceptMastery,
   EpisodicEvent,
+  MasterySignal,
   MemoryExport,
   Misconception,
   ProceduralModel,
@@ -21,6 +22,8 @@ import type {
 } from "../../types/memory.js";
 // Import server-side MemoryService (with studentId params) directly from tool.ts.
 import type { MemoryService } from "../../types/tool.js";
+import { applySignalsToConcept } from "../indexers/mastery-indexer.js";
+import { upsertMisconception } from "../indexers/misconception-indexer.js";
 import { applyDecay } from "./decay.js";
 
 export interface MemoryServiceDeps {
@@ -220,6 +223,35 @@ export class MemoryServiceImpl implements MemoryService {
       exportedAt: Date.now() as Timestamp,
       formatVersion: "1.0",
     };
+  }
+
+  // ── applySignal ───────────────────────────────────────────────────────────────
+
+  applySignal(opts: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    signals: MasterySignal[];
+  }): void {
+    applySignalsToConcept(this.deps, opts.studentId, opts.conceptId, opts.signals);
+  }
+
+  // ── recordMisconception ────────────────────────────────────────────────────────
+
+  recordMisconception(opts: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    description: string;
+    errorForm: string;
+    remediation: { strategyId: string; rationale: string };
+    evidenceEventIds: string[];
+  }): { misconceptionId: string; merged: boolean } {
+    return upsertMisconception(this.deps.db, opts.studentId, {
+      conceptId: opts.conceptId,
+      description: opts.description,
+      errorForm: opts.errorForm,
+      remediation: opts.remediation,
+      evidenceEventIds: opts.evidenceEventIds,
+    });
   }
 
   // ── delete ─────────────────────────────────────────────────────────────────────

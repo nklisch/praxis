@@ -18,7 +18,7 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     session: new SessionClient(transport),
     artifacts: new ArtifactsClient(transport),
     author: new AuthoringClient(),
-    memory: new MemoryClient(),
+    memory: new MemoryClient(transport),
     config: new ConfigClient(transport),
     ingest: new IngestClient(transport),
     documents: new DocumentsClient(transport),

@@ -180,6 +180,12 @@ export class SessionServiceImpl implements SessionService {
       const errMsg = cause instanceof Error ? cause.message : String(cause);
       yield { type: "error", error: engineError("engine.send_failed", errMsg, { cause }) };
     }
+
+    // Phase 7: schedule post-turn indexer pass (debounced, fire-and-forget).
+    this.deps.indexerOrchestrator?.scheduleAfterTurn({
+      studentId,
+      sessionId: brandId<"SessionId">(sessionId),
+    });
   }
 
   async end(sessionId: SessionId): Promise<SessionSummary> {
@@ -188,6 +194,28 @@ export class SessionServiceImpl implements SessionService {
       await entry.handle.close().catch(() => {});
       this.activeSessions.delete(sessionId);
     }
+
+    // Phase 7: run session-end indexers (e.g. misconception detection) synchronously
+    // before closing the session row so misconceptions land before the UI navigates away.
+    if (this.deps.indexerOrchestrator) {
+      const sessionRow = this.deps.db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .get();
+      if (sessionRow) {
+        await this.deps.indexerOrchestrator
+          .runAtSessionEnd({
+            studentId: brandId<"StudentId">(sessionRow.studentId),
+            sessionId: brandId<"SessionId">(sessionId),
+          })
+          .catch((err: unknown) => {
+            this.deps.log.warn("session.end.indexer_failed", { error: String(err) });
+          });
+        this.deps.indexerOrchestrator.cancel(brandId<"SessionId">(sessionId));
+      }
+    }
+
     const endedAt = new Date();
     this.deps.db.update(sessions).set({ endedAt }).where(eq(sessions.id, sessionId)).run();
     return {
@@ -220,6 +248,8 @@ export class SessionServiceImpl implements SessionService {
     const entries = [...this.activeSessions.values()];
     this.activeSessions.clear();
     await Promise.all(entries.map((e) => e.handle.close().catch(() => {})));
+    // Phase 7: shut down the indexer orchestrator (clears all debounce timers).
+    this.deps.indexerOrchestrator?.shutdown?.();
   }
 
   private async openActive(args: {
@@ -234,7 +264,7 @@ export class SessionServiceImpl implements SessionService {
     const factory = this.deps.engineFactory ?? ((c, d) => createEngine({ config: c, deps: d }));
     const engine = factory(engineConfig, { log: this.deps.log });
 
-    // Phase 6: inject course-context override when a courseId is set.
+    // Phase 6 + 7: inject course-context override when a courseId is set.
     let overrides: ReadonlyMap<string, string> | undefined;
 
     if (args.courseId && this.deps.toolServices.courseState) {
@@ -243,7 +273,29 @@ export class SessionServiceImpl implements SessionService {
         courseId: args.courseId,
       });
       if (snapshot) {
-        const fragment = composeCourseContextFragment(snapshot);
+        // Phase 7: build a conceptId → effectivePKnown map from the student model.
+        let masteryByConceptId: ReadonlyMap<string, number> | undefined;
+        if (this.deps.toolServices.memory) {
+          try {
+            const studentModel = await this.deps.toolServices.memory.studentModel(
+              args.studentId as StudentId,
+            );
+            const masteryMap = new Map<string, number>();
+            for (const [conceptId, mastery] of studentModel.conceptMastery) {
+              // Only include concepts in this course's snapshot
+              if (snapshot.conceptsById.has(conceptId)) {
+                masteryMap.set(conceptId, mastery.effectivePKnown);
+              }
+            }
+            if (masteryMap.size > 0) {
+              masteryByConceptId = masteryMap;
+            }
+          } catch {
+            // Non-fatal: mastery data unavailable; fall back to binary tags
+          }
+        }
+
+        const fragment = composeCourseContextFragment(snapshot, masteryByConceptId);
         // Use the overrides map so the existing "context.course-state" fragment
         // (which is customizable: true) is replaced by the dynamic course content.
         overrides = new Map([[fragment.id, fragment.template]]);

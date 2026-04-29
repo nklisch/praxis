@@ -116,15 +116,19 @@ Three integration milestones along the way: **M1** end-to-end tutor session, **M
 **Goal:** System tracks concept mastery over time and surfaces misconceptions.
 
 **Build:**
-- Semantic memory (BKT-based ConceptMastery with decay)
-- Misconception schema with evidence + remediation
-- Indexer-agent infrastructure; two indexers (mastery, misconception)
-- `update_mastery` and `record_misconception` tools (active path)
-- Debounced post-turn projections
+- Semantic memory (BKT-based `ConceptMastery` with exponential decay at read time)
+- `Indexer` port + `IndexerOrchestratorImpl` (debounced post-turn + synchronous session-end)
+- `MasteryIndexer` (deterministic post-turn): scans episodic events for grade/course signals; applies BKT updates via `applySignalsToConcept`
+- `MisconceptionIndexer` (agent-driven session-end): one-shot LLM pass over full transcript; deduplicates by `(studentId, conceptId, errorForm)`
+- `update_mastery` and `record_misconception` active-path tools (teach mode)
+- `MemoryServiceImpl` (reads + export + delete); `MemoryClient` real implementation
+- `praxis.memory.*` IPC channels including streamed `episodic`
+- Course-context fragment updated with graduated mastery tags (`mastered / in progress / not yet started`)
+- `pnpm db:mastery` CLI script
 
-**Research:** BKT update formula; FSRS-lite for decay.
+**LLM mastery refinement deferred to Phase 7.x** — `Indexer` interface accommodates it as a one-file addition.
 
-**Test checkpoint:** Multi-turn session with deliberate wrong answers. `pnpm db:mastery` shows updated scores; misconception entries with evidence event IDs.
+**Test checkpoint:** Multi-turn session with deliberate wrong answers. `pnpm db:mastery` shows updated scores; misconception entries with evidence event IDs. Next session system prompt shows graduated mastery tags instead of binary studied/not-studied.
 
 ---
 

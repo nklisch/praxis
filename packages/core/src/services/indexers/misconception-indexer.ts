@@ -166,20 +166,24 @@ export class MisconceptionIndexer implements Indexer {
    *
    * Exported for reuse by the active-path `record_misconception` tool.
    */
-  upsertMisconception(studentId: StudentId, m: ParsedMisconception): void {
-    upsertMisconception(this.deps.db, studentId, m);
+  upsertMisconception(
+    studentId: StudentId,
+    m: ParsedMisconception,
+  ): { misconceptionId: string; merged: boolean } {
+    return upsertMisconception(this.deps.db, studentId, m);
   }
 }
 
 /**
  * Exported standalone helper: same logic as the instance method.
  * The active-path `record_misconception` tool imports this directly.
+ * Returns the misconception ID and whether it was a merge (dedup) vs new insert.
  */
 export function upsertMisconception(
   db: PraxisDb,
   studentId: StudentId,
   m: ParsedMisconception,
-): void {
+): { misconceptionId: string; merged: boolean } {
   const _conceptId = brandId<"ConceptId">(m.conceptId);
 
   const existing = db
@@ -213,22 +217,27 @@ export function upsertMisconception(
       })
       .where(eq(misconceptions.id, existing.id))
       .run();
-  } else {
-    db.insert(misconceptions)
-      .values({
-        id: uuidv7(),
-        studentId,
-        conceptId: m.conceptId,
-        description: m.description,
-        errorForm: m.errorForm,
-        remediationJson: m.remediation,
-        evidenceJson: m.evidenceEventIds.slice(0, MAX_EVIDENCE),
-        status: "active",
-        firstObservedAt: now,
-        lastObservedAt: now,
-      })
-      .run();
+
+    return { misconceptionId: existing.id, merged: true };
   }
+
+  const newId = uuidv7();
+  db.insert(misconceptions)
+    .values({
+      id: newId,
+      studentId,
+      conceptId: m.conceptId,
+      description: m.description,
+      errorForm: m.errorForm,
+      remediationJson: m.remediation,
+      evidenceJson: m.evidenceEventIds.slice(0, MAX_EVIDENCE),
+      status: "active",
+      firstObservedAt: now,
+      lastObservedAt: now,
+    })
+    .run();
+
+  return { misconceptionId: newId, merged: false };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

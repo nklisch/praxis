@@ -625,6 +625,18 @@ interface AuthoringService {
   customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
 }
 
+/**
+ * Client-facing MemoryService (v1, Phase 7).
+ * This is the interface exported by `@praxis/client` (no studentId params — the
+ * client is always scoped to the single-student v1 install).
+ *
+ * The server-side `MemoryService` interface in `@praxis/core/types/tool.ts`
+ * additionally includes `applySignal()` and `recordMisconception()` write methods
+ * used by `update_mastery` and `record_misconception` tools.
+ *
+ * `Map` fields (`conceptMastery`, `strategies`) are serialized as `[key, value][]`
+ * entry arrays over IPC and reconstructed as Maps on the client.
+ */
 interface MemoryService {
   studentModel(): Promise<StudentModel>;
   misconceptions(): Promise<Misconception[]>;

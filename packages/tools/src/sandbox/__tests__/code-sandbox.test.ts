@@ -17,7 +17,8 @@ const mockCtx: ToolContext = {
   studentId: brandId<"StudentId">("student-1"),
   sessionId: brandId<"SessionId">("session-1"),
   services: {
-    memory: null,
+    // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in this test
+    memory: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in this test
     artifacts: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in this test

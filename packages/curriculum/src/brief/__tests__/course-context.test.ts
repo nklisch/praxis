@@ -7,7 +7,7 @@
 import type { CourseStateSnapshot, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it } from "vitest";
-import { composeCourseContextFragment } from "../course-context.js";
+import { composeCourseContextFragment, formatMasteryTag } from "../course-context.js";
 
 const COURSE_ID = brandId<"CourseId">("course-1");
 const LESSON_ID = brandId<"LessonId">("lesson-1");
@@ -80,6 +80,31 @@ function makeSnapshot(overrides: Partial<CourseStateSnapshot> = {}): CourseState
   };
 }
 
+describe("formatMasteryTag", () => {
+  it("returns 'mastered (0.xx)' when effectivePKnown >= 0.80", () => {
+    expect(formatMasteryTag(0.85, true)).toBe("mastered (0.85)");
+    expect(formatMasteryTag(0.8, true)).toBe("mastered (0.80)");
+    expect(formatMasteryTag(1.0, false)).toBe("mastered (1.00)");
+  });
+
+  it("returns 'in progress (0.xx)' when effectivePKnown is 0.40–0.79", () => {
+    expect(formatMasteryTag(0.55, false)).toBe("in progress (0.55)");
+    expect(formatMasteryTag(0.4, false)).toBe("in progress (0.40)");
+    expect(formatMasteryTag(0.79, true)).toBe("in progress (0.79)");
+  });
+
+  it("returns 'not yet started' when effectivePKnown < 0.40", () => {
+    expect(formatMasteryTag(0.1, false)).toBe("not yet started");
+    expect(formatMasteryTag(0.0, false)).toBe("not yet started");
+    expect(formatMasteryTag(0.39, true)).toBe("not yet started");
+  });
+
+  it("falls back to studied/not-yet-studied when effectivePKnown is undefined", () => {
+    expect(formatMasteryTag(undefined, true)).toBe("studied");
+    expect(formatMasteryTag(undefined, false)).toBe("not yet studied");
+  });
+});
+
 describe("composeCourseContextFragment", () => {
   it("returns a fragment with id context.course-state", () => {
     const snapshot = makeSnapshot();
@@ -139,5 +164,35 @@ describe("composeCourseContextFragment", () => {
     expect(fragment.template).toContain("Algebra Textbook");
     expect(fragment.template).toContain("p.12");
     expect(fragment.template).toContain("[Chapter 1]");
+  });
+
+  it("shows graduated mastery tags when masteryByConceptId is provided", () => {
+    const snapshot = makeSnapshot();
+    const masteryByConceptId = new Map<string, number>([
+      [CONCEPT_ID_1, 0.85], // mastered
+      [CONCEPT_ID_2, 0.55], // in progress
+    ]);
+    const fragment = composeCourseContextFragment(snapshot, masteryByConceptId);
+    expect(fragment.template).toContain("Variables — mastered (0.85)");
+    expect(fragment.template).toContain("Equations — in progress (0.55)");
+    // Should NOT contain the old binary tags
+    expect(fragment.template).not.toContain("Variables — studied");
+    expect(fragment.template).not.toContain("Equations — not yet studied");
+  });
+
+  it("falls back to binary studied/not-yet-studied when masteryByConceptId is absent", () => {
+    const snapshot = makeSnapshot();
+    const fragment = composeCourseContextFragment(snapshot);
+    expect(fragment.template).toContain("Variables — studied");
+    expect(fragment.template).toContain("Equations — not yet studied");
+  });
+
+  it("falls back to binary tags for concepts not in masteryByConceptId", () => {
+    const snapshot = makeSnapshot();
+    // Only provide mastery for concept-1; concept-2 should fall back to binary
+    const masteryByConceptId = new Map<string, number>([[CONCEPT_ID_1, 0.9]]);
+    const fragment = composeCourseContextFragment(snapshot, masteryByConceptId);
+    expect(fragment.template).toContain("Variables — mastered (0.90)");
+    expect(fragment.template).toContain("Equations — not yet studied");
   });
 });

@@ -2,7 +2,7 @@ import type {
   ArtifactsClientSurface,
   AuthoringService,
   EngineConfigSnapshot,
-  MemoryService,
+  MemoryClientService,
   PraxisClient,
   SessionService,
 } from "@praxis/core/types";
@@ -21,7 +21,7 @@ function makeFakeClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisC
     session: {} as SessionService,
     artifacts: {} as ArtifactsClientSurface,
     author: {} as AuthoringService,
-    memory: {} as MemoryService,
+    memory: {} as MemoryClientService,
     config: {
       isLocked: vi.fn().mockResolvedValue(false),
       setLockCode: vi.fn(),

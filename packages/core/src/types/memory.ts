@@ -94,6 +94,12 @@ export interface IndexerOrchestrator {
 
   /** Test/observability: count active timers. */
   pendingCount(): number;
+
+  /**
+   * Tear down all pending timers. Call on host shutdown so timers don't keep
+   * the process alive. After this call, no further indexer runs will fire.
+   */
+  shutdown(): void;
 }
 
 export interface EpisodicEvent {

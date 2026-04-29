@@ -1,5 +1,5 @@
 import type { IpcStreamMessage } from "@praxis/client";
-import type { CourseId, StudentId } from "@praxis/core/types";
+import type { CourseId, SessionId, StudentId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { ipcMain } from "electron";
 import { registerIngestHandlers } from "./ingest-channel.js";
@@ -169,6 +169,106 @@ export function registerIpcHandlers(
     return services.artifacts.progress(studentId);
   });
 
+  // ── Memory ───────────────────────────────────────────────────────────────────
+
+  handle("praxis.memory.studentModel", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    const model = await services.memory.studentModel(studentId);
+    // Maps don't survive JSON.stringify — serialize conceptMastery as entries array.
+    return {
+      ...model,
+      conceptMastery: [...model.conceptMastery.entries()],
+    };
+  });
+
+  handle("praxis.memory.misconceptions", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.memory.misconceptions(studentId);
+  });
+
+  handle("praxis.memory.procedural", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    const model = await services.memory.procedural(studentId);
+    return {
+      ...model,
+      strategies: [...model.strategies.entries()],
+    };
+  });
+
+  handle("praxis.memory.affective", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.memory.affective(studentId);
+  });
+
+  handle("praxis.memory.export", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    const exported = await services.memory.export(studentId);
+    // Serialize Maps as entries arrays for IPC transport.
+    return {
+      ...exported,
+      studentModel: {
+        ...exported.studentModel,
+        conceptMastery: [...exported.studentModel.conceptMastery.entries()],
+      },
+      procedural: {
+        ...exported.procedural,
+        strategies: [...exported.procedural.strategies.entries()],
+      },
+    };
+  });
+
+  handle("praxis.memory.delete", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.memory.delete({ studentId, confirm: true });
+  });
+
+  // Streaming: praxis.memory.episodic.start(streamId, opts) invokes the handler.
+  // Events are pushed on praxis.memory.episodic.events.<streamId>.
+  // Client cancels via praxis.memory.episodic.cancel with the streamId.
+  handle(
+    "praxis.memory.episodic.start",
+    async (
+      _event,
+      streamId: string,
+      opts: { sessionId?: string; range?: { fromMs: number; toMs: number } },
+    ) => {
+      const controller = new AbortController();
+      activeAbortControllers.set(streamId, controller);
+      const eventsChannel = `praxis.memory.episodic.events.${streamId}`;
+
+      const push = (msg: import("@praxis/client").IpcStreamMessage<unknown>) => {
+        const wc = webContentsGetter();
+        if (!wc || wc.isDestroyed()) return;
+        wc.send(eventsChannel, msg);
+      };
+
+      try {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const stream = services.memory.episodic({
+          studentId,
+          ...(opts.sessionId !== undefined && {
+            sessionId: brandId<"SessionId">(opts.sessionId),
+          }),
+          ...(opts.range !== undefined && { range: opts.range }),
+        });
+        for await (const event of stream) {
+          if (controller.signal.aborted) break;
+          push({ kind: "event", payload: event });
+        }
+        push({ kind: "done" });
+      } catch (err) {
+        push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
+      } finally {
+        activeAbortControllers.delete(streamId);
+      }
+    },
+  );
+
+  ipcMain.on("praxis.memory.episodic.cancel", (_event, streamId: string) => {
+    activeAbortControllers.get(streamId)?.abort();
+    activeAbortControllers.delete(streamId);
+  });
+
   // Return unregister function.
   return () => {
     for (const { channel } of handlers) {
@@ -176,6 +276,7 @@ export function registerIpcHandlers(
     }
     ipcMain.removeAllListeners("praxis.session.send.cancel");
     ipcMain.removeAllListeners("praxis.ingest.cancel");
+    ipcMain.removeAllListeners("praxis.memory.episodic.cancel");
     for (const ctrl of activeAbortControllers.values()) {
       ctrl.abort();
     }

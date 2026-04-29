@@ -178,6 +178,30 @@ export interface MemoryService {
    * The episodic rows themselves are NOT deleted.
    */
   delete(opts: { studentId: StudentId; confirm: true }): Promise<void>;
+  /**
+   * Phase 7: apply explicit mastery signals to a concept.
+   * Used by the active-path `update_mastery` tool.
+   * Same BKT logic as the MasteryIndexer — single source of truth.
+   */
+  applySignal(opts: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    signals: import("./memory.js").MasterySignal[];
+  }): void;
+  /**
+   * Phase 7: upsert a misconception row (dedup by studentId+conceptId+errorForm).
+   * Used by the active-path `record_misconception` tool.
+   * Same logic as the MisconceptionIndexer — single source of truth.
+   * Returns the misconception ID (new or existing) and whether it was a merge.
+   */
+  recordMisconception(opts: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    description: string;
+    errorForm: string;
+    remediation: { strategyId: string; rationale: string };
+    evidenceEventIds: string[];
+  }): { misconceptionId: string; merged: boolean };
 }
 
 // ─── EmbeddingService ────────────────────────────────────────────────────────

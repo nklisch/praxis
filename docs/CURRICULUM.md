@@ -69,7 +69,7 @@ The framework defines six v1 modes. Each is a configuration: prompt fragments, t
 The interactive lecture. Concept introduction, scaffolding, worked examples, fading.
 
 - Prompt fragments emphasize: present a concept → ground in textbook → motivate with example → check understanding → fade scaffolding.
-- Tools: retrieval (from textbook), `plot_function`, `render_diagram`, `render_latex`, `pull_pedagogy_strategy`, `record_misconception`, course navigation.
+- Tools: retrieval (from textbook), `plot_function`, `render_diagram`, `render_latex`, `pull_pedagogy_strategy`, `record_misconception`, `update_mastery`, course navigation.
 - No grading tools. No exam tools.
 - Style: lecture-leaning *and* Socratic — adapts based on procedural memory (what works for *this* student).
 
@@ -127,6 +127,31 @@ Lock-gated. Parent/teacher (or self-directed learner) authors and tunes.
 - The configurator is the agent's user; the agent helps them author by talking.
 
 **Modes layer the metacognition coach's voice on top.** In `teach`, `quiz`, `homework`, and `exam`, prompt fragments include metacognitive prompts at appropriate triggers (pre-reading: "what do you expect?"; post-error: "what assumption tripped this?"; session-end: "what's one thing you'd review tomorrow?"). The metacognition coach is woven through, not sequestered to one mode.
+
+## Adaptive memory
+
+### Bayesian Knowledge Tracing (BKT)
+
+Praxis tracks concept mastery using a four-parameter Bayesian Knowledge Tracing model. Default parameter values:
+
+| Parameter | Symbol | Default | Meaning |
+|-----------|--------|---------|---------|
+| Prior knowledge | pL0 | 0.10 | Probability the student knows the concept before any evidence |
+| Learn rate | pT | 0.05 | Probability of learning the concept after one correct practice |
+| Guess rate | pG | 0.20 | Probability of a correct answer despite not knowing |
+| Slip rate | pS | 0.10 | Probability of an incorrect answer despite knowing |
+
+Mastery probability is updated after each signal and written to `student_mastery` via `applySignal()`. Effective mastery applies exponential decay at read time: `effectivePKnown = pKnown × exp(-elapsedDays / decayDays)` with a 14-day default (configurable via `ThresholdConfig.decayDays`).
+
+### Active-path tools
+
+Two tools allow the agent to emit explicit mastery and misconception signals during a teaching session:
+
+**`update_mastery`** — tier `"deterministic"`. Call when grading tools alone cannot capture the quality of the student's response (e.g., a genuine misconception vs. a one-off slip). Writes a `MasterySignal` via `MemoryServiceImpl.applySignal()` and returns the updated `pKnown` and `effectivePKnown`. Signal kinds: `correct`, `incorrect`, `slip`, `hint_requested`, `timeout`, `exam_pass`, `exam_fail`.
+
+**`record_misconception`** — tier `"grounded"`. Call when the agent observes a persistent wrong model (e.g., the student consistently adds exponents when multiplying). Writes or deduplicates a misconception via `MemoryServiceImpl.recordMisconception()` and returns whether the record was merged with an existing entry.
+
+Both tools require at least one `evidenceEventId` pointing to an episodic event for traceability. The `MasteryIndexer` also runs after each session to re-process all episodic events, ensuring the student model stays consistent even if a real-time tool call is missed.
 
 ## Adaptive routing
 
