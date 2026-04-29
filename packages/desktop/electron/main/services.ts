@@ -9,6 +9,7 @@ import {
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
   getOrCreateDefaultStudentId,
+  MemoryServiceImpl,
   SessionServiceImpl,
 } from "@praxis/core/services";
 import { bootstrapMode, teachMode } from "@praxis/curriculum/modes";
@@ -84,6 +85,14 @@ export function buildServices(dbPath: string): Services {
   // Phase 6: ArtifactsServiceImpl (reads + progress writes)
   const artifactsService = new ArtifactsServiceImpl({ db, log });
 
+  // Phase 7: MemoryServiceImpl — decayDaysFor uses a global default of 14 days.
+  // The integration agent (Phase 7 Part 2) will update this to read from the active course.
+  const memoryService = new MemoryServiceImpl({
+    db,
+    log,
+    decayDaysFor: () => 14,
+  });
+
   // Phase 6: Bootstrap engine resolver — same pattern as visionResolver above.
   // Looks up the active engine at call time so engine swaps reflect immediately.
   const bootstrapEngineResolver = () => {
@@ -135,6 +144,7 @@ export function buildServices(dbPath: string): Services {
       artifacts: artifactsService, // ← Phase 6
       bootstrap: bootstrapService, // ← Phase 6
       courseState: artifactsService, // same instance implements both interfaces
+      memory: memoryService, // ← Phase 7
     },
   };
 

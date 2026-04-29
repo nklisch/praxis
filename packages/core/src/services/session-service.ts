@@ -260,7 +260,7 @@ export class SessionServiceImpl implements SessionService {
       sessionId: args.sessionId as ToolContext["sessionId"],
       ...(args.courseId !== undefined && { courseId: args.courseId }),
       services: {
-        memory: null,
+        memory: this.deps.toolServices.memory, // ← Phase 7
         artifacts: this.deps.toolServices.artifacts, // ← Phase 6
         bootstrap: this.deps.toolServices.bootstrap, // ← Phase 6
         courseState: this.deps.toolServices.courseState, // ← Phase 6
@@ -270,6 +270,9 @@ export class SessionServiceImpl implements SessionService {
         documents: this.deps.toolServices.documents,
         sandbox: this.deps.toolServices.sandbox,
         sympy: this.deps.toolServices.sympy,
+        ...(this.deps.indexerOrchestrator !== undefined && {
+          indexerOrchestrator: this.deps.indexerOrchestrator,
+        }), // ← Phase 7 (optional)
         pedagogyPack: null,
       },
       log: this.deps.log,

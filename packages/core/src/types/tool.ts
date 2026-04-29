@@ -9,8 +9,17 @@ import type {
   Lesson,
 } from "./artifacts.js";
 import type { ProgressSnapshot } from "./client.js";
-import type { Logger, Timestamp } from "./common.js";
+import type { Logger, TimeRange, Timestamp } from "./common.js";
 import type { ConceptId, CourseId, DocumentId, LessonId, SessionId, StudentId } from "./ids.js";
+import type {
+  AffectiveModel,
+  EpisodicEvent,
+  IndexerOrchestrator,
+  MemoryExport,
+  Misconception,
+  ProceduralModel,
+  StudentModel,
+} from "./memory.js";
 
 export type EffectKind =
   | "memory.write"
@@ -44,7 +53,8 @@ export interface ToolContext {
 }
 
 export interface ToolServices {
-  memory: unknown; // MemoryService — concrete in Phase 7
+  /** Phase 7: concretized from unknown. */
+  memory: MemoryService;
   /** Phase 6: concretized from unknown. */
   artifacts: ArtifactsService;
   vectorStore: VectorStore; // ← Phase 5
@@ -57,6 +67,11 @@ export interface ToolServices {
   bootstrap: BootstrapService;
   /** Phase 6: narrow read-only course state for tools and brief composition. */
   courseState: CourseStateReader;
+  /**
+   * Phase 7: used by active-path tools to schedule indexer re-runs after a tool-driven write.
+   * Optional to keep tests that don't wire indexers working.
+   */
+  indexerOrchestrator?: IndexerOrchestrator;
   pedagogyPack: unknown; // PedagogyPackService — concrete in Phase 14
 }
 
@@ -136,6 +151,33 @@ export interface ProposeDraftInput {
   courseTitle: string;
   subject: string;
   gradeLevel: string;
+}
+
+// ─── Phase 7: MemoryService (server-side) ─────────────────────────────────────
+// NOTE: The client-side MemoryService lives in client.ts and has different signatures
+// (no studentId — IPC handlers resolve it via getDefaultStudentId). This is the
+// server-side interface; MemoryServiceImpl implements this one.
+
+export interface MemoryService {
+  studentModel(studentId: StudentId): Promise<StudentModel>;
+  misconceptions(studentId: StudentId): Promise<Misconception[]>;
+  /** Returns empty defaults in Phase 7; Phase 14 fills. */
+  procedural(studentId: StudentId): Promise<ProceduralModel>;
+  /** Returns empty defaults in Phase 7; Phase 14 fills. */
+  affective(studentId: StudentId): Promise<AffectiveModel>;
+  /** Stream episodic events; skips redacted rows. */
+  episodic(opts: {
+    studentId: StudentId;
+    sessionId?: SessionId;
+    range?: TimeRange;
+  }): AsyncIterable<EpisodicEvent>;
+  /** Full snapshot in MemoryExport format. */
+  export(studentId: StudentId): Promise<MemoryExport>;
+  /**
+   * Wipe projection tables; mark episodic rows as redacted.
+   * The episodic rows themselves are NOT deleted.
+   */
+  delete(opts: { studentId: StudentId; confirm: true }): Promise<void>;
 }
 
 // ─── EmbeddingService ────────────────────────────────────────────────────────

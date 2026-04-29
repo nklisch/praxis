@@ -1,9 +1,14 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { closeDb } from "@praxis/core/db";
 import { runMigrations } from "@praxis/core/db/migrate";
 import { afterEach, beforeEach } from "vitest";
+
+// Absolute path to the repo root's drizzle/ migrations folder.
+// Using import.meta.url so this works regardless of what process.cwd() is.
+const MIGRATIONS_FOLDER = join(dirname(fileURLToPath(import.meta.url)), "../../drizzle");
 
 export interface TempDbContext {
   /** Temp directory holding the database. */
@@ -39,7 +44,7 @@ export function useTempDb(opts: UseTempDbOptions = {}): TempDbContext {
     ctx.tmpDir = mkdtempSync(join(tmpdir(), "praxis-test-"));
     ctx.dbPath = join(ctx.tmpDir, "test.db");
     process.env.PRAXIS_DB_PATH = ctx.dbPath;
-    if (migrate) runMigrations({ path: ctx.dbPath });
+    if (migrate) runMigrations({ path: ctx.dbPath, migrationsFolder: MIGRATIONS_FOLDER });
   });
 
   afterEach(() => {

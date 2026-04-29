@@ -10,7 +10,9 @@ import type {
   EmbeddingService,
   Engine,
   FtsStore,
+  IndexerOrchestrator,
   Logger,
+  MemoryService,
   Mode,
   SymPyService,
   ToolDefinition,
@@ -24,7 +26,7 @@ export interface ServiceDeps {
   toolDefinitions: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
   /**
    * Concrete tool services injected into ToolContext for handlers.
-   * Phase 6 adds artifacts, bootstrap, courseState.
+   * Phase 6 adds artifacts, bootstrap, courseState. Phase 7 adds memory.
    */
   toolServices: {
     sympy: SymPyService;
@@ -39,7 +41,15 @@ export interface ServiceDeps {
     bootstrap: BootstrapService;
     /** Phase 6: narrow course-state reader (ArtifactsServiceImpl implements both). */
     courseState: CourseStateReader;
+    /** Phase 7: concrete memory service. */
+    memory: MemoryService;
   };
+  /**
+   * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will
+   * schedule post-turn and session-end indexer runs. Tests that don't wire
+   * indexers can leave this undefined.
+   */
+  indexerOrchestrator?: IndexerOrchestrator;
   /**
    * Factory for constructing an Engine from a config. Optional — when omitted,
    * defaults to `createEngine` from @praxis/engines. Tests inject fakes here.
