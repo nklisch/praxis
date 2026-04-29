@@ -12,36 +12,76 @@ Each section defines one contract. Contracts are **stable surfaces** — extensi
 
 The interface every engine implements. Lives in `@praxis/core/types/engine.ts` and is the only thing `@praxis/engines` imports from `@praxis/core`.
 
+**Phase 3 (v2):** Engines use a multi-turn lifecycle: `Engine.open(opts) → EngineSession`, then `session.send(userMessage)` per turn, then `session.close()`. This lets Claude Code and Codex use their native SDK conversation objects across turns (full prompt cache, full tool fidelity), while Direct holds an in-memory messages array. The framework provides a unified `EngineSession` surface and records every event to episodic.
+
 ```typescript
 interface Engine {
   /** Identifier for diagnostics and selection. e.g. "claude-code", "codex", "direct.anthropic". */
   readonly id: string;
 
   /**
-   * Engine category. Affects how the framework constrains briefs.
-   * - "looped": engine runs its own internal loop until done.
-   * - "single-shot": engine answers one model call; framework drives loop.
+   * Engine category. Affects how the framework constrains options.
+   * - "looped": engine runs its own internal loop until done per `send`.
+   * - "single-shot": engine answers per model call; framework orchestrates the loop within `send`.
    */
   readonly kind: "looped" | "single-shot";
 
-  /** Run a brief, producing an async event stream. Normalized regardless of engine internals. */
-  run(brief: Brief, tools: ToolRegistry): AsyncIterable<EngineEvent>;
+  /**
+   * Open a multi-turn session. Async because adapters may need to spawn
+   * subprocesses (MCP tool bridge), open SDK conversations, or perform other
+   * setup that can fail. Throws on failure — the caller (SessionServiceImpl)
+   * surfaces the error to the user before any send is attempted.
+   */
+  open(opts: EngineOpenOptions): Promise<EngineSession>;
 
   /** Health check / capability probe. Used at session start. */
   health(): Promise<HealthStatus>;
 }
 
-interface Brief {
-  /** Composed system prompt (mode prompt + persona + scope context). */
+interface EngineOpenOptions {
+  /** Composed system prompt (mode prompt + persona + scope context). Fixed for the session lifetime. */
   systemPrompt: string;
-  /** Initial user message that opens the turn. */
-  userMessage: string;
-  /** Selected context (retrieved chunks, relevant memory, current artifact state). */
-  context: BriefContext;
+  /** Tool registry. Fixed for the session lifetime. */
+  tools: ToolRegistry;
+  /**
+   * Prior conversation turns for seeding a session from episodic history
+   * (engine swap, process restart). Empty or absent = brand new conversation.
+   * Text-only by design: tool-call replay would change behavior and is wrong.
+   */
+  priorTurns?: ConversationTurn[];
   /** Cap on internal loop iterations (looped engines), or model calls (single-shot). */
   maxSteps?: number;
   /** Generation parameters (temperature, max_tokens, etc.). */
   generation?: GenerationParams;
+}
+
+interface EngineSession {
+  /**
+   * Stable session identifier for diagnostics. May match the SDK's native
+   * session id (e.g., Claude Code's sessionId, Codex's thread id) when
+   * applicable, or be a synthesized UUID for adapters without native ids.
+   */
+  readonly id: string;
+
+  /**
+   * Send one user message; yield engine events; resolves when the engine's
+   * internal loop completes for this turn. Subsequent calls continue the same
+   * conversation — the adapter's underlying SDK preserves history natively
+   * (Claude Code, Codex) or via an in-memory messages array (Direct).
+   */
+  send(userMessage: string): AsyncIterable<EngineEvent>;
+
+  /**
+   * Tear down the underlying SDK session, MCP bridge subprocess, etc.
+   * Idempotent. Called by the framework when ending a Praxis session OR
+   * when swapping engines mid-session.
+   */
+  close(): Promise<void>;
+}
+
+interface ConversationTurn {
+  role: "user" | "assistant";
+  content: string;
 }
 
 interface ToolRegistry {
@@ -66,6 +106,8 @@ interface ToolDefinitionSummary {
 }
 
 type EngineEvent =
+  /** Framework-emitted only (never adapter-emitted). Records the user's input in the episodic transcript. */
+  | { type: "user_message"; content: string }
   | { type: "model_message"; content: string; partial?: boolean }
   | { type: "tool_call"; toolName: string; args: unknown; callId: string }
   | { type: "tool_result"; callId: string; result: ToolResult }
@@ -89,7 +131,28 @@ interface HealthStatus {
 
 - Looped engines must project their internal trace into the normalized event sequence. Tool calls inside the engine must round-trip through `ToolRegistry.dispatch` — the framework owns tool execution.
 - Single-shot engines drive the loop themselves: call model, dispatch tool calls, feed results back, repeat until the model returns a final message or `maxSteps` is reached.
-- Engines are **stateless across `run()` calls**. Session memory is the framework's concern.
+- `Engine.open` is async because spawning the MCP bridge subprocess is async. Adapters that don't need async setup can return `Promise.resolve(new Session(...))`.
+- The `seedPreface` pattern: when `priorTurns` is non-empty, Claude Code and Codex adapters prepend a plain-text transcript to the FIRST `send` after open. Subsequent sends benefit from the SDK's native multi-turn. Direct populates its `messages[]` array from `priorTurns` directly.
+- `EngineEvent.user_message` is emitted by the framework (`SessionServiceImpl.send`), never by engine adapters. Adapters must not emit this type.
+- For single-turn compatibility (tests, scripts), use `runOneShot(engine, opts, userMessage)` from `@praxis/engines`.
+
+**`runOneShot` convenience wrapper** (for tests and scripts):
+
+```typescript
+// From @praxis/engines
+async function* runOneShot(
+  engine: Engine,
+  opts: EngineOpenOptions,
+  userMessage: string,
+): AsyncGenerator<EngineEvent, void, void> {
+  const session = await engine.open(opts);
+  try {
+    yield* session.send(userMessage);
+  } finally {
+    await session.close();
+  }
+}
+```
 
 ## Tool definition format
 
@@ -173,11 +236,8 @@ interface Mode {
   /** Artifact scope. Restricts what `course.*` and similar tools can see. */
   artifactScope?: ArtifactScope;
 
-  /** Optional: shape the brief after the framework's default composition. */
-  shapeBrief?(brief: Brief, context: ModeContext): Brief;
-
   /** Optional: hook called after every event stream completes. */
-  onTurnEnd?(events: EngineEvent[], context: ModeContext): Promise<void>;
+  onTurnEnd?(events: EngineEvent[]): Promise<void>;
 }
 
 interface PromptFragment {

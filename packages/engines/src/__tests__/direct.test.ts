@@ -1,4 +1,9 @@
-import type { ToolDefinitionSummary, ToolRegistry, ToolResult } from "@praxis/core/types";
+import type {
+  EngineOpenOptions,
+  ToolDefinitionSummary,
+  ToolRegistry,
+  ToolResult,
+} from "@praxis/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the `ai` module before any imports that depend on it.
@@ -25,7 +30,7 @@ vi.mock("ollama-ai-provider-v2", () => ({
   createOllama: vi.fn(() => vi.fn(() => ({ modelId: "llama3.2" }))),
 }));
 
-describe("DirectEngine", () => {
+describe("DirectEngine — lifecycle", () => {
   const deps = {
     log: {
       debug: () => {},
@@ -33,12 +38,6 @@ describe("DirectEngine", () => {
       warn: () => {},
       error: () => {},
     },
-  };
-
-  const brief = {
-    systemPrompt: "You are a tutor.",
-    userMessage: "Hello",
-    context: { retrievedChunks: [], artifactRefs: [] },
   };
 
   const echoSummary: ToolDefinitionSummary = {
@@ -81,6 +80,65 @@ describe("DirectEngine", () => {
     expect(engine.kind).toBe("single-shot");
   });
 
+  it("open() returns a session with a non-empty id", async () => {
+    const { streamText } = await import("ai");
+    const { DirectEngine } = await import("../direct/adapter.js");
+
+    vi.mocked(streamText).mockReturnValue({
+      fullStream: (async function* () {
+        yield { type: "finish", totalUsage: { inputTokens: 0, outputTokens: 0 } };
+      })() as unknown as ReturnType<typeof streamText>["fullStream"],
+    } as unknown as ReturnType<typeof streamText>);
+
+    const engine = new DirectEngine({
+      config: { engineId: "direct.anthropic" },
+      deps,
+      provider: "anthropic",
+    });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+    expect(session.id).toBeTruthy();
+    await session.close();
+  });
+
+  it("two sends on the same session reuse the messages array (streamText called twice)", async () => {
+    const { streamText } = await import("ai");
+    const { DirectEngine } = await import("../direct/adapter.js");
+
+    vi.mocked(streamText).mockReturnValue({
+      fullStream: (async function* () {
+        yield { type: "text-delta", delta: "reply" };
+        yield { type: "text-end" };
+        yield { type: "finish", totalUsage: { inputTokens: 1, outputTokens: 1 } };
+      })() as unknown as ReturnType<typeof streamText>["fullStream"],
+    } as unknown as ReturnType<typeof streamText>);
+
+    const engine = new DirectEngine({
+      config: { engineId: "direct.anthropic" },
+      deps,
+      provider: "anthropic",
+    });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    // first send
+    for await (const _ of session.send("first")) {
+      /* drain */
+    }
+    // second send (streamText must be called again — session reused)
+    vi.mocked(streamText).mockReturnValue({
+      fullStream: (async function* () {
+        yield { type: "text-delta", delta: "second reply" };
+        yield { type: "text-end" };
+        yield { type: "finish", totalUsage: { inputTokens: 1, outputTokens: 1 } };
+      })() as unknown as ReturnType<typeof streamText>["fullStream"],
+    } as unknown as ReturnType<typeof streamText>);
+    for await (const _ of session.send("second")) {
+      /* drain */
+    }
+
+    expect(vi.mocked(streamText)).toHaveBeenCalledTimes(2);
+    await session.close();
+  });
+
   it("emits model_message, tool_call, tool_result, final from fullStream", async () => {
     const { streamText } = await import("ai");
     const { DirectEngine } = await import("../direct/adapter.js");
@@ -109,13 +167,14 @@ describe("DirectEngine", () => {
       deps,
       provider: "anthropic",
     });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
 
     const events = [];
-    for await (const event of engine.run(brief, emptyRegistry)) {
+    for await (const event of session.send("Hello")) {
       events.push(event);
     }
+    await session.close();
 
-    // Should have: text-delta (partial), text-end (full), tool-call, tool-result, text-delta (partial), text-end (full), finish
     const types = events.map((e) => e.type);
     expect(types).toContain("model_message");
     expect(types).toContain("tool_call");
@@ -130,6 +189,27 @@ describe("DirectEngine", () => {
       type: "final",
       usage: { inputTokens: 10, outputTokens: 20 },
     });
+  });
+
+  it("close() clears the messages array (idempotent)", async () => {
+    const { streamText } = await import("ai");
+    const { DirectEngine } = await import("../direct/adapter.js");
+
+    vi.mocked(streamText).mockReturnValue({
+      fullStream: (async function* () {
+        yield { type: "finish", totalUsage: { inputTokens: 0, outputTokens: 0 } };
+      })() as unknown as ReturnType<typeof streamText>["fullStream"],
+    } as unknown as ReturnType<typeof streamText>);
+
+    const engine = new DirectEngine({
+      config: { engineId: "direct.anthropic" },
+      deps,
+      provider: "anthropic",
+    });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+    // close twice — should not throw
+    await session.close();
+    await session.close();
   });
 
   it("tool-error part emits tool_result with ok:false", async () => {
@@ -154,11 +234,13 @@ describe("DirectEngine", () => {
       deps,
       provider: "anthropic",
     });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
 
     const events = [];
-    for await (const event of engine.run(brief, emptyRegistry)) {
+    for await (const event of session.send("Hello")) {
       events.push(event);
     }
+    await session.close();
 
     const toolResult = events.find((e) => e.type === "tool_result");
     expect(toolResult).toBeDefined();
@@ -171,8 +253,6 @@ describe("DirectEngine", () => {
     const { streamText } = await import("ai");
     const { DirectEngine } = await import("../direct/adapter.js");
 
-    // We check the tool wrapping indirectly via the tool conversion layer
-    // The streamText mock receives a `tools` argument with wrapped registry dispatchers
     let capturedTools: Record<string, unknown> = {};
 
     vi.mocked(streamText).mockImplementation((opts) => {
@@ -201,11 +281,12 @@ describe("DirectEngine", () => {
       deps,
       provider: "anthropic",
     });
-    for await (const _ of engine.run(brief, registry)) {
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: registry });
+    for await (const _ of session.send("Hello")) {
       /* drain */
     }
+    await session.close();
 
-    // The tool execute function in the tools record should call registry.dispatch
     const echoCaptured = capturedTools["test.echo"] as {
       execute?: (args: unknown) => Promise<unknown>;
     };
@@ -224,5 +305,46 @@ describe("DirectEngine", () => {
     });
     const health = await engine.health();
     expect(health.ok).toBe(true);
+  });
+
+  it("priorTurns seed populates the messages array before first send", async () => {
+    const { streamText } = await import("ai");
+    const { DirectEngine } = await import("../direct/adapter.js");
+
+    let capturedMessages: unknown[] = [];
+    vi.mocked(streamText).mockImplementation((opts) => {
+      // Snapshot the array at call time — the adapter mutates messages[] after streamText returns.
+      capturedMessages = [...((opts as { messages?: unknown[] }).messages ?? [])];
+      return {
+        fullStream: (async function* () {
+          yield { type: "text-delta", delta: "reply" };
+          yield { type: "text-end" };
+          yield { type: "finish", totalUsage: { inputTokens: 0, outputTokens: 0 } };
+        })() as unknown as ReturnType<typeof streamText>["fullStream"],
+      } as unknown as ReturnType<typeof streamText>;
+    });
+
+    const openOpts: EngineOpenOptions = {
+      systemPrompt: "You are a tutor.",
+      tools: emptyRegistry,
+      priorTurns: [
+        { role: "user", content: "previous question" },
+        { role: "assistant", content: "previous answer" },
+      ],
+    };
+
+    const engine = new DirectEngine({
+      config: { engineId: "direct.anthropic" },
+      deps,
+      provider: "anthropic",
+    });
+    const session = await engine.open(openOpts);
+    for await (const _ of session.send("new question")) {
+      /* drain */
+    }
+    await session.close();
+
+    // messages should contain the 2 prior turns + 1 new user message = 3 total
+    expect(capturedMessages).toHaveLength(3);
   });
 });

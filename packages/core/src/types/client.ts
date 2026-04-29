@@ -20,7 +20,8 @@ export interface PraxisClient {
 }
 
 export interface SessionService {
-  start(opts: { courseId: CourseId; modeId: string }): Promise<SessionHandle>;
+  // courseId is optional in Phase 3 (no courses yet).
+  start(opts: { courseId?: CourseId; modeId: string }): Promise<SessionHandle>;
   send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent>;
   end(sessionId: SessionId): Promise<SessionSummary>;
   active(): Promise<SessionHandle | null>;
@@ -28,7 +29,7 @@ export interface SessionService {
 
 export interface SessionHandle {
   sessionId: SessionId;
-  courseId: CourseId;
+  courseId?: CourseId; // optional per above
   modeId: string;
   startedAt: Timestamp;
 }
@@ -99,10 +100,27 @@ export interface MemoryService {
   delete(opts: { confirm: true }): Promise<void>;
 }
 
+/**
+ * Snapshot view of EngineConfig for the client surface. Mirrors EngineConfig
+ * in @praxis/core/config without forcing client.ts to reach into other core
+ * subfolders for a Zod-derived type. SessionServiceImpl validates against
+ * EngineConfigSchema before persisting.
+ */
+export interface EngineConfigSnapshot {
+  engineId: string;
+  model?: string;
+  apiKey?: string;
+  baseUrl?: string;
+  effort?: "minimal" | "low" | "medium" | "high" | "xhigh";
+}
+
 export interface ConfigService {
   isLocked(): Promise<boolean>;
   setLockCode(code: string): Promise<void>;
   unlock(code: string): Promise<{ ok: boolean }>;
   selectedEngine(): Promise<string>;
   setSelectedEngine(engineId: string): Promise<void>;
+  // Phase 3 additions:
+  engineConfig(): Promise<EngineConfigSnapshot>;
+  setEngineConfig(config: EngineConfigSnapshot): Promise<void>;
 }

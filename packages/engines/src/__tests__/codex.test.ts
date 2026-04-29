@@ -19,7 +19,7 @@ vi.mock("../mcp/tool-bridge.js", () => ({
   })),
 }));
 
-describe("CodexEngine", () => {
+describe("CodexEngine — lifecycle", () => {
   const deps = {
     log: {
       debug: () => {},
@@ -27,12 +27,6 @@ describe("CodexEngine", () => {
       warn: () => {},
       error: () => {},
     },
-  };
-
-  const brief = {
-    systemPrompt: "You are a tutor.",
-    userMessage: "Hello",
-    context: { retrievedChunks: [], artifactRefs: [] },
   };
 
   const emptyRegistry: ToolRegistry = {
@@ -54,6 +48,182 @@ describe("CodexEngine", () => {
     const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
     expect(engine.id).toBe("codex");
     expect(engine.kind).toBe("looped");
+  });
+
+  it("open() returns a session with a non-empty id", async () => {
+    const { Codex } = await import("@openai/codex-sdk");
+    const { CodexEngine } = await import("../codex/adapter.js");
+
+    async function* emptyEvents() {
+      yield {
+        type: "turn.completed",
+        usage: {
+          input_tokens: 0,
+          cached_input_tokens: 0,
+          output_tokens: 0,
+          reasoning_output_tokens: 0,
+        },
+      };
+    }
+
+    vi.mocked(Codex).mockImplementation(
+      () =>
+        ({
+          startThread: vi.fn(() => ({
+            runStreamed: vi.fn(async () => ({ events: emptyEvents() })),
+            run: vi.fn(),
+            id: null,
+          })),
+          resumeThread: vi.fn(),
+        }) as unknown as import("@openai/codex-sdk").Codex,
+    );
+
+    const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+    expect(session.id).toBeTruthy();
+    await session.close();
+  });
+
+  it("two sends on the same session call runStreamed twice (startThread called once)", async () => {
+    const { Codex } = await import("@openai/codex-sdk");
+    const { CodexEngine } = await import("../codex/adapter.js");
+
+    async function* emptyEvents() {
+      yield {
+        type: "turn.completed",
+        usage: {
+          input_tokens: 0,
+          cached_input_tokens: 0,
+          output_tokens: 0,
+          reasoning_output_tokens: 0,
+        },
+      };
+    }
+
+    const runStreamedSpy = vi.fn(async () => ({ events: emptyEvents() }));
+    const startThreadSpy = vi.fn(() => ({
+      runStreamed: runStreamedSpy,
+      run: vi.fn(),
+      id: null,
+    }));
+
+    vi.mocked(Codex).mockImplementation(
+      () =>
+        ({
+          startThread: startThreadSpy,
+          resumeThread: vi.fn(),
+        }) as unknown as import("@openai/codex-sdk").Codex,
+    );
+
+    const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    for await (const _ of session.send("first")) {
+      /* drain */
+    }
+    for await (const _ of session.send("second")) {
+      /* drain */
+    }
+
+    // startThread called once; runStreamed called twice
+    expect(startThreadSpy).toHaveBeenCalledTimes(1);
+    expect(runStreamedSpy).toHaveBeenCalledTimes(2);
+    await session.close();
+  });
+
+  it("close() tears down bridge; idempotent", async () => {
+    const { Codex } = await import("@openai/codex-sdk");
+    const { startToolBridge } = await import("../mcp/tool-bridge.js");
+    const { CodexEngine } = await import("../codex/adapter.js");
+
+    const echoRegistry: ToolRegistry = {
+      list: () => [
+        {
+          name: "test.echo",
+          description: "Echo",
+          inputSchemaJson: {
+            type: "object",
+            properties: { text: { type: "string" } },
+            required: ["text"],
+          },
+          tier: "deterministic",
+        },
+      ],
+      dispatch: vi.fn(
+        async (): Promise<ToolResult> => ({ ok: true as const, value: {}, tier: "deterministic" }),
+      ),
+    };
+
+    async function* emptyEvents() {
+      yield {
+        type: "turn.completed",
+        usage: {
+          input_tokens: 0,
+          cached_input_tokens: 0,
+          output_tokens: 0,
+          reasoning_output_tokens: 0,
+        },
+      };
+    }
+
+    vi.mocked(Codex).mockImplementation(
+      () =>
+        ({
+          startThread: vi.fn(() => ({
+            runStreamed: vi.fn(async () => ({ events: emptyEvents() })),
+            run: vi.fn(),
+            id: null,
+          })),
+          resumeThread: vi.fn(),
+        }) as unknown as import("@openai/codex-sdk").Codex,
+    );
+
+    const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: echoRegistry });
+    await session.close();
+    await session.close(); // idempotent
+
+    const bridgeHandle = await vi.mocked(startToolBridge).mock.results[0]?.value;
+    expect(bridgeHandle.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("send to closed session yields error event", async () => {
+    const { Codex } = await import("@openai/codex-sdk");
+    const { CodexEngine } = await import("../codex/adapter.js");
+
+    async function* emptyEvents() {
+      yield {
+        type: "turn.completed",
+        usage: {
+          input_tokens: 0,
+          cached_input_tokens: 0,
+          output_tokens: 0,
+          reasoning_output_tokens: 0,
+        },
+      };
+    }
+
+    vi.mocked(Codex).mockImplementation(
+      () =>
+        ({
+          startThread: vi.fn(() => ({
+            runStreamed: vi.fn(async () => ({ events: emptyEvents() })),
+            run: vi.fn(),
+            id: null,
+          })),
+          resumeThread: vi.fn(),
+        }) as unknown as import("@openai/codex-sdk").Codex,
+    );
+
+    const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+    await session.close();
+
+    const events = [];
+    for await (const event of session.send("Hello after close")) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({ type: "error", error: { code: "session.closed" } });
   });
 
   it("agent_message item emits model_message event", async () => {
@@ -94,10 +264,12 @@ describe("CodexEngine", () => {
     );
 
     const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
     const events = [];
-    for await (const event of engine.run(brief, emptyRegistry)) {
+    for await (const event of session.send("Hello")) {
       events.push(event);
     }
+    await session.close();
 
     const modelMsg = events.find((e) => e.type === "model_message");
     expect(modelMsg).toBeDefined();
@@ -163,10 +335,12 @@ describe("CodexEngine", () => {
     );
 
     const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
     const events = [];
-    for await (const event of engine.run(brief, emptyRegistry)) {
+    for await (const event of session.send("Hello")) {
       events.push(event);
     }
+    await session.close();
 
     const toolCall = events.find((e) => e.type === "tool_call");
     expect(toolCall).toBeDefined();
@@ -225,10 +399,12 @@ describe("CodexEngine", () => {
     );
 
     const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
     const events = [];
-    for await (const event of engine.run(brief, emptyRegistry)) {
+    for await (const event of session.send("Hello")) {
       events.push(event);
     }
+    await session.close();
 
     const toolCall = events.find((e) => e.type === "tool_call");
     expect(toolCall).toBeUndefined();
@@ -266,10 +442,12 @@ describe("CodexEngine", () => {
     );
 
     const engine = new CodexEngine({ config: { engineId: "codex" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
     const events = [];
-    for await (const event of engine.run(brief, emptyRegistry)) {
+    for await (const event of session.send("Hello")) {
       events.push(event);
     }
+    await session.close();
 
     const finalEvent = events.find((e) => e.type === "final");
     expect(finalEvent).toBeDefined();

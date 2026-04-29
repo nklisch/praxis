@@ -28,6 +28,10 @@ The allowed dependency direction is strictly:
 
 **Never** introduce a runtime dependency that goes against this direction (e.g., `@praxis/core` importing `@praxis/engines`). Type-only imports across direction-reversed boundaries are fine — use `import type`.
 
+### Phase 3 dependency exception
+
+**`@praxis/core/services`** (i.e., `packages/core/src/services/`) imports `@praxis/engines` and `@praxis/tools` at runtime. This is a targeted, deliberate exception: `SessionServiceImpl` is the composition root that wires engines + tools + core session logic together. This exception is limited to the `services/` subdirectory only — the rest of `@praxis/core` must not import `@praxis/engines` or `@praxis/tools`.
+
 ## Import conventions
 
 - **Type-only imports must use `import type`** — enforced by `verbatimModuleSyntax: true` in TypeScript and by Biome's `useImportType` rule. Violations are lint errors.
@@ -71,4 +75,4 @@ Prefer `unknown` with a type guard, or a precise union, over `any`.
 
 ## Phase map
 
-Praxis is built in 14 phases. Each phase has a design doc in `docs/designs/`. Check the relevant design before implementing a phase. Phase 1 established the monorepo skeleton and type contract; Phase 2 adds the engine layer.
+Praxis is built in 14 phases. Each phase has a design doc in `docs/designs/`. Check the relevant design before implementing a phase. Phase 1 established the monorepo skeleton and type contract; Phase 2 adds the engine layer; Phase 3 (backend units) adds the engine lifecycle (open/send/close), SessionServiceImpl, ConfigServiceImpl, and conversation history.

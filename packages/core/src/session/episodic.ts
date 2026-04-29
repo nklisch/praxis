@@ -1,5 +1,5 @@
 import { episodicEvents, sessions } from "@praxis/memory/schema";
-import { eq } from "drizzle-orm";
+import { eq, max } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type { EngineEvent } from "../types/engine.js";
@@ -61,4 +61,45 @@ export function createSession(input: CreateSessionInput): string {
 
 export function endSession(db: PraxisDb, sessionId: string): void {
   db.update(sessions).set({ endedAt: new Date() }).where(eq(sessions.id, sessionId)).run();
+}
+
+/**
+ * Next turn index for a session — `max(turnIndex) + 1`, or 0 if no events yet.
+ */
+export function nextTurnIndex(db: PraxisDb, sessionId: string): number {
+  const row = db
+    .select({ maxTurn: max(episodicEvents.turnIndex) })
+    .from(episodicEvents)
+    .where(eq(episodicEvents.sessionId, sessionId))
+    .get();
+  const current = row?.maxTurn ?? null;
+  return current === null ? 0 : current + 1;
+}
+
+export interface RecordUserMessageInput {
+  db: PraxisDb;
+  sessionId: string;
+  studentId: string;
+  engineId: string;
+  modeId: string;
+  turnIndex: number;
+  content: string;
+  ts?: Date;
+}
+
+/**
+ * Append a user_message episodic event. The user's input is part of the
+ * immutable transcript — recorded BEFORE handing off to the engine session.
+ */
+export function recordUserMessage(input: RecordUserMessageInput): string {
+  return appendEpisodic({
+    db: input.db,
+    sessionId: input.sessionId,
+    studentId: input.studentId,
+    engineId: input.engineId,
+    modeId: input.modeId,
+    turnIndex: input.turnIndex,
+    event: { type: "user_message", content: input.content },
+    ...(input.ts !== undefined && { ts: input.ts }),
+  });
 }

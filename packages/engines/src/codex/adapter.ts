@@ -1,9 +1,17 @@
+import type { Thread } from "@openai/codex-sdk";
 import { Codex } from "@openai/codex-sdk";
 import type { EngineConfig } from "@praxis/core/config";
-import type { Brief, Engine, EngineEvent, HealthStatus, ToolRegistry } from "@praxis/core/types";
+import type {
+  Engine,
+  EngineEvent,
+  EngineOpenOptions,
+  EngineSession,
+  HealthStatus,
+} from "@praxis/core/types";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
+import { buildTranscriptPreface } from "../util/transcript.js";
 import { mapCodexEvent, newMapState } from "./events.js";
 
 export interface CodexEngineOptions {
@@ -20,11 +28,13 @@ export class CodexEngine implements Engine {
     this.opts = opts;
   }
 
-  async *run(brief: Brief, tools: ToolRegistry): AsyncIterable<EngineEvent> {
+  async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
     const bridge: ToolBridgeHandle | null =
-      tools.list().length > 0 ? await startToolBridge({ registry: tools }) : null;
+      openOpts.tools.list().length > 0 ? await startToolBridge({ registry: openOpts.tools }) : null;
+    let thread: Thread;
+    let codex: Codex;
     try {
-      const codexOpts = {
+      codex = new Codex({
         ...(this.opts.config.apiKey !== undefined && { apiKey: this.opts.config.apiKey }),
         ...(this.opts.config.baseUrl !== undefined && { baseUrl: this.opts.config.baseUrl }),
         ...(bridge && {
@@ -38,9 +48,8 @@ export class CodexEngine implements Engine {
             },
           },
         }),
-      };
-      const codex = new Codex(codexOpts);
-      const threadOpts = {
+      });
+      thread = codex.startThread({
         ...(this.opts.config.model !== undefined && { model: this.opts.config.model }),
         ...(this.opts.config.effort !== undefined && {
           modelReasoningEffort: this.opts.config.effort,
@@ -48,24 +57,25 @@ export class CodexEngine implements Engine {
         approvalPolicy: "never" as const,
         sandboxMode: "read-only" as const,
         skipGitRepoCheck: true,
-      };
-      const thread = codex.startThread(threadOpts);
-      const userMessage = `${brief.systemPrompt}\n\n---\n\nUser: ${brief.userMessage}`;
-      const { events } = await thread.runStreamed(userMessage);
-      const state = newMapState();
-      const itemIndex = { value: 0 };
-      for await (const event of events) {
-        const mapped = mapCodexEvent(
-          event,
-          { serverName: bridge?.serverName ?? "praxis" },
-          state,
-          itemIndex,
-        );
-        for (const m of mapped) yield m;
-      }
-    } finally {
+      });
+    } catch (err) {
       if (bridge) await bridge.close().catch(() => {});
+      throw err;
     }
+
+    // Codex has no separate system prompt slot — fold it into the seed preface for the first send.
+    const transcriptPart = buildTranscriptPreface(openOpts.priorTurns ?? []);
+    const seedPreface = transcriptPart
+      ? `${openOpts.systemPrompt}\n\n---\n\n${transcriptPart}`
+      : `${openOpts.systemPrompt}\n\n---\n\n`;
+
+    return new CodexEngineSession({
+      id: (thread as { id?: string | null }).id ?? `codex-${Date.now()}`,
+      thread,
+      bridge,
+      seedPreface,
+      serverName: bridge?.serverName ?? "praxis",
+    });
   }
 
   async health(): Promise<HealthStatus> {
@@ -73,5 +83,59 @@ export class CodexEngine implements Engine {
       ok: true,
       capabilities: { vision: false, streaming: true, nativeMCP: true, contextWindow: 128_000 },
     };
+  }
+}
+
+interface CodexSessionInit {
+  id: string;
+  thread: Thread;
+  bridge: ToolBridgeHandle | null;
+  seedPreface: string;
+  serverName: string;
+}
+
+class CodexEngineSession implements EngineSession {
+  readonly id: string;
+  private readonly thread: Thread;
+  private readonly bridge: ToolBridgeHandle | null;
+  private readonly serverName: string;
+  private seedPreface: string;
+  private closed = false;
+
+  constructor(init: CodexSessionInit) {
+    this.id = init.id;
+    this.thread = init.thread;
+    this.bridge = init.bridge;
+    this.serverName = init.serverName;
+    this.seedPreface = init.seedPreface;
+  }
+
+  async *send(userMessage: string): AsyncIterable<EngineEvent> {
+    if (this.closed) {
+      yield {
+        type: "error",
+        error: { code: "session.closed", message: "EngineSession is closed", recoverable: false },
+      };
+      return;
+    }
+    // Apply seed preface only on the first send after open.
+    const message = this.seedPreface ? `${this.seedPreface}${userMessage}` : userMessage;
+    this.seedPreface = "";
+
+    const { events } = await this.thread.runStreamed(message);
+    const state = newMapState();
+    const itemIndex = { value: 0 };
+    for await (const event of events) {
+      const mapped = mapCodexEvent(event, { serverName: this.serverName }, state, itemIndex);
+      for (const m of mapped) yield m;
+    }
+  }
+
+  async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    // Codex Thread has no close API — the CLI subprocess persists thread state on disk.
+    // Drop our reference. Bridge subprocess gets torn down.
+    if (this.bridge) await this.bridge.close().catch(() => {});
   }
 }

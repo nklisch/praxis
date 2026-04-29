@@ -3,11 +3,15 @@
  * produce an equivalent normalized turn: final text contains "done", tool-call
  * sequence matches, and a final event is emitted.
  *
+ * Uses runOneShot(engine, opts, userMessage) as the single-turn convenience wrapper
+ * (equivalent to old Phase 2 engine.run(brief, tools)).
+ *
  * vi.mock calls are hoisted; each adapter's SDK is mocked independently in this file.
  */
 
-import type { Brief, EngineEvent } from "@praxis/core/types";
+import type { EngineEvent, EngineOpenOptions } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
+import { runOneShot } from "@praxis/engines";
 import { ClaudeCodeEngine } from "@praxis/engines/claude-code";
 import { CodexEngine } from "@praxis/engines/codex";
 import { DirectEngine } from "@praxis/engines/direct";
@@ -67,11 +71,8 @@ vi.mock("ollama-ai-provider-v2", () => ({
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
-const SCENARIO_BRIEF: Brief = {
-  systemPrompt: "You are a tutor. Be brief.",
-  userMessage: "Use the test.echo tool with text 'hello' and then say 'done'.",
-  context: { retrievedChunks: [], artifactRefs: [] },
-};
+const SCENARIO_SYSTEM_PROMPT = "You are a tutor. Be brief.";
+const SCENARIO_USER_MESSAGE = "Use the test.echo tool with text 'hello' and then say 'done'.";
 
 const noopLogger = {
   debug: () => {},
@@ -118,6 +119,7 @@ async function collect(stream: AsyncIterable<EngineEvent>): Promise<NormalizedTu
 
 describe("Engine conformance", () => {
   let registry: InProcessToolRegistry;
+  let openOpts: EngineOpenOptions;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -125,6 +127,10 @@ describe("Engine conformance", () => {
       tools: [echoTool],
       context: makeToolContext(),
     });
+    openOpts = {
+      systemPrompt: SCENARIO_SYSTEM_PROMPT,
+      tools: registry,
+    };
   });
 
   it("Claude Code adapter produces normalized turn", async () => {
@@ -182,7 +188,7 @@ describe("Engine conformance", () => {
       config: { engineId: "claude-code" },
       deps: { log: noopLogger },
     });
-    const turn = await collect(engine.run(SCENARIO_BRIEF, registry));
+    const turn = await collect(runOneShot(engine, openOpts, SCENARIO_USER_MESSAGE));
     expect(turn.text).toContain("done");
     expect(turn.toolCalls).toEqual([{ toolName: "test.echo", args: { text: "hello" } }]);
     expect(turn.hasFinal).toBe(true);
@@ -238,7 +244,7 @@ describe("Engine conformance", () => {
     );
 
     const engine = new CodexEngine({ config: { engineId: "codex" }, deps: { log: noopLogger } });
-    const turn = await collect(engine.run(SCENARIO_BRIEF, registry));
+    const turn = await collect(runOneShot(engine, openOpts, SCENARIO_USER_MESSAGE));
     expect(turn.text).toContain("done");
     expect(turn.toolCalls).toEqual([{ toolName: "test.echo", args: { text: "hello" } }]);
     expect(turn.hasFinal).toBe(true);
@@ -271,7 +277,7 @@ describe("Engine conformance", () => {
       deps: { log: noopLogger },
       provider: "anthropic",
     });
-    const turn = await collect(engine.run(SCENARIO_BRIEF, registry));
+    const turn = await collect(runOneShot(engine, openOpts, SCENARIO_USER_MESSAGE));
     expect(turn.text).toContain("done");
     expect(turn.toolCalls).toEqual([{ toolName: "test.echo", args: { text: "hello" } }]);
     expect(turn.hasFinal).toBe(true);

@@ -89,9 +89,15 @@ importers:
       '@praxis/curriculum':
         specifier: workspace:*
         version: link:../curriculum
+      '@praxis/engines':
+        specifier: workspace:*
+        version: link:../engines
       '@praxis/memory':
         specifier: workspace:*
         version: link:../memory
+      '@praxis/tools':
+        specifier: workspace:*
+        version: link:../tools
       better-sqlite3:
         specifier: ^12.0.0
         version: 12.9.0

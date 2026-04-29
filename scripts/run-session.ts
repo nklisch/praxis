@@ -1,12 +1,11 @@
 import { parseArgs } from "node:util";
 import { type EngineConfig, EngineIdSchema, readEngineConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
-import { SessionRunner } from "@praxis/core/session";
 import type { EngineEvent, Logger } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { composeBrief } from "@praxis/curriculum/brief";
+import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { teachMode } from "@praxis/curriculum/modes";
-import { createEngine } from "@praxis/engines";
+import { createEngine, runOneShot } from "@praxis/engines";
 import { InProcessToolRegistry } from "@praxis/tools";
 import { echoTool, nowTool } from "@praxis/tools/test-tools";
 import { v7 as uuidv7 } from "uuid";
@@ -46,7 +45,7 @@ async function main() {
     ...(values["base-url"] !== undefined && { baseUrl: values["base-url"] }),
   };
 
-  const studentId = brandId<"StudentId">(uuidv7()); // Phase 2: ephemeral student per script run.
+  const studentId = brandId<"StudentId">(uuidv7()); // Phase 2/3: ephemeral student per script run.
   const sessionId = brandId<"SessionId">(uuidv7());
   const toolContext = {
     studentId,
@@ -67,40 +66,39 @@ async function main() {
   });
 
   const engine = createEngine({ config, deps: { log: consoleLogger } });
-  const brief = composeBrief({
-    mode: teachMode,
-    userMessage,
-    maxSteps: values["max-steps"] ? Number.parseInt(values["max-steps"], 10) : undefined,
-  });
-
-  const runner = new SessionRunner({
-    db,
-    studentId,
-    mode: teachMode,
-    engine,
-    tools,
-  });
+  const systemPrompt = composeSystemPrompt({ mode: teachMode });
+  const maxSteps = values["max-steps"] ? Number.parseInt(values["max-steps"], 10) : undefined;
 
   console.log(`# Engine: ${config.engineId}`);
   console.log(`# Session: ${sessionId}`);
   console.log("---");
 
-  const turn = runner.runTurn({ brief });
-  for (;;) {
-    const next = await turn.next();
-    if (next.done) {
-      console.log("\n---");
-      console.log(`# events: ${next.value.events.length}`);
-      console.log(`# final usage: ${JSON.stringify(next.value.finalEvent?.usage ?? {})}`);
-      runner.endSession(next.value.sessionId);
-      break;
-    }
-    renderEvent(next.value);
+  let eventCount = 0;
+  let finalUsage: { inputTokens: number; outputTokens: number } | undefined;
+  for await (const event of runOneShot(
+    engine,
+    {
+      systemPrompt,
+      tools,
+      ...(maxSteps !== undefined && { maxSteps }),
+    },
+    userMessage,
+  )) {
+    eventCount++;
+    renderEvent(event);
+    if (event.type === "final") finalUsage = event.usage;
   }
+
+  console.log("\n---");
+  console.log(`# events: ${eventCount}`);
+  console.log(`# final usage: ${JSON.stringify(finalUsage ?? {})}`);
 }
 
 function renderEvent(event: EngineEvent): void {
   switch (event.type) {
+    case "user_message":
+      // Script already printed the user message; skip the echoed event.
+      break;
     case "model_message":
       process.stdout.write(event.content);
       break;

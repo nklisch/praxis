@@ -1,9 +1,17 @@
+import type { Conversation } from "@nklisch/claude-cli-sdk";
 import { createConversation } from "@nklisch/claude-cli-sdk";
 import type { EngineConfig } from "@praxis/core/config";
-import type { Brief, Engine, EngineEvent, HealthStatus, ToolRegistry } from "@praxis/core/types";
+import type {
+  Engine,
+  EngineEvent,
+  EngineOpenOptions,
+  EngineSession,
+  HealthStatus,
+} from "@praxis/core/types";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
+import { buildTranscriptPreface } from "../util/transcript.js";
 import { mapClaudeCodeEvent } from "./events.js";
 
 export interface ClaudeCodeEngineOptions {
@@ -20,15 +28,16 @@ export class ClaudeCodeEngine implements Engine {
     this.opts = opts;
   }
 
-  async *run(brief: Brief, tools: ToolRegistry): AsyncIterable<EngineEvent> {
+  async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
     const bridge: ToolBridgeHandle | null =
-      tools.list().length > 0 ? await startToolBridge({ registry: tools }) : null;
+      openOpts.tools.list().length > 0 ? await startToolBridge({ registry: openOpts.tools }) : null;
+    let conv: Conversation;
     try {
       const modelHint = this.modelHint();
-      const conv = createConversation({
+      conv = createConversation({
         ...(modelHint !== undefined && { model: modelHint }),
-        ...(brief.maxSteps !== undefined && { maxTurns: brief.maxSteps }),
-        systemPrompt: brief.systemPrompt,
+        ...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps }),
+        systemPrompt: openOpts.systemPrompt,
         mcpServers: bridge
           ? {
               [bridge.serverName]: {
@@ -40,27 +49,21 @@ export class ClaudeCodeEngine implements Engine {
             }
           : {},
       });
-      try {
-        const turn = conv.send(brief.userMessage);
-        for await (const event of turn) {
-          const mapped = mapClaudeCodeEvent(event, { serverName: bridge?.serverName ?? "praxis" });
-          if (mapped) yield mapped;
-        }
-        const result = await turn.result;
-        // The SDK's `result` event flows through the stream; if it didn't, synthesize a final.
-        // (Defensive: most cases yield via the stream.)
-        if (!result.resultEvent) {
-          yield {
-            type: "final",
-            usage: { inputTokens: 0, outputTokens: 0 },
-          };
-        }
-      } finally {
-        await conv.close().catch(() => {});
-      }
-    } finally {
+    } catch (err) {
       if (bridge) await bridge.close().catch(() => {});
+      throw err;
     }
+
+    const sessionId = await conv.sessionId.catch(() => `claude-code-${Date.now()}`);
+    const seedPreface = buildTranscriptPreface(openOpts.priorTurns ?? []);
+
+    return new ClaudeCodeEngineSession({
+      id: sessionId,
+      conv,
+      bridge,
+      seedPreface,
+      serverName: bridge?.serverName ?? "praxis",
+    });
   }
 
   private modelHint(): "haiku" | "sonnet" | "opus" | undefined {
@@ -77,5 +80,66 @@ export class ClaudeCodeEngine implements Engine {
       ok: true,
       capabilities: { vision: true, streaming: true, nativeMCP: true, contextWindow: 200_000 },
     };
+  }
+}
+
+interface ClaudeCodeSessionInit {
+  id: string;
+  conv: Conversation;
+  bridge: ToolBridgeHandle | null;
+  /** Transcript prefix applied to the FIRST send only (when seeded with priorTurns). */
+  seedPreface: string;
+  serverName: string;
+}
+
+class ClaudeCodeEngineSession implements EngineSession {
+  readonly id: string;
+  private readonly conv: Conversation;
+  private readonly bridge: ToolBridgeHandle | null;
+  private readonly serverName: string;
+  private seedPreface: string;
+  private closed = false;
+
+  constructor(init: ClaudeCodeSessionInit) {
+    this.id = init.id;
+    this.conv = init.conv;
+    this.bridge = init.bridge;
+    this.serverName = init.serverName;
+    this.seedPreface = init.seedPreface;
+  }
+
+  async *send(userMessage: string): AsyncIterable<EngineEvent> {
+    if (this.closed) {
+      yield {
+        type: "error",
+        error: { code: "session.closed", message: "EngineSession is closed", recoverable: false },
+      };
+      return;
+    }
+    // Apply seed preface only on the first send after a priorTurns-seeded open.
+    const message = this.seedPreface ? `${this.seedPreface}${userMessage}` : userMessage;
+    this.seedPreface = "";
+
+    const turn = this.conv.send(message);
+    for await (const event of turn) {
+      const mapped = mapClaudeCodeEvent(event, { serverName: this.serverName });
+      if (mapped) yield mapped;
+    }
+
+    const result = await turn.result;
+    // The SDK's `result` event flows through the stream; if it didn't, synthesize a final.
+    if (!result.resultEvent) {
+      yield {
+        type: "final",
+        usage: { inputTokens: 0, outputTokens: 0 },
+      };
+    }
+  }
+
+  async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    await this.conv.close().catch(() => {});
+    if (this.bridge) await this.bridge.close().catch(() => {});
   }
 }

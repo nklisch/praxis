@@ -4,7 +4,7 @@ import { brandId } from "../types/ids.js";
 import type { Course, Engine, EpisodicEvent, Mode, PraxisClient } from "../types/index.js";
 
 // Compile-time type tests; runtime is no-op.
-expectTypeOf<Engine>().toHaveProperty("run");
+expectTypeOf<Engine>().toHaveProperty("open");
 expectTypeOf<Mode>().toHaveProperty("promptFragments");
 expectTypeOf<Course>().toHaveProperty("thresholds");
 expectTypeOf<EpisodicEvent>().toHaveProperty("event");

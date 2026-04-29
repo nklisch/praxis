@@ -1,25 +1,27 @@
 /**
- * End-to-end integration test: real DB (temp dir) + InProcessToolRegistry +
- * composeBrief + SessionRunner + FakeEngine that emits a canned event sequence.
+ * End-to-end integration test: real DB (temp dir) + SessionServiceImpl +
+ * FakeEngine injected via engineFactory that emits a canned event sequence.
  *
  * Asserts:
- * - episodic rows persisted (count matches events emitted)
- * - session row created with correct engineId/modeId
- * - RunTurnResult.events.length matches
+ * - episodic rows persisted (count matches events emitted + user_message)
+ * - session row created with correct modeId
+ * - collected events match CANNED_EVENTS (plus framework-emitted user_message)
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { closeDb, openDb } from "@praxis/core/db";
 import { runMigrations } from "@praxis/core/db/migrate";
-import { SessionRunner } from "@praxis/core/session";
-import type { Brief, Engine, EngineEvent, HealthStatus, ToolRegistry } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
-import { composeBrief } from "@praxis/curriculum/brief";
+import { SessionServiceImpl } from "@praxis/core/services";
+import type {
+  Engine,
+  EngineEvent,
+  EngineOpenOptions,
+  EngineSession,
+  HealthStatus,
+} from "@praxis/core/types";
 import { teachMode } from "@praxis/curriculum/modes";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
-import { InProcessToolRegistry } from "@praxis/tools";
-import { echoTool } from "@praxis/tools/test-tools";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -37,14 +39,24 @@ const CANNED_EVENTS: EngineEvent[] = [
   { type: "final", usage: { inputTokens: 10, outputTokens: 20 } },
 ];
 
-class FakeEngine implements Engine {
-  readonly id = "fake-engine";
-  readonly kind = "single-shot" as const;
+class FakeSession implements EngineSession {
+  readonly id = "fake-session-1";
 
-  async *run(_brief: Brief, _tools: ToolRegistry): AsyncIterable<EngineEvent> {
+  async *send(_userMessage: string): AsyncIterable<EngineEvent> {
     for (const event of CANNED_EVENTS) {
       yield event;
     }
+  }
+
+  async close(): Promise<void> {}
+}
+
+class FakeEngine implements Engine {
+  readonly id = "direct.anthropic";
+  readonly kind = "single-shot" as const;
+
+  async open(_opts: EngineOpenOptions): Promise<EngineSession> {
+    return new FakeSession();
   }
 
   async health(): Promise<HealthStatus> {
@@ -71,151 +83,206 @@ beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), "praxis-test-full-turn-"));
   dbPath = join(tmpDir, "test.db");
   process.env.PRAXIS_DB_PATH = dbPath;
+  process.env.PRAXIS_ENGINE = "direct.anthropic";
   runMigrations({ path: dbPath });
 });
 
 afterEach(() => {
   closeDb();
   delete process.env.PRAXIS_DB_PATH;
+  delete process.env.PRAXIS_ENGINE;
   rmSync(tmpDir, { recursive: true, force: true });
 });
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe("full turn with fake engine", () => {
-  it("persists episodic rows equal to emitted events", async () => {
+  it("persists episodic rows equal to emitted events (plus user_message)", async () => {
     const { db } = openDb({ path: dbPath });
-    const studentId = brandId<"StudentId">("student-1");
-    const toolContext = {
-      studentId,
-      sessionId: brandId<"SessionId">("session-ctx-1"),
-      services: {
-        memory: null,
-        artifacts: null,
-        vectorStore: null,
-        sandbox: null,
-        sympy: null,
-        pedagogyPack: null,
-      },
-      log: noopLogger,
-    };
 
-    const tools = new InProcessToolRegistry({
-      tools: [echoTool],
-      context: toolContext,
+    const modes = new Map([["teach", teachMode]]);
+    const svc = new SessionServiceImpl({
+      db,
+      log: noopLogger,
+      modes,
+      toolDefinitions: [],
+      engineFactory: () => new FakeEngine(),
     });
 
-    const engine = new FakeEngine();
-    const brief = composeBrief({ mode: teachMode, userMessage: "hello" });
-
-    const runner = new SessionRunner({ db, studentId, mode: teachMode, engine, tools });
-    const turn = runner.runTurn({ brief });
+    const handle = await svc.start({ modeId: "teach" });
+    const sessionId = handle.sessionId;
 
     const collectedEvents: EngineEvent[] = [];
-    for (;;) {
-      const next = await turn.next();
-      if (next.done) {
-        const result = next.value;
-        expect(result.events.length).toBe(CANNED_EVENTS.length);
-        expect(result.finalEvent).toBeDefined();
-        expect(result.finalEvent?.type).toBe("final");
-
-        // Verify episodic rows in DB
-        const rows = db
-          .select()
-          .from(episodicEvents)
-          .where(eq(episodicEvents.sessionId, result.sessionId))
-          .all();
-        expect(rows.length).toBe(CANNED_EVENTS.length);
-
-        // Check event types match
-        const rowTypes = rows.map((r) => (r.eventJson as { type: string }).type);
-        expect(rowTypes).toContain("model_message");
-        expect(rowTypes).toContain("tool_call");
-        expect(rowTypes).toContain("tool_result");
-        expect(rowTypes).toContain("final");
-
-        break;
-      }
-      collectedEvents.push(next.value);
+    for await (const event of svc.send(sessionId, "hello")) {
+      collectedEvents.push(event);
     }
-    expect(collectedEvents.length).toBe(CANNED_EVENTS.length);
+
+    await svc.end(sessionId);
+
+    // Framework emits user_message first, then CANNED_EVENTS
+    const expectedCount = 1 + CANNED_EVENTS.length;
+    expect(collectedEvents).toHaveLength(expectedCount);
+    expect(collectedEvents[0]).toMatchObject({ type: "user_message", content: "hello" });
+    expect(collectedEvents[collectedEvents.length - 1]).toMatchObject({ type: "final" });
+
+    // Verify episodic rows in DB: user_message row + CANNED_EVENTS rows
+    const rows = db
+      .select()
+      .from(episodicEvents)
+      .where(eq(episodicEvents.sessionId, sessionId))
+      .all();
+    expect(rows.length).toBe(expectedCount);
+
+    const rowTypes = rows.map((r) => (r.eventJson as { type: string }).type);
+    expect(rowTypes).toContain("user_message");
+    expect(rowTypes).toContain("model_message");
+    expect(rowTypes).toContain("tool_call");
+    expect(rowTypes).toContain("tool_result");
+    expect(rowTypes).toContain("final");
   });
 
   it("session row is created with correct engineId and modeId", async () => {
     const { db } = openDb({ path: dbPath });
-    const studentId = brandId<"StudentId">("student-2");
-    const toolContext = {
-      studentId,
-      sessionId: brandId<"SessionId">("session-ctx-2"),
-      services: {
-        memory: null,
-        artifacts: null,
-        vectorStore: null,
-        sandbox: null,
-        sympy: null,
-        pedagogyPack: null,
-      },
+
+    const modes = new Map([["teach", teachMode]]);
+    const svc = new SessionServiceImpl({
+      db,
       log: noopLogger,
-    };
+      modes,
+      toolDefinitions: [],
+      engineFactory: () => new FakeEngine(),
+    });
 
-    const tools = new InProcessToolRegistry({ tools: [], context: toolContext });
-    const engine = new FakeEngine();
-    const brief = composeBrief({ mode: teachMode, userMessage: "test" });
-    const runner = new SessionRunner({ db, studentId, mode: teachMode, engine, tools });
+    const handle = await svc.start({ modeId: "teach" });
+    const sessionId = handle.sessionId;
 
-    const turn = runner.runTurn({ brief });
-    let sessionId: string | undefined;
-    for (;;) {
-      const next = await turn.next();
-      if (next.done) {
-        sessionId = next.value.sessionId;
-        break;
-      }
+    // drain send so the session row is fully populated
+    for await (const _ of svc.send(sessionId, "test")) {
+      /* drain */
     }
+    await svc.end(sessionId);
 
-    expect(sessionId).toBeDefined();
-    if (sessionId) {
-      const sessionRows = db.select().from(sessions).where(eq(sessions.id, sessionId)).all();
-      expect(sessionRows.length).toBe(1);
-      const sess = sessionRows[0];
-      expect(sess).toBeDefined();
-      if (sess) {
-        expect(sess.engineId).toBe("fake-engine");
-        expect(sess.modeId).toBe("teach");
-      }
+    const sessionRows = db.select().from(sessions).where(eq(sessions.id, sessionId)).all();
+    expect(sessionRows.length).toBe(1);
+    const sess = sessionRows[0];
+    expect(sess).toBeDefined();
+    if (sess) {
+      expect(sess.engineId).toBe("direct.anthropic");
+      expect(sess.modeId).toBe("teach");
     }
   });
 
-  it("RunTurnResult.events.length matches events emitted", async () => {
+  it("collected events length matches CANNED_EVENTS plus user_message", async () => {
     const { db } = openDb({ path: dbPath });
-    const studentId = brandId<"StudentId">("student-3");
-    const toolContext = {
-      studentId,
-      sessionId: brandId<"SessionId">("session-ctx-3"),
-      services: {
-        memory: null,
-        artifacts: null,
-        vectorStore: null,
-        sandbox: null,
-        sympy: null,
-        pedagogyPack: null,
-      },
+
+    const modes = new Map([["teach", teachMode]]);
+    const svc = new SessionServiceImpl({
+      db,
       log: noopLogger,
-    };
+      modes,
+      toolDefinitions: [],
+      engineFactory: () => new FakeEngine(),
+    });
 
-    const tools = new InProcessToolRegistry({ tools: [echoTool], context: toolContext });
-    const engine = new FakeEngine();
-    const brief = composeBrief({ mode: teachMode, userMessage: "verify count" });
-    const runner = new SessionRunner({ db, studentId, mode: teachMode, engine, tools });
+    const handle = await svc.start({ modeId: "teach" });
+    const sessionId = handle.sessionId;
 
-    const turn = runner.runTurn({ brief });
-    let result: Awaited<ReturnType<typeof turn.next>>;
-    do {
-      result = await turn.next();
-    } while (!result.done);
+    const events: EngineEvent[] = [];
+    for await (const event of svc.send(sessionId, "verify count")) {
+      events.push(event);
+    }
+    await svc.end(sessionId);
 
-    expect(result.done).toBe(true);
-    expect(result.value.events.length).toBe(CANNED_EVENTS.length);
+    // user_message (1) + CANNED_EVENTS (5) = 6
+    expect(events).toHaveLength(1 + CANNED_EVENTS.length);
+  });
+
+  it("second send on same session reuses the engine session (open called once)", async () => {
+    const { db } = openDb({ path: dbPath });
+
+    let openCount = 0;
+    class CountingFakeEngine extends FakeEngine {
+      override async open(opts: EngineOpenOptions): Promise<EngineSession> {
+        openCount++;
+        return super.open(opts);
+      }
+    }
+
+    const modes = new Map([["teach", teachMode]]);
+    const svc = new SessionServiceImpl({
+      db,
+      log: noopLogger,
+      modes,
+      toolDefinitions: [],
+      engineFactory: () => new CountingFakeEngine(),
+    });
+
+    const handle = await svc.start({ modeId: "teach" });
+    const sessionId = handle.sessionId;
+
+    for await (const _ of svc.send(sessionId, "first")) {
+      /* drain */
+    }
+    for await (const _ of svc.send(sessionId, "second")) {
+      /* drain */
+    }
+    await svc.end(sessionId);
+
+    // engine.open() is called once during start() — subsequent sends reuse same EngineSession
+    expect(openCount).toBe(1);
+  });
+
+  it("end() marks session as ended; subsequent send yields session.ended error", async () => {
+    const { db } = openDb({ path: dbPath });
+
+    const modes = new Map([["teach", teachMode]]);
+    const svc = new SessionServiceImpl({
+      db,
+      log: noopLogger,
+      modes,
+      toolDefinitions: [],
+      engineFactory: () => new FakeEngine(),
+    });
+
+    const handle = await svc.start({ modeId: "teach" });
+    const sessionId = handle.sessionId;
+
+    for await (const _ of svc.send(sessionId, "hello")) {
+      /* drain */
+    }
+    await svc.end(sessionId);
+
+    const events: EngineEvent[] = [];
+    for await (const event of svc.send(sessionId, "after-end")) {
+      events.push(event);
+    }
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: "error" });
+    if (events[0]?.type === "error") {
+      expect(events[0].error.code).toBe("session.ended");
+    }
+  });
+
+  it("active() returns null before start; returns handle after start", async () => {
+    const { db } = openDb({ path: dbPath });
+
+    const modes = new Map([["teach", teachMode]]);
+    const svc = new SessionServiceImpl({
+      db,
+      log: noopLogger,
+      modes,
+      toolDefinitions: [],
+      engineFactory: () => new FakeEngine(),
+    });
+
+    expect(await svc.active()).toBeNull();
+
+    const handle = await svc.start({ modeId: "teach" });
+    const active = await svc.active();
+    expect(active).toBeDefined();
+    expect(active?.sessionId).toBe(handle.sessionId);
+
+    await svc.end(handle.sessionId);
   });
 });

@@ -1,5 +1,5 @@
 import type { Conversation } from "@nklisch/claude-cli-sdk";
-import type { ToolRegistry, ToolResult } from "@praxis/core/types";
+import type { EngineOpenOptions, ToolRegistry, ToolResult } from "@praxis/core/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock @nklisch/claude-cli-sdk at the top level (hoisted)
@@ -20,7 +20,7 @@ vi.mock("../mcp/tool-bridge.js", () => ({
   })),
 }));
 
-describe("ClaudeCodeEngine", () => {
+describe("ClaudeCodeEngine — lifecycle", () => {
   const deps = {
     log: {
       debug: () => {},
@@ -28,12 +28,6 @@ describe("ClaudeCodeEngine", () => {
       warn: () => {},
       error: () => {},
     },
-  };
-
-  const brief = {
-    systemPrompt: "You are a tutor.",
-    userMessage: "Hello",
-    context: { retrievedChunks: [], artifactRefs: [] },
   };
 
   const emptyRegistry: ToolRegistry = {
@@ -107,6 +101,83 @@ describe("ClaudeCodeEngine", () => {
     expect(engine.kind).toBe("looped");
   });
 
+  it("open() returns a session with a non-empty id", async () => {
+    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+    expect(session.id).toBeTruthy();
+    await session.close();
+  });
+
+  it("two sends on the same session call conv.send twice (createConversation called once)", async () => {
+    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    const convMock = makeConvMock([resultEventObj], resultEventObj);
+    vi.mocked(createConversation).mockReturnValue(convMock);
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    for await (const _ of session.send("first")) {
+      /* drain */
+    }
+    for await (const _ of session.send("second")) {
+      /* drain */
+    }
+
+    // createConversation called only once; conv.send called twice
+    expect(vi.mocked(createConversation)).toHaveBeenCalledTimes(1);
+    expect(convMock.send).toHaveBeenCalledTimes(2);
+    await session.close();
+  });
+
+  it("close() calls conv.close and bridge.close; idempotent", async () => {
+    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { startToolBridge } = await import("../mcp/tool-bridge.js");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    const closeMock = vi.fn(async () => {});
+    const convMock = makeConvMock([resultEventObj], resultEventObj);
+    (convMock as unknown as { close: typeof closeMock }).close = closeMock;
+    vi.mocked(createConversation).mockReturnValue(convMock);
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    // Use echoRegistry to trigger bridge creation
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: echoRegistry });
+    await session.close();
+    await session.close(); // idempotent
+
+    expect(closeMock).toHaveBeenCalledTimes(1);
+    const bridgeHandle = await vi.mocked(startToolBridge).mock.results[0]?.value;
+    expect(bridgeHandle.close).toHaveBeenCalledTimes(1);
+  });
+
   it("emits events from canned stream", async () => {
     const { createConversation } = await import("@nklisch/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
@@ -144,10 +215,12 @@ describe("ClaudeCodeEngine", () => {
     );
 
     const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
     const events = [];
-    for await (const event of engine.run(brief, emptyRegistry)) {
+    for await (const event of session.send("Hello")) {
       events.push(event);
     }
+    await session.close();
 
     const types = events.map((e) => e.type);
     expect(types).toContain("model_message");
@@ -182,10 +255,12 @@ describe("ClaudeCodeEngine", () => {
     );
 
     const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: echoRegistry });
     const events = [];
-    for await (const event of engine.run(brief, echoRegistry)) {
+    for await (const event of session.send("Hello")) {
       events.push(event);
     }
+    await session.close();
 
     const toolCall = events.find((e) => e.type === "tool_call");
     expect(toolCall).toBeDefined();
@@ -210,53 +285,104 @@ describe("ClaudeCodeEngine", () => {
     vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
 
     const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
-    for await (const _ of engine.run(brief, emptyRegistry)) {
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+    for await (const _ of session.send("Hello")) {
       /* drain */
     }
+    await session.close();
 
     expect(vi.mocked(startToolBridge)).not.toHaveBeenCalled();
   });
 
-  it("close() called even when stream throws", async () => {
+  it("seedPreface only applied on first send after priorTurns open", async () => {
     const { createConversation } = await import("@nklisch/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
-    const closeMock = vi.fn(async () => {});
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
 
-    async function* throwingStream() {
-      yield { type: "assistant", text: "starting...", delta: "starting..." };
-      throw new Error("stream error");
-    }
+    const sendSpy = vi.fn(() => {
+      const stream = (async function* () {
+        yield resultEventObj;
+      })();
+      return Object.assign(stream, {
+        result: Promise.resolve({
+          result: "done",
+          sessionId: "test-session-id",
+          resultEvent: resultEventObj,
+        }),
+      });
+    });
 
-    const conv: Conversation = {
+    vi.mocked(createConversation).mockReturnValue({
       sessionId: Promise.resolve("test-session-id"),
       isOpen: true,
-      send: vi.fn(() => {
-        const streamIterable = throwingStream();
-        return Object.assign(streamIterable, {
-          result: Promise.resolve({
-            result: "",
-            sessionId: "test-session-id",
-            resultEvent: null as unknown as import("@nklisch/claude-cli-sdk").ResultEvent,
-          }),
-        });
-      }),
+      send: sendSpy,
       sendAndCollect: vi.fn(),
       sendToolResult: vi.fn(),
-      close: closeMock,
+      close: vi.fn(async () => {}),
       abort: vi.fn(() => {}),
-      [Symbol.asyncDispose]: closeMock,
-    } as unknown as Conversation;
+      [Symbol.asyncDispose]: vi.fn(async () => {}),
+    } as unknown as Conversation);
 
-    vi.mocked(createConversation).mockReturnValue(conv);
+    const openOpts: EngineOpenOptions = {
+      systemPrompt: "You are a tutor.",
+      tools: emptyRegistry,
+      priorTurns: [
+        { role: "user", content: "earlier question" },
+        { role: "assistant", content: "earlier answer" },
+      ],
+    };
 
     const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
-    await expect(async () => {
-      for await (const _ of engine.run(brief, emptyRegistry)) {
-        /* drain */
-      }
-    }).rejects.toThrow("stream error");
+    const session = await engine.open(openOpts);
 
-    expect(closeMock).toHaveBeenCalled();
+    // First send — should include transcript preface
+    for await (const _ of session.send("new question")) {
+      /* drain */
+    }
+    // biome-ignore lint/suspicious/noExplicitAny: test spy access with noUncheckedIndexedAccess
+    const firstCall = (sendSpy.mock.calls as any)[0][0] as string;
+    expect(firstCall).toContain("[Continuing this conversation from earlier:]");
+    expect(firstCall).toContain("new question");
+
+    // Second send — should NOT include preface
+    for await (const _ of session.send("follow-up")) {
+      /* drain */
+    }
+    // biome-ignore lint/suspicious/noExplicitAny: test spy access with noUncheckedIndexedAccess
+    const secondCall = (sendSpy.mock.calls as any)[1][0] as string;
+    expect(secondCall).toBe("follow-up");
+
+    await session.close();
+  });
+
+  it("send to closed session yields error event", async () => {
+    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+    await session.close();
+
+    const events = [];
+    for await (const event of session.send("Hello after close")) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({ type: "error", error: { code: "session.closed" } });
   });
 });

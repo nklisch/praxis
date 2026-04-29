@@ -1,4 +1,4 @@
-import type { Brief, EngineEvent } from "./engine.js";
+import type { EngineEvent } from "./engine.js";
 import type { ConceptId, CourseId } from "./ids.js";
 
 export type UISurfaceId =
@@ -31,12 +31,6 @@ export interface PromptFragment {
   customizable: boolean;
 }
 
-export interface ModeContext {
-  brief: Brief;
-  courseId?: CourseId;
-  // Concrete fields populated by mode runtime in Phase 2+.
-}
-
 export interface Mode {
   id: string;
   label: string;
@@ -46,6 +40,5 @@ export interface Mode {
   toolNames: string[];
   uiSurface: UISurfaceId;
   artifactScope?: ArtifactScope;
-  shapeBrief?(brief: Brief, context: ModeContext): Brief;
-  onTurnEnd?(events: EngineEvent[], context: ModeContext): Promise<void>;
+  onTurnEnd?(events: EngineEvent[]): Promise<void>;
 }
