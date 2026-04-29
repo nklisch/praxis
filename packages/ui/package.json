@@ -11,6 +11,21 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@praxis/client": "workspace:*"
+    "@praxis/client": "workspace:*",
+    "@praxis/core": "workspace:*",
+    "@tanstack/react-router": "1.168.25",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^25.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.3"
   }
 }

@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "paths": {
+      "@praxis/core": ["../core/src/index.ts"],
+      "@praxis/core/*": ["../core/src/*/index.ts"],
+      "@praxis/client": ["../client/src/index.ts"],
+      "@praxis/ui": ["../ui/src/index.ts"],
+      "@praxis/curriculum/*": ["../curriculum/src/*/index.ts"],
+      "@praxis/tools/*": ["../tools/src/*/index.ts"]
+    }
+  },
+  "include": ["electron/**/*"],
+  "exclude": ["src/**/*", "out/**/*", "dist/**/*", "node_modules/**/*"]
+}

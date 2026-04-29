@@ -1,2 +1,4 @@
-// @praxis/ui — stub; populated in subsequent phases.
-export const PACKAGE_NAME = "@praxis/ui" as const;
+export type { PraxisAppProps } from "./app.js";
+export { PraxisApp } from "./app.js";
+export type { MountOptions } from "./mount.js";
+export { mountPraxisApp } from "./mount.js";

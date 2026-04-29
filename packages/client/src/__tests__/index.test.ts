@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PACKAGE_NAME } from "../index.js";
+import { createPraxisClient } from "../index.js";
 
-describe("@praxis/client stub", () => {
-  it("exports the package name", () => {
-    expect(PACKAGE_NAME).toBe("@praxis/client");
+describe("@praxis/client", () => {
+  it("exports createPraxisClient", () => {
+    expect(typeof createPraxisClient).toBe("function");
   });
 });

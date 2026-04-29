@@ -1,2 +1,5 @@
-// @praxis/client — stub; populated in subsequent phases.
-export const PACKAGE_NAME = "@praxis/client" as const;
+export { createPraxisClient } from "./client.js";
+export type { IpcStreamMessage, PraxisIpcBridge } from "./transport/ipc.js";
+export { createIpcTransport, IpcStreamError } from "./transport/ipc.js";
+export type { ClientTransport } from "./transport/types.js";
+export { createWebSocketTransport } from "./transport/websocket.js";

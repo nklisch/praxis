@@ -6,7 +6,16 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**/*", "!dist", "!.praxis", "!drizzle", "!node_modules", "!.agents", "!.claude"]
+    "includes": [
+      "**/*",
+      "!dist",
+      "!**/out",
+      "!.praxis",
+      "!drizzle",
+      "!node_modules",
+      "!.agents",
+      "!.claude"
+    ]
   },
   "linter": {
     "enabled": true,

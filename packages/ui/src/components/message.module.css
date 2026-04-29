@@ -1,0 +1,45 @@
+.bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 80%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  word-break: break-word;
+}
+
+.user {
+  align-self: flex-end;
+  background: var(--color-user-bubble);
+  border-bottom-right-radius: 2px;
+}
+
+.assistant {
+  align-self: flex-start;
+  background: var(--color-assistant-bubble);
+  border-bottom-left-radius: 2px;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.content {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.streaming .content::after {
+  content: "▋";
+  animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}

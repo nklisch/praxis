@@ -2,16 +2,31 @@
   "name": "@praxis/desktop",
   "version": "0.1.0",
   "type": "module",
+  "main": "out/main/index.js",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc --noEmit",
+    "build": "electron-vite build",
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.electron.json",
     "test": "vitest run"
   },
   "dependencies": {
+    "@praxis/client": "workspace:*",
     "@praxis/core": "workspace:*",
+    "@praxis/curriculum": "workspace:*",
+    "@praxis/tools": "workspace:*",
     "@praxis/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "41.3.0",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.3"
   }
 }
