@@ -23,24 +23,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // isolated-vm@6.1.2 prebuilts don't cover Node 25 (ABI 141).
 // @praxis/tools exports IsolatedVmHost which imports isolated-vm at module level.
 // Provide a minimal stub so the module graph loads without a native binary.
-vi.mock("isolated-vm", () => ({
-  default: {
-    Isolate: class {
-      async createContext() {
-        return { global: { set: async () => {}, derefInto: () => ({}) }, release: () => {} };
-      }
-      async compileScript(_code: string) {
-        return { run: async () => {} };
-      }
-      dispose() {}
-    },
-    Reference: class {
-      // biome-ignore lint/complexity/noUselessConstructor: mock needs constructor to match API
-      // biome-ignore lint/suspicious/noExplicitAny: mock constructor param
-      constructor(_fn: (...args: any[]) => unknown) {}
-    },
-  },
-}));
+vi.mock("isolated-vm", async () => {
+  const { isolatedVmStubFactory } = await import("./helpers/mocks.js");
+  return isolatedVmStubFactory();
+});
 
 // ── Mock @nklisch/claude-cli-sdk ──────────────────────────────────────────────
 // We mock createConversation (for ClaudeCodeAdapter) AND startToolServer

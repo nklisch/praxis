@@ -28,24 +28,10 @@ import { useTempDb } from "./helpers/db-setup.js";
 // @praxis/core/services imports @praxis/tools which exports IsolatedVmHost → isolated-vm.
 // Provide a minimal stub so the module graph loads without a native binary.
 // vi.mock is hoisted by Vitest above all imports.
-vi.mock("isolated-vm", () => ({
-  default: {
-    Isolate: class {
-      async createContext() {
-        return { global: { set: async () => {}, derefInto: () => ({}) }, release: () => {} };
-      }
-      async compileScript(_code: string) {
-        return { run: async () => {} };
-      }
-      dispose() {}
-    },
-    Reference: class {
-      // biome-ignore lint/complexity/noUselessConstructor: mock needs constructor to match API
-      // biome-ignore lint/suspicious/noExplicitAny: mock constructor param
-      constructor(_fn: (...args: any[]) => unknown) {}
-    },
-  },
-}));
+vi.mock("isolated-vm", async () => {
+  const { isolatedVmStubFactory } = await import("./helpers/mocks.js");
+  return isolatedVmStubFactory();
+});
 
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 

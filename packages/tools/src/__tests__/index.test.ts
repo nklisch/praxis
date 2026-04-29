@@ -3,27 +3,10 @@
 // index.ts re-exports IsolatedVmHost → isolated-vm, so we mock it here.
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("isolated-vm", () => ({
-  default: {
-    Isolate: class {
-      // biome-ignore lint/complexity/noUselessConstructor: mock needs constructor to match API
-      // biome-ignore lint/suspicious/noExplicitAny: mock constructor param
-      constructor(_opts?: any) {}
-      async createContext() {
-        return { global: { set: async () => {}, derefInto: () => ({}) }, release: () => {} };
-      }
-      async compileScript(_code: string) {
-        return { run: async () => {} };
-      }
-      dispose() {}
-    },
-    Reference: class {
-      // biome-ignore lint/complexity/noUselessConstructor: mock needs constructor to match API
-      // biome-ignore lint/suspicious/noExplicitAny: mock constructor param
-      constructor(_fn: (...args: any[]) => unknown) {}
-    },
-  },
-}));
+vi.mock("isolated-vm", async () => {
+  const { isolatedVmStubFactory } = await import("../../../../tests/helpers/mocks.js");
+  return isolatedVmStubFactory();
+});
 
 import { PACKAGE_NAME } from "../index.js";
 
