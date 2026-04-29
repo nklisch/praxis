@@ -74,19 +74,25 @@ Three integration milestones along the way: **M1** end-to-end tutor session, **M
 
 ---
 
-## Phase 5: Textbook RAG + ingestion sidecar
+## Phase 5: Document RAG (multi-format ingestion + vision)
 
-**Goal:** Upload a PDF, ask about contents, get cited answers.
+**Goal:** Upload any common study document — PDF, EPUB, DOCX, HTML, Markdown, plain text — ask about its contents, get cited answers. Math-heavy or scanned PDFs use the configured engine's native vision (no separate API key).
 
 **Build:**
-- `praxis-ingest` Python CLI (Marker → structured chunks + manifest)
-- VectorStore port + `sqlite-vec` adapter
-- Embedding pipeline; `retrieve_from_textbook` tool with citations
-- File picker + ingestion progress streaming
+- `Ingestor` port + dispatcher in `@praxis/tools/runtime/ingestion/`
+- Six default ingestors: `PlainTextIngestor`, `MarkdownIngestor`, `HtmlIngestor` (Readability), `DocxIngestor` (mammoth), `EpubIngestor` (epub2), `JsPdfIngestor` (pdfjs-dist for text-layer PDFs)
+- `VisionCapability` on the `Engine` interface; per-adapter implementations: Direct uses Vercel AI SDK image content; Claude Code + Codex use pass-through via their SDKs' native file-reading tools so the user's CLI subscription handles vision billing — no separate API key
+- `VisionPdfIngestor` — pdfjs-dist renders pages → engine vision describes; selectable per-document for math-heavy or scanned PDFs
+- `VectorStore` port + `sqlite-vec` adapter (prebuilt binary; ABI-independent so no electron-rebuild)
+- Local embedding via `@huggingface/transformers` v4 (bge-small-en-v1.5, 384d, ~33MB on first use)
+- `retrieve_from_textbook` tool with citations; `[1]` `[2]` chip parsing in chat UI
+- File picker + ingestion progress streaming + document list sidebar
 
-**Research:** `marker-pdf` and `sqlite-vec` integration patterns.
+**Research:** `sqlite-vec` integration with better-sqlite3; `@huggingface/transformers` v4 for local embedding; per-engine vision pass-through patterns (Claude Code SDK file reading, Codex SDK file inputs, Vercel AI SDK image content).
 
-**Test checkpoint:** Drop a PDF; see ingestion progress. Ask "what does chapter 3 say about respiration?" — get cited answer. Click citation, see source page.
+**Test checkpoint:** Drop a markdown notes file → indexed instantly. Drop a DOCX handout → instantly. Drop a textbook EPUB → indexed in seconds. Drop a PDF → choose JS or vision parsing. Ask "what does chapter 3 say about respiration?" → get cited answer with `[1]` `[2]` chips that scroll to source cards. Citations work across all three engines.
+
+**Deferred to post-v1**: local Marker (Python sidecar with PyTorch + ~2GB model + GPU recommended) for power users who want fully offline equation OCR; see "Future enhancements" at the bottom of this document.
 
 ---
 
@@ -249,3 +255,23 @@ Three integration milestones along the way: **M1** end-to-end tutor session, **M
 **Test checkpoint:** Build signed installer. Install on clean machine. Self-onboard with real syllabus + textbook. Session, sketch math, submit homework, pass exam, unlock, notes, flashcards. All works without dev tools.
 
 **Integration milestone M3:** shippable v1.
+
+---
+
+## Future enhancements (post-v1)
+
+Items with a clear owner-defined trigger to revisit, but explicitly out of scope for v1.
+
+### Local Marker for advanced PDF parsing
+
+**Why deferred from Phase 5**: Marker (the best-in-class structure-aware PDF parser with native LaTeX equation OCR) requires PyTorch + ~2 GB of model downloads + a discrete GPU or Apple Silicon to be usable. On Intel laptops and budget hardware (a meaningful portion of student users) it falls back to CPU and takes 30 min – 2 hours per textbook, which is unacceptable as a default. Phase 5 instead ships a JS tier (text-layer PDFs + DOCX + EPUB + HTML + Markdown + text) and a vision tier that uses the configured engine's native vision via pass-through (no separate API key).
+
+**Trigger to add**: a power-user request, OR a meaningful share of users who want fully-offline equation OCR (no engine API call for parsing) AND have appropriate hardware. The `Ingestor` port shipped in Phase 5 makes adding `MarkerIngestor` a self-contained addition: one new ingestor class + the `python/praxis-cli/` Python sidecar package + uv-installable distribution. Roughly 1-2 days of work plus tested cross-platform packaging. The Phase 5 ingestor architecture and the Python sidecar boundary documented in SPEC.md are both already in place.
+
+### Other deferred items
+
+- **Vision-capable Claude Code / Codex pass-through optimization**: Phase 5 ships pass-through but uses one-shot SDK sessions per page (clean isolation). A future optimization could batch multi-page calls to reduce subscription/API overhead.
+- **PDF page rendering in citation cards**: Phase 5 cards show extracted text + page number; rendered page images would require pdfjs-dist in the renderer process. Couples to Phase 13 vision work.
+- **Hybrid keyword + vector search**: pure vector for v1; BM25 layer is a future polish.
+- **EPUB-with-images, PPTX, RTF**: skipped in Phase 5 by deliberate format-set choice; revisit if user demand emerges.
+- **Image OCR for raw photo uploads (PNG/JPG)**: Phase 13 territory (vision OCR for handwritten student work uses the same path).

@@ -1,80 +1,119 @@
-# Design: Phase 5 — Textbook RAG + Ingestion Sidecar
+# Design: Phase 5 — Multi-Format Document RAG (with Native Engine Vision)
+
+> **Revision history**
+> - v1 (a11cbba) — initial design centered on Marker via Python sidecar with `praxis-cli`
+> - **v2 (this) — Marker deferred to post-v1; multi-format JS ingestor tier (txt/md/html/docx/epub/pdf-text-layer); vision tier using configured engine's native vision via pass-through (Claude Code, Codex, Direct all supported); vision uses fresh one-shot SDK calls per page so the tutoring conversation's history and prompt cache stay clean; engine config validation enforces vision-capable models**
 
 ## Overview
 
-Phase 5 lets a student drop a PDF into Praxis and then ask questions about it. The tutor calls `retrieve_from_textbook`, gets ranked chunks back, and answers with citations the student can click to inspect. After Phase 5, all the framework's grounding plumbing is in place: deterministic computation (Phase 4), code execution (Phase 4), and now textbook retrieval — three of the five tiers of the graded grounding hierarchy.
+Phase 5 lets a student drop almost any common study document into Praxis and ask questions about its contents — typed notes, class handouts, web articles, ebooks, PDFs — with cited answers. The architecture has three layers:
 
-This phase introduces three structural firsts:
+1. **An `Ingestor` port** with a registry that dispatches by file type. Each format gets a small, focused ingestor.
+2. **A `VectorStore` port** with a `sqlite-vec` adapter, plus local embedding via `@huggingface/transformers` v4. Both run in-process; no Python required for Phase 5.
+3. **Native engine vision** via a `VisionCapability` on the `Engine` interface. Each adapter implements vision differently — Direct via Vercel AI SDK image content, Claude Code and Codex via pass-through using their SDKs' native file-reading tools so the user's CLI subscription handles billing. **Vision calls use fresh one-shot SDK sessions** so the active tutoring conversation's history and prompt cache are not polluted by ingestion work.
 
-1. **The Python sidecar boundary** as an actual subprocess, not just a designed seam. `python/praxis-cli/` is the first uv-installable Python package, wrapping Marker for PDF parsing.
-2. **The `VectorStore` port + `sqlite-vec` adapter**, plus a `document_embeddings` virtual table programmatically created when the DB opens (drizzle doesn't model virtual tables).
-3. **Local embedding inference** via `@huggingface/transformers` v4 — no API key, ~33MB model download on first ingestion.
-
-After Phase 5: `pnpm dev` → upload a PDF → watch parsing + embedding progress → ask "what does chapter 3 say about respiration?" → tutor calls `retrieve_from_textbook`, returns chunks → assistant answers with `[1]`, `[2]` chips that scroll to source cards below the message.
+After Phase 5: drag any of `.txt`, `.md`, `.html`, `.docx`, `.epub`, `.pdf` into the chat sidebar. Modern text-layer PDFs and prose docs index in seconds via the JS tier. For math-heavy or scanned PDFs, choose the "vision parsing" toggle — the engine the user already has configured does the OCR via its native vision capability, no separate API key needed. Ask "what does chapter 3 say about respiration?" → the assistant streams an answer with `[1]` `[2]` chips that scroll to source cards rendered below the message.
 
 **What ships:**
 
-- Type contract additions: `VectorStore`, `EmbeddingService`, `Citation`, `IngestionEvent`, `DocumentChunk` types in `@praxis/core/types`
-- `python/praxis-cli/` Python package (`uv tool install praxis-cli`) with `ingest <file>` subcommand wrapping Marker; outputs structured JSON to stdout
-- `@praxis/tools/runtime/embeddings.ts` — `LocalEmbeddingService` (HF transformers v4, bge-small-en-v1.5 384d)
-- `@praxis/tools/runtime/sqlite-vec-store.ts` — `SqliteVecStore` (raw better-sqlite3 access; metadata-filtered cosine search)
-- `@praxis/core/db` extension — `initVectorStore(sqlite)` loads the extension and creates the `document_embeddings` virtual table
-- `@praxis/core/ingestion/` — `IngestionService` orchestrates subprocess + parsing + storage + embedding with progress streaming
-- `@praxis/tools/retrieval/retrieve-from-textbook.ts` — the new `retrieve_from_textbook` tool (tier: `"grounded"`)
-- `@praxis/core/services/documents-service.ts` — read-only document listing; ingestion exposed via `IngestionService`
-- IPC additions: `praxis.ingest.start/.events.<streamId>/.cancel`, `praxis.documents.list`, `praxis.documents.delete`
-- Client additions: `client.ingest`, `client.documents`
-- Desktop: file picker integration, `dialog.showOpenDialog`, drag-drop optional
-- UI: `<AddDocumentButton>`, `<IngestionProgressModal>`, `<DocumentList>`, `<CitationChip>`, `<SourceCard>`
-- `teach` mode update: add `"retrieve_from_textbook"` to `toolNames`; tools fragment teaches the agent to emit `[1]`, `[2]` style citations
+- Type contracts: `Ingestor`, `IngestorResult`, `IngestorRegistry`, `VectorStore`, `EmbeddingService`, `Citation`, `IngestionEvent`, `VisionCapability` interfaces
+- Engine config validation: `EngineConfigSchema` enforces that selected models are vision-capable; provider-specific allow-lists with sensible defaults
+- `VisionCapability` added to `Engine` interface (optional field)
+- Per-adapter vision implementations:
+  - `DirectEngine.vision` — Vercel AI SDK `generateText` with image content blocks; one-shot per call
+  - `ClaudeCodeEngine.vision` — pass-through via `query()` (one-shot) with images written to a temp dir, prompted via `Read` tool; the user's Claude CLI subscription bills the call
+  - `CodexEngine.vision` — pass-through via a transient `codex.startThread()` with image attachment; the user's Codex subscription bills the call
+- Six default ingestors in `@praxis/tools/runtime/ingestion/`:
+  - `PlainTextIngestor` (.txt) — paragraph chunking
+  - `MarkdownIngestor` (.md, .markdown) — heading-aware chunking via `marked`
+  - `HtmlIngestor` (.html, .htm) — `@mozilla/readability` strips chrome, then chunks
+  - `DocxIngestor` (.docx) — `mammoth.js` → HTML + heading detection
+  - `EpubIngestor` (.epub) — `epub2` chapter-by-chapter extraction
+  - `JsPdfIngestor` (.pdf) — `pdfjs-dist` text-layer extraction (default for PDF)
+- Vision ingestor: `VisionPdfIngestor` — pdfjs-dist renders pages → `engine.vision.describe` per page (or per batch); tier-up for scans / math-heavy PDFs
+- `IngestorRegistry` dispatches by mime type / extension; user can override per-document in UI
+- `LocalEmbeddingService` (HF transformers v4, bge-small-en-v1.5, 384d), lazy + preloaded
+- `SqliteVecStore` + `initVectorStore` (sqlite-vec virtual table)
+- `IngestionService` thin orchestrator: pick ingestor → run → persist → embed in batches → stream progress
+- `retrieve_from_textbook` tool (tier: `"grounded"`)
+- `DocumentsService` (read + delete) and `IngestionClient` for IPC
+- IPC: `praxis.ingest.*` (streamed), `praxis.documents.*`
+- UI: file picker (broad extension list), document list sidebar, ingestion progress modal, citation chips + expandable source cards in chat
+- `teach` mode: add `retrieve_from_textbook` to `toolNames`; tools fragment teaches `[N]` citation convention
 
 **What does not ship (deferred):**
 
-- Cloud embedding providers (OpenAI/Voyage via Vercel AI SDK) — interface ready; impls land later
-- PDF page rendering — citation cards show extracted text + page number, not a rendered page image (Phase 13 pdf.js / vision integration)
-- Multi-format ingestion (EPUB, .docx) — Marker supports them; Phase 5 wires only PDF
-- Document re-ingestion / update — delete + re-upload is the workflow
-- Concept extraction from documents (draft course bootstrap) — Phase 6
-- pgvector adapter for hosted deployment — Phase 15
-- Any handling of OCR for image-only PDFs beyond what Marker does internally
+- **Local Marker (Python sidecar)** — see `docs/ROADMAP.md` "Future enhancements" section for the trigger to revisit
+- `.pptx`, `.rtf`, raw images — out of Phase 5 format set
+- PDF page image rendering in citation cards (text + page number only)
+- Hybrid keyword+vector search (pure vector for v1)
+- pgvector adapter (Phase 15)
+- Cloud-only OCR providers (Mistral, Mathpix, Textract) — vision goes through the configured engine, not third-party services
+- Concept extraction / draft course bootstrap (Phase 6)
+
+## Why these choices
+
+**Why drop Marker from Phase 5.** Marker requires PyTorch + ~2 GB model downloads + 4-6 GB VRAM at peak. On Apple Silicon or a discrete NVIDIA GPU it's ~3-10 minutes per textbook (good UX). On Intel laptops with integrated graphics it falls back to CPU at 30 min – 2 hours per textbook (unusable). For a tutoring product targeting students broadly, that's a meaningful population we'd shut out. The roadmap captures it as a power-user post-v1 enhancement; the `Ingestor` port we're shipping makes it a self-contained add-on later (one new ingestor + the Python sidecar package).
+
+**Why pass-through vision instead of separate API key.** SPEC.md already commits to "Vision via the engine adapter's model. No third-party OCR." Phase 5 makes that concrete. Users on Claude Code or Codex CLI subscriptions get vision OCR billed against their existing subscription (no separate setup). Direct users use whatever provider they configured. Zero new credential surface.
+
+**Why one-shot vision calls.** A 300-page textbook OCR pass would dump huge image content into the active tutoring conversation if we used the long-lived `EngineSession`. That destroys prompt-cache hits, pollutes the model's view of the conversation, and likely overflows context. Vision calls open a separate fresh session per page (or per batch), drain the response, close. The active tutoring `EngineSession` is untouched.
+
+**Why require vision-capable models in engine config.** Multiple Phase 5+ features need vision: PDF ingestion via vision tier (this phase), handwritten math OCR (Phase 13), sketched concept maps (Phase 13). A user who selects a text-only model can't use these. Better to require vision at config time with a clear "this model doesn't support vision; pick from this list" error than to silently break later features.
 
 ## Scope and assumptions
 
-- **Local-only embeddings.** `@huggingface/transformers` v4 with `Xenova/bge-small-en-v1.5` (384-dim). Lazy-loaded singleton (`LocalEmbeddingService`) like `PyodideHost`. Preloaded at app startup so the first ingestion doesn't pay the cold-start cost.
-- **Whole-document Marker batch + synthetic progress.** `praxis-cli ingest <file>` runs Marker on the entire PDF (one black-box step) and emits the structured JSON. Phase 5 reports progress as: (1) "parsing" indeterminate while subprocess runs, (2) "embedding chunk N/total" once chunks land. Per-page streaming via `marker_server` is deferred to a future polish pass.
-- **`praxis-cli` is the Python package name.** Multiple subcommands as the framework grows. Phase 5 ships only `ingest`. Distributed via `uv tool install praxis-cli` (recommended) or `pip install praxis-cli`. Lives at `python/praxis-cli/` in the monorepo for dev.
-- **GPL boundary preserved.** Marker (GPL-3.0 code + commercial-restricted weights) runs as a subprocess. The Praxis Electron app is not "linked" to GPL code. Local-first v1 is below Datalab's $2M commercial threshold; the threshold check resurfaces if/when Praxis is sold commercially.
-- **First-run model downloads.** Marker's models (~2 GB combined Surya + Texify weights) and the embedding model (~33 MB) download on first use. The desktop should surface "first-time setup, this may take a few minutes" UI; we don't bundle weights.
-- **`sqlite-vec` virtual table created programmatically.** Drizzle doesn't model virtual tables; `initVectorStore(sqlite)` is called by `openDb` (or by the desktop service builder) right after Drizzle migrations apply. The extension itself is ABI-independent — no `electron-rebuild` for it.
-- **Citation format**: assistant emits `[1]`, `[2]`, `[3]` style references in its text. The UI parses these from the assistant's `model_message` content and renders as clickable chips. Each chip targets a source card rendered below the message, populated from the `tool_result` event's chunks.
-- **Ingestion is per-student.** Documents are scoped to the singleton default student (Phase 3). Multi-student is later.
-- **Detection of `praxis-cli`.** Desktop checks for the binary on PATH at startup (one-shot `which`/`where` call). If missing, the "Add document" UI surfaces an install hint instead of opening the file picker.
-- **Test gating**: real Marker tests are gated behind `PRAXIS_RUN_SLOW_TESTS=1` (joins Phase 4's Pyodide gating). Real embedding model load is also gated. Fast-lane tests mock both.
+- **Local-only embeddings.** `@huggingface/transformers` v4 with `Xenova/bge-small-en-v1.5` (384-dim). Lazy-loaded singleton, preloaded at app startup.
+- **Vision uses the configured engine's native model.** No third-party OCR API. No separate API key surface. Pass-through pattern for Claude Code / Codex; native image content for Direct.
+- **Vision calls are isolated.** Each `engine.vision.describe(...)` opens a fresh underlying SDK session — no relation to the active tutoring `EngineSession`. Vision calls don't appear in the conversation history. Vision calls don't share prompt cache with the tutoring session (and shouldn't — they're transient).
+- **Engine config requires vision-capable models.** `EngineConfigSchema.parse` validates that the model is on the per-provider vision allow-list. Defaults are vision-capable. `setEngineConfig` rejects non-vision models with a clear error message. Settings UI shows only vision-capable model options.
+- **Ingestor selection.** `IngestorRegistry` selects by mime type first, falling back to file extension. For PDFs specifically, multiple ingestors apply (`JsPdfIngestor` + `VisionPdfIngestor`); the request specifies which to use. Default for `.pdf` is `JsPdfIngestor`; user toggles to vision in the UI for math-heavy / scanned PDFs.
+- **`sqlite-vec` virtual table created programmatically.** `initVectorStore(sqlite)` runs after Drizzle migrations. The extension is ABI-independent — no `electron-rebuild` for it.
+- **Citation format.** Assistant emits `[1]`, `[2]`, `[3]` references. UI parses these from `model_message` content and renders as clickable chips that scroll to source cards rendered below the message.
+- **Per-student ingestion.** Documents scoped to the singleton default student.
+- **Slow tests gated behind `PRAXIS_RUN_SLOW_TESTS=1`** — real embedding model load, real PDF parsing of a sample fixture.
 
-## Dependency direction (Phase 5 additions, no violations)
+## Dependency direction (Phase 5 additions; no violations)
 
 ```
-@praxis/core/services
-  ├─ existing (Phase 3 exception): @praxis/engines, @praxis/tools
-  └─ Phase 5 NEW: spawns praxis-cli subprocess via child_process (no @praxis/* dep)
+@praxis/core/types/engine.ts
+  └─ NEW: VisionCapability interface; Engine.vision optional field
 
-@praxis/core/db
-  └─ Phase 5 NEW: optional sqlite-vec init; types still pure
+@praxis/core/config (existing)
+  └─ EngineConfigSchema validates vision-capable models per provider
 
-@praxis/tools
-  ├─ runtime additions: sqlite-vec, @huggingface/transformers
-  └─ type-only: @praxis/core/types  (existing)
+@praxis/tools/runtime/ingestion/    (NEW directory)
+  ├─ Ingestor interface
+  ├─ IngestorRegistry
+  └─ Six default ingestors + VisionPdfIngestor
 
-python/praxis-cli/                       (NEW; standalone Python package)
-  ├─ pyproject.toml (uv-managed)
-  ├─ deps: marker-pdf, click
-  └─ Distributed independently via PyPI; subprocess from @praxis/core/ingestion
+@praxis/tools/runtime/embeddings.ts (NEW)
+  └─ LocalEmbeddingService
 
-document_embeddings (sqlite-vec virtual table)
-  └─ created at openDb time via raw SQL after extension load
+@praxis/tools/runtime/sqlite-vec-store.ts (NEW)
+  └─ SqliteVecStore
+
+@praxis/core/ingestion/           (NEW directory)
+  └─ IngestionService thin orchestrator
+
+@praxis/core/services additions    (Phase 3 exception unchanged)
+  ├─ DocumentsServiceImpl
+  └─ DrizzleDocumentsReader
+
+@praxis/engines/{direct,claude-code,codex}/vision.ts (NEW per adapter)
+  └─ Each adapter implements VisionCapability for its SDK
+
+@praxis/desktop                    (additions)
+  ├─ IPC: praxis.ingest.*, praxis.documents.*
+  └─ buildServices wires new pieces
+
+@praxis/ui                         (additions)
+  ├─ Document list sidebar
+  ├─ Ingestion progress modal
+  └─ Citation chips + source cards
 ```
 
-Per CLAUDE.md, the `@praxis/core/services` exception covers the Phase 5 imports of `@praxis/engines` and `@praxis/tools`. The Python subprocess is invoked via `node:child_process`; no @praxis/* package crosses to Python.
+**No Python in Phase 5.** The `python/praxis-cli/` directory does not exist after this phase. SPEC.md's "single language boundary" still describes the future shape if/when Marker (or any other heavy ML tool) lands.
 
 ---
 
@@ -82,82 +121,67 @@ Per CLAUDE.md, the `@praxis/core/services` exception covers the Phase 5 imports 
 
 ### Unit 1: Type contract additions
 
-**File**: `packages/core/src/types/tool.ts` (modified — `vectorStore` and embedding become concrete)
-**File**: `packages/core/src/types/citation.ts` (new — `Citation`, `RetrievalResult`)
-**File**: `packages/core/src/types/ingestion.ts` (new — `IngestionEvent`, `IngestionRequest`)
-
-**`packages/core/src/types/tool.ts`** changes (additions, not replacements of unrelated fields):
+**File**: `packages/core/src/types/engine.ts` (modified)
+**File**: `packages/core/src/types/citation.ts` (new)
+**File**: `packages/core/src/types/ingestion.ts` (new)
+**File**: `packages/core/src/types/tool.ts` (modified — `vectorStore`, `embeddings`, `documents` become concrete)
 
 ```typescript
-export interface ToolServices {
-  memory: unknown;       // → Phase 7
-  artifacts: unknown;    // → Phase 6
-  vectorStore: VectorStore;          // ← Phase 5 (was unknown)
-  sandbox: CodeSandbox;
-  sympy: SymPyService;
-  embeddings: EmbeddingService;      // ← Phase 5 NEW field on ToolServices
-  pedagogyPack: unknown; // → Phase 14
+// packages/core/src/types/engine.ts — additions
+
+import type { TokenUsage } from "./common.js";
+
+export interface ImageInput {
+  /** Image data as base64 (no data: prefix) OR a remote https URL. */
+  data: string;
+  mimeType: "image/png" | "image/jpeg" | "image/webp";
 }
 
-// ─── EmbeddingService ────────────────────────────────────────────────────────
-
-export interface EmbeddingService {
-  /** Single-text embedding. */
-  embed(text: string): Promise<number[]>;
-  /** Batch embedding — implementations should batch internally for throughput. */
-  embedBatch(texts: string[]): Promise<number[][]>;
-  /** Vector dimension (e.g. 384 for bge-small-en-v1.5). Used to size virtual tables. */
-  readonly dimension: number;
-  /** Identifier for diagnostics (e.g. "Xenova/bge-small-en-v1.5"). */
-  readonly modelId: string;
+export interface VisionDescribeRequest {
+  /** Instruction for the model — what to extract from the image(s). */
+  prompt: string;
+  /** One or more images to analyze. Adapters may batch or call serially. */
+  images: ReadonlyArray<ImageInput>;
+  /** Soft cap on response length. */
+  maxTokens?: number;
 }
 
-// ─── VectorStore ─────────────────────────────────────────────────────────────
-
-export interface VectorStore {
-  /** Insert or replace a single vector. Replaces if `chunkId` already exists. */
-  upsert(input: VectorUpsertInput): Promise<void>;
-  /** Batch insert/replace. Implementations should use a single transaction. */
-  upsertBatch(items: ReadonlyArray<VectorUpsertInput>): Promise<void>;
-  /** Cosine-similarity nearest-neighbor search. Returns up to `topK`. */
-  search(input: VectorSearchInput): Promise<VectorSearchResult[]>;
-  /** Delete all vectors for a given document. Used when a document is removed. */
-  deleteByDocumentId(documentId: string): Promise<void>;
+export interface VisionDescribeResponse {
+  text: string;
+  usage?: TokenUsage;
 }
 
-export interface VectorUpsertInput {
-  chunkId: string;
-  documentId: string;
-  embedding: number[];
-  chunkText: string;
-  page?: number;
-  section?: string;
+/**
+ * Vision capability — extract text/structure from images. Each call opens a
+ * fresh underlying SDK session (one-shot), so the active tutoring EngineSession's
+ * conversation history and prompt cache are NOT affected. Use this for one-off
+ * vision tasks like PDF page OCR, handwritten math OCR (Phase 13), etc.
+ */
+export interface VisionCapability {
+  describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse>;
 }
 
-export interface VectorSearchInput {
-  embedding: number[];
-  topK: number;
-  /** Restrict search to chunks from these documents. Empty/undefined = all documents. */
-  documentIds?: ReadonlyArray<string>;
-}
-
-export interface VectorSearchResult {
-  chunkId: string;
-  documentId: string;
-  chunkText: string;
-  page?: number;
-  section?: string;
-  /** Cosine distance from sqlite-vec; smaller = more similar. */
-  distance: number;
+export interface Engine {
+  readonly id: string;
+  readonly kind: "looped" | "single-shot";
+  open(opts: EngineOpenOptions): Promise<EngineSession>;
+  health(): Promise<HealthStatus>;
+  /**
+   * Optional vision capability. When undefined, the engine doesn't support
+   * vision input. Callers (e.g., VisionPdfIngestor) check before using.
+   * Phase 5 ships vision for all three engines via per-adapter implementations
+   * (Direct via Vercel image content; Claude Code + Codex via pass-through to
+   * their SDKs' native file-reading + vision-capable underlying models).
+   */
+  readonly vision?: VisionCapability;
 }
 ```
 
-**`packages/core/src/types/citation.ts`** (new):
-
 ```typescript
-/** A single chunk reference returned by retrieve_from_textbook. */
+// packages/core/src/types/citation.ts — new
+
 export interface Citation {
-  /** Index used by the model to reference this citation in text (e.g. "[1]"). */
+  /** 1-based index for the model to reference as [1], [2], etc. */
   index: number;
   documentId: string;
   documentTitle: string;
@@ -165,7 +189,7 @@ export interface Citation {
   chunkText: string;
   page?: number;
   section?: string;
-  /** Cosine distance from the query; informational, not used for sorting in UI. */
+  /** Cosine distance from the query (informational; results pre-sorted). */
   distance: number;
 }
 
@@ -175,755 +199,1195 @@ export interface RetrievalResult {
 }
 ```
 
-**`packages/core/src/types/ingestion.ts`** (new):
-
 ```typescript
+// packages/core/src/types/ingestion.ts — new
+
 export type IngestionEvent =
   | { type: "start"; documentId: string; filename: string }
-  | { type: "parsing"; message: string }
+  | { type: "ingestor_selected"; ingestorId: string; ingestorLabel: string }
+  | { type: "parsing"; message: string }                       // indeterminate
+  | { type: "vision_page"; page: number; totalPages: number }  // for VisionPdfIngestor only
   | { type: "parsed"; chunkCount: number }
   | { type: "embedding"; chunksProcessed: number; totalChunks: number }
   | { type: "done"; documentId: string; chunkCount: number }
   | { type: "error"; error: { code: string; message: string; recoverable: boolean } };
 
 export interface IngestionRequest {
-  /** Absolute path to the file. */
   filePath: string;
-  /** User-friendly filename (display only; persisted on the Document row). */
   filename: string;
-  /** Mime type, e.g. "application/pdf". */
   mimeType: string;
-  /** Owner. */
   studentId: string;
+  /** Override ingestor selection. Default: registry auto-selects. */
+  preferIngestorId?: string;  // e.g. "vision-pdf" to force vision parsing on a PDF
 }
 ```
 
-**`packages/core/src/types/index.ts`** — add re-exports:
-
 ```typescript
-export type * from "./citation.js";
-export type * from "./ingestion.js";
+// packages/core/src/types/tool.ts — concretize Phase 5 fields
+
+export interface ToolServices {
+  memory: unknown;       // → Phase 7
+  artifacts: unknown;    // → Phase 6
+  vectorStore: VectorStore;       // ← Phase 5
+  sandbox: CodeSandbox;
+  sympy: SymPyService;
+  embeddings: EmbeddingService;   // ← Phase 5 (new field)
+  documents: DocumentsReader;     // ← Phase 5 (new field)
+  pedagogyPack: unknown; // → Phase 14
+}
+
+// EmbeddingService, VectorStore (with VectorUpsertInput, VectorSearchInput,
+// VectorSearchResult), DocumentsReader — same shapes as v1 of the design.
+// See appendix at end of doc for verbatim if useful; nothing changed for these.
 ```
 
-**`packages/core/src/types/client.ts`** additions for new services:
+**Acceptance Criteria**:
+- [ ] `VisionCapability` typechecks; `Engine.vision` is optional.
+- [ ] `IngestionEvent` has the `ingestor_selected` and `vision_page` variants (new vs v1).
+- [ ] `ToolServices.vectorStore`, `.embeddings`, `.documents` are concrete; rest stays `unknown`.
+- [ ] All existing Phase 1-4 tests typecheck (the new `Engine.vision?` field is optional so doesn't break existing engines until they're updated).
+
+---
+
+### Unit 2: `EngineConfigSchema` vision-capable validation
+
+**File**: `packages/core/src/config/schema.ts` (modified)
+**File**: `packages/core/src/config/vision-models.ts` (new — per-provider allow-lists + helpers)
+**File**: `packages/core/src/__tests__/engine-config.test.ts` (extended)
+
+**`packages/core/src/config/vision-models.ts`** (new):
 
 ```typescript
-import type { IngestionEvent, IngestionRequest } from "./ingestion.js";
+/**
+ * Per-provider lists of vision-capable model IDs. Praxis enforces vision
+ * support at engine config time so later features (PDF vision ingestion,
+ * Phase 13 handwriting OCR) don't silently fail. Lists are conservative —
+ * include only models confirmed vision-capable as of April 2026.
+ *
+ * The Claude Code and Codex CLI engines are treated as vision-capable
+ * unconditionally because their SDKs use vision-capable models by default
+ * and the user can't easily downgrade through Praxis.
+ */
 
-export interface PraxisClient {
-  session: SessionService;
-  artifacts: ArtifactsService;
-  author: AuthoringService;
-  memory: MemoryService;
-  config: ConfigService;
-  ingest: IngestionClient;       // ← NEW Phase 5
-  documents: DocumentsClient;    // ← NEW Phase 5
+export const VISION_MODELS: Record<string, ReadonlyArray<string>> = {
+  "direct.anthropic": [
+    "claude-sonnet-4-5",
+    "claude-opus-4-5",
+    "claude-haiku-4-5",
+    "claude-3-5-sonnet-latest",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-opus-20240229",
+    "claude-3-5-haiku-latest",
+    // Pattern matches: any "claude-*-sonnet-*", "claude-*-opus-*", "claude-3-5-haiku-*", "claude-4-*-haiku"
+    // (see isVisionCapable() for substring fallbacks)
+  ],
+  "direct.openai": [
+    "gpt-5",
+    "gpt-5-mini",
+    "gpt-4.1",
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-4-vision-preview",
+  ],
+  "direct.google": [
+    "gemini-2.5-pro",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+  ],
+  "direct.ollama": [
+    // Ollama vision models — user must pick one of these (or compatible local model)
+    "llava",
+    "llava:13b",
+    "llava:34b",
+    "bakllava",
+    "llama3.2-vision",
+    "llama3.2-vision:11b",
+    "llama3.2-vision:90b",
+    "qwen2-vl",
+    "qwen2.5-vl",
+    "moondream",
+  ],
+};
+
+/**
+ * Default model per engine ID — guaranteed vision-capable. Used when the
+ * user hasn't explicitly chosen a model. New users land on these.
+ */
+export const DEFAULT_VISION_MODEL: Record<string, string> = {
+  "direct.anthropic": "claude-sonnet-4-5",
+  "direct.openai": "gpt-4o",
+  "direct.google": "gemini-2.5-flash",
+  "direct.ollama": "llama3.2-vision",
+};
+
+/**
+ * Engine IDs that don't have a "model" field validated by Praxis (the SDK
+ * picks the model). For these, Praxis trusts the SDK to use a vision-capable
+ * model (which is the default for both Claude Code and Codex in 2026).
+ */
+const ENGINE_TRUSTS_SDK_MODEL = new Set(["claude-code", "codex"]);
+
+export function requiresVisionModelValidation(engineId: string): boolean {
+  return !ENGINE_TRUSTS_SDK_MODEL.has(engineId);
 }
 
-export interface IngestionClient {
-  /** Pick a file via the host's native file picker. Returns null if the user cancels. */
-  pickFile(): Promise<{ filePath: string; filename: string; mimeType: string } | null>;
-  /** Start ingestion. Yields IngestionEvent stream until done or error. */
-  start(req: Pick<IngestionRequest, "filePath" | "filename" | "mimeType">): AsyncIterable<IngestionEvent>;
-  /** Whether the praxis-cli sidecar is installed. Surfaced in the UI when false. */
-  isAvailable(): Promise<{ available: boolean; installHint?: string }>;
+/**
+ * Check whether a (engineId, model) combination supports vision. For Direct
+ * engines, validates against the per-provider list with a substring fallback
+ * for forward-compat (e.g. unreleased model variants whose names match a
+ * known pattern).
+ */
+export function isVisionCapable(engineId: string, model: string | undefined): boolean {
+  if (ENGINE_TRUSTS_SDK_MODEL.has(engineId)) return true;
+  if (!model) return false;  // Direct engine without a model isn't usable for vision
+
+  const allowed = VISION_MODELS[engineId];
+  if (!allowed) return false;
+  if (allowed.includes(model)) return true;
+
+  // Forward-compat: substring match for known vision-friendly patterns per provider.
+  switch (engineId) {
+    case "direct.anthropic":
+      return /claude-(\d+(\.\d+)?-)?(sonnet|opus|haiku)/.test(model);
+    case "direct.openai":
+      return /gpt-(4|5)/i.test(model);
+    case "direct.google":
+      return /gemini-([12]\.\d+|[3-9])/i.test(model);
+    case "direct.ollama":
+      return /llava|vision|moondream|qwen.*vl/i.test(model);
+    default:
+      return false;
+  }
 }
 
-export interface DocumentsClient {
-  list(): Promise<DocumentSummary[]>;
-  delete(documentId: string): Promise<void>;
+/** Human-readable list of valid models for an engine (used in error messages + UI). */
+export function visionCapableModelsFor(engineId: string): ReadonlyArray<string> {
+  if (ENGINE_TRUSTS_SDK_MODEL.has(engineId)) return [];
+  return VISION_MODELS[engineId] ?? [];
+}
+```
+
+**`packages/core/src/config/schema.ts`** modifications:
+
+```typescript
+import { z } from "zod";
+import { isVisionCapable, visionCapableModelsFor, DEFAULT_VISION_MODEL } from "./vision-models.js";
+
+export const ENGINE_IDS = [
+  "claude-code",
+  "codex",
+  "direct.anthropic",
+  "direct.openai",
+  "direct.google",
+  "direct.ollama",
+] as const;
+
+export const EngineIdSchema = z.enum(ENGINE_IDS);
+export type EngineId = z.infer<typeof EngineIdSchema>;
+
+const baseEngineConfig = z.object({
+  engineId: EngineIdSchema,
+  model: z.string().optional(),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().url().optional(),
+  effort: z.enum(["minimal", "low", "medium", "high", "xhigh"]).optional(),
+});
+
+export const EngineConfigSchema = baseEngineConfig.superRefine((cfg, ctx) => {
+  if (!isVisionCapable(cfg.engineId, cfg.model)) {
+    const allowed = visionCapableModelsFor(cfg.engineId);
+    const example = allowed.slice(0, 3).join(", ") || "(no presets — see provider docs)";
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Praxis requires a vision-capable model. ${cfg.engineId} with model "${cfg.model ?? "(default)"}" is not vision-capable. Try one of: ${example}.`,
+      path: ["model"],
+    });
+  }
+});
+
+export type EngineConfig = z.infer<typeof EngineConfigSchema>;
+
+export const DEFAULT_ENGINE_CONFIG: EngineConfig = { engineId: "claude-code" };
+//  ^^ "claude-code" is treated as trusted (uses vision-capable default model in CLI). Validates.
+```
+
+**Implementation Notes**:
+- `claude-code` and `codex` skip model validation — their CLIs use vision-capable defaults and Praxis can't easily verify the user's CLI config.
+- For Direct engines, `model` is required AND must be vision-capable. Old configs in `config_kv` that don't specify a model fail to parse — `readEngineConfig` should fall back to `DEFAULT_ENGINE_CONFIG` on parse error and log a warning.
+- Settings UI updates: each Direct provider shows a model dropdown listing only vision-capable models from `visionCapableModelsFor(engineId)`.
+
+**Acceptance Criteria**:
+- [ ] `EngineConfigSchema.parse({ engineId: "claude-code" })` succeeds (no model validation).
+- [ ] `EngineConfigSchema.parse({ engineId: "direct.anthropic", model: "claude-sonnet-4-5" })` succeeds.
+- [ ] `EngineConfigSchema.parse({ engineId: "direct.anthropic", model: "claude-instant-1" })` fails with vision-capability error.
+- [ ] `EngineConfigSchema.parse({ engineId: "direct.openai" })` fails (no model + Direct → must specify).
+- [ ] `EngineConfigSchema.parse({ engineId: "direct.openai", model: "gpt-3.5-turbo" })` fails.
+- [ ] `EngineConfigSchema.parse({ engineId: "direct.openai", model: "gpt-5-future-variant-x" })` succeeds via substring fallback.
+- [ ] `setEngineConfig` validates and rejects non-vision configs.
+- [ ] On config_kv parse failure, `readEngineConfig` returns `DEFAULT_ENGINE_CONFIG` and logs.
+
+---
+
+### Unit 3: Per-engine `VisionCapability` implementations
+
+**Files**:
+- `packages/engines/src/direct/vision.ts` (new)
+- `packages/engines/src/claude-code/vision.ts` (new)
+- `packages/engines/src/codex/vision.ts` (new)
+- Each adapter's `adapter.ts` populates the `vision` field on construction
+- `packages/engines/src/__tests__/{direct,claude-code,codex}-vision.test.ts` (new)
+
+**Common pattern**: each `VisionCapability` implementation opens a **fresh, transient SDK session per call** — never reuses the active tutoring `Conversation` / `Thread`. This keeps the tutoring session's prompt cache and conversation history clean.
+
+**`packages/engines/src/direct/vision.ts`** (Direct adapter — Vercel AI SDK image content):
+
+```typescript
+import { generateText } from "ai";
+import type { VisionCapability, VisionDescribeRequest, VisionDescribeResponse } from "@praxis/core/types";
+import type { EngineConfig } from "@praxis/core/config";
+import { resolveModel, type DirectProvider } from "./providers.js";
+
+export class DirectVision implements VisionCapability {
+  constructor(
+    private readonly provider: DirectProvider,
+    private readonly config: EngineConfig,
+  ) {}
+
+  async describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse> {
+    const model = resolveModel(this.provider, this.config);
+    const result = await generateText({
+      model,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: req.prompt },
+          ...req.images.map((img) => ({
+            type: "image" as const,
+            // Vercel SDK accepts data URLs OR raw base64 with mimeType.
+            image: `data:${img.mimeType};base64,${img.data}`,
+          })),
+        ],
+      }],
+      ...(req.maxTokens !== undefined && { maxTokens: req.maxTokens }),
+    });
+    return {
+      text: result.text,
+      usage: { inputTokens: result.usage?.inputTokens ?? 0, outputTokens: result.usage?.outputTokens ?? 0 },
+    };
+  }
+}
+```
+
+**`packages/engines/src/claude-code/vision.ts`** (Claude Code — pass-through via temp files + one-shot `query`):
+
+```typescript
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { v7 as uuidv7 } from "uuid";
+import { collectResult, query } from "@nklisch/claude-cli-sdk";
+import type { VisionCapability, VisionDescribeRequest, VisionDescribeResponse } from "@praxis/core/types";
+
+/**
+ * Pass-through vision via Claude Code SDK. Writes images to a temp dir,
+ * spawns a one-shot `query` (NOT a long-lived Conversation), the underlying
+ * Claude model uses its Read tool to access the image files and applies its
+ * native vision. The user's Claude CLI subscription bills the call. The
+ * temp dir is cleaned up after.
+ *
+ * Each call is fully isolated — no shared state with the tutoring session.
+ */
+export class ClaudeCodeVision implements VisionCapability {
+  async describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse> {
+    const tempDir = join(tmpdir(), `praxis-vision-${uuidv7()}`);
+    await mkdir(tempDir, { recursive: true });
+    const filePaths: string[] = [];
+    try {
+      // Materialize each image to a file
+      for (let i = 0; i < req.images.length; i++) {
+        const img = req.images[i];
+        if (!img) continue;
+        const ext = img.mimeType === "image/png" ? "png" : img.mimeType === "image/jpeg" ? "jpg" : "webp";
+        const path = join(tempDir, `image-${i}.${ext}`);
+        await writeFile(path, Buffer.from(img.data, "base64"));
+        filePaths.push(path);
+      }
+
+      const fullPrompt = [
+        "Read the following image file(s) using the Read tool, then complete the task.",
+        "Image files:",
+        ...filePaths.map((p) => `- ${p}`),
+        "",
+        "Task:",
+        req.prompt,
+        "",
+        "Return ONLY the requested content. No commentary, no preamble, no acknowledgment of the task.",
+      ].join("\n");
+
+      const result = await collectResult(
+        query(fullPrompt, {
+          workDir: tempDir,
+          maxTurns: Math.max(2, req.images.length + 1),  // one Read per image + one response turn
+          // No session persistence — this is a pure one-shot
+          noSessionPersistence: true,
+        }),
+      );
+
+      return {
+        text: result.result ?? "",
+        usage: result.usage
+          ? { inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens }
+          : undefined as never,  // omit when missing per exactOptionalPropertyTypes
+      };
+    } finally {
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+}
+```
+
+**`packages/engines/src/codex/vision.ts`** (Codex — pass-through via transient thread + image input):
+
+```typescript
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { v7 as uuidv7 } from "uuid";
+import { Codex } from "@openai/codex-sdk";
+import type { VisionCapability, VisionDescribeRequest, VisionDescribeResponse } from "@praxis/core/types";
+import type { EngineConfig } from "@praxis/core/config";
+
+/**
+ * Pass-through vision via Codex SDK. Codex's Input type supports
+ * `{ type: "local_image", path }` natively. Each call uses a transient
+ * thread (startThread + run + drop reference). The user's Codex
+ * subscription handles billing.
+ */
+export class CodexVision implements VisionCapability {
+  constructor(private readonly config: EngineConfig) {}
+
+  async describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse> {
+    const tempDir = join(tmpdir(), `praxis-vision-${uuidv7()}`);
+    await mkdir(tempDir, { recursive: true });
+    try {
+      const inputs: Array<{ type: "text"; text: string } | { type: "local_image"; path: string }> = [
+        { type: "text", text: `${req.prompt}\n\nReturn ONLY the requested content. No preamble.` },
+      ];
+      for (let i = 0; i < req.images.length; i++) {
+        const img = req.images[i];
+        if (!img) continue;
+        const ext = img.mimeType === "image/png" ? "png" : img.mimeType === "image/jpeg" ? "jpg" : "webp";
+        const path = join(tempDir, `image-${i}.${ext}`);
+        await writeFile(path, Buffer.from(img.data, "base64"));
+        inputs.push({ type: "local_image", path });
+      }
+
+      const codex = new Codex({
+        ...(this.config.apiKey !== undefined && { apiKey: this.config.apiKey }),
+        ...(this.config.baseUrl !== undefined && { baseUrl: this.config.baseUrl }),
+        // No mcp_servers — vision call doesn't need tools
+      });
+      const thread = codex.startThread({
+        ...(this.config.model !== undefined && { model: this.config.model }),
+        approvalPolicy: "never",
+        sandboxMode: "read-only",
+        skipGitRepoCheck: true,
+      });
+      const turn = await thread.run(inputs);
+
+      // Concatenate any agent_message items into the response text.
+      const text = (turn.items ?? [])
+        .filter((it): it is Extract<typeof it, { type: "agent_message" }> => it.type === "agent_message")
+        .map((it) => it.text)
+        .join("\n")
+        .trim() || turn.finalResponse || "";
+
+      return {
+        text,
+        usage: turn.usage
+          ? { inputTokens: turn.usage.input_tokens, outputTokens: turn.usage.output_tokens }
+          : undefined as never,
+      };
+    } finally {
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+}
+```
+
+**Adapter wiring**:
+
+```typescript
+// packages/engines/src/direct/adapter.ts (modified — populate vision)
+export class DirectEngine implements Engine {
+  readonly id: string;
+  readonly kind = "single-shot" as const;
+  readonly vision: VisionCapability;
+
+  constructor(opts: DirectEngineOptions) {
+    this.opts = opts;
+    this.id = `direct.${opts.provider}`;
+    this.vision = new DirectVision(opts.provider, opts.config);
+  }
+  // ... open(), health() unchanged
 }
 
-export interface DocumentSummary {
-  id: string;
-  filename: string;
-  mimeType: string;
-  ingestedAt: number;
-  chunkCount: number;
-  /** Document title from manifest if present; falls back to filename. */
-  title: string;
+// packages/engines/src/claude-code/adapter.ts
+export class ClaudeCodeEngine implements Engine {
+  readonly vision = new ClaudeCodeVision();
+  // ...
+}
+
+// packages/engines/src/codex/adapter.ts
+export class CodexEngine implements Engine {
+  readonly vision: VisionCapability;
+  constructor(opts: CodexEngineOptions) {
+    this.opts = opts;
+    this.vision = new CodexVision(opts.config);
+  }
+  // ...
+}
+```
+
+**Implementation Notes**:
+- **Each vision call is fully isolated.** Direct uses a fresh `generateText` (no shared messages); Claude Code uses `query()` (one-shot, NOT `createConversation`); Codex uses `startThread()` for the call and drops the reference. None of them touch the active tutoring session.
+- **Temp file cleanup** in `finally` blocks for Claude Code and Codex (both write image files to disk because their SDKs route via file paths).
+- **Claude Code SDK options**: `noSessionPersistence: true` to avoid Claude leaving session breadcrumbs on disk for vision calls; `workDir` scopes the Read tool to the temp dir.
+- **Codex SDK Input format**: confirmed in research — `{ type: "local_image", path }` is the SDK's native shape for image attachments.
+- **Mocking in tests**: test files use the same `vi.mock` SDK approach as Phase 2 conformance suite. Each adapter's vision tests assert (a) fresh SDK call per `describe()`, (b) no shared state, (c) correct response mapping, (d) temp dir cleanup on success and failure.
+
+**Acceptance Criteria**:
+- [ ] `directEngine.vision.describe({ prompt, images })` calls `generateText` once per call (verified via mock); image content blocks include each image as data URL.
+- [ ] `claudeCodeEngine.vision.describe(...)` writes images to a temp dir, calls `query` once with `noSessionPersistence: true`, removes the temp dir after (assert via spy).
+- [ ] `codexEngine.vision.describe(...)` calls `codex.startThread().run()` with `local_image` inputs, no MCP servers configured, removes temp dir after.
+- [ ] Failure path: vision call throws → temp dir still removed (verify via spy on `rm`).
+- [ ] No vision call mutates the engine's active `EngineSession` state (assert by checking session map size remains 0 in test).
+
+---
+
+### Unit 4: `Ingestor` port + `IngestorRegistry`
+
+**Files**:
+- `packages/tools/src/runtime/ingestion/ingestor.ts` (new — interface + types)
+- `packages/tools/src/runtime/ingestion/registry.ts` (new — dispatcher)
+- `packages/tools/src/runtime/ingestion/index.ts` (new — re-exports)
+- `packages/tools/src/runtime/ingestion/__tests__/registry.test.ts` (new)
+
+```typescript
+// packages/tools/src/runtime/ingestion/ingestor.ts
+
+export interface Ingestor {
+  /** Stable identifier — used by IngestionRequest.preferIngestorId and persisted as a badge on the Document row. */
+  readonly id: string;
+  /** Human-readable label for the UI (e.g. "PDF (text layer)" or "PDF (vision OCR)"). */
+  readonly label: string;
+  /** File extensions handled (lowercase, with dot, e.g. ".pdf"). */
+  readonly extensions: ReadonlyArray<string>;
+  /** Mime types handled. */
+  readonly mimeTypes: ReadonlyArray<string>;
+  /** Whether this ingestor is currently usable. e.g. VisionPdfIngestor returns false when engine has no .vision. */
+  isAvailable(): Promise<boolean>;
+  /** Parse the file and produce ordered chunks. Caller persists the result. */
+  parse(filePath: string, opts?: IngestorOptions): Promise<IngestorResult>;
+}
+
+export interface IngestorOptions {
+  /** Soft cap per chunk (chars). Default 2000. */
+  maxChars?: number;
+  signal?: AbortSignal;
+  /**
+   * Per-page progress callback (optional). Vision ingestors invoke this so
+   * the IngestionService can stream page-by-page progress to the UI.
+   */
+  onPageProgress?: (page: number, totalPages: number) => void;
+}
+
+export interface IngestorResult {
+  /** Document title if extractable, else null. */
+  title: string | null;
+  /** Total pages if known, else null. */
+  pageCount: number | null;
+  /** Ordered chunks. */
+  chunks: ReadonlyArray<IngestedChunk>;
+  /** ID of the ingestor that produced this — recorded on the Document row. */
+  ingestorId: string;
+}
+
+export interface IngestedChunk {
+  /** Position in the original document (0-based). */
+  chunkIndex: number;
+  text: string;
+  page?: number;
+  section?: string;
+  /** e.g. "Text", "SectionHeader", "Equation" — informational. */
+  blockType?: string;
+}
+```
+
+```typescript
+// packages/tools/src/runtime/ingestion/registry.ts
+
+import { extname } from "node:path";
+import type { Ingestor } from "./ingestor.js";
+
+export class IngestorRegistry {
+  constructor(private readonly ingestors: ReadonlyArray<Ingestor>) {}
+
+  /**
+   * Pick the best available ingestor for a file. Priority order:
+   *   1. Match by mime type
+   *   2. Match by file extension
+   *   3. Among matches, prefer one whose isAvailable() returns true
+   * Returns null when no ingestor matches.
+   */
+  async select(opts: { mimeType: string; filename: string; preferIngestorId?: string }): Promise<Ingestor | null> {
+    if (opts.preferIngestorId) {
+      const named = this.ingestors.find((i) => i.id === opts.preferIngestorId);
+      if (named && (await named.isAvailable())) return named;
+    }
+    const ext = extname(opts.filename).toLowerCase();
+    const candidates = this.ingestors.filter(
+      (i) => i.mimeTypes.includes(opts.mimeType) || i.extensions.includes(ext),
+    );
+    for (const c of candidates) {
+      if (await c.isAvailable()) return c;
+    }
+    return null;
+  }
+
+  /** All ingestors that handle this file type — used by UI to offer choice. */
+  candidatesFor(opts: { mimeType: string; filename: string }): ReadonlyArray<Ingestor> {
+    const ext = extname(opts.filename).toLowerCase();
+    return this.ingestors.filter(
+      (i) => i.mimeTypes.includes(opts.mimeType) || i.extensions.includes(ext),
+    );
+  }
+
+  /** All registered ingestors. */
+  all(): ReadonlyArray<Ingestor> {
+    return this.ingestors;
+  }
 }
 ```
 
 **Acceptance Criteria**:
-- [ ] All new interfaces compile; `ToolServices.vectorStore` and `.embeddings` are concrete.
-- [ ] `EngineEvent`, existing `Citation`-related types in `artifacts.ts` (if any) are not broken.
-- [ ] `PraxisClient` includes `ingest` and `documents` keys.
-- [ ] Existing tests pass with mocked impls of the new services.
+- [ ] `select` returns null when no ingestor matches the file.
+- [ ] `select` honors `preferIngestorId` if available; falls back to auto if preferred is unavailable.
+- [ ] `candidatesFor(.pdf file)` returns multiple ingestors (e.g., JsPdf + VisionPdf).
+- [ ] `candidatesFor(.docx)` returns only `DocxIngestor`.
 
 ---
 
-### Unit 2: `python/praxis-cli/` — Python sidecar package
+### Unit 5: Six default ingestors (JS tier)
 
-**Files**:
-- `python/praxis-cli/pyproject.toml`
-- `python/praxis-cli/src/praxis_cli/__init__.py`
-- `python/praxis-cli/src/praxis_cli/cli.py`
-- `python/praxis-cli/src/praxis_cli/ingest.py`
-- `python/praxis-cli/README.md`
-- `python/praxis-cli/tests/test_ingest.py`
-- `.gitignore` (add `python/**/.venv`, `python/**/__pycache__`, `python/**/*.egg-info`)
+Each is a small, focused module. Tests are fast (no models loaded). All live in `packages/tools/src/runtime/ingestion/`.
 
-**`python/praxis-cli/pyproject.toml`**:
+**Common implementation pattern**:
 
-```toml
-[project]
-name = "praxis-cli"
-version = "0.1.0"
-description = "Praxis sidecar CLI: PDF ingestion via Marker (Phase 5); future subcommands TBD."
-requires-python = ">=3.10"
-dependencies = [
-  "marker-pdf>=1.10,<2",
-  "click>=8.1",
-]
-license = { text = "GPL-3.0-or-later" }
-authors = [{ name = "Praxis Contributors" }]
+- Read the file (via `node:fs/promises`)
+- Parse format-specifically into a stream of paragraphs/sections
+- Apply a shared chunker that respects section boundaries + max chars
+- Return `IngestorResult` with `ingestorId` set
 
-[project.scripts]
-praxis-cli = "praxis_cli.cli:main"
+#### 5a. `PlainTextIngestor`
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+**File**: `packages/tools/src/runtime/ingestion/plain-text-ingestor.ts`
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/praxis_cli"]
-```
+```typescript
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
+import type { Ingestor, IngestorOptions, IngestorResult, IngestedChunk } from "./ingestor.js";
+import { chunkParagraphs } from "./chunker.js";
 
-> Note: `license = "GPL-3.0-or-later"` because we depend on `marker-pdf` (GPL-3.0). The Praxis app proper stays MIT/Apache-friendly because the CLI is invoked as a subprocess (no linking).
+export class PlainTextIngestor implements Ingestor {
+  readonly id = "plain-text";
+  readonly label = "Plain text";
+  readonly extensions = [".txt"] as const;
+  readonly mimeTypes = ["text/plain"] as const;
 
-**`python/praxis-cli/src/praxis_cli/cli.py`**:
+  async isAvailable() { return true; }
 
-```python
-"""Praxis sidecar CLI entry point. Subcommands are routed via Click groups."""
-from __future__ import annotations
-import sys
-import click
-
-from praxis_cli.ingest import ingest_command
-
-
-@click.group()
-@click.version_option()
-def main() -> None:
-    """Praxis sidecar CLI."""
-
-
-main.add_command(ingest_command, name="ingest")
-
-
-if __name__ == "__main__":
-    main()
-```
-
-**`python/praxis-cli/src/praxis_cli/ingest.py`**:
-
-```python
-"""`praxis-cli ingest <file>` subcommand.
-
-Output contract:
-- stdout: a single JSON object representing the parsed document, terminated by a newline.
-  Schema:
-  {
-    "schema_version": "1",
-    "document": {
-      "title": str | null,
-      "page_count": int,
-      "chunks": [
-        {
-          "chunk_index": int,
-          "text": str,
-          "page": int | null,
-          "section": str | null,
-          "block_type": str
-        },
-        ...
-      ]
-    }
+  async parse(filePath: string, opts: IngestorOptions = {}): Promise<IngestorResult> {
+    const text = await readFile(filePath, "utf-8");
+    const chunks = chunkParagraphs(text, { maxChars: opts.maxChars ?? 2000 });
+    return {
+      title: basename(filePath),
+      pageCount: null,
+      chunks,
+      ingestorId: this.id,
+    };
   }
-- stderr: progress lines (free-form text, ignored by the Node consumer in v0.5).
-  Marker's own log output also goes to stderr.
-- Exit code: 0 on success; non-zero on failure with error JSON to stderr.
-"""
-from __future__ import annotations
-import json
-import sys
-import traceback
-from pathlib import Path
-from typing import Any
+}
+```
 
-import click
+#### 5b. `MarkdownIngestor`
 
+**File**: `packages/tools/src/runtime/ingestion/markdown-ingestor.ts`
 
-@click.command()
-@click.argument("file_path", type=click.Path(exists=True, dir_okay=False, resolve_path=True))
-@click.option("--max-chars", type=int, default=2000, help="Approximate chars per chunk.")
-def ingest_command(file_path: str, max_chars: int) -> None:
-    """Parse a PDF (or other Marker-supported format) and emit structured JSON."""
-    try:
-        result = run_ingest(Path(file_path), max_chars=max_chars)
-    except Exception as exc:  # noqa: BLE001  — top-level CLI guard
-        err: dict[str, Any] = {
-            "schema_version": "1",
-            "error": {
-                "code": "ingest.failed",
-                "message": str(exc),
-                "traceback": traceback.format_exc(),
-            },
-        }
-        sys.stderr.write(json.dumps(err) + "\n")
-        sys.exit(1)
-    sys.stdout.write(json.dumps(result) + "\n")
-    sys.stdout.flush()
+```typescript
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
+import type { Ingestor, IngestorOptions, IngestorResult, IngestedChunk } from "./ingestor.js";
 
+export class MarkdownIngestor implements Ingestor {
+  readonly id = "markdown";
+  readonly label = "Markdown";
+  readonly extensions = [".md", ".markdown"] as const;
+  readonly mimeTypes = ["text/markdown", "text/x-markdown"] as const;
 
-def run_ingest(file_path: Path, max_chars: int) -> dict[str, Any]:
-    """Run Marker on file_path and project the output to the Praxis chunk schema."""
-    # Lazy import — Marker import is slow (~3-5s)
-    from marker.converters.pdf import PdfConverter
-    from marker.models import create_model_dict
-    from marker.output import text_from_rendered
+  async isAvailable() { return true; }
 
-    converter = PdfConverter(artifact_dict=create_model_dict())
-    rendered = converter(str(file_path))
+  async parse(filePath: string, opts: IngestorOptions = {}): Promise<IngestorResult> {
+    const text = await readFile(filePath, "utf-8");
+    const maxChars = opts.maxChars ?? 2000;
+    const chunks: IngestedChunk[] = [];
+    let currentSection: string | undefined;
+    let buffer: string[] = [];
+    let bufferLen = 0;
+    let chunkIndex = 0;
 
-    full_text, _meta, _images = text_from_rendered(rendered)
-    chunks = chunk_markdown(full_text, max_chars=max_chars)
+    const flush = () => {
+      if (buffer.length === 0) return;
+      chunks.push({
+        chunkIndex: chunkIndex++,
+        text: buffer.join("\n\n"),
+        ...(currentSection !== undefined && { section: currentSection }),
+      });
+      buffer = [];
+      bufferLen = 0;
+    };
+
+    // Extract title from first H1 if present
+    const firstH1Match = /^#\s+(.+)$/m.exec(text);
+    const title = firstH1Match?.[1]?.trim() ?? basename(filePath);
+
+    for (const para of text.split("\n\n")) {
+      const stripped = para.trim();
+      if (!stripped) continue;
+      const headingMatch = /^(#{1,6})\s+(.+)$/.exec(stripped);
+      if (headingMatch) {
+        flush();
+        const heading = headingMatch[2]!.trim();
+        currentSection = heading;
+        chunks.push({
+          chunkIndex: chunkIndex++,
+          text: stripped,
+          section: heading,
+          blockType: "SectionHeader",
+        });
+        continue;
+      }
+      if (bufferLen + stripped.length > maxChars && buffer.length > 0) flush();
+      buffer.push(stripped);
+      bufferLen += stripped.length;
+    }
+    flush();
+    return { title, pageCount: null, chunks, ingestorId: this.id };
+  }
+}
+```
+
+#### 5c. `HtmlIngestor`
+
+**File**: `packages/tools/src/runtime/ingestion/html-ingestor.ts`
+
+Uses `@mozilla/readability` (npm) + `linkedom` (lightweight DOM in Node) to strip nav/sidebar/ads, then chunks the resulting text.
+
+```typescript
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
+import { Readability } from "@mozilla/readability";
+import { parseHTML } from "linkedom";
+import type { Ingestor, IngestorOptions, IngestorResult } from "./ingestor.js";
+import { chunkParagraphs } from "./chunker.js";
+
+export class HtmlIngestor implements Ingestor {
+  readonly id = "html";
+  readonly label = "HTML / web page";
+  readonly extensions = [".html", ".htm"] as const;
+  readonly mimeTypes = ["text/html"] as const;
+
+  async isAvailable() { return true; }
+
+  async parse(filePath: string, opts: IngestorOptions = {}): Promise<IngestorResult> {
+    const html = await readFile(filePath, "utf-8");
+    const { document } = parseHTML(html);
+    const reader = new Readability(document as unknown as Document);
+    const article = reader.parse();
+    const text = article?.textContent ?? document.body?.textContent ?? "";
+    const chunks = chunkParagraphs(text, { maxChars: opts.maxChars ?? 2000 });
+    return {
+      title: article?.title ?? document.title ?? basename(filePath),
+      pageCount: null,
+      chunks,
+      ingestorId: this.id,
+    };
+  }
+}
+```
+
+#### 5d. `DocxIngestor`
+
+**File**: `packages/tools/src/runtime/ingestion/docx-ingestor.ts`
+
+Uses `mammoth` (npm) to convert DOCX → HTML, then routes through HTML chunking.
+
+```typescript
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
+import mammoth from "mammoth";
+import { parseHTML } from "linkedom";
+import type { Ingestor, IngestorOptions, IngestorResult, IngestedChunk } from "./ingestor.js";
+
+export class DocxIngestor implements Ingestor {
+  readonly id = "docx";
+  readonly label = "Word document";
+  readonly extensions = [".docx"] as const;
+  readonly mimeTypes = ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] as const;
+
+  async isAvailable() { return true; }
+
+  async parse(filePath: string, opts: IngestorOptions = {}): Promise<IngestorResult> {
+    const buffer = await readFile(filePath);
+    const result = await mammoth.convertToHtml({ buffer });
+    const { document } = parseHTML(`<!DOCTYPE html><html><body>${result.value}</body></html>`);
+
+    const maxChars = opts.maxChars ?? 2000;
+    const chunks: IngestedChunk[] = [];
+    let currentSection: string | undefined;
+    let buf: string[] = [];
+    let bufLen = 0;
+    let chunkIndex = 0;
+
+    const flush = () => {
+      if (buf.length === 0) return;
+      chunks.push({
+        chunkIndex: chunkIndex++,
+        text: buf.join("\n\n"),
+        ...(currentSection !== undefined && { section: currentSection }),
+      });
+      buf = [];
+      bufLen = 0;
+    };
+
+    for (const node of document.body?.children ?? []) {
+      const tag = node.tagName.toLowerCase();
+      const text = (node.textContent ?? "").trim();
+      if (!text) continue;
+      if (/^h[1-6]$/.test(tag)) {
+        flush();
+        currentSection = text;
+        chunks.push({
+          chunkIndex: chunkIndex++,
+          text,
+          section: text,
+          blockType: "SectionHeader",
+        });
+        continue;
+      }
+      if (bufLen + text.length > maxChars && buf.length > 0) flush();
+      buf.push(text);
+      bufLen += text.length;
+    }
+    flush();
+
+    // Title from the first heading or the filename.
+    const firstHeading = chunks.find((c) => c.blockType === "SectionHeader")?.text;
+    return {
+      title: firstHeading ?? basename(filePath),
+      pageCount: null,
+      chunks,
+      ingestorId: this.id,
+    };
+  }
+}
+```
+
+#### 5e. `EpubIngestor`
+
+**File**: `packages/tools/src/runtime/ingestion/epub-ingestor.ts`
+
+Uses `epub2` (npm) to read EPUB chapter-by-chapter. Each chapter becomes its own section.
+
+```typescript
+import { basename } from "node:path";
+import { EPub } from "epub2";
+import { parseHTML } from "linkedom";
+import type { Ingestor, IngestorOptions, IngestorResult, IngestedChunk } from "./ingestor.js";
+
+export class EpubIngestor implements Ingestor {
+  readonly id = "epub";
+  readonly label = "EPUB ebook";
+  readonly extensions = [".epub"] as const;
+  readonly mimeTypes = ["application/epub+zip"] as const;
+
+  async isAvailable() { return true; }
+
+  async parse(filePath: string, opts: IngestorOptions = {}): Promise<IngestorResult> {
+    const epub = await EPub.createAsync(filePath);
+    const maxChars = opts.maxChars ?? 2000;
+    const chunks: IngestedChunk[] = [];
+    let chunkIndex = 0;
+
+    for (const chapter of epub.flow) {
+      if (opts.signal?.aborted) break;
+      const html = await epub.getChapterAsync(chapter.id);
+      const { document } = parseHTML(`<!DOCTYPE html><html><body>${html}</body></html>`);
+      const sectionTitle = chapter.title ?? `Chapter ${chunkIndex + 1}`;
+
+      let buf: string[] = [];
+      let bufLen = 0;
+      const flush = () => {
+        if (buf.length === 0) return;
+        chunks.push({
+          chunkIndex: chunkIndex++,
+          text: buf.join("\n\n"),
+          section: sectionTitle,
+        });
+        buf = [];
+        bufLen = 0;
+      };
+
+      for (const para of document.body?.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li") ?? []) {
+        const text = (para.textContent ?? "").trim();
+        if (!text) continue;
+        if (bufLen + text.length > maxChars && buf.length > 0) flush();
+        buf.push(text);
+        bufLen += text.length;
+      }
+      flush();
+    }
 
     return {
-        "schema_version": "1",
-        "document": {
-            "title": _meta.get("title") if isinstance(_meta, dict) else None,
-            "page_count": _meta.get("page_count") if isinstance(_meta, dict) else None,
-            "chunks": [
-                {
-                    "chunk_index": idx,
-                    "text": chunk["text"],
-                    "page": chunk.get("page"),
-                    "section": chunk.get("section"),
-                    "block_type": chunk.get("block_type", "Text"),
-                }
-                for idx, chunk in enumerate(chunks)
-            ],
-        },
-    }
-
-
-def chunk_markdown(markdown: str, *, max_chars: int) -> list[dict[str, Any]]:
-    """Split markdown by paragraph, accumulate up to max_chars per chunk.
-
-    Tracks the current section heading by parsing `# `, `## `, `### ` lines.
-    Page numbers are not reliably preserved by Marker's markdown output (they're
-    in the JSON tree which would require a parallel parse); Phase 5 ships without
-    page-level locators for chunks, only section. A future iteration can switch
-    to Marker's JSON output to preserve page indices per chunk.
-    """
-    chunks: list[dict[str, Any]] = []
-    current_section: str | None = None
-    buffer: list[str] = []
-    buffer_len = 0
-    for paragraph in markdown.split("\n\n"):
-        stripped = paragraph.strip()
-        if not stripped:
-            continue
-        if stripped.startswith("#"):
-            # Flush before a new section header
-            if buffer:
-                chunks.append({"text": "\n\n".join(buffer), "section": current_section})
-                buffer, buffer_len = [], 0
-            # Update current section
-            heading = stripped.lstrip("#").strip()
-            current_section = heading
-            chunks.append({"text": stripped, "section": current_section, "block_type": "SectionHeader"})
-            continue
-        if buffer_len + len(stripped) > max_chars and buffer:
-            chunks.append({"text": "\n\n".join(buffer), "section": current_section})
-            buffer, buffer_len = [], 0
-        buffer.append(stripped)
-        buffer_len += len(stripped)
-    if buffer:
-        chunks.append({"text": "\n\n".join(buffer), "section": current_section})
-    return chunks
+      title: epub.metadata.title ?? basename(filePath),
+      pageCount: epub.flow.length,
+      chunks,
+      ingestorId: this.id,
+    };
+  }
+}
 ```
 
-**`python/praxis-cli/src/praxis_cli/__init__.py`**:
+#### 5f. `JsPdfIngestor` (default for PDFs)
 
-```python
-__version__ = "0.1.0"
-```
+**File**: `packages/tools/src/runtime/ingestion/js-pdf-ingestor.ts`
 
-**`python/praxis-cli/tests/test_ingest.py`**:
-
-```python
-"""Smoke tests for the chunker (Marker integration is too heavy for CI)."""
-from praxis_cli.ingest import chunk_markdown
-
-
-def test_chunk_markdown_groups_paragraphs():
-    md = "# Chapter 1\n\npara one.\n\npara two.\n\n## Section 1.1\n\npara three."
-    chunks = chunk_markdown(md, max_chars=2000)
-    sections = [c.get("section") for c in chunks]
-    assert "Chapter 1" in sections
-    assert "Section 1.1" in sections
-
-
-def test_chunk_markdown_splits_at_max_chars():
-    md = "# T\n\n" + ("\n\n".join(["x" * 100] * 50))
-    chunks = chunk_markdown(md, max_chars=500)
-    assert len(chunks) > 2
-```
-
-**Implementation Notes**:
-- The CLI's stdout is the *result*; stderr is *progress + Marker logs*. Phase 5 doesn't try to parse stderr for progress; the Node side just shows "parsing..." until the subprocess exits.
-- `text_from_rendered` returns markdown + metadata + images. We use markdown for chunking; images are dropped in Phase 5 (no figure handling yet). The Marker JSON tree route is a future refinement for per-page locators.
-- Lazy import of `marker.*` keeps `--help` fast.
-- The `chunk_markdown` function is intentionally simple: paragraph boundaries + section tracking + soft size limit. More sophisticated chunking (semantic boundaries via embeddings) is a future polish.
-- The `tests/test_ingest.py` covers only the chunker — Marker integration tests would need real model downloads and PyTorch.
-
-**Acceptance Criteria**:
-- [ ] `uv tool install -e python/praxis-cli` (from repo root) installs the CLI.
-- [ ] `praxis-cli --version` prints `0.1.0`.
-- [ ] `praxis-cli ingest --help` shows the `ingest` command.
-- [ ] `praxis-cli ingest /path/to/sample.pdf` writes a single JSON line to stdout matching the schema; first stderr line is whatever Marker logs.
-- [ ] On malformed input, exit code is non-zero and stderr contains a JSON error object.
-- [ ] `pytest python/praxis-cli/tests/` passes (chunker smoke tests).
-
----
-
-### Unit 3: `LocalEmbeddingService`
-
-**Files**:
-- `packages/tools/src/runtime/embeddings.ts` (new)
-- `packages/tools/src/runtime/__tests__/embeddings.test.ts` (new — fast unit + slow integration)
-- `packages/tools/package.json` (add `@huggingface/transformers ^4`)
-- `packages/tools/src/runtime/index.ts` (re-export)
+Uses `pdfjs-dist` to extract text from a PDF's text layer. Works well for modern PDFs with selectable text. Loses equations, struggles with multi-column.
 
 ```typescript
-import type { EmbeddingService } from "@praxis/core/types";
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
+import type { Ingestor, IngestorOptions, IngestorResult, IngestedChunk } from "./ingestor.js";
 
-export interface LocalEmbeddingServiceOptions {
-  /** Override the default model (Xenova/bge-small-en-v1.5). */
-  modelId?: string;
-  /**
-   * Override the model dimension if changing modelId. Default 384 for bge-small.
-   * Must match the vec0 virtual table dimension or upserts will fail.
-   */
-  dimension?: number;
-}
+export class JsPdfIngestor implements Ingestor {
+  readonly id = "js-pdf";
+  readonly label = "PDF (text layer)";
+  readonly extensions = [".pdf"] as const;
+  readonly mimeTypes = ["application/pdf"] as const;
 
-const DEFAULT_MODEL = "Xenova/bge-small-en-v1.5";
-const DEFAULT_DIMENSION = 384;
+  async isAvailable() { return true; }
 
-/**
- * Local embedding inference via @huggingface/transformers v4. Singleton
- * lazy-loaded — first call triggers model download (~33MB for bge-small).
- * Subsequent calls reuse the in-memory pipeline. Designed to run as a
- * service singleton in the Electron main process.
- */
-export class LocalEmbeddingService implements EmbeddingService {
-  readonly modelId: string;
-  readonly dimension: number;
-  private pipelinePromise: Promise<unknown> | null = null;
+  async parse(filePath: string, opts: IngestorOptions = {}): Promise<IngestorResult> {
+    const data = await readFile(filePath);
+    // Lazy import to avoid loading pdfjs-dist at module init in tests.
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data) });
+    const pdf = await loadingTask.promise;
+    const maxChars = opts.maxChars ?? 2000;
+    const chunks: IngestedChunk[] = [];
+    let chunkIndex = 0;
 
-  constructor(opts: LocalEmbeddingServiceOptions = {}) {
-    this.modelId = opts.modelId ?? DEFAULT_MODEL;
-    this.dimension = opts.dimension ?? DEFAULT_DIMENSION;
-  }
-
-  /** Eagerly load. Call from desktop's app.whenReady so first ingestion is snappy. */
-  async preload(): Promise<void> {
-    await this.getPipeline();
-  }
-
-  async embed(text: string): Promise<number[]> {
-    const [vec] = await this.embedBatch([text]);
-    if (!vec) throw new Error("LocalEmbeddingService.embed returned no vectors");
-    return vec;
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    if (texts.length === 0) return [];
-    const pipeline = (await this.getPipeline()) as (
-      input: string | string[],
-      opts: { pooling: "mean"; normalize: true },
-    ) => Promise<{ data: Float32Array; dims: number[] }>;
-    const out = await pipeline(texts, { pooling: "mean", normalize: true });
-    // out.data is a Float32Array of shape [batch, dim]; reshape per row.
-    const result: number[][] = [];
-    for (let i = 0; i < texts.length; i++) {
-      const start = i * this.dimension;
-      const slice = out.data.slice(start, start + this.dimension);
-      result.push(Array.from(slice));
-    }
-    return result;
-  }
-
-  private async getPipeline(): Promise<unknown> {
-    if (!this.pipelinePromise) {
-      this.pipelinePromise = (async () => {
-        const tx = await import("@huggingface/transformers");
-        return tx.pipeline("feature-extraction", this.modelId);
-      })();
-    }
-    return this.pipelinePromise;
-  }
-}
-```
-
-**Implementation Notes**:
-- Mirrors `PyodideHost`'s lazy-load + preload pattern exactly. See `pyodide-host.ts` for prior art.
-- The transformers.js v4 pipeline returns `{ data: Float32Array, dims: number[] }`. We reshape per-row using the known `dimension`.
-- `pooling: "mean", normalize: true` — standard for BGE models, matches sqlite-vec's cosine distance.
-- `embedBatch` takes the raw `texts.length` count and assumes the runtime will batch internally; HF transformers handles batches via dynamic padding.
-- The `unknown` cast on the pipeline avoids dragging the full HF transformers type tree into the public surface.
-
-**Acceptance Criteria**:
-- [ ] `new LocalEmbeddingService()` doesn't load — `pipelinePromise` is null.
-- [ ] `service.embed("hello")` returns a `number[]` of length 384 (slow, gated).
-- [ ] `service.embedBatch(["a", "b", "c"])` returns 3 vectors of length 384 each (slow, gated).
-- [ ] Concurrent `service.embed()` calls share one load promise (no duplicate downloads).
-- [ ] `service.preload()` returns a Promise that resolves when ready.
-- [ ] Unit tests with `vi.mock("@huggingface/transformers")` cover lazy-load, batching, dimension reshape (fast lane).
-
----
-
-### Unit 4: `SqliteVecStore` + `initVectorStore`
-
-**Files**:
-- `packages/tools/src/runtime/sqlite-vec-store.ts` (new)
-- `packages/core/src/db/vector-init.ts` (new — `initVectorStore` helper)
-- `packages/core/src/db/index.ts` (modified — call vector init on openDb)
-- `packages/tools/package.json` (add `sqlite-vec ^0.1.9`)
-- `packages/tools/src/runtime/__tests__/sqlite-vec-store.test.ts` (new)
-
-**`packages/core/src/db/vector-init.ts`** (new):
-
-```typescript
-import type Database from "better-sqlite3";
-
-const EMBEDDING_DIMENSION = 384;
-
-/**
- * Load the sqlite-vec extension and create the `document_embeddings` virtual
- * table if it doesn't exist. Idempotent. Called by openDb after Drizzle
- * migrations have run.
- *
- * If sqlite-vec is unavailable (e.g., test environment without the extension),
- * this throws a clear error so callers can decide how to handle it.
- */
-export function initVectorStore(sqlite: Database.Database, dimension: number = EMBEDDING_DIMENSION): void {
-  loadSqliteVec(sqlite);
-  sqlite.exec(`
-    CREATE VIRTUAL TABLE IF NOT EXISTS document_embeddings USING vec0(
-      chunk_id TEXT PRIMARY KEY,
-      document_id TEXT,
-      embedding FLOAT[${dimension}],
-      +chunk_text TEXT,
-      +page INTEGER,
-      +section TEXT
-    );
-  `);
-}
-
-function loadSqliteVec(sqlite: Database.Database): void {
-  // Dynamic require to keep sqlite-vec out of the type-checker's hot path
-  // and avoid eager native binary load in tests that mock the extension.
-  // biome-ignore lint/suspicious/noExplicitAny: sqlite-vec is loaded dynamically
-  const sqliteVec = require("sqlite-vec") as { load: (db: Database.Database) => void };
-  sqliteVec.load(sqlite);
-}
-```
-
-**`packages/core/src/db/index.ts`** (modified — add optional vector init):
-
-```typescript
-export interface OpenDbOptions {
-  path?: string;
-  readonly?: boolean;
-  /** Initialize sqlite-vec + document_embeddings virtual table. Default: true. */
-  initVectors?: boolean;
-}
-
-export function openDb(opts: OpenDbOptions = {}): { db: PraxisDb; path: string } {
-  if (cached && !opts.path) return { db: cached.db, path: cached.path };
-
-  const path = opts.path ?? resolveDbPath();
-  mkdirSync(dirname(path), { recursive: true });
-
-  const sqlite = new Database(path, { readonly: opts.readonly ?? false });
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-
-  if (opts.initVectors !== false && !opts.readonly) {
-    initVectorStore(sqlite);
-  }
-
-  const db = drizzle(sqlite, { schema });
-  if (!opts.path) cached = { sqlite, db, path };
-  return { db, path };
-}
-```
-
-**`packages/tools/src/runtime/sqlite-vec-store.ts`** (new):
-
-```typescript
-import type Database from "better-sqlite3";
-import type { VectorSearchInput, VectorSearchResult, VectorStore, VectorUpsertInput } from "@praxis/core/types";
-
-/**
- * sqlite-vec backed VectorStore. Holds a reference to the underlying
- * better-sqlite3 instance for raw SQL access (Drizzle doesn't model virtual
- * tables). Constructed by buildServices alongside SqliteVecStore.
- */
-export class SqliteVecStore implements VectorStore {
-  private readonly upsertStmt: Database.Statement;
-  private readonly deleteByDocStmt: Database.Statement;
-
-  constructor(private readonly sqlite: Database.Database) {
-    // Prepared statements at construction time so they persist for the process lifetime.
-    this.upsertStmt = sqlite.prepare(`
-      INSERT INTO document_embeddings (chunk_id, document_id, embedding, chunk_text, page, section)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON CONFLICT(chunk_id) DO UPDATE SET
-        document_id = excluded.document_id,
-        embedding = excluded.embedding,
-        chunk_text = excluded.chunk_text,
-        page = excluded.page,
-        section = excluded.section;
-    `);
-    this.deleteByDocStmt = sqlite.prepare(
-      "DELETE FROM document_embeddings WHERE document_id = ?",
-    );
-  }
-
-  async upsert(input: VectorUpsertInput): Promise<void> {
-    this.upsertStmt.run(
-      input.chunkId,
-      input.documentId,
-      vectorToBlob(input.embedding),
-      input.chunkText,
-      input.page ?? null,
-      input.section ?? null,
-    );
-  }
-
-  async upsertBatch(items: ReadonlyArray<VectorUpsertInput>): Promise<void> {
-    const txn = this.sqlite.transaction((rows: ReadonlyArray<VectorUpsertInput>) => {
-      for (const row of rows) {
-        this.upsertStmt.run(
-          row.chunkId,
-          row.documentId,
-          vectorToBlob(row.embedding),
-          row.chunkText,
-          row.page ?? null,
-          row.section ?? null,
-        );
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      if (opts.signal?.aborted) break;
+      opts.onPageProgress?.(pageNum, pdf.numPages);
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((it) => ("str" in it ? it.str : "")).join(" ");
+      // Naive chunk-per-page (good enough for v0.5; semantic chunking is future polish).
+      let buf: string[] = [];
+      let bufLen = 0;
+      const flush = () => {
+        if (buf.length === 0) return;
+        chunks.push({
+          chunkIndex: chunkIndex++,
+          text: buf.join(" "),
+          page: pageNum,
+        });
+        buf = [];
+        bufLen = 0;
+      };
+      for (const para of pageText.split(/\n{2,}|(?<=\.)\s+(?=[A-Z])/)) {
+        const trimmed = para.trim();
+        if (!trimmed) continue;
+        if (bufLen + trimmed.length > maxChars && buf.length > 0) flush();
+        buf.push(trimmed);
+        bufLen += trimmed.length;
       }
-    });
-    txn(items);
-  }
+      flush();
+    }
 
-  async search(input: VectorSearchInput): Promise<VectorSearchResult[]> {
-    // Build the WHERE clause dynamically for optional documentIds filter.
-    // We use SQL placeholders for safety; metadata filtering happens server-side
-    // in the virtual table (sqlite-vec supports `=` and `IN` on metadata columns).
-    const docIds = input.documentIds ?? [];
-    const hasFilter = docIds.length > 0;
-    const sql = `
-      SELECT chunk_id, document_id, chunk_text, page, section, distance
-      FROM document_embeddings
-      WHERE embedding MATCH ?
-        AND k = ?
-        ${hasFilter ? `AND document_id IN (${docIds.map(() => "?").join(",")})` : ""}
-      ORDER BY distance;
-    `;
-    const stmt = this.sqlite.prepare(sql);
-    const params: (Buffer | number | string)[] = [
-      vectorToBlob(input.embedding),
-      input.topK,
-      ...docIds,
-    ];
-    const rows = stmt.all(...params) as Array<{
-      chunk_id: string;
-      document_id: string;
-      chunk_text: string;
-      page: number | null;
-      section: string | null;
-      distance: number;
-    }>;
-    return rows.map((r) => ({
-      chunkId: r.chunk_id,
-      documentId: r.document_id,
-      chunkText: r.chunk_text,
-      ...(r.page !== null && { page: r.page }),
-      ...(r.section !== null && { section: r.section }),
-      distance: r.distance,
-    }));
-  }
-
-  async deleteByDocumentId(documentId: string): Promise<void> {
-    this.deleteByDocStmt.run(documentId);
+    // Try to extract title from PDF metadata
+    const meta = await pdf.getMetadata().catch(() => null);
+    const metaInfo = meta?.info as { Title?: string } | undefined;
+    const title = metaInfo?.Title ?? basename(filePath);
+    return { title, pageCount: pdf.numPages, chunks, ingestorId: this.id };
   }
 }
+```
 
-/** Float32 encoded as little-endian bytes — sqlite-vec's wire format for FLOAT[N]. */
-function vectorToBlob(vector: number[]): Buffer {
-  const buf = Buffer.alloc(vector.length * 4);
-  for (let i = 0; i < vector.length; i++) {
-    buf.writeFloatLE(vector[i] ?? 0, i * 4);
+**Shared chunker** at `packages/tools/src/runtime/ingestion/chunker.ts`:
+
+```typescript
+import type { IngestedChunk } from "./ingestor.js";
+
+export interface ChunkParagraphsOpts {
+  maxChars: number;
+}
+
+/**
+ * Split text into chunks at paragraph boundaries, respecting maxChars.
+ * Used by the simple ingestors (PlainText, HTML body text).
+ */
+export function chunkParagraphs(text: string, opts: ChunkParagraphsOpts): IngestedChunk[] {
+  const out: IngestedChunk[] = [];
+  let buf: string[] = [];
+  let bufLen = 0;
+  let chunkIndex = 0;
+
+  const flush = () => {
+    if (buf.length === 0) return;
+    out.push({ chunkIndex: chunkIndex++, text: buf.join("\n\n") });
+    buf = [];
+    bufLen = 0;
+  };
+
+  for (const para of text.split(/\n{2,}/)) {
+    const stripped = para.trim();
+    if (!stripped) continue;
+    if (bufLen + stripped.length > opts.maxChars && buf.length > 0) flush();
+    buf.push(stripped);
+    bufLen += stripped.length;
   }
-  return buf;
+  flush();
+  return out;
+}
+```
+
+**`packages/tools/package.json`** dependency additions:
+
+```json
+{
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "linkedom": "^0.18.0",
+    "mammoth": "^1.8.0",
+    "epub2": "^3.0.2",
+    "pdfjs-dist": "^4.8.0",
+    "@huggingface/transformers": "^4.0.0",
+    "sqlite-vec": "^0.1.9",
+    // ...existing
+  }
+}
+```
+
+**Acceptance Criteria**:
+- [ ] Each ingestor loads its file format and produces chunks with the right `ingestorId`.
+- [ ] `MarkdownIngestor` extracts the first H1 as title; preserves section per heading.
+- [ ] `HtmlIngestor` strips nav/sidebar via Readability; preserves the article body.
+- [ ] `DocxIngestor` preserves heading hierarchy as sections.
+- [ ] `EpubIngestor` produces one section per chapter.
+- [ ] `JsPdfIngestor` produces chunks with `page` set; reports total pages; calls `onPageProgress`.
+- [ ] All ingestors honor `signal?.aborted` to stop mid-parse.
+- [ ] Tests use small fixture files in `tests/fixtures/{txt,md,html,docx,epub,pdf}/`.
+
+---
+
+### Unit 6: `VisionPdfIngestor`
+
+**File**: `packages/tools/src/runtime/ingestion/vision-pdf-ingestor.ts`
+**File**: `packages/tools/src/runtime/ingestion/__tests__/vision-pdf-ingestor.test.ts`
+
+Renders each PDF page to a PNG via `pdfjs-dist` + `canvas`, calls `engine.vision.describe` per page, parses the response into chunks.
+
+```typescript
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
+import type { Ingestor, IngestorOptions, IngestorResult, IngestedChunk } from "./ingestor.js";
+import type { VisionCapability } from "@praxis/core/types";
+
+export interface VisionPdfIngestorOptions {
+  /** Vision capability from the active engine. Required — undefined disables this ingestor. */
+  vision: VisionCapability | undefined;
+  /** Render scale; higher = larger images = better OCR quality + cost. Default 2.0. */
+  renderScale?: number;
+}
+
+const VISION_PROMPT = `Extract all text from this page of a document. Format the output as Markdown:
+- Use # / ## / ### for section headings (preserve the hierarchy from the page)
+- Use $$ ... $$ for display math equations (LaTeX)
+- Use $ ... $ for inline math
+- Preserve lists, tables, and paragraph structure
+- Skip page numbers, headers, and footers (they're noise for retrieval)
+- If the page is blank or contains only images with no extractable text, output the literal string "[BLANK PAGE]"
+
+Output ONLY the Markdown content. No preamble. No explanation.`;
+
+export class VisionPdfIngestor implements Ingestor {
+  readonly id = "vision-pdf";
+  readonly label = "PDF (vision OCR)";
+  readonly extensions = [".pdf"] as const;
+  readonly mimeTypes = ["application/pdf"] as const;
+  private readonly vision: VisionCapability | undefined;
+  private readonly renderScale: number;
+
+  constructor(opts: VisionPdfIngestorOptions) {
+    this.vision = opts.vision;
+    this.renderScale = opts.renderScale ?? 2.0;
+  }
+
+  async isAvailable(): Promise<boolean> {
+    return this.vision !== undefined;
+  }
+
+  async parse(filePath: string, opts: IngestorOptions = {}): Promise<IngestorResult> {
+    if (!this.vision) {
+      throw new Error("VisionPdfIngestor: no vision capability available on the active engine");
+    }
+    const data = await readFile(filePath);
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const { createCanvas } = await import("canvas");
+
+    const pdf = await pdfjs.getDocument({ data: new Uint8Array(data) }).promise;
+    const maxChars = opts.maxChars ?? 2000;
+    const chunks: IngestedChunk[] = [];
+    let chunkIndex = 0;
+    let currentSection: string | undefined;
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      if (opts.signal?.aborted) break;
+      opts.onPageProgress?.(pageNum, pdf.numPages);
+
+      // Render to PNG
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: this.renderScale });
+      const canvas = createCanvas(viewport.width, viewport.height);
+      const ctx = canvas.getContext("2d") as unknown as Parameters<typeof page.render>[0]["canvasContext"];
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      const pngBuffer = canvas.toBuffer("image/png");
+      const pngBase64 = pngBuffer.toString("base64");
+
+      // Vision call — fresh one-shot SDK session per page (does NOT touch the active tutoring session)
+      const result = await this.vision.describe({
+        prompt: VISION_PROMPT,
+        images: [{ data: pngBase64, mimeType: "image/png" }],
+        maxTokens: 4000,
+      });
+
+      const pageText = result.text.trim();
+      if (pageText === "[BLANK PAGE]" || pageText === "") continue;
+
+      // Parse the page's markdown into chunks (similar to MarkdownIngestor)
+      let buf: string[] = [];
+      let bufLen = 0;
+      const flush = () => {
+        if (buf.length === 0) return;
+        chunks.push({
+          chunkIndex: chunkIndex++,
+          text: buf.join("\n\n"),
+          page: pageNum,
+          ...(currentSection !== undefined && { section: currentSection }),
+        });
+        buf = [];
+        bufLen = 0;
+      };
+      for (const para of pageText.split("\n\n")) {
+        const stripped = para.trim();
+        if (!stripped) continue;
+        const headingMatch = /^(#{1,6})\s+(.+)$/.exec(stripped);
+        if (headingMatch) {
+          flush();
+          currentSection = headingMatch[2]!.trim();
+          chunks.push({
+            chunkIndex: chunkIndex++,
+            text: stripped,
+            section: currentSection,
+            page: pageNum,
+            blockType: "SectionHeader",
+          });
+          continue;
+        }
+        if (bufLen + stripped.length > maxChars && buf.length > 0) flush();
+        buf.push(stripped);
+        bufLen += stripped.length;
+      }
+      flush();
+    }
+
+    return {
+      title: basename(filePath),
+      pageCount: pdf.numPages,
+      chunks,
+      ingestorId: this.id,
+    };
+  }
 }
 ```
 
 **Implementation Notes**:
-- Prepared statements at construction time are reused across calls — important for upsertBatch which can run thousands of inserts during a textbook ingestion.
-- `vectorToBlob` converts `number[]` to little-endian Float32 bytes — sqlite-vec's wire format. Verified against sqlite-vec docs.
-- The `WHERE embedding MATCH ?` syntax is sqlite-vec's KNN search; `k = ?` sets `topK`. Metadata filters (`document_id IN (...)`) live in the same WHERE clause.
-- `upsertBatch` wraps in a `transaction` for ~10× throughput vs individual inserts.
-- The store does NOT load the extension itself — that's `initVectorStore`'s job, called once at openDb time. The store assumes the table exists.
+- **Vision call per page is a one-shot.** The `engine.vision.describe(...)` call internally opens a fresh SDK session (Direct: fresh `generateText`; Claude Code: fresh `query`; Codex: fresh `startThread`). The active tutoring `EngineSession` is unaffected.
+- **`canvas` npm package** provides a Node-side canvas implementation that pdfjs-dist can render into. It's a native dep (~10MB), uses cairo/pango. Cross-platform but adds a build dep. Alternative: `@napi-rs/canvas` (newer, sometimes faster). Pick whichever has better Electron rebuild story; both work.
+- **Cost awareness**: a 300-page textbook = 300 vision calls. At Claude vision pricing, that's ~$3-15 per textbook. UI surfaces this as "Vision parsing may incur engine usage costs." Document the cost prominently.
+- **Cancellation**: between pages, check `signal?.aborted` and break.
+- **Throttling**: not implemented in v0.5 — for very large PDFs this can hammer the API. Future polish: configurable concurrency / rate limit.
 
 **Acceptance Criteria**:
-- [ ] `initVectorStore(sqlite)` creates the `document_embeddings` virtual table; idempotent (running twice doesn't error).
-- [ ] After `openDb()`, the `document_embeddings` table exists (verify via `SELECT name FROM sqlite_master WHERE type='table'`).
-- [ ] `store.upsert(input)` inserts a row; immediate `store.search(input.embedding, 1)` returns it.
-- [ ] `store.upsertBatch([...100 items])` runs in a single transaction (fast: <100ms for 100 items).
-- [ ] `store.search` with `documentIds: ["doc1"]` returns only chunks from doc1.
-- [ ] `store.deleteByDocumentId("doc1")` removes all doc1 chunks; subsequent search returns nothing for doc1.
-- [ ] Tests use real sqlite-vec (it's prebuilt, fast, no rebuild needed); mark `.skipIf` only if the extension fails to load.
+- [ ] `isAvailable()` returns false when constructed with `vision: undefined`.
+- [ ] `parse()` throws if `vision` is undefined when invoked (defensive).
+- [ ] For a 3-page mock PDF: calls `vision.describe` exactly 3 times.
+- [ ] Each vision call gets a different page image (mock asserts unique image data).
+- [ ] Pages returning "[BLANK PAGE]" are skipped.
+- [ ] Aborts mid-page-loop on `signal.aborted`.
+- [ ] `onPageProgress` invoked for each page processed.
 
 ---
 
-### Unit 5: `IngestionService`
+### Unit 7: `LocalEmbeddingService` and `SqliteVecStore`
+
+These two units are unchanged from v1 of the design — see the v1 design doc at git rev `a11cbba` for the full text. The interfaces are stable; no architectural change. Brief restatement:
+
+- **`LocalEmbeddingService`** in `packages/tools/src/runtime/embeddings.ts` — wraps `@huggingface/transformers` v4 with `Xenova/bge-small-en-v1.5`. Lazy-loaded singleton with `preload()`. Returns 384-dim vectors.
+
+- **`SqliteVecStore`** in `packages/tools/src/runtime/sqlite-vec-store.ts` — wraps better-sqlite3's prepared statements against the `document_embeddings` virtual table. Methods: `upsert`, `upsertBatch` (transaction), `search` (cosine + optional document_id filter), `deleteByDocumentId`.
+
+- **`initVectorStore`** in `packages/core/src/db/vector-init.ts` — loads sqlite-vec extension and creates the virtual table via `CREATE VIRTUAL TABLE IF NOT EXISTS document_embeddings USING vec0(...)`. Called from `openDb` after migrations.
+
+- **`openDb` extension** — accepts `initVectors?: boolean` (default true); skipped when `readonly: true`.
+
+---
+
+### Unit 8: `IngestionService` (thin orchestrator)
 
 **Files**:
 - `packages/core/src/ingestion/service.ts` (new)
-- `packages/core/src/ingestion/sidecar.ts` (new — subprocess management)
-- `packages/core/src/ingestion/index.ts` (new — exports)
-- `packages/core/package.json` (add `./ingestion` export)
-- `packages/core/src/__tests__/ingestion-service.test.ts` (new)
-
-**`packages/core/src/ingestion/sidecar.ts`** (new):
-
-```typescript
-import { spawn } from "node:child_process";
-import { promisify } from "node:util";
-import { exec } from "node:child_process";
-
-const execAsync = promisify(exec);
-
-export interface SidecarParseResult {
-  schema_version: "1";
-  document: {
-    title: string | null;
-    page_count: number | null;
-    chunks: Array<{
-      chunk_index: number;
-      text: string;
-      page: number | null;
-      section: string | null;
-      block_type: string;
-    }>;
-  };
-}
-
-export interface SidecarErrorResult {
-  schema_version: "1";
-  error: { code: string; message: string; traceback?: string };
-}
-
-/**
- * Spawn the praxis-cli subprocess to parse a file. Resolves with the parsed
- * JSON. Throws if the subprocess exits non-zero or output is malformed.
- *
- * NOTE: this is a long-running call (Marker may take 1-5 minutes for a
- * textbook). Caller should run it as part of an async iterable that
- * surfaces "parsing..." progress UI.
- */
-export async function runSidecarIngest(filePath: string, opts: { signal?: AbortSignal } = {}): Promise<SidecarParseResult> {
-  const child = spawn("praxis-cli", ["ingest", filePath], {
-    stdio: ["ignore", "pipe", "pipe"],
-    ...(opts.signal !== undefined && { signal: opts.signal }),
-  });
-
-  let stdoutBuf = "";
-  let stderrBuf = "";
-  child.stdout?.on("data", (chunk: Buffer) => { stdoutBuf += chunk.toString("utf-8"); });
-  child.stderr?.on("data", (chunk: Buffer) => { stderrBuf += chunk.toString("utf-8"); });
-
-  const exitCode: number = await new Promise((resolve, reject) => {
-    child.on("error", reject);
-    child.on("exit", (code) => resolve(code ?? 1));
-  });
-
-  if (exitCode !== 0) {
-    // Try to parse the structured error from stderr; fall back to raw stderr text.
-    const lastLine = stderrBuf.trim().split("\n").pop() ?? "";
-    let parsed: SidecarErrorResult | null = null;
-    try {
-      const candidate = JSON.parse(lastLine) as SidecarErrorResult;
-      if (candidate.schema_version === "1" && candidate.error) parsed = candidate;
-    } catch {
-      /* ignore */
-    }
-    if (parsed) {
-      throw new SidecarError(parsed.error.code, parsed.error.message, parsed.error.traceback);
-    }
-    throw new SidecarError("ingest.exit_nonzero", `praxis-cli exited with code ${exitCode}`, stderrBuf);
-  }
-
-  const lastStdoutLine = stdoutBuf.trim().split("\n").pop() ?? "";
-  try {
-    return JSON.parse(lastStdoutLine) as SidecarParseResult;
-  } catch (cause) {
-    throw new SidecarError(
-      "ingest.invalid_output",
-      `praxis-cli produced unparseable output: ${lastStdoutLine.slice(0, 200)}`,
-      cause instanceof Error ? cause.message : String(cause),
-    );
-  }
-}
-
-export class SidecarError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly detail?: string,
-  ) {
-    super(message);
-    this.name = "SidecarError";
-  }
-}
-
-/** Check whether `praxis-cli` is on PATH. Returns false on any error. */
-export async function isPraxisCliAvailable(): Promise<boolean> {
-  try {
-    await execAsync(process.platform === "win32" ? "where praxis-cli" : "which praxis-cli");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** Install hint shown in UI when isPraxisCliAvailable() returns false. */
-export const PRAXIS_CLI_INSTALL_HINT =
-  "Install: `uv tool install praxis-cli` (or `pipx install praxis-cli`). Requires Python 3.10+.";
-```
-
-**`packages/core/src/ingestion/service.ts`** (new):
+- `packages/core/src/ingestion/index.ts` (new)
+- `packages/core/src/__tests__/ingestion-service.test.ts`
 
 ```typescript
 import { v7 as uuidv7 } from "uuid";
 import { documentChunks, documents } from "@praxis/artifacts/schema";
 import type { PraxisDb } from "../db/index.js";
 import type { EmbeddingService, IngestionEvent, IngestionRequest, Logger, VectorStore } from "../types/index.js";
-import { runSidecarIngest, SidecarError } from "./sidecar.js";
+import type { Ingestor, IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 
 export interface IngestionServiceDeps {
   db: PraxisDb;
   log: Logger;
   vectorStore: VectorStore;
   embeddings: EmbeddingService;
+  ingestorRegistry: IngestorRegistry;
 }
 
 const EMBED_BATCH_SIZE = 32;
@@ -935,1148 +1399,252 @@ export class IngestionService {
     const documentId = uuidv7();
     yield { type: "start", documentId, filename: req.filename };
 
-    // Phase 1: parse via subprocess (slow — show indeterminate progress).
-    yield { type: "parsing", message: `Parsing ${req.filename}...` };
-    let parsed: Awaited<ReturnType<typeof runSidecarIngest>>;
-    try {
-      parsed = await runSidecarIngest(req.filePath, { ...(signal !== undefined && { signal }) });
-    } catch (cause) {
-      const code = cause instanceof SidecarError ? cause.code : "ingest.subprocess_failed";
-      const message = cause instanceof Error ? cause.message : String(cause);
-      yield { type: "error", error: { code, message, recoverable: false } };
+    // Pick an ingestor
+    const ingestor = await this.deps.ingestorRegistry.select({
+      mimeType: req.mimeType,
+      filename: req.filename,
+      ...(req.preferIngestorId !== undefined && { preferIngestorId: req.preferIngestorId }),
+    });
+    if (!ingestor) {
+      yield { type: "error", error: { code: "ingest.no_ingestor", message: `No ingestor for ${req.mimeType} / ${req.filename}`, recoverable: false } };
       return;
     }
+    yield { type: "ingestor_selected", ingestorId: ingestor.id, ingestorLabel: ingestor.label };
 
-    const chunks = parsed.document.chunks;
-    yield { type: "parsed", chunkCount: chunks.length };
+    // Parse
+    yield { type: "parsing", message: `Parsing with ${ingestor.label}...` };
+    let result: Awaited<ReturnType<Ingestor["parse"]>>;
+    try {
+      result = await ingestor.parse(req.filePath, {
+        ...(signal !== undefined && { signal }),
+        onPageProgress: (page, totalPages) => {
+          // For vision ingestor — page-level progress events. The async iterable
+          // can't yield from a callback, so we record into a queue and flush
+          // between batches (simplified: skip for now and rely on parsing message).
+          this.deps.log.debug("vision page progress", { page, totalPages });
+        },
+      });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      yield { type: "error", error: { code: "ingest.parse_failed", message, recoverable: false } };
+      return;
+    }
+    yield { type: "parsed", chunkCount: result.chunks.length };
 
-    // Phase 2: persist document + chunks; embed in batches.
+    // Persist document + chunks
     const ingestedAt = new Date();
-    this.deps.db.insert(documents)
-      .values({
-        id: documentId,
-        studentId: req.studentId,
-        filename: req.filename,
-        mimeType: req.mimeType,
-        ingestedAt,
-        manifestJson: { title: parsed.document.title, pageCount: parsed.document.page_count },
-        chunkCount: chunks.length,
-      })
-      .run();
+    this.deps.db.insert(documents).values({
+      id: documentId,
+      studentId: req.studentId,
+      filename: req.filename,
+      mimeType: req.mimeType,
+      ingestedAt,
+      manifestJson: { title: result.title, pageCount: result.pageCount, ingestorId: result.ingestorId },
+      chunkCount: result.chunks.length,
+    }).run();
 
-    const chunkRows = chunks.map((c) => ({
+    const chunkRows = result.chunks.map((c) => ({
       id: uuidv7(),
       documentId,
-      chunkIndex: c.chunk_index,
+      chunkIndex: c.chunkIndex,
       text: c.text,
-      locatorJson: { page: c.page, section: c.section, blockType: c.block_type },
+      locatorJson: { page: c.page ?? null, section: c.section ?? null, blockType: c.blockType ?? null },
     }));
-
-    // Insert chunks in a single transaction
     if (chunkRows.length > 0) {
       this.deps.db.insert(documentChunks).values(chunkRows).run();
     }
 
-    // Embed in batches; stream progress
+    // Embed in batches
     let processed = 0;
-    for (let start = 0; start < chunks.length; start += EMBED_BATCH_SIZE) {
+    for (let start = 0; start < result.chunks.length; start += EMBED_BATCH_SIZE) {
       if (signal?.aborted) {
         yield { type: "error", error: { code: "ingest.cancelled", message: "Cancelled by user", recoverable: false } };
         return;
       }
-      const batch = chunks.slice(start, start + EMBED_BATCH_SIZE);
-      const texts = batch.map((c) => c.text);
-      const vectors = await this.deps.embeddings.embedBatch(texts);
+      const batch = result.chunks.slice(start, start + EMBED_BATCH_SIZE);
+      const vectors = await this.deps.embeddings.embedBatch(batch.map((c) => c.text));
       const upserts = batch.map((c, i) => {
         const row = chunkRows[start + i];
-        if (!row) throw new Error(`chunk row index out of range: ${start + i}`);
+        if (!row) throw new Error(`chunk row missing at ${start + i}`);
         const vec = vectors[i];
-        if (!vec) throw new Error(`embedding missing for chunk ${start + i}`);
+        if (!vec) throw new Error(`embedding missing at ${start + i}`);
         return {
           chunkId: row.id,
           documentId,
           embedding: vec,
           chunkText: c.text,
-          ...(c.page !== null && { page: c.page }),
-          ...(c.section !== null && { section: c.section }),
+          ...(c.page !== undefined && { page: c.page }),
+          ...(c.section !== undefined && { section: c.section }),
         };
       });
       await this.deps.vectorStore.upsertBatch(upserts);
       processed += batch.length;
-      yield { type: "embedding", chunksProcessed: processed, totalChunks: chunks.length };
+      yield { type: "embedding", chunksProcessed: processed, totalChunks: result.chunks.length };
     }
 
-    yield { type: "done", documentId, chunkCount: chunks.length };
+    yield { type: "done", documentId, chunkCount: result.chunks.length };
   }
 }
 ```
 
-**`packages/core/src/ingestion/index.ts`**:
-
-```typescript
-export { IngestionService, type IngestionServiceDeps } from "./service.js";
-export { runSidecarIngest, isPraxisCliAvailable, PRAXIS_CLI_INSTALL_HINT, SidecarError } from "./sidecar.js";
-```
-
-**Implementation Notes**:
-- Subprocess is run via `child_process.spawn` with the abort signal threaded through — Node 18+ supports `AbortSignal` on spawn natively.
-- Stdout is collected in full because Marker emits one big JSON; we don't try to parse incrementally.
-- Cancellation between batches uses `signal?.aborted` checks. Once Marker is running we can't easily mid-flight cancel it (it's CPU-bound in the subprocess), but the embedding loop checks per batch.
-- Episodic ordering doesn't apply here — IngestionEvent is its own stream, not engine events.
-- `EMBED_BATCH_SIZE = 32` is a tradeoff: larger batches = fewer pipeline calls, but more memory; HF transformers handles batching internally.
-
 **Acceptance Criteria**:
-- [ ] `IngestionService.ingest(req)` yields events in order: `start` → `parsing` → `parsed` → `embedding` (multiple) → `done`.
-- [ ] On parse failure (sidecar error), yields `error` and stops; no partial document row inserted... actually, this requires careful ordering: the document row should be inserted only AFTER successful parsing. The current design inserts after parsing succeeds — verify in tests.
-- [ ] `documents` table has the new row after success; `document_chunks` has N rows; `document_embeddings` has N vectors.
-- [ ] Cancellation via AbortSignal stops the embedding loop between batches.
-- [ ] Tests with mocked `runSidecarIngest` (return canned parse results) and mocked `EmbeddingService` (return canned vectors) verify the event sequence.
+- [ ] Selects auto-ingestor based on mime type; honors `preferIngestorId`.
+- [ ] Yields `ingestor_selected` with the chosen ingestor's id + label.
+- [ ] Yields `parsing` → `parsed` → `embedding(N)` → `done` in order.
+- [ ] On parse failure, yields `error` and stops; no partial document row.
+- [ ] On embed-batch failure, yields error and stops (no partial vectors).
+- [ ] Honors `AbortSignal` between embed batches.
 
 ---
 
-### Unit 6: `retrieve_from_textbook` tool
+### Unit 9: `retrieve_from_textbook` tool, `DocumentsService`, ServiceDeps wiring
 
-**Files**:
-- `packages/tools/src/retrieval/retrieve-from-textbook.ts` (new)
-- `packages/tools/src/retrieval/index.ts` (new — re-export)
-- `packages/tools/package.json` (add `./retrieval` subpath export)
-- `packages/tools/src/retrieval/__tests__/retrieve-from-textbook.test.ts` (new)
+These units mirror v1 of the design with no architectural change beyond the new fields on ToolServices. Key points:
+
+- **`retrieve_from_textbook`** in `packages/tools/src/retrieval/retrieve-from-textbook.ts` — input has `query`, `topK`, optional `documentIds`. Handler embeds query, calls `vectorStore.search`, hydrates titles via `documents.titlesByIds`, returns `{ query, citations: [{ index, documentId, documentTitle, chunkId, chunkText, page?, section?, distance }] }`.
+- **`DocumentsServiceImpl`** + **`DrizzleDocumentsReader`** in `packages/core/src/services/`.
+- **`ServiceDeps.toolServices`** gains `vectorStore`, `embeddings`, `documents` fields.
+- **`SessionServiceImpl.openActive`** populates these into `ToolContext.services`.
+- **`buildServices`** in `packages/desktop/electron/main/services.ts` constructs:
+  - `LocalEmbeddingService` (preloaded at startup)
+  - `SqliteVecStore`
+  - `IngestorRegistry` populated with all 7 ingestors (`PlainTextIngestor`, `MarkdownIngestor`, `HtmlIngestor`, `DocxIngestor`, `EpubIngestor`, `JsPdfIngestor`, `VisionPdfIngestor`)
+  - `IngestionService`
+  - `DocumentsServiceImpl`
+
+**Critical wiring detail**: `VisionPdfIngestor` constructor takes `vision: engineFor(currentConfig).vision`. But which engine? The currently configured one. So the ingestor list needs to be rebuilt when engine config changes — or the ingestor lookup is dynamic.
+
+**Recommended pattern**: `VisionPdfIngestor` accepts a `() => VisionCapability | undefined` getter, not a fixed reference. The getter resolves the active engine's vision at call time. This keeps the registry stable across engine changes.
 
 ```typescript
-import { eq, inArray } from "drizzle-orm";
-import { documents } from "@praxis/artifacts/schema";
-import type { ToolContext, ToolDefinition } from "@praxis/core/types";
-import { z } from "zod";
+// Adjust VisionPdfIngestor constructor:
+constructor(opts: { visionResolver: () => VisionCapability | undefined }) { ... }
+async isAvailable() { return this.visionResolver() !== undefined; }
+async parse(filePath, opts) {
+  const vision = this.visionResolver();
+  if (!vision) throw new Error(...);
+  // ... use vision
+}
 
-export const retrieveFromTextbookInput = z.object({
-  query: z.string().min(1).describe(
-    "A natural-language question or topic to search the student's textbooks for.",
-  ),
-  topK: z.number().int().min(1).max(20).default(5).describe(
-    "How many chunks to return. Default 5; rarely need more than 10.",
-  ),
-  documentIds: z.array(z.string()).optional().describe(
-    "Restrict search to specific document IDs. Default: search all of the student's documents.",
-  ),
-});
-
-export const retrieveFromTextbookOutput = z.object({
-  query: z.string(),
-  citations: z.array(
-    z.object({
-      index: z.number().int(),
-      documentId: z.string(),
-      documentTitle: z.string(),
-      chunkId: z.string(),
-      chunkText: z.string(),
-      page: z.number().int().optional(),
-      section: z.string().optional(),
-      distance: z.number(),
-    }),
-  ),
-});
-
-export const retrieveFromTextbookTool: ToolDefinition<
-  typeof retrieveFromTextbookInput,
-  typeof retrieveFromTextbookOutput
-> = {
-  name: "retrieve_from_textbook",
-  description: `Search the student's uploaded textbooks for relevant passages and return ranked citations.
-
-Use this for ANY claim that should be grounded in the student's course material — definitions, examples, derivations, formulas, historical facts, etc. Always cite from this tool when the student asks "what does the textbook say about X" or similar.
-
-In your response, refer to citations as [1], [2], etc. matching the order they appear in the result. The student's UI will render these as clickable chips that show the source chunk.
-
-If the citations don't actually answer the question, say so explicitly — don't invent connections. Recommend the student upload more material if relevant.`,
-  input: retrieveFromTextbookInput,
-  output: retrieveFromTextbookOutput,
-  tier: "grounded",
-  effects: ["external.code-exec"], // embedding inference
-  async handler(args, ctx: ToolContext) {
-    const embeddings = ctx.services.embeddings;
-    const vectorStore = ctx.services.vectorStore;
-    const queryVec = await embeddings.embed(args.query);
-
-    const results = await vectorStore.search({
-      embedding: queryVec,
-      topK: args.topK,
-      ...(args.documentIds !== undefined && { documentIds: args.documentIds }),
-    });
-
-    if (results.length === 0) {
-      return { query: args.query, citations: [] };
-    }
-
-    // Hydrate document titles from the documents table — sqlite-vec stores
-    // the document_id but not the human-readable title.
-    const distinctDocIds = [...new Set(results.map((r) => r.documentId))];
-    // ctx provides db indirectly via... wait — ctx doesn't include a db handle.
-    // We need access to the documents table. Two options:
-    //  (a) pass `db` through ToolServices (new field).
-    //  (b) cache title alongside document_id in the vec0 auxiliary column.
-    // Going with (a) — cleaner and forward-compatible; see Unit 1 update.
-    const dbAccessor = (ctx.services as unknown as { db?: { /* PraxisDb */ } }).db;
-    // For Phase 5, we expand ToolServices to include a `db` accessor.
-    // (See Unit 1 amendment below.)
-    throw new Error("UNIT 6 STUB — SEE UNIT 1 AMENDMENT BELOW");
-  },
+// In buildServices:
+const visionResolver = () => {
+  const config = readEngineConfig(db);
+  const engine = engineFactory ? engineFactory(config, { log }) : createEngine({ config, deps: { log } });
+  return engine.vision;
 };
+const visionPdf = new VisionPdfIngestor({ visionResolver });
 ```
 
-> **Amendment to Unit 1**: add `db: DocumentsReadonly` (a narrow read-only interface) to `ToolServices`, OR expose document title lookup via a small `DocumentsReader` interface added to `ToolServices`. Cleaner option: add a tiny `DocumentsReader` interface focused on the read needs of tools.
-
-**Revised Unit 1 addition** — append to `packages/core/src/types/tool.ts`:
-
-```typescript
-export interface DocumentsReader {
-  /** Read the document title for a set of IDs. Returns a Map keyed by document_id. */
-  titlesByIds(ids: ReadonlyArray<string>): Promise<Map<string, string>>;
-}
-
-export interface ToolServices {
-  // ... existing ...
-  documents: DocumentsReader;        // ← Phase 5 NEW field
-}
-```
-
-**Revised handler** for Unit 6:
-
-```typescript
-async handler(args, ctx: ToolContext) {
-  const queryVec = await ctx.services.embeddings.embed(args.query);
-  const results = await ctx.services.vectorStore.search({
-    embedding: queryVec,
-    topK: args.topK,
-    ...(args.documentIds !== undefined && { documentIds: args.documentIds }),
-  });
-  if (results.length === 0) return { query: args.query, citations: [] };
-
-  const docIds = [...new Set(results.map((r) => r.documentId))];
-  const titles = await ctx.services.documents.titlesByIds(docIds);
-
-  return {
-    query: args.query,
-    citations: results.map((r, i) => ({
-      index: i + 1,
-      documentId: r.documentId,
-      documentTitle: titles.get(r.documentId) ?? "(unknown)",
-      chunkId: r.chunkId,
-      chunkText: r.chunkText,
-      ...(r.page !== undefined && { page: r.page }),
-      ...(r.section !== undefined && { section: r.section }),
-      distance: r.distance,
-    })),
-  };
-}
-```
-
-**Implementation Notes**:
-- Citation indices are 1-based for human readability (`[1]`, `[2]`, ...).
-- The tool description explicitly teaches the agent the citation convention. The teach mode's tools fragment will reinforce it.
-- `tier: "grounded"` per the verification principle — retrieval is the second tier of authority.
-- The agent receives a structured array; the UI parses both the `tool_result` event (for citation cards) and the assistant text (for inline chips).
+This way, switching engines in Settings immediately makes vision parsing reflect the new engine.
 
 **Acceptance Criteria**:
-- [ ] `retrieveFromTextbookTool.handler({ query: "..." }, ctx)` calls `ctx.services.embeddings.embed`, `ctx.services.vectorStore.search`, and `ctx.services.documents.titlesByIds` in that order.
-- [ ] Returned citations have 1-based indices in the order returned by vector search.
-- [ ] Empty search returns `{ query, citations: [] }` (not an error).
-- [ ] Optional `page`/`section` fields are omitted when undefined.
-- [ ] Zod input validation rejects empty `query` and `topK > 20`.
+- [ ] `retrieve_from_textbook` works as in v1.
+- [ ] `DocumentsServiceImpl.list()`, `.delete()` work; delete cascades to vectors.
+- [ ] `buildServices` wires all 7 ingestors; the registry's `candidatesFor(.pdf)` returns 2 (JsPdf + VisionPdf).
+- [ ] Vision ingestor's availability tracks the current engine config (test by changing config and observing `isAvailable()`).
 
 ---
 
-### Unit 7: `DocumentsService` + `DocumentsReader` impl
+### Unit 10: IPC + Client + UI — file picker, progress, document list, citation chips
 
-**Files**:
-- `packages/core/src/services/documents-service.ts` (new — implements `DocumentsClient` server-side)
-- `packages/core/src/services/documents-reader-impl.ts` (new — implements `DocumentsReader`)
-- `packages/core/src/services/index.ts` (re-export)
+Same as v1 of the design with these additions/modifications:
 
-**`packages/core/src/services/documents-reader-impl.ts`** (new):
-
-```typescript
-import { inArray } from "drizzle-orm";
-import { documents } from "@praxis/artifacts/schema";
-import type { DocumentsReader } from "../types/tool.js";
-import type { PraxisDb } from "../db/index.js";
-
-export class DrizzleDocumentsReader implements DocumentsReader {
-  constructor(private readonly db: PraxisDb) {}
-
-  async titlesByIds(ids: ReadonlyArray<string>): Promise<Map<string, string>> {
-    if (ids.length === 0) return new Map();
-    const rows = this.db.select({
-      id: documents.id,
-      filename: documents.filename,
-      manifestJson: documents.manifestJson,
-    }).from(documents).where(inArray(documents.id, [...ids])).all();
-    const out = new Map<string, string>();
-    for (const row of rows) {
-      const manifest = row.manifestJson as { title?: string | null } | null;
-      out.set(row.id, manifest?.title ?? row.filename);
-    }
-    return out;
-  }
-}
-```
-
-**`packages/core/src/services/documents-service.ts`** (new):
-
-```typescript
-import { desc, eq } from "drizzle-orm";
-import { documents } from "@praxis/artifacts/schema";
-import type { DocumentsClient, DocumentSummary, VectorStore } from "../types/index.js";
-import type { ServiceDeps } from "./types.js";
-
-export class DocumentsServiceImpl implements DocumentsClient {
-  constructor(private readonly deps: ServiceDeps & { vectorStore: VectorStore }) {}
-
-  async list(): Promise<DocumentSummary[]> {
-    const studentId = this.requireStudent();
-    const rows = this.deps.db
-      .select()
-      .from(documents)
-      .where(eq(documents.studentId, studentId))
-      .orderBy(desc(documents.ingestedAt))
-      .all();
-    return rows.map((r) => {
-      const manifest = r.manifestJson as { title?: string | null } | null;
-      return {
-        id: r.id,
-        filename: r.filename,
-        mimeType: r.mimeType,
-        ingestedAt: r.ingestedAt.getTime(),
-        chunkCount: r.chunkCount,
-        title: manifest?.title ?? r.filename,
-      };
-    });
-  }
-
-  async delete(documentId: string): Promise<void> {
-    // Cascade delete: vectors first, then chunks (FK cascade), then document.
-    await this.deps.vectorStore.deleteByDocumentId(documentId);
-    this.deps.db.delete(documents).where(eq(documents.id, documentId)).run();
-  }
-
-  private requireStudent(): string {
-    // Phase 5: reuse the default-student singleton from Phase 3.
-    const { getOrCreateDefaultStudentId } = require("./student.js") as typeof import("./student.js");
-    return getOrCreateDefaultStudentId(this.deps.db);
-  }
-}
-```
-
-**Implementation Notes**:
-- `delete` first removes vectors (sqlite-vec virtual table is independent of FK cascade), then the document row (which cascades to `document_chunks` via FK).
-- `documents.delete` in `ServiceDeps` uses synchronous `require("./student.js")` because we're inside an async method and want to avoid a circular import at top-level. A future refinement: pass `studentId` resolver via `ServiceDeps`.
-- `list()` uses `ingestedAt DESC` so newest documents appear first.
+- **`praxis.ingest.start`** payload includes optional `preferIngestorId` (UI sends `"vision-pdf"` when user chooses vision parsing for a PDF).
+- **`praxis.ingest.candidatesFor`** (new invoke) — UI calls it after picking a file to learn which ingestors apply, and shows a chooser if more than one (typically only PDFs trigger this).
+- **Document list shows the ingestor badge** — e.g. "PDF (text layer)" or "PDF (vision OCR)" or "DOCX" — informational so users understand what was used.
+- **PDF-picked dialog** — when user picks a PDF, a small modal appears: "Use vision parsing? (recommended for math-heavy or scanned PDFs; uses your engine's vision capability and may incur usage)". Default = no (use JS tier).
+- **Citation chips + source cards** — same as v1.
 
 **Acceptance Criteria**:
-- [ ] `documentsService.list()` returns `DocumentSummary[]` ordered newest-first.
-- [ ] `title` falls back to `filename` when manifest has no title.
-- [ ] `documentsService.delete(id)` removes vectors + document row + cascades chunks.
-- [ ] After delete, `list()` no longer includes the deleted doc.
+- [ ] File picker accepts `.txt`, `.md`, `.markdown`, `.html`, `.htm`, `.docx`, `.epub`, `.pdf`.
+- [ ] PDF selected → choose-parser modal appears with two options.
+- [ ] Document list shows ingestor badge.
+- [ ] Citation rendering as in v1.
 
 ---
 
-### Unit 8: ServiceDeps + buildServices wiring
+### Unit 11: `teach` mode — add `retrieve_from_textbook`
 
-**Files**:
-- `packages/core/src/services/types.ts` (modified)
-- `packages/core/src/services/session-service.ts` (modified — populate new ToolServices fields)
-- `packages/desktop/electron/main/services.ts` (modified)
-
-**`packages/core/src/services/types.ts`** modifications:
-
-```typescript
-import type { DocumentsReader, EmbeddingService, VectorStore, ... } from "../types/index.js";
-
-export interface ServiceDeps {
-  db: PraxisDb;
-  log: Logger;
-  modes: ReadonlyMap<string, Mode>;
-  toolDefinitions: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
-  toolServices: {
-    sympy: SymPyService;
-    sandbox: CodeSandbox;
-    vectorStore: VectorStore;        // ← Phase 5
-    embeddings: EmbeddingService;    // ← Phase 5
-    documents: DocumentsReader;      // ← Phase 5
-  };
-  engineFactory?: (config: EngineConfig, deps: { log: Logger }) => Engine;
-}
-```
-
-**`SessionServiceImpl.openActive`** populates the new fields:
-
-```typescript
-const toolContext: ToolContext = {
-  studentId: args.studentId as ToolContext["studentId"],
-  sessionId: args.sessionId as ToolContext["sessionId"],
-  services: {
-    memory: null,
-    artifacts: null,
-    vectorStore: this.deps.toolServices.vectorStore,   // ← Phase 5
-    sandbox: this.deps.toolServices.sandbox,
-    sympy: this.deps.toolServices.sympy,
-    embeddings: this.deps.toolServices.embeddings,     // ← Phase 5
-    documents: this.deps.toolServices.documents,       // ← Phase 5
-    pedagogyPack: null,
-  },
-  log: this.deps.log,
-};
-```
-
-**`packages/desktop/electron/main/services.ts`** rewritten section:
-
-```typescript
-import { openDb } from "@praxis/core/db";
-import { IngestionService } from "@praxis/core/ingestion";
-import { ConfigServiceImpl, SessionServiceImpl, DrizzleDocumentsReader, DocumentsServiceImpl } from "@praxis/core/services";
-import { teachMode } from "@praxis/curriculum/modes";
-import { codeSandboxTool, gradeMathTool, retrieveFromTextbookTool, ... } from "@praxis/tools";
-import { LocalCodeSandbox, LocalEmbeddingService, PyodideHost, PyodideSymPyService, SqliteVecStore, ... } from "@praxis/tools/runtime";
-
-export interface Services {
-  session: SessionServiceImpl;
-  config: ConfigServiceImpl;
-  ingestion: IngestionService;
-  documents: DocumentsServiceImpl;
-  pyodide: PyodideHost;
-  embeddings: LocalEmbeddingService;
-}
-
-export function buildServices(dbPath: string): Services {
-  const { db } = openDb({ path: dbPath });  // ← initVectorStore runs inside openDb
-  const sqlite = (db as unknown as { $client: import("better-sqlite3").Database }).$client;
-
-  const log = consoleLogger();
-
-  // Pyodide (Phase 4)
-  const pyodide = new PyodideHost({ packages: ["sympy"] });
-  const sympy = new PyodideSymPyService(pyodide);
-  const sandbox = new LocalCodeSandbox(new IsolatedVmHost(), pyodide);
-
-  // Phase 5: vectors + embeddings
-  const vectorStore = new SqliteVecStore(sqlite);
-  const embeddings = new LocalEmbeddingService();
-  const documentsReader = new DrizzleDocumentsReader(db);
-
-  const modes = new Map([[teachMode.id, teachMode]]);
-  const toolDefinitions = [gradeMathTool, codeSandboxTool, retrieveFromTextbookTool];
-
-  const deps: ServiceDeps = {
-    db,
-    log,
-    modes,
-    toolDefinitions,
-    toolServices: { sympy, sandbox, vectorStore, embeddings, documents: documentsReader },
-  };
-
-  const ingestion = new IngestionService({ db, log, vectorStore, embeddings });
-  const documentsService = new DocumentsServiceImpl({ ...deps, vectorStore });
-
-  return {
-    session: new SessionServiceImpl(deps),
-    config: new ConfigServiceImpl(deps),
-    ingestion,
-    documents: documentsService,
-    pyodide,
-    embeddings,
-  };
-}
-```
-
-**Desktop main** (`packages/desktop/electron/main/index.ts`) preload additions:
-
-```typescript
-app.whenReady().then(async () => {
-  // ... existing setup ...
-  services.pyodide.preload().catch((err) => log.warn("pyodide preload failed", err));
-  services.embeddings.preload().catch((err) => log.warn("embeddings preload failed", err));
-  // ...
-});
-```
-
-**Acceptance Criteria**:
-- [ ] `buildServices(dbPath)` constructs all Phase 5 services without error.
-- [ ] `services.embeddings.preload()` runs without blocking app startup.
-- [ ] `ToolContext.services.vectorStore`, `.embeddings`, `.documents` are populated for every session's tools.
-- [ ] All Phase 1-4 tests pass with the new ServiceDeps shape (after updating `toolServices` literals in tests).
+Same as v1: add `"retrieve_from_textbook"` to `teachMode.toolNames`; tools fragment teaches the `[N]` citation convention.
 
 ---
 
-### Unit 9: IPC server + client additions
-
-**Files**:
-- `packages/desktop/electron/main/ipc-server.ts` (modified — add ingest + documents channels)
-- `packages/desktop/electron/main/ingest-channel.ts` (new — file picker + stream wiring)
-- `packages/client/src/services/ingest-client.ts` (new)
-- `packages/client/src/services/documents-client.ts` (new)
-- `packages/client/src/client.ts` (modified — wire new clients)
-- `packages/client/src/index.ts` (re-export)
-
-**`packages/desktop/electron/main/ingest-channel.ts`** (new):
-
-```typescript
-import { dialog, ipcMain, type BrowserWindow } from "electron";
-import { isPraxisCliAvailable, PRAXIS_CLI_INSTALL_HINT } from "@praxis/core/ingestion";
-import type { IngestionEvent } from "@praxis/core/types";
-import type { Services } from "./services.js";
-
-export function registerIngestHandlers(
-  services: Services,
-  webContentsGetter: () => Electron.WebContents | null,
-): () => void {
-  const teardowns: Array<() => void> = [];
-
-  ipcMain.handle("praxis.ingest.pickFile", async () => {
-    const window = webContentsGetter()?.hostWebContents ? null : null;  // simplified
-    const result = await dialog.showOpenDialog({
-      title: "Add document",
-      filters: [{ name: "PDF", extensions: ["pdf"] }],
-      properties: ["openFile"],
-    });
-    if (result.canceled || result.filePaths.length === 0) return null;
-    const filePath = result.filePaths[0];
-    if (!filePath) return null;
-    return {
-      filePath,
-      filename: filePath.split(/[\\/]/).pop() ?? filePath,
-      mimeType: "application/pdf",
-    };
-  });
-
-  ipcMain.handle("praxis.ingest.isAvailable", async () => {
-    const available = await isPraxisCliAvailable();
-    return available ? { available: true } : { available: false, installHint: PRAXIS_CLI_INSTALL_HINT };
-  });
-
-  // Streamed: praxis.ingest.start (invoke with streamId + req)
-  const activeAborts = new Map<string, AbortController>();
-  ipcMain.handle("praxis.ingest.start", async (_e, payload: { streamId: string; req: { filePath: string; filename: string; mimeType: string } }) => {
-    const eventsChannel = `praxis.ingest.events.${payload.streamId}`;
-    const ctrl = new AbortController();
-    activeAborts.set(payload.streamId, ctrl);
-
-    void (async () => {
-      try {
-        const studentId = require("@praxis/core/services").getOrCreateDefaultStudentId(/* db */) as string;
-        // (In real impl, pass `db` through; abbreviated here for brevity)
-        for await (const event of services.ingestion.ingest({ ...payload.req, studentId }, ctrl.signal)) {
-          if (ctrl.signal.aborted) break;
-          webContentsGetter()?.send(eventsChannel, { kind: "event", value: event });
-        }
-        webContentsGetter()?.send(eventsChannel, { kind: "done" });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        webContentsGetter()?.send(eventsChannel, { kind: "error", error: { code: "ingest.failed", message } });
-      } finally {
-        activeAborts.delete(payload.streamId);
-      }
-    })();
-  });
-
-  ipcMain.on("praxis.ingest.cancel", (_e, streamId: string) => {
-    activeAborts.get(streamId)?.abort();
-    activeAborts.delete(streamId);
-  });
-
-  // Documents
-  ipcMain.handle("praxis.documents.list", async () => services.documents.list());
-  ipcMain.handle("praxis.documents.delete", async (_e, documentId: string) => services.documents.delete(documentId));
-
-  teardowns.push(() => {
-    for (const channel of [
-      "praxis.ingest.pickFile", "praxis.ingest.isAvailable", "praxis.ingest.start",
-      "praxis.documents.list", "praxis.documents.delete",
-    ]) {
-      ipcMain.removeHandler(channel);
-    }
-    for (const ctrl of activeAborts.values()) ctrl.abort();
-  });
-  return () => { for (const t of teardowns) t(); };
-}
-```
-
-**`packages/client/src/services/ingest-client.ts`** (new):
-
-```typescript
-import type { IngestionClient, IngestionEvent } from "@praxis/core/types";
-import type { ClientTransport } from "../transport/types.js";
-
-const C = {
-  pickFile: "praxis.ingest.pickFile",
-  isAvailable: "praxis.ingest.isAvailable",
-  start: "praxis.ingest.start",  // streamed: .start / .events.<id> / .cancel
-} as const;
-
-export function createIngestClient(transport: ClientTransport): IngestionClient {
-  return {
-    pickFile: () => transport.invoke<{ filePath: string; filename: string; mimeType: string } | null>(C.pickFile),
-    isAvailable: () => transport.invoke<{ available: boolean; installHint?: string }>(C.isAvailable),
-    start: (req) => transport.stream<IngestionEvent>(C.start, { req }),
-  };
-}
-```
-
-**`packages/client/src/services/documents-client.ts`** (new):
-
-```typescript
-import type { DocumentsClient, DocumentSummary } from "@praxis/core/types";
-import type { ClientTransport } from "../transport/types.js";
-
-const C = {
-  list: "praxis.documents.list",
-  delete: "praxis.documents.delete",
-} as const;
-
-export function createDocumentsClient(transport: ClientTransport): DocumentsClient {
-  return {
-    list: () => transport.invoke<DocumentSummary[]>(C.list),
-    delete: (id) => transport.invoke<void>(C.delete, id),
-  };
-}
-```
-
-**`packages/client/src/client.ts`** modifications:
-
-```typescript
-export function createPraxisClient(transport: ClientTransport): PraxisClient {
-  return {
-    session: createSessionClient(transport),
-    config: createConfigClient(transport),
-    artifacts: createArtifactsClient(transport),
-    author: createAuthoringClient(transport),
-    memory: createMemoryClient(transport),
-    ingest: createIngestClient(transport),       // ← NEW
-    documents: createDocumentsClient(transport), // ← NEW
-  };
-}
-```
-
-**Acceptance Criteria**:
-- [ ] `client.ingest.pickFile()` opens the native file picker; returns null on cancel.
-- [ ] `client.ingest.isAvailable()` returns `{ available: false, installHint }` when `praxis-cli` is not on PATH.
-- [ ] `client.ingest.start(req)` returns an AsyncIterable that yields IngestionEvents in order.
-- [ ] `client.documents.list()` returns documents for the default student.
-- [ ] `client.documents.delete(id)` removes the document.
-- [ ] IPC handlers register/unregister cleanly (test via `ipc-server.test.ts` extension).
-
----
-
-### Unit 10: UI — file picker, progress modal, document list
-
-**Files**:
-- `packages/ui/src/routes/chat.tsx` (modified — add document panel)
-- `packages/ui/src/components/document-list.tsx` (new) + `.module.css`
-- `packages/ui/src/components/add-document-button.tsx` (new) + `.module.css`
-- `packages/ui/src/components/ingestion-progress.tsx` (new) + `.module.css`
-- `packages/ui/src/hooks/use-documents.ts` (new)
-- `packages/ui/src/hooks/use-ingestion.ts` (new)
-
-**`packages/ui/src/hooks/use-ingestion.ts`** (new):
-
-```typescript
-import { useCallback, useState } from "react";
-import type { IngestionEvent } from "@praxis/core/types";
-import { usePraxisClient } from "../context/client-context.js";
-
-export interface UseIngestionResult {
-  state: "idle" | "checking" | "picking" | "ingesting" | "done" | "error";
-  message: string;
-  progress?: { processed: number; total: number };
-  start: () => Promise<void>;
-  reset: () => void;
-}
-
-export function useIngestion(onComplete: () => void): UseIngestionResult {
-  const client = usePraxisClient();
-  const [state, setState] = useState<UseIngestionResult["state"]>("idle");
-  const [message, setMessage] = useState("");
-  const [progress, setProgress] = useState<{ processed: number; total: number } | undefined>(undefined);
-
-  const start = useCallback(async () => {
-    setState("checking");
-    setMessage("Checking sidecar...");
-    const avail = await client.ingest.isAvailable();
-    if (!avail.available) {
-      setState("error");
-      setMessage(avail.installHint ?? "praxis-cli is not installed.");
-      return;
-    }
-    setState("picking");
-    setMessage("Pick a file...");
-    const file = await client.ingest.pickFile();
-    if (!file) {
-      setState("idle");
-      setMessage("");
-      return;
-    }
-    setState("ingesting");
-    setMessage(`Starting ingest of ${file.filename}...`);
-    setProgress(undefined);
-    try {
-      for await (const event of client.ingest.start(file)) {
-        applyEvent(event, { setMessage, setProgress });
-        if (event.type === "done") {
-          setState("done");
-          onComplete();
-        } else if (event.type === "error") {
-          setState("error");
-          setMessage(`${event.error.code}: ${event.error.message}`);
-        }
-      }
-    } catch (err) {
-      setState("error");
-      setMessage(err instanceof Error ? err.message : String(err));
-    }
-  }, [client, onComplete]);
-
-  const reset = useCallback(() => {
-    setState("idle");
-    setMessage("");
-    setProgress(undefined);
-  }, []);
-
-  return { state, message, ...(progress !== undefined && { progress }), start, reset };
-}
-
-function applyEvent(
-  event: IngestionEvent,
-  setters: { setMessage: (s: string) => void; setProgress: (p: { processed: number; total: number } | undefined) => void },
-): void {
-  switch (event.type) {
-    case "start": setters.setMessage(`Ingesting ${event.filename}...`); break;
-    case "parsing": setters.setMessage(event.message); break;
-    case "parsed": setters.setMessage(`Parsed: ${event.chunkCount} chunks`); break;
-    case "embedding":
-      setters.setMessage(`Embedding chunks...`);
-      setters.setProgress({ processed: event.chunksProcessed, total: event.totalChunks });
-      break;
-    case "done": setters.setMessage(`Done! ${event.chunkCount} chunks indexed.`); break;
-    case "error": setters.setMessage(`${event.error.code}: ${event.error.message}`); break;
-  }
-}
-```
-
-**`packages/ui/src/components/ingestion-progress.tsx`** (new) — modal showing the progress:
-
-```typescript
-import styles from "./ingestion-progress.module.css";
-
-export function IngestionProgress(props: {
-  state: "idle" | "checking" | "picking" | "ingesting" | "done" | "error";
-  message: string;
-  progress?: { processed: number; total: number };
-  onClose: () => void;
-}) {
-  if (props.state === "idle" || props.state === "picking") return null;
-  return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true">
-      <div className={styles.modal}>
-        <h2>{props.state === "error" ? "Ingestion failed" : props.state === "done" ? "Done" : "Adding document..."}</h2>
-        <p className={styles.message}>{props.message}</p>
-        {props.progress && (
-          <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: `${(props.progress.processed / props.progress.total) * 100}%` }} />
-            <span className={styles.progressLabel}>{props.progress.processed} / {props.progress.total}</span>
-          </div>
-        )}
-        {(props.state === "done" || props.state === "error") && (
-          <button type="button" onClick={props.onClose}>Close</button>
-        )}
-      </div>
-    </div>
-  );
-}
-```
-
-**`packages/ui/src/components/add-document-button.tsx`** (new):
-
-```typescript
-import { useIngestion } from "../hooks/use-ingestion.js";
-import { IngestionProgress } from "./ingestion-progress.js";
-import styles from "./add-document-button.module.css";
-
-export function AddDocumentButton(props: { onComplete: () => void }) {
-  const ingestion = useIngestion(props.onComplete);
-  return (
-    <>
-      <button
-        type="button"
-        className={styles.btn}
-        onClick={() => void ingestion.start()}
-        disabled={ingestion.state === "ingesting" || ingestion.state === "checking"}
-      >
-        + Add document
-      </button>
-      <IngestionProgress
-        state={ingestion.state}
-        message={ingestion.message}
-        {...(ingestion.progress !== undefined && { progress: ingestion.progress })}
-        onClose={ingestion.reset}
-      />
-    </>
-  );
-}
-```
-
-**`packages/ui/src/components/document-list.tsx`** (new):
-
-```typescript
-import { useDocuments } from "../hooks/use-documents.js";
-import styles from "./document-list.module.css";
-
-export function DocumentList() {
-  const { documents, refresh, deleteDoc } = useDocuments();
-  return (
-    <div className={styles.list}>
-      <header>
-        <h3>Documents</h3>
-        <button type="button" onClick={refresh}>↻</button>
-      </header>
-      {documents.length === 0 && <p className={styles.empty}>No documents yet. Add one to get started.</p>}
-      <ul>
-        {documents.map((doc) => (
-          <li key={doc.id} className={styles.item}>
-            <div className={styles.title}>{doc.title}</div>
-            <div className={styles.meta}>{doc.chunkCount} chunks · {new Date(doc.ingestedAt).toLocaleDateString()}</div>
-            <button type="button" className={styles.deleteBtn} onClick={() => void deleteDoc(doc.id)}>Delete</button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-```
-
-**`packages/ui/src/hooks/use-documents.ts`** (new):
-
-```typescript
-import { useCallback, useEffect, useState } from "react";
-import type { DocumentSummary } from "@praxis/core/types";
-import { usePraxisClient } from "../context/client-context.js";
-
-export function useDocuments() {
-  const client = usePraxisClient();
-  const [documents, setDocuments] = useState<DocumentSummary[]>([]);
-  const refresh = useCallback(async () => {
-    setDocuments(await client.documents.list());
-  }, [client]);
-  const deleteDoc = useCallback(async (id: string) => {
-    await client.documents.delete(id);
-    await refresh();
-  }, [client, refresh]);
-  useEffect(() => { void refresh(); }, [refresh]);
-  return { documents, refresh, deleteDoc };
-}
-```
-
-**`packages/ui/src/routes/chat.tsx`** modifications:
-
-```typescript
-// ChatRoute layout grows: [DocumentList sidebar] [Chat main]
-return (
-  <div className={styles.chatRoot}>
-    <aside className={styles.sidebar}>
-      <AddDocumentButton onComplete={() => void documentsRef.current?.refresh()} />
-      <DocumentList ref={documentsRef} />
-    </aside>
-    <div className={styles.main}>
-      {/* existing chat header + messages + composer */}
-    </div>
-  </div>
-);
-```
-
-**Acceptance Criteria**:
-- [ ] Add document button is disabled while ingesting.
-- [ ] Ingestion progress modal shows parsing message, then embedding progress bar.
-- [ ] On error, modal shows error message + Close button.
-- [ ] Document list refreshes after successful ingestion.
-- [ ] Document delete confirms (browser `confirm()`) and removes from list.
-- [ ] Component tests with mocked client cover happy path + error path + cancel.
-
----
-
-### Unit 11: UI — citation chips + source cards in chat
-
-**Files**:
-- `packages/ui/src/components/citation-chip.tsx` (new) + `.module.css`
-- `packages/ui/src/components/source-card.tsx` (new) + `.module.css`
-- `packages/ui/src/components/message.tsx` (modified — parse citations from text)
-- `packages/ui/src/hooks/use-streamed-send.ts` (modified — accumulate citations from tool_result)
-
-**`packages/ui/src/hooks/use-streamed-send.ts`** modifications:
-
-```typescript
-export interface ChatBubble {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  streaming: boolean;
-  /** Citations from any retrieve_from_textbook tool calls in this turn. */
-  citations: Citation[];
-}
-
-// Inside the for-await:
-for await (const event of client.session.send(sessionId, message)) {
-  if (event.type === "user_message") continue;
-  if (event.type === "tool_result") {
-    // If this is a retrieve_from_textbook result, harvest citations.
-    if (event.result.ok) {
-      const value = event.result.value as { citations?: Citation[] } | undefined;
-      if (Array.isArray(value?.citations)) {
-        setBubbles((bs) => bs.map((b) =>
-          b.id === assistantId ? { ...b, citations: [...b.citations, ...value.citations] } : b,
-        ));
-      }
-    }
-    continue;
-  }
-  // ... existing model_message / error handling
-}
-```
-
-**`packages/ui/src/components/message.tsx`** modifications:
-
-```typescript
-import { CitationChip } from "./citation-chip.js";
-import { SourceCard } from "./source-card.js";
-import type { Citation } from "@praxis/core/types";
-
-export function Message(props: { role: "user" | "assistant"; content: string; streaming: boolean; citations: Citation[] }) {
-  const cls = props.role === "user" ? styles.user : styles.assistant;
-  return (
-    <div className={`${styles.bubble} ${cls}`} data-role={props.role}>
-      <span className={styles.content}>{renderWithCitations(props.content, props.citations)}</span>
-      {props.streaming && <span className={styles.cursor}>▋</span>}
-      {props.citations.length > 0 && (
-        <div className={styles.sources}>
-          {props.citations.map((c) => (
-            <SourceCard key={c.chunkId} citation={c} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const CITATION_RE = /\[(\d+)\]/g;
-
-function renderWithCitations(text: string, citations: Citation[]): React.ReactNode[] {
-  const out: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  CITATION_RE.lastIndex = 0;
-  while ((match = CITATION_RE.exec(text)) !== null) {
-    if (match.index > lastIndex) out.push(text.slice(lastIndex, match.index));
-    const num = Number.parseInt(match[1] ?? "0", 10);
-    const citation = citations.find((c) => c.index === num);
-    if (citation) {
-      out.push(<CitationChip key={`cit-${match.index}`} citation={citation} />);
-    } else {
-      out.push(match[0]);  // pass through if no matching citation
-    }
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < text.length) out.push(text.slice(lastIndex));
-  return out;
-}
-```
-
-**`packages/ui/src/components/citation-chip.tsx`** (new):
-
-```typescript
-import type { Citation } from "@praxis/core/types";
-import styles from "./citation-chip.module.css";
-
-export function CitationChip(props: { citation: Citation }) {
-  const onClick = () => {
-    const target = document.getElementById(`source-${props.citation.chunkId}`);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      target.classList.add(styles.highlight);
-      setTimeout(() => target.classList.remove(styles.highlight), 1200);
-    }
-  };
-  return (
-    <button type="button" className={styles.chip} onClick={onClick} title={props.citation.documentTitle}>
-      [{props.citation.index}]
-    </button>
-  );
-}
-```
-
-**`packages/ui/src/components/source-card.tsx`** (new):
-
-```typescript
-import { useState } from "react";
-import type { Citation } from "@praxis/core/types";
-import styles from "./source-card.module.css";
-
-export function SourceCard(props: { citation: Citation }) {
-  const [expanded, setExpanded] = useState(false);
-  const c = props.citation;
-  const preview = c.chunkText.length > 200 ? `${c.chunkText.slice(0, 200)}…` : c.chunkText;
-  return (
-    <div id={`source-${c.chunkId}`} className={styles.card}>
-      <div className={styles.header}>
-        <span className={styles.index}>[{c.index}]</span>
-        <span className={styles.title}>{c.documentTitle}</span>
-        {c.section && <span className={styles.section}>· {c.section}</span>}
-        {c.page !== undefined && <span className={styles.page}>· p.{c.page}</span>}
-      </div>
-      <div className={styles.body}>
-        {expanded ? c.chunkText : preview}
-        {c.chunkText.length > 200 && (
-          <button type="button" className={styles.toggle} onClick={() => setExpanded((x) => !x)}>
-            {expanded ? "less" : "more"}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-```
-
-**Acceptance Criteria**:
-- [ ] Assistant text containing `[1]` renders the chip; clicking scrolls to the corresponding source card and briefly highlights it.
-- [ ] `[N]` references with no matching citation render as plain text (no broken chip).
-- [ ] Source cards show document title, section, page, and chunk text preview with "more" toggle.
-- [ ] Multiple `tool_result` events in one turn accumulate citations on the same assistant bubble.
-- [ ] Component tests cover citation parsing, chip click → scroll, expand/collapse.
-
----
-
-### Unit 12: `teach` mode update — add `retrieve_from_textbook` + tools fragment update
-
-**Files**:
-- `packages/curriculum/src/modes/teach.ts` (modified — add tool name)
-- `packages/curriculum/src/modes/fragments/tools.ts` (modified — describe new tool + citation convention)
-
-**`packages/curriculum/src/modes/teach.ts`** updates:
-
-```typescript
-toolNames: ["grade_math", "code_sandbox", "retrieve_from_textbook"],   // ← added
-```
-
-**`packages/curriculum/src/modes/fragments/tools.ts`** updated template:
-
-```typescript
-export const toolsFragment: PromptFragment = {
-  id: "tools.available",
-  position: "tools",
-  customizable: false,
-  template: `Tools available:
-- grade_math — symbolic math via sympy. Use for ANY arithmetic or algebra; never grade with your own arithmetic.
-- code_sandbox — run JavaScript or Python in a sandbox. Use to demonstrate algorithms or verify multi-step computation.
-- retrieve_from_textbook — search the student's uploaded textbooks for relevant passages. Use for ANY claim that should be grounded in their course material.
-
-When you cite from retrieve_from_textbook results, refer to them as [1], [2], [3] in the order they appear in the result. The student's UI renders these as clickable chips that show the source chunk.
-
-When you make a claim a tool can verify, call the tool. The student sees the tool call — visibility is part of the lesson.`,
-};
-```
-
-**Acceptance Criteria**:
-- [ ] `teachMode.toolNames` includes `"retrieve_from_textbook"`.
-- [ ] Tools fragment includes citation convention text.
-- [ ] Existing teach-mode tests pass after fragment update.
-
----
-
-### Unit 13: Tests
+### Unit 12: Tests (per-unit + integration)
 
 | Test file | Type | What it tests |
 |---|---|---|
-| `packages/tools/src/runtime/__tests__/sqlite-vec-store.test.ts` | unit, fast | Real sqlite-vec (prebuilt). Upsert, batch upsert, search with/without doc filter, deleteByDocumentId, distance ordering. |
-| `packages/tools/src/runtime/__tests__/embeddings.test.ts` | unit (mock) + slow (real) | Mock @huggingface/transformers for fast lane: lazy load, batch reshape, dimension contract. Real model gated by PRAXIS_RUN_SLOW_TESTS. |
-| `packages/tools/src/retrieval/__tests__/retrieve-from-textbook.test.ts` | unit, fast | Mock embeddings + vectorStore + documents reader. Verify query embedding → search → title hydration → indexing. |
-| `packages/core/src/__tests__/ingestion-service.test.ts` | unit, fast | Mock `runSidecarIngest` (return canned parse), mock embeddings/vectorStore. Verify event order: start → parsing → parsed → embedding(N) → done. Verify document/chunk rows persisted. |
-| `packages/core/src/__tests__/ingestion-sidecar.test.ts` | unit, fast | Mock `child_process.spawn` (return canned subprocess emitting stdout/stderr). Verify exit-code handling, JSON parsing, error path. |
-| `packages/core/src/__tests__/db-vector-init.test.ts` | unit, fast | After `openDb`, verify `document_embeddings` table exists; idempotent re-init. |
-| `packages/desktop/src/__tests__/ipc-server.test.ts` (extended) | unit | New ingest + documents channels register; pickFile mock; stream lifecycle. |
-| `packages/ui/src/__tests__/use-ingestion.test.tsx` | unit, fast | Mock client. Verify state transitions: idle → checking → picking → ingesting → done. |
-| `packages/ui/src/__tests__/citation-chip.test.tsx` | unit, fast | Click chip → scrolls to source card (mocked scrollIntoView). |
-| `packages/ui/src/__tests__/document-list.test.tsx` | unit, fast | Renders documents from mock client; delete refreshes list. |
-| `tests/textbook-rag-end-to-end.test.ts` | integration, slow | Real sqlite-vec + mocked embeddings + mocked sidecar. Ingest → store → retrieve_from_textbook → assert ranked citations returned. |
+| `packages/core/src/__tests__/engine-config.test.ts` (extended) | unit, fast | Vision-capability validation: succeed/fail per provider; substring fallback; default model is vision-capable. |
+| `packages/engines/src/__tests__/direct-vision.test.ts` | unit, fast | Mock `generateText`. Single-shot per call; image content correctly formed; usage propagated. |
+| `packages/engines/src/__tests__/claude-code-vision.test.ts` | unit, fast | Mock `query` and `collectResult`. Temp dir created and removed; `noSessionPersistence: true`; image files written. |
+| `packages/engines/src/__tests__/codex-vision.test.ts` | unit, fast | Mock `Codex` constructor; transient thread; `local_image` inputs; temp dir cleanup. |
+| `packages/tools/src/runtime/ingestion/__tests__/registry.test.ts` | unit, fast | select / candidatesFor by mime + extension; preferIngestorId honored. |
+| `packages/tools/src/runtime/ingestion/__tests__/{plain-text,markdown,html,docx,epub,js-pdf}-ingestor.test.ts` | unit, fast | Each parses a small fixture and produces expected chunks. |
+| `packages/tools/src/runtime/ingestion/__tests__/vision-pdf-ingestor.test.ts` | unit, fast | Mock pdfjs + canvas + vision; assert N pages → N vision calls; blank-page skipping. |
+| `packages/tools/src/runtime/__tests__/sqlite-vec-store.test.ts` | unit (real sqlite-vec, fast) | Upsert, batch, search with/without doc filter, deleteByDocumentId. |
+| `packages/tools/src/runtime/__tests__/embeddings.test.ts` | unit (mock) + slow (real) | Lazy load contract; batch reshape; real model gated. |
+| `packages/core/src/__tests__/ingestion-service.test.ts` | unit, fast | Mock registry + ingestor + embeddings + vectorStore. Event order; persist correctness. |
+| `packages/desktop/src/__tests__/ipc-server.test.ts` (extended) | unit | Ingest channels + documents channels + candidatesFor invoke. |
+| `tests/textbook-rag-end-to-end.test.ts` | integration | Real sqlite-vec + mocked embeddings + JS ingestor on a fixture. Ingest → retrieve → assert ranked citations. |
+
+Slow tests (real embedding model load) gate behind `PRAXIS_RUN_SLOW_TESTS=1`.
 
 ---
 
 ## Implementation Order
 
-1. **Unit 1** — Type contracts (foundation).
-2. **Unit 2** — `python/praxis-cli/` (independent; can be developed in parallel).
-3. **Unit 3** — `LocalEmbeddingService`.
-4. **Unit 4** — `SqliteVecStore` + `initVectorStore`.
-5. **Unit 5** — `IngestionService` (depends on Units 1, 3, 4 for types; integrates with Unit 2's CLI).
-6. **Unit 6** — `retrieve_from_textbook` tool (depends on Units 1, 3, 4).
-7. **Unit 7** — `DocumentsService` + `DrizzleDocumentsReader` (depends on Unit 1).
-8. **Unit 8** — ServiceDeps + buildServices wiring (depends on Units 3-7).
-9. **Unit 9** — IPC server + client additions (depends on Units 5, 7).
-10. **Unit 10** — UI: file picker, progress, document list (depends on Unit 9).
-11. **Unit 11** — UI: citation chips + source cards (depends on Unit 6's tool output shape).
-12. **Unit 12** — `teach` mode + tools fragment (depends on Unit 6 existing).
-13. **Unit 13** — Tests (interspersed; not all at the end).
-
-Units 2 and 3 can be parallelized (Python vs TS).
-Units 5 and 7 can be parallelized after 1, 3, 4 land.
-Units 10 and 11 can be parallelized after 9 lands.
+1. **Unit 1** — Type contracts.
+2. **Unit 2** — EngineConfigSchema vision validation.
+3. **Unit 3** — Per-engine vision (3 sub-units, can parallelize).
+4. **Unit 4** — Ingestor port + registry.
+5. **Unit 5** — Six default ingestors (parallelizable).
+6. **Unit 6** — VisionPdfIngestor (depends on Unit 3).
+7. **Unit 7** — LocalEmbeddingService + SqliteVecStore.
+8. **Unit 8** — IngestionService.
+9. **Unit 9** — retrieve_from_textbook tool + DocumentsService + buildServices wiring.
+10. **Unit 10** — IPC + client + UI.
+11. **Unit 11** — teach mode + fragment update.
+12. **Unit 12** — Tests interspersed.
 
 ---
 
 ## Verification
 
 ```bash
-# Existing
-pnpm install && pnpm typecheck && pnpm lint && pnpm test
-# 195 → ~250 tests pass on the fast lane
+pnpm install && pnpm typecheck && pnpm lint && pnpm test  # fast lane
+PRAXIS_RUN_SLOW_TESTS=1 pnpm test  # adds real embedding model load
+pnpm desktop:build && pnpm dev      # manual M1+ test
 
-# Pyodide + Marker + real embeddings:
-PRAXIS_RUN_SLOW_TESTS=1 pnpm test
-# Adds ~5 minutes (Marker model download + load + parse a sample PDF)
-
-# Python CLI dev install
-uv tool install -e python/praxis-cli
-praxis-cli --version
-praxis-cli ingest /path/to/sample.pdf | head -c 1000
-
-# Desktop build
-pnpm desktop:build
-pnpm dev    # opens window — manual M2-prep test
-
-# Manual M1+ walkthrough (Phase 5 test checkpoint)
-# 1. Click "Add document" → pick a PDF → see parsing then embedding progress
-# 2. Wait until "Done" — close modal
-# 3. Type: "What does chapter 3 say about respiration?"
-# 4. Wait for assistant → text contains [1], [2] chips
-# 5. Click [1] → page scrolls to source card, briefly highlighted
-# 6. Click "more" on source card → full chunk text expands
-# 7. pnpm db:episodic → see tool_call(retrieve_from_textbook) + tool_result with citations array
+# Manual test checkpoint (Phase 5):
+# 1. Drop a .md file → indexed in <1 sec; appears in document list with "Markdown" badge
+# 2. Drop a .docx → indexed; "Word document" badge
+# 3. Drop a .epub → indexed; "EPUB ebook" badge
+# 4. Drop a .pdf → choose-parser modal; pick "text layer" → indexed in seconds; "PDF (text layer)" badge
+# 5. Drop the same .pdf again, choose "vision OCR" → indexed slower (vision calls per page); "PDF (vision OCR)" badge
+# 6. Ask: "what does chapter 3 say about respiration?"
+# 7. Watch assistant stream with [1] [2] chips → click [1] → scrolls to source card
+# 8. pnpm db:episodic shows the tool_call(retrieve_from_textbook) + tool_result with citations array
+# 9. Verify the active tutoring session's prompt cache wasn't blown away by ingestion (Anthropic dashboard or via inspecting Claude Code's session log)
 ```
 
 ---
 
-## Out of scope (defer)
+## Out of scope (explicit list)
 
-- **Cloud embedding providers** — `EmbeddingService` interface ready for OpenAI/Voyage/Ollama via Vercel AI SDK in a future phase.
-- **Per-page Marker streaming** via `marker_server` daemon — Phase 5 uses whole-doc batch with synthetic progress.
-- **EPUB / .docx ingestion** — Marker supports them; only PDF wired in Phase 5.
-- **Document re-ingestion / update** — workflow is delete + re-upload.
-- **Concept extraction from documents** — Phase 6 (course bootstrap).
-- **PDF page rendering** — citation cards show extracted text + page number; rendered pages are Phase 13 territory.
-- **pgvector adapter** — Phase 15 (hosted deployment).
-- **OCR for image-only PDFs** beyond what Marker does internally.
-- **Marker model download UI** — first run triggers download silently; clearer "first-time setup" UI is a polish pass.
-- **Hybrid search** (keyword + vector) — pure vector search for Phase 5.
+- **Local Marker (Python sidecar)** — see `docs/ROADMAP.md` "Future enhancements". Triggered by power-user demand.
+- **`.pptx`, `.rtf`** — defer; revisit if user demand emerges.
+- **Image OCR for raw photos** (`.png`, `.jpg`) — Phase 13 vision pipeline.
+- **PDF page image rendering** in citation cards — text + page number only.
+- **Hybrid keyword + vector search** — pure vector for v1.
+- **pgvector adapter** — Phase 15.
+- **Concept extraction → draft course bootstrap** — Phase 6.
+- **Batched/parallel vision calls** for large PDFs — Phase 5 calls serially. Future polish: configurable concurrency.
+- **Vision prompt caching across pages** — each page is a fresh call (clean isolation); a future optimization could cache the system prompt portion.
 
 ## Notes for the implementer
 
-- **`require("sqlite-vec")` over `import`** — sqlite-vec is loaded dynamically inside `loadSqliteVec` to avoid eager native binary load in tests that mock the extension. This mirrors the Phase 4 fix for `isolated-vm`.
-- **Test gating** — slow tests (real Marker, real embedding model) gate behind `PRAXIS_RUN_SLOW_TESTS=1` (joins Phase 4's pattern; see `slow-test-gating` pattern doc).
-- **Episodic events for tool_result** — already persisted by `SessionServiceImpl` (Phase 3); the citation harvest in `useStreamedSend` reads from the live stream, but episodic also captures the full tool_result for post-hoc review.
-- **`@praxis/tools/runtime` exports** — add `LocalEmbeddingService`, `SqliteVecStore` to the index.
-- **Patterns referenced**: `engine-session-lifecycle` (no impact, but related; ingestion is a different flow), `tool-dispatch-pipeline` (retrieve_from_textbook follows it exactly), `discriminated-union-dispatch` (IngestionEvent uses `type` discriminator like EngineEvent), `ipc-channel-convention` (new channels follow `praxis.ingest.*` and `praxis.documents.*`), `service-deps-injection` (new toolServices fields populated in buildServices), `temp-db-test-helper` (DB-backed tests use it), `slow-test-gating` (Marker + real embeddings gated).
-- **Future migration to graph-aware chunking** — if Phase 7 demands semantic chunk boundaries (e.g., "definition" chunks separated from "example" chunks), the chunker in `python/praxis-cli/src/praxis_cli/ingest.py` is the seam; switch from `chunk_markdown` to a Marker-JSON-tree walker.
+- **Patterns referenced**: `engine-session-lifecycle` (vision uses fresh one-shot, distinct from active session), `tool-dispatch-pipeline` (retrieve_from_textbook follows it), `ipc-channel-convention` (new channels), `service-deps-injection` (new toolServices fields), `temp-db-test-helper` (DB tests), `slow-test-gating` (embeddings + vision real-call tests).
+- **Vision call isolation is critical** — every vision call MUST use a fresh SDK session. Audit before merging that no implementation accidentally reuses a Conversation/Thread.
+- **`canvas` native dep** for VisionPdfIngestor — needs `electron-rebuild` like isolated-vm. Add to the desktop postinstall.
+- **`@huggingface/transformers` v4** — add to `@praxis/tools` deps; lazy-imported inside LocalEmbeddingService to keep test suites fast.
+- **`pdfjs-dist`** — use the `legacy/build/pdf.mjs` entry point in Node (the default entry is browser-targeted).
+- **No Python in Phase 5.** SPEC.md still documents the future Python sidecar boundary; no code lives there yet.

@@ -59,15 +59,19 @@ Two deployment shapes from day one, same codebase.
 
 ## Ingestion sidecar boundary
 
-`praxis-ingest` is a Python package distributed separately from the TypeScript framework. It exposes a CLI consumed as a subprocess by `@praxis/core`. The contract:
+> **v1 status (April 2026)**: no Python sidecar exists in v1. Phase 5 ships document ingestion entirely in TypeScript via the `Ingestor` port + per-format adapters (txt, md, html, docx, epub, PDF text-layer) plus a vision tier that uses the configured engine's native vision capability (no third-party OCR). The `praxis-cli` Python sidecar described below is **deferred to a post-v1 enhancement** — see `docs/ROADMAP.md` "Future enhancements" for the trigger to revisit. This spec section documents the future boundary so the architecture is reserved when needed.
+
+When Python tooling does eventually land (most likely as a Marker-based PDF ingestor for power users with appropriate hardware), it conforms to this contract:
+
+`praxis-cli` (or equivalently named) is a Python package distributed separately from the TypeScript framework. It exposes a CLI consumed as a subprocess by `@praxis/core`. The contract:
 
 - Input: a file path (PDF / EPUB / image / etc.) and a course/student scope.
 - Output: a directory of structured chunks with metadata (page, section, heading hierarchy, equations as LaTeX, figure references) plus a manifest JSON.
 - No persistent state. Idempotent. Re-runnable.
 
-Local users install via `uv tool install praxis-ingest`. Hosted users never see it; it runs in a worker container. The TypeScript runtime never imports Python; Python never imports TypeScript.
+Local users install via `uv tool install praxis-cli`. Hosted users never see it; it runs in a worker container. The TypeScript runtime never imports Python; Python never imports TypeScript.
 
-This is the **single** documented language boundary in Praxis. Any other Python is a regression.
+This is the **single** documented language boundary in Praxis. Any other Python is a regression. The boundary is reserved for cases where Python is genuinely the only viable option (heavy ML toolchains like PyTorch-based models that have no JS/WASM equivalent).
 
 ## OCR
 
