@@ -215,10 +215,11 @@ Three integration milestones along the way: **M1** end-to-end tutor session, **M
 - Concept-linking (element ↔ canonical concept) + canonical-hint toggle
 - Coach divergence-detection indexer
 - Vision OCR for sketched math via engine adapter; verification round-trip
+- **Embedded image extraction during ingestion (Phase 5 follow-up)**: pdfjs-dist image XObjects from PDFs, mammoth.js custom converter for DOCX images, epub2 chapter image refs for EPUBs. Images stored content-addressed under the document; chunks reference them via `imageRefs[]`. Chat renders inline thumbnails when the agent cites a chunk with image refs; click to enlarge in a side panel. Reuses the image-rendering UI patterns built for tldraw and `praxis.documents.pageImage`.
 
-**Research:** tldraw v4 SDK API; iPad Safari Pointer Events.
+**Research:** tldraw v4 SDK API; iPad Safari Pointer Events; pdfjs-dist image XObject extraction; mammoth.js image converter API.
 
-**Test checkpoint:** On iPad Safari with Pencil, sketch `2x + 5 = 11` and steps. Submit — sympy validates final answer; feedback shown. Concept-map: draw 3 concepts + edge; toggle canonical hints; see ghosted suggestions.
+**Test checkpoint:** On iPad Safari with Pencil, sketch `2x + 5 = 11` and steps. Submit — sympy validates final answer; feedback shown. Concept-map: draw 3 concepts + edge; toggle canonical hints; see ghosted suggestions. Re-ingest a textbook PDF — embedded figures now appear as inline thumbnails when the tutor cites pages that contain them.
 
 ---
 
