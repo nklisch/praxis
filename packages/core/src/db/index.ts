@@ -22,8 +22,12 @@ export interface OpenDbOptions {
 }
 
 /** Open (or return cached) Drizzle database. Idempotent within a process. */
-export function openDb(opts: OpenDbOptions = {}): { db: PraxisDb; path: string } {
-  if (cached && !opts.path) return { db: cached.db, path: cached.path };
+export function openDb(opts: OpenDbOptions = {}): {
+  db: PraxisDb;
+  path: string;
+  sqlite: Database.Database;
+} {
+  if (cached && !opts.path) return { db: cached.db, path: cached.path, sqlite: cached.sqlite };
 
   const path = opts.path ?? resolveDbPath();
   mkdirSync(dirname(path), { recursive: true });
@@ -40,7 +44,7 @@ export function openDb(opts: OpenDbOptions = {}): { db: PraxisDb; path: string }
   }
 
   if (!opts.path) cached = { sqlite, db, path };
-  return { db, path };
+  return { db, path, sqlite };
 }
 
 /** Close the cached connection. Test-only. */

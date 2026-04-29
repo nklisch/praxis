@@ -2,6 +2,7 @@ import type { IpcStreamMessage } from "@praxis/client";
 import type { CourseId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { ipcMain } from "electron";
+import { registerIngestHandlers } from "./ingest-channel.js";
 import type { Services } from "./services.js";
 
 /**
@@ -11,6 +12,10 @@ import type { Services } from "./services.js";
  *   invoke:  praxis.session.send.start  (with streamId as first arg)
  *   events:  praxis.session.send.events.<streamId>
  *   cancel:  praxis.session.send.cancel
+ *
+ *   invoke:  praxis.ingest.start (with streamId as first arg)
+ *   events:  praxis.ingest.events.<streamId>
+ *   cancel:  praxis.ingest.cancel
  */
 export function registerIpcHandlers(
   services: Services,
@@ -112,12 +117,41 @@ export function registerIpcHandlers(
     return services.config.setEngineConfig(config as any);
   });
 
+  // ── Documents ────────────────────────────────────────────────────────────
+
+  handle("praxis.documents.list", async () => {
+    return services.documents.list();
+  });
+
+  handle("praxis.documents.delete", async (_event, documentId: string) => {
+    return services.documents.delete(documentId);
+  });
+
+  handle(
+    "praxis.documents.pageImage",
+    async (_event, payload: { documentId: string; page: number }) => {
+      const buffer = await services.documents.pageImage(payload);
+      // Encode as base64 for IPC transport — Electron IPC can't send raw Buffers reliably
+      return buffer ? buffer.toString("base64") : null;
+    },
+  );
+
+  // ── Ingestion (streamed + non-streamed) ──────────────────────────────────
+
+  registerIngestHandlers(
+    services,
+    webContentsGetter,
+    services.ingestorRegistry,
+    activeAbortControllers,
+  );
+
   // Return unregister function.
   return () => {
     for (const { channel } of handlers) {
       ipcMain.removeHandler(channel);
     }
     ipcMain.removeAllListeners("praxis.session.send.cancel");
+    ipcMain.removeAllListeners("praxis.ingest.cancel");
     for (const ctrl of activeAbortControllers.values()) {
       ctrl.abort();
     }

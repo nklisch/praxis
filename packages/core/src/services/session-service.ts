@@ -235,15 +235,10 @@ export class SessionServiceImpl implements SessionService {
       services: {
         memory: null,
         artifacts: null,
-        // Phase 5 services — injected by Agent 3; cast here until ServiceDeps is updated.
-        // biome-ignore lint/suspicious/noExplicitAny: placeholder until Phase 5 wiring (Agent 3)
-        vectorStore: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: placeholder until Phase 5 wiring (Agent 3)
-        ftsStore: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: placeholder until Phase 5 wiring (Agent 3)
-        embeddings: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: placeholder until Phase 5 wiring (Agent 3)
-        documents: null as any,
+        vectorStore: this.deps.toolServices.vectorStore,
+        ftsStore: this.deps.toolServices.ftsStore,
+        embeddings: this.deps.toolServices.embeddings,
+        documents: this.deps.toolServices.documents,
         sandbox: this.deps.toolServices.sandbox,
         sympy: this.deps.toolServices.sympy,
         pedagogyPack: null,

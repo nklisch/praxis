@@ -1,4 +1,4 @@
-import type { PraxisClient, SessionId } from "@praxis/core/types";
+import type { PraxisClient, RetrievalCitation, SessionId } from "@praxis/core/types";
 import { useState } from "react";
 
 export interface ChatMessage {
@@ -6,6 +6,8 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   streaming?: boolean;
+  /** Citations from retrieve_from_textbook tool calls in this message. */
+  citations?: RetrievalCitation[];
 }
 
 export interface UseStreamedSendResult {
@@ -43,6 +45,9 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
 
     setIsStreaming(true);
     let finalContent = "";
+    // Track the most recent tool_call name so we know which tool_result to harvest
+    let lastToolCallName: string | null = null;
+    const accumulatedCitations: RetrievalCitation[] = [];
 
     try {
       for await (const event of client.session.send(sessionId, message)) {
@@ -62,6 +67,26 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
               m.id === assistantMsgId ? { ...m, content: finalContent, streaming: true } : m,
             ),
           );
+        } else if (event.type === "tool_call") {
+          // Track the tool name so we know what to expect in tool_result
+          lastToolCallName = event.toolName;
+        } else if (event.type === "tool_result") {
+          // Harvest citations from retrieve_from_textbook results
+          if (lastToolCallName === "retrieve_from_textbook" && event.result.ok) {
+            const value = event.result.value as { citations?: RetrievalCitation[] } | undefined;
+            if (value?.citations && Array.isArray(value.citations)) {
+              accumulatedCitations.push(...(value.citations as RetrievalCitation[]));
+            }
+          }
+          lastToolCallName = null;
+          // Update message with accumulated citations
+          if (accumulatedCitations.length > 0) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId ? { ...m, citations: [...accumulatedCitations] } : m,
+              ),
+            );
+          }
         } else if (event.type === "error") {
           setLastError(event.error.message);
           break;
@@ -72,7 +97,15 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     } finally {
       // Mark assistant message as done (no longer streaming).
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantMsgId ? { ...m, streaming: false } : m)),
+        prev.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                streaming: false,
+                ...(accumulatedCitations.length > 0 && { citations: [...accumulatedCitations] }),
+              }
+            : m,
+        ),
       );
       setIsStreaming(false);
     }

@@ -32,8 +32,10 @@ describe("mode registry", () => {
     expect(positions).toContain("postamble");
   });
 
-  it("teachMode toolNames includes grade_math and code_sandbox", () => {
-    expect(teachMode.toolNames).toEqual(["grade_math", "code_sandbox"]);
+  it("teachMode toolNames includes grade_math, code_sandbox and retrieve_from_textbook", () => {
+    expect(teachMode.toolNames).toContain("grade_math");
+    expect(teachMode.toolNames).toContain("code_sandbox");
+    expect(teachMode.toolNames).toContain("retrieve_from_textbook");
   });
 
   it("toolsFragment is between principles and constraints", () => {

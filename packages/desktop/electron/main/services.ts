@@ -1,19 +1,46 @@
+import { readEngineConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
+import { FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import type { ServiceDeps } from "@praxis/core/services";
-import { ConfigServiceImpl, SessionServiceImpl } from "@praxis/core/services";
+import {
+  ConfigServiceImpl,
+  DocumentsServiceImpl,
+  DrizzleDocumentsReader,
+  SessionServiceImpl,
+} from "@praxis/core/services";
 import { teachMode } from "@praxis/curriculum/modes";
+import { createEngine } from "@praxis/engines";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
-import { IsolatedVmHost, PyodideHost } from "@praxis/tools/runtime";
+import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
+import {
+  DocxIngestor,
+  EpubIngestor,
+  HtmlIngestor,
+  IngestorRegistry,
+  IsolatedVmHost,
+  JsPdfIngestor,
+  LocalEmbeddingService,
+  MarkdownIngestor,
+  PlainTextIngestor,
+  PyodideHost,
+  SqliteFtsStore,
+  SqliteVecStore,
+  VisionPdfIngestor,
+} from "@praxis/tools/runtime";
 import { codeSandboxTool, LocalCodeSandbox } from "@praxis/tools/sandbox";
 
 export interface Services {
   session: SessionServiceImpl;
   config: ConfigServiceImpl;
+  ingestion: IngestionService;
+  documents: DocumentsServiceImpl;
+  ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
+  embeddings: LocalEmbeddingService; // exposed so main can preload it
 }
 
 export function buildServices(dbPath: string): Services {
-  const { db } = openDb({ path: dbPath });
+  const { db, sqlite } = openDb({ path: dbPath });
 
   const log = {
     debug: (msg: string, meta?: object) => console.debug("[praxis]", msg, meta ?? ""),
@@ -22,25 +49,83 @@ export function buildServices(dbPath: string): Services {
     error: (msg: string, meta?: object) => console.error("[praxis]", msg, meta ?? ""),
   };
 
+  // Phase 4: Pyodide + sandbox
   const pyodide = new PyodideHost({ packages: ["sympy"] });
   const jsHost = new IsolatedVmHost();
   const sympy = new PyodideSymPyService(pyodide);
   const sandbox = new LocalCodeSandbox(jsHost, pyodide);
 
+  // Phase 5: vectors + FTS + embeddings + page images
+  const vectorStore = new SqliteVecStore(sqlite);
+  const ftsStore = new SqliteFtsStore(sqlite);
+  const embeddings = new LocalEmbeddingService();
+  const pageImageStore = new FsPageImageStore();
+  const documentsReader = new DrizzleDocumentsReader(db, pageImageStore);
+
+  // Vision resolver — looks up the active engine config at call time so swaps reflect immediately
+  const visionResolver = () => {
+    try {
+      const engineConfig = readEngineConfig(db);
+      const engine = createEngine({ config: engineConfig, deps: { log } });
+      return engine.vision;
+    } catch {
+      return undefined;
+    }
+  };
+
+  // Ingestor registry — all 7 ingestors
+  const ingestorRegistry = new IngestorRegistry([
+    new PlainTextIngestor(),
+    new MarkdownIngestor(),
+    new HtmlIngestor(),
+    new DocxIngestor(),
+    new EpubIngestor(),
+    new JsPdfIngestor(),
+    new VisionPdfIngestor({ visionResolver, pageImageStore }),
+  ]);
+
   const modes = new Map([[teachMode.id, teachMode]]);
-  const toolDefinitions = [gradeMathTool, codeSandboxTool];
+  const toolDefinitions = [gradeMathTool, codeSandboxTool, retrieveFromTextbookTool];
 
   const deps: ServiceDeps = {
     db,
     log,
     modes,
     toolDefinitions,
-    toolServices: { sympy, sandbox },
+    toolServices: {
+      sympy,
+      sandbox,
+      vectorStore,
+      ftsStore,
+      embeddings,
+      documents: documentsReader,
+    },
   };
+
+  const ingestion = new IngestionService({
+    db,
+    log,
+    vectorStore,
+    ftsStore,
+    embeddings,
+    ingestorRegistry,
+    pageImageStore,
+  });
+
+  const documentsService = new DocumentsServiceImpl({
+    db,
+    vectorStore,
+    ftsStore,
+    pageImageStore,
+  });
 
   return {
     session: new SessionServiceImpl(deps),
     config: new ConfigServiceImpl(deps),
+    ingestion,
+    documents: documentsService,
+    ingestorRegistry,
     pyodide,
+    embeddings,
   };
 }

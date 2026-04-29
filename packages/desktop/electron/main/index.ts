@@ -19,6 +19,11 @@ async function bootstrap(): Promise<void> {
     console.warn("[praxis] pyodide preload failed:", err);
   });
 
+  // Preload embedding model in the background so the first retrieval is fast.
+  services.embeddings.preload().catch((err) => {
+    console.warn("[praxis] embeddings preload failed:", err);
+  });
+
   mainWindow = createMainWindow();
 
   registerIpcHandlers(services, () => mainWindow?.webContents ?? null);

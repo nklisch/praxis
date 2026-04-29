@@ -20,6 +20,6 @@ export const teachMode: Mode = {
     constraintsFragment,
     postambleFragment,
   ],
-  toolNames: ["grade_math", "code_sandbox"],
+  toolNames: ["grade_math", "code_sandbox", "retrieve_from_textbook"],
   uiSurface: "chat",
 };
