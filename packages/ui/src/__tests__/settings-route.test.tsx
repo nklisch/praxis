@@ -1,5 +1,5 @@
 import type {
-  ArtifactsService,
+  ArtifactsClientSurface,
   AuthoringService,
   EngineConfigSnapshot,
   MemoryService,
@@ -19,7 +19,7 @@ function makeFakeClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisC
 
   return {
     session: {} as SessionService,
-    artifacts: {} as ArtifactsService,
+    artifacts: {} as ArtifactsClientSurface,
     author: {} as AuthoringService,
     memory: {} as MemoryService,
     config: {

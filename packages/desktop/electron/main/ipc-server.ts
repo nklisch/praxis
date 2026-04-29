@@ -1,5 +1,5 @@
 import type { IpcStreamMessage } from "@praxis/client";
-import type { CourseId } from "@praxis/core/types";
+import type { CourseId, StudentId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { ipcMain } from "electron";
 import { registerIngestHandlers } from "./ingest-channel.js";
@@ -144,6 +144,30 @@ export function registerIpcHandlers(
     services.ingestorRegistry,
     activeAbortControllers,
   );
+
+  // ── Artifacts (read-only) ────────────────────────────────────────────────
+
+  handle("praxis.artifacts.courses", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.artifacts.courses(studentId);
+  });
+
+  handle("praxis.artifacts.course", async (_event, courseId: string) => {
+    return services.artifacts.course(brandId<"CourseId">(courseId) as CourseId);
+  });
+
+  handle("praxis.artifacts.lessons", async (_event, courseId: string) => {
+    return services.artifacts.lessons(brandId<"CourseId">(courseId) as CourseId);
+  });
+
+  handle("praxis.artifacts.gates", async (_event, courseId: string) => {
+    return services.artifacts.gates(brandId<"CourseId">(courseId) as CourseId);
+  });
+
+  handle("praxis.artifacts.progress", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.artifacts.progress(studentId);
+  });
 
   // Return unregister function.
   return () => {

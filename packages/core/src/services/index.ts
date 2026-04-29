@@ -1,3 +1,7 @@
+export type { ArtifactsServiceDeps } from "./artifacts-service.js";
+export { ArtifactsServiceImpl } from "./artifacts-service.js";
+export type { BootstrapServiceDeps } from "./bootstrap-service.js";
+export { BootstrapServiceImpl } from "./bootstrap-service.js";
 export { ConfigServiceImpl } from "./config-service.js";
 export { DrizzleDocumentsReader } from "./documents-reader-impl.js";
 export type { DocumentsServiceDeps } from "./documents-service.js";

@@ -6,7 +6,9 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
     "./modes": "./src/modes/index.ts",
-    "./brief": "./src/brief/compose.ts"
+    "./brief": "./src/brief/compose.ts",
+    "./brief/course-context": "./src/brief/course-context.ts",
+    "./bootstrap": "./src/bootstrap/index.ts"
   },
   "scripts": {
     "build": "tsc -b",
@@ -15,6 +17,8 @@
   },
   "dependencies": {
     "@praxis/core": "workspace:*",
-    "drizzle-orm": "^0.36.0"
+    "@praxis/engines": "workspace:*",
+    "drizzle-orm": "^0.36.0",
+    "zod": "^4.0.0"
   }
 }

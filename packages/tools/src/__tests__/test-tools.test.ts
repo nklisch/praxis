@@ -8,7 +8,12 @@ const ctx: ToolContext = {
   sessionId: brandId<"SessionId">("session-1"),
   services: {
     memory: null,
-    artifacts: null,
+    // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in this test
+    artifacts: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in this test
+    bootstrap: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in this test
+    courseState: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 5 placeholder — not used in this test
     vectorStore: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 5 placeholder — not used in this test

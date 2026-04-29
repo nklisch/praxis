@@ -1,7 +1,11 @@
 import type { Mode } from "@praxis/core/types";
+import { bootstrapMode } from "./bootstrap.js";
 import { teachMode } from "./teach.js";
 
-const MODE_REGISTRY: ReadonlyMap<string, Mode> = new Map([[teachMode.id, teachMode]]);
+const MODE_REGISTRY: ReadonlyMap<string, Mode> = new Map([
+  [teachMode.id, teachMode],
+  [bootstrapMode.id, bootstrapMode],
+]);
 
 export function getMode(id: string): Mode | undefined {
   return MODE_REGISTRY.get(id);
@@ -17,4 +21,5 @@ export function listModes(): readonly Mode[] {
   return [...MODE_REGISTRY.values()];
 }
 
+export { bootstrapMode } from "./bootstrap.js";
 export { teachMode } from "./teach.js";

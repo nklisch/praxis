@@ -7,7 +7,7 @@
  * bundled by electron-vite. These tests validate the overall IPC protocol
  * contract without importing across the src/electron boundary.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // Mock electron
 vi.mock("electron", () => {

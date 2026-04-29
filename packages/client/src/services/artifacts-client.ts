@@ -1,44 +1,71 @@
 import type {
-  ArtifactsService,
+  ArtifactsClientSurface,
   ConceptId,
   ConceptMapDrawing,
   Course,
   CourseId,
+  CourseSummary,
   Flashcard,
   Gate,
+  Lesson,
   Note,
   ProgressSnapshot,
 } from "@praxis/core/types";
+import type { ClientTransport } from "../transport/types.js";
+
+/** Canonical channel names for the artifacts IPC surface. */
+const C = {
+  courses: "praxis.artifacts.courses",
+  course: "praxis.artifacts.course",
+  lessons: "praxis.artifacts.lessons",
+  gates: "praxis.artifacts.gates",
+  progress: "praxis.artifacts.progress",
+} as const;
+
 /**
- * ArtifactsClient — Phase 3 stub.
- * Full implementation deferred to Phase 6 (course/artifact loading).
+ * ArtifactsClient — Phase 6 real implementation.
+ * Replaces the Phase 3 stub. Backed by praxis.artifacts.* IPC channels.
+ *
+ * Implements the client-side ArtifactsService from @praxis/core/types/client.
+ * Write methods are server-side only (called by tools); this client is read-only.
+ * Unimplemented stubs (flashcards, notes, conceptMaps) return empty arrays;
+ * Phase 12 will wire those channels.
  */
-export class ArtifactsClient implements ArtifactsService {
-  course(_id: CourseId): Promise<Course> {
-    return Promise.reject(new Error("ArtifactsClient not implemented in Phase 3"));
+export class ArtifactsClient implements ArtifactsClientSurface {
+  constructor(private readonly transport: ClientTransport) {}
+
+  async course(id: CourseId): Promise<Course | null> {
+    return this.transport.invoke<Course | null>(C.course, id);
   }
 
-  courses(): Promise<Course[]> {
-    return Promise.reject(new Error("ArtifactsClient not implemented in Phase 3"));
+  courses(): Promise<CourseSummary[]> {
+    // Server resolves student from getDefaultStudentId (single-student v1).
+    return this.transport.invoke<CourseSummary[]>(C.courses);
   }
 
-  gates(_courseId: CourseId): Promise<Gate[]> {
-    return Promise.reject(new Error("ArtifactsClient not implemented in Phase 3"));
+  lessons(courseId: CourseId): Promise<Lesson[]> {
+    return this.transport.invoke<Lesson[]>(C.lessons, courseId);
+  }
+
+  gates(courseId: CourseId): Promise<Gate[]> {
+    return this.transport.invoke<Gate[]>(C.gates, courseId);
   }
 
   progress(): Promise<ProgressSnapshot> {
-    return Promise.reject(new Error("ArtifactsClient not implemented in Phase 3"));
+    // Server resolves student from getDefaultStudentId (single-student v1).
+    return this.transport.invoke<ProgressSnapshot>(C.progress);
   }
 
+  // Phase 12 territory — return empty stubs for now.
   flashcards(_opts?: { conceptId?: ConceptId; due?: boolean }): Promise<Flashcard[]> {
-    return Promise.reject(new Error("ArtifactsClient not implemented in Phase 3"));
+    return Promise.resolve([]);
   }
 
   notes(_opts?: { courseId?: CourseId }): Promise<Note[]> {
-    return Promise.reject(new Error("ArtifactsClient not implemented in Phase 3"));
+    return Promise.resolve([]);
   }
 
   conceptMaps(_courseId?: CourseId): Promise<ConceptMapDrawing[]> {
-    return Promise.reject(new Error("ArtifactsClient not implemented in Phase 3"));
+    return Promise.resolve([]);
   }
 }

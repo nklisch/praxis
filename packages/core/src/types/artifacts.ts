@@ -221,3 +221,109 @@ export interface DocumentArtifact {
 
 // Note: Citation is re-exported from common.ts via the types/index.ts barrel —
 // no explicit re-export needed here.
+
+// ─── Phase 6: Per-student progress ──────────────────────────────────────────
+
+export type LessonProgressStatus = "not_started" | "in_progress" | "completed";
+
+export interface LessonProgress {
+  studentId: StudentId;
+  lessonId: LessonId;
+  status: LessonProgressStatus;
+  startedAt?: Timestamp;
+  completedAt?: Timestamp;
+}
+
+export interface ConceptProgress {
+  studentId: StudentId;
+  conceptId: ConceptId;
+  studiedAt: Timestamp;
+  /** Episodic event IDs that produced this 'studied' marker — for back-reference. */
+  evidence: string[];
+}
+
+// ─── Phase 6: Bootstrap (extractor output / draft state) ─────────────────────
+
+/**
+ * The structured output of the concept-extractor agent. Pre-persistence shape:
+ * uses names (not IDs) for concepts and prerequisite edges so the user can
+ * rename/reorder freely before confirmation. ConfirmDraft assigns IDs.
+ */
+export interface ProposedCourse {
+  title: string;
+  subject: string;
+  gradeLevel: string;
+  thresholds: ThresholdConfig;
+  proposedConcepts: ProposedConcept[];
+  proposedEdges: ProposedEdge[];
+  proposedLessons: ProposedLesson[];
+}
+
+export interface ProposedLesson {
+  /** Stable within the draft; reassigned at confirm time. */
+  draftLessonId: string;
+  title: string;
+  /** Names referencing ProposedConcept.name. Order matters within a lesson. */
+  conceptNames: string[];
+  references: Reference[];
+  suggestedStrategy: StrategyId;
+  estimatedMinutes: number;
+}
+
+/**
+ * In-memory draft state held by BootstrapService. Identifies the draft and
+ * carries the editable shape the user is iterating on.
+ */
+export interface DraftCourseState {
+  draftId: string;
+  studentId: StudentId;
+  documentIds: DocumentId[];
+  proposed: ProposedCourse;
+  createdAt: Timestamp;
+  lastTouchedAt: Timestamp;
+  expiresAt: Timestamp;
+}
+
+/** Compact summary returned by `course.propose_draft` to keep tool output small. */
+export interface DraftSummary {
+  draftId: string;
+  title: string;
+  lessonCount: number;
+  conceptCount: number;
+  edgeCount: number;
+  /** First 5 lessons for the agent to narrate. */
+  firstLessons: Array<{ title: string; conceptCount: number }>;
+}
+
+// ─── Phase 6: Draft edit operations (used by course.edit_draft) ───────────────
+
+export type DraftEditOp =
+  | { kind: "rename-course"; title: string }
+  | { kind: "rename-lesson"; lessonIndex: number; title: string }
+  | { kind: "reorder-lessons"; newOrder: number[] }
+  | { kind: "remove-lesson"; lessonIndex: number }
+  | { kind: "add-lesson"; afterIndex: number; title: string; conceptNames: string[] }
+  | { kind: "rename-concept"; conceptName: string; newName: string }
+  | { kind: "remove-concept"; conceptName: string }
+  | {
+      kind: "add-concept";
+      lessonIndex: number;
+      name: string;
+      description: string;
+      afterConceptIndex?: number;
+    }
+  | { kind: "set-thresholds"; thresholds: ThresholdConfig };
+
+// ─── Phase 6: Course summary (for list views) ─────────────────────────────────
+
+export interface CourseSummary {
+  courseId: CourseId;
+  title: string;
+  subject: string;
+  gradeLevel: string;
+  lessonCount: number;
+  conceptCount: number;
+  /** Studied / total — derived from concept_progress. */
+  studiedConcepts: number;
+  createdAt: Timestamp;
+}

@@ -1,6 +1,16 @@
 import type { z } from "zod";
-import type { Logger } from "./common.js";
-import type { SessionId, StudentId } from "./ids.js";
+import type {
+  Course,
+  CourseSummary,
+  DraftCourseState,
+  DraftEditOp,
+  DraftSummary,
+  Gate,
+  Lesson,
+} from "./artifacts.js";
+import type { ProgressSnapshot } from "./client.js";
+import type { Logger, Timestamp } from "./common.js";
+import type { ConceptId, CourseId, DocumentId, LessonId, SessionId, StudentId } from "./ids.js";
 
 export type EffectKind =
   | "memory.write"
@@ -27,20 +37,105 @@ export interface ToolDefinition<I extends z.ZodType, O extends z.ZodType> {
 export interface ToolContext {
   studentId: StudentId;
   sessionId: SessionId;
+  /** Phase 6: when the active session was started with a courseId, propagated here. */
+  courseId?: CourseId;
   services: ToolServices;
   log: Logger;
 }
 
 export interface ToolServices {
   memory: unknown; // MemoryService — concrete in Phase 7
-  artifacts: unknown; // ArtifactsService — concrete in Phase 6
+  /** Phase 6: concretized from unknown. */
+  artifacts: ArtifactsService;
   vectorStore: VectorStore; // ← Phase 5
   ftsStore: FtsStore; // ← Phase 5
   sandbox: CodeSandbox; // ← Phase 4
   sympy: SymPyService; // ← Phase 4
   embeddings: EmbeddingService; // ← Phase 5
   documents: DocumentsReader; // ← Phase 5
+  /** Phase 6: bootstrap draft management. */
+  bootstrap: BootstrapService;
+  /** Phase 6: narrow read-only course state for tools and brief composition. */
+  courseState: CourseStateReader;
   pedagogyPack: unknown; // PedagogyPackService — concrete in Phase 14
+}
+
+// ─── Phase 6: ArtifactsService ───────────────────────────────────────────────
+
+export interface ArtifactsService {
+  course(id: CourseId): Promise<Course | null>;
+  courses(studentId: StudentId): Promise<CourseSummary[]>;
+  lessons(courseId: CourseId): Promise<Lesson[]>;
+  gates(courseId: CourseId): Promise<Gate[]>;
+  progress(studentId: StudentId): Promise<ProgressSnapshot>;
+  markLessonStarted(input: { studentId: StudentId; lessonId: LessonId }): Promise<void>;
+  markConceptStudied(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    evidenceEventId?: string;
+  }): Promise<{ lessonComplete: boolean; lessonId: LessonId | null }>;
+  /** Phase 6: list ingested documents for bootstrap's list_documents tool. */
+  listDocuments(studentId: StudentId): Promise<DocumentSummaryItem[]>;
+}
+
+export interface DocumentSummaryItem {
+  documentId: DocumentId;
+  filename: string;
+  mimeType: string;
+  chunkCount: number;
+  hasPageImages: boolean;
+}
+
+// ─── Phase 6: CourseStateReader ───────────────────────────────────────────────
+
+export interface CourseStateReader {
+  /**
+   * Resolve the active course's current lesson and concept-status map.
+   * Returns null when courseId is invalid for this student.
+   */
+  read(input: { studentId: StudentId; courseId: CourseId }): Promise<CourseStateSnapshot | null>;
+}
+
+export interface CourseStateSnapshot {
+  course: Course;
+  lessons: Lesson[]; // ordered by orderIndex
+  currentLesson: Lesson | null; // first non-completed lesson, or null if all done
+  /** All concepts touched by the course's lessons, with study status. */
+  conceptsByLesson: Map<LessonId, ConceptStateRow[]>;
+  /** Quick index for ToolContext consumers. */
+  conceptsById: Map<ConceptId, ConceptStateRow>;
+}
+
+export interface ConceptStateRow {
+  conceptId: ConceptId;
+  name: string;
+  description: string;
+  studied: boolean;
+  studiedAt?: Timestamp;
+  lessonId: LessonId;
+}
+
+// ─── Phase 6: BootstrapService ────────────────────────────────────────────────
+
+export interface BootstrapService {
+  proposeDraft(
+    input: ProposeDraftInput,
+  ): Promise<{ draft: DraftCourseState; summary: DraftSummary }>;
+  showDraft(draftId: string): Promise<DraftCourseState | null>;
+  editDraft(input: { draftId: string; op: DraftEditOp }): Promise<DraftCourseState>;
+  confirmDraft(input: {
+    draftId: string;
+    studentId: StudentId;
+  }): Promise<{ courseId: CourseId; lessonIds: LessonId[]; conceptGraphId: string }>;
+  discardDraft(draftId: string): Promise<void>;
+}
+
+export interface ProposeDraftInput {
+  studentId: StudentId;
+  documentIds: DocumentId[];
+  courseTitle: string;
+  subject: string;
+  gradeLevel: string;
 }
 
 // ─── EmbeddingService ────────────────────────────────────────────────────────

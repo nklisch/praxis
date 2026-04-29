@@ -1,4 +1,5 @@
 import { composeSystemPrompt } from "@praxis/curriculum/brief";
+import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
 import { createEngine } from "@praxis/engines";
 import { sessions } from "@praxis/memory/schema";
 import { InProcessToolRegistry } from "@praxis/tools";
@@ -18,6 +19,7 @@ import type {
   SessionId,
   SessionService,
   SessionSummary,
+  StudentId,
   Timestamp,
   ToolContext,
 } from "../types/index.js";
@@ -78,6 +80,7 @@ export class SessionServiceImpl implements SessionService {
       mode,
       studentId,
       priorTurns: [], // brand new session
+      ...(opts.courseId !== undefined && { courseId: opts.courseId }),
     });
 
     return {
@@ -130,6 +133,9 @@ export class SessionServiceImpl implements SessionService {
         mode,
         studentId,
         priorTurns,
+        ...(sessionRow.courseId !== null && {
+          courseId: brandId<"CourseId">(sessionRow.courseId),
+        }),
       });
     }
 
@@ -222,19 +228,42 @@ export class SessionServiceImpl implements SessionService {
     mode: Mode;
     studentId: string;
     priorTurns: ConversationTurn[];
+    courseId?: CourseId;
   }): Promise<ActiveEntry> {
     const engineConfig = readEngineConfig(this.deps.db);
     const factory = this.deps.engineFactory ?? ((c, d) => createEngine({ config: c, deps: d }));
     const engine = factory(engineConfig, { log: this.deps.log });
 
-    const systemPrompt = composeSystemPrompt({ mode: args.mode });
+    // Phase 6: inject course-context override when a courseId is set.
+    let overrides: ReadonlyMap<string, string> | undefined;
+
+    if (args.courseId && this.deps.toolServices.courseState) {
+      const snapshot = await this.deps.toolServices.courseState.read({
+        studentId: args.studentId as StudentId,
+        courseId: args.courseId,
+      });
+      if (snapshot) {
+        const fragment = composeCourseContextFragment(snapshot);
+        // Use the overrides map so the existing "context.course-state" fragment
+        // (which is customizable: true) is replaced by the dynamic course content.
+        overrides = new Map([[fragment.id, fragment.template]]);
+      }
+    }
+
+    const systemPrompt = composeSystemPrompt({
+      mode: args.mode,
+      ...(overrides !== undefined && { overrides }),
+    });
 
     const toolContext: ToolContext = {
       studentId: args.studentId as ToolContext["studentId"],
       sessionId: args.sessionId as ToolContext["sessionId"],
+      ...(args.courseId !== undefined && { courseId: args.courseId }),
       services: {
         memory: null,
-        artifacts: null,
+        artifacts: this.deps.toolServices.artifacts, // ← Phase 6
+        bootstrap: this.deps.toolServices.bootstrap, // ← Phase 6
+        courseState: this.deps.toolServices.courseState, // ← Phase 6
         vectorStore: this.deps.toolServices.vectorStore,
         ftsStore: this.deps.toolServices.ftsStore,
         embeddings: this.deps.toolServices.embeddings,

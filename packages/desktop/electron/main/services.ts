@@ -3,13 +3,17 @@ import { openDb } from "@praxis/core/db";
 import { FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import type { ServiceDeps } from "@praxis/core/services";
 import {
+  ArtifactsServiceImpl,
+  BootstrapServiceImpl,
   ConfigServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
+  getOrCreateDefaultStudentId,
   SessionServiceImpl,
 } from "@praxis/core/services";
-import { teachMode } from "@praxis/curriculum/modes";
+import { bootstrapMode, teachMode } from "@praxis/curriculum/modes";
 import { createEngine } from "@praxis/engines";
+import { COURSE_TOOLS } from "@praxis/tools/course";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
 import {
@@ -34,9 +38,13 @@ export interface Services {
   config: ConfigServiceImpl;
   ingestion: IngestionService;
   documents: DocumentsServiceImpl;
+  artifacts: ArtifactsServiceImpl; // ← Phase 6: exposed for IPC handlers
+  bootstrap: BootstrapServiceImpl; // ← Phase 6: exposed for shutdown
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
+  /** Returns the default student ID for the single-student v1 install. */
+  getDefaultStudentId: () => string;
 }
 
 export function buildServices(dbPath: string): Services {
@@ -73,6 +81,22 @@ export function buildServices(dbPath: string): Services {
     }
   };
 
+  // Phase 6: ArtifactsServiceImpl (reads + progress writes)
+  const artifactsService = new ArtifactsServiceImpl({ db, log });
+
+  // Phase 6: Bootstrap engine resolver — same pattern as visionResolver above.
+  // Looks up the active engine at call time so engine swaps reflect immediately.
+  const bootstrapEngineResolver = () => {
+    const engineConfig = readEngineConfig(db);
+    return createEngine({ config: engineConfig, deps: { log } });
+  };
+
+  const bootstrapService = new BootstrapServiceImpl({
+    db,
+    log,
+    engineResolver: bootstrapEngineResolver,
+  });
+
   // Ingestor registry — all 7 ingestors
   const ingestorRegistry = new IngestorRegistry([
     new PlainTextIngestor(),
@@ -84,8 +108,17 @@ export function buildServices(dbPath: string): Services {
     new VisionPdfIngestor({ visionResolver, pageImageStore }),
   ]);
 
-  const modes = new Map([[teachMode.id, teachMode]]);
-  const toolDefinitions = [gradeMathTool, codeSandboxTool, retrieveFromTextbookTool];
+  const modes = new Map([
+    [teachMode.id, teachMode],
+    [bootstrapMode.id, bootstrapMode], // ← Phase 6
+  ]);
+
+  const toolDefinitions = [
+    gradeMathTool,
+    codeSandboxTool,
+    retrieveFromTextbookTool,
+    ...COURSE_TOOLS, // ← Phase 6
+  ];
 
   const deps: ServiceDeps = {
     db,
@@ -99,6 +132,9 @@ export function buildServices(dbPath: string): Services {
       ftsStore,
       embeddings,
       documents: documentsReader,
+      artifacts: artifactsService, // ← Phase 6
+      bootstrap: bootstrapService, // ← Phase 6
+      courseState: artifactsService, // same instance implements both interfaces
     },
   };
 
@@ -124,8 +160,11 @@ export function buildServices(dbPath: string): Services {
     config: new ConfigServiceImpl(deps),
     ingestion,
     documents: documentsService,
+    artifacts: artifactsService,
+    bootstrap: bootstrapService,
     ingestorRegistry,
     pyodide,
     embeddings,
+    getDefaultStudentId: () => getOrCreateDefaultStudentId(db),
   };
 }

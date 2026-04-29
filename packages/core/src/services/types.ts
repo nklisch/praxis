@@ -2,7 +2,10 @@ import type { z } from "zod";
 import type { EngineConfig } from "../config/index.js";
 import type { PraxisDb } from "../db/index.js";
 import type {
+  ArtifactsService,
+  BootstrapService,
   CodeSandbox,
+  CourseStateReader,
   DocumentsReader,
   EmbeddingService,
   Engine,
@@ -21,7 +24,7 @@ export interface ServiceDeps {
   toolDefinitions: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
   /**
    * Concrete tool services injected into ToolContext for handlers.
-   * Phase 5 adds vectorStore, ftsStore, embeddings, documents.
+   * Phase 6 adds artifacts, bootstrap, courseState.
    */
   toolServices: {
     sympy: SymPyService;
@@ -30,6 +33,12 @@ export interface ServiceDeps {
     ftsStore: FtsStore;
     embeddings: EmbeddingService;
     documents: DocumentsReader;
+    /** Phase 6: concrete artifacts read/write service. */
+    artifacts: ArtifactsService;
+    /** Phase 6: bootstrap draft management. */
+    bootstrap: BootstrapService;
+    /** Phase 6: narrow course-state reader (ArtifactsServiceImpl implements both). */
+    courseState: CourseStateReader;
   };
   /**
    * Factory for constructing an Engine from a config. Optional — when omitted,

@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const courses = sqliteTable(
   "courses",
@@ -163,6 +163,41 @@ export const documentChunks = sqliteTable(
   }),
 );
 
+// ─── Phase 6: Per-student progress tables ────────────────────────────────────
+
+export const lessonProgress = sqliteTable(
+  "lesson_progress",
+  {
+    studentId: text("student_id").notNull(),
+    lessonId: text("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["not_started", "in_progress", "completed"] }).notNull(),
+    startedAt: integer("started_at", { mode: "timestamp_ms" }),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.studentId, t.lessonId] }),
+    studentIdx: index("lesson_progress_student_idx").on(t.studentId),
+  }),
+);
+
+export const conceptProgress = sqliteTable(
+  "concept_progress",
+  {
+    studentId: text("student_id").notNull(),
+    // FK to concepts.id (in @praxis/curriculum); cross-package FK omitted to keep schema modular.
+    // Both schemas compose into the same SQLite file; cleanup is handled programmatically.
+    conceptId: text("concept_id").notNull(),
+    studiedAt: integer("studied_at", { mode: "timestamp_ms" }).notNull(),
+    evidenceJson: text("evidence_json", { mode: "json" }).notNull(), // string[] of event IDs
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.studentId, t.conceptId] }),
+    studentIdx: index("concept_progress_student_idx").on(t.studentId),
+  }),
+);
+
 /**
  * Aggregate export so the DB module can spread all artifact tables into the
  * Drizzle schema map.
@@ -177,4 +212,6 @@ export const artifactsSchema = {
   conceptMapDrawings,
   documents,
   documentChunks,
+  lessonProgress, // ← Phase 6
+  conceptProgress, // ← Phase 6
 };

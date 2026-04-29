@@ -16,7 +16,7 @@ import type { ClientTransport } from "./transport/types.js";
 export function createPraxisClient(transport: ClientTransport): PraxisClient {
   return {
     session: new SessionClient(transport),
-    artifacts: new ArtifactsClient(),
+    artifacts: new ArtifactsClient(transport),
     author: new AuthoringClient(),
     memory: new MemoryClient(),
     config: new ConfigClient(transport),

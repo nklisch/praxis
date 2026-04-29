@@ -21,12 +21,13 @@ describe("mode registry", () => {
     expect(modes.some((m) => m.id === "teach")).toBe(true);
   });
 
-  it("teachMode has all 6 prompt fragments (including tools)", () => {
-    expect(teachMode.promptFragments).toHaveLength(6);
+  it("teachMode has all 7 prompt fragments (including tools + course-context)", () => {
+    expect(teachMode.promptFragments).toHaveLength(7);
     const positions = teachMode.promptFragments.map((f) => f.position);
     expect(positions).toContain("preamble");
     expect(positions).toContain("role");
     expect(positions).toContain("principles");
+    expect(positions).toContain("context"); // Phase 6: course-context fragment
     expect(positions).toContain("tools");
     expect(positions).toContain("constraints");
     expect(positions).toContain("postamble");

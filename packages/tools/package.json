@@ -9,7 +9,8 @@
     "./sandbox": "./src/sandbox/index.ts",
     "./runtime": "./src/runtime/index.ts",
     "./runtime/ingestion": "./src/runtime/ingestion/index.ts",
-    "./retrieval": "./src/retrieval/index.ts"
+    "./retrieval": "./src/retrieval/index.ts",
+    "./course": "./src/course/index.ts"
   },
   "scripts": {
     "build": "tsc -b",

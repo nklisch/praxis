@@ -1,4 +1,13 @@
-import type { ConceptMapDrawing, Course, DraftCourse, Flashcard, Gate, Note } from "./artifacts.js";
+import type {
+  ConceptMapDrawing,
+  Course,
+  CourseSummary,
+  DraftCourse,
+  Flashcard,
+  Gate,
+  Lesson,
+  Note,
+} from "./artifacts.js";
 import type { TimeRange, Timestamp } from "./common.js";
 import type { EngineEvent } from "./engine.js";
 import type { ConceptId, CourseId, GateId, SessionId, StudentId } from "./ids.js";
@@ -14,7 +23,7 @@ import type {
 
 export interface PraxisClient {
   session: SessionService;
-  artifacts: ArtifactsService;
+  artifacts: ArtifactsClientSurface;
   author: AuthoringService;
   memory: MemoryService;
   config: ConfigService;
@@ -45,9 +54,21 @@ export interface SessionSummary {
   reflection?: string;
 }
 
-export interface ArtifactsService {
-  course(id: CourseId): Promise<Course>;
-  courses(): Promise<Course[]>;
+/**
+ * Client-side artifacts surface — read-only UI interface.
+ * Phase 6: courses() returns CourseSummary[] (cheaper list view);
+ * full Course is fetched per-id via course(id). Added lessons(courseId).
+ *
+ * Note: this is the client-facing interface. The server-side service
+ * (ArtifactsService in tool.ts) has studentId parameters since the server
+ * handles multi-tenant concerns. The client always operates as the default
+ * student (single-student v1).
+ */
+export interface ArtifactsClientSurface {
+  course(id: CourseId): Promise<Course | null>;
+  /** Returns summaries for the list view. Full Course fetched per-id via course(id). */
+  courses(): Promise<CourseSummary[]>;
+  lessons(courseId: CourseId): Promise<Lesson[]>;
   gates(courseId: CourseId): Promise<Gate[]>;
   progress(): Promise<ProgressSnapshot>;
   flashcards(opts?: { conceptId?: ConceptId; due?: boolean }): Promise<Flashcard[]>;

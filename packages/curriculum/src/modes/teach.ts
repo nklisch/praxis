@@ -1,5 +1,6 @@
 import type { Mode } from "@praxis/core/types";
 import { constraintsFragment } from "./fragments/constraints.js";
+import { courseContextFragmentDefault } from "./fragments/course-context.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
@@ -17,9 +18,18 @@ export const teachMode: Mode = {
     roleFragment,
     principlesFragment,
     toolsFragment,
+    courseContextFragmentDefault, // ← Phase 6: replaced at session start when courseId is set
     constraintsFragment,
     postambleFragment,
   ],
-  toolNames: ["grade_math", "code_sandbox", "retrieve_from_textbook"],
+  toolNames: [
+    "grade_math",
+    "code_sandbox",
+    "retrieve_from_textbook",
+    "course.what_can_i_teach", // ← Phase 6 nav tools
+    "course.start_lesson",
+    "course.current_concept",
+    "course.mark_studied",
+  ],
   uiSurface: "chat",
 };

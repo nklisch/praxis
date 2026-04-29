@@ -21,6 +21,15 @@ export interface ComposeBriefInput {
 export interface ComposeSystemPromptInput {
   mode: Mode;
   overrides?: ReadonlyMap<string, string>;
+  /**
+   * Phase 6: additional fragments computed at session start (e.g. course-context,
+   * lock-indicator, memory-inspector). Sorted-in by position alongside the mode's
+   * own fragments. Phase 11 will pass multiple fragments here.
+   *
+   * If an additional fragment shares an id with a mode fragment, it is NOT
+   * automatically de-duplicated — use the overrides map to replace by id instead.
+   */
+  additionalFragments?: ReadonlyArray<PromptFragment>;
 }
 
 const FRAGMENT_ORDER: ReadonlyArray<PromptFragment["position"]> = [
@@ -47,7 +56,8 @@ export function composeSystemPrompt(input: ComposeSystemPromptInput): string {
       throw new Error(`Fragment "${id}" is not customizable and cannot be overridden`);
     }
   }
-  const sorted = [...input.mode.promptFragments].sort(
+  const all = [...input.mode.promptFragments, ...(input.additionalFragments ?? [])];
+  const sorted = all.sort(
     (a, b) => FRAGMENT_ORDER.indexOf(a.position) - FRAGMENT_ORDER.indexOf(b.position),
   );
   return sorted.map((f) => overrides.get(f.id) ?? f.template).join("\n\n");
