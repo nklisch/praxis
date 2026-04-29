@@ -1,55 +1,75 @@
-# Design: Phase 3 — UI Shell + IPC Transport + Chat (Multi-Turn)
+# Design: Phase 3 — UI Shell + IPC Transport + Multi-Turn Chat
+
+> **Revision history**
+> - **v1** (e404785) — initial design with stateless engines + transcript-prefix history workaround
+> - **v2** (this) — engine lifecycle (`open` / `send` / `close`); native SDK multi-turn for Claude Code + Codex; framework as unified surface, runtimes own their loops
 
 ## Overview
 
 Phase 3 closes the loop: a real Electron app where a student opens the desktop window, types into a chat, and watches a streamed tutor response — multi-turn, with the agent fully aware of the conversation so far. The same vertical slice runs against any of the three Phase 2 engines, selected from a settings UI.
 
+**The core architectural decision in v2:** engines are no longer single-call stateless. We replace `Engine.run(brief, tools)` with a session lifecycle: `engine.open(opts) → EngineSession`, then `session.send(userMessage)` per turn, then `session.close()`. Claude Code uses the SDK's `Conversation` natively; Codex uses `Thread` natively; the Direct adapter (Vercel AI SDK) holds an in-memory `messages[]` since the underlying API is stateless. The framework provides the unified `EngineSession` surface and records every event to episodic; the runtimes own their internal multi-turn behavior including prompt caching.
+
 This phase lands four things:
 
-1. **Real multi-turn conversation.** The agent sees the full prior conversation on every turn. Brief composition reads conversation history from episodic, threads it through to each engine adapter via `Brief.priorTurns`, and each adapter translates to its native conversation format. The framework owns history; engines stay stateless across `run()` calls per the contract.
-2. **`@praxis/client`** — typed PraxisClient surface plus an `IpcTransport` for Electron and a typed-stub `WebSocketTransport` (Phase 15 will fill in the latter).
+1. **Engine lifecycle contract.** `Engine.open(...) → EngineSession`. SDK-native multi-turn for Claude Code + Codex (cache hits, full tool-call fidelity); messages-array multi-turn for Direct. The framework is a unified surface; the runtimes do what they were built to do.
+2. **`@praxis/client`** — typed PraxisClient surface plus an `IpcTransport` for Electron and a typed-stub `WebSocketTransport` (Phase 15 fills the latter in).
 3. **`@praxis/desktop`** — Electron main + preload + IPC server. Routes IPC channels to service implementations in `@praxis/core`. Loads the `@praxis/ui` renderer in a BrowserWindow.
-4. **`@praxis/ui`** — Vite + React 19 + TanStack Router shell. Two routes: `/` (chat) and `/settings` (engine selection + per-engine config). CSS Modules for styling. Streamed assistant messages render token-by-token.
+4. **`@praxis/ui`** — Vite + React 19 + TanStack Router shell. Two routes: `/` (chat) and `/settings` (engine selection). CSS Modules. Streamed assistant messages render token-by-token.
 
 After Phase 3, `pnpm dev` opens an Electron window. The user types; the assistant streams back; the conversation continues across turns with full memory; the engine can be switched in settings without restarting; the entire transcript persists to SQLite as immutable episodic events. **Integration milestone M1** is reached: UI → IPC → core → engine → response → episodic → display, working across all three adapters.
 
 **What ships:**
 
-- Type contract additions: `EngineEvent.user_message` variant, `Brief.priorTurns?`, `ConversationTurn` type
-- `@praxis/core/session` additions: `recordUserMessage`, `loadConversationHistory`, `nextTurnIndex`, `SessionServiceImpl`, `ConfigServiceImpl`
-- `@praxis/curriculum/brief`: `composeBrief` accepts `priorTurns`
-- `@praxis/engines/{direct,claude-code,codex}/adapter.ts`: each consumes `brief.priorTurns` and threads to its native API
-- `@praxis/client`: types, `ClientTransport` interface, `IpcTransport`, `WebSocketTransport` (stub), `createPraxisClient(transport)`
-- `@praxis/desktop`: Electron main, preload, BrowserWindow management, IPC server, app lifecycle, `pnpm dev` orchestration via electron-vite
-- `@praxis/ui`: React 19 + TanStack Router (code-based) shell, `ChatRoute`, `SettingsRoute`, `RootLayout`, `mountPraxisApp(el, { client })` bootstrap
+- Type contract changes: `Engine.open(...) → EngineSession`, new `EngineSession` interface, new `EngineOpenOptions` type, `EngineEvent.user_message` variant, new `ConversationTurn` type
+- Phase 2 adapter rewrites (lifecycle pattern) + Phase 2 conformance suite updated to use lifecycle (with a `runOneShot` convenience wrapper for the single-turn case)
+- `scripts/run-session.ts` updated to use lifecycle
+- `@praxis/core/session` additions: `recordUserMessage`, `loadConversationHistory`, `nextTurnIndex`
+- `@praxis/core/services`: `SessionServiceImpl` (manages active EngineSessions in memory, detects engine swap, closes/reopens) + `ConfigServiceImpl`
+- `@praxis/curriculum/brief`: `composeBrief` produces `{systemPrompt, userMessage}`; new `composeSystemPrompt(mode, overrides?)` factored out for session-open use
+- `@praxis/client`: typed RPC, `IpcTransport`, `WebSocketTransport` stub, `createPraxisClient(transport)`
+- `@praxis/desktop`: electron-vite scaffolding, main + preload + window + IPC server
+- `@praxis/ui`: React 19 shell + TanStack Router (code-based) + ChatRoute + SettingsRoute + components, CSS Modules
 - Root `pnpm dev` script
 
 **What does not ship (later phases):**
 
-- Multi-student install (one student-of-record stored in `config_kv`)
+- Multi-student install (one student per install via `config_kv` singleton)
 - Lock-code gating (Phase 11)
 - Course / lesson context loading (Phase 6)
-- Authoring UI (Phase 11)
-- Memory inspector (Phase 11)
-- Real conversation summarization for very-long contexts (the priorTurns array goes to the model verbatim; truncation is a Phase 7 concern)
+- Authoring / memory inspector UIs (Phase 11)
+- Conversation summarization for very-long contexts (Phase 7)
 - Native installer / packaging (Phase 15)
+
+## Why the lifecycle (rationale)
+
+Phase 2's contract: *"Engines are stateless across `run()` calls."* That was the right call when Phase 2 had only single-turn — statelessness was free. With multi-turn in Phase 3, statelessness has a real cost:
+
+- **Claude Code SDK's `Conversation`** caches the system prompt + history through Anthropic's prompt cache. Rebuilding fresh per turn = zero cache hits. For a 20-turn session: ~5–10× cost, ~2–3× latency.
+- **Codex SDK's `Thread`** holds structured items (`mcp_tool_call`, `command_execution`, `agent_message`). Flattening to a text transcript loses the structure entirely.
+- **Tool-call fidelity** matters for the agent. If it called a tool last turn, the next turn's reasoning should see what it called and what came back — not a third-person summary.
+
+The lifecycle pattern lets each runtime do what it was built to do (Conversation, Thread) while the framework keeps a unified surface and a normalized episodic record. The Direct adapter, whose underlying API actually is stateless, holds its messages array in memory — the same shape as the lifecycle, just implemented differently.
+
+**Engine swap mid-session** is the only case where the lifecycle hits a "rebuild from history" path: when the user changes engines in Settings, the framework closes the old `EngineSession`, opens a new one on the new engine, and seeds it with `priorTurns` loaded from episodic. The new adapter's first send may include a transcript prefix (Claude Code / Codex) or a pre-populated messages array (Direct), and from that point on it's native multi-turn again.
 
 ## Scope and assumptions
 
-- **Multi-turn is non-negotiable.** Every `client.session.send()` reads conversation history from episodic, packages it as `priorTurns`, and the engine sees it. An agent that forgets between turns of the same session would be a fundamental product break for a tutor — this design rules it out.
-- **Engines remain stateless across `run()` calls** per CONTRACT.md. We do **not** rely on Claude Code SDK's internal session persistence or Codex's `resumeThread`; instead, every adapter rebuilds the conversation from the `Brief.priorTurns` we hand it. This preserves the productization invariant and keeps the framework as the single source of truth for memory.
-- **History fidelity = text turns.** `ConversationTurn` for Phase 3 is `{ role: "user" | "assistant", content: string }`. The assistant content for a multi-step turn is the concatenation of all final (non-partial) `model_message` events from that turn, joined with `"\n"`. Tool calls within a turn are not separately re-injected into the history (the agent sees the textual outcome, which is normally enough). Tool-call replay is a Phase 7 refinement.
-- **Default-student singleton.** Phase 3 has one student per install. The studentId is stored under `config_kv` key `"default_student_id"` — generated on first launch as a UUIDv7, never rotated. Multi-student selection is much later.
-- **Default course = none.** Phase 3 sessions have no `courseId`. The `SessionService.start({ modeId: "teach" })` signature drops the required `courseId` (an additive contract change — `courseId` becomes optional). All Phase 1 / Phase 2 code that looks at `courseId` already treats it as optional at the storage layer.
-- **Active-session resume**: the desktop window always starts with no active session. `client.session.active()` returns `null` on launch. A "New chat" button (or the chat opening fresh) creates a session via `client.session.start()`. Mid-session window restart loses the in-memory current session pointer; the episodic is intact and could be resumed via a UI affordance later, but Phase 3 keeps it simple.
-- **Settings scope**: engine selection (`engineId`) plus per-engine fields (`model`, `apiKey`, `baseUrl`). Save writes through `ConfigService.setEngineConfig()` which calls `writeEngineConfig()` from Phase 2. Changes take effect on the next `session.start()`.
-- **Electron security**: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. The renderer never sees `ipcRenderer`; it sees only `window.praxis`, a thin object exposed via `contextBridge.exposeInMainWorld()` from preload.
-- **Build tool**: `electron-vite` (5.x). Single config bundles main + preload + renderer; HMR for the renderer; works downstream with `electron-builder` (Phase 15) without changes.
-- **React 19** + **TanStack Router 1.x** (code-based routes; no file-based generator). React 19 is current; TanStack Router code-based avoids the file-based generator's build step which doesn't add value at 2 routes.
-- **Styling**: CSS Modules. Co-located `<Component>.module.css` files. No utility framework; explicit, scoped, vite-native.
-- **No Playwright / E2E in Phase 3**. The test checkpoint is "open the app and type" — a manual verification. Automated tests cover the IPC server, conversation history, multi-turn engine behavior, and the React components in isolation.
+- **Multi-turn is non-negotiable.** Tutor sessions are inherently conversational; an agent that forgets between turns of the same session would be a fundamental product break.
+- **Engines own per-Praxis-session state** through `EngineSession`. The framework holds the active `EngineSession` in memory, keyed by Praxis sessionId. Process restart drops the in-memory map; the next `send()` re-opens the session by reading episodic — episodic remains source of truth.
+- **Episodic stays authoritative** as the cross-engine normalized record (used by indexers, UI playback, memory projections). Native SDK sessions are a *performance + fidelity layer* on top — used when present, rebuilt from episodic when absent.
+- **History fidelity for rebuilds = text turns.** When seeding a freshly-opened session with `priorTurns`, the history is text-only (`{ role, content }` pairs). Tool-call replay isn't part of the contract — re-running them would change behavior, and most rebuild scenarios (engine swap, restart) are rare. Phase 7 may upgrade fidelity if needed.
+- **Default-student singleton.** Phase 3 has one student per install. The studentId is stored under `config_kv` key `"default_student_id"` — generated on first launch as a UUIDv7, never rotated.
+- **Default course = none.** `SessionService.start({ modeId: "teach" })` doesn't require `courseId` (additive contract change — `courseId` becomes optional).
+- **Active-session resume**: the desktop window always starts fresh on launch; `client.session.active()` returns `null` until a session is started. A "New chat" button creates a new session.
+- **Settings scope**: engine selection (`engineId`) plus per-engine fields (`model`, `apiKey`, `baseUrl`). Save writes through `ConfigService.setEngineConfig()`. Engine swap is detected on the next `send()`.
+- **Electron security**: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. Renderer sees only `window.praxis`, exposed via `contextBridge.exposeInMainWorld()`.
+- **Build tool**: `electron-vite` 5.x.
+- **React 19** + **TanStack Router 1.x** (code-based routes; no file-based generator).
+- **Styling**: CSS Modules, co-located.
+- **No Playwright / E2E** in Phase 3 — manual verification for the test checkpoint.
 
-## Dependency direction (Phase 3 confirms and respects)
+## Dependency direction (Phase 3)
 
 ```
 @praxis/desktop                          (electron, electron-vite, React renderer entry)
@@ -64,12 +84,13 @@ After Phase 3, `pnpm dev` opens an Electron window. The user types; the assistan
   ├─ runtime: nothing from @praxis/* (only browser/Node primitives)
   └─ type-only: @praxis/core/types
 
-@praxis/core                             (Phase 3 additions: services, session history, user-msg)
+@praxis/core                             (Phase 3 additions: services, session history)
   ├─ existing: @praxis/artifacts, @praxis/memory, @praxis/curriculum
   └─ Phase 3 NEW exports: ./services (SessionServiceImpl, ConfigServiceImpl)
+                          (uses @praxis/engines + @praxis/tools at runtime — see CLAUDE.md exception)
 
-@praxis/engines                          (Phase 3 additions: priorTurns plumbing per adapter)
-  └─ unchanged direction; each adapter reads brief.priorTurns
+@praxis/engines                          (Phase 3 changes: lifecycle pattern)
+  └─ unchanged direction; adapters implement Engine.open() returning EngineSession
 ```
 
 The renderer never imports `@praxis/core` at runtime. The IPC bridge is the only crossing point. Both deployment shapes (local Electron, future hosted) reuse the same `@praxis/client` surface — only the transport implementation changes.
@@ -78,26 +99,28 @@ The renderer never imports `@praxis/core` at runtime. The IPC bridge is the only
 
 ## Implementation Units
 
-### Unit 1: Type contract additions for multi-turn
+### Unit 1: Engine lifecycle contract
 
-**File**: `packages/core/src/types/engine.ts`, `packages/core/src/types/conversation.ts` (new)
-
-Three additive changes (no breaking renames or removals):
+**Files**:
+- `packages/core/src/types/engine.ts` (modified — replaces `Engine.run` with `Engine.open`)
+- `packages/core/src/types/conversation.ts` (new — `ConversationTurn`)
+- `packages/core/src/types/index.ts` (modified — re-export)
+- `packages/core/src/types/client.ts` (modified — `courseId` optional, `EngineConfigSnapshot`)
+- `docs/CONTRACT.md` (modified — `## Engine adapter contract` section rewritten)
 
 ```typescript
 // packages/core/src/types/conversation.ts (NEW)
 
 /**
- * One side of a conversation turn, in chronological order. The framework
- * projects these from episodic events and threads them through Brief.priorTurns
- * on every engine.run(). Engines remain stateless across runs — they consume
- * priorTurns to reconstruct context per call.
+ * One side of a conversation turn, in chronological order. Used to seed an
+ * EngineSession when rebuilding from episodic (engine swap, process restart).
  *
- * Phase 3: text-only fidelity. Assistant content for a multi-step turn is the
- * concatenation of all final model_message contents in that turn, joined with
- * "\n". Tool calls and results within a turn are not re-injected into history;
- * the agent sees the assistant's final textual response. Phase 7 may upgrade
- * fidelity (replaying tool exchanges) when needed.
+ * Phase 3 fidelity: text-only. Assistant content for a multi-step turn is the
+ * concatenation of all final (non-partial) model_message contents in that
+ * turn, joined with "\n". Tool calls within turns are not re-injected when
+ * seeding — the agent sees the assistant's final textual response. Adequate
+ * because rebuilds are rare; native multi-turn (the common case) preserves
+ * full fidelity through the SDK.
  */
 export interface ConversationTurn {
   role: "user" | "assistant";
@@ -106,45 +129,145 @@ export interface ConversationTurn {
 ```
 
 ```typescript
-// packages/core/src/types/engine.ts — modified
+// packages/core/src/types/engine.ts — REWRITTEN
 
-import type { ConversationTurn } from "./conversation.js";  // NEW import
+import type { GenerationParams, TokenUsage } from "./common.js";
+import type { ConversationTurn } from "./conversation.js";
 
-export interface Brief {
+/**
+ * Options for opening a multi-turn engine session. The systemPrompt and tools
+ * are fixed for the lifetime of the session. priorTurns seeds the session
+ * when continuing an existing conversation (engine swap, process restart);
+ * adapters use them to bootstrap their internal state. On the first turn of
+ * a brand new conversation, priorTurns is undefined or empty.
+ */
+export interface EngineOpenOptions {
   systemPrompt: string;
-  userMessage: string;
-  context: BriefContext;
-  /**
-   * Conversation turns from earlier in the session, in chronological order
-   * (oldest first). Does NOT include the current turn — `userMessage` is the
-   * current turn's user input. Engine adapters thread this through to native
-   * conversation APIs.
-   */
-  priorTurns?: ConversationTurn[];  // NEW
+  tools: ToolRegistry;
+  /** When set, the session is being re-opened with prior context to restore. */
+  priorTurns?: ConversationTurn[];
+  /** Per-turn maximum step count (looped engines) or model calls (single-shot). */
   maxSteps?: number;
   generation?: GenerationParams;
 }
 
+/**
+ * A multi-turn engine session. Adapters wrap their SDK's native conversation
+ * primitive (Conversation for Claude Code, Thread for Codex) or hold an
+ * in-memory messages array (Direct). The framework holds one EngineSession
+ * per Praxis session and calls `.send()` per user turn.
+ */
+export interface EngineSession {
+  /**
+   * Stable session identifier for diagnostics. May match the SDK's native
+   * session id (e.g., Claude Code's sessionId, Codex's thread id) when
+   * applicable, or be a synthesized UUID for adapters without native ids.
+   */
+  readonly id: string;
+
+  /**
+   * Send one user message; yield engine events; resolves when the engine's
+   * internal loop completes for this turn. Subsequent calls continue the same
+   * conversation — the adapter's underlying SDK preserves history natively
+   * (Claude Code, Codex) or via an in-memory messages array (Direct).
+   */
+  send(userMessage: string): AsyncIterable<EngineEvent>;
+
+  /**
+   * Tear down the underlying SDK session, MCP bridge subprocess, etc.
+   * Idempotent. Called by the framework when ending a Praxis session OR
+   * when swapping engines mid-session.
+   */
+  close(): Promise<void>;
+}
+
+export interface Engine {
+  /** Identifier for diagnostics and selection. e.g. "claude-code", "codex", "direct.anthropic". */
+  readonly id: string;
+
+  /**
+   * Engine category. Affects how the framework constrains options.
+   * - "looped": engine runs its own internal loop until done per `send`.
+   * - "single-shot": engine answers per model call; framework orchestrates the loop within `send`.
+   */
+  readonly kind: "looped" | "single-shot";
+
+  /**
+   * Open a multi-turn session. Async because adapters may need to spawn
+   * subprocesses (MCP tool bridge), open SDK conversations, or perform other
+   * setup that can fail. Throws on failure — the caller (SessionServiceImpl)
+   * surfaces the error to the user before any send is attempted.
+   */
+  open(opts: EngineOpenOptions): Promise<EngineSession>;
+
+  /** Health check / capability probe. Used at session start. */
+  health(): Promise<HealthStatus>;
+}
+
+// Existing interfaces below — UNCHANGED from Phase 2:
+
+export interface ToolRegistry {
+  list(): ToolDefinitionSummary[];
+  dispatch(name: string, args: unknown): Promise<ToolResult>;
+}
+
+export interface ToolDefinitionSummary {
+  name: string;
+  description: string;
+  inputSchemaJson: unknown;
+  inputSchemaNative?: unknown;
+  tier: "deterministic" | "grounded" | "model-derived";
+}
+
+export type ToolResult =
+  | { ok: true; value: unknown; tier: "deterministic" | "grounded" | "model-derived" }
+  | { ok: false; error: { code: string; message: string; recoverable: boolean } };
+
 export type EngineEvent =
-  | { type: "user_message"; content: string }                        // NEW
+  | { type: "user_message"; content: string }    // NEW in Phase 3 — framework-emitted, never adapter-emitted
   | { type: "model_message"; content: string; partial?: boolean }
   | { type: "tool_call"; toolName: string; args: unknown; callId: string }
   | { type: "tool_result"; callId: string; result: ToolResult }
   | { type: "thinking"; content: string }
   | { type: "error"; error: EngineError }
   | { type: "final"; usage: TokenUsage };
+
+export interface EngineError {
+  code: string;
+  message: string;
+  recoverable: boolean;
+  cause?: unknown;
+}
+
+export interface HealthStatus {
+  ok: boolean;
+  detail?: string;
+  capabilities: {
+    vision: boolean;
+    streaming: boolean;
+    nativeMCP: boolean;
+    contextWindow: number;
+  };
+}
+```
+
+> **Removed from Phase 2 contract**: the `Engine.run(brief, tools)` method. `Brief` becomes a curriculum-side composition concern (system prompt + user message); the engine no longer accepts the full Brief. This is a **breaking change** to Phase 2's contract — Phase 2 ships without UI, so the only consumers are the Phase 2 conformance suite, the `scripts/run-session.ts` script, and Phase 2's per-adapter unit tests. Unit 4 below provides a `runOneShot(engine, ...)` convenience wrapper that lets these continue testing single-turn behavior without per-test ceremony.
+
+```typescript
+// packages/core/src/types/index.ts (modified)
+export type * from "./conversation.js";  // NEW
+// existing re-exports unchanged
 ```
 
 ```typescript
-// packages/core/src/types/index.ts — modified to re-export
-export type * from "./conversation.js";
-```
+// packages/core/src/types/client.ts — modified subset
 
-```typescript
-// packages/core/src/types/client.ts — modified
+import type { Timestamp } from "./common.js";
+import type { CourseId, GateId, SessionId } from "./ids.js";
+import type { EngineEvent } from "./engine.js";
 
 export interface SessionService {
-  // courseId becomes optional for Phase 3 (no courses yet).
+  // courseId is optional in Phase 3 (no courses yet).
   start(opts: { courseId?: CourseId; modeId: string }): Promise<SessionHandle>;
   send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent>;
   end(sessionId: SessionId): Promise<SessionSummary>;
@@ -153,29 +276,25 @@ export interface SessionService {
 
 export interface SessionHandle {
   sessionId: SessionId;
-  courseId?: CourseId;  // NEW: optional in Phase 3
+  courseId?: CourseId;  // optional per above
   modeId: string;
   startedAt: Timestamp;
 }
 
-export interface ConfigService {
-  isLocked(): Promise<boolean>;
-  setLockCode(code: string): Promise<void>;
-  unlock(code: string): Promise<{ ok: boolean }>;
-  selectedEngine(): Promise<string>;
-  setSelectedEngine(engineId: string): Promise<void>;
-  // Phase 3 additions:
-  engineConfig(): Promise<EngineConfig>;
-  setEngineConfig(config: EngineConfig): Promise<void>;
+export interface SessionSummary {
+  sessionId: SessionId;
+  endedAt: Timestamp;
+  unlockedGates: GateId[];
+  newMisconceptions: number;
+  reflection?: string;
 }
-```
 
-`EngineConfig` is imported from `@praxis/core/config` — NOT from `@praxis/core/types`. The `ConfigService` interface in `client.ts` will need an import of the type. Since `client.ts` is in `core/types/` and `config/schema.ts` lives in `core/config/`, we either inline the type or accept the cross-folder import. **Choose inline**: redeclare the relevant subset as `EngineConfigSnapshot` to keep `client.ts` free of reaching into other core subfolders.
-
-Final shape:
-
-```typescript
-// In client.ts:
+/**
+ * Snapshot view of EngineConfig for the client surface. Mirrors EngineConfig
+ * in @praxis/core/config without forcing client.ts to reach into other core
+ * subfolders for a Zod-derived type. SessionServiceImpl validates against
+ * EngineConfigSchema before persisting.
+ */
 export interface EngineConfigSnapshot {
   engineId: string;
   model?: string;
@@ -190,36 +309,133 @@ export interface ConfigService {
   unlock(code: string): Promise<{ ok: boolean }>;
   selectedEngine(): Promise<string>;
   setSelectedEngine(engineId: string): Promise<void>;
+  // Phase 3 additions:
   engineConfig(): Promise<EngineConfigSnapshot>;
   setEngineConfig(config: EngineConfigSnapshot): Promise<void>;
 }
-```
 
-The `SessionServiceImpl` (Unit 4) cross-validates the snapshot against `EngineConfigSchema` from `@praxis/core/config` before persisting.
+// PraxisClient, ArtifactsService, AuthoringService, MemoryService — unchanged
+```
 
 **Implementation Notes**:
 
-- `EngineEvent.user_message` is **emitted only by the framework**, never by an engine. Engine adapters never produce it. Document this in a JSDoc comment on the variant.
-- `Brief.priorTurns` is optional. When undefined or empty, adapters behave exactly as in Phase 2 (single-turn).
-- `SessionHandle.courseId` becoming optional is additive; existing Phase 2 code already treated it as optional at the DB layer (the `sessions.courseId` column is nullable).
-- Update `docs/CONTRACT.md` `## Engine adapter contract` and `## Client RPC contract` sections to reflect the new fields.
+- The `Engine.open` signature is async because spawning the MCP bridge subprocess and opening the SDK conversation are async; failures (bad config, missing CLI binary, bad API key) surface as a thrown error at open time, not silently at first send.
+- `EngineEvent.user_message` is **emitted only by the framework** (specifically `SessionServiceImpl.send`), never by an engine. Documented on the type. It exists so the immutable transcript captures both sides of the conversation in episodic.
+- `ConversationTurn` is text-only by design. When rebuilding a session from episodic on engine swap, we serialize the prior assistant turns as their final textual content. Tool-call replay would change behavior (re-running tools is wrong) and is unnecessary for rebuilds.
+- `SessionHandle.courseId` becoming optional is additive; the `sessions.courseId` column is already nullable.
+- Update `docs/CONTRACT.md` `## Engine adapter contract` section to reflect the lifecycle (Engine.open + EngineSession). Remove the `Brief` type entirely from the contract section — it's a curriculum implementation detail now.
 
 **Acceptance Criteria**:
-- [ ] `Brief.priorTurns` typechecks as `ConversationTurn[] | undefined`.
-- [ ] `EngineEvent` discriminated union includes `user_message` variant; existing usages of `EngineEvent` still typecheck unchanged (no narrowing breaks because the new variant is appended).
+- [ ] `Engine.open(opts): Promise<EngineSession>` is the new contract.
+- [ ] `EngineSession.send(userMessage): AsyncIterable<EngineEvent>` and `EngineSession.close(): Promise<void>` are defined.
+- [ ] `EngineEvent` discriminated union includes `user_message` variant; existing usages still typecheck unchanged.
 - [ ] `SessionService.start({ modeId: "teach" })` typechecks with no `courseId`.
 - [ ] `ConfigService` includes both legacy methods and `engineConfig` / `setEngineConfig`.
-- [ ] Existing Phase 1/2 tests still pass; the `ToolDefinitionSummary.test-d.ts` file (if present) is unchanged.
-- [ ] `docs/CONTRACT.md` is updated with the new fields.
+- [ ] `docs/CONTRACT.md` is rewritten to describe the lifecycle.
 
 ---
 
-### Unit 2: Conversation history helpers in `@praxis/core/session`
+### Unit 2: `composeBrief` simplification + `composeSystemPrompt` factor-out
 
-**Files**:
+**File**: `packages/curriculum/src/brief/compose.ts` (modified)
+
+The lifecycle moves history into engine session state, so `Brief.priorTurns` (in v1 of this design) is gone. `composeBrief` produces a per-turn brief; `composeSystemPrompt` produces just the system prompt for session-open use.
+
+```typescript
+import type { BriefContext, GenerationParams, Mode, PromptFragment } from "@praxis/core/types";
+
+export interface ComposedBrief {
+  systemPrompt: string;
+  userMessage: string;
+  context: BriefContext;
+  generation?: GenerationParams;
+  maxSteps?: number;
+}
+
+export interface ComposeBriefInput {
+  mode: Mode;
+  userMessage: string;
+  context?: Partial<BriefContext>;
+  overrides?: ReadonlyMap<string, string>;
+  generation?: GenerationParams;
+  maxSteps?: number;
+}
+
+export interface ComposeSystemPromptInput {
+  mode: Mode;
+  overrides?: ReadonlyMap<string, string>;
+}
+
+const FRAGMENT_ORDER: ReadonlyArray<PromptFragment["position"]> = [
+  "preamble",
+  "role",
+  "principles",
+  "tools",
+  "context",
+  "constraints",
+  "postamble",
+];
+
+/** Build only the system prompt — used by SessionServiceImpl.open(). */
+export function composeSystemPrompt(input: ComposeSystemPromptInput): string {
+  const overrides = input.overrides ?? new Map<string, string>();
+  for (const [id] of overrides) {
+    const target = input.mode.promptFragments.find((f) => f.id === id);
+    if (!target) continue;
+    if (!target.customizable) {
+      throw new Error(`Fragment "${id}" is not customizable and cannot be overridden`);
+    }
+  }
+  const sorted = [...input.mode.promptFragments].sort(
+    (a, b) => FRAGMENT_ORDER.indexOf(a.position) - FRAGMENT_ORDER.indexOf(b.position),
+  );
+  return sorted.map((f) => overrides.get(f.id) ?? f.template).join("\n\n");
+}
+
+/**
+ * Build a complete one-shot brief: system prompt + user message + context.
+ * Used by `runOneShot` and any future single-turn paths. The lifecycle path
+ * (SessionServiceImpl) uses `composeSystemPrompt` directly.
+ */
+export function composeBrief(input: ComposeBriefInput): ComposedBrief {
+  const systemPrompt = composeSystemPrompt({
+    mode: input.mode,
+    ...(input.overrides !== undefined && { overrides: input.overrides }),
+  });
+  return {
+    systemPrompt,
+    userMessage: input.userMessage,
+    context: {
+      retrievedChunks: input.context?.retrievedChunks ?? [],
+      ...(input.context?.studentSummary !== undefined && { studentSummary: input.context.studentSummary }),
+      artifactRefs: input.context?.artifactRefs ?? [],
+    },
+    ...(input.generation !== undefined && { generation: input.generation }),
+    ...(input.maxSteps !== undefined && { maxSteps: input.maxSteps }),
+  };
+}
+```
+
+> Note: Phase 2's `Brief` type from `@praxis/core/types/engine.ts` is removed in Unit 1. The `ComposedBrief` interface here is curriculum-local (not part of the cross-package type contract). Its shape is identical to the old `Brief` minus `priorTurns`.
+
+**Implementation Notes**:
+- `composeSystemPrompt` is the primary surface for the lifecycle path. `composeBrief` wraps it for legacy single-turn use cases.
+- `Brief` is no longer a cross-package type; it's a curriculum implementation detail. Engine adapters take `EngineOpenOptions` (system prompt) and a user message string — they don't need the whole brief.
+
+**Acceptance Criteria**:
+- [ ] `composeSystemPrompt({ mode: teachMode })` returns the joined fragment templates in order.
+- [ ] Override of a non-customizable fragment throws.
+- [ ] `composeBrief({ mode, userMessage: "hi" })` returns `{ systemPrompt, userMessage, context }` with empty context arrays.
+- [ ] `composeBrief` and `composeSystemPrompt` produce the same `systemPrompt` value for the same mode + overrides.
+
+---
+
+### Unit 3: Conversation history helpers in `@praxis/core/session`
+
+**Files** (unchanged from v1):
 - `packages/core/src/session/history.ts` (new)
 - `packages/core/src/session/episodic.ts` (modified — add `nextTurnIndex`, `recordUserMessage`)
-- `packages/core/src/session/index.ts` (re-export new helpers)
+- `packages/core/src/session/index.ts` (re-export)
 - `packages/core/src/__tests__/history.test.ts` (new)
 
 **`packages/core/src/session/episodic.ts` additions**:
@@ -228,9 +444,7 @@ The `SessionServiceImpl` (Unit 4) cross-validates the snapshot against `EngineCo
 import { eq, max } from "drizzle-orm";
 
 /**
- * Return the next turn index for a session — `max(turnIndex) + 1`, or 0 if
- * the session has no events yet. Used by SessionServiceImpl to assign
- * monotonically-increasing turn numbers as the user sends messages.
+ * Next turn index for a session — `max(turnIndex) + 1`, or 0 if no events yet.
  */
 export function nextTurnIndex(db: PraxisDb, sessionId: string): number {
   const row = db
@@ -242,11 +456,6 @@ export function nextTurnIndex(db: PraxisDb, sessionId: string): number {
   return current === null ? 0 : current + 1;
 }
 
-/**
- * Record a user_message episodic event. Called by SessionServiceImpl before
- * dispatching to the engine — the user's input is part of the immutable
- * transcript, not a side input that vanishes after the turn.
- */
 export interface RecordUserMessageInput {
   db: PraxisDb;
   sessionId: string;
@@ -258,6 +467,10 @@ export interface RecordUserMessageInput {
   ts?: Date;
 }
 
+/**
+ * Append a user_message episodic event. The user's input is part of the
+ * immutable transcript — recorded BEFORE handing off to the engine session.
+ */
 export function recordUserMessage(input: RecordUserMessageInput): string {
   return appendEpisodic({
     db: input.db,
@@ -286,14 +499,13 @@ export interface LoadConversationHistoryInput {
 }
 
 /**
- * Read all (non-redacted) episodic events for a session, in chronological
- * order, and project to ConversationTurn[]. Each turn (turnIndex value)
- * yields one user turn (from its user_message event) followed by one
- * assistant turn (from concatenated model_message contents) IF the turn
- * actually produced assistant output. Turns containing only an `error`
- * event yield no assistant turn for that index — the model never spoke.
+ * Read all (non-redacted) episodic events for a session and project to
+ * ConversationTurn[]. Each turnIndex contributes one user turn (from its
+ * user_message event) followed by one assistant turn (from concatenated
+ * non-partial model_message contents) if assistant output exists.
  *
- * Pure read — does not mutate. Safe to call from any worker.
+ * Used by SessionServiceImpl when opening (or re-opening) an EngineSession
+ * with prior context — engine swap, process restart.
  */
 export function loadConversationHistory(input: LoadConversationHistoryInput): ConversationTurn[] {
   const rows = input.db
@@ -303,32 +515,25 @@ export function loadConversationHistory(input: LoadConversationHistoryInput): Co
     .orderBy(asc(episodicEvents.turnIndex), asc(episodicEvents.ts))
     .all();
 
-  // Group by turnIndex.
   const byTurn = new Map<number, EngineEvent[]>();
   for (const row of rows) {
-    if (row.redactedAt) continue; // skip redacted projections
+    if (row.redactedAt) continue;
     const evt = row.eventJson as EngineEvent;
     const list = byTurn.get(row.turnIndex);
     if (list) list.push(evt);
     else byTurn.set(row.turnIndex, [evt]);
   }
 
-  const orderedTurnIndices = [...byTurn.keys()].sort((a, b) => a - b);
   const turns: ConversationTurn[] = [];
-
-  for (const turnIdx of orderedTurnIndices) {
+  for (const turnIdx of [...byTurn.keys()].sort((a, b) => a - b)) {
     const events = byTurn.get(turnIdx);
     if (!events) continue;
 
-    // User message first.
-    const userEvent = events.find((e): e is Extract<EngineEvent, { type: "user_message" }> =>
-      e.type === "user_message",
+    const userEvent = events.find(
+      (e): e is Extract<EngineEvent, { type: "user_message" }> => e.type === "user_message",
     );
-    if (userEvent) {
-      turns.push({ role: "user", content: userEvent.content });
-    }
+    if (userEvent) turns.push({ role: "user", content: userEvent.content });
 
-    // Assistant message: concat all FINAL (non-partial) model_message contents.
     const assistantParts = events
       .filter(
         (e): e is Extract<EngineEvent, { type: "model_message" }> =>
@@ -342,92 +547,61 @@ export function loadConversationHistory(input: LoadConversationHistoryInput): Co
 
   return turns;
 }
-
-/**
- * Look up the most recent (still-open) session for a student, or return
- * undefined if none. "Open" means `endedAt` is null. Used by
- * SessionServiceImpl.active().
- */
-export function findActiveSession(db: PraxisDb, studentId: string) {
-  // Implementation in `packages/core/src/session/active.ts` — see Unit 4.
-}
 ```
 
-**Implementation Notes**:
-
-- The history loader sorts by `(turnIndex ASC, ts ASC)` — this gives chronological order within and across turns.
-- `redactedAt` events are skipped. Phase 3 doesn't redact anything but the helper respects the flag for forward-compat.
-- Concatenating non-partial `model_message` contents handles the multi-step case: when an agent responds, optionally calls a tool, responds again, the assistant turn captures the full final text. Partials (streaming deltas) are excluded — they were duplicated into a final non-partial event by the adapter.
-- The function is pure and read-only — easy to unit-test against a seeded DB.
+**Implementation Notes**: same as v1 — sort by `(turnIndex ASC, ts ASC)`, skip redacted, concat non-partial model_message events for assistant turns.
 
 **Acceptance Criteria**:
 - [ ] `nextTurnIndex` returns 0 on a session with no events; returns `max+1` after events exist.
-- [ ] `recordUserMessage` writes an episodic row with `eventJson.type === "user_message"` and the correct content/turnIndex.
-- [ ] `loadConversationHistory` on a session with one full turn (user_message + model_message + final) returns `[{role:"user",content:"X"}, {role:"assistant",content:"Y"}]`.
-- [ ] Multi-step turn: user_message + 2× model_message (non-partial) + tool_call + tool_result + model_message + final → returns the user turn plus an assistant turn whose content is `"first\nsecond\nthird"` (or whatever was emitted), excluding partials.
-- [ ] Turn with only an error event (no model_message) yields just the user turn (no orphan assistant turn).
-- [ ] Turns are ordered by `turnIndex ASC` regardless of ts ordering quirks.
-- [ ] Redacted events (`redactedAt != null`) are skipped.
+- [ ] `recordUserMessage` writes an episodic row with `eventJson.type === "user_message"`.
+- [ ] `loadConversationHistory` projects single-turn (user + final model_message) to a 2-element ConversationTurn array.
+- [ ] Multi-step turn with multiple non-partial model_messages concatenates with `"\n"`.
+- [ ] Turns containing only an error event yield only the user turn (no orphan assistant).
+- [ ] Redacted events are skipped.
 
 ---
 
-### Unit 3: Brief composition with `priorTurns`
-
-**File**: `packages/curriculum/src/brief/compose.ts` (modified)
-
-```typescript
-export interface ComposeBriefInput {
-  mode: Mode;
-  userMessage: string;
-  context?: Partial<BriefContext>;
-  overrides?: ReadonlyMap<string, string>;
-  generation?: GenerationParams;
-  maxSteps?: number;
-  /**
-   * Conversation turns from earlier in the session, oldest first. Threaded
-   * straight into Brief.priorTurns. Does NOT include the current user turn —
-   * that's `userMessage`.
-   */
-  priorTurns?: ConversationTurn[];  // NEW
-}
-
-export function composeBrief(input: ComposeBriefInput): Brief {
-  // ... existing fragment ordering / override logic unchanged ...
-
-  return {
-    systemPrompt: sections.join("\n\n"),
-    userMessage: input.userMessage,
-    context: {
-      retrievedChunks: input.context?.retrievedChunks ?? [],
-      ...(input.context?.studentSummary !== undefined && { studentSummary: input.context.studentSummary }),
-      artifactRefs: input.context?.artifactRefs ?? [],
-    },
-    ...(input.priorTurns !== undefined && input.priorTurns.length > 0 && { priorTurns: input.priorTurns }),
-    ...(input.maxSteps !== undefined && { maxSteps: input.maxSteps }),
-    ...(input.generation !== undefined && { generation: input.generation }),
-  };
-}
-```
-
-**Implementation Notes**:
-- `priorTurns` only appears in the returned `Brief` if non-empty (per `exactOptionalPropertyTypes`).
-- No fragment-level handling — fragments don't see priorTurns; engines do. Modes can't customize how priorTurns is presented because each adapter handles it natively.
-
-**Acceptance Criteria**:
-- [ ] `composeBrief({ mode, userMessage: "hi", priorTurns: [...] })` returns a Brief whose `priorTurns` matches.
-- [ ] `composeBrief({ mode, userMessage: "hi" })` returns a Brief with no `priorTurns` field.
-- [ ] `composeBrief({ mode, userMessage: "hi", priorTurns: [] })` returns a Brief with no `priorTurns` field (empty arrays normalized away).
-
----
-
-### Unit 4: Engine adapter updates for `priorTurns`
+### Unit 4: Engine adapter rewrites — lifecycle implementations
 
 **Files**:
-- `packages/engines/src/direct/adapter.ts` (modified)
-- `packages/engines/src/claude-code/adapter.ts` (modified)
-- `packages/engines/src/codex/adapter.ts` (modified)
-- `packages/engines/src/util/transcript.ts` (new — shared transcript serializer)
-- `packages/engines/src/__tests__/{direct,claude-code,codex}.test.ts` (extend with priorTurns tests)
+- `packages/engines/src/types.ts` (modified — re-export EngineSession types, add `runOneShot` helper)
+- `packages/engines/src/util/transcript.ts` (new — for Claude Code / Codex priorTurns seeding)
+- `packages/engines/src/direct/adapter.ts` (rewritten — `DirectEngine` + `DirectEngineSession`)
+- `packages/engines/src/direct/events.ts` (minor change — extract assistant content for messages array)
+- `packages/engines/src/claude-code/adapter.ts` (rewritten — `ClaudeCodeEngine` + `ClaudeCodeEngineSession`)
+- `packages/engines/src/codex/adapter.ts` (rewritten — `CodexEngine` + `CodexEngineSession`)
+- `packages/engines/src/__tests__/{direct,claude-code,codex}.test.ts` (rewritten for lifecycle)
+- `packages/engines/src/__tests__/transcript.test.ts` (new)
+- `tests/engine-conformance.test.ts` (updated — uses `runOneShot`)
+- `tests/helpers/{mock-cc-stream,mock-codex-stream,mock-vercel-stream}.ts` (unchanged — they mock the SDKs not the adapter shape)
+
+**`packages/engines/src/types.ts`**:
+
+```typescript
+import type { Engine, EngineEvent, EngineOpenOptions, Logger, ToolRegistry } from "@praxis/core/types";
+
+export interface EngineDeps {
+  log: Logger;
+}
+
+/**
+ * Convenience wrapper for single-turn use cases (test scripts, conformance
+ * suite). Opens an engine session, sends one message, drains the stream,
+ * closes the session. Equivalent to old Phase 2 `engine.run(brief, tools)`.
+ */
+export async function* runOneShot(
+  engine: Engine,
+  opts: EngineOpenOptions,
+  userMessage: string,
+): AsyncGenerator<EngineEvent, void, void> {
+  const session = await engine.open(opts);
+  try {
+    yield* session.send(userMessage);
+  } finally {
+    await session.close();
+  }
+}
+```
 
 **`packages/engines/src/util/transcript.ts`** (new):
 
@@ -435,167 +609,480 @@ export function composeBrief(input: ComposeBriefInput): Brief {
 import type { ConversationTurn } from "@praxis/core/types";
 
 /**
- * Serialize prior conversation turns into a plain-text transcript that can be
- * prepended to a single user message. Used by adapters whose underlying SDK
- * does not accept a structured message array (Claude Code via createConversation,
- * Codex via Thread). The Direct adapter does NOT use this — it threads turns
- * natively into the Vercel AI SDK messages array.
- *
- * Format:
- *
- *   Earlier in this conversation:
- *
- *   User: <prior user 1>
- *   Tutor: <prior assistant 1>
- *   User: <prior user 2>
- *   Tutor: <prior assistant 2>
- *
- *   Current message:
- *
- *   <current user message>
+ * Serialize prior conversation turns into a plain-text transcript for adapters
+ * whose SDK doesn't accept structured history when opening a fresh session.
+ * Used by ClaudeCodeEngineSession and CodexEngineSession only when seeding
+ * with priorTurns (engine swap, process restart). Subsequent turns benefit
+ * from the SDK's native multi-turn — the transcript prefix appears only on
+ * the first send after open.
  */
-export function buildTranscriptPrefix(
-  priorTurns: ReadonlyArray<ConversationTurn>,
-  currentUserMessage: string,
-): string {
-  if (priorTurns.length === 0) return currentUserMessage;
-  const lines = ["Earlier in this conversation:", ""];
+export function buildTranscriptPreface(priorTurns: ReadonlyArray<ConversationTurn>): string {
+  if (priorTurns.length === 0) return "";
+  const lines = ["[Continuing this conversation from earlier:]", ""];
   for (const turn of priorTurns) {
     const label = turn.role === "user" ? "User" : "Tutor";
     lines.push(`${label}: ${turn.content}`);
   }
-  lines.push("", "Current message:", "", currentUserMessage);
+  lines.push("", "[Now continuing — please respond to the next user message.]", "");
   return lines.join("\n");
 }
 ```
 
-**`packages/engines/src/direct/adapter.ts`** — modified `run()` to thread priorTurns natively:
+**`packages/engines/src/direct/adapter.ts`** (rewritten):
 
 ```typescript
-import type { ModelMessage } from "ai";
+import { streamText, stepCountIs, type ModelMessage } from "ai";
+import type {
+  Engine,
+  EngineEvent,
+  EngineOpenOptions,
+  EngineSession,
+  HealthStatus,
+  ToolRegistry,
+} from "@praxis/core/types";
+import type { EngineConfig } from "@praxis/core/config";
+import type { EngineDeps } from "../types.js";
+import { resolveModel, type DirectProvider } from "./providers.js";
+import { toVercelTools } from "./tool-conversion.js";
+import { mapVercelPart } from "./events.js";
+import { v7 as uuidv7 } from "uuid";
 
-async *run(brief: Brief, tools: ToolRegistry): AsyncIterable<EngineEvent> {
-  const model = resolveModel(this.opts.provider, this.opts.config);
-  const messages: ModelMessage[] = [];
-  for (const turn of brief.priorTurns ?? []) {
-    messages.push({ role: turn.role, content: turn.content });
-  }
-  messages.push({ role: "user", content: brief.userMessage });
-
-  const result = streamText({
-    model,
-    system: brief.systemPrompt,
-    messages,
-    tools: toVercelTools(tools),
-    stopWhen: stepCountIs(brief.maxSteps ?? 8),
-    ...(brief.generation?.temperature !== undefined && { temperature: brief.generation.temperature }),
-    ...(brief.generation?.maxTokens !== undefined && { maxTokens: brief.generation.maxTokens }),
-  });
-  // ... existing fullStream consumption unchanged ...
+export interface DirectEngineOptions {
+  config: EngineConfig;
+  deps: EngineDeps;
+  provider: DirectProvider;
 }
-```
 
-**`packages/engines/src/claude-code/adapter.ts`** — modified `run()` to use the transcript prefix:
+export class DirectEngine implements Engine {
+  readonly id: string;
+  readonly kind = "single-shot" as const;
+  private readonly opts: DirectEngineOptions;
 
-```typescript
-async *run(brief: Brief, tools: ToolRegistry): AsyncIterable<EngineEvent> {
-  const bridge = tools.list().length > 0 ? await startToolBridge({ registry: tools }) : null;
-  try {
-    const conv = createConversation({
-      ...(this.modelHint() !== undefined && { model: this.modelHint() }),
-      ...(brief.maxSteps !== undefined && { maxTurns: brief.maxSteps }),
-      systemPrompt: brief.systemPrompt,  // already passes systemPrompt — verify SDK accepts it; if not, prepend to user msg
-      mcpServers: bridge ? { [bridge.serverName]: { type: "stdio", command: bridge.command, args: bridge.args, env: bridge.env } } : {},
+  constructor(opts: DirectEngineOptions) {
+    this.opts = opts;
+    this.id = `direct.${opts.provider}`;
+  }
+
+  async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
+    return new DirectEngineSession({
+      id: uuidv7(),
+      provider: this.opts.provider,
+      config: this.opts.config,
+      systemPrompt: openOpts.systemPrompt,
+      tools: openOpts.tools,
+      priorTurns: openOpts.priorTurns ?? [],
+      ...(openOpts.maxSteps !== undefined && { maxSteps: openOpts.maxSteps }),
+      ...(openOpts.generation !== undefined && { generation: openOpts.generation }),
     });
-    try {
-      const userMessage = buildTranscriptPrefix(brief.priorTurns ?? [], brief.userMessage);
-      const turn = conv.send(userMessage);
-      // ... existing event mapping unchanged ...
-    } finally {
-      await conv.close().catch(() => {});
+  }
+
+  async health(): Promise<HealthStatus> {
+    return {
+      ok: true,
+      capabilities: { vision: true, streaming: true, nativeMCP: false, contextWindow: 200_000 },
+    };
+  }
+}
+
+interface DirectSessionInit {
+  id: string;
+  provider: DirectProvider;
+  config: EngineConfig;
+  systemPrompt: string;
+  tools: ToolRegistry;
+  priorTurns: ReadonlyArray<{ role: "user" | "assistant"; content: string }>;
+  maxSteps?: number;
+  generation?: { temperature?: number; maxTokens?: number };
+}
+
+class DirectEngineSession implements EngineSession {
+  readonly id: string;
+  private readonly provider: DirectProvider;
+  private readonly config: EngineConfig;
+  private readonly systemPrompt: string;
+  private readonly tools: ToolRegistry;
+  private readonly maxSteps: number;
+  private readonly generation?: DirectSessionInit["generation"];
+  private messages: ModelMessage[];
+
+  constructor(init: DirectSessionInit) {
+    this.id = init.id;
+    this.provider = init.provider;
+    this.config = init.config;
+    this.systemPrompt = init.systemPrompt;
+    this.tools = init.tools;
+    this.maxSteps = init.maxSteps ?? 8;
+    if (init.generation) this.generation = init.generation;
+    this.messages = init.priorTurns.map((t) => ({ role: t.role, content: t.content }));
+  }
+
+  async *send(userMessage: string): AsyncIterable<EngineEvent> {
+    this.messages.push({ role: "user", content: userMessage });
+    const model = resolveModel(this.provider, this.config);
+    const result = streamText({
+      model,
+      system: this.systemPrompt,
+      messages: this.messages,
+      tools: toVercelTools(this.tools),
+      stopWhen: stepCountIs(this.maxSteps),
+      ...(this.generation?.temperature !== undefined && { temperature: this.generation.temperature }),
+      ...(this.generation?.maxTokens !== undefined && { maxTokens: this.generation.maxTokens }),
+    });
+
+    const state = { textBuf: "" };
+    let assistantContent = "";
+    for await (const part of result.fullStream) {
+      const event = mapVercelPart(part, state);
+      if (!event) continue;
+      if (event.type === "model_message" && event.partial !== true) {
+        assistantContent += event.content;
+      }
+      yield event;
     }
-  } finally {
-    if (bridge) await bridge.close().catch(() => {});
+
+    if (assistantContent.length > 0) {
+      this.messages.push({ role: "assistant", content: assistantContent });
+    }
+  }
+
+  async close(): Promise<void> {
+    // Nothing to tear down — the underlying SDK is stateless.
+    this.messages = [];
   }
 }
 ```
 
-**`packages/engines/src/codex/adapter.ts`** — modified `run()` to include transcript:
+**`packages/engines/src/claude-code/adapter.ts`** (rewritten):
 
 ```typescript
-async *run(brief: Brief, tools: ToolRegistry): AsyncIterable<EngineEvent> {
-  const bridge = tools.list().length > 0 ? await startToolBridge({ registry: tools }) : null;
-  try {
-    const codex = new Codex({ /* unchanged */ });
-    const thread = codex.startThread({ /* unchanged */ });
-    const userMessage = `${brief.systemPrompt}\n\n---\n\n${buildTranscriptPrefix(brief.priorTurns ?? [], brief.userMessage)}`;
-    const { events } = await thread.runStreamed(userMessage);
-    // ... existing event mapping unchanged ...
-  } finally {
-    if (bridge) await bridge.close().catch(() => {});
+import { createConversation, type Conversation } from "@nklisch/claude-cli-sdk";
+import type {
+  Engine,
+  EngineEvent,
+  EngineOpenOptions,
+  EngineSession,
+  HealthStatus,
+  ToolRegistry,
+} from "@praxis/core/types";
+import type { EngineConfig } from "@praxis/core/config";
+import type { EngineDeps } from "../types.js";
+import { startToolBridge, type ToolBridgeHandle } from "../mcp/tool-bridge.js";
+import { mapClaudeCodeEvent } from "./events.js";
+import { buildTranscriptPreface } from "../util/transcript.js";
+
+export interface ClaudeCodeEngineOptions {
+  config: EngineConfig;
+  deps: EngineDeps;
+}
+
+export class ClaudeCodeEngine implements Engine {
+  readonly id = "claude-code";
+  readonly kind = "looped" as const;
+  private readonly opts: ClaudeCodeEngineOptions;
+
+  constructor(opts: ClaudeCodeEngineOptions) {
+    this.opts = opts;
+  }
+
+  async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
+    const bridge =
+      openOpts.tools.list().length > 0 ? await startToolBridge({ registry: openOpts.tools }) : null;
+    let conv: Conversation;
+    try {
+      conv = createConversation({
+        ...(this.modelHint() !== undefined && { model: this.modelHint() }),
+        ...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps }),
+        systemPrompt: openOpts.systemPrompt,
+        mcpServers: bridge
+          ? {
+              [bridge.serverName]: {
+                type: "stdio",
+                command: bridge.command,
+                args: bridge.args,
+                env: bridge.env,
+              },
+            }
+          : {},
+      });
+    } catch (err) {
+      if (bridge) await bridge.close().catch(() => {});
+      throw err;
+    }
+
+    const sessionId = await conv.sessionId.catch(() => `claude-code-${Date.now()}`);
+    const seedPreface = buildTranscriptPreface(openOpts.priorTurns ?? []);
+
+    return new ClaudeCodeEngineSession({
+      id: sessionId,
+      conv,
+      bridge,
+      seedPreface,
+      serverName: bridge?.serverName ?? "praxis",
+    });
+  }
+
+  private modelHint(): "haiku" | "sonnet" | "opus" | undefined {
+    const m = this.opts.config.model;
+    if (!m) return undefined;
+    if (m.includes("haiku")) return "haiku";
+    if (m.includes("opus")) return "opus";
+    if (m.includes("sonnet")) return "sonnet";
+    return undefined;
+  }
+
+  async health(): Promise<HealthStatus> {
+    return {
+      ok: true,
+      capabilities: { vision: true, streaming: true, nativeMCP: true, contextWindow: 200_000 },
+    };
+  }
+}
+
+interface ClaudeCodeSessionInit {
+  id: string;
+  conv: Conversation;
+  bridge: ToolBridgeHandle | null;
+  /** Transcript prefix applied to the FIRST send only (when seeded with priorTurns). */
+  seedPreface: string;
+  serverName: string;
+}
+
+class ClaudeCodeEngineSession implements EngineSession {
+  readonly id: string;
+  private readonly conv: Conversation;
+  private readonly bridge: ToolBridgeHandle | null;
+  private readonly serverName: string;
+  private seedPreface: string;
+  private closed = false;
+
+  constructor(init: ClaudeCodeSessionInit) {
+    this.id = init.id;
+    this.conv = init.conv;
+    this.bridge = init.bridge;
+    this.serverName = init.serverName;
+    this.seedPreface = init.seedPreface;
+  }
+
+  async *send(userMessage: string): AsyncIterable<EngineEvent> {
+    if (this.closed) {
+      yield {
+        type: "error",
+        error: { code: "session.closed", message: "EngineSession is closed", recoverable: false },
+      };
+      return;
+    }
+    // Apply seed preface only on the first send after a priorTurns-seeded open.
+    const message = this.seedPreface ? `${this.seedPreface}${userMessage}` : userMessage;
+    this.seedPreface = "";
+
+    const turn = this.conv.send(message);
+    for await (const event of turn) {
+      const mapped = mapClaudeCodeEvent(event, { serverName: this.serverName });
+      if (mapped) yield mapped;
+    }
+  }
+
+  async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    await this.conv.close().catch(() => {});
+    if (this.bridge) await this.bridge.close().catch(() => {});
+  }
+}
+```
+
+**`packages/engines/src/codex/adapter.ts`** (rewritten):
+
+```typescript
+import { Codex, type Thread } from "@openai/codex-sdk";
+import type {
+  Engine,
+  EngineEvent,
+  EngineOpenOptions,
+  EngineSession,
+  HealthStatus,
+} from "@praxis/core/types";
+import type { EngineConfig } from "@praxis/core/config";
+import type { EngineDeps } from "../types.js";
+import { startToolBridge, type ToolBridgeHandle } from "../mcp/tool-bridge.js";
+import { mapCodexEvent, newMapState } from "./events.js";
+import { buildTranscriptPreface } from "../util/transcript.js";
+
+export interface CodexEngineOptions {
+  config: EngineConfig;
+  deps: EngineDeps;
+}
+
+export class CodexEngine implements Engine {
+  readonly id = "codex";
+  readonly kind = "looped" as const;
+  private readonly opts: CodexEngineOptions;
+
+  constructor(opts: CodexEngineOptions) {
+    this.opts = opts;
+  }
+
+  async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
+    const bridge =
+      openOpts.tools.list().length > 0 ? await startToolBridge({ registry: openOpts.tools }) : null;
+    let thread: Thread;
+    let codex: Codex;
+    try {
+      codex = new Codex({
+        ...(this.opts.config.apiKey !== undefined && { apiKey: this.opts.config.apiKey }),
+        ...(this.opts.config.baseUrl !== undefined && { baseUrl: this.opts.config.baseUrl }),
+        config: bridge
+          ? {
+              mcp_servers: {
+                [bridge.serverName]: {
+                  command: bridge.command,
+                  args: bridge.args,
+                  env: bridge.env,
+                },
+              },
+            }
+          : undefined,
+      });
+      thread = codex.startThread({
+        ...(this.opts.config.model !== undefined && { model: this.opts.config.model }),
+        ...(this.opts.config.effort !== undefined && { modelReasoningEffort: this.opts.config.effort }),
+        approvalPolicy: "never",
+        sandboxMode: "read-only",
+        skipGitRepoCheck: true,
+      });
+    } catch (err) {
+      if (bridge) await bridge.close().catch(() => {});
+      throw err;
+    }
+
+    // Codex has no separate system slot — fold it into the seed preface for the first send.
+    const seedPreface = `${openOpts.systemPrompt}\n\n---\n\n${buildTranscriptPreface(openOpts.priorTurns ?? [])}`;
+
+    return new CodexEngineSession({
+      id: thread.id ?? `codex-${Date.now()}`,
+      thread,
+      bridge,
+      seedPreface,
+      serverName: bridge?.serverName ?? "praxis",
+    });
+  }
+
+  async health(): Promise<HealthStatus> {
+    return {
+      ok: true,
+      capabilities: { vision: false, streaming: true, nativeMCP: true, contextWindow: 128_000 },
+    };
+  }
+}
+
+interface CodexSessionInit {
+  id: string;
+  thread: Thread;
+  bridge: ToolBridgeHandle | null;
+  seedPreface: string;
+  serverName: string;
+}
+
+class CodexEngineSession implements EngineSession {
+  readonly id: string;
+  private readonly thread: Thread;
+  private readonly bridge: ToolBridgeHandle | null;
+  private readonly serverName: string;
+  private seedPreface: string;
+  private closed = false;
+
+  constructor(init: CodexSessionInit) {
+    this.id = init.id;
+    this.thread = init.thread;
+    this.bridge = init.bridge;
+    this.serverName = init.serverName;
+    this.seedPreface = init.seedPreface;
+  }
+
+  async *send(userMessage: string): AsyncIterable<EngineEvent> {
+    if (this.closed) {
+      yield {
+        type: "error",
+        error: { code: "session.closed", message: "EngineSession is closed", recoverable: false },
+      };
+      return;
+    }
+    const message = this.seedPreface ? `${this.seedPreface}${userMessage}` : userMessage;
+    this.seedPreface = "";
+
+    const { events } = await this.thread.runStreamed(message);
+    const state = newMapState();
+    const itemIndex = { value: 0 };
+    for await (const event of events) {
+      const mapped = mapCodexEvent(event, { serverName: this.serverName }, state, itemIndex);
+      for (const m of mapped) yield m;
+    }
+  }
+
+  async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    // Codex Thread has no close API — the CLI subprocess persists thread state on disk.
+    // Drop our reference. Bridge subprocess gets torn down.
+    if (this.bridge) await this.bridge.close().catch(() => {});
   }
 }
 ```
 
 **Implementation Notes**:
 
-- The Direct adapter is the only one with native multi-turn support — Vercel AI SDK's `messages` array maps cleanly to `ConversationTurn[]`.
-- Claude Code and Codex use the text transcript fallback because each `engine.run()` call creates a fresh conversation (per the stateless contract). The transcript prefix gives the agent the full context as readable prose.
-- The transcript format is intentionally simple: `User:` / `Tutor:` line prefixes. The model parses this naturally; no special markup needed.
-- Important: when no `priorTurns`, all three adapters behave exactly as Phase 2. No regression.
-- For the Claude Code adapter, **verify** at implementation time whether `createConversation` accepts a `systemPrompt` option in the current `@nklisch/claude-cli-sdk`. If not, prepend `brief.systemPrompt` to the user message similar to the Codex pattern. The Phase 2 implementation already had to make this choice — if it worked there, the option exists; if it didn't, the prepend pattern is already in place.
+- `seedPreface` is applied ONLY to the first send after open. After that, `seedPreface = ""` and subsequent sends benefit from the SDK's native multi-turn — full prompt cache, full tool fidelity.
+- All three sessions handle the `closed` flag defensively.
+- `Codex.Thread` has no formal close API — its state is owned by the CLI subprocess. Closing the session is just dropping the reference + tearing down the MCP bridge. The thread persists on disk and could in theory be resumed via `codex.resumeThread(id)` — but for Phase 3 we don't expose that path.
+- The Direct adapter holds `messages: ModelMessage[]` as instance state. After each `send()`, the assistant's final text is pushed onto the array so the next send sees the full history. This is the Vercel AI SDK's native multi-turn pattern.
+- **Per-engine session isolation**: each `engine.open()` returns a fresh session with its own MCP bridge subprocess. Multiple Praxis sessions = multiple bridges. This is fine for Phase 3 (one student, usually one active session); a future optimization could share a bridge across sessions, but not now.
+- **Error handling at open time**: if `createConversation` / `startThread` / etc. throws, the bridge is torn down before re-throwing. The caller (`SessionServiceImpl.start`) surfaces the error to the UI.
 
 **Acceptance Criteria**:
-- [ ] `buildTranscriptPrefix([], "hi")` returns exactly `"hi"`.
-- [ ] `buildTranscriptPrefix([{role:"user",content:"a"},{role:"assistant",content:"b"}], "c")` returns the labeled multi-line transcript ending in "c".
-- [ ] Direct adapter, with `priorTurns` set, passes a messages array of length `priorTurns.length + 1` to a mocked `streamText` (assert via spy).
-- [ ] Claude Code adapter, with `priorTurns` set, calls `conv.send` with a string containing both `"User: "` and `"Tutor: "` markers (assert via spy on a mocked SDK).
-- [ ] Codex adapter, with `priorTurns` set, calls `thread.runStreamed` with a string containing the transcript markers.
-- [ ] All three adapters with no `priorTurns` produce the same output as Phase 2 (regression check via existing conformance tests).
+- [ ] `runOneShot(engine, opts, "hello")` opens, sends, closes — equivalent to old `engine.run(brief, tools)`.
+- [ ] `engine.open({ systemPrompt, tools })` returns an `EngineSession` whose `id` is non-empty.
+- [ ] Two consecutive `session.send()` calls on the same EngineSession reuse the underlying SDK conversation (asserted via spy: `createConversation` called exactly once for two sends).
+- [ ] `engine.open({ ..., priorTurns: [{role:"user",content:"a"},{role:"assistant",content:"b"}] })` followed by `session.send("c")` causes the SDK to receive a message containing the transcript prefix on the first send only; the second `send("d")` does NOT include the prefix.
+- [ ] Direct adapter: messages array grows by 2 per send (user + assistant). Closing the session clears the array.
+- [ ] Claude Code adapter: `conv.close()` called on `session.close()`. Bridge closed. Idempotent on re-call.
+- [ ] Codex adapter: bridge closed on `session.close()`. No errors on second close.
+- [ ] Engine conformance suite (`tests/engine-conformance.test.ts`) updated to use `runOneShot` and continues to assert equivalent normalized event shapes across all three adapters.
 
 ---
 
-### Unit 5: Service implementations in `@praxis/core`
+### Unit 5: `SessionServiceImpl` with active-session tracking + `ConfigServiceImpl`
 
 **Files**:
-- `packages/core/src/services/index.ts` (new)
 - `packages/core/src/services/session-service.ts` (new)
 - `packages/core/src/services/config-service.ts` (new)
 - `packages/core/src/services/student.ts` (new — default-student singleton)
-- `packages/core/src/services/types.ts` (new — shared service deps)
-- `packages/core/package.json` — add `./services` export
-- `packages/core/src/__tests__/session-service.test.ts` (new)
-- `packages/core/src/__tests__/config-service.test.ts` (new)
-- `packages/core/src/__tests__/student.test.ts` (new)
+- `packages/core/src/services/types.ts` (new — ServiceDeps with optional engineFactory)
+- `packages/core/src/services/index.ts` (new)
+- `packages/core/package.json` (modified — add `./services` export, add @praxis/engines + @praxis/tools deps)
+- `packages/core/src/__tests__/{session-service,config-service,student}.test.ts` (new)
 
-**`packages/core/src/services/types.ts`** (new):
+**`packages/core/src/services/types.ts`**:
 
 ```typescript
-import type { Logger, Mode } from "../types/index.js";
-import type { PraxisDb } from "../db/index.js";
-import type { ToolDefinition } from "../types/index.js";
 import type { z } from "zod";
+import type { Engine, Logger, Mode, ToolDefinition } from "../types/index.js";
+import type { PraxisDb } from "../db/index.js";
+import type { EngineConfig } from "../config/index.js";
 
-/**
- * Cross-cutting dependencies passed to every service implementation.
- * The desktop host (or any future hosted server) constructs these once
- * and shares them across all service instances.
- */
 export interface ServiceDeps {
   db: PraxisDb;
   log: Logger;
-  /** Modes the system knows about; used for SessionServiceImpl to resolve mode by id. */
   modes: ReadonlyMap<string, Mode>;
-  /**
-   * Tools available to engine sessions. Phase 3 wires the test tools (echo,
-   * now); later phases register real tool sets per mode. The engine layer
-   * sees these via the InProcessToolRegistry constructed inside SessionService.
-   */
   toolDefinitions: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
+  /**
+   * Factory for constructing an Engine from a config. Optional — when omitted,
+   * defaults to `createEngine` from @praxis/engines. Tests inject fakes here.
+   */
+  engineFactory?: (config: EngineConfig, deps: { log: Logger }) => Engine;
 }
 ```
 
-**`packages/core/src/services/student.ts`** (new):
+**`packages/core/src/services/student.ts`** (unchanged from v1):
 
 ```typescript
 import { eq } from "drizzle-orm";
@@ -606,63 +1093,61 @@ import { brandId, type StudentId } from "../types/index.js";
 
 const KEY = "default_student_id";
 
-/**
- * Read the singleton default-student ID from config_kv, generating and
- * persisting one on first access. Phase 3 has one student per install;
- * this is that student. Multi-student is much later.
- */
 export function getOrCreateDefaultStudentId(db: PraxisDb): StudentId {
   const row = db.select().from(configKv).where(eq(configKv.key, KEY)).get();
-  if (row) {
-    return brandId<"StudentId">(row.valueJson as string);
-  }
+  if (row) return brandId<"StudentId">(row.valueJson as string);
   const id = uuidv7();
-  db.insert(configKv)
-    .values({ key: KEY, valueJson: id, updatedAt: new Date() })
-    .run();
+  db.insert(configKv).values({ key: KEY, valueJson: id, updatedAt: new Date() }).run();
   return brandId<"StudentId">(id);
 }
 ```
 
-**`packages/core/src/services/session-service.ts`** (new):
+**`packages/core/src/services/session-service.ts`** (rewritten for lifecycle):
 
 ```typescript
 import { v7 as uuidv7 } from "uuid";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { sessions } from "@praxis/memory/schema";
-import { composeBrief } from "@praxis/curriculum/brief";
+import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { createEngine } from "@praxis/engines";
 import { InProcessToolRegistry } from "@praxis/tools";
 import { readEngineConfig } from "../config/index.js";
-import { SessionRunner } from "../session/runner.js";
-import { recordUserMessage, nextTurnIndex } from "../session/episodic.js";
+import { appendEpisodic, nextTurnIndex, recordUserMessage } from "../session/episodic.js";
 import { loadConversationHistory } from "../session/history.js";
 import { getOrCreateDefaultStudentId } from "./student.js";
 import type {
+  ConversationTurn,
   CourseId,
+  Engine,
   EngineEvent,
+  EngineSession,
   Mode,
   SessionHandle,
   SessionId,
   SessionService,
   SessionSummary,
-  StudentId,
   Timestamp,
   ToolContext,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
 import type { ServiceDeps } from "./types.js";
 
-/**
- * The concrete SessionService used by the desktop IPC host (and the future
- * hosted backend). Wraps the SessionRunner with multi-turn history loading
- * and engine instantiation per turn.
- *
- * Engines are constructed per `send()` call, not per session — this keeps
- * the door open for engine switching mid-session and matches the stateless
- * engine contract.
- */
+interface ActiveEntry {
+  /** The Praxis session this entry belongs to. */
+  sessionId: string;
+  /** EngineId currently powering the session — used to detect engine swap. */
+  engineId: string;
+  /** Mode the session was started with — fixed for the session's lifetime. */
+  mode: Mode;
+  /** Open EngineSession; receives every send for this Praxis session. */
+  handle: EngineSession;
+  /** Engine instance — held for diagnostics; reusable for additional sessions if we choose. */
+  engine: Engine;
+}
+
 export class SessionServiceImpl implements SessionService {
+  private readonly active = new Map<string, ActiveEntry>();
+
   constructor(private readonly deps: ServiceDeps) {}
 
   async start(opts: { courseId?: CourseId; modeId: string }): Promise<SessionHandle> {
@@ -684,6 +1169,15 @@ export class SessionServiceImpl implements SessionService {
       })
       .run();
 
+    // Eagerly open the engine session — surfaces config errors at start time.
+    await this.openActive({
+      sessionId,
+      engineId: engineConfig.engineId,
+      mode,
+      studentId,
+      priorTurns: [], // brand new session
+    });
+
     return {
       sessionId: brandId<"SessionId">(sessionId),
       modeId: mode.id,
@@ -693,85 +1187,93 @@ export class SessionServiceImpl implements SessionService {
   }
 
   async *send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent> {
-    const sessionRow = this.deps.db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+    const sessionRow = this.deps.db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
     if (!sessionRow) {
-      yield {
-        type: "error",
-        error: { code: "session.not_found", message: `Unknown session: ${sessionId}`, recoverable: false },
-      };
+      yield { type: "error", error: { code: "session.not_found", message: `Unknown session: ${sessionId}`, recoverable: false } };
       return;
     }
     if (sessionRow.endedAt) {
-      yield {
-        type: "error",
-        error: { code: "session.ended", message: "Cannot send to an ended session", recoverable: false },
-      };
+      yield { type: "error", error: { code: "session.ended", message: "Cannot send to an ended session", recoverable: false } };
       return;
     }
 
     const mode = this.requireMode(sessionRow.modeId);
     const studentId = brandId<"StudentId">(sessionRow.studentId);
-    const engineConfig = readEngineConfig(this.deps.db);
+    const currentEngineId = readEngineConfig(this.deps.db).engineId;
+
+    // Engine swap detection + reopen.
+    let entry = this.active.get(sessionId);
+    if (entry && entry.engineId !== currentEngineId) {
+      this.deps.log.info("engine swap detected; closing active session", { sessionId, from: entry.engineId, to: currentEngineId });
+      await entry.handle.close().catch(() => {});
+      this.active.delete(sessionId);
+      entry = undefined;
+    }
+    // Re-open if missing (process restart, swap above, or never opened).
+    if (!entry) {
+      const priorTurns = loadConversationHistory({ db: this.deps.db, sessionId });
+      entry = await this.openActive({ sessionId, engineId: currentEngineId, mode, studentId, priorTurns });
+    }
 
     const turnIndex = nextTurnIndex(this.deps.db, sessionId);
 
-    // 1. Record user message (immutable).
+    // 1. Record + echo user message.
     recordUserMessage({
       db: this.deps.db,
       sessionId,
       studentId,
-      engineId: engineConfig.engineId,
+      engineId: entry.engineId,
       modeId: mode.id,
       turnIndex,
       content: message,
     });
-    yield { type: "user_message", content: message }; // emit to UI for echo
+    yield { type: "user_message", content: message };
 
-    // 2. Load history (includes the just-recorded user message? No — we want priors only).
-    const allHistory = loadConversationHistory({ db: this.deps.db, sessionId });
-    // Strip the trailing user turn we just recorded (it IS the current message).
-    const priorTurns =
-      allHistory.length > 0 && allHistory[allHistory.length - 1]?.role === "user"
-        ? allHistory.slice(0, -1)
-        : allHistory;
-
-    // 3. Build brief.
-    const brief = composeBrief({
-      mode,
-      userMessage: message,
-      ...(priorTurns.length > 0 && { priorTurns }),
-    });
-
-    // 4. Spin up engine + tools for this turn.
-    const engine = createEngine({ config: engineConfig, deps: { log: this.deps.log } });
-    const toolContext: ToolContext = {
-      studentId,
-      sessionId,
-      services: { memory: null, artifacts: null, vectorStore: null, sandbox: null, sympy: null, pedagogyPack: null },
-      log: this.deps.log,
-    };
-    const tools = new InProcessToolRegistry({
-      tools: this.deps.toolDefinitions,
-      context: toolContext,
-    });
-
-    // 5. Run the turn through SessionRunner.
-    const runner = new SessionRunner({ db: this.deps.db, studentId, mode, engine, tools });
-    yield* runner.runTurn({ brief, sessionId, turnIndex });
+    // 2. Drive the engine session for this turn; persist every event.
+    try {
+      for await (const event of entry.handle.send(message)) {
+        try {
+          appendEpisodic({
+            db: this.deps.db,
+            sessionId,
+            studentId,
+            engineId: entry.engineId,
+            modeId: mode.id,
+            turnIndex,
+            event,
+          });
+        } catch (cause) {
+          yield {
+            type: "error",
+            error: {
+              code: "episodic.write_failed",
+              message: cause instanceof Error ? cause.message : String(cause),
+              recoverable: false,
+              cause,
+            },
+          };
+        }
+        yield event;
+      }
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      yield { type: "error", error: { code: "engine.send_failed", message, recoverable: false, cause } };
+    }
   }
 
   async end(sessionId: SessionId): Promise<SessionSummary> {
+    const entry = this.active.get(sessionId);
+    if (entry) {
+      await entry.handle.close().catch(() => {});
+      this.active.delete(sessionId);
+    }
     const endedAt = new Date();
     this.deps.db.update(sessions).set({ endedAt }).where(eq(sessions.id, sessionId)).run();
     return {
       sessionId,
       endedAt: endedAt.getTime() as Timestamp,
-      unlockedGates: [],       // Phase 9 fills in
-      newMisconceptions: 0,    // Phase 7 fills in
+      unlockedGates: [],
+      newMisconceptions: 0,
     };
   }
 
@@ -792,6 +1294,61 @@ export class SessionServiceImpl implements SessionService {
     };
   }
 
+  /** Tear down all active engine sessions. Called on host shutdown. */
+  async shutdown(): Promise<void> {
+    const entries = [...this.active.values()];
+    this.active.clear();
+    await Promise.all(entries.map((e) => e.handle.close().catch(() => {})));
+  }
+
+  private async openActive(args: {
+    sessionId: string;
+    engineId: string;
+    mode: Mode;
+    studentId: string;
+    priorTurns: ConversationTurn[];
+  }): Promise<ActiveEntry> {
+    const engineConfig = readEngineConfig(this.deps.db);
+    const factory = this.deps.engineFactory ?? ((c, d) => createEngine({ config: c, deps: d }));
+    const engine = factory(engineConfig, { log: this.deps.log });
+
+    const systemPrompt = composeSystemPrompt({ mode: args.mode });
+
+    const toolContext: ToolContext = {
+      studentId: args.studentId as ToolContext["studentId"],
+      sessionId: args.sessionId as ToolContext["sessionId"],
+      services: {
+        memory: null,
+        artifacts: null,
+        vectorStore: null,
+        sandbox: null,
+        sympy: null,
+        pedagogyPack: null,
+      },
+      log: this.deps.log,
+    };
+    const tools = new InProcessToolRegistry({
+      tools: this.deps.toolDefinitions,
+      context: toolContext,
+    });
+
+    const handle = await engine.open({
+      systemPrompt,
+      tools,
+      ...(args.priorTurns.length > 0 && { priorTurns: args.priorTurns }),
+    });
+
+    const entry: ActiveEntry = {
+      sessionId: args.sessionId,
+      engineId: args.engineId,
+      mode: args.mode,
+      handle,
+      engine,
+    };
+    this.active.set(args.sessionId, entry);
+    return entry;
+  }
+
   private requireMode(modeId: string): Mode {
     const mode = this.deps.modes.get(modeId);
     if (!mode) throw new Error(`Unknown mode: ${modeId}`);
@@ -800,7 +1357,7 @@ export class SessionServiceImpl implements SessionService {
 }
 ```
 
-**`packages/core/src/services/config-service.ts`** (new):
+**`packages/core/src/services/config-service.ts`** (unchanged from v1):
 
 ```typescript
 import {
@@ -815,15 +1372,9 @@ import type { ServiceDeps } from "./types.js";
 export class ConfigServiceImpl implements ConfigService {
   constructor(private readonly deps: ServiceDeps) {}
 
-  async isLocked(): Promise<boolean> {
-    return false; // Phase 11 wires real lock state.
-  }
-  async setLockCode(_code: string): Promise<void> {
-    throw new Error("Lock code not implemented in Phase 3");
-  }
-  async unlock(_code: string): Promise<{ ok: boolean }> {
-    return { ok: true };
-  }
+  async isLocked(): Promise<boolean> { return false; }
+  async setLockCode(_code: string): Promise<void> { throw new Error("Lock code not implemented in Phase 3"); }
+  async unlock(_code: string): Promise<{ ok: boolean }> { return { ok: true }; }
 
   async selectedEngine(): Promise<string> {
     return readEngineConfig(this.deps.db).engineId;
@@ -833,14 +1384,10 @@ export class ConfigServiceImpl implements ConfigService {
     const next = EngineConfigSchema.parse({ ...current, engineId });
     writeEngineConfig(this.deps.db, next);
   }
-
   async engineConfig(): Promise<EngineConfigSnapshot> {
-    const cfg = readEngineConfig(this.deps.db);
-    return toSnapshot(cfg);
+    return toSnapshot(readEngineConfig(this.deps.db));
   }
-
   async setEngineConfig(snapshot: EngineConfigSnapshot): Promise<void> {
-    // Validate against the canonical schema before persisting.
     const validated = EngineConfigSchema.parse(snapshot);
     writeEngineConfig(this.deps.db, validated);
   }
@@ -857,7 +1404,7 @@ function toSnapshot(cfg: EngineConfig): EngineConfigSnapshot {
 }
 ```
 
-**`packages/core/src/services/index.ts`** (new):
+**`packages/core/src/services/index.ts`**:
 
 ```typescript
 export { SessionServiceImpl } from "./session-service.js";
@@ -866,7 +1413,7 @@ export { getOrCreateDefaultStudentId } from "./student.js";
 export type { ServiceDeps } from "./types.js";
 ```
 
-**`packages/core/package.json`** — add `./services` to exports:
+**`packages/core/package.json`** — add `./services` export and runtime deps on engines + tools:
 
 ```json
 {
@@ -895,1463 +1442,102 @@ export type { ServiceDeps } from "./types.js";
 }
 ```
 
-> **NOTE on the new core deps**: `@praxis/core/services` imports from `@praxis/engines` and `@praxis/tools` at runtime. This is a Phase 3 dependency relaxation — the existing CLAUDE.md rule says `@praxis/core` only depends on artifacts/memory/curriculum. Update CLAUDE.md to allow this targeted exception: **`@praxis/core/services` may import `@praxis/engines` and `@praxis/tools` at runtime**, while the rest of `@praxis/core` keeps the prior dependency posture. Document this exception in CLAUDE.md alongside the existing dependency-direction rules.
->
-> Rationale: the service layer is the framework's wiring point for engines + tools. The alternative — pushing service implementations into a new `@praxis/services` package — is more code with no benefit. The allowed reverse-dependency is from `core/services/` only; `core/types/`, `core/db/`, `core/config/`, `core/session/` remain free of engines/tools imports.
+> **CLAUDE.md update required**: `@praxis/core/services` imports `@praxis/engines` and `@praxis/tools` at runtime. Document this Phase 3 exception alongside the existing dependency-direction rules.
 
 **Implementation Notes**:
 
-- `SessionServiceImpl.send` is an `async function*` — it yields `EngineEvent`s as they arrive. The IPC server (Unit 7) consumes this AsyncIterable and forwards each event over the IPC stream channel.
-- The engine is instantiated **per `send()` call** rather than per session. This is intentional: it lets engine config changes (Settings UI) take effect immediately on the next turn, and matches the stateless engine contract.
-- The `user_message` event is yielded to the UI right after recording it, so the UI can render the user's bubble without round-tripping through episodic.
-- `loadConversationHistory` is called AFTER `recordUserMessage`, so we strip the just-recorded user turn from the tail before passing as `priorTurns`. This keeps the source-of-truth (episodic) authoritative without double-counting.
-- `active()` returns the most-recently-started session with `endedAt = NULL` for the default student. Phase 3 doesn't expose a UI to resume; it's there for `client.session.active()` to return non-null after a session is started, useful for the chat UI to know whether to call `start()`.
-- Lock methods are stubs (Phase 11); the ConfigService implements only the engine-config methods meaningfully.
+- **Eager open in `start`**: catches config errors (bad API key, missing CLI, etc.) at session-start time. The UI's chat route shows a clear error before the user types anything.
+- **Engine swap detection**: on every `send`, compare `readEngineConfig().engineId` against the active entry's stored `engineId`. Mismatch → close + reopen with `priorTurns` from episodic.
+- **Process restart**: `this.active` is in-memory and lost on restart. Next `send()` after restart finds no active entry, calls `openActive` with `priorTurns` from episodic, and continues. The new EngineSession's seed preface includes the prior conversation; subsequent turns resume native multi-turn.
+- **Per-turn engine instance vs per-session**: in v2 we hold the engine + EngineSession for the lifetime of the Praxis session. The MCP bridge subprocess stays alive across turns — much cheaper than the v1 per-turn open/close.
+- **`shutdown()`** is called by `@praxis/desktop`'s main process on `before-quit` to gracefully close all active sessions.
+- **Error handling in `send`**: an error iterating the engine's stream becomes a normalized `error` event yielded to the UI. The active entry is NOT torn down on error — the user can retry on the same session. (If the underlying SDK truly broke, the next send will fail again and surface the same error; the user can `New chat` to force a fresh open.)
 
 **Acceptance Criteria**:
-- [ ] `getOrCreateDefaultStudentId(db)` on a fresh DB writes a UUIDv7 to `config_kv` and returns it; subsequent calls return the same value (no rotation).
-- [ ] `SessionServiceImpl.start({ modeId: "teach" })` inserts a row into `sessions` with the correct studentId, modeId, engineId from current config.
-- [ ] `SessionServiceImpl.send` against a session that doesn't exist yields an `error` event with code `"session.not_found"` and stops.
-- [ ] `SessionServiceImpl.send` against an ended session yields `"session.ended"` and stops.
-- [ ] `SessionServiceImpl.send` first yields a `user_message` event, then forwards engine events. The user_message event is also persisted to episodic (assert by reading the table).
-- [ ] After two `send()` calls on the same session, the second call's brief includes `priorTurns` of length 2 (the first user + first assistant).
-- [ ] `SessionServiceImpl.end(sessionId)` sets `endedAt` and returns a `SessionSummary` with empty unlockedGates / zero misconceptions.
-- [ ] `SessionServiceImpl.active()` returns the latest open session for the default student; returns `null` when no open sessions exist.
-- [ ] `ConfigServiceImpl.engineConfig()` returns the current `EngineConfigSnapshot`; round-trips through `setEngineConfig` correctly.
-- [ ] `ConfigServiceImpl.setEngineConfig({ engineId: "garbage" })` throws a Zod validation error.
+- [ ] `start({ modeId: "teach" })` inserts a session row AND opens an active EngineSession (verified by spying on `engine.open`).
+- [ ] `send()` second call reuses the EngineSession from the first call (only one `engine.open` for two sends; assert via spy).
+- [ ] After `setEngineConfig({ engineId: "different" })` and a subsequent `send()`, the active EngineSession is closed and a new one opened.
+- [ ] After `end(sessionId)`, the active entry is removed and `EngineSession.close()` was called.
+- [ ] `send()` to an unknown sessionId yields a `session.not_found` error and stops.
+- [ ] `send()` to an ended session yields `session.ended` and stops.
+- [ ] After `shutdown()`, all active EngineSessions are closed.
+- [ ] Process-restart simulation: insert events for a session, clear the in-memory active map, call `send()` — engine.open is called with `priorTurns` from episodic.
+- [ ] `ConfigServiceImpl.engineConfig()` round-trips through `setEngineConfig`.
+- [ ] `setEngineConfig({ engineId: "garbage" })` throws Zod validation error.
 
 ---
 
 ### Unit 6: `@praxis/client` — typed RPC + transports
 
-**Files**:
-- `packages/client/package.json` (modified — add deps)
-- `packages/client/src/index.ts` (rewrite — real exports)
-- `packages/client/src/types.ts` (new — re-export types from core)
-- `packages/client/src/transport/types.ts` (new)
-- `packages/client/src/transport/ipc.ts` (new)
-- `packages/client/src/transport/websocket.ts` (new — typed stub, throws on use)
-- `packages/client/src/client.ts` (new — `createPraxisClient(transport)`)
-- `packages/client/src/services/{session,config,artifacts,authoring,memory}-client.ts` (new — typed wrappers)
-- `packages/client/src/__tests__/{client,ipc-transport}.test.ts` (new)
+**Files** (largely unchanged from v1):
+- `packages/client/package.json` — same deps
+- `packages/client/src/index.ts` — exports
+- `packages/client/src/transport/{types,ipc,websocket}.ts` — same shape
+- `packages/client/src/services/{session,config,artifacts,authoring,memory}-client.ts` — same wire format
+- `packages/client/src/client.ts` — `createPraxisClient`
 
-**`packages/client/package.json`**:
+The transport layer (Unit 6 in v1) is unchanged. The wire format for `praxis.session.send` is still a streamed channel that pushes EngineEvents — including the new `user_message` variant. Clients consume the AsyncIterable; the discrimination on `event.type` includes `user_message` cleanly.
 
-```json
-{
-  "name": "@praxis/client",
-  "version": "0.3.0",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts",
-    "./transport": "./src/transport/types.ts",
-    "./transport/ipc": "./src/transport/ipc.ts",
-    "./transport/websocket": "./src/transport/websocket.ts"
-  },
-  "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@praxis/core": "workspace:*",
-    "uuid": "^10.0.0"
-  },
-  "devDependencies": {
-    "@types/uuid": "^10.0.0"
-  }
-}
-```
+See v1 of this design for full Unit 6 spec — code is identical.
 
-> Note: `@praxis/core` is listed as a dependency, but `@praxis/client` only imports **types** from it (per CLAUDE.md). The `package.json` declares the dep so workspaces resolve it; TypeScript imports use `import type` exclusively. No runtime code crosses.
-
-**`packages/client/src/transport/types.ts`** (new):
-
-```typescript
-/**
- * Generic transport interface — two implementations (IPC for Electron,
- * WebSocket for hosted). `@praxis/client` consumes this; the host (desktop
- * or hosted server) provides a concrete instance at boot.
- */
-export interface ClientTransport {
-  /** Single-shot request/response RPC. */
-  invoke<TResp = unknown>(channel: string, args?: unknown): Promise<TResp>;
-
-  /**
-   * Streamed RPC. Returns an AsyncIterable of events. The transport handles
-   * setup/teardown of whatever per-stream identifier the host needs. When the
-   * consumer breaks out of the for-await loop, the transport sends a cancel
-   * signal to the host.
-   */
-  stream<TEvent = unknown>(channel: string, args?: unknown): AsyncIterable<TEvent>;
-}
-```
-
-**`packages/client/src/transport/ipc.ts`** (new):
-
-```typescript
-import { v7 as uuidv7 } from "uuid";
-import type { ClientTransport } from "./types.js";
-
-/**
- * The shape preload exposes via contextBridge as `window.praxis`. The IpcTransport
- * accepts this object (any conforming shape works) so tests can mock it cleanly.
- */
-export interface PraxisIpcBridge {
-  /** Invoke RPC. Returns the host's response. */
-  invoke(channel: string, args?: unknown): Promise<unknown>;
-  /**
-   * Subscribe to per-stream events. The host pushes objects of the form
-   * `{ kind: "event", value: T }` or `{ kind: "done" }` or `{ kind: "error", error: { code, message } }`.
-   * Returns an unsubscribe function.
-   */
-  subscribe(channel: string, handler: (msg: IpcStreamMessage) => void): () => void;
-}
-
-export type IpcStreamMessage<T = unknown> =
-  | { kind: "event"; value: T }
-  | { kind: "done" }
-  | { kind: "error"; error: { code: string; message: string } };
-
-/**
- * Build a ClientTransport backed by an Electron contextBridge. The bridge is
- * supplied at construction time so tests can inject a fake.
- */
-export function createIpcTransport(bridge: PraxisIpcBridge): ClientTransport {
-  return {
-    invoke: (channel, args) => bridge.invoke(channel, args) as Promise<never>,
-    stream: <TEvent>(channel: string, args?: unknown) => streamAsAsyncIterable<TEvent>(bridge, channel, args),
-  };
-}
-
-async function* streamAsAsyncIterable<TEvent>(
-  bridge: PraxisIpcBridge,
-  startChannel: string,
-  args: unknown,
-): AsyncGenerator<TEvent, void, void> {
-  const streamId = uuidv7();
-  const eventsChannel = `${startChannel}.events.${streamId}`;
-  const cancelChannel = `${startChannel}.cancel`;
-
-  // Buffer of arrived events not yet yielded.
-  const queue: TEvent[] = [];
-  let done = false;
-  let errorMsg: { code: string; message: string } | null = null;
-  let resolve: (() => void) | null = null;
-
-  const wakeup = () => {
-    const r = resolve;
-    resolve = null;
-    if (r) r();
-  };
-
-  const unsubscribe = bridge.subscribe(eventsChannel, (msg) => {
-    if (msg.kind === "event") queue.push(msg.value as TEvent);
-    else if (msg.kind === "done") done = true;
-    else if (msg.kind === "error") {
-      errorMsg = msg.error;
-      done = true;
-    }
-    wakeup();
-  });
-
-  // Tell host to start streaming on the events channel for this streamId.
-  await bridge.invoke(`${startChannel}.start`, { streamId, args });
-
-  try {
-    while (true) {
-      if (queue.length > 0) {
-        const next = queue.shift() as TEvent;
-        yield next;
-        continue;
-      }
-      if (done) {
-        if (errorMsg) {
-          throw new IpcStreamError(errorMsg.code, errorMsg.message);
-        }
-        return;
-      }
-      await new Promise<void>((r) => {
-        resolve = r;
-      });
-    }
-  } finally {
-    unsubscribe();
-    if (!done) {
-      // Consumer broke out early — tell host to cancel.
-      bridge.invoke(cancelChannel, { streamId }).catch(() => {});
-    }
-  }
-}
-
-export class IpcStreamError extends Error {
-  constructor(public readonly code: string, message: string) {
-    super(message);
-    this.name = "IpcStreamError";
-  }
-}
-```
-
-**`packages/client/src/transport/websocket.ts`** (new — typed stub):
-
-```typescript
-import type { ClientTransport } from "./types.js";
-
-/**
- * Phase 3 ships a typed stub. Real implementation lands when the hosted
- * deployment ships (Phase 15+).
- */
-export function createWebSocketTransport(_url: string): ClientTransport {
-  return {
-    invoke: () => Promise.reject(new Error("WebSocket transport not implemented in v1 (local-first only)")),
-    stream: async function* () {
-      throw new Error("WebSocket transport not implemented in v1 (local-first only)");
-    },
-  };
-}
-```
-
-**`packages/client/src/services/session-client.ts`** (new):
-
-```typescript
-import type {
-  CourseId,
-  EngineEvent,
-  SessionHandle,
-  SessionId,
-  SessionService,
-  SessionSummary,
-} from "@praxis/core/types";
-import type { ClientTransport } from "../transport/types.js";
-
-const C = {
-  start: "praxis.session.start",
-  send: "praxis.session.send",   // streamed: .start / .events.<id> / .cancel
-  end: "praxis.session.end",
-  active: "praxis.session.active",
-} as const;
-
-export function createSessionClient(transport: ClientTransport): SessionService {
-  return {
-    start: (opts) => transport.invoke<SessionHandle>(C.start, opts),
-    send: (sessionId: SessionId, message: string) =>
-      transport.stream<EngineEvent>(C.send, { sessionId, message }),
-    end: (sessionId: SessionId) => transport.invoke<SessionSummary>(C.end, { sessionId }),
-    active: () => transport.invoke<SessionHandle | null>(C.active),
-  };
-}
-```
-
-**`packages/client/src/services/config-client.ts`** (new):
-
-```typescript
-import type { ConfigService, EngineConfigSnapshot } from "@praxis/core/types";
-import type { ClientTransport } from "../transport/types.js";
-
-const C = {
-  isLocked: "praxis.config.isLocked",
-  setLockCode: "praxis.config.setLockCode",
-  unlock: "praxis.config.unlock",
-  selectedEngine: "praxis.config.selectedEngine",
-  setSelectedEngine: "praxis.config.setSelectedEngine",
-  engineConfig: "praxis.config.engineConfig",
-  setEngineConfig: "praxis.config.setEngineConfig",
-} as const;
-
-export function createConfigClient(transport: ClientTransport): ConfigService {
-  return {
-    isLocked: () => transport.invoke<boolean>(C.isLocked),
-    setLockCode: (code) => transport.invoke<void>(C.setLockCode, { code }),
-    unlock: (code) => transport.invoke<{ ok: boolean }>(C.unlock, { code }),
-    selectedEngine: () => transport.invoke<string>(C.selectedEngine),
-    setSelectedEngine: (engineId) => transport.invoke<void>(C.setSelectedEngine, { engineId }),
-    engineConfig: () => transport.invoke<EngineConfigSnapshot>(C.engineConfig),
-    setEngineConfig: (config) => transport.invoke<void>(C.setEngineConfig, { config }),
-  };
-}
-```
-
-**`packages/client/src/services/{artifacts,authoring,memory}-client.ts`** — Phase 3 stubs that throw `"not implemented in Phase 3"` for every method, with TODO comments indicating the phase that fills them in. Each returns the typed service interface so the PraxisClient surface is complete.
-
-**`packages/client/src/client.ts`** (new):
-
-```typescript
-import type { PraxisClient } from "@praxis/core/types";
-import type { ClientTransport } from "./transport/types.js";
-import { createSessionClient } from "./services/session-client.js";
-import { createConfigClient } from "./services/config-client.js";
-import { createArtifactsClient } from "./services/artifacts-client.js";
-import { createAuthoringClient } from "./services/authoring-client.js";
-import { createMemoryClient } from "./services/memory-client.js";
-
-export function createPraxisClient(transport: ClientTransport): PraxisClient {
-  return {
-    session: createSessionClient(transport),
-    config: createConfigClient(transport),
-    artifacts: createArtifactsClient(transport),
-    author: createAuthoringClient(transport),
-    memory: createMemoryClient(transport),
-  };
-}
-```
-
-**`packages/client/src/index.ts`** (rewrite):
-
-```typescript
-export { createPraxisClient } from "./client.js";
-export { createIpcTransport, IpcStreamError, type PraxisIpcBridge, type IpcStreamMessage } from "./transport/ipc.js";
-export { createWebSocketTransport } from "./transport/websocket.js";
-export type { ClientTransport } from "./transport/types.js";
-export const PACKAGE_NAME = "@praxis/client" as const;
-```
-
-**Implementation Notes**:
-
-- `streamAsAsyncIterable` is the heart of the transport — it converts the push-style IPC subscription into a pull-style AsyncGenerator. The queue + wakeup pattern is standard for this conversion.
-- Per-stream channel names include a UUID so concurrent streams don't collide.
-- On consumer break-out (e.g., React unmount mid-stream), `finally` sends a cancel signal so the host stops the underlying engine work.
-- All client services use the canonical `@praxis/core/types` interfaces — they're typed exactly the same as the host-side service implementations. The implementations differ; the contracts match.
-- The Phase 3 service stubs (artifacts, author, memory) **throw** rather than returning fake data — that's honest about scope.
-
-**Acceptance Criteria**:
-- [ ] `createPraxisClient(transport)` returns an object with `session`, `config`, `artifacts`, `author`, `memory` keys, each implementing the corresponding service interface.
-- [ ] `client.session.start({ modeId: "teach" })` calls `transport.invoke("praxis.session.start", { modeId: "teach" })` (verified via spy on a fake transport).
-- [ ] `client.session.send(sessionId, "hi")` calls `transport.stream("praxis.session.send", { sessionId, message: "hi" })`.
-- [ ] IPC transport: `subscribe` is called before `invoke(.start)` (so events aren't lost on fast-emitting streams).
-- [ ] IPC transport: when the host emits `{kind:"event"}` then `{kind:"done"}`, the consumer's for-await receives the event then the loop exits cleanly.
-- [ ] IPC transport: when the host emits `{kind:"error"}`, the for-await loop throws an `IpcStreamError` with the right code+message.
-- [ ] IPC transport: when the consumer `break`s the for-await mid-stream, the transport invokes the cancel channel.
-- [ ] WebSocket transport methods reject / throw with a clear "not implemented" message.
-- [ ] Stub clients (artifacts/author/memory) throw on call.
+**Acceptance Criteria**: same as v1.
 
 ---
 
-### Unit 7: `@praxis/desktop` — Electron host + IPC server
+### Unit 7: `@praxis/desktop` — Electron host + IPC server + shutdown hook
 
-**Files**:
-- `packages/desktop/package.json` (rewrite — add electron, electron-vite, deps)
-- `packages/desktop/electron.vite.config.ts` (new)
-- `packages/desktop/electron/main/index.ts` (new — Electron main entry)
-- `packages/desktop/electron/main/window.ts` (new — BrowserWindow factory)
-- `packages/desktop/electron/main/ipc-server.ts` (new — registers IPC handlers, routes to services)
-- `packages/desktop/electron/main/services.ts` (new — constructs ServiceDeps + service instances)
-- `packages/desktop/electron/main/migrations.ts` (new — runs migrations on app startup)
-- `packages/desktop/electron/preload/index.ts` (new — exposes window.praxis via contextBridge)
-- `packages/desktop/electron/renderer/index.html` (new)
-- `packages/desktop/electron/renderer/index.tsx` (new — bootstrap entry)
-- `packages/desktop/electron/renderer/global.d.ts` (new — types `window.praxis`)
-- `packages/desktop/src/index.ts` (rewrite — package marker + types)
-- `packages/desktop/src/__tests__/ipc-server.test.ts` (new — handler dispatch tests)
-- `packages/desktop/tsconfig.json` (modified — include `electron/`)
-- `packages/desktop/tsconfig.electron.json` (new — separate config for electron/ paths)
+**Files** (mostly unchanged from v1, with one addition):
+- All electron-vite scaffolding, main, preload, renderer, IPC server — same as v1
+- **NEW**: `packages/desktop/electron/main/index.ts` registers a `before-quit` hook that calls `services.session.shutdown()` to close all active EngineSessions cleanly
 
-**`packages/desktop/package.json`**:
+```typescript
+// packages/desktop/electron/main/index.ts — addition
 
-```json
-{
-  "name": "@praxis/desktop",
-  "version": "0.3.0",
-  "type": "module",
-  "main": "./out/main/index.js",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "build": "electron-vite build",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.electron.json",
-    "test": "vitest run",
-    "dev": "electron-vite dev",
-    "start": "electron-vite preview"
-  },
-  "dependencies": {
-    "@praxis/client": "workspace:*",
-    "@praxis/core": "workspace:*",
-    "@praxis/curriculum": "workspace:*",
-    "@praxis/tools": "workspace:*",
-    "@praxis/ui": "workspace:*",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
-  },
-  "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "electron": "^41.3.0",
-    "electron-vite": "^5.0.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "vite": "^7.0.0"
+app.on("before-quit", async (event) => {
+  if (!services) return;
+  event.preventDefault();
+  try {
+    await services.session.shutdown();
+  } finally {
+    app.exit(0);
   }
-}
-```
-
-**`packages/desktop/electron.vite.config.ts`** (new):
-
-```typescript
-import { defineConfig, externalizeDepsPlugin } from "electron-vite";
-import react from "@vitejs/plugin-react";
-import { resolve } from "node:path";
-
-export default defineConfig({
-  main: {
-    plugins: [externalizeDepsPlugin()],
-    build: {
-      rollupOptions: {
-        input: { index: resolve(__dirname, "electron/main/index.ts") },
-      },
-    },
-  },
-  preload: {
-    plugins: [externalizeDepsPlugin()],
-    build: {
-      rollupOptions: {
-        input: { index: resolve(__dirname, "electron/preload/index.ts") },
-      },
-    },
-  },
-  renderer: {
-    root: resolve(__dirname, "electron/renderer"),
-    plugins: [react()],
-    build: {
-      rollupOptions: {
-        input: resolve(__dirname, "electron/renderer/index.html"),
-      },
-    },
-    resolve: {
-      alias: {
-        // Lets renderer imports use absolute paths if needed
-      },
-    },
-  },
 });
 ```
 
-**`packages/desktop/electron/main/services.ts`** (new):
-
-```typescript
-import { openDb } from "@praxis/core/db";
-import { ConfigServiceImpl, SessionServiceImpl, type ServiceDeps } from "@praxis/core/services";
-import { teachMode } from "@praxis/curriculum/modes";
-import { echoTool, nowTool } from "@praxis/tools/test-tools";
-import type { Logger, Mode } from "@praxis/core/types";
-
-export interface BuiltServices {
-  session: SessionServiceImpl;
-  config: ConfigServiceImpl;
-  deps: ServiceDeps;
-}
-
-export function buildServices(): BuiltServices {
-  const { db } = openDb(); // resolves PRAXIS_DB_PATH or default OS dir
-
-  const log: Logger = {
-    debug: (m, f) => console.debug(`[debug] ${m}`, f ?? {}),
-    info: (m, f) => console.info(`[info] ${m}`, f ?? {}),
-    warn: (m, f) => console.warn(`[warn] ${m}`, f ?? {}),
-    error: (m, f) => console.error(`[error] ${m}`, f ?? {}),
-  };
-
-  const modes = new Map<string, Mode>([[teachMode.id, teachMode]]);
-
-  const deps: ServiceDeps = {
-    db,
-    log,
-    modes,
-    toolDefinitions: [echoTool, nowTool],
-  };
-
-  return {
-    session: new SessionServiceImpl(deps),
-    config: new ConfigServiceImpl(deps),
-    deps,
-  };
-}
-```
-
-**`packages/desktop/electron/main/migrations.ts`** (new):
-
-```typescript
-import { runMigrations } from "@praxis/core/db/migrate";
-import { app } from "electron";
-import { join } from "node:path";
-
-/** Locate the bundled `drizzle/` directory and apply pending migrations on startup. */
-export function applyMigrations(): void {
-  // In dev, drizzle/ lives at the repo root. In packaged production, it ships
-  // alongside the app's resources.
-  const migrationsFolder = app.isPackaged
-    ? join(process.resourcesPath, "drizzle")
-    : join(process.cwd(), "drizzle");
-  runMigrations({ migrationsFolder });
-}
-```
-
-**`packages/desktop/electron/main/ipc-server.ts`** (new):
-
-```typescript
-import { ipcMain, type BrowserWindow } from "electron";
-import type { BuiltServices } from "./services.js";
-
-/**
- * Register all IPC handlers. Each handler routes to a method on the built
- * service instances. Streamed methods (only `praxis.session.send` for Phase 3)
- * use a `.start` invoke + per-stream events channel + `.cancel` invoke.
- *
- * The function returns an `unregister` callback for tests/teardown.
- */
-export function registerIpcHandlers(opts: {
-  services: BuiltServices;
-  /** Resolves the active BrowserWindow at handler-call time so we can push events. */
-  getWindow: () => BrowserWindow | null;
-}): () => void {
-  const { services, getWindow } = opts;
-
-  // --- session ---
-  ipcMain.handle("praxis.session.start", async (_e, args) => services.session.start(args));
-  ipcMain.handle("praxis.session.end", async (_e, args) => services.session.end(args.sessionId));
-  ipcMain.handle("praxis.session.active", async () => services.session.active());
-
-  // session.send is streamed.
-  const activeStreams = new Map<string, AbortController>();
-
-  ipcMain.handle("praxis.session.send.start", async (_e, args: { streamId: string; args: { sessionId: string; message: string } }) => {
-    const { streamId, args: streamArgs } = args;
-    const eventsChannel = `praxis.session.send.events.${streamId}`;
-    const ctrl = new AbortController();
-    activeStreams.set(streamId, ctrl);
-
-    void (async () => {
-      try {
-        for await (const event of services.session.send(
-          streamArgs.sessionId as never,
-          streamArgs.message,
-        )) {
-          if (ctrl.signal.aborted) break;
-          getWindow()?.webContents.send(eventsChannel, { kind: "event", value: event });
-        }
-        getWindow()?.webContents.send(eventsChannel, { kind: "done" });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        getWindow()?.webContents.send(eventsChannel, {
-          kind: "error",
-          error: { code: "session.send.failed", message },
-        });
-      } finally {
-        activeStreams.delete(streamId);
-      }
-    })();
-  });
-
-  ipcMain.handle("praxis.session.send.cancel", async (_e, args: { streamId: string }) => {
-    activeStreams.get(args.streamId)?.abort();
-    activeStreams.delete(args.streamId);
-  });
-
-  // --- config ---
-  ipcMain.handle("praxis.config.isLocked", async () => services.config.isLocked());
-  ipcMain.handle("praxis.config.setLockCode", async (_e, args) => services.config.setLockCode(args.code));
-  ipcMain.handle("praxis.config.unlock", async (_e, args) => services.config.unlock(args.code));
-  ipcMain.handle("praxis.config.selectedEngine", async () => services.config.selectedEngine());
-  ipcMain.handle("praxis.config.setSelectedEngine", async (_e, args) => services.config.setSelectedEngine(args.engineId));
-  ipcMain.handle("praxis.config.engineConfig", async () => services.config.engineConfig());
-  ipcMain.handle("praxis.config.setEngineConfig", async (_e, args) => services.config.setEngineConfig(args.config));
-
-  return () => {
-    for (const ctrl of activeStreams.values()) ctrl.abort();
-    activeStreams.clear();
-    for (const channel of [
-      "praxis.session.start",
-      "praxis.session.end",
-      "praxis.session.active",
-      "praxis.session.send.start",
-      "praxis.session.send.cancel",
-      "praxis.config.isLocked",
-      "praxis.config.setLockCode",
-      "praxis.config.unlock",
-      "praxis.config.selectedEngine",
-      "praxis.config.setSelectedEngine",
-      "praxis.config.engineConfig",
-      "praxis.config.setEngineConfig",
-    ]) {
-      ipcMain.removeHandler(channel);
-    }
-  };
-}
-```
-
-**`packages/desktop/electron/main/window.ts`** (new):
-
-```typescript
-import { BrowserWindow, shell } from "electron";
-import { join } from "node:path";
-
-const isDev = !!process.env.ELECTRON_RENDERER_URL;
-
-export function createMainWindow(): BrowserWindow {
-  const win = new BrowserWindow({
-    width: 1100,
-    height: 800,
-    show: false,
-    autoHideMenuBar: false,
-    webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-
-  win.on("ready-to-show", () => win.show());
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: "deny" };
-  });
-
-  if (isDev && process.env.ELECTRON_RENDERER_URL) {
-    void win.loadURL(process.env.ELECTRON_RENDERER_URL);
-  } else {
-    void win.loadFile(join(__dirname, "../renderer/index.html"));
-  }
-  return win;
-}
-```
-
-**`packages/desktop/electron/main/index.ts`** (new):
-
-```typescript
-import { app, BrowserWindow } from "electron";
-import { createMainWindow } from "./window.js";
-import { applyMigrations } from "./migrations.js";
-import { buildServices } from "./services.js";
-import { registerIpcHandlers } from "./ipc-server.js";
-
-let mainWindow: BrowserWindow | null = null;
-
-app.whenReady().then(() => {
-  applyMigrations();
-  const services = buildServices();
-  registerIpcHandlers({ services, getWindow: () => mainWindow });
-
-  mainWindow = createMainWindow();
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = createMainWindow();
-    }
-  });
-});
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
-```
-
-**`packages/desktop/electron/preload/index.ts`** (new):
-
-```typescript
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import type { PraxisIpcBridge, IpcStreamMessage } from "@praxis/client";
-
-const bridge: PraxisIpcBridge = {
-  invoke: (channel, args) => ipcRenderer.invoke(channel, args),
-  subscribe: (channel, handler) => {
-    const wrapped = (_e: IpcRendererEvent, msg: IpcStreamMessage) => handler(msg);
-    ipcRenderer.on(channel, wrapped);
-    return () => {
-      ipcRenderer.removeListener(channel, wrapped);
-    };
-  },
-};
-
-contextBridge.exposeInMainWorld("praxis", bridge);
-```
-
-**`packages/desktop/electron/renderer/index.html`** (new):
-
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
-    <title>Praxis</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
-  </body>
-</html>
-```
-
-**`packages/desktop/electron/renderer/global.d.ts`** (new):
-
-```typescript
-import type { PraxisIpcBridge } from "@praxis/client";
-
-declare global {
-  interface Window {
-    praxis: PraxisIpcBridge;
-  }
-}
-```
-
-**`packages/desktop/electron/renderer/index.tsx`** (new):
-
-```typescript
-import { createPraxisClient, createIpcTransport } from "@praxis/client";
-import { mountPraxisApp } from "@praxis/ui";
-
-const transport = createIpcTransport(window.praxis);
-const client = createPraxisClient(transport);
-
-const rootEl = document.getElementById("root");
-if (!rootEl) throw new Error("#root not found");
-mountPraxisApp(rootEl, { client });
-```
-
-**`packages/desktop/tsconfig.electron.json`** (new):
-
-```json
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "composite": false,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["node"]
-  },
-  "include": ["electron/**/*.ts", "electron/**/*.tsx", "electron/**/*.d.ts"]
-}
-```
-
-**`packages/desktop/tsconfig.json`** (modified — keep src/ as composite project, exclude electron/):
-
-```json
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "composite": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "tsBuildInfoFile": "dist/.tsbuildinfo"
-  },
-  "include": ["src"],
-  "exclude": ["dist", "out", "electron"]
-}
-```
-
-**`packages/desktop/src/index.ts`** (rewrite):
-
-```typescript
-export const PACKAGE_NAME = "@praxis/desktop" as const;
-```
-
-**`packages/desktop/src/__tests__/ipc-server.test.ts`** (new) — tests handler dispatch by mocking `electron`'s `ipcMain` at module level. Pattern:
-
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
-vi.mock("electron", () => {
-  const handlers = new Map<string, (...args: unknown[]) => unknown>();
-  return {
-    ipcMain: {
-      handle: (channel: string, fn: never) => handlers.set(channel, fn as never),
-      removeHandler: (channel: string) => handlers.delete(channel),
-    },
-    BrowserWindow: vi.fn(),
-    __handlers: handlers, // test-only escape hatch
-  };
-});
-
-import { registerIpcHandlers } from "../../electron/main/ipc-server.js";
-
-describe("ipc-server", () => {
-  it("registers session handlers and routes start to SessionService.start", async () => {
-    const fakeServices = {
-      session: { start: vi.fn().mockResolvedValue({ sessionId: "s1" } as never) },
-      config: {} as never,
-      deps: {} as never,
-    };
-    const unregister = registerIpcHandlers({
-      services: fakeServices as never,
-      getWindow: () => null,
-    });
-    const electron = await import("electron");
-    const handler = (electron as unknown as { __handlers: Map<string, never> }).__handlers.get("praxis.session.start");
-    const result = await (handler as never as (e: unknown, args: unknown) => Promise<unknown>)(null, { modeId: "teach" });
-    expect(fakeServices.session.start).toHaveBeenCalledWith({ modeId: "teach" });
-    expect(result).toEqual({ sessionId: "s1" });
-    unregister();
-  });
-});
-```
-
-**Implementation Notes**:
-
-- The `electron-vite` toolchain handles main + preload + renderer compilation. Output goes to `out/{main,preload,renderer}/`.
-- The renderer entry is in `electron/renderer/` (not `src/`) because that's the convention electron-vite expects. The `src/` folder remains the package's TypeScript source for the `@praxis/desktop` library export (just `PACKAGE_NAME` for now).
-- Two tsconfigs: `tsconfig.json` for the (essentially empty) library `src/` (composite project for the workspace `tsc -b`), and `tsconfig.electron.json` for the Electron + renderer code (DOM lib, no composite).
-- Streaming pattern: client invokes `.start` with a streamId, server kicks off async iteration in the background pushing events on `events.<streamId>`, server invokes `.cancel` if the consumer breaks early.
-- `getWindow()` is called per-event so we always push to the current window (handles window recreation on macOS dock-click).
-- The migrations folder location is environment-dependent. In dev, drizzle/ is at repo root. In packaged production (Phase 15), it ships in `process.resourcesPath`.
+The IPC server (`registerIpcHandlers`) is unchanged from v1 — channels and routing are identical. The fact that engine sessions persist across IPC calls is a service-layer concern; the IPC layer just forwards `send` calls.
 
 **Acceptance Criteria**:
-- [ ] `pnpm --filter @praxis/desktop build` produces `out/main/index.js`, `out/preload/index.js`, `out/renderer/index.html`.
-- [ ] `pnpm --filter @praxis/desktop typecheck` passes for both tsconfigs.
-- [ ] IPC handler unit tests: `praxis.session.start` invokes `services.session.start` with the same args.
-- [ ] IPC handler unit test: `praxis.session.send.start` triggers `services.session.send` and pushes events to `webContents.send` (mock `getWindow().webContents.send` and assert calls).
-- [ ] IPC handler unit test: `praxis.session.send.cancel` aborts the stream and prevents further events.
-- [ ] `unregister()` returned by `registerIpcHandlers` removes all handlers and aborts active streams.
-- [ ] Preload's exposed `bridge` matches the `PraxisIpcBridge` type contract.
-- [ ] BrowserWindow webPreferences include `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`.
+- [ ] All v1 acceptance criteria for IPC handler registration, dispatch, stream cancel, etc.
+- [ ] **NEW**: `before-quit` hook invokes `services.session.shutdown()` and waits for it before exiting.
 
 ---
 
 ### Unit 8: `@praxis/ui` — React shell + chat + settings
 
-**Files**:
-- `packages/ui/package.json` (rewrite — add deps)
-- `packages/ui/tsconfig.json` (modified — JSX, DOM lib)
-- `packages/ui/src/index.ts` (rewrite — exports)
-- `packages/ui/src/mount.tsx` (new — `mountPraxisApp`)
-- `packages/ui/src/app.tsx` (new — root layout + router)
-- `packages/ui/src/router.tsx` (new — TanStack Router code-based routes)
-- `packages/ui/src/context/client-context.tsx` (new — React context exposing PraxisClient)
-- `packages/ui/src/routes/chat.tsx` (new — chat surface)
-- `packages/ui/src/routes/chat.module.css` (new)
-- `packages/ui/src/routes/settings.tsx` (new — settings UI)
-- `packages/ui/src/routes/settings.module.css` (new)
-- `packages/ui/src/components/{message,composer,nav}.tsx` + `.module.css` (new — chat building blocks)
-- `packages/ui/src/hooks/use-streamed-send.ts` (new — chat send hook)
-- `packages/ui/src/styles/global.css` (new — reset + design tokens)
-- `packages/ui/src/__tests__/{chat-route,settings-route,use-streamed-send}.test.tsx` (new)
-- `packages/ui/vitest.config.ts` (new — JSDOM env for component tests)
+Unchanged from v1. The UI doesn't care that engine sessions persist on the backend — it just calls `client.session.send()` and iterates events. The chat route, composer, settings route, hooks, components, styles — all identical.
 
-**`packages/ui/package.json`**:
-
-```json
-{
-  "name": "@praxis/ui",
-  "version": "0.3.0",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@praxis/client": "workspace:*",
-    "@tanstack/react-router": "^1.168.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
-  },
-  "devDependencies": {
-    "@testing-library/react": "^16.0.0",
-    "@testing-library/user-event": "^14.5.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "jsdom": "^25.0.0"
-  }
-}
-```
-
-**`packages/ui/tsconfig.json`** (modified):
-
-```json
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "composite": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "tsBuildInfoFile": "dist/.tsbuildinfo",
-    "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
-  },
-  "include": ["src"],
-  "exclude": ["dist"]
-}
-```
-
-**`packages/ui/vitest.config.ts`** (new):
+The `useStreamedSend` hook handles `user_message` events naturally: when iterating the stream, the first event from the backend is now a `user_message`, but the hook already treats the user bubble as appearing immediately on submit (before any event arrives) — so it can simply ignore the inbound `user_message` event (or use it as confirmation that the backend received the message). For Phase 3, **ignore** `user_message` in the hook; the user bubble already exists in local state.
 
 ```typescript
-import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
-
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: "jsdom",
-    globals: false,
-    setupFiles: [],
-  },
-});
-```
-
-> Note: this requires adding `@vitejs/plugin-react` and `vite` as devDependencies of `@praxis/ui`. Update package.json accordingly.
-
-**`packages/ui/src/context/client-context.tsx`** (new):
-
-```typescript
-import { createContext, useContext, type ReactNode } from "react";
-import type { PraxisClient } from "@praxis/core/types";
-
-const PraxisClientContext = createContext<PraxisClient | null>(null);
-
-export function PraxisClientProvider(props: { client: PraxisClient; children: ReactNode }) {
-  return <PraxisClientContext.Provider value={props.client}>{props.children}</PraxisClientContext.Provider>;
-}
-
-export function usePraxisClient(): PraxisClient {
-  const c = useContext(PraxisClientContext);
-  if (!c) throw new Error("usePraxisClient called outside PraxisClientProvider");
-  return c;
+// useStreamedSend handler (refinement vs v1):
+for await (const event of client.session.send(sessionId, message)) {
+  if (event.type === "user_message") continue; // already in local state
+  // ... existing handling for model_message / tool_call / etc.
 }
 ```
 
-**`packages/ui/src/router.tsx`** (new):
-
-```typescript
-import { createRouter, createRoute, createRootRoute, Outlet } from "@tanstack/react-router";
-import { ChatRoute } from "./routes/chat.js";
-import { SettingsRoute } from "./routes/settings.js";
-import { Nav } from "./components/nav.js";
-
-const rootRoute = createRootRoute({
-  component: () => (
-    <div data-app-shell>
-      <Nav />
-      <main>
-        <Outlet />
-      </main>
-    </div>
-  ),
-});
-
-const chatRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: ChatRoute,
-});
-
-const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/settings",
-  component: SettingsRoute,
-});
-
-const routeTree = rootRoute.addChildren([chatRoute, settingsRoute]);
-export const router = createRouter({ routeTree });
-
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router;
-  }
-}
-```
-
-**`packages/ui/src/app.tsx`** (new):
-
-```typescript
-import { RouterProvider } from "@tanstack/react-router";
-import type { PraxisClient } from "@praxis/core/types";
-import { router } from "./router.js";
-import { PraxisClientProvider } from "./context/client-context.js";
-import "./styles/global.css";
-
-export function PraxisApp(props: { client: PraxisClient }) {
-  return (
-    <PraxisClientProvider client={props.client}>
-      <RouterProvider router={router} />
-    </PraxisClientProvider>
-  );
-}
-```
-
-**`packages/ui/src/mount.tsx`** (new):
-
-```typescript
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import type { PraxisClient } from "@praxis/core/types";
-import { PraxisApp } from "./app.js";
-
-export function mountPraxisApp(container: Element, opts: { client: PraxisClient }): { unmount: () => void } {
-  const root = createRoot(container);
-  root.render(
-    <StrictMode>
-      <PraxisApp client={opts.client} />
-    </StrictMode>,
-  );
-  return { unmount: () => root.unmount() };
-}
-```
-
-**`packages/ui/src/hooks/use-streamed-send.ts`** (new):
-
-```typescript
-import { useCallback, useRef, useState } from "react";
-import type { EngineEvent, SessionId } from "@praxis/core/types";
-import { usePraxisClient } from "../context/client-context.js";
-
-export interface ChatBubble {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  /** True while streaming partial deltas; flips false after a non-partial model_message arrives. */
-  streaming: boolean;
-}
-
-export interface UseStreamedSendResult {
-  bubbles: ChatBubble[];
-  send: (sessionId: SessionId, message: string) => Promise<void>;
-  resetBubbles: () => void;
-  inFlight: boolean;
-  lastError: string | null;
-}
-
-/**
- * Drives one chat session's bubble list. On `send`, appends a user bubble and
- * an empty assistant bubble, then iterates the streamed EngineEvents:
- * - text deltas append to the current assistant bubble
- * - non-partial model_messages overwrite the bubble's content (final form)
- * - tool_call/tool_result events surface as muted system lines (collapsed in v1)
- * - error events flip lastError
- */
-export function useStreamedSend(): UseStreamedSendResult {
-  const client = usePraxisClient();
-  const [bubbles, setBubbles] = useState<ChatBubble[]>([]);
-  const [inFlight, setInFlight] = useState(false);
-  const [lastError, setLastError] = useState<string | null>(null);
-  const bubbleIdCounter = useRef(0);
-
-  const newId = () => `b${++bubbleIdCounter.current}`;
-
-  const send = useCallback(
-    async (sessionId: SessionId, message: string) => {
-      setInFlight(true);
-      setLastError(null);
-      const userId = newId();
-      const assistantId = newId();
-      setBubbles((b) => [
-        ...b,
-        { id: userId, role: "user", content: message, streaming: false },
-        { id: assistantId, role: "assistant", content: "", streaming: true },
-      ]);
-      try {
-        let partialBuffer = "";
-        for await (const event of client.session.send(sessionId, message)) {
-          handleEvent(event, assistantId, (updater) => setBubbles(updater));
-          if (event.type === "model_message" && event.partial === true) {
-            partialBuffer += event.content;
-            const snapshot = partialBuffer;
-            setBubbles((bs) =>
-              bs.map((b) => (b.id === assistantId ? { ...b, content: snapshot, streaming: true } : b)),
-            );
-          } else if (event.type === "model_message" && event.partial !== true) {
-            partialBuffer = event.content;
-            setBubbles((bs) =>
-              bs.map((b) => (b.id === assistantId ? { ...b, content: event.content, streaming: false } : b)),
-            );
-          } else if (event.type === "error") {
-            setLastError(`${event.error.code}: ${event.error.message}`);
-          }
-          // tool_call / tool_result / thinking / final intentionally unrendered in Phase 3
-        }
-        setBubbles((bs) =>
-          bs.map((b) => (b.id === assistantId ? { ...b, streaming: false } : b)),
-        );
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        setLastError(message);
-        setBubbles((bs) =>
-          bs.map((b) => (b.id === assistantId ? { ...b, streaming: false } : b)),
-        );
-      } finally {
-        setInFlight(false);
-      }
-    },
-    [client],
-  );
-
-  const resetBubbles = useCallback(() => setBubbles([]), []);
-
-  return { bubbles, send, resetBubbles, inFlight, lastError };
-}
-
-function handleEvent(
-  event: EngineEvent,
-  _assistantId: string,
-  _setBubbles: (u: (b: ChatBubble[]) => ChatBubble[]) => void,
-): void {
-  // Helper hook for future per-event side-effects; intentionally empty in Phase 3.
-  void event;
-}
-```
-
-**`packages/ui/src/routes/chat.tsx`** (new):
-
-```typescript
-import { useEffect, useState, type FormEvent } from "react";
-import type { SessionId } from "@praxis/core/types";
-import { usePraxisClient } from "../context/client-context.js";
-import { useStreamedSend } from "../hooks/use-streamed-send.js";
-import { Message } from "../components/message.js";
-import { Composer } from "../components/composer.js";
-import styles from "./chat.module.css";
-
-export function ChatRoute() {
-  const client = usePraxisClient();
-  const [sessionId, setSessionId] = useState<SessionId | null>(null);
-  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
-  const { bubbles, send, resetBubbles, inFlight, lastError } = useStreamedSend();
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const handle = await client.session.start({ modeId: "teach" });
-        if (!cancelled) setSessionId(handle.sessionId);
-      } catch (err) {
-        if (!cancelled) setBootstrapError(err instanceof Error ? err.message : String(err));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [client]);
-
-  const handleSubmit = async (text: string) => {
-    if (!sessionId || inFlight) return;
-    await send(sessionId, text);
-  };
-
-  const handleNewChat = async () => {
-    resetBubbles();
-    if (sessionId) {
-      void client.session.end(sessionId).catch(() => {});
-    }
-    setSessionId(null);
-    try {
-      const handle = await client.session.start({ modeId: "teach" });
-      setSessionId(handle.sessionId);
-    } catch (err) {
-      setBootstrapError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
-  return (
-    <div className={styles.chatRoot}>
-      <header className={styles.header}>
-        <h1>Tutor</h1>
-        <button type="button" onClick={handleNewChat} className={styles.newChatBtn}>
-          New chat
-        </button>
-      </header>
-      {bootstrapError && (
-        <div className={styles.errorBanner} role="alert">
-          Could not start session: {bootstrapError}
-        </div>
-      )}
-      <div className={styles.messages}>
-        {bubbles.length === 0 && (
-          <p className={styles.emptyHint}>
-            Ask the tutor anything. Your conversation persists across turns.
-          </p>
-        )}
-        {bubbles.map((b) => (
-          <Message key={b.id} role={b.role} content={b.content} streaming={b.streaming} />
-        ))}
-      </div>
-      {lastError && (
-        <div className={styles.errorBanner} role="alert">
-          {lastError}
-        </div>
-      )}
-      <Composer disabled={!sessionId || inFlight} onSubmit={handleSubmit} />
-    </div>
-  );
-}
-```
-
-**`packages/ui/src/components/message.tsx`** (new):
-
-```typescript
-import styles from "./message.module.css";
-
-export function Message(props: { role: "user" | "assistant"; content: string; streaming: boolean }) {
-  const cls = props.role === "user" ? styles.user : styles.assistant;
-  return (
-    <div className={`${styles.bubble} ${cls}`} data-role={props.role}>
-      <span className={styles.content}>{props.content}</span>
-      {props.streaming && <span className={styles.cursor} aria-hidden="true">▋</span>}
-    </div>
-  );
-}
-```
-
-**`packages/ui/src/components/composer.tsx`** (new):
-
-```typescript
-import { type FormEvent, useState } from "react";
-import styles from "./composer.module.css";
-
-export function Composer(props: { disabled: boolean; onSubmit: (text: string) => void }) {
-  const [text, setText] = useState("");
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const trimmed = text.trim();
-    if (!trimmed || props.disabled) return;
-    setText("");
-    props.onSubmit(trimmed);
-  };
-  return (
-    <form className={styles.composer} onSubmit={onSubmit}>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Type a message..."
-        rows={3}
-        disabled={props.disabled}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit();
-          }
-        }}
-        aria-label="Message"
-      />
-      <button type="submit" disabled={props.disabled || text.trim().length === 0}>
-        Send
-      </button>
-    </form>
-  );
-}
-```
-
-**`packages/ui/src/components/nav.tsx`** (new):
-
-```typescript
-import { Link } from "@tanstack/react-router";
-import styles from "./nav.module.css";
-
-export function Nav() {
-  return (
-    <nav className={styles.nav}>
-      <Link to="/" className={styles.link} activeProps={{ className: `${styles.link} ${styles.active}` }}>
-        Chat
-      </Link>
-      <Link to="/settings" className={styles.link} activeProps={{ className: `${styles.link} ${styles.active}` }}>
-        Settings
-      </Link>
-    </nav>
-  );
-}
-```
-
-**`packages/ui/src/routes/settings.tsx`** (new):
-
-```typescript
-import { useEffect, useState, type FormEvent } from "react";
-import { usePraxisClient } from "../context/client-context.js";
-import type { EngineConfigSnapshot } from "@praxis/core/types";
-import styles from "./settings.module.css";
-
-const ENGINE_OPTIONS = [
-  { id: "claude-code", label: "Claude Code (local CLI)" },
-  { id: "codex", label: "Codex (local CLI)" },
-  { id: "direct.anthropic", label: "Direct — Anthropic" },
-  { id: "direct.openai", label: "Direct — OpenAI" },
-  { id: "direct.google", label: "Direct — Google" },
-  { id: "direct.ollama", label: "Direct — Ollama (local)" },
-] as const;
-
-export function SettingsRoute() {
-  const client = usePraxisClient();
-  const [config, setConfig] = useState<EngineConfigSnapshot | null>(null);
-  const [savingState, setSavingState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    void client.config.engineConfig().then(setConfig);
-  }, [client]);
-
-  if (!config) return <p className={styles.loading}>Loading…</p>;
-
-  const update = <K extends keyof EngineConfigSnapshot>(key: K, value: EngineConfigSnapshot[K]) =>
-    setConfig((c) => (c ? { ...c, [key]: value } : c));
-
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSavingState("saving");
-    setErrorMsg(null);
-    try {
-      // Strip empty-string optional fields so we don't persist "" as a value.
-      const payload: EngineConfigSnapshot = {
-        engineId: config.engineId,
-        ...(config.model && config.model.length > 0 && { model: config.model }),
-        ...(config.apiKey && config.apiKey.length > 0 && { apiKey: config.apiKey }),
-        ...(config.baseUrl && config.baseUrl.length > 0 && { baseUrl: config.baseUrl }),
-        ...(config.effort !== undefined && { effort: config.effort }),
-      };
-      await client.config.setEngineConfig(payload);
-      setSavingState("saved");
-      setTimeout(() => setSavingState("idle"), 2000);
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : String(err));
-      setSavingState("error");
-    }
-  };
-
-  return (
-    <form className={styles.settings} onSubmit={onSubmit}>
-      <h1>Settings</h1>
-
-      <label className={styles.field}>
-        <span>Engine</span>
-        <select value={config.engineId} onChange={(e) => update("engineId", e.target.value)}>
-          {ENGINE_OPTIONS.map((opt) => (
-            <option key={opt.id} value={opt.id}>{opt.label}</option>
-          ))}
-        </select>
-      </label>
-
-      <label className={styles.field}>
-        <span>Model (optional)</span>
-        <input
-          type="text"
-          value={config.model ?? ""}
-          onChange={(e) => update("model", e.target.value)}
-          placeholder="e.g. claude-sonnet-4-5"
-        />
-      </label>
-
-      <label className={styles.field}>
-        <span>API key (optional — read from env if not set)</span>
-        <input
-          type="password"
-          value={config.apiKey ?? ""}
-          onChange={(e) => update("apiKey", e.target.value)}
-        />
-      </label>
-
-      <label className={styles.field}>
-        <span>Base URL (optional)</span>
-        <input
-          type="url"
-          value={config.baseUrl ?? ""}
-          onChange={(e) => update("baseUrl", e.target.value)}
-        />
-      </label>
-
-      <div className={styles.actions}>
-        <button type="submit" disabled={savingState === "saving"}>
-          {savingState === "saving" ? "Saving…" : "Save"}
-        </button>
-        {savingState === "saved" && <span className={styles.savedHint}>Saved</span>}
-        {savingState === "error" && errorMsg && <span className={styles.errorHint}>{errorMsg}</span>}
-      </div>
-    </form>
-  );
-}
-```
-
-**`packages/ui/src/styles/global.css`** (new) — minimal reset + design tokens:
-
-```css
-:root {
-  --color-bg: #fafafa;
-  --color-surface: #ffffff;
-  --color-text: #1a1a1a;
-  --color-text-muted: #666;
-  --color-border: #e5e5e5;
-  --color-accent: #2d6cdf;
-  --color-error: #b3261e;
-  --color-user-bubble: #2d6cdf;
-  --color-user-bubble-text: #ffffff;
-  --color-assistant-bubble: #ffffff;
-  --color-assistant-bubble-text: #1a1a1a;
-  --font-system: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --radius: 8px;
-}
-
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-body { font-family: var(--font-system); color: var(--color-text); background: var(--color-bg); }
-[data-app-shell] { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
-main { overflow: auto; }
-button { font: inherit; cursor: pointer; }
-button:disabled { cursor: not-allowed; opacity: 0.6; }
-input, select, textarea { font: inherit; }
-```
-
-**`packages/ui/src/index.ts`** (rewrite):
-
-```typescript
-export { mountPraxisApp } from "./mount.js";
-export { PraxisApp } from "./app.js";
-export const PACKAGE_NAME = "@praxis/ui" as const;
-```
-
-**Implementation Notes**:
-
-- The chat route auto-starts a session in `useEffect` on mount. This is the simplest UX for Phase 3 — no "start" button. "New chat" ends the current session and starts a new one.
-- `useStreamedSend` handles the partial→full transition: while deltas arrive, the assistant bubble updates with the cumulative partial text. When a non-partial `model_message` arrives, the bubble's content is overwritten with the final form (deltas from the same engine should be a strict prefix of the final, so this is visually a no-op typically, but it's the contract).
-- `tool_call` / `tool_result` / `thinking` events are silently dropped in Phase 3 — they don't render in the chat. A devtools-friendly inline "tool was called" badge is a nice-to-have but not required.
-- The Settings form persists on save. Engine changes take effect on the next `session.send()` (the session service builds an engine per turn).
-- All component tests use `@testing-library/react` with a fake `PraxisClient` injected via context.
-
-**Acceptance Criteria**:
-- [ ] `mountPraxisApp(el, { client })` renders the chat route by default and a `<nav>` linking to `/settings`.
-- [ ] Chat route auto-calls `client.session.start({ modeId: "teach" })` once on mount.
-- [ ] Submitting the composer calls `client.session.send` with the trimmed text; the user bubble + assistant placeholder appear immediately.
-- [ ] As `model_message` (partial) events arrive, the assistant bubble's content grows.
-- [ ] When a non-partial `model_message` arrives, the assistant bubble's content equals the full event content; the streaming cursor disappears.
-- [ ] On `error` event, the error banner shows the code:message.
-- [ ] "New chat" calls `client.session.end(currentSessionId)` then `client.session.start(...)` and clears bubbles.
-- [ ] Settings route loads `client.config.engineConfig()` on mount and renders fields prefilled.
-- [ ] Saving valid config calls `client.config.setEngineConfig(...)` with the payload (empty-string optionals stripped).
-- [ ] Component tests pass under `vitest --environment jsdom`.
+**Acceptance Criteria**: same as v1, plus:
+- [ ] Hook ignores incoming `user_message` events (no duplicate user bubbles).
 
 ---
 
 ### Unit 9: Root scripts + dev orchestration
 
-**Files**:
-- `package.json` (root — add `dev` script that proxies to desktop)
-- `pnpm-workspace.yaml` — unchanged
-
-**Root `package.json`** scripts addition:
+Unchanged from v1.
 
 ```json
 {
   "scripts": {
-    "build": "pnpm -r run build",
-    "typecheck": "pnpm -r run typecheck",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
-    "format": "biome format --write .",
-    "db:migrate": "tsx scripts/migrate.ts",
-    "db:generate": "drizzle-kit generate",
-    "db:show": "tsx scripts/db-show.ts",
-    "db:reset": "rm -f .praxis/dev.db && pnpm db:migrate",
-    "db:episodic": "tsx scripts/db-episodic.ts",
-    "script:run-session": "tsx scripts/run-session.ts",
     "dev": "pnpm --filter @praxis/desktop dev",
     "desktop:build": "pnpm --filter @praxis/desktop build",
     "desktop:start": "pnpm --filter @praxis/desktop start"
@@ -2359,29 +1545,35 @@ export const PACKAGE_NAME = "@praxis/ui" as const;
 }
 ```
 
-**Implementation Notes**:
+> Also: update `scripts/run-session.ts` to use the lifecycle. The script becomes:
+>
+> ```typescript
+> // ... arg parsing, config loading, tool registry construction unchanged ...
+>
+> const engine = createEngine({ config, deps: { log: consoleLogger } });
+> const systemPrompt = composeSystemPrompt({ mode: teachMode });
+> const session = await engine.open({ systemPrompt, tools });
+> try {
+>   for await (const event of session.send(userMessage)) {
+>     renderEvent(event);
+>   }
+> } finally {
+>   await session.close();
+> }
+> ```
 
-- `pnpm dev` is a one-liner that delegates to `electron-vite dev` inside `@praxis/desktop`. electron-vite handles the orchestration: starts the renderer Vite dev server, builds main + preload, launches Electron pointing at the dev server.
-- `pnpm desktop:build` produces a production-mode bundle in `packages/desktop/out/`. Phase 15 will wrap this with `electron-builder` for installers.
-- Existing scripts (`script:run-session`, `db:episodic`, etc.) continue to work for the CLI path.
-
-**Acceptance Criteria**:
-- [ ] `pnpm dev` opens an Electron window in dev mode (manual verification — not tested in CI).
-- [ ] `pnpm desktop:build` produces `packages/desktop/out/{main,preload,renderer}/`.
-- [ ] All existing root scripts still work.
+The script remains single-turn (one CLI invocation = one user message). Multi-turn from the CLI would require a REPL; out of scope.
 
 ---
 
-### Unit 10: Tests for multi-turn behavior end-to-end
+### Unit 10: Tests for multi-turn end-to-end
 
 **Files**:
-- `tests/multi-turn.test.ts` (new — full SessionService integration test)
-- `packages/engines/src/__tests__/multi-turn.test.ts` (new — adapter-level priorTurns smoke)
-- `packages/core/src/__tests__/session-service.test.ts` (covered in Unit 5; this expands it)
+- `tests/multi-turn.test.ts` (new)
+- `packages/engines/src/__tests__/multi-turn.test.ts` (new — adapter session reuse)
+- `tests/engine-conformance.test.ts` (UPDATED — uses `runOneShot` wrapper)
 
-**`tests/multi-turn.test.ts`** (new):
-
-End-to-end test using a hand-written FakeEngine (NOT mocking SDKs — the engine itself is fake). Asserts:
+**`tests/multi-turn.test.ts`**:
 
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -2393,76 +1585,169 @@ import { runMigrations } from "@praxis/core/db/migrate";
 import { SessionServiceImpl, type ServiceDeps } from "@praxis/core/services";
 import { teachMode } from "@praxis/curriculum/modes";
 import { echoTool } from "@praxis/tools/test-tools";
-import type { Brief, Engine, EngineEvent, Logger, Mode, ToolRegistry } from "@praxis/core/types";
+import type {
+  Engine,
+  EngineEvent,
+  EngineOpenOptions,
+  EngineSession,
+  Logger,
+  Mode,
+} from "@praxis/core/types";
+
+class RecordingFakeSession implements EngineSession {
+  readonly id = `fake-session-${Math.random()}`;
+  public sentMessages: string[] = [];
+  public closeCount = 0;
+  constructor(public readonly priorTurnsAtOpen: ReadonlyArray<{ role: "user" | "assistant"; content: string }>) {}
+  async *send(message: string): AsyncIterable<EngineEvent> {
+    this.sentMessages.push(message);
+    const reply = `Reply ${this.sentMessages.length}`;
+    yield { type: "model_message", content: reply, partial: false };
+    yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } };
+  }
+  async close() { this.closeCount++; }
+}
 
 class RecordingFakeEngine implements Engine {
   readonly id = "fake.recording";
   readonly kind = "single-shot" as const;
-  public lastBrief: Brief | null = null;
-
-  async *run(brief: Brief, _tools: ToolRegistry): AsyncIterable<EngineEvent> {
-    this.lastBrief = brief;
-    const reply = brief.priorTurns?.length
-      ? `Reply ${brief.priorTurns.length + 1}: heard "${brief.userMessage}"`
-      : `Reply 1: heard "${brief.userMessage}"`;
-    yield { type: "model_message", content: reply, partial: false };
-    yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } };
+  public openCount = 0;
+  public lastSession: RecordingFakeSession | null = null;
+  async open(opts: EngineOpenOptions): Promise<EngineSession> {
+    this.openCount++;
+    this.lastSession = new RecordingFakeSession(opts.priorTurns ?? []);
+    return this.lastSession;
   }
   async health() {
-    return {
-      ok: true,
-      capabilities: { vision: false, streaming: true, nativeMCP: false, contextWindow: 100_000 },
-    };
+    return { ok: true, capabilities: { vision: false, streaming: true, nativeMCP: false, contextWindow: 100_000 } };
   }
 }
 
-// ... beforeEach/afterEach setup with temp DB + migrations ...
+let tmpDir: string, dbPath: string;
+const log: Logger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
 
-describe("multi-turn through SessionServiceImpl", () => {
-  it("threads prior turns into Brief on the second send", async () => {
-    // ... setup db, services with a custom engine factory (need to inject FakeEngine) ...
-    // Note: SessionServiceImpl uses createEngine() internally. To inject a fake,
-    // either: (a) extract engine factory as a ServiceDeps field, or
-    // (b) write the test against a SessionServiceImpl variant that takes an engine override.
-    //
-    // RECOMMENDED: extend ServiceDeps with optional `engineFactory?: (config) => Engine`.
-    // SessionServiceImpl uses it when present, falls back to createEngine() otherwise.
-    // This is a minor design refinement worth making for testability.
+beforeEach(() => {
+  tmpDir = mkdtempSync(join(tmpdir(), "praxis-multiturn-"));
+  dbPath = join(tmpDir, "test.db");
+  process.env.PRAXIS_DB_PATH = dbPath;
+  runMigrations({ path: dbPath });
+});
+
+afterEach(() => {
+  closeDb();
+  delete process.env.PRAXIS_DB_PATH;
+  rmSync(tmpDir, { recursive: true, force: true });
+});
+
+async function drain<T>(stream: AsyncIterable<T>): Promise<T[]> {
+  const out: T[] = [];
+  for await (const x of stream) out.push(x);
+  return out;
+}
+
+describe("multi-turn lifecycle through SessionServiceImpl", () => {
+  it("opens engine session once for multiple sends", async () => {
+    const { db } = openDb({ path: dbPath });
+    const engine = new RecordingFakeEngine();
+    const deps: ServiceDeps = {
+      db, log,
+      modes: new Map<string, Mode>([[teachMode.id, teachMode]]),
+      toolDefinitions: [echoTool],
+      engineFactory: () => engine,
+    };
+    const svc = new SessionServiceImpl(deps);
+    const handle = await svc.start({ modeId: "teach" });
+    expect(engine.openCount).toBe(1);
+    expect(engine.lastSession?.priorTurnsAtOpen).toEqual([]);
+
+    await drain(svc.send(handle.sessionId, "first"));
+    await drain(svc.send(handle.sessionId, "second"));
+    await drain(svc.send(handle.sessionId, "third"));
+
+    expect(engine.openCount).toBe(1); // session reused
+    expect(engine.lastSession?.sentMessages).toEqual(["first", "second", "third"]);
+  });
+
+  it("reopens with priorTurns after end and re-start (process restart simulation)", async () => {
+    const { db } = openDb({ path: dbPath });
+    const engine = new RecordingFakeEngine();
+    const deps: ServiceDeps = { db, log, modes: new Map([[teachMode.id, teachMode]]), toolDefinitions: [], engineFactory: () => engine };
+    const svc = new SessionServiceImpl(deps);
+    const handle = await svc.start({ modeId: "teach" });
+    await drain(svc.send(handle.sessionId, "hello"));
+    await svc.shutdown(); // simulates process exit
+
+    // New service instance — same DB.
+    const svc2 = new SessionServiceImpl(deps);
+    await drain(svc2.send(handle.sessionId, "still there?"));
+
+    // Engine reopened with priorTurns from episodic
+    expect(engine.openCount).toBe(2);
+    expect(engine.lastSession?.priorTurnsAtOpen).toEqual([
+      { role: "user", content: "hello" },
+      { role: "assistant", content: "Reply 1" },
+    ]);
+  });
+
+  it("reopens on engine swap mid-session", async () => {
+    const { db } = openDb({ path: dbPath });
+    const engineA = new RecordingFakeEngine();
+    const engineB = new RecordingFakeEngine();
+    let useEngineB = false;
+    const deps: ServiceDeps = {
+      db, log,
+      modes: new Map([[teachMode.id, teachMode]]),
+      toolDefinitions: [],
+      engineFactory: () => (useEngineB ? engineB : engineA),
+    };
+    // ... stub readEngineConfig via writing config; set initial engineId; send; change engineId; send again
+    // Assert: engineA opened once, closed once. engineB opened once with priorTurns.
   });
 });
 ```
 
-> **Design refinement**: `ServiceDeps` should accept an optional `engineFactory?: (config: EngineConfig) => Engine` to enable injecting fakes in tests. When omitted, `SessionServiceImpl` falls back to `createEngine` from `@praxis/engines`. This is the seam for both testing AND for future engine-customization scenarios. Update Unit 5 to add this field.
+**`packages/engines/src/__tests__/multi-turn.test.ts`** — per-adapter session reuse:
 
-**`packages/engines/src/__tests__/multi-turn.test.ts`** (new):
+For each adapter, assert that two consecutive `session.send()` calls invoke the underlying SDK's continuation API (e.g., `conv.send` called twice on the same `Conversation` instance — `createConversation` only called once).
 
-Tests each adapter's priorTurns handling against mocked SDKs:
+**`tests/engine-conformance.test.ts`** — updated to use `runOneShot`:
 
-- **Direct**: assert `streamText` is called with a `messages` array of length `priorTurns.length + 1`, with the right roles and content.
-- **Claude Code**: assert `conv.send` is called with a string containing `User: ` and `Tutor: ` markers from prior turns.
-- **Codex**: assert `thread.runStreamed` is called with the transcript string.
+```typescript
+import { runOneShot } from "@praxis/engines";
+
+// ... existing scenario setup ...
+
+it("Direct adapter produces normalized turn", async () => {
+  mockVercelForScenario();
+  const engine = new DirectEngine({ config: { engineId: "direct.anthropic" }, deps: { log: noopLogger }, provider: "anthropic" });
+  const turn = await collect(runOneShot(engine, { systemPrompt: "...", tools: registry }, SCENARIO_USER_MESSAGE));
+  // ... existing assertions unchanged ...
+});
+```
 
 **Acceptance Criteria**:
-- [ ] `multi-turn.test.ts` (root): three sequential `client.session.send()` calls produce a third turn whose Brief includes `priorTurns` of length 4 (turn1 user + turn1 assistant + turn2 user + turn2 assistant).
-- [ ] Adapter-level multi-turn tests pass for all three adapters.
-- [ ] Existing Phase 2 conformance tests (without priorTurns) continue to pass.
+- [ ] `multi-turn.test.ts`: engine.open called once for three sends.
+- [ ] Process-restart simulation: second SessionServiceImpl instance reopens engine with priorTurns from episodic.
+- [ ] Engine swap test: old engine.close called, new engine.open called with priorTurns.
+- [ ] Adapter session-reuse tests: each adapter's underlying SDK conversation is reused across sends.
+- [ ] Engine conformance suite (Phase 2) continues to pass with `runOneShot`.
 
 ---
 
 ## Implementation Order
 
-1. **Unit 1** — Type contract additions (foundation for everything below).
-2. **Unit 2** — `@praxis/core/session` history helpers.
-3. **Unit 3** — `composeBrief` priorTurns (depends on Unit 1's `Brief.priorTurns`).
-4. **Unit 4** — Engine adapter updates (depends on Unit 1, Unit 3).
+1. **Unit 1** — Engine lifecycle contract (foundation; everything downstream depends on this).
+2. **Unit 2** — `composeBrief` + `composeSystemPrompt`.
+3. **Unit 3** — `@praxis/core/session` history helpers.
+4. **Unit 4** — Engine adapter rewrites for lifecycle (sequential within adapters; can parallelize the three after the shared `runOneShot` + `transcript.ts` land). Update Phase 2 conformance tests in this unit.
 5. **Unit 5** — `@praxis/core/services` (depends on Units 2, 3, 4).
 6. **Unit 6** — `@praxis/client` (depends on Unit 1's contract; can parallelize with Unit 5).
 7. **Unit 7** — `@praxis/desktop` (depends on Units 5, 6).
 8. **Unit 8** — `@praxis/ui` (depends on Unit 6; can parallelize with Unit 7).
-9. **Unit 9** — Root scripts (depends on Unit 7).
-10. **Unit 10** — End-to-end multi-turn tests (depends on Unit 5; can be written in parallel with Unit 5 once `engineFactory` injection seam is in place).
+9. **Unit 9** — Root scripts + run-session.ts update (depends on Unit 7 for `pnpm dev`, Unit 4 for runOneShot).
+10. **Unit 10** — Multi-turn integration tests (depends on Unit 5; FakeEngine implements the lifecycle).
 
-Units 1–5 are sequential. Units 6, 7, 8 form an independent batch (6 first, then 7+8 in parallel). Unit 9 closes.
+Units 1–5 are sequential. Units 6/7/8 can be split as 6 first then 7+8 in parallel. Unit 9 and 10 close.
 
 ---
 
@@ -2474,82 +1759,69 @@ Units 1–5 are sequential. Units 6, 7, 8 form an independent batch (6 first, th
 |---|---|
 | `packages/core/src/__tests__/history.test.ts` | `loadConversationHistory` projection: single turn, multi-step turn, error-only turn, redacted skip, ordering. |
 | `packages/core/src/__tests__/episodic.test.ts` (extended) | `nextTurnIndex`, `recordUserMessage`. |
-| `packages/core/src/__tests__/session-service.test.ts` | start/send/end/active flows; second send includes priorTurns; error paths (unknown session, ended session). |
+| `packages/core/src/__tests__/session-service.test.ts` | start/send/end/active flows; session reuse across sends; engine swap reopens; process-restart simulation; error paths. |
 | `packages/core/src/__tests__/config-service.test.ts` | engineConfig round-trip; setSelectedEngine; validation rejection. |
-| `packages/core/src/__tests__/student.test.ts` | getOrCreateDefaultStudentId is idempotent. |
-| `packages/curriculum/src/__tests__/compose.test.ts` (extended) | priorTurns threading; empty-array normalization. |
-| `packages/engines/src/__tests__/{direct,claude-code,codex}.test.ts` (extended) | priorTurns translation per adapter (mocked SDKs). |
-| `packages/engines/src/__tests__/transcript.test.ts` | `buildTranscriptPrefix` formatting. |
+| `packages/core/src/__tests__/student.test.ts` | `getOrCreateDefaultStudentId` is idempotent. |
+| `packages/curriculum/src/__tests__/compose.test.ts` (extended) | `composeBrief` + `composeSystemPrompt`; override of non-customizable throws. |
+| `packages/engines/src/__tests__/{direct,claude-code,codex}.test.ts` (rewritten) | Lifecycle: open returns a session; two sends reuse SDK conversation; close cleans up bridge + SDK session. |
+| `packages/engines/src/__tests__/transcript.test.ts` | `buildTranscriptPreface` formatting. |
 | `packages/client/src/__tests__/client.test.ts` | createPraxisClient routes calls to transport invoke/stream. |
 | `packages/client/src/__tests__/ipc-transport.test.ts` | streamAsAsyncIterable: events, done, error, cancel-on-break. |
-| `packages/desktop/src/__tests__/ipc-server.test.ts` | handler registration, dispatch routing, stream cancel, unregister teardown. |
-| `packages/ui/src/__tests__/chat-route.test.tsx` | renders, calls start on mount, send updates bubbles. Uses fake client. |
+| `packages/desktop/src/__tests__/ipc-server.test.ts` | handler registration, dispatch routing, stream cancel, unregister teardown, before-quit shutdown. |
+| `packages/ui/src/__tests__/chat-route.test.tsx` | renders, calls start on mount, send updates bubbles, ignores echoed user_message. |
 | `packages/ui/src/__tests__/settings-route.test.tsx` | loads config on mount, save calls setEngineConfig. |
-| `packages/ui/src/__tests__/use-streamed-send.test.tsx` | partial deltas accumulate; non-partial overwrites; error sets lastError. |
+| `packages/ui/src/__tests__/use-streamed-send.test.tsx` | partial deltas accumulate; non-partial overwrites; user_message ignored; error sets lastError. |
 
 ### Integration tests (root `tests/`)
 
 | Test file | What it tests |
 |---|---|
-| `tests/multi-turn.test.ts` | Full SessionServiceImpl × FakeEngine: 3-turn conversation; turn 3's Brief includes priorTurns of length 4. |
+| `tests/multi-turn.test.ts` | SessionServiceImpl × FakeEngine: session reuse, process-restart rebuild, engine swap. |
+| `tests/engine-conformance.test.ts` (updated) | All three real adapters via `runOneShot` produce equivalent normalized event shapes. |
 
-### Manual verification (test checkpoint)
+### Manual M1 walkthrough
 
-- `pnpm dev` opens Electron.
-- Default engine is Claude Code (no API key prompt — uses local CLI).
-- Type "Hello" → see streamed assistant response.
-- Type "What did I just say?" → see assistant correctly recall "Hello" from prior turn.
-- Switch to settings → change engine to `direct.anthropic` → save → next message goes through Direct adapter.
-- `pnpm db:episodic` from terminal shows the session and its events ordered chronologically (user_message + model_messages + final).
+1. `pnpm dev` opens Electron.
+2. Type "Tell me about photosynthesis briefly." → assistant streams a response.
+3. Type "Now explain it as if I'm 8 years old." → assistant references the prior explanation (proves multi-turn with native cache).
+4. Open Settings → switch to `direct.anthropic` → enter `ANTHROPIC_API_KEY` → save.
+5. Send another message → goes through Direct adapter, with conversation history from the Claude Code session preserved (engine swap path).
+6. `pnpm db:episodic` shows the session, both engine ids, and all events ordered chronologically.
 
 ---
 
 ## Verification Checklist
 
-After all units land:
-
 ```bash
-# Existing gates still green (Phase 1 + Phase 2)
 pnpm install
-pnpm typecheck         # all 9 packages + desktop electron tsconfig
+pnpm typecheck
 pnpm lint
-pnpm test              # 90+ existing + ~30 new tests
-
-# Phase 3 specific
-pnpm desktop:build     # produces out/{main,preload,renderer}/
-pnpm dev               # opens Electron in dev mode (manual test)
+pnpm test                # 90 existing + ~40 new
+pnpm desktop:build
+pnpm dev                 # manual M1 test
 ```
-
-Manual M1 walkthrough:
-
-1. Launch `pnpm dev`.
-2. Wait for window to open.
-3. Type "Tell me about photosynthesis briefly." → assistant streams a response.
-4. Type "Now explain it as if I'm 8 years old." → assistant builds on the prior turn (proves multi-turn).
-5. Open Settings → switch engine to `direct.anthropic` → enter `ANTHROPIC_API_KEY` → save.
-6. Back to Chat → "What's 7 × 8?" → response comes from Direct adapter (verify in `pnpm db:episodic` output that the latest session row has `engine_id = direct.anthropic`).
-7. Switch to `codex` → repeat. M1 achieved across all three adapters.
 
 ---
 
 ## Out of scope (defer)
 
-- WebSocket transport implementation (Phase 15+ hosted).
-- Lock-code UI gating (Phase 11).
+- WebSocket transport implementation (Phase 15+).
+- Lock-code UI (Phase 11).
 - Course / lesson context (Phase 6).
-- Authoring UI (Phase 11).
-- Memory inspector UI (Phase 11).
-- Per-tool-call UI rendering in chat (currently silent in Phase 3).
-- Conversation summarization for long histories — `priorTurns` goes to the model verbatim. Phase 7's semantic summary will provide a compressed alternative when history exceeds context window.
-- Session resume across UI restarts (active session DB row exists; UI doesn't surface a resume affordance).
-- Full Playwright E2E. The desktop window is verified manually in Phase 3; automated E2E lands when the surface stabilizes.
-- Native installers (electron-builder is Phase 15).
+- Authoring / memory inspector (Phase 11).
+- Per-tool-call rendering in chat.
+- Conversation summarization for long histories.
+- Mid-session UI affordance for explicit session resume.
+- Native installer (Phase 15).
+- Codex `resumeThread` after process restart — Phase 3 always opens a fresh thread on restart and seeds with priorTurns; preserving thread ids across restarts is a Phase 7 polish.
 
 ## Notes for the implementer
 
-- **`@praxis/core/services` runtime imports `@praxis/engines` and `@praxis/tools`.** This is a Phase 3 dependency-rule update — please update CLAUDE.md to allow this targeted reverse-direction import for `core/services/` only, with the same rationale documented above.
-- **`createConversation` system prompt**: Phase 2 already passes `systemPrompt` to `createConversation`. If the SDK rejects this option in current versions, Phase 2's adapter would have failed — so it's confirmed working. If something has shifted, fall back to the prepend pattern used in the Codex adapter.
-- **electron-vite cache**: dev mode caches in `packages/desktop/out/` and `packages/desktop/.vite/`. Add both to `.gitignore`.
-- **`drizzle/` location**: the migration runner looks at `process.cwd()/drizzle` in dev. From `pnpm dev` (which runs in `packages/desktop`), `process.cwd()` will be that package — so we need `applyMigrations` to walk up to find the repo root drizzle/ folder, OR set `migrationsFolder` explicitly using a known path (e.g., `path.resolve(__dirname, "../../../../drizzle")` from `out/main/index.js`). Pick the explicit path approach — it survives packaging.
-- **Conventions**: per CLAUDE.md, ESM only, `import type` for type-only, `.js` extension in import specifiers, kebab-case files, CSS Modules co-located with components, `*.test.ts` / `*.test.tsx` colocated in `src/__tests__/`.
-- **React 19 specifics**: use `createRoot` (not the legacy `ReactDOM.render`); `<StrictMode>` in mount. No `forwardRef` needed for new components (React 19 passes ref as a regular prop).
+- **`@praxis/core/services` runtime imports `@praxis/engines` and `@praxis/tools`.** Update CLAUDE.md to document this targeted exception (only `core/services/`, not the rest of `core/`).
+- **Phase 2 conformance suite + `scripts/run-session.ts` MUST be updated** as part of Unit 4. They use `engine.run()` today; they need to call `runOneShot` (single-turn wrapper) instead. The mock helpers (`mock-cc-stream.ts`, etc.) don't change.
+- **`createConversation` `systemPrompt` option**: Phase 2 already uses this successfully. If the SDK shape ever changes, fall back to prepending the system prompt to the seed preface (same pattern as Codex).
+- **Codex thread persistence**: Codex threads persist on disk in the CLI subprocess. We don't expose `resumeThread` in Phase 3 — every `engine.open` calls `startThread` fresh and seeds with priorTurns. A future optimization could save the thread id in episodic and resume across process restarts.
+- **electron-vite cache**: `out/` and `.vite/` go in `.gitignore`.
+- **`drizzle/` location**: from `pnpm dev`, `process.cwd()` is `packages/desktop`. Use `path.resolve(__dirname, "../../../../drizzle")` from `out/main/index.js` to find the repo-root drizzle folder.
+- **Conventions**: ESM, `import type`, `.js` extensions, kebab-case files, CSS Modules colocated, `*.test.ts` / `*.test.tsx` in `src/__tests__/`.
+- **React 19**: `createRoot` + `<StrictMode>`. No legacy `forwardRef` for new components.
