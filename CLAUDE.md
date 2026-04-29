@@ -45,6 +45,22 @@ The allowed dependency direction is strictly:
 - **Functions and variables**: camelCase (`openDb`, `resolveDbPath`)
 - **Constants that are single-source registries**: SCREAMING_SNAKE_CASE (`ROLE_CONFIG`)
 
+## Discriminated union conventions
+
+Praxis uses two discriminator field names by convention:
+
+- **`type`** — for events flowing through a stream or IPC channel (`EngineEvent`,
+  IPC envelope messages, future telemetry events). The discriminator names the
+  category of *what just happened*.
+
+- **`kind`** — for variants of a stored or transmitted domain object (`CourseSource`,
+  `GateTarget`, `gradeMathInput`, `gradeMathOutput`, `SuccessCriteria`). The
+  discriminator names the *shape* of the value.
+
+Heuristic: if the union is consumed by a `for await` loop or a switch over a
+streamed event, use `type`. If it's a stored shape that gets read and written
+(persisted to DB, sent over RPC, embedded in another type), use `kind`.
+
 ## Test conventions
 
 - Tests are **colocated** with source as `*.test.ts` files in `src/__tests__/` directories.
