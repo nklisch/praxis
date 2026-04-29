@@ -11,3 +11,10 @@ export {
   type EngineId,
   EngineIdSchema,
 } from "./schema.js";
+export {
+  DEFAULT_VISION_MODEL,
+  isVisionCapable,
+  requiresVisionModelValidation,
+  VISION_MODELS,
+  visionCapableModelsFor,
+} from "./vision-models.js";

@@ -6,6 +6,7 @@ import type {
   EngineSession,
   GenerationParams,
   HealthStatus,
+  VisionCapability,
 } from "@praxis/core/types";
 import type { ModelMessage } from "ai";
 import { stepCountIs, streamText } from "ai";
@@ -14,6 +15,7 @@ import type { EngineDeps } from "../types.js";
 import { mapVercelPart } from "./events.js";
 import { type DirectProvider, resolveModel } from "./providers.js";
 import { toVercelTools } from "./tool-conversion.js";
+import { DirectVision } from "./vision.js";
 
 export interface DirectEngineOptions {
   config: EngineConfig;
@@ -24,11 +26,13 @@ export interface DirectEngineOptions {
 export class DirectEngine implements Engine {
   readonly id: string;
   readonly kind = "single-shot" as const;
+  readonly vision: VisionCapability;
   private readonly opts: DirectEngineOptions;
 
   constructor(opts: DirectEngineOptions) {
     this.opts = opts;
     this.id = `direct.${opts.provider}`;
+    this.vision = new DirectVision(opts.provider, opts.config);
   }
 
   async open(openOpts: EngineOpenOptions): Promise<EngineSession> {

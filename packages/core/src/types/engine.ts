@@ -1,6 +1,34 @@
 import type { GenerationParams, TokenUsage } from "./common.js";
 import type { ConversationTurn } from "./conversation.js";
 
+// ─── Vision Capability ───────────────────────────────────────────────────────
+
+export interface ImageInput {
+  /** Image data as base64 (no `data:` prefix). */
+  data: string;
+  mimeType: "image/png" | "image/jpeg" | "image/webp";
+}
+
+export interface VisionDescribeRequest {
+  prompt: string;
+  images: ReadonlyArray<ImageInput>;
+  maxTokens?: number;
+}
+
+export interface VisionDescribeResponse {
+  text: string;
+  usage?: TokenUsage;
+}
+
+/**
+ * Vision capability — extract text/structure from images. Each call opens a
+ * fresh underlying SDK session (one-shot). The active tutoring EngineSession's
+ * conversation history and prompt cache are NOT affected.
+ */
+export interface VisionCapability {
+  describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse>;
+}
+
 /**
  * Options for opening a multi-turn engine session. The systemPrompt and tools
  * are fixed for the lifetime of the session. priorTurns seeds the session
@@ -69,6 +97,13 @@ export interface Engine {
 
   /** Health check / capability probe. Used at session start. */
   health(): Promise<HealthStatus>;
+
+  /**
+   * Optional vision capability. Phase 5 ships for all three adapters.
+   * Each call opens a fresh one-shot SDK session — the active tutoring
+   * EngineSession's conversation history and prompt cache are NOT affected.
+   */
+  readonly vision?: VisionCapability;
 }
 
 export interface ToolRegistry {

@@ -31,6 +31,8 @@ function makeFakeClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisC
       engineConfig: vi.fn().mockResolvedValue(defaultConfig),
       setEngineConfig: vi.fn().mockResolvedValue(undefined),
     },
+    ingest: {} as PraxisClient["ingest"],
+    documents: {} as PraxisClient["documents"],
   };
 }
 

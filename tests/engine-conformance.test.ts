@@ -97,7 +97,29 @@ function makeToolContext() {
     services: {
       memory: null,
       artifacts: null,
-      vectorStore: null,
+      vectorStore: {
+        upsert: vi.fn(),
+        upsertBatch: vi.fn(),
+        search: vi.fn().mockResolvedValue([]),
+        deleteByDocumentId: vi.fn(),
+      },
+      ftsStore: {
+        upsert: vi.fn(),
+        upsertBatch: vi.fn(),
+        search: vi.fn().mockResolvedValue([]),
+        deleteByDocumentId: vi.fn(),
+      },
+      embeddings: {
+        embed: vi.fn().mockResolvedValue([]),
+        embedQuery: vi.fn().mockResolvedValue([]),
+        embedBatch: vi.fn().mockResolvedValue([]),
+        dimension: 384,
+        modelId: "test",
+      },
+      documents: {
+        titlesByIds: vi.fn().mockResolvedValue(new Map()),
+        pageImage: vi.fn().mockResolvedValue(null),
+      },
       sandbox: { run: vi.fn() },
       sympy: {
         checkSolution: vi.fn(),

@@ -1,4 +1,4 @@
-import type { Citation, Timestamp, TldrawSnapshot } from "./common.js";
+import type { Timestamp, TldrawSnapshot } from "./common.js";
 import type {
   AssignmentId,
   ConceptGraphId,
@@ -219,5 +219,5 @@ export interface DocumentArtifact {
   chunkCount: number;
 }
 
-// Re-exported for use in other modules — Citation is used in pedagogy types
-export type { Citation };
+// Note: Citation is re-exported from common.ts via the types/index.ts barrel —
+// no explicit re-export needed here.

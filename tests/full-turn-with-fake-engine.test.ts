@@ -98,7 +98,38 @@ const mockSandbox: CodeSandbox = {
   run: vi.fn(),
 };
 
-const mockToolServices = { sympy: mockSympy, sandbox: mockSandbox };
+const mockVectorStore = {
+  upsert: vi.fn(),
+  upsertBatch: vi.fn(),
+  search: vi.fn().mockResolvedValue([]),
+  deleteByDocumentId: vi.fn(),
+};
+const mockFtsStore = {
+  upsert: vi.fn(),
+  upsertBatch: vi.fn(),
+  search: vi.fn().mockResolvedValue([]),
+  deleteByDocumentId: vi.fn(),
+};
+const mockEmbeddings = {
+  embed: vi.fn().mockResolvedValue([]),
+  embedQuery: vi.fn().mockResolvedValue([]),
+  embedBatch: vi.fn().mockResolvedValue([]),
+  dimension: 384,
+  modelId: "test",
+};
+const mockDocuments = {
+  titlesByIds: vi.fn().mockResolvedValue(new Map()),
+  pageImage: vi.fn().mockResolvedValue(null),
+};
+
+const mockToolServices = {
+  sympy: mockSympy,
+  sandbox: mockSandbox,
+  vectorStore: mockVectorStore,
+  ftsStore: mockFtsStore,
+  embeddings: mockEmbeddings,
+  documents: mockDocuments,
+};
 
 beforeEach(() => {
   process.env.PRAXIS_ENGINE = "direct.anthropic";

@@ -23,6 +23,8 @@ function makeClient(events: EngineEvent[]): PraxisClient {
     author: {} as PraxisClient["author"],
     memory: {} as PraxisClient["memory"],
     config: {} as PraxisClient["config"],
+    ingest: {} as PraxisClient["ingest"],
+    documents: {} as PraxisClient["documents"],
   };
 }
 

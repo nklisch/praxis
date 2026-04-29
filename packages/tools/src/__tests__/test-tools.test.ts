@@ -9,7 +9,14 @@ const ctx: ToolContext = {
   services: {
     memory: null,
     artifacts: null,
-    vectorStore: null,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 5 placeholder — not used in this test
+    vectorStore: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 5 placeholder — not used in this test
+    ftsStore: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 5 placeholder — not used in this test
+    embeddings: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 5 placeholder — not used in this test
+    documents: null as any,
     sandbox: { run: vi.fn() },
     sympy: {
       checkSolution: vi.fn(),

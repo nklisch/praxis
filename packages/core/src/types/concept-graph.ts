@@ -1,4 +1,3 @@
-import type { Citation } from "./common.js";
 import type { ConceptGraphId, ConceptId } from "./ids.js";
 
 export interface ConceptGraph {
@@ -31,5 +30,4 @@ export interface PrerequisiteEdge {
   source: "canonical" | "extracted" | "manual";
 }
 
-// Citation re-export for internal use (keeps the import explicit)
-export type { Citation };
+// Note: Citation is exported from common.ts via the types/index.ts barrel.

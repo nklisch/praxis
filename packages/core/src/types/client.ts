@@ -2,6 +2,7 @@ import type { ConceptMapDrawing, Course, DraftCourse, Flashcard, Gate, Note } fr
 import type { TimeRange, Timestamp } from "./common.js";
 import type { EngineEvent } from "./engine.js";
 import type { ConceptId, CourseId, GateId, SessionId, StudentId } from "./ids.js";
+import type { IngestionEvent, IngestionRequest } from "./ingestion.js";
 import type {
   AffectiveModel,
   EpisodicEvent,
@@ -17,6 +18,8 @@ export interface PraxisClient {
   author: AuthoringService;
   memory: MemoryService;
   config: ConfigService;
+  ingest: IngestionClient;
+  documents: DocumentsClient;
 }
 
 export interface SessionService {
@@ -123,4 +126,35 @@ export interface ConfigService {
   // Phase 3 additions:
   engineConfig(): Promise<EngineConfigSnapshot>;
   setEngineConfig(config: EngineConfigSnapshot): Promise<void>;
+}
+
+// ─── Phase 5: Ingestion + Documents ──────────────────────────────────────────
+
+export interface DocumentSummary {
+  documentId: string;
+  filename: string;
+  mimeType: string;
+  ingestorId: string;
+  ingestorLabel: string;
+  chunkCount: number;
+  /** ISO-8601 string. */
+  createdAt: string;
+  /** Whether page images were saved (vision-tier ingestion only). */
+  hasPageImages: boolean;
+}
+
+export interface IngestionClient {
+  /** Open a native file picker. Returns the selected file path, or null if cancelled. */
+  pickFile(): Promise<string | null>;
+  /** Begin ingestion. Yields progress events until done or error. */
+  start(req: IngestionRequest): AsyncIterable<IngestionEvent>;
+  /** Whether the ingestion IPC channel is available in this context. */
+  isAvailable(): boolean;
+}
+
+export interface DocumentsClient {
+  list(): Promise<DocumentSummary[]>;
+  delete(documentId: string): Promise<void>;
+  /** Fetch the PNG bytes for a saved page render. Returns null if not available. */
+  pageImage(input: { documentId: string; page: number }): Promise<Buffer | null>;
 }

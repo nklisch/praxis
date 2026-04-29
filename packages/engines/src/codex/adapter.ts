@@ -7,6 +7,7 @@ import type {
   EngineOpenOptions,
   EngineSession,
   HealthStatus,
+  VisionCapability,
 } from "@praxis/core/types";
 import { engineError } from "@praxis/core/types";
 import { startToolBridge } from "../mcp/tool-bridge.js";
@@ -14,6 +15,7 @@ import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
 import { buildTranscriptPreface } from "../util/transcript.js";
 import { mapCodexEvent, newMapState } from "./events.js";
+import { CodexVision } from "./vision.js";
 
 export interface CodexEngineOptions {
   config: EngineConfig;
@@ -23,10 +25,12 @@ export interface CodexEngineOptions {
 export class CodexEngine implements Engine {
   readonly id = "codex";
   readonly kind = "looped" as const;
+  readonly vision: VisionCapability;
   private readonly opts: CodexEngineOptions;
 
   constructor(opts: CodexEngineOptions) {
     this.opts = opts;
+    this.vision = new CodexVision(opts.config);
   }
 
   async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
