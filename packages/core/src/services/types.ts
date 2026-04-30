@@ -15,6 +15,7 @@ import type {
   Logger,
   MemoryService,
   Mode,
+  PackImportService,
   SymPyService,
   ToolDefinition,
   VectorStore,
@@ -46,6 +47,8 @@ export interface ServiceDeps {
     memory: MemoryService;
     /** Phase 8: assignment create/submit/read. */
     assignments: AssignmentService;
+    /** Phase 10: canonical knowledge packs — list, import. */
+    packs: PackImportService;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

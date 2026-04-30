@@ -665,6 +665,92 @@ interface MemoryService {
 }
 ```
 
+## Phase 10 additive changes
+
+### `course.current_concept` output schema (additive, Phase 10)
+
+The tool output gained five new optional fields in Phase 10. Existing Phase 6 callers that only read `conceptId`, `name`, `description`, and `lessonId` continue to work without modification.
+
+```typescript
+// Phase 6 fields (unchanged)
+{ kind: "ok"; conceptId: string; name: string; description: string; lessonId: string }
+
+// Phase 10 additions (always present on "ok" responses)
+{
+  reason: "next-in-order" | "frontier" | "review" | "interleave";
+  masteryNow: number;      // 0..1 — decay-aware BKT estimate
+  uncertainty: number;     // 0..1 — BKT uncertainty
+  reviews: Array<{ conceptId: string; name: string; reason: "review"; masteryNow: number }>;
+  interleaves: Array<{ conceptId: string; name: string; reason: "interleave"; masteryNow: number }>;
+}
+```
+
+### `PackImportService` (new port, Phase 10)
+
+Exposed to tools via `ToolServices.packs`. Implemented by `PackImportServiceImpl` in `@praxis/curriculum/packs`. The port lives in `@praxis/core/types/tool.ts`.
+
+```typescript
+interface PackImportService {
+  listAvailablePacks(): Promise<PackSummaryView[]>;
+  importPack(packId: string): Promise<ImportedPackView>;   // idempotent
+  listImportedPacks(): Promise<ImportedPackView[]>;
+  findPackBySubject(subject: string): Promise<PackSummaryView | null>;
+  getConceptGraphForPack(packId: string): Promise<string | null>;
+}
+
+interface PackSummaryView {
+  id: string; version: string; name: string; subject: string;
+  gradeLevel: string; conceptCount: number; edgeCount: number; imported: boolean;
+}
+
+interface ImportedPackView {
+  packId: string; version: string; conceptGraphId: ConceptGraphId; importedAt: number;
+}
+```
+
+### Pack JSON format (Phase 10)
+
+Pack files live in `packages/curriculum/packs/*.json`. The manifest schema:
+
+```typescript
+interface PackManifest {
+  id: string;              // e.g. "algebra-1"
+  version: string;         // semver
+  name: string;
+  subject: string;         // e.g. "math.algebra-1"
+  gradeLevel: string;
+  concepts: Array<{ id: string; name: string; description: string;
+                    aliases?: string[]; standardsTags?: string[] }>;
+  edges: Array<{ from: string; to: string; strength: number; rationale?: string }>;
+}
+```
+
+Concept `id` values are prefixed as `<packId>.<conceptSlug>` within the pack JSON. When imported, the database stores them as `<conceptGraphId>:<packId>.<conceptSlug>`. Treat all concept IDs as opaque strings from the caller's perspective.
+
+### `ArtifactsService.concepts(courseId)` (new method, Phase 10)
+
+Returns all concepts for a course (looked up via the course's `conceptGraphId`). Exposed via IPC as `praxis.artifacts.concepts`.
+
+```typescript
+// Added to ArtifactsService in @praxis/core/types/tool.ts
+concepts(courseId: CourseId): Promise<Array<{
+  id: string; graphId: string; name: string; description: string;
+  aliases: string[]; standardsTags: string[];
+}>>;
+```
+
+### `PacksClient` (new client surface, Phase 10)
+
+Exposed as `PraxisClient.packs`. Implemented by `PacksClientImpl` in `@praxis/client`.
+
+```typescript
+interface PacksClient {
+  listAvailable(): Promise<PackSummaryClient[]>;
+  listImported(): Promise<ImportedPackClient[]>;
+  import(packId: string): Promise<ImportedPackClient>;
+}
+```
+
 ## Versioning rules
 
 - All packages follow semver.

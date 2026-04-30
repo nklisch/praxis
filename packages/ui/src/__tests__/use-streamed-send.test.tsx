@@ -26,6 +26,8 @@ function makeClient(events: EngineEvent[]): PraxisClient {
     ingest: {} as PraxisClient["ingest"],
     documents: {} as PraxisClient["documents"],
     assignments: {} as PraxisClient["assignments"],
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
+    packs: {} as PraxisClient["packs"],
   };
 }
 

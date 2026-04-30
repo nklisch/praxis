@@ -35,6 +35,8 @@ export interface PraxisClient {
   documents: DocumentsClient;
   /** Phase 8: assignment lifecycle — create, submit, read grade. */
   assignments: AssignmentsClient;
+  /** Phase 10: canonical knowledge packs — list, import. */
+  packs: PacksClient;
 }
 
 export interface SessionService {
@@ -119,6 +121,57 @@ export interface ArtifactsClientSurface {
 
   /** Phase 9: Count of unviewed unlock events for a course. */
   newlyUnlockedCount(courseId: CourseId): Promise<number>;
+
+  /**
+   * Phase 10: Return the full concept list for a course.
+   * Concept ids are prefixed for canonical packs and UUIDs for extracted courses.
+   */
+  concepts(courseId: CourseId): Promise<
+    Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>
+  >;
+}
+
+// ─── Phase 10: PacksClient ────────────────────────────────────────────────────
+
+export interface PackSummaryClient {
+  id: string;
+  version: string;
+  name: string;
+  subject: string;
+  gradeLevel: string;
+  conceptCount: number;
+  edgeCount: number;
+  imported: boolean;
+}
+
+export interface ImportedPackClient {
+  packId: string;
+  version: string;
+  conceptGraphId: string;
+  importedAt: number;
+}
+
+/**
+ * Client-side interface for the packs IPC surface.
+ * The server-side PackImportServiceImpl is in @praxis/curriculum/packs.
+ */
+export interface PacksClient {
+  /** List all available pack JSONs in the packs directory. */
+  listAvailable(): Promise<PackSummaryClient[]>;
+  /** List all imported packs for this install. */
+  listImported(): Promise<ImportedPackClient[]>;
+  /**
+   * Import a pack by its id. Idempotent — re-importing the same version
+   * returns the existing record without re-writing DB rows.
+   */
+  import(packId: string): Promise<ImportedPackClient>;
 }
 
 export interface ProgressSnapshot {

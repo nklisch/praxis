@@ -108,6 +108,8 @@ function makeClient(opts: {
       getResponses: vi.fn().mockResolvedValue(responses),
       submit: vi.fn().mockResolvedValue(submissionResult),
     },
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
+    packs: {} as PraxisClient["packs"],
   };
 }
 

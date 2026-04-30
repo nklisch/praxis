@@ -15,6 +15,16 @@ import type {
 } from "@praxis/core/types";
 import type { ClientTransport } from "../transport/types.js";
 
+/** Shape returned by praxis.artifacts.concepts. */
+interface ConceptRow {
+  id: string;
+  graphId: string;
+  name: string;
+  description: string;
+  aliases: string[];
+  standardsTags: string[];
+}
+
 /** Canonical channel names for the artifacts IPC surface. */
 const C = {
   courses: "praxis.artifacts.courses",
@@ -90,5 +100,16 @@ export class ArtifactsClient implements ArtifactsClientSurface {
 
   newlyUnlockedCount(courseId: CourseId): Promise<number> {
     return this.transport.invoke<number>("praxis.artifacts.newlyUnlockedCount", courseId);
+  }
+
+  // ── Phase 10: Concept list ────────────────────────────────────────────────
+
+  /**
+   * Return the full concept list for a course.
+   * Concept ids are prefixed for canonical packs ("<graphId>:pack-id.concept-id")
+   * and are plain UUIDs for extracted courses.
+   */
+  concepts(courseId: CourseId): Promise<ConceptRow[]> {
+    return this.transport.invoke<ConceptRow[]>("praxis.artifacts.concepts", courseId);
   }
 }

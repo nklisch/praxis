@@ -1,5 +1,5 @@
 import type { IpcStreamMessage } from "@praxis/client";
-import type { AssignmentId, CourseId, SessionId, StudentId } from "@praxis/core/types";
+import type { AssignmentId, CourseId, StudentId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { ipcMain } from "electron";
 import { registerIngestHandlers } from "./ingest-channel.js";
@@ -352,6 +352,28 @@ export function registerIpcHandlers(
     return services.assignments.submit({
       assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
     });
+  });
+
+  // ── Phase 10: Concepts (read-only) ──────────────────────────────────────────
+
+  handle("praxis.artifacts.concepts", async (_event, courseId: string) => {
+    // Concept ids returned here are prefixed for canonical packs
+    // (e.g., "<graphId>:algebra-1.real-numbers") — consumers must treat as opaque strings.
+    return services.artifacts.concepts(brandId<"CourseId">(courseId));
+  });
+
+  // ── Phase 10: Packs ──────────────────────────────────────────────────────────
+
+  handle("praxis.packs.listAvailable", async () => {
+    return services.packs.listAvailablePacks();
+  });
+
+  handle("praxis.packs.listImported", async () => {
+    return services.packs.listImportedPacks();
+  });
+
+  handle("praxis.packs.import", async (_event, packId: string) => {
+    return services.packs.importPack(packId);
   });
 
   // Return unregister function.

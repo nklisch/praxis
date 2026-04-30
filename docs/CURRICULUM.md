@@ -175,6 +175,25 @@ The system reads the student model and decides what to teach next. Routing happe
 
 The router is implemented as logic in `@praxis/curriculum`, **not** as the agent's responsibility — the agent receives a brief that already reflects routing decisions. (The agent can override by calling `course.suggest_alternative()` if it judges the route wrong, but that's the exception.)
 
+### Phase 10 router implementation (`suggestNext`)
+
+The `suggestNext` pure function in `packages/curriculum/src/router/router.ts` implements the concept-selection decision as of Phase 10. It takes a `RouterInput` (snapshot + mastery/uncertainty/lastPracticed maps + `now` + `decayDays`) and returns a `RouterSuggestion` with three fields:
+
+- **`primary`** — the single concept to teach now, with a `reason`:
+  - `next-in-order`: current lesson has an un-studied concept; pick the first one.
+  - `frontier`: all current-lesson concepts are studied but not mastered; pick the highest uncertainty × (1 − mastery) score.
+  - `null` (all-complete): every concept in the current lesson is at or above `masteredThreshold`.
+- **`reviews`** — earlier concepts whose mastery has decayed below `reviewThreshold` (sorted lowest-mastery-first, capped at `maxReviews`). These are companion suggestions for the tutor to weave in.
+- **`interleaves`** — earlier concepts at high mastery that haven't been practiced in `interleaveMinDays` days, sorted oldest-practiced-first. Used for retention-oriented interleaving.
+
+Reviews and interleaves are mutually exclusive per concept. The function is **pure** — no DB access, no `Date.now()`, so it can run in tests at microsecond speed.
+
+The `course.current_concept` tool calls `suggestNext` and forwards its output to the agent via an additive output schema (Phase 10 adds `reason`, `masteryNow`, `uncertainty`, `reviews[]`, `interleaves[]` without breaking Phase 6 callers).
+
+### Canonical pack routing (Phase 10)
+
+When a course is created from a canonical pack (`course.use_canonical_pack`), the pack's concept graph becomes the course's backbone. Concepts are grouped into lessons of ~7 at import time; the router then operates exactly as it does for extracted courses. The bootstrap agent is told to call `course.list_canonical_packs` first when a student names a known subject, and to offer the canonical pack as an alternative to document extraction.
+
 ## Knowledge graph design
 
 The concept graph is the spine of Praxis's mastery model. The graph schema is core; canonical and extracted graphs both conform.

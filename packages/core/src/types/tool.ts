@@ -14,9 +14,10 @@ import type {
 } from "./artifacts.js";
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
-import type { GateView, MasteryReader, GradeReader } from "./gate.js";
+import type { GateView, GradeReader, MasteryReader } from "./gate.js";
 import type {
   AssignmentId,
+  ConceptGraphId,
   ConceptId,
   CourseId,
   DocumentId,
@@ -93,6 +94,8 @@ export interface ToolServices {
   indexerOrchestrator?: IndexerOrchestrator;
   /** Phase 8: assignment create/submit/read — server-side. */
   assignments: AssignmentService;
+  /** Phase 10: pack import + listing — canonical curriculum packs. */
+  packs: PackImportService;
   pedagogyPack: unknown; // PedagogyPackService — concrete in Phase 14
 }
 
@@ -136,10 +139,27 @@ export interface ArtifactsService {
    * (or all unlock events if never viewed). Used by CoursesList badge.
    */
   newlyUnlockedCount(input: { studentId: StudentId; courseId: CourseId }): Promise<number>;
+
+  /**
+   * Phase 10: Return the full concept list for a course (names + descriptions + tags).
+   * Joined via the course's conceptGraphId. Concept ids are PREFIXED (e.g.,
+   * "<graphId>:algebra-1.real-numbers") for canonical packs; extracted courses
+   * use plain UUIDs. Callers should treat the id as an opaque string.
+   */
+  concepts(courseId: CourseId): Promise<
+    Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>
+  >;
 }
 
 // Re-export gate ports so callers can import from tool.ts.
-export type { GateView, MasteryReader, GradeReader };
+export type { GateView, GradeReader, MasteryReader };
 
 export interface DocumentSummaryItem {
   documentId: DocumentId;
@@ -206,6 +226,61 @@ export interface BootstrapService {
     studentId: StudentId;
   }): Promise<{ courseId: CourseId; lessonIds: LessonId[]; conceptGraphId: string }>;
   discardDraft(draftId: string): Promise<void>;
+  /**
+   * Phase 10: Create a course directly from an imported canonical pack.
+   * Groups concepts into lessons (one per 5-8 sequential concepts) and inserts
+   * course + lessons + skeleton gates in a single transaction.
+   */
+  createCourseFromPack(input: {
+    studentId: StudentId;
+    packId: string;
+    conceptGraphId: ConceptGraphId;
+    courseTitle: string;
+    gradeLevel: string;
+  }): Promise<{ courseId: string; conceptCount: number }>;
+}
+
+// ─── Phase 10: PackImportService (port) ──────────────────────────────────────
+
+/** Compact summary of a pack manifest (id, name, subject, concept count, etc.). */
+export interface PackSummaryView {
+  id: string;
+  version: string;
+  name: string;
+  subject: string;
+  gradeLevel: string;
+  conceptCount: number;
+  edgeCount: number;
+  imported: boolean;
+}
+
+/** Record of a successfully imported pack. */
+export interface ImportedPackView {
+  packId: string;
+  version: string;
+  conceptGraphId: ConceptGraphId;
+  importedAt: number;
+}
+
+/**
+ * Port for pack import + listing operations.
+ * Implemented by PackImportServiceImpl in @praxis/curriculum.
+ * Exposed to tools via ToolServices.packs.
+ */
+export interface PackImportService {
+  /** List all pack JSON files available in the packs directory. */
+  listAvailablePacks(): Promise<PackSummaryView[]>;
+  /**
+   * Import a pack by its id. Idempotent — re-importing the same version returns
+   * the existing record without re-writing DB rows or embeddings.
+   */
+  importPack(packId: string): Promise<ImportedPackView>;
+  /** Return all imported packs (all versions, all subjects). */
+  listImportedPacks(): Promise<ImportedPackView[]>;
+  /** Find a pack manifest by subject id. */
+  findPackBySubject(subject: string): Promise<PackSummaryView | null>;
+  /** Return the conceptGraphId for the latest imported version of a pack. */
+  getConceptGraphForPack(packId: string): Promise<string | null>;
 }
 
 export interface ProposeDraftInput {

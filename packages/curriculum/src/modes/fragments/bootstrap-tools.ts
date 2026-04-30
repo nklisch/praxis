@@ -12,9 +12,12 @@ export const bootstrapToolsFragment: PromptFragment = {
 - course.confirm_draft — persist the draft as a real course
 - course.discard_draft — drop a draft and start over
 - retrieve_from_textbook — quote specific passages from the documents while authoring
+- course.list_canonical_packs — list curated canonical knowledge packs; filter by subject id (e.g., "math.algebra-1")
+- course.use_canonical_pack — create a course from a canonical pack (faster than extracting from documents; imports pack automatically if needed)
 
 Workflow rules:
 - Always call course.show_draft after course.edit_draft so the student sees the change.
 - Don't call course.confirm_draft until the student explicitly says they're ready.
-- If the student wants to undo, prefer a fresh course.propose_draft (drafts are cheap).`,
+- If the student wants to undo, prefer a fresh course.propose_draft (drafts are cheap).
+- When a student names a subject, call course.list_canonical_packs first — if a pack exists, offer it before running the extractor.`,
 };

@@ -17,7 +17,7 @@ import {
   MisconceptionIndexer,
   SessionServiceImpl,
 } from "@praxis/core/services";
-import type { AssignmentId } from "@praxis/core/types";
+import type { AssignmentId, PackImportService } from "@praxis/core/types";
 import {
   bootstrapMode,
   examMode,
@@ -25,6 +25,7 @@ import {
   quizMode,
   teachMode,
 } from "@praxis/curriculum/modes";
+import { PackImportServiceImpl, SqliteConceptEmbeddingsStore } from "@praxis/curriculum/packs";
 import { createEngine } from "@praxis/engines";
 import { sessions } from "@praxis/memory/schema";
 import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/assignment";
@@ -59,6 +60,8 @@ export interface Services {
   bootstrap: BootstrapServiceImpl; // ← Phase 6: exposed for shutdown
   memory: MemoryServiceImpl; // ← Phase 7: exposed for IPC handlers
   assignments: AssignmentServiceImpl; // ← Phase 8: exposed for IPC handlers (Agent 2)
+  /** Phase 10: pack import + listing — exposed for IPC handlers. */
+  packs: PackImportService;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
@@ -88,6 +91,15 @@ export function buildServices(dbPath: string): Services {
   const embeddings = new LocalEmbeddingService();
   const pageImageStore = new FsPageImageStore();
   const documentsReader = new DrizzleDocumentsReader(db, pageImageStore);
+
+  // Phase 10: concept embeddings + pack import service.
+  const conceptEmbeddings = new SqliteConceptEmbeddingsStore(sqlite, log);
+  const packImportService = new PackImportServiceImpl({
+    db,
+    log,
+    embeddings, // reuse the same LocalEmbeddingService (bge-small-en-v1.5, 384d)
+    conceptEmbeddings,
+  });
 
   // Vision resolver — looks up the active engine config at call time so swaps reflect immediately
   const visionResolver = () => {
@@ -228,6 +240,7 @@ export function buildServices(dbPath: string): Services {
       courseState: artifactsService, // same instance implements both interfaces
       memory: memoryService, // ← Phase 7
       assignments: assignmentService, // ← Phase 8
+      packs: packImportService, // ← Phase 10
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
   };
@@ -258,6 +271,7 @@ export function buildServices(dbPath: string): Services {
     bootstrap: bootstrapService,
     memory: memoryService, // ← Phase 7
     assignments: assignmentService, // ← Phase 8
+    packs: packImportService, // ← Phase 10
     ingestorRegistry,
     pyodide,
     embeddings,

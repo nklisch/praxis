@@ -66,6 +66,8 @@ function makeClient(
       evaluateGates: vi.fn().mockResolvedValue({ unlockedGateIds: [] }),
       markGatesViewed: vi.fn().mockResolvedValue(undefined),
       newlyUnlockedCount: vi.fn().mockResolvedValue(0),
+      // Phase 10
+      concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
     author: {} as PraxisClient["author"],
     memory: {} as PraxisClient["memory"],
@@ -73,6 +75,8 @@ function makeClient(
     ingest: {} as PraxisClient["ingest"],
     documents: {} as PraxisClient["documents"],
     assignments: {} as PraxisClient["assignments"],
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
+    packs: {} as PraxisClient["packs"],
   };
 }
 

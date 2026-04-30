@@ -41,6 +41,8 @@ export const bootstrapMode: Mode = {
     "course.confirm_draft",
     "course.discard_draft",
     "retrieve_from_textbook",
+    "course.list_canonical_packs", // ← Phase 10
+    "course.use_canonical_pack", // ← Phase 10
   ],
   uiSurface: "chat",
 };

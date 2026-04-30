@@ -1,5 +1,4 @@
 export type * from "./artifacts.js";
-export type * from "./gate.js";
 export type * from "./citation.js";
 // client.ts: Note: MemoryService is intentionally NOT re-exported from here.
 // The client-side MemoryService (no studentId params) lives in ./client.ts and is
@@ -17,8 +16,11 @@ export type {
   DocumentsClient,
   EngineConfigSnapshot,
   FileRef,
+  ImportedPackClient,
   IngestionClient,
   MemoryService as MemoryClientService,
+  PackSummaryClient,
+  PacksClient,
   PraxisClient,
   ProgressSnapshot,
   SessionHandle,
@@ -30,6 +32,7 @@ export type * from "./concept-graph.js";
 export type * from "./conversation.js";
 export type * from "./engine.js";
 export { engineError } from "./engine.js"; // runtime helper — not re-exported by `export type *`
+export type * from "./gate.js";
 export * from "./ids.js"; // exports `brandId` runtime helper
 export type * from "./ingestion.js";
 // memory.ts: `export *` (not `export type *`) so MASTERY_SIGNAL_KINDS const is exported as a runtime value.

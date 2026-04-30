@@ -174,17 +174,29 @@ Three integration milestones along the way: **M1** end-to-end tutor session, **M
 
 ---
 
-## Phase 10: Knowledge graph + canonical math pack
+## Phase 10: Knowledge graph + canonical math pack ✓
 
 **Goal:** Ship a curated Algebra 1 / Geometry concept graph; courses built from it route by prerequisite.
 
 **Build:**
-- Concept / PrerequisiteEdge schemas + embedding generation
-- Math canonical pack (Algebra 1 + Geometry, ~200 concepts, CCSS-tagged)
-- Pack import flow; pack-versioning manifest
-- Adaptive routing (mastery uncertainty + interleaving + spaced review insertion)
+- Concept / PrerequisiteEdge schemas + embedding generation (`@praxis/curriculum/schema`)
+- `SqliteConceptEmbeddingsStore` + `PackImportServiceImpl` (`@praxis/curriculum/packs`)
+- Pack import flow; pack-versioning manifest; idempotent re-import
+- Adaptive router (`suggestNext` pure function in `@praxis/curriculum/router`): mastery
+  uncertainty, interleaving, and spaced-review insertion via next-in-order / frontier /
+  review / interleave reasons
+- `course.current_concept` tool rewritten to use the adaptive router (additive output:
+  `reason`, `masteryNow`, `uncertainty`, `reviews[]`, `interleaves[]`)
+- Bootstrap-mode pack tools: `course.list_canonical_packs`, `course.use_canonical_pack`
+- `BootstrapServiceImpl.createCourseFromPack`: groups pack concepts into lessons of 7,
+  inserts course + lessons + skeleton gates in a single transaction
+- `ArtifactsServiceImpl.concepts(courseId)`: exposes full concept list for a course via IPC
+- `PacksClient` + IPC handlers: `praxis.packs.listAvailable`, `.listImported`, `.import`
+- `pnpm db:packs` CLI: list imported packs; `pnpm db:packs --import <packId>` to import
 
-**Test checkpoint:** Import math pack. Create course. Verify router selects concepts in valid prerequisite order, interleaves earlier concepts, inserts decayed-concept reviews.
+**Test checkpoint:** `pnpm db:packs --import algebra-1` → pack in DB. Create course via
+`course.use_canonical_pack`. Router selects concepts in lesson order, interleaves earlier
+concepts, inserts decayed-concept reviews. 5 new test files (tools + core + client).
 
 ---
 

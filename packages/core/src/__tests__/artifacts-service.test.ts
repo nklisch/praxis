@@ -130,7 +130,12 @@ function seedLesson(
 describe("ArtifactsServiceImpl.course()", () => {
   it("returns null for unknown courseId", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
     const result = await svc.course(brandId<"CourseId">("nonexistent"));
     expect(result).toBeNull();
   });
@@ -138,7 +143,12 @@ describe("ArtifactsServiceImpl.course()", () => {
   it("returns a Course for known courseId", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const { courseId } = seedCourse(db);
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
     const result = await svc.course(courseId);
     expect(result).not.toBeNull();
     expect(result?.title).toBe("Algebra 1");
@@ -152,7 +162,12 @@ describe("ArtifactsServiceImpl.lessons()", () => {
   it("returns empty array for course with no lessons", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const { courseId } = seedCourse(db, { id: "course-no-lessons" });
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
     const result = await svc.lessons(courseId);
     expect(result).toHaveLength(0);
   });
@@ -185,7 +200,12 @@ describe("ArtifactsServiceImpl.lessons()", () => {
         },
       ])
       .run();
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
     const result = await svc.lessons(courseId);
     expect(result).toHaveLength(2);
     expect(result[0]?.title).toBe("Lesson A");
@@ -200,7 +220,12 @@ describe("ArtifactsServiceImpl.markLessonStarted()", () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const { courseId } = seedCourse(db, { id: "course-started" });
     const lessonId = seedLesson(db, "course-started", []);
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
 
     await svc.markLessonStarted({ studentId: STUDENT_ID, lessonId });
     const rows = db.select().from(lessonProgress).all();
@@ -213,7 +238,12 @@ describe("ArtifactsServiceImpl.markLessonStarted()", () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const { courseId } = seedCourse(db, { id: "course-idem" });
     const lessonId = seedLesson(db, "course-idem", [], "lesson-idem");
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
 
     await svc.markLessonStarted({ studentId: STUDENT_ID, lessonId });
     await svc.markLessonStarted({ studentId: STUDENT_ID, lessonId });
@@ -233,7 +263,12 @@ describe("ArtifactsServiceImpl.markConceptStudied()", () => {
     const { courseId, graphId } = seedCourse(db, { id: "course-mc1" });
     const { conceptId1, conceptId2 } = seedConcepts(db, graphId);
     seedLesson(db, "course-mc1", [conceptId1, conceptId2], "lesson-mc1");
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
 
     // Mark lesson as started first.
     await svc.markLessonStarted({
@@ -258,7 +293,12 @@ describe("ArtifactsServiceImpl.markConceptStudied()", () => {
     const { graphId } = seedCourse(db, { id: "course-mc2" });
     const { conceptId1, conceptId2 } = seedConcepts(db, graphId);
     seedLesson(db, "course-mc2", [conceptId1, conceptId2], "lesson-mc2");
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
 
     await svc.markLessonStarted({
       studentId: STUDENT_ID,
@@ -285,7 +325,12 @@ describe("ArtifactsServiceImpl.read()", () => {
   it("returns null when course does not belong to the given student", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const { courseId } = seedCourse(db, { id: "course-mismatch", studentId: STUDENT_ID });
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
 
     const result = await svc.read({ studentId: OTHER_STUDENT, courseId });
     expect(result).toBeNull();
@@ -296,7 +341,12 @@ describe("ArtifactsServiceImpl.read()", () => {
     const { courseId, graphId } = seedCourse(db, { id: "course-snap", studentId: STUDENT_ID });
     const { conceptId1 } = seedConcepts(db, graphId);
     const lessonId = seedLesson(db, "course-snap", [conceptId1], "lesson-snap");
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
 
     const snapshot = await svc.read({ studentId: STUDENT_ID, courseId });
     expect(snapshot).not.toBeNull();
@@ -311,7 +361,12 @@ describe("ArtifactsServiceImpl.read()", () => {
     const { courseId, graphId } = seedCourse(db, { id: "course-done", studentId: STUDENT_ID });
     const { conceptId1 } = seedConcepts(db, graphId);
     const lessonId = seedLesson(db, "course-done", [conceptId1], "lesson-done");
-    const svc = new ArtifactsServiceImpl({ db, log: MOCK_LOG, masteryReader: MOCK_MASTERY_READER, gradeReader: MOCK_GRADE_READER });
+    const svc = new ArtifactsServiceImpl({
+      db,
+      log: MOCK_LOG,
+      masteryReader: MOCK_MASTERY_READER,
+      gradeReader: MOCK_GRADE_READER,
+    });
 
     // Mark lesson as completed.
     db.insert(lessonProgress)

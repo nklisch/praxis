@@ -6,6 +6,7 @@ import { ConfigClient } from "./services/config-client.js";
 import { DocumentsClient } from "./services/documents-client.js";
 import { IngestClient } from "./services/ingest-client.js";
 import { MemoryClient } from "./services/memory-client.js";
+import { PacksClientImpl } from "./services/packs-client.js";
 import { SessionClient } from "./services/session-client.js";
 import type { ClientTransport } from "./transport/types.js";
 
@@ -24,5 +25,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     ingest: new IngestClient(transport),
     documents: new DocumentsClient(transport),
     assignments: new AssignmentsClient(transport), // ← Phase 8
+    packs: new PacksClientImpl(transport), // ← Phase 10
   };
 }

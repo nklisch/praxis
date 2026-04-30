@@ -27,11 +27,11 @@ import type {
   GateState,
   GateTarget,
   GateView,
+  GradeReader,
   Lesson,
   LessonId,
   Logger,
   MasteryReader,
-  GradeReader,
   ProgressSnapshot,
   StudentId,
   SuccessCriteria,
@@ -87,7 +87,11 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
   }
 
   async gates(courseId: CourseId): Promise<Gate[]> {
-    const rows = this.deps.db.select().from(gatesTable).where(eq(gatesTable.courseId, courseId)).all();
+    const rows = this.deps.db
+      .select()
+      .from(gatesTable)
+      .where(eq(gatesTable.courseId, courseId))
+      .all();
     return rows.map(rowToGate);
   }
 
@@ -308,8 +312,7 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
       // Write gate_unlock_events for each newly unlocked gate.
       for (const transition of result.transitions) {
         if (transition.kind !== "unlocked") continue;
-        tx
-          .insert(gateUnlockEvents)
+        tx.insert(gateUnlockEvents)
           .values({
             id: uuidv7(),
             studentId: input.studentId,
@@ -364,6 +367,42 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
       )
       .all();
     return rows.length;
+  }
+
+  // ── Phase 10: Concept list ────────────────────────────────────────────────
+
+  /**
+   * Return all concepts for a course, joined via the course's conceptGraphId.
+   * Concept ids are prefixed for canonical packs ("<graphId>:pack-id.concept-id")
+   * and are plain UUIDs for extracted courses. Treat as opaque strings.
+   */
+  async concepts(courseId: CourseId): Promise<
+    Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>
+  > {
+    const course = await this.course(courseId);
+    if (!course) return [];
+
+    const rows = this.deps.db
+      .select()
+      .from(concepts)
+      .where(eq(concepts.graphId, course.conceptGraphId))
+      .all();
+
+    return rows.map((r) => ({
+      id: r.id,
+      graphId: r.graphId,
+      name: r.name,
+      description: r.description,
+      aliases: r.aliasesJson as string[],
+      standardsTags: r.standardsTagsJson as string[],
+    }));
   }
 
   // ── CourseStateReader ─────────────────────────────────────────────────────

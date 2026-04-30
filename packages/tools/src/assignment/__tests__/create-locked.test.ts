@@ -119,6 +119,8 @@ function makeCtx(snapshot: CourseStateSnapshot | null, courseId?: CourseId): Too
       // biome-ignore lint/suspicious/noExplicitAny: test stub
       sympy: null as any,
       pedagogyPack: null,
+      // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
+      packs: null as any,
       assignments,
     },
     log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
