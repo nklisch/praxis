@@ -72,6 +72,25 @@
   opacity: 0.85;
 }
 
+/* Phase 9: "View progress map" button — secondary style, same height as startBtn */
+.mapBtn {
+  background: transparent;
+  color: var(--color-accent, #6366f1);
+  border: 1px solid var(--color-accent, #6366f1);
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
+}
+
+.mapBtn:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
 .lessonsSection {
   display: flex;
   flex-direction: column;

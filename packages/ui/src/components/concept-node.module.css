@@ -1,0 +1,96 @@
+/* ConceptNode — React Flow custom node */
+
+.node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 2px solid var(--color-border, rgba(255, 255, 255, 0.2));
+  background: var(--color-card-bg, rgba(30, 30, 40, 0.9));
+  min-width: 110px;
+  max-width: 160px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  text-align: center;
+}
+
+.node:hover {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+}
+
+/* ── Tone variants ───────────────────────────────────────────────────────── */
+
+/* mastered: green — color-blind safe (icon + color) */
+.mastered {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+/* in-progress: amber/yellow — distinguishable from green in deuteranopia */
+.in-progress {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+/* not-started: neutral gray */
+.not-started {
+  border-color: var(--color-border, rgba(255, 255, 255, 0.2));
+  background: var(--color-card-bg, rgba(30, 30, 40, 0.9));
+}
+
+/* locked: muted gray with reduced opacity — clearly inactive */
+.locked {
+  border-color: rgba(150, 150, 160, 0.4);
+  background: rgba(80, 80, 90, 0.15);
+  opacity: 0.75;
+}
+
+/* ── Content ─────────────────────────────────────────────────────────────── */
+
+.name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text, inherit);
+  word-break: break-word;
+  hyphens: auto;
+  line-height: 1.2;
+}
+
+.locked .name {
+  color: var(--color-text-muted, #aaa);
+}
+
+.score {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted, #aaa);
+}
+
+.mastered .score {
+  color: #22c55e;
+}
+
+.in-progress .score {
+  color: #f59e0b;
+}
+
+.checkMark {
+  font-weight: 700;
+}
+
+.lockIcon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.handle {
+  width: 8px;
+  height: 8px;
+  background: var(--color-border, rgba(255, 255, 255, 0.3));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}

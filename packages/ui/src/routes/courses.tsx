@@ -6,7 +6,7 @@ import styles from "./courses.module.css";
 
 export function CoursesRoute() {
   const client = usePraxisClient();
-  const { courses, loading, error } = useCourses();
+  const { courses, newlyUnlocked, loading, error } = useCourses();
   const navigate = useNavigate();
 
   const handleNewCourse = async () => {
@@ -43,15 +43,19 @@ export function CoursesRoute() {
 
       {courses.length > 0 && (
         <ul className={styles.list}>
-          {courses.map((course) => (
-            <CourseListItem
-              key={course.courseId}
-              course={course}
-              onOpen={() =>
-                navigate({ to: "/courses/$courseId", params: { courseId: course.courseId } })
-              }
-            />
-          ))}
+          {courses.map((course) => {
+            const count = newlyUnlocked.get(course.courseId);
+            return (
+              <CourseListItem
+                key={course.courseId}
+                course={course}
+                {...(count !== undefined ? { newlyUnlockedCount: count } : {})}
+                onOpen={() =>
+                  navigate({ to: "/courses/$courseId", params: { courseId: course.courseId } })
+                }
+              />
+            );
+          })}
         </ul>
       )}
     </div>

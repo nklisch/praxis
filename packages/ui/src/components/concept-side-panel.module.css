@@ -1,0 +1,209 @@
+/* ConceptSidePanel — slide-in detail panel */
+
+.panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 300px;
+  z-index: 10;
+  background: var(--color-panel-bg, rgba(18, 18, 28, 0.96));
+  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Slide in from the right */
+  animation: slideIn 0.18s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text, inherit);
+  min-width: 0;
+  word-break: break-word;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #aaa);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.closeBtn:hover {
+  color: var(--color-text, inherit);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, #aaa);
+}
+
+/* Mastery */
+.masteryBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.masteryProgress {
+  flex: 1;
+  height: 6px;
+  accent-color: #6366f1;
+  border-radius: 3px;
+}
+
+.masteryLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text, inherit);
+  min-width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.masteredNote {
+  font-size: 0.78rem;
+  color: #22c55e;
+  margin: 0;
+}
+
+.lockedNote {
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #aaa);
+  margin: 0;
+}
+
+/* Gate */
+.gateSummary {
+  font-size: 0.82rem;
+  color: var(--color-text, inherit);
+  margin: 0;
+}
+
+.gateProgressRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gateProgress {
+  flex: 1;
+  height: 5px;
+  accent-color: #f59e0b;
+  border-radius: 2px;
+}
+
+.gateProgressLabel {
+  font-size: 0.75rem;
+  color: #f59e0b;
+  min-width: 2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lockReason {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #aaa);
+  font-style: italic;
+  margin: 0;
+}
+
+.unlockedNote {
+  font-size: 0.78rem;
+  color: #22c55e;
+  margin: 0;
+}
+
+/* Lessons + references */
+.lessonList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lessonItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lessonTitle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text, inherit);
+}
+
+.refList {
+  list-style: none;
+  padding-left: 0.75rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.refItem {
+  font-size: 0.73rem;
+  color: var(--color-text-muted, #aaa);
+}
+
+.refKind {
+  display: inline-block;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  margin-right: 0.3rem;
+  color: var(--color-accent, #6366f1);
+  vertical-align: middle;
+}

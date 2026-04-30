@@ -1,6 +1,7 @@
 import type { CourseId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useCourseDetail } from "../hooks/use-course-detail.js";
 import styles from "./course-detail.module.css";
@@ -13,6 +14,16 @@ export function CourseDetailRoute() {
   const client = usePraxisClient();
   const { course, lessons, loading, error } = useCourseDetail(courseId as CourseId | undefined);
   const navigate = useNavigate();
+
+  // Phase 9: Mark gates as viewed when the student enters the course detail page.
+  // This clears the "newly unlocked" badge in the courses list.
+  // Fires once per courseId visit; wrapped in try/catch so it never breaks the page.
+  useEffect(() => {
+    if (!courseId) return;
+    client.artifacts.markGatesViewed(courseId).catch(() => {
+      // Non-fatal — badge will clear on next successful visit.
+    });
+  }, [courseId, client]);
 
   const handleStartSession = async () => {
     if (!courseId) return;
@@ -70,6 +81,15 @@ export function CourseDetailRoute() {
       <section className={styles.actions}>
         <button type="button" className={styles.startBtn} onClick={handleStartSession}>
           Start session
+        </button>
+        <button
+          type="button"
+          className={styles.mapBtn}
+          onClick={() =>
+            navigate({ to: "/courses/$courseId/map", params: { courseId: course.id } })
+          }
+        >
+          View progress map
         </button>
       </section>
 

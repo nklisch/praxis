@@ -3,6 +3,7 @@ import { Nav } from "./components/nav.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
 import { CourseDetailRoute } from "./routes/course-detail.js";
+import { CourseMapRoute } from "./routes/course-map.js";
 import { CoursesRoute } from "./routes/courses.js";
 import { SettingsRoute } from "./routes/settings.js";
 
@@ -41,11 +42,18 @@ const courseDetailRoute = createRoute({
   component: CourseDetailRoute,
 });
 
+const courseMapRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/courses/$courseId/map",
+  component: CourseMapRoute,
+});
+
 const routeTree = rootRoute.addChildren([
   chatRoute,
   settingsRoute,
   coursesRoute,
   courseDetailRoute,
+  courseMapRoute,
 ]);
 
 export const router = createRouter({ routeTree });

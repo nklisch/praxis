@@ -85,6 +85,11 @@ function makeClient(
       flashcards: vi.fn(),
       notes: vi.fn(),
       conceptMaps: vi.fn(),
+      // Phase 9 methods
+      gateView: vi.fn().mockResolvedValue([]),
+      evaluateGates: vi.fn().mockResolvedValue({ unlockedGateIds: [] }),
+      markGatesViewed: vi.fn().mockResolvedValue(undefined),
+      newlyUnlockedCount: vi.fn().mockResolvedValue(0),
     } as PraxisClient["artifacts"],
     author: {} as PraxisClient["author"],
     memory: {} as PraxisClient["memory"],

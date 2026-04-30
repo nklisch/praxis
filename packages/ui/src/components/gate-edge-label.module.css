@@ -1,0 +1,68 @@
+/* GateEdgeLabel — edge between lessons, shows gate state */
+
+.edge {
+  stroke-width: 2;
+}
+
+.edge.open {
+  stroke: #22c55e;
+  stroke-opacity: 0.7;
+}
+
+.edge.locked {
+  stroke: rgba(150, 150, 160, 0.5);
+  stroke-dasharray: 6 3;
+}
+
+/* HTML label rendered via EdgeLabelRenderer */
+.label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  max-width: 140px;
+  text-align: center;
+  background: var(--color-card-bg, rgba(20, 20, 30, 0.92));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  backdrop-filter: blur(4px);
+  cursor: default;
+}
+
+.label.open {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.label.locked {
+  border-color: rgba(150, 150, 160, 0.3);
+  opacity: 0.9;
+}
+
+.summaryText {
+  font-weight: 600;
+  color: var(--color-text, inherit);
+  line-height: 1.2;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.label.locked .summaryText {
+  color: var(--color-text-muted, #aaa);
+}
+
+.progressBar {
+  width: 100%;
+  height: 4px;
+  accent-color: #f59e0b;
+  border-radius: 2px;
+}
+
+.lockReason {
+  font-size: 0.62rem;
+  color: var(--color-text-muted, #aaa);
+  font-style: italic;
+  word-break: break-word;
+  hyphens: auto;
+}
