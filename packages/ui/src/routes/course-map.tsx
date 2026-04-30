@@ -12,19 +12,20 @@ import { ConceptSidePanel } from "../components/concept-side-panel.js";
 import type { GateEdgeLabelData } from "../components/gate-edge-label.js";
 import { GateEdgeLabel } from "../components/gate-edge-label.js";
 import { useCourseDetail } from "../hooks/use-course-detail.js";
+import type { ConceptRow } from "../hooks/use-course-gates.js";
 import { useCourseGates } from "../hooks/use-course-gates.js";
 import styles from "./course-map.module.css";
 
 const NODE_WIDTH = 160;
 const NODE_HEIGHT = 70;
 
-/** Mastery by concept id derived from gate evaluation data (best effort). */
-type MasteryMap = Map<string, number>;
-
 interface BuildGraphArgs {
   lessons: Lesson[];
-  masteryMap: MasteryMap;
+  /** Phase 10: per-concept BKT-aware mastery (effectivePKnown, 0..1). */
+  masteryByConceptId: Map<string, number>;
   gates: GateView[];
+  /** Phase 10: concept name lookup by prefixed concept id. */
+  conceptsById: Map<string, ConceptRow>;
 }
 
 /**
@@ -35,8 +36,11 @@ interface BuildGraphArgs {
  *  - Concepts within a lesson are stacked vertically.
  *  - Gate edges connect the last concept-group of lesson N to the first of lesson N+1.
  *  - dagre handles spacing automatically; falls back gracefully for small courses.
+ *
+ * Phase 10: node names come from the concept graph (real names from the pack or extractor);
+ * mastery comes from per-concept BKT-aware effectivePKnown via student model.
  */
-function buildGraph({ lessons, masteryMap, gates }: BuildGraphArgs): {
+function buildGraph({ lessons, masteryByConceptId, gates, conceptsById }: BuildGraphArgs): {
   nodes: ConceptFlowNode[];
   edges: Edge[];
 } {
@@ -72,10 +76,14 @@ function buildGraph({ lessons, masteryMap, gates }: BuildGraphArgs): {
       if (!firstNodeId) firstNodeId = nodeId;
       lastNodeId = nodeId;
 
-      const mastery = masteryMap.get(conceptId) ?? 0;
+      // Phase 10: use real mastery from student model, fall back to 0.
+      const mastery = masteryByConceptId.get(conceptId) ?? 0;
+      // Phase 10: use real concept name from the concept graph, fall back to id.
+      const conceptRow = conceptsById.get(conceptId);
+      const displayName = conceptRow?.name ?? conceptId;
 
       const data: ConceptNodeData = {
-        name: conceptId, // replaced below when concept names are available
+        name: displayName,
         mastery,
         studied: mastery > 0,
         locked: lessonLocked,
@@ -170,11 +178,12 @@ function buildGraph({ lessons, masteryMap, gates }: BuildGraphArgs): {
   return { nodes, edges };
 }
 
-/** Resolve human-readable names for concepts from lessons data. */
+/** Build the ConceptInfo map used by the side panel. */
 function buildConceptInfoMap(
   lessons: Lesson[],
-  masteryMap: MasteryMap,
+  masteryByConceptId: Map<string, number>,
   gates: GateView[],
+  conceptsById: Map<string, ConceptRow>,
 ): Map<string, ConceptInfo> {
   const infoMap = new Map<string, ConceptInfo>();
 
@@ -191,10 +200,14 @@ function buildConceptInfoMap(
 
     for (const conceptId of lesson.conceptIds) {
       const existing = infoMap.get(conceptId);
-      const mastery = masteryMap.get(conceptId) ?? 0;
+      const mastery = masteryByConceptId.get(conceptId) ?? 0;
+      // Phase 10: real name from concept graph; fall back to id.
+      const conceptRow = conceptsById.get(conceptId);
+      const name = conceptRow?.name ?? conceptId;
+
       infoMap.set(conceptId, {
         id: brandId<"ConceptId">(conceptId),
-        name: conceptId, // raw id used as display name (no separate concept name endpoint in Phase 9)
+        name,
         mastery,
         studied: mastery > 0,
         locked: lessonLocked,
@@ -226,6 +239,10 @@ const EDGE_TYPES: Record<string, React.ComponentType<any>> = {
  *  - Gate edges between lesson groups showing summaryText + progress bar.
  *  - Click on a node → ConceptSidePanel for details.
  *  - "← Course" back button in the header.
+ *
+ * Phase 10: nodes show real concept names (from the concept graph) and
+ * per-concept BKT-aware mastery (from the student model), replacing the
+ * Phase 9 UUID + gate-progress placeholders.
  */
 export function CourseMapRoute() {
   const { courseId: rawCourseId } = useParams({ strict: false });
@@ -240,6 +257,8 @@ export function CourseMapRoute() {
   } = useCourseDetail(courseId as CourseId | undefined);
   const {
     gates,
+    conceptsById,
+    masteryByConceptId,
     loading: gatesLoading,
     error: gatesError,
   } = useCourseGates(courseId as CourseId | undefined);
@@ -249,57 +268,14 @@ export function CourseMapRoute() {
   const loading = courseLoading || gatesLoading;
   const error = courseError ?? gatesError;
 
-  // Derive mastery map from gate data (progress values on locked gates + 1.0 for unlocked).
-  const masteryMap = useMemo<MasteryMap>(() => {
-    const map = new Map<string, number>();
-    // Gate progress gives us per-gate mastery proxy; concept-level mastery is not
-    // separately fetched in Phase 9 (the memory surface isn't wired to the UI client yet).
-    // Use gate progress as a best-effort display value; Phase 10 will wire per-concept mastery.
-    for (const gv of gates) {
-      const crit = gv.gate.successCriteria;
-      if (crit.kind === "mastery-threshold") {
-        const effectiveMastery =
-          gv.gate.state.kind === "unlocked" || gv.gate.state.kind === "overridden"
-            ? 1.0
-            : gv.progress * crit.minScore;
-        for (const cId of crit.conceptIds) {
-          const existing = map.get(cId) ?? 0;
-          if (effectiveMastery > existing) {
-            map.set(cId, effectiveMastery);
-          }
-        }
-      }
-    }
-    return map;
-  }, [gates]);
-
   const conceptInfoMap = useMemo(
-    () => buildConceptInfoMap(lessons, masteryMap, gates),
-    [lessons, masteryMap, gates],
+    () => buildConceptInfoMap(lessons, masteryByConceptId, gates, conceptsById),
+    [lessons, masteryByConceptId, gates, conceptsById],
   );
 
   const { nodes, edges } = useMemo(
-    () => buildGraph({ lessons, masteryMap, gates }),
-    [lessons, masteryMap, gates],
-  );
-
-  // Patch node data names from conceptInfoMap after building.
-  // nodes is ConceptFlowNode[] so data is already typed as ConceptNodeData.
-  const namedNodes = useMemo(
-    () =>
-      nodes.map((node): ConceptFlowNode => {
-        const conceptId = node.id.replace("concept-", "");
-        const info = conceptInfoMap.get(conceptId);
-        if (!info) return node;
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            name: info.name,
-          },
-        };
-      }),
-    [nodes, conceptInfoMap],
+    () => buildGraph({ lessons, masteryByConceptId, gates, conceptsById }),
+    [lessons, masteryByConceptId, gates, conceptsById],
   );
 
   const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -358,13 +334,13 @@ export function CourseMapRoute() {
       </header>
 
       <div className={styles.canvasContainer}>
-        {namedNodes.length === 0 ? (
+        {nodes.length === 0 ? (
           <div className={styles.empty}>
             <p>No concepts yet. Run a bootstrap session to populate the course.</p>
           </div>
         ) : (
           <ReactFlow
-            nodes={namedNodes}
+            nodes={nodes}
             edges={edges}
             nodeTypes={NODE_TYPES}
             edgeTypes={EDGE_TYPES}

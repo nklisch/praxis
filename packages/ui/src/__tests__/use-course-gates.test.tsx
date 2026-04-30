@@ -1,4 +1,4 @@
-import type { Gate, GateId, GateView, PraxisClient, Timestamp } from "@praxis/core/types";
+import type { Gate, GateId, GateView, PraxisClient, StudentModel, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -28,6 +28,12 @@ function makeGateView(overrides: Partial<GateView> = {}): GateView {
   };
 }
 
+const emptyStudentModel: StudentModel = {
+  studentId: brandId("student-test"),
+  conceptMastery: new Map(),
+  lastUpdated: Date.now() as Timestamp,
+};
+
 function makeClient(gateViewResult: GateView[] | "reject" = []): PraxisClient {
   return {
     session: {} as PraxisClient["session"],
@@ -51,12 +57,19 @@ function makeClient(gateViewResult: GateView[] | "reject" = []): PraxisClient {
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
     author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
+    memory: {
+      studentModel: vi.fn().mockResolvedValue(emptyStudentModel),
+      misconceptions: vi.fn(),
+      procedural: vi.fn(),
+      affective: vi.fn(),
+      episodic: vi.fn(),
+      export: vi.fn(),
+      delete: vi.fn(),
+    } as PraxisClient["memory"],
     config: {} as PraxisClient["config"],
     ingest: {} as PraxisClient["ingest"],
     documents: {} as PraxisClient["documents"],
     assignments: {} as PraxisClient["assignments"],
-    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
     packs: {} as PraxisClient["packs"],
   };
 }

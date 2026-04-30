@@ -5,6 +5,7 @@ import { ChatRoute } from "./routes/chat.js";
 import { CourseDetailRoute } from "./routes/course-detail.js";
 import { CourseMapRoute } from "./routes/course-map.js";
 import { CoursesRoute } from "./routes/courses.js";
+import { PacksRoute } from "./routes/packs.js";
 import { SettingsRoute } from "./routes/settings.js";
 
 const rootRoute = createRootRoute({
@@ -48,12 +49,19 @@ const courseMapRoute = createRoute({
   component: CourseMapRoute,
 });
 
+const packsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/packs",
+  component: PacksRoute,
+});
+
 const routeTree = rootRoute.addChildren([
   chatRoute,
   settingsRoute,
   coursesRoute,
   courseDetailRoute,
   courseMapRoute,
+  packsRoute,
 ]);
 
 export const router = createRouter({ routeTree });
