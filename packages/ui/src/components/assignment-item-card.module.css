@@ -1,0 +1,196 @@
+/* ── Assignment Item Card ─────────────────────────────────────────────────── */
+
+.itemCard {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  background: var(--color-surface-2, rgba(255, 255, 255, 0.03));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.itemNumber {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, #aaa);
+}
+
+.itemKind {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.08));
+  color: var(--color-text-muted, #aaa);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.partialCreditBadge {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.prompt {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text, #e5e5e5);
+  margin: 0;
+}
+
+/* ── Work section ───────────────────────────────────────────────────────────── */
+
+.workSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.workLabel,
+.answerLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #aaa);
+}
+
+/* ── Input controls ─────────────────────────────────────────────────────────── */
+
+.textInput,
+.mathInput {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  color: var(--color-text, #e5e5e5);
+  font-size: 0.9rem;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.mathInput {
+  font-family: "Courier New", Courier, monospace;
+}
+
+.textInput:focus,
+.mathInput:focus {
+  outline: none;
+  border-color: var(--color-accent, #60a5fa);
+}
+
+.textInput:disabled,
+.mathInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.workInput,
+.codeInput {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  color: var(--color-text, #e5e5e5);
+  font-size: 0.875rem;
+  resize: vertical;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.codeInput {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.8rem;
+}
+
+.workInput:focus,
+.codeInput:focus {
+  outline: none;
+  border-color: var(--color-accent, #60a5fa);
+}
+
+.workInput:disabled,
+.codeInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.freeResponseInput {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  color: var(--color-text, #e5e5e5);
+  font-size: 0.9rem;
+  resize: vertical;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.freeResponseInput:focus {
+  outline: none;
+  border-color: var(--color-accent, #60a5fa);
+}
+
+.freeResponseInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Multiple choice ─────────────────────────────────────────────────────────── */
+
+.options {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.optionLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-text, #e5e5e5);
+  transition: background 0.12s;
+}
+
+.optionLabel:hover:not(.disabled) {
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+}
+
+.optionLabel.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.optionInput {
+  accent-color: var(--color-accent, #60a5fa);
+}
+
+/* ── Math answer wrapper ─────────────────────────────────────────────────────── */
+
+.mathAnswer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}

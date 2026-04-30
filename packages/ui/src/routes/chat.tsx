@@ -1,17 +1,44 @@
-import type { SessionHandle, SessionId } from "@praxis/core/types";
+import type { AssignmentId, SessionHandle, SessionId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
+import { AssignmentCard } from "../components/assignment-card.js";
 import { Composer } from "../components/composer.js";
 import { DocumentList } from "../components/document-list.js";
 import { MessageBubble } from "../components/message.js";
 import { PageImagePanel } from "../components/page-image-panel.js";
 import { usePraxisClient } from "../context/client-context.js";
+import { useAssignment } from "../hooks/use-assignment.js";
 import { useDocuments } from "../hooks/use-documents.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import styles from "./chat.module.css";
+
+/**
+ * Inner component for exam lockdown detection. Called only when the session
+ * has an assignmentId so the hook always runs (no conditional hook calls).
+ */
+function ExamLockdownGate({
+  assignmentId,
+  isExamMode,
+  onLockdownChange,
+}: {
+  assignmentId: AssignmentId;
+  isExamMode: boolean;
+  onLockdownChange: (locked: boolean) => void;
+}) {
+  const { assignment } = useAssignment(assignmentId);
+  const isSubmitted = !!assignment?.submittedAt;
+  const lockdown = isExamMode && !isSubmitted;
+
+  // Notify parent of lockdown state changes
+  useEffect(() => {
+    onLockdownChange(lockdown);
+  }, [lockdown, onLockdownChange]);
+
+  return null;
+}
 
 export function ChatRoute() {
   const client = usePraxisClient();
@@ -19,6 +46,7 @@ export function ChatRoute() {
   const [session, setSession] = useState<SessionHandle | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [examLockdown, setExamLockdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // If the user navigated here with ?sessionId=xxx (e.g., from "New course" or
@@ -169,6 +197,15 @@ export function ChatRoute() {
 
         {startError && <div className={styles.errorBanner}>Session error: {startError}</div>}
 
+        {/* Phase 8: exam lockdown detection — rendered outside of message list to avoid hook-in-map */}
+        {session?.assignmentId && (
+          <ExamLockdownGate
+            assignmentId={session.assignmentId}
+            isExamMode={session.modeId === "exam"}
+            onLockdownChange={setExamLockdown}
+          />
+        )}
+
         <div className={styles.messages}>
           {messages.length === 0 && !starting && !startError && (
             <p className={styles.emptyState}>Start a conversation with your tutor.</p>
@@ -184,12 +221,24 @@ export function ChatRoute() {
               onViewPage={handleViewPage}
             />
           ))}
+          {/* Phase 8: render AssignmentCard inline when session is assignment-bound */}
+          {session?.assignmentId && (
+            <AssignmentCard assignmentId={session.assignmentId} examLockdown={examLockdown} />
+          )}
           <div ref={messagesEndRef} />
         </div>
 
         {lastError && <div className={styles.errorBanner}>Error: {lastError}</div>}
 
-        <Composer onSend={handleSend} disabled={!session || isStreaming || starting} />
+        <Composer
+          onSend={handleSend}
+          disabled={!session || isStreaming || starting || examLockdown}
+        />
+        {examLockdown && (
+          <div className={styles.lockdownNotice}>
+            The chat is muted during the exam. Submit your answers to continue.
+          </div>
+        )}
       </div>
 
       {/* Page image side panel */}

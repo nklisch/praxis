@@ -134,16 +134,23 @@ Three integration milestones along the way: **M1** end-to-end tutor session, **M
 
 ## Phase 8: Multi-mode + assessment
 
-**Goal:** Tutor assigns and grades quizzes / homework / exams; submissions flow as graded artifacts.
+**Goal:** Tutor authors quizzes / homework / exams; student takes them as structured artifacts in the chat surface; server grades each item; agent narrates per-item feedback.
 
 **Build:**
-- `quiz`, `homework`, `exam` modes (prompts + tool subsets)
-- Assignment / Item / Grade / Rubric schemas
-- Submission UI (typed only — sketch in Phase 13)
-- Per-item grading dispatch (math, code, free-response via rubric agent)
-- Feedback rendering in chat
+- Three new modes (`quiz`, `homework`, `exam`) — distinct prompt fragments + tool subsets; same chat surface; chat composer disabled in exam mode while assignment is unsubmitted
+- `AssignmentServiceImpl` with per-item grader dispatch (`MathGrader` / `CodeGrader` / `MultipleChoiceGrader` / `ShortAnswerGrader` / `FreeResponseGrader`); registry-driven (single source of truth)
+- **Per-criterion 0-10 rubric grading** via shared `runRubricAgent` helper. The agent scores each criterion with an integer 0-10 + rationale; the system computes the 0..1 aggregate deterministically as a weighted sum. Allowed in all modes including exam (verification stance preserved by explicit pre-authored rubric + per-criterion auditability + deterministic aggregation).
+- **Optional `workRubric` per item** for partial credit on shown work (math/code only). Agent decides per-item at create time whether to add it; deterministic check + work rubric blend via `primaryWeight`. Defaults: 0.5 for quiz/homework, 1.0 for exam.
+- **Approach feedback layer** as a fallback: enriches feedback for items WITHOUT a rubric or workRubric in quiz/homework; skipped for exam. Items with rubrics get richer feedback through per-criterion rationales directly.
+- Resumable per-item progress (`assignment_responses` table with optional `work` column; auto-save with 1s debounce)
+- Active-path tools: `assignment.create` (teach mode, with detailed authoring guidance for workRubric heuristics), `assignment.show`, `assignment.read_grade` (assessment modes)
+- UI: `<AssignmentCard>` rendered inline in chat when session has `assignmentId`; structured per-item input with optional "show your work" field; tone-coded post-submission feedback with collapsible per-criterion breakdown
+- `praxis.assignments.*` IPC + `AssignmentsClient`
+- `pnpm db:grades` CLI
 
-**Test checkpoint:** Tutor assigns a 5-item quiz. Submit. See per-item feedback. Grade artifact in DB; wrong-answer feedback explains why.
+**Deferred to a later phase**: configurator-authored assignments (Phase 11 configure mode); sketch input for assignments (Phase 13); photo upload for handwritten work (Phase 13); gate auto-evaluation on exam pass (Phase 9); canonical pre-made assessment packs (Phase 10 / Phase 15); per-criterion deterministic kinds (Phase 14 — e.g., key-term-presence criteria graded without LLM).
+
+**Test checkpoint:** Tutor in teach mode authors a 5-item quiz on the active concepts. Student starts a quiz session; the `<AssignmentCard>` renders inline with the items. Student answers (some correctly, some not), submits. Server grades; per-item feedback renders inline (color-coded, with approach feedback for incorrect items). Grade artifact is in DB; `pnpm db:grades` shows the result. Agent narrates feedback in chat after the student asks "how did I do?" or naturally on the next turn.
 
 ---
 

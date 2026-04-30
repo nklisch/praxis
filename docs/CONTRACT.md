@@ -334,6 +334,16 @@ interface Grade {
 }
 ```
 
+> **v1 status (Phase 8)**: Assignments are structured artifacts taken inline in the chat surface. Submission flows through `praxis.assignments.submit`, not through agent tools — the server runs the grader dispatch and persists the Grade.
+>
+> **Free-response grading uses a rubric agent** with per-criterion 0-10 integer scoring. The agent's job is per-criterion judgment ("on criterion X, score 0-10 with rationale"); the system computes the 0..1 aggregate as a deterministic weighted sum of `(score / 10) × weight`. This satisfies SPEC.md's "graded against an explicitly-written rubric the tutor produces before grading" by pre-committing to criteria, narrowing per-criterion judgment scope, and keeping aggregation deterministic. Allowed in all modes including exam; exam free-response items are required to have a rubric (validated at create time).
+>
+> **`workRubric` opt-in per item** lets math/code items award partial credit for shown work. The deterministic check (sympy / test cases) and the work rubric blend via `primaryWeight` (default 0.5 for quiz/homework, 1.0 for exam). The agent decides at item-create time whether to add a workRubric — guidance lives in the `assignment.create` tool description.
+>
+> **Approach-feedback layer** is a fallback for items WITHOUT a rubric/workRubric in quiz/homework only — it enriches `feedback` text without modifying `score`. Items with rubrics get per-criterion rationales as their feedback. Approach-feedback never runs for exam.
+>
+> The deterministic grader's score is the ground truth for items without a rubric; rubric scores are deterministic-aggregated from per-criterion judgment. Items are typed-only in v1; sketch / photo input lands in Phase 13.
+
 ### Gate
 
 ```typescript

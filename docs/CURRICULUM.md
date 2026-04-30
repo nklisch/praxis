@@ -75,31 +75,31 @@ The interactive lecture. Concept introduction, scaffolding, worked examples, fad
 
 ### `quiz`
 
-Short-form retrieval practice during or between lessons.
+Short-form retrieval practice during or between lessons. Items rendered as a structured `<AssignmentCard>` inline in the chat. Agent voice: lively scaffolding; offers hints sparingly during work; narrates per-item feedback warmly after submission.
 
-- Multiple-choice and short-answer, time-boxed.
-- Items selected by adaptive router from the recent concept set, weighted by mastery uncertainty.
-- Always includes interleaved items from earlier concepts.
-- Tools: `grade_math`, `grade_short_answer`, `update_mastery`, `record_misconception`.
-- Feedback is immediate but doesn't reveal the answer until the student commits.
+- Tools: `assignment.show`, `assignment.read_grade`, `course.what_can_i_teach`, `course.current_concept`, `retrieve_from_textbook`, `grade_math`, `code_sandbox`, `update_mastery`, `record_misconception`
+- `workRubric`: rare. Reserve for the 1-2 multi-step items per quiz where partial credit adds value.
+- Approach feedback layer: ON for items without a rubric/workRubric (fallback enrichment)
+- Submission: chat composer remains active throughout
 
 ### `homework`
 
-Longer practice, often across multiple concepts. Submitted in one batch.
+Longer practice across multiple concepts, submitted in one batch. Agent voice: helpful clarifier; answers item-meaning questions but does not give answers; full feedback delayed until submission.
 
-- Items include problems, free-response, explanation prompts.
-- Submission via typing or upload (handwritten work via vision OCR + verification round-trip).
-- Tools: full grading suite + workspace integration (notes flow into homework reflection).
-- Feedback delayed until full submission; per-item feedback after.
+- Tools: same as `quiz`
+- `workRubric`: common. Items rewarding process get partial credit on shown work.
+- Approach feedback layer: ON for items without a rubric/workRubric (fallback)
+- Submission: chat composer remains active throughout
 
 ### `exam`
 
-Gated assessment. Higher stakes; outcome affects gate state.
+Gated assessment. Strict tool subset, no help during the exam.
 
-- Strict tool subset: only validated grading tools, no `model-derived` tier (rubric agents excluded; explicit rubrics required).
-- No mid-exam help; the tutor doesn't provide hints during the exam.
-- Items mix Bloom's levels.
-- Submission produces a `Grade` artifact; gate evaluation runs at exam end.
+- Tools: `assignment.show`, `assignment.read_grade` (and nothing else)
+- Approach feedback layer: OFF (verification stance — no post-hoc feedback enrichment)
+- **Free-response items require an explicit `rubric`** (validated at item-create). Rubric agent scores per-criterion (integer 0-10) with written rationales; total computed deterministically as weighted sum. Verification stance preserved through pre-committed criteria + per-criterion auditability + deterministic aggregation.
+- `workRubric`: judgment-call per item. `primaryWeight` defaults to 1.0 (deterministic-only) unless explicitly authored otherwise.
+- Submission: chat composer DISABLED until the student submits; re-enabled for post-submission feedback narration
 
 ### `study-skills`
 

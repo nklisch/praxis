@@ -22,6 +22,7 @@
     "script:run-session": "tsx scripts/run-session.ts",
     "db:episodic": "tsx scripts/db-episodic.ts",
     "db:mastery": "tsx scripts/db-mastery.ts",
+    "db:grades": "tsx scripts/db-grades.ts",
     "dev": "pnpm --filter @praxis/desktop dev",
     "desktop:build": "pnpm --filter @praxis/desktop build",
     "desktop:start": "pnpm --filter @praxis/desktop start"

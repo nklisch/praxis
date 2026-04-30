@@ -107,3 +107,14 @@
   font-size: 0.85rem;
   flex-shrink: 0;
 }
+
+/* Phase 8: exam lockdown notice — shown below composer when exam mode is active */
+.lockdownNotice {
+  padding: 0.4rem 1rem;
+  background: rgba(251, 191, 36, 0.1);
+  border-top: 1px solid rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  font-size: 0.8rem;
+  text-align: center;
+  flex-shrink: 0;
+}

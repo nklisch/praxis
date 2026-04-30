@@ -1,0 +1,156 @@
+/**
+ * Unit tests for AssignmentItemCard component.
+ *
+ * Verifies:
+ *  - Each item kind renders its appropriate input control.
+ *  - workRubric items show the "partial credit available" badge and work textarea.
+ *  - Radio buttons appear for multiple-choice items.
+ *  - disabled prop disables all inputs.
+ */
+import type { AssignmentItem } from "@praxis/core/types";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { AssignmentItemCard } from "../components/assignment-item-card.js";
+
+afterEach(() => {
+  cleanup();
+});
+
+function makeItem(overrides: Partial<AssignmentItem>): AssignmentItem {
+  return {
+    id: "test-item-1",
+    kind: "short-answer",
+    prompt: "What is 2 + 2?",
+    acceptedAnswers: ["4"],
+    ...overrides,
+  };
+}
+
+const defaultProps = {
+  index: 0,
+  response: "",
+  onResponseChange: () => {},
+};
+
+describe("AssignmentItemCard", () => {
+  it("renders the item prompt", () => {
+    const item = makeItem({ prompt: "What is the speed of light?" });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    expect(screen.getByText("What is the speed of light?")).toBeDefined();
+  });
+
+  it("renders item number (1-based)", () => {
+    const item = makeItem({});
+    render(<AssignmentItemCard item={item} index={2} response="" onResponseChange={() => {}} />);
+    expect(screen.getByText("Item 3")).toBeDefined();
+  });
+
+  it("renders kind badge", () => {
+    const item = makeItem({ kind: "short-answer" });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    expect(screen.getByText("short-answer")).toBeDefined();
+  });
+
+  it("renders text input for short-answer items", () => {
+    const item = makeItem({ kind: "short-answer", acceptedAnswers: ["4"] });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    const inputs = screen.getAllByRole("textbox");
+    expect(inputs.length).toBeGreaterThan(0);
+  });
+
+  it("renders text input for math items", () => {
+    const item = makeItem({
+      kind: "math",
+      expectedSolution: { variable: "x", value: "3" },
+    });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    const inputs = screen.getAllByRole("textbox");
+    expect(inputs.length).toBeGreaterThan(0);
+  });
+
+  it("renders radio buttons for multiple-choice items", () => {
+    const item = makeItem({
+      kind: "multiple-choice",
+      options: ["Option A", "Option B", "Option C"],
+      correctOptionIndex: 0,
+    });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(3);
+    expect(screen.getByText("Option A")).toBeDefined();
+    expect(screen.getByText("Option B")).toBeDefined();
+    expect(screen.getByText("Option C")).toBeDefined();
+  });
+
+  it("renders textarea for free-response items", () => {
+    const item = makeItem({ kind: "free-response" });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    const textareas = screen.getAllByRole("textbox");
+    expect(textareas.length).toBeGreaterThan(0);
+  });
+
+  it("renders textarea for code items", () => {
+    const item = makeItem({
+      kind: "code",
+      language: "python",
+      testCases: [{ expectedStdout: "Hello", stdin: "" }],
+    });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    const textareas = screen.getAllByRole("textbox");
+    expect(textareas.length).toBeGreaterThan(0);
+  });
+
+  it("shows partial credit badge for items with workRubric", () => {
+    const item = makeItem({
+      kind: "math",
+      expectedSolution: { variable: "x", value: "3" },
+      workRubric: {
+        criteria: [{ id: "process", description: "Steps", weight: 1.0 }],
+        maxScore: 10,
+      },
+    });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    expect(screen.getByText(/partial credit available/i)).toBeDefined();
+  });
+
+  it("shows 'Show your work' textarea for math items with workRubric", () => {
+    const item = makeItem({
+      kind: "math",
+      expectedSolution: { variable: "x", value: "3" },
+      workRubric: {
+        criteria: [{ id: "process", description: "Steps", weight: 1.0 }],
+        maxScore: 10,
+      },
+    });
+    render(<AssignmentItemCard item={item} {...defaultProps} work="" onWorkChange={() => {}} />);
+    expect(screen.getByText(/show your work/i)).toBeDefined();
+  });
+
+  it("does NOT show partial credit badge for items without workRubric", () => {
+    const item = makeItem({ kind: "math", expectedSolution: { variable: "x", value: "3" } });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    expect(screen.queryByText(/partial credit available/i)).toBeNull();
+  });
+
+  it("disables inputs when disabled prop is true", () => {
+    const item = makeItem({ kind: "short-answer", acceptedAnswers: ["4"] });
+    render(<AssignmentItemCard item={item} {...defaultProps} disabled={true} />);
+    const inputs = screen.getAllByRole("textbox");
+    for (const input of inputs) {
+      expect((input as HTMLInputElement).disabled).toBe(true);
+    }
+  });
+
+  it("shows correct radio selection when response matches option index", () => {
+    const item = makeItem({
+      kind: "multiple-choice",
+      options: ["A", "B", "C"],
+      correctOptionIndex: 1,
+    });
+    render(<AssignmentItemCard item={item} {...defaultProps} response="1" />);
+    const radios = screen.getAllByRole("radio") as HTMLInputElement[];
+    expect(radios[0]?.checked).toBe(false);
+    expect(radios[1]?.checked).toBe(true);
+    expect(radios[2]?.checked).toBe(false);
+  });
+});
