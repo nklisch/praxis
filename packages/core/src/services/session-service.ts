@@ -1,4 +1,5 @@
 import { composeSystemPrompt } from "@praxis/curriculum/brief";
+import { composeAssignmentContextFragment } from "@praxis/curriculum/brief/assignment-context";
 import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
 import { createEngine } from "@praxis/engines";
 import { sessions } from "@praxis/memory/schema";
@@ -9,6 +10,7 @@ import { readEngineConfig } from "../config/index.js";
 import { appendEpisodic, nextTurnIndex, recordUserMessage } from "../session/episodic.js";
 import { loadConversationHistory } from "../session/history.js";
 import type {
+  AssignmentId,
   ConversationTurn,
   CourseId,
   Engine,
@@ -54,7 +56,11 @@ export class SessionServiceImpl implements SessionService {
 
   constructor(private readonly deps: ServiceDeps) {}
 
-  async start(opts: { courseId?: CourseId; modeId: string }): Promise<SessionHandle> {
+  async start(opts: {
+    courseId?: CourseId;
+    assignmentId?: AssignmentId;
+    modeId: string;
+  }): Promise<SessionHandle> {
     const mode = this.requireMode(opts.modeId);
     const studentId = getOrCreateDefaultStudentId(this.deps.db);
     const engineConfig = readEngineConfig(this.deps.db);
@@ -70,6 +76,7 @@ export class SessionServiceImpl implements SessionService {
         engineId: engineConfig.engineId,
         startedAt,
         ...(opts.courseId !== undefined && { courseId: opts.courseId }),
+        ...(opts.assignmentId !== undefined && { assignmentId: opts.assignmentId }),
       })
       .run();
 
@@ -81,6 +88,7 @@ export class SessionServiceImpl implements SessionService {
       studentId,
       priorTurns: [], // brand new session
       ...(opts.courseId !== undefined && { courseId: opts.courseId }),
+      ...(opts.assignmentId !== undefined && { assignmentId: opts.assignmentId }),
     });
 
     return {
@@ -88,6 +96,7 @@ export class SessionServiceImpl implements SessionService {
       modeId: mode.id,
       startedAt: startedAt.getTime() as Timestamp,
       ...(opts.courseId !== undefined && { courseId: opts.courseId }),
+      ...(opts.assignmentId !== undefined && { assignmentId: opts.assignmentId }),
     };
   }
 
@@ -136,6 +145,10 @@ export class SessionServiceImpl implements SessionService {
         ...(sessionRow.courseId !== null && {
           courseId: brandId<"CourseId">(sessionRow.courseId),
         }),
+        ...(sessionRow.assignmentId !== null &&
+          sessionRow.assignmentId !== undefined && {
+            assignmentId: brandId<"AssignmentId">(sessionRow.assignmentId),
+          }),
       });
     }
 
@@ -240,6 +253,10 @@ export class SessionServiceImpl implements SessionService {
       modeId: row.modeId,
       startedAt: row.startedAt.getTime() as Timestamp,
       ...(row.courseId !== null && { courseId: brandId<"CourseId">(row.courseId) }),
+      ...(row.assignmentId !== null &&
+        row.assignmentId !== undefined && {
+          assignmentId: brandId<"AssignmentId">(row.assignmentId),
+        }),
     };
   }
 
@@ -259,13 +276,15 @@ export class SessionServiceImpl implements SessionService {
     studentId: string;
     priorTurns: ConversationTurn[];
     courseId?: CourseId;
+    assignmentId?: AssignmentId;
   }): Promise<ActiveEntry> {
     const engineConfig = readEngineConfig(this.deps.db);
     const factory = this.deps.engineFactory ?? ((c, d) => createEngine({ config: c, deps: d }));
     const engine = factory(engineConfig, { log: this.deps.log });
 
     // Phase 6 + 7: inject course-context override when a courseId is set.
-    let overrides: ReadonlyMap<string, string> | undefined;
+    // Phase 8: inject assignment-context override when an assignmentId is set.
+    let overrides: Map<string, string> | undefined;
 
     if (args.courseId && this.deps.toolServices.courseState) {
       const snapshot = await this.deps.toolServices.courseState.read({
@@ -302,6 +321,20 @@ export class SessionServiceImpl implements SessionService {
       }
     }
 
+    // Phase 8: inject assignment-context override when an assignmentId is set.
+    if (args.assignmentId && this.deps.toolServices.assignments) {
+      const assignment = await this.deps.toolServices.assignments.get({
+        assignmentId: args.assignmentId,
+      });
+      const responses = await this.deps.toolServices.assignments.getResponses({
+        assignmentId: args.assignmentId,
+      });
+      if (assignment) {
+        const fragment = composeAssignmentContextFragment({ assignment, responses });
+        overrides = new Map([...(overrides ?? []), [fragment.id, fragment.template]]);
+      }
+    }
+
     const systemPrompt = composeSystemPrompt({
       mode: args.mode,
       ...(overrides !== undefined && { overrides }),
@@ -311,6 +344,7 @@ export class SessionServiceImpl implements SessionService {
       studentId: args.studentId as ToolContext["studentId"],
       sessionId: args.sessionId as ToolContext["sessionId"],
       ...(args.courseId !== undefined && { courseId: args.courseId }),
+      ...(args.assignmentId !== undefined && { assignmentId: args.assignmentId }),
       services: {
         memory: this.deps.toolServices.memory, // ← Phase 7
         artifacts: this.deps.toolServices.artifacts, // ← Phase 6

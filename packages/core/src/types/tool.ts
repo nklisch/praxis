@@ -14,7 +14,15 @@ import type {
 } from "./artifacts.js";
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
-import type { AssignmentId, ConceptId, CourseId, DocumentId, LessonId, SessionId, StudentId } from "./ids.js";
+import type {
+  AssignmentId,
+  ConceptId,
+  CourseId,
+  DocumentId,
+  LessonId,
+  SessionId,
+  StudentId,
+} from "./ids.js";
 import type {
   AffectiveModel,
   EpisodicEvent,
@@ -451,10 +459,7 @@ export interface AssignmentService {
   get(input: { assignmentId: AssignmentId }): Promise<Assignment | null>;
 
   /** List assignments for a course; useful for course-detail views. */
-  list(input: {
-    courseId: CourseId;
-    kind?: "quiz" | "homework" | "exam";
-  }): Promise<Assignment[]>;
+  list(input: { courseId: CourseId; kind?: "quiz" | "homework" | "exam" }): Promise<Assignment[]>;
 
   /** Auto-save partial response for a single item. Idempotent upsert. */
   recordResponse(input: {
@@ -480,4 +485,3 @@ export interface AssignmentService {
     responses?: AssignmentResponse[];
   }): Promise<AssignmentSubmissionResult>;
 }
-

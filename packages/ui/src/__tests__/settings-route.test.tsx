@@ -33,6 +33,7 @@ function makeFakeClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisC
     },
     ingest: {} as PraxisClient["ingest"],
     documents: {} as PraxisClient["documents"],
+    assignments: {} as PraxisClient["assignments"],
   };
 }
 

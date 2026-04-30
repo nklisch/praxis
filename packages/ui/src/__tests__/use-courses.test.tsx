@@ -38,6 +38,7 @@ function makeClient(courses: CourseSummary[] = []): PraxisClient {
     config: {} as PraxisClient["config"],
     ingest: {} as PraxisClient["ingest"],
     documents: {} as PraxisClient["documents"],
+    assignments: {} as PraxisClient["assignments"],
   };
 }
 

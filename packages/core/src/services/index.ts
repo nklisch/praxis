@@ -1,8 +1,13 @@
 // Phase 8: Assignment service + graders
-export type { AssignmentServiceDeps } from "./assignment-service.js";
-export { AssignmentServiceImpl, AssignmentItemSchema, validateItems } from "./assignment-service.js";
+
 export type { ArtifactsServiceDeps } from "./artifacts-service.js";
 export { ArtifactsServiceImpl } from "./artifacts-service.js";
+export type { AssignmentServiceDeps } from "./assignment-service.js";
+export {
+  AssignmentItemSchema,
+  AssignmentServiceImpl,
+  validateItems,
+} from "./assignment-service.js";
 export type { BootstrapServiceDeps } from "./bootstrap-service.js";
 export { BootstrapServiceImpl } from "./bootstrap-service.js";
 export { ConfigServiceImpl } from "./config-service.js";
@@ -12,8 +17,8 @@ export { DocumentsServiceImpl } from "./documents-service.js";
 // Phase 8: Graders
 export { enrichWithApproachFeedback } from "./graders/approach-feedback.js";
 export { buildGraderRegistry } from "./graders/registry.js";
-export { runRubricAgent } from "./graders/rubric-agent.js";
 export type { RunRubricAgentInput } from "./graders/rubric-agent.js";
+export { runRubricAgent } from "./graders/rubric-agent.js";
 export type { GraderContext, GraderResult, GraderServices, ItemGrader } from "./graders/types.js";
 export type { MasteryIndexerDeps } from "./indexers/mastery-indexer.js";
 export { applySignalsToConcept, MasteryIndexer } from "./indexers/mastery-indexer.js";

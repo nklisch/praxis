@@ -74,7 +74,9 @@ describe("misconception end-to-end", () => {
     const listed = await memoryService.misconceptions(studentId);
     expect(listed).toHaveLength(1);
     expect(listed[0]?.id).toBe(result.misconceptionId);
-    expect(listed[0]?.description).toBe("Flips inequality sign when multiplying by a positive number");
+    expect(listed[0]?.description).toBe(
+      "Flips inequality sign when multiplying by a positive number",
+    );
   });
 
   it("same (conceptId, errorForm) merges on second call", () => {
@@ -190,7 +192,10 @@ describe("misconception end-to-end", () => {
       conceptId,
       description: "Moves terms without flipping sign",
       errorForm: "no-sign-flip-on-move",
-      remediation: { strategyId: "worked-examples", rationale: "Show sign-flip in worked examples" },
+      remediation: {
+        strategyId: "worked-examples",
+        rationale: "Show sign-flip in worked examples",
+      },
       evidenceEventIds: ["event-c01"],
     });
 

@@ -302,9 +302,9 @@ describe("mastery end-to-end", () => {
     const { formatMasteryTag } = await import("@praxis/curriculum/brief/course-context");
 
     expect(formatMasteryTag(0.85, true)).toBe("mastered (0.85)");
-    expect(formatMasteryTag(0.80, false)).toBe("mastered (0.80)");
+    expect(formatMasteryTag(0.8, false)).toBe("mastered (0.80)");
     expect(formatMasteryTag(0.55, false)).toBe("in progress (0.55)");
-    expect(formatMasteryTag(0.40, false)).toBe("in progress (0.40)");
+    expect(formatMasteryTag(0.4, false)).toBe("in progress (0.40)");
     expect(formatMasteryTag(0.39, false)).toBe("not yet started");
     expect(formatMasteryTag(undefined, true)).toBe("studied");
     expect(formatMasteryTag(undefined, false)).toBe("not yet studied");

@@ -11,7 +11,8 @@
     "./runtime/ingestion": "./src/runtime/ingestion/index.ts",
     "./retrieval": "./src/retrieval/index.ts",
     "./course": "./src/course/index.ts",
-    "./memory": "./src/memory/index.ts"
+    "./memory": "./src/memory/index.ts",
+    "./assignment": "./src/assignment/index.ts"
   },
   "scripts": {
     "build": "tsc -b",

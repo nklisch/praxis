@@ -1,5 +1,6 @@
 import type { PraxisClient } from "@praxis/core/types";
 import { ArtifactsClient } from "./services/artifacts-client.js";
+import { AssignmentsClient } from "./services/assignments-client.js";
 import { AuthoringClient } from "./services/authoring-client.js";
 import { ConfigClient } from "./services/config-client.js";
 import { DocumentsClient } from "./services/documents-client.js";
@@ -22,5 +23,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     config: new ConfigClient(transport),
     ingest: new IngestClient(transport),
     documents: new DocumentsClient(transport),
+    assignments: new AssignmentsClient(transport), // ← Phase 8
   };
 }

@@ -43,6 +43,7 @@ function makeFakeClient(overrides?: Partial<PraxisClient["session"]>): PraxisCli
     config: {} as PraxisClient["config"],
     ingest: {} as PraxisClient["ingest"],
     documents: {} as PraxisClient["documents"],
+    assignments: {} as PraxisClient["assignments"],
   };
 }
 

@@ -7,6 +7,7 @@ export type * from "./citation.js";
 // Re-export client MemoryService under a distinct alias so client code can import it.
 export type {
   ArtifactsClientSurface,
+  AssignmentsClient,
   AuthoringService,
   BootstrapOpts,
   ConfigService,

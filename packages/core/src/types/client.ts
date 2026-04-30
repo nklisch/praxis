@@ -1,4 +1,7 @@
 import type {
+  Assignment,
+  AssignmentResponse,
+  AssignmentSubmissionResult,
   ConceptMapDrawing,
   Course,
   CourseSummary,
@@ -10,7 +13,7 @@ import type {
 } from "./artifacts.js";
 import type { TimeRange, Timestamp } from "./common.js";
 import type { EngineEvent } from "./engine.js";
-import type { ConceptId, CourseId, GateId, SessionId, StudentId } from "./ids.js";
+import type { AssignmentId, ConceptId, CourseId, GateId, SessionId, StudentId } from "./ids.js";
 import type { IngestionEvent, IngestionRequest } from "./ingestion.js";
 import type {
   AffectiveModel,
@@ -29,11 +32,18 @@ export interface PraxisClient {
   config: ConfigService;
   ingest: IngestionClient;
   documents: DocumentsClient;
+  /** Phase 8: assignment lifecycle — create, submit, read grade. */
+  assignments: AssignmentsClient;
 }
 
 export interface SessionService {
   // courseId is optional in Phase 3 (no courses yet).
-  start(opts: { courseId?: CourseId; modeId: string }): Promise<SessionHandle>;
+  start(opts: {
+    courseId?: CourseId;
+    /** Phase 8: bind an assignment to this session. Persisted on sessions.assignment_id. */
+    assignmentId?: AssignmentId;
+    modeId: string;
+  }): Promise<SessionHandle>;
   send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent>;
   end(sessionId: SessionId): Promise<SessionSummary>;
   active(): Promise<SessionHandle | null>;
@@ -42,8 +52,30 @@ export interface SessionService {
 export interface SessionHandle {
   sessionId: SessionId;
   courseId?: CourseId; // optional per above
+  /** Phase 8: the assignment this session is bound to (quiz/homework/exam sessions). */
+  assignmentId?: AssignmentId;
   modeId: string;
   startedAt: Timestamp;
+}
+
+// ─── Phase 8: AssignmentsClient (client-side) ────────────────────────────────
+
+/**
+ * Client-side interface for the assignments IPC surface.
+ * The server-side AssignmentService lives in tool.ts; this is the
+ * thin client wrapper over praxis.assignments.* IPC channels.
+ */
+export interface AssignmentsClient {
+  get(input: { assignmentId: AssignmentId }): Promise<Assignment | null>;
+  list(input: { courseId: CourseId; kind?: "quiz" | "homework" | "exam" }): Promise<Assignment[]>;
+  recordResponse(input: {
+    assignmentId: AssignmentId;
+    itemId: string;
+    response: string;
+    work?: string;
+  }): Promise<void>;
+  getResponses(input: { assignmentId: AssignmentId }): Promise<AssignmentResponse[]>;
+  submit(input: { assignmentId: AssignmentId }): Promise<AssignmentSubmissionResult>;
 }
 
 export interface SessionSummary {

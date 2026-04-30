@@ -1,0 +1,34 @@
+import type { Mode } from "@praxis/core/types";
+import { assignmentContextFragmentDefault } from "./fragments/assignment-context.js";
+import { constraintsFragment } from "./fragments/constraints.js";
+import { courseContextFragmentDefault } from "./fragments/course-context.js";
+import { examRoleFragment } from "./fragments/exam-role.js";
+import { examToolsFragment } from "./fragments/exam-tools.js";
+import { postambleFragment } from "./fragments/postamble.js";
+import { preambleFragment } from "./fragments/preamble.js";
+import { principlesFragment } from "./fragments/principles.js";
+
+export const examMode: Mode = {
+  id: "exam",
+  label: "Exam",
+  description:
+    "Gated assessment. Strict tool subset; no help during the exam; feedback only after full submission.",
+  requiredRole: "student",
+  promptFragments: [
+    preambleFragment,
+    examRoleFragment,
+    principlesFragment,
+    examToolsFragment,
+    courseContextFragmentDefault,
+    assignmentContextFragmentDefault,
+    constraintsFragment,
+    postambleFragment,
+  ],
+  toolNames: [
+    "assignment.show",
+    "assignment.read_grade",
+    // No retrieve_from_textbook, no mastery / misconception tools, no graders
+    // (server handles all grading). Deliberately minimal.
+  ],
+  uiSurface: "chat",
+};

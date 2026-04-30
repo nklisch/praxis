@@ -1,5 +1,5 @@
 import type { IpcStreamMessage } from "@praxis/client";
-import type { CourseId, SessionId, StudentId } from "@praxis/core/types";
+import type { AssignmentId, CourseId, SessionId, StudentId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { ipcMain } from "electron";
 import { registerIngestHandlers } from "./ingest-channel.js";
@@ -35,14 +35,20 @@ export function registerIpcHandlers(
     return services.session.active();
   });
 
-  handle("praxis.session.start", async (_event, opts: { modeId: string; courseId?: string }) => {
-    return services.session.start({
-      modeId: opts.modeId,
-      ...(opts.courseId !== undefined && {
-        courseId: brandId<"CourseId">(opts.courseId) as CourseId,
-      }),
-    });
-  });
+  handle(
+    "praxis.session.start",
+    async (_event, opts: { modeId: string; courseId?: string; assignmentId?: string }) => {
+      return services.session.start({
+        modeId: opts.modeId,
+        ...(opts.courseId !== undefined && {
+          courseId: brandId<"CourseId">(opts.courseId) as CourseId,
+        }),
+        ...(opts.assignmentId !== undefined && {
+          assignmentId: brandId<"AssignmentId">(opts.assignmentId) as AssignmentId,
+        }),
+      });
+    },
+  );
 
   handle("praxis.session.end", async (_event, sessionId: string) => {
     // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
@@ -267,6 +273,51 @@ export function registerIpcHandlers(
   ipcMain.on("praxis.memory.episodic.cancel", (_event, streamId: string) => {
     activeAbortControllers.get(streamId)?.abort();
     activeAbortControllers.delete(streamId);
+  });
+
+  // ── Assignments ──────────────────────────────────────────────────────────────
+
+  handle("praxis.assignments.get", async (_event, input: { assignmentId: string }) => {
+    return services.assignments.get({
+      assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
+    });
+  });
+
+  handle(
+    "praxis.assignments.list",
+    async (_event, input: { courseId: string; kind?: "quiz" | "homework" | "exam" }) => {
+      return services.assignments.list({
+        courseId: brandId<"CourseId">(input.courseId) as CourseId,
+        ...(input.kind !== undefined && { kind: input.kind }),
+      });
+    },
+  );
+
+  handle(
+    "praxis.assignments.recordResponse",
+    async (
+      _event,
+      input: { assignmentId: string; itemId: string; response: string; work?: string },
+    ) => {
+      return services.assignments.recordResponse({
+        assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
+        itemId: input.itemId,
+        response: input.response,
+        ...(input.work !== undefined && { work: input.work }),
+      });
+    },
+  );
+
+  handle("praxis.assignments.getResponses", async (_event, input: { assignmentId: string }) => {
+    return services.assignments.getResponses({
+      assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
+    });
+  });
+
+  handle("praxis.assignments.submit", async (_event, input: { assignmentId: string }) => {
+    return services.assignments.submit({
+      assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
+    });
   });
 
   // Return unregister function.

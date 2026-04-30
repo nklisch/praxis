@@ -8,6 +8,7 @@
     "./modes": "./src/modes/index.ts",
     "./brief": "./src/brief/compose.ts",
     "./brief/course-context": "./src/brief/course-context.ts",
+    "./brief/assignment-context": "./src/brief/assignment-context.ts",
     "./bootstrap": "./src/bootstrap/index.ts"
   },
   "scripts": {

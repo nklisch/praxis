@@ -34,6 +34,8 @@ const ctx: ToolContext = {
       parseLatex: vi.fn(),
     },
     pedagogyPack: null,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 8 placeholder — not used in this test
+    assignments: null as any,
   },
   log: {
     debug: () => {},

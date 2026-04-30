@@ -1,4 +1,5 @@
 import type {
+  AssignmentId,
   CourseId,
   EngineEvent,
   SessionHandle,
@@ -13,7 +14,11 @@ const CHANNEL = "praxis.session";
 export class SessionClient implements SessionService {
   constructor(private readonly transport: ClientTransport) {}
 
-  start(opts: { courseId?: CourseId; modeId: string }): Promise<SessionHandle> {
+  start(opts: {
+    courseId?: CourseId;
+    assignmentId?: AssignmentId;
+    modeId: string;
+  }): Promise<SessionHandle> {
     return this.transport.invoke<SessionHandle>(`${CHANNEL}.start`, opts);
   }
 

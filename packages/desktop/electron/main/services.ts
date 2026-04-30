@@ -1,3 +1,4 @@
+import { assignments } from "@praxis/artifacts/schema";
 import { readEngineConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
 import { FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
@@ -17,9 +18,16 @@ import {
   SessionServiceImpl,
 } from "@praxis/core/services";
 import type { AssignmentId } from "@praxis/core/types";
-import { bootstrapMode, teachMode } from "@praxis/curriculum/modes";
+import {
+  bootstrapMode,
+  examMode,
+  homeworkMode,
+  quizMode,
+  teachMode,
+} from "@praxis/curriculum/modes";
 import { createEngine } from "@praxis/engines";
 import { sessions } from "@praxis/memory/schema";
+import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/assignment";
 import { COURSE_TOOLS } from "@praxis/tools/course";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { MEMORY_TOOLS } from "@praxis/tools/memory";
@@ -172,13 +180,20 @@ export function buildServices(dbPath: string): Services {
       sandbox,
       engineResolver: assignmentEngineResolver,
     },
-    // Agent 2 will replace this with a real session→mode lookup.
-    resolveSubmissionMode: (_assignmentId: AssignmentId) => "quiz",
+    // Read the assignment's kind column to resolve the submission mode.
+    // assignment.kind mirrors the session mode id ("quiz" | "homework" | "exam").
+    resolveSubmissionMode: (assignmentId: AssignmentId) => {
+      const row = db.select().from(assignments).where(eq(assignments.id, assignmentId)).get();
+      return (row?.kind as "quiz" | "homework" | "exam") ?? "quiz";
+    },
   });
 
   const modes = new Map([
     [teachMode.id, teachMode],
     [bootstrapMode.id, bootstrapMode], // ← Phase 6
+    [quizMode.id, quizMode], // ← Phase 8
+    [homeworkMode.id, homeworkMode], // ← Phase 8
+    [examMode.id, examMode], // ← Phase 8
   ]);
 
   const toolDefinitions = [
@@ -187,6 +202,8 @@ export function buildServices(dbPath: string): Services {
     retrieveFromTextbookTool,
     ...COURSE_TOOLS, // ← Phase 6
     ...MEMORY_TOOLS, // ← Phase 7
+    ...ASSIGNMENT_TUTOR_TOOLS, // ← Phase 8
+    ...ASSIGNMENT_TAKE_TOOLS, // ← Phase 8
   ];
 
   const deps: ServiceDeps = {
