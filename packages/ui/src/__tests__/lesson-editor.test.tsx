@@ -53,6 +53,8 @@ function makeClient(authorOverrides?: Partial<PraxisClient["author"]>): PraxisCl
     documents: {} as PraxisClient["documents"],
     assignments: {} as PraxisClient["assignments"],
     packs: {} as PraxisClient["packs"],
+    notes: {} as PraxisClient["notes"],
+    flashcards: {} as PraxisClient["flashcards"],
   };
 }
 

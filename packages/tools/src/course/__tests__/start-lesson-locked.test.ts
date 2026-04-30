@@ -120,6 +120,12 @@ function makeCtx(snapshot: CourseStateSnapshot | null, courseId?: CourseId): Too
       pedagogyPack: null,
       lock: null as any,
       authoring: null as any,
+      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+      notes: null as any,
+      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+      flashcards: null as any,
+      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+      fsrsScheduler: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
       packs: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: test stub

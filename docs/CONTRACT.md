@@ -840,6 +840,72 @@ Prompt fragments: preamble, role.configure (customizable), principles, tools.con
 
 `pnpm db:configurator-actions` — queries the `configurator_actions` table and prints a formatted table. Accepts `--limit <n>` and `--from <iso-date>` flags.
 
+## Phase 12 additive changes
+
+### `NoteBody` — new discriminated union (`packages/core/src/types/notes.ts`)
+
+```typescript
+type NoteBody =
+  | { kind: "cornell"; questions: string[]; details: string[]; summary: string }
+  | { kind: "feynman"; explanation: string; followUps: string[] }
+  | { kind: "outline"; root: OutlineNode }
+  | { kind: "free"; text: string };
+
+interface OutlineNode { text: string; children: OutlineNode[]; }
+```
+
+Runtime helpers exported from `@praxis/core/types`: `parseNoteBody(format, bodyJson)`, `serializeNoteBody(body)`.
+
+### `Rating` + `FsrsState` + `FsrsScheduler` — new types (`packages/core/src/types/flashcards.ts`)
+
+```typescript
+type Rating = "again" | "hard" | "good" | "easy";
+
+interface FsrsState {
+  state: Record<string, unknown>; // opaque ts-fsrs Card
+  nextReviewAt?: Timestamp;
+  lastReviewedAt?: Timestamp;
+  reps: number;
+  lapses: number;
+}
+
+interface FsrsScheduler {
+  initial(now: Timestamp): FsrsState;
+  review(input: { state: FsrsState; rating: Rating; now: Timestamp }): FsrsState;
+  preview(input: { state: FsrsState; now: Timestamp }): Record<Rating, { nextReviewAt: Timestamp }>;
+}
+```
+
+### `NotesService` + `FlashcardsService` — new server-side service ports (`packages/core/src/types/tool.ts`)
+
+Added to `ToolServices`: `notes: NotesService`, `flashcards: FlashcardsService`, `fsrsScheduler: FsrsScheduler`.
+
+### `NotesClient` + `FlashcardsClient` — new client-side surfaces (`packages/core/src/types/client.ts`)
+
+Added to `PraxisClient`: `notes: NotesClient`, `flashcards: FlashcardsClient`.
+
+IPC channels follow `praxis.notes.*` and `praxis.flashcards.*` conventions.
+
+### 9 new tools (Phase 12)
+
+| Tool name | Category | Description |
+|---|---|---|
+| `note.create` | notes | Create a structured note |
+| `note.update` | notes | Update note body |
+| `note.show` | notes | Fetch a note by ID |
+| `note.list` | notes | List notes with optional filters |
+| `note.from_session_summary` | notes | Generate note from session transcript via LLM |
+| `flashcard.create` | flashcards | Create a flashcard |
+| `flashcard.from_note` | flashcards | Extract flashcard pairs from a note |
+| `flashcard.review` | flashcards | Submit review rating; advances FSRS state |
+| `flashcard.review_next` | flashcards | Fetch next due cards with preview intervals |
+
+All 9 are in `teach` mode's `toolNames` list.
+
+### CLI additions (Phase 12)
+
+`pnpm db:cards-due` — queries the `flashcards` table for cards with `nextReviewAt <= now` and prints a table. Uses read-only DB connection.
+
 ## Versioning rules
 
 - All packages follow semver.

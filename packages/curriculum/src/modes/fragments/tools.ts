@@ -23,5 +23,16 @@ export const toolsFragment: PromptFragment = {
 
 When you cite from retrieve_from_textbook results, refer to them as [1], [2], [3] in the order they appear. The student's UI renders these as clickable chips that show the source chunk; for vision-parsed PDFs, the source card includes a "View page" button so the student can see the original.
 
-When you make a claim a tool can verify, call the tool. The student sees the tool call — visibility is part of the lesson.`,
+When you make a claim a tool can verify, call the tool. The student sees the tool call — visibility is part of the lesson.
+
+Notes & flashcards:
+- note.create — create a structured note (cornell, feynman, outline, or free format). Use when the student asks to take notes, or when you want to surface a structured summary.
+- note.update — update the body of an existing note. Use when the student asks to revise a note.
+- note.show — display an existing note inline in chat. Use when the student asks "what was that note about X?".
+- note.list — list the student's notes filtered by optional course, lesson, or format. Use when the student asks to browse their notes.
+- note.from_session_summary — generate a note from the recent session's transcript. Use at session end if the student wants a study artifact.
+- flashcard.create — author a flashcard directly. Use when the student says "make a flashcard for X".
+- flashcard.from_note — propose flashcards extracted from a note's structure. The UI prompts the student to confirm each. Cornell pairs questions with details; Feynman explanation + follow-ups become cards; Outline leaves become cards.
+- flashcard.review_next — fetch due cards for inline review. Use for "quick warm-up" requests (3-5 cards before today's lesson).
+- flashcard.review — record a rating after the student responds. The UI dispatches this on click.`,
 };

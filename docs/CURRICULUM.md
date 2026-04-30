@@ -126,6 +126,7 @@ Lock-gated. Parent/teacher (or self-directed learner) authors and tunes.
 - `uiSurface: "configure"`, `requiredRole: "configurator"`.
 - Session start is gated by `LockService.isUnlocked()` in `SessionServiceImpl`.
 - Tools (Phase 11 — 25 total): bootstrap tools + `course.edit`, `lesson.{create,edit,delete}`, `gate.{create,edit,delete,override}`, `prompt.{override_fragment,clear_fragment,set_style}`, `memory.{reset_concept,clear_misconception,export,delete_all}`.
+- Phase 12 adds 9 note + flashcard tools to `teach` mode: `note.{create,update,show,list,from_session_summary}`, `flashcard.{create,from_note,review,review_next}`. Total teach tools: 34 (25 + 9).
 - Prompt fragments: preamble, `role.configure` (customizable), principles, `tools.configure` (not customizable), course-context, constraints, postamble.
 - Every write goes through `AuthoringServiceImpl`, which appends a `configurator_actions` audit row.
 - The configurator is the agent's user; the agent helps them author by talking.

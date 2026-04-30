@@ -110,6 +110,8 @@ function makeClient(opts: {
     },
     // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
     packs: {} as PraxisClient["packs"],
+    notes: {} as PraxisClient["notes"],
+    flashcards: {} as PraxisClient["flashcards"],
   };
 }
 

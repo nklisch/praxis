@@ -69,6 +69,8 @@ function makeClient(
           ? vi.fn().mockRejectedValue(new Error("import failed"))
           : vi.fn().mockResolvedValue(importResult),
     } as PraxisClient["packs"],
+    notes: {} as PraxisClient["notes"],
+    flashcards: {} as PraxisClient["flashcards"],
   };
 }
 

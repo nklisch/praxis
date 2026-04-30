@@ -11,6 +11,8 @@ import {
   ConfigServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
+  FlashcardsServiceImpl,
+  NotesServiceImpl,
   getOrCreateDefaultStudentId,
   IndexerOrchestratorImpl,
   LockServiceImpl,
@@ -30,13 +32,16 @@ import {
   teachMode,
 } from "@praxis/curriculum/modes";
 import { PackImportServiceImpl, SqliteConceptEmbeddingsStore } from "@praxis/curriculum/packs";
+import { FsrsSchedulerImpl } from "@praxis/curriculum/scheduling";
 import { createEngine } from "@praxis/engines";
 import { sessions } from "@praxis/memory/schema";
 import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/assignment";
 import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
+import { FLASHCARD_TOOLS } from "@praxis/tools/flashcards";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
+import { NOTE_TOOLS } from "@praxis/tools/notes";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
 import {
   DocxIngestor,
@@ -71,6 +76,12 @@ export interface Services {
   lock: LockServiceImpl;
   /** Phase 11: authoring service — exposed for IPC handlers. */
   authoring: AuthoringServiceImpl;
+  /** Phase 12: notes management — exposed for IPC handlers. */
+  notes: NotesServiceImpl;
+  /** Phase 12: flashcard management + FSRS review — exposed for IPC handlers. */
+  flashcards: FlashcardsServiceImpl;
+  /** Phase 12: FSRS scheduler — exposed for tools that need preview. */
+  fsrsScheduler: FsrsSchedulerImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
@@ -214,8 +225,26 @@ export function buildServices(dbPath: string): Services {
     indexers: [masteryIndexer, misconceptionIndexer],
   });
 
+  // Phase 12: FSRS scheduler — singleton, stateless.
+  const fsrsScheduler = new FsrsSchedulerImpl();
+
   // Phase 11: LockServiceImpl — single instance, process-scoped unlock flag.
   const lockService = new LockServiceImpl({ db, log });
+
+  // Phase 12: Notes + Flashcards services.
+  // Notes service uses the bootstrap engine resolver for fromSessionSummary.
+  const notesService = new NotesServiceImpl({
+    db,
+    log,
+    engineResolver: bootstrapEngineResolver,
+    memory: memoryService,
+  });
+
+  const flashcardsService = new FlashcardsServiceImpl({
+    db,
+    log,
+    scheduler: fsrsScheduler,
+  });
 
   // Phase 11: AuthoringServiceImpl — orchestration layer for configurator writes.
   // Constructed after memoryService and artifactsService (depends on both).
@@ -249,6 +278,8 @@ export function buildServices(dbPath: string): Services {
     ...ASSIGNMENT_TAKE_TOOLS, // ← Phase 8
     ...AUTHORING_TOOLS, // ← Phase 11
     ...CONFIGURE_MEMORY_TOOLS, // ← Phase 11
+    ...NOTE_TOOLS, // ← Phase 12
+    ...FLASHCARD_TOOLS, // ← Phase 12
   ];
 
   const deps: ServiceDeps = {
@@ -271,6 +302,9 @@ export function buildServices(dbPath: string): Services {
       packs: packImportService, // ← Phase 10
       lock: lockService, // ← Phase 11
       authoring: authoringService, // ← Phase 11
+      notes: notesService, // ← Phase 12
+      flashcards: flashcardsService, // ← Phase 12
+      fsrsScheduler, // ← Phase 12
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)
@@ -305,6 +339,9 @@ export function buildServices(dbPath: string): Services {
     packs: packImportService, // ← Phase 10
     lock: lockService, // ← Phase 11
     authoring: authoringService, // ← Phase 11
+    notes: notesService, // ← Phase 12
+    flashcards: flashcardsService, // ← Phase 12
+    fsrsScheduler, // ← Phase 12
     ingestorRegistry,
     pyodide,
     embeddings,

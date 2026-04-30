@@ -16,10 +16,12 @@ export type {
   DocumentsClient,
   EngineConfigSnapshot,
   FileRef,
+  FlashcardsClient,
   ImportedPackClient,
   IngestionClient,
   LockClient,
   MemoryService as MemoryClientService,
+  NotesClient,
   PackSummaryClient,
   PacksClient,
   PraxisClient,
@@ -34,12 +36,16 @@ export type * from "./configurator.js";
 export type * from "./conversation.js";
 export type * from "./engine.js";
 export { engineError } from "./engine.js"; // runtime helper — not re-exported by `export type *`
+// Phase 12: FSRS types — exported as values (Rating is a type; FsrsState/FsrsScheduler are types).
+export type * from "./flashcards.js";
 export type * from "./gate.js";
 export * from "./ids.js"; // exports `brandId` runtime helper
 export type * from "./ingestion.js";
 // memory.ts: `export *` (not `export type *`) so MASTERY_SIGNAL_KINDS const is exported as a runtime value.
 export * from "./memory.js";
 export type * from "./mode.js";
+// Phase 12: NoteBody + helpers — `export *` (not `export type *`) so parseNoteBody + serializeNoteBody are exported as runtime values.
+export * from "./notes.js";
 export type * from "./pedagogy.js";
 // tool.ts: MemoryService here is the server-side interface (with studentId params).
 export type * from "./tool.js";

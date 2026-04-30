@@ -36,6 +36,8 @@ function makeFakeClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisC
     assignments: {} as PraxisClient["assignments"],
     // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
     packs: {} as PraxisClient["packs"],
+    notes: {} as PraxisClient["notes"],
+    flashcards: {} as PraxisClient["flashcards"],
   };
 }
 

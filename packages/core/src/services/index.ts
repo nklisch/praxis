@@ -1,3 +1,10 @@
+// Phase 12: Notes service + Flashcards service
+export type { FlashcardsServiceDeps } from "./flashcards-service.js";
+export { FlashcardsServiceImpl } from "./flashcards-service.js";
+export type { NotesServiceDeps } from "./notes-service.js";
+export { NoteBodySchema, NotesServiceImpl } from "./notes-service.js";
+export { FROM_SESSION_SUMMARY_PROMPT } from "./notes-session-summary-prompt.js";
+
 // Phase 11: Lock service + Authoring service
 
 export type { AuthoringServiceDeps } from "./authoring-service.js";

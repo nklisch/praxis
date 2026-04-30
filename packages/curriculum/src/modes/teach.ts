@@ -33,6 +33,16 @@ export const teachMode: Mode = {
     "update_mastery", // ← Phase 7 active-path memory tools
     "record_misconception",
     "assignment.create", // ← Phase 8: tutor authors assignments
+    // Phase 12: notes + flashcards
+    "note.create",
+    "note.update",
+    "note.show",
+    "note.list",
+    "note.from_session_summary",
+    "flashcard.create",
+    "flashcard.from_note",
+    "flashcard.review",
+    "flashcard.review_next",
   ],
   uiSurface: "chat",
 };

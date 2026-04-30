@@ -4,9 +4,11 @@ import { AssignmentsClient } from "./services/assignments-client.js";
 import { AuthoringClientImpl } from "./services/authoring-client.js";
 import { ConfigClient } from "./services/config-client.js";
 import { DocumentsClient } from "./services/documents-client.js";
+import { FlashcardsClient } from "./services/flashcards-client.js";
 import { IngestClient } from "./services/ingest-client.js";
 import { LockClientImpl } from "./services/lock-client.js";
 import { MemoryClient } from "./services/memory-client.js";
+import { NotesClient } from "./services/notes-client.js";
 import { PacksClientImpl } from "./services/packs-client.js";
 import { SessionClient } from "./services/session-client.js";
 import type { ClientTransport } from "./transport/types.js";
@@ -28,5 +30,7 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     assignments: new AssignmentsClient(transport), // ← Phase 8
     packs: new PacksClientImpl(transport), // ← Phase 10
     lock: new LockClientImpl(transport), // ← Phase 11: real impl
+    notes: new NotesClient(transport), // ← Phase 12
+    flashcards: new FlashcardsClient(transport), // ← Phase 12
   };
 }

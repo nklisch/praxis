@@ -11,12 +11,15 @@ import type {
   DocumentsReader,
   EmbeddingService,
   Engine,
+  FlashcardsService,
+  FsrsScheduler,
   FtsStore,
   IndexerOrchestrator,
   LockService,
   Logger,
   MemoryService,
   Mode,
+  NotesService,
   PackImportService,
   SymPyService,
   ToolDefinition,
@@ -55,6 +58,12 @@ export interface ServiceDeps {
     lock: LockService;
     /** Phase 11: configurator authoring + memory writes. */
     authoring: AuthoringService;
+    /** Phase 12: notes management — create, update, list, delete. */
+    notes: NotesService;
+    /** Phase 12: flashcard management + FSRS review. */
+    flashcards: FlashcardsService;
+    /** Phase 12: FSRS scheduler — used by FlashcardsServiceImpl and flashcard.review_next tool. */
+    fsrsScheduler: FsrsScheduler;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

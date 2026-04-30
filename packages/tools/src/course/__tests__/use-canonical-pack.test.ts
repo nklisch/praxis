@@ -83,6 +83,12 @@ function makeCtx(packs: PackImportService, bootstrap: Partial<BootstrapService>)
       pedagogyPack: null,
       lock: null as any,
       authoring: null as any,
+      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+      notes: null as any,
+      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+      flashcards: null as any,
+      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+      fsrsScheduler: null as any,
       packs,
       // biome-ignore lint/suspicious/noExplicitAny: test stub
       assignments: null as any,

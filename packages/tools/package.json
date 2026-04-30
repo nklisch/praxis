@@ -13,7 +13,9 @@
     "./course": "./src/course/index.ts",
     "./memory": "./src/memory/index.ts",
     "./assignment": "./src/assignment/index.ts",
-    "./authoring": "./src/authoring/index.ts"
+    "./authoring": "./src/authoring/index.ts",
+    "./notes": "./src/notes/index.ts",
+    "./flashcards": "./src/flashcards/index.ts"
   },
   "scripts": {
     "build": "tsc -b",

@@ -419,6 +419,13 @@ export class SessionServiceImpl implements SessionService {
         lock: (this.deps.toolServices.lock as any) ?? null,
         // biome-ignore lint/suspicious/noExplicitAny: AuthoringService wired by Agent 2; null is safe until then
         authoring: (this.deps.toolServices.authoring as any) ?? null,
+        // Phase 12: notes + flashcards + fsrsScheduler.
+        // biome-ignore lint/suspicious/noExplicitAny: Phase 12 services; null-safe until wired
+        notes: (this.deps.toolServices.notes as any) ?? null,
+        // biome-ignore lint/suspicious/noExplicitAny: Phase 12 services; null-safe until wired
+        flashcards: (this.deps.toolServices.flashcards as any) ?? null,
+        // biome-ignore lint/suspicious/noExplicitAny: Phase 12 services; null-safe until wired
+        fsrsScheduler: (this.deps.toolServices.fsrsScheduler as any) ?? null,
       },
       log: this.deps.log,
     };

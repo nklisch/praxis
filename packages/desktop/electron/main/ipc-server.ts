@@ -3,10 +3,12 @@ import type {
   AssignmentId,
   ConceptId,
   CourseId,
+  FlashcardId,
   GateId,
   GateTarget,
   LessonId,
   MisconceptionId,
+  NoteId,
   StudentId,
   SuccessCriteria,
 } from "@praxis/core/types";
@@ -671,6 +673,201 @@ export function registerIpcHandlers(
       );
     },
   );
+
+  // ── Phase 12: Notes ──────────────────────────────────────────────────────────
+
+  handle(
+    "praxis.notes.create",
+    async (
+      _event,
+      input: {
+        format: "cornell" | "feynman" | "outline" | "free";
+        body: unknown;
+        context?: {
+          courseId?: string;
+          lessonId?: string;
+          sessionId?: string;
+          conceptIds?: string[];
+        };
+      },
+    ) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.notes.create({
+        studentId,
+        format: input.format,
+        // biome-ignore lint/suspicious/noExplicitAny: NoteBody validated inside service
+        body: input.body as any,
+        ...(input.context !== undefined && {
+          context: {
+            ...(input.context.courseId !== undefined && {
+              courseId: brandId<"CourseId">(input.context.courseId),
+            }),
+            ...(input.context.lessonId !== undefined && {
+              lessonId: brandId<"LessonId">(input.context.lessonId),
+            }),
+            ...(input.context.sessionId !== undefined && {
+              sessionId: input.context.sessionId,
+            }),
+            ...(input.context.conceptIds !== undefined && {
+              conceptIds: input.context.conceptIds.map((id) =>
+                brandId<"ConceptId">(id),
+              ),
+            }),
+          },
+        }),
+      });
+    },
+  );
+
+  handle("praxis.notes.update", async (_event, input: { noteId: string; body: unknown }) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+    return services.notes.update({
+      studentId,
+      noteId: brandId<"NoteId">(input.noteId),
+      // biome-ignore lint/suspicious/noExplicitAny: NoteBody validated inside service
+      body: input.body as any,
+    });
+  });
+
+  handle("praxis.notes.get", async (_event, noteId: string) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+    return services.notes.get({ studentId, noteId: brandId<"NoteId">(noteId) });
+  });
+
+  handle(
+    "praxis.notes.list",
+    async (
+      _event,
+      input?: {
+        courseId?: string;
+        lessonId?: string;
+        format?: "cornell" | "feynman" | "outline" | "free";
+        limit?: number;
+      },
+    ) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.notes.list({
+        studentId,
+        ...(input?.courseId !== undefined && {
+          courseId: brandId<"CourseId">(input.courseId),
+        }),
+        ...(input?.lessonId !== undefined && {
+          lessonId: brandId<"LessonId">(input.lessonId),
+        }),
+        ...(input?.format !== undefined && { format: input.format }),
+        ...(input?.limit !== undefined && { limit: input.limit }),
+      });
+    },
+  );
+
+  handle("praxis.notes.delete", async (_event, noteId: string) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+    return services.notes.delete({ studentId, noteId: brandId<"NoteId">(noteId) });
+  });
+
+  // ── Phase 12: Flashcards ─────────────────────────────────────────────────────
+
+  handle(
+    "praxis.flashcards.create",
+    async (
+      _event,
+      input: {
+        front: string;
+        back: string;
+        conceptId?: string;
+        source?: { kind: "authored" | "extracted" | "user-created"; ref?: string };
+      },
+    ) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.flashcards.create({
+        studentId,
+        front: input.front,
+        back: input.back,
+        ...(input.conceptId !== undefined && {
+          conceptId: brandId<"ConceptId">(input.conceptId),
+        }),
+        ...(input.source !== undefined && { source: input.source }),
+      });
+    },
+  );
+
+  handle(
+    "praxis.flashcards.update",
+    async (
+      _event,
+      input: {
+        flashcardId: string;
+        patch: { front?: string; back?: string; conceptId?: string };
+      },
+    ) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.flashcards.update({
+        studentId,
+        flashcardId: brandId<"FlashcardId">(input.flashcardId),
+        patch: {
+          ...(input.patch.front !== undefined && { front: input.patch.front }),
+          ...(input.patch.back !== undefined && { back: input.patch.back }),
+          ...(input.patch.conceptId !== undefined && {
+            conceptId: brandId<"ConceptId">(input.patch.conceptId),
+          }),
+        },
+      });
+    },
+  );
+
+  handle("praxis.flashcards.get", async (_event, flashcardId: string) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+    return services.flashcards.get({
+      studentId,
+      flashcardId: brandId<"FlashcardId">(flashcardId),
+    });
+  });
+
+  handle(
+    "praxis.flashcards.list",
+    async (
+      _event,
+      input?: { conceptId?: string; due?: boolean; limit?: number },
+    ) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.flashcards.list({
+        studentId,
+        ...(input?.conceptId !== undefined && {
+          conceptId: brandId<"ConceptId">(input.conceptId),
+        }),
+        ...(input?.due !== undefined && { due: input.due }),
+        ...(input?.limit !== undefined && { limit: input.limit }),
+      });
+    },
+  );
+
+  handle("praxis.flashcards.delete", async (_event, flashcardId: string) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+    return services.flashcards.delete({
+      studentId,
+      flashcardId: brandId<"FlashcardId">(flashcardId),
+    });
+  });
+
+  handle(
+    "praxis.flashcards.review",
+    async (
+      _event,
+      input: { flashcardId: string; rating: "again" | "hard" | "good" | "easy" },
+    ) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.flashcards.review({
+        studentId,
+        flashcardId: brandId<"FlashcardId">(input.flashcardId),
+        rating: input.rating,
+      });
+    },
+  );
+
+  handle("praxis.flashcards.dueCount", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+    return services.flashcards.dueCount({ studentId });
+  });
 
   // Return unregister function.
   return () => {

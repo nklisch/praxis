@@ -219,17 +219,22 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 12: Workspace + notes + flashcards
+## Phase 12: Workspace + notes + flashcards ✓ SHIPPED (backend)
 
 **Goal:** Students take structured notes and review them via spaced repetition.
 
 **Build:**
-- Note / Flashcard schemas
-- Workspace UI with format switcher (Cornell, Feynman, Outline, Free)
-- `note.create`, `note.from_session_summary`, `flashcard.from_note` tools
-- FSRS scheduler; spaced-review surface
+- Note / Flashcard DB schemas (notes + flashcards tables in @praxis/artifacts)
+- NoteBody discriminated union (cornell / feynman / outline / free); FsrsScheduler port + FsrsSchedulerImpl wrapping ts-fsrs v5.3.2
+- NotesServiceImpl (create, update, get, list, delete, fromSessionSummary via one-shot LLM)
+- FlashcardsServiceImpl (create, update, get, list, delete, review, dueCount)
+- 9 tools: note.create, note.update, note.show, note.list, note.from_session_summary, flashcard.create, flashcard.from_note, flashcard.review, flashcard.review_next
+- IPC handlers for all 12 note + flashcard channels; NotesClient + FlashcardsClient
+- `pnpm db:cards-due` CLI; teach mode updated with all 9 tool names + prompt fragment
 
-**Research:** FSRS reference TS implementation.
+**Deferred:** Workspace UI (Unit 10) handed to UI agent.
+
+**Research:** FSRS reference TS implementation (ts-fsrs v5.3.2).
 
 **Test checkpoint:** Take a Cornell note in a session. Generate flashcards. See FSRS-scheduled due dates. `pnpm db:cards-due` confirms.
 

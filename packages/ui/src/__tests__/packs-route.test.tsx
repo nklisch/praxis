@@ -63,6 +63,8 @@ function makeClient(listResult: PackSummaryClient[] | "error" = [], importDelay 
           ),
       ),
     } as PraxisClient["packs"],
+    notes: {} as PraxisClient["notes"],
+    flashcards: {} as PraxisClient["flashcards"],
   };
 }
 

@@ -120,6 +120,8 @@ function makeClient(
     assignments: {} as PraxisClient["assignments"],
     packs: {} as PraxisClient["packs"],
     lock: lockClient,
+    notes: {} as PraxisClient["notes"],
+    flashcards: {} as PraxisClient["flashcards"],
   };
 }
 

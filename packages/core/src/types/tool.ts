@@ -9,9 +9,12 @@ import type {
   DraftCourseState,
   DraftEditOp,
   DraftSummary,
+  Flashcard,
   Gate,
   GateTarget,
   Lesson,
+  Note,
+  NoteContext,
   Reference,
   SuccessCriteria,
   ThresholdConfig,
@@ -19,6 +22,7 @@ import type {
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
 import type { ConfiguratorActionRow } from "./configurator.js";
+import type { FsrsScheduler, FsrsState, Rating } from "./flashcards.js";
 import type { GateView, GradeReader, MasteryReader } from "./gate.js";
 import type {
   AssignmentId,
@@ -27,9 +31,11 @@ import type {
   ConfiguratorId,
   CourseId,
   DocumentId,
+  FlashcardId,
   GateId,
   LessonId,
   MisconceptionId,
+  NoteId,
   SessionId,
   StrategyId,
   StudentId,
@@ -43,6 +49,7 @@ import type {
   ProceduralModel,
   StudentModel,
 } from "./memory.js";
+import type { NoteBody } from "./notes.js";
 
 export type EffectKind =
   | "memory.write"
@@ -109,7 +116,95 @@ export interface ToolServices {
   lock: LockService;
   /** Phase 11: configurator-driven authoring + memory writes. */
   authoring: AuthoringService;
+  /** Phase 12: notes management — create, update, list, delete. */
+  notes: NotesService;
+  /** Phase 12: flashcard management + FSRS review. */
+  flashcards: FlashcardsService;
+  /** Phase 12: FSRS scheduler — used by FlashcardsServiceImpl and flashcard.review_next tool. */
+  fsrsScheduler: FsrsScheduler;
 }
+
+// ─── Phase 12: NotesService ───────────────────────────────────────────────────
+
+/** Server-side NotesService. Methods take studentId where applicable. */
+export interface NotesService {
+  create(input: {
+    studentId: StudentId;
+    format: "cornell" | "feynman" | "outline" | "free";
+    body: NoteBody;
+    context?: NoteContext;
+  }): Promise<Note>;
+
+  update(input: { studentId: StudentId; noteId: NoteId; body: NoteBody }): Promise<Note>;
+
+  get(input: { studentId: StudentId; noteId: NoteId }): Promise<Note | null>;
+
+  list(input: {
+    studentId: StudentId;
+    courseId?: CourseId;
+    lessonId?: LessonId;
+    format?: "cornell" | "feynman" | "outline" | "free";
+    limit?: number;
+  }): Promise<Note[]>;
+
+  delete(input: { studentId: StudentId; noteId: NoteId }): Promise<void>;
+
+  /**
+   * Phase 12: Generate a structured note from a session's episodic events via a
+   * one-shot LLM call. Reads events, composes them into a prompt, runs runOneShot,
+   * parses the result, and persists.
+   */
+  fromSessionSummary(input: {
+    studentId: StudentId;
+    sessionId: string;
+    format: "cornell" | "feynman" | "outline" | "free";
+  }): Promise<Note>;
+}
+
+// ─── Phase 12: FlashcardsService ─────────────────────────────────────────────
+
+/** Server-side FlashcardsService. */
+export interface FlashcardsService {
+  create(input: {
+    studentId: StudentId;
+    front: string;
+    back: string;
+    conceptId?: ConceptId;
+    source?: { kind: "authored" | "extracted" | "user-created"; ref?: string };
+  }): Promise<Flashcard>;
+
+  update(input: {
+    studentId: StudentId;
+    flashcardId: FlashcardId;
+    patch: Partial<Pick<Flashcard, "front" | "back" | "conceptId">>;
+  }): Promise<Flashcard>;
+
+  get(input: { studentId: StudentId; flashcardId: FlashcardId }): Promise<Flashcard | null>;
+
+  list(input: {
+    studentId: StudentId;
+    conceptId?: ConceptId;
+    due?: boolean;
+    limit?: number;
+  }): Promise<Flashcard[]>;
+
+  delete(input: { studentId: StudentId; flashcardId: FlashcardId }): Promise<void>;
+
+  /**
+   * Record a rating; compute the new FSRS state; persist; return the new card row.
+   */
+  review(input: {
+    studentId: StudentId;
+    flashcardId: FlashcardId;
+    rating: Rating;
+  }): Promise<{ flashcard: Flashcard; nextReviewAt: Timestamp }>;
+
+  /** Total count of cards currently due (`nextReviewAt <= now`). */
+  dueCount(input: { studentId: StudentId }): Promise<number>;
+}
+
+// Re-export FsrsScheduler, FsrsState, Rating so callers can import from tool.ts.
+export type { FsrsScheduler, FsrsState, Rating };
 
 // ─── Phase 11: LockService ───────────────────────────────────────────────────
 

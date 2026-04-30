@@ -13,6 +13,7 @@
     "./gates": "./src/gates/index.ts",
     "./packs": "./src/packs/index.ts",
     "./router": "./src/router/index.ts",
+    "./scheduling": "./src/scheduling/index.ts",
     "./style-composer": "./src/brief/style-composer.ts"
   },
   "scripts": {
@@ -24,6 +25,7 @@
     "@praxis/core": "workspace:*",
     "@praxis/engines": "workspace:*",
     "drizzle-orm": "^0.36.0",
+    "ts-fsrs": "^5.3.2",
     "uuid": "^10.0.0",
     "zod": "^4.0.0"
   },

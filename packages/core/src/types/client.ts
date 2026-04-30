@@ -11,6 +11,7 @@ import type {
   GateTarget,
   Lesson,
   Note,
+  NoteContext,
   Reference,
   SuccessCriteria,
   ThresholdConfig,
@@ -18,14 +19,17 @@ import type {
 import type { TimeRange, Timestamp } from "./common.js";
 import type { ConfiguratorActionRow } from "./configurator.js";
 import type { EngineEvent } from "./engine.js";
+import type { Rating } from "./flashcards.js";
 import type { GateView } from "./gate.js";
 import type {
   AssignmentId,
   ConceptId,
   CourseId,
+  FlashcardId,
   GateId,
   LessonId,
   MisconceptionId,
+  NoteId,
   SessionId,
   StrategyId,
   StudentId,
@@ -39,6 +43,7 @@ import type {
   ProceduralModel,
   StudentModel,
 } from "./memory.js";
+import type { NoteBody } from "./notes.js";
 
 export interface PraxisClient {
   session: SessionService;
@@ -54,6 +59,10 @@ export interface PraxisClient {
   packs: PacksClient;
   /** Phase 11: local lock code gate. Optional until Agent 2 wires the IPC handler. */
   lock?: LockClient;
+  /** Phase 12: notes management — create, update, list, delete, get. */
+  notes: NotesClient;
+  /** Phase 12: flashcard management + FSRS review. */
+  flashcards: FlashcardsClient;
 }
 
 export interface SessionService {
@@ -385,4 +394,61 @@ export interface DocumentsClient {
   delete(documentId: string): Promise<void>;
   /** Fetch the PNG bytes for a saved page render. Returns null if not available. */
   pageImage(input: { documentId: string; page: number }): Promise<Buffer | null>;
+}
+
+// ─── Phase 12: NotesClient (client-side) ─────────────────────────────────────
+
+/**
+ * Client-side NotesClient (no studentId on methods; resolved server-side via
+ * getOrCreateDefaultStudentId in IPC handlers).
+ */
+export interface NotesClient {
+  create(input: {
+    format: "cornell" | "feynman" | "outline" | "free";
+    body: NoteBody;
+    context?: NoteContext;
+  }): Promise<Note>;
+
+  update(input: { noteId: NoteId; body: NoteBody }): Promise<Note>;
+
+  get(noteId: NoteId): Promise<Note | null>;
+
+  list(input?: {
+    courseId?: CourseId;
+    lessonId?: LessonId;
+    format?: "cornell" | "feynman" | "outline" | "free";
+    limit?: number;
+  }): Promise<Note[]>;
+
+  delete(noteId: NoteId): Promise<void>;
+}
+
+// ─── Phase 12: FlashcardsClient (client-side) ────────────────────────────────
+
+/** Client-side FlashcardsClient. */
+export interface FlashcardsClient {
+  create(input: {
+    front: string;
+    back: string;
+    conceptId?: ConceptId;
+    source?: { kind: "authored" | "extracted" | "user-created"; ref?: string };
+  }): Promise<Flashcard>;
+
+  update(input: {
+    flashcardId: FlashcardId;
+    patch: Partial<Pick<Flashcard, "front" | "back" | "conceptId">>;
+  }): Promise<Flashcard>;
+
+  get(flashcardId: FlashcardId): Promise<Flashcard | null>;
+
+  list(input?: { conceptId?: ConceptId; due?: boolean; limit?: number }): Promise<Flashcard[]>;
+
+  delete(flashcardId: FlashcardId): Promise<void>;
+
+  review(input: {
+    flashcardId: FlashcardId;
+    rating: Rating;
+  }): Promise<{ flashcard: Flashcard; nextReviewAt: Timestamp }>;
+
+  dueCount(): Promise<number>;
 }
