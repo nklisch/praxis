@@ -1,0 +1,548 @@
+{
+  "id": "geometry",
+  "version": "1.0.0",
+  "name": "Geometry (CCSS)",
+  "subject": "math.geometry",
+  "gradeLevel": "9-12",
+  "standardsRef": { "body": "CCSS-Math", "version": "2010" },
+  "authoredBy": "Praxis curriculum team",
+  "authoredAt": "2026-04-29T00:00:00.000Z",
+  "concepts": [
+    {
+      "id": "geometry.points-lines-planes",
+      "name": "Points, Lines, and Planes",
+      "description": "Undefined terms in geometry: a point has no dimension, a line has one dimension extending infinitely in both directions, and a plane has two dimensions extending infinitely. Collinear points lie on the same line; coplanar points lie in the same plane. Naming conventions using letters and notation.",
+      "aliases": ["undefined terms", "collinear", "coplanar", "geometric notation"],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.A.1"]
+    },
+    {
+      "id": "geometry.segments-and-rays",
+      "name": "Line Segments, Rays, and Measurement",
+      "description": "A line segment has two endpoints and a definite length. A ray has one endpoint and extends infinitely in one direction. Measuring and comparing segment lengths. The midpoint of a segment and the segment addition postulate.",
+      "aliases": ["line segment", "ray", "midpoint", "segment addition postulate"],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.A.1", "CCSS.Math.Content.HSG-GPE.B.6"]
+    },
+    {
+      "id": "geometry.angle-basics",
+      "name": "Angles: Definition and Measurement",
+      "description": "An angle is formed by two rays with a common endpoint (vertex). Measuring angles in degrees using a protractor. Classifying angles as acute (< 90°), right (= 90°), obtuse (90° < x < 180°), and straight (= 180°). The angle addition postulate.",
+      "aliases": [
+        "acute",
+        "obtuse",
+        "right angle",
+        "straight angle",
+        "vertex",
+        "angle measurement"
+      ],
+      "standardsTags": ["CCSS.Math.Content.4.MD.C.5", "CCSS.Math.Content.HSG-CO.A.1"]
+    },
+    {
+      "id": "geometry.angle-pairs",
+      "name": "Angle Pairs and Relationships",
+      "description": "Complementary angles sum to 90°; supplementary angles sum to 180°. Vertical angles are formed by two intersecting lines and are congruent. Adjacent angles share a vertex and a side. Linear pairs of angles are supplementary.",
+      "aliases": [
+        "complementary",
+        "supplementary",
+        "vertical angles",
+        "linear pair",
+        "adjacent angles"
+      ],
+      "standardsTags": ["CCSS.Math.Content.7.G.B.5", "CCSS.Math.Content.HSG-CO.C.9"]
+    },
+    {
+      "id": "geometry.parallel-lines-transversal",
+      "name": "Parallel Lines and Transversals",
+      "description": "When a transversal crosses parallel lines, corresponding angles are congruent, alternate interior angles are congruent, alternate exterior angles are congruent, and co-interior (same-side interior) angles are supplementary. Using these relationships to find angle measures.",
+      "aliases": [
+        "transversal",
+        "corresponding angles",
+        "alternate interior angles",
+        "co-interior angles"
+      ],
+      "standardsTags": [
+        "CCSS.Math.Content.8.G.A.5",
+        "CCSS.Math.Content.HSG-CO.A.1",
+        "CCSS.Math.Content.HSG-CO.C.9"
+      ]
+    },
+    {
+      "id": "geometry.triangle-basics",
+      "name": "Triangle Properties",
+      "description": "Classifying triangles by sides (scalene, isosceles, equilateral) and by angles (acute, right, obtuse). The triangle angle-sum theorem: the interior angles of any triangle sum to 180°. The exterior angle theorem.",
+      "aliases": [
+        "scalene",
+        "isosceles",
+        "equilateral",
+        "angle sum theorem",
+        "exterior angle theorem"
+      ],
+      "standardsTags": ["CCSS.Math.Content.8.G.A.5", "CCSS.Math.Content.HSG-CO.C.10"]
+    },
+    {
+      "id": "geometry.congruent-triangles",
+      "name": "Congruent Triangles",
+      "description": "Two triangles are congruent if all corresponding sides and angles are equal. Congruence criteria: SSS, SAS, ASA, AAS, and HL (for right triangles). Writing congruence statements with correct correspondence. Using CPCTC (Corresponding Parts of Congruent Triangles are Congruent).",
+      "aliases": ["SSS", "SAS", "ASA", "AAS", "HL", "CPCTC", "triangle congruence"],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.B.7", "CCSS.Math.Content.HSG-CO.B.8"]
+    },
+    {
+      "id": "geometry.isosceles-equilateral-triangles",
+      "name": "Isosceles and Equilateral Triangle Theorems",
+      "description": "The isosceles triangle theorem: base angles of an isosceles triangle are congruent. The converse: if two angles of a triangle are congruent, the opposite sides are congruent. Equilateral triangles are equiangular (all angles are 60°).",
+      "aliases": ["base angles theorem", "equiangular", "isosceles theorem"],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.C.10"]
+    },
+    {
+      "id": "geometry.triangle-inequality",
+      "name": "Triangle Inequality and Side-Angle Relationships",
+      "description": "The triangle inequality theorem: the sum of any two side lengths must be greater than the third. The side-angle relationship: the longest side is opposite the largest angle. Using these to determine possible triangle dimensions.",
+      "aliases": ["triangle inequality theorem", "side-angle relationship"],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.C.10"]
+    },
+    {
+      "id": "geometry.midsegment-theorem",
+      "name": "Triangle Midsegment Theorem",
+      "description": "The midsegment connecting the midpoints of two sides of a triangle is parallel to the third side and half its length. Applications: finding segment lengths and verifying parallel segments in triangles.",
+      "aliases": ["midsegment", "midpoint connector"],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.C.10", "CCSS.Math.Content.HSG-SRT.B.4"]
+    },
+    {
+      "id": "geometry.similar-triangles",
+      "name": "Similar Triangles",
+      "description": "Two triangles are similar if corresponding angles are congruent and corresponding sides are proportional. Similarity criteria: AA, SAS~, SSS~. Setting up and solving proportions from similar triangles. Scale factor.",
+      "aliases": [
+        "similarity",
+        "AA",
+        "SAS similarity",
+        "SSS similarity",
+        "proportions",
+        "scale factor"
+      ],
+      "standardsTags": ["CCSS.Math.Content.HSG-SRT.A.3", "CCSS.Math.Content.HSG-SRT.B.5"]
+    },
+    {
+      "id": "geometry.pythagorean-theorem",
+      "name": "Pythagorean Theorem",
+      "description": "In a right triangle, a² + b² = c² where c is the hypotenuse. Using the theorem to find a missing side length. The converse: if a² + b² = c², the triangle is right-angled. Pythagorean triples (3-4-5, 5-12-13, 8-15-17).",
+      "aliases": ["Pythagorean theorem", "hypotenuse", "legs", "Pythagorean triples"],
+      "standardsTags": ["CCSS.Math.Content.8.G.B.7", "CCSS.Math.Content.HSG-SRT.C.8"]
+    },
+    {
+      "id": "geometry.special-right-triangles",
+      "name": "Special Right Triangles",
+      "description": "The 45-45-90 triangle: legs are congruent and the hypotenuse is √2 times a leg. The 30-60-90 triangle: hypotenuse is twice the shorter leg; longer leg is √3 times the shorter leg. Using these patterns to find exact side lengths without a calculator.",
+      "aliases": ["45-45-90", "30-60-90", "special triangles"],
+      "standardsTags": ["CCSS.Math.Content.HSG-SRT.C.6"]
+    },
+    {
+      "id": "geometry.intro-trig-ratios",
+      "name": "Right Triangle Trigonometry: Sine, Cosine, Tangent",
+      "description": "SOH-CAH-TOA: sine = opposite/hypotenuse, cosine = adjacent/hypotenuse, tangent = opposite/adjacent. Using trigonometric ratios to find missing side lengths and angle measures in right triangles. Inverse trigonometric functions (arcsin, arccos, arctan).",
+      "aliases": ["SOH-CAH-TOA", "sine", "cosine", "tangent", "inverse trig", "trig ratios"],
+      "standardsTags": [
+        "CCSS.Math.Content.HSG-SRT.C.6",
+        "CCSS.Math.Content.HSG-SRT.C.7",
+        "CCSS.Math.Content.HSG-SRT.C.8"
+      ]
+    },
+    {
+      "id": "geometry.quadrilateral-properties",
+      "name": "Properties of Quadrilaterals",
+      "description": "Classifying quadrilaterals: trapezoid, parallelogram, rectangle, rhombus, and square. Properties of each: parallel sides, congruent sides, right angles, congruent diagonals, bisecting diagonals, perpendicular diagonals. Hierarchy of quadrilaterals.",
+      "aliases": [
+        "parallelogram",
+        "rectangle",
+        "rhombus",
+        "square",
+        "trapezoid",
+        "quadrilateral hierarchy"
+      ],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.C.11"]
+    },
+    {
+      "id": "geometry.parallelogram-theorems",
+      "name": "Parallelogram Theorems",
+      "description": "In a parallelogram, opposite sides are congruent and parallel, opposite angles are congruent, consecutive angles are supplementary, and diagonals bisect each other. The converse theorems for proving a quadrilateral is a parallelogram.",
+      "aliases": ["parallelogram properties", "diagonals bisect", "opposite sides congruent"],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.C.11"]
+    },
+    {
+      "id": "geometry.perimeter-area-triangles",
+      "name": "Perimeter and Area of Triangles",
+      "description": "Perimeter of a triangle: sum of side lengths. Area of a triangle: A = ½bh where b is the base and h is the corresponding height. Finding the area given side lengths and the included angle using A = ½ab·sin(C). Heron's formula for area given three side lengths.",
+      "aliases": ["triangle area", "base and height", "Heron's formula"],
+      "standardsTags": ["CCSS.Math.Content.6.G.A.1", "CCSS.Math.Content.HSG-SRT.D.9"]
+    },
+    {
+      "id": "geometry.perimeter-area-quadrilaterals",
+      "name": "Perimeter and Area of Quadrilaterals",
+      "description": "Area formulas for parallelogram (A = bh), rectangle (A = lw), triangle (A = ½bh), trapezoid (A = ½(b₁+b₂)h), and rhombus/square (A = ½d₁d₂). Choosing the correct formula given available information. Composite figures.",
+      "aliases": [
+        "area of parallelogram",
+        "area of trapezoid",
+        "composite figures",
+        "rectangle area"
+      ],
+      "standardsTags": ["CCSS.Math.Content.6.G.A.1", "CCSS.Math.Content.HSG-CO.C.11"]
+    },
+    {
+      "id": "geometry.circles-intro",
+      "name": "Circles: Definitions and Parts",
+      "description": "A circle is the set of all points equidistant from the center. Vocabulary: radius, diameter, chord, secant, tangent, arc (major/minor), sector, central angle, inscribed angle. Relationship between diameter and radius (d = 2r).",
+      "aliases": [
+        "radius",
+        "diameter",
+        "chord",
+        "tangent",
+        "sector",
+        "arc",
+        "central angle",
+        "inscribed angle"
+      ],
+      "standardsTags": ["CCSS.Math.Content.HSG-C.A.1", "CCSS.Math.Content.HSG-C.A.2"]
+    },
+    {
+      "id": "geometry.circumference-area-circle",
+      "name": "Circumference and Area of a Circle",
+      "description": "Circumference: C = 2πr = πd. Area: A = πr². Arc length: (θ/360) × 2πr for a central angle θ in degrees. Sector area: (θ/360) × πr². Using these formulas to solve real-world problems.",
+      "aliases": ["circumference", "pi", "circle area", "arc length", "sector area"],
+      "standardsTags": ["CCSS.Math.Content.7.G.B.4", "CCSS.Math.Content.HSG-C.B.5"]
+    },
+    {
+      "id": "geometry.circle-theorems",
+      "name": "Circle Theorems: Arcs, Chords, and Angles",
+      "description": "A central angle equals its intercepted arc. An inscribed angle equals half its intercepted arc. A tangent-chord angle equals half the intercepted arc. Chord relationships: if two chords intersect inside a circle, the products of their segments are equal.",
+      "aliases": [
+        "inscribed angle theorem",
+        "central angle theorem",
+        "tangent-chord angle",
+        "chord segments"
+      ],
+      "standardsTags": ["CCSS.Math.Content.HSG-C.A.2", "CCSS.Math.Content.HSG-C.A.3"]
+    },
+    {
+      "id": "geometry.coordinate-distance-midpoint",
+      "name": "Distance and Midpoint Formulas",
+      "description": "Distance between two points: d = √[(x₂-x₁)² + (y₂-y₁)²] (derived from the Pythagorean theorem). Midpoint formula: M = ((x₁+x₂)/2, (y₁+y₂)/2). Applications: finding perimeters, classifying figures on a coordinate plane.",
+      "aliases": ["distance formula", "midpoint formula", "coordinate geometry"],
+      "standardsTags": ["CCSS.Math.Content.8.G.B.8", "CCSS.Math.Content.HSG-GPE.B.7"]
+    },
+    {
+      "id": "geometry.coordinate-proofs",
+      "name": "Coordinate Proofs",
+      "description": "Proving geometric theorems using coordinates. Strategically placing figures on a coordinate plane (e.g., a rectangle with vertices at (0,0), (a,0), (0,b), (a,b)). Using distance, midpoint, and slope to verify properties such as congruence, parallelism, and perpendicularity.",
+      "aliases": ["coordinate proof", "proof with coordinates", "analytic geometry"],
+      "standardsTags": ["CCSS.Math.Content.HSG-GPE.B.4"]
+    },
+    {
+      "id": "geometry.circle-equation",
+      "name": "Equation of a Circle",
+      "description": "Standard form of a circle: (x - h)² + (y - k)² = r² where (h, k) is the center and r is the radius. Writing the equation given center and radius. Finding center and radius from the equation. Completing the square to convert general form to standard form.",
+      "aliases": [
+        "circle equation",
+        "standard form of a circle",
+        "center and radius",
+        "completing the square"
+      ],
+      "standardsTags": ["CCSS.Math.Content.HSG-GPE.A.1"]
+    },
+    {
+      "id": "geometry.surface-area-volume-prisms",
+      "name": "Surface Area and Volume of Prisms and Cylinders",
+      "description": "Lateral area and total surface area of prisms (SA = 2B + Ph) and cylinders (SA = 2πr² + 2πrh). Volume of prisms (V = Bh) and cylinders (V = πr²h). B is the base area and h is the height.",
+      "aliases": ["prism", "cylinder", "surface area", "volume", "lateral area"],
+      "standardsTags": [
+        "CCSS.Math.Content.7.G.B.6",
+        "CCSS.Math.Content.HSG-GMD.A.1",
+        "CCSS.Math.Content.HSG-GMD.A.3"
+      ]
+    },
+    {
+      "id": "geometry.surface-area-volume-pyramids",
+      "name": "Surface Area and Volume of Pyramids and Cones",
+      "description": "Lateral area and total surface area of regular pyramids (SA = B + ½Pl, where l = slant height) and cones (SA = πr² + πrl). Volume of pyramids and cones: V = ⅓Bh. The relationship V(pyramid) = ⅓ × V(prism with same base and height).",
+      "aliases": ["pyramid", "cone", "slant height", "volume of cone", "surface area of cone"],
+      "standardsTags": ["CCSS.Math.Content.HSG-GMD.A.1", "CCSS.Math.Content.HSG-GMD.A.3"]
+    },
+    {
+      "id": "geometry.spheres",
+      "name": "Surface Area and Volume of Spheres",
+      "description": "Surface area of a sphere: SA = 4πr². Volume of a sphere: V = (4/3)πr³. Applying these formulas to solve problems. Composite solids involving hemispheres.",
+      "aliases": ["sphere", "hemisphere", "surface area of sphere", "volume of sphere"],
+      "standardsTags": ["CCSS.Math.Content.HSG-GMD.A.3"]
+    },
+    {
+      "id": "geometry.transformations-intro",
+      "name": "Transformations: Translations, Reflections, and Rotations",
+      "description": "Rigid transformations (isometries) preserve distance and angle measure. Translation: sliding every point the same direction and distance. Reflection: flipping over a line of symmetry. Rotation: turning around a fixed center point by a given angle. Coordinate rules for common transformations.",
+      "aliases": ["isometry", "translation", "reflection", "rotation", "rigid motion"],
+      "standardsTags": [
+        "CCSS.Math.Content.8.G.A.1",
+        "CCSS.Math.Content.HSG-CO.A.2",
+        "CCSS.Math.Content.HSG-CO.A.4"
+      ]
+    },
+    {
+      "id": "geometry.dilations",
+      "name": "Dilations and Similarity Transformations",
+      "description": "A dilation scales a figure by a scale factor k from a center of dilation. Dilation produces similar (not congruent) figures. The image coordinates: (kx, ky) for center at origin. Connecting dilations to proportionality and similar figures.",
+      "aliases": ["dilation", "scale factor", "center of dilation", "similarity transformation"],
+      "standardsTags": ["CCSS.Math.Content.HSG-SRT.A.1", "CCSS.Math.Content.HSG-SRT.A.2"]
+    },
+    {
+      "id": "geometry.geometric-proof",
+      "name": "Two-Column and Paragraph Proofs",
+      "description": "Structuring a deductive geometric proof using statements and reasons. Common reasons: definitions, postulates, theorems, properties of equality/congruence. Reading and writing two-column proofs and paragraph proofs. The role of axioms and theorems as logical foundations.",
+      "aliases": [
+        "two-column proof",
+        "deductive proof",
+        "geometric proof",
+        "statements and reasons"
+      ],
+      "standardsTags": ["CCSS.Math.Content.HSG-CO.C.9", "CCSS.Math.Content.HSG-CO.C.10"]
+    }
+  ],
+  "edges": [
+    {
+      "fromId": "geometry.points-lines-planes",
+      "toId": "geometry.segments-and-rays",
+      "strength": 0.9
+    },
+    { "fromId": "geometry.points-lines-planes", "toId": "geometry.angle-basics", "strength": 0.85 },
+    { "fromId": "geometry.segments-and-rays", "toId": "geometry.angle-basics", "strength": 0.8 },
+    { "fromId": "geometry.angle-basics", "toId": "geometry.angle-pairs", "strength": 0.95 },
+    {
+      "fromId": "geometry.angle-pairs",
+      "toId": "geometry.parallel-lines-transversal",
+      "strength": 0.9
+    },
+    {
+      "fromId": "geometry.segments-and-rays",
+      "toId": "geometry.parallel-lines-transversal",
+      "strength": 0.7
+    },
+    {
+      "fromId": "geometry.parallel-lines-transversal",
+      "toId": "geometry.triangle-basics",
+      "strength": 0.85
+    },
+    { "fromId": "geometry.angle-basics", "toId": "geometry.triangle-basics", "strength": 0.9 },
+    { "fromId": "geometry.segments-and-rays", "toId": "geometry.triangle-basics", "strength": 0.8 },
+    {
+      "fromId": "geometry.triangle-basics",
+      "toId": "geometry.congruent-triangles",
+      "strength": 0.9
+    },
+    { "fromId": "geometry.angle-pairs", "toId": "geometry.congruent-triangles", "strength": 0.75 },
+    {
+      "fromId": "geometry.congruent-triangles",
+      "toId": "geometry.isosceles-equilateral-triangles",
+      "strength": 0.9
+    },
+    {
+      "fromId": "geometry.triangle-basics",
+      "toId": "geometry.isosceles-equilateral-triangles",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.triangle-basics",
+      "toId": "geometry.triangle-inequality",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.segments-and-rays",
+      "toId": "geometry.midsegment-theorem",
+      "strength": 0.8
+    },
+    {
+      "fromId": "geometry.triangle-basics",
+      "toId": "geometry.midsegment-theorem",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.congruent-triangles",
+      "toId": "geometry.similar-triangles",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.midsegment-theorem",
+      "toId": "geometry.similar-triangles",
+      "strength": 0.8
+    },
+    {
+      "fromId": "geometry.triangle-basics",
+      "toId": "geometry.pythagorean-theorem",
+      "strength": 0.9
+    },
+    { "fromId": "geometry.angle-basics", "toId": "geometry.pythagorean-theorem", "strength": 0.7 },
+    {
+      "fromId": "geometry.pythagorean-theorem",
+      "toId": "geometry.special-right-triangles",
+      "strength": 0.95
+    },
+    {
+      "fromId": "geometry.pythagorean-theorem",
+      "toId": "geometry.intro-trig-ratios",
+      "strength": 0.9
+    },
+    {
+      "fromId": "geometry.special-right-triangles",
+      "toId": "geometry.intro-trig-ratios",
+      "strength": 0.8
+    },
+    {
+      "fromId": "geometry.similar-triangles",
+      "toId": "geometry.intro-trig-ratios",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.triangle-basics",
+      "toId": "geometry.quadrilateral-properties",
+      "strength": 0.7
+    },
+    {
+      "fromId": "geometry.parallel-lines-transversal",
+      "toId": "geometry.quadrilateral-properties",
+      "strength": 0.8
+    },
+    {
+      "fromId": "geometry.angle-pairs",
+      "toId": "geometry.quadrilateral-properties",
+      "strength": 0.75
+    },
+    {
+      "fromId": "geometry.quadrilateral-properties",
+      "toId": "geometry.parallelogram-theorems",
+      "strength": 0.95
+    },
+    {
+      "fromId": "geometry.congruent-triangles",
+      "toId": "geometry.parallelogram-theorems",
+      "strength": 0.75
+    },
+    {
+      "fromId": "geometry.triangle-basics",
+      "toId": "geometry.perimeter-area-triangles",
+      "strength": 0.8
+    },
+    {
+      "fromId": "geometry.pythagorean-theorem",
+      "toId": "geometry.perimeter-area-triangles",
+      "strength": 0.7
+    },
+    {
+      "fromId": "geometry.intro-trig-ratios",
+      "toId": "geometry.perimeter-area-triangles",
+      "strength": 0.6
+    },
+    {
+      "fromId": "geometry.quadrilateral-properties",
+      "toId": "geometry.perimeter-area-quadrilaterals",
+      "strength": 0.9
+    },
+    {
+      "fromId": "geometry.perimeter-area-triangles",
+      "toId": "geometry.perimeter-area-quadrilaterals",
+      "strength": 0.75
+    },
+    { "fromId": "geometry.angle-basics", "toId": "geometry.circles-intro", "strength": 0.7 },
+    { "fromId": "geometry.segments-and-rays", "toId": "geometry.circles-intro", "strength": 0.8 },
+    {
+      "fromId": "geometry.circles-intro",
+      "toId": "geometry.circumference-area-circle",
+      "strength": 0.95
+    },
+    { "fromId": "geometry.circles-intro", "toId": "geometry.circle-theorems", "strength": 0.9 },
+    { "fromId": "geometry.angle-pairs", "toId": "geometry.circle-theorems", "strength": 0.75 },
+    {
+      "fromId": "geometry.points-lines-planes",
+      "toId": "geometry.coordinate-distance-midpoint",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.segments-and-rays",
+      "toId": "geometry.coordinate-distance-midpoint",
+      "strength": 0.9
+    },
+    {
+      "fromId": "geometry.pythagorean-theorem",
+      "toId": "geometry.coordinate-distance-midpoint",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.coordinate-distance-midpoint",
+      "toId": "geometry.coordinate-proofs",
+      "strength": 0.9
+    },
+    {
+      "fromId": "geometry.parallelogram-theorems",
+      "toId": "geometry.coordinate-proofs",
+      "strength": 0.7
+    },
+    { "fromId": "geometry.circles-intro", "toId": "geometry.circle-equation", "strength": 0.85 },
+    {
+      "fromId": "geometry.coordinate-distance-midpoint",
+      "toId": "geometry.circle-equation",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.perimeter-area-quadrilaterals",
+      "toId": "geometry.surface-area-volume-prisms",
+      "strength": 0.8
+    },
+    {
+      "fromId": "geometry.circumference-area-circle",
+      "toId": "geometry.surface-area-volume-prisms",
+      "strength": 0.7
+    },
+    {
+      "fromId": "geometry.surface-area-volume-prisms",
+      "toId": "geometry.surface-area-volume-pyramids",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.perimeter-area-triangles",
+      "toId": "geometry.surface-area-volume-pyramids",
+      "strength": 0.75
+    },
+    {
+      "fromId": "geometry.circumference-area-circle",
+      "toId": "geometry.spheres",
+      "strength": 0.85
+    },
+    {
+      "fromId": "geometry.surface-area-volume-prisms",
+      "toId": "geometry.spheres",
+      "strength": 0.7
+    },
+    {
+      "fromId": "geometry.points-lines-planes",
+      "toId": "geometry.transformations-intro",
+      "strength": 0.8
+    },
+    {
+      "fromId": "geometry.angle-basics",
+      "toId": "geometry.transformations-intro",
+      "strength": 0.7
+    },
+    {
+      "fromId": "geometry.coordinate-distance-midpoint",
+      "toId": "geometry.transformations-intro",
+      "strength": 0.75
+    },
+    { "fromId": "geometry.similar-triangles", "toId": "geometry.dilations", "strength": 0.9 },
+    { "fromId": "geometry.transformations-intro", "toId": "geometry.dilations", "strength": 0.85 },
+    { "fromId": "geometry.triangle-basics", "toId": "geometry.geometric-proof", "strength": 0.8 },
+    { "fromId": "geometry.angle-pairs", "toId": "geometry.geometric-proof", "strength": 0.85 },
+    {
+      "fromId": "geometry.congruent-triangles",
+      "toId": "geometry.geometric-proof",
+      "strength": 0.9
+    },
+    {
+      "fromId": "geometry.parallel-lines-transversal",
+      "toId": "geometry.geometric-proof",
+      "strength": 0.8
+    }
+  ]
+}

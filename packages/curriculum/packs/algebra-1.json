@@ -1,0 +1,509 @@
+{
+  "id": "algebra-1",
+  "version": "1.0.0",
+  "name": "Algebra 1 (CCSS)",
+  "subject": "math.algebra-1",
+  "gradeLevel": "9-12",
+  "standardsRef": { "body": "CCSS-Math", "version": "2010" },
+  "authoredBy": "Praxis curriculum team",
+  "authoredAt": "2026-04-29T00:00:00.000Z",
+  "concepts": [
+    {
+      "id": "algebra-1.real-numbers",
+      "name": "Real Numbers",
+      "description": "The real number system includes rational numbers (integers, fractions, terminating and repeating decimals) and irrational numbers (non-terminating, non-repeating decimals such as √2 and π). Students place real numbers on the number line and compare their magnitudes.",
+      "aliases": ["real number system", "number line"],
+      "standardsTags": ["CCSS.Math.Content.HSN-RN.B.3"]
+    },
+    {
+      "id": "algebra-1.integer-operations",
+      "name": "Integer Operations",
+      "description": "Addition, subtraction, multiplication, and division of positive and negative integers. Includes the rules for signs, the concept of additive inverses, and order of operations (PEMDAS/BODMAS).",
+      "aliases": ["signed numbers", "order of operations"],
+      "standardsTags": ["CCSS.Math.Content.7.NS.A.1", "CCSS.Math.Content.7.NS.A.2"]
+    },
+    {
+      "id": "algebra-1.fraction-operations",
+      "name": "Fraction and Decimal Operations",
+      "description": "Addition, subtraction, multiplication, and division of fractions and decimals. Converting between fraction, decimal, and percent forms. Finding least common denominators.",
+      "aliases": ["rational arithmetic", "fractions", "decimals"],
+      "standardsTags": ["CCSS.Math.Content.7.NS.A.2d"]
+    },
+    {
+      "id": "algebra-1.properties-of-operations",
+      "name": "Properties of Operations",
+      "description": "Commutative, associative, distributive, and identity properties of addition and multiplication. Applying properties to simplify arithmetic and algebraic expressions.",
+      "aliases": ["distributive property", "commutative property", "associative property"],
+      "standardsTags": ["CCSS.Math.Content.HSA-SSE.A.1b"]
+    },
+    {
+      "id": "algebra-1.exponents-and-roots",
+      "name": "Exponents and Square Roots",
+      "description": "Integer exponents and their properties (product rule, quotient rule, power rule, zero exponent, negative exponent). Square roots and cube roots of perfect squares/cubes. Simplifying radical expressions.",
+      "aliases": ["powers", "radicals", "square roots"],
+      "standardsTags": ["CCSS.Math.Content.HSN-RN.A.1", "CCSS.Math.Content.HSN-RN.A.2"]
+    },
+    {
+      "id": "algebra-1.variables-and-expressions",
+      "name": "Variables and Algebraic Expressions",
+      "description": "Using letters as variables to represent unknown quantities. Writing, reading, and evaluating algebraic expressions. Understanding coefficients, terms, and constants.",
+      "aliases": ["variables", "unknowns", "literal coefficients", "algebraic notation"],
+      "standardsTags": ["CCSS.Math.Content.HSA-SSE.A.1a"]
+    },
+    {
+      "id": "algebra-1.combining-like-terms",
+      "name": "Combining Like Terms",
+      "description": "Identifying like terms (same variable and exponent). Adding and subtracting like terms to simplify polynomial expressions. The concept of equivalence between expressions.",
+      "aliases": ["simplifying expressions", "like terms"],
+      "standardsTags": ["CCSS.Math.Content.HSA-SSE.A.1"]
+    },
+    {
+      "id": "algebra-1.evaluating-expressions",
+      "name": "Evaluating Algebraic Expressions",
+      "description": "Substituting numerical values for variables and computing the result. Using order of operations with variables. Evaluating multi-variable expressions.",
+      "aliases": ["substitution", "plugging in values"],
+      "standardsTags": ["CCSS.Math.Content.HSA-SSE.A.1a"]
+    },
+    {
+      "id": "algebra-1.writing-expressions",
+      "name": "Writing Algebraic Expressions from Word Problems",
+      "description": "Translating verbal descriptions into algebraic expressions. Keywords such as 'sum,' 'difference,' 'product,' 'quotient,' 'less than,' and 'more than.' Setting up expressions for real-world contexts.",
+      "aliases": ["word problems", "expression modeling", "verbal to algebraic"],
+      "standardsTags": ["CCSS.Math.Content.HSA-SSE.A.1a", "CCSS.Math.Content.HSA-CED.A.1"]
+    },
+    {
+      "id": "algebra-1.solving-one-step-equations",
+      "name": "Solving One-Step Equations",
+      "description": "Using inverse operations (addition/subtraction, multiplication/division) to isolate the variable. The concept of equality: what you do to one side you must do to the other. Checking solutions.",
+      "aliases": ["one-step equations", "inverse operations"],
+      "standardsTags": ["CCSS.Math.Content.HSA-REI.A.1", "CCSS.Math.Content.HSA-REI.B.3"]
+    },
+    {
+      "id": "algebra-1.solving-two-step-equations",
+      "name": "Solving Two-Step Equations",
+      "description": "Solving equations requiring two inverse operations (e.g., 2x + 3 = 11). Strategy: undo addition/subtraction first, then multiplication/division. Writing and solving from word problems.",
+      "aliases": ["two-step equations", "linear equations"],
+      "standardsTags": ["CCSS.Math.Content.HSA-REI.A.1", "CCSS.Math.Content.HSA-REI.B.3"]
+    },
+    {
+      "id": "algebra-1.solving-multi-step-equations",
+      "name": "Solving Multi-Step Equations",
+      "description": "Equations requiring the distributive property and combining like terms before isolating the variable. Variables on both sides. Equations with fractions and decimals as coefficients.",
+      "aliases": ["multi-step equations", "equations with variables on both sides"],
+      "standardsTags": ["CCSS.Math.Content.HSA-REI.A.1", "CCSS.Math.Content.HSA-REI.B.3"]
+    },
+    {
+      "id": "algebra-1.literal-equations",
+      "name": "Literal Equations and Formulas",
+      "description": "Solving equations for a specified variable in terms of others (e.g., solve A = lw for l). Rearranging familiar formulas such as the distance formula, area formulas, and the slope formula.",
+      "aliases": ["formulas", "rearranging equations", "solving for a variable"],
+      "standardsTags": ["CCSS.Math.Content.HSA-CED.A.4"]
+    },
+    {
+      "id": "algebra-1.inequalities-one-variable",
+      "name": "Solving Linear Inequalities",
+      "description": "Solving single-variable linear inequalities. Graphing solution sets on a number line. The rule for flipping the inequality symbol when multiplying or dividing by a negative number. Compound inequalities (AND/OR).",
+      "aliases": ["inequalities", "compound inequalities", "number line graph"],
+      "standardsTags": ["CCSS.Math.Content.HSA-REI.B.3"]
+    },
+    {
+      "id": "algebra-1.coordinate-plane",
+      "name": "The Coordinate Plane",
+      "description": "Plotting ordered pairs (x, y) in the four quadrants. Identifying quadrant, x-intercept, and y-intercept. Distance between points in special cases (horizontal or vertical lines).",
+      "aliases": ["ordered pairs", "Cartesian plane", "quadrants", "plotting points"],
+      "standardsTags": ["CCSS.Math.Content.6.NS.C.6c"]
+    },
+    {
+      "id": "algebra-1.rate-of-change",
+      "name": "Rate of Change and Slope",
+      "description": "Slope as the ratio of vertical change to horizontal change (rise/run). Calculating slope from two points using the slope formula m = (y₂ - y₁)/(x₂ - x₁). Interpreting slope as a unit rate in context. Positive, negative, zero, and undefined slope.",
+      "aliases": ["slope", "rise over run", "rate of change", "m"],
+      "standardsTags": ["CCSS.Math.Content.8.EE.B.5", "CCSS.Math.Content.8.F.B.4"]
+    },
+    {
+      "id": "algebra-1.slope-intercept-form",
+      "name": "Slope-Intercept Form",
+      "description": "The equation y = mx + b: slope m and y-intercept b. Graphing a line from slope-intercept form. Writing the equation of a line from a graph. Identifying the y-intercept as the starting value.",
+      "aliases": ["y = mx + b", "slope-intercept", "linear equation"],
+      "standardsTags": ["CCSS.Math.Content.8.EE.B.5", "CCSS.Math.Content.HSA-CED.A.2"]
+    },
+    {
+      "id": "algebra-1.point-slope-form",
+      "name": "Point-Slope Form",
+      "description": "Writing the equation of a line in point-slope form y - y₁ = m(x - x₁) given the slope and a point. Converting between point-slope and slope-intercept forms. Writing equations given two points.",
+      "aliases": ["point-slope", "linear equation from two points"],
+      "standardsTags": ["CCSS.Math.Content.HSA-CED.A.2", "CCSS.Math.Content.HSF-LE.A.2"]
+    },
+    {
+      "id": "algebra-1.standard-form-linear",
+      "name": "Standard Form of a Linear Equation",
+      "description": "The standard form Ax + By = C. Rewriting equations in standard form. Finding x- and y-intercepts from standard form and using them to graph the line.",
+      "aliases": ["Ax + By = C", "standard form", "x-intercept", "y-intercept"],
+      "standardsTags": ["CCSS.Math.Content.HSA-CED.A.2"]
+    },
+    {
+      "id": "algebra-1.parallel-perpendicular-lines",
+      "name": "Parallel and Perpendicular Lines",
+      "description": "Parallel lines have equal slopes; perpendicular lines have slopes that are negative reciprocals (m₁ × m₂ = -1). Writing equations of lines parallel or perpendicular to a given line through a given point.",
+      "aliases": ["parallel lines", "perpendicular lines", "negative reciprocal"],
+      "standardsTags": ["CCSS.Math.Content.HSG-GPE.B.5"]
+    },
+    {
+      "id": "algebra-1.functions-intro",
+      "name": "Introduction to Functions",
+      "description": "Definition of a function: each input has exactly one output. Function notation f(x). Domain and range. Determining whether a relation is a function using the vertical line test. Input-output tables.",
+      "aliases": ["functions", "f(x)", "domain", "range", "vertical line test"],
+      "standardsTags": ["CCSS.Math.Content.HSF-IF.A.1", "CCSS.Math.Content.HSF-IF.A.2"]
+    },
+    {
+      "id": "algebra-1.linear-functions",
+      "name": "Linear Functions",
+      "description": "Recognizing linear functions from tables, graphs, and equations. The relationship between linear functions and constant rate of change. Comparing linear functions represented in different forms.",
+      "aliases": ["linear function", "constant rate of change", "arithmetic sequence"],
+      "standardsTags": ["CCSS.Math.Content.8.F.A.3", "CCSS.Math.Content.HSF-LE.A.1"]
+    },
+    {
+      "id": "algebra-1.arithmetic-sequences",
+      "name": "Arithmetic Sequences",
+      "description": "Identifying arithmetic sequences by a constant common difference. Writing explicit (aₙ = a₁ + (n-1)d) and recursive rules for arithmetic sequences. Connecting arithmetic sequences to linear functions.",
+      "aliases": ["arithmetic sequence", "common difference", "explicit formula"],
+      "standardsTags": ["CCSS.Math.Content.HSF-BF.A.2", "CCSS.Math.Content.HSF-LE.A.2"]
+    },
+    {
+      "id": "algebra-1.systems-graphing",
+      "name": "Solving Systems by Graphing",
+      "description": "A system of two linear equations has one solution (intersection point), no solution (parallel lines), or infinitely many solutions (same line). Graphing both lines and identifying the solution from the intersection.",
+      "aliases": ["systems of equations", "graphing systems", "intersection"],
+      "standardsTags": ["CCSS.Math.Content.8.EE.C.8a", "CCSS.Math.Content.HSA-REI.C.6"]
+    },
+    {
+      "id": "algebra-1.systems-substitution",
+      "name": "Solving Systems by Substitution",
+      "description": "The substitution method: solve one equation for one variable, substitute into the other equation. Solving the resulting single-variable equation. Back-substituting to find the second variable. Checking solutions.",
+      "aliases": ["substitution method", "systems substitution"],
+      "standardsTags": ["CCSS.Math.Content.8.EE.C.8b", "CCSS.Math.Content.HSA-REI.C.6"]
+    },
+    {
+      "id": "algebra-1.systems-elimination",
+      "name": "Solving Systems by Elimination",
+      "description": "The elimination (addition/linear combination) method: multiply equations by constants so that one variable cancels when equations are added. Solving for the remaining variable, then back-substituting.",
+      "aliases": ["elimination method", "linear combination", "addition method"],
+      "standardsTags": ["CCSS.Math.Content.HSA-REI.C.5", "CCSS.Math.Content.HSA-REI.C.6"]
+    },
+    {
+      "id": "algebra-1.systems-word-problems",
+      "name": "Systems of Equations — Word Problems",
+      "description": "Modeling real-world situations with a system of two equations (e.g., mixture problems, rate problems, cost problems). Choosing an efficient method (substitution or elimination). Interpreting the solution in context.",
+      "aliases": ["systems word problems", "mixture problems", "rate problems"],
+      "standardsTags": ["CCSS.Math.Content.HSA-CED.A.3", "CCSS.Math.Content.HSA-REI.C.6"]
+    },
+    {
+      "id": "algebra-1.polynomials-intro",
+      "name": "Introduction to Polynomials",
+      "description": "Vocabulary: monomial, binomial, trinomial, polynomial; degree of a term and polynomial; leading coefficient. Standard (descending) form. Classifying polynomials by degree and number of terms.",
+      "aliases": ["monomial", "binomial", "trinomial", "degree", "polynomial vocabulary"],
+      "standardsTags": ["CCSS.Math.Content.HSA-APR.A.1"]
+    },
+    {
+      "id": "algebra-1.adding-subtracting-polynomials",
+      "name": "Adding and Subtracting Polynomials",
+      "description": "Adding polynomials by combining like terms. Subtracting polynomials by distributing the negative sign and combining like terms. Arranging results in standard form.",
+      "aliases": ["polynomial addition", "polynomial subtraction"],
+      "standardsTags": ["CCSS.Math.Content.HSA-APR.A.1"]
+    },
+    {
+      "id": "algebra-1.multiplying-polynomials",
+      "name": "Multiplying Polynomials",
+      "description": "Multiplying a monomial by a polynomial using the distributive property. Multiplying two binomials using FOIL (First, Outer, Inner, Last) or the distributive property. Multiplying a binomial by a trinomial. Special products: (a+b)², (a-b)², (a+b)(a-b).",
+      "aliases": ["FOIL", "polynomial multiplication", "special products"],
+      "standardsTags": ["CCSS.Math.Content.HSA-APR.A.1"]
+    },
+    {
+      "id": "algebra-1.factoring-gcf",
+      "name": "Factoring: Greatest Common Factor",
+      "description": "Finding the greatest common factor (GCF) of a polynomial's terms. Factoring out the GCF to write a polynomial as a product. Recognizing when a polynomial has been completely factored.",
+      "aliases": ["GCF", "greatest common factor", "factoring out"],
+      "standardsTags": ["CCSS.Math.Content.HSA-SSE.A.2", "CCSS.Math.Content.HSA-SSE.B.3"]
+    },
+    {
+      "id": "algebra-1.factoring-trinomials",
+      "name": "Factoring Trinomials",
+      "description": "Factoring trinomials of the form x² + bx + c by finding two numbers that multiply to c and add to b. Factoring trinomials of the form ax² + bx + c using the AC method or trial and error. Checking by expansion.",
+      "aliases": ["factoring trinomials", "AC method", "factor by grouping"],
+      "standardsTags": ["CCSS.Math.Content.HSA-SSE.A.2", "CCSS.Math.Content.HSA-SSE.B.3"]
+    },
+    {
+      "id": "algebra-1.factoring-special-cases",
+      "name": "Factoring Special Cases",
+      "description": "Difference of squares: a² - b² = (a+b)(a-b). Perfect square trinomials: a² + 2ab + b² = (a+b)² and a² - 2ab + b² = (a-b)². Recognizing and applying these patterns to factor quickly.",
+      "aliases": ["difference of squares", "perfect square trinomial", "special factoring"],
+      "standardsTags": ["CCSS.Math.Content.HSA-SSE.A.2"]
+    }
+  ],
+  "edges": [
+    { "fromId": "algebra-1.integer-operations", "toId": "algebra-1.real-numbers", "strength": 0.8 },
+    {
+      "fromId": "algebra-1.fraction-operations",
+      "toId": "algebra-1.real-numbers",
+      "strength": 0.7
+    },
+    {
+      "fromId": "algebra-1.real-numbers",
+      "toId": "algebra-1.properties-of-operations",
+      "strength": 0.6
+    },
+    {
+      "fromId": "algebra-1.real-numbers",
+      "toId": "algebra-1.exponents-and-roots",
+      "strength": 0.8
+    },
+    {
+      "fromId": "algebra-1.integer-operations",
+      "toId": "algebra-1.properties-of-operations",
+      "strength": 0.7
+    },
+    {
+      "fromId": "algebra-1.properties-of-operations",
+      "toId": "algebra-1.variables-and-expressions",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.real-numbers",
+      "toId": "algebra-1.variables-and-expressions",
+      "strength": 0.8
+    },
+    {
+      "fromId": "algebra-1.variables-and-expressions",
+      "toId": "algebra-1.combining-like-terms",
+      "strength": 0.95
+    },
+    {
+      "fromId": "algebra-1.variables-and-expressions",
+      "toId": "algebra-1.evaluating-expressions",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.variables-and-expressions",
+      "toId": "algebra-1.writing-expressions",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.integer-operations",
+      "toId": "algebra-1.evaluating-expressions",
+      "strength": 0.8
+    },
+    {
+      "fromId": "algebra-1.fraction-operations",
+      "toId": "algebra-1.evaluating-expressions",
+      "strength": 0.7
+    },
+    {
+      "fromId": "algebra-1.combining-like-terms",
+      "toId": "algebra-1.solving-one-step-equations",
+      "strength": 0.8
+    },
+    {
+      "fromId": "algebra-1.evaluating-expressions",
+      "toId": "algebra-1.solving-one-step-equations",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.writing-expressions",
+      "toId": "algebra-1.solving-one-step-equations",
+      "strength": 0.7
+    },
+    {
+      "fromId": "algebra-1.solving-one-step-equations",
+      "toId": "algebra-1.solving-two-step-equations",
+      "strength": 0.95
+    },
+    {
+      "fromId": "algebra-1.properties-of-operations",
+      "toId": "algebra-1.solving-two-step-equations",
+      "strength": 0.8
+    },
+    {
+      "fromId": "algebra-1.solving-two-step-equations",
+      "toId": "algebra-1.solving-multi-step-equations",
+      "strength": 0.95
+    },
+    {
+      "fromId": "algebra-1.combining-like-terms",
+      "toId": "algebra-1.solving-multi-step-equations",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.solving-multi-step-equations",
+      "toId": "algebra-1.literal-equations",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.solving-one-step-equations",
+      "toId": "algebra-1.inequalities-one-variable",
+      "strength": 0.9
+    },
+    { "fromId": "algebra-1.real-numbers", "toId": "algebra-1.coordinate-plane", "strength": 0.7 },
+    {
+      "fromId": "algebra-1.integer-operations",
+      "toId": "algebra-1.coordinate-plane",
+      "strength": 0.8
+    },
+    { "fromId": "algebra-1.coordinate-plane", "toId": "algebra-1.rate-of-change", "strength": 0.9 },
+    {
+      "fromId": "algebra-1.fraction-operations",
+      "toId": "algebra-1.rate-of-change",
+      "strength": 0.7
+    },
+    {
+      "fromId": "algebra-1.rate-of-change",
+      "toId": "algebra-1.slope-intercept-form",
+      "strength": 0.95
+    },
+    {
+      "fromId": "algebra-1.solving-multi-step-equations",
+      "toId": "algebra-1.slope-intercept-form",
+      "strength": 0.7
+    },
+    {
+      "fromId": "algebra-1.slope-intercept-form",
+      "toId": "algebra-1.point-slope-form",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.rate-of-change",
+      "toId": "algebra-1.point-slope-form",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.slope-intercept-form",
+      "toId": "algebra-1.standard-form-linear",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.slope-intercept-form",
+      "toId": "algebra-1.parallel-perpendicular-lines",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.point-slope-form",
+      "toId": "algebra-1.parallel-perpendicular-lines",
+      "strength": 0.8
+    },
+    {
+      "fromId": "algebra-1.evaluating-expressions",
+      "toId": "algebra-1.functions-intro",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.coordinate-plane",
+      "toId": "algebra-1.functions-intro",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.functions-intro",
+      "toId": "algebra-1.linear-functions",
+      "strength": 0.95
+    },
+    {
+      "fromId": "algebra-1.slope-intercept-form",
+      "toId": "algebra-1.linear-functions",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.linear-functions",
+      "toId": "algebra-1.arithmetic-sequences",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.slope-intercept-form",
+      "toId": "algebra-1.systems-graphing",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.linear-functions",
+      "toId": "algebra-1.systems-graphing",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.solving-multi-step-equations",
+      "toId": "algebra-1.systems-substitution",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.systems-graphing",
+      "toId": "algebra-1.systems-substitution",
+      "strength": 0.75
+    },
+    {
+      "fromId": "algebra-1.systems-substitution",
+      "toId": "algebra-1.systems-elimination",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.solving-multi-step-equations",
+      "toId": "algebra-1.systems-elimination",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.systems-substitution",
+      "toId": "algebra-1.systems-word-problems",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.systems-elimination",
+      "toId": "algebra-1.systems-word-problems",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.combining-like-terms",
+      "toId": "algebra-1.polynomials-intro",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.exponents-and-roots",
+      "toId": "algebra-1.polynomials-intro",
+      "strength": 0.8
+    },
+    {
+      "fromId": "algebra-1.polynomials-intro",
+      "toId": "algebra-1.adding-subtracting-polynomials",
+      "strength": 0.95
+    },
+    {
+      "fromId": "algebra-1.adding-subtracting-polynomials",
+      "toId": "algebra-1.multiplying-polynomials",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.properties-of-operations",
+      "toId": "algebra-1.multiplying-polynomials",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.multiplying-polynomials",
+      "toId": "algebra-1.factoring-gcf",
+      "strength": 0.85
+    },
+    { "fromId": "algebra-1.polynomials-intro", "toId": "algebra-1.factoring-gcf", "strength": 0.9 },
+    {
+      "fromId": "algebra-1.factoring-gcf",
+      "toId": "algebra-1.factoring-trinomials",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.multiplying-polynomials",
+      "toId": "algebra-1.factoring-trinomials",
+      "strength": 0.85
+    },
+    {
+      "fromId": "algebra-1.factoring-trinomials",
+      "toId": "algebra-1.factoring-special-cases",
+      "strength": 0.9
+    },
+    {
+      "fromId": "algebra-1.multiplying-polynomials",
+      "toId": "algebra-1.factoring-special-cases",
+      "strength": 0.9
+    }
+  ]
+}

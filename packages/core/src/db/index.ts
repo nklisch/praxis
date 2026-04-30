@@ -4,7 +4,7 @@ import Database from "better-sqlite3";
 import { type BetterSQLite3Database, drizzle } from "drizzle-orm/better-sqlite3";
 import { type Schema, schema } from "./all-schemas.js";
 import { resolveDbPath } from "./paths.js";
-import { initFtsStore, initVectorStore } from "./vector-init.js";
+import { initConceptEmbeddingStore, initFtsStore, initVectorStore } from "./vector-init.js";
 
 export type PraxisDb = BetterSQLite3Database<Schema>;
 
@@ -41,6 +41,7 @@ export function openDb(opts: OpenDbOptions = {}): {
   if (opts.initVectors !== false && !(opts.readonly ?? false)) {
     initVectorStore(sqlite);
     initFtsStore(sqlite);
+    initConceptEmbeddingStore(sqlite);
   }
 
   if (!opts.path) cached = { sqlite, db, path };
@@ -58,4 +59,4 @@ export function closeDb(): void {
 export type { Schema } from "./all-schemas.js";
 export { schema } from "./all-schemas.js";
 export { resolveDbPath } from "./paths.js";
-export { initFtsStore, initVectorStore } from "./vector-init.js";
+export { initConceptEmbeddingStore, initFtsStore, initVectorStore } from "./vector-init.js";

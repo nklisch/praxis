@@ -8,3 +8,36 @@ export {
   composeSystemPrompt,
 } from "./brief/compose.js";
 export { getMode, listModes, requireMode, teachMode } from "./modes/index.js";
+
+// Phase 10: Pack format, import service, concept embeddings store.
+export type {
+  ConceptEmbeddingMatch,
+  ConceptEmbeddingsStore,
+  ConceptEmbeddingUpsertInput,
+  ImportedPack,
+  PackConcept,
+  PackEdge,
+  PackManifest,
+  PackSummary,
+} from "./packs/index.js";
+export {
+  PackConceptSchema,
+  PackEdgeSchema,
+  type PackImportServiceDeps,
+  PackImportServiceImpl,
+  type PackManifestInput,
+  type PackManifestOutput,
+  PackManifestSchema,
+  SqliteConceptEmbeddingsStore,
+} from "./packs/index.js";
+
+// Phase 10: Adaptive router.
+export {
+  type ConceptCandidate,
+  DEFAULT_ROUTER_CONFIG,
+  type RouterConfig,
+  type RouterInput,
+  type RouterReason,
+  type RouterSuggestion,
+  suggestNext,
+} from "./router/index.js";

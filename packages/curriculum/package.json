@@ -10,17 +10,24 @@
     "./brief/course-context": "./src/brief/course-context.ts",
     "./brief/assignment-context": "./src/brief/assignment-context.ts",
     "./bootstrap": "./src/bootstrap/index.ts",
-    "./gates": "./src/gates/index.ts"
+    "./gates": "./src/gates/index.ts",
+    "./packs": "./src/packs/index.ts",
+    "./router": "./src/router/index.ts"
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run"
   },
   "dependencies": {
     "@praxis/core": "workspace:*",
     "@praxis/engines": "workspace:*",
     "drizzle-orm": "^0.36.0",
+    "uuid": "^10.0.0",
     "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/uuid": "^10.0.0"
   }
 }

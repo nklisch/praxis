@@ -47,8 +47,35 @@ export const prerequisiteEdges = sqliteTable(
   }),
 );
 
+/**
+ * Phase 10: Tracks which packs have been imported, when, and the resulting
+ * conceptGraphId. Composite PK on (packId, version) allows multiple versions
+ * of a pack to coexist; re-importing the same version is detected by checking
+ * for an existing row.
+ */
+export const packImports = sqliteTable(
+  "pack_imports",
+  {
+    /** Stable pack identifier, e.g., "algebra-1". */
+    packId: text("pack_id").notNull(),
+    /** Semver version string, e.g., "1.0.0". */
+    version: text("version").notNull(),
+    /** The concept graph that was created when this pack was imported. */
+    conceptGraphId: text("concept_graph_id")
+      .notNull()
+      .references(() => conceptGraphs.id, { onDelete: "cascade" }),
+    /** When the import occurred, millisecond timestamp. */
+    importedAt: integer("imported_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.packId, t.version] }),
+    graphIdx: index("pack_imports_graph_idx").on(t.conceptGraphId),
+  }),
+);
+
 export const curriculumSchema = {
   conceptGraphs,
   concepts,
   prerequisiteEdges,
+  packImports,
 };
