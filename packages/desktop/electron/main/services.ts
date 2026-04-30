@@ -4,6 +4,7 @@ import { FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import type { ServiceDeps } from "@praxis/core/services";
 import {
   ArtifactsServiceImpl,
+  AssignmentServiceImpl,
   BootstrapServiceImpl,
   ConfigServiceImpl,
   DocumentsServiceImpl,
@@ -15,6 +16,7 @@ import {
   MisconceptionIndexer,
   SessionServiceImpl,
 } from "@praxis/core/services";
+import type { AssignmentId } from "@praxis/core/types";
 import { bootstrapMode, teachMode } from "@praxis/curriculum/modes";
 import { createEngine } from "@praxis/engines";
 import { sessions } from "@praxis/memory/schema";
@@ -48,6 +50,7 @@ export interface Services {
   artifacts: ArtifactsServiceImpl; // ← Phase 6: exposed for IPC handlers
   bootstrap: BootstrapServiceImpl; // ← Phase 6: exposed for shutdown
   memory: MemoryServiceImpl; // ← Phase 7: exposed for IPC handlers
+  assignments: AssignmentServiceImpl; // ← Phase 8: exposed for IPC handlers (Agent 2)
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
@@ -152,6 +155,27 @@ export function buildServices(dbPath: string): Services {
     indexers: [masteryIndexer, misconceptionIndexer],
   });
 
+  // Phase 8: AssignmentServiceImpl.
+  // graderServices.engineResolver uses the same bootstrapEngineResolver pattern.
+  // resolveSubmissionMode reads the session's modeId for the given assignment —
+  // Agent 2 wires a proper lookup; for now default to "quiz" (safe fallback).
+  const assignmentEngineResolver = () => {
+    const engineConfig = readEngineConfig(db);
+    return createEngine({ config: engineConfig, deps: { log } });
+  };
+
+  const assignmentService = new AssignmentServiceImpl({
+    db,
+    log,
+    graderServices: {
+      sympy,
+      sandbox,
+      engineResolver: assignmentEngineResolver,
+    },
+    // Agent 2 will replace this with a real session→mode lookup.
+    resolveSubmissionMode: (_assignmentId: AssignmentId) => "quiz",
+  });
+
   const modes = new Map([
     [teachMode.id, teachMode],
     [bootstrapMode.id, bootstrapMode], // ← Phase 6
@@ -181,6 +205,7 @@ export function buildServices(dbPath: string): Services {
       bootstrap: bootstrapService, // ← Phase 6
       courseState: artifactsService, // same instance implements both interfaces
       memory: memoryService, // ← Phase 7
+      assignments: assignmentService, // ← Phase 8
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
   };
@@ -210,6 +235,7 @@ export function buildServices(dbPath: string): Services {
     artifacts: artifactsService,
     bootstrap: bootstrapService,
     memory: memoryService, // ← Phase 7
+    assignments: assignmentService, // ← Phase 8
     ingestorRegistry,
     pyodide,
     embeddings,

@@ -6,6 +6,8 @@ export const sessions = sqliteTable(
     id: text("id").primaryKey(),
     studentId: text("student_id").notNull(),
     courseId: text("course_id"),
+    /** Phase 8: bound assignment for quiz/homework/exam sessions. Nullable. */
+    assignmentId: text("assignment_id"),
     modeId: text("mode_id").notNull(),
     engineId: text("engine_id").notNull(),
     startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),

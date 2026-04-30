@@ -3,6 +3,7 @@ import type { EngineConfig } from "../config/index.js";
 import type { PraxisDb } from "../db/index.js";
 import type {
   ArtifactsService,
+  AssignmentService,
   BootstrapService,
   CodeSandbox,
   CourseStateReader,
@@ -43,6 +44,8 @@ export interface ServiceDeps {
     courseState: CourseStateReader;
     /** Phase 7: concrete memory service. */
     memory: MemoryService;
+    /** Phase 8: assignment create/submit/read. */
+    assignments: AssignmentService;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

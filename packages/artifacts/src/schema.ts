@@ -198,6 +198,26 @@ export const conceptProgress = sqliteTable(
   }),
 );
 
+// ─── Phase 8: Assignment responses (resumable per-item state) ─────────────────
+
+export const assignmentResponses = sqliteTable(
+  "assignment_responses",
+  {
+    assignmentId: text("assignment_id")
+      .notNull()
+      .references(() => assignments.id, { onDelete: "cascade" }),
+    itemId: text("item_id").notNull(),
+    response: text("response").notNull(),
+    /** Phase 8: optional shown work; null when item has no workRubric. */
+    work: text("work"),
+    recordedAt: integer("recorded_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.assignmentId, t.itemId] }),
+    assignmentIdx: index("assignment_responses_assignment_idx").on(t.assignmentId),
+  }),
+);
+
 /**
  * Aggregate export so the DB module can spread all artifact tables into the
  * Drizzle schema map.
@@ -214,4 +234,5 @@ export const artifactsSchema = {
   documentChunks,
   lessonProgress, // ← Phase 6
   conceptProgress, // ← Phase 6
+  assignmentResponses, // ← Phase 8
 };

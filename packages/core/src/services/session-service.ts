@@ -322,6 +322,7 @@ export class SessionServiceImpl implements SessionService {
         documents: this.deps.toolServices.documents,
         sandbox: this.deps.toolServices.sandbox,
         sympy: this.deps.toolServices.sympy,
+        assignments: this.deps.toolServices.assignments, // ← Phase 8
         ...(this.deps.indexerOrchestrator !== undefined && {
           indexerOrchestrator: this.deps.indexerOrchestrator,
         }), // ← Phase 7 (optional)

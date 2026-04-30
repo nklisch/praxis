@@ -72,26 +72,133 @@ export interface Assignment {
   assignedAt: Timestamp;
   submittedAt?: Timestamp;
   grade?: Grade;
+  /** Phase 9: retake chain. Points to the original assignment when this is a retake. */
+  retakeOf?: AssignmentId;
 }
 
+/** Tier the per-item grader returned. Used in GradeItem for traceability. */
+export type GraderTier = "deterministic" | "rubric-agent" | "needs-human-review";
+
+/**
+ * Rubric — extended with per-criterion calibration anchors.
+ * Criterion weights sum to 1.0 (validated at item-create).
+ * Criterion scores are 0-10 integers (the agent's per-criterion judgment scale);
+ * the aggregated GradeItem.score is 0..1 (deterministic weighted sum).
+ */
+export interface Rubric {
+  criteria: Array<{
+    id: string;
+    description: string;
+    /** 0..1; sums to 1.0 across criteria. */
+    weight: number;
+    /** Optional anchor descriptions at specific score points (helps agent calibrate). */
+    anchors?: Array<{
+      /** 0, 5, 10 typical. */
+      score: number;
+      description: string;
+    }>;
+  }>;
+  /** For display only ("scored 17/20"). Internal scores normalize to 0..1. */
+  maxScore: number;
+}
+
+/**
+ * Extended AssignmentItem — adds grader-specific fields. Each kind has its
+ * own optional fields; all may be undefined for items where the kind doesn't
+ * use them. The grader dispatch reads only the fields its kind cares about.
+ */
 export interface AssignmentItem {
   id: string;
   kind: "multiple-choice" | "short-answer" | "free-response" | "math" | "code";
   prompt: string;
+  /** For multiple-choice. */
   options?: string[];
+  correctOptionIndex?: number;
+  /** For short-answer. */
+  acceptedAnswers?: string[];
+  acceptedAnswerMatch?: "exact" | "substring" | "normalized";
+  /** For math. */
+  expectedSolution?: { variable: string; value: string };
+  /** For code. */
+  testCases?: Array<{
+    stdin?: string;
+    expectedStdout: string;
+    timeoutMs?: number;
+  }>;
+  language?: "javascript" | "python";
+  /** For free-response (rubric agent). Required for exam-mode free-response items. */
   rubric?: Rubric;
+  /**
+   * Phase 8: optional rubric for grading the WORK shown on math/code items.
+   * When present, the student earns partial credit for valid steps even if the
+   * deterministic check fails.
+   */
+  workRubric?: Rubric;
+  /**
+   * When workRubric is present, how much weight the deterministic check gets in
+   * the blended score. Range 0..1. Defaults: 0.5 for quiz/homework, 1.0 for exam.
+   * Ignored when workRubric is absent.
+   */
+  primaryWeight?: number;
+  /** Provenance — Phase 11 forward-compat. */
+  authoredBy?: "tutor" | "configurator";
 }
 
-export interface Rubric {
-  criteria: Array<{ id: string; description: string; weight: number }>;
-  maxScore: number;
+/** Per-item entry on the Grade. */
+export interface GradeItem {
+  itemId: string;
+  /** 0..1; null when ungradeable (e.g. exam free-response missing required rubric). */
+  score: number | null;
+  feedback: string;
+  /** Tier of the grader that produced this entry. */
+  gradedBy: GraderTier;
+  /**
+   * Per-criterion breakdown when a rubric was involved (free-response or workRubric).
+   * Each entry's `score` is the agent's 0-10 integer judgment; the `source` field
+   * tells the UI which rubric the score relates to.
+   */
+  perCriterion?: Array<{
+    criterionId: string;
+    /** 0-10 integer (the agent's native scale). */
+    score: number;
+    rationale: string;
+    /** Which rubric this criterion came from. */
+    source: "rubric" | "work-rubric";
+  }>;
+  /** Episodic event ids of any LLM calls that contributed to this grade. */
+  evidenceEventIds?: string[];
 }
 
 export interface Grade {
   total: number;
-  perItem: Array<{ itemId: string; score: number; feedback: string }>;
+  perItem: GradeItem[];
   rubricUsed?: Rubric;
-  reviewedBy: "tool" | "rubric-agent" | "needs-human-review";
+  /** Highest tier present in perItem. */
+  reviewedBy: GraderTier;
+}
+
+/** Per-item draft response for resumable assignments. */
+export interface AssignmentResponse {
+  assignmentId: AssignmentId;
+  itemId: string;
+  /**
+   * Final answer / primary response. For MC: the option index as string.
+   * For math/code/free-response/short-answer: the answer text. Always present.
+   */
+  response: string;
+  /**
+   * Phase 8: shown work for items that have a workRubric. Only present when
+   * the item has a workRubric set; absent otherwise.
+   */
+  work?: string;
+  recordedAt: Timestamp;
+}
+
+/** Result of submitting an assignment. Returned by AssignmentService.submit. */
+export interface AssignmentSubmissionResult {
+  assignmentId: AssignmentId;
+  grade: Grade;
+  submittedAt: Timestamp;
 }
 
 export interface Gate {

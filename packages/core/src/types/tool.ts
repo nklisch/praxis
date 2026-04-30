@@ -1,5 +1,9 @@
 import type { z } from "zod";
 import type {
+  Assignment,
+  AssignmentItem,
+  AssignmentResponse,
+  AssignmentSubmissionResult,
   Course,
   CourseSummary,
   DraftCourseState,
@@ -10,7 +14,7 @@ import type {
 } from "./artifacts.js";
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
-import type { ConceptId, CourseId, DocumentId, LessonId, SessionId, StudentId } from "./ids.js";
+import type { AssignmentId, ConceptId, CourseId, DocumentId, LessonId, SessionId, StudentId } from "./ids.js";
 import type {
   AffectiveModel,
   EpisodicEvent,
@@ -48,6 +52,11 @@ export interface ToolContext {
   sessionId: SessionId;
   /** Phase 6: when the active session was started with a courseId, propagated here. */
   courseId?: CourseId;
+  /**
+   * Phase 8: when the active session is bound to an assignment, propagated here.
+   * Agent 2 wires this from the session row's assignmentId column.
+   */
+  assignmentId?: AssignmentId;
   services: ToolServices;
   log: Logger;
 }
@@ -72,6 +81,8 @@ export interface ToolServices {
    * Optional to keep tests that don't wire indexers working.
    */
   indexerOrchestrator?: IndexerOrchestrator;
+  /** Phase 8: assignment create/submit/read — server-side. */
+  assignments: AssignmentService;
   pedagogyPack: unknown; // PedagogyPackService — concrete in Phase 14
 }
 
@@ -421,3 +432,52 @@ export interface CodeSandboxResult {
   /** Set when stdout or stderr was truncated to fit the output limit (default 1MB each). */
   truncated?: { stdout: boolean; stderr: boolean };
 }
+
+// ─── Phase 8: AssignmentService (server-side) ─────────────────────────────────
+// NOTE: The client-side AssignmentsClient lives in @praxis/client/services/assignments-client.ts
+// and is added by Agent 2. This is the server-side interface; AssignmentServiceImpl implements this.
+
+export interface AssignmentService {
+  create(input: {
+    courseId: CourseId;
+    studentId: StudentId;
+    kind: "quiz" | "homework" | "exam";
+    title: string;
+    items: AssignmentItem[];
+    conceptIds: ConceptId[];
+    authoredBy?: "tutor" | "configurator";
+  }): Promise<{ assignmentId: AssignmentId }>;
+
+  get(input: { assignmentId: AssignmentId }): Promise<Assignment | null>;
+
+  /** List assignments for a course; useful for course-detail views. */
+  list(input: {
+    courseId: CourseId;
+    kind?: "quiz" | "homework" | "exam";
+  }): Promise<Assignment[]>;
+
+  /** Auto-save partial response for a single item. Idempotent upsert. */
+  recordResponse(input: {
+    assignmentId: AssignmentId;
+    itemId: string;
+    response: string;
+    /** Optional shown work; only meaningful for items with workRubric. */
+    work?: string;
+  }): Promise<void>;
+
+  /** Read all in-progress responses for an assignment (for resume). */
+  getResponses(input: { assignmentId: AssignmentId }): Promise<AssignmentResponse[]>;
+
+  /**
+   * Submit the assignment for grading. Reads the persisted responses (or
+   * accepts an explicit array), runs the grader dispatch per item, builds
+   * the Grade, persists `submittedAt` + `gradeJson`, and returns the result.
+   * Throws if already submitted.
+   */
+  submit(input: {
+    assignmentId: AssignmentId;
+    /** Optional explicit responses (overrides the persisted ones). */
+    responses?: AssignmentResponse[];
+  }): Promise<AssignmentSubmissionResult>;
+}
+
