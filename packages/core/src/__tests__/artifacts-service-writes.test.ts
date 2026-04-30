@@ -134,7 +134,8 @@ describe("ArtifactsServiceImpl.updateCourse()", () => {
     const svc = makeService(db);
 
     const original = await svc.course(courseId);
-    const originalUpdatedAt = original?.updatedAt;
+    expect(original).not.toBeNull();
+    const originalUpdatedAt = original?.updatedAt ?? 0;
 
     // Small delay to ensure timestamp difference.
     await new Promise((r) => setTimeout(r, 5));
