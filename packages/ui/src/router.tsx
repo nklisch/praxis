@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/re
 import { Nav } from "./components/nav.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
+import { ConfigureRoute } from "./routes/configure.js";
 import { CourseDetailRoute } from "./routes/course-detail.js";
 import { CourseMapRoute } from "./routes/course-map.js";
 import { CoursesRoute } from "./routes/courses.js";
@@ -55,6 +56,12 @@ const packsRoute = createRoute({
   component: PacksRoute,
 });
 
+const configureRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/configure",
+  component: ConfigureRoute,
+});
+
 const routeTree = rootRoute.addChildren([
   chatRoute,
   settingsRoute,
@@ -62,6 +69,7 @@ const routeTree = rootRoute.addChildren([
   courseDetailRoute,
   courseMapRoute,
   packsRoute,
+  configureRoute,
 ]);
 
 export const router = createRouter({ routeTree });

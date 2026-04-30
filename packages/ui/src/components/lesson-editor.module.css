@@ -1,0 +1,122 @@
+.editor {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #555);
+}
+
+.input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.input:focus {
+  outline: 2px solid var(--color-accent, #4a90e2);
+  outline-offset: 1px;
+}
+
+.textarea {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  resize: vertical;
+  font-family: monospace;
+}
+
+.textarea:focus {
+  outline: 2px solid var(--color-accent, #4a90e2);
+  outline-offset: 1px;
+}
+
+.conceptHints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.conceptChip {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 12px;
+  background: transparent;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--color-text-muted, #555);
+}
+
+.conceptChip:hover {
+  background: var(--color-border, #e0e0e0);
+}
+
+.error {
+  color: var(--color-danger, #d32f2f);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.deleteBtn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--color-danger, #d32f2f);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-danger, #d32f2f);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background: var(--color-danger, #d32f2f);
+  color: #fff;
+}
+
+.saveBtn {
+  padding: 0.4rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--color-accent, #4a90e2);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.saveBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.saveBtn:disabled,
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

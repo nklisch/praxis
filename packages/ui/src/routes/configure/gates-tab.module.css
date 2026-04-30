@@ -1,0 +1,87 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1.8fr;
+  height: 100%;
+  min-width: 0;
+}
+
+.chatPane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.canvasPane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvasHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  flex-shrink: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.pickerLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #555);
+}
+
+.coursePicker {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  min-width: 180px;
+}
+
+.status {
+  padding: 1rem;
+  color: var(--color-text-muted, #888);
+  font-size: 0.875rem;
+}
+
+.error {
+  padding: 1rem;
+  color: var(--color-danger, #d32f2f);
+  font-size: 0.875rem;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #888);
+  font-size: 0.9rem;
+  padding: 2rem;
+}
+
+.canvasAndInspector {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.canvas {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}

@@ -1,0 +1,126 @@
+.loadingScreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted, #888);
+}
+
+/* ── Locked state ────────────────────────────────────────────────────────────── */
+
+.lockedScreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--color-bg, #fafafa);
+}
+
+.lockedCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 12px;
+  padding: 3rem 2.5rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.lockIcon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.lockedTitle {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.lockedDesc {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #666);
+  line-height: 1.5;
+}
+
+.unlockBtn {
+  padding: 0.65rem 2rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--color-accent, #4a90e2);
+  color: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  transition: opacity 0.15s;
+}
+
+.unlockBtn:hover {
+  opacity: 0.9;
+}
+
+/* ── Workspace (unlocked) ────────────────────────────────────────────────────── */
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+}
+
+.tabBar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  padding: 0 1rem;
+  flex-shrink: 0;
+  background: var(--color-surface, #fff);
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #666);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  font-weight: 500;
+}
+
+.tabBtn:hover {
+  color: var(--color-text, #333);
+}
+
+.tabActive {
+  color: var(--color-accent, #4a90e2);
+  border-bottom-color: var(--color-accent, #4a90e2);
+}
+
+.tabBarRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sessionStatus {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #999);
+}
+
+.tabContent {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

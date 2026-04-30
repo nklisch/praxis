@@ -36,3 +36,9 @@
   color: var(--color-text);
   background: var(--color-border);
 }
+
+.lockArea {
+  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+}

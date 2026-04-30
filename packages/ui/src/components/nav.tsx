@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { LockIcon } from "./lock-icon.js";
 import styles from "./nav.module.css";
 
 export function Nav() {
@@ -26,11 +27,19 @@ export function Nav() {
           </Link>
         </li>
         <li>
+          <Link to="/configure" activeProps={{ className: styles.active }}>
+            Configure
+          </Link>
+        </li>
+        <li>
           <Link to="/settings" activeProps={{ className: styles.active }}>
             Settings
           </Link>
         </li>
       </ul>
+      <div className={styles.lockArea}>
+        <LockIcon />
+      </div>
     </nav>
   );
 }
