@@ -57,13 +57,17 @@ export class SqliteConceptEmbeddingsStore implements ConceptEmbeddingsStore {
 
   async upsertBatch(inputs: ConceptEmbeddingUpsertInput[]): Promise<void> {
     if (inputs.length === 0) return;
-    const stmt = this.sqlite.prepare(`
-      INSERT OR REPLACE INTO concept_embeddings(concept_id, graph_id, embedding, concept_name)
+    // sqlite-vec virtual tables don't support INSERT OR REPLACE the way regular
+    // tables do. Use delete-then-insert per row to get upsert semantics.
+    const delStmt = this.sqlite.prepare(`DELETE FROM concept_embeddings WHERE concept_id = ?`);
+    const insStmt = this.sqlite.prepare(`
+      INSERT INTO concept_embeddings(concept_id, graph_id, embedding, concept_name)
       VALUES (?, ?, ?, ?)
     `);
     const tx = this.sqlite.transaction((rows: ConceptEmbeddingUpsertInput[]) => {
       for (const r of rows) {
-        stmt.run(r.conceptId, r.graphId, vectorToBuffer(r.embedding), r.conceptName);
+        delStmt.run(r.conceptId);
+        insStmt.run(r.conceptId, r.graphId, vectorToBuffer(r.embedding), r.conceptName);
       }
     });
     tx(inputs);

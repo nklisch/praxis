@@ -4,15 +4,15 @@ import type Database from "better-sqlite3";
 const EMBEDDING_DIMENSION = 384;
 
 /**
- * Module-level idempotent guard for the sqlite-vec native extension.
- * The extension must be loaded once per process; a second call to `.load()`
- * will crash with "already loaded". This flag prevents that.
+ * Per-connection idempotent guard for the sqlite-vec native extension.
  *
- * Note: This guard is process-scoped. In tests each test gets a fresh DB file
- * but shares the same process; the guard is intentionally NOT reset between
- * tests because the native extension stays loaded in the process.
+ * sqlite-vec loads into a specific SQLite *connection*, not into the process
+ * globally. Each `new Database(path)` is a new connection that needs its own
+ * `.load()` call. Within one connection, calling `.load()` twice may crash;
+ * the WeakMap guard prevents that without preventing fresh connections (e.g.,
+ * temp DBs in tests) from loading the extension.
  */
-let _vecLoaded = false;
+const _loadedConnections = new WeakSet<Database.Database>();
 
 /**
  * ESM-compatible require function rooted at this file's directory.
@@ -110,8 +110,8 @@ export function initFtsStore(sqlite: Database.Database): void {
  * extension within a process — sqlite-vec throws if loaded twice.
  */
 function loadSqliteVecIfNeeded(sqlite: Database.Database): void {
-  if (_vecLoaded) return;
+  if (_loadedConnections.has(sqlite)) return;
   const sqliteVec = _require("sqlite-vec") as { load: (db: Database.Database) => void };
   sqliteVec.load(sqlite);
-  _vecLoaded = true;
+  _loadedConnections.add(sqlite);
 }

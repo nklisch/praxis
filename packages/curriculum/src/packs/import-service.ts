@@ -106,6 +106,12 @@ export class PackImportServiceImpl {
     const conceptGraphId = uuidv7();
     const now = new Date();
 
+    // Concept rows store with prefixed ids so multiple pack versions can coexist
+    // without primary-key collisions. The manifest's stable id (e.g., "algebra-1.real-numbers")
+    // becomes "<conceptGraphId>:algebra-1.real-numbers" in the row. Cross-version linking
+    // happens via embeddings (semantic similarity), not via id matching — see CONTRACT.md.
+    const prefixedId = (manifestId: string): string => `${conceptGraphId}:${manifestId}`;
+
     // Relational write — one transaction.
     this.deps.db.transaction((tx) => {
       tx.insert(conceptGraphs)
@@ -123,7 +129,7 @@ export class PackImportServiceImpl {
       tx.insert(concepts)
         .values(
           manifest.concepts.map((c) => ({
-            id: c.id,
+            id: prefixedId(c.id),
             graphId: conceptGraphId,
             name: c.name,
             description: c.description,
@@ -137,8 +143,8 @@ export class PackImportServiceImpl {
         tx.insert(prerequisiteEdges)
           .values(
             manifest.edges.map((e) => ({
-              fromId: e.fromId,
-              toId: e.toId,
+              fromId: prefixedId(e.fromId),
+              toId: prefixedId(e.toId),
               strengthMilli: Math.round(e.strength * 1000),
               source: "canonical" as const,
             })),
@@ -157,13 +163,10 @@ export class PackImportServiceImpl {
     });
 
     // Embedding writes outside the transaction (separate store).
-    // If this fails, re-running importPack will detect the pack_imports row
-    // and skip the relational write but still attempt the embedding write.
-    // For v1 this is acceptable; a more robust approach would be a separate
-    // "repair embeddings" command.
+    // Use prefixed ids to match the concept rows.
     await this.deps.conceptEmbeddings.upsertBatch(
       manifest.concepts.map((c, i) => ({
-        conceptId: c.id,
+        conceptId: prefixedId(c.id),
         graphId: conceptGraphId,
         conceptName: c.name,
         // biome-ignore lint/style/noNonNullAssertion: embedBatch returns one vector per input text — index is always valid
