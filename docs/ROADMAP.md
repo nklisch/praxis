@@ -200,18 +200,22 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 11: Configure mode + lock + authoring UI
+## Phase 11: Configure mode + lock + authoring UI ✓ SHIPPED
 
 **Goal:** Parent or self-directed learner authors courses and tunes the system from a lock-gated UI.
 
-**Build:**
-- Lock-code service (hashed + install-ID salted); server-side `AuthoringService` gating
-- `configure` mode + authoring tools (`course.create`, `gate.edit`, threshold mutators)
-- Authoring UI (split-pane chat + structured editor)
-- Gate editor (React Flow with custom gate node components)
-- Prompt customization UI; memory inspector tabs
+**Build (landed):**
+- `LockServiceImpl` — bcrypt code hashing + install-ID salt; in-process unlock flag; `lock_state` table
+- `AuthoringServiceImpl` — audit-log boundary; every write calls `appendAction` after the underlying write; `configurator_actions` table
+- `configure` mode — 25 tools (bootstrap + 11 authoring + 4 memory admin); 7 prompt fragments; `uiSurface: "configure"`; lock-gated in `SessionServiceImpl.start`
+- 16 authoring/memory tools: `course.edit`, `lesson.{create,edit,delete}`, `gate.{create,edit,delete,override}`, `prompt.{override_fragment,clear_fragment,set_style}`, `memory.{reset_concept,clear_misconception,export,delete_all}`
+- Full IPC wiring: `praxis.lock.*` (6 handlers) + `praxis.author.*` (16 handlers, all behind `requireUnlocked()`)
+- `LockClientImpl` + `AuthoringClientImpl` (real implementation replacing Phase 3 stub)
+- `pnpm db:configurator-actions` CLI for audit-log inspection
 
-**Test checkpoint:** Set lock code. Restart. Configure surface gated. Unlock. Author a small course end-to-end. Course / Gate / Lesson artifacts persisted.
+**Deferred to UI phase:** Authoring UI split-pane, Gate editor (React Flow), Prompt customization form, Memory inspector tabs.
+
+**Test checkpoint:** 999 tests pass (18 new for authoring-service + configure-mode). `pnpm typecheck` clean. Lock + authoring IPC handlers registered. Configure surface gated by lock when set.
 
 ---
 

@@ -123,7 +123,11 @@ A pre-curricular mode for authoring a new course from uploaded materials. Availa
 Lock-gated. Parent/teacher (or self-directed learner) authors and tunes.
 
 - Same agent loop, different audience.
-- Tools: course mutators, gate editors, prompt customizers, memory inspectors.
+- `uiSurface: "configure"`, `requiredRole: "configurator"`.
+- Session start is gated by `LockService.isUnlocked()` in `SessionServiceImpl`.
+- Tools (Phase 11 — 25 total): bootstrap tools + `course.edit`, `lesson.{create,edit,delete}`, `gate.{create,edit,delete,override}`, `prompt.{override_fragment,clear_fragment,set_style}`, `memory.{reset_concept,clear_misconception,export,delete_all}`.
+- Prompt fragments: preamble, `role.configure` (customizable), principles, `tools.configure` (not customizable), course-context, constraints, postamble.
+- Every write goes through `AuthoringServiceImpl`, which appends a `configurator_actions` audit row.
 - The configurator is the agent's user; the agent helps them author by talking.
 
 **Modes layer the metacognition coach's voice on top.** In `teach`, `quiz`, `homework`, and `exam`, prompt fragments include metacognitive prompts at appropriate triggers (pre-reading: "what do you expect?"; post-error: "what assumption tripped this?"; session-end: "what's one thing you'd review tomorrow?"). The metacognition coach is woven through, not sequestered to one mode.

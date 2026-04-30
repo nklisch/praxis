@@ -12,7 +12,8 @@
     "./bootstrap": "./src/bootstrap/index.ts",
     "./gates": "./src/gates/index.ts",
     "./packs": "./src/packs/index.ts",
-    "./router": "./src/router/index.ts"
+    "./router": "./src/router/index.ts",
+    "./style-composer": "./src/brief/style-composer.ts"
   },
   "scripts": {
     "build": "tsc -b",

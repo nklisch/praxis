@@ -8,13 +8,13 @@
  * Reads `gates` and `gate_unlock_events` tables and prints formatted output.
  */
 
-import { gates, gateUnlockEvents, courses } from "@praxis/artifacts/schema";
+import { courses, gates, gateUnlockEvents } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
 import {
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
-  MemoryServiceImpl,
   getOrCreateDefaultStudentId,
+  MemoryServiceImpl,
 } from "@praxis/core/services";
 import { brandId } from "@praxis/core/types";
 import { eq } from "drizzle-orm";
@@ -63,7 +63,9 @@ if (evaluateFlag) {
         );
       }
     } catch (err) {
-      console.error(`  [${c.title}] Evaluation failed: ${err instanceof Error ? err.message : String(err)}`);
+      console.error(
+        `  [${c.title}] Evaluation failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -105,7 +107,9 @@ for (const c of courseRows) {
   if (unlockRows.length > 0) {
     console.log(`  ${unlockRows.length} unlock event(s):`);
     for (const u of unlockRows) {
-      const viewedTag = u.viewedAt ? ` (viewed ${u.viewedAt.toISOString().slice(0, 10)})` : " (not viewed)";
+      const viewedTag = u.viewedAt
+        ? ` (viewed ${u.viewedAt.toISOString().slice(0, 10)})`
+        : " (not viewed)";
       console.log(
         `    gate:${u.gateId.slice(0, 8)} unlocked at ${u.unlockedAt.toISOString()}${viewedTag}`,
       );

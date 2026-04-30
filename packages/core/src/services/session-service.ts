@@ -63,6 +63,17 @@ export class SessionServiceImpl implements SessionService {
     modeId: string;
   }): Promise<SessionHandle> {
     const mode = this.requireMode(opts.modeId);
+
+    // Phase 11: configure mode requires the lock to be unlocked.
+    // Bootstrap mode is intentionally NOT gated — configurators can bootstrap
+    // without unlocking (first-run authoring before a lock is even set).
+    if (opts.modeId === "configure") {
+      const unlocked = await this.deps.lockService.isUnlocked();
+      if (!unlocked) {
+        throw new Error("Locked: configure surface requires unlock. Call lock.unlock(code) first.");
+      }
+    }
+
     const studentId = getOrCreateDefaultStudentId(this.deps.db);
     const engineConfig = readEngineConfig(this.deps.db);
     const sessionId = uuidv7();

@@ -1,0 +1,56 @@
+import type { PromptFragment } from "@praxis/core/types";
+
+/**
+ * Tools fragment for configure mode.
+ *
+ * Lists all tools available to the configurator agent. Configure mode subsumes
+ * bootstrap mode's tools (course authoring) plus adds authoring/editing tools
+ * for courses, lessons, gates, prompts, and memory management.
+ *
+ * This fragment is NOT customizable — tool availability must not be overridden
+ * via prompt_overrides (it would break the agent's ability to call the tools).
+ */
+export const configureToolsFragment: PromptFragment = {
+  id: "tools.configure",
+  position: "tools",
+  customizable: false,
+  template: `Tools available in configure mode:
+
+── Course authoring (from bootstrap) ──
+- course.list_documents — see ingested materials
+- course.propose_draft — generate a draft course from documents (30–90 seconds)
+- course.show_draft — render the current draft
+- course.edit_draft — apply a single edit to the draft
+- course.confirm_draft — persist the draft as a course
+- course.discard_draft — drop a draft and start over
+- course.list_canonical_packs — list curated packs; filter by subject id
+- course.use_canonical_pack — create a course from a canonical pack
+- retrieve_from_textbook — search ingested materials
+
+── Course editing ──
+- course.edit — update course title, subject, grade level, or thresholds
+- lesson.create — add a new lesson to a course
+- lesson.edit — update lesson title, concepts, references, strategy, or estimated time
+- lesson.delete — remove a lesson (requires reason; confirms cascade to gates)
+- gate.create — add a new gate with guards, prerequisites, and success criteria
+- gate.edit — update gate guards, prerequisites, or success criteria
+- gate.delete — remove a gate (requires reason)
+- gate.override — force a gate to "overridden" state with a documented reason
+
+── Prompt customization ──
+- prompt.override_fragment — set a custom override for a specific (modeId, fragmentId) pair
+- prompt.clear_fragment — remove a custom override and restore the default
+- prompt.set_style — apply the three style sliders (socratic, verbosity, formality)
+
+── Memory management ──
+- memory.reset_concept — reset a concept to initial BKT state (reason required)
+- memory.clear_misconception — mark a misconception as manually-cleared (reason required)
+- memory.export — export the full memory snapshot to a JSON file
+- memory.delete_all — wipe all student memory (requires confirmation + reason)
+
+Workflow rules:
+- Always confirm before calling lesson.delete, gate.delete, or memory.delete_all.
+- After course.show_draft, offer to confirm or keep editing.
+- Use gate.override sparingly — prefer gate.edit to fix criteria, override only to unblock.
+- Style sliders map: socratic (-1 = question-led, +1 = lecture), verbosity (-1 = terse, +1 = verbose), formality (-1 = formal, +1 = casual).`,
+};

@@ -6,20 +6,24 @@ import type { ServiceDeps } from "@praxis/core/services";
 import {
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
+  AuthoringServiceImpl,
   BootstrapServiceImpl,
   ConfigServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
   getOrCreateDefaultStudentId,
   IndexerOrchestratorImpl,
+  LockServiceImpl,
   MasteryIndexer,
   MemoryServiceImpl,
   MisconceptionIndexer,
   SessionServiceImpl,
 } from "@praxis/core/services";
-import type { AssignmentId, PackImportService } from "@praxis/core/types";
+import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
+import { brandId } from "@praxis/core/types";
 import {
   bootstrapMode,
+  configureMode,
   examMode,
   homeworkMode,
   quizMode,
@@ -29,9 +33,10 @@ import { PackImportServiceImpl, SqliteConceptEmbeddingsStore } from "@praxis/cur
 import { createEngine } from "@praxis/engines";
 import { sessions } from "@praxis/memory/schema";
 import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/assignment";
+import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
-import { MEMORY_TOOLS } from "@praxis/tools/memory";
+import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
 import {
   DocxIngestor,
@@ -62,6 +67,10 @@ export interface Services {
   assignments: AssignmentServiceImpl; // ← Phase 8: exposed for IPC handlers (Agent 2)
   /** Phase 10: pack import + listing — exposed for IPC handlers. */
   packs: PackImportService;
+  /** Phase 11: lock service — exposed for IPC handlers. */
+  lock: LockServiceImpl;
+  /** Phase 11: authoring service — exposed for IPC handlers. */
+  authoring: AuthoringServiceImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
@@ -205,12 +214,29 @@ export function buildServices(dbPath: string): Services {
     indexers: [masteryIndexer, misconceptionIndexer],
   });
 
+  // Phase 11: LockServiceImpl — single instance, process-scoped unlock flag.
+  const lockService = new LockServiceImpl({ db, log });
+
+  // Phase 11: AuthoringServiceImpl — orchestration layer for configurator writes.
+  // Constructed after memoryService and artifactsService (depends on both).
+  const authoringService = new AuthoringServiceImpl({
+    db,
+    log,
+    artifacts: artifactsService,
+    memory: memoryService,
+    // v1: single configurator, always "default".
+    configuratorId: () => "default" as ConfiguratorId,
+    // v1: resolve the default student at call time (lazy, so no DB read at construction).
+    studentId: () => brandId<"StudentId">(getOrCreateDefaultStudentId(db)),
+  });
+
   const modes = new Map([
     [teachMode.id, teachMode],
     [bootstrapMode.id, bootstrapMode], // ← Phase 6
     [quizMode.id, quizMode], // ← Phase 8
     [homeworkMode.id, homeworkMode], // ← Phase 8
     [examMode.id, examMode], // ← Phase 8
+    [configureMode.id, configureMode], // ← Phase 11
   ]);
 
   const toolDefinitions = [
@@ -221,6 +247,8 @@ export function buildServices(dbPath: string): Services {
     ...MEMORY_TOOLS, // ← Phase 7
     ...ASSIGNMENT_TUTOR_TOOLS, // ← Phase 8
     ...ASSIGNMENT_TAKE_TOOLS, // ← Phase 8
+    ...AUTHORING_TOOLS, // ← Phase 11
+    ...CONFIGURE_MEMORY_TOOLS, // ← Phase 11
   ];
 
   const deps: ServiceDeps = {
@@ -241,8 +269,11 @@ export function buildServices(dbPath: string): Services {
       memory: memoryService, // ← Phase 7
       assignments: assignmentService, // ← Phase 8
       packs: packImportService, // ← Phase 10
+      lock: lockService, // ← Phase 11
+      authoring: authoringService, // ← Phase 11
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
+    lockService, // ← Phase 11 (session.start lock check for configure mode)
   };
 
   const ingestion = new IngestionService({
@@ -272,6 +303,8 @@ export function buildServices(dbPath: string): Services {
     memory: memoryService, // ← Phase 7
     assignments: assignmentService, // ← Phase 8
     packs: packImportService, // ← Phase 10
+    lock: lockService, // ← Phase 11
+    authoring: authoringService, // ← Phase 11
     ingestorRegistry,
     pyodide,
     embeddings,

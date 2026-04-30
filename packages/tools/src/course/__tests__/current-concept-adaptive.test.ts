@@ -152,6 +152,8 @@ function makeCtx(
       // biome-ignore lint/suspicious/noExplicitAny: test stub
       sympy: null as any,
       pedagogyPack: null,
+      lock: null as any,
+      authoring: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
       packs: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: test stub
@@ -264,6 +266,8 @@ describe("course.current_concept — adaptive routing (Phase 10)", () => {
         // biome-ignore lint/suspicious/noExplicitAny: test stub
         sympy: null as any,
         pedagogyPack: null,
+      lock: null as any,
+      authoring: null as any,
         // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
         packs: null as any,
         // biome-ignore lint/suspicious/noExplicitAny: test stub

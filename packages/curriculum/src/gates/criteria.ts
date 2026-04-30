@@ -3,8 +3,7 @@
  * No DB access — readers are injected as parameters.
  * Cross-course criteria are NOT supported in v1.
  */
-import type { GradeReader, MasteryReader } from "@praxis/core/types";
-import type { SuccessCriteria } from "@praxis/core/types";
+import type { GradeReader, MasteryReader, SuccessCriteria } from "@praxis/core/types";
 
 export interface CriteriaEvaluation {
   satisfied: boolean;
@@ -108,7 +107,12 @@ async function evaluateAnd(
   gradeReader: GradeReader,
 ): Promise<CriteriaEvaluation> {
   if (c.criteria.length === 0) {
-    return { satisfied: false, progress: 0, summary: "AND (empty)", unsatisfiedReason: "no sub-criteria" };
+    return {
+      satisfied: false,
+      progress: 0,
+      summary: "AND (empty)",
+      unsatisfiedReason: "no sub-criteria",
+    };
   }
   const subs = await Promise.all(
     c.criteria.map((sub) => evaluateSuccessCriteria(sub, studentId, masteryReader, gradeReader)),
@@ -130,7 +134,12 @@ async function evaluateOr(
   gradeReader: GradeReader,
 ): Promise<CriteriaEvaluation> {
   if (c.criteria.length === 0) {
-    return { satisfied: false, progress: 0, summary: "OR (empty)", unsatisfiedReason: "no sub-criteria" };
+    return {
+      satisfied: false,
+      progress: 0,
+      summary: "OR (empty)",
+      unsatisfiedReason: "no sub-criteria",
+    };
   }
   const subs = await Promise.all(
     c.criteria.map((sub) => evaluateSuccessCriteria(sub, studentId, masteryReader, gradeReader)),

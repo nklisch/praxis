@@ -11,6 +11,7 @@ import { and, eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import type { PraxisDb } from "../db/index.js";
+import type { GradeReader } from "../types/gate.js";
 import type {
   Assignment,
   AssignmentId,
@@ -28,7 +29,6 @@ import type {
   Timestamp,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
-import type { GradeReader } from "../types/gate.js";
 import { enrichWithApproachFeedback } from "./graders/approach-feedback.js";
 import { buildGraderRegistry } from "./graders/registry.js";
 import { runRubricAgent } from "./graders/rubric-agent.js";
@@ -481,9 +481,9 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
    * GradeReader port implementation. Returns total + submittedAt for a submitted
    * assignment, or null when unsubmitted or not found.
    */
-  async readGrade(
-    input: { assignmentId: string },
-  ): Promise<{ total: number; submittedAt: Timestamp } | null> {
+  async readGrade(input: {
+    assignmentId: string;
+  }): Promise<{ total: number; submittedAt: Timestamp } | null> {
     const row = this.deps.db
       .select()
       .from(assignments)

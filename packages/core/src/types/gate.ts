@@ -77,7 +77,9 @@ export interface MasteryReader {
  */
 export interface GradeReader {
   /** Get the grade total for an assignment, or null when unsubmitted / not found. */
-  readGrade(input: { assignmentId: string }): Promise<{ total: number; submittedAt: Timestamp } | null>;
+  readGrade(input: {
+    assignmentId: string;
+  }): Promise<{ total: number; submittedAt: Timestamp } | null>;
 }
 
 // Re-export SuccessCriteria for evaluator convenience (avoids double imports).

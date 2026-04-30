@@ -751,6 +751,95 @@ interface PacksClient {
 }
 ```
 
+## Phase 11 additive changes
+
+### `AuthoringService` — expanded client surface (Phase 11)
+
+The `AuthoringService` interface in `@praxis/client` is fully implemented (replacing the Phase 3 stub). All methods are transported over `praxis.author.*` IPC channels. The IPC layer enforces lock via `requireUnlocked()` before every write.
+
+```typescript
+interface AuthoringService {
+  // Course / lesson / gate — full CRUD
+  updateCourse(input: { courseId: CourseId; patch: Partial<...>; reason?: string }): Promise<Course>;
+  createLesson(input: { courseId: CourseId; title: string; conceptIds: ConceptId[]; ... }): Promise<Lesson>;
+  updateLesson(input: { lessonId: LessonId; patch: Partial<...> }): Promise<Lesson>;
+  deleteLesson(input: { lessonId: LessonId; reason?: string }): Promise<void>;
+  createGate(input: { courseId: CourseId; guards: GateTarget; prerequisites: GateId[]; successCriteria: SuccessCriteria }): Promise<Gate>;
+  updateGate(input: { gateId: GateId; patch: Partial<...>; reason?: string }): Promise<Gate>;
+  deleteGate(input: { gateId: GateId; reason?: string }): Promise<void>;
+  overrideGate(input: { gateId: GateId; reason: string }): Promise<Gate>;
+  getCourseSummary(courseId: CourseId): Promise<{ course: Course; lessons: Lesson[]; gates: Gate[]; concepts: [...] }>;
+  // Prompt customization
+  customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
+  clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void>;
+  setStyleSliders(input: { socratic: number; verbosity: number; formality: number }): Promise<void>;
+  // Memory administration
+  resetConcept(input: { conceptId: ConceptId; reason: string }): Promise<void>;
+  clearMisconception(input: { misconceptionId: MisconceptionId; reason: string }): Promise<void>;
+  exportMemory(input: { targetPath: string }): Promise<{ ok: true; bytesWritten: number }>;
+  deleteAllMemory(input: { reason: string; confirm: true }): Promise<void>;
+  // Audit log
+  listConfiguratorActions(input?: { fromTs?: Timestamp; limit?: number }): Promise<ConfiguratorActionRow[]>;
+}
+```
+
+### `LockService` — new client surface (Phase 11)
+
+Exposed as `PraxisClient.lock`. Implemented by `LockClientImpl` in `@praxis/client`, backed by `praxis.lock.*` IPC channels. Server-side `LockServiceImpl` stores a bcrypt hash in the `lock_state` table; the in-process unlocked flag is not persisted.
+
+```typescript
+interface LockClient {
+  isSet(): Promise<boolean>;
+  isUnlocked(): Promise<boolean>;
+  setLockCode(input: { code: string }): Promise<void>;  // 4–8 digits
+  unlock(input: { code: string }): Promise<{ ok: boolean }>;
+  lock(): Promise<void>;
+  clearLock(input: { currentCode: string }): Promise<void>;
+}
+```
+
+### `ConfiguratorAction` — audit discriminated union (Phase 11)
+
+Every write through `AuthoringServiceImpl` appends a `configurator_actions` row. The `action_json` column stores one of 15 `ConfiguratorAction` variants (discriminated by `kind`):
+
+```typescript
+type ConfiguratorAction =
+  | { kind: "course.edit"; courseId: CourseId; patch: Partial<...>; reason?: string }
+  | { kind: "lesson.create"; courseId: CourseId; lessonId: LessonId }
+  | { kind: "lesson.edit"; lessonId: LessonId; patch: Partial<...> }
+  | { kind: "lesson.delete"; lessonId: LessonId; reason?: string }
+  | { kind: "gate.create"; gateId: GateId; courseId: CourseId }
+  | { kind: "gate.edit"; gateId: GateId; patch: Partial<...>; reason?: string }
+  | { kind: "gate.delete"; gateId: GateId; reason?: string }
+  | { kind: "gate.override"; gateId: GateId; reason: string }
+  | { kind: "prompt.override_fragment"; modeId: string; fragmentId: string }
+  | { kind: "prompt.clear_fragment"; modeId: string; fragmentId: string }
+  | { kind: "prompt.set_style"; level: { socratic: number; verbosity: number; formality: number } }
+  | { kind: "memory.reset_concept"; conceptId: ConceptId; reason: string }
+  | { kind: "memory.clear_misconception"; misconceptionId: MisconceptionId; reason: string }
+  | { kind: "memory.export" }
+  | { kind: "memory.delete_all"; reason: string };
+```
+
+### `MemoryService` Phase 11 additions
+
+Three new methods on the server-side `MemoryService` (in `@praxis/core/types/tool.ts`):
+- `resetConcept(input)` — upserts BKT priors, clears evidence
+- `clearMisconception(input)` — marks misconception "manually-cleared"
+- `exportToFile(input)` — writes full memory snapshot as JSON to `targetPath`
+
+### `configure` mode (Phase 11)
+
+New mode with `id: "configure"`, `uiSurface: "configure"`, `requiredRole: "configurator"`. Session start is gated by `LockService.isUnlocked()` in `SessionServiceImpl`. Bootstrap mode intentionally has no lock gate (first-run authoring is lock-free).
+
+Tool set: all bootstrap tools + 11 authoring tools + 4 configure-memory tools = 25 tools total.
+
+Prompt fragments: preamble, role.configure (customizable), principles, tools.configure (not customizable), course-context, constraints, postamble.
+
+### CLI additions (Phase 11)
+
+`pnpm db:configurator-actions` — queries the `configurator_actions` table and prints a formatted table. Accepts `--limit <n>` and `--from <iso-date>` flags.
+
 ## Versioning rules
 
 - All packages follow semver.

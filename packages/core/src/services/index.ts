@@ -1,4 +1,7 @@
-// Phase 11: Lock service
+// Phase 11: Lock service + Authoring service
+
+export type { AuthoringServiceDeps } from "./authoring-service.js";
+export { AuthoringServiceImpl } from "./authoring-service.js";
 export type { LockServiceDeps } from "./lock-service.js";
 export { LockServiceImpl } from "./lock-service.js";
 

@@ -1,5 +1,15 @@
 import type { IpcStreamMessage } from "@praxis/client";
-import type { AssignmentId, CourseId, StudentId } from "@praxis/core/types";
+import type {
+  AssignmentId,
+  ConceptId,
+  CourseId,
+  GateId,
+  GateTarget,
+  LessonId,
+  MisconceptionId,
+  StudentId,
+  SuccessCriteria,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { ipcMain } from "electron";
 import { registerIngestHandlers } from "./ingest-channel.js";
@@ -27,6 +37,19 @@ export function registerIpcHandlers(
   function handle(channel: string, fn: Parameters<typeof ipcMain.handle>[1]) {
     ipcMain.handle(channel, fn);
     handlers.push({ channel, handler: fn });
+  }
+
+  /**
+   * IPC safety guard for all praxis.author.* handlers.
+   * Throws when the lock is set but the current process hasn't unlocked.
+   * This is the backstop: even if the UI has a bug that sends an author
+   * call while locked, this guard refuses it.
+   */
+  async function requireUnlocked(): Promise<void> {
+    const unlocked = await services.lock.isUnlocked();
+    if (!unlocked) {
+      throw new Error("Locked: configure surface requires unlock. Call praxis.lock.unlock first.");
+    }
   }
 
   // ── Session ──────────────────────────────────────────────────────────────
@@ -375,6 +398,279 @@ export function registerIpcHandlers(
   handle("praxis.packs.import", async (_event, packId: string) => {
     return services.packs.importPack(packId);
   });
+
+  // ── Phase 11: Lock ───────────────────────────────────────────────────────────
+  // Lock handlers are NOT guarded by requireUnlocked — they control the lock.
+
+  handle("praxis.lock.isSet", async () => {
+    return services.lock.isSet();
+  });
+
+  handle("praxis.lock.isUnlocked", async () => {
+    return services.lock.isUnlocked();
+  });
+
+  handle("praxis.lock.setLockCode", async (_event, code: string) => {
+    return services.lock.setLockCode({ code });
+  });
+
+  handle("praxis.lock.unlock", async (_event, code: string) => {
+    return services.lock.unlock({ code });
+  });
+
+  handle("praxis.lock.lock", async () => {
+    return services.lock.lock();
+  });
+
+  handle("praxis.lock.clearLock", async (_event, currentCode: string) => {
+    return services.lock.clearLock({ currentCode });
+  });
+
+  // ── Phase 11: Author ─────────────────────────────────────────────────────────
+  // Every author handler calls requireUnlocked() first — IPC safety layer.
+
+  handle(
+    "praxis.author.updateCourse",
+    async (
+      _event,
+      input: {
+        courseId: string;
+        patch: { title?: string; subject?: string; gradeLevel?: string };
+        reason?: string;
+      },
+    ) => {
+      await requireUnlocked();
+      return services.authoring.updateCourse({
+        courseId: brandId<"CourseId">(input.courseId),
+        patch: input.patch,
+        ...(input.reason !== undefined && { reason: input.reason }),
+      });
+    },
+  );
+
+  handle(
+    "praxis.author.createLesson",
+    async (
+      _event,
+      input: {
+        courseId: string;
+        title: string;
+        conceptIds: string[];
+        orderIndex?: number;
+        estimatedMinutes?: number;
+      },
+    ) => {
+      await requireUnlocked();
+      return services.authoring.createLesson({
+        courseId: brandId<"CourseId">(input.courseId),
+        title: input.title,
+        conceptIds: input.conceptIds.map((id) => brandId<"ConceptId">(id) as ConceptId),
+        ...(input.orderIndex !== undefined && { orderIndex: input.orderIndex }),
+        ...(input.estimatedMinutes !== undefined && { estimatedMinutes: input.estimatedMinutes }),
+      });
+    },
+  );
+
+  handle(
+    "praxis.author.updateLesson",
+    async (
+      _event,
+      input: {
+        lessonId: string;
+        patch: { title?: string; conceptIds?: string[]; estimatedMinutes?: number };
+      },
+    ) => {
+      await requireUnlocked();
+      const patch: {
+        title?: string;
+        conceptIds?: ConceptId[];
+        estimatedMinutes?: number;
+      } = {};
+      if (input.patch.title !== undefined) patch.title = input.patch.title;
+      if (input.patch.conceptIds !== undefined) {
+        patch.conceptIds = input.patch.conceptIds.map(
+          (id) => brandId<"ConceptId">(id) as ConceptId,
+        );
+      }
+      if (input.patch.estimatedMinutes !== undefined)
+        patch.estimatedMinutes = input.patch.estimatedMinutes;
+      return services.authoring.updateLesson({
+        lessonId: brandId<"LessonId">(input.lessonId) as LessonId,
+        patch,
+      });
+    },
+  );
+
+  handle(
+    "praxis.author.deleteLesson",
+    async (_event, input: { lessonId: string; reason?: string }) => {
+      await requireUnlocked();
+      return services.authoring.deleteLesson({
+        lessonId: brandId<"LessonId">(input.lessonId) as LessonId,
+        ...(input.reason !== undefined && { reason: input.reason }),
+      });
+    },
+  );
+
+  handle(
+    "praxis.author.createGate",
+    async (
+      _event,
+      input: {
+        courseId: string;
+        guards: GateTarget;
+        prerequisites: string[];
+        successCriteria: SuccessCriteria;
+      },
+    ) => {
+      await requireUnlocked();
+      return services.authoring.createGate({
+        courseId: brandId<"CourseId">(input.courseId) as CourseId,
+        guards: input.guards,
+        prerequisites: input.prerequisites.map((id) => brandId<"GateId">(id) as GateId),
+        successCriteria: input.successCriteria,
+      });
+    },
+  );
+
+  handle(
+    "praxis.author.updateGate",
+    async (
+      _event,
+      input: {
+        gateId: string;
+        patch: { prerequisites?: string[]; successCriteria?: SuccessCriteria };
+        reason?: string;
+      },
+    ) => {
+      await requireUnlocked();
+      const patch: {
+        prerequisites?: GateId[];
+        successCriteria?: SuccessCriteria;
+      } = {};
+      if (input.patch.prerequisites !== undefined) {
+        patch.prerequisites = input.patch.prerequisites.map(
+          (id) => brandId<"GateId">(id) as GateId,
+        );
+      }
+      if (input.patch.successCriteria !== undefined) {
+        patch.successCriteria = input.patch.successCriteria;
+      }
+      return services.authoring.updateGate({
+        gateId: brandId<"GateId">(input.gateId) as GateId,
+        patch,
+        ...(input.reason !== undefined && { reason: input.reason }),
+      });
+    },
+  );
+
+  handle("praxis.author.deleteGate", async (_event, input: { gateId: string; reason?: string }) => {
+    await requireUnlocked();
+    return services.authoring.deleteGate({
+      gateId: brandId<"GateId">(input.gateId) as GateId,
+      ...(input.reason !== undefined && { reason: input.reason }),
+    });
+  });
+
+  handle(
+    "praxis.author.overrideGate",
+    async (_event, input: { gateId: string; reason: string }) => {
+      await requireUnlocked();
+      return services.authoring.overrideGate({
+        gateId: brandId<"GateId">(input.gateId) as GateId,
+        reason: input.reason,
+      });
+    },
+  );
+
+  handle("praxis.author.getCourseSummary", async (_event, courseId: string) => {
+    await requireUnlocked();
+    return services.authoring.getCourseSummary(brandId<"CourseId">(courseId) as CourseId);
+  });
+
+  handle(
+    "praxis.author.customizePrompt",
+    async (_event, input: { modeId: string; fragmentId: string; override: string }) => {
+      await requireUnlocked();
+      return services.authoring.customizePrompt(input.modeId, input.fragmentId, input.override);
+    },
+  );
+
+  handle(
+    "praxis.author.clearFragmentOverride",
+    async (_event, input: { modeId: string; fragmentId: string }) => {
+      await requireUnlocked();
+      return services.authoring.clearFragmentOverride(input);
+    },
+  );
+
+  handle(
+    "praxis.author.setStyleSliders",
+    async (_event, input: { socratic: number; verbosity: number; formality: number }) => {
+      await requireUnlocked();
+      return services.authoring.setStyleSliders(input);
+    },
+  );
+
+  handle(
+    "praxis.author.resetConcept",
+    async (_event, input: { conceptId: string; reason: string }) => {
+      await requireUnlocked();
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.authoring.resetConcept({
+        studentId,
+        conceptId: brandId<"ConceptId">(input.conceptId) as ConceptId,
+        reason: input.reason,
+      });
+    },
+  );
+
+  handle(
+    "praxis.author.clearMisconception",
+    async (_event, input: { misconceptionId: string; reason: string }) => {
+      await requireUnlocked();
+      return services.authoring.clearMisconception({
+        misconceptionId: brandId<"MisconceptionId">(input.misconceptionId) as MisconceptionId,
+        reason: input.reason,
+      });
+    },
+  );
+
+  handle("praxis.author.exportMemory", async (_event, input: { targetPath: string }) => {
+    await requireUnlocked();
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.authoring.exportMemory({ studentId, targetPath: input.targetPath });
+  });
+
+  handle(
+    "praxis.author.deleteAllMemory",
+    async (_event, input: { reason: string; confirm: true }) => {
+      await requireUnlocked();
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.authoring.deleteAllMemory({
+        studentId,
+        reason: input.reason,
+        confirm: input.confirm,
+      });
+    },
+  );
+
+  handle(
+    "praxis.author.listConfiguratorActions",
+    async (_event, input?: { fromTs?: number; limit?: number }) => {
+      await requireUnlocked();
+      return services.authoring.listConfiguratorActions(
+        input !== undefined
+          ? {
+              ...(input.fromTs !== undefined && {
+                fromTs: input.fromTs as import("@praxis/core/types").Timestamp,
+              }),
+              ...(input.limit !== undefined && { limit: input.limit }),
+            }
+          : undefined,
+      );
+    },
+  );
 
   // Return unregister function.
   return () => {

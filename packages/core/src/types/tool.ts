@@ -105,10 +105,10 @@ export interface ToolServices {
   /** Phase 10: pack import + listing — canonical curriculum packs. */
   packs: PackImportService;
   pedagogyPack: unknown; // PedagogyPackService — concrete in Phase 14
-  /** Phase 11: local lock code gate. Optional until Agent 2 wires the concrete service. */
-  lock?: LockService;
-  /** Phase 11: configurator-driven authoring + memory writes. Optional until Agent 2 wires the concrete service. */
-  authoring?: AuthoringService;
+  /** Phase 11: local lock code gate. */
+  lock: LockService;
+  /** Phase 11: configurator-driven authoring + memory writes. */
+  authoring: AuthoringService;
 }
 
 // ─── Phase 11: LockService ───────────────────────────────────────────────────

@@ -56,7 +56,9 @@ export function composeCourseContextFragment(
   const currentIdx = snapshot.visibilityWindow.currentLessonIndex;
   const completedLessons = currentIdx; // lessons before currentLessonIndex are completed
   const aheadCount = Math.max(0, totalLessons - completedLessons - 1);
-  lines.push(`Course progress: ${completedLessons} of ${totalLessons} lessons complete; ${aheadCount} ahead.`);
+  lines.push(
+    `Course progress: ${completedLessons} of ${totalLessons} lessons complete; ${aheadCount} ahead.`,
+  );
 
   // Current lesson — full detail
   if (snapshot.currentLesson) {
@@ -111,9 +113,7 @@ export function composeCourseContextFragment(
   // Phase 9: Bounded visibility — summarize anything beyond next lesson
   const remainingCount = snapshot.visibilityWindow.remainingCount;
   if (remainingCount > 0) {
-    lines.push(
-      `(${remainingCount} more lesson${remainingCount === 1 ? "" : "s"} follow.)`,
-    );
+    lines.push(`(${remainingCount} more lesson${remainingCount === 1 ? "" : "s"} follow.)`);
   }
 
   // Phase 9: Active gate — what the student is working toward

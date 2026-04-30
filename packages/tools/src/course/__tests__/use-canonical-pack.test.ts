@@ -81,6 +81,8 @@ function makeCtx(packs: PackImportService, bootstrap: Partial<BootstrapService>)
       // biome-ignore lint/suspicious/noExplicitAny: test stub
       sympy: null as any,
       pedagogyPack: null,
+      lock: null as any,
+      authoring: null as any,
       packs,
       // biome-ignore lint/suspicious/noExplicitAny: test stub
       assignments: null as any,
