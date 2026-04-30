@@ -218,7 +218,13 @@ export function ChatRoute() {
               {...(msg.streaming !== undefined && { streaming: msg.streaming })}
               {...(msg.citations !== undefined && { citations: msg.citations })}
               {...(msg.drafts !== undefined && { drafts: msg.drafts })}
+              {...(msg.notes !== undefined && { notes: msg.notes })}
+              {...(msg.dueCards !== undefined && { dueCards: msg.dueCards })}
               onViewPage={handleViewPage}
+              onRateCard={async (flashcardId, rating) => {
+                // biome-ignore lint/suspicious/noExplicitAny: FlashcardId branded cast
+                await client.flashcards.review({ flashcardId: flashcardId as any, rating });
+              }}
             />
           ))}
           {/* Phase 8: render AssignmentCard inline when session is assignment-bound */}

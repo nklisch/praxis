@@ -1,0 +1,225 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 1rem 1.5rem;
+  gap: 0.75rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.filters {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  background: transparent;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  color: var(--color-text-muted, #aaa);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.65rem;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+  font-family: inherit;
+}
+
+.filterBtn:hover {
+  color: var(--color-text, inherit);
+  border-color: var(--color-text-muted, #aaa);
+}
+
+.filterBtn.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--color-accent, #6366f1);
+  color: var(--color-accent, #6366f1);
+}
+
+.newBtn {
+  background: var(--color-accent, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.newBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.newBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status {
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.error {
+  color: #f87171;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.emptyPrimary {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text, inherit);
+  margin: 0;
+}
+
+.emptyHint {
+  font-size: 0.88rem;
+  color: var(--color-text-muted, #aaa);
+  max-width: 36ch;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.noteItem {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--color-surface, #1e1e2e);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.noteItem:hover {
+  border-color: var(--color-accent, #6366f1);
+}
+
+.noteBtn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-family: inherit;
+}
+
+.noteHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formatBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--color-accent, #6366f1);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.noteDate {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #aaa);
+  margin-left: auto;
+}
+
+.notePreview {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-text-muted, #aaa);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60ch;
+}
+
+.deleteBtn {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  color: var(--color-text-muted, #aaa);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 0.75rem;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Format picker overlay ── */
+
+.pickerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.pickerModal {
+  background: var(--color-surface, #1e1e2e);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 500px;
+  width: 90%;
+}

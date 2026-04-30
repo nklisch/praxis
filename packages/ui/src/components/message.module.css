@@ -49,6 +49,22 @@
   width: 100%;
 }
 
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.dueCards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
 .streaming .content::after {
   content: "▋";
   animation: blink 1s step-start infinite;

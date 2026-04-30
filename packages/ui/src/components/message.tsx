@@ -1,7 +1,10 @@
-import type { ProposedCourse, RetrievalCitation } from "@praxis/core/types";
+import type { Note, ProposedCourse, Rating, RetrievalCitation } from "@praxis/core/types";
 import { CitationChip } from "./citation-chip.js";
 import { DraftCard } from "./draft-card.js";
+import type { ReviewCard } from "./flashcard-review.js";
+import { FlashcardReview } from "./flashcard-review.js";
 import styles from "./message.module.css";
+import { NoteCard } from "./note-card.js";
 import { SourceCard } from "./source-card.js";
 
 export type MessageRole = "user" | "assistant";
@@ -13,7 +16,13 @@ export interface MessageBubbleProps {
   citations?: RetrievalCitation[];
   /** Draft courses from course.show_draft tool results in this message. */
   drafts?: ProposedCourse[];
+  /** Notes from note.show tool results in this message. */
+  notes?: Note[];
+  /** Due cards from flashcard.review_next tool results in this message. */
+  dueCards?: ReviewCard[];
   onViewPage?: (documentId: string, page: number) => void;
+  /** Handler for rating a due card from the inline review surface. */
+  onRateCard?: (flashcardId: string, rating: Rating) => Promise<void>;
 }
 
 /**
@@ -54,7 +63,10 @@ export function MessageBubble({
   streaming = false,
   citations,
   drafts,
+  notes,
+  dueCards,
   onViewPage,
+  onRateCard,
 }: MessageBubbleProps) {
   const handleCitationClick = (index: number) => {
     // Scroll to the source card with matching id
@@ -71,6 +83,26 @@ export function MessageBubble({
           {drafts.map((draft, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: drafts in a single message are indexed by position
             <DraftCard key={i} proposed={draft} />
+          ))}
+        </div>
+      )}
+      {notes && notes.length > 0 && role === "assistant" && (
+        <div className={styles.notes}>
+          {notes.map((note) => (
+            <NoteCard key={note.id} note={note} />
+          ))}
+        </div>
+      )}
+      {dueCards && dueCards.length > 0 && role === "assistant" && (
+        <div className={styles.dueCards}>
+          {dueCards.map((card) => (
+            <FlashcardReview
+              key={card.flashcardId}
+              card={card}
+              onRate={async (rating) => {
+                if (onRateCard) await onRateCard(card.flashcardId, rating);
+              }}
+            />
           ))}
         </div>
       )}

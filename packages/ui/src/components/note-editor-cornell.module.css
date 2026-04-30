@@ -1,0 +1,114 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.columnsHeader {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  padding-right: 2rem; /* align with rows (account for remove button) */
+}
+
+.colLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #aaa);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.textarea {
+  width: 100%;
+  background: var(--color-input-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  color: var(--color-text, inherit);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.6rem;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-accent, #6366f1);
+}
+
+.removeBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #aaa);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  line-height: 1;
+  align-self: flex-start;
+  margin-top: 0.3rem;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.removeBtn:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.addBtn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.2));
+  color: var(--color-accent, #6366f1);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.addBtn:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--color-accent, #6366f1);
+}
+
+.summarySection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  padding-top: 0.75rem;
+}
+
+.summaryLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #aaa);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summaryTextarea {
+  width: 100%;
+}

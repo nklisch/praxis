@@ -1,10 +1,14 @@
 import type {
+  Flashcard,
+  Note,
   PraxisClient,
   ProposedCourse,
   RetrievalCitation,
   SessionId,
+  Timestamp,
 } from "@praxis/core/types";
 import { useState } from "react";
+import type { ReviewCard } from "../components/flashcard-review.js";
 
 export interface ChatMessage {
   id: string;
@@ -15,6 +19,10 @@ export interface ChatMessage {
   citations?: RetrievalCitation[];
   /** Draft courses from course.show_draft tool calls in this message. */
   drafts?: ProposedCourse[];
+  /** Notes from note.show tool calls in this message. */
+  notes?: Note[];
+  /** Due cards from flashcard.review_next tool calls in this message. */
+  dueCards?: ReviewCard[];
 }
 
 export interface UseStreamedSendResult {
@@ -56,6 +64,8 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     let lastToolCallName: string | null = null;
     const accumulatedCitations: RetrievalCitation[] = [];
     const accumulatedDrafts: ProposedCourse[] = [];
+    const accumulatedNotes: Note[] = [];
+    const accumulatedDueCards: ReviewCard[] = [];
 
     try {
       for await (const event of client.session.send(sessionId, message)) {
@@ -94,10 +104,45 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
             if (value?.kind === "ok" && value.draft?.proposed) {
               accumulatedDrafts.push(value.draft.proposed);
             }
+          } else if (lastToolCallName === "note.show" && event.result.ok) {
+            // note.show returns { kind: "ok", note: Note } or { kind: "not_found" }
+            const value = event.result.value as
+              | { kind: "ok"; note: Note }
+              | { kind: "not_found" }
+              | undefined;
+            if (value?.kind === "ok" && value.note) {
+              accumulatedNotes.push(value.note);
+            }
+          } else if (lastToolCallName === "flashcard.review_next" && event.result.ok) {
+            // review_next returns { ok: true, cards: Array<{flashcardId, front, conceptId?, preview}> }
+            const value = event.result.value as
+              | {
+                  ok: true;
+                  cards: Array<{
+                    flashcardId: string;
+                    front: string;
+                    conceptId?: string;
+                    preview?: {
+                      again: { nextReviewAt: Timestamp };
+                      hard: { nextReviewAt: Timestamp };
+                      good: { nextReviewAt: Timestamp };
+                      easy: { nextReviewAt: Timestamp };
+                    };
+                  }>;
+                }
+              | undefined;
+            if (value?.ok && Array.isArray(value.cards)) {
+              accumulatedDueCards.push(...value.cards);
+            }
           }
           lastToolCallName = null;
           // Update message with accumulated tool-result data
-          if (accumulatedCitations.length > 0 || accumulatedDrafts.length > 0) {
+          if (
+            accumulatedCitations.length > 0 ||
+            accumulatedDrafts.length > 0 ||
+            accumulatedNotes.length > 0 ||
+            accumulatedDueCards.length > 0
+          ) {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantMsgId
@@ -107,6 +152,8 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
                         citations: [...accumulatedCitations],
                       }),
                       ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
+                      ...(accumulatedNotes.length > 0 && { notes: [...accumulatedNotes] }),
+                      ...(accumulatedDueCards.length > 0 && { dueCards: [...accumulatedDueCards] }),
                     }
                   : m,
               ),
@@ -129,6 +176,8 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
                 streaming: false,
                 ...(accumulatedCitations.length > 0 && { citations: [...accumulatedCitations] }),
                 ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
+                ...(accumulatedNotes.length > 0 && { notes: [...accumulatedNotes] }),
+                ...(accumulatedDueCards.length > 0 && { dueCards: [...accumulatedDueCards] }),
               }
             : m,
         ),

@@ -1,0 +1,116 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 1rem 1.5rem;
+  gap: 1rem;
+}
+
+.status {
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.error {
+  color: #f87171;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ── Progress header ── */
+
+.header {
+  flex-shrink: 0;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.progressText {
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #aaa);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressBar {
+  height: 4px;
+  background: var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent, #6366f1);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ── Card area ── */
+
+.cardArea {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+/* ── Done / empty screens ── */
+
+.doneScreen,
+.emptyScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.doneIcon,
+.emptyIcon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.doneTitle,
+.emptyTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text, inherit);
+}
+
+.doneSubtitle,
+.emptySubtitle {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted, #aaa);
+  max-width: 36ch;
+  line-height: 1.5;
+}
+
+.refreshBtn {
+  background: var(--color-accent, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: inherit;
+  margin-top: 0.5rem;
+}
+
+.refreshBtn:hover {
+  opacity: 0.85;
+}

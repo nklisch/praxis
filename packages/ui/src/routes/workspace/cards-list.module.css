@@ -1,0 +1,228 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 1rem 1.5rem;
+  gap: 0.75rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  color: var(--color-text-muted, #aaa);
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+
+.statNum {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text, inherit);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat.due .statNum {
+  color: #f59e0b;
+}
+
+.statSep {
+  opacity: 0.4;
+}
+
+.filterBtn {
+  background: transparent;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  color: var(--color-text-muted, #aaa);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.65rem;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+  font-family: inherit;
+}
+
+.filterBtn.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--color-accent, #6366f1);
+  color: var(--color-accent, #6366f1);
+}
+
+.status {
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.error {
+  color: #f87171;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.emptyPrimary {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text, inherit);
+  margin: 0;
+}
+
+.emptyHint {
+  font-size: 0.88rem;
+  color: var(--color-text-muted, #aaa);
+  max-width: 44ch;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.cardItem {
+  display: flex;
+  align-items: stretch;
+  background: var(--color-surface, #1e1e2e);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.cardItem:hover {
+  border-color: var(--color-accent, #6366f1);
+}
+
+.cardItem.isDue {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.cardBtn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  font-family: inherit;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cardFront {
+  font-size: 0.88rem;
+  color: var(--color-text, inherit);
+  line-height: 1.4;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.dueBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.nextReview {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #aaa);
+}
+
+.reps {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #aaa);
+}
+
+.cardBack {
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.backLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #aaa);
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.backText {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--color-text, inherit);
+  line-height: 1.45;
+}
+
+.deleteBtn {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  color: var(--color-text-muted, #aaa);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 0.75rem;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -8,6 +8,8 @@ import { CourseMapRoute } from "./routes/course-map.js";
 import { CoursesRoute } from "./routes/courses.js";
 import { PacksRoute } from "./routes/packs.js";
 import { SettingsRoute } from "./routes/settings.js";
+import { NoteEditorPage } from "./routes/workspace/note-editor-page.js";
+import { WorkspaceRoute } from "./routes/workspace.js";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -62,6 +64,18 @@ const configureRoute = createRoute({
   component: ConfigureRoute,
 });
 
+const workspaceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/workspace",
+  component: WorkspaceRoute,
+});
+
+const noteEditorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/workspace/notes/$noteId",
+  component: NoteEditorPage,
+});
+
 const routeTree = rootRoute.addChildren([
   chatRoute,
   settingsRoute,
@@ -70,6 +84,8 @@ const routeTree = rootRoute.addChildren([
   courseMapRoute,
   packsRoute,
   configureRoute,
+  workspaceRoute,
+  noteEditorRoute,
 ]);
 
 export const router = createRouter({ routeTree });

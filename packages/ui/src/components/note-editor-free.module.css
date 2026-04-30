@@ -1,0 +1,35 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 100%;
+}
+
+.textarea {
+  flex: 1;
+  width: 100%;
+  background: var(--color-input-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  color: var(--color-text, inherit);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  padding: 0.75rem 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  min-height: 300px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-accent, #6366f1);
+}
+
+.hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #aaa);
+  margin: 0;
+  font-style: italic;
+}
