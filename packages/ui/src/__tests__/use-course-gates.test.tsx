@@ -1,4 +1,11 @@
-import type { Gate, GateId, GateView, PraxisClient, StudentModel, Timestamp } from "@praxis/core/types";
+import type {
+  Gate,
+  GateId,
+  GateView,
+  PraxisClient,
+  StudentModel,
+  Timestamp,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";

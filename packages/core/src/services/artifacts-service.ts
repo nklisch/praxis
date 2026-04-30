@@ -9,13 +9,14 @@ import {
 } from "@praxis/artifacts/schema";
 import { GateEvaluatorImpl } from "@praxis/curriculum/gates";
 import { concepts } from "@praxis/curriculum/schema";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, max } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
   ArtifactsService,
   ConceptId,
   ConceptStateRow,
+  ConfiguratorId,
   Course,
   CourseId,
   CourseStateReader,
@@ -33,8 +34,11 @@ import type {
   Logger,
   MasteryReader,
   ProgressSnapshot,
+  Reference,
+  StrategyId,
   StudentId,
   SuccessCriteria,
+  ThresholdConfig,
   Timestamp,
   VisibilityWindow,
 } from "../types/index.js";
@@ -405,6 +409,270 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
     }));
   }
 
+  // ── Phase 11: Configurator write methods ─────────────────────────────────
+
+  /**
+   * Update course metadata. Returns the updated Course.
+   * `patch` fields are applied selectively — omitted fields are unchanged.
+   */
+  async updateCourse(input: {
+    courseId: CourseId;
+    patch: Partial<
+      Pick<Course, "title"> & { subject: string; gradeLevel: string; thresholds: ThresholdConfig }
+    >;
+    reason?: string;
+  }): Promise<Course> {
+    const now = new Date();
+    this.deps.db
+      .update(courses)
+      .set({
+        ...(input.patch.title !== undefined && { title: input.patch.title }),
+        ...(input.patch.subject !== undefined && { subject: input.patch.subject }),
+        ...(input.patch.gradeLevel !== undefined && { gradeLevel: input.patch.gradeLevel }),
+        ...(input.patch.thresholds !== undefined && { thresholdsJson: input.patch.thresholds }),
+        updatedAt: now,
+      })
+      .where(eq(courses.id, input.courseId))
+      .run();
+    const result = await this.course(input.courseId);
+    if (!result) throw new Error(`Course not found after update: ${input.courseId}`);
+    return result;
+  }
+
+  /**
+   * Create a new lesson in a course.
+   * If `orderIndex` is omitted, the lesson is appended at the end (max + 1).
+   */
+  async createLesson(input: {
+    courseId: CourseId;
+    title: string;
+    conceptIds: ConceptId[];
+    orderIndex?: number;
+    suggestedStrategy?: StrategyId;
+    estimatedMinutes?: number;
+    references?: Reference[];
+  }): Promise<Lesson> {
+    const id = uuidv7();
+    const orderIndex = input.orderIndex ?? (await this.nextLessonOrderIndex(input.courseId));
+    this.deps.db
+      .insert(lessons)
+      .values({
+        id,
+        courseId: input.courseId,
+        title: input.title,
+        orderIndex,
+        conceptIdsJson: input.conceptIds,
+        referencesJson: input.references ?? [],
+        suggestedStrategy: input.suggestedStrategy ?? brandId<"StrategyId">("default"),
+        estimatedMinutes: input.estimatedMinutes ?? 30,
+      })
+      .run();
+    const row = this.deps.db.select().from(lessons).where(eq(lessons.id, id)).get();
+    if (!row) throw new Error(`Failed to retrieve lesson after create: ${id}`);
+    return rowToLesson(row);
+  }
+
+  /**
+   * Patch an existing lesson. Returns the updated Lesson.
+   */
+  async updateLesson(input: {
+    lessonId: LessonId;
+    patch: Partial<
+      Pick<Lesson, "title" | "conceptIds" | "references" | "suggestedStrategy" | "estimatedMinutes">
+    >;
+  }): Promise<Lesson> {
+    this.deps.db
+      .update(lessons)
+      .set({
+        ...(input.patch.title !== undefined && { title: input.patch.title }),
+        ...(input.patch.conceptIds !== undefined && { conceptIdsJson: input.patch.conceptIds }),
+        ...(input.patch.references !== undefined && { referencesJson: input.patch.references }),
+        ...(input.patch.suggestedStrategy !== undefined && {
+          suggestedStrategy: input.patch.suggestedStrategy,
+        }),
+        ...(input.patch.estimatedMinutes !== undefined && {
+          estimatedMinutes: input.patch.estimatedMinutes,
+        }),
+      })
+      .where(eq(lessons.id, input.lessonId))
+      .run();
+    const row = this.deps.db.select().from(lessons).where(eq(lessons.id, input.lessonId)).get();
+    if (!row) throw new Error(`Lesson not found after update: ${input.lessonId}`);
+    return rowToLesson(row);
+  }
+
+  /**
+   * Delete a lesson and cascade:
+   *   1. Delete lesson_progress rows for this lesson (FK cascades already, but explicit for clarity).
+   *   2. Delete gates whose guards.kind === "lesson" and guards.lessonId === lessonId.
+   *   3. Delete the lesson row.
+   *
+   * Note: concept_progress rows are NOT deleted here because concepts may be shared
+   * across lessons. Orphan cleanup (if needed) is a Phase 14+ concern.
+   *
+   * All steps run in a single transaction.
+   */
+  async deleteLesson(input: { lessonId: LessonId; reason?: string }): Promise<void> {
+    this.deps.db.transaction((tx) => {
+      // 1. lesson_progress rows are cascade-deleted via FK, but we run explicitly
+      //    for clarity and to ensure any future FK removal doesn't silently miss this.
+      tx.delete(lessonProgress).where(eq(lessonProgress.lessonId, input.lessonId)).run();
+
+      // 2. Gates whose guards.lessonId === lessonId (no FK — stored in JSON).
+      const allGates = tx.select().from(gatesTable).all();
+      const gatesToDelete = allGates
+        .filter((g) => {
+          const guards = g.guardsJson as { kind: string; lessonId?: string };
+          return guards.kind === "lesson" && guards.lessonId === input.lessonId;
+        })
+        .map((g) => g.id);
+      if (gatesToDelete.length > 0) {
+        tx.delete(gatesTable).where(inArray(gatesTable.id, gatesToDelete)).run();
+      }
+
+      // 3. Delete the lesson row (FK cascade handles lesson_progress if somehow missed).
+      tx.delete(lessons).where(eq(lessons.id, input.lessonId)).run();
+    });
+  }
+
+  /**
+   * Create a gate with an initial `locked` state.
+   */
+  async createGate(input: {
+    courseId: CourseId;
+    guards: GateTarget;
+    prerequisites: GateId[];
+    successCriteria: SuccessCriteria;
+  }): Promise<Gate> {
+    const id = uuidv7();
+    const initialState: GateState = {
+      kind: "locked",
+      missingPrerequisites: input.prerequisites,
+    };
+    this.deps.db
+      .insert(gatesTable)
+      .values({
+        id,
+        courseId: input.courseId,
+        guardsJson: input.guards,
+        prerequisitesJson: input.prerequisites,
+        successCriteriaJson: input.successCriteria,
+        stateJson: initialState,
+        evidenceJson: [],
+      })
+      .run();
+    const row = this.deps.db.select().from(gatesTable).where(eq(gatesTable.id, id)).get();
+    if (!row) throw new Error(`Failed to retrieve gate after create: ${id}`);
+    return rowToGate(row);
+  }
+
+  /**
+   * Patch a gate's guards, prerequisites, or successCriteria.
+   * Preserves existing state and evidence.
+   */
+  async updateGate(input: {
+    gateId: GateId;
+    patch: Partial<Pick<Gate, "guards" | "prerequisites" | "successCriteria">>;
+    reason?: string;
+  }): Promise<Gate> {
+    this.deps.db
+      .update(gatesTable)
+      .set({
+        ...(input.patch.guards !== undefined && { guardsJson: input.patch.guards }),
+        ...(input.patch.prerequisites !== undefined && {
+          prerequisitesJson: input.patch.prerequisites,
+        }),
+        ...(input.patch.successCriteria !== undefined && {
+          successCriteriaJson: input.patch.successCriteria,
+        }),
+      })
+      .where(eq(gatesTable.id, input.gateId))
+      .run();
+    const row = this.deps.db.select().from(gatesTable).where(eq(gatesTable.id, input.gateId)).get();
+    if (!row) throw new Error(`Gate not found after update: ${input.gateId}`);
+    return rowToGate(row);
+  }
+
+  /**
+   * Delete a gate. gate_unlock_events rows cascade via FK.
+   */
+  async deleteGate(input: { gateId: GateId; reason?: string }): Promise<void> {
+    this.deps.db.delete(gatesTable).where(eq(gatesTable.id, input.gateId)).run();
+  }
+
+  /**
+   * Override a gate's state to `"overridden"`. Also writes a gate_unlock_events
+   * row so the audit trail captures the override (same semantics as Phase 9's
+   * `evaluateAndPersistGates`).
+   *
+   * Atomic: state update + event row in one transaction.
+   */
+  async overrideGate(input: {
+    gateId: GateId;
+    reason: string;
+    configuratorId: ConfiguratorId;
+    studentId: StudentId;
+    courseId: CourseId;
+  }): Promise<Gate> {
+    const now = Date.now() as Timestamp;
+    const newState: GateState = {
+      kind: "overridden",
+      by: input.configuratorId,
+      reason: input.reason,
+      at: now,
+    };
+
+    this.deps.db.transaction((tx) => {
+      tx.update(gatesTable)
+        .set({ stateJson: newState })
+        .where(eq(gatesTable.id, input.gateId))
+        .run();
+
+      // Audit row — matches Phase 9's gate_unlock_events schema.
+      tx.insert(gateUnlockEvents)
+        .values({
+          id: uuidv7(),
+          studentId: input.studentId,
+          courseId: input.courseId,
+          gateId: input.gateId,
+          unlockedAt: new Date(now),
+          evidenceJson: [{ kind: "manual", id: `override:${input.configuratorId}` }],
+        })
+        .run();
+    });
+
+    const row = this.deps.db.select().from(gatesTable).where(eq(gatesTable.id, input.gateId)).get();
+    if (!row) throw new Error(`Gate not found after override: ${input.gateId}`);
+    return rowToGate(row);
+  }
+
+  /**
+   * Full course snapshot for the configure UI's editor pane.
+   * Reuses existing service methods for consistency.
+   */
+  async getCourseSummary(courseId: CourseId): Promise<{
+    course: Course;
+    lessons: Lesson[];
+    gates: Gate[];
+    concepts: Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>;
+  }> {
+    const course = await this.course(courseId);
+    if (!course) throw new Error(`Course not found: ${courseId}`);
+    const [lessonsList, gatesList, conceptsList] = await Promise.all([
+      this.lessons(courseId),
+      this.gates(courseId),
+      this.concepts(courseId),
+    ]);
+    return { course, lessons: lessonsList, gates: gatesList, concepts: conceptsList };
+  }
+
   // ── CourseStateReader ─────────────────────────────────────────────────────
 
   async read(input: {
@@ -505,6 +773,20 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
   }
 
   // ── Internal helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Next available orderIndex for a lesson in a course.
+   * Returns 0 for the first lesson, max(orderIndex) + 1 for subsequent.
+   */
+  private async nextLessonOrderIndex(courseId: CourseId): Promise<number> {
+    const result = this.deps.db
+      .select({ maxIndex: max(lessons.orderIndex) })
+      .from(lessons)
+      .where(eq(lessons.courseId, courseId))
+      .get();
+    const current = result?.maxIndex ?? null;
+    return current === null ? 0 : current + 1;
+  }
 
   /** Scan small lessons table; conceptIdsJson is JSON-stored. */
   private findLessonContainingConcept(conceptId: ConceptId): typeof lessons.$inferSelect | null {

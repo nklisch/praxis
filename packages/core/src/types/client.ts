@@ -8,13 +8,28 @@ import type {
   DraftCourse,
   Flashcard,
   Gate,
+  GateTarget,
   Lesson,
   Note,
+  Reference,
+  SuccessCriteria,
+  ThresholdConfig,
 } from "./artifacts.js";
 import type { TimeRange, Timestamp } from "./common.js";
+import type { ConfiguratorActionRow } from "./configurator.js";
 import type { EngineEvent } from "./engine.js";
 import type { GateView } from "./gate.js";
-import type { AssignmentId, ConceptId, CourseId, GateId, SessionId, StudentId } from "./ids.js";
+import type {
+  AssignmentId,
+  ConceptId,
+  CourseId,
+  GateId,
+  LessonId,
+  MisconceptionId,
+  SessionId,
+  StrategyId,
+  StudentId,
+} from "./ids.js";
 import type { IngestionEvent, IngestionRequest } from "./ingestion.js";
 import type {
   AffectiveModel,
@@ -28,7 +43,7 @@ import type {
 export interface PraxisClient {
   session: SessionService;
   artifacts: ArtifactsClientSurface;
-  author: AuthoringService;
+  author: AuthoringClient;
   memory: MemoryService;
   config: ConfigService;
   ingest: IngestionClient;
@@ -37,6 +52,8 @@ export interface PraxisClient {
   assignments: AssignmentsClient;
   /** Phase 10: canonical knowledge packs — list, import. */
   packs: PacksClient;
+  /** Phase 11: local lock code gate. Optional until Agent 2 wires the IPC handler. */
+  lock?: LockClient;
 }
 
 export interface SessionService {
@@ -186,11 +203,103 @@ export interface ProgressSnapshot {
   recentUnlocks: Array<{ gateId: GateId; at: Timestamp }>;
 }
 
-export interface AuthoringService {
+/**
+ * Client-side authoring surface (no studentId on methods — resolved server-side
+ * via getOrCreateDefaultStudentId in IPC handlers).
+ *
+ * Phase 3 methods kept for backward compatibility; Phase 11 adds the full v1 surface.
+ */
+export interface AuthoringClient {
+  // ── Phase 3 surface (now real) ────────────────────────────────────────────
   createCourse(input: CreateCourseInput): Promise<Course>;
   editGate(id: GateId, patch: Partial<Gate>): Promise<Gate>;
   bootstrap(files: FileRef[], opts: BootstrapOpts): Promise<DraftCourse>;
   customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
+
+  // ── Phase 11: course / lesson / gate edits ────────────────────────────────
+  updateCourse(input: {
+    courseId: CourseId;
+    patch: Partial<
+      Pick<Course, "title"> & { subject: string; gradeLevel: string; thresholds: ThresholdConfig }
+    >;
+    reason?: string;
+  }): Promise<Course>;
+
+  createLesson(input: {
+    courseId: CourseId;
+    title: string;
+    conceptIds: ConceptId[];
+    orderIndex?: number;
+    suggestedStrategy?: StrategyId;
+    estimatedMinutes?: number;
+    references?: Reference[];
+  }): Promise<Lesson>;
+
+  updateLesson(input: {
+    lessonId: LessonId;
+    patch: Partial<
+      Pick<Lesson, "title" | "conceptIds" | "references" | "suggestedStrategy" | "estimatedMinutes">
+    >;
+  }): Promise<Lesson>;
+
+  deleteLesson(input: { lessonId: LessonId; reason?: string }): Promise<void>;
+
+  createGate(input: {
+    courseId: CourseId;
+    guards: GateTarget;
+    prerequisites: GateId[];
+    successCriteria: SuccessCriteria;
+  }): Promise<Gate>;
+
+  updateGate(input: {
+    gateId: GateId;
+    patch: Partial<Pick<Gate, "guards" | "prerequisites" | "successCriteria">>;
+    reason?: string;
+  }): Promise<Gate>;
+
+  deleteGate(input: { gateId: GateId; reason?: string }): Promise<void>;
+
+  overrideGate(input: { gateId: GateId; reason: string }): Promise<Gate>;
+
+  getCourseSummary(courseId: CourseId): Promise<{
+    course: Course;
+    lessons: Lesson[];
+    gates: Gate[];
+    concepts: Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>;
+  }>;
+
+  // ── Phase 11: prompt customization ───────────────────────────────────────
+  clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void>;
+  setStyleSliders(input: { socratic: number; verbosity: number; formality: number }): Promise<void>;
+
+  // ── Phase 11: memory administration (no studentId — resolved server-side) ─
+  resetConcept(input: { conceptId: ConceptId; reason: string }): Promise<void>;
+  clearMisconception(input: { misconceptionId: MisconceptionId; reason: string }): Promise<void>;
+  exportMemory(input: { targetPath: string }): Promise<{ ok: true; bytesWritten: number }>;
+  deleteAllMemory(input: { reason: string; confirm: true }): Promise<void>;
+
+  // ── Phase 11: audit log ───────────────────────────────────────────────────
+  listConfiguratorActions(input?: {
+    fromTs?: Timestamp;
+    limit?: number;
+  }): Promise<ConfiguratorActionRow[]>;
+}
+
+/** Phase 11: Client-side lock interface. */
+export interface LockClient {
+  isSet(): Promise<boolean>;
+  isUnlocked(): Promise<boolean>;
+  setLockCode(code: string): Promise<void>;
+  unlock(code: string): Promise<{ ok: boolean }>;
+  lock(): Promise<void>;
+  clearLock(currentCode: string): Promise<void>;
 }
 
 export interface CreateCourseInput {

@@ -1,3 +1,7 @@
+// Phase 11: Lock service
+export type { LockServiceDeps } from "./lock-service.js";
+export { LockServiceImpl } from "./lock-service.js";
+
 // Phase 8: Assignment service + graders
 
 export type { ArtifactsServiceDeps } from "./artifacts-service.js";

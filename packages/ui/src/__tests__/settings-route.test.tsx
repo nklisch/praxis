@@ -1,6 +1,6 @@
 import type {
   ArtifactsClientSurface,
-  AuthoringService,
+  AuthoringClient,
   EngineConfigSnapshot,
   MemoryClientService,
   PraxisClient,
@@ -20,7 +20,7 @@ function makeFakeClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisC
   return {
     session: {} as SessionService,
     artifacts: {} as ArtifactsClientSurface,
-    author: {} as AuthoringService,
+    author: {} as AuthoringClient,
     memory: {} as MemoryClientService,
     config: {
       isLocked: vi.fn().mockResolvedValue(false),

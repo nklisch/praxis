@@ -403,6 +403,11 @@ export class SessionServiceImpl implements SessionService {
           indexerOrchestrator: this.deps.indexerOrchestrator,
         }), // ← Phase 7 (optional)
         pedagogyPack: null,
+        // Phase 11: lock + authoring — propagated from toolServices when wired by Agent 2.
+        // biome-ignore lint/suspicious/noExplicitAny: AuthoringService wired by Agent 2; null is safe until then
+        lock: (this.deps.toolServices.lock as any) ?? null,
+        // biome-ignore lint/suspicious/noExplicitAny: AuthoringService wired by Agent 2; null is safe until then
+        authoring: (this.deps.toolServices.authoring as any) ?? null,
       },
       log: this.deps.log,
     };

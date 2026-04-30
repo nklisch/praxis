@@ -8,7 +8,7 @@ export type * from "./citation.js";
 export type {
   ArtifactsClientSurface,
   AssignmentsClient,
-  AuthoringService,
+  AuthoringClient,
   BootstrapOpts,
   ConfigService,
   CreateCourseInput,
@@ -18,6 +18,7 @@ export type {
   FileRef,
   ImportedPackClient,
   IngestionClient,
+  LockClient,
   MemoryService as MemoryClientService,
   PackSummaryClient,
   PacksClient,
@@ -29,6 +30,7 @@ export type {
 } from "./client.js";
 export type * from "./common.js";
 export type * from "./concept-graph.js";
+export type * from "./configurator.js";
 export type * from "./conversation.js";
 export type * from "./engine.js";
 export { engineError } from "./engine.js"; // runtime helper — not re-exported by `export type *`

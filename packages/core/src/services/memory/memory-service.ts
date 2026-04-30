@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import {
   affectiveSamples,
   episodicEvents,
@@ -8,7 +9,14 @@ import {
 import { and, asc, desc, eq, gte, isNull, lte } from "drizzle-orm";
 import type { PraxisDb } from "../../db/index.js";
 import type { Logger, TimeRange, Timestamp } from "../../types/common.js";
-import type { ConceptId, SessionId, StrategyId, StudentId } from "../../types/ids.js";
+import type { MasteryReader } from "../../types/gate.js";
+import type {
+  ConceptId,
+  MisconceptionId,
+  SessionId,
+  StrategyId,
+  StudentId,
+} from "../../types/ids.js";
 import { brandId } from "../../types/index.js";
 import type {
   AffectiveModel,
@@ -22,9 +30,9 @@ import type {
 } from "../../types/memory.js";
 // Import server-side MemoryService (with studentId params) directly from tool.ts.
 import type { MemoryService } from "../../types/tool.js";
-import type { MasteryReader } from "../../types/gate.js";
 import { applySignalsToConcept } from "../indexers/mastery-indexer.js";
 import { upsertMisconception } from "../indexers/misconception-indexer.js";
+import { bktInitial } from "./bkt.js";
 import { applyDecay } from "./decay.js";
 
 export interface MemoryServiceDeps {
@@ -253,6 +261,100 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
       remediation: opts.remediation,
       evidenceEventIds: opts.evidenceEventIds,
     });
+  }
+
+  // ── Phase 11: Configurator write methods ─────────────────────────────────────
+
+  /**
+   * Reset a concept to initial BKT state ("as if never observed").
+   * Upserts the student_mastery row with prior probabilities from bktInitial(),
+   * clears evidenceJson and lastPracticedAt.
+   */
+  async resetConcept(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    reason: string;
+  }): Promise<void> {
+    const initialState = bktInitial();
+    const now = new Date();
+    this.deps.db
+      .insert(studentMastery)
+      .values({
+        studentId: input.studentId,
+        conceptId: input.conceptId,
+        pKnown: Math.round(initialState.pKnown * 1000),
+        uncertainty: Math.round(initialState.uncertainty * 1000),
+        effectivePKnown: Math.round(initialState.pKnown * 1000),
+        lastPracticedAt: null,
+        evidenceJson: [],
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [studentMastery.studentId, studentMastery.conceptId],
+        set: {
+          pKnown: Math.round(initialState.pKnown * 1000),
+          uncertainty: Math.round(initialState.uncertainty * 1000),
+          effectivePKnown: Math.round(initialState.pKnown * 1000),
+          lastPracticedAt: null,
+          evidenceJson: [],
+          updatedAt: now,
+        },
+      })
+      .run();
+    this.deps.log.info("memory.concept_reset", {
+      conceptId: input.conceptId,
+      reason: input.reason,
+    });
+  }
+
+  /**
+   * Flip a misconception's status to "manually-cleared".
+   * Updates lastObservedAt to now (documents when it was cleared).
+   */
+  async clearMisconception(input: {
+    misconceptionId: MisconceptionId;
+    reason: string;
+  }): Promise<void> {
+    const now = new Date();
+    this.deps.db
+      .update(misconceptions)
+      .set({ status: "manually-cleared", lastObservedAt: now })
+      .where(eq(misconceptions.id, input.misconceptionId))
+      .run();
+    this.deps.log.info("memory.misconception_cleared", {
+      misconceptionId: input.misconceptionId,
+      reason: input.reason,
+    });
+  }
+
+  /**
+   * Export memory to a file at `targetPath`.
+   * Wraps the existing `export()` method; converts Maps → entry arrays for JSON
+   * serialization (consistent with Phase 7's IPC export pattern).
+   * Returns `{ ok: true, bytesWritten }`.
+   */
+  async exportToFile(input: {
+    studentId: StudentId;
+    targetPath: string;
+  }): Promise<{ ok: true; bytesWritten: number }> {
+    const exportData = await this.export(input.studentId);
+    const serializable = {
+      ...exportData,
+      studentModel: {
+        ...exportData.studentModel,
+        // Map is not JSON-serializable; convert to [key, value] entries array.
+        conceptMastery: Array.from(exportData.studentModel.conceptMastery.entries()),
+      },
+      // ProceduralModel.strategies is also a Map.
+      procedural: {
+        ...exportData.procedural,
+        strategies: Array.from(exportData.procedural.strategies.entries()),
+      },
+    };
+    const json = JSON.stringify(serializable, null, 2);
+    const bytes = Buffer.byteLength(json, "utf-8");
+    await writeFile(input.targetPath, json, "utf-8");
+    return { ok: true, bytesWritten: bytes };
   }
 
   // ── MasteryReader.read (Phase 9) ──────────────────────────────────────────────

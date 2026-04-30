@@ -12,6 +12,7 @@ import type {
   Engine,
   FtsStore,
   IndexerOrchestrator,
+  LockService,
   Logger,
   MemoryService,
   Mode,
@@ -49,6 +50,11 @@ export interface ServiceDeps {
     assignments: AssignmentService;
     /** Phase 10: canonical knowledge packs — list, import. */
     packs: PackImportService;
+    /** Phase 11: local lock code gate. Optional — absent in pre-Phase-11 builds. */
+    lock?: LockService;
+    /** Phase 11: configurator authoring + memory writes. Optional — wired by Agent 2. */
+    // biome-ignore lint/suspicious/noExplicitAny: AuthoringService imported at Agent 2 wiring time
+    authoring?: any;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will
@@ -61,4 +67,9 @@ export interface ServiceDeps {
    * defaults to `createEngine` from @praxis/engines. Tests inject fakes here.
    */
   engineFactory?: (config: EngineConfig, deps: { log: Logger }) => Engine;
+  /**
+   * Phase 11: optional lock service. When set, SessionServiceImpl can check
+   * lock state and configure mode can refuse tools when locked.
+   */
+  lockService?: LockService;
 }

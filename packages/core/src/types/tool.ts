@@ -10,20 +10,28 @@ import type {
   DraftEditOp,
   DraftSummary,
   Gate,
+  GateTarget,
   Lesson,
+  Reference,
+  SuccessCriteria,
+  ThresholdConfig,
 } from "./artifacts.js";
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
+import type { ConfiguratorActionRow } from "./configurator.js";
 import type { GateView, GradeReader, MasteryReader } from "./gate.js";
 import type {
   AssignmentId,
   ConceptGraphId,
   ConceptId,
+  ConfiguratorId,
   CourseId,
   DocumentId,
   GateId,
   LessonId,
+  MisconceptionId,
   SessionId,
+  StrategyId,
   StudentId,
 } from "./ids.js";
 import type {
@@ -97,7 +105,129 @@ export interface ToolServices {
   /** Phase 10: pack import + listing — canonical curriculum packs. */
   packs: PackImportService;
   pedagogyPack: unknown; // PedagogyPackService — concrete in Phase 14
+  /** Phase 11: local lock code gate. Optional until Agent 2 wires the concrete service. */
+  lock?: LockService;
+  /** Phase 11: configurator-driven authoring + memory writes. Optional until Agent 2 wires the concrete service. */
+  authoring?: AuthoringService;
 }
+
+// ─── Phase 11: LockService ───────────────────────────────────────────────────
+
+/** Server-side lock service — local code-gating. */
+export interface LockService {
+  /** Whether a lock code is set. */
+  isSet(): Promise<boolean>;
+  /**
+   * Whether the current process has been unlocked.
+   * Always true when no lock is set.
+   */
+  isUnlocked(): Promise<boolean>;
+  /** Set/replace the lock code. Throws if the new code fails policy (4–8 digits). */
+  setLockCode(input: { code: string }): Promise<void>;
+  /** Verify code; on success, marks the current process unlocked. */
+  unlock(input: { code: string }): Promise<{ ok: boolean }>;
+  /** Lock the current process (clears the unlocked-this-session flag). */
+  lock(): Promise<void>;
+  /** Clear the lock entirely (factory-reset path). Requires the current code. */
+  clearLock(input: { currentCode: string }): Promise<void>;
+}
+
+// ─── Phase 11: AuthoringService (server-side) ───────────────────────────────
+
+/**
+ * Server-side AuthoringService — orchestrates configurator writes to
+ * artifacts + memory + prompt overrides, and appends audit log rows.
+ *
+ * Methods with studentId are server-side only; client-side AuthoringClient
+ * in client.ts omits studentId (IPC handlers resolve it).
+ */
+export interface AuthoringService {
+  // ── Course / lesson / gate ────────────────────────────────────────────────
+  updateCourse(input: {
+    courseId: CourseId;
+    patch: Partial<
+      Pick<Course, "title"> & { subject: string; gradeLevel: string; thresholds: ThresholdConfig }
+    >;
+    reason?: string;
+  }): Promise<Course>;
+
+  createLesson(input: {
+    courseId: CourseId;
+    title: string;
+    conceptIds: ConceptId[];
+    orderIndex?: number;
+    suggestedStrategy?: StrategyId;
+    estimatedMinutes?: number;
+    references?: Reference[];
+  }): Promise<Lesson>;
+
+  updateLesson(input: {
+    lessonId: LessonId;
+    patch: Partial<
+      Pick<Lesson, "title" | "conceptIds" | "references" | "suggestedStrategy" | "estimatedMinutes">
+    >;
+  }): Promise<Lesson>;
+
+  deleteLesson(input: { lessonId: LessonId; reason?: string }): Promise<void>;
+
+  createGate(input: {
+    courseId: CourseId;
+    guards: GateTarget;
+    prerequisites: GateId[];
+    successCriteria: SuccessCriteria;
+  }): Promise<Gate>;
+
+  updateGate(input: {
+    gateId: GateId;
+    patch: Partial<Pick<Gate, "guards" | "prerequisites" | "successCriteria">>;
+    reason?: string;
+  }): Promise<Gate>;
+
+  deleteGate(input: { gateId: GateId; reason?: string }): Promise<void>;
+
+  overrideGate(input: { gateId: GateId; reason: string }): Promise<Gate>;
+
+  getCourseSummary(courseId: CourseId): Promise<{
+    course: Course;
+    lessons: Lesson[];
+    gates: Gate[];
+    concepts: Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>;
+  }>;
+
+  // ── Prompt customization ──────────────────────────────────────────────────
+  customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
+  clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void>;
+  setStyleSliders(input: { socratic: number; verbosity: number; formality: number }): Promise<void>;
+
+  // ── Memory administration ─────────────────────────────────────────────────
+  resetConcept(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    reason: string;
+  }): Promise<void>;
+  clearMisconception(input: { misconceptionId: MisconceptionId; reason: string }): Promise<void>;
+  exportMemory(input: {
+    studentId: StudentId;
+    targetPath: string;
+  }): Promise<{ ok: true; bytesWritten: number }>;
+  deleteAllMemory(input: { studentId: StudentId; reason: string; confirm: true }): Promise<void>;
+
+  // ── Audit log ─────────────────────────────────────────────────────────────
+  listConfiguratorActions(input?: {
+    fromTs?: Timestamp;
+    limit?: number;
+  }): Promise<ConfiguratorActionRow[]>;
+}
+
+// ConfiguratorAction and ConfiguratorActionRow are re-exported via index.ts's
+// `export type * from "./configurator.js"` — no additional re-export needed here.
 
 // ─── Phase 6: ArtifactsService ───────────────────────────────────────────────
 
@@ -156,6 +286,72 @@ export interface ArtifactsService {
       standardsTags: string[];
     }>
   >;
+
+  // ── Phase 11: Configurator write methods ──────────────────────────────────
+
+  updateCourse(input: {
+    courseId: CourseId;
+    patch: Partial<
+      Pick<Course, "title"> & { subject: string; gradeLevel: string; thresholds: ThresholdConfig }
+    >;
+    reason?: string;
+  }): Promise<Course>;
+
+  createLesson(input: {
+    courseId: CourseId;
+    title: string;
+    conceptIds: ConceptId[];
+    orderIndex?: number;
+    suggestedStrategy?: StrategyId;
+    estimatedMinutes?: number;
+    references?: Reference[];
+  }): Promise<Lesson>;
+
+  updateLesson(input: {
+    lessonId: LessonId;
+    patch: Partial<
+      Pick<Lesson, "title" | "conceptIds" | "references" | "suggestedStrategy" | "estimatedMinutes">
+    >;
+  }): Promise<Lesson>;
+
+  deleteLesson(input: { lessonId: LessonId; reason?: string }): Promise<void>;
+
+  createGate(input: {
+    courseId: CourseId;
+    guards: GateTarget;
+    prerequisites: GateId[];
+    successCriteria: SuccessCriteria;
+  }): Promise<Gate>;
+
+  updateGate(input: {
+    gateId: GateId;
+    patch: Partial<Pick<Gate, "guards" | "prerequisites" | "successCriteria">>;
+    reason?: string;
+  }): Promise<Gate>;
+
+  deleteGate(input: { gateId: GateId; reason?: string }): Promise<void>;
+
+  overrideGate(input: {
+    gateId: GateId;
+    reason: string;
+    configuratorId: ConfiguratorId;
+    studentId: StudentId;
+    courseId: CourseId;
+  }): Promise<Gate>;
+
+  getCourseSummary(courseId: CourseId): Promise<{
+    course: Course;
+    lessons: Lesson[];
+    gates: Gate[];
+    concepts: Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>;
+  }>;
 }
 
 // Re-export gate ports so callers can import from tool.ts.
@@ -340,6 +536,34 @@ export interface MemoryService {
     remediation: { strategyId: string; rationale: string };
     evidenceEventIds: string[];
   }): { misconceptionId: string; merged: boolean };
+
+  // ── Phase 11: Configurator memory writes ─────────────────────────────────
+
+  /**
+   * Reset a concept to initial BKT state ("as if never observed").
+   * Upserts student_mastery with BKT priors; clears evidenceJson + lastPracticedAt.
+   */
+  resetConcept(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    reason: string;
+  }): Promise<void>;
+
+  /**
+   * Flip a misconception's status to "manually-cleared".
+   * Documents when it was cleared (updates lastObservedAt to now).
+   */
+  clearMisconception(input: { misconceptionId: MisconceptionId; reason: string }): Promise<void>;
+
+  /**
+   * Export memory snapshot to a JSON file at `targetPath`.
+   * Wraps `export()` and serializes Maps to entry arrays.
+   * Returns the byte count written.
+   */
+  exportToFile(input: {
+    studentId: StudentId;
+    targetPath: string;
+  }): Promise<{ ok: true; bytesWritten: number }>;
 }
 
 // ─── EmbeddingService ────────────────────────────────────────────────────────
