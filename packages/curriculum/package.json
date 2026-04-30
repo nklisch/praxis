@@ -9,7 +9,8 @@
     "./brief": "./src/brief/compose.ts",
     "./brief/course-context": "./src/brief/course-context.ts",
     "./brief/assignment-context": "./src/brief/assignment-context.ts",
-    "./bootstrap": "./src/bootstrap/index.ts"
+    "./bootstrap": "./src/bootstrap/index.ts",
+    "./gates": "./src/gates/index.ts"
   },
   "scripts": {
     "build": "tsc -b",

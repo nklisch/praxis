@@ -27,15 +27,14 @@ export function formatMasteryTag(effectivePKnown: number | undefined, studied: b
 /**
  * Build a `context`-position PromptFragment summarizing the active course.
  *
+ * Phase 9 extension: adds a bounded visibility window (course-progress one-liner,
+ * current lesson detail, next lesson with lock tag, remaining count, active gate).
+ *
  * Called by SessionServiceImpl when starting a teach session whose courseId
- * resolves via CourseStateReader. The fragment is passed as an override
- * keyed by id "context.course-state" so it replaces the mode's default
- * "no course" fragment.
+ * resolves via CourseStateReader. The fragment is passed as an override keyed by
+ * id "context.course-state" so it replaces the mode's default "no course" fragment.
  *
- * This function is generic — it receives a snapshot and produces text.
- * It does not know which mode called it. Phase 11 may pass additional
- * fragments alongside this one via composeSystemPrompt's additionalFragments.
- *
+ * @param snapshot          The CourseStateSnapshot from CourseStateReader.read().
  * @param masteryByConceptId  Optional map from conceptId string to effectivePKnown
  *   (decay-adjusted). When provided, concept tags show graduated mastery scores
  *   ("mastered (0.85)" / "in progress (0.42)"). When absent, falls back to
@@ -46,9 +45,20 @@ export function composeCourseContextFragment(
   masteryByConceptId?: ReadonlyMap<string, number>,
 ): PromptFragment {
   const lines: string[] = [];
+
+  // Header
   lines.push(
     `Active course: ${snapshot.course.title} (${snapshot.course.subject}, ${snapshot.course.gradeLevel})`,
   );
+
+  // Phase 9: Course shape one-liner
+  const totalLessons = snapshot.lessons.length;
+  const currentIdx = snapshot.visibilityWindow.currentLessonIndex;
+  const completedLessons = currentIdx; // lessons before currentLessonIndex are completed
+  const aheadCount = Math.max(0, totalLessons - completedLessons - 1);
+  lines.push(`Course progress: ${completedLessons} of ${totalLessons} lessons complete; ${aheadCount} ahead.`);
+
+  // Current lesson — full detail
   if (snapshot.currentLesson) {
     lines.push(`Current lesson: ${snapshot.currentLesson.title}`);
     const conceptRows = snapshot.conceptsByLesson.get(snapshot.currentLesson.id) ?? [];
@@ -74,6 +84,46 @@ export function composeCourseContextFragment(
       `This course has no in-progress lesson; all lessons are completed or none have been started.`,
     );
   }
+
+  // Phase 9: Next lesson — title + concept count + lock status
+  const nextLessonIndex = currentIdx + 1;
+  if (nextLessonIndex < snapshot.lessons.length) {
+    const nextLesson = snapshot.lessons[nextLessonIndex];
+    if (nextLesson) {
+      // Find the gate that guards this lesson (if any).
+      const nextLessonGate = snapshot.gates.find(
+        (g) => g.gate.guards.kind === "lesson" && g.gate.guards.lessonId === nextLesson.id,
+      );
+      const isLocked =
+        nextLessonGate &&
+        nextLessonGate.gate.state.kind !== "unlocked" &&
+        nextLessonGate.gate.state.kind !== "overridden";
+      const lockTag = isLocked
+        ? ` — locked${nextLessonGate.lockReason ? `: ${nextLessonGate.lockReason}` : ""}`
+        : "";
+      const conceptCount = nextLesson.conceptIds.length;
+      lines.push(
+        `Up next: "${nextLesson.title}" (${conceptCount} concept${conceptCount === 1 ? "" : "s"})${lockTag}`,
+      );
+    }
+  }
+
+  // Phase 9: Bounded visibility — summarize anything beyond next lesson
+  const remainingCount = snapshot.visibilityWindow.remainingCount;
+  if (remainingCount > 0) {
+    lines.push(
+      `(${remainingCount} more lesson${remainingCount === 1 ? "" : "s"} follow.)`,
+    );
+  }
+
+  // Phase 9: Active gate — what the student is working toward
+  if (snapshot.activeGate) {
+    lines.push(`Working toward: unlock — ${snapshot.activeGate.summaryText}`);
+    if (snapshot.activeGate.lockReason) {
+      lines.push(`  Current status: ${snapshot.activeGate.lockReason}`);
+    }
+  }
+
   return {
     id: "context.course-state",
     position: "context",

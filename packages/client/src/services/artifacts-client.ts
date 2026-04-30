@@ -7,6 +7,8 @@ import type {
   CourseSummary,
   Flashcard,
   Gate,
+  GateId,
+  GateView,
   Lesson,
   Note,
   ProgressSnapshot,
@@ -67,5 +69,26 @@ export class ArtifactsClient implements ArtifactsClientSurface {
 
   conceptMaps(_courseId?: CourseId): Promise<ConceptMapDrawing[]> {
     return Promise.resolve([]);
+  }
+
+  // ── Phase 9: Gate view + evaluation ─────────────────────────────────────────
+
+  gateView(courseId: CourseId): Promise<GateView[]> {
+    return this.transport.invoke<GateView[]>("praxis.artifacts.gateView", courseId);
+  }
+
+  evaluateGates(courseId: CourseId): Promise<{ unlockedGateIds: GateId[] }> {
+    return this.transport.invoke<{ unlockedGateIds: GateId[] }>(
+      "praxis.artifacts.evaluateGates",
+      courseId,
+    );
+  }
+
+  markGatesViewed(courseId: CourseId): Promise<void> {
+    return this.transport.invoke<void>("praxis.artifacts.markGatesViewed", courseId);
+  }
+
+  newlyUnlockedCount(courseId: CourseId): Promise<number> {
+    return this.transport.invoke<number>("praxis.artifacts.newlyUnlockedCount", courseId);
   }
 }

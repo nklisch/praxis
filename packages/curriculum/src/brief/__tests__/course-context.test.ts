@@ -76,6 +76,9 @@ function makeSnapshot(overrides: Partial<CourseStateSnapshot> = {}): CourseState
     currentLesson: lesson,
     conceptsByLesson,
     conceptsById,
+    gates: [],
+    activeGate: null,
+    visibilityWindow: { currentLessonIndex: 0, remainingCount: 0 },
     ...overrides,
   };
 }

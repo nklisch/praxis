@@ -1,6 +1,7 @@
 import type { ToolContext, ToolDefinition } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
+import { checkConceptNotLocked } from "../lock-helpers.js";
 
 const InputSchema = z.object({
   conceptId: z.string().describe("The concept ID to mark as studied."),
@@ -29,6 +30,21 @@ export const markStudiedTool: ToolDefinition<typeof InputSchema, typeof OutputSc
   effects: ["artifact.mutate"],
   async handler(args, ctx: ToolContext): Promise<z.infer<typeof OutputSchema>> {
     const conceptId = brandId<"ConceptId">(args.conceptId);
+
+    // Phase 9: Lock check. Sessions without a courseId skip this (backward compat).
+    if (ctx.courseId) {
+      const snapshot = await ctx.services.courseState.read({
+        studentId: ctx.studentId,
+        courseId: ctx.courseId,
+      });
+      if (snapshot) {
+        const lockCheck = checkConceptNotLocked(snapshot, conceptId);
+        if (!lockCheck.ok) {
+          throw new Error(`cannot mark_studied "${args.conceptId}": ${lockCheck.reason}`);
+        }
+      }
+    }
+
     const result = await ctx.services.artifacts.markConceptStudied({
       studentId: ctx.studentId,
       conceptId,

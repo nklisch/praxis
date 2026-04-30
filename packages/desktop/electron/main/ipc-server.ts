@@ -175,6 +175,40 @@ export function registerIpcHandlers(
     return services.artifacts.progress(studentId);
   });
 
+  // ── Phase 9: Gate view + evaluation ──────────────────────────────────────────
+
+  handle("praxis.artifacts.gateView", async (_event, courseId: string) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.artifacts.gateView({
+      studentId,
+      courseId: brandId<"CourseId">(courseId) as CourseId,
+    });
+  });
+
+  handle("praxis.artifacts.evaluateGates", async (_event, courseId: string) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.artifacts.evaluateAndPersistGates({
+      studentId,
+      courseId: brandId<"CourseId">(courseId) as CourseId,
+    });
+  });
+
+  handle("praxis.artifacts.markGatesViewed", async (_event, courseId: string) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.artifacts.markGatesViewed({
+      studentId,
+      courseId: brandId<"CourseId">(courseId) as CourseId,
+    });
+  });
+
+  handle("praxis.artifacts.newlyUnlockedCount", async (_event, courseId: string) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.artifacts.newlyUnlockedCount({
+      studentId,
+      courseId: brandId<"CourseId">(courseId) as CourseId,
+    });
+  });
+
   // ── Memory ───────────────────────────────────────────────────────────────────
 
   handle("praxis.memory.studentModel", async () => {

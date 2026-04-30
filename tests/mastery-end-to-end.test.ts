@@ -236,11 +236,16 @@ describe("mastery end-to-end", () => {
   it("session.end() completes cleanly with indexerOrchestrator wired", async () => {
     const { db: client } = openDb({ path: dbCtx.dbPath });
 
-    const artifactsService = new ArtifactsServiceImpl({ db: client, log: noopLogger });
     const memoryService = new MemoryServiceImpl({
       db: client,
       log: noopLogger,
       decayDaysFor: () => 14,
+    });
+    const artifactsService = new ArtifactsServiceImpl({
+      db: client,
+      log: noopLogger,
+      masteryReader: memoryService,
+      gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
     });
 
     const masteryIndexer = new MasteryIndexer({

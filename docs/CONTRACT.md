@@ -375,6 +375,13 @@ type GateState =
   | { kind: "overridden"; by: ConfiguratorId; reason: string };
 ```
 
+**Gate lifecycle (Phase 9):**
+- Gates are bootstrapped in `locked` state with chained prerequisites.
+- `SessionService.end()` calls `ArtifactsService.evaluateAndPersistGates()` after the indexer run. The `GateEvaluatorImpl` (pure function in `@praxis/curriculum/gates`) evaluates all gates for the course using `MasteryReader` and `GradeReader` adapters. Transitions are persisted atomically in a single transaction.
+- Once unlocked, gates stay unlocked in v1 (no re-locking). Re-lock logic is planned for Phase 14.
+- `gate_unlock_events` table provides an append-only audit trail (one row per unlock per student per gate). Used by the "newly unlocked" badge (`viewedAt` column) and `pnpm db:gates`.
+- Tool lock enforcement: `course.start_lesson`, `course.mark_studied`, and `assignment.create` read gate state from the snapshot and refuse with descriptive errors when the target is locked.
+
 ### Flashcard / Note
 
 ```typescript

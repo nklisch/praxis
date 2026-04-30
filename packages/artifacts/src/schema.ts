@@ -218,6 +218,31 @@ export const assignmentResponses = sqliteTable(
   }),
 );
 
+// ─── Phase 9: Gate unlock event log ──────────────────────────────────────────
+
+export const gateUnlockEvents = sqliteTable(
+  "gate_unlock_events",
+  {
+    id: text("id").primaryKey(),
+    studentId: text("student_id").notNull(),
+    courseId: text("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    gateId: text("gate_id")
+      .notNull()
+      .references(() => gates.id, { onDelete: "cascade" }),
+    unlockedAt: integer("unlocked_at", { mode: "timestamp_ms" }).notNull(),
+    /** Optional evidence pointers (event ids, assignment ids). */
+    evidenceJson: text("evidence_json", { mode: "json" }),
+    /** Timestamp the student viewed this in /courses; null if never viewed. */
+    viewedAt: integer("viewed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => ({
+    studentCourseIdx: index("gate_unlock_events_student_course_idx").on(t.studentId, t.courseId),
+    gateIdx: index("gate_unlock_events_gate_idx").on(t.gateId),
+  }),
+);
+
 /**
  * Aggregate export so the DB module can spread all artifact tables into the
  * Drizzle schema map.
@@ -235,4 +260,5 @@ export const artifactsSchema = {
   lessonProgress, // ← Phase 6
   conceptProgress, // ← Phase 6
   assignmentResponses, // ← Phase 8
+  gateUnlockEvents, // ← Phase 9
 };

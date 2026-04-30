@@ -100,17 +100,6 @@ export function buildServices(dbPath: string): Services {
     }
   };
 
-  // Phase 6: ArtifactsServiceImpl (reads + progress writes)
-  const artifactsService = new ArtifactsServiceImpl({ db, log });
-
-  // Phase 7: MemoryServiceImpl — decayDaysFor uses a global default of 14 days.
-  // The integration agent (Phase 7 Part 2) will update this to read from the active course.
-  const memoryService = new MemoryServiceImpl({
-    db,
-    log,
-    decayDaysFor: () => 14,
-  });
-
   // Phase 6: Bootstrap engine resolver — same pattern as visionResolver above.
   // Looks up the active engine at call time so engine swaps reflect immediately.
   const bootstrapEngineResolver = () => {
@@ -141,7 +130,48 @@ export function buildServices(dbPath: string): Services {
     new VisionPdfIngestor({ visionResolver, pageImageStore }),
   ]);
 
-  // Phase 7: Indexers
+  // Phase 7: MemoryServiceImpl — decayDaysFor uses a global default of 14 days.
+  // Phase 9: MemoryServiceImpl must be constructed BEFORE ArtifactsServiceImpl
+  // because ArtifactsServiceImpl now receives it as MasteryReader.
+  const memoryService = new MemoryServiceImpl({
+    db,
+    log,
+    decayDaysFor: () => 14,
+  });
+
+  // Phase 8: AssignmentServiceImpl.
+  // Phase 9: Must be constructed BEFORE ArtifactsServiceImpl (GradeReader injection).
+  const assignmentEngineResolver = () => {
+    const engineConfig = readEngineConfig(db);
+    return createEngine({ config: engineConfig, deps: { log } });
+  };
+
+  const assignmentService = new AssignmentServiceImpl({
+    db,
+    log,
+    graderServices: {
+      sympy,
+      sandbox,
+      engineResolver: assignmentEngineResolver,
+    },
+    // Read the assignment's kind column to resolve the submission mode.
+    resolveSubmissionMode: (assignmentId: AssignmentId) => {
+      const row = db.select().from(assignments).where(eq(assignments.id, assignmentId)).get();
+      return (row?.kind as "quiz" | "homework" | "exam") ?? "quiz";
+    },
+  });
+
+  // Phase 6: ArtifactsServiceImpl (reads + progress writes).
+  // Phase 9: Constructed AFTER memoryService and assignmentService so they can be
+  // injected as MasteryReader and GradeReader. Critical ordering: memory → assignment → artifacts.
+  const artifactsService = new ArtifactsServiceImpl({
+    db,
+    log,
+    masteryReader: memoryService, // Phase 9: MasteryReader adapter
+    gradeReader: assignmentService, // Phase 9: GradeReader adapter
+  });
+
+  // Phase 7: Indexers (use artifactsService after it's constructed above)
   const masteryIndexer = new MasteryIndexer({
     db,
     log,
@@ -161,31 +191,6 @@ export function buildServices(dbPath: string): Services {
     db,
     log,
     indexers: [masteryIndexer, misconceptionIndexer],
-  });
-
-  // Phase 8: AssignmentServiceImpl.
-  // graderServices.engineResolver uses the same bootstrapEngineResolver pattern.
-  // resolveSubmissionMode reads the session's modeId for the given assignment —
-  // Agent 2 wires a proper lookup; for now default to "quiz" (safe fallback).
-  const assignmentEngineResolver = () => {
-    const engineConfig = readEngineConfig(db);
-    return createEngine({ config: engineConfig, deps: { log } });
-  };
-
-  const assignmentService = new AssignmentServiceImpl({
-    db,
-    log,
-    graderServices: {
-      sympy,
-      sandbox,
-      engineResolver: assignmentEngineResolver,
-    },
-    // Read the assignment's kind column to resolve the submission mode.
-    // assignment.kind mirrors the session mode id ("quiz" | "homework" | "exam").
-    resolveSubmissionMode: (assignmentId: AssignmentId) => {
-      const row = db.select().from(assignments).where(eq(assignments.id, assignmentId)).get();
-      return (row?.kind as "quiz" | "homework" | "exam") ?? "quiz";
-    },
   });
 
   const modes = new Map([

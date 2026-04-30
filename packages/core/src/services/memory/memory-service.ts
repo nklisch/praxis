@@ -22,6 +22,7 @@ import type {
 } from "../../types/memory.js";
 // Import server-side MemoryService (with studentId params) directly from tool.ts.
 import type { MemoryService } from "../../types/tool.js";
+import type { MasteryReader } from "../../types/gate.js";
 import { applySignalsToConcept } from "../indexers/mastery-indexer.js";
 import { upsertMisconception } from "../indexers/misconception-indexer.js";
 import { applyDecay } from "./decay.js";
@@ -37,7 +38,7 @@ export interface MemoryServiceDeps {
   decayDaysFor: (conceptId: ConceptId) => number;
 }
 
-export class MemoryServiceImpl implements MemoryService {
+export class MemoryServiceImpl implements MemoryService, MasteryReader {
   constructor(private readonly deps: MemoryServiceDeps) {}
 
   // ── studentModel ─────────────────────────────────────────────────────────────
@@ -252,6 +253,30 @@ export class MemoryServiceImpl implements MemoryService {
       remediation: opts.remediation,
       evidenceEventIds: opts.evidenceEventIds,
     });
+  }
+
+  // ── MasteryReader.read (Phase 9) ──────────────────────────────────────────────
+
+  /**
+   * MasteryReader port implementation. Returns decay-aware effectivePKnown for a
+   * concept, or 0 when no record exists. Fail-safe: never throws for unknown concepts.
+   */
+  async read(input: { studentId: StudentId; conceptId: ConceptId }): Promise<number> {
+    const row = this.deps.db
+      .select()
+      .from(studentMastery)
+      .where(
+        and(
+          eq(studentMastery.studentId, input.studentId),
+          eq(studentMastery.conceptId, input.conceptId),
+        ),
+      )
+      .get();
+    if (!row) return 0;
+    const pKnown = row.pKnown / 1000;
+    const lastPracticedAt = row.lastPracticedAt?.getTime();
+    const decayDays = this.deps.decayDaysFor(input.conceptId);
+    return applyDecay({ pKnown, lastPracticedAt, now: Date.now(), decayDays });
   }
 
   // ── delete ─────────────────────────────────────────────────────────────────────

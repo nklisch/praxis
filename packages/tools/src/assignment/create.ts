@@ -1,6 +1,7 @@
 import type { AssignmentItem, ToolDefinition } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
+import { checkConceptNotLocked } from "../lock-helpers.js";
 import { AssignmentItemSchema } from "./item-schema.js";
 
 const InputSchema = z.object({
@@ -44,6 +45,23 @@ Rubrics use criteria with weights summing to 1.0 (validated). Each criterion has
   tier: "model-derived",
   effects: ["artifact.mutate"],
   async handler(args, ctx) {
+    // Phase 9: Lock check on every conceptId. Sessions without courseId skip this.
+    if (ctx.courseId) {
+      const snapshot = await ctx.services.courseState.read({
+        studentId: ctx.studentId,
+        courseId: ctx.courseId,
+      });
+      if (snapshot) {
+        for (const cId of args.conceptIds) {
+          const conceptId = brandId<"ConceptId">(cId);
+          const lockCheck = checkConceptNotLocked(snapshot, conceptId);
+          if (!lockCheck.ok) {
+            throw new Error(`cannot create assignment: concept "${cId}" — ${lockCheck.reason}`);
+          }
+        }
+      }
+    }
+
     const { assignmentId } = await ctx.services.assignments.create({
       courseId: brandId<"CourseId">(args.courseId),
       studentId: ctx.studentId,

@@ -13,6 +13,7 @@ import type {
 } from "./artifacts.js";
 import type { TimeRange, Timestamp } from "./common.js";
 import type { EngineEvent } from "./engine.js";
+import type { GateView } from "./gate.js";
 import type { AssignmentId, ConceptId, CourseId, GateId, SessionId, StudentId } from "./ids.js";
 import type { IngestionEvent, IngestionRequest } from "./ingestion.js";
 import type {
@@ -106,6 +107,18 @@ export interface ArtifactsClientSurface {
   flashcards(opts?: { conceptId?: ConceptId; due?: boolean }): Promise<Flashcard[]>;
   notes(opts?: { courseId?: CourseId }): Promise<Note[]>;
   conceptMaps(courseId?: CourseId): Promise<ConceptMapDrawing[]>;
+
+  /** Phase 9: Enriched gate views for a course (read-only, includes progress %). */
+  gateView(courseId: CourseId): Promise<GateView[]>;
+
+  /** Phase 9: Trigger gate evaluation for a course (manual or automated). */
+  evaluateGates(courseId: CourseId): Promise<{ unlockedGateIds: GateId[] }>;
+
+  /** Phase 9: Mark all unlock events for a course as viewed (clears badge). */
+  markGatesViewed(courseId: CourseId): Promise<void>;
+
+  /** Phase 9: Count of unviewed unlock events for a course. */
+  newlyUnlockedCount(courseId: CourseId): Promise<number>;
 }
 
 export interface ProgressSnapshot {

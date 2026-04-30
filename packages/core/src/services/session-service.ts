@@ -16,6 +16,7 @@ import type {
   Engine,
   EngineEvent,
   EngineSession,
+  GateId,
   Mode,
   SessionHandle,
   SessionId,
@@ -229,12 +230,34 @@ export class SessionServiceImpl implements SessionService {
       }
     }
 
+    // Phase 9: Run gate evaluator if the session has a courseId.
+    let unlockedGates: GateId[] = [];
+    const sessionRowForGates = this.deps.db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .get();
+    if (sessionRowForGates?.courseId) {
+      try {
+        const result = await this.deps.toolServices.artifacts.evaluateAndPersistGates({
+          studentId: brandId<"StudentId">(sessionRowForGates.studentId),
+          courseId: brandId<"CourseId">(sessionRowForGates.courseId),
+        });
+        unlockedGates = result.unlockedGateIds;
+      } catch (cause) {
+        this.deps.log.warn("session.end.gate_eval_failed", {
+          sessionId,
+          error: cause instanceof Error ? cause.message : String(cause),
+        });
+      }
+    }
+
     const endedAt = new Date();
     this.deps.db.update(sessions).set({ endedAt }).where(eq(sessions.id, sessionId)).run();
     return {
       sessionId,
       endedAt: endedAt.getTime() as Timestamp,
-      unlockedGates: [],
+      unlockedGates,
       newMisconceptions: 0,
     };
   }
@@ -318,6 +341,24 @@ export class SessionServiceImpl implements SessionService {
         // Use the overrides map so the existing "context.course-state" fragment
         // (which is customizable: true) is replaced by the dynamic course content.
         overrides = new Map([[fragment.id, fragment.template]]);
+
+        // Phase 9: If there are newly-unlocked gates the student hasn't viewed yet,
+        // inject a small "Newly unlocked" fragment to the pre-session brief.
+        if (this.deps.toolServices.artifacts.newlyUnlockedCount) {
+          try {
+            const newlyUnlockedCount = await this.deps.toolServices.artifacts.newlyUnlockedCount({
+              studentId: args.studentId as StudentId,
+              courseId: args.courseId,
+            });
+            if (newlyUnlockedCount > 0) {
+              const newlyUnlockedId = "context.newly-unlocked";
+              const newlyUnlockedTemplate = `Newly unlocked since your last session: ${newlyUnlockedCount} gate${newlyUnlockedCount === 1 ? "" : "s"} now available. Celebrate this with the student briefly before getting into the lesson.`;
+              overrides.set(newlyUnlockedId, newlyUnlockedTemplate);
+            }
+          } catch {
+            // Non-fatal: don't block session start if badge count fails.
+          }
+        }
       }
     }
 

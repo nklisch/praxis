@@ -156,16 +156,19 @@ Three integration milestones along the way: **M1** end-to-end tutor session, **M
 
 ## Phase 9: Gates + progress map
 
-**Goal:** Gates lock content; passing assessments unlocks; the student sees the path.
+**Goal:** Gates evaluate at session-end against mastery + grades; locked content stops the agent from acting on it; passing an assessment unlocks the next gate; progress map renders the path; agent narrates unlocks.
 
 **Build:**
-- Gate / GateState / SuccessCriteria schemas + evaluation logic
-- Session-bootstrap scoping (only unlocked content visible to agent)
-- Gate re-evaluation on session end
-- Progress map UI (custom SVG: concepts colored by mastery, gates by state)
-- Unlock notification screen
+- `GateEvaluator` port + `GateEvaluatorImpl` (pure, lives in `@praxis/curriculum/gates`)
+- `MasteryReader` + `GradeReader` adapter ports (Phase 7's `MemoryServiceImpl` and Phase 8's `AssignmentServiceImpl` implement them)
+- `ArtifactsService.evaluateAndPersistGates` runs evaluator at session-end inside `SessionService.end`; transitions are atomic; unlock events written to `gate_unlock_events`
+- Brief composer extension: bounded visibility window (current lesson full detail; next lesson with lock tag; remaining count; active-gate "working toward" line)
+- Tool lock enforcement: `course.start_lesson`, `course.mark_studied`, `assignment.create` all refuse with descriptive errors when the target lesson/concept is locked
+- React Flow progress map at `/courses/:courseId/map` (concept nodes colored by mastery; gate edges between lessons; click → side panel)
+- Courses-list "newly unlocked" badge via `gate_unlock_events.viewedAt`; agent narrates unlocks at start of next session
+- `pnpm db:gates` CLI script
 
-**Test checkpoint:** Course with three gated topics. Pass exam → next session has next topic unlocked. `Gate.state.kind` transitions in DB.
+**Test checkpoint:** Course with three gated lessons. Mastery reaches threshold → session end evaluates and unlocks gate → next session brief includes "Newly unlocked" fragment → `gate_unlock_events` row written. Tool lock test: `start_lesson` on locked lesson throws.
 
 **Integration milestone M2:** bootstrap → learn → assess → unlock → progress all wired.
 

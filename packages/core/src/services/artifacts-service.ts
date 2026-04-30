@@ -2,12 +2,15 @@ import {
   conceptProgress,
   courses,
   documents,
-  gates,
+  gates as gatesTable,
+  gateUnlockEvents,
   lessonProgress,
   lessons,
 } from "@praxis/artifacts/schema";
+import { GateEvaluatorImpl } from "@praxis/curriculum/gates";
 import { concepts } from "@praxis/curriculum/schema";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
   ArtifactsService,
@@ -23,19 +26,27 @@ import type {
   GateId,
   GateState,
   GateTarget,
+  GateView,
   Lesson,
   LessonId,
   Logger,
+  MasteryReader,
+  GradeReader,
   ProgressSnapshot,
   StudentId,
   SuccessCriteria,
   Timestamp,
+  VisibilityWindow,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
 export interface ArtifactsServiceDeps {
   db: PraxisDb;
   log: Logger;
+  /** Phase 9: Injected by buildServices — same instance as MemoryServiceImpl. */
+  masteryReader: MasteryReader;
+  /** Phase 9: Injected by buildServices — same instance as AssignmentServiceImpl. */
+  gradeReader: GradeReader;
 }
 
 /**
@@ -76,7 +87,7 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
   }
 
   async gates(courseId: CourseId): Promise<Gate[]> {
-    const rows = this.deps.db.select().from(gates).where(eq(gates.courseId, courseId)).all();
+    const rows = this.deps.db.select().from(gatesTable).where(eq(gatesTable.courseId, courseId)).all();
     return rows.map(rowToGate);
   }
 
@@ -207,6 +218,154 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
     return { lessonComplete, lessonId: brandId<"LessonId">(lessonRow.id) };
   }
 
+  // ── Phase 9: Gate methods ────────────────────────────────────────────────
+
+  /**
+   * Computed enriched view of all gates for a course.
+   * Pure read — runs the evaluator against current state but does NOT persist.
+   */
+  async gateView(input: { studentId: StudentId; courseId: CourseId }): Promise<GateView[]> {
+    const gatesList = await this.gates(input.courseId);
+    if (gatesList.length === 0) return [];
+
+    const evaluator = new GateEvaluatorImpl();
+    const result = await evaluator.evaluate({
+      studentId: input.studentId,
+      gates: gatesList,
+      masteryReader: this.deps.masteryReader,
+      gradeReader: this.deps.gradeReader,
+      now: Date.now() as Timestamp,
+      log: this.deps.log,
+    });
+
+    // Identify the active gate: first locked gate whose prerequisites are all unlocked.
+    // A gate is "active" when it's the one the student is currently working toward.
+    let activeGateIdx = -1;
+    for (let i = 0; i < result.perGate.length; i++) {
+      const e = result.perGate[i]!;
+      const isLocked = e.afterState.kind === "locked";
+      // Active = locked and NOT blocked by prerequisite gates (i.e., its prereqs are all unlocked).
+      const blockedByPrereqs =
+        isLocked &&
+        (e.afterState as Extract<typeof e.afterState, { kind: "locked" }>).missingPrerequisites
+          .length > 0;
+      if (isLocked && !blockedByPrereqs) {
+        activeGateIdx = i;
+        break;
+      }
+    }
+
+    return result.perGate.map((entry, i) => ({
+      gate: gatesList[i]!,
+      summaryText: entry.summaryText,
+      lockReason: entry.lockReason,
+      progress: entry.progress,
+      isActive: i === activeGateIdx,
+    }));
+  }
+
+  /**
+   * Run gate evaluation for the course, persist transitions atomically,
+   * write gate_unlock_events for newly-unlocked gates.
+   * Returns the unlocked gate IDs from this evaluation.
+   * Idempotent: evaluating the same state twice produces no new transitions.
+   */
+  async evaluateAndPersistGates(input: {
+    studentId: StudentId;
+    courseId: CourseId;
+  }): Promise<{ unlockedGateIds: GateId[] }> {
+    const gatesList = await this.gates(input.courseId);
+    if (gatesList.length === 0) return { unlockedGateIds: [] };
+
+    const evaluator = new GateEvaluatorImpl();
+    const result = await evaluator.evaluate({
+      studentId: input.studentId,
+      gates: gatesList,
+      masteryReader: this.deps.masteryReader,
+      gradeReader: this.deps.gradeReader,
+      now: Date.now() as Timestamp,
+      log: this.deps.log,
+    });
+
+    if (result.transitions.length === 0) {
+      // No-op: no state changes — avoid unnecessary writes.
+      return { unlockedGateIds: [] };
+    }
+
+    // Atomic write: all state changes + unlock event rows in one transaction.
+    return this.deps.db.transaction((tx) => {
+      const unlockedGateIds: GateId[] = [];
+
+      // Update gate state rows that changed.
+      for (const entry of result.perGate) {
+        if (entry.beforeState.kind === entry.afterState.kind) continue;
+        tx.update(gatesTable)
+          .set({ stateJson: entry.afterState })
+          .where(eq(gatesTable.id, entry.gateId))
+          .run();
+      }
+
+      // Write gate_unlock_events for each newly unlocked gate.
+      for (const transition of result.transitions) {
+        if (transition.kind !== "unlocked") continue;
+        tx
+          .insert(gateUnlockEvents)
+          .values({
+            id: uuidv7(),
+            studentId: input.studentId,
+            courseId: input.courseId,
+            gateId: transition.gateId,
+            unlockedAt: new Date(transition.at),
+            evidenceJson: transition.evidence as Array<{
+              kind: "event" | "assignment" | "manual";
+              id: string;
+            }>,
+          })
+          .run();
+        unlockedGateIds.push(transition.gateId);
+      }
+
+      return { unlockedGateIds };
+    });
+  }
+
+  /**
+   * Mark all unviewed unlock events for a (student, course) pair as viewed.
+   * Used by the courses-list UI to clear the "newly unlocked" badge.
+   */
+  async markGatesViewed(input: { studentId: StudentId; courseId: CourseId }): Promise<void> {
+    this.deps.db
+      .update(gateUnlockEvents)
+      .set({ viewedAt: new Date() })
+      .where(
+        and(
+          eq(gateUnlockEvents.studentId, input.studentId),
+          eq(gateUnlockEvents.courseId, input.courseId),
+          isNull(gateUnlockEvents.viewedAt),
+        ),
+      )
+      .run();
+  }
+
+  /**
+   * Count of unlock events for a course that the student hasn't viewed yet.
+   * Returns 0 when all events have been viewed or none exist.
+   */
+  async newlyUnlockedCount(input: { studentId: StudentId; courseId: CourseId }): Promise<number> {
+    const rows = this.deps.db
+      .select()
+      .from(gateUnlockEvents)
+      .where(
+        and(
+          eq(gateUnlockEvents.studentId, input.studentId),
+          eq(gateUnlockEvents.courseId, input.courseId),
+          isNull(gateUnlockEvents.viewedAt),
+        ),
+      )
+      .all();
+    return rows.length;
+  }
+
   // ── CourseStateReader ─────────────────────────────────────────────────────
 
   async read(input: {
@@ -284,7 +443,26 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
       lessonsList.find((l) => (lessonStatusById.get(l.id) ?? "not_started") !== "completed") ??
       null;
 
-    return { course, lessons: lessonsList, currentLesson, conceptsByLesson, conceptsById };
+    // Phase 9: gate views and visibility window.
+    const gateViews = await this.gateView(input);
+    const activeGate = gateViews.find((g) => g.isActive) ?? null;
+
+    const currentLessonIndex = lessonsList.findIndex((l) => l.id === currentLesson?.id);
+    const visibilityWindow: VisibilityWindow = {
+      currentLessonIndex: currentLessonIndex >= 0 ? currentLessonIndex : 0,
+      remainingCount: Math.max(0, lessonsList.length - (currentLessonIndex + 2)),
+    };
+
+    return {
+      course,
+      lessons: lessonsList,
+      currentLesson,
+      conceptsByLesson,
+      conceptsById,
+      gates: gateViews,
+      activeGate,
+      visibilityWindow,
+    };
   }
 
   // ── Internal helpers ──────────────────────────────────────────────────────
@@ -375,7 +553,7 @@ function rowToLesson(row: typeof lessons.$inferSelect): Lesson {
   };
 }
 
-function rowToGate(row: typeof gates.$inferSelect): Gate {
+function rowToGate(row: typeof gatesTable.$inferSelect): Gate {
   const gateIdBrand = (id: string) => brandId<"GateId">(id);
   return {
     id: gateIdBrand(row.id),

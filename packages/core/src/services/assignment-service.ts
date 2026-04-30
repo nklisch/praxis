@@ -28,6 +28,7 @@ import type {
   Timestamp,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import type { GradeReader } from "../types/gate.js";
 import { enrichWithApproachFeedback } from "./graders/approach-feedback.js";
 import { buildGraderRegistry } from "./graders/registry.js";
 import { runRubricAgent } from "./graders/rubric-agent.js";
@@ -256,7 +257,7 @@ export interface AssignmentServiceDeps {
 
 // ─── Implementation ───────────────────────────────────────────────────────────
 
-export class AssignmentServiceImpl implements AssignmentService {
+export class AssignmentServiceImpl implements AssignmentService, GradeReader {
   private readonly registry = buildGraderRegistry();
 
   constructor(private readonly deps: AssignmentServiceDeps) {}
@@ -471,6 +472,29 @@ export class AssignmentServiceImpl implements AssignmentService {
       assignmentId: input.assignmentId,
       grade,
       submittedAt: submittedAt.getTime() as Timestamp,
+    };
+  }
+
+  // ── GradeReader.readGrade (Phase 9) ───────────────────────────────────────────
+
+  /**
+   * GradeReader port implementation. Returns total + submittedAt for a submitted
+   * assignment, or null when unsubmitted or not found.
+   */
+  async readGrade(
+    input: { assignmentId: string },
+  ): Promise<{ total: number; submittedAt: Timestamp } | null> {
+    const row = this.deps.db
+      .select()
+      .from(assignments)
+      .where(eq(assignments.id, input.assignmentId))
+      .get();
+    if (!row || !row.submittedAt) return null;
+    const grade = row.gradeJson as { total: number } | null;
+    if (!grade) return null;
+    return {
+      total: grade.total,
+      submittedAt: row.submittedAt.getTime() as Timestamp,
     };
   }
 }

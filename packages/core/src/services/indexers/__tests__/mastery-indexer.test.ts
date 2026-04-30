@@ -104,6 +104,10 @@ function makeCourseStateReader(studiedConceptA = false): CourseStateReader {
         },
       ],
     ]),
+    // Phase 9: required fields — stub as empty for pre-Phase-9 tests.
+    gates: [],
+    activeGate: null,
+    visibilityWindow: { currentLessonIndex: 0, remainingCount: 0 },
   };
 
   return {

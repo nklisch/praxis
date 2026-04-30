@@ -209,13 +209,17 @@ Gates exist to enforce prerequisite competence and motivate progression — *not
 - Topical exploration ("teach me about evolution") where motivation is curiosity. Soft gates only — the system warns about prerequisites but doesn't refuse.
 - Cross-disciplinary work where multiple paths lead in.
 
-**Defaults:**
+**Defaults (v1 — Phase 9):**
 
+- **Gates are course-local in v1.** Gate evaluation is scoped to one course. Cross-course mastery already flows through shared concept IDs (Phase 7 mastery is per-(studentId, conceptId)); the gate-criteria part of cross-course gating is deferred to Phase 11 as a non-breaking discriminated-union extension (`external-mastery` variant).
+- **Strict gating only in v1.** The bootstrap default produces strict gates. Soft gates (warn but don't refuse) are a future configurable; Phase 9 ships strict only.
+- **Unlock-only transitions in v1.** A gate that has been unlocked stays unlocked even if mastery later decays below threshold. Re-locking creates a frustrating UX that needs careful UX work; deferred to Phase 14 alongside spaced-review nudges.
+- **Session-end evaluation.** Gates re-evaluate at session boundaries, not mid-session. Mid-session unlocks are explicitly not a v1 feature (per ARCHITECTURE.md). The evaluator runs in `SessionService.end()` after indexers.
 - **Strong-edge prerequisites**: strict gating. Student must reach `mastery >= 0.7` (configurable) on prerequisites before the next concept unlocks.
-- **Weak-edge prerequisites**: soft gating. The system tells the student about the dependency but doesn't lock.
+- **Weak-edge prerequisites**: soft gating. The system tells the student about the dependency but doesn't lock. (v1 ships strict only — soft gates deferred.)
 - **Topic-exploration mode** (configurable per-course): all soft gating; mastery-driven routing still happens but doesn't refuse.
 
-**Override:** configurators can override any gate state with a documented reason (stored in `GateState.kind: "overridden"`). Useful for honors students racing ahead, or for resuming after the system's mastery score lags reality.
+**Override:** configurators can override any gate state with a documented reason (stored in `GateState.kind: "overridden"`). Useful for honors students racing ahead, or for resuming after the system's mastery score lags reality. Phase 9 evaluator handles `overridden` as "treat as unlocked, never re-evaluate".
 
 **Visible to the student:** the progress map shows locked content as locked, with the prerequisite chain visible. Forward visibility is motivating — the student sees the path, not just the next step.
 

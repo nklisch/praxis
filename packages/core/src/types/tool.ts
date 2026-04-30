@@ -14,11 +14,13 @@ import type {
 } from "./artifacts.js";
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
+import type { GateView, MasteryReader, GradeReader } from "./gate.js";
 import type {
   AssignmentId,
   ConceptId,
   CourseId,
   DocumentId,
+  GateId,
   LessonId,
   SessionId,
   StudentId,
@@ -110,7 +112,34 @@ export interface ArtifactsService {
   }): Promise<{ lessonComplete: boolean; lessonId: LessonId | null }>;
   /** Phase 6: list ingested documents for bootstrap's list_documents tool. */
   listDocuments(studentId: StudentId): Promise<DocumentSummaryItem[]>;
+
+  /** Phase 9: Computed enriched view of all gates for a course. Pure read. */
+  gateView(input: { studentId: StudentId; courseId: CourseId }): Promise<GateView[]>;
+
+  /**
+   * Phase 9: Run gate evaluation for the course, persist transitions atomically,
+   * write gate_unlock_events for newly-unlocked gates. Returns unlocked gate IDs.
+   */
+  evaluateAndPersistGates(input: {
+    studentId: StudentId;
+    courseId: CourseId;
+  }): Promise<{ unlockedGateIds: GateId[] }>;
+
+  /**
+   * Phase 9: Mark all unlock events for a course as "viewed by student".
+   * Used to clear the courses-list "newly unlocked" badge.
+   */
+  markGatesViewed(input: { studentId: StudentId; courseId: CourseId }): Promise<void>;
+
+  /**
+   * Phase 9: Count of unlock events for a course since the last markGatesViewed
+   * (or all unlock events if never viewed). Used by CoursesList badge.
+   */
+  newlyUnlockedCount(input: { studentId: StudentId; courseId: CourseId }): Promise<number>;
 }
+
+// Re-export gate ports so callers can import from tool.ts.
+export type { GateView, MasteryReader, GradeReader };
 
 export interface DocumentSummaryItem {
   documentId: DocumentId;
@@ -138,6 +167,21 @@ export interface CourseStateSnapshot {
   conceptsByLesson: Map<LessonId, ConceptStateRow[]>;
   /** Quick index for ToolContext consumers. */
   conceptsById: Map<ConceptId, ConceptStateRow>;
+  /** Phase 9: Enriched gates for the UI / brief composer. */
+  gates: GateView[];
+  /** Phase 9: The single "next gate to unlock" — the closest locked gate the student is
+   *  currently working toward, or null when nothing locked. */
+  activeGate: GateView | null;
+  /** Phase 9: Lessons summarized for the bounded visibility window. */
+  visibilityWindow: VisibilityWindow;
+}
+
+/** Phase 9: Pre-computed bounds for the brief composer's visibility window. */
+export interface VisibilityWindow {
+  /** Index of the current lesson in the lessons array (or 0 when none started). */
+  currentLessonIndex: number;
+  /** Number of lessons after the next-lesson detail (i.e. total - currentLessonIndex - 2). */
+  remainingCount: number;
 }
 
 export interface ConceptStateRow {
