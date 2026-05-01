@@ -45,6 +45,7 @@ const EXTERNAL_THIRD_PARTY = [
   "ollama-ai-provider-v2",
   "@nklisch/claude-cli-sdk",
   "@openai/codex-sdk",
+  "@modelcontextprotocol/sdk",
   // Document parsing
   "epub2",
   "linkedom",

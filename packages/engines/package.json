@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@praxis/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@nklisch/claude-cli-sdk": "link:../../../claude-cli-sdk",
     "@openai/codex-sdk": "^0.128.0",
     "ai": "^6.0.172",
