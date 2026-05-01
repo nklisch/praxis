@@ -7,6 +7,8 @@ dist/
 *.tsbuildinfo
 # Electron packager output (packages/desktop)
 packages/desktop/out/
+# Electron-builder output (packages/desktop/release/*.dmg, *.exe, etc.)
+packages/desktop/release/
 
 # Env / secrets
 .env
