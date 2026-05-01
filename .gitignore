@@ -38,10 +38,3 @@ tests/helpers/*.d.ts.map
 
 # Drizzle: keep migrations/, ignore meta-cache
 drizzle/meta/_journal.bak
-
-# Skilltap-managed skill installations — only the project's own
-# .claude/skills/patterns/ and SKILL.md are tracked.
-.agents/
-.claude/skills/*
-!.claude/skills/patterns/
-!.claude/skills/SKILL.md
