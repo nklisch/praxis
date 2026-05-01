@@ -1,24 +1,17 @@
 import type { GateTarget, SuccessCriteria, ToolContext, ToolDefinition } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
+import { GateTargetSchema, SuccessCriteriaSchema } from "./schema.js";
 
 const InputSchema = z.object({
   courseId: z.string().min(1).describe("The course this gate belongs to."),
-  guards: z
-    .object({
-      kind: z.enum(["lesson", "concept"]).describe("What this gate guards access to."),
-      lessonId: z.string().optional().describe("Lesson ID when kind is 'lesson'."),
-      conceptId: z.string().optional().describe("Concept ID when kind is 'concept'."),
-    })
-    .describe("What this gate guards."),
+  guards: GateTargetSchema.describe(
+    "What this gate guards (concept, lesson, topic, or course-completion).",
+  ),
   prerequisites: z
     .array(z.string().min(1))
     .describe("Gate IDs that must be unlocked before this gate can be evaluated."),
-  successCriteria: z
-    .unknown()
-    .describe(
-      "Success criteria object. Shape: {kind: 'mastery-threshold', conceptIds: [...], minScore: 0.8} or {kind: 'exam-pass', assignmentId: '...', minScore: 0.7}.",
-    ),
+  successCriteria: SuccessCriteriaSchema.describe("Success criteria object."),
 });
 
 const OutputSchema = z.object({
@@ -30,7 +23,7 @@ const OutputSchema = z.object({
 export const gateCreateTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "gate.create",
   description:
-    "Create a new gate with initial locked state. Specify what it guards (lesson or concept), prerequisite gates, and success criteria. Writes are logged to the configurator audit trail.",
+    "Create a new gate with initial locked state. Specify what it guards (lesson, concept, topic, or course-completion), prerequisite gates, and success criteria. Writes are logged to the configurator audit trail.",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",
@@ -38,14 +31,15 @@ export const gateCreateTool: ToolDefinition<typeof InputSchema, typeof OutputSch
   async handler(args, ctx: ToolContext): Promise<z.infer<typeof OutputSchema>> {
     const courseId = brandId<"CourseId">(args.courseId);
     const prerequisites = args.prerequisites.map((id) => brandId<"GateId">(id));
-    const guards = args.guards as GateTarget;
-    // biome-ignore lint/suspicious/noExplicitAny: SuccessCriteria is a complex union; Zod record shape passes through
-    const successCriteria = args.successCriteria as any as SuccessCriteria;
+    // args.guards and args.successCriteria are structurally validated by Zod.
+    // The brand casts are required because Zod produces plain string IDs, not
+    // branded ones — this is a one-shot cast at the schema/domain boundary,
+    // not a validation bypass. The structure is already guaranteed by the schema.
     const result = await ctx.services.authoring.createGate({
       courseId,
-      guards,
+      guards: args.guards as GateTarget,
       prerequisites,
-      successCriteria,
+      successCriteria: args.successCriteria as SuccessCriteria,
     });
     return { ok: true, gateId: result.id, courseId };
   },

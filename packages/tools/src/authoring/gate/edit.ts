@@ -1,6 +1,7 @@
 import type { GateTarget, SuccessCriteria, ToolContext, ToolDefinition } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
+import { SuccessCriteriaSchema } from "./schema.js";
 
 const InputSchema = z.object({
   gateId: z.string().min(1).describe("The gate ID to edit."),
@@ -10,12 +11,9 @@ const InputSchema = z.object({
         .array(z.string().min(1))
         .optional()
         .describe("Replace the full list of prerequisite gate IDs."),
-      successCriteria: z
-        .unknown()
-        .optional()
-        .describe(
-          "Replace the success criteria. Shape: {kind: 'mastery-threshold', conceptIds: [...], minScore: 0.8}.",
-        ),
+      successCriteria: SuccessCriteriaSchema.optional().describe(
+        "Replace the success criteria. Shape: {kind: 'mastery-threshold', conceptIds: [...], minScore: 0.8}.",
+      ),
     })
     .describe("Fields to update. Only provided fields are changed."),
   reason: z.string().optional().describe("Optional reason for the edit (logged to audit trail)."),
@@ -45,8 +43,10 @@ export const gateEditTool: ToolDefinition<typeof InputSchema, typeof OutputSchem
       patch.prerequisites = args.patch.prerequisites.map((id) => brandId<"GateId">(id));
     }
     if (args.patch.successCriteria !== undefined) {
-      // biome-ignore lint/suspicious/noExplicitAny: SuccessCriteria is a complex union; Zod record shape passes through
-      patch.successCriteria = args.patch.successCriteria as any as SuccessCriteria;
+      // args.patch.successCriteria is structurally validated by Zod.
+      // The cast promotes plain string IDs to branded domain types at the
+      // schema/domain boundary — not a validation bypass.
+      patch.successCriteria = args.patch.successCriteria as SuccessCriteria;
     }
     await ctx.services.authoring.updateGate({
       gateId,
