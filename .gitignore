@@ -9,6 +9,8 @@ dist/
 packages/desktop/out/
 # Electron-builder output (packages/desktop/release/*.dmg, *.exe, etc.)
 packages/desktop/release/
+# Staging dir produced by build-dist.sh (pnpm deploy + electron-builder)
+packages/desktop/.deploy/
 
 # Env / secrets
 .env

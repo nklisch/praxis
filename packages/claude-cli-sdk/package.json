@@ -1,0 +1,30 @@
+{
+  "name": "@praxis/claude-cli-sdk",
+  "version": "1.1.4",
+  "description": "TypeScript wrapper around the Claude Code CLI. Vendored into the Praxis workspace from @nklisch/claude-cli-sdk; sync upstream changes manually.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "praxis-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsgo --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0"
+  },
+  "license": "MIT"
+}

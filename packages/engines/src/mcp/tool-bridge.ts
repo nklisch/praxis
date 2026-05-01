@@ -1,5 +1,5 @@
-import type { ToolDefinition as CCToolDefinition } from "@nklisch/claude-cli-sdk";
-import { startToolServer, tool } from "@nklisch/claude-cli-sdk";
+import type { ToolDefinition as CCToolDefinition } from "@praxis/claude-cli-sdk";
+import { startToolServer, tool } from "@praxis/claude-cli-sdk";
 import type { ToolDefinitionSummary, ToolRegistry } from "@praxis/core/types";
 import { z } from "zod";
 import { jsonSchemaToZod } from "../util/json-schema-to-zod.js";

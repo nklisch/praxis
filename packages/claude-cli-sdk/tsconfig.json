@@ -6,15 +6,19 @@
     "lib": ["ES2022"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "customConditions": ["praxis-source"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
-  }
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test-d.ts"]
 }

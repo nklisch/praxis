@@ -28,10 +28,10 @@ vi.mock("isolated-vm", async () => {
   return isolatedVmStubFactory();
 });
 
-// ── Mock @nklisch/claude-cli-sdk ──────────────────────────────────────────────
+// ── Mock @praxis/claude-cli-sdk ──────────────────────────────────────────────
 // We mock createConversation (for ClaudeCodeAdapter) AND startToolServer
 // (used by startToolBridge inside the adapter) to avoid real subprocess spawning.
-vi.mock("@nklisch/claude-cli-sdk", () => {
+vi.mock("@praxis/claude-cli-sdk", () => {
   const createConversation = vi.fn();
   // biome-ignore lint/suspicious/noExplicitAny: mock factory needs any
   const tool = vi.fn((name: string, _desc: string, _schema: any, handler: any) => ({
@@ -171,7 +171,7 @@ describe("Engine conformance", () => {
   });
 
   it("Claude Code adapter produces normalized turn", async () => {
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
 
     const resultEventObj = {
       type: "result" as const,

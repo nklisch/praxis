@@ -43,7 +43,7 @@ const EXTERNAL_THIRD_PARTY = [
   "@ai-sdk/openai",
   "@ai-sdk/google",
   "ollama-ai-provider-v2",
-  "@nklisch/claude-cli-sdk",
+  "@praxis/claude-cli-sdk",
   "@openai/codex-sdk",
   "@modelcontextprotocol/sdk",
   // Document parsing

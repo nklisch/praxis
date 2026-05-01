@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { collectResult, query } from "@nklisch/claude-cli-sdk";
+import { collectResult, query } from "@praxis/claude-cli-sdk";
 import type {
   VisionCapability,
   VisionDescribeRequest,

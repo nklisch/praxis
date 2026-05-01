@@ -1,9 +1,9 @@
-import type { Conversation } from "@nklisch/claude-cli-sdk";
+import type { Conversation } from "@praxis/claude-cli-sdk";
 import type { EngineOpenOptions, ToolRegistry, ToolResult } from "@praxis/core/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock @nklisch/claude-cli-sdk at the top level (hoisted)
-vi.mock("@nklisch/claude-cli-sdk", () => {
+// Mock @praxis/claude-cli-sdk at the top level (hoisted)
+vi.mock("@praxis/claude-cli-sdk", () => {
   const createConversation = vi.fn();
   return { createConversation };
 });
@@ -102,7 +102,7 @@ describe("ClaudeCodeEngine — lifecycle", () => {
   });
 
   it("open() returns a session with a non-empty id", async () => {
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
     const resultEventObj = {
@@ -121,7 +121,7 @@ describe("ClaudeCodeEngine — lifecycle", () => {
   });
 
   it("two sends on the same session call conv.send twice (createConversation called once)", async () => {
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
     const resultEventObj = {
@@ -151,7 +151,7 @@ describe("ClaudeCodeEngine — lifecycle", () => {
   });
 
   it("close() calls conv.close and bridge.close; idempotent", async () => {
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { startToolBridge } = await import("../mcp/tool-bridge.js");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
@@ -179,7 +179,7 @@ describe("ClaudeCodeEngine — lifecycle", () => {
   });
 
   it("emits events from canned stream", async () => {
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
     const resultEventObj = {
@@ -228,7 +228,7 @@ describe("ClaudeCodeEngine — lifecycle", () => {
   });
 
   it("strips MCP prefix from tool_use event toolName", async () => {
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
     const resultEventObj = {
@@ -271,7 +271,7 @@ describe("ClaudeCodeEngine — lifecycle", () => {
 
   it("bridge is NOT started when tools.list() is empty", async () => {
     const { startToolBridge } = await import("../mcp/tool-bridge.js");
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
     const resultEventObj = {
@@ -295,7 +295,7 @@ describe("ClaudeCodeEngine — lifecycle", () => {
   });
 
   it("seedPreface only applied on first send after priorTurns open", async () => {
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
     const resultEventObj = {
@@ -363,7 +363,7 @@ describe("ClaudeCodeEngine — lifecycle", () => {
   });
 
   it("send to closed session yields error event", async () => {
-    const { createConversation } = await import("@nklisch/claude-cli-sdk");
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
 
     const resultEventObj = {

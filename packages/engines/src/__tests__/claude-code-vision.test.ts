@@ -13,8 +13,8 @@ vi.mock("node:os", () => ({
   tmpdir: vi.fn().mockReturnValue("/tmp"),
 }));
 
-// Mock @nklisch/claude-cli-sdk before any imports of vision.ts
-vi.mock("@nklisch/claude-cli-sdk", () => {
+// Mock @praxis/claude-cli-sdk before any imports of vision.ts
+vi.mock("@praxis/claude-cli-sdk", () => {
   const query = vi.fn();
   const collectResult = vi.fn();
   return { query, collectResult };
@@ -46,7 +46,7 @@ describe("ClaudeCodeVision", () => {
   });
 
   it("calls query() once per describe() call (fresh, isolated)", async () => {
-    const { query, collectResult } = await import("@nklisch/claude-cli-sdk");
+    const { query, collectResult } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeVision } = await import("../claude-code/vision.js");
 
     const fakeQueryObj = Symbol("query-object");
@@ -68,7 +68,7 @@ describe("ClaudeCodeVision", () => {
   });
 
   it("passes noSessionPersistence: true to query()", async () => {
-    const { query, collectResult } = await import("@nklisch/claude-cli-sdk");
+    const { query, collectResult } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeVision } = await import("../claude-code/vision.js");
 
     let capturedOptions: unknown = null;
@@ -90,7 +90,7 @@ describe("ClaudeCodeVision", () => {
   });
 
   it("creates a temp dir and cleans it up after success", async () => {
-    const { query, collectResult } = await import("@nklisch/claude-cli-sdk");
+    const { query, collectResult } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeVision } = await import("../claude-code/vision.js");
     const { mkdtemp, rm } = await import("node:fs/promises");
 
@@ -114,7 +114,7 @@ describe("ClaudeCodeVision", () => {
   });
 
   it("cleans up temp dir even when query throws", async () => {
-    const { query, collectResult } = await import("@nklisch/claude-cli-sdk");
+    const { query, collectResult } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeVision } = await import("../claude-code/vision.js");
     const { rm } = await import("node:fs/promises");
 
@@ -133,7 +133,7 @@ describe("ClaudeCodeVision", () => {
   });
 
   it("writes image files to temp dir", async () => {
-    const { query, collectResult } = await import("@nklisch/claude-cli-sdk");
+    const { query, collectResult } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeVision } = await import("../claude-code/vision.js");
     const { writeFile } = await import("node:fs/promises");
 
@@ -154,7 +154,7 @@ describe("ClaudeCodeVision", () => {
   });
 
   it("maps usage from inputTokens/outputTokens correctly", async () => {
-    const { query, collectResult } = await import("@nklisch/claude-cli-sdk");
+    const { query, collectResult } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeVision } = await import("../claude-code/vision.js");
 
     vi.mocked(query).mockReturnValue(Symbol("q") as unknown as ReturnType<typeof query>);
@@ -173,7 +173,7 @@ describe("ClaudeCodeVision", () => {
   });
 
   it("returns empty string when result.result is undefined", async () => {
-    const { query, collectResult } = await import("@nklisch/claude-cli-sdk");
+    const { query, collectResult } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeVision } = await import("../claude-code/vision.js");
 
     vi.mocked(query).mockReturnValue(Symbol("q") as unknown as ReturnType<typeof query>);

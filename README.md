@@ -50,11 +50,32 @@ Node-ABI bindings with:
 pnpm rebuild better-sqlite3 canvas    # rebuilds against the active Node version
 ```
 
-This dance is unavoidable as long as both contexts share `node_modules`.
+This dance is unavoidable as long as both contexts share `node_modules` (and
+since `dist:*` reuses the workspace's pnpm store via hardlinks, it has the
+same effect on workspace native modules — run the `pnpm rebuild` line above
+after a `dist:*` run before going back to tests / `pnpm dev`).
 
 ## Build a distributable
 
-The `dist:*` scripts run `rebuild:electron` automatically — no manual step needed.
+The `dist:*` scripts run a multi-step pipeline (`packages/desktop/scripts/build-dist.sh`):
+
+1. `pnpm build` — compile all workspace `dist/`
+2. `electron-vite build` — bundle main/preload/renderer into `packages/desktop/out/`
+3. `pnpm deploy --inject-workspace-packages` to `/tmp/praxis-desktop-deploy/` — flattens
+   the workspace + transitive deps into a self-contained directory. Required because
+   electron-builder's pnpm tracer doesn't follow transitives through pnpm's isolated
+   layout (without this, the asar is missing things like `bindings`, `@ai-sdk/gateway`,
+   `@opentelemetry/api`).
+4. Copy the workspace's `drizzle/` migrations into the deploy and patch its
+   `extraResources.from` to a deploy-relative path
+5. `electron-rebuild` against the deploy's `node_modules` for Electron's ABI
+6. `electron-builder --<target>` from the deploy directory
+7. Post-process the asar to undo electron-builder's `@praxis/X@@praxis/X/...` path
+   mangling on the injected workspace packages
+8. Ad-hoc resign the resulting `.app` (arm64 requires a signature)
+
+The deploy directory location is overridable via `PRAXIS_DEPLOY_DIR` (default
+`/tmp/praxis-desktop-deploy`). Output is mirrored into `packages/desktop/release/`.
 
 ```bash
 # macOS (.dmg + .zip in packages/desktop/release/)
@@ -101,6 +122,7 @@ you have Python 3 on PATH.
 | `@praxis/curriculum` | Concept graphs, prerequisite edges, pedagogy packs |
 | `@praxis/client` | RPC client types and transport layer |
 | `@praxis/ui` | React component library for the tutor UI |
+| `@praxis/claude-cli-sdk` | Vendored fork of `@nklisch/claude-cli-sdk` — TypeScript wrapper around the Claude Code CLI subprocess. Vendored locally so `pnpm deploy` doesn't choke on the upstream `link:` path |
 | `@praxis/desktop` | Electron entry point — mounts core + UI |
 
 ## Development scripts

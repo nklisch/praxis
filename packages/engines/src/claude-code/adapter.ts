@@ -1,5 +1,5 @@
-import type { Conversation } from "@nklisch/claude-cli-sdk";
-import { createConversation } from "@nklisch/claude-cli-sdk";
+import type { Conversation } from "@praxis/claude-cli-sdk";
+import { createConversation } from "@praxis/claude-cli-sdk";
 import type { EngineConfig } from "@praxis/core/config";
 import type {
   Engine,

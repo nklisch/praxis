@@ -2,8 +2,8 @@ import type { ToolDefinitionSummary, ToolRegistry, ToolResult } from "@praxis/co
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-// Mock @nklisch/claude-cli-sdk before importing tool-bridge
-vi.mock("@nklisch/claude-cli-sdk", () => {
+// Mock @praxis/claude-cli-sdk before importing tool-bridge
+vi.mock("@praxis/claude-cli-sdk", () => {
   const capturedTools: Array<{ name: string; handler: (input: unknown) => Promise<unknown> }> = [];
 
   const tool = vi.fn(
@@ -99,7 +99,7 @@ describe("startToolBridge", () => {
   it("dispatch routes through registry.dispatch", async () => {
     // Re-import with mocked module after clearing
     const { startToolBridge } = await import("../mcp/tool-bridge.js");
-    const { startToolServer } = await import("@nklisch/claude-cli-sdk");
+    const { startToolServer } = await import("@praxis/claude-cli-sdk");
 
     const dispatchMock = vi.fn(
       async (): Promise<ToolResult> => ({
