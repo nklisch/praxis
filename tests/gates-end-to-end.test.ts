@@ -30,6 +30,7 @@ import { teachMode } from "@praxis/curriculum/modes";
 import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
+import { noopLogger } from "./helpers/mocks.js";
 
 // isolated-vm@6.1.2 prebuilts don't cover Node 25+.
 vi.mock("isolated-vm", async () => {
@@ -67,13 +68,6 @@ class FakeEngine implements Engine {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
 
 const mockSympy: SymPyService = {
   checkSolution: vi.fn(),
@@ -196,13 +190,13 @@ function seedCourseWithGate(db: ReturnType<typeof openDb>["db"], mastery: number
 function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number) {
   const memoryService = new MemoryServiceImpl({
     db,
-    log: noopLogger,
+    log: noopLogger(),
     decayDaysFor: () => 14,
   });
 
   const artifactsService = new ArtifactsServiceImpl({
     db,
-    log: noopLogger,
+    log: noopLogger(),
     masteryReader: {
       // Stub: returns the seeded mastery score for the one concept we care about.
       read: vi.fn().mockResolvedValue(masteryScore),
@@ -212,7 +206,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
 
   const sessionService = new SessionServiceImpl({
     db,
-    log: noopLogger,
+    log: noopLogger(),
     modes: new Map([[teachMode.id, teachMode]]),
     toolDefinitions: [],
     toolServices: {

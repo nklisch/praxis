@@ -28,6 +28,7 @@ import type {
 import { brandId } from "@praxis/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
+import { noopLogger } from "./helpers/mocks.js";
 
 // isolated-vm@6.1.2 prebuilts don't cover Node 25+ ABI.
 vi.mock("isolated-vm", async () => {
@@ -89,13 +90,6 @@ class FakeRubricEngine implements Engine {
 // ── Test setup ─────────────────────────────────────────────────────────────────
 
 const dbCtx = useTempDb();
-
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
 
 const mockSympy: SymPyService = {
   checkSolution: vi.fn(),
@@ -185,7 +179,7 @@ describe("exam end-to-end", () => {
 
     const assignmentService = new AssignmentServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       graderServices: {
         sympy: mockSympy,
         sandbox: mockSandbox,
@@ -278,7 +272,7 @@ describe("exam end-to-end", () => {
 
     const assignmentService = new AssignmentServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       graderServices: {
         sympy: mockSympy,
         sandbox: mockSandbox,
@@ -336,7 +330,7 @@ describe("exam end-to-end", () => {
 
     const assignmentService = new AssignmentServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       graderServices: {
         sympy: mockSympy,
         sandbox: mockSandbox,

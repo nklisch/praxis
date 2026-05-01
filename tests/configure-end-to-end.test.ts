@@ -50,6 +50,7 @@ import {
 import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
+import { noopLogger } from "./helpers/mocks.js";
 
 // isolated-vm@6.1.2 prebuilts don't cover Node 25+.
 vi.mock("isolated-vm", async () => {
@@ -87,13 +88,6 @@ class FakeConfigureEngine implements Engine {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
 
 const mockSympy: SymPyService = {
   checkSolution: vi.fn(),
@@ -182,22 +176,22 @@ function seedMinimalCourse(db: ReturnType<typeof openDb>["db"]): void {
  * Returns lock, authoring, and session services.
  */
 function buildServices(db: ReturnType<typeof openDb>["db"]) {
-  const memoryService = new MemoryServiceImpl({ db, log: noopLogger, decayDaysFor: () => 14 });
+  const memoryService = new MemoryServiceImpl({ db, log: noopLogger(), decayDaysFor: () => 14 });
 
   const artifactsService = new ArtifactsServiceImpl({
     db,
-    log: noopLogger,
+    log: noopLogger(),
     masteryReader: {
       read: vi.fn().mockResolvedValue(0.5),
     },
     gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
   });
 
-  const lockService = new LockServiceImpl({ db, log: noopLogger });
+  const lockService = new LockServiceImpl({ db, log: noopLogger() });
 
   const authoringService = new AuthoringServiceImpl({
     db,
-    log: noopLogger,
+    log: noopLogger(),
     artifacts: artifactsService,
     memory: memoryService,
     configuratorId: () => "default" as ConfiguratorId,
@@ -215,7 +209,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
 
   const sessionService = new SessionServiceImpl({
     db,
-    log: noopLogger,
+    log: noopLogger(),
     modes,
     toolDefinitions: [],
     toolServices: {

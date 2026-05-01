@@ -33,6 +33,7 @@ import { sessions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
+import { noopLogger } from "./helpers/mocks.js";
 
 // isolated-vm@6.1.2 prebuilts don't cover Node 25+ ABI.
 vi.mock("isolated-vm", async () => {
@@ -123,13 +124,6 @@ class FakeEngine implements Engine {
 // ── Test setup ─────────────────────────────────────────────────────────────────
 
 const dbCtx = useTempDb();
-
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
 
 const mockSympy: SymPyService = {
   checkSolution: vi.fn().mockResolvedValue({
@@ -225,7 +219,7 @@ describe("quiz end-to-end", () => {
     // 3. Build the AssignmentService with FakeEngine for rubric calls
     const assignmentService = new AssignmentServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       graderServices: {
         sympy: mockSympy,
         sandbox: mockSandbox,
@@ -311,7 +305,7 @@ describe("quiz end-to-end", () => {
     // 6. Start a quiz session bound to the assignment
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       modes: new Map([
         [teachMode.id, teachMode],
         [quizMode.id, quizMode],

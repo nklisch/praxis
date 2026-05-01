@@ -17,15 +17,9 @@ import { misconceptions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
+import { noopLogger } from "./helpers/mocks.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
@@ -37,7 +31,7 @@ describe("misconception end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
 
@@ -84,7 +78,7 @@ describe("misconception end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
 
@@ -135,7 +129,7 @@ describe("misconception end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
 
@@ -180,7 +174,7 @@ describe("misconception end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
 

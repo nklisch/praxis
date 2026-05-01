@@ -38,6 +38,7 @@ import { conceptGraphs, concepts, packImports, prerequisiteEdges } from "@praxis
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
+import { noopLogger } from "./helpers/mocks.js";
 
 // isolated-vm@6.1.2 prebuilts don't cover Node 25+.
 vi.mock("isolated-vm", async () => {
@@ -75,13 +76,6 @@ class FakeEngine implements Engine {
 }
 
 // ── Logger stub ────────────────────────────────────────────────────────────────
-
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
 
 // ── Mock services ──────────────────────────────────────────────────────────────
 
@@ -152,12 +146,12 @@ describe("pack-import end-to-end", () => {
     const conceptEmbeddings = new SqliteConceptEmbeddingsStore(
       // biome-ignore lint/suspicious/noExplicitAny: better-sqlite3 handle exposed via PraxisDb
       (db as any).$client,
-      noopLogger,
+      noopLogger(),
     );
 
     const importService = new PackImportServiceImpl({
       db,
-      log: noopLogger,
+      log: noopLogger(),
       embeddings: mockEmbeddings,
       conceptEmbeddings,
       packsDir: PACKS_DIR,
@@ -200,12 +194,12 @@ describe("pack-import end-to-end", () => {
     const conceptEmbeddings = new SqliteConceptEmbeddingsStore(
       // biome-ignore lint/suspicious/noExplicitAny: better-sqlite3 handle
       (db as any).$client,
-      noopLogger,
+      noopLogger(),
     );
 
     const importService = new PackImportServiceImpl({
       db,
-      log: noopLogger,
+      log: noopLogger(),
       embeddings: mockEmbeddings,
       conceptEmbeddings,
       packsDir: PACKS_DIR,
@@ -237,12 +231,12 @@ describe("pack-import end-to-end", () => {
     const conceptEmbeddings = new SqliteConceptEmbeddingsStore(
       // biome-ignore lint/suspicious/noExplicitAny: better-sqlite3 handle
       (db as any).$client,
-      noopLogger,
+      noopLogger(),
     );
 
     const importService = new PackImportServiceImpl({
       db,
-      log: noopLogger,
+      log: noopLogger(),
       embeddings: mockEmbeddings,
       conceptEmbeddings,
       packsDir: PACKS_DIR,
@@ -252,7 +246,7 @@ describe("pack-import end-to-end", () => {
 
     const bootstrapService = new BootstrapServiceImpl({
       db,
-      log: noopLogger,
+      log: noopLogger(),
       engineResolver: () => new FakeEngine(),
     });
 
@@ -300,12 +294,12 @@ describe("pack-import end-to-end", () => {
     const conceptEmbeddings = new SqliteConceptEmbeddingsStore(
       // biome-ignore lint/suspicious/noExplicitAny: better-sqlite3 handle
       (db as any).$client,
-      noopLogger,
+      noopLogger(),
     );
 
     const importService = new PackImportServiceImpl({
       db,
-      log: noopLogger,
+      log: noopLogger(),
       embeddings: mockEmbeddings,
       conceptEmbeddings,
       packsDir: PACKS_DIR,
@@ -315,7 +309,7 @@ describe("pack-import end-to-end", () => {
 
     const bootstrapService = new BootstrapServiceImpl({
       db,
-      log: noopLogger,
+      log: noopLogger(),
       engineResolver: () => new FakeEngine(),
     });
 
@@ -329,13 +323,13 @@ describe("pack-import end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
 
     const artifactsService = new ArtifactsServiceImpl({
       db,
-      log: noopLogger,
+      log: noopLogger(),
       masteryReader: memoryService,
       gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
     });

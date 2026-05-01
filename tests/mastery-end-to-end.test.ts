@@ -34,6 +34,7 @@ import { sessions, studentMastery } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
+import { noopLogger } from "./helpers/mocks.js";
 
 // isolated-vm@6.1.2 prebuilts don't cover Node 25+.
 vi.mock("isolated-vm", async () => {
@@ -42,13 +43,6 @@ vi.mock("isolated-vm", async () => {
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
 
 const mockSympy: SymPyService = {
   checkSolution: vi.fn(),
@@ -129,7 +123,7 @@ describe("mastery end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
 
@@ -166,7 +160,7 @@ describe("mastery end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
 
@@ -200,7 +194,7 @@ describe("mastery end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
 
@@ -238,19 +232,19 @@ describe("mastery end-to-end", () => {
 
     const memoryService = new MemoryServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       decayDaysFor: () => 14,
     });
     const artifactsService = new ArtifactsServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       masteryReader: memoryService,
       gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
     });
 
     const masteryIndexer = new MasteryIndexer({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       courseStateReader: artifactsService,
       sessionCourseId: (sessionId) => {
         const row = client.select().from(sessions).where(eq(sessions.id, sessionId)).get();
@@ -260,14 +254,14 @@ describe("mastery end-to-end", () => {
 
     const indexerOrchestrator = new IndexerOrchestratorImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       indexers: [masteryIndexer],
       debounceMs: 100_000, // very long debounce so it doesn't fire during the test
     });
 
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       modes: new Map([[teachMode.id, teachMode]]),
       toolDefinitions: [],
       toolServices: {
