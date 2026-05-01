@@ -8,10 +8,10 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
-    "drizzle-orm": "^0.36.0"
+    "drizzle-orm": "^0.45.2"
   }
 }

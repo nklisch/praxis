@@ -88,7 +88,12 @@ export class VisionPdfIngestor implements Ingestor {
       const ctx = canvas.getContext("2d") as unknown as Parameters<
         typeof page.render
       >[0]["canvasContext"];
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      // pdfjs-dist 5.x requires `canvas` in addition to canvasContext
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+        canvas: canvas as unknown as Parameters<typeof page.render>[0]["canvas"],
+      }).promise;
       const pngBuffer: Buffer = canvas.toBuffer("image/png");
 
       // Persist page image if a store is configured

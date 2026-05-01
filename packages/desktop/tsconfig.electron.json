@@ -24,6 +24,6 @@
       "@praxis/tools/*": ["../tools/src/*/index.ts"]
     }
   },
-  "include": ["electron/**/*"],
+  "include": ["electron/**/*", "css-modules.d.ts"],
   "exclude": ["src/**/*", "out/**/*", "dist/**/*", "node_modules/**/*"]
 }

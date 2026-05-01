@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import type { DocumentSummary, DocumentsClient } from "@praxis/core/types";
 import type { ClientTransport } from "../transport/types.js";
 

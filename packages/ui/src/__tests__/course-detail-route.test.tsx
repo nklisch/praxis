@@ -67,7 +67,7 @@ function makeClient(
   return {
     session: {
       active: vi.fn().mockResolvedValue(null),
-      start: startFn,
+      start: startFn as PraxisClient["session"]["start"],
       end: vi.fn().mockResolvedValue({
         sessionId: brandId<"SessionId">("s1"),
         endedAt: Date.now() as Timestamp,
