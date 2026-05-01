@@ -1,6 +1,7 @@
 import type { CourseId, LessonId, Note, NoteBody, NoteContext, NoteId } from "@praxis/core/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useResource } from "./use-resource.js";
 
 export interface UseNotesResult {
   notes: Note[];
@@ -24,35 +25,23 @@ export interface UseNotesOptions {
 
 /**
  * Hook for loading and managing student notes.
- * Pattern matches useCourses — loading/error/refresh state, mount-effect.
+ * Uses useResource for loading/error/refresh state and mount-effect.
  */
 export function useNotes(opts: UseNotesOptions = {}): UseNotesResult {
   const client = usePraxisClient();
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await client.notes.list({
+  const loader = useCallback(
+    () =>
+      client.notes.list({
         ...(opts.courseId !== undefined && { courseId: opts.courseId }),
         ...(opts.lessonId !== undefined && { lessonId: opts.lessonId }),
         ...(opts.format !== undefined && { format: opts.format }),
         ...(opts.limit !== undefined && { limit: opts.limit }),
-      });
-      setNotes(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, opts.courseId, opts.lessonId, opts.format, opts.limit]);
+      }),
+    [client, opts.courseId, opts.lessonId, opts.format, opts.limit],
+  );
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data: notes = [], loading, error, refresh, setData } = useResource(loader);
 
   const createNote = useCallback(
     async (input: {
@@ -70,9 +59,9 @@ export function useNotes(opts: UseNotesOptions = {}): UseNotesResult {
   const deleteNote = useCallback(
     async (noteId: NoteId): Promise<void> => {
       await client.notes.delete(noteId);
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      setData((prev) => (prev ?? []).filter((n) => n.id !== noteId));
     },
-    [client],
+    [client, setData],
   );
 
   return { notes, loading, error, refresh, createNote, deleteNote };
