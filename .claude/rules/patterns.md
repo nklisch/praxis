@@ -13,6 +13,10 @@ Detailed examples for each pattern are in `.claude/skills/patterns/{slug}.md`. R
 - **config-kv-store**: `config_kv` table stores app-wide key/value config as JSON; read merges stored + defaults + env overrides; write via `onConflictDoUpdate` → [config-kv-store.md]
 - **mode-tool-scoping**: `mode.toolNames` filters `ServiceDeps.toolDefinitions` in `SessionServiceImpl.openActive`; `toolNames === []` means all tools (backward compat); always keep `toolNames` and prompt fragment in sync → [mode-tool-scoping.md]
 - **service-deps-injection**: `ServiceDeps` is the single DI container; `engineFactory?: fn` is the test injection seam for `FakeEngine`; `toolServices: { sympy, sandbox }` populated in `buildServices` → [service-deps-injection.md]
+- **load-or-throw**: After `.insert/update/delete().run()`, call `loadOrThrow(() => this.get(...), { entity, op, id, log })` to round-trip — never inline the if-null-throw; uniform error format `"<entity> not found after <op>: <id>"` → [load-or-throw.md]
+
+## UI patterns
+- **use-resource-hook**: `useResource(loader)` returns `{ data, loading, error, refresh, setData }`; loads on mount via useEffect; layer mutations on top using `setData` for optimistic updates and `refresh` for full re-fetches; never inline the `setLoading/try/catch/finally` block → [use-resource-hook.md]
 
 ## Communication patterns
 - **ipc-channel-convention**: Channels follow `praxis.{domain}.{action}`; streaming splits into `.start` (invoke) / `.events.<streamId>` (push) / `.cancel` (signal); subscribe before invoking to avoid race → [ipc-channel-convention.md]

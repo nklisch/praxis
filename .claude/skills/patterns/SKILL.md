@@ -24,6 +24,10 @@ Structural patterns for the Praxis AI tutoring framework (4 phases shipped). Rea
 - [config-kv-store.md](config-kv-store.md) — `config_kv` table for app-wide K/V; merge stored + defaults + env
 - [mode-tool-scoping.md](mode-tool-scoping.md) — `mode.toolNames` filters tools for each session's registry
 - [service-deps-injection.md](service-deps-injection.md) — `ServiceDeps` DI container; `engineFactory` for test injection
+- [load-or-throw.md](load-or-throw.md) — `loadOrThrow(fetch, ctx)` after `db.insert/update/delete().run()`; uniform "X not found after Y: id" wording
+
+### UI patterns
+- [use-resource-hook.md](use-resource-hook.md) — `useResource(loader)` for load-on-mount + `{ data, loading, error, refresh, setData }`; layer mutations on top
 
 ### Communication patterns
 - [ipc-channel-convention.md](ipc-channel-convention.md) — `praxis.{domain}.{action}`; streaming adds `.start/.events.<id>/.cancel`
