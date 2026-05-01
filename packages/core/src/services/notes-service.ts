@@ -28,6 +28,7 @@ import type {
   Timestamp,
 } from "../types/index.js";
 import { brandId, serializeNoteBody } from "../types/index.js";
+import { loadOrThrow } from "./db-helpers.js";
 import { extractJsonBlock } from "./llm-helpers.js";
 import { FROM_SESSION_SUMMARY_PROMPT } from "./notes-session-summary-prompt.js";
 
@@ -109,9 +110,10 @@ export class NotesServiceImpl implements NotesService {
         updatedAt: now,
       })
       .run();
-    const result = await this.get({ studentId: input.studentId, noteId: brandId<"NoteId">(id) });
-    if (!result) throw new Error("note disappeared after insert");
-    return result;
+    return loadOrThrow(
+      () => this.get({ studentId: input.studentId, noteId: brandId<"NoteId">(id) }),
+      { entity: "note", op: "create", id, log: this.deps.log },
+    );
   }
 
   async update(input: { studentId: StudentId; noteId: NoteId; body: NoteBody }): Promise<Note> {
@@ -131,9 +133,12 @@ export class NotesServiceImpl implements NotesService {
       })
       .where(and(eq(notes.id, input.noteId), eq(notes.studentId, input.studentId)))
       .run();
-    const updated = await this.get({ studentId: input.studentId, noteId: input.noteId });
-    if (!updated) throw new Error("note disappeared after update");
-    return updated;
+    return loadOrThrow(() => this.get({ studentId: input.studentId, noteId: input.noteId }), {
+      entity: "note",
+      op: "update",
+      id: input.noteId,
+      log: this.deps.log,
+    });
   }
 
   async get(input: { studentId: StudentId; noteId: NoteId }): Promise<Note | null> {

@@ -43,6 +43,7 @@ import type {
   VisibilityWindow,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import { loadOrThrow } from "./db-helpers.js";
 
 export interface ArtifactsServiceDeps {
   db: PraxisDb;
@@ -434,9 +435,12 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
       })
       .where(eq(courses.id, input.courseId))
       .run();
-    const result = await this.course(input.courseId);
-    if (!result) throw new Error(`Course not found after update: ${input.courseId}`);
-    return result;
+    return loadOrThrow(() => this.course(input.courseId), {
+      entity: "course",
+      op: "update",
+      id: input.courseId,
+      log: this.deps.log,
+    });
   }
 
   /**
@@ -467,9 +471,13 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
         estimatedMinutes: input.estimatedMinutes ?? 30,
       })
       .run();
-    const row = this.deps.db.select().from(lessons).where(eq(lessons.id, id)).get();
-    if (!row) throw new Error(`Failed to retrieve lesson after create: ${id}`);
-    return rowToLesson(row);
+    return loadOrThrow(
+      async () => {
+        const row = this.deps.db.select().from(lessons).where(eq(lessons.id, id)).get();
+        return row ? rowToLesson(row) : null;
+      },
+      { entity: "lesson", op: "create", id, log: this.deps.log },
+    );
   }
 
   /**
@@ -496,9 +504,13 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
       })
       .where(eq(lessons.id, input.lessonId))
       .run();
-    const row = this.deps.db.select().from(lessons).where(eq(lessons.id, input.lessonId)).get();
-    if (!row) throw new Error(`Lesson not found after update: ${input.lessonId}`);
-    return rowToLesson(row);
+    return loadOrThrow(
+      async () => {
+        const row = this.deps.db.select().from(lessons).where(eq(lessons.id, input.lessonId)).get();
+        return row ? rowToLesson(row) : null;
+      },
+      { entity: "lesson", op: "update", id: input.lessonId, log: this.deps.log },
+    );
   }
 
   /**
@@ -561,9 +573,13 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
         evidenceJson: [],
       })
       .run();
-    const row = this.deps.db.select().from(gatesTable).where(eq(gatesTable.id, id)).get();
-    if (!row) throw new Error(`Failed to retrieve gate after create: ${id}`);
-    return rowToGate(row);
+    return loadOrThrow(
+      async () => {
+        const row = this.deps.db.select().from(gatesTable).where(eq(gatesTable.id, id)).get();
+        return row ? rowToGate(row) : null;
+      },
+      { entity: "gate", op: "create", id, log: this.deps.log },
+    );
   }
 
   /**
@@ -588,9 +604,17 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
       })
       .where(eq(gatesTable.id, input.gateId))
       .run();
-    const row = this.deps.db.select().from(gatesTable).where(eq(gatesTable.id, input.gateId)).get();
-    if (!row) throw new Error(`Gate not found after update: ${input.gateId}`);
-    return rowToGate(row);
+    return loadOrThrow(
+      async () => {
+        const row = this.deps.db
+          .select()
+          .from(gatesTable)
+          .where(eq(gatesTable.id, input.gateId))
+          .get();
+        return row ? rowToGate(row) : null;
+      },
+      { entity: "gate", op: "update", id: input.gateId, log: this.deps.log },
+    );
   }
 
   /**
@@ -641,9 +665,17 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
         .run();
     });
 
-    const row = this.deps.db.select().from(gatesTable).where(eq(gatesTable.id, input.gateId)).get();
-    if (!row) throw new Error(`Gate not found after override: ${input.gateId}`);
-    return rowToGate(row);
+    return loadOrThrow(
+      async () => {
+        const row = this.deps.db
+          .select()
+          .from(gatesTable)
+          .where(eq(gatesTable.id, input.gateId))
+          .get();
+        return row ? rowToGate(row) : null;
+      },
+      { entity: "gate", op: "override", id: input.gateId, log: this.deps.log },
+    );
   }
 
   /**

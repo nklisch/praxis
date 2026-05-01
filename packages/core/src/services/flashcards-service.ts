@@ -20,6 +20,7 @@ import type {
   Timestamp,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import { loadOrThrow } from "./db-helpers.js";
 
 export interface FlashcardsServiceDeps {
   db: PraxisDb;
@@ -61,12 +62,10 @@ export class FlashcardsServiceImpl implements FlashcardsService {
         nextReviewAt: new Date(now),
       })
       .run();
-    const created = await this.get({
-      studentId: input.studentId,
-      flashcardId: brandId<"FlashcardId">(id),
-    });
-    if (!created) throw new Error("flashcard disappeared after insert");
-    return created;
+    return loadOrThrow(
+      () => this.get({ studentId: input.studentId, flashcardId: brandId<"FlashcardId">(id) }),
+      { entity: "flashcard", op: "create", id, log: this.deps.log },
+    );
   }
 
   async update(input: {
@@ -87,12 +86,10 @@ export class FlashcardsServiceImpl implements FlashcardsService {
         .where(and(eq(flashcards.id, input.flashcardId), eq(flashcards.studentId, input.studentId)))
         .run();
     }
-    const updated = await this.get({
-      studentId: input.studentId,
-      flashcardId: input.flashcardId,
-    });
-    if (!updated) throw new Error(`flashcard not found: ${input.flashcardId}`);
-    return updated;
+    return loadOrThrow(
+      () => this.get({ studentId: input.studentId, flashcardId: input.flashcardId }),
+      { entity: "flashcard", op: "update", id: input.flashcardId, log: this.deps.log },
+    );
   }
 
   async get(input: { studentId: StudentId; flashcardId: FlashcardId }): Promise<Flashcard | null> {
@@ -198,11 +195,10 @@ export class FlashcardsServiceImpl implements FlashcardsService {
       .where(and(eq(flashcards.id, input.flashcardId), eq(flashcards.studentId, input.studentId)))
       .run();
 
-    const updated = await this.get({
-      studentId: input.studentId,
-      flashcardId: input.flashcardId,
-    });
-    if (!updated) throw new Error("flashcard disappeared after review");
+    const updated = await loadOrThrow(
+      () => this.get({ studentId: input.studentId, flashcardId: input.flashcardId }),
+      { entity: "flashcard", op: "review", id: input.flashcardId, log: this.deps.log },
+    );
     return { flashcard: updated, nextReviewAt: scheduledNextReviewAt };
   }
 
