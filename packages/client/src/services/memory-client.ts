@@ -12,9 +12,16 @@ import type {
   StrategyPreference,
   StudentModel,
   TimeRange,
+  Timestamp,
 } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
 import type { ClientTransport } from "../transport/types.js";
+
+// Local brand helper. `@praxis/client` is a type-only dependent of
+// `@praxis/core/types`; we can't import the runtime `brandId` function.
+// The cast is identical — branded ids are nominal compile-time tags with no
+// runtime representation.
+const asId = <B extends string>(s: string): string & { readonly __brand: B } =>
+  s as string & { readonly __brand: B };
 
 const C = {
   studentModel: "praxis.memory.studentModel",
@@ -43,11 +50,11 @@ export class MemoryClient implements MemoryClientService {
       lastUpdated: number;
     }>(C.studentModel);
     return {
-      studentId: brandId<"StudentId">(raw.studentId),
+      studentId: asId<"StudentId">(raw.studentId),
       conceptMastery: new Map(
-        raw.conceptMastery.map(([id, m]) => [brandId<"ConceptId">(id) as ConceptId, m]),
+        raw.conceptMastery.map(([id, m]) => [asId<"ConceptId">(id) as ConceptId, m]),
       ),
-      lastUpdated: raw.lastUpdated as import("@praxis/core/types").Timestamp,
+      lastUpdated: raw.lastUpdated as Timestamp,
     };
   }
 
@@ -61,9 +68,9 @@ export class MemoryClient implements MemoryClientService {
       strategies: [string, StrategyPreference][];
     }>(C.procedural);
     return {
-      studentId: brandId<"StudentId">(raw.studentId),
+      studentId: asId<"StudentId">(raw.studentId),
       strategies: new Map(
-        raw.strategies.map(([id, s]) => [brandId<"StrategyId">(id) as StrategyId, s]),
+        raw.strategies.map(([id, s]) => [asId<"StrategyId">(id) as StrategyId, s]),
       ),
     };
   }
@@ -95,27 +102,24 @@ export class MemoryClient implements MemoryClientService {
       formatVersion: string;
     }>(C.export);
     return {
-      studentId: brandId<"StudentId">(raw.studentId),
+      studentId: asId<"StudentId">(raw.studentId),
       episodic: raw.episodic,
       studentModel: {
-        studentId: brandId<"StudentId">(raw.studentModel.studentId),
+        studentId: asId<"StudentId">(raw.studentModel.studentId),
         conceptMastery: new Map(
-          raw.studentModel.conceptMastery.map(([id, m]) => [
-            brandId<"ConceptId">(id) as ConceptId,
-            m,
-          ]),
+          raw.studentModel.conceptMastery.map(([id, m]) => [asId<"ConceptId">(id) as ConceptId, m]),
         ),
-        lastUpdated: raw.studentModel.lastUpdated as import("@praxis/core/types").Timestamp,
+        lastUpdated: raw.studentModel.lastUpdated as Timestamp,
       },
       procedural: {
-        studentId: brandId<"StudentId">(raw.procedural.studentId),
+        studentId: asId<"StudentId">(raw.procedural.studentId),
         strategies: new Map(
-          raw.procedural.strategies.map(([id, s]) => [brandId<"StrategyId">(id) as StrategyId, s]),
+          raw.procedural.strategies.map(([id, s]) => [asId<"StrategyId">(id) as StrategyId, s]),
         ),
       },
       affective: raw.affective,
       misconceptions: raw.misconceptions,
-      exportedAt: raw.exportedAt as import("@praxis/core/types").Timestamp,
+      exportedAt: raw.exportedAt as Timestamp,
       formatVersion: raw.formatVersion,
     };
   }
