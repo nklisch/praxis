@@ -9,28 +9,31 @@ let services: Services | null = null;
 let mainWindow: Electron.BrowserWindow | null = null;
 
 async function bootstrap(): Promise<void> {
+  console.log("[praxis] bootstrap: resolveDbPath");
   const dbPath = resolveDbPath();
+  console.log("[praxis] bootstrap: applyMigrations to", dbPath);
   await applyMigrations(dbPath);
+  console.log("[praxis] bootstrap: buildServices");
   services = buildServices(dbPath);
+  console.log("[praxis] bootstrap: scheduling preloads");
 
-  // Preload pyodide in the background so the first tool call is snappy.
-  // Failure is non-fatal — the first call will surface any error.
   services.pyodide.preload().catch((err) => {
     console.warn("[praxis] pyodide preload failed:", err);
   });
-
-  // Preload embedding model in the background so the first retrieval is fast.
   services.embeddings.preload().catch((err) => {
     console.warn("[praxis] embeddings preload failed:", err);
   });
 
+  console.log("[praxis] bootstrap: createMainWindow");
   mainWindow = createMainWindow();
 
+  console.log("[praxis] bootstrap: registerIpcHandlers");
   registerIpcHandlers(services, () => mainWindow?.webContents ?? null);
 
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+  console.log("[praxis] bootstrap: done");
 }
 
 app.whenReady().then(async () => {

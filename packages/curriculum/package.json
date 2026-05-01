@@ -3,18 +3,90 @@
   "version": "0.2.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./schema": "./src/schema.ts",
-    "./modes": "./src/modes/index.ts",
-    "./brief": "./src/brief/compose.ts",
-    "./brief/course-context": "./src/brief/course-context.ts",
-    "./brief/assignment-context": "./src/brief/assignment-context.ts",
-    "./bootstrap": "./src/bootstrap/index.ts",
-    "./gates": "./src/gates/index.ts",
-    "./packs": "./src/packs/index.ts",
-    "./router": "./src/router/index.ts",
-    "./scheduling": "./src/scheduling/index.ts",
-    "./style-composer": "./src/brief/style-composer.ts"
+    ".": {
+      "praxis-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "praxis-source": "./src/schema.ts",
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "node": "./dist/schema.js",
+      "default": "./dist/schema.js"
+    },
+    "./modes": {
+      "praxis-source": "./src/modes/index.ts",
+      "types": "./dist/modes/index.d.ts",
+      "import": "./dist/modes/index.js",
+      "node": "./dist/modes/index.js",
+      "default": "./dist/modes/index.js"
+    },
+    "./brief": {
+      "praxis-source": "./src/brief/compose.ts",
+      "types": "./dist/brief/compose.d.ts",
+      "import": "./dist/brief/compose.js",
+      "node": "./dist/brief/compose.js",
+      "default": "./dist/brief/compose.js"
+    },
+    "./brief/course-context": {
+      "praxis-source": "./src/brief/course-context.ts",
+      "types": "./dist/brief/course-context.d.ts",
+      "import": "./dist/brief/course-context.js",
+      "node": "./dist/brief/course-context.js",
+      "default": "./dist/brief/course-context.js"
+    },
+    "./brief/assignment-context": {
+      "praxis-source": "./src/brief/assignment-context.ts",
+      "types": "./dist/brief/assignment-context.d.ts",
+      "import": "./dist/brief/assignment-context.js",
+      "node": "./dist/brief/assignment-context.js",
+      "default": "./dist/brief/assignment-context.js"
+    },
+    "./bootstrap": {
+      "praxis-source": "./src/bootstrap/index.ts",
+      "types": "./dist/bootstrap/index.d.ts",
+      "import": "./dist/bootstrap/index.js",
+      "node": "./dist/bootstrap/index.js",
+      "default": "./dist/bootstrap/index.js"
+    },
+    "./gates": {
+      "praxis-source": "./src/gates/index.ts",
+      "types": "./dist/gates/index.d.ts",
+      "import": "./dist/gates/index.js",
+      "node": "./dist/gates/index.js",
+      "default": "./dist/gates/index.js"
+    },
+    "./packs": {
+      "praxis-source": "./src/packs/index.ts",
+      "types": "./dist/packs/index.d.ts",
+      "import": "./dist/packs/index.js",
+      "node": "./dist/packs/index.js",
+      "default": "./dist/packs/index.js"
+    },
+    "./router": {
+      "praxis-source": "./src/router/index.ts",
+      "types": "./dist/router/index.d.ts",
+      "import": "./dist/router/index.js",
+      "node": "./dist/router/index.js",
+      "default": "./dist/router/index.js"
+    },
+    "./scheduling": {
+      "praxis-source": "./src/scheduling/index.ts",
+      "types": "./dist/scheduling/index.d.ts",
+      "import": "./dist/scheduling/index.js",
+      "node": "./dist/scheduling/index.js",
+      "default": "./dist/scheduling/index.js"
+    },
+    "./style-composer": {
+      "praxis-source": "./src/brief/style-composer.ts",
+      "types": "./dist/brief/style-composer.d.ts",
+      "import": "./dist/brief/style-composer.js",
+      "node": "./dist/brief/style-composer.js",
+      "default": "./dist/brief/style-composer.js"
+    }
   },
   "scripts": {
     "build": "tsc -b",

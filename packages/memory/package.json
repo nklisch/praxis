@@ -3,8 +3,20 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./schema": "./src/schema.ts"
+    ".": {
+      "praxis-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "praxis-source": "./src/schema.ts",
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "node": "./dist/schema.js",
+      "default": "./dist/schema.js"
+    }
   },
   "scripts": {
     "build": "tsc -b",

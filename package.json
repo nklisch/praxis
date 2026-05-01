@@ -1,74 +1,16 @@
 {
-  "name": "praxis",
+  "name": "@praxis/desktop",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=24"
-  },
-  "packageManager": "pnpm@10.33.2",
-  "scripts": {
-    "build": "pnpm -r run build",
-    "typecheck": "pnpm -r run typecheck",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
-    "format": "biome format --write .",
-    "db:migrate": "tsx scripts/migrate.ts",
-    "db:generate": "drizzle-kit generate",
-    "db:show": "tsx scripts/db-show.ts",
-    "db:reset": "rm -f .praxis/dev.db && pnpm db:migrate",
-    "script:run-session": "tsx scripts/run-session.ts",
-    "db:episodic": "tsx scripts/db-episodic.ts",
-    "db:mastery": "tsx scripts/db-mastery.ts",
-    "db:grades": "tsx scripts/db-grades.ts",
-    "db:gates": "tsx scripts/db-gates.ts",
-    "db:packs": "tsx scripts/db-packs.ts",
-    "db:configurator-actions": "tsx scripts/db-configurator-actions.ts",
-    "db:cards-due": "tsx scripts/db-cards-due.ts",
-    "dev": "pnpm --filter @praxis/desktop dev",
-    "desktop:build": "pnpm --filter @praxis/desktop build",
-    "desktop:start": "pnpm --filter @praxis/desktop start"
+  "main": "out/main/index.js",
+  "exports": {
+    ".": "./src/index.ts"
   },
   "dependencies": {
-    "@praxis/artifacts": "workspace:*",
+    "@praxis/client": "workspace:*",
     "@praxis/core": "workspace:*",
     "@praxis/curriculum": "workspace:*",
-    "@praxis/engines": "workspace:*",
-    "@praxis/memory": "workspace:*",
     "@praxis/tools": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "uuid": "^14.0.0"
-  },
-  "devDependencies": {
-    "@ai-sdk/anthropic": "^3.0.73",
-    "@ai-sdk/google": "^3.0.66",
-    "@ai-sdk/openai": "^3.0.55",
-    "@biomejs/biome": "^2.4.13",
-    "@nklisch/claude-cli-sdk": "link:../claude-cli-sdk",
-    "@openai/codex-sdk": "^0.128.0",
-    "@types/node": "^25.6.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260430.1",
-    "ai": "^6.0.172",
-    "drizzle-kit": "^0.31.10",
-    "ollama-ai-provider-v2": "^3.5.0",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "vitest": "^3.2.4"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "better-sqlite3",
-      "canvas",
-      "core-js",
-      "electron",
-      "esbuild",
-      "@swc/core"
-    ],
-    "overrides": {
-      "zod": "4.3.6"
-    }
+    "@praxis/ui": "workspace:*"
   }
 }

@@ -3,10 +3,34 @@
   "version": "0.2.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./claude-code": "./src/claude-code/index.ts",
-    "./codex": "./src/codex/index.ts",
-    "./direct": "./src/direct/index.ts"
+    ".": {
+      "praxis-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./claude-code": {
+      "praxis-source": "./src/claude-code/index.ts",
+      "types": "./dist/claude-code/index.d.ts",
+      "import": "./dist/claude-code/index.js",
+      "node": "./dist/claude-code/index.js",
+      "default": "./dist/claude-code/index.js"
+    },
+    "./codex": {
+      "praxis-source": "./src/codex/index.ts",
+      "types": "./dist/codex/index.d.ts",
+      "import": "./dist/codex/index.js",
+      "node": "./dist/codex/index.js",
+      "default": "./dist/codex/index.js"
+    },
+    "./direct": {
+      "praxis-source": "./src/direct/index.ts",
+      "types": "./dist/direct/index.d.ts",
+      "import": "./dist/direct/index.js",
+      "node": "./dist/direct/index.js",
+      "default": "./dist/direct/index.js"
+    }
   },
   "scripts": {
     "build": "tsc -b",

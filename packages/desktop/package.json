@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "type": "module",
   "main": "out/main/index.js",
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "scripts": {
     "build": "electron-vite build",
     "dev": "electron-vite dev",
@@ -13,18 +10,31 @@
     "typecheck": "tsgo --noEmit && tsgo --noEmit -p tsconfig.electron.json",
     "test": "vitest run",
     "rebuild:electron": "electron-rebuild --force --only canvas,better-sqlite3",
-    "dist": "pnpm rebuild:electron && electron-vite build && electron-builder",
-    "dist:mac": "pnpm rebuild:electron && electron-vite build && electron-builder --mac",
+    "_resign:mac": "find release -name 'Praxis.app' -maxdepth 3 -exec codesign --force --deep --sign - {} \\;",
+    "dist": "pnpm rebuild:electron && electron-vite build && electron-builder && pnpm _resign:mac",
+    "dist:mac": "pnpm rebuild:electron && electron-vite build && electron-builder --mac && pnpm _resign:mac",
     "dist:win": "pnpm rebuild:electron && electron-vite build && electron-builder --win",
     "dist:linux": "pnpm rebuild:electron && electron-vite build && electron-builder --linux",
-    "dist:dir": "pnpm rebuild:electron && electron-vite build && electron-builder --dir"
+    "dist:dir": "pnpm rebuild:electron && electron-vite build && electron-builder --dir && pnpm _resign:mac"
   },
   "dependencies": {
+    "@praxis/artifacts": "workspace:*",
     "@praxis/client": "workspace:*",
     "@praxis/core": "workspace:*",
     "@praxis/curriculum": "workspace:*",
+    "@praxis/engines": "workspace:*",
+    "@praxis/memory": "workspace:*",
     "@praxis/tools": "workspace:*",
-    "@praxis/ui": "workspace:*"
+    "@praxis/ui": "workspace:*",
+    "better-sqlite3": "^12.9.0",
+    "sqlite-vec": "^0.1.9"
+  },
+  "optionalDependencies": {
+    "sqlite-vec-darwin-arm64": "0.1.9",
+    "sqlite-vec-darwin-x64": "0.1.9",
+    "sqlite-vec-linux-arm64": "0.1.9",
+    "sqlite-vec-linux-x64": "0.1.9",
+    "sqlite-vec-windows-x64": "0.1.9"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
@@ -44,9 +54,21 @@
       "output": "release",
       "buildResources": "build"
     },
+    "npmRebuild": false,
     "files": [
       "out/**/*",
-      "package.json"
+      "package.json",
+      "!**/node_modules/isolated-vm/**",
+      "!**/node_modules/@praxis/*/src/**",
+      "!**/node_modules/@praxis/*/dist/.tsbuildinfo",
+      "!**/node_modules/@praxis/*/dist/**/*.d.ts",
+      "!**/node_modules/@praxis/*/dist/**/*.d.ts.map",
+      "!**/node_modules/@praxis/*/dist/**/*.js.map",
+      "!**/node_modules/@praxis/*/__tests__/**",
+      "!**/.agents/**",
+      "!**/.claude/**",
+      "!**/docs/**",
+      "!**/*.md"
     ],
     "extraResources": [
       {
@@ -60,7 +82,11 @@
     "asar": true,
     "asarUnpack": [
       "**/node_modules/better-sqlite3/**",
-      "**/node_modules/canvas/**"
+      "**/node_modules/canvas/**",
+      "**/node_modules/sqlite-vec/**",
+      "**/node_modules/sqlite-vec-*/**",
+      "**/node_modules/@img/sharp-*/**",
+      "**/node_modules/sharp/**"
     ],
     "mac": {
       "target": [
@@ -68,7 +94,8 @@
         "zip"
       ],
       "category": "public.app-category.education",
-      "identity": null
+      "identity": null,
+      "type": "development"
     },
     "win": {
       "target": [

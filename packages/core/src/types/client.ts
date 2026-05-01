@@ -392,8 +392,11 @@ export interface IngestionClient {
 export interface DocumentsClient {
   list(): Promise<DocumentSummary[]>;
   delete(documentId: string): Promise<void>;
-  /** Fetch the PNG bytes for a saved page render. Returns null if not available. */
-  pageImage(input: { documentId: string; page: number }): Promise<Buffer | null>;
+  /**
+   * Fetch the PNG bytes for a saved page render. Returns null if not available.
+   * Uint8Array (rather than Buffer) so the type works in the renderer/browser context.
+   */
+  pageImage(input: { documentId: string; page: number }): Promise<Uint8Array | null>;
 }
 
 // ─── Phase 12: NotesClient (client-side) ─────────────────────────────────────

@@ -3,19 +3,97 @@
   "version": "0.2.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./test-tools": "./src/test-tools/index.ts",
-    "./math": "./src/math/index.ts",
-    "./sandbox": "./src/sandbox/index.ts",
-    "./runtime": "./src/runtime/index.ts",
-    "./runtime/ingestion": "./src/runtime/ingestion/index.ts",
-    "./retrieval": "./src/retrieval/index.ts",
-    "./course": "./src/course/index.ts",
-    "./memory": "./src/memory/index.ts",
-    "./assignment": "./src/assignment/index.ts",
-    "./authoring": "./src/authoring/index.ts",
-    "./notes": "./src/notes/index.ts",
-    "./flashcards": "./src/flashcards/index.ts"
+    ".": {
+      "praxis-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./test-tools": {
+      "praxis-source": "./src/test-tools/index.ts",
+      "types": "./dist/test-tools/index.d.ts",
+      "import": "./dist/test-tools/index.js",
+      "node": "./dist/test-tools/index.js",
+      "default": "./dist/test-tools/index.js"
+    },
+    "./math": {
+      "praxis-source": "./src/math/index.ts",
+      "types": "./dist/math/index.d.ts",
+      "import": "./dist/math/index.js",
+      "node": "./dist/math/index.js",
+      "default": "./dist/math/index.js"
+    },
+    "./sandbox": {
+      "praxis-source": "./src/sandbox/index.ts",
+      "types": "./dist/sandbox/index.d.ts",
+      "import": "./dist/sandbox/index.js",
+      "node": "./dist/sandbox/index.js",
+      "default": "./dist/sandbox/index.js"
+    },
+    "./runtime": {
+      "praxis-source": "./src/runtime/index.ts",
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
+      "node": "./dist/runtime/index.js",
+      "default": "./dist/runtime/index.js"
+    },
+    "./runtime/ingestion": {
+      "praxis-source": "./src/runtime/ingestion/index.ts",
+      "types": "./dist/runtime/ingestion/index.d.ts",
+      "import": "./dist/runtime/ingestion/index.js",
+      "node": "./dist/runtime/ingestion/index.js",
+      "default": "./dist/runtime/ingestion/index.js"
+    },
+    "./retrieval": {
+      "praxis-source": "./src/retrieval/index.ts",
+      "types": "./dist/retrieval/index.d.ts",
+      "import": "./dist/retrieval/index.js",
+      "node": "./dist/retrieval/index.js",
+      "default": "./dist/retrieval/index.js"
+    },
+    "./course": {
+      "praxis-source": "./src/course/index.ts",
+      "types": "./dist/course/index.d.ts",
+      "import": "./dist/course/index.js",
+      "node": "./dist/course/index.js",
+      "default": "./dist/course/index.js"
+    },
+    "./memory": {
+      "praxis-source": "./src/memory/index.ts",
+      "types": "./dist/memory/index.d.ts",
+      "import": "./dist/memory/index.js",
+      "node": "./dist/memory/index.js",
+      "default": "./dist/memory/index.js"
+    },
+    "./assignment": {
+      "praxis-source": "./src/assignment/index.ts",
+      "types": "./dist/assignment/index.d.ts",
+      "import": "./dist/assignment/index.js",
+      "node": "./dist/assignment/index.js",
+      "default": "./dist/assignment/index.js"
+    },
+    "./authoring": {
+      "praxis-source": "./src/authoring/index.ts",
+      "types": "./dist/authoring/index.d.ts",
+      "import": "./dist/authoring/index.js",
+      "node": "./dist/authoring/index.js",
+      "default": "./dist/authoring/index.js"
+    },
+    "./notes": {
+      "praxis-source": "./src/notes/index.ts",
+      "types": "./dist/notes/index.d.ts",
+      "import": "./dist/notes/index.js",
+      "node": "./dist/notes/index.js",
+      "default": "./dist/notes/index.js"
+    },
+    "./flashcards": {
+      "praxis-source": "./src/flashcards/index.ts",
+      "types": "./dist/flashcards/index.d.ts",
+      "import": "./dist/flashcards/index.js",
+      "node": "./dist/flashcards/index.js",
+      "default": "./dist/flashcards/index.js"
+    }
   },
   "scripts": {
     "build": "tsc -b",

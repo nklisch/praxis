@@ -1,6 +1,13 @@
-import { Buffer } from "node:buffer";
 import type { DocumentSummary, DocumentsClient } from "@praxis/core/types";
 import type { ClientTransport } from "../transport/types.js";
+
+/** Decode a base64 string to bytes — browser-native (atob) so this code runs in the renderer. */
+function base64ToBytes(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
 
 const C = {
   list: "praxis.documents.list",
@@ -25,11 +32,11 @@ class DocumentsClientImpl implements DocumentsClient {
     return this.transport.invoke<void>(C.delete, documentId);
   }
 
-  pageImage(input: { documentId: string; page: number }): Promise<Buffer | null> {
+  pageImage(input: { documentId: string; page: number }): Promise<Uint8Array | null> {
     // Main process sends base64 string; we decode here for the consumer.
     return this.transport
       .invoke<string | null>(C.pageImage, input)
-      .then((b64) => (b64 ? Buffer.from(b64, "base64") : null));
+      .then((b64) => (b64 ? base64ToBytes(b64) : null));
   }
 }
 

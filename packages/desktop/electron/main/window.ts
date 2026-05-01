@@ -10,11 +10,14 @@ export function createMainWindow(): BrowserWindow {
     height: 800,
     title: "Praxis",
     webPreferences: {
-      // Security: restrict renderer — no Node, context isolated, sandbox.
+      // Security: restrict renderer — no Node, context isolated.
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true,
-      preload: join(__dirname, "../preload/index.js"),
+      // sandbox: false because electron-vite emits ESM (.mjs) preload, and
+      // Electron requires CJS preloads when sandbox is true. The renderer is
+      // still locked down via contextIsolation + nodeIntegration: false.
+      sandbox: false,
+      preload: join(__dirname, "../preload/index.mjs"),
     },
   });
 

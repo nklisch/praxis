@@ -111,7 +111,21 @@ export function initFtsStore(sqlite: Database.Database): void {
  */
 function loadSqliteVecIfNeeded(sqlite: Database.Database): void {
   if (_loadedConnections.has(sqlite)) return;
-  const sqliteVec = _require("sqlite-vec") as { load: (db: Database.Database) => void };
-  sqliteVec.load(sqlite);
+  const sqliteVec = _require("sqlite-vec") as {
+    load: (db: Database.Database) => void;
+    getLoadablePath: () => string;
+  };
+
+  // In packaged Electron apps, the .dylib lives in `app.asar.unpacked` (via
+  // electron-builder's asarUnpack), but require.resolve returns the in-asar
+  // path because Node's module system patches asar transparently. dlopen, a
+  // raw OS call, can't see inside the asar — so we patch the path before
+  // handing it to better-sqlite3's loadExtension. Plus better-sqlite3 appends
+  // the platform extension automatically, so we strip the trailing one to
+  // avoid `.dylib.dylib`.
+  let loadable = sqliteVec.getLoadablePath();
+  loadable = loadable.replace("app.asar/", "app.asar.unpacked/");
+  loadable = loadable.replace(/\.(dylib|so|dll)$/i, "");
+  sqlite.loadExtension(loadable);
   _loadedConnections.add(sqlite);
 }

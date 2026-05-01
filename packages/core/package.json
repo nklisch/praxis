@@ -3,16 +3,76 @@
   "version": "0.2.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./types": "./src/types/index.ts",
-    "./db": "./src/db/index.ts",
-    "./db/show": "./src/db/show.ts",
-    "./db/migrate": "./src/db/migrate.ts",
-    "./schema": "./src/schema.ts",
-    "./config": "./src/config/index.ts",
-    "./session": "./src/session/index.ts",
-    "./services": "./src/services/index.ts",
-    "./ingestion": "./src/ingestion/index.ts"
+    ".": {
+      "praxis-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "praxis-source": "./src/types/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "node": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    },
+    "./db": {
+      "praxis-source": "./src/db/index.ts",
+      "types": "./dist/db/index.d.ts",
+      "import": "./dist/db/index.js",
+      "node": "./dist/db/index.js",
+      "default": "./dist/db/index.js"
+    },
+    "./db/show": {
+      "praxis-source": "./src/db/show.ts",
+      "types": "./dist/db/show.d.ts",
+      "import": "./dist/db/show.js",
+      "node": "./dist/db/show.js",
+      "default": "./dist/db/show.js"
+    },
+    "./db/migrate": {
+      "praxis-source": "./src/db/migrate.ts",
+      "types": "./dist/db/migrate.d.ts",
+      "import": "./dist/db/migrate.js",
+      "node": "./dist/db/migrate.js",
+      "default": "./dist/db/migrate.js"
+    },
+    "./schema": {
+      "praxis-source": "./src/schema.ts",
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js",
+      "node": "./dist/schema.js",
+      "default": "./dist/schema.js"
+    },
+    "./config": {
+      "praxis-source": "./src/config/index.ts",
+      "types": "./dist/config/index.d.ts",
+      "import": "./dist/config/index.js",
+      "node": "./dist/config/index.js",
+      "default": "./dist/config/index.js"
+    },
+    "./session": {
+      "praxis-source": "./src/session/index.ts",
+      "types": "./dist/session/index.d.ts",
+      "import": "./dist/session/index.js",
+      "node": "./dist/session/index.js",
+      "default": "./dist/session/index.js"
+    },
+    "./services": {
+      "praxis-source": "./src/services/index.ts",
+      "types": "./dist/services/index.d.ts",
+      "import": "./dist/services/index.js",
+      "node": "./dist/services/index.js",
+      "default": "./dist/services/index.js"
+    },
+    "./ingestion": {
+      "praxis-source": "./src/ingestion/index.ts",
+      "types": "./dist/ingestion/index.d.ts",
+      "import": "./dist/ingestion/index.js",
+      "node": "./dist/ingestion/index.js",
+      "default": "./dist/ingestion/index.js"
+    }
   },
   "scripts": {
     "build": "tsc -b",
