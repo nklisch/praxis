@@ -1,6 +1,7 @@
 import type { Course, CourseId, Lesson } from "@praxis/core/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useResource } from "./use-resource.js";
 
 export interface UseCourseDetailResult {
   course: Course | null;
@@ -12,36 +13,28 @@ export interface UseCourseDetailResult {
 
 /**
  * Hook that loads a full course + its ordered lessons for the course detail route.
+ * Uses useResource for loading/error/refresh state and mount-effect.
  * Re-fetches if courseId changes.
  */
 export function useCourseDetail(courseId: CourseId | undefined): UseCourseDetailResult {
   const client = usePraxisClient();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!courseId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [fetchedCourse, fetchedLessons] = await Promise.all([
-        client.artifacts.course(courseId),
-        client.artifacts.lessons(courseId),
-      ]);
-      setCourse(fetchedCourse);
-      setLessons(fetchedLessons);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
+  const loader = useCallback(async () => {
+    if (!courseId) return { course: null, lessons: [] };
+    const [course, lessons] = await Promise.all([
+      client.artifacts.course(courseId),
+      client.artifacts.lessons(courseId),
+    ]);
+    return { course, lessons };
   }, [client, courseId]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data, loading, error, refresh } = useResource(loader);
 
-  return { course, lessons, loading, error, refresh };
+  return {
+    course: data?.course ?? null,
+    lessons: data?.lessons ?? [],
+    loading,
+    error,
+    refresh,
+  };
 }

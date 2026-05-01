@@ -1,6 +1,7 @@
 import type { Flashcard, FlashcardId, Rating, Timestamp } from "@praxis/core/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useResource } from "./use-resource.js";
 
 export interface UseDueCardsResult {
   dueCount: number;
@@ -14,40 +15,32 @@ export interface UseDueCardsResult {
   ) => Promise<{ flashcard: Flashcard; nextReviewAt: Timestamp }>;
 }
 
+interface DueCardsData {
+  count: number;
+  list: Flashcard[];
+}
+
 /**
  * Hook for the due-card review queue.
- *
- * Fetches dueCount (for nav badge) + the due list (for review session).
- * The reviewCard method wraps client.flashcards.review and removes the card
- * from the local dueList on success (optimistic update for snappy review UX).
+ * Uses useResource with a Promise.all loader that fetches dueCount + due list
+ * together. The reviewCard method removes the card from the local list on
+ * success (optimistic update for snappy review UX).
  */
 export function useDueCards(): UseDueCardsResult {
   const client = usePraxisClient();
-  const [dueCount, setDueCount] = useState(0);
-  const [dueList, setDueList] = useState<Flashcard[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [count, list] = await Promise.all([
-        client.flashcards.dueCount(),
-        client.flashcards.list({ due: true }),
-      ]);
-      setDueCount(count);
-      setDueList(list);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
+  const loader = useCallback(async (): Promise<DueCardsData> => {
+    const [count, list] = await Promise.all([
+      client.flashcards.dueCount(),
+      client.flashcards.list({ due: true }),
+    ]);
+    return { count, list };
   }, [client]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data, loading, error, refresh, setData } = useResource(loader);
+
+  const dueCount = data?.count ?? 0;
+  const dueList = data?.list ?? [];
 
   const reviewCard = useCallback(
     async (
@@ -55,12 +48,14 @@ export function useDueCards(): UseDueCardsResult {
       rating: Rating,
     ): Promise<{ flashcard: Flashcard; nextReviewAt: Timestamp }> => {
       const result = await client.flashcards.review({ flashcardId, rating });
-      // Optimistically remove this card from the due list
-      setDueList((prev) => prev.filter((c) => c.id !== flashcardId));
-      setDueCount((prev) => Math.max(0, prev - 1));
+      // Optimistically remove this card from the due list and decrement count.
+      setData((prev) => ({
+        count: Math.max(0, (prev?.count ?? 0) - 1),
+        list: (prev?.list ?? []).filter((c) => c.id !== flashcardId),
+      }));
       return result;
     },
-    [client],
+    [client, setData],
   );
 
   return { dueCount, dueList, loading, error, refresh, reviewCard };
