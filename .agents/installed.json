@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "skilltap",
+      "description": "Manage agent skills with the skilltap CLI — install, update, remove, disable, enable, adopt, and move skills from any git host or npm. Use when the user wants to install, update, remove, list, adopt, move, disable, or enable agent skills, or configure skilltap settings.",
+      "repo": "https://github.com/nklisch/skilltap-skills.git",
+      "ref": null,
+      "sha": "7601a25fad8fbd8c2c0e6c890cbe76a1b85ceac2",
+      "scope": "project",
+      "path": ".agents/skills/skilltap",
+      "tap": "skilltap-skills",
+      "also": [
+        "claude-code"
+      ],
+      "installedAt": "2026-04-28T07:22:25.613Z",
+      "updatedAt": "2026-04-28T07:22:25.613Z",
+      "trust": {
+        "tier": "publisher",
+        "publisher": {
+          "name": "nklisch",
+          "platform": "github"
+        },
+        "tap": "skilltap-skills"
+      }
+    },
+    {
+      "name": "skilltap-find",
+      "description": "Discover and search for agent skills via configured taps and the skills.sh registry. Use when the user wants to find, discover, or search for available agent skills to install.",
+      "repo": "https://github.com/nklisch/skilltap-skills.git",
+      "ref": null,
+      "sha": "7601a25fad8fbd8c2c0e6c890cbe76a1b85ceac2",
+      "scope": "project",
+      "path": ".agents/skills/skilltap-find",
+      "tap": "skilltap-skills",
+      "also": [
+        "claude-code"
+      ],
+      "installedAt": "2026-04-28T07:22:26.155Z",
+      "updatedAt": "2026-04-28T07:22:26.155Z",
+      "trust": {
+        "tier": "publisher",
+        "publisher": {
+          "name": "nklisch",
+          "platform": "github"
+        },
+        "tap": "skilltap-skills"
+      }
+    },
+    {
+      "name": "zod-v4",
+      "description": "Zod v4 validation library reference. Auto-loads when working with Zod schemas, validation, z.object, z.string, z.infer, safeParse, transforms, discriminatedUnion.",
+      "repo": "https://github.com/nklisch/skills.git",
+      "ref": null,
+      "sha": "f04a60a679eed5a8cd8559414a4dc859c60ac847",
+      "scope": "project",
+      "path": ".agents/skills/zod-v4",
+      "tap": "skills",
+      "also": [
+        "claude-code"
+      ],
+      "installedAt": "2026-04-28T07:24:36.725Z",
+      "updatedAt": "2026-04-28T07:24:36.725Z",
+      "trust": {
+        "tier": "publisher",
+        "publisher": {
+          "name": "nklisch",
+          "platform": "github"
+        },
+        "tap": "skills"
+      }
+    },
+    {
+      "name": "biome-v2",
+      "description": "Biome v2 linter/formatter reference. Auto-loads when working with biome.json, biome config, linting rules, formatting, import organization, biome check.",
+      "repo": "https://github.com/nklisch/skills.git",
+      "ref": null,
+      "sha": "f04a60a679eed5a8cd8559414a4dc859c60ac847",
+      "scope": "project",
+      "path": ".agents/skills/biome-v2",
+      "tap": "skills",
+      "also": [
+        "claude-code"
+      ],
+      "installedAt": "2026-04-28T07:24:38.578Z",
+      "updatedAt": "2026-04-28T07:24:38.578Z",
+      "trust": {
+        "tier": "publisher",
+        "publisher": {
+          "name": "nklisch",
+          "platform": "github"
+        },
+        "tap": "skills"
+      }
+    },
+    {
+      "name": "drizzle-v0",
+      "description": "Drizzle ORM v0.45+ reference for PostgreSQL. Auto-loads when working with drizzle-orm, pgTable, schema definitions, drizzle queries, migrations, drizzle-kit.",
+      "repo": "https://github.com/nklisch/skills.git",
+      "ref": null,
+      "sha": "f04a60a679eed5a8cd8559414a4dc859c60ac847",
+      "scope": "project",
+      "path": ".agents/skills/drizzle-v0",
+      "tap": "skills",
+      "also": [
+        "claude-code"
+      ],
+      "installedAt": "2026-04-28T07:24:39.859Z",
+      "updatedAt": "2026-04-28T07:24:39.859Z",
+      "trust": {
+        "tier": "publisher",
+        "publisher": {
+          "name": "nklisch",
+          "platform": "github"
+        },
+        "tap": "skills"
+      }
+    },
+    {
+      "name": "zustand-v5",
+      "description": "Zustand v5 state management reference. Auto-loads when working with zustand stores, create, createStore, useShallow, persist, devtools, immer middleware.",
+      "repo": "https://github.com/nklisch/skills.git",
+      "ref": null,
+      "sha": "f04a60a679eed5a8cd8559414a4dc859c60ac847",
+      "scope": "project",
+      "path": ".agents/skills/zustand-v5",
+      "tap": "skills",
+      "also": [
+        "claude-code"
+      ],
+      "installedAt": "2026-04-28T07:24:41.063Z",
+      "updatedAt": "2026-04-28T07:24:41.063Z",
+      "trust": {
+        "tier": "publisher",
+        "publisher": {
+          "name": "nklisch",
+          "platform": "github"
+        },
+        "tap": "skills"
+      }
+    }
+  ]
+}

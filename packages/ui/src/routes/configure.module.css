@@ -93,7 +93,9 @@
   font-size: 0.9rem;
   color: var(--color-text-muted, #666);
   border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
   font-weight: 500;
 }
 
