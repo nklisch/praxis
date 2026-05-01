@@ -12,21 +12,12 @@
  *  - Propagates errors from createCourseFromPack
  *  - Tool name, tier, and effects are correct
  */
-import type {
-  BootstrapService,
-  ConceptGraphId,
-  CourseId,
-  ImportedPackView,
-  PackImportService,
-  StudentId,
-  ToolContext,
-} from "@praxis/core/types";
+import type { BootstrapService, ImportedPackView, PackImportService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { useCanonicalPackTool } from "../use-canonical-pack.js";
 
-const STUDENT_ID = brandId<"StudentId">("student-ucp");
-const SESSION_ID = brandId<"SessionId">("session-ucp");
 const PACK_ID = "algebra-1";
 const GRAPH_ID = brandId<"ConceptGraphId">("graph-ucp-1");
 
@@ -56,47 +47,6 @@ function makeBootstrapService(
   };
 }
 
-function makeCtx(packs: PackImportService, bootstrap: Partial<BootstrapService>): ToolContext {
-  return {
-    studentId: STUDENT_ID,
-    sessionId: SESSION_ID,
-    services: {
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      courseState: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      memory: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      artifacts: null as any,
-      bootstrap: bootstrap as BootstrapService,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      vectorStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      ftsStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      embeddings: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      documents: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sandbox: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sympy: null as any,
-      pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
-      packs,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      assignments: null as any,
-    },
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-  };
-}
-
 describe("course.use_canonical_pack", () => {
   it("tool metadata: name, tier, effects", () => {
     expect(useCanonicalPackTool.name).toBe("course.use_canonical_pack");
@@ -107,7 +57,11 @@ describe("course.use_canonical_pack", () => {
   it("calls importPack with the given packId", async () => {
     const packs = makePacksService();
     const bootstrap = makeBootstrapService();
-    const ctx = makeCtx(packs, bootstrap);
+    const ctx = makeToolContext({
+      studentId: "student-ucp",
+      sessionId: "session-ucp",
+      services: { packs, bootstrap: bootstrap as BootstrapService },
+    });
 
     await useCanonicalPackTool.handler(
       { packId: PACK_ID, courseTitle: "Algebra 1", gradeLevel: "9-12" },
@@ -120,7 +74,11 @@ describe("course.use_canonical_pack", () => {
   it("calls createCourseFromPack with the returned conceptGraphId", async () => {
     const packs = makePacksService();
     const bootstrap = makeBootstrapService();
-    const ctx = makeCtx(packs, bootstrap);
+    const ctx = makeToolContext({
+      studentId: "student-ucp",
+      sessionId: "session-ucp",
+      services: { packs, bootstrap: bootstrap as BootstrapService },
+    });
 
     await useCanonicalPackTool.handler(
       { packId: PACK_ID, courseTitle: "Algebra 1", gradeLevel: "9-12" },
@@ -129,7 +87,6 @@ describe("course.use_canonical_pack", () => {
 
     expect(bootstrap.createCourseFromPack).toHaveBeenCalledWith(
       expect.objectContaining({
-        studentId: STUDENT_ID,
         packId: PACK_ID,
         conceptGraphId: GRAPH_ID,
         courseTitle: "Algebra 1",
@@ -141,7 +98,11 @@ describe("course.use_canonical_pack", () => {
   it("returns ok: true with courseId, conceptGraphId, and conceptCount", async () => {
     const packs = makePacksService();
     const bootstrap = makeBootstrapService("course-abc-123", 42);
-    const ctx = makeCtx(packs, bootstrap);
+    const ctx = makeToolContext({
+      studentId: "student-ucp",
+      sessionId: "session-ucp",
+      services: { packs, bootstrap: bootstrap as BootstrapService },
+    });
 
     const result = await useCanonicalPackTool.handler(
       { packId: PACK_ID, courseTitle: "Algebra 1", gradeLevel: "9-12" },
@@ -158,7 +119,11 @@ describe("course.use_canonical_pack", () => {
     const packs = makePacksService();
     vi.mocked(packs.importPack).mockRejectedValue(new Error("Pack not found: unknown-pack"));
     const bootstrap = makeBootstrapService();
-    const ctx = makeCtx(packs, bootstrap);
+    const ctx = makeToolContext({
+      studentId: "student-ucp",
+      sessionId: "session-ucp",
+      services: { packs, bootstrap: bootstrap as BootstrapService },
+    });
 
     await expect(
       useCanonicalPackTool.handler(
@@ -174,7 +139,11 @@ describe("course.use_canonical_pack", () => {
     vi.mocked(bootstrap.createCourseFromPack!).mockRejectedValue(
       new Error("no concepts found for conceptGraphId"),
     );
-    const ctx = makeCtx(packs, bootstrap);
+    const ctx = makeToolContext({
+      studentId: "student-ucp",
+      sessionId: "session-ucp",
+      services: { packs, bootstrap: bootstrap as BootstrapService },
+    });
 
     await expect(
       useCanonicalPackTool.handler(

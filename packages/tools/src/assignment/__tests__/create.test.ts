@@ -1,10 +1,9 @@
-import type { AssignmentService, ToolContext } from "@praxis/core/types";
+import type { AssignmentService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { createAssignmentTool } from "../create.js";
 
-const STUDENT_ID = brandId<"StudentId">("student-1");
-const SESSION_ID = brandId<"SessionId">("session-1");
 const COURSE_ID = brandId<"CourseId">("course-1");
 const ASSIGNMENT_ID = brandId<"AssignmentId">("assign-abc");
 
@@ -20,58 +19,19 @@ function makeAssignmentsService(overrides?: Partial<AssignmentService>): Assignm
   };
 }
 
-function makeCtx(assignments: AssignmentService): ToolContext {
-  return {
-    studentId: STUDENT_ID,
-    sessionId: SESSION_ID,
-    services: {
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      memory: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      artifacts: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      bootstrap: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      courseState: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      vectorStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      ftsStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      embeddings: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      documents: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sandbox: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sympy: null as any,
-      pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
-      packs: null as any,
-      assignments,
-    },
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-  };
-}
-
 describe("createAssignmentTool", () => {
   let assignments: AssignmentService;
-  let ctx: ToolContext;
 
   beforeEach(() => {
     assignments = makeAssignmentsService();
-    ctx = makeCtx(assignments);
   });
 
   it("returns ok=true and assignmentId on success", async () => {
+    const ctx = makeToolContext({
+      studentId: "student-1",
+      sessionId: "session-1",
+      services: { assignments },
+    });
     const result = await createAssignmentTool.handler(
       {
         courseId: COURSE_ID,
@@ -96,6 +56,11 @@ describe("createAssignmentTool", () => {
   });
 
   it("calls assignments.create with tutor authoredBy", async () => {
+    const ctx = makeToolContext({
+      studentId: "student-1",
+      sessionId: "session-1",
+      services: { assignments },
+    });
     await createAssignmentTool.handler(
       {
         courseId: COURSE_ID,

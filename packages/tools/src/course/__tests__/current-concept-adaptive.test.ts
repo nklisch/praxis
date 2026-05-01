@@ -12,7 +12,6 @@
  *  - Uses args.courseId over ctx.courseId
  */
 import type {
-  ConceptGraphId,
   ConceptId,
   CourseId,
   CourseStateReader,
@@ -20,13 +19,11 @@ import type {
   GradeBand,
   LessonId,
   MemoryService,
-  StudentId,
-  SubjectId,
   Timestamp,
-  ToolContext,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { currentConceptTool } from "../current-concept.js";
 
 // ─── ID constants ─────────────────────────────────────────────────────────────
@@ -116,11 +113,11 @@ function makeStudentModel(masteryEntries: Array<[ConceptId, number]> = []) {
 
 // ─── Context builder ─────────────────────────────────────────────────────────
 
-function makeCtx(
+function makeCtxForSnapshot(
   snapshot: CourseStateSnapshot | null,
   masteryEntries: Array<[ConceptId, number]> = [],
   courseId?: CourseId,
-): ToolContext {
+) {
   const studentModel = makeStudentModel(masteryEntries);
   const courseState: CourseStateReader = {
     read: vi.fn().mockResolvedValue(snapshot),
@@ -128,45 +125,12 @@ function makeCtx(
   const memory = {
     studentModel: vi.fn().mockResolvedValue(studentModel),
   } as Partial<MemoryService>;
-  return {
+  return makeToolContext({
     studentId: STUDENT_ID,
     sessionId: SESSION_ID,
-    ...(courseId !== undefined && { courseId }),
-    services: {
-      courseState,
-      memory: memory as MemoryService,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      artifacts: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      bootstrap: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      vectorStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      ftsStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      embeddings: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      documents: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sandbox: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sympy: null as any,
-      pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
-      packs: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      assignments: null as any,
-    },
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-  };
+    courseId,
+    services: { courseState, memory: memory as MemoryService },
+  });
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -174,7 +138,7 @@ function makeCtx(
 describe("course.current_concept — adaptive routing (Phase 10)", () => {
   it("returns next-in-order when first concept is un-studied", async () => {
     const snapshot = makeSnapshot([false, false]);
-    const ctx = makeCtx(snapshot, [], COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, [], COURSE_ID);
 
     const result = await currentConceptTool.handler({}, ctx);
 
@@ -191,7 +155,7 @@ describe("course.current_concept — adaptive routing (Phase 10)", () => {
     // First concept studied, not mastered (mastery = 0.3 < 0.95 threshold)
     const snapshot = makeSnapshot([true, false]);
     // Concept A studied and at 0.3 mastery; Concept B not studied
-    const ctx = makeCtx(snapshot, [[CONCEPT_ID_A, 0.3]], COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, [[CONCEPT_ID_A, 0.3]], COURSE_ID);
 
     const result = await currentConceptTool.handler({}, ctx);
     expect(result.kind).toBe("ok");
@@ -206,7 +170,7 @@ describe("course.current_concept — adaptive routing (Phase 10)", () => {
   it("returns all_complete when router suggests no primary (all mastered)", async () => {
     // Both concepts studied with high mastery → router returns primary: null
     const snapshot = makeSnapshot([true, true]);
-    const ctx = makeCtx(
+    const ctx = makeCtxForSnapshot(
       snapshot,
       [
         [CONCEPT_ID_A, 0.99],
@@ -222,20 +186,20 @@ describe("course.current_concept — adaptive routing (Phase 10)", () => {
 
   it("returns all_complete when snapshot.currentLesson is null", async () => {
     const snapshot = makeSnapshot([], null);
-    const ctx = makeCtx(snapshot, [], COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, [], COURSE_ID);
 
     const result = await currentConceptTool.handler({}, ctx);
     expect(result.kind).toBe("all_complete");
   });
 
   it("throws when no courseId in args and ctx", async () => {
-    const ctx = makeCtx(null, []);
+    const ctx = makeCtxForSnapshot(null, []);
     // No courseId in ctx, no courseId arg
     await expect(currentConceptTool.handler({}, ctx)).rejects.toThrow("courseId");
   });
 
   it("throws when snapshot is null (course not found for student)", async () => {
-    const ctx = makeCtx(null, [], COURSE_ID);
+    const ctx = makeCtxForSnapshot(null, [], COURSE_ID);
     await expect(currentConceptTool.handler({}, ctx)).rejects.toThrow("Course not found");
   });
 
@@ -246,47 +210,17 @@ describe("course.current_concept — adaptive routing (Phase 10)", () => {
       read: vi.fn().mockResolvedValue(snapshot),
     };
     const studentModel = makeStudentModel();
-    const ctx: ToolContext = {
+    const ctx = makeToolContext({
       studentId: STUDENT_ID,
       sessionId: SESSION_ID,
-      courseId: COURSE_ID, // ctx has this
+      courseId: COURSE_ID, // ctx has this; args will override
       services: {
         courseState,
         memory: {
           studentModel: vi.fn().mockResolvedValue(studentModel),
         } as Partial<MemoryService> as MemoryService,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        artifacts: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        bootstrap: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        vectorStore: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        ftsStore: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        embeddings: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        documents: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        sandbox: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        sympy: null as any,
-        pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
-        packs: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        assignments: null as any,
       },
-      log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-    };
+    });
     // Pass a different courseId via args
     await currentConceptTool.handler({ courseId: OVERRIDE_ID }, ctx);
     expect(courseState.read).toHaveBeenCalledWith(
@@ -296,7 +230,7 @@ describe("course.current_concept — adaptive routing (Phase 10)", () => {
 
   it("output includes reviews and interleaves arrays (may be empty)", async () => {
     const snapshot = makeSnapshot([false]);
-    const ctx = makeCtx(snapshot, [], COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, [], COURSE_ID);
 
     const result = await currentConceptTool.handler({}, ctx);
     expect(result.kind).toBe("ok");

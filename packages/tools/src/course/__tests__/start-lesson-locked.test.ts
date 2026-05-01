@@ -13,10 +13,10 @@ import type {
   GateView,
   LessonId,
   Timestamp,
-  ToolContext,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { startLessonTool } from "../start-lesson.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-start-locked");
@@ -86,7 +86,7 @@ function makeSnapshot(gates: GateView[]): CourseStateSnapshot {
   };
 }
 
-function makeCtx(snapshot: CourseStateSnapshot | null, courseId?: CourseId): ToolContext {
+function makeCtxForSnapshot(snapshot: CourseStateSnapshot | null, courseId?: CourseId) {
   const courseState: CourseStateReader = {
     read: vi.fn().mockResolvedValue(snapshot),
   };
@@ -94,64 +94,31 @@ function makeCtx(snapshot: CourseStateSnapshot | null, courseId?: CourseId): Too
     markLessonStarted: vi.fn().mockResolvedValue(undefined),
     lessons: vi.fn().mockResolvedValue([]),
   };
-  return {
+  return makeToolContext({
     studentId: STUDENT_ID,
     sessionId: SESSION_ID,
-    ...(courseId !== undefined && { courseId }),
-    services: {
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      memory: null as any,
-      artifacts: artifacts as ArtifactsService,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      bootstrap: null as any,
-      courseState,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      vectorStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      ftsStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      embeddings: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      documents: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sandbox: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sympy: null as any,
-      pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
-      packs: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      assignments: null as any,
-    },
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-  };
+    courseId,
+    services: { courseState, artifacts: artifacts as ArtifactsService },
+  });
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("start_lesson lock enforcement", () => {
   it("skips lock check when ctx.courseId is absent (backward compat)", async () => {
-    const ctx = makeCtx(null, undefined);
+    const ctx = makeCtxForSnapshot(null, undefined);
     // Should not throw — markLessonStarted is called directly.
     await expect(startLessonTool.handler({ lessonId: LESSON_ID }, ctx)).resolves.toBeDefined();
   });
 
   it("skips lock check when snapshot is null (course not found)", async () => {
-    const ctx = makeCtx(null, COURSE_ID);
+    const ctx = makeCtxForSnapshot(null, COURSE_ID);
     await expect(startLessonTool.handler({ lessonId: LESSON_ID }, ctx)).resolves.toBeDefined();
   });
 
   it("throws when the lesson's gate is locked", async () => {
     const snapshot = makeSnapshot([makeGateView(LESSON_ID, "locked")]);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(startLessonTool.handler({ lessonId: LESSON_ID }, ctx)).rejects.toThrow(
       /cannot start_lesson/,
@@ -161,14 +128,14 @@ describe("start_lesson lock enforcement", () => {
 
   it("does NOT throw when the lesson's gate is unlocked", async () => {
     const snapshot = makeSnapshot([makeGateView(LESSON_ID, "unlocked")]);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(startLessonTool.handler({ lessonId: LESSON_ID }, ctx)).resolves.toBeDefined();
   });
 
   it("does NOT throw when the lesson's gate is overridden", async () => {
     const snapshot = makeSnapshot([makeGateView(LESSON_ID, "overridden")]);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(startLessonTool.handler({ lessonId: LESSON_ID }, ctx)).resolves.toBeDefined();
   });
@@ -176,7 +143,7 @@ describe("start_lesson lock enforcement", () => {
   it("does NOT throw when no gate guards the lesson (open section)", async () => {
     // No gates in snapshot — lesson is freely accessible.
     const snapshot = makeSnapshot([]);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(startLessonTool.handler({ lessonId: LESSON_ID }, ctx)).resolves.toBeDefined();
   });

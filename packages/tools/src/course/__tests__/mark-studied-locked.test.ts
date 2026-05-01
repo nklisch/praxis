@@ -15,10 +15,10 @@ import type {
   GateView,
   LessonId,
   Timestamp,
-  ToolContext,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { markStudiedTool } from "../mark-studied.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-mark-locked");
@@ -82,71 +82,38 @@ function makeSnapshot(
   };
 }
 
-function makeCtx(snapshot: CourseStateSnapshot | null, courseId?: CourseId): ToolContext {
+function makeCtxForSnapshot(snapshot: CourseStateSnapshot | null, courseId?: CourseId) {
   const courseState: CourseStateReader = {
     read: vi.fn().mockResolvedValue(snapshot),
   };
   const artifacts: Partial<ArtifactsService> = {
     markConceptStudied: vi.fn().mockResolvedValue({ lessonComplete: false, lessonId: LESSON_ID }),
   };
-  return {
+  return makeToolContext({
     studentId: STUDENT_ID,
     sessionId: SESSION_ID,
-    ...(courseId !== undefined && { courseId }),
-    services: {
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      memory: null as any,
-      artifacts: artifacts as ArtifactsService,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      bootstrap: null as any,
-      courseState,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      vectorStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      ftsStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      embeddings: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      documents: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sandbox: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sympy: null as any,
-      pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
-      packs: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      assignments: null as any,
-    },
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-  };
+    courseId,
+    services: { courseState, artifacts: artifacts as ArtifactsService },
+  });
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("mark_studied lock enforcement", () => {
   it("skips lock check when ctx.courseId is absent (backward compat)", async () => {
-    const ctx = makeCtx(null, undefined);
+    const ctx = makeCtxForSnapshot(null, undefined);
     await expect(markStudiedTool.handler({ conceptId: CONCEPT_ID }, ctx)).resolves.toBeDefined();
   });
 
   it("skips lock check when snapshot is null (course not found)", async () => {
-    const ctx = makeCtx(null, COURSE_ID);
+    const ctx = makeCtxForSnapshot(null, COURSE_ID);
     await expect(markStudiedTool.handler({ conceptId: CONCEPT_ID }, ctx)).resolves.toBeDefined();
   });
 
   it("throws when the concept's lesson gate is locked", async () => {
     const conceptsById = new Map([[CONCEPT_ID, makeConceptRow(CONCEPT_ID, LESSON_ID)]]);
     const snapshot = makeSnapshot([makeGateView(LESSON_ID, "locked")], conceptsById);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(markStudiedTool.handler({ conceptId: CONCEPT_ID }, ctx)).rejects.toThrow(
       /cannot mark_studied/,
@@ -158,7 +125,7 @@ describe("mark_studied lock enforcement", () => {
 
   it("throws with 'Concept not found' when concept is not in the snapshot", async () => {
     const snapshot = makeSnapshot([makeGateView(LESSON_ID, "locked")], new Map());
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(markStudiedTool.handler({ conceptId: CONCEPT_ID }, ctx)).rejects.toThrow(
       /Concept not found/,
@@ -168,7 +135,7 @@ describe("mark_studied lock enforcement", () => {
   it("does NOT throw when the concept's lesson gate is unlocked", async () => {
     const conceptsById = new Map([[CONCEPT_ID, makeConceptRow(CONCEPT_ID, LESSON_ID)]]);
     const snapshot = makeSnapshot([makeGateView(LESSON_ID, "unlocked")], conceptsById);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(markStudiedTool.handler({ conceptId: CONCEPT_ID }, ctx)).resolves.toBeDefined();
   });

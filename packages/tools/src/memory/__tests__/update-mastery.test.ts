@@ -1,9 +1,9 @@
-import type { ConceptId, MasterySignalKind, StudentId, ToolContext } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { updateMasteryTool } from "../update-mastery.js";
 
-function makeContext(overrides: Partial<ToolContext> = {}): ToolContext {
+function makeCtx() {
   const conceptId = brandId<"ConceptId">("concept-1");
   const pKnown = 0.5;
 
@@ -34,16 +34,12 @@ function makeContext(overrides: Partial<ToolContext> = {}): ToolContext {
     recordMisconception: vi.fn(),
   };
 
-  return {
-    studentId: brandId<"StudentId">("student-1"),
-    sessionId: brandId<"SessionId">("session-1"),
-    services: {
-      memory: mockMemory,
-      // biome-ignore lint/suspicious/noExplicitAny: test mock
-    } as any,
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-    ...overrides,
-  };
+  return makeToolContext({
+    studentId: "student-1",
+    sessionId: "session-1",
+    // biome-ignore lint/suspicious/noExplicitAny: partial memory mock for this test
+    services: { memory: mockMemory as any },
+  });
 }
 
 describe("updateMasteryTool", () => {
@@ -54,7 +50,7 @@ describe("updateMasteryTool", () => {
   });
 
   it("calls applySignal with the correct parameters", async () => {
-    const ctx = makeContext();
+    const ctx = makeCtx();
     const result = await updateMasteryTool.handler(
       { conceptId: "concept-1", signal: "correct" },
       ctx,
@@ -73,7 +69,7 @@ describe("updateMasteryTool", () => {
   });
 
   it("passes evidenceEventId in signals when provided", async () => {
-    const ctx = makeContext();
+    const ctx = makeCtx();
     await updateMasteryTool.handler(
       { conceptId: "concept-1", signal: "incorrect", evidenceEventId: "event-abc" },
       ctx,
@@ -85,7 +81,7 @@ describe("updateMasteryTool", () => {
   });
 
   it("returns empty evidenceEventIds when evidenceEventId is omitted", async () => {
-    const ctx = makeContext();
+    const ctx = makeCtx();
     await updateMasteryTool.handler({ conceptId: "concept-1", signal: "slip" }, ctx);
 
     const callArg = (ctx.services.memory.applySignal as ReturnType<typeof vi.fn>).mock
@@ -94,7 +90,7 @@ describe("updateMasteryTool", () => {
   });
 
   it("returns newPKnown from studentModel", async () => {
-    const ctx = makeContext();
+    const ctx = makeCtx();
     const result = await updateMasteryTool.handler(
       { conceptId: "concept-1", signal: "correct" },
       ctx,
@@ -105,7 +101,7 @@ describe("updateMasteryTool", () => {
   });
 
   it("returns 0 for pKnown when concept not in studentModel", async () => {
-    const ctx = makeContext();
+    const ctx = makeCtx();
     // Concept not in the studentModel map
     (ctx.services.memory.studentModel as ReturnType<typeof vi.fn>).mockResolvedValue({
       studentId: ctx.studentId,

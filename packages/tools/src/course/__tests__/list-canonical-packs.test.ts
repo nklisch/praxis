@@ -10,13 +10,10 @@
  *  - Returns empty array when no packs match the subject filter
  *  - Tool name, tier, and effects are correct
  */
-import type { PackImportService, PackSummaryView, ToolContext } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import type { PackImportService, PackSummaryView } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { listCanonicalPacksTool } from "../list-canonical-packs.js";
-
-const STUDENT_ID = brandId<"StudentId">("student-lcp");
-const SESSION_ID = brandId<"SessionId">("session-lcp");
 
 const SAMPLE_PACKS: PackSummaryView[] = [
   {
@@ -41,48 +38,6 @@ const SAMPLE_PACKS: PackSummaryView[] = [
   },
 ];
 
-function makeCtx(packs: PackImportService): ToolContext {
-  return {
-    studentId: STUDENT_ID,
-    sessionId: SESSION_ID,
-    services: {
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      courseState: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      memory: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      artifacts: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      bootstrap: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      vectorStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      ftsStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      embeddings: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      documents: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sandbox: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sympy: null as any,
-      pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
-      packs,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      assignments: null as any,
-    },
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-  };
-}
-
 function makePacksService(packs: PackSummaryView[]): PackImportService {
   return {
     listAvailablePacks: vi.fn().mockResolvedValue(packs),
@@ -106,7 +61,11 @@ describe("course.list_canonical_packs", () => {
 
   it("returns all packs when no subject filter is given", async () => {
     const service = makePacksService(SAMPLE_PACKS);
-    const ctx = makeCtx(service);
+    const ctx = makeToolContext({
+      studentId: "student-lcp",
+      sessionId: "session-lcp",
+      services: { packs: service },
+    });
 
     const result = await listCanonicalPacksTool.handler({}, ctx);
 
@@ -116,7 +75,11 @@ describe("course.list_canonical_packs", () => {
 
   it("filters packs by subject when provided", async () => {
     const service = makePacksService(SAMPLE_PACKS);
-    const ctx = makeCtx(service);
+    const ctx = makeToolContext({
+      studentId: "student-lcp",
+      sessionId: "session-lcp",
+      services: { packs: service },
+    });
 
     const result = await listCanonicalPacksTool.handler({ subject: "math.algebra-1" }, ctx);
 
@@ -126,7 +89,11 @@ describe("course.list_canonical_packs", () => {
 
   it("returns empty array when subject filter matches nothing", async () => {
     const service = makePacksService(SAMPLE_PACKS);
-    const ctx = makeCtx(service);
+    const ctx = makeToolContext({
+      studentId: "student-lcp",
+      sessionId: "session-lcp",
+      services: { packs: service },
+    });
 
     const result = await listCanonicalPacksTool.handler({ subject: "science.biology" }, ctx);
 
@@ -135,7 +102,11 @@ describe("course.list_canonical_packs", () => {
 
   it("returns empty array when no packs exist", async () => {
     const service = makePacksService([]);
-    const ctx = makeCtx(service);
+    const ctx = makeToolContext({
+      studentId: "student-lcp",
+      sessionId: "session-lcp",
+      services: { packs: service },
+    });
 
     const result = await listCanonicalPacksTool.handler({}, ctx);
 
@@ -144,7 +115,11 @@ describe("course.list_canonical_packs", () => {
 
   it("pack entries include all required fields", async () => {
     const service = makePacksService(SAMPLE_PACKS);
-    const ctx = makeCtx(service);
+    const ctx = makeToolContext({
+      studentId: "student-lcp",
+      sessionId: "session-lcp",
+      services: { packs: service },
+    });
 
     const result = await listCanonicalPacksTool.handler({}, ctx);
 

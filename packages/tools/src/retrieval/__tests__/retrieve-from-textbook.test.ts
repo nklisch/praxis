@@ -11,8 +11,8 @@
  *  - hasPageImage absent (falsy) when documents.pageImage returns null
  *  - Citations are 1-indexed
  */
-import type { ToolContext } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { retrieveFromTextbookTool } from "../retrieve-from-textbook.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -41,11 +41,11 @@ function makeFtsHit(chunkId: string, documentId = "doc-1", extra: Record<string,
   };
 }
 
-function makeCtx(
+function makeCtxForRetrieval(
   vectorHits: ReturnType<typeof makeVectorHit>[],
   ftsHits: ReturnType<typeof makeFtsHit>[],
   pageImageResult: Buffer | null = null,
-): ToolContext {
+) {
   const embeddings = {
     embed: vi.fn().mockResolvedValue([makeVec()]),
     embedQuery: vi.fn().mockResolvedValue(makeVec()),
@@ -70,103 +70,94 @@ function makeCtx(
     pageImage: vi.fn().mockResolvedValue(pageImageResult),
   };
 
-  return {
+  return makeToolContext({
     services: { embeddings, vectorStore, ftsStore, documents },
-  } as unknown as ToolContext;
+  });
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────────
 
 describe("retrieve_from_textbook handler", () => {
   it("returns empty citations when both stores return nothing", async () => {
-    const ctx = makeCtx([], []);
+    const ctx = makeCtxForRetrieval([], []);
     const result = await retrieveFromTextbookTool.handler({ query: "ATP synthase", topK: 5 }, ctx);
     expect(result.citations).toHaveLength(0);
     expect(result.query).toBe("ATP synthase");
   });
 
   it("uses embedQuery (not embed) for the query vector", async () => {
-    const ctx = makeCtx([makeVectorHit("c1")], []);
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1")], []);
     await retrieveFromTextbookTool.handler({ query: "enzyme kinetics", topK: 5 }, ctx);
 
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mock
-    const { embeddings } = ctx.services as any;
-    expect(embeddings.embedQuery).toHaveBeenCalledWith("enzyme kinetics");
-    expect(embeddings.embed).not.toHaveBeenCalled();
+    expect(ctx.services.embeddings.embedQuery).toHaveBeenCalledWith("enzyme kinetics");
+    expect(ctx.services.embeddings.embed).not.toHaveBeenCalled();
   });
 
   it("passes query vector to vectorStore.search", async () => {
-    const ctx = makeCtx([makeVectorHit("c1")], []);
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1")], []);
     await retrieveFromTextbookTool.handler({ query: "photosynthesis", topK: 3 }, ctx);
 
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mock
-    const { vectorStore } = ctx.services as any;
-    expect(vectorStore.search).toHaveBeenCalledWith(
+    expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ embedding: expect.any(Array), topK: expect.any(Number) }),
     );
   });
 
   it("passes query text to ftsStore.search", async () => {
-    const ctx = makeCtx([], [makeFtsHit("c1")]);
+    const ctx = makeCtxForRetrieval([], [makeFtsHit("c1")]);
     await retrieveFromTextbookTool.handler({ query: "mitosis", topK: 3 }, ctx);
 
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mock
-    const { ftsStore } = ctx.services as any;
-    expect(ftsStore.search).toHaveBeenCalledWith(
+    expect(ctx.services.ftsStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ query: "mitosis", topK: expect.any(Number) }),
     );
   });
 
   it("propagates documentIds filter to both stores", async () => {
-    const ctx = makeCtx([makeVectorHit("c1")], [makeFtsHit("c1")]);
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1")], [makeFtsHit("c1")]);
     await retrieveFromTextbookTool.handler({ query: "cell", topK: 5, documentIds: ["doc-1"] }, ctx);
 
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mocks
-    const { vectorStore, ftsStore } = ctx.services as any;
-    expect(vectorStore.search).toHaveBeenCalledWith(
+    expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ documentIds: ["doc-1"] }),
     );
-    expect(ftsStore.search).toHaveBeenCalledWith(
+    expect(ctx.services.ftsStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ documentIds: ["doc-1"] }),
     );
   });
 
   it("propagates sectionPattern filter to both stores", async () => {
-    const ctx = makeCtx([makeVectorHit("c1")], [makeFtsHit("c1")]);
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1")], [makeFtsHit("c1")]);
     await retrieveFromTextbookTool.handler(
       { query: "nucleus", topK: 5, sectionPattern: "Chapter 3" },
       ctx,
     );
 
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mocks
-    const { vectorStore, ftsStore } = ctx.services as any;
-    expect(vectorStore.search).toHaveBeenCalledWith(
+    expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ sectionPattern: "Chapter 3" }),
     );
-    expect(ftsStore.search).toHaveBeenCalledWith(
+    expect(ctx.services.ftsStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ sectionPattern: "Chapter 3" }),
     );
   });
 
   it("propagates pageRange filter to both stores", async () => {
-    const ctx = makeCtx([makeVectorHit("c1")], [makeFtsHit("c1")]);
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1")], [makeFtsHit("c1")]);
     await retrieveFromTextbookTool.handler(
       { query: "respiration", topK: 5, pageRange: { from: 10, to: 20 } },
       ctx,
     );
 
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mocks
-    const { vectorStore, ftsStore } = ctx.services as any;
-    expect(vectorStore.search).toHaveBeenCalledWith(
+    expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ pageRange: { from: 10, to: 20 } }),
     );
-    expect(ftsStore.search).toHaveBeenCalledWith(
+    expect(ctx.services.ftsStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ pageRange: { from: 10, to: 20 } }),
     );
   });
 
   it("citations are 1-indexed", async () => {
-    const ctx = makeCtx([makeVectorHit("c1"), makeVectorHit("c2"), makeVectorHit("c3")], []);
+    const ctx = makeCtxForRetrieval(
+      [makeVectorHit("c1"), makeVectorHit("c2"), makeVectorHit("c3")],
+      [],
+    );
     const result = await retrieveFromTextbookTool.handler({ query: "energy", topK: 3 }, ctx);
 
     expect(result.citations[0]?.index).toBe(1);
@@ -176,9 +167,8 @@ describe("retrieve_from_textbook handler", () => {
   });
 
   it("hydrates document title from documents.titlesByIds", async () => {
-    const ctx = makeCtx([makeVectorHit("c1", "doc-1")], []);
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mock
-    (ctx.services as any).documents.titlesByIds = vi
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1", "doc-1")], []);
+    ctx.services.documents.titlesByIds = vi
       .fn()
       .mockResolvedValue(new Map([["doc-1", "Biology 101"]]));
 
@@ -187,9 +177,8 @@ describe("retrieve_from_textbook handler", () => {
   });
 
   it("falls back to '(unknown)' when title not in map", async () => {
-    const ctx = makeCtx([makeVectorHit("c1", "doc-unknown")], []);
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mock
-    (ctx.services as any).documents.titlesByIds = vi.fn().mockResolvedValue(new Map());
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1", "doc-unknown")], []);
+    ctx.services.documents.titlesByIds = vi.fn().mockResolvedValue(new Map());
 
     const result = await retrieveFromTextbookTool.handler({ query: "cell", topK: 5 }, ctx);
     expect(result.citations[0]?.documentTitle).toBe("(unknown)");
@@ -197,7 +186,7 @@ describe("retrieve_from_textbook handler", () => {
 
   it("sets hasPageImage:true when page exists and documents.pageImage returns non-null", async () => {
     const hit = makeVectorHit("c1", "doc-1", { page: 3 });
-    const ctx = makeCtx([hit], [], Buffer.from("fake-png"));
+    const ctx = makeCtxForRetrieval([hit], [], Buffer.from("fake-png"));
 
     const result = await retrieveFromTextbookTool.handler({ query: "diagram", topK: 5 }, ctx);
     expect(result.citations[0]?.hasPageImage).toBe(true);
@@ -205,7 +194,7 @@ describe("retrieve_from_textbook handler", () => {
 
   it("hasPageImage not set when documents.pageImage returns null", async () => {
     const hit = makeVectorHit("c1", "doc-1", { page: 3 });
-    const ctx = makeCtx([hit], [], null);
+    const ctx = makeCtxForRetrieval([hit], [], null);
 
     const result = await retrieveFromTextbookTool.handler({ query: "diagram", topK: 5 }, ctx);
     expect(result.citations[0]?.hasPageImage).toBeFalsy();
@@ -213,18 +202,17 @@ describe("retrieve_from_textbook handler", () => {
 
   it("does not call pageImage for chunks without a page", async () => {
     const hit = makeVectorHit("c1", "doc-1"); // no page field
-    const ctx = makeCtx([hit], [], null);
+    const ctx = makeCtxForRetrieval([hit], [], null);
 
     const result = await retrieveFromTextbookTool.handler({ query: "intro", topK: 5 }, ctx);
 
-    // biome-ignore lint/suspicious/noExplicitAny: test access to mock
-    expect((ctx.services as any).documents.pageImage).not.toHaveBeenCalled();
+    expect(ctx.services.documents.pageImage).not.toHaveBeenCalled();
     expect(result.citations[0]?.hasPageImage).toBeFalsy();
   });
 
   it("topK limits the number of returned citations", async () => {
     const hits = Array.from({ length: 10 }, (_, i) => makeVectorHit(`c${i}`));
-    const ctx = makeCtx(hits, []);
+    const ctx = makeCtxForRetrieval(hits, []);
 
     const result = await retrieveFromTextbookTool.handler({ query: "all", topK: 3 }, ctx);
     expect(result.citations.length).toBeLessThanOrEqual(3);

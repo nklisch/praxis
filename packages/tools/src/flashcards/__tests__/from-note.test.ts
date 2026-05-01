@@ -3,43 +3,37 @@
  * Tests per-format extraction logic.
  */
 
-import type { NoteBody, ToolContext } from "@praxis/core/types";
+import type { NoteBody } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { fromNoteTool } from "../from-note.js";
 
-function makeCtx(noteBody: NoteBody, format: string): ToolContext {
+function makeCtxForNote(noteBody: NoteBody, format: string) {
   const studentId = brandId<"StudentId">("student-test");
   const noteId = brandId<"NoteId">("note-1");
 
-  const notesMock = {
-    get: vi.fn().mockResolvedValue({
-      id: noteId,
-      studentId,
-      format,
-      context: {},
-      links: [],
-      body: JSON.stringify(noteBody),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }),
-    create: vi.fn(),
-    update: vi.fn(),
-    list: vi.fn(),
-    delete: vi.fn(),
-    fromSessionSummary: vi.fn(),
-  };
-
-  return {
-    studentId,
-    sessionId: brandId<"SessionId">("session-1"),
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  return makeToolContext({
     services: {
-      notes: notesMock,
-      // biome-ignore lint/suspicious/noExplicitAny: other services not needed
-      ...({} as any),
+      notes: {
+        get: vi.fn().mockResolvedValue({
+          id: noteId,
+          studentId,
+          format,
+          context: {},
+          links: [],
+          body: JSON.stringify(noteBody),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }),
+        create: vi.fn(),
+        update: vi.fn(),
+        list: vi.fn(),
+        delete: vi.fn(),
+        fromSessionSummary: vi.fn(),
+      },
     },
-  } as unknown as ToolContext;
+  });
 }
 
 describe("fromNoteTool", () => {
@@ -50,7 +44,7 @@ describe("fromNoteTool", () => {
       details: ["x is the unknown.", "y is another unknown."],
       summary: "Variables.",
     };
-    const ctx = makeCtx(body, "cornell");
+    const ctx = makeCtxForNote(body, "cornell");
     const result = await fromNoteTool.handler({ noteId: "note-1" }, ctx);
     expect(result.ok).toBe(true);
     expect(result.proposed).toHaveLength(2);
@@ -68,7 +62,7 @@ describe("fromNoteTool", () => {
       details: ["D1", "D2", ""],
       summary: "sum",
     };
-    const ctx = makeCtx(body, "cornell");
+    const ctx = makeCtxForNote(body, "cornell");
     const result = await fromNoteTool.handler({ noteId: "note-1" }, ctx);
     // Only Q1/D1 pair is non-empty on both sides
     expect(result.proposed).toHaveLength(1);
@@ -82,7 +76,7 @@ describe("fromNoteTool", () => {
       details: ["D1", "D2", "D3"],
       summary: "sum",
     };
-    const ctx = makeCtx(body, "cornell");
+    const ctx = makeCtxForNote(body, "cornell");
     const result = await fromNoteTool.handler({ noteId: "note-1", sectionIndex: 1 }, ctx);
     expect(result.proposed).toHaveLength(1);
     expect(result.proposed[0]).toEqual({ front: "Q2", back: "D2" });
@@ -94,7 +88,7 @@ describe("fromNoteTool", () => {
       explanation: "Gravity pulls things together.",
       followUps: ["Why does mass matter?", "What is G?"],
     };
-    const ctx = makeCtx(body, "feynman");
+    const ctx = makeCtxForNote(body, "feynman");
     const result = await fromNoteTool.handler({ noteId: "note-1" }, ctx);
     // 1 explanation card + 2 follow-up cards
     expect(result.proposed).toHaveLength(3);
@@ -115,7 +109,7 @@ describe("fromNoteTool", () => {
         ],
       },
     };
-    const ctx = makeCtx(body, "outline");
+    const ctx = makeCtxForNote(body, "outline");
     const result = await fromNoteTool.handler({ noteId: "note-1" }, ctx);
     expect(result.proposed).toHaveLength(1);
     expect(result.proposed[0]?.front).toBe("Calculus > Derivatives");
@@ -124,14 +118,14 @@ describe("fromNoteTool", () => {
 
   it("Free: returns empty array (no structure to extract)", async () => {
     const body: NoteBody = { kind: "free", text: "Just some text here." };
-    const ctx = makeCtx(body, "free");
+    const ctx = makeCtxForNote(body, "free");
     const result = await fromNoteTool.handler({ noteId: "note-1" }, ctx);
     expect(result.ok).toBe(true);
     expect(result.proposed).toHaveLength(0);
   });
 
   it("throws when note not found", async () => {
-    const ctx = makeCtx({ kind: "free", text: "x" }, "free");
+    const ctx = makeCtxForNote({ kind: "free", text: "x" }, "free");
     (ctx.services.notes.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     await expect(fromNoteTool.handler({ noteId: "nonexistent" }, ctx)).rejects.toThrow(
       "note not found",

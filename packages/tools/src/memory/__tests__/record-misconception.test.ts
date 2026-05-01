@@ -1,9 +1,8 @@
-import type { ToolContext } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { recordMisconceptionTool } from "../record-misconception.js";
 
-function makeContext(overrides: Partial<ToolContext> = {}): ToolContext {
+function makeCtx() {
   const mockMemory = {
     applySignal: vi.fn(),
     studentModel: vi.fn(),
@@ -18,17 +17,12 @@ function makeContext(overrides: Partial<ToolContext> = {}): ToolContext {
       merged: false,
     }),
   };
-
-  return {
-    studentId: brandId<"StudentId">("student-1"),
-    sessionId: brandId<"SessionId">("session-1"),
-    services: {
-      memory: mockMemory,
-      // biome-ignore lint/suspicious/noExplicitAny: test mock
-    } as any,
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-    ...overrides,
-  };
+  return makeToolContext({
+    studentId: "student-1",
+    sessionId: "session-1",
+    // biome-ignore lint/suspicious/noExplicitAny: partial memory mock for this test
+    services: { memory: mockMemory as any },
+  });
 }
 
 const VALID_INPUT = {
@@ -50,7 +44,7 @@ describe("recordMisconceptionTool", () => {
   });
 
   it("calls recordMisconception with the correct parameters", async () => {
-    const ctx = makeContext();
+    const ctx = makeCtx();
     const result = await recordMisconceptionTool.handler(VALID_INPUT, ctx);
 
     expect(ctx.services.memory.recordMisconception).toHaveBeenCalledOnce();
@@ -70,7 +64,7 @@ describe("recordMisconceptionTool", () => {
   });
 
   it("returns merged=true when service indicates a merge", async () => {
-    const ctx = makeContext();
+    const ctx = makeCtx();
     (ctx.services.memory.recordMisconception as ReturnType<typeof vi.fn>).mockReturnValue({
       misconceptionId: "misc-existing",
       merged: true,
@@ -81,8 +75,7 @@ describe("recordMisconceptionTool", () => {
     expect(result.misconceptionId).toBe("misc-existing");
   });
 
-  it("input schema requires at least one evidenceEventId", async () => {
-    const ctx = makeContext();
+  it("input schema requires at least one evidenceEventId", () => {
     const parse = recordMisconceptionTool.input.safeParse({
       ...VALID_INPUT,
       evidenceEventIds: [],

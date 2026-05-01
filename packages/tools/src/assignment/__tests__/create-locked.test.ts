@@ -15,10 +15,10 @@ import type {
   GateView,
   LessonId,
   Timestamp,
-  ToolContext,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
+import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { createAssignmentTool } from "../create.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-create-locked");
@@ -82,7 +82,7 @@ function makeSnapshot(
   };
 }
 
-function makeCtx(snapshot: CourseStateSnapshot | null, courseId?: CourseId): ToolContext {
+function makeCtxForSnapshot(snapshot: CourseStateSnapshot | null, courseId?: CourseId) {
   const courseState: CourseStateReader = {
     read: vi.fn().mockResolvedValue(snapshot),
   };
@@ -94,45 +94,12 @@ function makeCtx(snapshot: CourseStateSnapshot | null, courseId?: CourseId): Too
     getResponses: vi.fn(),
     submit: vi.fn(),
   };
-  return {
+  return makeToolContext({
     studentId: STUDENT_ID,
     sessionId: SESSION_ID,
-    ...(courseId !== undefined && { courseId }),
-    services: {
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      memory: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      artifacts: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      bootstrap: null as any,
-      courseState,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      vectorStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      ftsStore: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      embeddings: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      documents: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sandbox: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      sympy: null as any,
-      pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
-      packs: null as any,
-      assignments,
-    },
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-  };
+    courseId,
+    services: { courseState, assignments },
+  });
 }
 
 const baseArgs = {
@@ -146,14 +113,14 @@ const baseArgs = {
 
 describe("assignment.create lock enforcement", () => {
   it("skips lock check when ctx.courseId is absent (backward compat)", async () => {
-    const ctx = makeCtx(null, undefined);
+    const ctx = makeCtxForSnapshot(null, undefined);
     await expect(
       createAssignmentTool.handler({ ...baseArgs, conceptIds: [CONCEPT_A] }, ctx),
     ).resolves.toBeDefined();
   });
 
   it("skips lock check when snapshot is null", async () => {
-    const ctx = makeCtx(null, COURSE_ID);
+    const ctx = makeCtxForSnapshot(null, COURSE_ID);
     await expect(
       createAssignmentTool.handler({ ...baseArgs, conceptIds: [CONCEPT_A] }, ctx),
     ).resolves.toBeDefined();
@@ -161,7 +128,7 @@ describe("assignment.create lock enforcement", () => {
 
   it("does NOT throw when conceptIds is empty", async () => {
     const snapshot = makeSnapshot([], new Map());
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
     await expect(
       createAssignmentTool.handler({ ...baseArgs, conceptIds: [] }, ctx),
     ).resolves.toBeDefined();
@@ -174,7 +141,7 @@ describe("assignment.create lock enforcement", () => {
     ]);
     const gates = [makeGateView(LESSON_A, "unlocked"), makeGateView(LESSON_B, "unlocked")];
     const snapshot = makeSnapshot(gates, conceptsById);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(
       createAssignmentTool.handler({ ...baseArgs, conceptIds: [CONCEPT_A, CONCEPT_B] }, ctx),
@@ -185,7 +152,7 @@ describe("assignment.create lock enforcement", () => {
     const conceptsById = new Map([[CONCEPT_A, makeConceptRow(CONCEPT_A, LESSON_A)]]);
     const gates = [makeGateView(LESSON_A, "locked")];
     const snapshot = makeSnapshot(gates, conceptsById);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     await expect(
       createAssignmentTool.handler({ ...baseArgs, conceptIds: [CONCEPT_A] }, ctx),
@@ -202,7 +169,7 @@ describe("assignment.create lock enforcement", () => {
     ]);
     const gates = [makeGateView(LESSON_A, "unlocked"), makeGateView(LESSON_B, "locked")];
     const snapshot = makeSnapshot(gates, conceptsById);
-    const ctx = makeCtx(snapshot, COURSE_ID);
+    const ctx = makeCtxForSnapshot(snapshot, COURSE_ID);
 
     // conceptIds order: A then B — should throw on B
     await expect(
