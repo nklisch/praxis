@@ -1,13 +1,17 @@
 import { useNavigate } from "@tanstack/react-router";
 import { CourseListItem } from "../components/course-list-item.js";
+import { RouteHeader } from "../components/route-header.js";
+import { getRouteMeta } from "../components/route-meta.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useCourses } from "../hooks/use-courses.js";
+import { COPY } from "../lib/copy.js";
 import styles from "./courses.module.css";
 
 export function CoursesRoute() {
   const client = usePraxisClient();
   const { courses, newlyUnlocked, loading, error } = useCourses();
   const navigate = useNavigate();
+  const meta = getRouteMeta("courses");
 
   const handleNewCourse = async () => {
     try {
@@ -21,23 +25,24 @@ export function CoursesRoute() {
 
   return (
     <div className={styles.layout}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Courses</h1>
-        <button type="button" className={styles.newCourseBtn} onClick={handleNewCourse}>
-          + New course
-        </button>
-      </header>
+      <RouteHeader
+        ornament={meta.ornament}
+        kicker={meta.kicker}
+        title={meta.title}
+        deck={meta.deck}
+        actions={
+          <button type="button" className={styles.newCourseBtn} onClick={handleNewCourse}>
+            + New course
+          </button>
+        }
+      />
 
-      {loading && <p className={styles.status}>Loading courses…</p>}
+      {loading && <p className={styles.status}>{COPY.loading.courses}</p>}
       {error && <p className={styles.error}>{error}</p>}
 
       {!loading && !error && courses.length === 0 && (
         <div className={styles.empty}>
-          <p className={styles.emptyPrimary}>No courses yet.</p>
-          <p className={styles.emptyHint}>
-            Upload a syllabus and textbook in chat, then click "New course" to bootstrap one from
-            your materials.
-          </p>
+          <p className={styles.emptyPrimary}>{COPY.empty.courses}</p>
         </div>
       )}
 

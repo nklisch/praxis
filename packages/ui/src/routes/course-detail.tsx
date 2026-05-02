@@ -2,8 +2,11 @@ import type { CourseId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { RouteHeader } from "../components/route-header.js";
+import { getRouteMeta } from "../components/route-meta.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useCourseDetail } from "../hooks/use-course-detail.js";
+import { COPY } from "../lib/copy.js";
 import styles from "./course-detail.module.css";
 
 export function CourseDetailRoute() {
@@ -35,10 +38,12 @@ export function CourseDetailRoute() {
     }
   };
 
+  const meta = getRouteMeta("courseDetail");
+
   if (loading) {
     return (
       <div className={styles.layout}>
-        <p className={styles.status}>Loading…</p>
+        <p className={styles.status}>{COPY.loading.courses}</p>
       </div>
     );
   }
@@ -59,23 +64,25 @@ export function CourseDetailRoute() {
     );
   }
 
+  const lessonCount = lessons.length;
+
   return (
     <div className={styles.layout}>
-      <header className={styles.header}>
-        <button
-          type="button"
-          className={styles.backBtn}
-          onClick={() => navigate({ to: "/courses" })}
-        >
-          ← Courses
-        </button>
-        <div className={styles.headerMain}>
-          <h1 className={styles.title}>{course.title}</h1>
-          <p className={styles.meta}>
-            {course.subject} · {course.gradeLevel}
-          </p>
-        </div>
-      </header>
+      <RouteHeader
+        ornament={meta.ornament}
+        kicker={meta.kicker}
+        title={course.title}
+        deck={`${course.subject} · ${lessonCount} lesson${lessonCount !== 1 ? "s" : ""}`}
+        actions={
+          <button
+            type="button"
+            className={styles.backBtn}
+            onClick={() => navigate({ to: "/courses" })}
+          >
+            ← Courses
+          </button>
+        }
+      />
 
       {/* Actions section — structured for Phase 11 additions (configure mode). */}
       <section className={styles.actions}>

@@ -1,6 +1,9 @@
 import type { EngineConfigSnapshot } from "@praxis/core/types";
 import { type FormEvent, useEffect, useState } from "react";
+import { RouteHeader } from "../components/route-header.js";
+import { getRouteMeta } from "../components/route-meta.js";
 import { usePraxisClient } from "../context/client-context.js";
+import { COPY } from "../lib/copy.js";
 import styles from "./settings.module.css";
 
 const ENGINE_OPTIONS = [
@@ -17,6 +20,7 @@ export function SettingsRoute() {
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<"ok" | "error" | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const meta = getRouteMeta("settings");
 
   useEffect(() => {
     client.config
@@ -45,7 +49,7 @@ export function SettingsRoute() {
   if (loadError) {
     return (
       <div className={styles.container}>
-        <p className={styles.error}>Failed to load settings: {loadError}</p>
+        <p className={styles.error}>{COPY.error.generic("load settings")}</p>
       </div>
     );
   }
@@ -53,15 +57,30 @@ export function SettingsRoute() {
   if (!config) {
     return (
       <div className={styles.container}>
-        <p className={styles.loading}>Loading settings…</p>
+        <p className={styles.loading}>{COPY.loading.default}</p>
       </div>
     );
   }
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Settings</h1>
-      <form className={styles.form} onSubmit={handleSave}>
+      <RouteHeader
+        ornament={meta.ornament}
+        kicker={meta.kicker}
+        title={meta.title}
+        deck={meta.deck}
+        actions={
+          <button
+            type="submit"
+            form="settings-form"
+            className={styles.saveButton}
+            disabled={saving}
+          >
+            {saving ? COPY.loading.saving : "Save"}
+          </button>
+        }
+      />
+      <form id="settings-form" className={styles.form} onSubmit={handleSave}>
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Engine</h2>
           <label className={styles.field}>
@@ -162,11 +181,10 @@ export function SettingsRoute() {
         </section>
 
         <div className={styles.actions}>
-          <button type="submit" className={styles.saveButton} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </button>
           {saveResult === "ok" && <span className={styles.successMsg}>Saved!</span>}
-          {saveResult === "error" && <span className={styles.errorMsg}>Save failed.</span>}
+          {saveResult === "error" && (
+            <span className={styles.errorMsg}>{COPY.error.generic("save settings")}</span>
+          )}
         </div>
       </form>
     </div>

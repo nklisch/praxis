@@ -17,10 +17,32 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
 }
 
+.ornament {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  user-select: none;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
 .title {
   margin: 0 0 1rem;
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.25rem;
+  font-weight: 400;
 }
 
 .body {

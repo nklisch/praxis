@@ -177,7 +177,8 @@ describe("CourseDetailRoute", () => {
 
   it("shows loading state initially", () => {
     renderRoute(makeClient());
-    expect(screen.getByText("Loading…")).toBeDefined();
+    // COPY.loading.courses = "looking through your courses…"
+    expect(screen.getByText("looking through your courses…")).toBeDefined();
   });
 
   it("shows 'Course not found' when course is null", async () => {

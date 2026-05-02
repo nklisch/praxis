@@ -66,7 +66,8 @@ describe("SettingsRoute", () => {
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Settings")).toBeDefined();
+      // RouteHeader renders the kicker "SETTINGS"
+      expect(screen.getByText("SETTINGS")).toBeDefined();
     });
 
     // There are multiple selects (Engine + Effort). Get all comboboxes.
@@ -92,6 +93,7 @@ describe("SettingsRoute", () => {
     const client = makeFakeClient();
     // Don't await — check initial render.
     renderWithClient(client);
-    expect(screen.getByText(/loading settings/i)).toBeDefined();
+    // COPY.loading.default = "loading…"
+    expect(screen.getByText("loading…")).toBeDefined();
   });
 });

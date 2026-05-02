@@ -145,7 +145,8 @@ describe("ConfigureRoute", () => {
     renderRoute(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Configure is Locked")).toBeDefined();
+      // RouteHeader renders the kicker "CONFIGURE" and title "configure"
+      expect(screen.getByText("CONFIGURE")).toBeDefined();
     });
 
     expect(screen.getByRole("button", { name: /Unlock/i })).toBeDefined();
@@ -160,7 +161,7 @@ describe("ConfigureRoute", () => {
     renderRoute(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Configure is Locked")).toBeDefined();
+      expect(screen.getByText("CONFIGURE")).toBeDefined();
     });
 
     // Click the Unlock button on the locked screen
@@ -207,7 +208,7 @@ describe("ConfigureRoute", () => {
     renderRoute(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Configure is Locked")).toBeDefined();
+      expect(screen.getByText("CONFIGURE")).toBeDefined();
     });
 
     expect(client.session.start).not.toHaveBeenCalled();

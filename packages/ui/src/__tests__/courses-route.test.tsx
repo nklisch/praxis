@@ -93,10 +93,10 @@ function renderRoute(client: PraxisClient) {
 }
 
 describe("CoursesRoute", () => {
-  it("renders the page title", async () => {
+  it("renders the route kicker", async () => {
     const client = makeClient([]);
     renderRoute(client);
-    expect(screen.getByText("Courses")).toBeDefined();
+    expect(screen.getByText("COURSES")).toBeDefined();
   });
 
   it("shows empty state when there are no courses", async () => {

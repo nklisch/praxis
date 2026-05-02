@@ -81,18 +81,20 @@ function renderRoute(client: PraxisClient) {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("PacksRoute", () => {
-  it("renders the page title and subtitle", async () => {
+  it("renders the route kicker and title", async () => {
     const client = makeClient([]);
     renderRoute(client);
 
-    expect(screen.getByText("Knowledge Packs")).toBeDefined();
-    expect(screen.getByText(/Curated concept graphs/)).toBeDefined();
+    expect(screen.getByText("PACKS")).toBeDefined();
+    // RouteHeader renders the display title
+    expect(screen.getByText("knowledge packs")).toBeDefined();
   });
 
   it("shows loading state initially", () => {
     const client = makeClient([]);
     renderRoute(client);
-    expect(screen.getByText(/Loading packs/)).toBeDefined();
+    // COPY.loading.default
+    expect(screen.getByText("loading…")).toBeDefined();
   });
 
   it("shows empty state when there are no packs", async () => {
@@ -100,7 +102,8 @@ describe("PacksRoute", () => {
     renderRoute(client);
 
     await waitFor(() => {
-      expect(screen.getByText(/No packs available/)).toBeDefined();
+      // COPY.empty.packs
+      expect(screen.getByText(/No knowledge packs available/)).toBeDefined();
     });
   });
 

@@ -23,6 +23,9 @@
   --font-display:
     "Iowan Old Style", "Sitka Text", "Charter", "Source Serif Pro", "Source Serif 4", Georgia,
     "Times New Roman", serif;
+
+  /* Route headers use a neutral graphite tint — color is reserved for session mode headers. */
+  --tint-route: var(--color-text-muted);
 }
 
 html,

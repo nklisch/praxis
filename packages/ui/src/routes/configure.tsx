@@ -1,9 +1,12 @@
 import type { CourseId, SessionHandle } from "@praxis/core/types";
 import { useEffect, useRef, useState } from "react";
+import { RouteHeader } from "../components/route-header.js";
+import { getRouteMeta } from "../components/route-meta.js";
 import { UnlockModal } from "../components/unlock-modal.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { ConfigureStateContext } from "../hooks/use-configure-state.js";
 import { useLock } from "../hooks/use-lock.js";
+import { COPY } from "../lib/copy.js";
 import { CourseTab } from "./configure/course-tab.js";
 import { GatesTab } from "./configure/gates-tab.js";
 import { MemoryTab } from "./configure/memory-tab.js";
@@ -40,6 +43,7 @@ export function ConfigureRoute() {
   const [activeTab, setActiveTab] = useState<ConfigureTab>("course");
   const [selectedCourseId, setSelectedCourseId] = useState<CourseId | null>(null);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const meta = getRouteMeta("configure");
 
   // Session state
   const [session, setSession] = useState<SessionHandle | null>(null);
@@ -50,6 +54,9 @@ export function ConfigureRoute() {
   const isAccessible = !lockLoading && !isLocked;
 
   // Start configure session when accessible (React 19 Strict Mode double-mount safe).
+  // session is used only in the cleanup to call session.end; adding it to deps would
+  // cause the effect to re-run on every session state update, creating duplicate sessions.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: session accessed only in cleanup — intentional stale closure for end-on-unmount
   useEffect(() => {
     if (!isAccessible) return;
 
@@ -79,7 +86,6 @@ export function ConfigureRoute() {
       }
     };
     // isAccessible is the trigger; session ref tracks single-start
-    // biome-ignore lint/correctness/useExhaustiveDependencies: session end on unmount only
   }, [isAccessible, client]);
 
   if (lockLoading) {
@@ -94,10 +100,12 @@ export function ConfigureRoute() {
     return (
       <div className={styles.lockedScreen}>
         <div className={styles.lockedCard}>
-          <div className={styles.lockIcon} aria-hidden="true">
-            🔒
-          </div>
-          <h1 className={styles.lockedTitle}>Configure is Locked</h1>
+          <RouteHeader
+            ornament={meta.ornament}
+            kicker={meta.kicker}
+            title={meta.title}
+            deck={meta.deck}
+          />
           <p className={styles.lockedDesc}>
             Enter your lock code to access course editing, prompt customization, and memory
             management.
@@ -127,6 +135,12 @@ export function ConfigureRoute() {
   return (
     <ConfigureStateContext.Provider value={{ selectedCourseId, setSelectedCourseId }}>
       <div className={styles.workspace}>
+        <RouteHeader
+          ornament={meta.ornament}
+          kicker={meta.kicker}
+          title={meta.title}
+          deck={meta.deck}
+        />
         <div className={styles.tabBar}>
           {TABS.map((tab) => (
             <button
@@ -141,10 +155,10 @@ export function ConfigureRoute() {
           <div className={styles.tabBarRight}>
             <span className={styles.sessionStatus}>
               {sessionError
-                ? `Session error: ${sessionError}`
+                ? COPY.error.generic("start the configure session")
                 : session
                   ? "Configure session active"
-                  : "Starting session…"}
+                  : COPY.loading.starting}
             </span>
           </div>
         </div>

@@ -11,6 +11,8 @@ import type { ConceptInfo } from "../components/concept-side-panel.js";
 import { ConceptSidePanel } from "../components/concept-side-panel.js";
 import type { GateEdgeLabelData } from "../components/gate-edge-label.js";
 import { GateEdgeLabel } from "../components/gate-edge-label.js";
+import { RouteHeader } from "../components/route-header.js";
+import { getRouteMeta } from "../components/route-meta.js";
 import { useCourseDetail } from "../hooks/use-course-detail.js";
 import type { ConceptRow } from "../hooks/use-course-gates.js";
 import { useCourseGates } from "../hooks/use-course-gates.js";
@@ -267,6 +269,7 @@ export function CourseMapRoute() {
 
   const loading = courseLoading || gatesLoading;
   const error = courseError ?? gatesError;
+  const meta = getRouteMeta("courseMap");
 
   const conceptInfoMap = useMemo(
     () => buildConceptInfoMap(lessons, masteryByConceptId, gates, conceptsById),
@@ -315,23 +318,21 @@ export function CourseMapRoute() {
 
   return (
     <div className={styles.layout}>
-      <header className={styles.header}>
-        <button
-          type="button"
-          className={styles.backBtn}
-          onClick={() => navigate({ to: "/courses/$courseId", params: { courseId: course.id } })}
-        >
-          ← Course
-        </button>
-        <div className={styles.headerMain}>
-          <h1 className={styles.title}>{course.title} — Progress Map</h1>
-          <p className={styles.meta}>
-            {course.subject} · {course.gradeLevel} · {lessons.length} lesson
-            {lessons.length !== 1 ? "s" : ""} · {gates.length} gate
-            {gates.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-      </header>
+      <RouteHeader
+        ornament={meta.ornament}
+        kicker={meta.kicker}
+        title={meta.title}
+        deck={`${course.title} · ${lessons.length} lesson${lessons.length !== 1 ? "s" : ""} · ${gates.length} gate${gates.length !== 1 ? "s" : ""}`}
+        actions={
+          <button
+            type="button"
+            className={styles.backBtn}
+            onClick={() => navigate({ to: "/courses/$courseId", params: { courseId: course.id } })}
+          >
+            ← Course
+          </button>
+        }
+      />
 
       <div className={styles.canvasContainer}>
         {nodes.length === 0 ? (

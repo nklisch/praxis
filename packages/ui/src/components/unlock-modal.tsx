@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useLock } from "../hooks/use-lock.js";
+import { COPY } from "../lib/copy.js";
 import styles from "./unlock-modal.module.css";
 
 export interface UnlockModalProps {
@@ -46,18 +47,19 @@ export function UnlockModal({ onClose, onUnlocked }: UnlockModalProps) {
         onUnlocked?.();
         onClose();
       } else {
-        setError("Wrong code, try again.");
+        setError(COPY.error.generic("unlock the configurator"));
         setCode("");
         inputRef.current?.focus();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : COPY.error.unknown);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: ESC is handled by the document-level keydown listener in useEffect; the backdrop click is a supplementary mouse affordance
     <div
       className={styles.backdrop}
       onClick={onClose}
@@ -65,8 +67,14 @@ export function UnlockModal({ onClose, onUnlocked }: UnlockModalProps) {
       role="dialog"
       aria-label="Unlock configure"
     >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: stops mouse propagation so clicks inside the card do not bubble to the backdrop */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard events are handled at the document level via useEffect; this only prevents mouse event propagation */}
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.title}>Unlock Configure</h2>
+        <span className={styles.ornament} aria-hidden="true">
+          ⁂
+        </span>
+        <span className={styles.kicker}>UNLOCK</span>
+        <h2 className={styles.title}>unlock configure</h2>
         <p className={styles.description}>Enter your lock code to access the configure surface.</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>

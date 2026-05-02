@@ -1,5 +1,8 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
+import { RouteHeader } from "../components/route-header.js";
+import { getRouteMeta } from "../components/route-meta.js";
+import { COPY } from "../lib/copy.js";
 import styles from "./workspace.module.css";
 
 // Lazily imported sub-routes — keeps the workspace shell snappy.
@@ -37,6 +40,7 @@ export function WorkspaceRoute() {
   // biome-ignore lint/suspicious/noExplicitAny: TanStack Router search params — safe cast
   const search = useSearch({ strict: false }) as any as WorkspaceSearch;
   const activeTab: WorkspaceTab = search.tab ?? "notes";
+  const meta = getRouteMeta("workspace");
 
   const switchTab = (tab: WorkspaceTab) => {
     navigate({ to: "/workspace", search: { tab } });
@@ -44,9 +48,12 @@ export function WorkspaceRoute() {
 
   return (
     <div className={styles.layout}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Workspace</h1>
-      </header>
+      <RouteHeader
+        ornament={meta.ornament}
+        kicker={meta.kicker}
+        title={meta.title}
+        deck={meta.deck}
+      />
 
       <nav className={styles.tabs} aria-label="Workspace tabs">
         {TABS.map((t) => (
@@ -64,7 +71,7 @@ export function WorkspaceRoute() {
       </nav>
 
       <div className={styles.content}>
-        <Suspense fallback={<p className={styles.loading}>Loading…</p>}>
+        <Suspense fallback={<p className={styles.loading}>{COPY.loading.default}</p>}>
           {activeTab === "notes" && <NotesList />}
           {activeTab === "cards" && <CardsList />}
           {activeTab === "review" && <ReviewSession />}

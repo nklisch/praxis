@@ -40,13 +40,13 @@ function makeClient(notes: Note[] = [], cards: Flashcard[] = []): PraxisClient {
 }
 
 describe("WorkspaceRoute", () => {
-  it("renders page title", () => {
+  it("renders route kicker", () => {
     render(
       <PraxisClientProvider client={makeClient()}>
         <WorkspaceRoute />
       </PraxisClientProvider>,
     );
-    expect(screen.getByText("Workspace")).toBeDefined();
+    expect(screen.getByText("WORKSPACE")).toBeDefined();
   });
 
   it("renders three tab buttons", () => {

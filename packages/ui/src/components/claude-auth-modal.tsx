@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { COPY } from "../lib/copy.js";
 import styles from "./claude-auth-modal.module.css";
 
 export interface ClaudeAuthModalProps {
@@ -82,7 +83,7 @@ export function ClaudeAuthModal({ onClose, onSignedIn }: ClaudeAuthModalProps) {
     } catch (err) {
       setPhase({
         kind: "failed",
-        message: err instanceof Error ? err.message : String(err),
+        message: err instanceof Error ? err.message : COPY.error.unknown,
       });
     } finally {
       cancelRef.current = null;
@@ -106,6 +107,10 @@ export function ClaudeAuthModal({ onClose, onSignedIn }: ClaudeAuthModalProps) {
       {/* biome-ignore lint/a11y/noStaticElementInteractions: stops mouse propagation so clicks inside the card do not bubble to the backdrop */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard events are handled at the document level via useEffect; this only prevents mouse event propagation */}
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <span className={styles.ornament} aria-hidden="true">
+          §
+        </span>
+        <span className={styles.kicker}>SIGN IN</span>
         <h2 className={styles.title}>Sign in to Claude</h2>
 
         {phase.kind === "idle" && (
