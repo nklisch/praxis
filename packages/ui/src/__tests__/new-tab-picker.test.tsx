@@ -65,13 +65,10 @@ function makeClient(overrides?: {
       list: vi.fn().mockResolvedValue([]),
     },
     tabs: {
-      // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
-      listOpen: vi.fn().mockResolvedValue([]) as any,
-      // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
-      list: vi.fn().mockResolvedValue([]) as any,
+      listOpen: vi.fn().mockResolvedValue([]),
+      list: vi.fn().mockResolvedValue([]),
       get: vi.fn().mockResolvedValue(null),
-      // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
-      open: overrides?.tabsOpen ?? (vi.fn().mockResolvedValue(TAB_RESULT) as any),
+      open: overrides?.tabsOpen ?? vi.fn().mockResolvedValue(TAB_RESULT),
       reopen: vi.fn().mockResolvedValue(TAB_RESULT),
       close: vi.fn().mockResolvedValue(undefined),
       touch: vi.fn().mockResolvedValue(undefined),

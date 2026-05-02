@@ -117,8 +117,7 @@ describe("createPraxisClient", () => {
     it("tabs.listOpen() routes to praxis.tabs.listOpen with no args", async () => {
       const { transport, invokedChannels } = makeTransport();
       const client = createPraxisClient(transport);
-      // biome-ignore lint/suspicious/noExplicitAny: studentId ignored client-side
-      await client.tabs.listOpen("any-student" as any);
+      await client.tabs.listOpen();
       expect(invokedChannels[0]?.channel).toBe("praxis.tabs.listOpen");
       expect(invokedChannels[0]?.args).toHaveLength(0);
     });
@@ -126,8 +125,7 @@ describe("createPraxisClient", () => {
     it("tabs.list() routes to praxis.tabs.list with opts", async () => {
       const { transport, invokedChannels } = makeTransport();
       const client = createPraxisClient(transport);
-      // biome-ignore lint/suspicious/noExplicitAny: studentId ignored client-side
-      await client.tabs.list("any-student" as any, { limit: 10, includeClosed: true });
+      await client.tabs.list({ limit: 10, includeClosed: true });
       expect(invokedChannels[0]?.channel).toBe("praxis.tabs.list");
       expect(invokedChannels[0]?.args[0]).toEqual({ limit: 10, includeClosed: true });
     });
@@ -136,7 +134,7 @@ describe("createPraxisClient", () => {
       const { transport, invokedChannels } = makeTransport();
       const client = createPraxisClient(transport);
       // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-      await client.tabs.open({ studentId: "s" as any, sessionId: "sess-1" as any, courseTitle: "Math" });
+      await client.tabs.open({ sessionId: "sess-1" as any, courseTitle: "Math" });
       expect(invokedChannels[0]?.channel).toBe("praxis.tabs.open");
       const payload = invokedChannels[0]?.args[0] as Record<string, unknown>;
       expect(payload.sessionId).toBe("sess-1");

@@ -1,5 +1,4 @@
-import type { AssignmentId, CourseId, PraxisClient, StudentId, TabId } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import type { AssignmentId, CourseId, PraxisClient, TabId } from "@praxis/core/types";
 import type { NavigateFn } from "@tanstack/react-router";
 
 /**
@@ -22,10 +21,7 @@ export async function openSessionInTab(opts: {
   courseTitle?: string;
 }): Promise<TabId> {
   const handle = await opts.client.session.start(opts.startOpts);
-  // studentId is ignored by TabsClient — the IPC server resolves it from the
-  // active student. Pass an empty branded value to satisfy the TabsService interface.
   const tab = await opts.client.tabs.open({
-    studentId: brandId<"StudentId">("") as StudentId,
     sessionId: handle.sessionId,
     ...(opts.courseTitle !== undefined && { courseTitle: opts.courseTitle }),
   });

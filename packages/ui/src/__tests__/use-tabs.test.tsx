@@ -42,13 +42,10 @@ function makeClient(
 
   return makeFakeClient({
     tabs: {
-      // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
-      listOpen: vi.fn().mockResolvedValue(tabList) as any,
-      // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
-      list: vi.fn().mockResolvedValue(tabList) as any,
+      listOpen: vi.fn().mockResolvedValue(tabList),
+      list: vi.fn().mockResolvedValue(tabList),
       get: vi.fn().mockResolvedValue(null),
-      // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
-      open: vi.fn().mockResolvedValue(newTab) as any,
+      open: vi.fn().mockResolvedValue(newTab),
       reopen: vi.fn().mockResolvedValue(newTab),
       close: vi.fn().mockResolvedValue(undefined),
       touch: vi.fn().mockResolvedValue(undefined),
@@ -110,8 +107,7 @@ describe("useTabs", () => {
   it("openTab adds the new tab to openTabs and focuses it", async () => {
     const tab = makeTab();
     const client = makeClient([], {
-      // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
-      open: vi.fn().mockResolvedValue(tab) as any,
+      open: vi.fn().mockResolvedValue(tab),
     });
     const { result } = renderHook(() => useTabs(), { wrapper: wrapper(client) });
 

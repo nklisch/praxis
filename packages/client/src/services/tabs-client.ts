@@ -1,4 +1,4 @@
-import type { SessionId, StudentId, TabId, TabSummary, TabsService } from "@praxis/core/types";
+import type { SessionId, TabId, TabSummary, TabsClientApi } from "@praxis/core/types";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = "praxis.tabs" as const;
@@ -6,22 +6,18 @@ const C = "praxis.tabs" as const;
 /**
  * TabsClient — Phase 14 implementation.
  *
- * Implements TabsService but the `studentId` parameter on `listOpen` and `list`
- * is intentionally ignored on the client side. The IPC server resolves the active
- * student from the single-student v1 install — the renderer never needs to pass it.
- * The parameter is present in the interface for structural compatibility only.
+ * Implements TabsClientApi (renderer-facing). The `studentId` parameters from the
+ * server-side TabsService are omitted here — the IPC server resolves the active
+ * student from the single-student v1 install context.
  */
-export class TabsClient implements TabsService {
+export class TabsClient implements TabsClientApi {
   constructor(private readonly transport: ClientTransport) {}
 
-  listOpen(_studentId: StudentId): Promise<TabSummary[]> {
+  listOpen(): Promise<TabSummary[]> {
     return this.transport.invoke<TabSummary[]>(`${C}.listOpen`);
   }
 
-  list(
-    _studentId: StudentId,
-    opts?: { limit?: number; includeClosed?: boolean },
-  ): Promise<TabSummary[]> {
+  list(opts?: { limit?: number; includeClosed?: boolean }): Promise<TabSummary[]> {
     return this.transport.invoke<TabSummary[]>(`${C}.list`, opts ?? {});
   }
 
@@ -29,17 +25,11 @@ export class TabsClient implements TabsService {
     return this.transport.invoke<TabSummary | null>(`${C}.get`, tabId);
   }
 
-  open(input: {
-    studentId: StudentId;
-    sessionId: SessionId;
-    courseTitle?: string;
-  }): Promise<TabSummary> {
-    // studentId is resolved server-side; only pass sessionId and courseTitle.
-    const payload: { sessionId: SessionId; courseTitle?: string } = {
+  open(input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary> {
+    return this.transport.invoke<TabSummary>(`${C}.open`, {
       sessionId: input.sessionId,
       ...(input.courseTitle !== undefined && { courseTitle: input.courseTitle }),
-    };
-    return this.transport.invoke<TabSummary>(`${C}.open`, payload);
+    });
   }
 
   reopen(tabId: TabId): Promise<TabSummary> {

@@ -60,13 +60,10 @@ function makeTestClient(
   tabList: TabSummary[] = [],
 ): PraxisClient {
   const tabs: PraxisClient["tabs"] = {
-    // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
-    listOpen: vi.fn().mockResolvedValue(tabList) as any,
-    // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
-    list: vi.fn().mockResolvedValue(tabList) as any,
+    listOpen: vi.fn().mockResolvedValue(tabList),
+    list: vi.fn().mockResolvedValue(tabList),
     get: vi.fn().mockResolvedValue(null),
-    // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
-    open: vi.fn().mockResolvedValue(tabList[0] ?? makeTab()) as any,
+    open: vi.fn().mockResolvedValue(tabList[0] ?? makeTab()),
     reopen: vi.fn().mockResolvedValue(tabList[0] ?? makeTab()),
     close: vi.fn().mockResolvedValue(undefined),
     touch: vi.fn().mockResolvedValue(undefined),

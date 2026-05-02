@@ -31,6 +31,7 @@ export type {
   SessionService,
   SessionSummary,
   ShellClient,
+  TabsClientApi,
 } from "./client.js";
 export type * from "./common.js";
 export type * from "./concept-graph.js";

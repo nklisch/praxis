@@ -1,5 +1,4 @@
-import type { SessionId, StudentId, TabId, TabSummary } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import type { SessionId, TabId, TabSummary } from "@praxis/core/types";
 import { useCallback, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 
@@ -48,9 +47,7 @@ export function useTabs(): UseTabsResult {
     setLoading(true);
     setError(null);
     try {
-      // studentId is ignored by TabsClient — the IPC server resolves it from the
-      // active student. Pass an empty branded value to satisfy the interface.
-      const tabs = await client.tabs.listOpen(brandId<"StudentId">("") as StudentId);
+      const tabs = await client.tabs.listOpen();
       setOpenTabs(tabs);
       // On initial load, set active to the most recently active tab
       if (tabs.length > 0) {
@@ -76,12 +73,7 @@ export function useTabs(): UseTabsResult {
 
   const openTab = useCallback(
     async (input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary> => {
-      // studentId is ignored by TabsClient — the IPC server resolves it from the
-      // active student. Pass an empty branded value to satisfy the interface.
-      const tab = await client.tabs.open({
-        ...input,
-        studentId: brandId<"StudentId">("") as StudentId,
-      });
+      const tab = await client.tabs.open(input);
       setOpenTabs((prev) => {
         // Insert in sortOrder position; remove any duplicate if it somehow existed
         const without = prev.filter((t) => t.id !== tab.id);

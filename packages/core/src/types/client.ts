@@ -1,5 +1,5 @@
 import type { ClaudeAuthService } from "../services/claude-auth.js";
-import type { TabsService } from "./tabs.js";
+import type { TabId, TabSummary } from "./tabs.js";
 import type {
   Assignment,
   AssignmentResponse,
@@ -70,7 +70,24 @@ export interface PraxisClient {
   /** Shell helpers — open URLs in the system browser. */
   shell: ShellClient;
   /** Phase 14: tab strip — open, close, rename, list. */
-  tabs: TabsService;
+  tabs: TabsClientApi;
+}
+
+/**
+ * Client-facing tabs API. Differs from the server-side TabsService by dropping
+ * the `studentId` parameters — the server resolves the active student from
+ * the IPC context. Client code stays clean: `client.tabs.listOpen()` not
+ * `client.tabs.listOpen(brandId<"StudentId">("") as StudentId)`.
+ */
+export interface TabsClientApi {
+  listOpen(): Promise<TabSummary[]>;
+  list(opts?: { limit?: number; includeClosed?: boolean }): Promise<TabSummary[]>;
+  get(tabId: TabId): Promise<TabSummary | null>;
+  open(input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary>;
+  reopen(tabId: TabId): Promise<TabSummary>;
+  close(tabId: TabId): Promise<void>;
+  touch(tabId: TabId): Promise<void>;
+  rename(tabId: TabId, title: string): Promise<TabSummary>;
 }
 
 /** Generic shell utility surface for the renderer. */
