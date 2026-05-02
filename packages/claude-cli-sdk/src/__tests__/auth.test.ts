@@ -1,14 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { _resetCliCommand, _setCliCommand, authLogin, authStatus } from "../auth.js";
 import { CLINotFoundError } from "../errors.js";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 
 // We test by pointing _cliCommand at tiny Node scripts that mimic the CLI.
 // This avoids any dependency on a real `claude` binary.
 
-async function makeFakeCli(script: string): Promise<{ binDir: string; cleanup: () => Promise<void> }> {
+async function makeFakeCli(
+  script: string,
+): Promise<{ binDir: string; cleanup: () => Promise<void> }> {
   const binDir = await mkdtemp(join(tmpdir(), "praxis-auth-test-"));
   const scriptPath = join(binDir, "claude");
   // Write a node shebang script
