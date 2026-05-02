@@ -116,14 +116,23 @@ function renderPicker({
   client,
   onClose = vi.fn(),
   onOpened = vi.fn(),
+  openTab,
 }: {
   client: PraxisClient;
   onClose?: () => void;
   onOpened?: (tabId: import("@praxis/core/types").TabId) => void;
+  openTab?: (input: {
+    sessionId: import("@praxis/core/types").SessionId;
+    courseTitle?: string;
+  }) => Promise<import("@praxis/core/types").TabSummary>;
 }) {
+  // Default openTab delegates to client.tabs.open so existing tests that
+  // assert on the IPC channel still pass without per-test setup.
+  // biome-ignore lint/suspicious/noExplicitAny: branded id passthrough in test glue
+  const defaultOpenTab = openTab ?? ((input: any) => client.tabs.open(input));
   return render(
     <PraxisClientProvider client={client}>
-      <NewTabPicker onClose={onClose} onOpened={onOpened} />
+      <NewTabPicker onClose={onClose} openTab={defaultOpenTab} onOpened={onOpened} />
     </PraxisClientProvider>,
   );
 }

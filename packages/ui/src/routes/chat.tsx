@@ -26,7 +26,7 @@ export function ChatRoute() {
   // strict: false handles both /chat and /chat/$tabId without throwing
   const { tabId } = useParams({ strict: false }) as { tabId?: string };
 
-  const { openTabs, activeTabId, closeTab, switchTo, loading } = useTabs();
+  const { openTabs, activeTabId, openTab, closeTab, switchTo, loading } = useTabs();
   const [showPicker, setShowPicker] = useState(false);
 
   // Documents sidebar — global to workspace, not per-tab
@@ -110,6 +110,7 @@ export function ChatRoute() {
       {showPicker && (
         <NewTabPicker
           onClose={() => setShowPicker(false)}
+          openTab={openTab}
           onOpened={(newTabId) => {
             setShowPicker(false);
             navigate({ to: "/chat/$tabId", params: { tabId: newTabId } });

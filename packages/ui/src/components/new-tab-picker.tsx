@@ -1,5 +1,4 @@
-import type { StudentId, TabId } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import type { SessionId, TabId, TabSummary } from "@praxis/core/types";
 import { type FormEvent, type JSX, useCallback, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useResource } from "../hooks/use-resource.js";
@@ -20,6 +19,13 @@ const COURSE_MODES: ReadonlySet<PickerMode> = new Set([
 
 export interface NewTabPickerProps {
   onClose: () => void;
+  /**
+   * Open-tab callback from the parent's `useTabs()` hook. Using the parent's
+   * hook (rather than calling `client.tabs.open` directly) keeps the parent's
+   * tab list and active-tab state in sync — without this the new tab would
+   * exist on the server but the workspace shell wouldn't render its body.
+   */
+  openTab: (input: { sessionId: SessionId; courseTitle?: string }) => Promise<TabSummary>;
   /** Called after the new tab is opened, with its TabId. Parent navigates to it. */
   onOpened: (tabId: TabId) => void;
 }
@@ -28,7 +34,7 @@ export interface NewTabPickerProps {
  * Modal picker for opening a new session tab. Mirrors the modal pattern of
  * <UnlockModal /> — backdrop + centered card + ESC closes.
  */
-export function NewTabPicker({ onClose, onOpened }: NewTabPickerProps): JSX.Element {
+export function NewTabPicker({ onClose, openTab, onOpened }: NewTabPickerProps): JSX.Element {
   const client = usePraxisClient();
   const [modeId, setModeId] = useState<PickerMode>("teach");
   const [courseId, setCourseId] = useState<string>("");
@@ -64,11 +70,8 @@ export function NewTabPicker({ onClose, onOpened }: NewTabPickerProps): JSX.Elem
       });
 
       const selectedCourse = courses.find((c) => c.courseId === courseId);
-      const tab = await client.tabs.open({
+      const tab = await openTab({
         sessionId: handle.sessionId,
-        // studentId is ignored by TabsClient — the IPC server resolves it from
-        // the active student. Pass an empty branded value to satisfy the interface.
-        studentId: brandId<"StudentId">("") as StudentId,
         ...(selectedCourse ? { courseTitle: selectedCourse.title } : {}),
       });
 
