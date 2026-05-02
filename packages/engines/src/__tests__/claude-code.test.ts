@@ -2,10 +2,16 @@ import type { Conversation } from "@praxis/claude-cli-sdk";
 import type { EngineOpenOptions, ToolRegistry, ToolResult } from "@praxis/core/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock @praxis/claude-cli-sdk at the top level (hoisted)
-vi.mock("@praxis/claude-cli-sdk", () => {
-  const createConversation = vi.fn();
-  return { createConversation };
+// Mock @praxis/claude-cli-sdk at the top level (hoisted).
+// Use importOriginal so error classes (CLINotFoundError) are real, only
+// createConversation and authStatus are replaced with mocks.
+vi.mock("@praxis/claude-cli-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@praxis/claude-cli-sdk")>();
+  return {
+    ...actual,
+    createConversation: vi.fn(),
+    authStatus: vi.fn(),
+  };
 });
 
 // Also mock the MCP bridge so no subprocess is spawned
@@ -62,8 +68,11 @@ describe("ClaudeCodeEngine — lifecycle", () => {
     ),
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // Default: auth passes. Tests that need failure override this.
+    const { authStatus } = await import("@praxis/claude-cli-sdk");
+    vi.mocked(authStatus).mockResolvedValue({ loggedIn: true });
   });
 
   function makeConvMock(streamEvents: unknown[], resultEventObj: unknown): Conversation {
@@ -360,6 +369,89 @@ describe("ClaudeCodeEngine — lifecycle", () => {
     expect(secondCall).toBe("follow-up");
 
     await session.close();
+  });
+
+  // ── Unit 3: Auth precheck ─────────────────────────────────────────────────
+
+  it("open() proceeds normally when authStatus returns loggedIn: true", async () => {
+    const { authStatus, createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    vi.mocked(authStatus).mockResolvedValue({ loggedIn: true });
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+    expect(session.id).toBeTruthy();
+    await session.close();
+  });
+
+  it("open() throws 'claude.auth.required:' when authStatus returns loggedIn: false", async () => {
+    const { authStatus } = await import("@praxis/claude-cli-sdk");
+    const { startToolBridge } = await import("../mcp/tool-bridge.js");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    vi.mocked(authStatus).mockResolvedValue({
+      loggedIn: false,
+      error: "Not authenticated",
+    });
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    await expect(
+      engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry }),
+    ).rejects.toThrow(/^claude\.auth\.required:/);
+
+    // Tool bridge must never be spawned
+    expect(vi.mocked(startToolBridge)).not.toHaveBeenCalled();
+  });
+
+  it("open() error message includes the error field from authStatus", async () => {
+    const { authStatus } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    vi.mocked(authStatus).mockResolvedValue({
+      loggedIn: false,
+      error: "Session expired",
+    });
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    await expect(
+      engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry }),
+    ).rejects.toThrow("claude.auth.required: Session expired");
+  });
+
+  it("open() uses fallback message when authStatus returns loggedIn: false with no error", async () => {
+    const { authStatus } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    vi.mocked(authStatus).mockResolvedValue({ loggedIn: false });
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    await expect(
+      engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry }),
+    ).rejects.toThrow("claude.auth.required: claude CLI is not signed in");
+  });
+
+  it("open() propagates CLINotFoundError unchanged when authStatus throws", async () => {
+    const { authStatus } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+    const { CLINotFoundError } = await import("@praxis/claude-cli-sdk");
+
+    const notFound = new CLINotFoundError();
+    vi.mocked(authStatus).mockRejectedValue(notFound);
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    await expect(
+      engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry }),
+    ).rejects.toThrow(CLINotFoundError);
   });
 
   it("send to closed session yields error event", async () => {

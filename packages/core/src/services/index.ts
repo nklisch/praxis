@@ -1,3 +1,12 @@
+// Claude CLI auth service
+export type {
+  ClaudeAuthLoginEvent,
+  ClaudeAuthLoginOptions,
+  ClaudeAuthService,
+  ClaudeAuthStatus,
+} from "./claude-auth.js";
+export { ClaudeAuthServiceImpl } from "./claude-auth.js";
+
 // Phase 12: Notes service + Flashcards service
 export type { FlashcardsServiceDeps } from "./flashcards-service.js";
 export { FlashcardsServiceImpl } from "./flashcards-service.js";

@@ -869,6 +869,57 @@ export function registerIpcHandlers(
     return services.flashcards.dueCount({ studentId });
   });
 
+  // ── Claude auth ──────────────────────────────────────────────────────────────
+
+  handle("praxis.auth.claude.status", async () => {
+    return services.claudeAuth.status();
+  });
+
+  // Streaming login flow. Renderer subscribes to events.<streamId> first,
+  // then invokes start. Cancel via .cancel with the streamId.
+  handle("praxis.auth.claude.login.start", async (_event, streamId: string) => {
+    const controller = new AbortController();
+    activeAbortControllers.set(streamId, controller);
+    const eventsChannel = `praxis.auth.claude.login.events.${streamId}`;
+
+    const push = (msg: IpcStreamMessage<unknown>) => {
+      const wc = webContentsGetter();
+      if (!wc || wc.isDestroyed()) return;
+      wc.send(eventsChannel, msg);
+    };
+
+    try {
+      const stream = services.claudeAuth.login({ signal: controller.signal });
+      for await (const event of stream) {
+        if (controller.signal.aborted) break;
+        push({ kind: "event", payload: event });
+      }
+      push({ kind: "done" });
+    } catch (err) {
+      push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      activeAbortControllers.delete(streamId);
+    }
+  });
+
+  ipcMain.on("praxis.auth.claude.login.cancel", (_event, streamId: string) => {
+    activeAbortControllers.get(streamId)?.abort();
+    activeAbortControllers.delete(streamId);
+  });
+
+  // ── Shell helpers ─────────────────────────────────────────────────────────────
+
+  handle("praxis.shell.openExternal", async (_event, url: string) => {
+    // Defensive URL allowlist: only http/https. Refuse file://, mailto:, etc.
+    // to prevent the renderer from coaxing the main process into opening
+    // arbitrary local handlers.
+    if (!/^https?:\/\//i.test(url)) {
+      throw new Error("openExternal: only http(s) URLs are allowed");
+    }
+    const { shell } = await import("electron");
+    await shell.openExternal(url);
+  });
+
   // Return unregister function.
   return () => {
     for (const { channel } of handlers) {
@@ -877,6 +928,7 @@ export function registerIpcHandlers(
     ipcMain.removeAllListeners("praxis.session.send.cancel");
     ipcMain.removeAllListeners("praxis.ingest.cancel");
     ipcMain.removeAllListeners("praxis.memory.episodic.cancel");
+    ipcMain.removeAllListeners("praxis.auth.claude.login.cancel");
     for (const ctrl of activeAbortControllers.values()) {
       ctrl.abort();
     }

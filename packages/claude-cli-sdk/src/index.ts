@@ -15,6 +15,10 @@
 // Requires: Node >=22, `claude` CLI installed and authenticated.
 // ============================================
 
+// ---- Auth ----
+export { authStatus, authLogin } from './auth.js';
+export type { ClaudeAuthStatus, ClaudeAuthLoginEvent, ClaudeAuthLoginOptions } from './auth.js';
+
 // ---- Core APIs ----
 export { query } from './query.js';
 export { createConversation } from './conversation.js';

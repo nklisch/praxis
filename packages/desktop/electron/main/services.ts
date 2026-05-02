@@ -8,6 +8,7 @@ import {
   AssignmentServiceImpl,
   AuthoringServiceImpl,
   BootstrapServiceImpl,
+  ClaudeAuthServiceImpl,
   ConfigServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
@@ -76,6 +77,8 @@ export interface Services {
   packs: PackImportService;
   /** Phase 11: lock service — exposed for IPC handlers. */
   lock: LockServiceImpl;
+  /** Claude CLI auth service — exposed for IPC handlers. */
+  claudeAuth: ClaudeAuthServiceImpl;
   /** Phase 11: authoring service — exposed for IPC handlers. */
   authoring: AuthoringServiceImpl;
   /** Phase 12: notes management — exposed for IPC handlers. */
@@ -242,6 +245,9 @@ export function buildServices(dbPath: string): Services {
   // Phase 11: LockServiceImpl — single instance, process-scoped unlock flag.
   const lockService = new LockServiceImpl({ db, log });
 
+  // Claude CLI auth service — stateless, no DB dependency.
+  const claudeAuthService = new ClaudeAuthServiceImpl({ log });
+
   // Phase 12: Notes + Flashcards services.
   // Notes service uses the bootstrap engine resolver for fromSessionSummary.
   const notesService = new NotesServiceImpl({
@@ -349,6 +355,7 @@ export function buildServices(dbPath: string): Services {
     assignments: assignmentService, // ← Phase 8
     packs: packImportService, // ← Phase 10
     lock: lockService, // ← Phase 11
+    claudeAuth: claudeAuthService,
     authoring: authoringService, // ← Phase 11
     notes: notesService, // ← Phase 12
     flashcards: flashcardsService, // ← Phase 12

@@ -1,3 +1,4 @@
+import type { ClaudeAuthService } from "../services/claude-auth.js";
 import type {
   Assignment,
   AssignmentResponse,
@@ -63,6 +64,15 @@ export interface PraxisClient {
   notes: NotesClient;
   /** Phase 12: flashcard management + FSRS review. */
   flashcards: FlashcardsClient;
+  /** Claude CLI authentication — status check and login flow. */
+  claudeAuth: ClaudeAuthService;
+  /** Shell helpers — open URLs in the system browser. */
+  shell: ShellClient;
+}
+
+/** Generic shell utility surface for the renderer. */
+export interface ShellClient {
+  openExternal(url: string): Promise<void>;
 }
 
 export interface SessionService {

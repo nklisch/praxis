@@ -29,6 +29,7 @@ export type {
   SessionHandle,
   SessionService,
   SessionSummary,
+  ShellClient,
 } from "./client.js";
 export type * from "./common.js";
 export type * from "./concept-graph.js";

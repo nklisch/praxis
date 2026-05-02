@@ -81,6 +81,7 @@
   },
   "dependencies": {
     "@praxis/artifacts": "workspace:*",
+    "@praxis/claude-cli-sdk": "workspace:*",
     "@praxis/curriculum": "workspace:*",
     "@praxis/engines": "workspace:*",
     "@praxis/memory": "workspace:*",

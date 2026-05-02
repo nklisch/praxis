@@ -1,5 +1,5 @@
 import type { Conversation } from "@praxis/claude-cli-sdk";
-import { createConversation } from "@praxis/claude-cli-sdk";
+import { authStatus, createConversation } from "@praxis/claude-cli-sdk";
 import type { EngineConfig } from "@praxis/core/config";
 import type {
   Engine,
@@ -33,6 +33,14 @@ export class ClaudeCodeEngine implements Engine {
   }
 
   async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
+    // Precheck auth so the user gets a clean error instead of a downstream
+    // CLI failure or hung subprocess. The error message uses a stable prefix
+    // the desktop IPC layer recognizes and the renderer matches on.
+    const status = await authStatus();
+    if (!status.loggedIn) {
+      throw new Error(`claude.auth.required: ${status.error ?? "claude CLI is not signed in"}`);
+    }
+
     const bridge: ToolBridgeHandle | null =
       openOpts.tools.list().length > 0 ? await startToolBridge({ registry: openOpts.tools }) : null;
     let conv: Conversation;
@@ -58,7 +66,13 @@ export class ClaudeCodeEngine implements Engine {
       throw err;
     }
 
-    const sessionId = await conv.sessionId.catch(() => `claude-code-${Date.now()}`);
+    // Synthesize the diagnostic id synchronously. We can't await `conv.sessionId`
+    // here: the SDK lazy-spawns the CLI on first `send()`, and `sessionId` only
+    // resolves once the CLI emits an `init` event. Awaiting it before any send
+    // hangs forever, which surfaces in Electron as
+    // "praxis.session.start: reply was never sent" once the renderer is torn down.
+    // The EngineSession contract permits a synthesized id (it's purely for logs).
+    const sessionId = `claude-code-${Date.now()}`;
     const seedPreface = buildTranscriptPreface(openOpts.priorTurns ?? []);
 
     return new ClaudeCodeEngineSession({
