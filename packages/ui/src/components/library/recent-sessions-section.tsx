@@ -1,6 +1,7 @@
 import type { SessionId, SessionSummary, TabSummary } from "@praxis/core/types";
 import { COPY } from "../../lib/copy.js";
 import { getModeMeta } from "../mode-meta.js";
+import { LibrarySection } from "./library-section.js";
 import styles from "./recent-sessions-section.module.css";
 
 export interface RecentSessionsSectionProps {
@@ -30,25 +31,16 @@ export function RecentSessionsSection({
   onOpenSession,
 }: RecentSessionsSectionProps) {
   return (
-    <section className={styles.section}>
-      <header className={styles.sectionHeader}>
-        <span className={styles.ornament} aria-hidden="true">
-          ❦
-        </span>
-        <span className={styles.kicker}>RECENT SESSIONS</span>
-      </header>
-
-      {loading && <p className={styles.status}>{COPY.loading.default}</p>}
-
-      {!loading && (!sessions || sessions.length === 0) && (
-        <p className={styles.empty}>{COPY.empty.librarySessionsEmpty}</p>
-      )}
-
-      {!loading && sessions && sessions.length > 0 && (
+    <LibrarySection<SessionSummary>
+      ornament="❦"
+      kicker="RECENT SESSIONS"
+      loading={loading}
+      items={sessions}
+      emptyMessage={COPY.empty.librarySessionsEmpty}
+      renderItems={(items) => (
         <ol className={styles.list}>
-          {sessions.map((session) => {
+          {items.map((session) => {
             const meta = getModeMeta(session.modeId);
-            // Check if this session already has an open tab
             const existingTab = openTabs.find((t) => t.sessionId === session.sessionId);
             const isOpen = existingTab !== undefined;
 
@@ -82,6 +74,6 @@ export function RecentSessionsSection({
           })}
         </ol>
       )}
-    </section>
+    />
   );
 }

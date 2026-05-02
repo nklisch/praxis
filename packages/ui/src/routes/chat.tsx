@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
 import { ChatTabBody } from "../components/chat-tab-body.js";
 import { DocumentList } from "../components/document-list.js";
-import { EmptyTabsState } from "../components/empty-tabs-state.js";
+import { EmptyState } from "../components/empty-state.js";
 import { NewTabPicker } from "../components/new-tab-picker.js";
 import { TabStrip } from "../components/tab-strip.js";
 import { useDocuments } from "../hooks/use-documents.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
 import { useTabs } from "../hooks/use-tabs.js";
+import { COPY } from "../lib/copy.js";
 import styles from "./chat.module.css";
 
 /**
@@ -104,7 +105,12 @@ export function ChatRoute() {
           </div>
         ))}
 
-        {openTabs.length === 0 && !loading && <EmptyTabsState onNew={() => setShowPicker(true)} />}
+        {openTabs.length === 0 && !loading && (
+          <EmptyState
+            message={COPY.empty.tabs}
+            action={{ label: "Open a session", onClick: () => setShowPicker(true) }}
+          />
+        )}
       </div>
 
       {showPicker && (

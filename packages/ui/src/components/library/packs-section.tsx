@@ -1,5 +1,6 @@
 import type { PackSummaryClient } from "@praxis/core/types";
 import { COPY } from "../../lib/copy.js";
+import { LibrarySection } from "./library-section.js";
 import styles from "./packs-section.module.css";
 
 export interface PacksSectionProps {
@@ -22,23 +23,15 @@ export interface PacksSectionProps {
  */
 export function PacksSection({ packs, loading, onUsePack, importing }: PacksSectionProps) {
   return (
-    <section className={styles.section}>
-      <header className={styles.sectionHeader}>
-        <span className={styles.ornament} aria-hidden="true">
-          ¶
-        </span>
-        <span className={styles.kicker}>PACKS</span>
-      </header>
-
-      {loading && <p className={styles.status}>{COPY.loading.default}</p>}
-
-      {!loading && (!packs || packs.length === 0) && (
-        <p className={styles.empty}>{COPY.empty.libraryPacksEmpty}</p>
-      )}
-
-      {!loading && packs && packs.length > 0 && (
+    <LibrarySection<PackSummaryClient>
+      ornament="¶"
+      kicker="PACKS"
+      loading={loading}
+      items={packs}
+      emptyMessage={COPY.empty.libraryPacksEmpty}
+      renderItems={(items) => (
         <ol className={styles.list}>
-          {packs.map((pack) => {
+          {items.map((pack) => {
             const isImporting = importing === pack.id;
             return (
               <li key={pack.id} className={styles.item}>
@@ -65,6 +58,6 @@ export function PacksSection({ packs, loading, onUsePack, importing }: PacksSect
           })}
         </ol>
       )}
-    </section>
+    />
   );
 }

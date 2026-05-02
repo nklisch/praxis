@@ -25,7 +25,7 @@
   line-height: 1.5;
 }
 
-.openBtn {
+.actionBtn {
   margin-top: 0.5rem;
   padding: 0.5rem 1.25rem;
   border: 1px solid var(--color-border, #e0e0e0);
@@ -38,6 +38,38 @@
   letter-spacing: 0.04em;
 }
 
-.openBtn:hover {
+.actionBtn:hover {
+  background: var(--color-border, #e0e0e0);
+}
+
+/* ── Compact variant — inline paragraph for constrained containers ─────────── */
+
+.emptyCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lineCompact {
+  composes: editorial from global;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.actionBtnCompact {
+  align-self: flex-start;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text, #1a1a1a);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.actionBtnCompact:hover {
   background: var(--color-border, #e0e0e0);
 }

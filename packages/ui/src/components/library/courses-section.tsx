@@ -1,6 +1,7 @@
 import type { CourseId, CourseSummary } from "@praxis/core/types";
 import { COPY } from "../../lib/copy.js";
 import styles from "./courses-section.module.css";
+import { LibrarySection } from "./library-section.js";
 
 export interface CoursesSectionProps {
   courses: ReadonlyArray<CourseSummary> | undefined;
@@ -15,23 +16,15 @@ export interface CoursesSectionProps {
  */
 export function CoursesSection({ courses, loading, onOpenInTab }: CoursesSectionProps) {
   return (
-    <section className={styles.section}>
-      <header className={styles.sectionHeader}>
-        <span className={styles.ornament} aria-hidden="true">
-          §
-        </span>
-        <span className={styles.kicker}>COURSES</span>
-      </header>
-
-      {loading && <p className={styles.status}>{COPY.loading.courses}</p>}
-
-      {!loading && (!courses || courses.length === 0) && (
-        <p className={styles.empty}>{COPY.empty.libraryCoursesEmpty}</p>
-      )}
-
-      {!loading && courses && courses.length > 0 && (
+    <LibrarySection<CourseSummary>
+      ornament="§"
+      kicker="COURSES"
+      loading={loading}
+      items={courses}
+      emptyMessage={COPY.empty.libraryCoursesEmpty}
+      renderItems={(items) => (
         <ol className={styles.list}>
-          {courses.map((course) => (
+          {items.map((course) => (
             <li key={course.courseId} className={styles.item}>
               <div className={styles.itemBody}>
                 <span className={styles.itemTitle}>{course.title}</span>
@@ -53,6 +46,6 @@ export function CoursesSection({ courses, loading, onOpenInTab }: CoursesSection
           ))}
         </ol>
       )}
-    </section>
+    />
   );
 }

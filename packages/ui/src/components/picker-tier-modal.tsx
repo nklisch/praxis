@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Modal } from "./modal.js";
 import styles from "./picker-tier-modal.module.css";
 
 export interface PickerTierModalProps {
@@ -34,33 +35,31 @@ export function PickerTierModal({
   };
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <h2 className={styles.title}>PDF options</h2>
-        <p className={styles.filename}>{filename}</p>
-        <label className={styles.toggle}>
-          <input
-            type="checkbox"
-            checked={useVision}
-            onChange={(e) => setUseVision(e.target.checked)}
-          />
-          <span>
-            Use vision parsing
-            <small className={styles.hint}>
-              Better for math, diagrams, and scanned PDFs. Uses your engine&apos;s vision
-              capability. Slower.
-            </small>
-          </span>
-        </label>
-        <div className={styles.actions}>
-          <button type="button" className={styles.cancelBtn} onClick={onCancel}>
-            Cancel
-          </button>
-          <button type="button" className={styles.confirmBtn} onClick={handleConfirm}>
-            Import
-          </button>
-        </div>
+    <Modal onClose={onCancel} ariaLabel="PDF options" maxWidth="380px">
+      <h2 className={styles.title}>PDF options</h2>
+      <p className={styles.filename}>{filename}</p>
+      <label className={styles.toggle}>
+        <input
+          type="checkbox"
+          checked={useVision}
+          onChange={(e) => setUseVision(e.target.checked)}
+        />
+        <span>
+          Use vision parsing
+          <small className={styles.hint}>
+            Better for math, diagrams, and scanned PDFs. Uses your engine&apos;s vision capability.
+            Slower.
+          </small>
+        </span>
+      </label>
+      <div className={styles.actions}>
+        <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+          Cancel
+        </button>
+        <button type="button" className={styles.confirmBtn} onClick={handleConfirm}>
+          Import
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }

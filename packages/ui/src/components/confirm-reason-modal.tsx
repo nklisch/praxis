@@ -1,5 +1,6 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import styles from "./confirm-reason-modal.module.css";
+import { Modal } from "./modal.js";
 
 export interface ConfirmReasonModalProps {
   title: string;
@@ -30,18 +31,6 @@ export function ConfirmReasonModal({
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (reasonRequired && !reason.trim()) {
@@ -61,56 +50,48 @@ export function ConfirmReasonModal({
   };
 
   return (
-    <div
-      className={styles.backdrop}
-      onClick={onClose}
-      aria-modal="true"
-      role="dialog"
-      aria-label={title}
-    >
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.title}>{title}</h2>
-        <p className={styles.description}>{description}</p>
+    <Modal onClose={onClose} initialFocus={textareaRef} ariaLabel={title} maxWidth="460px">
+      <h2 className={styles.title}>{title}</h2>
+      <p className={styles.description}>{description}</p>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <label className={styles.label}>
-            {reasonLabel}
-            <textarea
-              ref={textareaRef}
-              className={styles.textarea}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-              disabled={submitting}
-              placeholder="Enter a reason…"
-            />
-          </label>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <label className={styles.label}>
+          {reasonLabel}
+          <textarea
+            ref={textareaRef}
+            className={styles.textarea}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            disabled={submitting}
+            placeholder="Enter a reason…"
+          />
+        </label>
 
-          {error && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
 
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.cancelBtn}
-              onClick={onClose}
-              disabled={submitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={styles.confirmBtn}
-              disabled={submitting || (reasonRequired && !reason.trim())}
-            >
-              {submitting ? "Saving…" : confirmLabel}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.cancelBtn}
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className={styles.confirmBtn}
+            disabled={submitting || (reasonRequired && !reason.trim())}
+          >
+            {submitting ? "Saving…" : confirmLabel}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
