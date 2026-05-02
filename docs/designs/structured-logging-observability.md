@@ -4,7 +4,14 @@
 
 Praxis today logs through a `Logger` interface in `packages/core/src/types/common.ts:34` whose only concrete implementation (`packages/desktop/electron/main/services.ts:104-107`, an inline literal in `buildServices`) is a thin wrapper over `console.{debug,info,warn,error}` with a `[praxis]` prefix. There is no file output, no log level control, no correlation across IPC streams, no renderer-process logging, and ~30 non-streamed IPC handlers in `packages/desktop/electron/main/ipc-server.ts` have no `try/catch` so their errors leak to the renderer with no record on disk. Six engine-adapter close paths and three session-service paths use `.catch(() => {})` — silent. The recent PDF crash (`Warning: UnknownErrorException: standardFontDataUrl`) was undebuggable because the only artifacts were 40 identical pdfjs warnings on stdout — nothing structured, nothing persisted.
 
-The post-Phase-14 UI refactor (commits `771c75d`, `46910af`, `991d83a`) introduced `Modal`, `EmptyState`, `LoadingState`, `ErrorMessage`, `LibrarySection` primitives and a `makeFakeClient(overrides?)` test SSOT under `packages/ui/src/__tests__/helpers/`. This design leverages both: the renderer `ErrorBoundary` (Unit 6) uses `ErrorMessage` for its default fallback, and the new test helpers (Unit 10) follow the same `noopLogger()` / `recordingLogger(overrides?)` SSOT pattern so any test author already trained on `makeFakeClient` knows how to use them.
+The post-Phase-14 UI refactor (commits `771c75d`, `46910af`, `991d83a`, `be0f816`, `8dfcf72`) introduced:
+
+- UI primitives: `Modal`, `EmptyState`, `LoadingState`, `ErrorMessage`, `LibrarySection`.
+- A `makeFakeClient(overrides?)` test SSOT under `packages/ui/src/__tests__/helpers/`.
+- Two React Context providers (`PraxisClientProvider`, `AuthProvider`) under `packages/ui/src/context/`. App-level wiring in `packages/ui/src/app.tsx` nests them around `<RouterProvider />`.
+- Wider `useResource` adoption (`use-lock`, `use-assignment`, new `use-gates`) so any new data-loading hook follows that pattern.
+
+This design leverages all four: the renderer `ErrorBoundary` (Unit 6) uses `ErrorMessage` for its default fallback; the renderer `Logger` is exposed via a new `LoggerProvider` + `useLogger()` hook (Unit 6) following the established `auth-context.tsx` shape; the test helpers (Unit 10) follow the `makeFakeClient` SSOT pattern.
 
 This design lands a complete observability story for v1: a `pino`-backed structured logger, a renderer→main IPC bridge that funnels every log record through one sink, child-logger correlation (sessionId, streamId, turnIndex), opt-in JSONL file rotation under `userData/logs/`, redaction of secrets and (by default) prompt content, an IPC error-wrapping helper that ends the silent-failure problem, and migration of every bare `console.*` call site in non-script code.
 
@@ -560,15 +567,88 @@ export { createRendererLogger, type RendererLoggerOptions } from "./logger/rende
 
 ---
 
-### Unit 6: Renderer global error handlers + React `ErrorBoundary`
+### Unit 6: Renderer Logger context + global error handlers + `ErrorBoundary`
 
-**File 1**: `packages/desktop/electron/renderer/index.tsx` (modify existing)
+The codebase wires shared renderer-side state through React Context (see `packages/ui/src/context/auth-context.tsx` and `client-context.tsx`, both nested in `packages/ui/src/app.tsx`). The renderer logger follows the same shape so any component can `const log = useLogger()` instead of being prop-drilled.
 
-At the top of the renderer entry, before React mounts, wire global handlers and the renderer logger into a context that components can read.
+**File 1**: `packages/ui/src/context/logger-context.tsx` (new)
+
+Mirrors `auth-context.tsx`'s exact shape: a context, a `Provider` component, a `useX()` hook that throws if called outside the provider.
+
+```typescript
+import type { Logger } from "@praxis/core/types";
+import { createContext, type ReactNode, useContext } from "react";
+
+const LoggerContext = createContext<Logger | null>(null);
+
+export interface LoggerProviderProps {
+  log: Logger;
+  children: ReactNode;
+}
+
+export function LoggerProvider({ log, children }: LoggerProviderProps) {
+  return <LoggerContext.Provider value={log}>{children}</LoggerContext.Provider>;
+}
+
+/**
+ * Returns the renderer Logger from context. Throws if called outside <LoggerProvider>.
+ *
+ * Components that already have a stable scope can derive a child logger:
+ *   const log = useLogger().child({ component: "chat-tab-body" });
+ *
+ * Memoize the child logger with useMemo when the bindings are stable so the
+ * derived Logger reference is stable across renders.
+ */
+export function useLogger(): Logger {
+  const log = useContext(LoggerContext);
+  if (!log) throw new Error("useLogger must be used inside <LoggerProvider>");
+  return log;
+}
+```
+
+**File 2**: `packages/ui/src/app.tsx` (modify existing)
+
+Add `<LoggerProvider log={log}>` outside the existing providers so client + auth contexts can themselves emit logs if needed.
+
+```typescript
+import type { Logger, PraxisClient } from "@praxis/core/types";
+import { RouterProvider } from "@tanstack/react-router";
+import { AuthProvider } from "./context/auth-context.js";
+import { PraxisClientProvider } from "./context/client-context.js";
+import { LoggerProvider } from "./context/logger-context.js";
+import { ErrorBoundary } from "./components/error-boundary.js";
+import { router } from "./router.js";
+
+export interface PraxisAppProps {
+  client: PraxisClient;
+  log: Logger;
+}
+
+export function PraxisApp({ client, log }: PraxisAppProps) {
+  return (
+    <LoggerProvider log={log}>
+      <ErrorBoundary log={log}>
+        <PraxisClientProvider client={client}>
+          <AuthProvider>
+            <RouterProvider router={router} />
+          </AuthProvider>
+        </PraxisClientProvider>
+      </ErrorBoundary>
+    </LoggerProvider>
+  );
+}
+```
+
+`<ErrorBoundary>` still takes `log` as a prop because it's a class component (no hooks). Order matters: `LoggerProvider` is outermost so `useLogger()` works in any component; `ErrorBoundary` is next so it can catch render errors anywhere below it.
+
+**File 3**: `packages/desktop/electron/renderer/index.tsx` (modify existing)
+
+At the top of the renderer entry, before React mounts, create the renderer logger, install global handlers, and pass it into `<PraxisApp>`.
 
 ```typescript
 import { createRendererLogger } from "@praxis/client";
 import type { PraxisIpcBridge } from "@praxis/client";
+import { PraxisApp } from "@praxis/ui";
 
 declare global {
   interface Window { praxis: PraxisIpcBridge }
@@ -598,12 +678,11 @@ window.addEventListener("unhandledrejection", (event) => {
   });
 });
 
-// existing ReactDOM.createRoot(...).render(<App log={log} />)
+// existing root creation
+root.render(<PraxisApp client={client} log={log} />);
 ```
 
-The `log` instance is passed into the existing React tree (see file 2 for the boundary).
-
-**File 2**: `packages/ui/src/components/error-boundary.tsx` (new)
+**File 4**: `packages/ui/src/components/error-boundary.tsx` (new)
 
 The recent UI refactor (commit `46910af`) extracted a generic `ErrorMessage` component at `packages/ui/src/components/error-message.tsx` — a `<p role="alert">` with editorial styling. The ErrorBoundary's default fallback uses it so we get the codebase's design language for free.
 
@@ -672,12 +751,16 @@ root.render(
 - `componentStack` from `ErrorInfo` is invaluable — it pinpoints which subtree threw.
 
 **Acceptance Criteria**:
+- [ ] `<LoggerProvider log={...}>` exposes the Logger via `useLogger()`; calling `useLogger()` outside the provider throws.
+- [ ] `app.tsx` nests `<LoggerProvider>` outermost, then `<ErrorBoundary>`, then the existing `PraxisClientProvider` + `AuthProvider`.
+- [ ] `PraxisAppProps` gains a required `log: Logger` field (existing callers in `renderer/index.tsx` pass it).
 - [ ] Throwing an Error from a child component calls `log.error("renderer.error_boundary", ...)` once.
-- [ ] The fallback UI renders with the error message.
+- [ ] The fallback UI renders with `<ErrorMessage error={error} />` + Reset button when no custom fallback prop is given.
 - [ ] The reset button clears the error state and re-renders children.
 - [ ] `window.dispatchEvent(new ErrorEvent("error", {...}))` triggers a `renderer.uncaught_error` log record.
 - [ ] An unhandled promise rejection triggers a `renderer.unhandled_rejection` record.
-- [ ] Tests in `packages/ui/src/__tests__/error-boundary.test.tsx` use a fake Logger and a deliberately throwing child.
+- [ ] Tests in `packages/ui/src/__tests__/logger-context.test.tsx` cover `useLogger` happy + outside-provider paths.
+- [ ] Tests in `packages/ui/src/__tests__/error-boundary.test.tsx` use `recordingLogger()` from Unit 10 and a deliberately throwing child.
 
 ---
 
@@ -1197,7 +1280,8 @@ Resolve dependencies — earlier units must exist before later units can be buil
 | `packages/desktop/electron/main/__tests__/log-channel.test.ts` | Mock ipcMain.on; valid record reaches ingest, malformed dropped, no throw on bad payload. |
 | `packages/desktop/electron/main/__tests__/ipc-helpers.test.ts` | handle: ok/slow/error paths emit correct records, errors re-thrown. on: errors caught, never re-thrown. |
 | `packages/client/src/__tests__/renderer-logger.test.ts` | Records shape, child bindings merge, console echo on/off, bridge.send failure swallowed. |
-| `packages/ui/src/__tests__/error-boundary.test.tsx` | Throws → fallback rendered → log.error called once with componentStack; reset clears error. |
+| `packages/ui/src/__tests__/logger-context.test.tsx` | `<LoggerProvider>` exposes logger via `useLogger()`; outside-provider throw; child binding via `useLogger().child({...})` produces records with merged bindings. |
+| `packages/ui/src/__tests__/error-boundary.test.tsx` | Throws → fallback rendered with `<ErrorMessage>` → `log.error("renderer.error_boundary", ...)` called once with `componentStack`; reset clears error. Use `recordingLogger()` from Unit 10. |
 | `packages/core/src/types/__tests__/errors.test.ts` | serializeError on Error, EngineError-shaped, plain string, null, undefined, circular object. |
 
 ### Integration Tests
