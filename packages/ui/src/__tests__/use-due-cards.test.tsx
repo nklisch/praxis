@@ -42,6 +42,8 @@ function makeClient(count: number, cards: Flashcard[]): PraxisClient {
         nextReviewAt: Date.now() + 86_400_000,
       }),
     } as unknown as PraxisClient["flashcards"],
+    claudeAuth: {} as PraxisClient["claudeAuth"],
+    shell: {} as PraxisClient["shell"],
   };
 }
 

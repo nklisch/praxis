@@ -1,16 +1,19 @@
 import type { EngineEvent, PraxisClient, SessionHandle, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { ChatRoute } from "../routes/chat.js";
 
-// useSearch requires a RouterProvider — mock it to return no search params.
+afterEach(() => cleanup());
+
+// useSearch and useNavigate require a RouterProvider — mock them.
 vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-router")>();
   return {
     ...actual,
     useSearch: () => ({}),
+    useNavigate: () => vi.fn(),
   };
 });
 
@@ -44,10 +47,11 @@ function makeFakeClient(overrides?: Partial<PraxisClient["session"]>): PraxisCli
     ingest: {} as PraxisClient["ingest"],
     documents: {} as PraxisClient["documents"],
     assignments: {} as PraxisClient["assignments"],
-    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
     packs: {} as PraxisClient["packs"],
     notes: {} as PraxisClient["notes"],
     flashcards: {} as PraxisClient["flashcards"],
+    claudeAuth: {} as PraxisClient["claudeAuth"],
+    shell: {} as PraxisClient["shell"],
   };
 }
 
@@ -78,7 +82,7 @@ describe("ChatRoute", () => {
     });
   });
 
-  it("shows error banner if session.start throws", async () => {
+  it("shows error banner if session.start throws a generic error", async () => {
     const client = makeFakeClient({
       start: vi.fn().mockRejectedValue(new Error("Engine unavailable")),
     });
@@ -96,6 +100,66 @@ describe("ChatRoute", () => {
     await waitFor(() => {
       const buttons = screen.getAllByRole("button", { name: /new chat/i });
       expect(buttons.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ── Auth error integration tests ─────────────────────────────────────────────
+
+  it("shows auth banner (not generic error) when session.start fails with auth-required error", async () => {
+    const client = makeFakeClient({
+      start: vi.fn().mockRejectedValue(new Error("claude.auth.required: not signed in")),
+    });
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByText("Not signed in to Claude.")).toBeDefined();
+    });
+
+    // Generic error banner must NOT show
+    expect(screen.queryByText(/Session error:/)).toBeNull();
+  });
+
+  it("does not show auth banner for non-auth errors", async () => {
+    const client = makeFakeClient({
+      start: vi.fn().mockRejectedValue(new Error("Engine unavailable")),
+    });
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Engine unavailable/)).toBeDefined();
+    });
+
+    expect(screen.queryByText("Not signed in to Claude.")).toBeNull();
+  });
+
+  it("clicking Sign in button mounts the ClaudeAuthModal", async () => {
+    const client = makeFakeClient({
+      start: vi.fn().mockRejectedValue(new Error("claude.auth.required: not signed in")),
+    });
+    // Provide real claudeAuth + shell so the modal renders without crashing
+    client.claudeAuth = {
+      status: vi.fn(),
+      login: vi.fn(() =>
+        (async function* () {
+          // Yield nothing — keeps the modal open in awaiting state
+        })(),
+      ),
+    } as PraxisClient["claudeAuth"];
+    client.shell = {
+      openExternal: vi.fn().mockResolvedValue(undefined),
+    };
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByText("Not signed in to Claude.")).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+
+    await waitFor(() => {
+      // The modal title should appear
+      expect(screen.getByRole("dialog")).toBeDefined();
+      expect(screen.getByText("Sign in to Claude")).toBeDefined();
     });
   });
 });

@@ -118,3 +118,44 @@
   text-align: center;
   flex-shrink: 0;
 }
+
+/* Auth banner — shown when session.start fails with claude.auth.required */
+.authBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: rgba(255, 200, 50, 0.15);
+  border-top: 1px solid rgba(255, 200, 50, 0.35);
+  color: var(--color-text, #1a1a1a);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.authBannerButton {
+  padding: 0.3rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-primary, #2563eb);
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.authBannerButton:hover {
+  opacity: 0.9;
+}
+
+.authBannerButtonSecondary {
+  padding: 0.3rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  background: transparent;
+  color: var(--color-text, #1a1a1a);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.authBannerButtonSecondary:hover {
+  background: var(--color-border, #e0e0e0);
+}

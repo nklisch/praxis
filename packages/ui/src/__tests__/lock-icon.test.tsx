@@ -32,6 +32,8 @@ function makeClient(lockClient: LockClient): PraxisClient {
     notes: {} as PraxisClient["notes"],
     flashcards: {} as PraxisClient["flashcards"],
     lock: lockClient,
+    claudeAuth: {} as PraxisClient["claudeAuth"],
+    shell: {} as PraxisClient["shell"],
   };
 }
 

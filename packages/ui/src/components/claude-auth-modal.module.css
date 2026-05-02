@@ -1,0 +1,91 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  padding: 2rem;
+  width: min(480px, 90vw);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.title {
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.body {
+  margin: 0 0 1rem;
+  color: var(--color-text, #1a1a1a);
+}
+
+.urlNote {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #666);
+}
+
+.url {
+  width: 100%;
+  min-height: 4rem;
+  padding: 0.5rem;
+  font-family: monospace;
+  font-size: 0.8rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.error {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(220, 50, 50, 0.12);
+  color: #b91c1c;
+  border-radius: 4px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.primary,
+.secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.primary {
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  border-color: var(--color-primary, #2563eb);
+}
+
+.primary:hover {
+  opacity: 0.9;
+}
+
+.secondary {
+  background: transparent;
+  color: var(--color-text, #1a1a1a);
+  border-color: var(--color-border, #e0e0e0);
+}
+
+.secondary:hover {
+  background: var(--color-border, #e0e0e0);
+}

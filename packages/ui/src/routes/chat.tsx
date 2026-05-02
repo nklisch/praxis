@@ -1,9 +1,10 @@
 import type { AssignmentId, SessionHandle, SessionId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { useSearch } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
 import { AssignmentCard } from "../components/assignment-card.js";
+import { ClaudeAuthModal } from "../components/claude-auth-modal.js";
 import { Composer } from "../components/composer.js";
 import { DocumentList } from "../components/document-list.js";
 import { MessageBubble } from "../components/message.js";
@@ -13,6 +14,7 @@ import { useAssignment } from "../hooks/use-assignment.js";
 import { useDocuments } from "../hooks/use-documents.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
+import { isClaudeAuthRequiredError } from "../lib/auth-error.js";
 import styles from "./chat.module.css";
 
 /**
@@ -42,9 +44,12 @@ function ExamLockdownGate({
 
 export function ChatRoute() {
   const client = usePraxisClient();
+  const navigate = useNavigate();
   const { messages, isStreaming, lastError, send, clearMessages } = useStreamedSend(client);
   const [session, setSession] = useState<SessionHandle | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [starting, setStarting] = useState(false);
   const [examLockdown, setExamLockdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -76,23 +81,20 @@ export function ChatRoute() {
   // Ingestion flow — refresh documents list when ingestion completes
   const ingestion = useIngestion(refreshDocs);
 
-  // Session acquisition on mount (React 19 double-mount safe).
-  // If an externalSessionId was passed via search param, resolve that session
-  // via client.session.active() in the single-active-session model.
-  // Otherwise auto-start a fresh teach session (legacy default behaviour).
-  useEffect(() => {
-    let cancelled = false;
-
-    async function acquireSession() {
+  // Session acquisition — extracted into a useCallback so both the mount
+  // effect and the post-auth retry can call the same logic.
+  const acquireSession = useCallback(
+    async (cancelled: { current: boolean }) => {
       setStarting(true);
       setStartError(null);
+      setNeedsAuth(false);
       try {
         if (externalSessionId) {
           // Optimistically treat the external id as the active session handle.
           // client.session.active() returns the most-recent active session;
           // in the single-session v1 model that's the one we just started.
           const active = await client.session.active();
-          if (!cancelled) {
+          if (!cancelled.current) {
             if (active && active.sessionId === externalSessionId) {
               setSession(active);
             } else {
@@ -107,25 +109,35 @@ export function ChatRoute() {
           }
         } else {
           const handle = await client.session.start({ modeId: "teach" });
-          if (!cancelled) setSession(handle);
+          if (!cancelled.current) setSession(handle);
         }
       } catch (err) {
-        if (!cancelled) {
-          setStartError(err instanceof Error ? err.message : String(err));
+        if (!cancelled.current) {
+          if (isClaudeAuthRequiredError(err)) {
+            setNeedsAuth(true);
+            setStartError(null);
+          } else {
+            setStartError(err instanceof Error ? err.message : String(err));
+          }
         }
       } finally {
-        if (!cancelled) setStarting(false);
+        if (!cancelled.current) setStarting(false);
       }
-    }
+    },
+    // externalSessionId is derived from search params and stable per navigation.
+    [client, externalSessionId],
+  );
 
-    acquireSession();
+  // Session acquisition on mount (React 19 double-mount safe).
+  useEffect(() => {
+    const cancelled = { current: false };
+
+    acquireSession(cancelled);
 
     return () => {
-      cancelled = true;
+      cancelled.current = true;
     };
-    // externalSessionId is derived from search params and stable per navigation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, externalSessionId]);
+  }, [acquireSession]);
 
   // Scroll to bottom when the message count changes.
   const messageCount = messages.length;
@@ -145,16 +157,8 @@ export function ChatRoute() {
     }
     clearMessages();
     setSession(null);
-    setStartError(null);
-    setStarting(true);
-    try {
-      const handle = await client.session.start({ modeId: "teach" });
-      setSession(handle);
-    } catch (err) {
-      setStartError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setStarting(false);
-    }
+    const cancelled = { current: false };
+    await acquireSession(cancelled);
   };
 
   const handleViewPage = (documentId: string, page: number) => {
@@ -197,6 +201,26 @@ export function ChatRoute() {
 
         {startError && <div className={styles.errorBanner}>Session error: {startError}</div>}
 
+        {needsAuth && (
+          <div className={styles.authBanner}>
+            <span>Not signed in to Claude.</span>
+            <button
+              type="button"
+              className={styles.authBannerButton}
+              onClick={() => setShowAuthModal(true)}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              className={styles.authBannerButtonSecondary}
+              onClick={() => navigate({ to: "/settings" })}
+            >
+              Switch engine
+            </button>
+          </div>
+        )}
+
         {/* Phase 8: exam lockdown detection — rendered outside of message list to avoid hook-in-map */}
         {session?.assignmentId && (
           <ExamLockdownGate
@@ -238,7 +262,7 @@ export function ChatRoute() {
 
         <Composer
           onSend={handleSend}
-          disabled={!session || isStreaming || starting || examLockdown}
+          disabled={!session || isStreaming || starting || examLockdown || needsAuth}
         />
         {examLockdown && (
           <div className={styles.lockdownNotice}>
@@ -253,6 +277,18 @@ export function ChatRoute() {
           documentId={pageImageTarget.documentId}
           page={pageImageTarget.page}
           onClose={() => setPageImageTarget(null)}
+        />
+      )}
+
+      {showAuthModal && (
+        <ClaudeAuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSignedIn={() => {
+            setShowAuthModal(false);
+            setNeedsAuth(false);
+            const cancelled = { current: false };
+            acquireSession(cancelled);
+          }}
         />
       )}
     </div>

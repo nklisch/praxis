@@ -112,6 +112,8 @@ function makeClient(opts: {
     packs: {} as PraxisClient["packs"],
     notes: {} as PraxisClient["notes"],
     flashcards: {} as PraxisClient["flashcards"],
+    claudeAuth: {} as PraxisClient["claudeAuth"],
+    shell: {} as PraxisClient["shell"],
   };
 }
 
