@@ -2,7 +2,7 @@
 
 Built solo with AI assistance throughout. Phases are chunky — vibe-code each phase, hit the test checkpoint, ship. Each phase produces a system that does something demonstrably new. v1 is local-first only; hosted (Postgres + WebSocket) ships in v2. Engines are foundational — all three adapters (Claude Code, Codex, Direct) ship in the core layer; primary dev target is Claude Code via `../claude-cli-sdk` so testing happens on the existing CLI subscription, not on a paid API key.
 
-Three integration milestones along the way: **M1** end-to-end tutor session, **M2** end-to-end course progression, **M3** shippable v1.
+Three integration milestones along the way: **M1** end-to-end tutor session (Phase 3), **M2** end-to-end course progression (Phase 9), **M3** shippable v1 (Phase 18).
 
 ---
 
@@ -240,9 +240,43 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 13: Sketching + concept map (tldraw)
+## Phase 13: Editorial foundation
 
-**Goal:** Stylus-friendly sketching everywhere typing is allowed; student-authored concept maps; tutor reads JSON + image.
+**Goal:** The whole app speaks one editorial visual language; the chat composer invites tutor-shaped requests; streamed model output reads as deliberate writing rather than machine output. **No structural changes** — this is a polish phase that establishes the design language all later phases inherit.
+
+**Build:**
+- Extend the editorial mode-header system (italic display serif + uppercase mono kicker; real typographic ornaments; whisper-faint mode tints; asymmetric hanging-ornament layouts) across all existing routes, modals, and empty states. System fonts only — no remote font fetch (CSP forbids), no bundled assets.
+- Composer tutor-verb chip rail above the chat textarea. Mode-aware verbs prefill the input (e.g. *explain · quiz me on · let me try · show your work · slower* in teach mode). Chips are starter words, not autosend; the cursor lands ready for the student to keep typing.
+- Eased streaming pacing in `useStreamedSend`: small ring-buffer + `requestAnimationFrame` release schedule + per-chunk fade-in. Same content, deliberate rhythm; reads as someone *thinking and writing*, not a machine.
+- Editorial copy throughout — replace "No items found" / "Loading…" / generic error toasts with invitational lines that fit a tutor app (empty / loading / error / idle). Lives in a small copy module so future surfaces inherit the voice.
+- Commitment to no notification badges, streak counters, or dopamine-tap surfaces. Editorial restraint is enforced by absence.
+
+**Test checkpoint:** All routes use the editorial system. Composer in chat shows the verb chips; tapping one prefills the textarea with the cursor positioned to keep typing. Streamed text reads smoothly with no stutter on slow networks. Empty states everywhere read as invitations rather than absences.
+
+---
+
+## Phase 14: Tabs + Library
+
+**Goal:** Multiple sessions of any mode run as parallel tabs in the chat workspace; a single Library replaces the courses / packs / documents trinity as the front door. Sessions become named arcs you can leave and come back to.
+
+**Build:**
+- Tab strip at the top of the chat workspace. Each tab is a live session of any mode; ornament glyph + name in the tab itself; tint colors the active-tab hairline. New tab `+` opens a quick session picker (mode + course + optional assignment).
+- Tab persistence — open tabs survive app restart. Stored in `tabs` table (small: `id, sessionId, modeId, title, openedAt, lastSeenAt, archived`).
+- Tab CRUD — open from any session-start affordance; close ends/archives the session; right-click for archive / rename. Sessions remain in the archive after their tab closes; reopening one reopens its tab.
+- `/library` route replaces `/courses` and `/packs`. Editorial table-of-contents listing: courses (in progress, unstarted), packs (available with "Use this pack" CTA — no bootstrap detour), documents, recent sessions. Each item's primary action opens a new tab. The mental model unifies: a Library has materials and a record of your reading.
+- Session archive — closed sessions remain visible in Library with auto-generated summaries (the Phase 12 `notes.from_session_summary` machinery, repurposed). Past arcs are browsable like a reading list.
+- All session-start entry points (course-detail "Start", assignment "Begin", "New course", Library) open a new tab rather than replacing the current chat.
+- Each tab still uses the existing chat surface inside (modality work lands in Phase 16).
+
+**Research:** TanStack Router multi-instance route patterns; how `/chat/:tabId` handles deep-link reopening; whether tab state should live client-side (renderer state machine) or main-process-side (shared across renderer reloads).
+
+**Test checkpoint:** Open three sessions of three different modes; switch between them via tabs. Close one, restart the app; the other two are restored, the closed one is in the Library archive. Library shows packs alongside courses with one-click "Use pack" affordances; no bootstrap detour required. Past closed sessions are browsable with summaries.
+
+---
+
+## Phase 15: Sketching + concept map (tldraw)
+
+**Goal:** Stylus-friendly sketching everywhere typing is allowed; student-authored concept maps; tutor reads JSON + image. Foundation primitive that Phase 16's modality bodies depend on.
 
 **Build:**
 - tldraw integration in chat input, submission, workspace (`format: "sketch"` Note)
@@ -259,7 +293,29 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 14: Study-skills + pedagogy pack + remaining memory
+## Phase 16: Modalities per mode
+
+**Goal:** Each mode has its own embodied UI shape inside its tab — quiz feels like flashcards, exam feels like a proctored exam, homework like a paginated set, bootstrap like a workspace canvas. The AI agent's presence is preserved everywhere, with one constraint: exam mode restricts the agent to clarifying questions only — like a teacher proctoring an exam.
+
+**Build:**
+- Tab body component shape per mode, dispatched by `session.modeId`:
+  - **teach** — chat as today (nothing changes)
+  - **quiz** — flashcard rhythm: one item at a time, large display typography, keyboard-driven (`Space` = next, `1`–`4` = confidence rating after answering). Tutor visible as a side strip the student can summon.
+  - **homework** — paginated problem set; per-problem workspace combining sketch (Phase 15 primitive) + typed input + chat side-rail. Auto-saves on each navigation.
+  - **exam** — proctored full-tab; timer in the kicker; problem-by-problem nav; sketched and/or typed answers; AI agent restricted to a single `clarification` tool — no `explain`, no `let_me_try`, no method help. The agent is present but acts as a proctor: clarifies wording when asked, will not solve.
+  - **bootstrap** — canvas with a side outline of the course being built. Conversation in the body builds an outline structure visibly on the side as the agent drafts and edits.
+  - **configure** — already largely its own surface (split-pane chat + structured editor); polish to match editorial language.
+- Per-mode tool-registry restrictions enforced server-side (not just by prompt). Exam-mode session opens with `mode.toolNames = ["clarification"]`.
+- New `clarification` tool — dispatched by the agent when the student asks "what does this question mean"; returns a normalized clarification, never a hint or partial solution.
+- Mode-aware composer affordances (extends Phase 13 chips) — quiz has `I'm stuck` + `next`; exam has `ask for clarification` + `next problem`; bootstrap has `what should we cover` + `add this`.
+
+**Research:** Tab body composition pattern in TanStack Router (rendering different React subtrees per `tab.modeId` cleanly); review of Anki / Quizlet flashcard rhythms for what feels good keyboard-only; review of online proctored exam UIs (Pearson VUE, ProctorU) for the proctor-restricted-helper pattern.
+
+**Test checkpoint:** Open one tab per mode. Each looks and behaves distinctly. In exam mode, asking the AI for help returns a clarifying question only — no method help even when explicitly requested. In quiz, keyboard-only navigation works (no mouse needed for a 20-card review). Homework supports per-problem sketching with the side-rail chat. Bootstrap shows the outline growing as the conversation progresses.
+
+---
+
+## Phase 17: Study-skills + pedagogy pack + remaining memory
 
 **Goal:** Dedicated metacognition coach mode plus the procedural / affective memory it relies on.
 
@@ -277,7 +333,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 15: Biology canonical + Electron packaging + ship
+## Phase 18: Biology canonical + Electron packaging + ship
 
 **Goal:** Shippable v1 — signed installer for at least one platform with both canonical packs.
 

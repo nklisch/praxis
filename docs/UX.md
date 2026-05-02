@@ -16,15 +16,47 @@ The UI has two top-level surfaces: **student** (the learning experience) and **c
               ▼                                   ▼
         Student mode                       Configure mode
         ───────────────                    ──────────────────
-        ▸ Chat (active session)            ▸ Course authoring
-        ▸ Progress map                     ▸ Gate editor (React Flow)
-        ▸ Workspace (notes/cards)          ▸ Prompt customization
-        ▸ Concept map (tldraw)             ▸ Memory inspector
-        ▸ Submission                       ▸ Engine / config settings
-        ▸ Unlock notifications
+        ▸ Library (front door)             ▸ Course authoring
+            packs · courses · sessions     ▸ Gate editor (React Flow)
+            documents · archive            ▸ Prompt customization
+        ▸ Chat workspace (tabs)            ▸ Memory inspector
+            tab body shape per mode:       ▸ Engine / config settings
+              teach    → chat
+              bootstrap→ canvas + outline
+              quiz     → flashcard rhythm
+              homework → paginated set
+              exam     → proctored
+        ▸ Workspace (notes)
+        ▸ Concept map (tldraw)
+        ▸ Progress map
 ```
 
 In the unlocked state, both surfaces are accessible through a single navigation. Setting a lock code hides the configure surface behind a lock gate and keeps the student surface open.
+
+## Editorial language
+
+Praxis is a literary review, not a chat app. The visual system is editorial: typographic, restrained, anti-notification. Established in the Phase 13 editorial-foundation work and inherited by every subsequent surface.
+
+**Typography.** A system serif with strong italics — Iowan Old Style → Sitka Text → Charter → Source Serif → Georgia, in fallback order — for display and emphasis; a monospace (JetBrains Mono → SF Mono → Consolas) for kickers, labels, and structural metadata. No remote font fetch (CSP forbids), no bundled font assets. No Inter, no Roboto, no Geist — the standard AI-app trio that signals "generated." The pairing — italic display serif over uppercase mono kicker — is the recurring typographic motif, drawn from scholarly journals.
+
+**Ornaments.** Real typographic marks (§, ¶, †, ‡, ❦, ⁂, ·) replace icons or emoji as section markers. They render perfectly in any system serif and carry centuries of editorial meaning.
+
+**Mode tints.** Each mode has a whisper-faint accent used only for hairline rules, ornament fills, and 4% gradient washes. The tints distinguish modes without shouting:
+
+| Mode | Tint | Glyph |
+|---|---|---|
+| teach | warm amber | § |
+| bootstrap | sage | ¶ |
+| quiz | slate | ‡ |
+| homework | indigo | ❦ |
+| exam | crimson | † |
+| configure | graphite | ⁂ |
+
+**Layout.** Asymmetric, with hanging ornaments and editorial decks — like the opening of a literary essay. Dropped initials, sectional rules, generous trapped white space. Cards exist only where they earn their place; tables-of-contents are preferred for listings.
+
+**Copy.** Invitational and quiet. Empty states read as invitations ("There are no documents yet. Bring me something to teach you."); errors are framed without alarm; loading is a slow italic ellipsis, not a spinner.
+
+**What the system refuses.** Notifications. Streak counters. Badges. Dopamine-tap surfaces. Engagement metrics shown to the student. Excessive animation. Color used as alarm. A tutor's job is to keep the student focused; the product never competes for that focus. This is not a feature backlog item to triage — it's a constraint on what gets built at all.
 
 ## Onboarding flows
 
@@ -100,48 +132,165 @@ The lock is the **only** auth gate in the local-first deployment. It exists to k
 
 **Important**: the lock is a UX gate, not a security boundary. A determined adversary with file-system access can bypass it. The threat model is "kid trying to game the system," not "attacker."
 
-## Student surface — Chat
+## Student surface — Library
 
-The primary interaction surface during a session.
+The front door. Replaces what used to be `/courses` and `/packs` (and the implicit "where do my sessions live") with a single editorial table-of-contents. Lands in Phase 14.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  ◀ Algebra 1 / Linear Equations / Lesson 3      🔒 [Lock]   │
+│   LIBRARY                                                   │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  Tutor: Let's pick up where we left off. Last session you   │
-│         worked through y = mx + b. Today: solving for x     │
-│         when m and b are given.                             │
+│   ¶  COURSES IN PROGRESS                                    │
+│      Algebra I            · wk 4    [ Continue → ]          │
+│      Linear Algebra       · wk 1    [ Continue → ]          │
 │                                                             │
-│         Try this one first:                                 │
+│   §  PACKS, AVAILABLE                                       │
+│      high-school algebra            [ Use this pack → ]     │
+│      intro statistics               [ Use this pack → ]     │
+│      intro geometry        (imported)  [ Use this pack → ]  │
 │                                                             │
-│         ┌─────────────────────────────┐                     │
-│         │  Solve for x:  3x + 5 = 20  │                     │
-│         └─────────────────────────────┘                     │
+│   †  DOCUMENTS                                              │
+│      stewart-calc.pdf      · 642pp                          │
+│      tao-analysis.pdf      · 248pp                          │
+│      [ Add a document ]                                     │
 │                                                             │
-│         Take a minute. I'll wait.                           │
+│   ‡  RECENT SESSIONS                                        │
+│      teach · algebra · fractions, redux       · Thurs 4pm   │
+│      bootstrap · setting up calculus          · Wed 2pm     │
+│      [ Browse all 24 → ]                                    │
 │                                                             │
-│  You:  ▌                                                    │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│  📎 Upload work    ✏️ Sketch              Submit ──── [Send]│
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Key affordances:**
+**Affordances:**
 
-- **Streamed messages** — model output streams character-by-character via the transport. Tool calls appear as inline status ("checking with sympy...") with results rendered when ready.
-- **Embedded artifacts** — math expressions render via KaTeX; plots render inline; diagrams via mermaid or similar; code blocks with syntax highlighting.
-- **Sketch input** — opens an inline tldraw canvas. Stylus / Apple Pencil / Wacom supported via pressure-sensitive Pointer Events. Tutor reads both the tldraw snapshot JSON and the rendered image; preferred path varies by how cleanly the student used shape primitives vs. freehand strokes.
-- **Submission affordance** — when the tutor is asking for an answer, the input field gets a "submit answer" treatment that signals commitment (a graded item can't be edited after submission).
-- **Source signaling** — when the tutor cites the textbook, the citation is a clickable chip showing "from your textbook, p.47"; clicking opens the source in a side panel.
-- **Productive-failure indicator** — when the tutor is waiting for an attempt, a soft visual indicator shows the wait window without explicit countdown pressure.
-- **Hint requests** — a discrete "I'm stuck" button surfaces only after the productive-failure window. Pressing it gets a scaffold, not an answer.
+- **One front door, one mental model.** Materials (packs, documents) and your record of working with them (courses, sessions) live in one place. The IA mirrors how a student actually thinks about their learning: *what do I have to work with* and *what have I been doing*.
+- **Tab-opening primary actions.** Every item's primary action opens a new tab in the chat workspace, never replaces the current one. Continue Algebra in a new tab; the calculus tab stays open beside it.
+- **"Use this pack" as one-click course creation.** Imported packs offer a direct "Use this pack" CTA — no detour through bootstrap chat is required to get value from a pack you've imported. (The bootstrap-chat path remains available for users who want a conversation about tailoring the course.)
+- **Recent sessions are browsable.** Reopening a closed session reopens its tab. Archived sessions show their auto-generated summary as a deck under the title — past arcs visible like a reading list.
+- **Add a document opens ingestion.** The Phase 5 ingestion flow runs in the background; the student can navigate or open new tabs while it works.
 
-**What it doesn't do:**
+## Student surface — Chat workspace
 
-- No "give me the answer" button. There is no path through the UI to bypass productive struggle.
+Every session lives inside the chat workspace. It has a tab strip at the top and a body whose shape is determined by the active tab's mode. Tabs land in Phase 14; per-modality bodies in Phase 16.
+
+### Tab strip
+
+```
+┌──────────────┬───────────────┬─────────────┬─────┐
+│ §  algebra   │ ¶  calc-intro │ ‡  quiz-3   │  +  │
+│   teach      │    bootstrap  │    quiz     │     │
+└──────────────┴───────────────┴─────────────┴─────┘
+```
+
+- Each tab is a live session of any mode. Multiple sessions of any modes run simultaneously; switching is instant.
+- Each tab shows its mode's ornament glyph + the auto-generated session name (e.g. `algebra · fractions, redux`). The active tab's hairline is colored with the mode tint.
+- The `+` opens a quick session picker (mode + course + optional assignment).
+- Closing a tab archives the session — it stays in Library's archive and is reopenable. Right-click for archive / rename / move.
+- Open tabs survive app restart. The workspace restores exactly where you left off.
+
+### Per-modality bodies
+
+The body of an active tab takes its shape from the mode. The agent is present in every mode, but its presence and the surface it shapes are different in each.
+
+#### teach (chat)
+
+The familiar conversational chat. Streamed messages with KaTeX, code blocks, citations, sketch input (Phase 15). Composer with mode-aware tutor-verb chips above the textarea: *explain · quiz me on · let me try · show your work · slower · go deeper*. This is the default modality; everything that worked in earlier phases continues to work.
+
+```
+┌───────────────────────────────────────────────────────────┐
+│  §  MODE                                                  │
+│     teach                                                 │
+│     — a guided lesson                                     │
+│ ────────────────────────────────────────────────────────  │
+│                                                           │
+│   Tutor: Last time you worked through y = mx + b.         │
+│          Today: solving for x when m and b are given.     │
+│                                                           │
+│          Try this one first:                              │
+│                                                           │
+│          Solve for x:  3x + 5 = 20                        │
+│                                                           │
+│          Take a minute. I'll wait.                        │
+│                                                           │
+│   ────────────────────────────────────────────────────    │
+│   EXPLAIN  ·  QUIZ ME ON  ·  LET ME TRY  ·  SLOWER        │
+│   ┌───────────────────────────────────────────────────┐   │
+│   │  ▌                                                │   │
+│   └───────────────────────────────────────────────────┘   │
+└───────────────────────────────────────────────────────────┘
+```
+
+#### bootstrap (canvas + outline)
+
+A nearly-blank canvas with a single open prompt. As the student and agent talk through what to cover, the outline of the course-being-built appears in a side rail and grows visibly. Conversation in the body builds structure on the side. The student watches the course take shape.
+
+#### quiz (flashcard rhythm)
+
+One item at a time, large display typography, keyboard-driven (`Space` = next, `1`–`4` = confidence rating after answering). The agent is visible as a side strip the student can summon for explanation between cards. No long chat scroll; review feels rhythmic.
+
+```
+┌───────────────────────────────────────────────────────────┐
+│  ‡  QUIZ                                  3 of 12         │
+│ ─────────────────────────────────────────────────────  ── │
+│                                                           │
+│       What is the derivative of ln(x)?                    │
+│                                                           │
+│                                                           │
+│       [ show answer ]                                     │
+│                                                           │
+│       confidence:    1   2   3   4                        │
+│                      ░   ░   ░   ░                        │
+│                                                           │
+│ ── space: next   ·   1-4: rate   ·   ?: ask the tutor ─── │
+└───────────────────────────────────────────────────────────┘
+```
+
+#### homework (paginated problem set)
+
+Per-problem workspace combining sketch (Phase 15) + typed input + a chat side-rail. Auto-saves on each navigation. Per-problem feedback after submission of the whole set. The chat side-rail is for asking the tutor to explain a concept — never to solve the problem for you.
+
+#### exam (proctored)
+
+Full-tab proctored layout. Timer in the kicker. Problem-by-problem nav. Sketched and/or typed answers. **The AI agent is restricted to a single capability — clarifying ambiguous wording.** No `explain`, no `let_me_try`, no method help, no hints. Like a teacher proctoring an exam: present, helpful only on the meta question. The restriction is enforced server-side via a tool-registry constraint, not just by prompt.
+
+```
+┌───────────────────────────────────────────────────────────┐
+│  †  EXAM            19:42 remaining     question 4 of 8   │
+│ ─────────────────────────────────────────────────────  ── │
+│                                                           │
+│   4.  Solve for x:                                        │
+│                                                           │
+│           3x + 5 = 20                                     │
+│                                                           │
+│       answer  [               ]                           │
+│       work    [ ✏ sketch ]                                │
+│                                                           │
+│ ── ask for clarification ─── [< prev]   [next >]   [end]  │
+└───────────────────────────────────────────────────────────┘
+```
+
+#### configure (split-pane authoring)
+
+Largely as today: chat on the left, structured editor on the right. The editorial polish in Phase 13 brings it into visual alignment with the rest of the app, but the structure remains.
+
+### Cross-modality affordances
+
+These hold inside every tab body, regardless of mode:
+
+- **Streamed messages** — model output streams character-by-character via the transport, with eased pacing (Phase 13) so it reads as someone *thinking and writing*. Tool calls appear as inline status ("checking with sympy…") with results rendered when ready.
+- **Embedded artifacts** — math expressions render via KaTeX; plots render inline; code blocks with syntax highlighting.
+- **Sketch input** — inline tldraw (Phase 15). Stylus / Apple Pencil / Wacom supported via pressure-sensitive Pointer Events. Tutor reads both the tldraw snapshot JSON and the rendered image.
+- **Source signaling** — citations are clickable chips ("from your textbook, p.47"); clicking opens the source in a side panel.
+- **Productive-failure indicator** — when the tutor is waiting for an attempt, a soft visual indicator shows the wait window without explicit countdown pressure (suspended in exam mode, where time pressure is the explicit point).
+- **Hint requests** — discrete "I'm stuck" affordance available in teach / homework / quiz; absent in exam (the exam agent doesn't hint).
+
+**What the workspace doesn't do:**
+
+- No "give me the answer" button anywhere.
 - No retry-on-graded-item without confirmation; once submitted, it's submitted.
+- No notifications, badges, or streak surfaces.
 
 **Future (v1.x): tutor shared canvas.** The tutor draws on the same tldraw surface alongside the student — for geometry, function graphs, free-body diagrams, anything visual. Requires UX work for "the tutor is drawing now" affordance and turn-taking semantics. Out of scope for v1.
 
@@ -256,40 +405,14 @@ A first-class spatial editor for student-authored concept maps. Sibling to the w
 
 Concept maps live as `ConceptMapDrawing` artifacts and persist alongside the course. Editable across sessions. Comparing the student's map against the canonical graph is one of the highest-leverage metacognitive teaching moments — it forces externalization and confrontation of the gap.
 
-## Student surface — Submission
+## Answer submission — cross-cutting
 
-When the tutor assigns work for submission (homework, exam, longer assignment), the submission surface handles intake.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│   Homework: Linear Equations Practice         5 of 10       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   Solve for x:                                              │
-│                                                             │
-│       2x − 7 = 11                                           │
-│                                                             │
-│   ─────────────────                                         │
-│                                                             │
-│   Answer:  ▌                                                │
-│                                                             │
-│   ● Type your answer                                        │
-│   ○ Sketch your work (tldraw, stylus-friendly)              │
-│   ○ Upload a photo of your work                             │
-│                                                             │
-│   Show your work (optional but recommended):                │
-│   ┌──────────────────────────────────────┐                  │
-│   │                                      │                  │
-│   └──────────────────────────────────────┘                  │
-│                                                             │
-│  [< Previous]                          [Skip]   [Submit >]  │
-└─────────────────────────────────────────────────────────────┘
-```
+Submission is no longer its own surface; it's an affordance that lives inside the homework, quiz, and exam modality bodies. The mechanics are the same in each, so they're documented once here.
 
 **Three input paths** for submitting work:
 
 1. **Type** — direct text/LaTeX input.
-2. **Sketch** — inline tldraw canvas. Stylus-friendly. The tutor reads both the snapshot JSON and the rendered image; the JSON when shape primitives carry meaning, the image otherwise. Higher `needs-human-review` rate than typed input but expected.
+2. **Sketch** — inline tldraw canvas (Phase 15). Stylus-friendly. The tutor reads both the snapshot JSON and the rendered image; the JSON when shape primitives carry meaning, the image otherwise. Higher `needs-human-review` rate than typed input but expected.
 3. **Upload photo** — for paper-and-pencil work. Vision OCR via the engine adapter.
 
 **Upload / sketch flow** (handwritten or drawn work):
@@ -301,6 +424,12 @@ When the tutor assigns work for submission (homework, exam, longer assignment), 
 5. If everything checks out, the answer is submitted.
 
 **Per-item feedback** appears after the full assignment is submitted (homework / quiz) or at exam end (exam doesn't show feedback per-item until completion). Feedback explains *why*, with citations to the textbook where applicable, not just right/wrong.
+
+**Mode-specific differences:**
+
+- In **quiz** the rhythm is one-card-at-a-time; submission is `Space` to confirm + `1`–`4` to rate confidence.
+- In **homework** submission is per-problem with auto-save; the chat side-rail is available for explanation but won't solve the problem.
+- In **exam** submission is per-problem with no live feedback; the agent is restricted to clarifying ambiguous wording (no method help, no hints).
 
 ## Configure surface — Course authoring
 
@@ -444,7 +573,11 @@ Engine selection, deployment-related settings, telemetry preferences.
 
 ## Cross-cutting interaction patterns
 
-**Streaming with intercept.** All long-running operations (agent loops, ingestion, indexer runs) stream progress via the transport. The UI never blocks on a long operation — even ingestion of a 500-page textbook progresses visibly while the user does other things.
+**Tabs persist; sessions persist.** Multiple sessions of any mode run in parallel as tabs in the chat workspace. Closing a tab archives the session (browsable in Library). Open tabs survive restart. The student can leave a homework tab open mid-problem, switch to a teach tab to ask about a related concept, and return to the homework with the cursor where they left it. Mental context is preserved by the system, not held in the student's head.
+
+**Mode is identity, not just a setting.** Each mode has its own ornament glyph, tint, and tab body shape. The student doesn't need to remember what mode they're in — the workspace shows it constantly through the tab strip and the modality body. Modes are discoverable, not buried in a settings menu.
+
+**Streaming with intercept and easing.** All long-running operations (agent loops, ingestion, indexer runs) stream progress via the transport. The UI never blocks on a long operation — even ingestion of a 500-page textbook progresses visibly while the user does other things. Model-text streaming is eased (Phase 13): a small ring buffer + `requestAnimationFrame` release schedule + per-chunk fade-in. Reads as someone *thinking and writing*, not as raw token output.
 
 **Citations are first-class.** Every fact the tutor states from the textbook is a clickable citation chip. Clicking opens the source in a side panel. The student learns to expect citations and notice when they're missing.
 

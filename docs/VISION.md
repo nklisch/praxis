@@ -54,6 +54,14 @@ A parent or teacher who uses Praxis:
 - Watches progress through a clear lens — concept mastery, time on task, working misconceptions, engagement — without crossing into surveillance.
 - Adjusts teaching style and threshold knobs without writing code.
 
+## How Praxis feels
+
+Two posture commitments, alongside the verification principle, govern what Praxis feels like to use.
+
+**Sessions are named arcs, not infinite chat.** A real tutor doesn't have one infinite conversation with a student; they have *lessons* — each with a before (today we'll work on X), a middle (the work), and an after (here's what we covered, here's what to practice). Praxis sessions are the same: each one has a topic, a structure, a beginning, and an end. They become artifacts you can revisit, not transcripts that scroll into oblivion. Multiple sessions of any mode can be open simultaneously as parallel tabs — algebra teach in one, calculus bootstrap in another — because real learners switch contexts.
+
+**Editorial restraint over notification-driven design.** Praxis stands out by what it refuses to add. No streak counters. No badges. No notification bells. No dopamine-tap surfaces. The aesthetic is a literary review, not a chat app — italic display serif paired with uppercase mono kicker; real typographic ornaments instead of icons; whisper-faint mode tints; copy that reads as invitation rather than nag. Quiet intelligence beats loud engagement, and a tutor app is exactly where this matters most: the goal is that the student *focuses*, and the product never gets in the way of that.
+
 ## What Praxis is not
 
 - Not an answer-generator. Designed against the use case of "do my homework for me."
