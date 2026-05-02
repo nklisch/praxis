@@ -31,29 +31,38 @@ pnpm lint
 
 ## Run the desktop app (dev)
 
-The desktop app uses native modules (`better-sqlite3`, `canvas`) that have to be
-rebuilt against Electron's Node ABI before the app can launch. Electron-rebuild
-is **not** wired into `postinstall` — it would clobber the Node-ABI bindings
-that `pnpm test` and CLI scripts need. Run it explicitly the first time, and
-again after any `pnpm install` that updated those modules:
-
 ```bash
+# First-time setup: rebuild native modules against Electron's ABI
 pnpm --filter @praxis/desktop rebuild:electron
-pnpm dev                              # Electron + Vite hot-reload
+
+# Run dev — rebuilds workspace dist/ first, then starts Electron + Vite hot-reload
+pnpm dev
 ```
 
-After running `rebuild:electron`, native modules are at Electron's ABI. Tests
-and CLI scripts will then fail with `NODE_MODULE_VERSION` errors — restore the
-Node-ABI bindings with:
+`pnpm dev` runs `pnpm build` first because the Electron main process keeps
+workspace packages (`@praxis/engines`, `@praxis/claude-cli-sdk`, etc.)
+**external** in the bundle — at runtime, Node loads each one from its own
+`dist/` rather than the bundled `out/main/index.js`. Without rebuilding,
+source-level changes to those packages won't appear in the running app and
+you'll see stale-code symptoms (e.g. an old hang resurfacing despite the fix
+being committed in source).
+
+The `dist:*` standalone-build pipeline already starts with `pnpm build`, so
+this change does not affect packaged builds.
+
+Run `rebuild:electron` again after any `pnpm install` that updates
+`better-sqlite3` or `canvas`. After that, tests and CLI scripts will fail with
+`NODE_MODULE_VERSION` errors — restore the Node-ABI bindings with:
 
 ```bash
 pnpm rebuild better-sqlite3 canvas    # rebuilds against the active Node version
 ```
 
-This dance is unavoidable as long as both contexts share `node_modules` (and
-since `dist:*` reuses the workspace's pnpm store via hardlinks, it has the
-same effect on workspace native modules — run the `pnpm rebuild` line above
-after a `dist:*` run before going back to tests / `pnpm dev`).
+This native-module dance is unavoidable as long as tests and Electron share
+`node_modules` (and since `dist:*` reuses the workspace's pnpm store via
+hardlinks, it has the same effect on workspace native modules — run the
+`pnpm rebuild` line above after a `dist:*` run before going back to tests /
+`pnpm dev`).
 
 ## Build a distributable
 
@@ -138,7 +147,7 @@ you have Python 3 on PATH.
 | `pnpm db:generate` | Generate migration SQL from schema changes |
 | `pnpm db:show` | Print all tables and row counts |
 | `pnpm db:reset` | Delete dev DB and re-migrate from scratch |
-| `pnpm dev` | Run the Electron desktop app in dev mode (requires `rebuild:electron` first) |
+| `pnpm dev` | Rebuild workspace `dist/` and run the Electron desktop app in dev mode (requires `rebuild:electron` first) |
 | `pnpm desktop:build` | Build the Electron bundle (unpackaged) into `packages/desktop/out/` |
 | `pnpm --filter @praxis/desktop rebuild:electron` | Rebuild native modules against Electron's Node ABI |
 | `pnpm --filter @praxis/desktop dist:dir` | Build unpacked Electron app directory (fast, no installer) |
