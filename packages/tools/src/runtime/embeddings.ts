@@ -28,12 +28,22 @@ const QUERY_PREFIX = "Represent this question for searching relevant textbook pa
 export class LocalEmbeddingService implements EmbeddingService {
   readonly modelId: string;
   readonly dimension: number;
+  /**
+   * Where transformers.js stores downloaded model files. Must be a writable
+   * directory — in a packaged Electron app this needs to be set explicitly to
+   * something like `app.getPath("userData")/transformers-cache`, otherwise
+   * transformers.js defaults to `node_modules/@huggingface/transformers/.cache`
+   * which lives inside the read-only `app.asar` and crashes with ENOTDIR on
+   * the first model fetch.
+   */
+  readonly cacheDir: string | undefined;
 
   private pipelinePromise: Promise<unknown> | null = null;
 
-  constructor(opts: { modelId?: string; dimension?: number } = {}) {
+  constructor(opts: { modelId?: string; dimension?: number; cacheDir?: string } = {}) {
     this.modelId = opts.modelId ?? DEFAULT_MODEL;
     this.dimension = opts.dimension ?? DEFAULT_DIMENSION;
+    this.cacheDir = opts.cacheDir;
   }
 
   /**
@@ -86,6 +96,9 @@ export class LocalEmbeddingService implements EmbeddingService {
       // even under concurrent calls.
       this.pipelinePromise = (async () => {
         const tx = await import("@huggingface/transformers");
+        if (this.cacheDir) {
+          tx.env.cacheDir = this.cacheDir;
+        }
         return tx.pipeline("feature-extraction", this.modelId);
       })();
     }

@@ -60,6 +60,8 @@ import {
 } from "@praxis/tools/runtime";
 import { codeSandboxTool, LocalCodeSandbox } from "@praxis/tools/sandbox";
 import { eq } from "drizzle-orm";
+import { app } from "electron";
+import { join } from "node:path";
 
 export interface Services {
   session: SessionServiceImpl;
@@ -108,7 +110,16 @@ export function buildServices(dbPath: string): Services {
   // Phase 5: vectors + FTS + embeddings + page images
   const vectorStore = new SqliteVecStore(sqlite);
   const ftsStore = new SqliteFtsStore(sqlite);
-  const embeddings = new LocalEmbeddingService();
+  // Route the @huggingface/transformers cache to userData/ in a packaged
+  // build — its default of `node_modules/@huggingface/transformers/.cache`
+  // lives inside the read-only app.asar and crashes with ENOTDIR on first
+  // model fetch. In dev, leave cacheDir unset and let transformers.js use
+  // its default node_modules cache.
+  const embeddings = app.isPackaged
+    ? new LocalEmbeddingService({
+        cacheDir: join(app.getPath("userData"), "transformers-cache"),
+      })
+    : new LocalEmbeddingService();
   const pageImageStore = new FsPageImageStore();
   const documentsReader = new DrizzleDocumentsReader(db, pageImageStore);
 

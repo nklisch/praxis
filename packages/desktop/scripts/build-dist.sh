@@ -113,7 +113,14 @@ if [ -n "$APP_PATH" ]; then
     popd > /dev/null
   fi
 
-  node "$ASARBIN" pack "$STAGING" "$ASAR_PATH"
+  # Repack must preserve the "unpacked" flag for native binaries — without
+  # this, dlopen on .node files extracts to /tmp where @rpath/<dylib> can't
+  # find sibling shared libraries that live in app.asar.unpacked. Mirror
+  # the asarUnpack patterns from packages/desktop/package.json plus a
+  # blanket glob for binary file types.
+  node "$ASARBIN" pack "$STAGING" "$ASAR_PATH" \
+    --unpack "**/*.{node,dylib,so,dll}" \
+    --unpack-dir "{**/node_modules/better-sqlite3,**/node_modules/canvas,**/node_modules/sqlite-vec,**/node_modules/sqlite-vec-*,**/node_modules/@img/sharp-*,**/node_modules/sharp,**/node_modules/onnxruntime-node,**/node_modules/onnxruntime-common}"
   rm -rf "$STAGING"
 
   codesign --force --deep --sign - "$APP_PATH"

@@ -113,7 +113,9 @@
       "**/node_modules/sqlite-vec/**",
       "**/node_modules/sqlite-vec-*/**",
       "**/node_modules/@img/sharp-*/**",
-      "**/node_modules/sharp/**"
+      "**/node_modules/sharp/**",
+      "**/node_modules/onnxruntime-node/**",
+      "**/node_modules/onnxruntime-common/**"
     ],
     "mac": {
       "target": [
