@@ -2,7 +2,9 @@
 
 ## Overview
 
-Praxis today logs through a `Logger` interface in `packages/core/src/types/common.ts:34` whose only concrete implementation (`packages/desktop/electron/main/services.ts:103`) is a thin wrapper over `console.{debug,info,warn,error}` with a `[praxis]` prefix. There is no file output, no log level control, no correlation across IPC streams, no renderer-process logging, and ~30 non-streamed IPC handlers in `packages/desktop/electron/main/ipc-server.ts` have no `try/catch` so their errors leak to the renderer with no record on disk. The recent PDF crash (`Warning: UnknownErrorException: standardFontDataUrl`) was undebuggable because the only artifacts were 40 identical pdfjs warnings on stdout — nothing structured, nothing persisted.
+Praxis today logs through a `Logger` interface in `packages/core/src/types/common.ts:34` whose only concrete implementation (`packages/desktop/electron/main/services.ts:104-107`, an inline literal in `buildServices`) is a thin wrapper over `console.{debug,info,warn,error}` with a `[praxis]` prefix. There is no file output, no log level control, no correlation across IPC streams, no renderer-process logging, and ~30 non-streamed IPC handlers in `packages/desktop/electron/main/ipc-server.ts` have no `try/catch` so their errors leak to the renderer with no record on disk. Six engine-adapter close paths and three session-service paths use `.catch(() => {})` — silent. The recent PDF crash (`Warning: UnknownErrorException: standardFontDataUrl`) was undebuggable because the only artifacts were 40 identical pdfjs warnings on stdout — nothing structured, nothing persisted.
+
+The post-Phase-14 UI refactor (commits `771c75d`, `46910af`, `991d83a`) introduced `Modal`, `EmptyState`, `LoadingState`, `ErrorMessage`, `LibrarySection` primitives and a `makeFakeClient(overrides?)` test SSOT under `packages/ui/src/__tests__/helpers/`. This design leverages both: the renderer `ErrorBoundary` (Unit 6) uses `ErrorMessage` for its default fallback, and the new test helpers (Unit 10) follow the same `noopLogger()` / `recordingLogger(overrides?)` SSOT pattern so any test author already trained on `makeFakeClient` knows how to use them.
 
 This design lands a complete observability story for v1: a `pino`-backed structured logger, a renderer→main IPC bridge that funnels every log record through one sink, child-logger correlation (sessionId, streamId, turnIndex), opt-in JSONL file rotation under `userData/logs/`, redaction of secrets and (by default) prompt content, an IPC error-wrapping helper that ends the silent-failure problem, and migration of every bare `console.*` call site in non-script code.
 
@@ -603,12 +605,18 @@ The `log` instance is passed into the existing React tree (see file 2 for the bo
 
 **File 2**: `packages/ui/src/components/error-boundary.tsx` (new)
 
+The recent UI refactor (commit `46910af`) extracted a generic `ErrorMessage` component at `packages/ui/src/components/error-message.tsx` — a `<p role="alert">` with editorial styling. The ErrorBoundary's default fallback uses it so we get the codebase's design language for free.
+
 ```typescript
 import type { Logger } from "@praxis/core/types";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { ErrorMessage } from "./error-message.js";
 
 export interface ErrorBoundaryProps {
   log: Logger;
+  /**
+   * Custom fallback. When omitted, renders <ErrorMessage> with a Reset button.
+   */
   fallback?: (error: Error, reset: () => void) => ReactNode;
   children: ReactNode;
 }
@@ -635,16 +643,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render(): ReactNode {
     if (this.state.error) {
+      if (this.props.fallback) return this.props.fallback(this.state.error, this.reset);
       return (
-        this.props.fallback?.(this.state.error, this.reset) ?? (
-          <div role="alert" style={{ padding: 16 }}>
-            <h2>Something went wrong</h2>
-            <pre style={{ whiteSpace: "pre-wrap", overflow: "auto" }}>
-              {this.state.error.message}
-            </pre>
-            <button onClick={this.reset}>Reset</button>
-          </div>
-        )
+        <div role="region" aria-label="Error">
+          <ErrorMessage error={this.state.error} />
+          <button type="button" onClick={this.reset}>Reset</button>
+        </div>
       );
     }
     return this.props.children;
@@ -849,7 +853,11 @@ The same shape applies to `ingest-channel.ts` (already lives in its own file), `
 - [ ] When a handler throws, the renderer still receives an IPC rejection AND `log.error("ipc.handle.error", {...})` is called once.
 - [ ] When a handler completes in <200ms, only a debug record is emitted; >200ms emits an info `ipc.handle.slow` record.
 - [ ] All four streaming handlers emit `info` start, `info` done with `durationMs` + `eventCount`, or `error` with `durationMs`.
-- [ ] The two existing `ipcMain.on` listeners (cancel channels for session.send and ingest) are migrated to `on()`.
+- [ ] All four existing `ipcMain.on` cancel listeners are migrated to `on()`:
+  - `praxis.session.send.cancel` (`ipc-server.ts:117`)
+  - `praxis.ingest.cancel` (`ingest-channel.ts:93`)
+  - `praxis.memory.episodic.cancel` (`ipc-server.ts:334`)
+  - `praxis.auth.claude.login.cancel` (`ipc-server.ts:899`)
 - [ ] Test in `packages/desktop/electron/main/__tests__/ipc-helpers.test.ts` covers ok / slow / error / on-error paths with mock ipcMain.
 
 ---
@@ -921,20 +929,18 @@ export function serializeError(err: unknown): SerializedError {
 
 Re-export from `packages/core/src/types/index.ts`. The Unit 7 `ipc-helpers.ts` imports it instead of re-defining it.
 
-#### 8b. `packages/engines/src/claude-code/adapter.ts`
+#### 8b. Engine adapter close-swallow sites (verified post-refactor)
 
-Lines ~157-158: `toolBridge.close().catch(() => {})` and `conversation.close().catch(() => {})` → log via the engine's deps.log:
+Verified by `grep -n "\.catch(()\s*=>\s*{})" packages/engines/src/`:
 
-```typescript
-toolBridge.close().catch((err) => log.warn("engine.claude-code.tool_bridge_close_failed", { err: serializeError(err) }));
-conversation.close().catch((err) => log.warn("engine.claude-code.conversation_close_failed", { err: serializeError(err) }));
-```
+- `packages/engines/src/claude-code/adapter.ts:65` — bridge close in **open-failure** path. Log: `log.warn("engine.claude-code.open.bridge_close_failed", { err: serializeError(err) })`.
+- `packages/engines/src/claude-code/adapter.ts:157` — `this.conv.close()` on session close. Log: `log.warn("engine.claude-code.conversation_close_failed", { err: serializeError(err) })`.
+- `packages/engines/src/claude-code/adapter.ts:158` — `this.bridge.close()` on session close. Log: `log.warn("engine.claude-code.tool_bridge_close_failed", { err: serializeError(err) })`.
+- `packages/engines/src/codex/adapter.ts:67` — bridge close in **open-failure** path. Log: `log.warn("engine.codex.open.bridge_close_failed", { err: serializeError(err) })`.
+- `packages/engines/src/codex/adapter.ts:141` — bridge close on session close. Log: `log.warn("engine.codex.tool_bridge_close_failed", { err: serializeError(err) })`.
+- `packages/engines/src/direct/adapter.ts` — none (verified clean; no silent swallows to migrate).
 
 The engine factory in `packages/engines/src/index.ts` already accepts `deps: { log: Logger }` (used in `services.ts:145, 156, 195, 234`). Adapters use it via constructor injection. No new plumbing required.
-
-Apply the same pattern in:
-- `packages/engines/src/codex/adapter.ts` — any close-swallow paths.
-- `packages/engines/src/direct/adapter.ts` — same.
 
 #### 8c. `packages/tools/src/registry.ts` — InProcessToolRegistry.dispatch()
 
@@ -958,7 +964,7 @@ Add a `log.debug("tool.dispatch.start", { name })` at the top of dispatch, `log.
 
 #### 9a. `packages/desktop/electron/main/index.ts` (modify existing)
 
-Current state: 9 bare `console.{log,warn,error}` calls (lines 12-41). Replace with the new logger.
+Current state (verified post-refactor): 11 bare `console.{log,warn,error}` calls between lines 12 and 41. Replace with the new logger.
 
 ```typescript
 import { app } from "electron";
@@ -1072,9 +1078,11 @@ Update the `Services` type's surrounding code to reflect the new signature. Comp
 
 ---
 
-### Unit 10: Test helpers — `noopLogger()` update
+### Unit 10: Test helpers — `noopLogger()` + `recordingLogger()`
 
-**File**: `packages/core/src/types/__tests__/test-utils.ts` or wherever `noopLogger` is currently defined; if it doesn't exist as a shared helper, create at `tests/helpers/logger.ts`.
+**File**: `tests/helpers/logger.ts` (new — no shared logger helper exists today; every test inlines its own `Logger` literal).
+
+**Pattern reference**: the recent refactor added `packages/ui/src/__tests__/helpers/fake-client.ts` with a `makeFakeClient(overrides?)` SSOT helper for `PraxisClient` stubs (commit `771c75d`). The new logger helpers follow the same convention: a single helper everyone uses, optional overrides for specific assertions, no inlined ad-hoc shapes scattered through test files.
 
 ```typescript
 import type { Logger } from "@praxis/core/types";
