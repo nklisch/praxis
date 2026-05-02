@@ -135,4 +135,81 @@ describe("useStreamedSend", () => {
 
     expect(result.current.messages).toHaveLength(0);
   });
+
+  // ── rawContent field ─────────────────────────────────────────────────────────
+
+  it("user message has rawContent equal to the sent text", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "hi there", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hello");
+    });
+
+    const userMsg = result.current.messages.find((m) => m.role === "user");
+    expect(userMsg?.rawContent).toBe("hello");
+    expect(userMsg?.rawContent).toBe(userMsg?.content);
+  });
+
+  it("assistant message rawContent is populated with streamed content", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "He", partial: true },
+      { type: "model_message", content: "llo", partial: true },
+      { type: "model_message", content: "Hello world", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
+    expect(assistantMsg?.rawContent).toBe("Hello world");
+  });
+
+  it("rawContent equals content on the settled assistant message", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "done!", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "test");
+    });
+
+    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
+    expect(assistantMsg?.rawContent).toBe(assistantMsg?.content);
+    expect(assistantMsg?.streaming).toBe(false);
+  });
+
+  it("assistant message placeholder is initialized with rawContent=''", async () => {
+    // Verify that after a send completes, the assistant message had rawContent
+    // set from the start (we verify it equals the final content, which was
+    // accumulated from "" upward — the key invariant is rawContent is always set).
+    const client = makeClient([
+      { type: "model_message", content: "He", partial: true },
+      { type: "model_message", content: "llo", partial: true },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hello");
+    });
+
+    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
+    // rawContent accumulated the partials ("He" + "llo" = "Hello")
+    expect(assistantMsg?.rawContent).toBe("Hello");
+    // content mirrors rawContent (set on each update)
+    expect(assistantMsg?.content).toBe("Hello");
+  });
 });

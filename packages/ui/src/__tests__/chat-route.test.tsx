@@ -167,4 +167,72 @@ describe("ChatRoute", () => {
       expect(screen.getByText("Sign in to Claude")).toBeDefined();
     });
   });
+
+  // ── ComposerVerbs chip rail integration ──────────────────────────────────────
+
+  it("renders the chip rail toolbar once a session is active", async () => {
+    const client = makeFakeClient();
+    renderWithClient(client);
+
+    await waitFor(() => {
+      // ComposerVerbs renders a toolbar landmark when modeId is defined
+      expect(screen.getByRole("toolbar", { name: /tutor verbs/i })).toBeDefined();
+    });
+  });
+
+  it("chip rail shows teach-mode verbs after a teach session starts", async () => {
+    const client = makeFakeClient();
+    renderWithClient(client);
+
+    await waitFor(() => {
+      // "explain" is the first teach-mode verb
+      expect(screen.getByRole("button", { name: "explain" })).toBeDefined();
+    });
+  });
+
+  it("clicking 'explain' chip prefills the composer textarea with 'explain '", async () => {
+    const client = makeFakeClient();
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "explain" })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "explain" }));
+
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox");
+    expect(textarea.value).toBe("explain ");
+  });
+
+  it("clicking a chip does not autosend — only prefills the textarea", async () => {
+    const client = makeFakeClient();
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "explain" })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "explain" }));
+
+    // session.send should not have been called
+    expect(client.session.send).not.toHaveBeenCalled();
+  });
+
+  it("chip prefill appends to existing textarea content with a separating space", async () => {
+    const client = makeFakeClient();
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "explain" })).toBeDefined();
+    });
+
+    // Type some content first
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox");
+    fireEvent.change(textarea, { target: { value: "photosynthesis" } });
+    expect(textarea.value).toBe("photosynthesis");
+
+    // Now click a chip — should append with space, not overwrite
+    fireEvent.click(screen.getByRole("button", { name: "go deeper" }));
+    expect(textarea.value).toBe("photosynthesis go deeper ");
+  });
 });

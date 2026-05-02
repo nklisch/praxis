@@ -6,6 +6,7 @@ import { AddDocumentButton } from "../components/add-document-button.js";
 import { AssignmentCard } from "../components/assignment-card.js";
 import { ClaudeAuthModal } from "../components/claude-auth-modal.js";
 import { Composer } from "../components/composer.js";
+import { ComposerVerbs } from "../components/composer-verbs.js";
 import { DocumentList } from "../components/document-list.js";
 import { MessageBubble } from "../components/message.js";
 import { ModeHeader } from "../components/mode-header.js";
@@ -53,7 +54,9 @@ export function ChatRoute() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [starting, setStarting] = useState(false);
   const [examLockdown, setExamLockdown] = useState(false);
+  const [composerValue, setComposerValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const composerTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // If the user navigated here with ?sessionId=xxx (e.g., from "New course" or
   // "Start session" buttons), pick up that already-started session instead of
@@ -233,6 +236,7 @@ export function ChatRoute() {
               key={msg.id}
               role={msg.role}
               content={msg.content}
+              rawContent={msg.rawContent}
               {...(msg.streaming !== undefined && { streaming: msg.streaming })}
               {...(msg.citations !== undefined && { citations: msg.citations })}
               {...(msg.drafts !== undefined && { drafts: msg.drafts })}
@@ -254,8 +258,21 @@ export function ChatRoute() {
 
         {lastError && <div className={styles.errorBanner}>Error: {lastError}</div>}
 
+        <ComposerVerbs
+          modeId={session?.modeId}
+          onPrefill={(seed) => {
+            setComposerValue((prev) => (prev ? `${prev} ${seed}` : seed));
+            composerTextareaRef.current?.focus();
+          }}
+        />
         <Composer
-          onSend={handleSend}
+          ref={composerTextareaRef}
+          value={composerValue}
+          onChange={setComposerValue}
+          onSend={async (msg) => {
+            setComposerValue("");
+            await handleSend(msg);
+          }}
           disabled={!session || isStreaming || starting || examLockdown || needsAuth}
         />
         {examLockdown && (

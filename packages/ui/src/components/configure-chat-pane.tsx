@@ -1,4 +1,5 @@
 import type { SessionId } from "@praxis/core/types";
+import { useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { Composer } from "./composer.js";
@@ -19,6 +20,7 @@ export interface ConfigureChatPaneProps {
 export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChatPaneProps) {
   const client = usePraxisClient();
   const { messages, isStreaming, lastError, send } = useStreamedSend(client);
+  const [composerValue, setComposerValue] = useState("");
 
   const handleSend = async (message: string) => {
     if (!sessionId) return;
@@ -45,6 +47,7 @@ export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChat
             key={msg.id}
             role={msg.role}
             content={msg.content}
+            rawContent={msg.rawContent}
             {...(msg.streaming !== undefined && { streaming: msg.streaming })}
             {...(msg.citations !== undefined && { citations: msg.citations })}
             {...(msg.drafts !== undefined && { drafts: msg.drafts })}
@@ -58,7 +61,15 @@ export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChat
         </div>
       )}
 
-      <Composer onSend={handleSend} disabled={!sessionId || isStreaming || disabled} />
+      <Composer
+        value={composerValue}
+        onChange={setComposerValue}
+        onSend={async (msg) => {
+          setComposerValue("");
+          await handleSend(msg);
+        }}
+        disabled={!sessionId || isStreaming || disabled}
+      />
     </div>
   );
 }

@@ -13,7 +13,19 @@ import type { ReviewCard } from "../components/flashcard-review.js";
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
+  /**
+   * Settled content — mirrors `rawContent` during streaming, stays as the
+   * final assembled string once streaming ends. Consumers that don't use the
+   * eased-stream hook can read this directly.
+   */
   content: string;
+  /**
+   * Raw content as it arrives off the wire, updated on every streaming delta.
+   * `<MessageBubble>` feeds this into `useEasedStream` while `streaming` is
+   * true to pace the visual release. For user messages, `rawContent === content`
+   * (user bubbles are never streamed).
+   */
+  rawContent: string;
   streaming?: boolean;
   /** Citations from retrieve_from_textbook tool calls in this message. */
   citations?: RetrievalCitation[];
@@ -49,13 +61,16 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
 
     // Immediately add user bubble to local state.
     const userMsgId = nextId();
-    setMessages((prev) => [...prev, { id: userMsgId, role: "user", content: message }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: userMsgId, role: "user", content: message, rawContent: message },
+    ]);
 
     // Add a placeholder assistant bubble for streaming.
     const assistantMsgId = nextId();
     setMessages((prev) => [
       ...prev,
-      { id: assistantMsgId, role: "assistant", content: "", streaming: true },
+      { id: assistantMsgId, role: "assistant", content: "", rawContent: "", streaming: true },
     ]);
 
     setIsStreaming(true);
@@ -82,7 +97,9 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           }
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMsgId ? { ...m, content: finalContent, streaming: true } : m,
+              m.id === assistantMsgId
+                ? { ...m, content: finalContent, rawContent: finalContent, streaming: true }
+                : m,
             ),
           );
         } else if (event.type === "tool_call") {

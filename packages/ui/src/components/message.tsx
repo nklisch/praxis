@@ -1,4 +1,5 @@
 import type { Note, ProposedCourse, Rating, RetrievalCitation } from "@praxis/core/types";
+import { useEasedStream } from "../hooks/use-eased-stream.js";
 import { CitationChip } from "./citation-chip.js";
 import { DraftCard } from "./draft-card.js";
 import type { ReviewCard } from "./flashcard-review.js";
@@ -12,6 +13,13 @@ export type MessageRole = "user" | "assistant";
 export interface MessageBubbleProps {
   role: MessageRole;
   content: string;
+  /**
+   * Raw content as it arrives off the wire. When `streaming` is true, the
+   * bubble passes this to `useEasedStream` for paced release. When streaming
+   * is false (settled), the bubble renders `content` directly. Defaults to
+   * `content` when omitted (backwards-compatible for non-streaming callers).
+   */
+  rawContent?: string;
   streaming?: boolean | undefined;
   citations?: RetrievalCitation[];
   /** Draft courses from course.show_draft tool results in this message. */
@@ -60,6 +68,7 @@ function renderContentWithCitations(
 export function MessageBubble({
   role,
   content,
+  rawContent,
   streaming = false,
   citations,
   drafts,
@@ -68,6 +77,14 @@ export function MessageBubble({
   onViewPage,
   onRateCard,
 }: MessageBubbleProps) {
+  // Use rawContent (falling back to content) as the source for eased release
+  // while the message is streaming. The hook returns raw immediately when
+  // disabled=true so settled messages incur no extra renders.
+  const easedContent = useEasedStream(rawContent ?? content, { disabled: !streaming });
+
+  // Show the eased version while streaming; once done, show the full content.
+  const displayContent = streaming ? easedContent : content;
+
   const handleCitationClick = (index: number) => {
     // Scroll to the source card with matching id
     const el = document.getElementById(`citation-${index}`);
@@ -77,7 +94,7 @@ export function MessageBubble({
   return (
     <div className={`${styles.bubble} ${styles[role] ?? ""} ${streaming ? styles.streaming : ""}`}>
       <span className={styles.label}>{role === "user" ? "You" : "Tutor"}</span>
-      {renderContentWithCitations(content, citations, handleCitationClick)}
+      {renderContentWithCitations(displayContent, citations, handleCitationClick)}
       {drafts && drafts.length > 0 && role === "assistant" && (
         <div className={styles.drafts}>
           {drafts.map((draft, i) => (
