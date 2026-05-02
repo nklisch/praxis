@@ -108,6 +108,32 @@ export const misconceptions = sqliteTable(
   }),
 );
 
+/** Phase 14: Tab strip persistence. One row per open/closed tab. */
+export const tabs = sqliteTable(
+  "tabs",
+  {
+    id: text("id").primaryKey(), // uuidv7
+    studentId: text("student_id").notNull(),
+    /** The session this tab is bound to. Cascade-delete if the session is deleted. */
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    /** Auto-generated display title, e.g. "algebra · teach" or "teach · new chat". */
+    title: text("title").notNull(),
+    /** Visual ordering — higher = further right in the strip. */
+    sortOrder: integer("sort_order").notNull(),
+    openedAt: integer("opened_at", { mode: "timestamp_ms" }).notNull(),
+    /** Updated each time the tab is focused. Used to restore the last-focused tab on reload. */
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp_ms" }).notNull(),
+    /** Set when the user closes the tab. Closed tabs vanish from the strip but stay in the archive. */
+    closedAt: integer("closed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => ({
+    studentOpenIdx: index("tabs_student_open_idx").on(t.studentId, t.closedAt, t.sortOrder),
+    sessionIdx: index("tabs_session_idx").on(t.sessionId),
+  }),
+);
+
 export const memorySchema = {
   sessions,
   episodicEvents,
@@ -115,4 +141,5 @@ export const memorySchema = {
   proceduralStrategies,
   affectiveSamples,
   misconceptions,
+  tabs,
 };

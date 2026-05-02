@@ -2,6 +2,7 @@ import type {
   AssignmentId,
   CourseId,
   EngineEvent,
+  SessionEndSummary,
   SessionHandle,
   SessionId,
   SessionService,
@@ -26,11 +27,15 @@ export class SessionClient implements SessionService {
     return this.transport.stream<EngineEvent>(`${CHANNEL}.send`, sessionId, message);
   }
 
-  end(sessionId: SessionId): Promise<SessionSummary> {
-    return this.transport.invoke<SessionSummary>(`${CHANNEL}.end`, sessionId);
+  end(sessionId: SessionId): Promise<SessionEndSummary> {
+    return this.transport.invoke<SessionEndSummary>(`${CHANNEL}.end`, sessionId);
   }
 
   active(): Promise<SessionHandle | null> {
     return this.transport.invoke<SessionHandle | null>(`${CHANNEL}.active`);
+  }
+
+  list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]> {
+    return this.transport.invoke<SessionSummary[]>(`${CHANNEL}.list`, opts ?? {});
   }
 }

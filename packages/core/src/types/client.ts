@@ -1,4 +1,5 @@
 import type { ClaudeAuthService } from "../services/claude-auth.js";
+import type { TabsService } from "./tabs.js";
 import type {
   Assignment,
   AssignmentResponse,
@@ -68,6 +69,8 @@ export interface PraxisClient {
   claudeAuth: ClaudeAuthService;
   /** Shell helpers — open URLs in the system browser. */
   shell: ShellClient;
+  /** Phase 14: tab strip — open, close, rename, list. */
+  tabs: TabsService;
 }
 
 /** Generic shell utility surface for the renderer. */
@@ -84,8 +87,16 @@ export interface SessionService {
     modeId: string;
   }): Promise<SessionHandle>;
   send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent>;
-  end(sessionId: SessionId): Promise<SessionSummary>;
+  end(sessionId: SessionId): Promise<SessionEndSummary>;
   active(): Promise<SessionHandle | null>;
+  /**
+   * Phase 14: List sessions for the student, ordered by startedAt descending.
+   * Used by the Library archive section and tab-restoration logic.
+   *
+   * @param opts.includeEnded - when true, includes sessions with endedAt set. Default true.
+   * @param opts.limit - default 100.
+   */
+  list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]>;
 }
 
 export interface SessionHandle {
@@ -117,12 +128,32 @@ export interface AssignmentsClient {
   submit(input: { assignmentId: AssignmentId }): Promise<AssignmentSubmissionResult>;
 }
 
-export interface SessionSummary {
+/**
+ * Returned by `session.end()` — contains gate unlock results and end metadata.
+ * Renamed from SessionSummary in Phase 14 to avoid collision with the list-view type.
+ */
+export interface SessionEndSummary {
   sessionId: SessionId;
   endedAt: Timestamp;
   unlockedGates: GateId[];
   newMisconceptions: number;
   reflection?: string;
+}
+
+/**
+ * Phase 14: Lightweight session summary for `session.list()` and the Library archive.
+ * Distinct from SessionEndSummary (the end-of-session result from `session.end()`).
+ */
+export interface SessionSummary {
+  readonly sessionId: SessionId;
+  readonly modeId: string;
+  readonly courseId?: CourseId;
+  readonly assignmentId?: AssignmentId;
+  readonly startedAt: Timestamp;
+  /** Null when the session is still open. */
+  readonly endedAt: Timestamp | null;
+  /** First user message, truncated to 60 chars + ellipsis if longer. Used as a deck line in Library. */
+  readonly firstUserMessage?: string;
 }
 
 /**

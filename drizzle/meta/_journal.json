@@ -43,6 +43,13 @@
       "when": 1777527034668,
       "tag": "0005_panoramic_scorpion",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1777759829737,
+      "tag": "0006_square_marvel_zombies",
+      "breakpoints": true
     }
   ]
 }

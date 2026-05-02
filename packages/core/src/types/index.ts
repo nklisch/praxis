@@ -26,6 +26,7 @@ export type {
   PacksClient,
   PraxisClient,
   ProgressSnapshot,
+  SessionEndSummary,
   SessionHandle,
   SessionService,
   SessionSummary,
@@ -48,5 +49,7 @@ export type * from "./mode.js";
 // Phase 12: NoteBody + helpers — `export *` (not `export type *`) so parseNoteBody + serializeNoteBody are exported as runtime values.
 export * from "./notes.js";
 export type * from "./pedagogy.js";
+// Phase 14: Tab strip types.
+export type { TabId, TabSummary, TabsService } from "./tabs.js";
 // tool.ts: MemoryService here is the server-side interface (with studentId params).
 export type * from "./tool.js";

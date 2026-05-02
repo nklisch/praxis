@@ -9,8 +9,10 @@ import type {
   LessonId,
   MisconceptionId,
   NoteId,
+  SessionId,
   StudentId,
   SuccessCriteria,
+  TabId,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { ipcMain } from "electron";
@@ -709,9 +711,7 @@ export function registerIpcHandlers(
               sessionId: input.context.sessionId,
             }),
             ...(input.context.conceptIds !== undefined && {
-              conceptIds: input.context.conceptIds.map((id) =>
-                brandId<"ConceptId">(id),
-              ),
+              conceptIds: input.context.conceptIds.map((id) => brandId<"ConceptId">(id)),
             }),
           },
         }),
@@ -825,10 +825,7 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.flashcards.list",
-    async (
-      _event,
-      input?: { conceptId?: string; due?: boolean; limit?: number },
-    ) => {
+    async (_event, input?: { conceptId?: string; due?: boolean; limit?: number }) => {
       const studentId = brandId<"StudentId">(services.getDefaultStudentId());
       return services.flashcards.list({
         studentId,
@@ -851,10 +848,7 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.flashcards.review",
-    async (
-      _event,
-      input: { flashcardId: string; rating: "again" | "hard" | "good" | "easy" },
-    ) => {
+    async (_event, input: { flashcardId: string; rating: "again" | "hard" | "good" | "easy" }) => {
       const studentId = brandId<"StudentId">(services.getDefaultStudentId());
       return services.flashcards.review({
         studentId,
@@ -906,6 +900,56 @@ export function registerIpcHandlers(
     activeAbortControllers.get(streamId)?.abort();
     activeAbortControllers.delete(streamId);
   });
+
+  // ── Phase 14: Tabs ───────────────────────────────────────────────────────────
+
+  handle("praxis.tabs.listOpen", async () => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.tabs.listOpen(studentId);
+  });
+
+  handle("praxis.tabs.list", async (_event, opts: { limit?: number; includeClosed?: boolean }) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.tabs.list(studentId, opts);
+  });
+
+  handle("praxis.tabs.get", async (_event, tabId: string) => {
+    return services.tabs.get(tabId as TabId);
+  });
+
+  handle("praxis.tabs.open", async (_event, opts: { sessionId: string; courseTitle?: string }) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.tabs.open({
+      studentId,
+      sessionId: opts.sessionId as SessionId,
+      ...(opts.courseTitle !== undefined && { courseTitle: opts.courseTitle }),
+    });
+  });
+
+  handle("praxis.tabs.reopen", async (_event, tabId: string) => {
+    return services.tabs.reopen(tabId as TabId);
+  });
+
+  handle("praxis.tabs.close", async (_event, tabId: string) => {
+    return services.tabs.close(tabId as TabId);
+  });
+
+  handle("praxis.tabs.touch", async (_event, tabId: string) => {
+    return services.tabs.touch(tabId as TabId);
+  });
+
+  handle("praxis.tabs.rename", async (_event, opts: { tabId: string; title: string }) => {
+    return services.tabs.rename(opts.tabId as TabId, opts.title);
+  });
+
+  // ── Phase 14: Session list (archive) ─────────────────────────────────────────
+
+  handle(
+    "praxis.session.list",
+    async (_event, opts?: { includeEnded?: boolean; limit?: number }) => {
+      return services.session.list(opts);
+    },
+  );
 
   // ── Shell helpers ─────────────────────────────────────────────────────────────
 

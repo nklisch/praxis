@@ -112,4 +112,80 @@ describe("createPraxisClient", () => {
       expect(invokedChannels[0]?.args[0]).toBe("https://example.com");
     });
   });
+
+  describe("tabs (Phase 14)", () => {
+    it("tabs.listOpen() routes to praxis.tabs.listOpen with no args", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: studentId ignored client-side
+      await client.tabs.listOpen("any-student" as any);
+      expect(invokedChannels[0]?.channel).toBe("praxis.tabs.listOpen");
+      expect(invokedChannels[0]?.args).toHaveLength(0);
+    });
+
+    it("tabs.list() routes to praxis.tabs.list with opts", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: studentId ignored client-side
+      await client.tabs.list("any-student" as any, { limit: 10, includeClosed: true });
+      expect(invokedChannels[0]?.channel).toBe("praxis.tabs.list");
+      expect(invokedChannels[0]?.args[0]).toEqual({ limit: 10, includeClosed: true });
+    });
+
+    it("tabs.open() routes to praxis.tabs.open with sessionId only (no studentId)", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.tabs.open({ studentId: "s" as any, sessionId: "sess-1" as any, courseTitle: "Math" });
+      expect(invokedChannels[0]?.channel).toBe("praxis.tabs.open");
+      const payload = invokedChannels[0]?.args[0] as Record<string, unknown>;
+      expect(payload.sessionId).toBe("sess-1");
+      expect(payload.courseTitle).toBe("Math");
+      expect(payload.studentId).toBeUndefined();
+    });
+
+    it("tabs.close() routes to praxis.tabs.close", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.tabs.close("tab-1" as any);
+      expect(invokedChannels[0]?.channel).toBe("praxis.tabs.close");
+      expect(invokedChannels[0]?.args[0]).toBe("tab-1");
+    });
+
+    it("tabs.touch() routes to praxis.tabs.touch", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.tabs.touch("tab-1" as any);
+      expect(invokedChannels[0]?.channel).toBe("praxis.tabs.touch");
+    });
+
+    it("tabs.rename() routes to praxis.tabs.rename with tabId and title", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.tabs.rename("tab-1" as any, "new name");
+      expect(invokedChannels[0]?.channel).toBe("praxis.tabs.rename");
+      expect(invokedChannels[0]?.args[0]).toEqual({ tabId: "tab-1", title: "new name" });
+    });
+  });
+
+  describe("session.list (Phase 14)", () => {
+    it("session.list() routes to praxis.session.list", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      await client.session.list();
+      expect(invokedChannels[0]?.channel).toBe("praxis.session.list");
+      expect(invokedChannels[0]?.args[0]).toEqual({});
+    });
+
+    it("session.list(opts) passes opts to channel", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      await client.session.list({ includeEnded: false, limit: 20 });
+      expect(invokedChannels[0]?.channel).toBe("praxis.session.list");
+      expect(invokedChannels[0]?.args[0]).toEqual({ includeEnded: false, limit: 20 });
+    });
+  });
 });

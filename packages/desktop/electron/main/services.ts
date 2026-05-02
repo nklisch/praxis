@@ -21,6 +21,7 @@ import {
   MemoryServiceImpl,
   MisconceptionIndexer,
   SessionServiceImpl,
+  TabsServiceImpl,
 } from "@praxis/core/services";
 import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
@@ -79,6 +80,8 @@ export interface Services {
   lock: LockServiceImpl;
   /** Claude CLI auth service — exposed for IPC handlers. */
   claudeAuth: ClaudeAuthServiceImpl;
+  /** Phase 14: tab strip persistence — exposed for IPC handlers. */
+  tabs: TabsServiceImpl;
   /** Phase 11: authoring service — exposed for IPC handlers. */
   authoring: AuthoringServiceImpl;
   /** Phase 12: notes management — exposed for IPC handlers. */
@@ -248,6 +251,9 @@ export function buildServices(dbPath: string): Services {
   // Claude CLI auth service — stateless, no DB dependency.
   const claudeAuthService = new ClaudeAuthServiceImpl({ log });
 
+  // Phase 14: Tabs service — persists tab strip state to SQLite.
+  const tabsService = new TabsServiceImpl({ db, log });
+
   // Phase 12: Notes + Flashcards services.
   // Notes service uses the bootstrap engine resolver for fromSessionSummary.
   const notesService = new NotesServiceImpl({
@@ -356,6 +362,7 @@ export function buildServices(dbPath: string): Services {
     packs: packImportService, // ← Phase 10
     lock: lockService, // ← Phase 11
     claudeAuth: claudeAuthService,
+    tabs: tabsService, // ← Phase 14
     authoring: authoringService, // ← Phase 11
     notes: notesService, // ← Phase 12
     flashcards: flashcardsService, // ← Phase 12

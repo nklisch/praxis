@@ -2,9 +2,9 @@ import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { composeAssignmentContextFragment } from "@praxis/curriculum/brief/assignment-context";
 import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
 import { createEngine } from "@praxis/engines";
-import { sessions } from "@praxis/memory/schema";
+import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { InProcessToolRegistry } from "@praxis/tools";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { readEngineConfig } from "../config/index.js";
 import { appendEpisodic, nextTurnIndex, recordUserMessage } from "../session/episodic.js";
@@ -18,6 +18,7 @@ import type {
   EngineSession,
   GateId,
   Mode,
+  SessionEndSummary,
   SessionHandle,
   SessionId,
   SessionService,
@@ -213,7 +214,7 @@ export class SessionServiceImpl implements SessionService {
     });
   }
 
-  async end(sessionId: SessionId): Promise<SessionSummary> {
+  async end(sessionId: SessionId): Promise<SessionEndSummary> {
     const entry = this.activeSessions.get(sessionId);
     if (entry) {
       await entry.handle.close().catch(() => {});
@@ -292,6 +293,63 @@ export class SessionServiceImpl implements SessionService {
           assignmentId: brandId<"AssignmentId">(row.assignmentId),
         }),
     };
+  }
+
+  async list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]> {
+    const studentId = getOrCreateDefaultStudentId(this.deps.db);
+    const limit = opts?.limit ?? 100;
+    const includeEnded = opts?.includeEnded ?? true;
+
+    const where = includeEnded
+      ? eq(sessions.studentId, studentId)
+      : and(eq(sessions.studentId, studentId), isNull(sessions.endedAt));
+
+    const rows = this.deps.db
+      .select()
+      .from(sessions)
+      .where(where)
+      .orderBy(desc(sessions.startedAt))
+      .limit(limit)
+      .all();
+
+    return rows.map((row) => {
+      // Fetch the first user_message episodic event for this session (N round trips,
+      // capped by limit — acceptable for v1; revisit if Library load gets slow).
+      const firstEvent = this.deps.db
+        .select({ eventJson: episodicEvents.eventJson })
+        .from(episodicEvents)
+        .where(eq(episodicEvents.sessionId, row.id))
+        .orderBy(asc(episodicEvents.ts))
+        .limit(10) // fetch a few candidates and filter in JS for user_message events
+        .all();
+
+      let firstUserMessage: string | undefined;
+      for (const evt of firstEvent) {
+        // biome-ignore lint/suspicious/noExplicitAny: eventJson is EngineEvent stored as JSON
+        const event = evt.eventJson as any;
+        if (event?.type === "user_message" && typeof event.content === "string") {
+          const content: string = event.content;
+          firstUserMessage = content.length > 60 ? `${content.slice(0, 60)}…` : content;
+          break;
+        }
+      }
+
+      return {
+        sessionId: brandId<"SessionId">(row.id),
+        modeId: row.modeId,
+        startedAt: row.startedAt.getTime() as Timestamp,
+        endedAt: row.endedAt ? (row.endedAt.getTime() as Timestamp) : null,
+        ...(row.courseId !== null &&
+          row.courseId !== undefined && {
+            courseId: brandId<"CourseId">(row.courseId),
+          }),
+        ...(row.assignmentId !== null &&
+          row.assignmentId !== undefined && {
+            assignmentId: brandId<"AssignmentId">(row.assignmentId),
+          }),
+        ...(firstUserMessage !== undefined && { firstUserMessage }),
+      };
+    });
   }
 
   /** Tear down all active engine sessions. Called on host shutdown. */
