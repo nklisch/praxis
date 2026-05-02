@@ -3,16 +3,16 @@ import { brandId } from "@praxis/core/types";
 import { Background, Controls, type Node, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "dagre";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { ConceptFlowNode, ConceptNodeData } from "../../components/concept-node.js";
 import { ConceptNode } from "../../components/concept-node.js";
 import { ConfigureChatPane } from "../../components/configure-chat-pane.js";
 import type { GateEdgeLabelData } from "../../components/gate-edge-label.js";
 import { GateEdgeLabel } from "../../components/gate-edge-label.js";
 import { GateInspector } from "../../components/gate-inspector.js";
-import { usePraxisClient } from "../../context/client-context.js";
 import { useConfigureState } from "../../hooks/use-configure-state.js";
 import { useCourses } from "../../hooks/use-courses.js";
+import { useGates } from "../../hooks/use-gates.js";
 import styles from "./gates-tab.module.css";
 
 const NODE_WIDTH = 160;
@@ -34,40 +34,22 @@ interface GatesTabProps {
  * Inspector: edit mastery threshold, override, delete.
  */
 export function GatesTab({ sessionId }: GatesTabProps) {
-  const client = usePraxisClient();
   const { selectedCourseId, setSelectedCourseId } = useConfigureState();
   const { courses, loading: coursesLoading } = useCourses();
 
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [gateViews, setGateViews] = useState<GateView[]>([]);
-  const [gates, setGates] = useState<Gate[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: gatesData,
+    loading,
+    error,
+    refresh: loadData,
+    setData: setGatesData,
+  } = useGates(selectedCourseId ?? undefined);
+
+  const lessons: Lesson[] = gatesData?.lessons ?? [];
+  const gateViews: GateView[] = gatesData?.gateViews ?? [];
+  const gates: Gate[] = gatesData?.gates ?? [];
+
   const [selectedGate, setSelectedGate] = useState<Gate | null>(null);
-
-  const loadData = useCallback(async () => {
-    if (!selectedCourseId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [lessonsData, gateViewsData, gatesData] = await Promise.all([
-        client.artifacts.lessons(selectedCourseId),
-        client.artifacts.gateView(selectedCourseId),
-        client.artifacts.gates(selectedCourseId),
-      ]);
-      setLessons(lessonsData);
-      setGateViews(gateViewsData);
-      setGates(gatesData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, selectedCourseId]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   const { nodes, edges } = useMemo(() => {
     if (lessons.length === 0) return { nodes: [], edges: [] };
@@ -90,14 +72,20 @@ export function GatesTab({ sessionId }: GatesTabProps) {
   );
 
   const handleGateSaved = (updated: Gate) => {
-    setGates((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
+    setGatesData((prev) => {
+      const base = prev ?? { lessons: [], gateViews: [], gates: [] };
+      return { ...base, gates: base.gates.map((g) => (g.id === updated.id ? updated : g)) };
+    });
     setSelectedGate(updated);
     // Refresh gate views for the progress display
     loadData();
   };
 
   const handleGateDeleted = (gateId: GateId) => {
-    setGates((prev) => prev.filter((g) => g.id !== gateId));
+    setGatesData((prev) => {
+      const base = prev ?? { lessons: [], gateViews: [], gates: [] };
+      return { ...base, gates: base.gates.filter((g) => g.id !== gateId) };
+    });
     setSelectedGate(null);
     loadData();
   };

@@ -1,6 +1,7 @@
 import type { Assignment, AssignmentId, AssignmentSubmissionResult } from "@praxis/core/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useResource } from "./use-resource.js";
 
 /**
  * Hook that manages assignment state: loading the assignment, tracking
@@ -23,51 +24,45 @@ export interface UseAssignmentResult {
   refresh: () => Promise<void>;
 }
 
+interface AssignmentData {
+  assignment: Assignment | null;
+  responses: Map<string, string>;
+  work: Map<string, string>;
+}
+
 export function useAssignment(assignmentId: AssignmentId | undefined): UseAssignmentResult {
   const client = usePraxisClient();
-  const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [responses, setResponses] = useState<Map<string, string>>(new Map());
-  const [work, setWork] = useState<Map<string, string>>(new Map());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Debounce timers: Map<itemId, ReturnType<typeof setTimeout>>
   const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  const refresh = useCallback(async () => {
-    if (!assignmentId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [a, savedResponses] = await Promise.all([
-        client.assignments.get({ assignmentId }),
-        client.assignments.getResponses({ assignmentId }),
-      ]);
-      setAssignment(a);
-
-      const newResponses = new Map<string, string>();
-      const newWork = new Map<string, string>();
-      for (const r of savedResponses) {
-        newResponses.set(r.itemId, r.response);
-        if (r.work !== undefined) {
-          newWork.set(r.itemId, r.work);
-        }
-      }
-      setResponses(newResponses);
-      setWork(newWork);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
+  const loader = useCallback(async (): Promise<AssignmentData> => {
+    if (!assignmentId) {
+      return { assignment: null, responses: new Map(), work: new Map() };
     }
+    const [a, savedResponses] = await Promise.all([
+      client.assignments.get({ assignmentId }),
+      client.assignments.getResponses({ assignmentId }),
+    ]);
+
+    const responses = new Map<string, string>();
+    const work = new Map<string, string>();
+    for (const r of savedResponses) {
+      responses.set(r.itemId, r.response);
+      if (r.work !== undefined) {
+        work.set(r.itemId, r.work);
+      }
+    }
+    return { assignment: a, responses, work };
   }, [client, assignmentId]);
 
-  // Load on mount / when assignmentId changes
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data, loading, error, refresh, setData } = useResource(loader);
+
+  const assignment = data?.assignment ?? null;
+  const responses = data?.responses ?? new Map<string, string>();
+  const work = data?.work ?? new Map<string, string>();
 
   // Cleanup debounce timers on unmount
   useEffect(() => {
@@ -81,18 +76,16 @@ export function useAssignment(assignmentId: AssignmentId | undefined): UseAssign
   const recordResponse = useCallback(
     (itemId: string, response: string, workText?: string) => {
       // Optimistic local update
-      setResponses((prev) => {
-        const next = new Map(prev);
-        next.set(itemId, response);
-        return next;
+      setData((prev) => {
+        const prevData = prev ?? { assignment: null, responses: new Map(), work: new Map() };
+        const newResponses = new Map(prevData.responses);
+        newResponses.set(itemId, response);
+        const newWork = workText !== undefined ? new Map(prevData.work) : prevData.work;
+        if (workText !== undefined) {
+          newWork.set(itemId, workText);
+        }
+        return { ...prevData, responses: newResponses, work: newWork };
       });
-      if (workText !== undefined) {
-        setWork((prev) => {
-          const next = new Map(prev);
-          next.set(itemId, workText);
-          return next;
-        });
-      }
 
       // Debounce the remote save (1s)
       const existing = debounceTimers.current.get(itemId);
@@ -115,7 +108,7 @@ export function useAssignment(assignmentId: AssignmentId | undefined): UseAssign
 
       debounceTimers.current.set(itemId, timer);
     },
-    [client, assignmentId],
+    [client, assignmentId, setData],
   );
 
   const submit = useCallback(async (): Promise<AssignmentSubmissionResult | null> => {

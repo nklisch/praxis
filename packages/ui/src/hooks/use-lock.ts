@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useResource } from "./use-resource.js";
 
 export interface UseLockResult {
   isSet: boolean;
@@ -23,29 +24,29 @@ export interface UseLockResult {
  */
 export function useLock(): UseLockResult {
   const client = usePraxisClient();
-  const [isSet, setIsSet] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!client.lock) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [set, unlocked] = await Promise.all([client.lock.isSet(), client.lock.isUnlocked()]);
-      setIsSet(set);
-      setIsUnlocked(unlocked);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
+  const loader = useCallback(async () => {
+    if (!client.lock) return { isSet: false, isUnlocked: true };
+    const [isSet, isUnlocked] = await Promise.all([
+      client.lock.isSet(),
+      client.lock.isUnlocked(),
+    ]);
+    return { isSet, isUnlocked };
   }, [client]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const {
+    data,
+    loading: resourceLoading,
+    error,
+    refresh,
+    setData,
+  } = useResource(loader);
+
+  // Treat data === undefined as still loading — preserves the original behavior where
+  // loading starts true and guards downstream effects (e.g., configure session start)
+  // from firing before the lock check completes.
+  const loading = resourceLoading || data === undefined;
+  const { isSet = false, isUnlocked = true } = data ?? {};
 
   const setLockCode = useCallback(
     async (code: string) => {
@@ -60,25 +61,27 @@ export function useLock(): UseLockResult {
     async (code: string): Promise<{ ok: boolean }> => {
       if (!client.lock) return { ok: false };
       const result = await client.lock.unlock(code);
-      if (result.ok) await refresh();
+      if (result.ok) {
+        setData((prev) => ({ ...(prev ?? { isSet: true, isUnlocked: false }), isUnlocked: true }));
+      }
       return result;
     },
-    [client, refresh],
+    [client, setData],
   );
 
   const lock = useCallback(async () => {
     if (!client.lock) return;
     await client.lock.lock();
-    await refresh();
-  }, [client, refresh]);
+    setData((prev) => ({ ...(prev ?? { isSet: false, isUnlocked: true }), isUnlocked: false }));
+  }, [client, setData]);
 
   const clearLock = useCallback(
     async (currentCode: string) => {
       if (!client.lock) return;
       await client.lock.clearLock(currentCode);
-      await refresh();
+      setData({ isSet: false, isUnlocked: true });
     },
-    [client, refresh],
+    [client, setData],
   );
 
   return { isSet, isUnlocked, loading, error, setLockCode, unlock, lock, clearLock, refresh };
