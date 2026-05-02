@@ -4,14 +4,19 @@ import type { ClientTransport } from "../transport/types.js";
 const C = {
   pickFile: "praxis.ingest.pickFile",
   isAvailable: "praxis.ingest.isAvailable",
-  start: "praxis.ingest.start",
+  /**
+   * Stream BASE channel — the transport's stream() expands this into the
+   * three concrete channels below. Do NOT use this with invoke() directly;
+   * the actual server-side invoke handler is `${streamBase}.start`.
+   */
+  streamBase: "praxis.ingest",
   candidatesFor: "praxis.ingest.candidatesFor",
 } as const;
 
 /**
  * IngestionClient — typed client for the ingestion IPC channel.
  *
- * `start` uses the transport's stream() method which maps to:
+ * `start` uses the transport's stream() method which maps `streamBase` into:
  *   invoke:  praxis.ingest.start
  *   events:  praxis.ingest.events.<streamId>
  *   cancel:  praxis.ingest.cancel
@@ -30,7 +35,7 @@ export class IngestClient implements IngestionClient {
   }
 
   start(req: IngestionRequest): AsyncIterable<IngestionEvent> {
-    return this.transport.stream<IngestionEvent>(C.start, req);
+    return this.transport.stream<IngestionEvent>(C.streamBase, req);
   }
 
   candidatesFor(payload: {
