@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useDueCards } from "../hooks/use-due-cards.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -23,17 +24,7 @@ function makeCard(id = "card-1"): Flashcard {
 }
 
 function makeClient(count: number, cards: Flashcard[]): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
+  return makeFakeClient({
     flashcards: {
       dueCount: vi.fn().mockResolvedValue(count),
       list: vi.fn().mockResolvedValue(cards),
@@ -42,10 +33,7 @@ function makeClient(count: number, cards: Flashcard[]): PraxisClient {
         nextReviewAt: Date.now() + 86_400_000,
       }),
     } as unknown as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function wrapper(client: PraxisClient) {

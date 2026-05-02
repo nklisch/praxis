@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { WorkspaceRoute } from "../routes/workspace.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // TanStack Router mocks
 vi.mock("@tanstack/react-router", () => ({
@@ -15,16 +16,7 @@ vi.mock("@tanstack/react-router", () => ({
 afterEach(() => cleanup());
 
 function makeClient(notes: Note[] = [], cards: Flashcard[] = []): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
+  return makeFakeClient({
     notes: {
       list: vi.fn().mockResolvedValue(notes),
       create: vi.fn().mockResolvedValue(notes[0]),
@@ -36,7 +28,7 @@ function makeClient(notes: Note[] = [], cards: Flashcard[] = []): PraxisClient {
       dueCount: vi.fn().mockResolvedValue(0),
       list: vi.fn().mockResolvedValue(cards),
     } as unknown as PraxisClient["flashcards"],
-  };
+  });
 }
 
 describe("WorkspaceRoute", () => {

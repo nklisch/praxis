@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { CoursesRoute } from "../routes/courses.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // TanStack Router hooks used in CoursesRoute — mock at module level.
 vi.mock("@tanstack/react-router", () => ({
@@ -50,7 +51,7 @@ function makeClient(
     ...sessionOverride,
   };
 
-  return {
+  return makeFakeClient({
     session,
     artifacts: {
       courses: vi.fn().mockResolvedValue(coursesResult),
@@ -69,20 +70,7 @@ function makeClient(
       // Phase 10
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function renderRoute(client: PraxisClient) {

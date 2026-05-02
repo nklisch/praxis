@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useCourses } from "../hooks/use-courses.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 function makeSummary(overrides: Partial<CourseSummary> = {}): CourseSummary {
   return {
@@ -21,8 +22,7 @@ function makeSummary(overrides: Partial<CourseSummary> = {}): CourseSummary {
 }
 
 function makeClient(courses: CourseSummary[] = []): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
+  return makeFakeClient({
     artifacts: {
       courses: vi.fn().mockResolvedValue(courses),
       course: vi.fn(),
@@ -40,17 +40,7 @@ function makeClient(courses: CourseSummary[] = []): PraxisClient {
       // Phase 10
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-  };
+  });
 }
 
 function wrapper(client: PraxisClient) {

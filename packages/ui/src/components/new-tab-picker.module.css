@@ -38,9 +38,8 @@
 }
 
 .title {
+  composes: editorial from global;
   margin: 0 0 0.5rem;
-  font-family: var(--font-display);
-  font-style: italic;
   font-size: 1.35rem;
   font-weight: 400;
 }
@@ -93,8 +92,7 @@
 }
 
 .radioText {
-  font-family: var(--font-display);
-  font-style: italic;
+  composes: editorial from global;
 }
 
 .field {

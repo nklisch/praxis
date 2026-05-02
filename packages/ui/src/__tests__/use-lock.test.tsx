@@ -1,8 +1,9 @@
-import type { LockClient, PraxisClient, Timestamp } from "@praxis/core/types";
+import type { LockClient, PraxisClient } from "@praxis/core/types";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useLock } from "../hooks/use-lock.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 function makeLockClient(overrides?: Partial<LockClient>): LockClient {
   return {
@@ -17,20 +18,7 @@ function makeLockClient(overrides?: Partial<LockClient>): LockClient {
 }
 
 function makeClient(lockClient?: LockClient): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    lock: lockClient ?? makeLockClient(),
-  };
+  return makeFakeClient({ lock: lockClient ?? makeLockClient() });
 }
 
 function wrapper(client: PraxisClient) {

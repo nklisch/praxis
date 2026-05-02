@@ -9,10 +9,11 @@
  * - Propagates session.start errors
  * - Propagates tabs.open errors
  */
-import type { PraxisClient, TabId, TabSummary, Timestamp } from "@praxis/core/types";
+import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ function makeClient(tabResult: TabSummary = makeTab()): {
 
   const openFn = vi.fn().mockResolvedValue(tabResult);
 
-  const client = {
+  const client = makeFakeClient({
     session: { start: startFn, end: vi.fn(), send: vi.fn(), active: vi.fn(), list: vi.fn() },
     tabs: {
       open: openFn,
@@ -55,19 +56,7 @@ function makeClient(tabResult: TabSummary = makeTab()): {
       touch: vi.fn(),
       rename: vi.fn(),
     },
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-  } as unknown as PraxisClient;
+  });
 
   return { client, startFn, openFn };
 }
@@ -157,7 +146,7 @@ describe("openSessionInTab", () => {
       startOpts: { modeId: "bootstrap" },
     });
 
-    const arg = openFn.mock.calls[0]![0];
+    const arg = openFn.mock.calls[0]?.[0];
     expect("courseTitle" in arg).toBe(false);
   });
 

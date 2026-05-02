@@ -10,6 +10,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { ConfigureRoute } from "../routes/configure.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", async (importOriginal) => {
@@ -62,7 +63,7 @@ function makeClient(
     ...sessionOverrides,
   };
 
-  return {
+  return makeFakeClient({
     session,
     artifacts: {
       courses: vi.fn().mockResolvedValue([]),
@@ -114,18 +115,8 @@ function makeClient(
       export: vi.fn(),
       delete: vi.fn(),
     } as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
     lock: lockClient,
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function renderRoute(client: PraxisClient) {

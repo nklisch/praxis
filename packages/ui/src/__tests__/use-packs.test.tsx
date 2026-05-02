@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { usePacks } from "../hooks/use-packs.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -35,29 +36,7 @@ function makeClient(
   listResult: PackSummaryClient[] | "reject" = [],
   importResult: ImportedPackClient | "reject" = makeImportedPack(),
 ): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {
-      courses: vi.fn(),
-      course: vi.fn(),
-      lessons: vi.fn(),
-      gates: vi.fn(),
-      progress: vi.fn(),
-      flashcards: vi.fn(),
-      notes: vi.fn(),
-      conceptMaps: vi.fn(),
-      gateView: vi.fn().mockResolvedValue([]),
-      evaluateGates: vi.fn().mockResolvedValue({ unlockedGateIds: [] }),
-      markGatesViewed: vi.fn().mockResolvedValue(undefined),
-      newlyUnlockedCount: vi.fn().mockResolvedValue(0),
-      concepts: vi.fn().mockResolvedValue([]),
-    } as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
+  return makeFakeClient({
     packs: {
       listAvailable:
         listResult === "reject"
@@ -69,9 +48,7 @@ function makeClient(
           ? vi.fn().mockRejectedValue(new Error("import failed"))
           : vi.fn().mockResolvedValue(importResult),
     } as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-  };
+  });
 }
 
 function wrapper(client: PraxisClient) {
@@ -152,8 +129,8 @@ describe("usePacks", () => {
       expect(result.current.importing).toBe("algebra-1");
     });
 
-    // biome-ignore lint/style/noNonNullAssertion: assigned in act
     await act(async () => {
+      // biome-ignore lint/style/noNonNullAssertion: assigned in the preceding act block
       await importPromise!;
     });
 

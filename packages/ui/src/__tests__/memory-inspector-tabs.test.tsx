@@ -3,7 +3,6 @@ import type {
   ConceptMastery,
   ConfiguratorActionRow,
   Misconception,
-  MisconceptionId,
   PraxisClient,
   StudentModel,
   Timestamp,
@@ -13,6 +12,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryInspectorTabs } from "../components/memory-inspector-tabs.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -55,9 +55,7 @@ function makeClient(overrides?: {
   misconceptions?: Misconception[];
   auditActions?: ConfiguratorActionRow[];
 }): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
+  return makeFakeClient({
     author: {
       resetConcept: vi.fn().mockResolvedValue(undefined),
       clearMisconception: vi.fn().mockResolvedValue(undefined),
@@ -89,17 +87,7 @@ function makeClient(overrides?: {
       export: vi.fn(),
       delete: vi.fn(),
     } as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function renderTabs(client: PraxisClient) {

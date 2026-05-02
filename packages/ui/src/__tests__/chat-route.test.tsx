@@ -15,12 +15,13 @@
  * - Closing the active tab shifts focus to the next most-recent tab
  * - Per-tab body mounts for each open tab (display:none for inactive)
  */
-import type { PraxisClient, TabId, TabSummary, Timestamp } from "@praxis/core/types";
+import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { ChatRoute } from "../routes/chat.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -54,7 +55,7 @@ function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
 
 // ── Fake client builder ────────────────────────────────────────────────────────
 
-function makeFakeClient(
+function makeTestClient(
   tabsOverrides?: Partial<PraxisClient["tabs"]>,
   tabList: TabSummary[] = [],
 ): PraxisClient {
@@ -73,7 +74,7 @@ function makeFakeClient(
     ...tabsOverrides,
   };
 
-  return {
+  return makeFakeClient({
     session: {
       active: vi.fn().mockResolvedValue(null),
       start: vi.fn().mockResolvedValue({
@@ -106,21 +107,11 @@ function makeFakeClient(
       newlyUnlockedCount: vi.fn().mockResolvedValue(0),
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
     documents: {
       list: vi.fn().mockResolvedValue([]),
       delete: vi.fn().mockResolvedValue(undefined),
     } as unknown as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-  };
+  });
 }
 
 function renderWithClient(client: PraxisClient) {
@@ -135,7 +126,7 @@ function renderWithClient(client: PraxisClient) {
 
 describe("ChatRoute shell", () => {
   it("calls tabs.listOpen on mount", async () => {
-    const client = makeFakeClient();
+    const client = makeTestClient();
     renderWithClient(client);
 
     await waitFor(() => {
@@ -144,19 +135,17 @@ describe("ChatRoute shell", () => {
   });
 
   it("renders EmptyTabsState when no tabs are open", async () => {
-    const client = makeFakeClient({}, []);
+    const client = makeTestClient({}, []);
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/No tabs open/i),
-      ).toBeDefined();
+      expect(screen.getByText(/No tabs open/i)).toBeDefined();
     });
   });
 
   it("renders TabStrip when tabs are open", async () => {
     const tab = makeTab({ title: "algebra · teach" });
-    const client = makeFakeClient({}, [tab]);
+    const client = makeTestClient({}, [tab]);
     renderWithClient(client);
 
     await waitFor(() => {
@@ -165,7 +154,7 @@ describe("ChatRoute shell", () => {
   });
 
   it("clicking 'Open a session' in EmptyTabsState shows NewTabPicker", async () => {
-    const client = makeFakeClient({}, []);
+    const client = makeTestClient({}, []);
     renderWithClient(client);
 
     await waitFor(() => {
@@ -182,7 +171,7 @@ describe("ChatRoute shell", () => {
 
   it("clicking '+' in the TabStrip shows NewTabPicker", async () => {
     const tab = makeTab();
-    const client = makeFakeClient({}, [tab]);
+    const client = makeTestClient({}, [tab]);
     renderWithClient(client);
 
     await waitFor(() => {
@@ -205,7 +194,7 @@ describe("ChatRoute shell", () => {
       sortOrder: 1,
       lastSeenAt: (Date.now() - 1_000) as Timestamp,
     });
-    const client = makeFakeClient({}, [tab1, tab2]);
+    const client = makeTestClient({}, [tab1, tab2]);
     renderWithClient(client);
 
     await waitFor(() => {
@@ -216,7 +205,7 @@ describe("ChatRoute shell", () => {
 
   it("clicking the close button on a tab calls tabs.close", async () => {
     const tab = makeTab({ title: "algebra · teach" });
-    const client = makeFakeClient({}, [tab]);
+    const client = makeTestClient({}, [tab]);
     renderWithClient(client);
 
     await waitFor(() => {
@@ -243,7 +232,7 @@ describe("ChatRoute shell", () => {
       sortOrder: 1,
       lastSeenAt: (Date.now() - 1_000) as Timestamp,
     });
-    const client = makeFakeClient({}, [tab1, tab2]);
+    const client = makeTestClient({}, [tab1, tab2]);
     renderWithClient(client);
 
     await waitFor(() => {
@@ -261,7 +250,7 @@ describe("ChatRoute shell", () => {
 
   it("renders the TabStrip with a '+' new-tab button", async () => {
     const tab = makeTab();
-    const client = makeFakeClient({}, [tab]);
+    const client = makeTestClient({}, [tab]);
     renderWithClient(client);
 
     await waitFor(() => {
@@ -270,7 +259,7 @@ describe("ChatRoute shell", () => {
   });
 
   it("closing the NewTabPicker hides it", async () => {
-    const client = makeFakeClient({}, []);
+    const client = makeTestClient({}, []);
     renderWithClient(client);
 
     await waitFor(() => {

@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useNotes } from "../hooks/use-notes.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -29,16 +30,7 @@ function makeClient(notes: Note[] | "error"): PraxisClient {
   const createFn = vi.fn().mockResolvedValue(makeNote());
   const deleteFn = vi.fn().mockResolvedValue(undefined);
 
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
+  return makeFakeClient({
     notes: {
       list: listFn,
       create: createFn,
@@ -49,7 +41,7 @@ function makeClient(notes: Note[] | "error"): PraxisClient {
     flashcards: {
       dueCount: vi.fn().mockResolvedValue(0),
     } as unknown as PraxisClient["flashcards"],
-  };
+  });
 }
 
 function wrapper(client: PraxisClient) {

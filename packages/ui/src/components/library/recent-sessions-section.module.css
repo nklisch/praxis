@@ -29,8 +29,7 @@
 
 .status,
 .empty {
-  font-family: var(--font-display);
-  font-style: italic;
+  composes: editorial from global;
   font-size: 0.9rem;
   color: var(--color-text-muted);
   margin: 0;
@@ -85,8 +84,7 @@
 }
 
 .itemTitle {
-  font-family: var(--font-display);
-  font-style: italic;
+  composes: editorial from global;
   font-size: 1rem;
   color: var(--color-text);
   line-height: 1.2;
@@ -108,8 +106,7 @@
 }
 
 .itemDeck {
-  font-family: var(--font-display);
-  font-style: italic;
+  composes: editorial from global;
   font-size: 0.82rem;
   color: var(--color-text-muted);
   line-height: 1.35;

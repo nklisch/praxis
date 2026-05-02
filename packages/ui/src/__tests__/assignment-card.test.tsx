@@ -23,6 +23,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AssignmentCard } from "../components/assignment-card.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => {
   cleanup();
@@ -93,14 +94,7 @@ function makeClient(opts: {
     submittedAt: Date.now() as Timestamp,
   };
 
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
+  return makeFakeClient({
     assignments: {
       get: vi.fn().mockResolvedValue(assignment),
       list: vi.fn().mockResolvedValue([]),
@@ -108,14 +102,7 @@ function makeClient(opts: {
       getResponses: vi.fn().mockResolvedValue(responses),
       submit: vi.fn().mockResolvedValue(submissionResult),
     },
-    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function renderCard(

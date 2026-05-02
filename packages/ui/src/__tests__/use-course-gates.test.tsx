@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useCourseGates } from "../hooks/use-course-gates.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 const COURSE_ID = brandId<"CourseId">("course-test");
 
@@ -42,8 +43,7 @@ const emptyStudentModel: StudentModel = {
 };
 
 function makeClient(gateViewResult: GateView[] | "reject" = []): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
+  return makeFakeClient({
     artifacts: {
       courses: vi.fn(),
       course: vi.fn(),
@@ -63,7 +63,6 @@ function makeClient(gateViewResult: GateView[] | "reject" = []): PraxisClient {
       // Phase 10
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
     memory: {
       studentModel: vi.fn().mockResolvedValue(emptyStudentModel),
       misconceptions: vi.fn(),
@@ -73,14 +72,7 @@ function makeClient(gateViewResult: GateView[] | "reject" = []): PraxisClient {
       export: vi.fn(),
       delete: vi.fn(),
     } as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-  };
+  });
 }
 
 function wrapper(client: PraxisClient) {

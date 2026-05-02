@@ -3,9 +3,10 @@ import { brandId } from "@praxis/core/types";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 function makeClient(events: EngineEvent[]): PraxisClient {
-  return {
+  return makeFakeClient({
     session: {
       active: vi.fn().mockResolvedValue(null),
       start: vi.fn().mockResolvedValue({ sessionId: "s1", modeId: "teach", startedAt: Date.now() }),
@@ -19,18 +20,7 @@ function makeClient(events: EngineEvent[]): PraxisClient {
         for (const e of events) yield e;
       }) as unknown as PraxisClient["session"]["send"],
     },
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-  };
+  });
 }
 
 describe("useStreamedSend", () => {

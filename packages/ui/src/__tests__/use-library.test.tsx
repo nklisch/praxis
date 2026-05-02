@@ -21,6 +21,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useLibrary } from "../hooks/use-library.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ function makeClient(overrides?: {
   const documents = overrides?.documents;
   const sessions = overrides?.sessions;
 
-  return {
+  return makeFakeClient({
     artifacts: {
       courses:
         courses === "error"
@@ -134,17 +135,7 @@ function makeClient(overrides?: {
       send: vi.fn(),
       active: vi.fn().mockResolvedValue(null),
     },
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    assignments: {} as PraxisClient["assignments"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function wrapper(client: PraxisClient) {
@@ -189,10 +180,10 @@ describe("useLibrary", () => {
     });
 
     expect(result.current.data).toBeDefined();
-    expect(result.current.data!.courses).toHaveLength(1);
-    expect(result.current.data!.packs).toHaveLength(1);
-    expect(result.current.data!.documents).toHaveLength(1);
-    expect(result.current.data!.recentSessions).toHaveLength(1);
+    expect(result.current.data?.courses).toHaveLength(1);
+    expect(result.current.data?.packs).toHaveLength(1);
+    expect(result.current.data?.documents).toHaveLength(1);
+    expect(result.current.data?.recentSessions).toHaveLength(1);
     expect(result.current.error).toBeNull();
   });
 
@@ -237,9 +228,9 @@ describe("useLibrary", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.data!.courses).toHaveLength(0);
-    expect(result.current.data!.packs).toHaveLength(0);
-    expect(result.current.data!.documents).toHaveLength(0);
-    expect(result.current.data!.recentSessions).toHaveLength(0);
+    expect(result.current.data?.courses).toHaveLength(0);
+    expect(result.current.data?.packs).toHaveLength(0);
+    expect(result.current.data?.documents).toHaveLength(0);
+    expect(result.current.data?.recentSessions).toHaveLength(0);
   });
 });

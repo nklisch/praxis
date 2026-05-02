@@ -10,12 +10,13 @@
  * - renameTab is optimistic; reverts on server error
  * - reopenTab adds the tab to openTabs and focuses it
  */
-import type { PraxisClient, TabId, TabSummary, Timestamp } from "@praxis/core/types";
+import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useTabs } from "../hooks/use-tabs.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────
 
@@ -39,8 +40,7 @@ function makeClient(
 ): PraxisClient {
   const newTab = tabList[0] ?? makeTab({ id: brandId<"TabId">("new-tab") });
 
-  return {
-    session: {} as PraxisClient["session"],
+  return makeFakeClient({
     tabs: {
       // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
       listOpen: vi.fn().mockResolvedValue(tabList) as any,
@@ -55,19 +55,7 @@ function makeClient(
       rename: vi.fn().mockResolvedValue(newTab),
       ...tabsOverrides,
     },
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-  };
+  });
 }
 
 function wrapper(client: PraxisClient) {

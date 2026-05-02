@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReviewCard } from "../components/flashcard-review.js";
 import { FlashcardReview, WorkspaceFlashcardReview } from "../components/flashcard-review.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -33,17 +34,7 @@ function makeReviewCard(id = "card-1"): ReviewCard {
 }
 
 function makeClient(back: string): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
+  return makeFakeClient({
     flashcards: {
       dueCount: vi.fn().mockResolvedValue(0),
       get: vi.fn().mockResolvedValue({ ...makeFullCard(), back }),
@@ -51,7 +42,7 @@ function makeClient(back: string): PraxisClient {
         .fn()
         .mockResolvedValue({ flashcard: makeFullCard(), nextReviewAt: Date.now() + 86_400_000 }),
     } as unknown as PraxisClient["flashcards"],
-  };
+  });
 }
 
 function wrap(client: PraxisClient, children: React.ReactNode) {

@@ -1,27 +1,17 @@
-import type {
-  ArtifactsClientSurface,
-  AuthoringClient,
-  EngineConfigSnapshot,
-  MemoryClientService,
-  PraxisClient,
-  SessionService,
-} from "@praxis/core/types";
+import type { EngineConfigSnapshot, PraxisClient } from "@praxis/core/types";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { SettingsRoute } from "../routes/settings.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
-function makeFakeClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisClient {
+function makeSettingsClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisClient {
   const defaultConfig: EngineConfigSnapshot = {
     engineId: "direct.anthropic",
     ...configOverride,
   };
 
-  return {
-    session: {} as SessionService,
-    artifacts: {} as ArtifactsClientSurface,
-    author: {} as AuthoringClient,
-    memory: {} as MemoryClientService,
+  return makeFakeClient({
     config: {
       isLocked: vi.fn().mockResolvedValue(false),
       setLockCode: vi.fn(),
@@ -31,17 +21,7 @@ function makeFakeClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisC
       engineConfig: vi.fn().mockResolvedValue(defaultConfig),
       setEngineConfig: vi.fn().mockResolvedValue(undefined),
     },
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function renderWithClient(client: PraxisClient) {
@@ -54,7 +34,7 @@ function renderWithClient(client: PraxisClient) {
 
 describe("SettingsRoute", () => {
   it("loads engine config on mount", async () => {
-    const client = makeFakeClient();
+    const client = makeSettingsClient();
     renderWithClient(client);
 
     await waitFor(() => {
@@ -63,7 +43,7 @@ describe("SettingsRoute", () => {
   });
 
   it("renders the engine selector after loading", async () => {
-    const client = makeFakeClient();
+    const client = makeSettingsClient();
     renderWithClient(client);
 
     await waitFor(() => {
@@ -79,7 +59,7 @@ describe("SettingsRoute", () => {
   });
 
   it("renders Save button", async () => {
-    const client = makeFakeClient();
+    const client = makeSettingsClient();
     renderWithClient(client);
 
     await waitFor(() => {
@@ -91,7 +71,7 @@ describe("SettingsRoute", () => {
   });
 
   it("shows loading text while config is pending", () => {
-    const client = makeFakeClient();
+    const client = makeSettingsClient();
     // Don't await — check initial render.
     renderWithClient(client);
     // COPY.loading.default = "loading…"

@@ -54,8 +54,7 @@
 }
 
 .title {
-  font-family: var(--font-display);
-  font-style: italic;
+  composes: editorial from global;
   font-size: 0.92rem;
   letter-spacing: 0;
   text-transform: none;
@@ -75,7 +74,9 @@
   padding: 0 0.15rem;
   border-radius: 2px;
   opacity: 0;
-  transition: opacity 0.12s ease, color 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    color 0.12s ease;
   cursor: pointer;
 }
 

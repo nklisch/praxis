@@ -23,6 +23,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { LibraryRoute } from "../routes/library.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -116,7 +117,7 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
 
   const newTab = makeTab({ id: brandId<"TabId">("tab-new") });
 
-  return {
+  return makeFakeClient({
     session: {
       start: vi.fn().mockResolvedValue({
         sessionId: brandId<"SessionId">("session-new"),
@@ -178,22 +179,15 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
       delete: vi.fn().mockResolvedValue(undefined),
       pageImage: vi.fn().mockResolvedValue(null),
     } as unknown as PraxisClient["documents"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
     ingest: {
       pickFile: vi.fn().mockResolvedValue(null),
       start: vi.fn(async function* () {}) as unknown as PraxisClient["ingest"]["start"],
       isAvailable: vi.fn().mockReturnValue(false),
     },
-    assignments: {} as PraxisClient["assignments"],
-    notes: {} as PraxisClient["notes"],
     flashcards: {
       dueCount: vi.fn().mockResolvedValue(0),
     } as unknown as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-  };
+  });
 }
 
 function renderRoute(client: PraxisClient) {

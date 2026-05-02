@@ -8,7 +8,6 @@
  */
 import type {
   ConceptMastery,
-  CourseId,
   GateId,
   GateView,
   PraxisClient,
@@ -21,6 +20,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useCourseGates } from "../hooks/use-course-gates.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 const COURSE_ID = brandId<"CourseId">("course-map-test");
 const CONCEPT_ID_RAW = "graph-abc:algebra-1.real-numbers";
@@ -80,8 +80,7 @@ function makeClient(
   conceptsResult: ReturnType<typeof makeConceptRow>[] = [],
   studentModelResult: StudentModel = makeStudentModel(0),
 ): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
+  return makeFakeClient({
     artifacts: {
       courses: vi.fn(),
       course: vi.fn(),
@@ -97,7 +96,6 @@ function makeClient(
       newlyUnlockedCount: vi.fn().mockResolvedValue(0),
       concepts: vi.fn().mockResolvedValue(conceptsResult),
     } as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
     memory: {
       studentModel: vi.fn().mockResolvedValue(studentModelResult),
       misconceptions: vi.fn(),
@@ -107,14 +105,7 @@ function makeClient(
       export: vi.fn(),
       delete: vi.fn(),
     } as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-  };
+  });
 }
 
 function wrapper(client: PraxisClient) {

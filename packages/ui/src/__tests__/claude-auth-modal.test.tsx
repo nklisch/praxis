@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ClaudeAuthModal } from "../components/claude-auth-modal.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -23,18 +24,7 @@ function makeClient(overrides?: {
     })(),
   );
 
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
+  return makeFakeClient({
     claudeAuth: {
       status: vi.fn(),
       login,
@@ -42,7 +32,7 @@ function makeClient(overrides?: {
     shell: {
       openExternal,
     } as PraxisClient["shell"],
-  };
+  });
 }
 
 function renderModal(client: PraxisClient, onClose = vi.fn(), onSignedIn = vi.fn()) {

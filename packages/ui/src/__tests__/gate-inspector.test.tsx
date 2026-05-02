@@ -1,9 +1,10 @@
-import type { Gate, GateId, PraxisClient, Timestamp } from "@praxis/core/types";
+import type { Gate, PraxisClient, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GateInspector } from "../components/gate-inspector.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -25,9 +26,7 @@ function makeGate(overrides?: Partial<Gate>): Gate {
 }
 
 function makeClient(authorOverrides?: Partial<PraxisClient["author"]>): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
+  return makeFakeClient({
     author: {
       updateGate: vi.fn().mockResolvedValue(makeGate()),
       deleteGate: vi.fn().mockResolvedValue(undefined),
@@ -60,18 +59,7 @@ function makeClient(authorOverrides?: Partial<PraxisClient["author"]>): PraxisCl
       listConfiguratorActions: vi.fn(),
       ...authorOverrides,
     } as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function renderInspector(

@@ -1,9 +1,10 @@
-import type { Lesson, LessonId, PraxisClient, Timestamp } from "@praxis/core/types";
+import type { Lesson, PraxisClient } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LessonEditor } from "../components/lesson-editor.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -21,9 +22,7 @@ function makeLesson(overrides?: Partial<Lesson>): Lesson {
 }
 
 function makeClient(authorOverrides?: Partial<PraxisClient["author"]>): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
+  return makeFakeClient({
     author: {
       updateLesson: vi.fn().mockResolvedValue(makeLesson({ title: "Updated" })),
       deleteLesson: vi.fn().mockResolvedValue(undefined),
@@ -47,15 +46,7 @@ function makeClient(authorOverrides?: Partial<PraxisClient["author"]>): PraxisCl
       listConfiguratorActions: vi.fn(),
       ...authorOverrides,
     } as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-  };
+  });
 }
 
 function renderEditor(

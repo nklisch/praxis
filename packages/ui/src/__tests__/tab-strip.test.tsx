@@ -91,9 +91,7 @@ describe("TabStrip", () => {
     renderStrip({ tabs: [tab1, tab2], activeTabId: tab1.id });
 
     const tabButtons = screen.getAllByRole("tab");
-    const activeCount = tabButtons.filter(
-      (b) => b.getAttribute("aria-selected") === "true",
-    ).length;
+    const activeCount = tabButtons.filter((b) => b.getAttribute("aria-selected") === "true").length;
     expect(activeCount).toBe(1);
   });
 

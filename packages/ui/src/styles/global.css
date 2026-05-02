@@ -54,3 +54,13 @@ button {
   font-family: inherit;
   font-size: inherit;
 }
+
+/* Editorial typographic pair — italic display serif. Composed by every
+ * editorial title / deck / name across the app. Drives single-source-of-truth
+ * for the visual system; new modules use `composes: editorial from global;`
+ * instead of inlining the two declarations.
+ */
+.editorial {
+  font-family: var(--font-display);
+  font-style: italic;
+}

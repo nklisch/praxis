@@ -3,13 +3,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PromptFragmentEditor } from "../components/prompt-fragment-editor.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
 function makeClient(authorOverrides?: Partial<PraxisClient["author"]>): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
+  return makeFakeClient({
     author: {
       customizePrompt: vi.fn().mockResolvedValue(undefined),
       clearFragmentOverride: vi.fn().mockResolvedValue(undefined),
@@ -33,15 +32,7 @@ function makeClient(authorOverrides?: Partial<PraxisClient["author"]>): PraxisCl
       listConfiguratorActions: vi.fn(),
       ...authorOverrides,
     } as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-  };
+  });
 }
 
 function renderEditor(client: PraxisClient) {

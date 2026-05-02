@@ -20,8 +20,9 @@ import type {
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PraxisClientProvider } from "../context/client-context.js";
 import { NewTabPicker } from "../components/new-tab-picker.js";
+import { PraxisClientProvider } from "../context/client-context.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -46,17 +47,21 @@ function makeClient(overrides?: {
   start?: PraxisClient["session"]["start"];
   tabsOpen?: PraxisClient["tabs"]["open"];
 }): PraxisClient {
-  return {
+  return makeFakeClient({
     session: {
       active: vi.fn().mockResolvedValue(null),
-      start: overrides?.start ?? (vi.fn().mockResolvedValue(SESSION_HANDLE) as PraxisClient["session"]["start"]),
+      start:
+        overrides?.start ??
+        (vi.fn().mockResolvedValue(SESSION_HANDLE) as PraxisClient["session"]["start"]),
       end: vi.fn().mockResolvedValue({
         sessionId: brandId<"SessionId">("session-1"),
         endedAt: Date.now() as Timestamp,
         unlockedGates: [],
         newMisconceptions: 0,
       }),
-      send: vi.fn(async function* (): AsyncIterable<EngineEvent> {}) as unknown as PraxisClient["session"]["send"],
+      send: vi.fn(
+        async function* (): AsyncIterable<EngineEvent> {},
+      ) as unknown as PraxisClient["session"]["send"],
       list: vi.fn().mockResolvedValue([]),
     },
     tabs: {
@@ -98,18 +103,7 @@ function makeClient(overrides?: {
       newlyUnlockedCount: vi.fn().mockResolvedValue(0),
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-  };
+  });
 }
 
 function renderPicker({
@@ -201,7 +195,9 @@ describe("NewTabPicker", () => {
 
   it("shows inline error when session.start fails; modal stays open", async () => {
     const client = makeClient({
-      start: vi.fn().mockRejectedValue(new Error("Engine error")) as PraxisClient["session"]["start"],
+      start: vi
+        .fn()
+        .mockRejectedValue(new Error("Engine error")) as PraxisClient["session"]["start"],
     });
     renderPicker({ client });
 

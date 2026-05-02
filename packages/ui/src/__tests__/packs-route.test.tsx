@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { PacksRoute } from "../routes/packs.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 // TanStack Router hooks used in the route tree but not in PacksRoute directly.
 // Mock to prevent errors when rendering standalone.
@@ -32,15 +33,7 @@ function makePack(overrides: Partial<PackSummaryClient> = {}): PackSummaryClient
 }
 
 function makeClient(listResult: PackSummaryClient[] | "error" = [], importDelay = 0): PraxisClient {
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
+  return makeFakeClient({
     packs: {
       listAvailable:
         listResult === "error"
@@ -63,12 +56,7 @@ function makeClient(listResult: PackSummaryClient[] | "error" = [], importDelay 
           ),
       ),
     } as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
-  };
+  });
 }
 
 function renderRoute(client: PraxisClient) {

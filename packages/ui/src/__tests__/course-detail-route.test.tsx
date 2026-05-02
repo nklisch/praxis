@@ -1,16 +1,10 @@
-import type {
-  Course,
-  Lesson,
-  PraxisClient,
-  SessionHandle,
-  TabId,
-  Timestamp,
-} from "@praxis/core/types";
+import type { Course, Lesson, PraxisClient, SessionHandle, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { CourseDetailRoute } from "../routes/course-detail.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 const COURSE_ID = brandId<"CourseId">("course-abc");
 
@@ -71,7 +65,7 @@ function makeClient(
       startedAt: Date.now() as Timestamp,
     } satisfies SessionHandle);
 
-  return {
+  return makeFakeClient({
     session: {
       active: vi.fn().mockResolvedValue(null),
       start: startFn as PraxisClient["session"]["start"],
@@ -100,22 +94,9 @@ function makeClient(
       // Phase 10
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
-    flashcards: {} as PraxisClient["flashcards"],
-    claudeAuth: {} as PraxisClient["claudeAuth"],
-    shell: {} as PraxisClient["shell"],
     tabs: {
       // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
       listOpen: vi.fn().mockResolvedValue([]) as any,
-      // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
       open: vi.fn().mockResolvedValue({
         id: brandId<"TabId">("tab-new"),
         sessionId: brandId<"SessionId">("s1"),
@@ -125,15 +106,17 @@ function makeClient(
         openedAt: Date.now() as Timestamp,
         lastSeenAt: Date.now() as Timestamp,
         closedAt: null,
+        // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
       }) as any,
       close: vi.fn().mockResolvedValue(undefined),
       touch: vi.fn().mockResolvedValue(undefined),
       rename: vi.fn().mockResolvedValue(undefined),
       reopen: vi.fn().mockResolvedValue(undefined),
+      // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
       list: vi.fn().mockResolvedValue([]) as any,
       get: vi.fn().mockResolvedValue(null),
     },
-  };
+  });
 }
 
 function renderRoute(client: PraxisClient) {

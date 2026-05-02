@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { ReviewSessionTab } from "../routes/workspace/review-session.js";
+import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
@@ -28,23 +29,13 @@ function makeClient(cards: Flashcard[]): PraxisClient {
     return Promise.resolve({ flashcard: card, nextReviewAt: Date.now() + 86_400_000 });
   });
 
-  return {
-    session: {} as PraxisClient["session"],
-    artifacts: {} as PraxisClient["artifacts"],
-    author: {} as PraxisClient["author"],
-    memory: {} as PraxisClient["memory"],
-    config: {} as PraxisClient["config"],
-    ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
-    assignments: {} as PraxisClient["assignments"],
-    packs: {} as PraxisClient["packs"],
-    notes: {} as PraxisClient["notes"],
+  return makeFakeClient({
     flashcards: {
       dueCount: vi.fn().mockResolvedValue(cards.length),
       list: vi.fn().mockResolvedValue(cards),
       review: reviewFn,
     } as unknown as PraxisClient["flashcards"],
-  };
+  });
 }
 
 describe("ReviewSessionTab", () => {
