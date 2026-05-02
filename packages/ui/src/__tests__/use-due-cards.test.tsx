@@ -44,6 +44,7 @@ function makeClient(count: number, cards: Flashcard[]): PraxisClient {
     } as unknown as PraxisClient["flashcards"],
     claudeAuth: {} as PraxisClient["claudeAuth"],
     shell: {} as PraxisClient["shell"],
+    tabs: {} as PraxisClient["tabs"],
   };
 }
 

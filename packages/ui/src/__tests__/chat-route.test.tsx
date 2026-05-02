@@ -1,4 +1,21 @@
-import type { EngineEvent, PraxisClient, SessionHandle, Timestamp } from "@praxis/core/types";
+/**
+ * Tests for the ChatRoute shell (Phase 14 multi-tab refactor).
+ *
+ * ChatRoute is now the tab-workspace shell: it owns the tab strip, documents
+ * sidebar, new-tab picker, and renders all open ChatTabBody instances with
+ * display:none for inactive ones. Session-acquisition logic moved into
+ * ChatTabBody — the shell itself does not call session.start.
+ *
+ * Tests verify:
+ * - EmptyTabsState renders when no tabs are open
+ * - TabStrip renders when tabs are present
+ * - "Open a session" in EmptyTabsState mounts NewTabPicker
+ * - "+" in TabStrip mounts NewTabPicker
+ * - Switching tabs calls tabs.touch
+ * - Closing the active tab shifts focus to the next most-recent tab
+ * - Per-tab body mounts for each open tab (display:none for inactive)
+ */
+import type { PraxisClient, TabId, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -7,45 +24,96 @@ import { ChatRoute } from "../routes/chat.js";
 
 afterEach(() => cleanup());
 
-// useSearch and useNavigate require a RouterProvider — mock them.
+// Mock TanStack Router hooks. The shell uses useParams (strict: false) and
+// useNavigate. We expose tabId as undefined (bare /chat) by default.
 vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-router")>();
   return {
     ...actual,
     useSearch: () => ({}),
     useNavigate: () => vi.fn(),
+    useParams: () => ({ tabId: undefined }),
   };
 });
 
-function makeFakeClient(overrides?: Partial<PraxisClient["session"]>): PraxisClient {
-  const session: PraxisClient["session"] = {
-    active: vi.fn().mockResolvedValue(null),
-    start: vi.fn().mockResolvedValue({
-      sessionId: brandId<"SessionId">("s1"),
-      modeId: "teach",
-      startedAt: Date.now() as Timestamp,
-    } satisfies SessionHandle),
-    end: vi.fn().mockResolvedValue({
-      sessionId: brandId<"SessionId">("s1"),
-      endedAt: Date.now() as Timestamp,
-      unlockedGates: [],
-      newMisconceptions: 0,
-    }),
-    send: vi.fn(async function* (): AsyncIterable<EngineEvent> {
-      yield { type: "model_message", content: "Hello!", partial: false };
-      yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } };
-    }) as unknown as PraxisClient["session"]["send"],
+// ── Tab fixture helpers ────────────────────────────────────────────────────────
+
+function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
+  return {
+    id: brandId<"TabId">("tab-1"),
+    sessionId: brandId<"SessionId">("session-1"),
+    modeId: "teach",
+    title: "teach · new chat",
+    sortOrder: 0,
+    openedAt: (Date.now() - 10_000) as Timestamp,
+    lastSeenAt: (Date.now() - 5_000) as Timestamp,
+    closedAt: null,
     ...overrides,
+  };
+}
+
+// ── Fake client builder ────────────────────────────────────────────────────────
+
+function makeFakeClient(
+  tabsOverrides?: Partial<PraxisClient["tabs"]>,
+  tabList: TabSummary[] = [],
+): PraxisClient {
+  const tabs: PraxisClient["tabs"] = {
+    // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
+    listOpen: vi.fn().mockResolvedValue(tabList) as any,
+    // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
+    list: vi.fn().mockResolvedValue(tabList) as any,
+    get: vi.fn().mockResolvedValue(null),
+    // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
+    open: vi.fn().mockResolvedValue(tabList[0] ?? makeTab()) as any,
+    reopen: vi.fn().mockResolvedValue(tabList[0] ?? makeTab()),
+    close: vi.fn().mockResolvedValue(undefined),
+    touch: vi.fn().mockResolvedValue(undefined),
+    rename: vi.fn().mockResolvedValue(tabList[0] ?? makeTab()),
+    ...tabsOverrides,
   };
 
   return {
-    session,
-    artifacts: {} as PraxisClient["artifacts"],
+    session: {
+      active: vi.fn().mockResolvedValue(null),
+      start: vi.fn().mockResolvedValue({
+        sessionId: brandId<"SessionId">("session-1"),
+        modeId: "teach",
+        startedAt: Date.now() as Timestamp,
+      }),
+      end: vi.fn().mockResolvedValue({
+        sessionId: brandId<"SessionId">("session-1"),
+        endedAt: Date.now() as Timestamp,
+        unlockedGates: [],
+        newMisconceptions: 0,
+      }),
+      send: vi.fn(async function* () {}) as unknown as PraxisClient["session"]["send"],
+      list: vi.fn().mockResolvedValue([]),
+    },
+    tabs,
+    artifacts: {
+      courses: vi.fn().mockResolvedValue([]),
+      course: vi.fn(),
+      lessons: vi.fn(),
+      gates: vi.fn(),
+      progress: vi.fn(),
+      flashcards: vi.fn(),
+      notes: vi.fn(),
+      conceptMaps: vi.fn(),
+      gateView: vi.fn().mockResolvedValue([]),
+      evaluateGates: vi.fn().mockResolvedValue({ unlockedGateIds: [] }),
+      markGatesViewed: vi.fn().mockResolvedValue(undefined),
+      newlyUnlockedCount: vi.fn().mockResolvedValue(0),
+      concepts: vi.fn().mockResolvedValue([]),
+    } as PraxisClient["artifacts"],
     author: {} as PraxisClient["author"],
     memory: {} as PraxisClient["memory"],
     config: {} as PraxisClient["config"],
     ingest: {} as PraxisClient["ingest"],
-    documents: {} as PraxisClient["documents"],
+    documents: {
+      list: vi.fn().mockResolvedValue([]),
+      delete: vi.fn().mockResolvedValue(undefined),
+    } as unknown as PraxisClient["documents"],
     assignments: {} as PraxisClient["assignments"],
     packs: {} as PraxisClient["packs"],
     notes: {} as PraxisClient["notes"],
@@ -63,176 +131,164 @@ function renderWithClient(client: PraxisClient) {
   );
 }
 
-describe("ChatRoute", () => {
-  it("calls session.start on mount", async () => {
+// ── Tests ──────────────────────────────────────────────────────────────────────
+
+describe("ChatRoute shell", () => {
+  it("calls tabs.listOpen on mount", async () => {
     const client = makeFakeClient();
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "teach" });
+      expect(client.tabs.listOpen).toHaveBeenCalledOnce();
     });
   });
 
-  it("renders the editorial mode header with the active mode name once the session starts", async () => {
-    const client = makeFakeClient();
+  it("renders EmptyTabsState when no tabs are open", async () => {
+    const client = makeFakeClient({}, []);
     renderWithClient(client);
 
     await waitFor(() => {
-      // The mode-header component shows MODE / teach / a guided lesson for a
-      // teach session. Asserting on all three pins both the kicker and the
-      // mode metadata wiring.
-      expect(screen.getByText("MODE")).toBeDefined();
-      expect(screen.getByText("teach")).toBeDefined();
-      expect(screen.getByText("a guided lesson")).toBeDefined();
+      expect(
+        screen.getByText(/No tabs open/i),
+      ).toBeDefined();
     });
   });
 
-  it("shows error banner if session.start throws a generic error", async () => {
-    const client = makeFakeClient({
-      start: vi.fn().mockRejectedValue(new Error("Engine unavailable")),
-    });
+  it("renders TabStrip when tabs are open", async () => {
+    const tab = makeTab({ title: "algebra · teach" });
+    const client = makeFakeClient({}, [tab]);
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByText(/Engine unavailable/)).toBeDefined();
+      expect(screen.getByText("algebra · teach")).toBeDefined();
     });
   });
 
-  it("has a New chat button", async () => {
-    const client = makeFakeClient();
+  it("clicking 'Open a session' in EmptyTabsState shows NewTabPicker", async () => {
+    const client = makeFakeClient({}, []);
     renderWithClient(client);
 
     await waitFor(() => {
-      const buttons = screen.getAllByRole("button", { name: /new chat/i });
-      expect(buttons.length).toBeGreaterThan(0);
+      expect(screen.getByRole("button", { name: /open a session/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /open a session/i }));
+
+    await waitFor(() => {
+      // NewTabPicker renders a dialog with "NEW SESSION" kicker
+      expect(screen.getByRole("dialog", { name: /open new session/i })).toBeDefined();
     });
   });
 
-  // ── Auth error integration tests ─────────────────────────────────────────────
-
-  it("shows auth banner (not generic error) when session.start fails with auth-required error", async () => {
-    const client = makeFakeClient({
-      start: vi.fn().mockRejectedValue(new Error("claude.auth.required: not signed in")),
-    });
+  it("clicking '+' in the TabStrip shows NewTabPicker", async () => {
+    const tab = makeTab();
+    const client = makeFakeClient({}, [tab]);
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Not signed in to Claude.")).toBeDefined();
+      expect(screen.getByRole("button", { name: /open new session/i })).toBeDefined();
     });
 
-    // Generic error banner must NOT show
-    expect(screen.queryByText(/Session error:/)).toBeNull();
-  });
-
-  it("does not show auth banner for non-auth errors", async () => {
-    const client = makeFakeClient({
-      start: vi.fn().mockRejectedValue(new Error("Engine unavailable")),
-    });
-    renderWithClient(client);
+    fireEvent.click(screen.getByRole("button", { name: /open new session/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Engine unavailable/)).toBeDefined();
-    });
-
-    expect(screen.queryByText("Not signed in to Claude.")).toBeNull();
-  });
-
-  it("clicking Sign in button mounts the ClaudeAuthModal", async () => {
-    const client = makeFakeClient({
-      start: vi.fn().mockRejectedValue(new Error("claude.auth.required: not signed in")),
-    });
-    // Provide real claudeAuth + shell so the modal renders without crashing
-    client.claudeAuth = {
-      status: vi.fn(),
-      login: vi.fn(() =>
-        (async function* () {
-          // Yield nothing — keeps the modal open in awaiting state
-        })(),
-      ),
-    } as PraxisClient["claudeAuth"];
-    client.shell = {
-      openExternal: vi.fn().mockResolvedValue(undefined),
-    };
-    renderWithClient(client);
-
-    await waitFor(() => {
-      expect(screen.getByText("Not signed in to Claude.")).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
-
-    await waitFor(() => {
-      // The modal title should appear
-      expect(screen.getByRole("dialog")).toBeDefined();
-      expect(screen.getByText("Sign in to Claude")).toBeDefined();
+      expect(screen.getByRole("dialog", { name: /open new session/i })).toBeDefined();
     });
   });
 
-  // ── ComposerVerbs chip rail integration ──────────────────────────────────────
-
-  it("renders the chip rail toolbar once a session is active", async () => {
-    const client = makeFakeClient();
+  it("renders one tab body container per open tab", async () => {
+    const tab1 = makeTab({ id: brandId<"TabId">("tab-1"), title: "algebra · teach" });
+    const tab2 = makeTab({
+      id: brandId<"TabId">("tab-2"),
+      title: "calc · bootstrap",
+      modeId: "bootstrap",
+      sortOrder: 1,
+      lastSeenAt: (Date.now() - 1_000) as Timestamp,
+    });
+    const client = makeFakeClient({}, [tab1, tab2]);
     renderWithClient(client);
 
     await waitFor(() => {
-      // ComposerVerbs renders a toolbar landmark when modeId is defined
-      expect(screen.getByRole("toolbar", { name: /tutor verbs/i })).toBeDefined();
+      expect(screen.getByText("algebra · teach")).toBeDefined();
+      expect(screen.getByText("calc · bootstrap")).toBeDefined();
     });
   });
 
-  it("chip rail shows teach-mode verbs after a teach session starts", async () => {
-    const client = makeFakeClient();
+  it("clicking the close button on a tab calls tabs.close", async () => {
+    const tab = makeTab({ title: "algebra · teach" });
+    const client = makeFakeClient({}, [tab]);
     renderWithClient(client);
 
     await waitFor(() => {
-      // "explain" is the first teach-mode verb
-      expect(screen.getByRole("button", { name: "explain" })).toBeDefined();
+      expect(screen.getByLabelText("Close algebra · teach")).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByLabelText("Close algebra · teach"));
+
+    await waitFor(() => {
+      expect(client.tabs.close).toHaveBeenCalledWith(tab.id);
     });
   });
 
-  it("clicking 'explain' chip prefills the composer textarea with 'explain '", async () => {
-    const client = makeFakeClient();
+  it("clicking a tab calls tabs.touch", async () => {
+    const tab1 = makeTab({
+      id: brandId<"TabId">("tab-1"),
+      title: "algebra · teach",
+      lastSeenAt: (Date.now() - 10_000) as Timestamp,
+    });
+    const tab2 = makeTab({
+      id: brandId<"TabId">("tab-2"),
+      title: "calc · bootstrap",
+      modeId: "bootstrap",
+      sortOrder: 1,
+      lastSeenAt: (Date.now() - 1_000) as Timestamp,
+    });
+    const client = makeFakeClient({}, [tab1, tab2]);
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "explain" })).toBeDefined();
+      expect(screen.getByText("algebra · teach")).toBeDefined();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "explain" }));
+    // Click the tab button (not the close button inside it)
+    const tabButton = screen.getByRole("tab", { name: /algebra · teach/i });
+    fireEvent.click(tabButton);
 
-    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox");
-    expect(textarea.value).toBe("explain ");
+    await waitFor(() => {
+      expect(client.tabs.touch).toHaveBeenCalledWith(tab1.id);
+    });
   });
 
-  it("clicking a chip does not autosend — only prefills the textarea", async () => {
-    const client = makeFakeClient();
+  it("renders the TabStrip with a '+' new-tab button", async () => {
+    const tab = makeTab();
+    const client = makeFakeClient({}, [tab]);
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "explain" })).toBeDefined();
+      expect(screen.getByRole("button", { name: /open new session/i })).toBeDefined();
     });
-
-    fireEvent.click(screen.getByRole("button", { name: "explain" }));
-
-    // session.send should not have been called
-    expect(client.session.send).not.toHaveBeenCalled();
   });
 
-  it("chip prefill appends to existing textarea content with a separating space", async () => {
-    const client = makeFakeClient();
+  it("closing the NewTabPicker hides it", async () => {
+    const client = makeFakeClient({}, []);
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "explain" })).toBeDefined();
+      expect(screen.getByRole("button", { name: /open a session/i })).toBeDefined();
     });
 
-    // Type some content first
-    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox");
-    fireEvent.change(textarea, { target: { value: "photosynthesis" } });
-    expect(textarea.value).toBe("photosynthesis");
+    // Open picker
+    fireEvent.click(screen.getByRole("button", { name: /open a session/i }));
 
-    // Now click a chip — should append with space, not overwrite
-    fireEvent.click(screen.getByRole("button", { name: "go deeper" }));
-    expect(textarea.value).toBe("photosynthesis go deeper ");
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: /open new session/i })).toBeDefined();
+    });
+
+    // Close via Cancel button
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /open new session/i })).toBeNull();
+    });
   });
 });

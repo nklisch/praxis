@@ -19,6 +19,7 @@ export const COPY = {
     notes: "No notes yet. Take one from a session, or write one fresh.",
     flashcards: "No flashcards yet. Generate them from a note, or write your own.",
     sessions: "No sessions yet. Open one to begin.",
+    tabs: "No tabs open. Choose a session from your library, or open a new one.",
     misconceptions: "No active misconceptions tracked.",
     unlockedGates: "No newly unlocked content. Keep working.",
   },

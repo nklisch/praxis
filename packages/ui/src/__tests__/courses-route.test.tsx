@@ -81,6 +81,7 @@ function makeClient(
     flashcards: {} as PraxisClient["flashcards"],
     claudeAuth: {} as PraxisClient["claudeAuth"],
     shell: {} as PraxisClient["shell"],
+    tabs: {} as PraxisClient["tabs"],
   };
 }
 

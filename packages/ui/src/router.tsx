@@ -28,6 +28,21 @@ const chatRoute = createRoute({
   component: ChatRoute,
 });
 
+// Phase 14: /chat and /chat/$tabId routes. Both render ChatRoute (the
+// shell handles both bare /chat and /chat/$tabId internally).
+// / still points to ChatRoute for now — Agent 3 swaps it to Library.
+const chatWorkspaceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/chat",
+  component: ChatRoute,
+});
+
+const chatTabRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/chat/$tabId",
+  component: ChatRoute,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
@@ -78,6 +93,8 @@ const noteEditorRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   chatRoute,
+  chatWorkspaceRoute,
+  chatTabRoute,
   settingsRoute,
   coursesRoute,
   courseDetailRoute,

@@ -1,0 +1,84 @@
+/* Per-tab session body — mirrors former chat.module.css .container styles */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.emptyState {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-top: 4rem;
+  font-size: 0.95rem;
+}
+
+.errorBanner {
+  padding: 0.5rem 1rem;
+  background: rgba(220, 50, 50, 0.15);
+  border-top: 1px solid rgba(220, 50, 50, 0.3);
+  color: #f87171;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.lockdownNotice {
+  padding: 0.4rem 1rem;
+  background: rgba(251, 191, 36, 0.1);
+  border-top: 1px solid rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  font-size: 0.8rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.authBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: rgba(255, 200, 50, 0.15);
+  border-top: 1px solid rgba(255, 200, 50, 0.35);
+  color: var(--color-text, #1a1a1a);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.authBannerButton {
+  padding: 0.3rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-primary, #2563eb);
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.authBannerButton:hover {
+  opacity: 0.9;
+}
+
+.authBannerButtonSecondary {
+  padding: 0.3rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  background: transparent;
+  color: var(--color-text, #1a1a1a);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.authBannerButtonSecondary:hover {
+  background: var(--color-border, #e0e0e0);
+}

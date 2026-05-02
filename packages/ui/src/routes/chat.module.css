@@ -40,6 +40,24 @@
   gap: 0.5rem;
 }
 
+/* ── Workspace area (tab strip + tab bodies) ──────────────────────────── */
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Wrapper for each mounted tab body. display:none is set inline to hide
+   inactive tabs while keeping their React state alive. */
+.tabBodyMount {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Chat area ──────────────────────────────────────────────────────────── */
 
 .container {
