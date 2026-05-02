@@ -73,12 +73,17 @@ describe("ChatRoute", () => {
     });
   });
 
-  it("shows 'Session active' once session starts", async () => {
+  it("renders the editorial mode header with the active mode name once the session starts", async () => {
     const client = makeFakeClient();
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Session active")).toBeDefined();
+      // The mode-header component shows MODE / teach / a guided lesson for a
+      // teach session. Asserting on all three pins both the kicker and the
+      // mode metadata wiring.
+      expect(screen.getByText("MODE")).toBeDefined();
+      expect(screen.getByText("teach")).toBeDefined();
+      expect(screen.getByText("a guided lesson")).toBeDefined();
     });
   });
 

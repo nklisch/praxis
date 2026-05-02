@@ -1,0 +1,213 @@
+/* ── Editorial mode header ─────────────────────────────────────────────────
+ * A scholarly-journal-style section header for the chat. Replaces the plain
+ * "Session active" toolbar. Each mode's tint flows through via --mode-tint
+ * (set inline by the React component) and decorates only a hairline rule, the
+ * ornament, the kicker dot, and a 4% top-edge gradient. The rest stays neutral.
+ */
+
+.header {
+  position: relative;
+  flex-shrink: 0;
+  padding: 1.6rem 1.75rem 1.35rem 1.5rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 1.1rem;
+  row-gap: 0.18rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mode-tint, var(--color-text-muted)) 4%, transparent) 0%,
+    transparent 100%
+  );
+  isolation: isolate;
+}
+
+/* Tint-prefixed hairline at the bottom edge. The first ~4rem is colored; the
+   remainder fades into the regular border so the accent doesn't shout across
+   the full width. */
+.header::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--mode-tint, var(--color-text-muted)) 0,
+    var(--mode-tint, var(--color-text-muted)) 4.5rem,
+    var(--color-border) 4.5rem,
+    var(--color-border) 100%
+  );
+  opacity: 0.85;
+}
+
+/* The ornament hangs in the left margin like a drop initial. Sits across both
+   rows, vertically centered against the typographic block. */
+.ornament {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--mode-tint, var(--color-text-muted));
+  user-select: none;
+  font-feature-settings: "ss01", "ss02";
+  /* Tiny upward optical lift so the glyph centers visually rather than
+     mathematically. Editorial typesetters do this by hand. */
+  transform: translateY(-2px);
+}
+
+.kicker {
+  grid-column: 2;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  align-self: end;
+  padding-bottom: 0.15rem;
+}
+
+.kickerDot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--mode-tint, var(--color-text-muted));
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--mode-tint, var(--color-text-muted)) 22%, transparent);
+}
+
+/* Display name + deck share the second row, name on its own line, deck beneath
+   in tighter italic. */
+.titleRow {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.65rem;
+  line-height: 1.05;
+  letter-spacing: -0.012em;
+  color: var(--color-text);
+  font-weight: 400;
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+.deck {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+  letter-spacing: 0.005em;
+}
+
+/* The "—" before the deck is part of the editorial language — magazine standfirsts
+   often open with a typographic dash. We render it as an inline span so we can
+   match its color to the tint while keeping the deck text muted. */
+.deckDash {
+  color: var(--mode-tint, var(--color-text-muted));
+  margin-right: 0.35em;
+  font-style: normal;
+}
+
+/* Action area on the right edge — only the New chat button for now. Styled as
+   a quiet uppercase mono link rather than a button-shaped button. */
+.actions {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actionButton {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0.5rem 0.1rem;
+  position: relative;
+  transition: color 0.18s ease;
+}
+
+.actionButton::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.25rem;
+  height: 1px;
+  background: var(--color-border);
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
+  transform-origin: left;
+}
+
+.actionButton:not(:disabled):hover {
+  color: var(--color-text);
+}
+
+.actionButton:not(:disabled):hover::after {
+  background-color: var(--mode-tint, var(--color-accent));
+}
+
+.actionButton:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+/* ── Loading state ────────────────────────────────────────────────────────
+   While the session is opening we don't yet know the mode. Show a subdued
+   variant with three pulsing en-dashes — gentler than a spinner. */
+
+.opening {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.4rem;
+  color: var(--color-text-muted);
+  line-height: 1.05;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05em;
+}
+
+.openingDot {
+  display: inline-block;
+  animation: openingPulse 1.4s ease-in-out infinite;
+}
+.openingDot:nth-child(1) {
+  animation-delay: 0s;
+}
+.openingDot:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.openingDot:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes openingPulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  45% {
+    opacity: 1;
+  }
+}

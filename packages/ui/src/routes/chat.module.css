@@ -49,39 +49,7 @@
   overflow: hidden;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.status {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-
-.newChatButton {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  transition: all 0.15s;
-}
-
-.newChatButton:not(:disabled):hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.newChatButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+/* Toolbar moved into <ModeHeader /> — see mode-header.module.css. */
 
 .messages {
   flex: 1;

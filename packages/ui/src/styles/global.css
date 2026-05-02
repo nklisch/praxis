@@ -16,7 +16,13 @@
   --color-user-bubble: #2a2f5e;
   --color-assistant-bubble: #1e2a1e;
   --radius: 8px;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Consolas, monospace;
+  /* Editorial display serif — system-installed across macOS/Win/Linux. No remote
+     fetch (CSP forbids), no bundled assets. Iowan & Sitka have warm, expressive
+     italics; Charter & Source Serif are the strong fallbacks. */
+  --font-display:
+    "Iowan Old Style", "Sitka Text", "Charter", "Source Serif Pro", "Source Serif 4", Georgia,
+    "Times New Roman", serif;
 }
 
 html,

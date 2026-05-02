@@ -8,6 +8,7 @@ import { ClaudeAuthModal } from "../components/claude-auth-modal.js";
 import { Composer } from "../components/composer.js";
 import { DocumentList } from "../components/document-list.js";
 import { MessageBubble } from "../components/message.js";
+import { ModeHeader } from "../components/mode-header.js";
 import { PageImagePanel } from "../components/page-image-panel.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
@@ -185,19 +186,12 @@ export function ChatRoute() {
 
       {/* Main chat area */}
       <div className={styles.container}>
-        <div className={styles.toolbar}>
-          <span className={styles.status}>
-            {starting ? "Starting session…" : session ? "Session active" : "No session"}
-          </span>
-          <button
-            type="button"
-            className={styles.newChatButton}
-            onClick={handleNewChat}
-            disabled={starting || isStreaming}
-          >
-            New chat
-          </button>
-        </div>
+        <ModeHeader
+          session={session}
+          starting={starting}
+          onNewChat={handleNewChat}
+          newChatDisabled={starting || isStreaming}
+        />
 
         {startError && <div className={styles.errorBanner}>Session error: {startError}</div>}
 
