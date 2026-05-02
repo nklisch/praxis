@@ -7,6 +7,7 @@ import { getRouteMeta } from "../components/route-meta.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useCourseDetail } from "../hooks/use-course-detail.js";
 import { COPY } from "../lib/copy.js";
+import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import styles from "./course-detail.module.css";
 
 export function CourseDetailRoute() {
@@ -29,13 +30,13 @@ export function CourseDetailRoute() {
   }, [courseId, client]);
 
   const handleStartSession = async () => {
-    if (!courseId) return;
-    try {
-      const handle = await client.session.start({ modeId: "teach", courseId });
-      await navigate({ to: "/", search: { sessionId: handle.sessionId } });
-    } catch (_err) {
-      await navigate({ to: "/" });
-    }
+    if (!courseId || !course) return;
+    await openSessionInTab({
+      client,
+      navigate,
+      startOpts: { modeId: "teach", courseId },
+      courseTitle: course.title,
+    });
   };
 
   const meta = getRouteMeta("courseDetail");
@@ -77,9 +78,9 @@ export function CourseDetailRoute() {
           <button
             type="button"
             className={styles.backBtn}
-            onClick={() => navigate({ to: "/courses" })}
+            onClick={() => navigate({ to: "/library" })}
           >
-            ← Courses
+            ← Library
           </button>
         }
       />

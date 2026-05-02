@@ -1,4 +1,11 @@
-import type { Course, Lesson, PraxisClient, SessionHandle, Timestamp } from "@praxis/core/types";
+import type {
+  Course,
+  Lesson,
+  PraxisClient,
+  SessionHandle,
+  TabId,
+  Timestamp,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -105,7 +112,27 @@ function makeClient(
     flashcards: {} as PraxisClient["flashcards"],
     claudeAuth: {} as PraxisClient["claudeAuth"],
     shell: {} as PraxisClient["shell"],
-    tabs: {} as PraxisClient["tabs"],
+    tabs: {
+      // biome-ignore lint/suspicious/noExplicitAny: studentId ignored on client
+      listOpen: vi.fn().mockResolvedValue([]) as any,
+      // biome-ignore lint/suspicious/noExplicitAny: studentId resolved server-side
+      open: vi.fn().mockResolvedValue({
+        id: brandId<"TabId">("tab-new"),
+        sessionId: brandId<"SessionId">("s1"),
+        modeId: "teach",
+        title: "algebra · teach",
+        sortOrder: 0,
+        openedAt: Date.now() as Timestamp,
+        lastSeenAt: Date.now() as Timestamp,
+        closedAt: null,
+      }) as any,
+      close: vi.fn().mockResolvedValue(undefined),
+      touch: vi.fn().mockResolvedValue(undefined),
+      rename: vi.fn().mockResolvedValue(undefined),
+      reopen: vi.fn().mockResolvedValue(undefined),
+      list: vi.fn().mockResolvedValue([]) as any,
+      get: vi.fn().mockResolvedValue(null),
+    },
   };
 }
 

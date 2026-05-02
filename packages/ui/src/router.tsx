@@ -1,12 +1,17 @@
-import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  redirect,
+} from "@tanstack/react-router";
 import { Nav } from "./components/nav.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
 import { ConfigureRoute } from "./routes/configure.js";
 import { CourseDetailRoute } from "./routes/course-detail.js";
 import { CourseMapRoute } from "./routes/course-map.js";
-import { CoursesRoute } from "./routes/courses.js";
-import { PacksRoute } from "./routes/packs.js";
+import { LibraryRoute } from "./routes/library.js";
 import { SettingsRoute } from "./routes/settings.js";
 import { NoteEditorPage } from "./routes/workspace/note-editor-page.js";
 import { WorkspaceRoute } from "./routes/workspace.js";
@@ -22,15 +27,21 @@ const rootRoute = createRootRoute({
   ),
 });
 
-const chatRoute = createRoute({
+// Phase 14: Library is the front door at both "/" and "/library".
+const libraryRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: ChatRoute,
+  component: LibraryRoute,
+});
+
+const libraryAliasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/library",
+  component: LibraryRoute,
 });
 
 // Phase 14: /chat and /chat/$tabId routes. Both render ChatRoute (the
 // shell handles both bare /chat and /chat/$tabId internally).
-// / still points to ChatRoute for now — Agent 3 swaps it to Library.
 const chatWorkspaceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/chat",
@@ -49,10 +60,15 @@ const settingsRoute = createRoute({
   component: SettingsRoute,
 });
 
-const coursesRoute = createRoute({
+// Phase 14: /courses and /packs are permanent redirects to /library.
+// TanStack Router matches more-specific routes first, so /courses/$courseId
+// and /courses/$courseId/map are NOT caught by this redirect.
+const coursesRedirect = createRoute({
   getParentRoute: () => rootRoute,
   path: "/courses",
-  component: CoursesRoute,
+  beforeLoad: () => {
+    throw redirect({ to: "/library" });
+  },
 });
 
 const courseDetailRoute = createRoute({
@@ -67,10 +83,12 @@ const courseMapRoute = createRoute({
   component: CourseMapRoute,
 });
 
-const packsRoute = createRoute({
+const packsRedirect = createRoute({
   getParentRoute: () => rootRoute,
   path: "/packs",
-  component: PacksRoute,
+  beforeLoad: () => {
+    throw redirect({ to: "/library" });
+  },
 });
 
 const configureRoute = createRoute({
@@ -92,14 +110,15 @@ const noteEditorRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  chatRoute,
+  libraryRoute,
+  libraryAliasRoute,
   chatWorkspaceRoute,
   chatTabRoute,
   settingsRoute,
-  coursesRoute,
+  coursesRedirect,
   courseDetailRoute,
   courseMapRoute,
-  packsRoute,
+  packsRedirect,
   configureRoute,
   workspaceRoute,
   noteEditorRoute,
