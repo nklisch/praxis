@@ -2,13 +2,14 @@ import type { AssignmentId, SessionHandle, TabSummary, Timestamp } from "@praxis
 import { brandId } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
 import { type JSX, useEffect, useRef, useState } from "react";
+import { useAuthStatus } from "../context/auth-context.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { isClaudeAuthRequiredError } from "../lib/auth-error.js";
 import { AssignmentCard } from "./assignment-card.js";
+import { AuthGate } from "./auth-gate.js";
 import styles from "./chat-tab-body.module.css";
-import { ClaudeAuthModal } from "./claude-auth-modal.js";
 import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
 import { MessageBubble } from "./message.js";
@@ -56,6 +57,7 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
   const { messages, isStreaming, lastError, send } = useStreamedSend(client);
+  const { flagAuthRequired } = useAuthStatus();
 
   // Build a minimal SessionHandle from the tab's metadata.
   // The session already exists; we don't call session.start here.
@@ -68,8 +70,6 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
     }),
   };
 
-  const [needsAuth, setNeedsAuth] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [examLockdown, setExamLockdown] = useState(false);
   const [composerValue, setComposerValue] = useState("");
   const [pageImageTarget, setPageImageTarget] = useState<{
@@ -90,17 +90,16 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
   // Surface auth errors from send attempts
   useEffect(() => {
     if (lastError && isClaudeAuthRequiredError(new Error(lastError))) {
-      setNeedsAuth(true);
+      flagAuthRequired();
     }
-  }, [lastError]);
+  }, [lastError, flagAuthRequired]);
 
   const handleSend = async (message: string) => {
-    setNeedsAuth(false);
     try {
       await send(session.sessionId, message);
     } catch (err) {
       if (isClaudeAuthRequiredError(err)) {
-        setNeedsAuth(true);
+        flagAuthRequired();
       }
     }
   };
@@ -121,26 +120,6 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
         }}
         newChatDisabled={isStreaming}
       />
-
-      {needsAuth && (
-        <div className={styles.authBanner}>
-          <span>Not signed in to Claude.</span>
-          <button
-            type="button"
-            className={styles.authBannerButton}
-            onClick={() => setShowAuthModal(true)}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            className={styles.authBannerButtonSecondary}
-            onClick={() => navigate({ to: "/settings" })}
-          >
-            Switch engine
-          </button>
-        </div>
-      )}
 
       {session.assignmentId && (
         <ExamLockdownGate
@@ -182,23 +161,25 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
         <div className={styles.errorBanner}>Error: {lastError}</div>
       )}
 
-      <ComposerVerbs
-        modeId={session.modeId}
-        onPrefill={(seed) => {
-          setComposerValue((prev) => (prev ? `${prev} ${seed}` : seed));
-          composerTextareaRef.current?.focus();
-        }}
-      />
-      <Composer
-        ref={composerTextareaRef}
-        value={composerValue}
-        onChange={setComposerValue}
-        onSend={async (msg) => {
-          setComposerValue("");
-          await handleSend(msg);
-        }}
-        disabled={isStreaming || examLockdown || needsAuth}
-      />
+      <AuthGate>
+        <ComposerVerbs
+          modeId={session.modeId}
+          onPrefill={(seed) => {
+            setComposerValue((prev) => (prev ? `${prev} ${seed}` : seed));
+            composerTextareaRef.current?.focus();
+          }}
+        />
+        <Composer
+          ref={composerTextareaRef}
+          value={composerValue}
+          onChange={setComposerValue}
+          onSend={async (msg) => {
+            setComposerValue("");
+            await handleSend(msg);
+          }}
+          disabled={isStreaming || examLockdown}
+        />
+      </AuthGate>
       {examLockdown && (
         <div className={styles.lockdownNotice}>
           The chat is muted during the exam. Submit your answers to continue.
@@ -210,16 +191,6 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
           documentId={pageImageTarget.documentId}
           page={pageImageTarget.page}
           onClose={() => setPageImageTarget(null)}
-        />
-      )}
-
-      {showAuthModal && (
-        <ClaudeAuthModal
-          onClose={() => setShowAuthModal(false)}
-          onSignedIn={() => {
-            setShowAuthModal(false);
-            setNeedsAuth(false);
-          }}
         />
       )}
     </div>

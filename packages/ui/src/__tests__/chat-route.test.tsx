@@ -19,6 +19,7 @@ import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { AuthProvider } from "../context/auth-context.js";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { ChatRoute } from "../routes/chat.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
@@ -114,7 +115,9 @@ function makeTestClient(
 function renderWithClient(client: PraxisClient) {
   return render(
     <PraxisClientProvider client={client}>
-      <ChatRoute />
+      <AuthProvider>
+        <ChatRoute />
+      </AuthProvider>
     </PraxisClientProvider>,
   );
 }
