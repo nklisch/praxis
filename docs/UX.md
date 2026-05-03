@@ -431,6 +431,46 @@ Submission is no longer its own surface; it's an affordance that lives inside th
 - In **homework** submission is per-problem with auto-save; the chat side-rail is available for explanation but won't solve the problem.
 - In **exam** submission is per-problem with no live feedback; the agent is restricted to clarifying ambiguous wording (no method help, no hints).
 
+## Inline quick-check cards (Phase 17, planned)
+
+Quick checks are formative probes the tutor calls mid-explanation without spawning an assignment tab. Each one renders inline in the chat thread as a `<QuickCheckCard>` — a system-tagged message bubble, visually distinct from ordinary chat messages and from the graded assignment surface.
+
+**Visual treatment.** The card sits in the message flow between chat bubbles. It carries a thin hairline border and a discreet `tutor asked ·` kicker above the prompt text, rendered in the uppercase mono typeface that signals structural metadata throughout the editorial system. No modal, no overlay, no tab change — the conversation continues around it.
+
+**Card anatomy.** From top to bottom: the kicker tag, the prompt text set in the standard body type, the item-specific input control (radio buttons, checkboxes, pair columns, etc.), and a `submit` button. The submit button is disabled until the input is valid. For `requireReasoning` items, a textarea labeled `explain your thinking` appears below the choice control and must be non-empty before submission is permitted.
+
+**Locked state.** Once the student submits, the card locks: all controls become inert and the submit button is replaced with a quiet `answered` marker. When the tool was authored with a `correctIndex` (or equivalent), the locked card overlays correctness feedback in the editorial palette — correct answers with a `°` ornament, incorrect with an `·` ornament, never with color alone. The tutor's next message in the thread immediately follows and narrates the response.
+
+**Persistence across tab switches.** Because the chat tab body uses `display:none` rather than unmounting during tab switches (per the `tab-body-isolation` pattern), a pending card survives navigation. If the student switches away and back, the card is still there waiting. A closed tab whose session is still active similarly preserves the card; abandonment only occurs if the session itself ends.
+
+**Multiple in-flight checks.** If the tutor issues more than one quick check before the student answers (unusual but possible), each renders its own card in order, top-to-bottom by call arrival. The student answers them in whatever order they choose.
+
+**What stays out of episodic.** The synthetic system message that holds the card never reaches the episodic log. The `tool_call` event and the `tool_result` event that bracket the card do appear in episodic — the transcript shows that the tutor asked a question and the student answered, in the normal event flow.
+
+---
+
+## Item kind UX patterns (Phase 17, planned)
+
+The nine item kinds share a common outer wrapper (`<AssignmentItemCard>`) but each has a distinct input control. The same per-kind body components power both the assignment surface and `<QuickCheckCard>`.
+
+**single-choice.** A vertical radio column. Selected state: the chosen option fills with the mode tint at 8% and gains a hairline border. Submitted locked state: correct option marked with a `°` ornament; incorrect selected option marked with `·`. No partial credit.
+
+**multi-select.** A vertical checkbox column. Partial-credit feedback is per-option: after submission each option shows its individual status — selected-and-correct, selected-and-wrong, or missed-correct — so the student sees exactly where partial knowledge ended.
+
+**numerical.** Two inline inputs: a numeric value field and, when `expectedUnits` is set, a text units field beside it. A sig-fig hint line ("round to N significant figures") appears below the value input when `significantFigures` is set on the item. Both fields are required for submission when units are expected.
+
+**matching.** Two columns — left items and right items — in a card with adequate horizontal clearance. Primary interaction is drag-and-drop: the student drags a left-column item and drops it onto a right-column item; an SVG line appears connecting the pair. Lines redraw on scroll or resize. A "use keyboard" affordance in the card corner switches to a pick-from-dropdown fallback: each left item gains a select control listing all right items. Devices with no pointer events (touch-only) and sessions where `prefers-reduced-motion` is set default to the dropdown mode automatically. Both modes produce the same `{ leftId, rightId }[]` response payload.
+
+**ordering.** A vertical list shown in shuffled order. Primary interaction is drag-and-drop: the student drags rows up and down to reorder. Each row also carries a pair of up / down buttons that serve as the keyboard fallback — full keyboard operability with no mouse required. Submitted locked state shows the student's order with correct-position items marked `°` and misplaced items marked `·`.
+
+**two-tier.** Two stacked question blocks. Tier-1 renders as a standard radio column; tier-2 is hidden until the student selects a tier-1 option — this is deliberate, so the student commits to an answer before seeing the distractor reasons. After tier-1 selection, tier-2 reveals with its own radio column. The submit button is disabled until both tiers are answered (and, if `requireReasoning` is set, the reasoning textarea is non-empty).
+
+**requireReasoning modifier.** When set on a `single-choice`, `multi-select`, or `two-tier` item, a textarea labeled `explain your thinking` appears directly below the choice control. It is required for submission: the submit button stays disabled while the textarea is empty. The reasoning text travels in `AssignmentResponse.work`, the same field used by `workRubric` items; the grader can tell them apart because `requireReasoning` lives on the item schema.
+
+**Editorial conventions throughout.** All item kind labels, button text, and ornament characters follow the editorial language established in Phase 13: lowercase, typographic ornaments (`°`, `·`, `⌖`) for status signaling, no color-only status (always paired with ornament or label), no emoji.
+
+---
+
 ## Configure surface — Course authoring
 
 Lock-gated. The configurator and the agent co-build a course.

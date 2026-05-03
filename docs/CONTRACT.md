@@ -326,6 +326,124 @@ interface AssignmentItem {
   rubric?: Rubric;                // free-response / exam-quality grading
 }
 
+> **Phase 17 (planned) — `AssignmentItem` rename + expansion**
+>
+> `"multiple-choice"` renames to `"single-choice"` in Phase 17. A one-shot migration rewrites stored `items_json` blobs; the schema rejects the old string after migration (hard cut — no backward-compat alias). Four new kinds are added simultaneously, and a `requireReasoning` modifier lands on select choice kinds.
+>
+> The expanded discriminated union after Phase 17:
+>
+> ```typescript
+> type AssignmentItem =
+>   | SingleChoiceItem
+>   | MultiSelectItem
+>   | ShortAnswerItem       // unchanged
+>   | FreeResponseItem      // unchanged
+>   | MathItem              // unchanged
+>   | CodeItem              // unchanged
+>   | NumericalItem         // new
+>   | MatchingItem          // new
+>   | OrderingItem          // new
+>   | TwoTierItem;          // new
+>
+> interface SingleChoiceItem {
+>   kind: "single-choice";   // renamed from "multiple-choice"
+>   id: string;
+>   prompt: string;
+>   options: string[];
+>   correctOptionIndex: number;
+>   requireReasoning?: boolean;
+>   reasoningRubric?: Rubric;  // required when requireReasoning is true (Zod refine)
+>   primaryWeight?: number;    // blends selection vs. reasoning scores; default 0.5
+>   authoredBy?: "tutor" | "configurator";
+> }
+>
+> interface MultiSelectItem {
+>   kind: "multi-select";
+>   id: string;
+>   prompt: string;
+>   options: string[];
+>   correctOptionIndices: number[];  // ≥1, sorted ascending
+>   requireReasoning?: boolean;
+>   reasoningRubric?: Rubric;
+>   primaryWeight?: number;
+>   authoredBy?: "tutor" | "configurator";
+> }
+>
+> interface NumericalItem {
+>   kind: "numerical";
+>   id: string;
+>   prompt: string;
+>   expectedValue: number;
+>   tolerance?: number;          // absolute tolerance; |x − expected| ≤ tol; default 0
+>   expectedUnits?: string;      // case-insensitive exact-string match when set
+>   significantFigures?: number; // when set, student answer must round to this many sig figs
+>   workRubric?: Rubric;
+>   primaryWeight?: number;
+>   authoredBy?: "tutor" | "configurator";
+> }
+>
+> interface MatchingItem {
+>   kind: "matching";
+>   id: string;
+>   prompt: string;
+>   leftItems: Array<{ id: string; text: string }>;
+>   rightItems: Array<{ id: string; text: string }>;
+>   correctPairs: Array<{ leftId: string; rightId: string }>;  // 1:1 in v1
+>   authoredBy?: "tutor" | "configurator";
+> }
+>
+> interface OrderingItem {
+>   kind: "ordering";
+>   id: string;
+>   prompt: string;
+>   items: Array<{ id: string; text: string }>;  // shown shuffled to the student
+>   correctOrder: string[];                       // array of item ids in correct sequence
+>   authoredBy?: "tutor" | "configurator";
+> }
+>
+> interface TwoTierItem {
+>   kind: "two-tier";
+>   id: string;
+>   prompt: string;              // tier-1 question
+>   options: string[];           // tier-1 options
+>   correctOptionIndex: number;  // tier-1 correct
+>   reasonPrompt: string;        // tier-2 question, e.g. "why did you pick that?"
+>   reasonOptions: string[];     // tier-2 options (the "reasons")
+>   correctReasonIndex: number;
+>   // Maps each reason option index to a misconception id, or null when the option
+>   // is correct or carries no clear misconception. Length must equal reasonOptions.length.
+>   misconceptionByReasonIndex: Array<string | null>;
+>   requireReasoning?: boolean;
+>   reasoningRubric?: Rubric;
+>   primaryWeight?: number;
+>   authoredBy?: "tutor" | "configurator";
+> }
+> ```
+>
+> **`requireReasoning` modifier**: applicable to `SingleChoiceItem`, `MultiSelectItem`, and `TwoTierItem` only. Short-answer and free-response are already textual; math and code use `workRubric`. When set, the student writes a free-text justification. The reasoning text travels in the existing `AssignmentResponse.work` field — the grader can distinguish it from `workRubric` work because `requireReasoning` lives on the item. The deterministic selection grade and the rubric-agent reasoning grade are blended via `primaryWeight` (default 0.5) using the existing `blendDeterministicAndWorkRubric` helper.
+>
+> **Two-tier misconception evidence**: when a student picks a wrong tier-2 reason whose `misconceptionByReasonIndex` entry is non-null, the grader emits a misconception id in `GraderResult.misconceptionId`. The assignment service writes a misconception evidence event as a side effect, closing the loop with Phase 7's misconception memory.
+>
+> **Phase 17 (planned) — `QuickCheckAnswer` + `QuickCheckEvent`**
+>
+> These are ephemeral types that flow through the IPC stream `praxis.quickCheck.events.<streamId>` and are never persisted to the DB (they appear in the episodic transcript only as the bracketing `tool_call` / `tool_result` events).
+>
+> ```typescript
+> type QuickCheckAnswer =
+>   | { kind: "single-choice"; selectedIndex: number }
+>   | { kind: "multi-select"; selectedIndices: number[] }
+>   | { kind: "short-answer"; text: string }
+>   | { kind: "matching"; pairs: Array<{ leftId: string; rightId: string }> }
+>   | { kind: "confidence"; rating: number }
+>   | { kind: "abandoned" };  // session ended or renderer never resolved
+>
+> type QuickCheckEvent =
+>   | { kind: "pending"; callId: string; sessionId: SessionId; item: AssignmentItem }
+>   | { kind: "resolved"; callId: string; answer: QuickCheckAnswer };
+> ```
+>
+> The `praxis.quickCheck.resolve` IPC handler accepts `{ callId: string; answer: QuickCheckAnswer }` from the renderer and resolves the pending `Promise` in `QuickCheckService`. See SPEC.md §"Human-in-the-loop tool dispatch (Phase 17)" for the full dispatch semantics.
+
 interface Grade {
   total: number;                  // 0..1
   perItem: Array<{ itemId: string; score: number; feedback: string }>;

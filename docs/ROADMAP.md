@@ -2,7 +2,7 @@
 
 Built solo with AI assistance throughout. Phases are chunky — vibe-code each phase, hit the test checkpoint, ship. Each phase produces a system that does something demonstrably new. v1 is local-first only; hosted (Postgres + WebSocket) ships in v2. Engines are foundational — all three adapters (Claude Code, Codex, Direct) ship in the core layer; primary dev target is Claude Code via `../claude-cli-sdk` so testing happens on the existing CLI subscription, not on a paid API key.
 
-Three integration milestones along the way: **M1** end-to-end tutor session (Phase 3), **M2** end-to-end course progression (Phase 9), **M3** shippable v1 (Phase 18).
+Three integration milestones along the way: **M1** end-to-end tutor session (Phase 3), **M2** end-to-end course progression (Phase 9), **M3** shippable v1 (Phase 19).
 
 ---
 
@@ -315,7 +315,28 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 17: Study-skills + pedagogy pack + remaining memory
+## Phase 17: Item type expansion + inline quick checks
+
+**Goal:** Expand the assessment item palette from five kinds to nine and introduce inline formative checks. The tutor gains a lightweight `quick_check.*` tool family for single-question probes mid-conversation — no assignment tab required, no context switch, just a card in the thread and a reaction in the same turn.
+
+**Build:**
+- Rename `multiple-choice` → `single-choice` (schema + migration + grader rename). Migration rewrites stored `items_json` blobs; hard cut — no backward-compat alias.
+- Four new `AssignmentItem` kinds: `multi-select` (Jaccard partial-credit grader), `numerical` (value + tolerance + optional units + sig-figs), `matching` (pair-fraction grader), `ordering` (position-fraction grader), `two-tier` (answer + reason; each reason option maps to a misconception id; wrong reason emits a misconception evidence event automatically).
+- `requireReasoning` modifier on `single-choice`, `multi-select`, and `two-tier` — student writes a justification; rubric-graded and blended with the deterministic selection score via the existing `blendDeterministicAndWorkRubric` helper.
+- Per-kind grader files under `packages/core/src/services/graders/`; grader registry is the single source of truth.
+- Drag-and-drop UI for matching (two-column with SVG line overlay) and ordering (vertical reorder list); pick-from-dropdown / up-down-button keyboard fallbacks toggled by a "use keyboard" affordance; reduced-motion and touch devices default to the accessible fallback.
+- New `quick_check.*` tool family: `single_choice`, `multi_select`, `short_answer`, `matching`, `confidence` — five tools the tutor calls inline during a teach session. Formative only; no DB persistence; the tool call blocks until the student answers via IPC.
+- `QuickCheckService` — in-memory pending-call map; emits typed events; `await(callId, item)` → `Promise<QuickCheckAnswer>`; `resolve(callId, answer)` and `cancel(callId)` for lifecycle management. IPC channels: `praxis.quickCheck.events.<streamId>` (streaming pending/resolved events) and `praxis.quickCheck.resolve` (student submission).
+- `<QuickCheckCard>` rendered inline in the chat thread as a synthetic system message — thin border, "tutor asked" tag, item body, submit button. Locks on submission; correct/incorrect feedback shown when `correctIndex` was provided. Reuses the same per-kind item-body subcomponents as `<AssignmentItemCard>`.
+- Teach mode prompt fragment update: explains when to use `quick_check.*` (formative, mid-explanation) vs. `assignment.create` (summative, gradeable, own tab); item-kind reference with pedagogical notes.
+
+**Research:** Drag-and-drop library fit on the React 19 stack — verify whether `@dnd-kit/core` is already in the project's dependencies; if not, evaluate it vs. a hand-rolled pointer handler. Accessibility patterns for matching exercises (keyboard pairing semantics). Force Concept Inventory–style two-tier item authoring conventions for the pedagogy pack.
+
+**Test checkpoint:** Open a teach session; ask the tutor to check understanding mid-explanation; verify a `<QuickCheckCard>` appears inline; answer; confirm the tutor's next message reacts to the response. Author an assignment containing one item of each new kind via the configurator; take it; verify each kind renders correctly, accepts input, and grades as expected. On a two-tier item, deliberately pick a wrong reason whose `misconceptionByReasonIndex` entry is non-null; submit; confirm a misconception evidence event lands in `pnpm db:mastery`.
+
+---
+
+## Phase 18: Study-skills + pedagogy pack + remaining memory
 
 **Goal:** Dedicated metacognition coach mode plus the procedural / affective memory it relies on.
 
@@ -333,7 +354,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 18: Biology canonical + Electron packaging + ship
+## Phase 19: Biology canonical + Electron packaging + ship
 
 **Goal:** Shippable v1 — signed installer for at least one platform with both canonical packs.
 

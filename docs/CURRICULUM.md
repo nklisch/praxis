@@ -265,6 +265,42 @@ The pedagogy pack is the curated, versioned content that the framework uses for 
 
 **Custom packs.** Configurators can author custom packs for specialized contexts (e.g., a subject-specific pedagogy pack for music theory, or a culturally-adapted pack for a specific student population). The pack format is the contract; provenance is whoever signs it.
 
+## Assessment item design (Phase 17, planned)
+
+### When to use which item kind
+
+Each item kind has a distinct cognitive purpose. The right choice of kind shapes both what you measure and how the student's thinking is engaged.
+
+**`single-choice`** — recall and quick recognition. Useful when the answer is unambiguous and speed of retrieval is the point. Best for vocabulary, definitions, fact-checking, and yes/no judgment. The easiest to author; the hardest to misinterpret. Use it where nuance is not the target.
+
+**`multi-select`** — discriminating between related concepts. "Select all that apply" forces the student to evaluate each option independently rather than stopping at the first plausible answer. Jaccard partial-credit grading rewards partial knowledge: a student who identifies three of four correct options gets partial, not zero. Use when the domain has a family of related true statements and conflating them is the common error.
+
+**`numerical`** — quantitative reasoning with unit discipline. The tolerance band distinguishes conceptual understanding from arithmetic precision; sig-fig enforcement is appropriate when precision is itself the learning target (science labs, engineering contexts). The units field closes off "dimensionally meaningless" answers that happen to have the right digit. Use wherever a number is the answer and order-of-magnitude or unit confusions are the misconception to probe.
+
+**`matching`** — vocabulary with definitions, equations with verbal descriptions, axioms with theorems, historical events with dates, chemical elements with symbols. Two-column pairing is cognitively economical: the student works within a closed set, which reduces cognitive load while still requiring discrimination. Use when the correct answer exists in a finite universe visible in the item.
+
+**`ordering`** — proofs, derivations, algorithms, historical chronology, lab procedures. The student must assemble steps, not just recognize them. Use when sequence is the learning target — a student who knows the individual steps but can't order them doesn't yet have procedural fluency.
+
+**`two-tier`** — misconception detection. The first tier is a standard factual question; the second tier asks the student to select the reason for their answer. Force Concept Inventory style: the reason options are calibrated distractors — each plausible-sounding wrong reason corresponds to a named misconception. A student who picks the right answer for the wrong reason (tier-1 correct, tier-2 wrong) is at greater risk than the student who got tier-1 wrong but reasoned correctly. Every non-null entry in `misconceptionByReasonIndex` automatically seeds Phase 7's misconception memory when selected, closing the loop between assessment and remediation.
+
+**`single-choice` or `multi-select` + `requireReasoning: true`** — surfaces "right answer, wrong reason" and "wrong answer, sound reasoning." The choice grade gives fast deterministic feedback on the answer; the reasoning rubric reveals the quality of the underlying thinking. Use when the *thinking* matters as much as the outcome — in early instruction on a concept, when consolidating understanding, or when a student's wrong answers show a pattern that a pure grade can't expose.
+
+**`short-answer`** and **`free-response`** — open-ended answers where there is no closed set of options. `short-answer` expects a short typed string matched against accepted answers. `free-response` is long-form prose, rubric-graded by the rubric agent. Use `short-answer` for definitions, term fill-ins, or constrained recall. Use `free-response` when argumentation, explanation depth, or synthesis is the target.
+
+**`math`** and **`code`** — when symbolic correctness or executable correctness is the criterion. Sympy validates math; the sandbox runs code against tests. Neither can be "partially right" by luck; they're the appropriate choice when the verification must be deterministic and the answer domain is formal.
+
+### Quick checks vs. assignments: formative and summative surfaces
+
+The framework offers two surfaces for putting questions to the student. Choosing the right one for the moment matters more than which item kind is used.
+
+**Quick checks** (`quick_check.*`) are formative: single-question, inline in the chat thread, ephemeral. The student answers without leaving the conversation; the tutor sees the response in the same turn and reacts. No grade is persisted to the assignment table; the exchange lives in the episodic transcript as a tool call and its result, nothing more. Use quick checks for "did that land?" — mid-explanation probes, checking understanding after a worked example, testing a prerequisite before introducing a new concept, gauging confidence before a harder problem. The low friction is deliberate: a quick check should feel like a tap on the shoulder, not a context switch.
+
+**Assignments** (`assignment.create`) are summative-ish: lesson-scoped, multi-item, gradeable, retake-able, gate-able. The student takes them as a deliberate separate task in their own tab; the tutor receives a system note when they submit; the grade is persisted and contributes to mastery signals and gate evaluation. Use assignments for homework sets, quizzes after a lesson's concepts are taught, and unit exams. The deliberate, separated nature of assignment work is itself pedagogically meaningful — it marks a transition from learning to consolidation or from consolidation to assessment.
+
+The default disposition for formative work is quick check. Reserve `assignment.create` for things the student should do as their own deliberate practice, not as part of the flow of a teach session. Over-assigning (turning every check-for-understanding into a graded artifact) erodes the distinction between learning and measurement — and erodes the student's trust in the conversational tutor relationship.
+
+---
+
 ## Research grounding (selected)
 
 Specific empirical findings that shape the v1 pack:

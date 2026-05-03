@@ -106,6 +106,43 @@ The **graded grounding hierarchy.** The tutor prefers the most authoritative sou
 
 These rules are enforced **by tool design** — the tool that grades math literally uses sympy; the tool that quotes the textbook literally retrieves. The agent's only choice is whether to call the tool. That's a model-behavior concern handled by prompts and engine selection, not architecture.
 
+## Human-in-the-loop tool dispatch (Phase 17, planned)
+
+Most tools return a result synchronously — they do computation or call a service, then resolve. A small class of tools needs to block on user input before they can return. Phase 17 introduces this pattern for the `quick_check.*` family; the mechanism is general enough to serve future uses (multi-step approval flows, disambiguation prompts).
+
+**Why not just emit a message and wait for the next user turn?** Quick checks are tool calls. The engine's internal loop is running; the model issued a `tool_call` event and is waiting for the matching `tool_result`. If the framework returned a synthetic "please respond" string, the engine would treat that as the tool result and continue — the student's actual answer would arrive in a separate turn as a `user_message`, which the model would have to correlate with the earlier question manually. Human-in-the-loop dispatch avoids this by holding the tool-result Promise open until the renderer signals back.
+
+**Dispatch mechanics:**
+
+1. The tutor emits `tool_call: quick_check.single_choice({ prompt, options, correctIndex? })`.
+2. The engine adapter passes the call to `InProcessToolRegistry.dispatch(name, args)`.
+3. The handler generates a `callId` (uuidv7), then calls `ctx.services.quickCheck.await({ callId, sessionId, item })`.
+4. `QuickCheckService.await` inserts a pending entry in an in-memory map and emits a `QuickCheckEvent { kind: "pending", callId, sessionId, item }` to all subscribers. The call returns a `Promise` that stays unresolved.
+5. The renderer subscribes to `praxis.quickCheck.events.<streamId>`. On a `pending` event matching the active session, it renders a `<QuickCheckCard>` as a synthetic message bubble in the chat thread.
+6. The student answers. The card calls `client.quickCheck.resolve({ callId, answer })`.
+7. The IPC handler forwards to `quickCheckService.resolve({ callId, answer })`, which resolves the pending `Promise`.
+8. The tool handler returns the answer as its result; the registry emits a `tool_result` event; the engine continues its loop and narrates the response in the same turn.
+
+**IPC channel shapes:**
+
+```typescript
+// Renderer subscribes — streaming, push from main process
+"praxis.quickCheck.events.<streamId>"
+// Payload types: QuickCheckEvent (see CONTRACT.md)
+// { kind: "pending"; callId; sessionId; item }
+// { kind: "resolved"; callId; answer }
+
+// Renderer calls — invoke, main process handles
+"praxis.quickCheck.resolve"
+// Input: { callId: string; answer: QuickCheckAnswer }
+```
+
+**Abandonment semantics:** if the session ends while a quick check is pending (the student closed the tab, or the session timed out), `QuickCheckService.cancel(callId)` is called during session teardown. The awaiting Promise resolves with `{ kind: "abandoned" }`. The tool handler returns a sentinel response (`selectedIndex: -1`) that the model interprets as "student didn't answer." The conversation remains in a consistent state; the next user message in a new session can proceed normally.
+
+**Multiple in-flight checks:** the service supports concurrent pending calls, each keyed by its own `callId`. Each renders its own `<QuickCheckCard>` in the thread, ordered top-down by call arrival.
+
+---
+
 ## Memory commitments
 
 - **Episodic transcripts are immutable.** Append-only, retained until the user deletes them. Source of truth.
