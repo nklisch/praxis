@@ -11,12 +11,15 @@
  * useEffect so the subscription is properly torn down on unmount.
  */
 import type { ConceptId, ConceptLink, ConceptMapDrawing, CourseId } from "@praxis/core/types";
+import { type ConceptMatch, matchConceptByLabel } from "@praxis/core/services";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import type { Editor, TLShapeId } from "tldraw";
 import { usePraxisClient } from "../context/client-context.js";
 import styles from "./concept-link-overlay.module.css";
 
 // ── Canonical concept shape returned by client.artifacts.concepts() ────────
+// Stays loose to match the IPC return type. The matcher accepts any
+// `{ id, name }` shape via ConceptForMatching, so this works directly.
 
 interface CanonicalConcept {
   id: string;
@@ -27,73 +30,9 @@ interface CanonicalConcept {
   standardsTags: string[];
 }
 
-// ── Matcher ────────────────────────────────────────────────────────────────
-
-interface ConceptMatch {
-  conceptId: string;
-  conceptName: string;
-  confidence: number;
-}
-
-/**
- * Fuzzy-match label against canonical concepts.
- * STUB: will be replaced by @praxis/core/services export (matchConceptByLabel)
- * once Agent 2's commit is cherry-picked.
- * Adapts to ArtifactsClientSurface.concepts() return shape ({id, name, ...}).
- */
-function matchConceptByLabel(
-  label: string,
-  concepts: ReadonlyArray<CanonicalConcept>,
-  minConfidence = 0.7,
-): ConceptMatch[] {
-  const normalized = label
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ");
-  if (!normalized) return [];
-
-  const results: ConceptMatch[] = [];
-  for (const c of concepts) {
-    const cNorm = c.name
-      .toLowerCase()
-      .replace(/[^\w\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!cNorm) continue;
-
-    // Exact match
-    if (normalized === cNorm) {
-      results.push({ conceptId: c.id, conceptName: c.name, confidence: 1.0 });
-      continue;
-    }
-
-    // Substring containment
-    if (cNorm.includes(normalized) || normalized.includes(cNorm)) {
-      const shorter = Math.min(normalized.length, cNorm.length);
-      const longer = Math.max(normalized.length, cNorm.length);
-      const confidence = Math.max(shorter / longer, 0.75);
-      if (confidence >= minConfidence) {
-        results.push({ conceptId: c.id, conceptName: c.name, confidence });
-      }
-      continue;
-    }
-
-    // Token overlap (Jaccard)
-    const tokA = new Set(normalized.split(" ").filter(Boolean));
-    const tokB = new Set(cNorm.split(" ").filter(Boolean));
-    let intersection = 0;
-    for (const t of tokA) if (tokB.has(t)) intersection++;
-    const union = tokA.size + tokB.size - intersection;
-    const tokenScore = union > 0 ? intersection / union : 0;
-    if (tokenScore >= minConfidence) {
-      results.push({ conceptId: c.id, conceptName: c.name, confidence: tokenScore });
-    }
-  }
-
-  results.sort((a, b) => b.confidence - a.confidence);
-  return results.slice(0, 3);
-}
+// Matcher imported from @praxis/core/services — the canonical implementation.
+// Token-aware fuzzy + normalized Levenshtein blend, tuned for abbreviations
+// like "linear eqs" → "Linear Equations".
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -188,9 +127,12 @@ export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: Concept
         }
         if (!label) continue;
         const linkedConceptIds = new Set(map.conceptLinks.map((l) => l.conceptId as string));
-        const matches = matchConceptByLabel(label, conceptsRef.current).filter(
-          (m) => !linkedConceptIds.has(m.conceptId),
-        );
+        // Typeahead uses a more permissive threshold than the indexer:
+        // "Linear" should suggest "Linear Equations" even though it scores ~0.5.
+        // The student gates each suggestion via click — false positives are cheap.
+        const matches = matchConceptByLabel(label, conceptsRef.current, 0.4)
+          .filter((m) => !linkedConceptIds.has(m.conceptId))
+          .slice(0, 3); // top-3 typeahead suggestions
 
         if (matches.length > 0) {
           // Convert shape page position to screen position.

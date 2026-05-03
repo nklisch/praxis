@@ -5,7 +5,18 @@
  * token-overlap + normalized Levenshtein blend. No external deps.
  */
 
-import type { Concept, ConceptId } from "../types/index.js";
+import type { ConceptId } from "../types/index.js";
+
+/**
+ * The minimal shape `matchConceptByLabel` needs from a concept. The full
+ * `Concept` type satisfies this; so does the renderer-side shape returned
+ * by `client.artifacts.concepts()` (which has wider fields like aliases,
+ * standardsTags). Keep this loose so callers can pass either.
+ */
+export interface ConceptForMatching {
+  readonly id: ConceptId | string;
+  readonly name: string;
+}
 
 export interface ConceptMatch {
   conceptId: ConceptId;
@@ -26,7 +37,7 @@ export interface ConceptMatch {
  */
 export function matchConceptByLabel(
   label: string,
-  canonicalConcepts: ReadonlyArray<Concept>,
+  canonicalConcepts: ReadonlyArray<ConceptForMatching>,
   minConfidence = 0.65,
 ): ConceptMatch[] {
   const normalized = normalizeLabel(label);
@@ -41,7 +52,7 @@ export function matchConceptByLabel(
     const confidence = scoreMatch(normalized, conceptNorm);
     if (confidence >= minConfidence) {
       results.push({
-        conceptId: concept.id,
+        conceptId: concept.id as ConceptId,
         conceptName: concept.name,
         confidence,
       });
