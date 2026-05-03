@@ -39,14 +39,19 @@ export const DEFAULT_LOGGING_CONFIG: LoggingConfig = LoggingConfigSchema.parse({
  * - PRAXIS_LOG_FILE=1|0   → forces fileEnabled true|false
  * - PRAXIS_LOG_PROMPTS=1  → enables prompt logging at debug
  *
- * The optional `isPackaged` argument flips the `fileEnabled` default for dev:
- * when isPackaged === false and no stored value or env override is set,
- * fileEnabled defaults to true.
+ * The optional `isPackaged` argument flips a few defaults for dev:
+ * when `isPackaged === false` and no stored value or env override is set,
+ * `level` defaults to `"debug"` (so `pnpm dev` is loud by default — the only
+ * way to diagnose engine adapter / explorer / IPC issues post hoc) and
+ * `fileEnabled` defaults to `true` so those records actually land on disk.
+ * Packaged builds keep the quieter "info" + no-file defaults to honor
+ * SPEC.md's "no telemetry by default".
  */
 export function readLoggingConfig(db: PraxisDb, opts?: { isPackaged?: boolean }): LoggingConfig {
   const rows = db.select().from(configKv).where(eq(configKv.key, LOGGING_CONFIG_KEY)).all();
   const stored = rows[0]?.valueJson as Partial<LoggingConfig> | undefined;
-  const devDefault = opts?.isPackaged === false ? { fileEnabled: true } : {};
+  const devDefault: Partial<LoggingConfig> =
+    opts?.isPackaged === false ? { level: "debug", fileEnabled: true } : {};
   const merged = LoggingConfigSchema.parse({
     ...DEFAULT_LOGGING_CONFIG,
     ...devDefault,

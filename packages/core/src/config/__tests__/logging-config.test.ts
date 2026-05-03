@@ -40,6 +40,27 @@ describe("readLoggingConfig", () => {
     expect(cfg.fileEnabled).toBe(false);
   });
 
+  it("level defaults to 'debug' when isPackaged === false", () => {
+    const db = makeDb();
+    const cfg = readLoggingConfig(db, { isPackaged: false });
+    expect(cfg.level).toBe("debug");
+  });
+
+  it("level defaults to 'info' when isPackaged === true", () => {
+    const db = makeDb();
+    const cfg = readLoggingConfig(db, { isPackaged: true });
+    expect(cfg.level).toBe("info");
+  });
+
+  it("stored level overrides the dev debug default", () => {
+    // A user who explicitly set level=info via the config UI should not be
+    // overridden by the dev default — `pnpm dev` respects intent.
+    const db = makeDb();
+    writeLoggingConfig(db, { ...DEFAULT_LOGGING_CONFIG, level: "info" });
+    const cfg = readLoggingConfig(db, { isPackaged: false });
+    expect(cfg.level).toBe("info");
+  });
+
   it("stored partial values merge with defaults", () => {
     const db = makeDb();
     writeLoggingConfig(db, { ...DEFAULT_LOGGING_CONFIG, level: "debug" });
