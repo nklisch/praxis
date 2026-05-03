@@ -83,6 +83,21 @@ If retrieval returns nothing useful, say so explicitly. Don't invent connections
   async handler(args, ctx: ToolContext) {
     const { embeddings, vectorStore, ftsStore, documents } = ctx.services;
 
+    // Phase 16: resolve effective document scope.
+    //   1. Explicit args.documentIds wins (cross-course override).
+    //   2. Otherwise, if a course is in scope, restrict to its attached docs.
+    //   3. Otherwise (bootstrap, configure outside a course), search the whole
+    //      student library — preserves today's pre-course behavior.
+    let effectiveDocumentIds: string[] | undefined = args.documentIds;
+    if (effectiveDocumentIds === undefined && ctx.courseDocumentIds !== undefined) {
+      if (ctx.courseDocumentIds.length === 0) {
+        // Course in scope but nothing attached — return empty rather than
+        // silently widening to the library.
+        return { query: args.query, citations: [] };
+      }
+      effectiveDocumentIds = ctx.courseDocumentIds;
+    }
+
     // Asymmetric query encoding — adds ~5-10% retrieval quality for bge-small
     const queryVec = await embeddings.embedQuery(args.query);
 
@@ -90,7 +105,7 @@ If retrieval returns nothing useful, say so explicitly. Don't invent connections
 
     // Build shared filter args (only include when defined)
     const filterArgs = {
-      ...(args.documentIds !== undefined && { documentIds: args.documentIds }),
+      ...(effectiveDocumentIds !== undefined && { documentIds: effectiveDocumentIds }),
       ...(args.sectionPattern !== undefined && { sectionPattern: args.sectionPattern }),
       ...(args.pageRange !== undefined && { pageRange: args.pageRange }),
     };

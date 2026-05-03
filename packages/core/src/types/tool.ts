@@ -91,6 +91,21 @@ export interface ToolContext {
    * Agent 2 wires this from the session row's assignmentId column.
    */
   assignmentId?: AssignmentId;
+  /**
+   * Phase 16: pre-computed list of document ids attached to `courseId`.
+   * Populated only when `courseId` is set; tools that scope to course
+   * documents (e.g., `retrieve_from_textbook`) consume this directly to
+   * avoid an extra DB call per dispatch. Empty array means "no documents
+   * attached yet" — tools should return empty results, not fall back to
+   * library scope.
+   */
+  courseDocumentIds?: DocumentId[];
+  /**
+   * Phase 16: present only inside the explorer agent's isolated session.
+   * The draft-mutation tools read it to know which draft to mutate. Outside
+   * the explorer, this is undefined.
+   */
+  draftId?: string;
   services: ToolServices;
   log: Logger;
 }
@@ -134,6 +149,8 @@ export interface ToolServices {
   sketches?: SketchService;
   /** Phase 15a: vision capability wrapper — used by grade_math sketch case to OCR drawings. */
   vision?: VisionService;
+  /** Phase 16: course ↔ document attachment management. */
+  courseDocuments: CourseDocumentsService;
 }
 
 // ─── Phase 12: NotesService ───────────────────────────────────────────────────
@@ -472,6 +489,44 @@ export interface DocumentSummaryItem {
   hasPageImages: boolean;
 }
 
+// ─── Phase 16: CourseDocumentsService ─────────────────────────────────────────
+
+/**
+ * Many-to-many between courses and the student's library documents. A document
+ * can be attached to zero, one, or many courses. The student library
+ * (`documents` table) is the SSOT — this service only manages links.
+ */
+export interface CourseDocumentsService {
+  /** All document ids attached to a course, in attach order. */
+  listForCourse(courseId: CourseId): Promise<DocumentId[]>;
+
+  /** Compact summaries of documents attached to a course (for tool output). */
+  listForCourseDetailed(courseId: CourseId): Promise<DocumentSummaryItem[]>;
+
+  /**
+   * Attach. Idempotent: re-attaching an already-attached document is a no-op
+   * (returns false). Returns true if a row was actually inserted.
+   */
+  attach(input: {
+    courseId: CourseId;
+    documentId: DocumentId;
+    source: "bootstrap" | "manual" | "ingestion";
+  }): Promise<{ attached: boolean }>;
+
+  /** Detach. Idempotent: detaching an unlinked doc returns false. */
+  detach(input: { courseId: CourseId; documentId: DocumentId }): Promise<{ detached: boolean }>;
+
+  /**
+   * Bulk attach used at confirm-draft time. Skips already-attached documents.
+   * Returns the list of newly attached document ids.
+   */
+  attachMany(input: {
+    courseId: CourseId;
+    documentIds: ReadonlyArray<DocumentId>;
+    source: "bootstrap" | "manual" | "ingestion";
+  }): Promise<{ newlyAttached: DocumentId[] }>;
+}
+
 // ─── Phase 6: CourseStateReader ───────────────────────────────────────────────
 
 export interface CourseStateReader {
@@ -762,10 +817,26 @@ export interface FtsSearchResult {
 
 // ─── DocumentsReader ─────────────────────────────────────────────────────────
 
+/** A single document chunk as returned by the reader. */
+export interface DocumentChunkRow {
+  chunkIndex: number;
+  text: string;
+  page?: number;
+  section?: string;
+}
+
 export interface DocumentsReader {
   titlesByIds(ids: ReadonlyArray<string>): Promise<Map<string, string>>;
   /** Fetch the page image bytes if one was saved during vision-tier ingestion. */
   pageImage(input: { documentId: string; page: number }): Promise<Buffer | null>;
+  /**
+   * Phase 16: Return all chunks for a document, filtered by studentId for
+   * ownership verification. Ordered by chunkIndex.
+   */
+  chunksForDocument(input: {
+    documentId: string;
+    studentId: string;
+  }): Promise<DocumentChunkRow[]>;
 }
 
 // ─── SymPyService ────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import type {
   BootstrapService,
   CodeSandbox,
   ConceptMapService,
+  CourseDocumentsService,
   CourseStateReader,
   DocumentsReader,
   EmbeddingService,
@@ -73,6 +74,8 @@ export interface ServiceDeps {
     vision?: VisionService;
     /** Phase 15b: concept map CRUD + versioning. */
     conceptMaps: ConceptMapService;
+    /** Phase 16: course ↔ document attachment management. */
+    courseDocuments: CourseDocumentsService;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

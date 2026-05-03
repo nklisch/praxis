@@ -13,6 +13,7 @@ import type {
   AssignmentId,
   ConversationTurn,
   CourseId,
+  DocumentId,
   Engine,
   EngineEvent,
   EngineSession,
@@ -476,11 +477,19 @@ export class SessionServiceImpl implements SessionService {
       ...(overrides !== undefined && { overrides }),
     });
 
+    // Phase 16: pre-compute course-attached document ids for tool context.
+    // Tools consume this directly to avoid a per-dispatch DB call.
+    const courseDocumentIds: DocumentId[] | undefined =
+      args.courseId !== undefined
+        ? await this.deps.toolServices.courseDocuments.listForCourse(args.courseId)
+        : undefined;
+
     const toolContext: ToolContext = {
       studentId: args.studentId as ToolContext["studentId"],
       sessionId: args.sessionId as ToolContext["sessionId"],
       ...(args.courseId !== undefined && { courseId: args.courseId }),
       ...(args.assignmentId !== undefined && { assignmentId: args.assignmentId }),
+      ...(courseDocumentIds !== undefined && { courseDocumentIds }),
       services: {
         memory: this.deps.toolServices.memory, // ← Phase 7
         artifacts: this.deps.toolServices.artifacts, // ← Phase 6
@@ -517,6 +526,8 @@ export class SessionServiceImpl implements SessionService {
         ...(this.deps.toolServices.vision !== undefined && {
           vision: this.deps.toolServices.vision,
         }),
+        // Phase 16: course documents service — always present.
+        courseDocuments: this.deps.toolServices.courseDocuments,
       },
       log: this.deps.log,
     };

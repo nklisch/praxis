@@ -5,6 +5,9 @@ import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
+  CourseDocumentsService,
+  CourseId,
+  DocumentId,
   EmbeddingService,
   FtsStore,
   IngestionEvent,
@@ -12,6 +15,7 @@ import type {
   Logger,
   VectorStore,
 } from "../types/index.js";
+import { brandId } from "../types/index.js";
 import type { PageImageStore } from "./page-images.js";
 
 export interface IngestionServiceDeps {
@@ -22,6 +26,8 @@ export interface IngestionServiceDeps {
   embeddings: EmbeddingService;
   ingestorRegistry: IngestorRegistry;
   pageImageStore: PageImageStore;
+  /** Phase 16: when provided, auto-attaches ingested documents to the course specified in IngestionRequest.courseId. */
+  courseDocuments?: CourseDocumentsService;
 }
 
 const EMBED_BATCH_SIZE = 32;
@@ -187,6 +193,23 @@ export class IngestionService {
 
       processed += batch.length;
       yield { type: "indexing", chunksProcessed: processed, totalChunks: result.chunks.length };
+    }
+
+    // Phase 16: auto-attach to course when courseId is set (best-effort).
+    if (req.courseId !== undefined && this.deps.courseDocuments !== undefined) {
+      try {
+        await this.deps.courseDocuments.attach({
+          courseId: req.courseId as CourseId,
+          documentId: brandId<"DocumentId">(documentId) as DocumentId,
+          source: "ingestion",
+        });
+      } catch (e) {
+        this.deps.log.warn("auto-attach to course failed; document still persisted", {
+          documentId,
+          courseId: req.courseId,
+          error: String(e),
+        });
+      }
     }
 
     yield { type: "done", documentId, chunkCount: result.chunks.length };

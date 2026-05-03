@@ -100,6 +100,13 @@
       "import": "./dist/sketch/index.js",
       "node": "./dist/sketch/index.js",
       "default": "./dist/sketch/index.js"
+    },
+    "./document": {
+      "praxis-source": "./src/document/index.ts",
+      "types": "./dist/document/index.d.ts",
+      "import": "./dist/document/index.js",
+      "node": "./dist/document/index.js",
+      "default": "./dist/document/index.js"
     }
   },
   "scripts": {

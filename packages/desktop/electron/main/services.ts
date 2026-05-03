@@ -14,6 +14,7 @@ import {
   ConceptMapServiceImpl,
   ConceptMapSnapshotter,
   ConfigServiceImpl,
+  CourseDocumentsServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
   FlashcardsServiceImpl,
@@ -47,6 +48,7 @@ import { sessions } from "@praxis/memory/schema";
 import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/assignment";
 import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
+import { DOCUMENT_TOOLS } from "@praxis/tools/document";
 import { FLASHCARD_TOOLS } from "@praxis/tools/flashcards";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
@@ -102,6 +104,8 @@ export interface Services {
   sketches: SketchServiceImpl;
   /** Phase 15b: concept map service — exposed for IPC handlers. */
   conceptMaps: ConceptMapServiceImpl;
+  /** Phase 16: course ↔ document attachment service. */
+  courseDocuments: CourseDocumentsServiceImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
@@ -309,6 +313,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     scheduler: fsrsScheduler,
   });
 
+  // Phase 16: CourseDocumentsServiceImpl — course ↔ document attachment management.
+  const courseDocumentsService = new CourseDocumentsServiceImpl({ db, log });
+
   // Phase 11: AuthoringServiceImpl — orchestration layer for configurator writes.
   // Constructed after memoryService and artifactsService (depends on both).
   const authoringService = new AuthoringServiceImpl({
@@ -336,6 +343,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     codeSandboxTool,
     retrieveFromTextbookTool,
     ...COURSE_TOOLS, // ← Phase 6
+    ...DOCUMENT_TOOLS, // ← Phase 16
     ...MEMORY_TOOLS, // ← Phase 7
     ...ASSIGNMENT_TUTOR_TOOLS, // ← Phase 8
     ...ASSIGNMENT_TAKE_TOOLS, // ← Phase 8
@@ -372,6 +380,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       sketches: sketchService, // ← Phase 15a
       vision: visionService, // ← Phase 15a
       conceptMaps: conceptMapService, // ← Phase 15b
+      courseDocuments: courseDocumentsService, // ← Phase 16
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)
@@ -385,6 +394,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     embeddings,
     ingestorRegistry,
     pageImageStore,
+    courseDocuments: courseDocumentsService, // ← Phase 16
   });
 
   const documentsService = new DocumentsServiceImpl({
@@ -413,6 +423,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     fsrsScheduler, // ← Phase 12
     sketches: sketchService, // ← Phase 15a
     conceptMaps: conceptMapService, // ← Phase 15b
+    courseDocuments: courseDocumentsService, // ← Phase 16
     ingestorRegistry,
     pyodide,
     embeddings,

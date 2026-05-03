@@ -44,6 +44,8 @@ const ctx: ToolContext = {
     packs: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 8 placeholder — not used in this test
     assignments: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 16 placeholder — not used in this test
+    courseDocuments: null as any,
   },
   log: (() => {
     const l: Logger = {

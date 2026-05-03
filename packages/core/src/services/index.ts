@@ -33,6 +33,9 @@ export {
 } from "./assignment-service.js";
 export type { BootstrapServiceDeps } from "./bootstrap-service.js";
 export { BootstrapServiceImpl } from "./bootstrap-service.js";
+// Phase 16: Course documents service
+export type { CourseDocumentsServiceDeps } from "./course-documents-service.js";
+export { CourseDocumentsServiceImpl } from "./course-documents-service.js";
 // Phase 15b: Concept-link fuzzy matcher
 export type { ConceptMatch } from "./concept-link-matcher.js";
 export { matchConceptByLabel } from "./concept-link-matcher.js";

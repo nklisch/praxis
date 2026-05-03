@@ -114,23 +114,6 @@ export const notes = sqliteTable(
   }),
 );
 
-export const conceptMapDrawings = sqliteTable(
-  "concept_map_drawings",
-  {
-    id: text("id").primaryKey(),
-    studentId: text("student_id").notNull(),
-    courseId: text("course_id"),
-    sceneJson: text("scene_json", { mode: "json" }).notNull(),
-    conceptLinksJson: text("concept_links_json", { mode: "json" }).notNull(),
-    divergencesJson: text("divergences_json", { mode: "json" }),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
-  },
-  (t) => ({
-    studentCourseIdx: index("concept_maps_student_course_idx").on(t.studentId, t.courseId),
-  }),
-);
-
 export const documents = sqliteTable(
   "documents",
   {
@@ -160,6 +143,32 @@ export const documentChunks = sqliteTable(
   },
   (t) => ({
     documentIdx: index("document_chunks_doc_idx").on(t.documentId, t.chunkIndex),
+  }),
+);
+
+// ─── Phase 16: Course ↔ Document attachment ──────────────────────────────────
+
+export const courseDocuments = sqliteTable(
+  "course_documents",
+  {
+    courseId: text("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    attachedAt: integer("attached_at", { mode: "timestamp_ms" }).notNull(),
+    /**
+     * Where the attachment came from. "bootstrap" = seed list passed to the
+     * explorer; "manual" = user attached via UI picker; "ingestion" = the
+     * document was uploaded while a course was in scope.
+     */
+    source: text("source", { enum: ["bootstrap", "manual", "ingestion"] }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.courseId, t.documentId] }),
+    courseIdx: index("course_documents_course_idx").on(t.courseId),
+    documentIdx: index("course_documents_document_idx").on(t.documentId),
   }),
 );
 
@@ -259,11 +268,11 @@ export const artifactsSchema = {
   gates,
   flashcards,
   notes,
-  conceptMapDrawings,
   documents,
   documentChunks,
   lessonProgress, // ← Phase 6
   conceptProgress, // ← Phase 6
   assignmentResponses, // ← Phase 8
   gateUnlockEvents, // ← Phase 9
+  courseDocuments, // ← Phase 16
 };

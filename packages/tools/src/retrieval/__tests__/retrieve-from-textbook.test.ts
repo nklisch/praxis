@@ -68,6 +68,7 @@ function makeCtxForRetrieval(
   const documents = {
     titlesByIds: vi.fn().mockResolvedValue(new Map([["doc-1", "Biology Textbook"]])),
     pageImage: vi.fn().mockResolvedValue(pageImageResult),
+    chunksForDocument: vi.fn().mockResolvedValue([]),
   };
 
   return makeToolContext({
@@ -222,5 +223,60 @@ describe("retrieve_from_textbook handler", () => {
     expect(retrieveFromTextbookTool.name).toBe("retrieve_from_textbook");
     expect(retrieveFromTextbookTool.tier).toBe("grounded");
     expect(retrieveFromTextbookTool.effects).toContain("external.code-exec");
+  });
+});
+
+// ── Phase 16: Course scoping tests ─────────────────────────────────────────────
+
+describe("retrieve_from_textbook — Phase 16 course scoping", () => {
+  it("uses courseDocumentIds when no explicit documentIds and courseDocumentIds is set", async () => {
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1", "doc-course")], []);
+    // Inject courseDocumentIds
+    (ctx as Record<string, unknown>).courseDocumentIds = ["doc-course"];
+    ctx.services.documents.titlesByIds = vi
+      .fn()
+      .mockResolvedValue(new Map([["doc-course", "Course Book"]]));
+
+    await retrieveFromTextbookTool.handler({ query: "algebra", topK: 5 }, ctx);
+
+    // Both stores should have received documentIds: ["doc-course"]
+    expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
+      expect.objectContaining({ documentIds: ["doc-course"] }),
+    );
+    expect(ctx.services.ftsStore.search).toHaveBeenCalledWith(
+      expect.objectContaining({ documentIds: ["doc-course"] }),
+    );
+  });
+
+  it("returns empty citations when courseDocumentIds is an empty array (course in scope, no attachments)", async () => {
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1")], []);
+    (ctx as Record<string, unknown>).courseDocumentIds = [];
+
+    const result = await retrieveFromTextbookTool.handler({ query: "algebra", topK: 5 }, ctx);
+    expect(result.citations).toHaveLength(0);
+    // Should not even call the stores
+    expect(ctx.services.vectorStore.search).not.toHaveBeenCalled();
+    expect(ctx.services.ftsStore.search).not.toHaveBeenCalled();
+  });
+
+  it("explicit documentIds override courseDocumentIds", async () => {
+    const ctx = makeCtxForRetrieval([makeVectorHit("c1", "explicit-doc")], []);
+    (ctx as Record<string, unknown>).courseDocumentIds = ["course-doc"];
+    ctx.services.documents.titlesByIds = vi
+      .fn()
+      .mockResolvedValue(new Map([["explicit-doc", "Explicit Book"]]));
+
+    await retrieveFromTextbookTool.handler(
+      { query: "algebra", topK: 5, documentIds: ["explicit-doc"] },
+      ctx,
+    );
+
+    expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
+      expect.objectContaining({ documentIds: ["explicit-doc"] }),
+    );
+    // Should NOT use courseDocumentIds
+    expect(ctx.services.vectorStore.search).not.toHaveBeenCalledWith(
+      expect.objectContaining({ documentIds: ["course-doc"] }),
+    );
   });
 });
