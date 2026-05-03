@@ -127,8 +127,15 @@ describe("parseNoteBody", () => {
       expect(() => parseNoteBody("free", "not-json")).toThrow("invalid JSON");
     });
 
-    it("throws for sketch format (Phase 13 deferred)", () => {
-      expect(() => parseNoteBody("sketch", "{}")).toThrow("sketch format is not supported");
+    it("parses sketch format (Phase 15a)", () => {
+      // Phase 15a shipped sketch as a tldraw snapshot stored as opaque JSON.
+      const parsed = parseNoteBody("sketch", '{"snapshot":{"shapes":[]}}');
+      expect(parsed).toEqual({ kind: "sketch", snapshot: { shapes: [] } });
+    });
+
+    it("parses sketch format with bare body (treated as the snapshot)", () => {
+      const parsed = parseNoteBody("sketch", "{}");
+      expect(parsed).toEqual({ kind: "sketch", snapshot: {} });
     });
   });
 });

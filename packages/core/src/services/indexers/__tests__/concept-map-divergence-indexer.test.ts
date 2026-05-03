@@ -6,8 +6,11 @@
  * LLM throws → last-known-good preserved, cap at 5.
  */
 
+import { courses } from "@praxis/artifacts/schema";
+import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../../tests/helpers/db-setup.js";
+import type { PraxisDb } from "../../../db/index.js";
 import { openDb } from "../../../db/index.js";
 import type {
   ConceptMapDivergence,
@@ -149,6 +152,50 @@ function makeCtx(): IndexerContext {
   };
 }
 
+/**
+ * Insert the DB rows the indexer requires before it will reach
+ * `setDivergences`: a course row with a conceptGraphId, a graph row, and at
+ * least one concept row. Without these the indexer early-returns at lines
+ * 67–83 of concept-map-divergence-indexer.ts.
+ */
+function seedCourseFixture(db: PraxisDb): void {
+  const now = new Date();
+  const graphId = "cg-div-1";
+  db.insert(conceptGraphs)
+    .values({
+      id: graphId,
+      source: "extracted",
+      name: "Test graph",
+      version: "1",
+      createdAt: now,
+    })
+    .run();
+  db.insert(concepts)
+    .values({
+      id: "concept-1",
+      graphId,
+      name: "Linear Equations",
+      description: "ax + b = c",
+      aliasesJson: [],
+      standardsTagsJson: [],
+    })
+    .run();
+  db.insert(courses)
+    .values({
+      id: COURSE_ID,
+      studentId: STUDENT_ID,
+      title: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9-12",
+      sourceJson: { kind: "bootstrapped", sourceMaterials: [] },
+      conceptGraphId: graphId,
+      thresholdsJson: { conceptMastery: 0.8 },
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run();
+}
+
 function makeDrawing(): ConceptMapDrawing {
   return {
     id: MAP_ID,
@@ -201,6 +248,7 @@ describe("ConceptMapDivergenceIndexer — no courseId skip", () => {
 describe("ConceptMapDivergenceIndexer — LLM returns divergences", () => {
   it("persists divergences onto the map row when the LLM returns a valid JSON block", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
+    seedCourseFixture(db);
 
     const divergenceData = [
       {
@@ -241,6 +289,7 @@ describe("ConceptMapDivergenceIndexer — LLM returns divergences", () => {
 describe("ConceptMapDivergenceIndexer — LLM throws → last-known-good preserved", () => {
   it("does not call setDivergences when the engine emits an error event", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
+    seedCourseFixture(db);
 
     const existingDivergences: ConceptMapDivergence[] = [
       {
@@ -286,6 +335,7 @@ describe("ConceptMapDivergenceIndexer — LLM throws → last-known-good preserv
 describe("ConceptMapDivergenceIndexer — cap at 5 divergences", () => {
   it("trims LLM output to 5 divergences even if the schema rejects > 5", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
+    seedCourseFixture(db);
 
     // The Zod schema does .max(5) — feeding 8 should result in a parse failure
     // that causes the indexer to return []. Let's test the cap behavior: the
@@ -325,6 +375,7 @@ describe("ConceptMapDivergenceIndexer — cap at 5 divergences", () => {
 
   it("validates against the schema — 8 divergences in response causes graceful failure (no persist)", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
+    seedCourseFixture(db);
 
     const eightDivergences = Array.from({ length: 8 }, (_, i) => ({
       kind: "missing-concept" as const,
@@ -362,6 +413,7 @@ describe("ConceptMapDivergenceIndexer — cap at 5 divergences", () => {
 describe("ConceptMapDivergenceIndexer — no maps for course", () => {
   it("returns early without any LLM call when no maps exist", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
+    seedCourseFixture(db);
     const engine = makeFakeEngine([]);
     const { service } = makeMockConceptMaps([], makeDrawing());
 

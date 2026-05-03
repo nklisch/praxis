@@ -12,6 +12,12 @@ export function stripMcpPrefix(toolName: string, serverName: string): string {
 
 export interface MapStreamEventInput {
   serverName: string;
+  /**
+   * Optional logger. Used to surface informational rate-limit events as
+   * warnings without erroring the stream. Back-compat: when omitted, those
+   * events are silently dropped.
+   */
+  log?: { warn: (msg: string, fields?: Record<string, unknown>) => void };
 }
 
 /**
@@ -66,15 +72,31 @@ export function mapClaudeCodeEvent(event: unknown, ctx: MapStreamEventInput): En
         },
       };
     }
-    case "rate_limit_event":
+    case "rate_limit_event": {
+      const info = e.rateLimitInfo as
+        | { status?: string; resetsAt?: number; rateLimitType?: string; isUsingOverage?: boolean }
+        | undefined;
+      // Informational events (status="allowed") shouldn't error the stream —
+      // they're emitted alongside successful turns to advertise quota state.
+      // Surface as a warning if a logger is supplied; otherwise drop silently.
+      if (info?.status === "allowed") {
+        ctx.log?.warn("engine.claude-code.rate_limit_info", {
+          status: info.status,
+          rateLimitType: info.rateLimitType,
+          resetsAt: info.resetsAt,
+          isUsingOverage: info.isUsingOverage,
+        });
+        return null;
+      }
       return {
         type: "error",
         error: {
           code: "engine.rate_limited",
-          message: `Rate limited; resets at ${(e.rateLimitInfo as { resetsAt?: number } | undefined)?.resetsAt}`,
+          message: `Rate limited; resets at ${info?.resetsAt}`,
           recoverable: true,
         },
       };
+    }
     default:
       return null;
   }

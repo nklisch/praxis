@@ -46,7 +46,10 @@ export class QuickJsLanguageSandbox implements LanguageSandbox {
     let stdoutBytes = 0;
     let stderrBytes = 0;
     const truncated = { stdout: false, stderr: false };
-    const start = Date.now();
+    // performance.now() gives sub-millisecond resolution. Date.now() truncates
+    // to whole ms, which makes durationMs zero for trivial programs and breaks
+    // any "duration is positive" assertion.
+    const start = performance.now();
 
     const QuickJS = await this.getModule();
     const { shouldInterruptAfterDeadline } = await import("quickjs-emscripten");
@@ -94,7 +97,7 @@ export class QuickJsLanguageSandbox implements LanguageSandbox {
             stderr: stderrBuf.join(""),
             exitCode: null,
             timedOut: true,
-            durationMs: Date.now() - start,
+            durationMs: performance.now() - start,
             truncated,
           };
         }
@@ -104,7 +107,7 @@ export class QuickJsLanguageSandbox implements LanguageSandbox {
           stderr: stderrBuf.join(""),
           exitCode: 1,
           timedOut: false,
-          durationMs: Date.now() - start,
+          durationMs: performance.now() - start,
           truncated,
           guestError,
         };
@@ -115,7 +118,7 @@ export class QuickJsLanguageSandbox implements LanguageSandbox {
         stderr: stderrBuf.join(""),
         exitCode: 0,
         timedOut: false,
-        durationMs: Date.now() - start,
+        durationMs: performance.now() - start,
         truncated,
       };
     } catch (err) {
@@ -128,7 +131,7 @@ export class QuickJsLanguageSandbox implements LanguageSandbox {
         stderr: stderrBuf.join(""),
         exitCode: null,
         timedOut: isTimeout,
-        durationMs: Date.now() - start,
+        durationMs: performance.now() - start,
         truncated,
         ...(isTimeout ? {} : { guestError: msg }),
       };
