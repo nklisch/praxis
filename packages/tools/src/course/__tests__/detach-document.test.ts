@@ -1,3 +1,4 @@
+import type { CourseDocumentsService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
@@ -5,9 +6,11 @@ import { detachDocumentTool } from "../detach-document.js";
 
 describe("course.detach_document handler", () => {
   it("detaches a document and returns detached:true", async () => {
-    const courseDocuments = { detach: vi.fn().mockResolvedValue({ detached: true }) };
+    const courseDocuments: Partial<CourseDocumentsService> = {
+      detach: vi.fn().mockResolvedValue({ detached: true }),
+    };
     const ctx = makeToolContext({
-      services: { courseDocuments },
+      services: { courseDocuments: courseDocuments as CourseDocumentsService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
@@ -20,9 +23,11 @@ describe("course.detach_document handler", () => {
   });
 
   it("returns detached:false when document was not attached", async () => {
-    const courseDocuments = { detach: vi.fn().mockResolvedValue({ detached: false }) };
+    const courseDocuments: Partial<CourseDocumentsService> = {
+      detach: vi.fn().mockResolvedValue({ detached: false }),
+    };
     const ctx = makeToolContext({
-      services: { courseDocuments },
+      services: { courseDocuments: courseDocuments as CourseDocumentsService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
@@ -32,8 +37,10 @@ describe("course.detach_document handler", () => {
   });
 
   it("throws if no course in scope", async () => {
-    const courseDocuments = { detach: vi.fn() };
-    const ctx = makeToolContext({ services: { courseDocuments } });
+    const courseDocuments: Partial<CourseDocumentsService> = { detach: vi.fn() };
+    const ctx = makeToolContext({
+      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+    });
 
     await expect(detachDocumentTool.handler({ documentId: "doc-1" }, ctx)).rejects.toThrow(
       "course-scoped",

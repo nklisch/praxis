@@ -232,7 +232,7 @@ describe("retrieve_from_textbook — Phase 16 course scoping", () => {
   it("uses courseDocumentIds when no explicit documentIds and courseDocumentIds is set", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1", "doc-course")], []);
     // Inject courseDocumentIds
-    (ctx as Record<string, unknown>).courseDocumentIds = ["doc-course"];
+    (ctx as { courseDocumentIds?: string[] }).courseDocumentIds = ["doc-course"];
     ctx.services.documents.titlesByIds = vi
       .fn()
       .mockResolvedValue(new Map([["doc-course", "Course Book"]]));
@@ -250,7 +250,7 @@ describe("retrieve_from_textbook — Phase 16 course scoping", () => {
 
   it("returns empty citations when courseDocumentIds is an empty array (course in scope, no attachments)", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1")], []);
-    (ctx as Record<string, unknown>).courseDocumentIds = [];
+    (ctx as { courseDocumentIds?: string[] }).courseDocumentIds = [];
 
     const result = await retrieveFromTextbookTool.handler({ query: "algebra", topK: 5 }, ctx);
     expect(result.citations).toHaveLength(0);
@@ -261,7 +261,7 @@ describe("retrieve_from_textbook — Phase 16 course scoping", () => {
 
   it("explicit documentIds override courseDocumentIds", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1", "explicit-doc")], []);
-    (ctx as Record<string, unknown>).courseDocumentIds = ["course-doc"];
+    (ctx as { courseDocumentIds?: string[] }).courseDocumentIds = ["course-doc"];
     ctx.services.documents.titlesByIds = vi
       .fn()
       .mockResolvedValue(new Map([["explicit-doc", "Explicit Book"]]));

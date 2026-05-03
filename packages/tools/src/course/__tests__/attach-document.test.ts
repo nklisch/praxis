@@ -1,3 +1,4 @@
+import type { CourseDocumentsService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
@@ -5,9 +6,11 @@ import { attachDocumentTool } from "../attach-document.js";
 
 describe("course.attach_document handler", () => {
   it("attaches a document and returns attached:true", async () => {
-    const courseDocuments = { attach: vi.fn().mockResolvedValue({ attached: true }) };
+    const courseDocuments: Partial<CourseDocumentsService> = {
+      attach: vi.fn().mockResolvedValue({ attached: true }),
+    };
     const ctx = makeToolContext({
-      services: { courseDocuments },
+      services: { courseDocuments: courseDocuments as CourseDocumentsService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
@@ -20,9 +23,11 @@ describe("course.attach_document handler", () => {
   });
 
   it("returns attached:false with message when already attached", async () => {
-    const courseDocuments = { attach: vi.fn().mockResolvedValue({ attached: false }) };
+    const courseDocuments: Partial<CourseDocumentsService> = {
+      attach: vi.fn().mockResolvedValue({ attached: false }),
+    };
     const ctx = makeToolContext({
-      services: { courseDocuments },
+      services: { courseDocuments: courseDocuments as CourseDocumentsService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
@@ -32,8 +37,10 @@ describe("course.attach_document handler", () => {
   });
 
   it("throws if no course in scope", async () => {
-    const courseDocuments = { attach: vi.fn() };
-    const ctx = makeToolContext({ services: { courseDocuments } });
+    const courseDocuments: Partial<CourseDocumentsService> = { attach: vi.fn() };
+    const ctx = makeToolContext({
+      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+    });
 
     await expect(attachDocumentTool.handler({ documentId: "doc-1" }, ctx)).rejects.toThrow(
       "course-scoped",

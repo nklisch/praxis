@@ -19,6 +19,39 @@ export interface RunConceptExtractorInput {
   chunksPerBatch?: number;
   /** Cap on extracted concept count. Default 200. */
   maxConcepts?: number;
+  /**
+   * Maximum number of input chunks to actually send to the model in the
+   * single-pass extraction. When the document has more, an even-stride sample
+   * is taken across the document. Default chosen to keep input ≪ 200k token
+   * context window: 120 chunks × ~2000 chars × ~0.27 tokens/char ≈ 65k tokens,
+   * leaving comfortable headroom for the system prompt and JSON output.
+   */
+  maxChunks?: number;
+}
+
+/**
+ * Default cap on chunks sent to the extractor in a single pass. Keep this
+ * conservative — overshooting context-window is the dominant cause of
+ * "no JSON block" / truncated-output failures on large textbooks.
+ */
+export const DEFAULT_EXTRACTOR_MAX_CHUNKS = 120;
+
+/**
+ * Take an even-stride sample of `n` items from `arr`. Always includes the
+ * first and last item so the document's full range is anchored. Returns a
+ * copy of the input when it already fits.
+ */
+export function sampleEvenly<T>(arr: ReadonlyArray<T>, n: number): T[] {
+  if (arr.length <= n) return [...arr];
+  if (n <= 0) return [];
+  if (n === 1) return [arr[0] as T];
+  const stride = (arr.length - 1) / (n - 1);
+  const out: T[] = [];
+  for (let i = 0; i < n; i++) {
+    const idx = Math.round(i * stride);
+    out.push(arr[idx] as T);
+  }
+  return out;
 }
 
 // Zod schema matching ProposedCourse (Zod validates extractor output before trusting it).
@@ -91,7 +124,23 @@ const ProposedSchema = z.object({
 export async function runConceptExtractor(
   input: RunConceptExtractorInput,
 ): Promise<ProposedCourse> {
-  const userMessage = buildUserMessage(input);
+  // Cap input size before building the user message — see DEFAULT_EXTRACTOR_MAX_CHUNKS.
+  const maxChunks = input.maxChunks ?? DEFAULT_EXTRACTOR_MAX_CHUNKS;
+  const totalChunks = input.chunks.length;
+  const sampledChunks = sampleEvenly(input.chunks, maxChunks);
+  const sampled = sampledChunks.length < totalChunks;
+  if (sampled) {
+    input.log.info("extractor.input_sampled", {
+      total: totalChunks,
+      kept: sampledChunks.length,
+      strategy: "even_stride",
+    });
+  }
+  const userMessage = buildUserMessage({
+    ...input,
+    chunks: sampledChunks,
+    ...(sampled && { sampledFrom: totalChunks }),
+  });
 
   // Open a fresh one-shot session — isolated from any live tutoring.
   // No-op tool dispatch: the extractor never calls tools; the registry is
@@ -165,7 +214,13 @@ export async function runConceptExtractor(
   return raw as ProposedCourse;
 }
 
-function buildUserMessage(input: RunConceptExtractorInput): string {
+interface BuildUserMessageInput
+  extends Pick<RunConceptExtractorInput, "chunks" | "courseTitle" | "subject" | "gradeLevel"> {
+  /** Set when the chunks passed are an even-stride sample of a larger total. */
+  sampledFrom?: number;
+}
+
+function buildUserMessage(input: BuildUserMessageInput): string {
   // Group chunks by document, prefix with document marker.
   const byDoc = new Map<string, typeof input.chunks>();
   for (const c of input.chunks) {
@@ -178,6 +233,12 @@ function buildUserMessage(input: RunConceptExtractorInput): string {
   sections.push(`Course title: ${input.courseTitle}`);
   sections.push(`Subject: ${input.subject}`);
   sections.push(`Grade level: ${input.gradeLevel}`);
+  if (input.sampledFrom !== undefined) {
+    sections.push("");
+    sections.push(
+      `NOTE: The excerpts below are a representative sample of ${input.chunks.length} chunks evenly spaced across a ${input.sampledFrom}-chunk source document, included to fit the model context. Treat them as a structural overview — extract a concept graph that covers the document's apparent scope, not just the sampled excerpts. Use chunk indices and locators to infer the document's structure.`,
+    );
+  }
   sections.push("");
   for (const [docId, chunks] of byDoc) {
     sections.push(`=== Document ${docId} ===`);
@@ -192,16 +253,52 @@ function buildUserMessage(input: RunConceptExtractorInput): string {
   return sections.join("\n");
 }
 
+/**
+ * Pull the JSON object out of an extractor response. The model is asked to
+ * emit ` ```json … ``` `, but real responses sometimes drop the language tag
+ * or wrap the fence with adjacent prose. We try, in order:
+ *   1. ` ```json ` fence (the documented contract)
+ *   2. plain ` ``` ` fence (lang tag dropped)
+ *   3. raw `{ … }` from first `{` to last `}`
+ * The first parse that yields a valid JSON value wins.
+ */
 function extractJsonBlock(text: string): unknown {
-  // Look for fenced JSON; fall back to the largest {...} block.
-  const fence = text.match(/```json\n([\s\S]*?)\n```/);
-  if (fence?.[1]) {
-    return JSON.parse(fence[1]);
+  const candidates: string[] = [];
+  // 1. Fenced with explicit `json` tag.
+  for (const m of text.matchAll(/```json\s*\n([\s\S]*?)\n\s*```/g)) {
+    if (m[1]) candidates.push(m[1]);
   }
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
+  // 2. Fenced without language tag.
+  if (candidates.length === 0) {
+    for (const m of text.matchAll(/```\s*\n([\s\S]*?)\n\s*```/g)) {
+      if (m[1]) candidates.push(m[1]);
+    }
+  }
+  // 3. Raw brace span. Only used when no fences matched — picking braces from
+  // text that contains a fence would risk grabbing example-JSON inside prose.
+  if (candidates.length === 0) {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start !== -1 && end !== -1 && end > start) {
+      candidates.push(text.slice(start, end + 1));
+    }
+  }
+
+  if (candidates.length === 0) {
     throw new Error("Extractor output contained no JSON block");
   }
-  return JSON.parse(text.slice(start, end + 1));
+
+  let lastError: unknown = null;
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw new Error(
+    `Extractor output JSON failed to parse: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`,
+  );
 }

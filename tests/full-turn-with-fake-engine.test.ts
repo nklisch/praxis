@@ -132,6 +132,9 @@ const mockToolServices: ServiceDeps["toolServices"] = {
   ftsStore: mockFtsStore,
   embeddings: mockEmbeddings,
   documents: mockDocuments,
+  // Phase 16: minimum stub so SessionServiceImpl.openActive can resolve
+  // courseDocumentIds for course-scoped sessions.
+  courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
 } as any;
 
 beforeEach(() => {

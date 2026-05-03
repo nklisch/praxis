@@ -1,6 +1,5 @@
-import type { ToolContext, ToolDefinition } from "@praxis/core/types";
+import type { DocumentId, ToolContext, ToolDefinition } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import type { DocumentId } from "@praxis/core/types";
 import { z } from "zod";
 
 const InputSchema = z.object({

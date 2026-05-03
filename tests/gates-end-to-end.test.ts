@@ -221,6 +221,8 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
       bootstrap: null,
       courseState: artifactsService,
       memory: memoryService,
+      // Phase 16: minimal stub for course-scoped session bootstrapping.
+      courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
     } as any,
     engineFactory: () => new FakeEngine(),
   });

@@ -276,6 +276,8 @@ describe("mastery end-to-end", () => {
         bootstrap: null,
         courseState: null,
         memory: memoryService,
+        // Phase 16: minimal stub for course-scoped session bootstrapping.
+        courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
       } as any,
       indexerOrchestrator,
       engineFactory: () => new FakeEngine(),

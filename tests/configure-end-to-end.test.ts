@@ -226,6 +226,8 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
       memory: memoryService,
       lock: lockService,
       authoring: authoringService,
+      // Phase 16: minimal stub for course-scoped session bootstrapping.
+      courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
     } as any,
     engineFactory: () => new FakeConfigureEngine(),
     lockService,

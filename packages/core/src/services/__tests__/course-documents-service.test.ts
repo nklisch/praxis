@@ -83,7 +83,11 @@ describe("CourseDocumentsServiceImpl", () => {
       insertCourse(drizzle, COURSE_X);
       insertDocument(drizzle, DOC_1);
 
-      const result = await service.attach({ courseId: COURSE_X, documentId: DOC_1, source: "manual" });
+      const result = await service.attach({
+        courseId: COURSE_X,
+        documentId: DOC_1,
+        source: "manual",
+      });
       expect(result.attached).toBe(true);
 
       const ids = await service.listForCourse(COURSE_X);
@@ -104,7 +108,11 @@ describe("CourseDocumentsServiceImpl", () => {
       insertDocument(drizzle, DOC_1);
 
       await service.attach({ courseId: COURSE_X, documentId: DOC_1, source: "manual" });
-      const second = await service.attach({ courseId: COURSE_X, documentId: DOC_1, source: "ingestion" });
+      const second = await service.attach({
+        courseId: COURSE_X,
+        documentId: DOC_1,
+        source: "ingestion",
+      });
       expect(second.attached).toBe(false);
 
       // Still only one entry

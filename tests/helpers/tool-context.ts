@@ -36,6 +36,10 @@ export interface MakeToolContextOptions {
   courseId?: ToolContext["courseId"];
   /** Optional assignmentId to attach to the context. */
   assignmentId?: ToolContext["assignmentId"];
+  /** Phase 16: pre-populated course-attached document ids; mirrors openActive's wiring. */
+  courseDocumentIds?: ToolContext["courseDocumentIds"];
+  /** Phase 16: explorer-session draft id; usually only set inside isolated explorer tests. */
+  draftId?: ToolContext["draftId"];
 }
 
 export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext {
@@ -52,6 +56,8 @@ export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext 
     sessionId: brandId<"SessionId">(opts.sessionId ?? "session-test"),
     ...(opts.courseId !== undefined && { courseId: opts.courseId }),
     ...(opts.assignmentId !== undefined && { assignmentId: opts.assignmentId }),
+    ...(opts.courseDocumentIds !== undefined && { courseDocumentIds: opts.courseDocumentIds }),
+    ...(opts.draftId !== undefined && { draftId: opts.draftId }),
     log:
       opts.log ??
       (() => {

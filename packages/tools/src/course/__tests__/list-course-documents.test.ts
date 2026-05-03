@@ -1,5 +1,5 @@
+import type { CourseDocumentsService, DocumentId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import type { DocumentId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { listCourseDocumentsTool } from "../list-course-documents.js";
@@ -17,9 +17,11 @@ function makeDoc(id: string) {
 describe("course.list_course_documents handler", () => {
   it("returns documents for the active course", async () => {
     const docs = [makeDoc("doc-1"), makeDoc("doc-2")];
-    const courseDocuments = { listForCourseDetailed: vi.fn().mockResolvedValue(docs) };
+    const courseDocuments: Partial<CourseDocumentsService> = {
+      listForCourseDetailed: vi.fn().mockResolvedValue(docs),
+    };
     const ctx = makeToolContext({
-      services: { courseDocuments },
+      services: { courseDocuments: courseDocuments as CourseDocumentsService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
@@ -29,8 +31,12 @@ describe("course.list_course_documents handler", () => {
   });
 
   it("throws if no course is in scope", async () => {
-    const courseDocuments = { listForCourseDetailed: vi.fn().mockResolvedValue([]) };
-    const ctx = makeToolContext({ services: { courseDocuments } });
+    const courseDocuments: Partial<CourseDocumentsService> = {
+      listForCourseDetailed: vi.fn().mockResolvedValue([]),
+    };
+    const ctx = makeToolContext({
+      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+    });
 
     await expect(listCourseDocumentsTool.handler({}, ctx)).rejects.toThrow("course-scoped");
   });

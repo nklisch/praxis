@@ -324,6 +324,8 @@ describe("quiz end-to-end", () => {
         courseState: null,
         memory: null,
         assignments: assignmentService,
+        // Phase 16: minimal stub for course-scoped session bootstrapping.
+        courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
       } as any,
       engineFactory: () => new FakeEngine(),
     });

@@ -1,5 +1,5 @@
 import { documentChunks, documents } from "@praxis/artifacts/schema";
-import { asc, eq, and, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
 import type { PageImageStore } from "../ingestion/page-images.js";
 import type { DocumentChunkRow, DocumentsReader } from "../types/tool.js";
@@ -54,10 +54,7 @@ export class DrizzleDocumentsReader implements DocumentsReader {
       .from(documentChunks)
       .innerJoin(
         documents,
-        and(
-          eq(documentChunks.documentId, documents.id),
-          eq(documents.studentId, input.studentId),
-        ),
+        and(eq(documentChunks.documentId, documents.id), eq(documents.studentId, input.studentId)),
       )
       .where(eq(documentChunks.documentId, input.documentId))
       .orderBy(asc(documentChunks.chunkIndex))
