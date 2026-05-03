@@ -1,0 +1,110 @@
+/* ── Shared item body chrome ────────────────────────────────────────────────── */
+
+/* Option list (radio / checkbox) */
+.optionList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.optionLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-text, #e5e5e5);
+  transition: background 0.12s;
+  border: 1px solid transparent;
+}
+
+.optionLabel:hover:not(.disabled):not(.correct):not(.incorrect) {
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+}
+
+.optionLabel.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.optionInput {
+  accent-color: var(--color-accent, #60a5fa);
+  flex-shrink: 0;
+}
+
+/* Feedback states — correct / incorrect after submission */
+.correct {
+  border-color: rgba(74, 222, 128, 0.5);
+  background: rgba(74, 222, 128, 0.08);
+  color: #4ade80;
+}
+
+.incorrect {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.08);
+  color: #f87171;
+}
+
+/* Text / number inputs */
+.textInput,
+.numericInput {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  color: var(--color-text, #e5e5e5);
+  font-size: 0.9rem;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.textInput:focus,
+.numericInput:focus {
+  outline: none;
+  border-color: var(--color-accent, #60a5fa);
+}
+
+.textInput:disabled,
+.numericInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Feedback glyph */
+.feedbackGlyph {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Keyboard/accessibility toggle */
+.accessToggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.4rem;
+}
+
+.accessToggleBtn {
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #aaa);
+  background: none;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 3px;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+  transition:
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.accessToggleBtn:hover {
+  color: var(--color-text, #e5e5e5);
+  border-color: var(--color-text-muted, #aaa);
+}

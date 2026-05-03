@@ -1,0 +1,78 @@
+/* ── Quick-check card ───────────────────────────────────────────────────────── */
+
+.card {
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  background: var(--color-surface-2, rgba(255, 255, 255, 0.03));
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  /* Slightly offset from the message column to signal system origin */
+  margin-left: 0.5rem;
+  margin-right: 2rem;
+  position: relative;
+}
+
+.card.submitted {
+  border-color: rgba(255, 255, 255, 0.06);
+  opacity: 0.85;
+}
+
+/* "tutor asked" tag */
+.tag {
+  composes: editorial from global;
+  font-size: 0.68rem;
+  color: var(--color-text-muted, #aaa);
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tagOrnament {
+  color: var(--color-accent, #60a5fa);
+  font-style: normal;
+}
+
+.prompt {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text, #e5e5e5);
+  margin: 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.submitBtn {
+  padding: 0.3rem 0.75rem;
+  background: var(--color-accent, #60a5fa);
+  border: none;
+  border-radius: 4px;
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.submittedLabel {
+  composes: editorial from global;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #aaa);
+}

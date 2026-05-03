@@ -13,10 +13,12 @@ import { usePraxisClient } from "../context/client-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { isClaudeAuthRequiredError } from "../lib/auth-error.js";
+import { useQuickCheckBridge } from "../hooks/use-quick-check-bridge.js";
 import { AssignmentCard } from "./assignment-card.js";
 import { AuthGate } from "./auth-gate.js";
 import { BootstrapTabBody } from "./bootstrap-tab-body.js";
 import styles from "./chat-tab-body.module.css";
+import { QuickCheckCard } from "./quick-check-card.js";
 import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
 import { ExamTabBody } from "./exam-tab-body.js";
@@ -90,6 +92,14 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
       courseId: brandId<"CourseId">(tab.courseId),
     }),
   };
+
+  // Phase 17: subscribe to quick-check events for this session. The bridge
+  // returns a parallel list interleaved after the message log at render time.
+  // Only wired into TeachChatTabBody — quiz/homework/exam don't have a
+  // narrating tutor that issues inline quick checks.
+  const { pending: quickChecks, resolve: resolveQuickCheck } = useQuickCheckBridge(
+    session.sessionId,
+  );
 
   const [examLockdown, setExamLockdown] = useState(false);
   const [composerValue, setComposerValue] = useState("");
@@ -185,6 +195,19 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
             }}
           />
         ))}
+        {/* Phase 17: quick-check cards appended after the most recent message.
+            Each pending check stays visible in arrival order; cards lock
+            after the student submits (resolved === true). Per tab-body-isolation,
+            these mount once per tab instance and survive display:none switches. */}
+        {quickChecks.map((check) => (
+          <QuickCheckCard
+            key={check.callId}
+            callId={check.callId}
+            item={check.item}
+            onResolve={resolveQuickCheck}
+          />
+        ))}
+
         {session.assignmentId && (
           <AssignmentCard assignmentId={session.assignmentId} examLockdown={examLockdown} />
         )}

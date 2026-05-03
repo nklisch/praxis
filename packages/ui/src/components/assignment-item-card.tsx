@@ -1,17 +1,28 @@
 import type { AssignmentItem } from "@praxis/core/types";
 import type { ForwardedRef } from "react";
 import styles from "./assignment-item-card.module.css";
-import { SketchCanvas, type SketchCanvasHandle } from "./sketch-canvas.js";
+import { CodeBody } from "./item-bodies/code-body.js";
+import { FreeResponseBody } from "./item-bodies/free-response-body.js";
+import { MatchingBody } from "./item-bodies/matching-body.js";
+import { MathBody } from "./item-bodies/math-body.js";
+import { MultiSelectBody } from "./item-bodies/multi-select-body.js";
+import { NumericalBody } from "./item-bodies/numerical-body.js";
+import { OrderingBody } from "./item-bodies/ordering-body.js";
+import { ReasoningTextarea } from "./item-bodies/reasoning-textarea.js";
+import { ShortAnswerBody } from "./item-bodies/short-answer-body.js";
+import { SingleChoiceBody } from "./item-bodies/single-choice-body.js";
+import { TwoTierBody } from "./item-bodies/two-tier-body.js";
+import type { SketchCanvasHandle } from "./sketch-canvas.js";
 
 export interface AssignmentItemCardProps {
   item: AssignmentItem;
   index: number;
   /** Primary answer / response. */
   response: string;
-  /** Shown work text — only relevant when item has workRubric. */
+  /** Shown work text — only relevant when item has workRubric or requireReasoning. */
   work?: string;
   onResponseChange: (response: string) => void;
-  /** Called when shown work changes — only invoked for items with workRubric. */
+  /** Called when shown work / reasoning text changes. */
   onWorkChange?: (work: string) => void;
   disabled?: boolean;
   /**
@@ -20,14 +31,15 @@ export interface AssignmentItemCardProps {
    * Only provided for math items; undefined otherwise.
    */
   sketchHandleRef?: ForwardedRef<SketchCanvasHandle>;
+  /** When true and item has requireReasoning, show validation hint on empty work field. */
+  showValidation?: boolean;
 }
 
 /**
- * Per-item input card. Renders the appropriate input control per item kind.
- * Items with workRubric show a "Show your work" area above the primary input.
- *
- * Phase 8: code items with workRubric collapse to a single textarea (the
- * code IS the work; the rubric agent grades the code text directly).
+ * Per-item input card. Dispatches to a per-kind body subcomponent via a
+ * clean switch. The kind-agnostic chrome (header, prompt, partial-credit
+ * badge) wraps the body. After the body, renders a <ReasoningTextarea> when
+ * `item.requireReasoning === true`.
  */
 export function AssignmentItemCard({
   item,
@@ -38,10 +50,15 @@ export function AssignmentItemCard({
   onWorkChange,
   disabled = false,
   sketchHandleRef,
+  showValidation = false,
 }: AssignmentItemCardProps) {
   const hasWorkRubric =
     (item.kind === "math" || item.kind === "code" || item.kind === "numerical") &&
     item.workRubric !== undefined;
+
+  const hasReasoning =
+    (item.kind === "single-choice" || item.kind === "multi-select" || item.kind === "two-tier") &&
+    item.requireReasoning === true;
 
   return (
     <div className={styles.itemCard}>
@@ -55,134 +72,156 @@ export function AssignmentItemCard({
 
       <p className={styles.prompt}>{item.prompt}</p>
 
-      {/* Work field — shown for math items with workRubric */}
-      {hasWorkRubric && item.kind === "math" && (
-        <div className={styles.workSection}>
-          <label htmlFor={`work-${item.id}`} className={styles.workLabel}>
-            Show your work (optional, earns partial credit):
-          </label>
-          <textarea
-            id={`work-${item.id}`}
-            className={styles.workInput}
-            value={work ?? ""}
-            onChange={(e) => onWorkChange?.(e.target.value)}
-            disabled={disabled}
-            rows={5}
-          />
-        </div>
-      )}
+      {/* Per-kind body — dispatched by kind */}
+      {renderBody({
+        item,
+        response,
+        work,
+        onResponseChange,
+        onWorkChange,
+        disabled,
+        sketchHandleRef,
+      })}
 
-      {/* Phase 15a: sketch canvas for math items — draw your work.
-          For v1, capture happens on submit (not auto-saved). */}
-      {item.kind === "math" && sketchHandleRef !== undefined && (
-        <div className={styles.workSection}>
-          <span className={styles.workLabel}>Or sketch your work:</span>
-          <SketchCanvas variant="inline" handleRef={sketchHandleRef} />
-        </div>
-      )}
-
-      {/* Code item with workRubric: one textarea (code is the work AND answer) */}
-      {hasWorkRubric && item.kind === "code" && (
-        <div className={styles.workSection}>
-          <label htmlFor={`code-work-${item.id}`} className={styles.workLabel}>
-            Your code (earns partial credit for approach):
-          </label>
-          <textarea
-            id={`code-work-${item.id}`}
-            className={styles.codeInput}
-            value={work ?? ""}
-            onChange={(e) => {
-              // For code+workRubric: the work IS the answer — sync both
-              onWorkChange?.(e.target.value);
-              onResponseChange(e.target.value);
-            }}
-            disabled={disabled}
-            rows={10}
-            spellCheck={false}
-          />
-        </div>
-      )}
-
-      {/* Primary input — per kind */}
-      {item.kind === "single-choice" && (
-        <ul className={styles.options}>
-          {item.options.map((opt, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id
-            <li key={i}>
-              <label className={`${styles.optionLabel} ${disabled ? styles.disabled : ""}`}>
-                <input
-                  type="radio"
-                  className={styles.optionInput}
-                  name={`item-${item.id}`}
-                  value={String(i)}
-                  checked={response === String(i)}
-                  onChange={() => onResponseChange(String(i))}
-                  disabled={disabled}
-                />
-                {opt}
-              </label>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {item.kind === "short-answer" && (
-        <input
-          type="text"
-          className={styles.textInput}
-          value={response}
-          onChange={(e) => onResponseChange(e.target.value)}
+      {/* Reasoning textarea — rendered after the body when requireReasoning is set */}
+      {hasReasoning && (
+        <ReasoningTextarea
+          id={`reasoning-${item.id}`}
+          value={work ?? ""}
+          onChange={(val) => onWorkChange?.(val)}
           disabled={disabled}
-          placeholder="Type your answer…"
-          aria-label={`Item ${index + 1} answer`}
-        />
-      )}
-
-      {item.kind === "math" && (
-        <div className={styles.mathAnswer}>
-          {hasWorkRubric && (
-            <label htmlFor={`math-answer-${item.id}`} className={styles.answerLabel}>
-              Final answer:
-            </label>
-          )}
-          <input
-            id={hasWorkRubric ? `math-answer-${item.id}` : undefined}
-            type="text"
-            className={styles.mathInput}
-            value={response}
-            onChange={(e) => onResponseChange(e.target.value)}
-            disabled={disabled}
-            placeholder="Enter your answer (e.g., x = 3)"
-            aria-label={`Item ${index + 1} answer`}
-          />
-        </div>
-      )}
-
-      {/* Code without workRubric: single textarea */}
-      {item.kind === "code" && !hasWorkRubric && (
-        <textarea
-          className={styles.codeInput}
-          value={response}
-          onChange={(e) => onResponseChange(e.target.value)}
-          disabled={disabled}
-          rows={10}
-          spellCheck={false}
-          aria-label={`Item ${index + 1} code`}
-        />
-      )}
-      {/* Code WITH workRubric: already handled above (work textarea doubles as answer) */}
-
-      {item.kind === "free-response" && (
-        <textarea
-          className={styles.freeResponseInput}
-          value={response}
-          onChange={(e) => onResponseChange(e.target.value)}
-          disabled={disabled}
-          rows={5}
-          placeholder="Write your response…"
-          aria-label={`Item ${index + 1} response`}
+          showValidation={showValidation}
         />
       )}
     </div>
   );
+}
+
+// ─── Body dispatcher ──────────────────────────────────────────────────────────
+
+interface BodyProps {
+  item: AssignmentItem;
+  response: string;
+  work?: string;
+  onResponseChange: (response: string) => void;
+  onWorkChange?: (work: string) => void;
+  disabled: boolean;
+  sketchHandleRef?: ForwardedRef<SketchCanvasHandle>;
+}
+
+function renderBody({
+  item,
+  response,
+  work,
+  onResponseChange,
+  onWorkChange,
+  disabled,
+  sketchHandleRef,
+}: BodyProps) {
+  switch (item.kind) {
+    case "single-choice":
+      return (
+        <SingleChoiceBody
+          item={item}
+          response={response}
+          onChange={onResponseChange}
+          disabled={disabled}
+        />
+      );
+
+    case "multi-select":
+      return (
+        <MultiSelectBody
+          item={item}
+          response={response}
+          onChange={onResponseChange}
+          disabled={disabled}
+        />
+      );
+
+    case "short-answer":
+      return (
+        <ShortAnswerBody
+          item={item}
+          response={response}
+          onChange={onResponseChange}
+          disabled={disabled}
+        />
+      );
+
+    case "free-response":
+      return (
+        <FreeResponseBody
+          item={item}
+          response={response}
+          onChange={onResponseChange}
+          disabled={disabled}
+        />
+      );
+
+    case "math":
+      return (
+        <MathBody
+          item={item}
+          response={response}
+          work={work}
+          onChange={onResponseChange}
+          onWorkChange={onWorkChange}
+          disabled={disabled}
+          sketchHandleRef={sketchHandleRef}
+        />
+      );
+
+    case "code":
+      return (
+        <CodeBody
+          item={item}
+          response={response}
+          work={work}
+          onChange={onResponseChange}
+          onWorkChange={onWorkChange}
+          disabled={disabled}
+        />
+      );
+
+    case "numerical":
+      return (
+        <NumericalBody
+          item={item}
+          response={response}
+          onChange={onResponseChange}
+          disabled={disabled}
+        />
+      );
+
+    case "matching":
+      return (
+        <MatchingBody
+          item={item}
+          response={response}
+          onChange={onResponseChange}
+          disabled={disabled}
+        />
+      );
+
+    case "ordering":
+      return (
+        <OrderingBody
+          item={item}
+          response={response}
+          onChange={onResponseChange}
+          disabled={disabled}
+        />
+      );
+
+    case "two-tier":
+      return (
+        <TwoTierBody
+          item={item}
+          response={response}
+          onChange={onResponseChange}
+          disabled={disabled}
+        />
+      );
+  }
 }

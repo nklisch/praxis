@@ -1,0 +1,109 @@
+/* ── Ordering body ──────────────────────────────────────────────────────────── */
+
+.orderList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.orderItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  font-size: 0.875rem;
+  color: var(--color-text, #e5e5e5);
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    opacity 0.12s;
+}
+
+.orderItem:hover:not(.disabled) {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.orderItem.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.orderItem.over {
+  border-color: var(--color-accent, #60a5fa);
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.orderItem.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.orderItem.correct {
+  border-color: rgba(74, 222, 128, 0.5);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.orderItem.incorrect {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+/* Drag handle */
+.dragHandle {
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  cursor: grab;
+  line-height: 1;
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Up/down keyboard buttons */
+.moveButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+.moveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.1rem;
+  background: none;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 2px;
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
+  padding: 0;
+  line-height: 1;
+}
+
+.moveBtn:hover:not(:disabled) {
+  color: var(--color-text, #e5e5e5);
+  border-color: var(--color-text-muted, #aaa);
+}
+
+.moveBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
