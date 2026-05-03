@@ -12,11 +12,12 @@ describe("examMode", () => {
     expect(listModes().some((m) => m.id === "exam")).toBe(true);
   });
 
-  it("examMode toolNames includes assignment.show, assignment.read_grade, and sketch.read", () => {
-    expect(examMode.toolNames).toHaveLength(3);
+  it("examMode toolNames includes assignment.show, assignment.read_grade, sketch.read, and clarification", () => {
+    expect(examMode.toolNames).toHaveLength(4);
     expect(examMode.toolNames).toContain("assignment.show");
     expect(examMode.toolNames).toContain("assignment.read_grade");
     expect(examMode.toolNames).toContain("sketch.read"); // Phase 15a
+    expect(examMode.toolNames).toContain("clarification"); // Phase 16
   });
 
   it("examMode does not include retrieve_from_textbook or mastery tools", () => {

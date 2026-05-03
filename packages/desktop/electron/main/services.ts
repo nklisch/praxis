@@ -52,6 +52,7 @@ import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/ass
 import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
 import { DOCUMENT_TOOLS } from "@praxis/tools/document";
+import { EXAM_TOOLS } from "@praxis/tools/exam";
 import { FLASHCARD_TOOLS } from "@praxis/tools/flashcards";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
@@ -277,6 +278,21 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     return createEngine({ config: engineConfig, deps: { log } });
   };
 
+  // Phase 16: notifyParentSession ref-cell pattern.
+  // AssignmentServiceImpl is constructed BEFORE SessionServiceImpl (ordering
+  // constraint from Phase 9: assignment → artifacts → session). We bridge
+  // the dependency with a ref-cell: a mutable closure that starts as undefined
+  // and is pointed at sessionService.notifySession after SessionServiceImpl is
+  // constructed. This avoids a circular dep while keeping both services testable
+  // with simple mocks.
+  let notifyParentSessionRef:
+    | ((input: {
+        parentSessionId: import("@praxis/core/types").SessionId;
+        note: string;
+        origin: import("@praxis/core/types").SystemNoteOrigin;
+      }) => Promise<void>)
+    | undefined;
+
   const assignmentService = new AssignmentServiceImpl({
     db,
     log,
@@ -290,6 +306,8 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       const row = db.select().from(assignments).where(eq(assignments.id, assignmentId)).get();
       return (row?.kind as "quiz" | "homework" | "exam") ?? "quiz";
     },
+    // Phase 16: forward notifications to sessionService once it's ready.
+    notifyParentSession: (input) => notifyParentSessionRef?.(input) ?? Promise.resolve(),
   });
 
   // Phase 6: ArtifactsServiceImpl (reads + progress writes).
@@ -423,6 +441,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     ...NOTE_TOOLS, // ← Phase 12
     ...FLASHCARD_TOOLS, // ← Phase 12
     sketchReadTool, // ← Phase 15a
+    ...EXAM_TOOLS, // ← Phase 16
   ];
 
   const deps: ServiceDeps = {
@@ -478,8 +497,19 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     pageImageStore,
   });
 
+  const sessionService = new SessionServiceImpl(deps);
+
+  // Phase 16: complete the ref-cell wiring now that sessionService is live.
+  // Adapt the port signature (parentSessionId) to sessionService's (sessionId).
+  notifyParentSessionRef = (input) =>
+    sessionService.notifySession({
+      sessionId: input.parentSessionId,
+      note: input.note,
+      origin: input.origin,
+    });
+
   return {
-    session: new SessionServiceImpl(deps),
+    session: sessionService,
     config: new ConfigServiceImpl(deps),
     ingestion,
     documents: documentsService,

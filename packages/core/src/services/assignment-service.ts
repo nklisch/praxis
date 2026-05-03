@@ -25,7 +25,9 @@ import type {
   Grade,
   GradeItem,
   Logger,
+  SessionId,
   StudentId,
+  SystemNoteOrigin,
   Timestamp,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
@@ -198,6 +200,32 @@ function rowToAssignment(row: AssignmentRow): Assignment {
   };
 }
 
+/**
+ * Composes the human-readable note the tutor sees as a system_note event.
+ * Structured for model parseability: one sentence header, aggregate line, item breakdown.
+ */
+function composeSubmissionNote(input: {
+  assignment: Assignment;
+  grade: Grade;
+  submittedAt: Date;
+}): string {
+  const total = Math.round(input.grade.total * 100);
+  const lines: string[] = [];
+  lines.push(`The student just submitted ${input.assignment.kind}: ${input.assignment.title}.`);
+  lines.push(`Aggregate score: ${total}% (graded by: ${input.grade.reviewedBy}).`);
+  lines.push("");
+  lines.push("Per-item breakdown:");
+  for (const item of input.grade.perItem) {
+    const score = item.score === null ? "needs review" : `${Math.round(item.score * 100)}%`;
+    lines.push(`- item ${item.itemId} (${item.gradedBy}): ${score} — ${item.feedback}`);
+  }
+  lines.push("");
+  lines.push(
+    "Narrate per-item feedback warmly. On misses, name the misconception and offer to work it through. Then return to the lesson.",
+  );
+  return lines.join("\n");
+}
+
 // ─── workRubric blending ───────────────────────────────────────────────────────
 
 /**
@@ -253,6 +281,20 @@ export interface AssignmentServiceDeps {
    * quiz/homework. Default true. Set false in tests to avoid LLM calls.
    */
   enableApproachFeedback?: boolean;
+  /**
+   * Phase 16: callback port to notify the parent teach-mode session after
+   * submission. Optional — tests and bootstrap-mode grading omit it. When
+   * wired, `services.ts` provides a closure that calls
+   * `sessionService.notifySession(...)`.
+   *
+   * Kept as a port (not a direct SessionService reference) to avoid a
+   * circular construction dependency in services.ts.
+   */
+  notifyParentSession?: (input: {
+    parentSessionId: SessionId;
+    note: string;
+    origin: SystemNoteOrigin;
+  }) => Promise<void>;
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -270,6 +312,8 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
     items: AssignmentItem[];
     conceptIds: ConceptId[];
     authoredBy?: "tutor" | "configurator";
+    /** Phase 16: teach-mode session that authored this assignment via the tool. */
+    parentSessionId?: SessionId;
   }): Promise<{ assignmentId: AssignmentId }> {
     if (input.items.length === 0) {
       throw new Error("Assignment must have at least one item");
@@ -287,6 +331,9 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
       authoredBy: it.authoredBy ?? input.authoredBy ?? "tutor",
     }));
 
+    // Drizzle with exactOptionalPropertyTypes requires null (not undefined) for nullable text columns.
+    const parentSessionIdValue: string | null = input.parentSessionId ?? null;
+
     this.deps.db
       .insert(assignments)
       .values({
@@ -297,6 +344,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
         itemsJson: itemsWithProvenance,
         conceptIdsJson: input.conceptIds,
         assignedAt: now,
+        parentSessionId: parentSessionIdValue,
       })
       .run();
 
@@ -377,7 +425,17 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
   async submit(input: {
     assignmentId: AssignmentId;
     responses?: AssignmentResponse[];
+    /** Phase 16: the child session that is submitting (for the origin payload). */
+    submittingSessionId?: SessionId;
   }): Promise<AssignmentSubmissionResult> {
+    // Read the raw row to access parentSessionId (not in the domain Assignment type).
+    const assignmentRow = this.deps.db
+      .select()
+      .from(assignments)
+      .where(eq(assignments.id, input.assignmentId))
+      .get();
+    if (!assignmentRow) throw new Error(`Assignment not found: ${input.assignmentId}`);
+
     const assignment = await this.get({ assignmentId: input.assignmentId });
     if (!assignment) throw new Error(`Assignment not found: ${input.assignmentId}`);
     if (assignment.submittedAt) {
@@ -473,6 +531,33 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
       .set({ submittedAt, gradeJson: grade })
       .where(eq(assignments.id, input.assignmentId))
       .run();
+
+    // Phase 16: notify parent teach-mode session if this assignment was authored live.
+    if (assignmentRow.parentSessionId && this.deps.notifyParentSession) {
+      const note = composeSubmissionNote({ assignment, grade, submittedAt });
+      const childSessionId = input.submittingSessionId ?? "unknown";
+      const origin: SystemNoteOrigin = {
+        kind: "assignment_submission",
+        assignmentId: input.assignmentId,
+        childSessionId,
+        gradeTotal: grade.total,
+        submittedAt: submittedAt.getTime(),
+      };
+      // Fire-and-forget: don't block submit() on the notification. Non-fatal if it fails.
+      this.deps
+        .notifyParentSession({
+          parentSessionId: brandId<"SessionId">(assignmentRow.parentSessionId),
+          note,
+          origin,
+        })
+        .catch((err: unknown) => {
+          this.deps.log.warn("assignment.submit.notify_failed", {
+            assignmentId: input.assignmentId,
+            parentSessionId: assignmentRow.parentSessionId,
+            err: err instanceof Error ? err.message : String(err),
+          });
+        });
+    }
 
     return {
       assignmentId: input.assignmentId,

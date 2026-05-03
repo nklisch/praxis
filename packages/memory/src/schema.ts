@@ -12,6 +12,14 @@ export const sessions = sqliteTable(
     engineId: text("engine_id").notNull(),
     startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
     endedAt: integer("ended_at", { mode: "timestamp_ms" }),
+    /**
+     * Phase 16: parent session that spawned this child session.
+     * Set when spawnFromAssignment opens a quiz/homework/exam session from a
+     * teach-mode tutor session. Nullable for top-level sessions. On parent
+     * session delete, set to null (cascade not supported in SQLite for
+     * set-null; application logic handles orphan cleanup).
+     */
+    parentSessionId: text("parent_session_id"),
   },
   (t) => ({
     studentTimeIdx: index("sessions_student_time_idx").on(t.studentId, t.startedAt),

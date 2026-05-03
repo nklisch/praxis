@@ -30,6 +30,7 @@ export const examMode: Mode = {
     "assignment.show",
     "assignment.read_grade",
     "sketch.read", // ← Phase 15a: read student sketches from exam submissions
+    "clarification", // ← Phase 16: rephrase a confusing prompt; no method or answer revealed
     // No retrieve_from_textbook, no mastery / misconception tools, no graders
     // (server handles all grading). Deliberately minimal.
   ],

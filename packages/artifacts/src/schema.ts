@@ -13,6 +13,12 @@ export const courses = sqliteTable(
     thresholdsJson: text("thresholds_json", { mode: "json" }).notNull(), // ThresholdConfig
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    /**
+     * Phase 16: serialized AssessmentPlan. Null for courses bootstrapped
+     * before Phase 16. Written by persistDraft when the explorer produces a
+     * plan; immutable after that except through configure-mode tooling.
+     */
+    assessmentPlanJson: text("assessment_plan_json", { mode: "json" }),
   },
   (t) => ({
     studentIdx: index("courses_student_idx").on(t.studentId),
@@ -52,9 +58,94 @@ export const assignments = sqliteTable(
     assignedAt: integer("assigned_at", { mode: "timestamp_ms" }).notNull(),
     submittedAt: integer("submitted_at", { mode: "timestamp_ms" }),
     gradeJson: text("grade_json", { mode: "json" }),
+    /**
+     * Phase 16: the teach-mode session that authored this assignment via
+     * assignment.create. Null for bootstrap-time scheduled assessments or
+     * configurator-authored assessments without an active session.
+     * On submit, this is the target for the system_note notification.
+     */
+    parentSessionId: text("parent_session_id"),
   },
   (t) => ({
     courseIdx: index("assignments_course_idx").on(t.courseId),
+  }),
+);
+
+// ─── Phase 16: Course units + assessment plan ─────────────────────────────────
+
+export const courseUnits = sqliteTable(
+  "course_units",
+  {
+    id: text("id").primaryKey(),
+    courseId: text("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Optional editorial blurb describing this unit's theme. */
+    summary: text("summary"),
+    orderIndex: integer("order_index").notNull(),
+    /**
+     * Optional summative assessment (e.g. unit exam, midterm) that lives at
+     * the end of this unit. Null when the unit has no summative.
+     */
+    summativeAssignmentId: text("summative_assignment_id").references(() => assignments.id),
+  },
+  (t) => ({
+    courseIdx: index("course_units_course_idx").on(t.courseId),
+  }),
+);
+
+/**
+ * Join table: lesson ↔ unit (1:1). A lesson belongs to exactly one unit.
+ * The primaryKey IS the lessonId — one row per lesson. Absence = unit-less
+ * lesson (legacy course or pre-unit course). Using a join table instead of a
+ * unitId FK on lessons keeps the lessons schema clean for courses predating units.
+ */
+export const lessonUnits = sqliteTable("lesson_units", {
+  lessonId: text("lesson_id")
+    .primaryKey()
+    .references(() => lessons.id, { onDelete: "cascade" }),
+  unitId: text("unit_id")
+    .notNull()
+    .references(() => courseUnits.id, { onDelete: "cascade" }),
+});
+
+/**
+ * Scheduled assessment per lesson. Each row says: run this assignment at this
+ * point relative to the lesson for this purpose.
+ */
+export const lessonAssessments = sqliteTable(
+  "lesson_assessments",
+  {
+    id: text("id").primaryKey(),
+    lessonId: text("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    assignmentId: text("assignment_id")
+      .notNull()
+      .references(() => assignments.id, { onDelete: "cascade" }),
+    /**
+     * When in the lesson flow this assessment runs:
+     * - "before" = readiness check before the lesson
+     * - "after"  = practice/checkpoint after the lesson
+     * - "interleaved" = woven in during the lesson
+     */
+    timing: text("timing", {
+      enum: ["before", "after", "interleaved"],
+    }).notNull(),
+    /**
+     * Pedagogical purpose:
+     * - "readiness"   = check prerequisites before teaching
+     * - "practice"    = deliberate practice after instruction
+     * - "checkpoint"  = verify mastery before advancing
+     */
+    purpose: text("purpose", {
+      enum: ["readiness", "practice", "checkpoint"],
+    }).notNull(),
+  },
+  (t) => ({
+    lessonIdx: index("lesson_assessments_lesson_idx").on(t.lessonId),
+    assignmentIdx: index("lesson_assessments_assignment_idx").on(t.assignmentId),
   }),
 );
 
@@ -275,4 +366,7 @@ export const artifactsSchema = {
   assignmentResponses, // ← Phase 8
   gateUnlockEvents, // ← Phase 9
   courseDocuments, // ← Phase 16
+  courseUnits, // ← Phase 16
+  lessonUnits, // ← Phase 16
+  lessonAssessments, // ← Phase 16
 };

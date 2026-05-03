@@ -115,6 +115,13 @@
       "import": "./dist/document/index.js",
       "node": "./dist/document/index.js",
       "default": "./dist/document/index.js"
+    },
+    "./exam": {
+      "praxis-source": "./src/exam/index.ts",
+      "types": "./dist/exam/index.d.ts",
+      "import": "./dist/exam/index.js",
+      "node": "./dist/exam/index.js",
+      "default": "./dist/exam/index.js"
     }
   },
   "scripts": {

@@ -23,6 +23,7 @@ import type {
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
 import type { ConfiguratorActionRow } from "./configurator.js";
+import type { Engine, VisionDescribeRequest, VisionDescribeResponse } from "./engine.js";
 import type { FsrsScheduler, FsrsState, Rating } from "./flashcards.js";
 import type { GateView, GradeReader, MasteryReader } from "./gate.js";
 import type {
@@ -52,7 +53,6 @@ import type {
 } from "./memory.js";
 import type { NoteBody } from "./notes.js";
 import type { SketchService } from "./sketches.js";
-import type { Engine, VisionDescribeRequest, VisionDescribeResponse } from "./engine.js";
 
 // Re-export VisionService shape inline here so tool handlers can type-check against it
 // without importing from @praxis/core/services (would violate dependency direction).
@@ -1109,6 +1109,11 @@ export interface AssignmentService {
     items: AssignmentItem[];
     conceptIds: ConceptId[];
     authoredBy?: "tutor" | "configurator";
+    /**
+     * Phase 16: session that authored this assignment via assignment.create tool.
+     * When set, `submit()` will notify this session with a system_note after grading.
+     */
+    parentSessionId?: SessionId;
   }): Promise<{ assignmentId: AssignmentId }>;
 
   get(input: { assignmentId: AssignmentId }): Promise<Assignment | null>;

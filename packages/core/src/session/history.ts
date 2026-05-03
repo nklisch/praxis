@@ -39,6 +39,16 @@ export function loadConversationHistory(input: LoadConversationHistoryInput): Co
     const events = byTurn.get(turnIdx);
     if (!events) continue;
 
+    // Phase 16: system_note events surface as synthetic user turns so engines
+    // see the signal regardless of whether they support mid-conversation system
+    // role injection. Prefix with "[Praxis] " so the model distinguishes them
+    // from real user messages.
+    for (const ev of events) {
+      if (ev.type === "system_note") {
+        turns.push({ role: "user", content: `[Praxis] ${ev.content}` });
+      }
+    }
+
     const userEvent = events.find(
       (e): e is Extract<EngineEvent, { type: "user_message" }> => e.type === "user_message",
     );

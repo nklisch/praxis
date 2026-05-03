@@ -36,6 +36,13 @@ export interface ActivityItem {
    * regardless of this value.
    */
   failedLingerMs?: number;
+  /**
+   * Phase 16: opaque producer-defined payload. Renderers can read this to
+   * react to specific activity kinds (e.g. assignment.issued, assignment.submitted)
+   * without needing a discriminated `kind` field on the ActivityItem itself.
+   * Example: `{ kind: "assignment.issued", assignmentId: "…", parentSessionId: "…" }`.
+   */
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -59,6 +66,11 @@ export interface ActivityStartInput {
   quietPeriodMs?: number;
   lingerMs?: number;
   failedLingerMs?: number;
+  /**
+   * Phase 16: opaque producer payload. Passed through to the ActivityItem's
+   * `metadata` field. See ActivityItem.metadata for usage.
+   */
+  metadata?: Record<string, unknown>;
 }
 
 export interface ActivityUpdatePatch {

@@ -10,6 +10,7 @@ import type {
   FlashcardId,
   GateId,
   GradeBand,
+  LessonAssessmentId,
   LessonId,
   NoteId,
   SessionId,
@@ -18,6 +19,7 @@ import type {
   SubjectId,
   SubjectPackId,
   TopicId,
+  UnitId,
 } from "./ids.js";
 
 export interface Course {
@@ -33,6 +35,8 @@ export interface Course {
   thresholds: ThresholdConfig;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  /** Phase 16: optional assessment plan. Null for courses bootstrapped before Phase 16. */
+  assessmentPlan?: AssessmentPlan;
 }
 
 export type CourseSource =
@@ -367,6 +371,61 @@ export interface DocumentArtifact {
   chunkCount: number;
 }
 
+// ─── Phase 16: Units, lesson assessments, assessment plan ────────────────────
+
+/**
+ * A band of lessons within a course. Courses that predate Phase 16 have no
+ * units; the UI defaults to the flat-lesson view when `course.assessmentPlan`
+ * is absent.
+ */
+export interface Unit {
+  id: UnitId;
+  courseId: CourseId;
+  name: string;
+  summary?: string;
+  orderIndex: number;
+  /** Lesson IDs that belong to this unit, in study order. Resolved from lessonUnits join. */
+  lessonIds: LessonId[];
+  /** Summative assessment (unit exam / midterm) at the end of this unit. Optional. */
+  summativeAssignmentId?: AssignmentId;
+}
+
+/**
+ * Scheduled assessment attached to a specific lesson.
+ * The assignment.kind says quiz/homework/exam; purpose says why it's here.
+ */
+export interface LessonAssessment {
+  id: LessonAssessmentId;
+  lessonId: LessonId;
+  assignmentId: AssignmentId;
+  /** When in the lesson flow this assessment runs. */
+  timing: "before" | "after" | "interleaved";
+  /** Pedagogical role of this assessment. */
+  purpose: "readiness" | "practice" | "checkpoint";
+}
+
+/**
+ * Aggregate description of a course's assessment scaffold. Stored as
+ * JSON on the courses row. Written by persistDraft when the bootstrap
+ * explorer produces a plan; immutable after that except via configure-mode.
+ */
+export interface AssessmentPlan {
+  perLesson: {
+    /** Whether every lesson gets a homework assignment. */
+    homework: boolean;
+    /** 0 = no quizzes; N = quiz every Nth lesson. */
+    quizFrequency?: number;
+  };
+  summatives: Array<{
+    kind: "midterm" | "unit_exam" | "final";
+    /** Exam is placed after the unit with this orderIndex. */
+    afterUnitOrderIndex: number;
+    title: string;
+  }>;
+  /** Optional pacing hints for a future calendar-pacing phase. */
+  pacing?: { sessionsPerWeek?: number; weeksTotal?: number };
+}
+
 // Note: Citation is re-exported from common.ts via the types/index.ts barrel —
 // no explicit re-export needed here.
 
@@ -405,6 +464,47 @@ export interface ProposedCourse {
   proposedConcepts: ProposedConcept[];
   proposedEdges: ProposedEdge[];
   proposedLessons: ProposedLesson[];
+  /**
+   * Phase 16: proposed unit groupings.
+   * Empty array for pre-16 explorers that don't produce unit scaffolding.
+   * Defaults to `[]` at call sites; required at persist time if an assessment plan is set.
+   */
+  proposedUnits?: ProposedUnit[];
+  /** Phase 16: proposed assessment plan. Optional; absent for pre-16 explorers. */
+  assessmentPlan?: AssessmentPlan;
+}
+
+/**
+ * A unit as proposed by the bootstrap explorer before IDs are assigned.
+ * `draftLessonIds` reference `ProposedLesson.draftLessonId` values within the
+ * same `ProposedCourse.proposedLessons` array.
+ */
+export interface ProposedUnit {
+  /** Stable within the draft; resolved to `UnitId` at persist time. */
+  draftUnitId: string;
+  name: string;
+  summary?: string;
+  /** References into proposedLessons[].draftLessonId. Order matters. */
+  draftLessonIds: string[];
+  /** Optional summative assessment scheduled at the end of this unit. */
+  summative?: ProposedAssessment;
+}
+
+/**
+ * An assessment scheduled by the explorer before items are authored.
+ * Items are filled in by the tutor or configurator before the student takes it.
+ */
+export interface ProposedAssessment {
+  /** Stable within the draft; resolved to `AssignmentId` at persist time. */
+  draftAssessmentId: string;
+  kind: "quiz" | "homework" | "exam";
+  title: string;
+  /** Concept names (not IDs) that this assessment should cover. Resolved at persist time. */
+  conceptNames: string[];
+  /** Editorial hint for the configurator; how many items to author. */
+  expectedItemCount?: number;
+  /** Why is this assessment here? What does it test? Used by the configurator as context. */
+  rationale: string;
 }
 
 export interface ProposedLesson {
@@ -432,7 +532,7 @@ export interface DraftCourseState {
   expiresAt: Timestamp;
 }
 
-/** Compact summary returned by `course.propose_draft` to keep tool output small. */
+/** Compact summary returned by `course.start_exploration` / `course.draft_finalize` to keep tool output small. */
 export interface DraftSummary {
   draftId: string;
   title: string;

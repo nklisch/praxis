@@ -129,6 +129,22 @@ export type ToolResult =
   | { ok: true; value: unknown; tier: "deterministic" | "grounded" | "model-derived" }
   | { ok: false; error: { code: string; message: string; recoverable: boolean } };
 
+/**
+ * Discriminated origin for `system_note` events.
+ * `kind: "assignment_submission"` — fired when a student submits an assignment
+ *   that has a `parentSessionId`; carries grade summary for the tutor to narrate.
+ * `kind: "system"` — generic runtime notification; `topic` names the domain.
+ */
+export type SystemNoteOrigin =
+  | {
+      kind: "assignment_submission";
+      assignmentId: string;
+      childSessionId: string;
+      gradeTotal: number;
+      submittedAt: number;
+    }
+  | { kind: "system"; topic: string };
+
 export type EngineEvent =
   /** Framework-emitted only (never adapter-emitted). Records the user's input in the episodic transcript. */
   | { type: "user_message"; content: string }
@@ -137,7 +153,14 @@ export type EngineEvent =
   | { type: "tool_result"; callId: string; result: ToolResult }
   | { type: "thinking"; content: string }
   | { type: "error"; error: EngineError }
-  | { type: "final"; usage: TokenUsage };
+  | { type: "final"; usage: TokenUsage }
+  /**
+   * Phase 16: a non-user, non-tool, non-model message appended by the runtime.
+   * Used for assignment-submission notifications so the teach-mode tutor can
+   * narrate per-item feedback. Stored in episodic and surfaced by
+   * `loadConversationHistory` as a synthetic user turn prefixed `[Praxis] `.
+   */
+  | { type: "system_note"; content: string; origin: SystemNoteOrigin };
 
 export interface EngineError {
   code: string;

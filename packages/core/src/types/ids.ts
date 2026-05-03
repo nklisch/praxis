@@ -14,6 +14,10 @@ export type FlashcardId = Brand<string, "FlashcardId">;
 export type NoteId = Brand<string, "NoteId">;
 export type ConceptMapId = Brand<string, "ConceptMapId">;
 export type DocumentId = Brand<string, "DocumentId">;
+/** Phase 16: course unit (an ordered band of lessons within a course). */
+export type UnitId = Brand<string, "UnitId">;
+/** Phase 16: per-lesson assessment schedule row. */
+export type LessonAssessmentId = Brand<string, "LessonAssessmentId">;
 
 export type ConceptId = Brand<string, "ConceptId">;
 export type ConceptGraphId = Brand<string, "ConceptGraphId">;

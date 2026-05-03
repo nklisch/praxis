@@ -100,6 +100,17 @@ export function registerIpcHandlers(
     return services.session.end(sessionId as any);
   });
 
+  // Phase 16: spawn a quiz/homework/exam child session from an assignment.
+  handle(
+    "praxis.session.spawnFromAssignment",
+    async (_event, opts: { assignmentId: string; parentSessionId: string }) => {
+      return services.session.spawnFromAssignment({
+        assignmentId: brandId<"AssignmentId">(opts.assignmentId) as AssignmentId,
+        parentSessionId: brandId<"SessionId">(opts.parentSessionId) as SessionId,
+      });
+    },
+  );
+
   // Streaming: client invokes `praxis.session.send.start` with streamId + args.
   // Server pushes IpcStreamMessage<EngineEvent> on `praxis.session.send.events.<streamId>`.
   // Client can cancel via `praxis.session.send.cancel` with the streamId.

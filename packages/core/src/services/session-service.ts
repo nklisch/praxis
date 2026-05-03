@@ -1,3 +1,4 @@
+import { assignments } from "@praxis/artifacts/schema";
 import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { composeAssignmentContextFragment } from "@praxis/curriculum/brief/assignment-context";
 import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
@@ -25,6 +26,7 @@ import type {
   SessionService,
   SessionSummary,
   StudentId,
+  SystemNoteOrigin,
   Timestamp,
   ToolContext,
 } from "../types/index.js";
@@ -43,6 +45,12 @@ interface ActiveEntry {
   handle: EngineSession;
   /** Engine instance — held for diagnostics. */
   engine: Engine;
+  /**
+   * Phase 16: true while a `send()` or synthetic turn is iterating the engine
+   * stream. Used by `notifySession` to decide between live narration vs.
+   * lazy delivery (leaving the system_note for the next real turn to pick up).
+   */
+  turnInFlight: boolean;
 }
 
 /**
@@ -194,6 +202,7 @@ export class SessionServiceImpl implements SessionService {
 
     // 2. Drive the engine session for this turn; persist every event.
     const capturedEntry = entry;
+    capturedEntry.turnInFlight = true;
     try {
       for await (const event of capturedEntry.handle.send(message)) {
         try {
@@ -218,6 +227,8 @@ export class SessionServiceImpl implements SessionService {
     } catch (cause) {
       const errMsg = cause instanceof Error ? cause.message : String(cause);
       yield { type: "error", error: engineError("engine.send_failed", errMsg, { cause }) };
+    } finally {
+      capturedEntry.turnInFlight = false;
     }
 
     // Phase 7: schedule post-turn indexer pass (debounced, fire-and-forget).
@@ -368,6 +379,131 @@ export class SessionServiceImpl implements SessionService {
         ...(firstUserMessage !== undefined && { firstUserMessage }),
       };
     });
+  }
+
+  /**
+   * Phase 16: append a system_note to a session's episodic stream.
+   *
+   * If the session is currently in `activeSessions` AND no turn is in flight,
+   * drives a synthetic turn so the tutor narrates feedback live. The prefixed
+   * note is sent as the "user" message so all engine adapters see it without
+   * requiring role-injection support.
+   *
+   * If the session is not active or is busy, the note sits in the episodic
+   * stream and `loadConversationHistory` surfaces it on the next real turn.
+   */
+  async notifySession(input: {
+    sessionId: SessionId;
+    note: string;
+    origin: SystemNoteOrigin;
+  }): Promise<void> {
+    const sessionRow = this.deps.db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, input.sessionId))
+      .get();
+    if (!sessionRow || sessionRow.endedAt) return;
+
+    const studentId = brandId<"StudentId">(sessionRow.studentId);
+    const mode = this.deps.modes.get(sessionRow.modeId);
+    if (!mode) return;
+
+    const engineId = sessionRow.engineId;
+    const turnIndex = nextTurnIndex(this.deps.db, input.sessionId);
+
+    // Always append the system_note to episodic first so resume sees it
+    // even if the synthetic turn fails midstream.
+    appendEpisodic({
+      db: this.deps.db,
+      sessionId: input.sessionId,
+      studentId,
+      engineId,
+      modeId: mode.id,
+      turnIndex,
+      event: { type: "system_note", content: input.note, origin: input.origin },
+    });
+
+    const entry = this.activeSessions.get(input.sessionId);
+    if (!entry || entry.turnInFlight) {
+      // Lazy delivery — the note is in the transcript; next real send() picks it up.
+      return;
+    }
+
+    // Drive a synthetic turn so the tutor narrates live.
+    const prefixedNote = `[Praxis: assignment submission notice]\n${input.note}`;
+    const syntheticTurnIndex = nextTurnIndex(this.deps.db, input.sessionId);
+    entry.turnInFlight = true;
+    try {
+      for await (const event of entry.handle.send(prefixedNote)) {
+        try {
+          appendEpisodic({
+            db: this.deps.db,
+            sessionId: input.sessionId,
+            studentId,
+            engineId: entry.engineId,
+            modeId: mode.id,
+            turnIndex: syntheticTurnIndex,
+            event,
+          });
+        } catch (cause) {
+          this.deps.log.warn("notify_session.episodic_write_failed", {
+            sessionId: input.sessionId,
+            err: cause instanceof Error ? cause.message : String(cause),
+          });
+        }
+        // Note: we don't yield these events — the synthetic turn is fire-and-forget
+        // from the assignment service's perspective. A future Phase can wire a
+        // per-session EventEmitter here to forward events to the active renderer.
+      }
+    } catch (cause) {
+      this.deps.log.warn("notify_session.synthetic_turn_failed", {
+        sessionId: input.sessionId,
+        err: cause instanceof Error ? cause.message : String(cause),
+      });
+    } finally {
+      entry.turnInFlight = false;
+    }
+  }
+
+  /**
+   * Phase 16: open a new child session bound to an assignment, deriving the
+   * mode from the assignment's kind. The child session's `parentSessionId` is
+   * set to `parentSessionId` so the tab UI can link back to the tutor tab.
+   */
+  async spawnFromAssignment(input: {
+    assignmentId: AssignmentId;
+    parentSessionId: SessionId;
+  }): Promise<SessionHandle> {
+    const assignmentRow = this.deps.db
+      .select()
+      .from(assignments)
+      .where(eq(assignments.id, input.assignmentId))
+      .get();
+    if (!assignmentRow) {
+      throw new Error(`Assignment not found: ${input.assignmentId}`);
+    }
+
+    // Derive mode from assignment kind.
+    const modeId = assignmentRow.kind; // "quiz" | "homework" | "exam" map 1:1 to mode ids
+
+    // Start the session using the existing start() path (handles lock checks, engine open, etc.)
+    const handle = await this.start({
+      modeId,
+      assignmentId: input.assignmentId,
+      courseId: brandId<"CourseId">(assignmentRow.courseId),
+    });
+
+    // Update the session row to set parentSessionId.
+    this.deps.db
+      .update(sessions)
+      .set({ parentSessionId: input.parentSessionId })
+      .where(eq(sessions.id, handle.sessionId))
+      .run();
+
+    return {
+      ...handle,
+      parentSessionId: input.parentSessionId,
+    };
   }
 
   /** Tear down all active engine sessions. Called on host shutdown. */
@@ -562,6 +698,7 @@ export class SessionServiceImpl implements SessionService {
       mode: args.mode,
       handle,
       engine,
+      turnInFlight: false,
     };
     this.activeSessions.set(args.sessionId, entry);
     return entry;

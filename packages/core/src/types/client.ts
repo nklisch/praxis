@@ -1,5 +1,5 @@
-import type { ActivityClient } from "./activity.js";
 import type { ClaudeAuthService } from "../services/claude-auth.js";
+import type { ActivityClient } from "./activity.js";
 import type {
   Assignment,
   AssignmentResponse,
@@ -207,6 +207,15 @@ export interface SessionService {
    * @param opts.limit - default 100.
    */
   list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]>;
+  /**
+   * Phase 16: open a child session bound to an assignment, deriving the mode
+   * from the assignment's kind. The child session's parentSessionId is set to
+   * `parentSessionId` so tabs can link back to the tutor session.
+   */
+  spawnFromAssignment(input: {
+    assignmentId: AssignmentId;
+    parentSessionId: SessionId;
+  }): Promise<SessionHandle>;
 }
 
 export interface SessionHandle {
@@ -216,6 +225,11 @@ export interface SessionHandle {
   assignmentId?: AssignmentId;
   modeId: string;
   startedAt: Timestamp;
+  /**
+   * Phase 16: the teach-mode session that spawned this child session.
+   * Set when this session was opened via `spawnFromAssignment`.
+   */
+  parentSessionId?: SessionId;
 }
 
 // ─── Phase 8: AssignmentsClient (client-side) ────────────────────────────────

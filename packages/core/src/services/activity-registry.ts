@@ -68,6 +68,7 @@ export class ActivityRegistryImpl implements ActivityRegistry {
       ...(input.quietPeriodMs !== undefined && { quietPeriodMs: input.quietPeriodMs }),
       ...(input.lingerMs !== undefined && { lingerMs: input.lingerMs }),
       ...(input.failedLingerMs !== undefined && { failedLingerMs: input.failedLingerMs }),
+      ...(input.metadata !== undefined && { metadata: input.metadata }),
     };
     this.items.set(id, item);
 

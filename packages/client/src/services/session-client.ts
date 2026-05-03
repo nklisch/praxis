@@ -38,4 +38,12 @@ export class SessionClient implements SessionService {
   list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]> {
     return this.transport.invoke<SessionSummary[]>(`${CHANNEL}.list`, opts ?? {});
   }
+
+  /** Phase 16: open a child quiz/homework/exam session from a tutor-authored assignment. */
+  spawnFromAssignment(input: {
+    assignmentId: AssignmentId;
+    parentSessionId: SessionId;
+  }): Promise<SessionHandle> {
+    return this.transport.invoke<SessionHandle>(`${CHANNEL}.spawnFromAssignment`, input);
+  }
 }

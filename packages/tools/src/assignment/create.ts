@@ -71,7 +71,28 @@ Rubrics use criteria with weights summing to 1.0 (validated). Each criterion has
       items: args.items as unknown as AssignmentItem[],
       conceptIds: args.conceptIds.map((id) => brandId<"ConceptId">(id)),
       authoredBy: "tutor",
+      // Phase 16: capture the calling session so submit() can notify it.
+      parentSessionId: ctx.sessionId,
     });
+
+    // Phase 16: post an activity-rail entry so the renderer knows an assignment
+    // was issued and can react (e.g. auto-open a quiz tab). The stable id keyed
+    // by assignmentId makes this idempotent.
+    ctx.services.activity
+      ?.start({
+        id: `assignment-issued-${assignmentId}`,
+        label: `${args.kind} issued: ${args.title.toLowerCase()}`,
+        detail: `${args.items.length} item${args.items.length === 1 ? "" : "s"}`,
+        lingerMs: 60_000,
+        metadata: {
+          kind: "assignment.issued",
+          assignmentId,
+          parentSessionId: ctx.sessionId,
+          courseId: args.courseId,
+        },
+      })
+      ?.finish("done");
+
     return { ok: true as const, assignmentId, itemCount: args.items.length };
   },
 };
