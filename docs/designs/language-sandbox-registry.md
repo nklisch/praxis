@@ -1,4 +1,4 @@
-# Design: Phase 17 — Language Sandbox Registry + QuickJS replaces isolated-vm
+# Design: Language Sandbox Registry — QuickJS replaces isolated-vm
 
 ## Overview
 
@@ -24,7 +24,7 @@ The fix is two-part:
 
 ### Out of scope (deliberately deferred)
 
-- New language adapters beyond JS + Python — the design specifies the shape so future ones are 30-line additions, but Phase 17 ships only the swap and the abstraction.
+- New language adapters beyond JS + Python — the design specifies the shape so future ones are 30-line additions, but this design ships only the swap and the abstraction.
 - Multi-threading inside the sandbox — QuickJS is single-threaded by design; multi-threading sandboxed user code is a bigger feature.
 - Network/filesystem access for sandboxed code — still none, same as today.
 
@@ -735,7 +735,7 @@ const codeSandboxTool = createCodeSandboxTool(sandbox);
 
 **Acceptance Criteria**:
 - [ ] No `IsolatedVmHost`, `WorkerIsolatedVmHost`, `JsSandboxHost`, `LocalCodeSandbox`, or `isolated-vm-worker` import remains in `services.ts`.
-- [ ] `services.session.shutdown()` followed by `services.workers.embeddings.shutdown()` still cleanly tears down (embeddings worker survives Phase 17 unchanged).
+- [ ] `services.session.shutdown()` followed by `services.workers.embeddings.shutdown()` still cleanly tears down (embeddings worker survives this design unchanged).
 - [ ] `codeSandboxTool` registered in `toolDefinitions` advertises both `javascript` and `python` in its Zod enum.
 
 ---
@@ -945,7 +945,7 @@ test -d node_modules/.pnpm/isolated-vm@* && echo FAIL || echo OK
 
 ---
 
-## Future language adapters (informative — not implemented in Phase 17)
+## Future language adapters (informative — not implemented in this design)
 
 To document the shape so the next person extending this can copy the pattern:
 
