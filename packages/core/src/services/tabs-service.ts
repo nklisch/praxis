@@ -46,6 +46,7 @@ interface TabSelectRow {
   closedAt: Date | null;
   modeId: string;
   courseId: string | null;
+  assignmentId: string | null;
 }
 
 function rowToSummary(row: TabSelectRow): TabSummary {
@@ -55,6 +56,8 @@ function rowToSummary(row: TabSelectRow): TabSummary {
     modeId: row.modeId,
     title: row.title,
     ...(row.courseId !== null && row.courseId !== undefined && { courseId: row.courseId }),
+    ...(row.assignmentId !== null &&
+      row.assignmentId !== undefined && { assignmentId: row.assignmentId }),
     sortOrder: row.sortOrder,
     openedAt: row.openedAt.getTime() as Timestamp,
     lastSeenAt: row.lastSeenAt.getTime() as Timestamp,
@@ -77,6 +80,7 @@ export class TabsServiceImpl implements TabsService {
         closedAt: tabs.closedAt,
         modeId: sessions.modeId,
         courseId: sessions.courseId,
+        assignmentId: sessions.assignmentId,
       })
       .from(tabs)
       .innerJoin(sessions, eq(tabs.sessionId, sessions.id))
@@ -108,6 +112,7 @@ export class TabsServiceImpl implements TabsService {
         closedAt: tabs.closedAt,
         modeId: sessions.modeId,
         courseId: sessions.courseId,
+        assignmentId: sessions.assignmentId,
       })
       .from(tabs)
       .innerJoin(sessions, eq(tabs.sessionId, sessions.id))
@@ -130,6 +135,7 @@ export class TabsServiceImpl implements TabsService {
         closedAt: tabs.closedAt,
         modeId: sessions.modeId,
         courseId: sessions.courseId,
+        assignmentId: sessions.assignmentId,
       })
       .from(tabs)
       .innerJoin(sessions, eq(tabs.sessionId, sessions.id))

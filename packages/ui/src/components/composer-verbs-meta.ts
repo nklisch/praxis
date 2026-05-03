@@ -6,12 +6,16 @@
  *
  * Verbs are starter words, not autosend. The student remains in control.
  *
- * Phase 16 will add exam, quiz, and homework verb sets alongside their
- * modality bodies. Until then, those modes fall back to the teach set.
+ * Phase 16: quiz, homework, and exam each have their own chip set. The
+ * quiz/homework chips appear in the SidekickPanel composer; the exam chip
+ * appears in the ClarificationPill composer.
  */
 export const VERBS_BY_MODE: Readonly<Record<string, ReadonlyArray<string>>> = {
   teach: ["explain", "quiz me on", "let me try", "show your work", "slower", "go deeper"],
   bootstrap: ["what should we cover", "add this", "remove that", "what's next"],
+  quiz: ["I'm stuck", "give me a nudge", "explain this"],
+  homework: ["clarify wording", "show your work", "flag for review"],
+  exam: ["ask for clarification", "next problem"],
 };
 
 /**

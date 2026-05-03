@@ -1,0 +1,123 @@
+/**
+ * Slide-in chat panel anchored to the right edge of quiz/homework tabs.
+ *
+ * Behaviour:
+ *  - When open, the panel occupies a fixed column (~380px) in the parent
+ *    CSS grid. Body content shrinks proportionally — no overlay.
+ *  - Pressing Esc while the panel is focused closes it.
+ *  - Threads the same session as the parent tab; messages go through
+ *    useStreamedSend just as in the teach-mode ChatTabBody.
+ */
+import type { SessionId } from "@praxis/core/types";
+import { type JSX, useEffect, useRef, useState } from "react";
+import { usePraxisClient } from "../context/client-context.js";
+import { useStreamedSend } from "../hooks/use-streamed-send.js";
+import { Composer } from "./composer.js";
+import { ComposerVerbs } from "./composer-verbs.js";
+import { MessageBubble } from "./message.js";
+import styles from "./sidekick-panel.module.css";
+
+export interface SidekickPanelProps {
+  sessionId: SessionId;
+  modeId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+/**
+ * A slide-in tutor chat panel used by quiz and homework tab bodies.
+ * The panel resizes the layout grid column rather than overlaying content.
+ */
+export function SidekickPanel({
+  sessionId,
+  modeId,
+  open,
+  onOpenChange,
+}: SidekickPanelProps): JSX.Element {
+  const client = usePraxisClient();
+  const { messages, isStreaming, lastError, send } = useStreamedSend(client);
+  const [composerValue, setComposerValue] = useState("");
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom on new messages
+  const messageCount = messages.length;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on count change; ref is stable
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messageCount]);
+
+  // Close on Esc key when panel is focused
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      onOpenChange(false);
+    }
+  };
+
+  const handleSend = async (message: string) => {
+    await send(sessionId, message);
+  };
+
+  return (
+    <aside
+      className={`${styles.panel}${open ? ` ${styles.open}` : ""}`}
+      aria-label="Tutor sidekick"
+      aria-hidden={!open}
+      onKeyDown={handleKeyDown}
+    >
+      <div className={styles.header}>
+        <span className={styles.title}>ask your tutor</span>
+        <button
+          type="button"
+          className={styles.closeBtn}
+          aria-label="Close sidekick"
+          onClick={() => onOpenChange(false)}
+        >
+          ×
+        </button>
+      </div>
+
+      <div className={styles.messages}>
+        {messages.length === 0 && (
+          <p className={styles.emptyState}>
+            ask a question — the tutor is here to nudge, not give away the answer.
+          </p>
+        )}
+        {messages.map((msg) => (
+          <MessageBubble
+            key={msg.id}
+            role={msg.role}
+            content={msg.content}
+            rawContent={msg.rawContent}
+            {...(msg.streaming !== undefined && { streaming: msg.streaming })}
+            {...(msg.citations !== undefined && { citations: msg.citations })}
+          />
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {lastError && <div className={styles.errorBanner}>Error: {lastError}</div>}
+
+      <div className={styles.footer}>
+        <ComposerVerbs
+          modeId={modeId}
+          onPrefill={(seed) => {
+            setComposerValue((prev) => (prev ? `${prev} ${seed}` : seed));
+            composerRef.current?.focus();
+          }}
+        />
+        <Composer
+          ref={composerRef}
+          value={composerValue}
+          onChange={setComposerValue}
+          onSend={async (msg) => {
+            setComposerValue("");
+            await handleSend(msg);
+          }}
+          disabled={isStreaming}
+          sketchEnabled={false}
+        />
+      </div>
+    </aside>
+  );
+}

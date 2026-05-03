@@ -1,0 +1,54 @@
+/* Bootstrap tab body — split-pane: chat left, outline right */
+
+.container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* Left chat pane — ~60% */
+.chatPane {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  border-right: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+/* Right outline pane — ~40% */
+.outlinePane {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--color-surface-1, #1a1a1a);
+}
+
+.outlineHeader {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  flex-shrink: 0;
+}
+
+.outlineTitle {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted, #aaa);
+}
+
+.outlinePlaceholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}

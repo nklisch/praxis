@@ -1,4 +1,10 @@
-import type { AssignmentId, SessionHandle, SketchId, TabSummary, Timestamp } from "@praxis/core/types";
+import type {
+  AssignmentId,
+  SessionHandle,
+  SketchId,
+  TabSummary,
+  Timestamp,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
 import { type JSX, useEffect, useRef, useState } from "react";
@@ -9,12 +15,16 @@ import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { isClaudeAuthRequiredError } from "../lib/auth-error.js";
 import { AssignmentCard } from "./assignment-card.js";
 import { AuthGate } from "./auth-gate.js";
+import { BootstrapTabBody } from "./bootstrap-tab-body.js";
 import styles from "./chat-tab-body.module.css";
 import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
+import { ExamTabBody } from "./exam-tab-body.js";
+import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
 import { ModeHeader } from "./mode-header.js";
 import { PageImagePanel } from "./page-image-panel.js";
+import { QuizTabBody } from "./quiz-tab-body.js";
 
 export interface ChatTabBodyProps {
   tab: TabSummary;
@@ -45,19 +55,30 @@ function ExamLockdownGate({
 }
 
 /**
- * Per-tab session body. Holds the message log, composer, auth banner, and
- * mode header for a single open tab. Each instance has its own useStreamedSend
- * so message logs are isolated across tabs.
+ * Teach-mode (and default) tab body. Holds the message log, composer, auth
+ * banner, and mode header for a single open tab. Each instance has its own
+ * useStreamedSend so message logs are isolated across tabs.
  *
  * The session already exists when this component mounts — it was created by
  * NewTabPicker (or openSessionInTab). This component's job is to drive the
  * existing session via client.session.send.
+ *
+ * Exported so BootstrapTabBody can embed it in the left pane.
  */
-export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
+export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
-  const { messages, isStreaming, lastError, send } = useStreamedSend(client);
+  const { messages, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
   const { flagAuthRequired } = useAuthStatus();
+
+  // Load the persisted transcript on first mount (or when this tab body is
+  // reused for a different session — keyed on tab.sessionId). Without this,
+  // re-opening a tab or relaunching the app shows an empty chat even though
+  // the episodic log is on disk.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load once per session id
+  useEffect(() => {
+    void loadHistory(tab.sessionId);
+  }, [tab.sessionId]);
 
   // Build a minimal SessionHandle from the tab's metadata.
   // The session already exists; we don't call session.start here.
@@ -112,8 +133,7 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
    * the model to call sketch.read when it sees this marker.
    */
   const handleSendWithSketch = async (message: string, sketchId?: SketchId) => {
-    const fullMessage =
-      sketchId !== undefined ? `${message}\n\n[sketch:${sketchId}]` : message;
+    const fullMessage = sketchId !== undefined ? `${message}\n\n[sketch:${sketchId}]` : message;
     setPendingSketchId(undefined);
     await handleSend(fullMessage);
   };
@@ -210,4 +230,28 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
       )}
     </div>
   );
+}
+
+/**
+ * Top-level tab body dispatcher. Routes each tab to the component that
+ * matches its modeId. Teach mode (and unknown modes) use TeachChatTabBody.
+ * Quiz, homework, exam, and bootstrap each have their own modality body.
+ *
+ * Per the tab-body-isolation pattern, all open instances mount simultaneously;
+ * inactive ones are hidden via display:none in the parent (chat.tsx). The
+ * dispatcher itself does not manage visibility — that remains in the parent.
+ */
+export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
+  switch (tab.modeId) {
+    case "quiz":
+      return <QuizTabBody tab={tab} />;
+    case "homework":
+      return <HomeworkTabBody tab={tab} />;
+    case "exam":
+      return <ExamTabBody tab={tab} />;
+    case "bootstrap":
+      return <BootstrapTabBody tab={tab} />;
+    default:
+      return <TeachChatTabBody tab={tab} />;
+  }
 }

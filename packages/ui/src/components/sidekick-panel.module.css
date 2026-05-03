@@ -1,0 +1,81 @@
+/* Sidekick panel — slide-in tutor chat for quiz/homework tabs */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 0;
+  overflow: hidden;
+  transition: width 0.2s ease;
+  border-left: none;
+  background: var(--color-surface-1, #1a1a1a);
+  flex-shrink: 0;
+}
+
+.panel.open {
+  width: 380px;
+  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.875rem;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #aaa);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted, #aaa);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+.closeBtn:hover {
+  color: var(--color-text, #e5e5e5);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.875rem;
+}
+
+.emptyState {
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.errorBanner {
+  padding: 0.4rem 0.875rem;
+  background: rgba(220, 50, 50, 0.12);
+  border-top: 1px solid rgba(220, 50, 50, 0.25);
+  color: #f87171;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}

@@ -12,6 +12,11 @@ export interface TabSummary {
   readonly title: string;
   /** Optional courseId from the underlying session (if the tab is course-bound). */
   readonly courseId?: string;
+  /**
+   * Phase 16: the assignment bound to this session, if any.
+   * Present for quiz / homework / exam sessions; absent for teach / bootstrap.
+   */
+  readonly assignmentId?: string;
   readonly sortOrder: number;
   readonly openedAt: Timestamp;
   readonly lastSeenAt: Timestamp;

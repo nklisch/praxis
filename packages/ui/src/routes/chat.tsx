@@ -7,6 +7,7 @@ import { DocumentList } from "../components/document-list.js";
 import { EmptyState } from "../components/empty-state.js";
 import { NewTabPicker } from "../components/new-tab-picker.js";
 import { TabStrip } from "../components/tab-strip.js";
+import { useAssignmentIssuedSpawn } from "../hooks/use-assignment-issued-spawn.js";
 import { useDocuments } from "../hooks/use-documents.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
 import { useTabs } from "../hooks/use-tabs.js";
@@ -29,6 +30,13 @@ export function ChatRoute() {
 
   const { openTabs, activeTabId, openTab, closeTab, switchTo, loading } = useTabs();
   const [showPicker, setShowPicker] = useState(false);
+
+  // Phase 16: auto-spawn quiz/homework/exam tabs when the tutor authors an
+  // assignment. Mounted here (once per workspace) so it fires regardless of
+  // which tab is active. No navigation — the new tab appears in the strip.
+  // We pass openTab from the existing useTabs() instance to avoid a duplicate
+  // hook mount that would fire a second tabs.listOpen call.
+  useAssignmentIssuedSpawn(openTab);
 
   // Documents sidebar — global to workspace, not per-tab
   const {

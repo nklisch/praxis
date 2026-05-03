@@ -18,14 +18,16 @@ describe("getVerbsForMode", () => {
     expect(verbs.length).toBeGreaterThan(0);
   });
 
-  it("falls back to the teach set for unknown modes (e.g. 'exam')", () => {
+  it("returns the exam verb set for modeId 'exam'", () => {
     const verbs = getVerbsForMode("exam");
-    expect(verbs).toEqual(VERBS_BY_MODE.teach);
+    expect(verbs).toEqual(VERBS_BY_MODE.exam);
+    expect(verbs.length).toBeGreaterThan(0);
   });
 
-  it("falls back to the teach set for 'quiz' mode", () => {
+  it("returns the quiz verb set for modeId 'quiz'", () => {
     const verbs = getVerbsForMode("quiz");
-    expect(verbs).toEqual(VERBS_BY_MODE.teach);
+    expect(verbs).toEqual(VERBS_BY_MODE.quiz);
+    expect(verbs.length).toBeGreaterThan(0);
   });
 
   it("returns an empty array when modeId is undefined", () => {
@@ -79,17 +81,25 @@ describe("ComposerVerbs", () => {
     expect(onPrefill).toHaveBeenCalledWith("quiz me on ");
   });
 
-  it("falls back to teach verbs for unknown modes and calls onPrefill correctly", () => {
+  it("falls back to teach verbs for truly unknown modes and calls onPrefill correctly", () => {
     const onPrefill = vi.fn();
-    render(<ComposerVerbs modeId="exam" onPrefill={onPrefill} />);
+    render(<ComposerVerbs modeId="unknown-mode-xyz" onPrefill={onPrefill} />);
 
-    // Should render the teach set
+    // Unknown modes should fall back to teach set
     const teachVerbs = VERBS_BY_MODE.teach;
     expect(screen.getAllByRole("button")).toHaveLength(teachVerbs.length);
 
     // First teach verb chip should work
     fireEvent.click(screen.getByRole("button", { name: "explain" }));
     expect(onPrefill).toHaveBeenCalledWith("explain ");
+  });
+
+  it("renders exam verbs for 'exam' mode", () => {
+    const onPrefill = vi.fn();
+    render(<ComposerVerbs modeId="exam" onPrefill={onPrefill} />);
+
+    const examVerbs = VERBS_BY_MODE.exam;
+    expect(screen.getAllByRole("button")).toHaveLength(examVerbs.length);
   });
 
   it("renders a toolbar landmark region", () => {
