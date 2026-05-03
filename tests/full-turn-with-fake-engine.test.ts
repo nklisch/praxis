@@ -8,6 +8,7 @@
  * - collected events match CANNED_EVENTS (plus framework-emitted user_message)
  */
 import { openDb } from "@praxis/core/db";
+import type { ServiceDeps } from "@praxis/core/services";
 import { SessionServiceImpl } from "@praxis/core/services";
 import type {
   CodeSandbox,
@@ -84,6 +85,7 @@ const noopLogger = {
   info: () => {},
   warn: () => {},
   error: () => {},
+  child: () => noopLogger,
 };
 
 const mockSympy: SymPyService = {
@@ -122,14 +124,15 @@ const mockDocuments = {
   pageImage: vi.fn().mockResolvedValue(null),
 };
 
-const mockToolServices = {
+// biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
+const mockToolServices: ServiceDeps["toolServices"] = {
   sympy: mockSympy,
   sandbox: mockSandbox,
   vectorStore: mockVectorStore,
   ftsStore: mockFtsStore,
   embeddings: mockEmbeddings,
   documents: mockDocuments,
-};
+} as any;
 
 beforeEach(() => {
   process.env.PRAXIS_ENGINE = "direct.anthropic";

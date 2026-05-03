@@ -212,6 +212,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
     log: noopLogger(),
     modes,
     toolDefinitions: [],
+    // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
     toolServices: {
       sympy: mockSympy,
       sandbox: mockSandbox,
@@ -219,16 +220,13 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
       ftsStore: mockFtsStore,
       embeddings: mockEmbeddings,
       documents: mockDocuments,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      artifacts: artifactsService as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      bootstrap: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      courseState: artifactsService as any,
+      artifacts: artifactsService,
+      bootstrap: null,
+      courseState: artifactsService,
       memory: memoryService,
       lock: lockService,
       authoring: authoringService,
-    },
+    } as any,
     engineFactory: () => new FakeConfigureEngine(),
     lockService,
   });

@@ -209,6 +209,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
     log: noopLogger(),
     modes: new Map([[teachMode.id, teachMode]]),
     toolDefinitions: [],
+    // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
     toolServices: {
       sympy: mockSympy,
       sandbox: mockSandbox,
@@ -216,14 +217,11 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
       ftsStore: mockFtsStore,
       embeddings: mockEmbeddings,
       documents: mockDocuments,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub wires real artifacts service
-      artifacts: artifactsService as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      bootstrap: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
-      courseState: artifactsService as any,
+      artifacts: artifactsService,
+      bootstrap: null,
+      courseState: artifactsService,
       memory: memoryService,
-    },
+    } as any,
     engineFactory: () => new FakeEngine(),
   });
 

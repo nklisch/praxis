@@ -311,6 +311,7 @@ describe("quiz end-to-end", () => {
         [quizMode.id, quizMode],
       ]),
       toolDefinitions: [],
+      // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
       toolServices: {
         sympy: mockSympy,
         sandbox: mockSandbox,
@@ -318,16 +319,12 @@ describe("quiz end-to-end", () => {
         ftsStore: mockFtsStore,
         embeddings: mockEmbeddings,
         documents: mockDocuments,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        artifacts: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        bootstrap: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        courseState: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        memory: null as any,
+        artifacts: null,
+        bootstrap: null,
+        courseState: null,
+        memory: null,
         assignments: assignmentService,
-      },
+      } as any,
       engineFactory: () => new FakeEngine(),
     });
 

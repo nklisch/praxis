@@ -264,6 +264,7 @@ describe("mastery end-to-end", () => {
       log: noopLogger(),
       modes: new Map([[teachMode.id, teachMode]]),
       toolDefinitions: [],
+      // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
       toolServices: {
         sympy: mockSympy,
         sandbox: mockSandbox,
@@ -271,14 +272,11 @@ describe("mastery end-to-end", () => {
         ftsStore: mockFtsStore,
         embeddings: mockEmbeddings,
         documents: mockDocuments,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        artifacts: artifactsService as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        bootstrap: null as any,
-        // biome-ignore lint/suspicious/noExplicitAny: test stub
-        courseState: null as any,
+        artifacts: artifactsService,
+        bootstrap: null,
+        courseState: null,
         memory: memoryService,
-      },
+      } as any,
       indexerOrchestrator,
       engineFactory: () => new FakeEngine(),
     });
