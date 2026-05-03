@@ -77,6 +77,7 @@ import {
 } from "@praxis/tools/runtime";
 import { CodeSandboxImpl, createCodeSandboxTool } from "@praxis/tools/sandbox";
 import { sketchReadTool } from "@praxis/tools/sketch";
+import { QUICK_CHECK_TOOLS } from "@praxis/tools/quick-check";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
 import type { MainLogger } from "./logger.js";
@@ -448,6 +449,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     ...FLASHCARD_TOOLS, // ← Phase 12
     sketchReadTool, // ← Phase 15a
     ...EXAM_TOOLS, // ← Phase 16
+    ...QUICK_CHECK_TOOLS, // ← Phase 17
   ];
 
   const deps: ServiceDeps = {

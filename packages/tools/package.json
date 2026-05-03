@@ -122,6 +122,13 @@
       "import": "./dist/exam/index.js",
       "node": "./dist/exam/index.js",
       "default": "./dist/exam/index.js"
+    },
+    "./quick-check": {
+      "praxis-source": "./src/quick-check/index.ts",
+      "types": "./dist/quick-check/index.d.ts",
+      "import": "./dist/quick-check/index.js",
+      "node": "./dist/quick-check/index.js",
+      "default": "./dist/quick-check/index.js"
     }
   },
   "scripts": {
@@ -131,6 +138,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
+    "uuid": "^14.0.0",
     "@mozilla/readability": "^0.6.0",
     "@praxis/core": "workspace:*",
     "better-sqlite3": "^12.9.0",
@@ -145,6 +153,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13"
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/uuid": "^11.0.0"
   }
 }

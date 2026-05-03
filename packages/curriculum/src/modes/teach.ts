@@ -46,6 +46,12 @@ export const teachMode: Mode = {
     "flashcard.review",
     "flashcard.review_next",
     "sketch.read", // ← Phase 15a: read student sketches from chat
+    // Phase 17: inline formative quick checks
+    "quick_check.single_choice",
+    "quick_check.multi_select",
+    "quick_check.short_answer",
+    "quick_check.matching",
+    "quick_check.confidence",
   ],
   uiSurface: "chat",
 };
