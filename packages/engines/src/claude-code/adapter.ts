@@ -50,6 +50,14 @@ export class ClaudeCodeEngine implements Engine {
         ...(modelHint !== undefined && { model: modelHint }),
         ...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps }),
         systemPrompt: openOpts.systemPrompt,
+        // Praxis drives the CLI non-interactively — there is no human at the
+        // CLI to answer permission prompts. Without this, the CLI defaults
+        // to "default" mode, which prompts on every tool call; the call
+        // silently denies and the model improvises an "I need permission..."
+        // response back to the student. Bypass is correct here because the
+        // only tools we register through the bridge are first-party Praxis
+        // tools the user has already opted into by running the app.
+        permissionMode: "bypassPermissions",
         mcpServers: bridge
           ? {
               [bridge.serverName]: {
