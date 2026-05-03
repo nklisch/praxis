@@ -10,7 +10,9 @@ import {
   AuthoringServiceImpl,
   BootstrapServiceImpl,
   ClaudeAuthServiceImpl,
+  ConceptMapDivergenceIndexer,
   ConceptMapServiceImpl,
+  ConceptMapSnapshotter,
   ConfigServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
@@ -50,7 +52,6 @@ import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
 import { NOTE_TOOLS } from "@praxis/tools/notes";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
-import { sketchReadTool } from "@praxis/tools/sketch";
 import {
   DocxIngestor,
   EpubIngestor,
@@ -67,6 +68,7 @@ import {
   VisionPdfIngestor,
 } from "@praxis/tools/runtime";
 import { codeSandboxTool, LocalCodeSandbox } from "@praxis/tools/sandbox";
+import { sketchReadTool } from "@praxis/tools/sketch";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
 import type { MainLogger } from "./logger.js";
@@ -239,10 +241,36 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     sessionCourseId: readSessionCourseId,
   });
 
+  // Phase 15b: Concept map indexers.
+  // NOTE: conceptMapService is constructed below — forward-declare the variable
+  // and assign it before the indexers reference it via the lazy lambda.
+  // We create conceptMapService early here so the indexers can reference it.
+  const conceptMapService = new ConceptMapServiceImpl({ db, log });
+
+  const conceptMapSnapshotter = new ConceptMapSnapshotter({
+    log,
+    conceptMaps: conceptMapService,
+    sessionCourseId: readSessionCourseId,
+  });
+
+  const conceptMapDivergenceIndexer = new ConceptMapDivergenceIndexer({
+    db,
+    log,
+    conceptMaps: conceptMapService,
+    engineResolver: bootstrapEngineResolver,
+    sessionCourseId: readSessionCourseId,
+    courseStateReader: artifactsService,
+  });
+
   const indexerOrchestrator = new IndexerOrchestratorImpl({
     db,
     log,
-    indexers: [masteryIndexer, misconceptionIndexer],
+    indexers: [
+      masteryIndexer,
+      misconceptionIndexer,
+      conceptMapSnapshotter,
+      conceptMapDivergenceIndexer,
+    ],
   });
 
   // Phase 12: FSRS scheduler — singleton, stateless.
@@ -265,9 +293,6 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // Phase 15a: Vision service — thin wrapper around the configured engine's VisionCapability.
   // Resolves the active engine at call time (same pattern as visionResolver above).
   const visionService = new VisionServiceImpl({ db, log });
-
-  // Phase 15b: Concept map service — CRUD + versioning for student concept maps.
-  const conceptMapService = new ConceptMapServiceImpl({ db, log });
 
   // Phase 12: Notes + Flashcards services.
   // Notes service uses the bootstrap engine resolver for fromSessionSummary.

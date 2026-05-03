@@ -33,6 +33,15 @@ export {
 } from "./assignment-service.js";
 export type { BootstrapServiceDeps } from "./bootstrap-service.js";
 export { BootstrapServiceImpl } from "./bootstrap-service.js";
+// Phase 15b: Concept-link fuzzy matcher
+export type { ConceptMatch } from "./concept-link-matcher.js";
+export { matchConceptByLabel } from "./concept-link-matcher.js";
+// Phase 15b: Concept map service
+export type { ConceptMapServiceDeps } from "./concept-map-service.js";
+export { ConceptMapServiceImpl } from "./concept-map-service.js";
+// Phase 15b: Concept map snapshotter indexer
+export type { ConceptMapSnapshotterDeps } from "./concept-map-snapshotter.js";
+export { ConceptMapSnapshotter } from "./concept-map-snapshotter.js";
 export { ConfigServiceImpl } from "./config-service.js";
 export { DrizzleDocumentsReader } from "./documents-reader-impl.js";
 export type { DocumentsServiceDeps } from "./documents-service.js";
@@ -43,6 +52,9 @@ export { buildGraderRegistry } from "./graders/registry.js";
 export type { RunRubricAgentInput } from "./graders/rubric-agent.js";
 export { runRubricAgent } from "./graders/rubric-agent.js";
 export type { GraderContext, GraderResult, GraderServices, ItemGrader } from "./graders/types.js";
+// Phase 15b: Concept map divergence indexer
+export type { ConceptMapDivergenceIndexerDeps } from "./indexers/concept-map-divergence-indexer.js";
+export { ConceptMapDivergenceIndexer } from "./indexers/concept-map-divergence-indexer.js";
 export type { MasteryIndexerDeps } from "./indexers/mastery-indexer.js";
 export { applySignalsToConcept, MasteryIndexer } from "./indexers/mastery-indexer.js";
 export type { MisconceptionIndexerDeps } from "./indexers/misconception-indexer.js";
@@ -62,14 +74,11 @@ export { SessionServiceImpl } from "./session-service.js";
 // Phase 15a: Sketch service
 export type { SketchServiceDeps } from "./sketch-service.js";
 export { SketchServiceImpl } from "./sketch-service.js";
-// Phase 15a: Vision service
-export type { VisionServiceDeps } from "./vision-service.js";
-export { VisionServiceImpl } from "./vision-service.js";
-// Phase 15b: Concept map service
-export type { ConceptMapServiceDeps } from "./concept-map-service.js";
-export { ConceptMapServiceImpl } from "./concept-map-service.js";
 export { getOrCreateDefaultStudentId } from "./student.js";
 // Phase 14: Tabs service
 export type { TabsServiceDeps } from "./tabs-service.js";
 export { TabsServiceImpl } from "./tabs-service.js";
 export type { ServiceDeps } from "./types.js";
+// Phase 15a: Vision service
+export type { VisionServiceDeps } from "./vision-service.js";
+export { VisionServiceImpl } from "./vision-service.js";
