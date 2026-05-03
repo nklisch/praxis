@@ -1,6 +1,5 @@
 import type { UseIngestionResult } from "../hooks/use-ingestion.js";
 import styles from "./add-document-button.module.css";
-import { IngestionProgress } from "./ingestion-progress.js";
 import { PickerTierModal } from "./picker-tier-modal.js";
 
 export interface AddDocumentButtonProps {
@@ -38,8 +37,6 @@ export function AddDocumentButton({ ingestion }: AddDocumentButtonProps) {
           onCancel={dismiss}
         />
       )}
-
-      <IngestionProgress state={state} onDismiss={dismiss} />
     </>
   );
 }

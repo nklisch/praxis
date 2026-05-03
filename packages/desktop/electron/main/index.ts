@@ -15,6 +15,7 @@ import { createMainWindow } from "./window.js";
 let services: Services | null = null;
 let mainWindow: Electron.BrowserWindow | null = null;
 let log: MainLogger | null = null;
+let activeAbortControllers: Map<string, AbortController> | null = null;
 
 async function createBootstrapLogger(dbPath: string): Promise<MainLogger> {
   const { db } = openDb({ path: dbPath });
@@ -50,16 +51,32 @@ async function bootstrap(): Promise<void> {
   services = buildServices(dbPath, log);
   bootLog.info("bootstrap.services_built");
 
-  services.pyodide.preload().catch((err: unknown) => {
-    bootLog.warn("bootstrap.pyodide_preload_failed", { err: serializeError(err) });
-  });
-  services.embeddings.preload().catch((err: unknown) => {
-    bootLog.warn("bootstrap.embeddings_preload_failed", { err: serializeError(err) });
-  });
+  const pyodideHandle = services.activity.start({ label: "preparing math tools" });
+  services.pyodide
+    .preload()
+    .then(() => pyodideHandle.finish("done"))
+    .catch((err: unknown) => {
+      pyodideHandle.finish("failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+      bootLog.warn("bootstrap.pyodide_preload_failed", { err: serializeError(err) });
+    });
+
+  const embedHandle = services.activity.start({ label: "preparing search" });
+  services.embeddings
+    .preload()
+    .then(() => embedHandle.finish("done"))
+    .catch((err: unknown) => {
+      embedHandle.finish("failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+      bootLog.warn("bootstrap.embeddings_preload_failed", { err: serializeError(err) });
+    });
 
   mainWindow = createMainWindow();
   registerLogChannel(log);
-  registerIpcHandlers(services, () => mainWindow?.webContents ?? null, log);
+  const ipcResult = registerIpcHandlers(services, () => mainWindow?.webContents ?? null, log);
+  activeAbortControllers = ipcResult.activeAbortControllers;
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -98,9 +115,20 @@ app.on("before-quit", async (event) => {
   shuttingDown = true;
   event.preventDefault();
   try {
+    // 1. Stop accepting new work — close sessions.
     await services.session.shutdown();
-    // Phase 16: tear down forked Node-mode workers so child processes
-    // don't get orphaned. Shutdown is idempotent and best-effort.
+    // 2. Cancel any in-flight ingestion / activity producers via their
+    //    own AbortControllers. The activity registry's shutdown is purely
+    //    a display reset; producers' work-cancellation happens via the
+    //    activeAbortControllers map maintained by ipc-server.
+    if (activeAbortControllers) {
+      for (const controller of activeAbortControllers.values()) controller.abort();
+      activeAbortControllers.clear();
+    }
+    // 3. Clear activity display.
+    services.activity.shutdown();
+    // 4. Tear down forked Node-mode workers so child processes
+    //    don't get orphaned. Shutdown is idempotent and best-effort.
     for (const [name, worker] of Object.entries(services.workers)) {
       await worker.shutdown().catch((err: unknown) => {
         log?.warn("worker.shutdown_failed", { name, err: serializeError(err) });

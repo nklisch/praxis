@@ -7,6 +7,7 @@ import { FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import type { NodeWorker } from "@praxis/core/runtime";
 import type { ServiceDeps } from "@praxis/core/services";
 import {
+  ActivityRegistryImpl,
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
   AuthoringServiceImpl,
@@ -137,6 +138,8 @@ export interface Services {
   conceptMaps: ConceptMapServiceImpl;
   /** Phase 16: course ↔ document attachment service. */
   courseDocuments: CourseDocumentsServiceImpl;
+  /** Activity registry — exposed for the activity IPC channel and shutdown. */
+  activity: ActivityRegistryImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: WorkerEmbeddingService; // exposed so main can preload it
@@ -154,6 +157,9 @@ export interface Services {
 
 export function buildServices(dbPath: string, log: MainLogger): Services {
   const { db, sqlite } = openDb({ path: dbPath });
+
+  // Activity registry — constructed first so all producers can reference it.
+  const activityRegistry = new ActivityRegistryImpl({ log });
 
   // Phase 4: Pyodide + sandbox
   const pyodide = new PyodideHost({ packages: ["sympy"] });
@@ -342,6 +348,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       conceptMapSnapshotter,
       conceptMapDivergenceIndexer,
     ],
+    activity: activityRegistry,
   });
 
   // Phase 12: FSRS scheduler — singleton, stateless.
@@ -449,6 +456,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)
+    activity: activityRegistry,
   };
 
   const ingestion = new IngestionService({
@@ -460,6 +468,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     ingestorRegistry,
     pageImageStore,
     courseDocuments: courseDocumentsService, // ← Phase 16
+    activity: activityRegistry,
   });
 
   const documentsService = new DocumentsServiceImpl({
@@ -489,6 +498,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     sketches: sketchService, // ← Phase 15a
     conceptMaps: conceptMapService, // ← Phase 15b
     courseDocuments: courseDocumentsService, // ← Phase 16
+    activity: activityRegistry,
     ingestorRegistry,
     pyodide,
     embeddings,

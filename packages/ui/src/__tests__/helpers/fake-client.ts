@@ -27,6 +27,7 @@ export function makeFakeClient(overrides?: Partial<PraxisClient>): PraxisClient 
     sketches: {} as PraxisClient["sketches"],
     conceptMaps: {} as PraxisClient["conceptMaps"],
     courseDocuments: {} as PraxisClient["courseDocuments"],
+    activity: {} as PraxisClient["activity"],
     ...overrides,
   };
 }

@@ -19,6 +19,7 @@ import type {
 } from "@praxis/core/types";
 import { brandId, serializeError } from "@praxis/core/types";
 import { ipcMain } from "electron";
+import { registerActivityHandlers } from "./activity-channel.js";
 import { registerCourseDocumentsHandlers } from "./course-documents-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
@@ -36,11 +37,19 @@ import type { Services } from "./services.js";
  *   events:  praxis.ingest.events.<streamId>
  *   cancel:  praxis.ingest.cancel
  */
+export interface IpcHandlerResult {
+  /** Unregister all handlers and abort all in-flight streams. */
+  cleanup: () => void;
+  /** Map of streamId → AbortController for all active streaming IPC channels.
+   *  Exposed so the before-quit handler can abort them during shutdown. */
+  activeAbortControllers: Map<string, AbortController>;
+}
+
 export function registerIpcHandlers(
   services: Services,
   webContentsGetter: () => Electron.WebContents | null,
   log: Logger,
-): () => void {
+): IpcHandlerResult {
   const registeredChannels: string[] = [];
   const activeAbortControllers = new Map<string, AbortController>();
   const _helpers = createIpcHelpers(log);
@@ -1096,6 +1105,10 @@ export function registerIpcHandlers(
     return services.conceptMaps.listVersions(id as ConceptMapId);
   });
 
+  // ── Activity rail ─────────────────────────────────────────────────────────────
+
+  registerActivityHandlers(services, webContentsGetter, activeAbortControllers, log);
+
   // ── Phase 16: Course ↔ Document attachments ──────────────────────────────────
 
   registerCourseDocumentsHandlers(services, log);
@@ -1113,8 +1126,7 @@ export function registerIpcHandlers(
     await shell.openExternal(url);
   });
 
-  // Return unregister function.
-  return () => {
+  const cleanup = () => {
     for (const channel of registeredChannels) {
       ipcMain.removeHandler(channel);
     }
@@ -1122,9 +1134,12 @@ export function registerIpcHandlers(
     ipcMain.removeAllListeners("praxis.ingest.cancel");
     ipcMain.removeAllListeners("praxis.memory.episodic.cancel");
     ipcMain.removeAllListeners("praxis.auth.claude.login.cancel");
+    ipcMain.removeAllListeners("praxis.activity.events.cancel");
     for (const ctrl of activeAbortControllers.values()) {
       ctrl.abort();
     }
     activeAbortControllers.clear();
   };
+
+  return { cleanup, activeAbortControllers };
 }

@@ -1,3 +1,4 @@
+export type * from "./activity.js";
 export type * from "./artifacts.js";
 export type * from "./citation.js";
 // client.ts: Note: MemoryService is intentionally NOT re-exported from here.
@@ -36,6 +37,7 @@ export type {
   SketchClientApi,
   TabsClientApi,
 } from "./client.js";
+// ActivityClient is also exported via `export type * from "./activity.js"` above.
 export type * from "./common.js";
 export { LOG_LEVELS } from "./common.js"; // runtime const — not re-exported by `export type *`
 export type * from "./concept-graph.js";

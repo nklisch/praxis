@@ -1,4 +1,4 @@
-import type { CourseId, IngestionEvent } from "@praxis/core/types";
+import type { CourseId } from "@praxis/core/types";
 import { useCallback, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 
@@ -6,13 +6,7 @@ export type IngestionState =
   | { status: "idle" }
   | { status: "picking" }
   | { status: "tier_selection"; filePath: string; filename: string; mimeType: string }
-  | {
-      status: "ingesting";
-      filename: string;
-      events: IngestionEvent[];
-      chunksProcessed: number;
-      totalChunks: number;
-    }
+  | { status: "ingesting"; filename: string }
   | { status: "done"; documentId: string; chunkCount: number }
   | { status: "error"; message: string };
 
@@ -66,13 +60,7 @@ export function useIngestion(
       mimeType: string,
       preferIngestorId?: string,
     ): Promise<void> => {
-      setState({
-        status: "ingesting",
-        filename,
-        events: [],
-        chunksProcessed: 0,
-        totalChunks: 0,
-      });
+      setState({ status: "ingesting", filename });
 
       try {
         const req = {
@@ -98,19 +86,7 @@ export function useIngestion(
             setState({ status: "error", message: event.error.message });
             return;
           }
-          // Update progress
-          setState((prev) => {
-            if (prev.status !== "ingesting") return prev;
-            const chunksProcessed =
-              event.type === "indexing" ? event.chunksProcessed : prev.chunksProcessed;
-            const totalChunks = event.type === "indexing" ? event.totalChunks : prev.totalChunks;
-            return {
-              ...prev,
-              events: [...prev.events, event],
-              chunksProcessed,
-              totalChunks,
-            };
-          });
+          // Progress is now reported via the activity rail — no local state needed.
         }
       } catch (err) {
         setState({ status: "error", message: err instanceof Error ? err.message : String(err) });

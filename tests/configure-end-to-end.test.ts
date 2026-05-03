@@ -223,6 +223,14 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
       // Phase 16: minimal stub for course-scoped session bootstrapping.
       courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
     } as any,
+    // Activity registry stub — tests don't assert on rail output.
+    activity: {
+      start: vi.fn(() => ({ id: "test", update: vi.fn(), finish: vi.fn() })),
+      list: vi.fn(() => []),
+      subscribe: vi.fn(() => () => {}),
+      dismiss: vi.fn(),
+      shutdown: vi.fn(),
+    },
     engineFactory: () => new FakeConfigureEngine(),
     lockService,
   });

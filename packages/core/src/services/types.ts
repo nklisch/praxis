@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type { EngineConfig } from "../config/index.js";
 import type { PraxisDb } from "../db/index.js";
 import type {
+  ActivityRegistry,
   ArtifactsService,
   AssignmentService,
   AuthoringService,
@@ -98,4 +99,11 @@ export interface ServiceDeps {
    * When modeId === "configure" and the lock is set but not unlocked, session.start throws.
    */
   lockService: LockService;
+  /**
+   * Activity registry that long-running services report progress to.
+   * Surfaced to the renderer via the activity-rail IPC channel.
+   * Not under toolServices — producers are services, not tool handlers.
+   * Optional so tests that don't need activity reporting stay unaffected.
+   */
+  activity?: ActivityRegistry;
 }

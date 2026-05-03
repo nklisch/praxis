@@ -1,0 +1,117 @@
+/* Editorial bottom rail. Hidden when items list is empty (component returns null).
+ * Italic display serif body, mono kicker, ornament glyph. No icons, no badges. */
+
+.rail {
+  composes: editorial from global;          /* inherit base editorial type */
+  position: sticky;                         /* sticks to bottom of layout */
+  bottom: 0;
+  width: 100%;
+  background: var(--praxis-rail-bg, rgba(20, 20, 20, 0.95));
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--praxis-rail-border, rgba(255, 255, 255, 0.06));
+  padding: 0.5rem 1.25rem;
+  z-index: 50;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--praxis-rail-fg, rgba(232, 232, 232, 0.62));
+  animation: praxis-rail-in 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    animation: none;
+  }
+}
+
+.rowDone {
+  color: var(--praxis-rail-fg-done, rgba(232, 232, 232, 0.38));
+}
+
+.rowFailed {
+  color: var(--praxis-rail-fg-failed, rgba(240, 120, 100, 0.82));
+}
+
+.glyph {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 0.9em;
+  color: var(--praxis-rail-glyph, rgba(232, 232, 232, 0.42));
+  width: 1ch;
+  flex-shrink: 0;
+}
+
+.label {
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail {
+  font-size: 0.78rem;
+  color: var(--praxis-rail-fg-detail, rgba(232, 232, 232, 0.38));
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar {
+  position: relative;
+  height: 1px;
+  flex: 0 1 8rem;
+  background: var(--praxis-rail-bar-track, rgba(255, 255, 255, 0.08));
+}
+
+.bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--praxis-activity-progress, 0%);
+  background: var(--praxis-rail-bar-fill, rgba(255, 255, 255, 0.32));
+  transition: width 240ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar::after {
+    transition: none;
+  }
+}
+
+.dismiss {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+@keyframes praxis-rail-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

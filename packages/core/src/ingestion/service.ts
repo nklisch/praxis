@@ -5,6 +5,7 @@ import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
+  ActivityRegistry,
   CourseDocumentsService,
   CourseId,
   DocumentId,
@@ -28,6 +29,20 @@ export interface IngestionServiceDeps {
   pageImageStore: PageImageStore;
   /** Phase 16: when provided, auto-attaches ingested documents to the course specified in IngestionRequest.courseId. */
   courseDocuments?: CourseDocumentsService;
+  /** Activity registry for ambient progress reporting via the activity rail. */
+  activity?: ActivityRegistry;
+}
+
+/**
+ * Derive an editorial-friendly label from a filename.
+ * Strips extension, replaces dashes/underscores with spaces, lowercases.
+ * Example: "Sullivan_Algebra-Trigonometry.pdf" → "sullivan algebra trigonometry"
+ */
+function friendlyDocumentLabel(filename: string): string {
+  return filename
+    .replace(/\.[^.]+$/, "")
+    .replace(/[-_]+/g, " ")
+    .toLowerCase();
 }
 
 const EMBED_BATCH_SIZE = 32;
@@ -47,6 +62,9 @@ export class IngestionService {
 
   async *ingest(req: IngestionRequest, signal?: AbortSignal): AsyncIterable<IngestionEvent> {
     const documentId = uuidv7();
+    const prettyName = friendlyDocumentLabel(req.filename);
+    const actHandle = this.deps.activity?.start({ label: `reading ${prettyName}` });
+
     yield { type: "start", documentId, filename: req.filename };
 
     // 1. Select ingestor
@@ -56,6 +74,9 @@ export class IngestionService {
       ...(req.preferIngestorId !== undefined && { preferIngestorId: req.preferIngestorId }),
     });
     if (!ingestor) {
+      actHandle?.finish("failed", {
+        message: `No ingestor available for ${req.mimeType} / ${req.filename}`,
+      });
       yield {
         type: "error",
         error: {
@@ -66,9 +87,11 @@ export class IngestionService {
       };
       return;
     }
+    actHandle?.update({ detail: `using ${ingestor.label}` });
     yield { type: "ingestor_selected", ingestorId: ingestor.id, ingestorLabel: ingestor.label };
 
     // 2. Parse
+    actHandle?.update({ detail: "reading text" });
     yield { type: "parsing", message: `Parsing with ${ingestor.label}…` };
 
     let result: Awaited<ReturnType<typeof ingestor.parse>>;
@@ -77,14 +100,20 @@ export class IngestionService {
         ...(signal !== undefined && { signal }),
         onPageProgress: (page, totalPages) => {
           this.deps.log.debug("vision_page", { page, totalPages });
+          actHandle?.update({
+            detail: `vision page ${page} of ${totalPages}`,
+            progress: { value: page, total: totalPages },
+          });
         },
       });
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
+      actHandle?.finish("failed", { message });
       yield { type: "error", error: { code: "ingest.parse_failed", message, recoverable: false } };
       return;
     }
 
+    actHandle?.update({ label: `indexing ${prettyName}` });
     yield { type: "parsed", chunkCount: result.chunks.length };
 
     // 3. Persist document row
@@ -144,6 +173,7 @@ export class IngestionService {
     let processed = 0;
     for (let start = 0; start < result.chunks.length; start += EMBED_BATCH_SIZE) {
       if (signal?.aborted) {
+        actHandle?.finish("failed", { message: "Cancelled by user" });
         yield {
           type: "error",
           error: { code: "ingest.cancelled", message: "Cancelled by user", recoverable: false },
@@ -192,6 +222,9 @@ export class IngestionService {
       ]);
 
       processed += batch.length;
+      actHandle?.update({
+        progress: { value: processed, total: result.chunks.length },
+      });
       yield { type: "indexing", chunksProcessed: processed, totalChunks: result.chunks.length };
     }
 
@@ -212,6 +245,7 @@ export class IngestionService {
       }
     }
 
+    actHandle?.finish("done");
     yield { type: "done", documentId, chunkCount: result.chunks.length };
   }
 }

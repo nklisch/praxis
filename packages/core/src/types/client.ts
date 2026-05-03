@@ -1,3 +1,4 @@
+import type { ActivityClient } from "./activity.js";
 import type { ClaudeAuthService } from "../services/claude-auth.js";
 import type {
   Assignment,
@@ -84,6 +85,8 @@ export interface PraxisClient {
   conceptMaps: ConceptMapClientApi;
   /** Phase 16: course ↔ document attachment — attach, detach, list. */
   courseDocuments: CourseDocumentsClientApi;
+  /** Activity rail — subscribe to ambient progress events from long-running work. */
+  activity: ActivityClient;
 }
 
 /**

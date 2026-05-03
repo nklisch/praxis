@@ -81,6 +81,11 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
 
     const engine = ctx.services.engineResolver();
 
+    const actHandle = ctx.services.activity?.start({
+      label: `exploring ${args.courseTitle.toLowerCase()}`,
+      detail: "reading materials",
+    });
+
     const result = await runConceptExplorer({
       engine,
       baseContext: ctx,
@@ -91,6 +96,19 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
       gradeLevel: args.gradeLevel,
       log: ctx.log,
       maxSteps: args.maxSteps,
+      onProgress: (phase) => {
+        const detail =
+          phase === "reading"
+            ? "reading materials"
+            : phase === "shaping"
+              ? "shaping the course"
+              : "finalizing";
+        actHandle?.update({ detail });
+      },
+    });
+
+    actHandle?.finish(result.ok ? "done" : "failed", {
+      message: result.ok ? "done" : (result.reason ?? "explorer error"),
     });
 
     if (result.ok && result.draftId !== undefined && result.summary !== undefined) {

@@ -9,6 +9,7 @@ import { episodicEvents } from "@praxis/memory/schema";
 import { and, asc, eq, gte, isNull } from "drizzle-orm";
 import type { PraxisDb } from "../../db/index.js";
 import type {
+  ActivityRegistry,
   EngineEvent,
   Indexer,
   IndexerContext,
@@ -32,6 +33,11 @@ export interface IndexerOrchestratorDeps {
    * unbounded reads on long sessions.
    */
   maxEventsPerRun?: number;
+  /**
+   * Activity registry for ambient progress reporting via the activity rail.
+   * Optional so tests that don't wire activity stay simple.
+   */
+  activity?: ActivityRegistry;
 }
 
 export class IndexerOrchestratorImpl implements IndexerOrchestrator {
@@ -111,6 +117,14 @@ export class IndexerOrchestratorImpl implements IndexerOrchestrator {
     const events = this.readEvents(input.sessionId, floor);
     if (events.length === 0) return;
 
+    // Report to the activity rail. quietPeriodMs: 800 so quick runs (< 800ms)
+    // never blip the rail — only slow indexer passes surface as visible activity.
+    const label = schedule === "post-turn" ? "thinking" : "wrapping up";
+    const actHandle = this.deps.activity?.start({
+      label,
+      quietPeriodMs: 800,
+    });
+
     const ctx: IndexerContext = {
       studentId: input.studentId,
       sessionId: input.sessionId,
@@ -118,16 +132,24 @@ export class IndexerOrchestratorImpl implements IndexerOrchestrator {
       log: this.deps.log,
     };
 
-    // Run indexers in parallel; per-indexer failures are isolated.
-    await Promise.all(
-      indexers.map(async (idx) => {
-        try {
-          await idx.run(ctx);
-        } catch (err) {
-          this.deps.log.warn(`indexer.${idx.id}.failed`, { error: String(err) });
-        }
-      }),
-    );
+    try {
+      // Run indexers in parallel; per-indexer failures are isolated.
+      await Promise.all(
+        indexers.map(async (idx) => {
+          try {
+            await idx.run(ctx);
+          } catch (err) {
+            this.deps.log.warn(`indexer.${idx.id}.failed`, { error: String(err) });
+          }
+        }),
+      );
+      actHandle?.finish("done");
+    } catch (err) {
+      actHandle?.finish("failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
 
     // Advance turn floor for next post-turn pass.
     if (schedule === "post-turn") {

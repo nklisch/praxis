@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import type { ActivityRegistry } from "./activity.js";
 import type {
   Assignment,
   AssignmentItem,
@@ -157,6 +158,12 @@ export interface ToolServices {
    * rubric grader). Same lazy-resolver pattern as visionResolver.
    */
   engineResolver: () => Engine;
+  /**
+   * Activity registry for ambient progress reporting via the activity rail.
+   * Optional so tools that don't need it and test stubs stay simple.
+   * Wired in session-service.ts from ServiceDeps.activity.
+   */
+  activity?: ActivityRegistry;
 }
 
 // ─── Phase 12: NotesService ───────────────────────────────────────────────────

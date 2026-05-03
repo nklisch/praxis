@@ -1,4 +1,5 @@
 import type { PraxisClient } from "@praxis/core/types";
+import { ActivityClient } from "./services/activity-client.js";
 import { ArtifactsClient } from "./services/artifacts-client.js";
 import { AssignmentsClient } from "./services/assignments-client.js";
 import { AuthoringClientImpl } from "./services/authoring-client.js";
@@ -44,5 +45,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     sketches: new SketchClient(transport), // ← Phase 15a
     conceptMaps: new ConceptMapClient(transport), // ← Phase 15b
     courseDocuments: new CourseDocumentsClient(transport), // ← Phase 16
+    activity: new ActivityClient(transport),
   };
 }

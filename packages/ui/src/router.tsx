@@ -5,6 +5,7 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
+import { ActivityRail } from "./components/activity-rail.js";
 import { Nav } from "./components/nav.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
@@ -25,6 +26,7 @@ const rootRoute = createRootRoute({
       <main className={styles.main}>
         <Outlet />
       </main>
+      <ActivityRail />
     </div>
   ),
 });

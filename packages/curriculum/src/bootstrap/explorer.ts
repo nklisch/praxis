@@ -23,6 +23,12 @@ export interface RunConceptExplorerInput {
   log: Logger;
   /** Maximum loop steps. Default 30. */
   maxSteps?: number;
+  /**
+   * Optional progress callback. Fired when the explorer transitions between
+   * coarse phases. Only called on transitions — `"reading"` is the initial
+   * state and the callback does not fire until the first transition from it.
+   */
+  onProgress?: (phase: "reading" | "shaping" | "finalizing") => void;
 }
 
 export interface RunConceptExplorerResult {
@@ -67,6 +73,7 @@ export async function runConceptExplorer(
   let finalizeIssues: ReadonlyArray<{ kind: string; message: string }> | undefined;
   let stepsUsed = 0;
   let lastToolName: string | undefined;
+  let currentPhase: "reading" | "shaping" | "finalizing" = "reading";
 
   const initialMessage = buildInitialMessage(input);
 
@@ -75,6 +82,16 @@ export async function runConceptExplorer(
       if (ev.type === "tool_call") {
         stepsUsed++;
         lastToolName = ev.toolName;
+        // Track coarse phase transitions for the activity rail.
+        if (input.onProgress) {
+          if (currentPhase !== "finalizing" && ev.toolName === "course.draft_finalize") {
+            currentPhase = "finalizing";
+            input.onProgress("finalizing");
+          } else if (currentPhase === "reading" && ev.toolName === "course.draft_init") {
+            currentPhase = "shaping";
+            input.onProgress("shaping");
+          }
+        }
       }
       if (ev.type === "tool_result" && ev.result.ok) {
         const value = ev.result.value as Record<string, unknown>;

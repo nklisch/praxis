@@ -1,3 +1,7 @@
+// Activity registry
+export type { ActivityRegistryDeps } from "./activity-registry.js";
+export { ActivityRegistryImpl } from "./activity-registry.js";
+
 // Claude CLI auth service
 export type {
   ClaudeAuthLoginEvent,
