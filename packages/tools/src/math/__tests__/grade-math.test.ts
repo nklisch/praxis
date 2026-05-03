@@ -70,6 +70,8 @@ const mockCtx: ToolContext = {
     assignments: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 16 placeholder — not used in this test
     courseDocuments: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 16 placeholder — not used in this test
+    engineResolver: null as any,
   },
   log: {
     debug: vi.fn(),

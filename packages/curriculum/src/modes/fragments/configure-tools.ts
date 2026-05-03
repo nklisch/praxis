@@ -17,11 +17,14 @@ export const configureToolsFragment: PromptFragment = {
   template: `Tools available in configure mode:
 
 ── Course authoring (from bootstrap) ──
-- course.list_documents — see ingested materials
-- course.propose_draft — generate a draft course from documents (30–90 seconds)
+- course.list_library_documents — see all ingested materials (with attached-to-course flag)
+- course.list_course_documents — see documents attached to the active course
+- course.attach_document — attach a library document to the active course
+- course.detach_document — detach a document from the active course
+- course.start_exploration — run the concept-explorer on selected documents (30–90 seconds)
 - course.show_draft — render the current draft
 - course.edit_draft — apply a single edit to the draft
-- course.confirm_draft — persist the draft as a course
+- course.confirm_draft — persist the draft as a course; documents auto-attached
 - course.discard_draft — drop a draft and start over
 - course.list_canonical_packs — list curated packs; filter by subject id
 - course.use_canonical_pack — create a course from a canonical pack

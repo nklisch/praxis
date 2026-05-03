@@ -66,6 +66,13 @@
       "node": "./dist/services/index.js",
       "default": "./dist/services/index.js"
     },
+    "./services/concept-link-matcher": {
+      "praxis-source": "./src/services/concept-link-matcher.ts",
+      "types": "./dist/services/concept-link-matcher.d.ts",
+      "import": "./dist/services/concept-link-matcher.js",
+      "node": "./dist/services/concept-link-matcher.js",
+      "default": "./dist/services/concept-link-matcher.js"
+    },
     "./ingestion": {
       "praxis-source": "./src/ingestion/index.ts",
       "types": "./dist/ingestion/index.d.ts",

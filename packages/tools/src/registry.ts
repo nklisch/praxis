@@ -28,6 +28,7 @@ export interface InProcessToolRegistryOptions {
 export class InProcessToolRegistry implements ToolRegistry {
   private readonly tools: Map<string, ToolDefinition<z.ZodType, z.ZodType>>;
   private readonly summaries: ToolDefinitionSummary[];
+  // NOTE: `readonly` on the field prevents reassignment; the object itself is mutable.
   private readonly context: ToolContext;
   private readonly log: Logger;
 
@@ -53,6 +54,17 @@ export class InProcessToolRegistry implements ToolRegistry {
 
   list(): ToolDefinitionSummary[] {
     return this.summaries;
+  }
+
+  /**
+   * Phase 16: mutate a single field on the bound ToolContext after construction.
+   * Used by the explorer to inject `draftId` once `draft_init` returns it, so
+   * subsequent draft-mutation tools see it without the model threading it
+   * explicitly through every arg.
+   */
+  setContextField<K extends keyof ToolContext>(key: K, value: ToolContext[K]): void {
+    // biome-ignore lint/suspicious/noExplicitAny: deliberate post-construction context mutation; typed via generic
+    (this.context as unknown as Record<string, unknown>)[key as string] = value as unknown;
   }
 
   async dispatch(name: string, args: unknown): Promise<ToolResult> {

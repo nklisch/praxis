@@ -51,7 +51,7 @@ import type {
 } from "./memory.js";
 import type { NoteBody } from "./notes.js";
 import type { SketchService } from "./sketches.js";
-import type { VisionDescribeRequest, VisionDescribeResponse } from "./engine.js";
+import type { Engine, VisionDescribeRequest, VisionDescribeResponse } from "./engine.js";
 
 // Re-export VisionService shape inline here so tool handlers can type-check against it
 // without importing from @praxis/core/services (would violate dependency direction).
@@ -151,6 +151,12 @@ export interface ToolServices {
   vision?: VisionService;
   /** Phase 16: course ↔ document attachment management. */
   courseDocuments: CourseDocumentsService;
+  /**
+   * Phase 16: resolves the user's currently configured engine at call time.
+   * Used by tools that spawn isolated agent sessions (e.g., start_exploration,
+   * rubric grader). Same lazy-resolver pattern as visionResolver.
+   */
+  engineResolver: () => Engine;
 }
 
 // ─── Phase 12: NotesService ───────────────────────────────────────────────────
@@ -367,7 +373,7 @@ export interface ArtifactsService {
     conceptId: ConceptId;
     evidenceEventId?: string;
   }): Promise<{ lessonComplete: boolean; lessonId: LessonId | null }>;
-  /** Phase 6: list ingested documents for bootstrap's list_documents tool. */
+  /** Phase 6: list ingested documents for bootstrap's list_library_documents tool. */
   listDocuments(studentId: StudentId): Promise<DocumentSummaryItem[]>;
 
   /** Phase 9: Computed enriched view of all gates for a course. Pure read. */
@@ -573,10 +579,82 @@ export interface ConceptStateRow {
 
 // ─── Phase 6: BootstrapService ────────────────────────────────────────────────
 
+/** Issue returned by finalizeDraft validation. */
+export interface DraftIssue {
+  kind: string;
+  message: string;
+}
+
 export interface BootstrapService {
-  proposeDraft(
-    input: ProposeDraftInput,
-  ): Promise<{ draft: DraftCourseState; summary: DraftSummary }>;
+  // ── Phase 16: incremental draft mutations ──────────────────────���─────────────
+
+  /** Create an empty draft and return its id. */
+  initDraft(input: {
+    studentId: StudentId;
+    documentIds: DocumentId[];
+    courseTitle: string;
+    subject: string;
+    gradeLevel: string;
+  }): Promise<{ draftId: string }>;
+
+  /** Add a concept. Returns ok:false (no throw) on duplicate name. */
+  addConcept(input: {
+    draftId: string;
+    name: string;
+    description: string;
+  }): Promise<{ ok: true; conceptCount: number } | { ok: false; reason: string }>;
+
+  /** Remove a concept (and cascading edges + lesson references). */
+  removeConcept(input: {
+    draftId: string;
+    name: string;
+  }): Promise<{ ok: boolean; reason?: string }>;
+
+  /** Add a prerequisite edge between two existing concepts. */
+  addEdge(input: {
+    draftId: string;
+    fromName: string;
+    toName: string;
+    strength: number;
+    rationale: string;
+  }): Promise<{ ok: true } | { ok: false; reason: string }>;
+
+  /** Add a lesson. Every conceptName must already exist. */
+  addLesson(input: {
+    draftId: string;
+    title: string;
+    conceptNames: string[];
+    references: ReadonlyArray<Reference>;
+    suggestedStrategy?: StrategyId;
+    estimatedMinutes?: number;
+  }): Promise<{ ok: true; lessonIndex: number } | { ok: false; reason: string }>;
+
+  /** Remove a lesson by index. */
+  removeLesson(input: {
+    draftId: string;
+    lessonIndex: number;
+  }): Promise<{ ok: boolean; reason?: string }>;
+
+  /** Update draft title/subject/gradeLevel/thresholds. */
+  setMetadata(input: {
+    draftId: string;
+    title?: string;
+    subject?: string;
+    gradeLevel?: string;
+    thresholds?: Partial<ThresholdConfig>;
+  }): Promise<{ ok: boolean; reason?: string }>;
+
+  /**
+   * Validate and freeze the draft. Returns DraftSummary on success, or structured
+   * issues the explorer can fix.
+   */
+  finalizeDraft(input: {
+    draftId: string;
+  }): Promise<
+    { ok: true; summary: DraftSummary } | { ok: false; issues: ReadonlyArray<DraftIssue> }
+  >;
+
+  // ── Existing methods (unchanged) ─────────────────────────────────────────────
   showDraft(draftId: string): Promise<DraftCourseState | null>;
   editDraft(input: { draftId: string; op: DraftEditOp }): Promise<DraftCourseState>;
   confirmDraft(input: {
@@ -639,14 +717,6 @@ export interface PackImportService {
   findPackBySubject(subject: string): Promise<PackSummaryView | null>;
   /** Return the conceptGraphId for the latest imported version of a pack. */
   getConceptGraphForPack(packId: string): Promise<string | null>;
-}
-
-export interface ProposeDraftInput {
-  studentId: StudentId;
-  documentIds: DocumentId[];
-  courseTitle: string;
-  subject: string;
-  gradeLevel: string;
 }
 
 // ─── Phase 7: MemoryService (server-side) ─────────────────────────────────────
@@ -833,10 +903,7 @@ export interface DocumentsReader {
    * Phase 16: Return all chunks for a document, filtered by studentId for
    * ownership verification. Ordered by chunkIndex.
    */
-  chunksForDocument(input: {
-    documentId: string;
-    studentId: string;
-  }): Promise<DocumentChunkRow[]>;
+  chunksForDocument(input: { documentId: string; studentId: string }): Promise<DocumentChunkRow[]>;
 }
 
 // ─── SymPyService ────────────────────────────────────────────────────────────

@@ -1,3 +1,3 @@
-export type { RunConceptExtractorInput } from "./extractor.js";
-export { runConceptExtractor } from "./extractor.js";
-export { EXTRACTOR_SYSTEM_PROMPT } from "./extractor-prompt.js";
+export type { RunConceptExplorerInput, RunConceptExplorerResult } from "./explorer.js";
+export { runConceptExplorer } from "./explorer.js";
+export { EXPLORER_SYSTEM_PROMPT } from "./explorer-prompt.js";

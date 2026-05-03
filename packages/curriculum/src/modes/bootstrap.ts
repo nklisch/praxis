@@ -34,15 +34,21 @@ export const bootstrapMode: Mode = {
     postambleFragment,
   ],
   toolNames: [
-    "course.list_documents",
-    "course.propose_draft",
+    // Library + course-document tools
+    "course.list_library_documents",
+    "course.attach_document",
+    // Canonical packs (Phase 10) — unchanged
+    "course.list_canonical_packs",
+    "course.use_canonical_pack",
+    // Phase 16: explorer entry point (replaces propose_draft)
+    "course.start_exploration",
+    // Draft lifecycle
     "course.show_draft",
     "course.edit_draft",
     "course.confirm_draft",
     "course.discard_draft",
+    // Retrieval — for ad-hoc lookup by the tutor (NOT the explorer; explorer has its own registry)
     "retrieve_from_textbook",
-    "course.list_canonical_packs", // ← Phase 10
-    "course.use_canonical_pack", // ← Phase 10
   ],
   uiSurface: "chat",
 };

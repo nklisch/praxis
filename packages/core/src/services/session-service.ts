@@ -528,6 +528,8 @@ export class SessionServiceImpl implements SessionService {
         }),
         // Phase 16: course documents service — always present.
         courseDocuments: this.deps.toolServices.courseDocuments,
+        // Phase 16: engine resolver — used by tools that spawn isolated agent sessions.
+        engineResolver: this.deps.toolServices.engineResolver,
       },
       log: this.deps.log,
     };

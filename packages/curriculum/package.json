@@ -102,6 +102,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@praxis/tools": "workspace:*",
     "@types/better-sqlite3": "^7.6.13",
     "@types/uuid": "^11.0.0"
   }

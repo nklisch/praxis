@@ -165,10 +165,14 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     return createEngine({ config: engineConfig, deps: { log } });
   };
 
+  // Phase 16: CourseDocumentsServiceImpl — must be constructed before BootstrapServiceImpl.
+  const courseDocumentsService = new CourseDocumentsServiceImpl({ db, log });
+
   const bootstrapService = new BootstrapServiceImpl({
     db,
     log,
     engineResolver: bootstrapEngineResolver,
+    courseDocuments: courseDocumentsService,
   });
 
   // Phase 7: helper to look up the courseId for a given session (used by indexers).
@@ -313,9 +317,6 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     scheduler: fsrsScheduler,
   });
 
-  // Phase 16: CourseDocumentsServiceImpl — course ↔ document attachment management.
-  const courseDocumentsService = new CourseDocumentsServiceImpl({ db, log });
-
   // Phase 11: AuthoringServiceImpl — orchestration layer for configurator writes.
   // Constructed after memoryService and artifactsService (depends on both).
   const authoringService = new AuthoringServiceImpl({
@@ -381,6 +382,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       vision: visionService, // ← Phase 15a
       conceptMaps: conceptMapService, // ← Phase 15b
       courseDocuments: courseDocumentsService, // ← Phase 16
+      engineResolver: bootstrapEngineResolver, // ← Phase 16
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)

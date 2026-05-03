@@ -1,17 +1,15 @@
 /**
- * Unit tests for BootstrapServiceImpl — Phase 6.
+ * Unit tests for BootstrapServiceImpl — Phase 6/16.
  *
  * Uses a real temp DB (via useTempDb) for confirmDraft / persistDraft.
- * The extractor / engineResolver is mocked via FakeEngine that emits
- * a canned ProposedCourse JSON block in a single model_message event.
+ * Draft mutation is tested by injecting a draft directly for speed.
  *
  * Covers:
  *  - applyEdit: each DraftEditOp kind (pure function branch coverage)
- *  - Draft lifecycle: proposeDraft → showDraft → editDraft → confirmDraft
+ *  - Draft lifecycle: showDraft → editDraft → confirmDraft
  *  - confirmDraft: writes Course + Lessons + Concepts + Edges + Gates in one tx
  *  - Draft removed after confirmDraft
  *  - Expired drafts dropped on access
- *  - proposeDraft throws when no chunks found
  */
 import { courses, gates, lessons } from "@praxis/artifacts/schema";
 import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
@@ -79,6 +77,15 @@ const MOCK_LOG = {
   child: vi.fn(() => MOCK_LOG),
 };
 
+/** Minimal no-op stub for CourseDocumentsService (tests that don't exercise confirmDraft). */
+const MOCK_COURSE_DOCUMENTS = {
+  listForCourse: vi.fn().mockResolvedValue([]),
+  listForCourseDetailed: vi.fn().mockResolvedValue([]),
+  attach: vi.fn().mockResolvedValue({ attached: true }),
+  detach: vi.fn().mockResolvedValue({ detached: true }),
+  attachMany: vi.fn().mockResolvedValue({ newlyAttached: [] }),
+};
+
 // ─── applyEdit pure function tests ──────────────────────────────────────────
 // We test via the public editDraft API (which calls applyEdit internally).
 // For pure-function coverage, we need to get a draft first.
@@ -89,6 +96,7 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
       db: null as never, // not called in this path
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
     // Inject draft directly for speed
@@ -116,6 +124,7 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
       db: null as never,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
     const draftId = "test-draft-2";
@@ -143,6 +152,7 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
       db: null as never,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
     const draftId = "test-draft-3";
@@ -173,6 +183,7 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
       db: null as never,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
     const draftId = "test-draft-4";
@@ -205,6 +216,7 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
       db: null as never,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
     const draftId = "test-draft-5";
@@ -239,6 +251,7 @@ describe("BootstrapServiceImpl — draft expiry", () => {
       db: null as never,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
     const draftId = "expired-draft";
@@ -265,6 +278,7 @@ describe("BootstrapServiceImpl — draft expiry", () => {
       db: null as never,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
     const draftId = "expired-draft-2";
@@ -299,6 +313,7 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
 
@@ -355,6 +370,7 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
+      courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
 

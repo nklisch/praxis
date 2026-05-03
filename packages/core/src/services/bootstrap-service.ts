@@ -1,12 +1,12 @@
-import { courses, documentChunks, gates, lessons } from "@praxis/artifacts/schema";
-import { runConceptExtractor } from "@praxis/curriculum/bootstrap";
+import { courses, gates, lessons } from "@praxis/artifacts/schema";
 import { conceptGraphs, concepts, prerequisiteEdges } from "@praxis/curriculum/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
   BootstrapService,
   ConceptGraphId,
+  CourseDocumentsService,
   CourseId,
   DocumentId,
   DraftCourseState,
@@ -15,12 +15,19 @@ import type {
   Engine,
   LessonId,
   Logger,
-  ProposeDraftInput,
   ProposedCourse,
+  Reference,
+  StrategyId,
   StudentId,
+  ThresholdConfig,
   Timestamp,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+
+export interface Issue {
+  kind: string;
+  message: string;
+}
 
 const DRAFT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
@@ -29,6 +36,8 @@ export interface BootstrapServiceDeps {
   log: Logger;
   /** Resolves to the user's currently selected engine. Same pattern as visionResolver. */
   engineResolver: () => Engine;
+  /** Phase 16: course ↔ document attachment — used by confirmDraft to attach source docs. */
+  courseDocuments: CourseDocumentsService;
   /** Sweep period for expired drafts. Defaults to 60 seconds. */
   sweepIntervalMs?: number;
 }
@@ -38,7 +47,7 @@ export interface BootstrapServiceDeps {
  * `confirmDraft` transactional persist.
  *
  * Drafts live 2 hours after last access and are dropped on process exit.
- * Recovery is "re-run propose_draft against the same documents."
+ * Recovery is "re-run start_exploration against the same documents."
  *
  * This class is mode-agnostic — it does not know whether the caller is in
  * bootstrap mode or configure mode. Methods accept inputs, return outputs.
@@ -56,44 +65,210 @@ export class BootstrapServiceImpl implements BootstrapService {
     this.sweepTimer.unref?.();
   }
 
-  async proposeDraft(
-    input: ProposeDraftInput,
-  ): Promise<{ draft: DraftCourseState; summary: DraftSummary }> {
-    // 1. Read the document chunks for the requested documents.
-    const chunks = this.readChunksFor(input.documentIds);
-    if (chunks.length === 0) {
-      throw new Error(
-        `No chunks found for the given documentIds. Did the documents finish ingesting? documentIds: ${input.documentIds.join(", ")}`,
-      );
-    }
-
-    // 2. Run the extractor — fresh one-shot session, isolated from the live tutoring session.
-    const engine = this.deps.engineResolver();
-    const proposed: ProposedCourse = await runConceptExtractor({
-      engine,
-      chunks,
-      courseTitle: input.courseTitle,
-      subject: input.subject,
-      gradeLevel: input.gradeLevel,
-      log: this.deps.log,
-    });
-
-    // 3. Validate post-conditions; throw with a helpful message on bad LLM output.
-    validateProposed(proposed);
-
-    // 4. Cache the draft.
+  /**
+   * Phase 16: create a new draft up-front (before the explorer has any concepts
+   * to add). Used by the explorer's draft_init tool.
+   */
+  async initDraft(input: {
+    studentId: StudentId;
+    documentIds: DocumentId[];
+    courseTitle: string;
+    subject: string;
+    gradeLevel: string;
+  }): Promise<{ draftId: string }> {
     const now = Date.now() as Timestamp;
     const draft: DraftCourseState = {
       draftId: uuidv7(),
       studentId: input.studentId,
       documentIds: input.documentIds,
-      proposed,
+      proposed: {
+        title: input.courseTitle,
+        subject: input.subject,
+        gradeLevel: input.gradeLevel,
+        thresholds: {
+          conceptMastery: 0.7,
+          examPass: 0.7,
+          allowRetake: true,
+          decayDays: 14,
+        },
+        proposedConcepts: [],
+        proposedEdges: [],
+        proposedLessons: [],
+      },
       createdAt: now,
       lastTouchedAt: now,
       expiresAt: (now + DRAFT_TTL_MS) as Timestamp,
     };
     this.drafts.set(draft.draftId, draft);
-    return { draft, summary: buildSummary(draft) };
+    return { draftId: draft.draftId };
+  }
+
+  /**
+   * Phase 16: incremental concept addition. Validates uniqueness (case-insensitive)
+   * and rejects duplicates. Returns ok:false as data so the model can react.
+   */
+  async addConcept(input: {
+    draftId: string;
+    name: string;
+    description: string;
+  }): Promise<{ ok: true; conceptCount: number } | { ok: false; reason: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    const lower = input.name.trim().toLowerCase();
+    if (d.proposed.proposedConcepts.some((c) => c.name.trim().toLowerCase() === lower)) {
+      return { ok: false, reason: `concept "${input.name}" already exists` };
+    }
+    d.proposed.proposedConcepts.push({
+      name: input.name.trim(),
+      description: input.description.trim(),
+      evidence: [],
+    });
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true, conceptCount: d.proposed.proposedConcepts.length };
+  }
+
+  /** Phase 16: remove a concept (and all edges + lesson references to it). */
+  async removeConcept(input: {
+    draftId: string;
+    name: string;
+  }): Promise<{ ok: boolean; reason?: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    const lower = input.name.trim().toLowerCase();
+    const before = d.proposed.proposedConcepts.length;
+    d.proposed.proposedConcepts = d.proposed.proposedConcepts.filter(
+      (c) => c.name.trim().toLowerCase() !== lower,
+    );
+    if (d.proposed.proposedConcepts.length === before) {
+      return { ok: false, reason: `concept "${input.name}" not found` };
+    }
+    // Remove edges referencing this concept.
+    d.proposed.proposedEdges = d.proposed.proposedEdges.filter(
+      (e) => e.fromName.trim().toLowerCase() !== lower && e.toName.trim().toLowerCase() !== lower,
+    );
+    // Remove concept from lessons.
+    d.proposed.proposedLessons = d.proposed.proposedLessons.map((l) => ({
+      ...l,
+      conceptNames: l.conceptNames.filter((n) => n.trim().toLowerCase() !== lower),
+    }));
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true };
+  }
+
+  /** Phase 16: add a prerequisite edge between two existing concepts. */
+  async addEdge(input: {
+    draftId: string;
+    fromName: string;
+    toName: string;
+    strength: number;
+    rationale: string;
+  }): Promise<{ ok: true } | { ok: false; reason: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    const known = new Set(d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
+    const fromLower = input.fromName.trim().toLowerCase();
+    const toLower = input.toName.trim().toLowerCase();
+    if (!known.has(fromLower)) return { ok: false, reason: `concept "${input.fromName}" not found` };
+    if (!known.has(toLower)) return { ok: false, reason: `concept "${input.toName}" not found` };
+    if (fromLower === toLower) return { ok: false, reason: "self-edges are not allowed" };
+    // Check duplicate edge.
+    const exists = d.proposed.proposedEdges.some(
+      (e) =>
+        e.fromName.trim().toLowerCase() === fromLower && e.toName.trim().toLowerCase() === toLower,
+    );
+    if (exists) return { ok: false, reason: "edge already exists" };
+    d.proposed.proposedEdges.push({
+      fromName: input.fromName.trim(),
+      toName: input.toName.trim(),
+      strength: Math.max(0, Math.min(1, input.strength)),
+      rationale: input.rationale.trim(),
+    });
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true };
+  }
+
+  /** Phase 16: add a lesson. All conceptNames must reference existing concepts. */
+  async addLesson(input: {
+    draftId: string;
+    title: string;
+    conceptNames: string[];
+    references: ReadonlyArray<Reference>;
+    suggestedStrategy?: StrategyId;
+    estimatedMinutes?: number;
+  }): Promise<{ ok: true; lessonIndex: number } | { ok: false; reason: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    const known = new Set(d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
+    for (const cn of input.conceptNames) {
+      if (!known.has(cn.trim().toLowerCase())) {
+        return { ok: false, reason: `concept "${cn}" not found — add it first` };
+      }
+    }
+    const newLesson = {
+      draftLessonId: `lesson-${uuidv7()}`,
+      title: input.title.trim(),
+      conceptNames: input.conceptNames.map((n) => n.trim()),
+      references: input.references as Reference[],
+      suggestedStrategy: input.suggestedStrategy ?? brandId<"StrategyId">("worked-examples"),
+      estimatedMinutes: input.estimatedMinutes ?? 45,
+    };
+    d.proposed.proposedLessons.push(newLesson);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true, lessonIndex: d.proposed.proposedLessons.length - 1 };
+  }
+
+  /** Phase 16: remove a lesson by index. */
+  async removeLesson(input: {
+    draftId: string;
+    lessonIndex: number;
+  }): Promise<{ ok: boolean; reason?: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    if (input.lessonIndex < 0 || input.lessonIndex >= d.proposed.proposedLessons.length) {
+      return { ok: false, reason: `lesson index ${input.lessonIndex} out of bounds` };
+    }
+    d.proposed.proposedLessons.splice(input.lessonIndex, 1);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true };
+  }
+
+  /** Phase 16: update draft title/subject/gradeLevel/thresholds. */
+  async setMetadata(input: {
+    draftId: string;
+    title?: string;
+    subject?: string;
+    gradeLevel?: string;
+    thresholds?: Partial<ThresholdConfig>;
+  }): Promise<{ ok: boolean; reason?: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    if (input.title !== undefined) d.proposed.title = input.title.trim();
+    if (input.subject !== undefined) d.proposed.subject = input.subject.trim();
+    if (input.gradeLevel !== undefined) d.proposed.gradeLevel = input.gradeLevel.trim();
+    if (input.thresholds !== undefined) {
+      d.proposed.thresholds = { ...d.proposed.thresholds, ...input.thresholds };
+    }
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true };
+  }
+
+  /**
+   * Phase 16: validates the draft and returns a DraftSummary on success, or a
+   * structured issues list on failure. No throws on validation failure — returns
+   * errors as data so the model can read and react.
+   */
+  async finalizeDraft(input: { draftId: string }): Promise<
+    { ok: true; summary: DraftSummary } | { ok: false; issues: ReadonlyArray<Issue> }
+  > {
+    const d = await this.showDraft(input.draftId);
+    if (!d)
+      return {
+        ok: false,
+        issues: [{ kind: "draft_missing", message: "draft expired or not found" }],
+      };
+    const issues = validateProposed(d.proposed);
+    if (issues.length > 0) return { ok: false, issues };
+    return { ok: true, summary: buildSummary(d) };
   }
 
   async showDraft(draftId: string): Promise<DraftCourseState | null> {
@@ -127,6 +302,24 @@ export class BootstrapServiceImpl implements BootstrapService {
     }
 
     const result = persistDraft({ db: this.deps.db, draft: d, now: new Date() });
+
+    // Phase 16: attach source documents to the new course.
+    if (d.documentIds.length > 0) {
+      try {
+        await this.deps.courseDocuments.attachMany({
+          courseId: result.courseId,
+          documentIds: d.documentIds,
+          source: "bootstrap",
+        });
+      } catch (err) {
+        this.deps.log.warn("confirmDraft.attachMany_failed", {
+          courseId: result.courseId,
+          err: String(err),
+        });
+        // Non-fatal: course is persisted; user can manually attach.
+      }
+    }
+
     this.drafts.delete(input.draftId);
     return result;
   }
@@ -268,26 +461,6 @@ export class BootstrapServiceImpl implements BootstrapService {
       }
     }
   }
-
-  private readChunksFor(documentIds: DocumentId[]): ReadonlyArray<{
-    documentId: string;
-    chunkIndex: number;
-    text: string;
-    locator: { page?: number; section?: string };
-  }> {
-    if (documentIds.length === 0) return [];
-    const rows = this.deps.db
-      .select()
-      .from(documentChunks)
-      .where(inArray(documentChunks.documentId, documentIds))
-      .all();
-    return rows.map((r) => ({
-      documentId: r.documentId,
-      chunkIndex: r.chunkIndex,
-      text: r.text,
-      locator: r.locatorJson as { page?: number; section?: string },
-    }));
-  }
 }
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
@@ -307,27 +480,37 @@ function buildSummary(d: DraftCourseState): DraftSummary {
   };
 }
 
-function validateProposed(p: ProposedCourse): void {
-  if (!p.title?.trim()) throw new Error("Extractor produced empty course title");
-  if (p.proposedLessons.length === 0) throw new Error("Extractor produced 0 lessons");
-  if (p.proposedConcepts.length === 0) throw new Error("Extractor produced 0 concepts");
+function validateProposed(p: ProposedCourse): Issue[] {
+  const issues: Issue[] = [];
+  if (!p.title?.trim()) {
+    issues.push({ kind: "empty_title", message: "course title is empty" });
+  }
+  if (p.proposedConcepts.length === 0) {
+    issues.push({ kind: "no_concepts", message: "draft has no concepts" });
+  }
+  if (p.proposedLessons.length === 0) {
+    issues.push({ kind: "no_lessons", message: "draft has no lessons" });
+  }
   const known = new Set(p.proposedConcepts.map((c) => c.name));
   for (const lesson of p.proposedLessons) {
     for (const cn of lesson.conceptNames) {
       if (!known.has(cn)) {
-        throw new Error(
-          `Lesson "${lesson.title}" references unknown concept "${cn}" — extractor output inconsistent`,
-        );
+        issues.push({
+          kind: "unknown_concept_in_lesson",
+          message: `lesson "${lesson.title}" references unknown concept "${cn}"`,
+        });
       }
     }
   }
   for (const e of p.proposedEdges) {
     if (!known.has(e.fromName) || !known.has(e.toName)) {
-      throw new Error(
-        `Edge ${e.fromName}→${e.toName} references unknown concept — extractor output inconsistent`,
-      );
+      issues.push({
+        kind: "unknown_concept_in_edge",
+        message: `edge ${e.fromName}→${e.toName} references unknown concept`,
+      });
     }
   }
+  return issues;
 }
 
 /**

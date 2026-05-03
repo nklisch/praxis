@@ -76,6 +76,11 @@ export interface ServiceDeps {
     conceptMaps: ConceptMapService;
     /** Phase 16: course ↔ document attachment management. */
     courseDocuments: CourseDocumentsService;
+    /**
+     * Phase 16: lazy engine resolver — used by tools that spawn isolated sessions.
+     * Same pattern as bootstrapEngineResolver; wired from the same source.
+     */
+    engineResolver: () => Engine;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

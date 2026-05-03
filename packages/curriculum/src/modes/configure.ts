@@ -35,9 +35,12 @@ export const configureMode: Mode = {
     postambleFragment,
   ],
   toolNames: [
-    // ── Bootstrap / course-authoring tools (Phase 6 + 10) ───────────────────
-    "course.list_documents",
-    "course.propose_draft",
+    // ── Bootstrap / course-authoring tools (Phase 6 + 10 + 16) ──────────────
+    "course.list_library_documents",
+    "course.list_course_documents",
+    "course.attach_document",
+    "course.detach_document",
+    "course.start_exploration",
     "course.show_draft",
     "course.edit_draft",
     "course.confirm_draft",
