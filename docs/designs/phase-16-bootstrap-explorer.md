@@ -23,10 +23,11 @@ The two changes ship together because (a) the explorer's `course.draft_finalize`
 6. **Document tools** (deterministic): `document.list_sections`, `document.read_pages`, `document.outline`.
 7. **Library tools**: `course.list_library_documents` (replaces today's `course.list_documents` semantics in non-bootstrap modes); `course.attach_document`, `course.detach_document`, `course.list_course_documents`.
 8. **Incremental draft mutations**: `course.draft_init`, `course.draft_set_metadata`, `course.draft_add_concept`, `course.draft_remove_concept`, `course.draft_add_edge`, `course.draft_add_lesson`, `course.draft_remove_lesson`, `course.draft_finalize` — each validated, each mutating a single field of `BootstrapService`'s in-memory draft cache.
-9. **Explorer agent**: `runConceptExplorer` in `@praxis/curriculum/bootstrap/explorer.ts` — multi-turn isolated session, replaces `runConceptExtractor`. New explorer system prompt teaches it the tool surface and the explore-then-shape pattern.
-10. **`course.start_exploration` tool**: replaces `course.propose_draft`. Called by the bootstrap-mode tutor; runs the explorer in an isolated session; returns a `DraftSummary` for the tutor to narrate.
+9. **Explorer agent**: `runConceptExplorer` in `@praxis/curriculum/bootstrap/explorer.ts` — multi-turn isolated session. New explorer system prompt teaches it the tool surface and the explore-then-shape pattern.
+10. **`course.start_exploration` tool**: the new explorer entry point. Called by the bootstrap-mode tutor; runs the explorer in an isolated session; returns a `DraftSummary` for the tutor to narrate.
 11. **Mode updates**: `bootstrap.toolNames` and `configure.toolNames` reflect the new tool inventory; bootstrap-role prompt fragment updated to describe the explore-then-confirm flow.
 12. **UI**: ingestion entry points are course-aware (auto-attach when invoked from a course detail view); a library-reuse picker lets users attach an already-ingested doc to a course without re-uploading.
+13. **Legacy deletes**: `runConceptExtractor` + `extractor.ts` + `extractor-prompt.ts` + `extractor.test.ts` + `proposeDraftTool` + `propose-draft.ts` + `BootstrapService.proposeDraft` + `ProposeDraftInput` are removed outright. Praxis has no production users; there is no transition tail to maintain. See "Files deleted by this design" below.
 
 ### What's out of scope (deferred)
 
@@ -409,7 +410,7 @@ The client's `start` accepts `courseId?: CourseId` and threads it through.
 
 ### Unit 5: Library + course-document tools
 
-**File**: `packages/tools/src/course/list-library-documents.ts` (new — replaces semantics of `course.list_documents` outside bootstrap)
+**File**: `packages/tools/src/course/list-library-documents.ts` (new — replaces `course.list_documents` everywhere; the old tool is deleted in Unit 11).
 
 ```typescript
 import type { ToolContext, ToolDefinition } from "@praxis/core/types";
@@ -517,7 +518,22 @@ Same shape; calls `courseDocuments.detach`. Error message if document is referen
 - [ ] `attach_document` and `detach_document` are idempotent and require `ctx.courseId`.
 - [ ] All four tools have integration coverage via the standard tool-handler test pattern.
 
-**Note on `course.list_documents`**: keep the existing tool as-is for backward compatibility with bootstrap mode (where it means "list the library so you can pick what to seed"). In bootstrap mode it remains the canonical "show me the catalog" tool. In teach/configure modes, prefer `list_course_documents`. The bootstrap-mode prompt fragment stays pointing at `course.list_documents`; the configure mode's prompt is updated to use `list_course_documents` for course-scoped queries and `list_library_documents` when the user wants to see/attach unrelated docs.
+**Delete `course.list_documents`**. The existing tool's output is a strict subset of `course.list_library_documents` (the latter just adds the `attachedToCurrentCourse` flag, which is `false` everywhere when no course is in scope — i.e., bootstrap mode). Keeping both would be unused surface area.
+
+In Unit 11's atomic deletion step, also:
+- Delete `packages/tools/src/course/list-documents.ts`.
+- Remove `listDocumentsTool` from `COURSE_TOOLS`.
+- Remove `"course.list_documents"` from `bootstrap.toolNames` and `configure.toolNames`.
+- Replace it with `"course.list_library_documents"` in both modes.
+- Update the bootstrap-role prompt fragment to call `course.list_library_documents` instead of `course.list_documents`.
+
+Distribution of the three list tools post-Phase-16:
+
+| Tool | Use |
+|---|---|
+| `course.list_library_documents` | "What documents does this student have ingested?" — works in any mode. Sets `attachedToCurrentCourse: true` for docs already in the active course. |
+| `course.list_course_documents` | "What documents does THIS course use?" — errors without `ctx.courseId`. Used in teach/configure for "show me the materials." |
+| ~~`course.list_documents`~~ | Deleted. Strict subset of `list_library_documents`. |
 
 ---
 
@@ -632,8 +648,8 @@ export const documentOutlineTool: ToolDefinition<typeof InputSchema, typeof Outp
 
 /**
  * Phase 16: create a new draft up-front (before the explorer has any concepts
- * to add). Used by the explorer's draft_init tool. Distinct from proposeDraft
- * which historically created a fully-populated draft in one shot.
+ * to add). Used by the explorer's draft_init tool. Replaces the old
+ * proposeDraft method, which assembled a full draft in one shot.
  */
 async initDraft(input: {
   studentId: StudentId;
@@ -746,14 +762,19 @@ async finalizeDraft(input: { draftId: string }): Promise<
 }
 ```
 
-**Modify `validateProposed`** (currently throws): refactor to return `Issue[]` instead. The existing callsite in `proposeDraft` then converts an empty array to "ok" and a non-empty array to a thrown error to preserve current behavior. The new `finalizeDraft` consumes the array directly.
+**Refactor `validateProposed`** to return `Issue[]` directly (currently it throws). `finalizeDraft` consumes the array. No compatibility shim — the only previous caller (`proposeDraft`) is being deleted in Unit 11.
 
-**Update `BootstrapService` interface** in `packages/core/src/types/tool.ts` to expose all the new methods.
+**Delete the following from `BootstrapServiceImpl` and the `BootstrapService` interface** (`packages/core/src/types/tool.ts`):
+- `proposeDraft(input: ProposeDraftInput): ...` method
+- `ProposeDraftInput` interface
+- The private `readChunksFor(documentIds)` helper (was only used by `proposeDraft`)
+
+**Update `BootstrapService` interface** in `packages/core/src/types/tool.ts` to expose the new incremental methods (`initDraft`, `addConcept`, `removeConcept`, `addEdge`, `addLesson`, `removeLesson`, `setMetadata`, `finalizeDraft`).
 
 **Acceptance**:
 - [ ] All new methods are typed, return structured errors (no thrown exceptions for invalid agent inputs — those become tool errors).
 - [ ] `finalizeDraft` rejects drafts with: zero concepts, zero lessons, lessons referencing unknown concepts, edges referencing unknown concepts, and reports each as a separate issue.
-- [ ] Existing `proposeDraft` keeps working unchanged (will be deprecated in Unit 11 but not removed).
+- [ ] `BootstrapService.proposeDraft`, `ProposeDraftInput`, and `readChunksFor` are gone from the codebase — no callers remain.
 
 ---
 
@@ -993,7 +1014,7 @@ You do NOT talk to the user directly — your output is the draft, not prose. To
 
 ### Unit 11: `course.start_exploration` tool (replaces `course.propose_draft`)
 
-**File**: `packages/tools/src/course/start-exploration.ts` (new — `propose-draft.ts` becomes a thin shim)
+**File**: `packages/tools/src/course/start-exploration.ts` (new). `propose-draft.ts` is deleted in this unit — see "Files deleted by this design" below.
 
 ```typescript
 import type { ToolContext, ToolDefinition } from "@praxis/core/types";
@@ -1098,12 +1119,13 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
 
 **Note on `ctx.services.engineResolver`**: this needs to be added to `ToolServices`. Currently the engine resolver lives on `BootstrapServiceDeps`. We surface it onto `ToolServices` so any tool can spawn an isolated agent. Wired in `buildServices` from the same source.
 
-**Deprecation of `course.propose_draft`**: keep the file `propose-draft.ts` but update its `description` to say "Deprecated — use `course.start_exploration` instead." Internally, route `propose_draft` to `start_exploration` to preserve any external test scripts. Remove the deprecated tool from `bootstrap.toolNames` and `configure.toolNames` (so the agent never sees it).
+**Deletion of `course.propose_draft`**: in the same unit, delete `packages/tools/src/course/propose-draft.ts` and remove `proposeDraftTool` from the `COURSE_TOOLS` array in `packages/tools/src/course/index.ts`. No backward-compatibility shim, no deprecation period — Praxis has no production users yet, so removing the legacy tool is clean. Any tests of the old tool are replaced with tests of `start-exploration` (see Unit 9's test plan).
 
 **Acceptance**:
 - [ ] The tool is registered, surfaces both success and failure shapes via discriminated union, and logs every explorer step under a child logger.
 - [ ] On success, `course.show_draft(draftId)` returns the same shape as it always has — the rest of the bootstrap flow is unchanged.
 - [ ] On failure with reason `max_steps_reached`, the bootstrap tutor's prompt fragment instructs it to narrate the failure and offer to retry with a smaller document set.
+- [ ] `packages/tools/src/course/propose-draft.ts` does not exist; `proposeDraftTool` is not exported anywhere; `COURSE_TOOLS` does not include it; no test references it.
 
 ---
 
@@ -1242,9 +1264,51 @@ These are invoke-only (not streaming).
 
 ---
 
+## Files deleted by this design
+
+Praxis has no production users yet — this design removes the legacy code paths outright rather than maintaining a deprecation tail. Each file below is gone after Phase 16 lands; nothing routes through a shim.
+
+| File | Replaced by | Why |
+|---|---|---|
+| `packages/curriculum/src/bootstrap/extractor.ts` | `packages/curriculum/src/bootstrap/explorer.ts` (Unit 9) | The single-shot dump-all extractor (including its sampling + parser-permissiveness stopgaps from the prior fix) is fully obsolete once the explorer agent lands. |
+| `packages/curriculum/src/bootstrap/extractor-prompt.ts` | `packages/curriculum/src/bootstrap/explorer-prompt.ts` (Unit 10) | Prompt for the obsolete extractor. |
+| `packages/curriculum/src/bootstrap/__tests__/extractor.test.ts` | `packages/curriculum/src/bootstrap/__tests__/explorer.test.ts` (Unit 9 test plan) | Tests the deleted extractor. |
+| `packages/tools/src/course/propose-draft.ts` | `packages/tools/src/course/start-exploration.ts` (Unit 11) | Tool exposing the obsolete extractor. |
+| `packages/tools/src/course/list-documents.ts` | `packages/tools/src/course/list-library-documents.ts` (Unit 5) | Strict subset of `list_library_documents` once that exists. Keeping both would be dead surface area. |
+| Any test of `proposeDraftTool` or `listDocumentsTool` (search `propose_draft`, `proposeDraftTool`, `list_documents`, `listDocumentsTool` in `packages/tools/src/course/__tests__/` and `tests/`) | Tests of `startExplorationTool` and `listLibraryDocumentsTool` | Same. |
+
+Symbols removed from `BootstrapService` interface (`packages/core/src/types/tool.ts`) and `BootstrapServiceImpl` (`packages/core/src/services/bootstrap-service.ts`):
+
+- `BootstrapService.proposeDraft(...)`
+- `ProposeDraftInput` interface
+- `BootstrapServiceImpl.readChunksFor(...)` (private helper, only called by the deleted method)
+- `BootstrapService.editDraft(...)` and `DraftEditOp` are **kept** — `course.edit_draft` is still useful for user-driven post-explorer refinements.
+
+Symbols removed from the curriculum bootstrap barrel (`packages/curriculum/src/bootstrap/index.ts`):
+
+- `runConceptExtractor` export
+- `RunConceptExtractorInput` export
+- `DEFAULT_EXTRACTOR_MAX_CHUNKS` export (sampling cap from the prior stopgap — irrelevant under the explorer)
+- `sampleEvenly` export (only used by the extractor)
+- `EXTRACTOR_SYSTEM_PROMPT` export
+
+Tool registry changes (`packages/tools/src/course/index.ts`):
+
+- Remove `proposeDraftTool` and `listDocumentsTool` from imports and from the `COURSE_TOOLS` array.
+- Add the new tools listed in Units 5, 6, 8, and 11.
+
+Mode config changes (`packages/curriculum/src/modes/bootstrap.ts`, `configure.ts`):
+
+- Remove `"course.propose_draft"` and `"course.list_documents"` from `toolNames`.
+- Add `"course.list_library_documents"` (and, in configure mode, `"course.list_course_documents"`).
+
+After this design lands, the only place the word "extractor" should appear in the repo is in this design doc's history notes (and in any commit messages). `git grep -i extractor packages/` should return no matches.
+
+---
+
 ## Implementation Order
 
-The order minimizes "broken intermediate state" and follows the dependency direction strictly:
+The order minimizes "broken intermediate state" and follows the dependency direction strictly. Deletes are performed in the same step that introduces their replacement so the build stays green at every step.
 
 1. **Schema** (Unit 1's table). `pnpm db:generate` to produce the migration.
 2. **CourseDocumentsService** port + impl (Unit 1, rest).
@@ -1253,12 +1317,19 @@ The order minimizes "broken intermediate state" and follows the dependency direc
 5. **Ingestion auto-attach** (Unit 4) — independent, safe to land anytime after Units 1-2.
 6. **Library + course-doc tools** (Unit 5).
 7. **Deterministic document tools** (Unit 6).
-8. **`BootstrapService` incremental mutations** (Unit 7) — pure service additions, no mode/prompt changes yet.
+8. **`BootstrapService` incremental mutations** (Unit 7) — adds new methods. `proposeDraft` and `readChunksFor` are NOT yet removed at this step (the old `proposeDraftTool` still depends on them); they're deleted in step 11 alongside their last caller.
 9. **Draft mutation tools** (Unit 8) — register but don't add to any mode's `toolNames` yet.
-10. **Explorer + explorer prompt** (Units 9 + 10) — the loop runs but isn't reachable from any mode yet.
-11. **`course.start_exploration` tool** (Unit 11) — registers the entry point.
+10. **Explorer + explorer prompt** (Units 9 + 10) — the loop runs but isn't reachable from any mode yet. Authored under new filenames; the old `extractor.ts`, `extractor-prompt.ts`, and `extractor.test.ts` files **stay on disk** through this step.
+11. **`course.start_exploration` tool + legacy deletes** (Unit 11). Atomic step:
+    1. Add `start-exploration.ts` and register `startExplorationTool` in `COURSE_TOOLS`.
+    2. Delete `packages/tools/src/course/propose-draft.ts` and `list-documents.ts`; remove `proposeDraftTool` and `listDocumentsTool` from `COURSE_TOOLS`.
+    3. Delete `packages/curriculum/src/bootstrap/extractor.ts`, `extractor-prompt.ts`, `__tests__/extractor.test.ts`.
+    4. Update `packages/curriculum/src/bootstrap/index.ts` barrel: remove `runConceptExtractor`, `RunConceptExtractorInput`, `DEFAULT_EXTRACTOR_MAX_CHUNKS`, `sampleEvenly`, `EXTRACTOR_SYSTEM_PROMPT` exports; add `runConceptExplorer`, `RunConceptExplorerInput`, `RunConceptExplorerResult`, `EXPLORER_SYSTEM_PROMPT` exports.
+    5. Delete `BootstrapService.proposeDraft`, `ProposeDraftInput`, and `BootstrapServiceImpl.readChunksFor`.
+    6. Delete any test file that referenced `proposeDraftTool`, `listDocumentsTool`, or `runConceptExtractor` (they're already obsolete).
+    7. Run `pnpm typecheck && pnpm lint && pnpm test` — all must pass before this step is considered done. `git grep` for `extractor`, `proposeDraft`, `listDocumentsTool`, and `course.list_documents` in `packages/` must each return zero matches.
 12. **`confirm_draft` attaches documents** (Unit 12).
-13. **Mode + prompt updates** (Unit 13) — flips bootstrap/configure modes onto the new explorer.
+13. **Mode + prompt updates** (Unit 13) — flips bootstrap/configure modes onto the new explorer. Removes `"course.propose_draft"` from both modes' `toolNames`.
 14. **UI** (Unit 14) — last; safe because the backend is fully ready.
 
 After Unit 13, the system is functionally complete; Unit 14 makes the new flow ergonomic in the UI. Unit 14 can ship in a separate PR.
@@ -1302,7 +1373,7 @@ Each new tool and service method gets a focused unit test. Use the project's sta
 - New test: explicit `args.documentIds` overrides ctx scoping
 - Existing tests (no courseId) keep passing
 
-#### `packages/curriculum/src/bootstrap/__tests__/explorer.test.ts` (new — replaces extractor.test.ts; keep extractor.test.ts during deprecation if useful)
+#### `packages/curriculum/src/bootstrap/__tests__/explorer.test.ts` (new — replaces `extractor.test.ts`, which is deleted in Unit 11)
 
 The most important test. Drives the explorer with a programmable fake engine that issues a scripted sequence of tool calls:
 
@@ -1363,6 +1434,13 @@ pnpm vitest run packages/tools/src/course/__tests__/draft-
 pnpm vitest run packages/curriculum/src/bootstrap/__tests__/explorer.test.ts
 pnpm vitest run tests/bootstrap-explorer-end-to-end.test.ts
 
+# Confirm the legacy code paths are gone
+git grep -i extractor packages/                # must return zero matches
+git grep proposeDraft packages/                # must return zero matches
+git grep propose_draft packages/               # must return zero matches
+git grep listDocumentsTool packages/           # must return zero matches
+git grep '"course.list_documents"' packages/   # must return zero matches
+
 # Manual smoke test (Electron):
 # 1. pnpm dev
 # 2. Open the app, ingest a small textbook (under 200 chunks) into the library
@@ -1377,3 +1455,4 @@ pnpm vitest run tests/bootstrap-explorer-end-to-end.test.ts
 - [ ] A real bootstrap run on a >500-chunk textbook completes successfully (i.e., the Sullivan failure mode is gone)
 - [ ] `course.list_documents` in teach mode shows ONLY course-attached docs (cross-course leakage fixed)
 - [ ] Ingesting a document while inside a course detail view auto-attaches; ingesting from the workspace sidebar does not
+- [ ] `git grep` for `extractor`, `proposeDraft`, `propose_draft`, `listDocumentsTool`, and `"course.list_documents"` in `packages/` returns zero matches — the legacy code is fully gone
