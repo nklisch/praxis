@@ -153,8 +153,7 @@ export function SketchCanvas({
   return (
     <div className={variant === "inline" ? styles.inline : styles.full}>
       <Tldraw
-        // Disable localStorage persistence — sketches are captured on demand.
-        persistenceKey={undefined}
+        // Omit persistenceKey to disable localStorage — sketches are captured on demand.
         onMount={handleMount}
         {...(variant === "inline" && { components: INLINE_COMPONENTS })}
       />

@@ -191,6 +191,12 @@ export interface AssignmentResponse {
    * the item has a workRubric set; absent otherwise.
    */
   work?: string;
+  /**
+   * Phase 15a: optional sketch reference. When set, the response was submitted
+   * with a drawing in the inline canvas; agent grading can fetch the sketch
+   * via `sketch.read({ sketchId })` or via `grade_math({ kind: "sketch", sketchId })`.
+   */
+  sketchId?: string;
   recordedAt: Timestamp;
 }
 

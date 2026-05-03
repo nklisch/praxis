@@ -329,10 +329,13 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
     itemId: string;
     response: string;
     work?: string;
+    /** Phase 15a: optional sketch attached to this response. */
+    sketchId?: string;
   }): Promise<void> {
     const now = new Date();
     // Drizzle with exactOptionalPropertyTypes requires null (not undefined) for nullable text columns.
     const workValue: string | null = input.work ?? null;
+    const sketchIdValue: string | null = input.sketchId ?? null;
     this.deps.db
       .insert(assignmentResponses)
       .values({
@@ -340,6 +343,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
         itemId: input.itemId,
         response: input.response,
         work: workValue,
+        sketchId: sketchIdValue,
         recordedAt: now,
       })
       .onConflictDoUpdate({
@@ -347,6 +351,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
         set: {
           response: input.response,
           work: workValue,
+          sketchId: sketchIdValue,
           recordedAt: now,
         },
       })
@@ -364,6 +369,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
       itemId: r.itemId,
       response: r.response,
       ...(r.work !== null && r.work !== undefined && { work: r.work }),
+      ...(r.sketchId !== null && r.sketchId !== undefined && { sketchId: r.sketchId }),
       recordedAt: r.recordedAt.getTime() as Timestamp,
     }));
   }

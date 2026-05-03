@@ -7,7 +7,7 @@
  * The captured sketchId is uploaded via client.sketches.put and recorded
  * via client.assignments.recordResponse before the final submit call.
  */
-import type { AssignmentId, SketchId } from "@praxis/core/types";
+import type { AssignmentId } from "@praxis/core/types";
 import { useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
@@ -73,17 +73,16 @@ export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: As
             height: captured.height,
           });
 
-          // Record the sketchId alongside the response.
-          // AssignmentsClient.recordResponse doesn't have a sketchId param yet —
-          // for v1 we store the sketch marker in the work field so it reaches
-          // the grading pipeline. Phase 15b will add a dedicated column.
+          // Record the sketchId on the dedicated column. Grader fetches the
+          // sketch via response.sketchId or grade_math({ kind: "sketch", sketchId }).
+          const existingWork = work.get(item.id) ?? "";
           await client.assignments
             .recordResponse({
               assignmentId,
               itemId: item.id,
               response: responses.get(item.id) ?? "",
-              // Append sketch marker to work text; grading pipeline reads it.
-              work: `${work.get(item.id) ?? ""}\n[sketch:${summary.id as SketchId}]`.trim(),
+              ...(existingWork.trim() && { work: existingWork }),
+              sketchId: summary.id as string,
             })
             .catch(() => {
               // Non-fatal — the typed response is still submitted even if sketch fails

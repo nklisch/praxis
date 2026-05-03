@@ -39,6 +39,8 @@ class AssignmentsClientImpl implements AssignmentsClient {
     itemId: string;
     response: string;
     work?: string;
+    /** Phase 15a: optional sketch attached to this response. */
+    sketchId?: string;
   }): Promise<void> {
     return this.transport.invoke<void>(C.recordResponse, input);
   }

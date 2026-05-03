@@ -395,13 +395,20 @@ export function registerIpcHandlers(
     "praxis.assignments.recordResponse",
     async (
       _event,
-      input: { assignmentId: string; itemId: string; response: string; work?: string },
+      input: {
+        assignmentId: string;
+        itemId: string;
+        response: string;
+        work?: string;
+        sketchId?: string;
+      },
     ) => {
       return services.assignments.recordResponse({
         assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
         itemId: input.itemId,
         response: input.response,
         ...(input.work !== undefined && { work: input.work }),
+        ...(input.sketchId !== undefined && { sketchId: input.sketchId }),
       });
     },
   );
