@@ -9,6 +9,8 @@ import { Nav } from "./components/nav.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
 import { ConfigureRoute } from "./routes/configure.js";
+import { ConceptMapEditorRoute } from "./routes/concept-map-editor.js";
+import { ConceptMapsListRoute } from "./routes/concept-maps-list.js";
 import { CourseDetailRoute } from "./routes/course-detail.js";
 import { CourseMapRoute } from "./routes/course-map.js";
 import { LibraryRoute } from "./routes/library.js";
@@ -83,6 +85,20 @@ const courseMapRoute = createRoute({
   component: CourseMapRoute,
 });
 
+// Phase 15b: concept-maps routes. More-specific /concept-maps/$conceptMapId
+// is listed before /concept-maps so TanStack Router matches it first.
+const conceptMapsListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/courses/$courseId/concept-maps",
+  component: ConceptMapsListRoute,
+});
+
+const conceptMapEditorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/courses/$courseId/concept-maps/$conceptMapId",
+  component: ConceptMapEditorRoute,
+});
+
 const packsRedirect = createRoute({
   getParentRoute: () => rootRoute,
   path: "/packs",
@@ -118,6 +134,8 @@ const routeTree = rootRoute.addChildren([
   coursesRedirect,
   courseDetailRoute,
   courseMapRoute,
+  conceptMapsListRoute,
+  conceptMapEditorRoute,
   packsRedirect,
   configureRoute,
   workspaceRoute,

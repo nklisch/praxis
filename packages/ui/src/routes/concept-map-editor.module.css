@@ -1,0 +1,131 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 1.5rem 1.5rem 0;
+  gap: 0.75rem;
+}
+
+.status {
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.9rem;
+}
+
+.error {
+  color: #f87171;
+  font-size: 0.9rem;
+}
+
+.backBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #aaa);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color 0.15s;
+}
+
+.backBtn:hover {
+  color: var(--color-text, inherit);
+}
+
+/* Inline rename form */
+.renameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.renameInput {
+  flex: 1;
+  max-width: 400px;
+  padding: 0.4rem 0.65rem;
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-accent, #6366f1);
+  border-radius: 5px;
+  color: var(--color-text, inherit);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.renameInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+.renameSaveBtn {
+  background: var(--color-accent, #6366f1);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.85rem;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.renameSaveBtn:hover {
+  opacity: 0.85;
+}
+
+.renameCancelBtn {
+  background: transparent;
+  color: var(--color-text-muted, #aaa);
+  border: none;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.renameCancelBtn:hover {
+  color: var(--color-text, inherit);
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.toolbarBtn {
+  background: transparent;
+  color: var(--color-text-muted, #aaa);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  padding: 0.35rem 0.85rem;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.toolbarBtn:hover {
+  color: var(--color-text, inherit);
+  border-color: var(--color-accent, #6366f1);
+}
+
+/* Canvas container — fills remaining space; position: relative for overlays */
+.canvasContainer {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  /* Small bottom padding so tldraw UI doesn't clip at the edge */
+  margin-bottom: 0;
+}
+
+/* Inner tldraw wrapper — fills the container */
+.canvasInner {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}

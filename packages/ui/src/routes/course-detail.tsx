@@ -1,11 +1,13 @@
-import type { CourseId } from "@praxis/core/types";
+import type { ConceptMapSummary, CourseId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { EmptyState } from "../components/empty-state.js";
 import { RouteHeader } from "../components/route-header.js";
 import { getRouteMeta } from "../components/route-meta.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useCourseDetail } from "../hooks/use-course-detail.js";
+import { useResource } from "../hooks/use-resource.js";
 import { COPY } from "../lib/copy.js";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import styles from "./course-detail.module.css";
@@ -19,6 +21,20 @@ export function CourseDetailRoute() {
   const { course, lessons, loading, error } = useCourseDetail(courseId as CourseId | undefined);
   const navigate = useNavigate();
 
+  // Phase 15b: load concept maps for this course in parallel with course detail.
+  const mapsLoader = useCallback(
+    () =>
+      courseId
+        ? client.conceptMaps.list({ courseId: courseId as CourseId })
+        : Promise.resolve([] as ConceptMapSummary[]),
+    [client, courseId],
+  );
+  const {
+    data: conceptMaps,
+    loading: mapsLoading,
+    setData: setConceptMaps,
+  } = useResource(mapsLoader);
+
   // Phase 9: Mark gates as viewed when the student enters the course detail page.
   // This clears the "newly unlocked" badge in the courses list.
   // Fires once per courseId visit; wrapped in try/catch so it never breaks the page.
@@ -28,6 +44,32 @@ export function CourseDetailRoute() {
       // Non-fatal — badge will clear on next successful visit.
     });
   }, [courseId, client]);
+
+  const handleNewMap = useCallback(async () => {
+    if (!courseId) return;
+    const newMap = await client.conceptMaps.create({
+      courseId: courseId as CourseId,
+      title: "untitled",
+    });
+    // Optimistically prepend to the list before navigating.
+    setConceptMaps((prev) => [
+      {
+        id: newMap.id,
+        studentId: newMap.studentId,
+        courseId: newMap.courseId,
+        title: newMap.title,
+        versionCount: 0,
+        hasDivergences: false,
+        createdAt: newMap.createdAt,
+        updatedAt: newMap.updatedAt,
+      },
+      ...(prev ?? []),
+    ]);
+    await navigate({
+      to: "/courses/$courseId/concept-maps/$conceptMapId",
+      params: { courseId: rawCourseId ?? "", conceptMapId: newMap.id },
+    });
+  }, [client, courseId, rawCourseId, navigate, setConceptMaps]);
 
   const handleStartSession = async () => {
     if (!courseId || !course) return;
@@ -120,6 +162,52 @@ export function CourseDetailRoute() {
               </li>
             ))}
           </ol>
+        )}
+      </section>
+
+      {/* Phase 15b: Concept maps section */}
+      <section className={styles.conceptMapsSection}>
+        <h2 className={styles.sectionTitle}>§ Concept maps</h2>
+        {mapsLoading && <p className={styles.status}>{COPY.loading.default}</p>}
+        {!mapsLoading && conceptMaps && conceptMaps.length === 0 && (
+          <EmptyState
+            message={COPY.empty.conceptMaps}
+            action={{ label: "+ new map", onClick: () => void handleNewMap() }}
+            compact
+          />
+        )}
+        {!mapsLoading && conceptMaps && conceptMaps.length > 0 && (
+          <>
+            <ul className={styles.conceptMapList}>
+              {conceptMaps.map((m) => (
+                <li key={m.id} className={styles.conceptMapItem}>
+                  <button
+                    type="button"
+                    className={styles.conceptMapLink}
+                    onClick={() =>
+                      navigate({
+                        to: "/courses/$courseId/concept-maps/$conceptMapId",
+                        params: { courseId: rawCourseId ?? "", conceptMapId: m.id },
+                      })
+                    }
+                  >
+                    <span className={styles.conceptMapTitle}>{m.title}</span>
+                    <span className={styles.conceptMapMeta}>
+                      <span className={styles.conceptMapVersions}>
+                        {m.versionCount} version{m.versionCount !== 1 ? "s" : ""}
+                      </span>
+                      {m.hasDivergences && (
+                        <span className={styles.divergenceBadge}>discussion points</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className={styles.newMapBtn} onClick={() => void handleNewMap()}>
+              + new map
+            </button>
+          </>
         )}
       </section>
     </div>

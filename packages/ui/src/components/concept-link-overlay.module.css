@@ -1,0 +1,116 @@
+/* Overlay container — pointer-events: none so the canvas underneath is usable.
+   Individual interactive elements override this. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Floating typeahead popup — re-enable pointer events for interaction */
+.typeahead {
+  position: absolute;
+  pointer-events: all;
+  background: var(--color-surface, #1a1a1a);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  min-width: 220px;
+  max-width: 300px;
+  overflow: hidden;
+  /* Prevent the popup from being clipped if near an edge */
+  max-height: 240px;
+}
+
+.typeaheadHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem 0.35rem;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.typeaheadLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted, #888);
+}
+
+.dismissBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #888);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: color 0.1s;
+}
+
+.dismissBtn:hover {
+  color: var(--color-text, inherit);
+}
+
+.typeaheadList {
+  list-style: none;
+  padding: 0.3rem 0;
+  margin: 0;
+}
+
+.typeaheadItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.typeaheadItem:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.typeaheadOrnament {
+  color: var(--color-accent, #6366f1);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.typeaheadName {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--color-text, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.typeaheadConfidence {
+  font-size: 0.72rem;
+  color: var(--color-text-muted, #888);
+  flex-shrink: 0;
+}
+
+/* § ornament marker near a linked shape's top-right corner */
+.linkedMarker {
+  position: absolute;
+  pointer-events: none;
+  font-size: 0.75rem;
+  color: var(--color-accent, #6366f1);
+  line-height: 1;
+  user-select: none;
+  /* Slight drop shadow so it's visible over light shapes */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}

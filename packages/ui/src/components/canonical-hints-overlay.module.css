@@ -1,0 +1,119 @@
+/* Screen-anchored overlay — positioned over the canvas's right margin.
+   pointer-events: none on the container so the canvas underneath is usable.
+   Individual ghost cards and buttons re-enable pointer events. */
+.overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 220px;
+  pointer-events: none;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 0.5rem;
+}
+
+.panel {
+  pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--color-surface, rgba(20, 20, 20, 0.92));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 100%;
+  backdrop-filter: blur(4px);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem 0.45rem;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  flex-shrink: 0;
+}
+
+.panelOrnament {
+  color: var(--color-accent, #6366f1);
+  font-size: 0.85rem;
+}
+
+.panelTitle {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted, #888);
+  flex: 1;
+}
+
+.panelCount {
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #888);
+}
+
+/* Scrollable grid of ghost cards */
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Individual ghost card — muted, dashed border */
+.ghost {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.2));
+  border-radius: 5px;
+  background: transparent;
+  transition: border-color 0.15s;
+}
+
+.ghost:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.ghost:hover .addBtn {
+  opacity: 1;
+}
+
+.ghostName {
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #aaa);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* "+ add to map" button — hidden until hover */
+.addBtn {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-accent, #6366f1);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.addBtn:hover {
+  text-decoration: underline;
+}
+
+/* Show add button on touch devices (no hover) */
+@media (hover: none) {
+  .addBtn {
+    opacity: 1;
+  }
+}
