@@ -22,7 +22,7 @@ const OutputSchema = z.object({
 export const useCanonicalPackTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.use_canonical_pack",
   description:
-    "Create a course from a canonical knowledge pack instead of running the bootstrap extractor. The pack's concept graph + prerequisite edges become the course's structure. Use this when the student wants a curated curriculum rather than building from their own materials. The pack is imported automatically if not already imported (idempotent).",
+    "Create a course from a canonical knowledge pack instead of running the bootstrap explorer. The pack's concept graph + prerequisite edges become the course's structure. Use this when the student wants a curated curriculum rather than building from their own materials. The pack is imported automatically if not already imported (idempotent).",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",
