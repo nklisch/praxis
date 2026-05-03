@@ -9,10 +9,13 @@ import { retrieveFromTextbookTool } from "../retrieval/retrieve-from-textbook.js
 import { draftAddConceptTool } from "./draft-add-concept.js";
 import { draftAddEdgeTool } from "./draft-add-edge.js";
 import { draftAddLessonTool } from "./draft-add-lesson.js";
+import { draftAddLessonAssessmentTool } from "./draft-add-lesson-assessment.js";
+import { draftAddUnitTool } from "./draft-add-unit.js";
 import { draftFinalizeTool } from "./draft-finalize.js";
 import { draftInitTool } from "./draft-init.js";
 import { draftRemoveConceptTool } from "./draft-remove-concept.js";
 import { draftRemoveLessonTool } from "./draft-remove-lesson.js";
+import { draftSetAssessmentPlanTool } from "./draft-set-assessment-plan.js";
 import { draftSetMetadataTool } from "./draft-set-metadata.js";
 
 const InputSchema = z.object({
@@ -43,6 +46,8 @@ const OutputSchema = z.discriminatedUnion("ok", [
       conceptCount: z.number(),
       edgeCount: z.number(),
       firstLessons: z.array(z.object({ title: z.string(), conceptCount: z.number() })),
+      unitCount: z.number(),
+      assessmentCount: z.number(),
     }),
     stepsUsed: z.number(),
   }),
@@ -65,17 +70,26 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
   effects: ["artifact.mutate", "external.code-exec"],
   async handler(args, ctx: ToolContext) {
     const explorerToolDefs = [
+      // Read-only exploration tools
       retrieveFromTextbookTool,
       documentOutlineTool,
       documentListSectionsTool,
       documentReadPagesTool,
+      // Draft init + metadata
       draftInitTool,
       draftSetMetadataTool,
+      // Concept + edge mutations
       draftAddConceptTool,
       draftRemoveConceptTool,
       draftAddEdgeTool,
+      // Lesson mutations
       draftAddLessonTool,
       draftRemoveLessonTool,
+      // Phase 16: unit + assessment scaffold (explorer-only)
+      draftAddUnitTool,
+      draftSetAssessmentPlanTool,
+      draftAddLessonAssessmentTool,
+      // Finalize
       draftFinalizeTool,
     ];
 

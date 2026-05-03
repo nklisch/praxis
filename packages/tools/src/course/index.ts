@@ -6,10 +6,13 @@ export { discardDraftTool } from "./discard-draft.js";
 export { draftAddConceptTool } from "./draft-add-concept.js";
 export { draftAddEdgeTool } from "./draft-add-edge.js";
 export { draftAddLessonTool } from "./draft-add-lesson.js";
+export { draftAddLessonAssessmentTool } from "./draft-add-lesson-assessment.js";
+export { draftAddUnitTool } from "./draft-add-unit.js";
 export { draftFinalizeTool } from "./draft-finalize.js";
 export { draftInitTool } from "./draft-init.js";
 export { draftRemoveConceptTool } from "./draft-remove-concept.js";
 export { draftRemoveLessonTool } from "./draft-remove-lesson.js";
+export { draftSetAssessmentPlanTool } from "./draft-set-assessment-plan.js";
 export { draftSetMetadataTool } from "./draft-set-metadata.js";
 export { editDraftTool } from "./edit-draft.js";
 export { listCanonicalPacksTool } from "./list-canonical-packs.js";
@@ -30,10 +33,13 @@ import { discardDraftTool } from "./discard-draft.js";
 import { draftAddConceptTool } from "./draft-add-concept.js";
 import { draftAddEdgeTool } from "./draft-add-edge.js";
 import { draftAddLessonTool } from "./draft-add-lesson.js";
+import { draftAddLessonAssessmentTool } from "./draft-add-lesson-assessment.js";
+import { draftAddUnitTool } from "./draft-add-unit.js";
 import { draftFinalizeTool } from "./draft-finalize.js";
 import { draftInitTool } from "./draft-init.js";
 import { draftRemoveConceptTool } from "./draft-remove-concept.js";
 import { draftRemoveLessonTool } from "./draft-remove-lesson.js";
+import { draftSetAssessmentPlanTool } from "./draft-set-assessment-plan.js";
 import { draftSetMetadataTool } from "./draft-set-metadata.js";
 import { editDraftTool } from "./edit-draft.js";
 import { listCanonicalPacksTool } from "./list-canonical-packs.js";
@@ -68,6 +74,10 @@ export const COURSE_TOOLS = [
   draftAddLessonTool,
   draftRemoveLessonTool,
   draftFinalizeTool,
+  // Phase 16: unit + assessment scaffold tools (explorer-only; grouped together)
+  draftAddUnitTool,
+  draftSetAssessmentPlanTool,
+  draftAddLessonAssessmentTool,
   // Draft lifecycle (user-facing)
   showDraftTool,
   editDraftTool,

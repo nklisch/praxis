@@ -20,6 +20,8 @@ const OutputSchema = z.discriminatedUnion("ok", [
           conceptCount: z.number().int(),
         }),
       ),
+      unitCount: z.number().int(),
+      assessmentCount: z.number().int(),
     }),
   }),
   z.object({

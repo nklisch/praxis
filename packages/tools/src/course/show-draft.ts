@@ -2,7 +2,9 @@ import type { ToolContext, ToolDefinition } from "@praxis/core/types";
 import { z } from "zod";
 
 const InputSchema = z.object({
-  draftId: z.string().describe("The draft ID returned by course.propose_draft."),
+  draftId: z
+    .string()
+    .describe("The draft ID returned by course.start_exploration or course.draft_init."),
 });
 
 // The draft payload is rendered as a structured card by the UI; use z.any() for
@@ -19,7 +21,7 @@ const OutputSchema = z.discriminatedUnion("kind", [
 export const showDraftTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.show_draft",
   description:
-    "Return the current state of a draft course. The student's UI renders this as a structured card so they can scan the proposal. Use this after course.propose_draft to display the draft, after each course.edit_draft to re-display, and before course.confirm_draft to verify.",
+    "Return the current state of a draft course. The student's UI renders this as a structured card so they can scan the proposal. Use this after course.start_exploration to display the draft, after each course.edit_draft to re-display, and before course.confirm_draft to verify.",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",

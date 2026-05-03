@@ -470,8 +470,24 @@ export interface ProposedCourse {
    * Defaults to `[]` at call sites; required at persist time if an assessment plan is set.
    */
   proposedUnits?: ProposedUnit[];
+  /**
+   * Phase 16: per-lesson assessment schedules proposed by the explorer.
+   * Each entry maps a lesson to an assessment shell. Empty for pre-16 explorers.
+   */
+  proposedLessonAssessments?: ProposedLessonAssessmentEntry[];
   /** Phase 16: proposed assessment plan. Optional; absent for pre-16 explorers. */
   assessmentPlan?: AssessmentPlan;
+}
+
+/**
+ * A per-lesson assessment entry. Binds a ProposedAssessment to a specific
+ * lesson in the draft, with timing and purpose metadata.
+ */
+export interface ProposedLessonAssessmentEntry extends ProposedAssessment {
+  /** References `ProposedLesson.draftLessonId`. */
+  draftLessonId: string;
+  timing: "before" | "after" | "interleaved";
+  purpose: "readiness" | "practice" | "checkpoint";
 }
 
 /**
@@ -541,6 +557,10 @@ export interface DraftSummary {
   edgeCount: number;
   /** First 5 lessons for the agent to narrate. */
   firstLessons: Array<{ title: string; conceptCount: number }>;
+  /** Phase 16: number of proposed units in the draft (0 for pre-16 explorers). */
+  unitCount: number;
+  /** Phase 16: total assessment shells scheduled (summatives + per-lesson). */
+  assessmentCount: number;
 }
 
 // ─── Phase 6: Draft edit operations (used by course.edit_draft) ───────────────

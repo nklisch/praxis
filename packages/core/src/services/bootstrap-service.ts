@@ -1,9 +1,18 @@
-import { courses, gates, lessons } from "@praxis/artifacts/schema";
+import {
+  assignments,
+  courses,
+  courseUnits,
+  gates,
+  lessonAssessments,
+  lessons,
+  lessonUnits,
+} from "@praxis/artifacts/schema";
 import { conceptGraphs, concepts, prerequisiteEdges } from "@praxis/curriculum/schema";
 import { eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
+  AssessmentPlan,
   BootstrapService,
   ConceptGraphId,
   CourseDocumentsService,
@@ -15,7 +24,9 @@ import type {
   Engine,
   LessonId,
   Logger,
+  ProposedAssessment,
   ProposedCourse,
+  ProposedUnit,
   Reference,
   StrategyId,
   StudentId,
@@ -94,6 +105,8 @@ export class BootstrapServiceImpl implements BootstrapService {
         proposedConcepts: [],
         proposedEdges: [],
         proposedLessons: [],
+        proposedUnits: [],
+        proposedLessonAssessments: [],
       },
       createdAt: now,
       lastTouchedAt: now,
@@ -168,7 +181,8 @@ export class BootstrapServiceImpl implements BootstrapService {
     const known = new Set(d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
     const fromLower = input.fromName.trim().toLowerCase();
     const toLower = input.toName.trim().toLowerCase();
-    if (!known.has(fromLower)) return { ok: false, reason: `concept "${input.fromName}" not found` };
+    if (!known.has(fromLower))
+      return { ok: false, reason: `concept "${input.fromName}" not found` };
     if (!known.has(toLower)) return { ok: false, reason: `concept "${input.toName}" not found` };
     if (fromLower === toLower) return { ok: false, reason: "self-edges are not allowed" };
     // Check duplicate edge.
@@ -232,6 +246,128 @@ export class BootstrapServiceImpl implements BootstrapService {
     return { ok: true };
   }
 
+  // ── Phase 16: unit + assessment scaffold ──────────────────────────────────────
+
+  /** Phase 16: group draft lessons into a named unit. */
+  async addUnit(input: {
+    draftId: string;
+    name: string;
+    summary?: string;
+    draftLessonIds: string[];
+    summative?: {
+      kind: "quiz" | "homework" | "exam";
+      title: string;
+      conceptNames: string[];
+      expectedItemCount?: number;
+      rationale: string;
+    };
+  }): Promise<{ ok: true; draftUnitId: string } | { ok: false; reason: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    const knownLessons = new Set(d.proposed.proposedLessons.map((l) => l.draftLessonId));
+    for (const id of input.draftLessonIds) {
+      if (!knownLessons.has(id)) {
+        return { ok: false, reason: `lesson "${id}" not found in draft — add it first` };
+      }
+    }
+    if (input.summative) {
+      const knownConcepts = new Set(
+        d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()),
+      );
+      for (const cn of input.summative.conceptNames) {
+        if (!knownConcepts.has(cn.trim().toLowerCase())) {
+          return {
+            ok: false,
+            reason: `summative references unknown concept "${cn}" — add it first`,
+          };
+        }
+      }
+    }
+    const draftUnitId = uuidv7();
+    const unit: ProposedUnit = {
+      draftUnitId,
+      name: input.name.trim(),
+      ...(input.summary !== undefined && { summary: input.summary.trim() }),
+      draftLessonIds: input.draftLessonIds,
+      ...(input.summative !== undefined && {
+        summative: {
+          draftAssessmentId: uuidv7(),
+          kind: input.summative.kind,
+          title: input.summative.title.trim(),
+          conceptNames: input.summative.conceptNames,
+          ...(input.summative.expectedItemCount !== undefined && {
+            expectedItemCount: input.summative.expectedItemCount,
+          }),
+          rationale: input.summative.rationale.trim(),
+        },
+      }),
+    };
+    if (!d.proposed.proposedUnits) d.proposed.proposedUnits = [];
+    d.proposed.proposedUnits.push(unit);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true, draftUnitId };
+  }
+
+  /** Phase 16: set the overall assessment scaffold plan. */
+  async setAssessmentPlan(input: {
+    draftId: string;
+    plan: AssessmentPlan;
+  }): Promise<{ ok: true } | { ok: false; reason: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    d.proposed.assessmentPlan = input.plan;
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true };
+  }
+
+  /** Phase 16: schedule an assessment attached to a specific lesson. */
+  async addLessonAssessment(input: {
+    draftId: string;
+    draftLessonId: string;
+    kind: "quiz" | "homework" | "exam";
+    timing: "before" | "after" | "interleaved";
+    purpose: "readiness" | "practice" | "checkpoint";
+    conceptNames: string[];
+    expectedItemCount?: number;
+    rationale: string;
+    title: string;
+  }): Promise<{ ok: true; draftAssessmentId: string } | { ok: false; reason: string }> {
+    const d = await this.showDraft(input.draftId);
+    if (!d) return { ok: false, reason: "draft not found or expired" };
+    const knownLessons = new Set(d.proposed.proposedLessons.map((l) => l.draftLessonId));
+    if (!knownLessons.has(input.draftLessonId)) {
+      return {
+        ok: false,
+        reason: `lesson "${input.draftLessonId}" not found in draft — add it first`,
+      };
+    }
+    const knownConcepts = new Set(
+      d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()),
+    );
+    for (const cn of input.conceptNames) {
+      if (!knownConcepts.has(cn.trim().toLowerCase())) {
+        return { ok: false, reason: `concept "${cn}" not found in draft — add it first` };
+      }
+    }
+    const draftAssessmentId = uuidv7();
+    if (!d.proposed.proposedLessonAssessments) d.proposed.proposedLessonAssessments = [];
+    d.proposed.proposedLessonAssessments.push({
+      draftAssessmentId,
+      draftLessonId: input.draftLessonId,
+      kind: input.kind,
+      timing: input.timing,
+      purpose: input.purpose,
+      title: input.title.trim(),
+      conceptNames: input.conceptNames,
+      ...(input.expectedItemCount !== undefined && {
+        expectedItemCount: input.expectedItemCount,
+      }),
+      rationale: input.rationale.trim(),
+    });
+    d.lastTouchedAt = Date.now() as Timestamp;
+    return { ok: true, draftAssessmentId };
+  }
+
   /** Phase 16: update draft title/subject/gradeLevel/thresholds. */
   async setMetadata(input: {
     draftId: string;
@@ -257,9 +393,9 @@ export class BootstrapServiceImpl implements BootstrapService {
    * structured issues list on failure. No throws on validation failure — returns
    * errors as data so the model can read and react.
    */
-  async finalizeDraft(input: { draftId: string }): Promise<
-    { ok: true; summary: DraftSummary } | { ok: false; issues: ReadonlyArray<Issue> }
-  > {
+  async finalizeDraft(input: {
+    draftId: string;
+  }): Promise<{ ok: true; summary: DraftSummary } | { ok: false; issues: ReadonlyArray<Issue> }> {
     const d = await this.showDraft(input.draftId);
     if (!d)
       return {
@@ -467,6 +603,10 @@ export class BootstrapServiceImpl implements BootstrapService {
 
 function buildSummary(d: DraftCourseState): DraftSummary {
   const p = d.proposed;
+  const units = p.proposedUnits ?? [];
+  const lessonAssessments = p.proposedLessonAssessments ?? [];
+  // Count summatives from all units + per-lesson assessments.
+  const summativeCount = units.filter((u) => u.summative !== undefined).length;
   return {
     draftId: d.draftId,
     title: p.title,
@@ -477,6 +617,8 @@ function buildSummary(d: DraftCourseState): DraftSummary {
       title: l.title,
       conceptCount: l.conceptNames.length,
     })),
+    unitCount: units.length,
+    assessmentCount: summativeCount + lessonAssessments.length,
   };
 }
 
@@ -510,6 +652,49 @@ function validateProposed(p: ProposedCourse): Issue[] {
       });
     }
   }
+
+  // Phase 16: validate units.
+  const knownLessons = new Set(p.proposedLessons.map((l) => l.draftLessonId));
+  const knownLower = new Set(p.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
+  for (const unit of p.proposedUnits ?? []) {
+    for (const id of unit.draftLessonIds) {
+      if (!knownLessons.has(id)) {
+        issues.push({
+          kind: "unit_unknown_lesson",
+          message: `unit "${unit.name}" references unknown lesson id "${id}"`,
+        });
+      }
+    }
+    if (unit.summative) {
+      for (const cn of unit.summative.conceptNames) {
+        if (!knownLower.has(cn.trim().toLowerCase())) {
+          issues.push({
+            kind: "assessment_unknown_concept",
+            message: `unit "${unit.name}" summative references unknown concept "${cn}"`,
+          });
+        }
+      }
+    }
+  }
+
+  // Phase 16: validate per-lesson assessments.
+  for (const la of p.proposedLessonAssessments ?? []) {
+    if (!knownLessons.has(la.draftLessonId)) {
+      issues.push({
+        kind: "unit_lesson_not_in_draft",
+        message: `lesson assessment "${la.title}" references unknown lesson id "${la.draftLessonId}"`,
+      });
+    }
+    for (const cn of la.conceptNames) {
+      if (!knownLower.has(cn.trim().toLowerCase())) {
+        issues.push({
+          kind: "assessment_unknown_concept",
+          message: `lesson assessment "${la.title}" references unknown concept "${cn}"`,
+        });
+      }
+    }
+  }
+
   return issues;
 }
 
@@ -746,6 +931,113 @@ function persistDraft(args: PersistDraftArgs): {
     }));
     if (gateRowValues.length > 0) {
       tx.insert(gates).values(gateRowValues).run();
+    }
+
+    // Build a map from draftLessonId → real lessonId for unit/assessment wiring.
+    const draftLessonIdToLessonId = new Map<string, string>();
+    draft.proposed.proposedLessons.forEach((pl, i) => {
+      const row = lessonRowValues[i];
+      if (row) draftLessonIdToLessonId.set(pl.draftLessonId, row.id);
+    });
+
+    // Helper: materialise an assessment shell inside the transaction.
+    function materializeShell(shellInput: {
+      kind: "quiz" | "homework" | "exam";
+      title: string;
+      conceptNames: string[];
+    }): string {
+      const assignmentId = uuidv7();
+      const conceptIds = shellInput.conceptNames.map((n) => {
+        const id = conceptIdByName.get(n);
+        if (!id) throw new Error(`assessment shell refs unknown concept: "${n}"`);
+        return id;
+      });
+      tx.insert(assignments)
+        .values({
+          id: assignmentId,
+          courseId,
+          kind: shellInput.kind,
+          title: shellInput.title,
+          itemsJson: [],
+          conceptIdsJson: conceptIds,
+          assignedAt: now,
+          submittedAt: null,
+          gradeJson: null,
+          parentSessionId: null,
+        })
+        .run();
+      return assignmentId;
+    }
+
+    // 7. Phase 16: materialise units, lesson_units, and summative assignment shells.
+    for (const [i, proposedUnit] of (draft.proposed.proposedUnits ?? []).entries()) {
+      const unitId = uuidv7();
+      tx.insert(courseUnits)
+        .values({
+          id: unitId,
+          courseId,
+          name: proposedUnit.name,
+          summary: proposedUnit.summary ?? null,
+          orderIndex: i,
+          summativeAssignmentId: null,
+        })
+        .run();
+
+      // Bind lessons to this unit.
+      for (const draftLessonId of proposedUnit.draftLessonIds) {
+        const lessonId = draftLessonIdToLessonId.get(draftLessonId);
+        if (!lessonId) {
+          throw new Error(`unit "${proposedUnit.name}" refs unknown lesson id "${draftLessonId}"`);
+        }
+        tx.insert(lessonUnits).values({ lessonId, unitId }).run();
+      }
+
+      // Materialise summative if present.
+      if (proposedUnit.summative) {
+        const summativeId = materializeShell({
+          kind: proposedUnit.summative.kind,
+          title: proposedUnit.summative.title,
+          conceptNames: proposedUnit.summative.conceptNames,
+        });
+        tx.update(courseUnits)
+          .set({ summativeAssignmentId: summativeId })
+          .where(eq(courseUnits.id, unitId))
+          .run();
+      }
+    }
+
+    // 8. Phase 16: materialise per-lesson assessment shells.
+    for (const la of draft.proposed.proposedLessonAssessments ?? []) {
+      const lessonId = draftLessonIdToLessonId.get(la.draftLessonId);
+      if (!lessonId) {
+        throw new Error(
+          `lesson assessment "${la.title}" refs unknown lesson id "${la.draftLessonId}"`,
+        );
+      }
+      const assignmentId = materializeShell({
+        kind: la.kind,
+        title: la.title,
+        conceptNames: la.conceptNames,
+      });
+      tx.insert(lessonAssessments)
+        .values({
+          id: uuidv7(),
+          lessonId,
+          assignmentId,
+          timing: la.timing,
+          purpose: la.purpose,
+        })
+        .run();
+    }
+
+    // 9. Phase 16: write assessment plan onto the course row if present.
+    if (draft.proposed.assessmentPlan !== undefined) {
+      tx.update(courses)
+        .set({
+          assessmentPlanJson: draft.proposed.assessmentPlan as unknown as Record<string, unknown>,
+        })
+        .where(eq(courses.id, courseId))
+        .run();
     }
 
     return {

@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type { ActivityRegistry } from "./activity.js";
 import type {
+  AssessmentPlan,
   Assignment,
   AssignmentItem,
   AssignmentResponse,
@@ -660,6 +661,52 @@ export interface BootstrapService {
   }): Promise<
     { ok: true; summary: DraftSummary } | { ok: false; issues: ReadonlyArray<DraftIssue> }
   >;
+
+  // ── Phase 16: unit + assessment scaffold ──────────────────────────────────────
+
+  /**
+   * Group draft lessons into a named unit. Optionally attach a summative
+   * assessment at the end of the unit.
+   * Returns ok:false if any draftLessonId doesn't exist in the draft.
+   */
+  addUnit(input: {
+    draftId: string;
+    name: string;
+    summary?: string;
+    draftLessonIds: string[];
+    summative?: {
+      kind: "quiz" | "homework" | "exam";
+      title: string;
+      conceptNames: string[];
+      expectedItemCount?: number;
+      rationale: string;
+    };
+  }): Promise<{ ok: true; draftUnitId: string } | { ok: false; reason: string }>;
+
+  /**
+   * Declare the overall assessment scaffold shape. Stored verbatim onto the
+   * draft; materialised as assessmentPlanJson on the course row at persist time.
+   */
+  setAssessmentPlan(input: {
+    draftId: string;
+    plan: AssessmentPlan;
+  }): Promise<{ ok: true } | { ok: false; reason: string }>;
+
+  /**
+   * Schedule an assessment attached to a specific lesson.
+   * Returns ok:false if the draftLessonId or any conceptName doesn't exist.
+   */
+  addLessonAssessment(input: {
+    draftId: string;
+    draftLessonId: string;
+    kind: "quiz" | "homework" | "exam";
+    timing: "before" | "after" | "interleaved";
+    purpose: "readiness" | "practice" | "checkpoint";
+    conceptNames: string[];
+    expectedItemCount?: number;
+    rationale: string;
+    title: string;
+  }): Promise<{ ok: true; draftAssessmentId: string } | { ok: false; reason: string }>;
 
   // ── Existing methods (unchanged) ─────────────────────────────────────────────
   showDraft(draftId: string): Promise<DraftCourseState | null>;
