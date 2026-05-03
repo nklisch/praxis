@@ -19,6 +19,7 @@ import type {
 } from "@praxis/core/types";
 import { brandId, serializeError } from "@praxis/core/types";
 import { ipcMain } from "electron";
+import { registerCourseDocumentsHandlers } from "./course-documents-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
@@ -1051,17 +1052,14 @@ export function registerIpcHandlers(
 
   // ── Phase 15b: Concept maps ──────────────────────────────────────────────────
 
-  handle(
-    "praxis.conceptMaps.create",
-    async (_event, opts: { courseId: string; title: string }) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-      return services.conceptMaps.create({
-        studentId,
-        courseId: opts.courseId as CourseId,
-        title: opts.title,
-      });
-    },
-  );
+  handle("praxis.conceptMaps.create", async (_event, opts: { courseId: string; title: string }) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.conceptMaps.create({
+      studentId,
+      courseId: opts.courseId as CourseId,
+      title: opts.title,
+    });
+  });
 
   handle("praxis.conceptMaps.get", async (_event, id: string) => {
     return services.conceptMaps.get(id as ConceptMapId);
@@ -1075,12 +1073,9 @@ export function registerIpcHandlers(
     });
   });
 
-  handle(
-    "praxis.conceptMaps.rename",
-    async (_event, opts: { id: string; title: string }) => {
-      return services.conceptMaps.rename(opts.id as ConceptMapId, opts.title);
-    },
-  );
+  handle("praxis.conceptMaps.rename", async (_event, opts: { id: string; title: string }) => {
+    return services.conceptMaps.rename(opts.id as ConceptMapId, opts.title);
+  });
 
   handle("praxis.conceptMaps.delete", async (_event, id: string) => {
     return services.conceptMaps.delete(id as ConceptMapId);
@@ -1088,10 +1083,7 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.conceptMaps.updateScene",
-    async (
-      _event,
-      opts: { id: string; scene: TldrawSnapshot; conceptLinks: ConceptLink[] },
-    ) => {
+    async (_event, opts: { id: string; scene: TldrawSnapshot; conceptLinks: ConceptLink[] }) => {
       return services.conceptMaps.updateScene({
         id: opts.id as ConceptMapId,
         scene: opts.scene,
@@ -1103,6 +1095,10 @@ export function registerIpcHandlers(
   handle("praxis.conceptMaps.listVersions", async (_event, id: string) => {
     return services.conceptMaps.listVersions(id as ConceptMapId);
   });
+
+  // ── Phase 16: Course ↔ Document attachments ──────────────────────────────────
+
+  registerCourseDocumentsHandlers(services, log);
 
   // ── Shell helpers ─────────────────────────────────────────────────────────────
 

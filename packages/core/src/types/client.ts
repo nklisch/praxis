@@ -30,6 +30,7 @@ import type {
   ConceptId,
   ConceptMapId,
   CourseId,
+  DocumentId,
   FlashcardId,
   GateId,
   LessonId,
@@ -51,6 +52,7 @@ import type {
 import type { NoteBody } from "./notes.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { TabId, TabSummary } from "./tabs.js";
+import type { DocumentSummaryItem } from "./tool.js";
 
 export interface PraxisClient {
   session: SessionService;
@@ -80,6 +82,8 @@ export interface PraxisClient {
   sketches: SketchClientApi;
   /** Phase 15b: concept map CRUD + versioning. */
   conceptMaps: ConceptMapClientApi;
+  /** Phase 16: course ↔ document attachment — attach, detach, list. */
+  courseDocuments: CourseDocumentsClientApi;
 }
 
 /**
@@ -151,6 +155,34 @@ export interface ConceptMapClientApi {
     conceptLinks: ConceptLink[];
   }): Promise<ConceptMapDrawing>;
   listVersions(id: ConceptMapId): Promise<ConceptMapVersion[]>;
+}
+
+/**
+ * Phase 16: Client-facing course ↔ document attachment API.
+ * The studentId is resolved server-side from the single-student v1 install context.
+ */
+export interface CourseDocumentsClientApi {
+  /**
+   * List all documents attached to a course, as compact summaries.
+   * Returns an empty array when no documents are attached.
+   */
+  listForCourse(courseId: CourseId): Promise<DocumentSummaryItem[]>;
+
+  /**
+   * Attach a library document to a course. Idempotent — re-attaching an
+   * already-attached document returns `{ attached: false }`.
+   */
+  attach(input: {
+    courseId: CourseId;
+    documentId: DocumentId;
+    source?: "manual" | "bootstrap" | "ingestion";
+  }): Promise<{ attached: boolean }>;
+
+  /**
+   * Detach a document from a course. Idempotent — detaching an unlinked doc
+   * returns `{ detached: false }`.
+   */
+  detach(input: { courseId: CourseId; documentId: DocumentId }): Promise<{ detached: boolean }>;
 }
 
 export interface SessionService {

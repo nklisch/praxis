@@ -172,6 +172,51 @@
   font-size: 0.9rem;
 }
 
+/* Phase 16: Attached documents section */
+.documentsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.documentList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.documentItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.85rem;
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+}
+
+.documentName {
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: var(--color-text, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.documentMeta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #aaa);
+  white-space: nowrap;
+  padding-left: 0.5rem;
+  flex-shrink: 0;
+}
+
 /* Phase 15b: Concept maps section */
 .conceptMapsSection {
   display: flex;

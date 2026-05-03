@@ -1,4 +1,4 @@
-import type { IngestionEvent } from "@praxis/core/types";
+import type { CourseId, IngestionEvent } from "@praxis/core/types";
 import { useCallback, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 
@@ -46,8 +46,16 @@ function mimeTypeFromPath(filePath: string): string {
 /**
  * State-machine hook for the ingestion flow:
  * idle → picking → [tier_selection for PDFs] → ingesting → done/error
+ *
+ * @param onDone - optional callback fired when ingestion completes successfully.
+ * @param opts.courseId - when set, the ingested document is auto-attached to this
+ *   course (the backend ingestion service handles the attachment when `courseId`
+ *   is present on the request).
  */
-export function useIngestion(onDone?: () => void): UseIngestionResult {
+export function useIngestion(
+  onDone?: () => void,
+  opts?: { courseId?: CourseId },
+): UseIngestionResult {
   const client = usePraxisClient();
   const [state, setState] = useState<IngestionState>({ status: "idle" });
 
@@ -73,6 +81,7 @@ export function useIngestion(onDone?: () => void): UseIngestionResult {
           mimeType,
           studentId: "default", // resolved server-side by main process
           ...(preferIngestorId !== undefined && { preferIngestorId }),
+          ...(opts?.courseId !== undefined && { courseId: opts.courseId }),
         };
 
         for await (const event of client.ingest.start(req)) {
@@ -107,7 +116,7 @@ export function useIngestion(onDone?: () => void): UseIngestionResult {
         setState({ status: "error", message: err instanceof Error ? err.message : String(err) });
       }
     },
-    [client, onDone],
+    [client, onDone, opts?.courseId],
   );
 
   const startPick = useCallback(async () => {

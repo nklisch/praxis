@@ -1,6 +1,4 @@
 export type * from "./artifacts.js";
-// Phase 15b: ConceptMapService interface.
-export type { ConceptMapService } from "./concept-map-service.js";
 export type * from "./citation.js";
 // client.ts: Note: MemoryService is intentionally NOT re-exported from here.
 // The client-side MemoryService (no studentId params) lives in ./client.ts and is
@@ -14,6 +12,7 @@ export type {
   BootstrapOpts,
   ConceptMapClientApi,
   ConfigService,
+  CourseDocumentsClientApi,
   CreateCourseInput,
   DocumentSummary,
   DocumentsClient,
@@ -40,6 +39,8 @@ export type {
 export type * from "./common.js";
 export { LOG_LEVELS } from "./common.js"; // runtime const — not re-exported by `export type *`
 export type * from "./concept-graph.js";
+// Phase 15b: ConceptMapService interface.
+export type { ConceptMapService } from "./concept-map-service.js";
 export type * from "./configurator.js";
 export type * from "./conversation.js";
 export type * from "./engine.js";

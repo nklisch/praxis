@@ -32,6 +32,10 @@ export const COPY = {
     libraryDocumentsEmpty:
       "No documents ingested. Add a textbook, paper, or PDF and Praxis will teach from it.",
     librarySessionsEmpty: "No recent sessions. Open a course or pack to begin a session.",
+    /** Phase 16: course-scoped document states */
+    courseDocumentsEmpty:
+      "No documents attached yet. Add one from your files, or reuse one from your library.",
+    libraryPickerEmpty: "No documents in your library yet — add one to get started.",
   },
   loading: {
     default: "loading…",
@@ -54,9 +58,7 @@ export const COPY = {
     sketchCancelButton: "Cancel",
   },
   sketch: {
-    noVision:
-      "Vision isn't available with the current engine. Switch to one that supports vision.",
-    needsReview:
-      "I read your work but couldn't verify it cleanly. Could you re-write or clarify?",
+    noVision: "Vision isn't available with the current engine. Switch to one that supports vision.",
+    needsReview: "I read your work but couldn't verify it cleanly. Could you re-write or clarify?",
   },
 } as const;

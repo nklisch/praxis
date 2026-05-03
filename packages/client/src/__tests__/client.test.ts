@@ -242,4 +242,59 @@ describe("createPraxisClient", () => {
       expect(invokedChannels[0]?.args[0]).toBe("map-1");
     });
   });
+
+  describe("courseDocuments (Phase 16)", () => {
+    it("courseDocuments.listForCourse() routes to praxis.courseDocuments.listForCourse with courseId", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.courseDocuments.listForCourse("course-1" as any);
+      expect(invokedChannels[0]?.channel).toBe("praxis.courseDocuments.listForCourse");
+      expect(invokedChannels[0]?.args[0]).toBe("course-1");
+    });
+
+    it("courseDocuments.attach() routes to praxis.courseDocuments.attach with courseId + documentId", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      await client.courseDocuments.attach({
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+        courseId: "course-1" as any,
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+        documentId: "doc-1" as any,
+        source: "manual",
+      });
+      expect(invokedChannels[0]?.channel).toBe("praxis.courseDocuments.attach");
+      const payload = invokedChannels[0]?.args[0] as Record<string, unknown>;
+      expect(payload.courseId).toBe("course-1");
+      expect(payload.documentId).toBe("doc-1");
+      expect(payload.source).toBe("manual");
+    });
+
+    it("courseDocuments.attach() without source omits source from payload", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      await client.courseDocuments.attach({
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+        courseId: "course-1" as any,
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+        documentId: "doc-1" as any,
+      });
+      const payload = invokedChannels[0]?.args[0] as Record<string, unknown>;
+      expect(payload.source).toBeUndefined();
+    });
+
+    it("courseDocuments.detach() routes to praxis.courseDocuments.detach with courseId + documentId", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.courseDocuments.detach({
+        courseId: "course-1" as any,
+        documentId: "doc-1" as any,
+      });
+      expect(invokedChannels[0]?.channel).toBe("praxis.courseDocuments.detach");
+      const payload = invokedChannels[0]?.args[0] as Record<string, unknown>;
+      expect(payload.courseId).toBe("course-1");
+      expect(payload.documentId).toBe("doc-1");
+    });
+  });
 });

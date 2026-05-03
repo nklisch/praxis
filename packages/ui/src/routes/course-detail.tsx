@@ -1,12 +1,15 @@
-import type { ConceptMapSummary, CourseId } from "@praxis/core/types";
+import type { ConceptMapSummary, CourseId, DocumentSummaryItem } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AddDocumentButton } from "../components/add-document-button.js";
 import { EmptyState } from "../components/empty-state.js";
+import { LibraryDocumentPicker } from "../components/library-document-picker.js";
 import { RouteHeader } from "../components/route-header.js";
 import { getRouteMeta } from "../components/route-meta.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useCourseDetail } from "../hooks/use-course-detail.js";
+import { useIngestion } from "../hooks/use-ingestion.js";
 import { useResource } from "../hooks/use-resource.js";
 import { COPY } from "../lib/copy.js";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
@@ -20,6 +23,31 @@ export function CourseDetailRoute() {
   const client = usePraxisClient();
   const { course, lessons, loading, error } = useCourseDetail(courseId as CourseId | undefined);
   const navigate = useNavigate();
+
+  // Phase 16: course-scoped ingestion — auto-attaches when courseId is set.
+  const ingestion = useIngestion(
+    () => {
+      void courseDocsRefresh();
+    },
+    courseId ? { courseId: courseId as CourseId } : undefined,
+  );
+
+  // Phase 16: track whether the library picker is open.
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Phase 16: load attached documents for this course.
+  const courseDocsLoader = useCallback(
+    () =>
+      courseId
+        ? client.courseDocuments.listForCourse(courseId as CourseId)
+        : Promise.resolve([] as DocumentSummaryItem[]),
+    [client, courseId],
+  );
+  const {
+    data: courseDocuments,
+    loading: courseDocsLoading,
+    refresh: courseDocsRefresh,
+  } = useResource(courseDocsLoader);
 
   // Phase 15b: load concept maps for this course in parallel with course detail.
   const mapsLoader = useCallback(
@@ -141,6 +169,40 @@ export function CourseDetailRoute() {
         >
           View progress map
         </button>
+        <AddDocumentButton ingestion={ingestion} />
+        <button type="button" className={styles.mapBtn} onClick={() => setPickerOpen(true)}>
+          Reuse from library
+        </button>
+      </section>
+
+      {/* Phase 16: Library picker modal */}
+      {pickerOpen && courseId && (
+        <LibraryDocumentPicker
+          courseId={courseId as CourseId}
+          onClose={() => setPickerOpen(false)}
+          onAttached={() => void courseDocsRefresh()}
+        />
+      )}
+
+      {/* Phase 16: Attached documents section */}
+      <section className={styles.documentsSection}>
+        <h2 className={styles.sectionTitle}>Documents</h2>
+        {courseDocsLoading && <p className={styles.status}>{COPY.loading.documents}</p>}
+        {!courseDocsLoading && (!courseDocuments || courseDocuments.length === 0) && (
+          <EmptyState message={COPY.empty.courseDocumentsEmpty} compact />
+        )}
+        {!courseDocsLoading && courseDocuments && courseDocuments.length > 0 && (
+          <ul className={styles.documentList}>
+            {courseDocuments.map((doc) => (
+              <li key={doc.documentId} className={styles.documentItem}>
+                <span className={styles.documentName}>{doc.filename}</span>
+                <span className={styles.documentMeta}>
+                  {doc.chunkCount} chunk{doc.chunkCount !== 1 ? "s" : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className={styles.lessonsSection}>
