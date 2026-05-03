@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { codeSandboxInput, codeSandboxTool } from "../code-sandbox.js";
 
 const mockSandbox: CodeSandbox = {
+  availableLanguages: ["javascript", "python"],
   run: vi.fn().mockResolvedValue({
     stdout: "4\n",
     stderr: "",

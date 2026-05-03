@@ -54,7 +54,7 @@ const mockCtx: ToolContext = {
     // biome-ignore lint/suspicious/noExplicitAny: Phase 5 placeholder — not used in this test
     documents: null as any,
     sympy: mockSympy,
-    sandbox: { run: vi.fn() },
+    sandbox: { availableLanguages: ["javascript", "python"], run: vi.fn() },
     pedagogyPack: null,
     lock: null as any,
     authoring: null as any,

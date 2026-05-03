@@ -26,7 +26,6 @@ const workspaceRoot = resolve(__dirname, "../..");
 const EXTERNAL_THIRD_PARTY = [
   // Native modules — must ship as binary, can't be bundled
   "better-sqlite3",
-  "isolated-vm",
   "canvas",
   // Native-adjacent / WASM
   "sqlite-vec",

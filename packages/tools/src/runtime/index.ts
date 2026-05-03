@@ -27,16 +27,13 @@ export {
   VisionPdfIngestor,
 } from "./ingestion/index.js";
 export {
-  IsolatedVmHost,
-  type IsolatedVmRunOptions,
-  type IsolatedVmRunResult,
-} from "./isolated-vm-host.js";
-export {
   PyodideHost,
   type PyodideHostOptions,
   type PyodideRunOptions,
   type PyodideRunResult,
   PyodideTimeoutError,
 } from "./pyodide-host.js";
+export { PyodideLanguageSandbox } from "./pyodide-language-sandbox.js";
+export { QuickJsLanguageSandbox } from "./quickjs-language-sandbox.js";
 export { SqliteFtsStore } from "./sqlite-fts-store.js";
 export { SqliteVecStore } from "./sqlite-vec-store.js";

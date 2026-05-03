@@ -32,12 +32,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
 import { noopLogger } from "./helpers/mocks.js";
 
-// isolated-vm@6.1.2 prebuilts don't cover Node 25+.
-vi.mock("isolated-vm", async () => {
-  const { isolatedVmStubFactory } = await import("./helpers/mocks.js");
-  return isolatedVmStubFactory();
-});
-
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 
 class FakeSession implements EngineSession {
@@ -76,7 +70,7 @@ const mockSympy: SymPyService = {
   checkEquivalent: vi.fn(),
   parseLatex: vi.fn(),
 };
-const mockSandbox: CodeSandbox = { run: vi.fn() };
+const mockSandbox: CodeSandbox = { availableLanguages: ["javascript", "python"], run: vi.fn() };
 const mockVectorStore = {
   upsert: vi.fn(),
   upsertBatch: vi.fn(),

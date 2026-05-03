@@ -1,2 +1,5 @@
-export { codeSandboxInput, codeSandboxOutput, codeSandboxTool } from "./code-sandbox.js";
-export { LocalCodeSandbox } from "./sandbox-service.js";
+export {
+  codeSandboxOutput,
+  createCodeSandboxTool,
+} from "./code-sandbox.js";
+export { CodeSandboxImpl, type CodeSandboxImplOptions } from "./code-sandbox-impl.js";

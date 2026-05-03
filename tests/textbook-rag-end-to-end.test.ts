@@ -25,12 +25,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
 import { noopLogger } from "./helpers/mocks.js";
 
-// isolated-vm stub (same pattern as other integration tests)
-vi.mock("isolated-vm", async () => {
-  const { isolatedVmStubFactory } = await import("./helpers/mocks.js");
-  return isolatedVmStubFactory();
-});
-
 const DIM = 384; // must match EMBEDDING_DIMENSION in vector-init.ts
 
 function makeVec(seed: number): number[] {

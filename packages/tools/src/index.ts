@@ -32,19 +32,16 @@ export {
   VisionPdfIngestor,
 } from "./runtime/ingestion/index.js";
 export {
-  IsolatedVmHost,
-  type IsolatedVmRunOptions,
-  type IsolatedVmRunResult,
-} from "./runtime/isolated-vm-host.js";
-export {
   PyodideHost,
   type PyodideHostOptions,
   type PyodideRunOptions,
   type PyodideRunResult,
   PyodideTimeoutError,
 } from "./runtime/pyodide-host.js";
+export { PyodideLanguageSandbox } from "./runtime/pyodide-language-sandbox.js";
+export { QuickJsLanguageSandbox } from "./runtime/quickjs-language-sandbox.js";
 export { SqliteFtsStore } from "./runtime/sqlite-fts-store.js";
 export { SqliteVecStore } from "./runtime/sqlite-vec-store.js";
-export { codeSandboxInput, codeSandboxOutput, codeSandboxTool } from "./sandbox/code-sandbox.js";
-export { LocalCodeSandbox } from "./sandbox/sandbox-service.js";
+export { codeSandboxOutput, createCodeSandboxTool } from "./sandbox/code-sandbox.js";
+export { CodeSandboxImpl, type CodeSandboxImplOptions } from "./sandbox/code-sandbox-impl.js";
 export const PACKAGE_NAME = "@praxis/tools" as const;

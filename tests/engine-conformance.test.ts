@@ -19,15 +19,6 @@ import { InProcessToolRegistry } from "@praxis/tools";
 import { echoTool } from "@praxis/tools/test-tools";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// ── Mock isolated-vm ──────────────────────────────────────────────────────────
-// isolated-vm@6.1.2 prebuilts don't cover Node 25 (ABI 141).
-// @praxis/tools exports IsolatedVmHost which imports isolated-vm at module level.
-// Provide a minimal stub so the module graph loads without a native binary.
-vi.mock("isolated-vm", async () => {
-  const { isolatedVmStubFactory } = await import("./helpers/mocks.js");
-  return isolatedVmStubFactory();
-});
-
 // ── Mock @praxis/claude-cli-sdk ──────────────────────────────────────────────
 // We mock createConversation (for ClaudeCodeAdapter) AND startToolServer
 // (used by startToolBridge inside the adapter) to avoid real subprocess spawning.
@@ -121,7 +112,7 @@ function makeToolContext() {
         titlesByIds: vi.fn().mockResolvedValue(new Map()),
         pageImage: vi.fn().mockResolvedValue(null),
       },
-      sandbox: { run: vi.fn() },
+      sandbox: { availableLanguages: ["javascript", "python"], run: vi.fn() },
       sympy: {
         checkSolution: vi.fn(),
         solveEquation: vi.fn(),

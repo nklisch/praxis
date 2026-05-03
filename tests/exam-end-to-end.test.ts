@@ -30,12 +30,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
 import { noopLogger } from "./helpers/mocks.js";
 
-// isolated-vm@6.1.2 prebuilts don't cover Node 25+ ABI.
-vi.mock("isolated-vm", async () => {
-  const { isolatedVmStubFactory } = await import("./helpers/mocks.js");
-  return isolatedVmStubFactory();
-});
-
 // ── FakeEngine that returns canned rubric JSON ─────────────────────────────────
 
 const RUBRIC_RESPONSE = `\`\`\`json
@@ -99,7 +93,7 @@ const mockSympy: SymPyService = {
   parseLatex: vi.fn(),
 };
 
-const mockSandbox: CodeSandbox = { run: vi.fn() };
+const mockSandbox: CodeSandbox = { availableLanguages: ["javascript", "python"], run: vi.fn() };
 
 beforeEach(() => {
   rubricEngineCallCount = 0;

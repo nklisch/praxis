@@ -25,15 +25,6 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
 
-// isolated-vm@6.1.2 prebuilts don't cover Node 25 (ABI 141).
-// @praxis/core/services imports @praxis/tools which exports IsolatedVmHost → isolated-vm.
-// Provide a minimal stub so the module graph loads without a native binary.
-// vi.mock is hoisted by Vitest above all imports.
-vi.mock("isolated-vm", async () => {
-  const { isolatedVmStubFactory } = await import("./helpers/mocks.js");
-  return isolatedVmStubFactory();
-});
-
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 
 const CANNED_EVENTS: EngineEvent[] = [
@@ -97,6 +88,7 @@ const mockSympy: SymPyService = {
 };
 
 const mockSandbox: CodeSandbox = {
+  availableLanguages: ["javascript", "python"],
   run: vi.fn(),
 };
 

@@ -61,17 +61,18 @@ import {
   EpubIngestor,
   HtmlIngestor,
   IngestorRegistry,
-  IsolatedVmHost,
   JsPdfIngestor,
   MarkdownIngestor,
   PlainTextIngestor,
   PyodideHost,
+  PyodideLanguageSandbox,
+  QuickJsLanguageSandbox,
   SqliteFtsStore,
   SqliteVecStore,
   VisionPdfIngestor,
   WorkerEmbeddingService,
 } from "@praxis/tools/runtime";
-import { codeSandboxTool, LocalCodeSandbox } from "@praxis/tools/sandbox";
+import { CodeSandboxImpl, createCodeSandboxTool } from "@praxis/tools/sandbox";
 import { sketchReadTool } from "@praxis/tools/sketch";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
@@ -140,9 +141,11 @@ export interface Services {
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: WorkerEmbeddingService; // exposed so main can preload it
   /**
-   * Phase 16: forked Node-mode workers. The composition root keeps handles
-   * here so the main-process shutdown chain can `await worker.shutdown()`
-   * before `app.exit(0)` and we don't leak child processes.
+   * Forked Node-mode workers. The composition root keeps handles here so
+   * the main-process shutdown chain can `await worker.shutdown()` before
+   * `app.exit(0)` and we don't leak child processes.
+   *
+   * embeddings: onnxruntime-node worker (stays forked — SIGTRAP in Electron V8 cage).
    */
   workers: { embeddings: NodeWorker };
   /** Returns the default student ID for the single-student v1 install. */
@@ -154,9 +157,14 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
 
   // Phase 4: Pyodide + sandbox
   const pyodide = new PyodideHost({ packages: ["sympy"] });
-  const jsHost = new IsolatedVmHost();
   const sympy = new PyodideSymPyService(pyodide);
-  const sandbox = new LocalCodeSandbox(jsHost, pyodide);
+  // QuickJS (WASM) replaces isolated-vm for JavaScript. No native binding,
+  // no ABI dance, no forked worker needed. Each run() creates a fresh
+  // QuickJSRuntime + Context (~2-5ms) — same cost order as before.
+  const sandbox = new CodeSandboxImpl({
+    adapters: [new QuickJsLanguageSandbox(), new PyodideLanguageSandbox(pyodide)],
+  });
+  const codeSandboxTool = createCodeSandboxTool(sandbox);
 
   // Phase 5: vectors + FTS + embeddings + page images
   const vectorStore = new SqliteVecStore(sqlite);
@@ -484,7 +492,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     ingestorRegistry,
     pyodide,
     embeddings,
-    workers: { embeddings: embeddingsWorker }, // ← Phase 16: shutdown hook
+    workers: {
+      embeddings: embeddingsWorker,
+    },
     getDefaultStudentId: () => getOrCreateDefaultStudentId(db),
   };
 }

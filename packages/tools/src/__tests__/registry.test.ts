@@ -25,7 +25,7 @@ const ctx: ToolContext = {
     embeddings: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 5 placeholder — not used in this test
     documents: null as any,
-    sandbox: { run: vi.fn() },
+    sandbox: { availableLanguages: ["javascript", "python"], run: vi.fn() },
     sympy: {
       checkSolution: vi.fn(),
       solveEquation: vi.fn(),

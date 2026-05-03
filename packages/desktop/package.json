@@ -43,7 +43,6 @@
     "drizzle-orm": "^0.45.2",
     "epub2": "^3.0.2",
     "file-uri-to-path": "^1.0.0",
-    "isolated-vm": "^6.1.2",
     "linkedom": "^0.18.12",
     "mammoth": "^1.12.0",
     "node-addon-api": "^8.5.0",
@@ -89,7 +88,6 @@
     "files": [
       "out/**/*",
       "package.json",
-      "!**/node_modules/isolated-vm/**",
       "!**/node_modules/@praxis/*/src/**",
       "!**/node_modules/@praxis/*/dist/.tsbuildinfo",
       "!**/node_modules/@praxis/*/dist/**/*.d.ts",
