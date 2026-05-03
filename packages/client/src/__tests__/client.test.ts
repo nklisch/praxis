@@ -186,4 +186,60 @@ describe("createPraxisClient", () => {
       expect(invokedChannels[0]?.args[0]).toEqual({ includeEnded: false, limit: 20 });
     });
   });
+
+  describe("conceptMaps (Phase 15b)", () => {
+    it("conceptMaps.list() routes to praxis.conceptMaps.list with courseId", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.conceptMaps.list({ courseId: "course-1" as any });
+      expect(invokedChannels[0]?.channel).toBe("praxis.conceptMaps.list");
+      expect(invokedChannels[0]?.args[0]).toEqual({ courseId: "course-1" });
+    });
+
+    it("conceptMaps.create() routes to praxis.conceptMaps.create", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.conceptMaps.create({ courseId: "course-1" as any, title: "My Map" });
+      expect(invokedChannels[0]?.channel).toBe("praxis.conceptMaps.create");
+      expect(invokedChannels[0]?.args[0]).toEqual({ courseId: "course-1", title: "My Map" });
+    });
+
+    it("conceptMaps.get() routes to praxis.conceptMaps.get with id", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.conceptMaps.get("map-1" as any);
+      expect(invokedChannels[0]?.channel).toBe("praxis.conceptMaps.get");
+      expect(invokedChannels[0]?.args[0]).toBe("map-1");
+    });
+
+    it("conceptMaps.delete() routes to praxis.conceptMaps.delete with id", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.conceptMaps.delete("map-1" as any);
+      expect(invokedChannels[0]?.channel).toBe("praxis.conceptMaps.delete");
+      expect(invokedChannels[0]?.args[0]).toBe("map-1");
+    });
+
+    it("conceptMaps.rename() routes to praxis.conceptMaps.rename", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.conceptMaps.rename("map-1" as any, "New Title");
+      expect(invokedChannels[0]?.channel).toBe("praxis.conceptMaps.rename");
+      expect(invokedChannels[0]?.args[0]).toEqual({ id: "map-1", title: "New Title" });
+    });
+
+    it("conceptMaps.listVersions() routes to praxis.conceptMaps.listVersions", async () => {
+      const { transport, invokedChannels } = makeTransport();
+      const client = createPraxisClient(transport);
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      await client.conceptMaps.listVersions("map-1" as any);
+      expect(invokedChannels[0]?.channel).toBe("praxis.conceptMaps.listVersions");
+      expect(invokedChannels[0]?.args[0]).toBe("map-1");
+    });
+  });
 });

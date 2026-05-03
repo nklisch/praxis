@@ -52,7 +52,6 @@ function makeClient(gateViewResult: GateView[] | "reject" = []): PraxisClient {
       progress: vi.fn(),
       flashcards: vi.fn(),
       notes: vi.fn(),
-      conceptMaps: vi.fn(),
       gateView:
         gateViewResult === "reject"
           ? vi.fn().mockRejectedValue(new Error("IPC error"))

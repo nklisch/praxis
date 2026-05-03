@@ -89,7 +89,6 @@ function makeClient(
       progress: vi.fn(),
       flashcards: vi.fn(),
       notes: vi.fn(),
-      conceptMaps: vi.fn(),
       gateView: vi.fn().mockResolvedValue(gateViewResult),
       evaluateGates: vi.fn().mockResolvedValue({ unlockedGateIds: [] as GateId[] }),
       markGatesViewed: vi.fn().mockResolvedValue(undefined),

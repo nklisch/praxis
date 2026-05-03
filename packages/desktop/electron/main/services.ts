@@ -10,6 +10,7 @@ import {
   AuthoringServiceImpl,
   BootstrapServiceImpl,
   ClaudeAuthServiceImpl,
+  ConceptMapServiceImpl,
   ConfigServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
@@ -97,6 +98,8 @@ export interface Services {
   fsrsScheduler: FsrsSchedulerImpl;
   /** Phase 15a: sketch service — exposed for IPC handlers. */
   sketches: SketchServiceImpl;
+  /** Phase 15b: concept map service — exposed for IPC handlers. */
+  conceptMaps: ConceptMapServiceImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
@@ -263,6 +266,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // Resolves the active engine at call time (same pattern as visionResolver above).
   const visionService = new VisionServiceImpl({ db, log });
 
+  // Phase 15b: Concept map service — CRUD + versioning for student concept maps.
+  const conceptMapService = new ConceptMapServiceImpl({ db, log });
+
   // Phase 12: Notes + Flashcards services.
   // Notes service uses the bootstrap engine resolver for fromSessionSummary.
   const notesService = new NotesServiceImpl({
@@ -340,6 +346,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       fsrsScheduler, // ← Phase 12
       sketches: sketchService, // ← Phase 15a
       vision: visionService, // ← Phase 15a
+      conceptMaps: conceptMapService, // ← Phase 15b
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)
@@ -380,6 +387,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     flashcards: flashcardsService, // ← Phase 12
     fsrsScheduler, // ← Phase 12
     sketches: sketchService, // ← Phase 15a
+    conceptMaps: conceptMapService, // ← Phase 15b
     ingestorRegistry,
     pyodide,
     embeddings,

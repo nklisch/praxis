@@ -1,7 +1,6 @@
 import type {
   ArtifactsClientSurface,
   ConceptId,
-  ConceptMapDrawing,
   Course,
   CourseId,
   CourseSummary,
@@ -74,10 +73,6 @@ export class ArtifactsClient implements ArtifactsClientSurface {
   }
 
   notes(_opts?: { courseId?: CourseId }): Promise<Note[]> {
-    return Promise.resolve([]);
-  }
-
-  conceptMaps(_courseId?: CourseId): Promise<ConceptMapDrawing[]> {
     return Promise.resolve([]);
   }
 

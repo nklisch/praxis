@@ -134,6 +134,56 @@ export const tabs = sqliteTable(
   }),
 );
 
+/** Phase 15b: Student-authored concept maps with auto-versioning. */
+export const conceptMaps = sqliteTable(
+  "concept_maps",
+  {
+    id: text("id").primaryKey(), // uuidv7
+    studentId: text("student_id").notNull(),
+    /** Course the map is anchored to. NOT optional in v1. */
+    courseId: text("course_id").notNull(),
+    /** Display title. e.g. "whole course", "linear equations", "word problems". */
+    title: text("title").notNull(),
+    /** Live tldraw snapshot — the editable working copy. */
+    sceneJson: text("scene_json", { mode: "json" }).notNull(),
+    /**
+     * Element-to-concept bindings. Array of { elementId, conceptId, confidence }.
+     * Stored as JSON for v1 (single-row, small N). A separate table is overkill.
+     */
+    conceptLinksJson: text("concept_links_json", { mode: "json" }).notNull().default("[]"),
+    /**
+     * ConceptMapDivergence[] from the most-recent indexer run. Null until first
+     * session-end indexer pass after the map is created.
+     */
+    divergencesJson: text("divergences_json", { mode: "json" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => ({
+    studentCourseIdx: index("concept_maps_student_course_idx").on(t.studentId, t.courseId),
+  }),
+);
+
+/** Phase 15b: Version history for concept maps — immutable snapshots. */
+export const conceptMapVersions = sqliteTable(
+  "concept_map_versions",
+  {
+    id: text("id").primaryKey(), // uuidv7
+    conceptMapId: text("concept_map_id")
+      .notNull()
+      .references(() => conceptMaps.id, { onDelete: "cascade" }),
+    /** Snapshot of the scene + links at this version. */
+    sceneJson: text("scene_json", { mode: "json" }).notNull(),
+    conceptLinksJson: text("concept_links_json", { mode: "json" }).notNull(),
+    /** Set when auto-snapshot fires; null when this is the very first row. */
+    sessionId: text("session_id"),
+    snapshotAt: integer("snapshot_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => ({
+    mapTimeIdx: index("concept_map_versions_map_time_idx").on(t.conceptMapId, t.snapshotAt),
+  }),
+);
+
 /** Phase 15a: Content-addressed sketch storage. */
 export const sketches = sqliteTable(
   "sketches",
@@ -169,5 +219,7 @@ export const memorySchema = {
   affectiveSamples,
   misconceptions,
   tabs,
+  conceptMaps,
+  conceptMapVersions,
   sketches,
 };

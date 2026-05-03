@@ -3,7 +3,10 @@ import type {
   Assignment,
   AssignmentResponse,
   AssignmentSubmissionResult,
+  ConceptLink,
   ConceptMapDrawing,
+  ConceptMapSummary,
+  ConceptMapVersion,
   Course,
   CourseSummary,
   DraftCourse,
@@ -17,7 +20,7 @@ import type {
   SuccessCriteria,
   ThresholdConfig,
 } from "./artifacts.js";
-import type { TimeRange, Timestamp } from "./common.js";
+import type { TimeRange, Timestamp, TldrawSnapshot } from "./common.js";
 import type { ConfiguratorActionRow } from "./configurator.js";
 import type { EngineEvent } from "./engine.js";
 import type { Rating } from "./flashcards.js";
@@ -25,6 +28,7 @@ import type { GateView } from "./gate.js";
 import type {
   AssignmentId,
   ConceptId,
+  ConceptMapId,
   CourseId,
   FlashcardId,
   GateId,
@@ -74,6 +78,8 @@ export interface PraxisClient {
   tabs: TabsClientApi;
   /** Phase 15a: sketch storage + retrieval (renderer-side; uses Blob not Buffer). */
   sketches: SketchClientApi;
+  /** Phase 15b: concept map CRUD + versioning. */
+  conceptMaps: ConceptMapClientApi;
 }
 
 /**
@@ -127,6 +133,24 @@ export interface SketchClientApi {
 
   /** Fetch summary metadata only (no image). Returns null if id is unknown. */
   getSummary(sketchId: SketchId): Promise<SketchSummary | null>;
+}
+
+/**
+ * Phase 15b: Client-facing concept map API. Drops `studentId` — server resolves
+ * the active student from the single-student v1 install context.
+ */
+export interface ConceptMapClientApi {
+  create(input: { courseId: CourseId; title: string }): Promise<ConceptMapDrawing>;
+  get(id: ConceptMapId): Promise<ConceptMapDrawing | null>;
+  list(input: { courseId: CourseId }): Promise<ConceptMapSummary[]>;
+  rename(id: ConceptMapId, title: string): Promise<ConceptMapDrawing>;
+  delete(id: ConceptMapId): Promise<void>;
+  updateScene(input: {
+    id: ConceptMapId;
+    scene: TldrawSnapshot;
+    conceptLinks: ConceptLink[];
+  }): Promise<ConceptMapDrawing>;
+  listVersions(id: ConceptMapId): Promise<ConceptMapVersion[]>;
 }
 
 export interface SessionService {
@@ -228,7 +252,6 @@ export interface ArtifactsClientSurface {
   progress(): Promise<ProgressSnapshot>;
   flashcards(opts?: { conceptId?: ConceptId; due?: boolean }): Promise<Flashcard[]>;
   notes(opts?: { courseId?: CourseId }): Promise<Note[]>;
-  conceptMaps(courseId?: CourseId): Promise<ConceptMapDrawing[]>;
 
   /** Phase 9: Enriched gate views for a course (read-only, includes progress %). */
   gateView(courseId: CourseId): Promise<GateView[]>;

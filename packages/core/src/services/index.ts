@@ -65,6 +65,9 @@ export { SketchServiceImpl } from "./sketch-service.js";
 // Phase 15a: Vision service
 export type { VisionServiceDeps } from "./vision-service.js";
 export { VisionServiceImpl } from "./vision-service.js";
+// Phase 15b: Concept map service
+export type { ConceptMapServiceDeps } from "./concept-map-service.js";
+export { ConceptMapServiceImpl } from "./concept-map-service.js";
 export { getOrCreateDefaultStudentId } from "./student.js";
 // Phase 14: Tabs service
 export type { TabsServiceDeps } from "./tabs-service.js";

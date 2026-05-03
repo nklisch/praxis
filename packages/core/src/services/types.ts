@@ -7,6 +7,7 @@ import type {
   AuthoringService,
   BootstrapService,
   CodeSandbox,
+  ConceptMapService,
   CourseStateReader,
   DocumentsReader,
   EmbeddingService,
@@ -70,6 +71,8 @@ export interface ServiceDeps {
     sketches: SketchService;
     /** Phase 15a: vision capability wrapper — used by grade_math sketch case to OCR drawings. */
     vision?: VisionService;
+    /** Phase 15b: concept map CRUD + versioning. */
+    conceptMaps: ConceptMapService;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

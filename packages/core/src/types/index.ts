@@ -1,4 +1,6 @@
 export type * from "./artifacts.js";
+// Phase 15b: ConceptMapService interface.
+export type { ConceptMapService } from "./concept-map-service.js";
 export type * from "./citation.js";
 // client.ts: Note: MemoryService is intentionally NOT re-exported from here.
 // The client-side MemoryService (no studentId params) lives in ./client.ts and is
@@ -10,6 +12,7 @@ export type {
   AssignmentsClient,
   AuthoringClient,
   BootstrapOpts,
+  ConceptMapClientApi,
   ConfigService,
   CreateCourseInput,
   DocumentSummary,

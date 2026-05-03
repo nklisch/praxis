@@ -57,6 +57,13 @@
       "when": 1777767511501,
       "tag": "0007_faulty_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1777770710415,
+      "tag": "0008_clammy_spitfire",
+      "breakpoints": true
     }
   ]
 }

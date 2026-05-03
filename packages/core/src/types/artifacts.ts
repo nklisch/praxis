@@ -12,6 +12,7 @@ import type {
   GradeBand,
   LessonId,
   NoteId,
+  SessionId,
   StrategyId,
   StudentId,
   SubjectId,
@@ -282,12 +283,46 @@ export interface NoteContext {
 export interface ConceptMapDrawing {
   id: ConceptMapId;
   studentId: StudentId;
-  courseId?: CourseId;
+  /** Course the map is anchored to. Required in v1. */
+  courseId: CourseId;
+  /** Display title, e.g. "whole course", "linear equations". */
+  title: string;
   scene: TldrawSnapshot;
-  conceptLinks: Array<{ elementId: string; conceptId: ConceptId; confidence: number }>;
+  conceptLinks: ConceptLink[];
   divergences?: ConceptMapDivergence[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+/** Link from a tldraw shape id to a canonical concept. */
+export interface ConceptLink {
+  elementId: string; // tldraw shape id (e.g. "shape:abc123")
+  conceptId: ConceptId; // canonical concept this element represents
+  /** 0..1 — fuzzy match score from the typeahead, 1.0 if user explicitly linked. */
+  confidence: number;
+}
+
+/** A historical snapshot of a concept map. */
+export interface ConceptMapVersion {
+  id: string; // version row id
+  conceptMapId: ConceptMapId;
+  scene: TldrawSnapshot;
+  conceptLinks: ConceptLink[];
+  /** The session this snapshot was captured at end-of. Null for the initial create. */
+  sessionId?: SessionId;
+  snapshotAt: Timestamp;
+}
+
+/** Lightweight list-view summary (omits the heavy `scene` payload). */
+export interface ConceptMapSummary {
+  readonly id: ConceptMapId;
+  readonly studentId: StudentId;
+  readonly courseId: CourseId;
+  readonly title: string;
+  readonly versionCount: number;
+  readonly hasDivergences: boolean;
+  readonly createdAt: Timestamp;
+  readonly updatedAt: Timestamp;
 }
 
 export interface ConceptMapDivergence {

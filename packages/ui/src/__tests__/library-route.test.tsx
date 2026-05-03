@@ -157,7 +157,6 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
         .mockResolvedValue({ studentId: "s", courseProgress: [], recentUnlocks: [] }),
       flashcards: vi.fn().mockResolvedValue([]),
       notes: vi.fn().mockResolvedValue([]),
-      conceptMaps: vi.fn().mockResolvedValue([]),
       gateView: vi.fn().mockResolvedValue([]),
       evaluateGates: vi.fn().mockResolvedValue({ unlockedGateIds: [] }),
       markGatesViewed: vi.fn().mockResolvedValue(undefined),

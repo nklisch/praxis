@@ -3,6 +3,7 @@ import { ArtifactsClient } from "./services/artifacts-client.js";
 import { AssignmentsClient } from "./services/assignments-client.js";
 import { AuthoringClientImpl } from "./services/authoring-client.js";
 import { ClaudeAuthClient } from "./services/claude-auth-client.js";
+import { ConceptMapClient } from "./services/concept-map-client.js";
 import { ConfigClient } from "./services/config-client.js";
 import { DocumentsClient } from "./services/documents-client.js";
 import { FlashcardsClient } from "./services/flashcards-client.js";
@@ -40,5 +41,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     shell: new ShellClientImpl(transport),
     tabs: new TabsClient(transport), // ← Phase 14
     sketches: new SketchClient(transport), // ← Phase 15a
+    conceptMaps: new ConceptMapClient(transport), // ← Phase 15b
   };
 }

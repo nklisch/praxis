@@ -2,6 +2,8 @@ import type { IpcStreamMessage } from "@praxis/client";
 import type {
   AssignmentId,
   ConceptId,
+  ConceptLink,
+  ConceptMapId,
   CourseId,
   GateId,
   GateTarget,
@@ -13,6 +15,7 @@ import type {
   StudentId,
   SuccessCriteria,
   TabId,
+  TldrawSnapshot,
 } from "@praxis/core/types";
 import { brandId, serializeError } from "@praxis/core/types";
 import { ipcMain } from "electron";
@@ -1044,6 +1047,61 @@ export function registerIpcHandlers(
 
   handle("praxis.sketches.getSummary", async (_event, sketchId: string) => {
     return services.sketches.getSummary(sketchId as SketchId);
+  });
+
+  // ── Phase 15b: Concept maps ──────────────────────────────────────────────────
+
+  handle(
+    "praxis.conceptMaps.create",
+    async (_event, opts: { courseId: string; title: string }) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.conceptMaps.create({
+        studentId,
+        courseId: opts.courseId as CourseId,
+        title: opts.title,
+      });
+    },
+  );
+
+  handle("praxis.conceptMaps.get", async (_event, id: string) => {
+    return services.conceptMaps.get(id as ConceptMapId);
+  });
+
+  handle("praxis.conceptMaps.list", async (_event, opts: { courseId: string }) => {
+    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+    return services.conceptMaps.list({
+      studentId,
+      courseId: opts.courseId as CourseId,
+    });
+  });
+
+  handle(
+    "praxis.conceptMaps.rename",
+    async (_event, opts: { id: string; title: string }) => {
+      return services.conceptMaps.rename(opts.id as ConceptMapId, opts.title);
+    },
+  );
+
+  handle("praxis.conceptMaps.delete", async (_event, id: string) => {
+    return services.conceptMaps.delete(id as ConceptMapId);
+  });
+
+  handle(
+    "praxis.conceptMaps.updateScene",
+    async (
+      _event,
+      opts: { id: string; scene: TldrawSnapshot; conceptLinks: ConceptLink[] },
+    ) => {
+      return services.conceptMaps.updateScene({
+        id: opts.id as ConceptMapId,
+        scene: opts.scene,
+        conceptLinks: opts.conceptLinks,
+      });
+    },
+  );
+
+  handle("praxis.conceptMaps.listVersions", async (_event, id: string) => {
+    return services.conceptMaps.listVersions(id as ConceptMapId);
   });
 
   // ── Shell helpers ─────────────────────────────────────────────────────────────
