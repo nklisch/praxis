@@ -49,7 +49,7 @@ export interface RunRubricAgentInput {
    */
   text: string;
   /** Tag identifying which rubric this is — propagated to GradeItem.perCriterion[i].source. */
-  source: "rubric" | "work-rubric";
+  source: "rubric" | "work-rubric" | "reasoning-rubric";
   ctx: GraderContext;
 }
 

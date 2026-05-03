@@ -51,6 +51,7 @@ import type {
   StudentModel,
 } from "./memory.js";
 import type { NoteBody } from "./notes.js";
+import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { TabId, TabSummary } from "./tabs.js";
 import type { DocumentSummaryItem } from "./tool.js";
@@ -87,6 +88,18 @@ export interface PraxisClient {
   courseDocuments: CourseDocumentsClientApi;
   /** Activity rail — subscribe to ambient progress events from long-running work. */
   activity: ActivityClient;
+  /** Phase 17: quick check — subscribe to inline question events; resolve student answers. */
+  quickCheck: QuickCheckClientApi;
+}
+
+/**
+ * Phase 17: Client-side quick check API.
+ * The renderer subscribes to `events()` to know when a quick check is pending,
+ * and calls `resolve()` when the student submits an answer.
+ */
+export interface QuickCheckClientApi {
+  events(): AsyncIterable<QuickCheckEvent>;
+  resolve(input: { callId: string; answer: QuickCheckAnswer }): Promise<void>;
 }
 
 /**

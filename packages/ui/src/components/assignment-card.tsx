@@ -13,8 +13,8 @@ import { usePraxisClient } from "../context/client-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
 import styles from "./assignment-card.module.css";
 import { AssignmentFeedback } from "./assignment-feedback.js";
-import type { SketchCanvasHandle } from "./sketch-canvas.js";
 import { AssignmentItemCard } from "./assignment-item-card.js";
+import type { SketchCanvasHandle } from "./sketch-canvas.js";
 
 export interface AssignmentCardProps {
   assignmentId: AssignmentId;
@@ -138,7 +138,9 @@ export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: As
       <ol className={styles.items}>
         {assignment.items.map((item, i) => {
           const itemGrade = grade?.perItem.find((p) => p.itemId === item.id);
-          const hasWorkRubric = item.workRubric !== undefined;
+          const hasWorkRubric =
+            (item.kind === "math" || item.kind === "code" || item.kind === "numerical") &&
+            item.workRubric !== undefined;
           // Phase 15a: create a ref setter for math items.
           const sketchHandleRef =
             item.kind === "math"
@@ -166,8 +168,11 @@ export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: As
               {itemGrade && (
                 <AssignmentFeedback
                   grade={itemGrade}
-                  {...(item.rubric !== undefined && { rubric: item.rubric })}
-                  {...(item.workRubric !== undefined && { workRubric: item.workRubric })}
+                  {...("rubric" in item && item.rubric !== undefined && { rubric: item.rubric })}
+                  {...(("math" === item.kind ||
+                    "code" === item.kind ||
+                    "numerical" === item.kind) &&
+                    item.workRubric !== undefined && { workRubric: item.workRubric })}
                 />
               )}
             </li>

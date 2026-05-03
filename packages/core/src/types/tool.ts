@@ -53,6 +53,7 @@ import type {
   StudentModel,
 } from "./memory.js";
 import type { NoteBody } from "./notes.js";
+import type { QuickCheckService } from "./quick-check.js";
 import type { SketchService } from "./sketches.js";
 
 // Re-export VisionService shape inline here so tool handlers can type-check against it
@@ -165,6 +166,11 @@ export interface ToolServices {
    * Wired in session-service.ts from ServiceDeps.activity.
    */
   activity?: ActivityRegistry;
+  /**
+   * Phase 17: human-in-the-loop dispatch for quick_check.* tools.
+   * Optional so existing tool stubs and tests don't need to wire it.
+   */
+  quickCheck?: QuickCheckService;
 }
 
 // ─── Phase 12: NotesService ───────────────────────────────────────────────────

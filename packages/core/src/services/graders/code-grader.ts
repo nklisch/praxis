@@ -1,4 +1,4 @@
-import type { AssignmentItem, AssignmentResponse } from "../../types/artifacts.js";
+import type { AssignmentItem, AssignmentResponse, CodeItem } from "../../types/artifacts.js";
 import type { GraderContext, GraderResult, ItemGrader } from "./types.js";
 
 /**
@@ -20,10 +20,11 @@ export class CodeGrader implements ItemGrader {
     response: AssignmentResponse | null;
     ctx: GraderContext;
   }): Promise<GraderResult> {
-    if (!item.testCases || item.testCases.length === 0 || !item.language) {
+    const ci = item as CodeItem;
+    if (ci.testCases.length === 0) {
       return {
         score: null,
-        feedback: "needs-human-review (no test cases or language configured)",
+        feedback: "needs-human-review (no test cases configured)",
         tier: "needs-human-review",
       };
     }
@@ -34,9 +35,9 @@ export class CodeGrader implements ItemGrader {
     let passed = 0;
     const failures: string[] = [];
 
-    for (const tc of item.testCases) {
+    for (const tc of ci.testCases) {
       const run = await ctx.services.sandbox.run({
-        language: item.language,
+        language: ci.language,
         code: response.response,
         ...(tc.stdin !== undefined && { stdin: tc.stdin }),
         timeoutMs: tc.timeoutMs ?? 5000,
@@ -58,13 +59,13 @@ export class CodeGrader implements ItemGrader {
       }
     }
 
-    const score = passed / item.testCases.length;
+    const score = passed / ci.testCases.length;
     return {
       score,
       feedback:
         score === 1
-          ? `All ${item.testCases.length} test case${item.testCases.length === 1 ? "" : "s"} passed.`
-          : `${passed}/${item.testCases.length} test cases passed. Failures:\n${failures.join("\n")}`,
+          ? `All ${ci.testCases.length} test case${ci.testCases.length === 1 ? "" : "s"} passed.`
+          : `${passed}/${ci.testCases.length} test cases passed. Failures:\n${failures.join("\n")}`,
       tier: "deterministic",
     };
   }

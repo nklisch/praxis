@@ -164,7 +164,7 @@ describe("exam end-to-end", () => {
       },
       {
         id: "exam-mc-1",
-        kind: "multiple-choice",
+        kind: "single-choice",
         prompt: "Which law states F = ma?",
         options: ["Newton's first law", "Newton's second law", "Newton's third law"],
         correctOptionIndex: 1,

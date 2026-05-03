@@ -23,6 +23,7 @@ import { registerActivityHandlers } from "./activity-channel.js";
 import { registerCourseDocumentsHandlers } from "./course-documents-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
+import { registerQuickCheckHandlers } from "./quick-check-channel.js";
 import type { Services } from "./services.js";
 
 /**
@@ -1120,6 +1121,10 @@ export function registerIpcHandlers(
 
   registerActivityHandlers(services, webContentsGetter, activeAbortControllers, log);
 
+  // ── Phase 17: QuickCheck ──────────────────────────────────────────────────────
+
+  registerQuickCheckHandlers(services, webContentsGetter, activeAbortControllers, log);
+
   // ── Phase 16: Course ↔ Document attachments ──────────────────────────────────
 
   registerCourseDocumentsHandlers(services, log);
@@ -1146,6 +1151,7 @@ export function registerIpcHandlers(
     ipcMain.removeAllListeners("praxis.memory.episodic.cancel");
     ipcMain.removeAllListeners("praxis.auth.claude.login.cancel");
     ipcMain.removeAllListeners("praxis.activity.events.cancel");
+    ipcMain.removeAllListeners("praxis.quickCheck.events.cancel");
     for (const ctrl of activeAbortControllers.values()) {
       ctrl.abort();
     }

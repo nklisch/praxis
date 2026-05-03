@@ -54,7 +54,12 @@ function makeApproachJson(feedback: string): string {
   return `\`\`\`json\n${JSON.stringify({ enrichedFeedback: feedback })}\n\`\`\``;
 }
 
-const BASIC_ITEM: AssignmentItem = { id: "item-1", kind: "math", prompt: "Solve 2x=4." };
+const BASIC_ITEM: AssignmentItem = {
+  id: "item-1",
+  kind: "math",
+  prompt: "Solve 2x=4.",
+  expectedSolution: { variable: "x", value: "2" },
+};
 
 describe("enrichWithApproachFeedback", () => {
   it("enriches feedback for incorrect deterministic result in quiz mode", async () => {
@@ -135,7 +140,9 @@ describe("enrichWithApproachFeedback", () => {
     const engine = makeFakeEngine([]);
     const ctx = makeCtx(engine, "quiz");
     const item: AssignmentItem = {
-      ...BASIC_ITEM,
+      id: "item-fr",
+      kind: "free-response",
+      prompt: "Explain photosynthesis.",
       rubric: { criteria: [{ id: "q", description: "Quality", weight: 1.0 }], maxScore: 10 },
     };
     const base = makeBaseResult({ score: 0 });
@@ -147,7 +154,10 @@ describe("enrichWithApproachFeedback", () => {
     const engine = makeFakeEngine([]);
     const ctx = makeCtx(engine, "quiz");
     const item: AssignmentItem = {
-      ...BASIC_ITEM,
+      id: "item-math-wr",
+      kind: "math",
+      prompt: "Solve 2x=4.",
+      expectedSolution: { variable: "x", value: "2" },
       workRubric: { criteria: [{ id: "w", description: "Work", weight: 1.0 }], maxScore: 10 },
     };
     const base = makeBaseResult({ score: 0 });

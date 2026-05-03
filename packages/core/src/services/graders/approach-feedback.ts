@@ -42,7 +42,12 @@ export async function enrichWithApproachFeedback(input: {
   if (base.score === 1) return base;
   if (base.tier === "needs-human-review") return base;
   if (base.tier === "rubric-agent") return base;
-  if (item.rubric || item.workRubric) return base;
+  // Skip items that already have rubric grading of any kind.
+  const hasRubric =
+    ("rubric" in item && item.rubric != null) ||
+    ("workRubric" in item && item.workRubric != null) ||
+    ("reasoningRubric" in item && item.reasoningRubric != null);
+  if (hasRubric) return base;
   if (!response || response.trim() === "") return base;
 
   const userMessage = buildApproachUserMessage(item, response, base);

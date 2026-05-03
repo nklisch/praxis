@@ -4,7 +4,7 @@
  * Verifies:
  *  - Each item kind renders its appropriate input control.
  *  - workRubric items show the "partial credit available" badge and work textarea.
- *  - Radio buttons appear for multiple-choice items.
+ *  - Radio buttons appear for single-choice items.
  *  - disabled prop disables all inputs.
  */
 import type { AssignmentItem } from "@praxis/core/types";
@@ -68,9 +68,9 @@ describe("AssignmentItemCard", () => {
     expect(inputs.length).toBeGreaterThan(0);
   });
 
-  it("renders radio buttons for multiple-choice items", () => {
+  it("renders radio buttons for single-choice items", () => {
     const item = makeItem({
-      kind: "multiple-choice",
+      kind: "single-choice",
       options: ["Option A", "Option B", "Option C"],
       correctOptionIndex: 0,
     });
@@ -141,9 +141,9 @@ describe("AssignmentItemCard", () => {
     }
   });
 
-  it("shows correct radio selection when response matches option index", () => {
+  it("shows correct radio selection for single-choice when response matches option index", () => {
     const item = makeItem({
-      kind: "multiple-choice",
+      kind: "single-choice",
       options: ["A", "B", "C"],
       correctOptionIndex: 1,
     });

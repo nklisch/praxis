@@ -40,7 +40,7 @@ function makeAssignment(overrides: Partial<Assignment> = {}): Assignment {
     items: [
       {
         id: "item-mc-1",
-        kind: "multiple-choice",
+        kind: "single-choice",
         prompt: "Pick the right answer",
         options: ["A", "B", "C"],
         correctOptionIndex: 0,

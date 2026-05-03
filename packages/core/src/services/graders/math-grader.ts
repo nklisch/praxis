@@ -1,4 +1,4 @@
-import type { AssignmentItem, AssignmentResponse } from "../../types/artifacts.js";
+import type { AssignmentItem, AssignmentResponse, MathItem } from "../../types/artifacts.js";
 import type { GraderContext, GraderResult, ItemGrader } from "./types.js";
 
 /**
@@ -26,10 +26,11 @@ export class MathGrader implements ItemGrader {
     response: AssignmentResponse | null;
     ctx: GraderContext;
   }): Promise<GraderResult> {
-    if (!item.expectedSolution) {
+    const mi = item as MathItem;
+    if (!mi.expectedSolution) {
       return {
         score: null,
-        feedback: "needs-human-review (no expected solution — expectedSolution not set)",
+        feedback: "needs-human-review (expectedSolution not configured)",
         tier: "needs-human-review",
       };
     }
@@ -38,8 +39,8 @@ export class MathGrader implements ItemGrader {
     }
 
     const result = await ctx.services.sympy.checkSolution({
-      equation: item.prompt,
-      variable: item.expectedSolution.variable,
+      equation: mi.prompt,
+      variable: mi.expectedSolution.variable,
       proposedValue: response.response,
     });
 
@@ -55,7 +56,7 @@ export class MathGrader implements ItemGrader {
       score: result.correct ? 1 : 0,
       feedback: result.correct
         ? "Correct."
-        : `Incorrect. Expected: ${result.expectedSolutions.join(" or ")}`,
+        : `Incorrect. Expected: ${result.expectedSolutions.join(", ")}`,
       tier: "deterministic",
     };
   }

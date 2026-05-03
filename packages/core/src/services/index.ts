@@ -37,9 +37,6 @@ export {
 } from "./assignment-service.js";
 export type { BootstrapServiceDeps } from "./bootstrap-service.js";
 export { BootstrapServiceImpl } from "./bootstrap-service.js";
-// Phase 16: Course documents service
-export type { CourseDocumentsServiceDeps } from "./course-documents-service.js";
-export { CourseDocumentsServiceImpl } from "./course-documents-service.js";
 // Phase 15b: Concept-link fuzzy matcher
 export type { ConceptMatch } from "./concept-link-matcher.js";
 export { matchConceptByLabel } from "./concept-link-matcher.js";
@@ -50,6 +47,9 @@ export { ConceptMapServiceImpl } from "./concept-map-service.js";
 export type { ConceptMapSnapshotterDeps } from "./concept-map-snapshotter.js";
 export { ConceptMapSnapshotter } from "./concept-map-snapshotter.js";
 export { ConfigServiceImpl } from "./config-service.js";
+// Phase 16: Course documents service
+export type { CourseDocumentsServiceDeps } from "./course-documents-service.js";
+export { CourseDocumentsServiceImpl } from "./course-documents-service.js";
 export { DrizzleDocumentsReader } from "./documents-reader-impl.js";
 export type { DocumentsServiceDeps } from "./documents-service.js";
 export { DocumentsServiceImpl } from "./documents-service.js";
@@ -77,6 +77,8 @@ export type { DecayInput } from "./memory/decay.js";
 export { applyDecay, applyDecayAt } from "./memory/decay.js";
 export type { MemoryServiceDeps } from "./memory/memory-service.js";
 export { MemoryServiceImpl } from "./memory/memory-service.js";
+// Phase 17: QuickCheck service
+export { QuickCheckServiceImpl } from "./quick-check-service.js";
 export { SessionServiceImpl } from "./session-service.js";
 // Phase 15a: Sketch service
 export type { SketchServiceDeps } from "./sketch-service.js";

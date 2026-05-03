@@ -28,6 +28,7 @@ import {
   MemoryServiceImpl,
   MisconceptionIndexer,
   NotesServiceImpl,
+  QuickCheckServiceImpl,
   SessionServiceImpl,
   SketchServiceImpl,
   TabsServiceImpl,
@@ -141,6 +142,8 @@ export interface Services {
   courseDocuments: CourseDocumentsServiceImpl;
   /** Activity registry — exposed for the activity IPC channel and shutdown. */
   activity: ActivityRegistryImpl;
+  /** Phase 17: quick check service — human-in-the-loop dispatch for quick_check.* tools. */
+  quickCheck: QuickCheckServiceImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: WorkerEmbeddingService; // exposed so main can preload it
@@ -161,6 +164,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
 
   // Activity registry — constructed first so all producers can reference it.
   const activityRegistry = new ActivityRegistryImpl({ log });
+
+  // Phase 17: QuickCheckService — stateless in-process dispatch.
+  const quickCheckService = new QuickCheckServiceImpl();
 
   // Phase 4: Pyodide + sandbox
   const pyodide = new PyodideHost({ packages: ["sympy"] });
@@ -472,6 +478,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       conceptMaps: conceptMapService, // ← Phase 15b
       courseDocuments: courseDocumentsService, // ← Phase 16
       engineResolver: bootstrapEngineResolver, // ← Phase 16
+      quickCheck: quickCheckService, // ← Phase 17
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)
@@ -529,6 +536,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     conceptMaps: conceptMapService, // ← Phase 15b
     courseDocuments: courseDocumentsService, // ← Phase 16
     activity: activityRegistry,
+    quickCheck: quickCheckService, // ← Phase 17
     ingestorRegistry,
     pyodide,
     embeddings,

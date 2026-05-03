@@ -1,4 +1,4 @@
-import type { AssignmentItem, AssignmentResponse } from "../../types/artifacts.js";
+import type { AssignmentItem, AssignmentResponse, ShortAnswerItem } from "../../types/artifacts.js";
 import type { GraderContext, GraderResult, ItemGrader } from "./types.js";
 
 /**
@@ -20,18 +20,19 @@ export class ShortAnswerGrader implements ItemGrader {
     response: AssignmentResponse | null;
     ctx: GraderContext;
   }): Promise<GraderResult> {
-    const accepted = item.acceptedAnswers ?? [];
+    const sa = item as ShortAnswerItem;
+    const accepted = sa.acceptedAnswers;
     if (accepted.length === 0) {
       return {
         score: null,
-        feedback: "needs-human-review (no answer key — acceptedAnswers not set)",
+        feedback: "needs-human-review (no answer key — acceptedAnswers is empty)",
         tier: "needs-human-review",
       };
     }
     if (!response || response.response.trim() === "") {
       return { score: 0, feedback: "No answer provided.", tier: "deterministic" };
     }
-    const matchKind = item.acceptedAnswerMatch ?? "exact";
+    const matchKind = sa.acceptedAnswerMatch ?? "exact";
     const ok = matchAcceptedAnswer(response.response, accepted, matchKind);
     return {
       score: ok ? 1 : 0,

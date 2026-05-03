@@ -40,7 +40,7 @@ describe("createAssignmentTool", () => {
         items: [
           {
             id: "item-1",
-            kind: "multiple-choice",
+            kind: "single-choice",
             prompt: "What is 2+2?",
             options: ["3", "4"],
             correctOptionIndex: 1,

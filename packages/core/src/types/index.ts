@@ -60,6 +60,13 @@ export type * from "./mode.js";
 // Phase 12: NoteBody + helpers — `export *` (not `export type *`) so parseNoteBody + serializeNoteBody are exported as runtime values.
 export * from "./notes.js";
 export type * from "./pedagogy.js";
+// Phase 17: QuickCheck types — human-in-the-loop dispatch.
+export type {
+  QuickCheckAnswer,
+  QuickCheckEvent,
+  QuickCheckListener,
+  QuickCheckService,
+} from "./quick-check.js";
 // Phase 15a: Sketch types.
 export type { Sketch, SketchId, SketchService, SketchSummary } from "./sketches.js";
 // Phase 14: Tab strip types.

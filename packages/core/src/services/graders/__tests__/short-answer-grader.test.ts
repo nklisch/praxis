@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { AssignmentItem, AssignmentResponse } from "../../../types/artifacts.js";
+import type { AssignmentResponse, ShortAnswerItem } from "../../../types/artifacts.js";
 import { ShortAnswerGrader } from "../short-answer-grader.js";
 import type { GraderContext } from "../types.js";
 
 const NOOP_CTX = {} as GraderContext;
 
-function makeItem(overrides: Partial<AssignmentItem> = {}): AssignmentItem {
+function makeItem(overrides: Partial<ShortAnswerItem> = {}): ShortAnswerItem {
   return {
     id: "item-1",
     kind: "short-answer",

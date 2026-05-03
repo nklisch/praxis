@@ -12,11 +12,11 @@ import { validateItems } from "../services/assignment-service.js";
 import type { AssignmentItem } from "../types/index.js";
 
 describe("validateItems", () => {
-  describe("multiple-choice", () => {
-    it("passes for valid MC item", () => {
+  describe("single-choice", () => {
+    it("passes for valid single-choice item", () => {
       const item: AssignmentItem = {
         id: "mc-1",
-        kind: "multiple-choice",
+        kind: "single-choice",
         prompt: "What is 2+2?",
         options: ["3", "4", "5"],
         correctOptionIndex: 1,
@@ -25,7 +25,8 @@ describe("validateItems", () => {
     });
 
     it("throws when options is missing", () => {
-      const item: AssignmentItem = { id: "mc-1", kind: "multiple-choice", prompt: "Q?" };
+      // biome-ignore lint/suspicious/noExplicitAny: intentionally malformed for validation test
+      const item: AssignmentItem = { id: "mc-1", kind: "single-choice", prompt: "Q?" } as any;
       expect(() => validateItems([item], "quiz")).toThrow("mc-1");
     });
   });
@@ -42,7 +43,8 @@ describe("validateItems", () => {
     });
 
     it("throws when acceptedAnswers is missing", () => {
-      const item: AssignmentItem = { id: "sa-1", kind: "short-answer", prompt: "Q?" };
+      // biome-ignore lint/suspicious/noExplicitAny: intentionally malformed for validation test
+      const item: AssignmentItem = { id: "sa-1", kind: "short-answer", prompt: "Q?" } as any;
       expect(() => validateItems([item], "quiz")).toThrow("sa-1");
     });
   });
@@ -59,7 +61,8 @@ describe("validateItems", () => {
     });
 
     it("throws when expectedSolution is missing", () => {
-      const item: AssignmentItem = { id: "m-1", kind: "math", prompt: "2x=4" };
+      // biome-ignore lint/suspicious/noExplicitAny: intentionally malformed for validation test
+      const item: AssignmentItem = { id: "m-1", kind: "math", prompt: "2x=4" } as any;
       expect(() => validateItems([item], "quiz")).toThrow("m-1");
     });
   });
@@ -82,6 +85,8 @@ describe("validateItems", () => {
         kind: "code",
         prompt: "code",
         language: "javascript",
+        // biome-ignore lint/suspicious/noExplicitAny: intentionally malformed for validation test
+        testCases: [] as any,
       };
       expect(() => validateItems([item], "quiz")).toThrow("c-1");
     });
@@ -92,7 +97,8 @@ describe("validateItems", () => {
         kind: "code",
         prompt: "code",
         testCases: [{ expectedStdout: "x" }],
-      };
+        // biome-ignore lint/suspicious/noExplicitAny: intentionally malformed for validation test
+      } as any;
       expect(() => validateItems([item], "quiz")).toThrow("c-1");
     });
   });

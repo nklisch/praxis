@@ -31,7 +31,7 @@ const CONCEPT_B = brandId<"ConceptId">("concept-create-b");
 
 const MIN_ITEM = {
   id: "item-1",
-  kind: "multiple-choice" as const,
+  kind: "single-choice" as const,
   prompt: "What is 2+2?",
   options: ["3", "4"],
   correctOptionIndex: 1,

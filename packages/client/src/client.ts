@@ -14,6 +14,7 @@ import { LockClientImpl } from "./services/lock-client.js";
 import { MemoryClient } from "./services/memory-client.js";
 import { NotesClient } from "./services/notes-client.js";
 import { PacksClientImpl } from "./services/packs-client.js";
+import { QuickCheckClient } from "./services/quick-check-client.js";
 import { SessionClient } from "./services/session-client.js";
 import { ShellClientImpl } from "./services/shell-client.js";
 import { SketchClient } from "./services/sketch-client.js";
@@ -46,5 +47,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     conceptMaps: new ConceptMapClient(transport), // ← Phase 15b
     courseDocuments: new CourseDocumentsClient(transport), // ← Phase 16
     activity: new ActivityClient(transport),
+    quickCheck: new QuickCheckClient(transport), // ← Phase 17
   };
 }

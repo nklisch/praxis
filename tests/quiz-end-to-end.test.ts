@@ -227,7 +227,7 @@ describe("quiz end-to-end", () => {
     const items: AssignmentItem[] = [
       {
         id: "item-mc-1",
-        kind: "multiple-choice",
+        kind: "single-choice",
         prompt: "Which is the commutative property?",
         options: ["a + b = b + a", "a + (b + c) = (a + b) + c", "a + 0 = a"],
         correctOptionIndex: 0,
@@ -241,7 +241,7 @@ describe("quiz end-to-end", () => {
       },
       {
         id: "item-mc-2",
-        kind: "multiple-choice",
+        kind: "single-choice",
         prompt: "What is the coefficient of x in 3x + 7?",
         options: ["7", "3", "x"],
         correctOptionIndex: 1,

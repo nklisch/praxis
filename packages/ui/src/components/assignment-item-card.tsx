@@ -1,7 +1,7 @@
 import type { AssignmentItem } from "@praxis/core/types";
 import type { ForwardedRef } from "react";
-import { type SketchCanvasHandle, SketchCanvas } from "./sketch-canvas.js";
 import styles from "./assignment-item-card.module.css";
+import { SketchCanvas, type SketchCanvasHandle } from "./sketch-canvas.js";
 
 export interface AssignmentItemCardProps {
   item: AssignmentItem;
@@ -39,7 +39,9 @@ export function AssignmentItemCard({
   disabled = false,
   sketchHandleRef,
 }: AssignmentItemCardProps) {
-  const hasWorkRubric = item.workRubric !== undefined;
+  const hasWorkRubric =
+    (item.kind === "math" || item.kind === "code" || item.kind === "numerical") &&
+    item.workRubric !== undefined;
 
   return (
     <div className={styles.itemCard}>
@@ -102,7 +104,7 @@ export function AssignmentItemCard({
       )}
 
       {/* Primary input — per kind */}
-      {item.kind === "multiple-choice" && item.options && (
+      {item.kind === "single-choice" && (
         <ul className={styles.options}>
           {item.options.map((opt, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id

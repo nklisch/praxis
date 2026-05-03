@@ -84,6 +84,142 @@ export interface Assignment {
 /** Tier the per-item grader returned. Used in GradeItem for traceability. */
 export type GraderTier = "deterministic" | "rubric-agent" | "needs-human-review";
 
+// ─── Phase 17: Discriminated AssignmentItem union ─────────────────────────────
+
+export interface SingleChoiceItem {
+  kind: "single-choice";
+  id: string;
+  prompt: string;
+  options: string[];
+  correctOptionIndex: number;
+  /** Phase 17: optional reasoning modifier — student must justify their selection. */
+  requireReasoning?: boolean;
+  /** Required when requireReasoning is true. */
+  reasoningRubric?: Rubric;
+  /** Blending weight for deterministic score vs reasoning rubric score. Range 0..1. */
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface MultiSelectItem {
+  kind: "multi-select";
+  id: string;
+  prompt: string;
+  options: string[];
+  /** One or more correct option indices, sorted ascending. */
+  correctOptionIndices: number[];
+  requireReasoning?: boolean;
+  reasoningRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface ShortAnswerItem {
+  kind: "short-answer";
+  id: string;
+  prompt: string;
+  acceptedAnswers: string[];
+  acceptedAnswerMatch?: "exact" | "substring" | "normalized";
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface FreeResponseItem {
+  kind: "free-response";
+  id: string;
+  prompt: string;
+  rubric?: Rubric;
+  acceptedAnswers?: string[];
+  acceptedAnswerMatch?: "exact" | "substring" | "normalized";
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface MathItem {
+  kind: "math";
+  id: string;
+  prompt: string;
+  expectedSolution: { variable: string; value: string };
+  workRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface CodeItem {
+  kind: "code";
+  id: string;
+  prompt: string;
+  language: "javascript" | "python";
+  testCases: Array<{
+    stdin?: string;
+    expectedStdout: string;
+    timeoutMs?: number;
+  }>;
+  workRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface NumericalItem {
+  kind: "numerical";
+  id: string;
+  prompt: string;
+  expectedValue: number;
+  /** Absolute tolerance: |studentValue - expectedValue| ≤ tolerance. Default 0. */
+  tolerance?: number;
+  /** Optional units; case-insensitive exact-string match. */
+  expectedUnits?: string;
+  /** When set, student answer must round to this many significant figures. */
+  significantFigures?: number;
+  workRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface MatchingItem {
+  kind: "matching";
+  id: string;
+  prompt: string;
+  /** Items in the left column, in display order. */
+  leftItems: Array<{ id: string; text: string }>;
+  /** Items in the right column, in display order. */
+  rightItems: Array<{ id: string; text: string }>;
+  /** Correct pairs as (leftId, rightId). One-to-one bijection in v1. */
+  correctPairs: Array<{ leftId: string; rightId: string }>;
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface OrderingItem {
+  kind: "ordering";
+  id: string;
+  prompt: string;
+  /** Items shown in shuffled order to the student. Each has a stable id. */
+  items: Array<{ id: string; text: string }>;
+  /** Correct sequence as an array of item ids. Must be a permutation of items[].id. */
+  correctOrder: string[];
+  authoredBy?: "tutor" | "configurator";
+}
+
+export interface TwoTierItem {
+  kind: "two-tier";
+  id: string;
+  prompt: string;
+  options: string[];
+  correctOptionIndex: number;
+  reasonPrompt: string;
+  reasonOptions: string[];
+  correctReasonIndex: number;
+  /**
+   * Maps each reason option index to a misconception id (or null when the
+   * option is correct or has no clear misconception). Length must equal
+   * reasonOptions.length.
+   */
+  misconceptionByReasonIndex: Array<string | null>;
+  /** Optional free-text reasoning ON TOP of the two-tier structure. */
+  requireReasoning?: boolean;
+  reasoningRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
 /**
  * Rubric — extended with per-criterion calibration anchors.
  * Criterion weights sum to 1.0 (validated at item-create).
@@ -108,46 +244,24 @@ export interface Rubric {
 }
 
 /**
- * Extended AssignmentItem — adds grader-specific fields. Each kind has its
- * own optional fields; all may be undefined for items where the kind doesn't
- * use them. The grader dispatch reads only the fields its kind cares about.
+ * Phase 17: AssignmentItem discriminated union. Each kind is a separate
+ * interface with only the fields relevant to that kind. The `kind` field is
+ * the discriminant.
+ *
+ * Migration note: the old `"multiple-choice"` kind is renamed to
+ * `"single-choice"`. A one-shot migration in drizzle/ rewrites stored JSON.
  */
-export interface AssignmentItem {
-  id: string;
-  kind: "multiple-choice" | "short-answer" | "free-response" | "math" | "code";
-  prompt: string;
-  /** For multiple-choice. */
-  options?: string[];
-  correctOptionIndex?: number;
-  /** For short-answer. */
-  acceptedAnswers?: string[];
-  acceptedAnswerMatch?: "exact" | "substring" | "normalized";
-  /** For math. */
-  expectedSolution?: { variable: string; value: string };
-  /** For code. */
-  testCases?: Array<{
-    stdin?: string;
-    expectedStdout: string;
-    timeoutMs?: number;
-  }>;
-  language?: "javascript" | "python";
-  /** For free-response (rubric agent). Required for exam-mode free-response items. */
-  rubric?: Rubric;
-  /**
-   * Phase 8: optional rubric for grading the WORK shown on math/code items.
-   * When present, the student earns partial credit for valid steps even if the
-   * deterministic check fails.
-   */
-  workRubric?: Rubric;
-  /**
-   * When workRubric is present, how much weight the deterministic check gets in
-   * the blended score. Range 0..1. Defaults: 0.5 for quiz/homework, 1.0 for exam.
-   * Ignored when workRubric is absent.
-   */
-  primaryWeight?: number;
-  /** Provenance — Phase 11 forward-compat. */
-  authoredBy?: "tutor" | "configurator";
-}
+export type AssignmentItem =
+  | SingleChoiceItem
+  | MultiSelectItem
+  | ShortAnswerItem
+  | FreeResponseItem
+  | MathItem
+  | CodeItem
+  | NumericalItem
+  | MatchingItem
+  | OrderingItem
+  | TwoTierItem;
 
 /** Per-item entry on the Grade. */
 export interface GradeItem {
@@ -168,10 +282,15 @@ export interface GradeItem {
     score: number;
     rationale: string;
     /** Which rubric this criterion came from. */
-    source: "rubric" | "work-rubric";
+    source: "rubric" | "work-rubric" | "reasoning-rubric";
   }>;
   /** Episodic event ids of any LLM calls that contributed to this grade. */
   evidenceEventIds?: string[];
+  /**
+   * Phase 17: set when a two-tier item's tier-2 selection maps to a misconception.
+   * The assignment service logs this for later misconception-memory wiring.
+   */
+  misconceptionId?: string;
 }
 
 export interface Grade {

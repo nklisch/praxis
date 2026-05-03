@@ -21,7 +21,7 @@ const OutputSchema = z.object({
 export const createAssignmentTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "assignment.create",
   description: `Author a new assignment (quiz, homework, or exam) for the active course. Provide a title, list of items, and the conceptIds the assignment covers. Items must include grader-specific fields per kind:
-- multiple-choice: options[] + correctOptionIndex
+- single-choice: options[] + correctOptionIndex
 - short-answer: acceptedAnswers[] + acceptedAnswerMatch ("exact" | "substring" | "normalized")
 - math: expectedSolution { variable, value }
 - code: language ("javascript" | "python") + testCases[]

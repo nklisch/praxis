@@ -1,14 +1,21 @@
-import type { AssignmentItem, AssignmentResponse } from "../../types/artifacts.js";
+import type {
+  AssignmentItem,
+  AssignmentResponse,
+  SingleChoiceItem,
+} from "../../types/artifacts.js";
 import type { GraderContext, GraderResult, ItemGrader } from "./types.js";
 
 /**
- * MultipleChoiceGrader — exact index match.
+ * SingleChoiceGrader — exact index match.
  *
  * Reads `item.correctOptionIndex`; returns score=1 when `response.response`
  * parses to that index, 0 otherwise. No LLM involved.
+ *
+ * Phase 17: renamed from MultipleChoiceGrader. Kind is now "single-choice".
+ * requireReasoning blending is handled upstream by AssignmentServiceImpl.submit.
  */
-export class MultipleChoiceGrader implements ItemGrader {
-  readonly kind = "multiple-choice" as const;
+export class SingleChoiceGrader implements ItemGrader {
+  readonly kind = "single-choice" as const;
 
   async grade({
     item,
@@ -18,13 +25,7 @@ export class MultipleChoiceGrader implements ItemGrader {
     response: AssignmentResponse | null;
     ctx: GraderContext;
   }): Promise<GraderResult> {
-    if (item.correctOptionIndex === undefined) {
-      return {
-        score: null,
-        feedback: "needs-human-review (no answer key — correctOptionIndex not set)",
-        tier: "needs-human-review",
-      };
-    }
+    const sc = item as SingleChoiceItem;
     if (!response) {
       return { score: 0, feedback: "No answer provided.", tier: "deterministic" };
     }
@@ -36,12 +37,12 @@ export class MultipleChoiceGrader implements ItemGrader {
         tier: "deterministic",
       };
     }
-    const correct = chosen === item.correctOptionIndex;
+    const correct = chosen === sc.correctOptionIndex;
     return {
       score: correct ? 1 : 0,
       feedback: correct
         ? "Correct."
-        : `Incorrect. The correct option was: ${item.options?.[item.correctOptionIndex] ?? `option ${item.correctOptionIndex}`}`,
+        : `Incorrect. The correct option was: ${sc.options[sc.correctOptionIndex] ?? `option ${sc.correctOptionIndex}`}`,
       tier: "deterministic",
     };
   }

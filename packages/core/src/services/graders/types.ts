@@ -25,10 +25,15 @@ export interface GraderResult {
     /** 0-10 integer (the agent's native scale). */
     score: number;
     rationale: string;
-    source: "rubric" | "work-rubric";
+    source: "rubric" | "work-rubric" | "reasoning-rubric";
   }>;
   /** Set when an LLM call produced this result; lets indexers trace evidence. */
   evidenceEventIds?: string[];
+  /**
+   * Phase 17: set by TwoTierGrader when the tier-2 selection maps to a
+   * misconception id. The assignment service surfaces this to memory.
+   */
+  misconceptionId?: string | null;
 }
 
 /**

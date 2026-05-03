@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AssignmentItem, AssignmentResponse } from "../../../types/artifacts.js";
+import type { AssignmentResponse, CodeItem } from "../../../types/artifacts.js";
 import type { CodeSandboxResult } from "../../../types/tool.js";
 import { CodeGrader } from "../code-grader.js";
 import type { GraderContext, GraderServices } from "../types.js";
 
-function makeItem(overrides: Partial<AssignmentItem> = {}): AssignmentItem {
+function makeItem(overrides: Partial<CodeItem> = {}): CodeItem {
   return {
     id: "item-1",
     kind: "code",
@@ -114,18 +114,9 @@ describe("CodeGrader", () => {
     expect(result.tier).toBe("needs-human-review");
   });
 
-  it("returns needs-human-review when no language", async () => {
-    const ctx = makeCtx([]);
-    const item: AssignmentItem = {
-      id: "item-1",
-      kind: "code",
-      prompt: "code",
-      testCases: [{ expectedStdout: "x" }],
-    };
-    const result = await grader.grade({ item, response: makeResponse("code"), ctx });
-    expect(result.score).toBeNull();
-    expect(result.tier).toBe("needs-human-review");
-  });
+  // NOTE: language is now a required field on CodeItem (discriminated union enforces it),
+  // so there is no code path that returns needs-human-review for a missing language.
+  // This test case has been removed.
 
   it("handles timed-out test case", async () => {
     const timedOutResult: CodeSandboxResult = {

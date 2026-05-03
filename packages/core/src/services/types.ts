@@ -24,6 +24,7 @@ import type {
   Mode,
   NotesService,
   PackImportService,
+  QuickCheckService,
   SketchService,
   SymPyService,
   ToolDefinition,
@@ -82,6 +83,12 @@ export interface ServiceDeps {
      * Same pattern as bootstrapEngineResolver; wired from the same source.
      */
     engineResolver: () => Engine;
+    /**
+     * Phase 17: in-process human-in-the-loop quick check dispatch.
+     * Tool handlers call `quickCheck.await(...)` to pend an inline question.
+     * Optional so tests that don't need quick checks stay unaffected.
+     */
+    quickCheck?: QuickCheckService;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

@@ -21,7 +21,6 @@ import type {
   AssignmentSubmissionResult,
   ConceptId,
   CourseId,
-  Engine,
   Grade,
   GradeItem,
   Logger,
@@ -57,76 +56,151 @@ const RubricSchema = z.object({
   maxScore: z.number().positive(),
 });
 
-const MultipleChoiceItemSchema = z.object({
+const BaseItem = z.object({
   id: z.string().min(1),
-  kind: z.literal("multiple-choice"),
   prompt: z.string().min(1),
-  options: z.array(z.string()).min(2),
-  correctOptionIndex: z.number().int().min(0),
   authoredBy: z.enum(["tutor", "configurator"]).optional(),
 });
 
-const ShortAnswerItemSchema = z.object({
-  id: z.string().min(1),
-  kind: z.literal("short-answer"),
-  prompt: z.string().min(1),
-  acceptedAnswers: z.array(z.string().min(1)).min(1),
-  acceptedAnswerMatch: z.enum(["exact", "substring", "normalized"]).optional(),
-  authoredBy: z.enum(["tutor", "configurator"]).optional(),
-});
-
-const FreeResponseItemBaseSchema = z.object({
-  id: z.string().min(1),
-  kind: z.literal("free-response"),
-  prompt: z.string().min(1),
-  rubric: RubricSchema.optional(),
-  acceptedAnswers: z.array(z.string().min(1)).optional(),
-  acceptedAnswerMatch: z.enum(["exact", "substring", "normalized"]).optional(),
-  authoredBy: z.enum(["tutor", "configurator"]).optional(),
-});
-
-const MathItemSchema = z.object({
-  id: z.string().min(1),
-  kind: z.literal("math"),
-  prompt: z.string().min(1),
-  expectedSolution: z.object({
-    variable: z.string().min(1),
-    value: z.string().min(1),
-  }),
-  workRubric: RubricSchema.optional(),
+const WithReasoning = z.object({
+  requireReasoning: z.boolean().optional(),
+  reasoningRubric: RubricSchema.optional(),
   primaryWeight: z.number().min(0).max(1).optional(),
-  authoredBy: z.enum(["tutor", "configurator"]).optional(),
-});
-
-const CodeItemSchema = z.object({
-  id: z.string().min(1),
-  kind: z.literal("code"),
-  prompt: z.string().min(1),
-  language: z.enum(["javascript", "python"]),
-  testCases: z
-    .array(
-      z.object({
-        stdin: z.string().optional(),
-        expectedStdout: z.string(),
-        timeoutMs: z.number().int().positive().optional(),
-      }),
-    )
-    .min(1),
-  workRubric: RubricSchema.optional(),
-  primaryWeight: z.number().min(0).max(1).optional(),
-  authoredBy: z.enum(["tutor", "configurator"]).optional(),
 });
 
 /**
- * AssignmentItemSchema — exported for Agent 2's assignment.create tool.
- * Discriminated union by `kind`; Zod enforces required fields per kind.
+ * AssignmentItemSchema — discriminated union by `kind`.
+ * Kept in sync with packages/tools/src/assignment/item-schema.ts.
+ * (core/services/ may not import @praxis/tools at schema-definition time
+ * but this is a parallel definition per design.)
  */
 export const AssignmentItemSchema = z.discriminatedUnion("kind", [
-  MultipleChoiceItemSchema,
-  ShortAnswerItemSchema,
-  FreeResponseItemBaseSchema,
-  MathItemSchema,
-  CodeItemSchema,
+  // single-choice (renamed from multiple-choice in Phase 17)
+  BaseItem.merge(WithReasoning)
+    .extend({
+      kind: z.literal("single-choice"),
+      options: z.array(z.string()).min(2),
+      correctOptionIndex: z.number().int().nonnegative(),
+    })
+    .refine((item) => !item.requireReasoning || item.reasoningRubric !== undefined, {
+      message: "reasoningRubric is required when requireReasoning is true",
+    }),
+
+  // multi-select
+  BaseItem.merge(WithReasoning)
+    .extend({
+      kind: z.literal("multi-select"),
+      options: z.array(z.string()).min(2),
+      correctOptionIndices: z.array(z.number().int().nonnegative()).min(1),
+    })
+    .refine((item) => !item.requireReasoning || item.reasoningRubric !== undefined, {
+      message: "reasoningRubric is required when requireReasoning is true",
+    }),
+
+  // short-answer
+  BaseItem.extend({
+    kind: z.literal("short-answer"),
+    acceptedAnswers: z.array(z.string().min(1)).min(1),
+    acceptedAnswerMatch: z.enum(["exact", "substring", "normalized"]).optional(),
+  }),
+
+  // math
+  BaseItem.extend({
+    kind: z.literal("math"),
+    expectedSolution: z.object({
+      variable: z.string().min(1),
+      value: z.string().min(1),
+    }),
+    workRubric: RubricSchema.optional(),
+    primaryWeight: z.number().min(0).max(1).optional(),
+  }),
+
+  // code
+  BaseItem.extend({
+    kind: z.literal("code"),
+    language: z.enum(["javascript", "python"]),
+    testCases: z
+      .array(
+        z.object({
+          stdin: z.string().optional(),
+          expectedStdout: z.string(),
+          timeoutMs: z.number().int().positive().optional(),
+        }),
+      )
+      .min(1),
+    workRubric: RubricSchema.optional(),
+    primaryWeight: z.number().min(0).max(1).optional(),
+  }),
+
+  // free-response
+  BaseItem.extend({
+    kind: z.literal("free-response"),
+    rubric: RubricSchema.optional(),
+    acceptedAnswers: z.array(z.string().min(1)).optional(),
+    acceptedAnswerMatch: z.enum(["exact", "substring", "normalized"]).optional(),
+  }),
+
+  // numerical
+  BaseItem.extend({
+    kind: z.literal("numerical"),
+    expectedValue: z.number(),
+    tolerance: z.number().nonnegative().optional(),
+    expectedUnits: z.string().optional(),
+    significantFigures: z.number().int().positive().optional(),
+    workRubric: RubricSchema.optional(),
+    primaryWeight: z.number().min(0).max(1).optional(),
+  }),
+
+  // matching
+  BaseItem.extend({
+    kind: z.literal("matching"),
+    leftItems: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(1),
+    rightItems: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(1),
+    correctPairs: z
+      .array(z.object({ leftId: z.string().min(1), rightId: z.string().min(1) }))
+      .min(1),
+  }).refine(
+    (item) => {
+      const leftIds = new Set(item.leftItems.map((i) => i.id));
+      const rightIds = new Set(item.rightItems.map((i) => i.id));
+      return item.correctPairs.every((p) => leftIds.has(p.leftId) && rightIds.has(p.rightId));
+    },
+    { message: "correctPairs must reference valid leftItems and rightItems ids" },
+  ),
+
+  // ordering
+  BaseItem.extend({
+    kind: z.literal("ordering"),
+    items: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).min(2),
+    correctOrder: z.array(z.string().min(1)).min(2),
+  }).refine(
+    (item) => {
+      const itemIds = new Set(item.items.map((i) => i.id));
+      if (item.correctOrder.length !== item.items.length) return false;
+      const orderSet = new Set(item.correctOrder);
+      if (orderSet.size !== item.correctOrder.length) return false;
+      return item.correctOrder.every((id) => itemIds.has(id));
+    },
+    { message: "correctOrder must be a permutation of items[].id" },
+  ),
+
+  // two-tier
+  BaseItem.merge(WithReasoning)
+    .extend({
+      kind: z.literal("two-tier"),
+      options: z.array(z.string()).min(2),
+      correctOptionIndex: z.number().int().nonnegative(),
+      reasonPrompt: z.string().min(1),
+      reasonOptions: z.array(z.string()).min(2),
+      correctReasonIndex: z.number().int().nonnegative(),
+      misconceptionByReasonIndex: z.array(z.string().nullable()),
+    })
+    .refine((item) => item.misconceptionByReasonIndex.length === item.reasonOptions.length, {
+      message: "misconceptionByReasonIndex.length must equal reasonOptions.length",
+    })
+    .refine((item) => !item.requireReasoning || item.reasoningRubric !== undefined, {
+      message: "reasoningRubric is required when requireReasoning is true",
+    }),
 ]);
 
 // ─── Item validation ───────────────────────────────────────────────────────────
@@ -147,11 +221,14 @@ export function validateItems(items: AssignmentItem[], mode: "quiz" | "homework"
     }
 
     // Rubric weight sum validation for items that have a rubric.
-    if (item.rubric) {
+    if ("rubric" in item && item.rubric) {
       validateRubricWeights(item.rubric, `item ${item.id} rubric`);
     }
-    if (item.workRubric) {
+    if ("workRubric" in item && item.workRubric) {
       validateRubricWeights(item.workRubric, `item ${item.id} workRubric`);
+    }
+    if ("reasoningRubric" in item && item.reasoningRubric) {
+      validateRubricWeights(item.reasoningRubric, `item ${item.id} reasoningRubric`);
     }
 
     // Exam mode: free-response items MUST have a rubric.
@@ -465,9 +542,10 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
       // 1. Run the kind-specific grader.
       let finalResult = await grader.grade({ item, response, ctx });
 
-      // 2. workRubric blending — only for math/code items with workRubric set
-      //    AND when the student submitted non-empty work text.
+      // 2a. workRubric blending — only for math/code items with workRubric set
+      //     AND when the student submitted non-empty work text.
       if (
+        "workRubric" in item &&
         item.workRubric &&
         (item.kind === "math" || item.kind === "code") &&
         response &&
@@ -483,6 +561,41 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
         });
         const primaryWeight = item.primaryWeight ?? (mode === "exam" ? 1.0 : 0.5);
         finalResult = blendDeterministicAndWorkRubric(finalResult, workResult, primaryWeight);
+      }
+
+      // 2b. requireReasoning blending — for single-choice / multi-select / two-tier
+      //     when requireReasoning is set and the student submitted non-empty work.
+      if (
+        "requireReasoning" in item &&
+        item.requireReasoning &&
+        item.reasoningRubric &&
+        response &&
+        response.work !== undefined &&
+        response.work.trim() !== ""
+      ) {
+        const reasoningResult = await runRubricAgent({
+          item,
+          rubric: item.reasoningRubric,
+          text: response.work,
+          source: "reasoning-rubric",
+          ctx,
+        });
+        const primaryWeight = item.primaryWeight ?? (mode === "exam" ? 1.0 : 0.5);
+        finalResult = blendDeterministicAndWorkRubric(finalResult, reasoningResult, primaryWeight);
+      }
+
+      // 2c. Misconception evidence — for two-tier items where tier-2 was wrong
+      //     and the grader returned a misconceptionId.
+      if (finalResult.misconceptionId) {
+        // TODO Phase 17.5: write misconception evidence via ctx.services.memory.recordMisconception
+        // The grader already surfaced the misconceptionId; the assignment service
+        // needs access to studentId + conceptId to complete the write. Those are
+        // available on the Assignment but not yet threaded into GraderContext.
+        // For now, log a diagnostic so the misconception can be tracked manually.
+        ctx.log.info("grader.misconception_detected", {
+          itemId: item.id,
+          misconceptionId: finalResult.misconceptionId,
+        });
       }
 
       // 3. Approach-feedback fallback — only when no rubric/workRubric was used upstream.
@@ -504,6 +617,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
         gradedBy: finalResult.tier,
         ...(finalResult.perCriterion && { perCriterion: finalResult.perCriterion }),
         ...(finalResult.evidenceEventIds && { evidenceEventIds: finalResult.evidenceEventIds }),
+        ...(finalResult.misconceptionId && { misconceptionId: finalResult.misconceptionId }),
       });
 
       if (finalResult.score !== null) {
@@ -580,7 +694,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
       .from(assignments)
       .where(eq(assignments.id, input.assignmentId))
       .get();
-    if (!row || !row.submittedAt) return null;
+    if (!row?.submittedAt) return null;
     const grade = row.gradeJson as { total: number } | null;
     if (!grade) return null;
     return {

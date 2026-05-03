@@ -1,4 +1,8 @@
-import type { AssignmentItem, AssignmentResponse } from "../../types/artifacts.js";
+import type {
+  AssignmentItem,
+  AssignmentResponse,
+  FreeResponseItem,
+} from "../../types/artifacts.js";
 import { runRubricAgent } from "./rubric-agent.js";
 import { matchAcceptedAnswer } from "./short-answer-grader.js";
 import type { GraderContext, GraderResult, ItemGrader } from "./types.js";
@@ -27,15 +31,17 @@ export class FreeResponseGrader implements ItemGrader {
     response: AssignmentResponse | null;
     ctx: GraderContext;
   }): Promise<GraderResult> {
+    const fr = item as FreeResponseItem;
+
     if (!response || response.response.trim() === "") {
       return { score: 0, feedback: "No response provided.", tier: "deterministic" };
     }
 
     // Path 1: rubric agent (preferred — richer per-criterion feedback).
-    if (item.rubric) {
+    if (fr.rubric) {
       return runRubricAgent({
         item,
-        rubric: item.rubric,
+        rubric: fr.rubric,
         text: response.response,
         source: "rubric",
         ctx,
@@ -43,17 +49,15 @@ export class FreeResponseGrader implements ItemGrader {
     }
 
     // Path 2: acceptedAnswers fallback (quiz/homework only; exam items must have a rubric).
-    if (item.acceptedAnswers && item.acceptedAnswers.length > 0) {
+    if (fr.acceptedAnswers && fr.acceptedAnswers.length > 0) {
       const ok = matchAcceptedAnswer(
         response.response,
-        item.acceptedAnswers,
-        item.acceptedAnswerMatch ?? "normalized",
+        fr.acceptedAnswers,
+        fr.acceptedAnswerMatch ?? "normalized",
       );
       return {
         score: ok ? 1 : 0,
-        feedback: ok
-          ? "Correct."
-          : `Incorrect. Expected one of: ${item.acceptedAnswers.join(", ")}`,
+        feedback: ok ? "Correct." : `Incorrect. Expected one of: ${fr.acceptedAnswers.join(", ")}`,
         tier: "deterministic",
       };
     }

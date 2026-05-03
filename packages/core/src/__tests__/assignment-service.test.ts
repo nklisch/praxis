@@ -10,7 +10,7 @@ import { conceptGraphs } from "@praxis/curriculum/schema";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
-import { AssignmentServiceImpl, validateItems } from "../services/assignment-service.js";
+import { AssignmentServiceImpl } from "../services/assignment-service.js";
 import type { GraderServices } from "../services/graders/types.js";
 import type { Engine, EngineEvent } from "../types/index.js";
 import { brandId } from "../types/index.js";
@@ -104,7 +104,7 @@ function makeMCService(noEngine = false): AssignmentServiceImpl {
 // ── create tests ──────────────────────────────────────────────────────────────
 
 describe("AssignmentServiceImpl.create", () => {
-  it("creates and retrieves a multiple-choice assignment", async () => {
+  it("creates and retrieves a single-choice assignment", async () => {
     const svc = makeMCService();
     const { assignmentId } = await svc.create({
       courseId: COURSE_ID,
@@ -114,7 +114,7 @@ describe("AssignmentServiceImpl.create", () => {
       items: [
         {
           id: "q1",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "What is 2+2?",
           options: ["2", "3", "4", "5"],
           correctOptionIndex: 2,
@@ -196,7 +196,7 @@ describe("AssignmentServiceImpl.create", () => {
       items: [
         {
           id: "q1",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "Q?",
           options: ["A", "B"],
           correctOptionIndex: 0,
@@ -223,7 +223,7 @@ describe("AssignmentServiceImpl.list", () => {
       items: [
         {
           id: "q1",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "Q?",
           options: ["A", "B"],
           correctOptionIndex: 0,
@@ -259,7 +259,7 @@ describe("AssignmentServiceImpl.recordResponse", () => {
       items: [
         {
           id: "item-1",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "Q?",
           options: ["A", "B"],
           correctOptionIndex: 0,
@@ -313,7 +313,7 @@ describe("AssignmentServiceImpl.recordResponse", () => {
 // ── submit tests ──────────────────────────────────────────────────────────────
 
 describe("AssignmentServiceImpl.submit", () => {
-  it("grades a multiple-choice assignment and persists the grade", async () => {
+  it("grades a single-choice assignment and persists the grade", async () => {
     const svc = makeMCService();
     const { assignmentId } = await svc.create({
       courseId: COURSE_ID,
@@ -323,14 +323,14 @@ describe("AssignmentServiceImpl.submit", () => {
       items: [
         {
           id: "q1",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "2+2=?",
           options: ["3", "4", "5"],
           correctOptionIndex: 1,
         },
         {
           id: "q2",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "3+3=?",
           options: ["5", "6", "7"],
           correctOptionIndex: 1,
@@ -365,7 +365,7 @@ describe("AssignmentServiceImpl.submit", () => {
       items: [
         {
           id: "q1",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "Q?",
           options: ["A", "B"],
           correctOptionIndex: 0,
@@ -378,7 +378,7 @@ describe("AssignmentServiceImpl.submit", () => {
     await expect(svc.submit({ assignmentId })).rejects.toThrow("already submitted");
   });
 
-  it("uses null score for unanswered items (score=0 for MC)", async () => {
+  it("uses null score for unanswered items (score=0 for single-choice)", async () => {
     const svc = makeMCService();
     const { assignmentId } = await svc.create({
       courseId: COURSE_ID,
@@ -388,7 +388,7 @@ describe("AssignmentServiceImpl.submit", () => {
       items: [
         {
           id: "q1",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "Q?",
           options: ["A", "B"],
           correctOptionIndex: 0,
@@ -412,7 +412,7 @@ describe("AssignmentServiceImpl.submit", () => {
       items: [
         {
           id: "q1",
-          kind: "multiple-choice",
+          kind: "single-choice",
           prompt: "Q?",
           options: ["A", "B"],
           correctOptionIndex: 0,

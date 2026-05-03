@@ -54,7 +54,7 @@ function makeActivityRegistry(): ActivityRegistry & {
 const QUIZ_ITEMS = [
   {
     id: "item-1",
-    kind: "multiple-choice" as const,
+    kind: "single-choice" as const,
     prompt: "What is 2+2?",
     options: ["3", "4"],
     correctOptionIndex: 1,

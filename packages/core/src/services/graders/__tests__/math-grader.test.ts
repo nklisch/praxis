@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AssignmentItem, AssignmentResponse } from "../../../types/artifacts.js";
+import type { AssignmentItem, AssignmentResponse, MathItem } from "../../../types/artifacts.js";
 import type { SymPyCheckSolutionResult } from "../../../types/tool.js";
 import { MathGrader } from "../math-grader.js";
 import type { GraderContext, GraderServices } from "../types.js";
 
-function makeItem(overrides: Partial<AssignmentItem> = {}): AssignmentItem {
+function makeItem(overrides: Partial<MathItem> = {}): MathItem {
   return {
     id: "item-1",
     kind: "math",
@@ -89,9 +89,10 @@ describe("MathGrader", () => {
     expect(result.score).toBe(0);
   });
 
-  it("returns needs-human-review when expectedSolution not set", async () => {
+  it("returns needs-human-review when expectedSolution not set (legacy/malformed data)", async () => {
     const ctx = makeCtx({ correct: false, proposedValue: "", expectedSolutions: [] });
-    const item: AssignmentItem = { id: "item-1", kind: "math", prompt: "2x=4" };
+    // biome-ignore lint/suspicious/noExplicitAny: intentionally malformed for runtime guard test
+    const item: AssignmentItem = { id: "item-1", kind: "math", prompt: "2x=4" } as any;
     const result = await grader.grade({ item, response: makeResponse("3"), ctx });
     expect(result.score).toBeNull();
     expect(result.tier).toBe("needs-human-review");
