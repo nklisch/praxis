@@ -210,6 +210,11 @@ export const assignmentResponses = sqliteTable(
     response: text("response").notNull(),
     /** Phase 8: optional shown work; null when item has no workRubric. */
     work: text("work"),
+    /**
+     * Phase 15a: optional sketch reference. Nullable; references sketches.id
+     * but no FK constraint (deduplication-friendly — sketches are content-addressed).
+     */
+    sketchId: text("sketch_id"),
     recordedAt: integer("recorded_at", { mode: "timestamp_ms" }).notNull(),
   },
   (t) => ({

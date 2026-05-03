@@ -21,6 +21,7 @@ import type {
   Mode,
   NotesService,
   PackImportService,
+  SketchService,
   SymPyService,
   ToolDefinition,
   VectorStore,
@@ -64,6 +65,8 @@ export interface ServiceDeps {
     flashcards: FlashcardsService;
     /** Phase 12: FSRS scheduler — used by FlashcardsServiceImpl and flashcard.review_next tool. */
     fsrsScheduler: FsrsScheduler;
+    /** Phase 15a: sketch storage + retrieval — used by sketch.read tool. */
+    sketches: SketchService;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

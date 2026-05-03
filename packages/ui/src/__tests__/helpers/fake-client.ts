@@ -24,6 +24,7 @@ export function makeFakeClient(overrides?: Partial<PraxisClient>): PraxisClient 
     claudeAuth: {} as PraxisClient["claudeAuth"],
     shell: {} as PraxisClient["shell"],
     tabs: {} as PraxisClient["tabs"],
+    sketches: {} as PraxisClient["sketches"],
     ...overrides,
   };
 }

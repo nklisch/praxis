@@ -134,6 +134,33 @@ export const tabs = sqliteTable(
   }),
 );
 
+/** Phase 15a: Content-addressed sketch storage. */
+export const sketches = sqliteTable(
+  "sketches",
+  {
+    /**
+     * SHA-256 hex of the snapshot JSON. Content-addressed — identical drawings
+     * dedupe naturally. Use this id everywhere a sketch is referenced.
+     */
+    id: text("id").primaryKey(),
+    studentId: text("student_id").notNull(),
+    /** Tldraw snapshot JSON (full document), serialized. */
+    snapshotJson: text("snapshot_json", { mode: "json" }).notNull(),
+    /**
+     * Relative path under FsSketchStore root for the rendered PNG.
+     * Format: `<id-prefix-2>/<id>.png` (sharded 2-char prefix to avoid one-dir-many-files).
+     */
+    imagePath: text("image_path").notNull(),
+    /** Width/height in pixels of the rendered PNG. */
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => ({
+    studentIdx: index("sketches_student_idx").on(t.studentId, t.createdAt),
+  }),
+);
+
 export const memorySchema = {
   sessions,
   episodicEvents,
@@ -142,4 +169,5 @@ export const memorySchema = {
   affectiveSamples,
   misconceptions,
   tabs,
+  sketches,
 };

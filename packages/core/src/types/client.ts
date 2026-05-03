@@ -1,5 +1,4 @@
 import type { ClaudeAuthService } from "../services/claude-auth.js";
-import type { TabId, TabSummary } from "./tabs.js";
 import type {
   Assignment,
   AssignmentResponse,
@@ -46,6 +45,8 @@ import type {
   StudentModel,
 } from "./memory.js";
 import type { NoteBody } from "./notes.js";
+import type { SketchId, SketchSummary } from "./sketches.js";
+import type { TabId, TabSummary } from "./tabs.js";
 
 export interface PraxisClient {
   session: SessionService;
@@ -71,6 +72,8 @@ export interface PraxisClient {
   shell: ShellClient;
   /** Phase 14: tab strip — open, close, rename, list. */
   tabs: TabsClientApi;
+  /** Phase 15a: sketch storage + retrieval (renderer-side; uses Blob not Buffer). */
+  sketches: SketchClientApi;
 }
 
 /**
@@ -93,6 +96,37 @@ export interface TabsClientApi {
 /** Generic shell utility surface for the renderer. */
 export interface ShellClient {
   openExternal(url: string): Promise<void>;
+}
+
+/**
+ * Phase 15a: Client-facing sketch API. Uses Blob (not Buffer) for the image
+ * so it works in the renderer context (Electron renderer / browser).
+ *
+ * The server-side SketchService uses Buffer; the IPC layer encodes/decodes via
+ * base64 to bridge the boundary.
+ */
+export interface SketchClientApi {
+  /**
+   * Upload a sketch. Idempotent — identical snapshot JSON returns the same id.
+   * `image` is a PNG Blob from `editor.toImage()` in the renderer.
+   */
+  put(input: {
+    snapshot: unknown;
+    image: Blob;
+    width: number;
+    height: number;
+  }): Promise<SketchSummary>;
+
+  /**
+   * Fetch the full sketch (snapshot + image). The image is returned as a Blob
+   * suitable for `URL.createObjectURL()` or `<img src>`.
+   */
+  get(
+    sketchId: SketchId,
+  ): Promise<{ snapshot: unknown; image: Blob; width: number; height: number }>;
+
+  /** Fetch summary metadata only (no image). Returns null if id is unknown. */
+  getSummary(sketchId: SketchId): Promise<SketchSummary | null>;
 }
 
 export interface SessionService {

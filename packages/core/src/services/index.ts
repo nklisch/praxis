@@ -59,6 +59,9 @@ export { applyDecay, applyDecayAt } from "./memory/decay.js";
 export type { MemoryServiceDeps } from "./memory/memory-service.js";
 export { MemoryServiceImpl } from "./memory/memory-service.js";
 export { SessionServiceImpl } from "./session-service.js";
+// Phase 15a: Sketch service
+export type { SketchServiceDeps } from "./sketch-service.js";
+export { SketchServiceImpl } from "./sketch-service.js";
 export { getOrCreateDefaultStudentId } from "./student.js";
 // Phase 14: Tabs service
 export type { TabsServiceDeps } from "./tabs-service.js";

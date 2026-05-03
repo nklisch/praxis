@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { assignments } from "@praxis/artifacts/schema";
 import { readEngineConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
@@ -13,16 +14,18 @@ import {
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
   FlashcardsServiceImpl,
-  NotesServiceImpl,
   getOrCreateDefaultStudentId,
   IndexerOrchestratorImpl,
   LockServiceImpl,
   MasteryIndexer,
   MemoryServiceImpl,
   MisconceptionIndexer,
+  NotesServiceImpl,
   SessionServiceImpl,
+  SketchServiceImpl,
   TabsServiceImpl,
 } from "@praxis/core/services";
+import { FsSketchStore } from "@praxis/core/sketch";
 import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import {
@@ -63,7 +66,7 @@ import {
 import { codeSandboxTool, LocalCodeSandbox } from "@praxis/tools/sandbox";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
-import { join } from "node:path";
+import type { MainLogger } from "./logger.js";
 
 export interface Services {
   session: SessionServiceImpl;
@@ -90,6 +93,8 @@ export interface Services {
   flashcards: FlashcardsServiceImpl;
   /** Phase 12: FSRS scheduler — exposed for tools that need preview. */
   fsrsScheduler: FsrsSchedulerImpl;
+  /** Phase 15a: sketch service — exposed for IPC handlers. */
+  sketches: SketchServiceImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: LocalEmbeddingService; // exposed so main can preload it
@@ -97,15 +102,8 @@ export interface Services {
   getDefaultStudentId: () => string;
 }
 
-export function buildServices(dbPath: string): Services {
+export function buildServices(dbPath: string, log: MainLogger): Services {
   const { db, sqlite } = openDb({ path: dbPath });
-
-  const log = {
-    debug: (msg: string, meta?: object) => console.debug("[praxis]", msg, meta ?? ""),
-    info: (msg: string, meta?: object) => console.info("[praxis]", msg, meta ?? ""),
-    warn: (msg: string, meta?: object) => console.warn("[praxis]", msg, meta ?? ""),
-    error: (msg: string, meta?: object) => console.error("[praxis]", msg, meta ?? ""),
-  };
 
   // Phase 4: Pyodide + sandbox
   const pyodide = new PyodideHost({ packages: ["sympy"] });
@@ -254,6 +252,11 @@ export function buildServices(dbPath: string): Services {
   // Phase 14: Tabs service — persists tab strip state to SQLite.
   const tabsService = new TabsServiceImpl({ db, log });
 
+  // Phase 15a: Sketch service — content-addressed PNG store + SQLite metadata.
+  const dataDir = join(app.getPath("userData"), "data");
+  const sketchStore = new FsSketchStore(join(dataDir, "sketches"));
+  const sketchService = new SketchServiceImpl({ db, log, store: sketchStore });
+
   // Phase 12: Notes + Flashcards services.
   // Notes service uses the bootstrap engine resolver for fromSessionSummary.
   const notesService = new NotesServiceImpl({
@@ -328,6 +331,7 @@ export function buildServices(dbPath: string): Services {
       notes: notesService, // ← Phase 12
       flashcards: flashcardsService, // ← Phase 12
       fsrsScheduler, // ← Phase 12
+      sketches: sketchService, // ← Phase 15a
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)
@@ -367,6 +371,7 @@ export function buildServices(dbPath: string): Services {
     notes: notesService, // ← Phase 12
     flashcards: flashcardsService, // ← Phase 12
     fsrsScheduler, // ← Phase 12
+    sketches: sketchService, // ← Phase 15a
     ingestorRegistry,
     pyodide,
     embeddings,

@@ -13,6 +13,7 @@ import { NotesClient } from "./services/notes-client.js";
 import { PacksClientImpl } from "./services/packs-client.js";
 import { SessionClient } from "./services/session-client.js";
 import { ShellClientImpl } from "./services/shell-client.js";
+import { SketchClient } from "./services/sketch-client.js";
 import { TabsClient } from "./services/tabs-client.js";
 import type { ClientTransport } from "./transport/types.js";
 
@@ -38,5 +39,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     claudeAuth: new ClaudeAuthClient(transport),
     shell: new ShellClientImpl(transport),
     tabs: new TabsClient(transport), // ← Phase 14
+    sketches: new SketchClient(transport), // ← Phase 15a
   };
 }

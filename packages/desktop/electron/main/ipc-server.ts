@@ -3,20 +3,21 @@ import type {
   AssignmentId,
   ConceptId,
   CourseId,
-  FlashcardId,
   GateId,
   GateTarget,
   LessonId,
+  Logger,
   MisconceptionId,
-  NoteId,
   SessionId,
+  SketchId,
   StudentId,
   SuccessCriteria,
   TabId,
 } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import { brandId, serializeError } from "@praxis/core/types";
 import { ipcMain } from "electron";
 import { registerIngestHandlers } from "./ingest-channel.js";
+import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
 /**
@@ -34,14 +35,18 @@ import type { Services } from "./services.js";
 export function registerIpcHandlers(
   services: Services,
   webContentsGetter: () => Electron.WebContents | null,
+  log: Logger,
 ): () => void {
-  const handlers: Array<{ channel: string; handler: Parameters<typeof ipcMain.handle>[1] }> = [];
+  const registeredChannels: string[] = [];
   const activeAbortControllers = new Map<string, AbortController>();
+  const _helpers = createIpcHelpers(log);
 
-  function handle(channel: string, fn: Parameters<typeof ipcMain.handle>[1]) {
-    ipcMain.handle(channel, fn);
-    handlers.push({ channel, handler: fn });
-  }
+  // Wrap handle to also track registered channels for cleanup
+  const { on } = _helpers;
+  const handle = (channel: string, fn: Parameters<typeof _helpers.handle>[1]): void => {
+    _helpers.handle(channel, fn);
+    registeredChannels.push(channel);
+  };
 
   /**
    * IPC safety guard for all praxis.author.* handlers.
@@ -88,9 +93,13 @@ export function registerIpcHandlers(
   handle(
     "praxis.session.send.start",
     async (_event, streamId: string, sessionId: string, message: string) => {
+      const streamLog = log.child({ component: "session.send", streamId, sessionId });
       const controller = new AbortController();
       activeAbortControllers.set(streamId, controller);
       const eventsChannel = `praxis.session.send.events.${streamId}`;
+      const t0 = performance.now();
+      let eventCount = 0;
+      let errorCount = 0;
 
       const push = (msg: IpcStreamMessage<unknown>) => {
         const wc = webContentsGetter();
@@ -98,15 +107,28 @@ export function registerIpcHandlers(
         wc.send(eventsChannel, msg);
       };
 
+      streamLog.info("session.send.start", { messageLength: message.length });
       try {
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
         const stream = services.session.send(sessionId as any, message);
         for await (const event of stream) {
           if (controller.signal.aborted) break;
+          eventCount++;
+          if (event.type === "error") errorCount++;
           push({ kind: "event", payload: event });
         }
         push({ kind: "done" });
+        streamLog.info("session.send.done", {
+          durationMs: Math.round(performance.now() - t0),
+          eventCount,
+          errorCount,
+        });
       } catch (err) {
+        streamLog.error("session.send.error", {
+          durationMs: Math.round(performance.now() - t0),
+          eventCount,
+          err: serializeError(err),
+        });
         push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
       } finally {
         activeAbortControllers.delete(streamId);
@@ -114,7 +136,7 @@ export function registerIpcHandlers(
     },
   );
 
-  ipcMain.on("praxis.session.send.cancel", (_event, streamId: string) => {
+  on("praxis.session.send.cancel", (_event, streamId: string) => {
     activeAbortControllers.get(streamId)?.abort();
     activeAbortControllers.delete(streamId);
   });
@@ -176,6 +198,7 @@ export function registerIpcHandlers(
     webContentsGetter,
     services.ingestorRegistry,
     activeAbortControllers,
+    log,
   );
 
   // ── Artifacts (read-only) ────────────────────────────────────────────────
@@ -299,16 +322,20 @@ export function registerIpcHandlers(
       streamId: string,
       opts: { sessionId?: string; range?: { fromMs: number; toMs: number } },
     ) => {
+      const streamLog = log.child({ component: "memory.episodic", streamId });
       const controller = new AbortController();
       activeAbortControllers.set(streamId, controller);
       const eventsChannel = `praxis.memory.episodic.events.${streamId}`;
+      const t0 = performance.now();
+      let eventCount = 0;
 
-      const push = (msg: import("@praxis/client").IpcStreamMessage<unknown>) => {
+      const push = (msg: IpcStreamMessage<unknown>) => {
         const wc = webContentsGetter();
         if (!wc || wc.isDestroyed()) return;
         wc.send(eventsChannel, msg);
       };
 
+      streamLog.info("memory.episodic.start");
       try {
         const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
         const stream = services.memory.episodic({
@@ -320,10 +347,20 @@ export function registerIpcHandlers(
         });
         for await (const event of stream) {
           if (controller.signal.aborted) break;
+          eventCount++;
           push({ kind: "event", payload: event });
         }
         push({ kind: "done" });
+        streamLog.info("memory.episodic.done", {
+          durationMs: Math.round(performance.now() - t0),
+          eventCount,
+        });
       } catch (err) {
+        streamLog.error("memory.episodic.error", {
+          durationMs: Math.round(performance.now() - t0),
+          eventCount,
+          err: serializeError(err),
+        });
         push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
       } finally {
         activeAbortControllers.delete(streamId);
@@ -331,7 +368,7 @@ export function registerIpcHandlers(
     },
   );
 
-  ipcMain.on("praxis.memory.episodic.cancel", (_event, streamId: string) => {
+  on("praxis.memory.episodic.cancel", (_event, streamId: string) => {
     activeAbortControllers.get(streamId)?.abort();
     activeAbortControllers.delete(streamId);
   });
@@ -872,9 +909,12 @@ export function registerIpcHandlers(
   // Streaming login flow. Renderer subscribes to events.<streamId> first,
   // then invokes start. Cancel via .cancel with the streamId.
   handle("praxis.auth.claude.login.start", async (_event, streamId: string) => {
+    const streamLog = log.child({ component: "auth.claude.login", streamId });
     const controller = new AbortController();
     activeAbortControllers.set(streamId, controller);
     const eventsChannel = `praxis.auth.claude.login.events.${streamId}`;
+    const t0 = performance.now();
+    let eventCount = 0;
 
     const push = (msg: IpcStreamMessage<unknown>) => {
       const wc = webContentsGetter();
@@ -882,21 +922,32 @@ export function registerIpcHandlers(
       wc.send(eventsChannel, msg);
     };
 
+    streamLog.info("auth.claude.login.start");
     try {
       const stream = services.claudeAuth.login({ signal: controller.signal });
       for await (const event of stream) {
         if (controller.signal.aborted) break;
+        eventCount++;
         push({ kind: "event", payload: event });
       }
       push({ kind: "done" });
+      streamLog.info("auth.claude.login.done", {
+        durationMs: Math.round(performance.now() - t0),
+        eventCount,
+      });
     } catch (err) {
+      streamLog.error("auth.claude.login.error", {
+        durationMs: Math.round(performance.now() - t0),
+        eventCount,
+        err: serializeError(err),
+      });
       push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
     } finally {
       activeAbortControllers.delete(streamId);
     }
   });
 
-  ipcMain.on("praxis.auth.claude.login.cancel", (_event, streamId: string) => {
+  on("praxis.auth.claude.login.cancel", (_event, streamId: string) => {
     activeAbortControllers.get(streamId)?.abort();
     activeAbortControllers.delete(streamId);
   });
@@ -951,6 +1002,43 @@ export function registerIpcHandlers(
     },
   );
 
+  // ── Phase 15a: Sketches ──────────────────────────────────────────────────────
+
+  handle(
+    "praxis.sketches.put",
+    async (
+      _event,
+      opts: { snapshot: unknown; imageBase64: string; width: number; height: number },
+    ) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const image = Buffer.from(opts.imageBase64, "base64");
+      return services.sketches.put({
+        studentId,
+        snapshot: opts.snapshot,
+        image,
+        width: opts.width,
+        height: opts.height,
+      });
+    },
+  );
+
+  handle("praxis.sketches.get", async (_event, sketchId: string) => {
+    const sketch = await services.sketches.get(sketchId as SketchId);
+    // Encode image as base64 for IPC transport — Electron IPC can't send raw Buffers reliably.
+    return {
+      id: sketch.id,
+      snapshot: sketch.snapshot,
+      width: sketch.width,
+      height: sketch.height,
+      createdAt: sketch.createdAt,
+      imageBase64: sketch.image.toString("base64"),
+    };
+  });
+
+  handle("praxis.sketches.getSummary", async (_event, sketchId: string) => {
+    return services.sketches.getSummary(sketchId as SketchId);
+  });
+
   // ── Shell helpers ─────────────────────────────────────────────────────────────
 
   handle("praxis.shell.openExternal", async (_event, url: string) => {
@@ -966,7 +1054,7 @@ export function registerIpcHandlers(
 
   // Return unregister function.
   return () => {
-    for (const { channel } of handlers) {
+    for (const channel of registeredChannels) {
       ipcMain.removeHandler(channel);
     }
     ipcMain.removeAllListeners("praxis.session.send.cancel");

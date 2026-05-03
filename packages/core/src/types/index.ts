@@ -31,14 +31,18 @@ export type {
   SessionService,
   SessionSummary,
   ShellClient,
+  SketchClientApi,
   TabsClientApi,
 } from "./client.js";
 export type * from "./common.js";
+export { LOG_LEVELS } from "./common.js"; // runtime const — not re-exported by `export type *`
 export type * from "./concept-graph.js";
 export type * from "./configurator.js";
 export type * from "./conversation.js";
 export type * from "./engine.js";
 export { engineError } from "./engine.js"; // runtime helper — not re-exported by `export type *`
+export type * from "./errors.js";
+export { serializeError } from "./errors.js"; // runtime helper — not re-exported by `export type *`
 // Phase 12: FSRS types — exported as values (Rating is a type; FsrsState/FsrsScheduler are types).
 export type * from "./flashcards.js";
 export type * from "./gate.js";
@@ -50,6 +54,8 @@ export type * from "./mode.js";
 // Phase 12: NoteBody + helpers — `export *` (not `export type *`) so parseNoteBody + serializeNoteBody are exported as runtime values.
 export * from "./notes.js";
 export type * from "./pedagogy.js";
+// Phase 15a: Sketch types.
+export type { Sketch, SketchId, SketchService, SketchSummary } from "./sketches.js";
 // Phase 14: Tab strip types.
 export type { TabId, TabSummary, TabsService } from "./tabs.js";
 // tool.ts: MemoryService here is the server-side interface (with studentId params).

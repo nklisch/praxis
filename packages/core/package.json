@@ -72,6 +72,13 @@
       "import": "./dist/ingestion/index.js",
       "node": "./dist/ingestion/index.js",
       "default": "./dist/ingestion/index.js"
+    },
+    "./sketch": {
+      "praxis-source": "./src/sketch/index.ts",
+      "types": "./dist/sketch/index.d.ts",
+      "import": "./dist/sketch/index.js",
+      "node": "./dist/sketch/index.js",
+      "default": "./dist/sketch/index.js"
     }
   },
   "scripts": {
