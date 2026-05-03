@@ -9,7 +9,7 @@ allowed-tools: Read, Glob, Grep
 
 # Praxis Code Patterns Reference
 
-Structural patterns for the Praxis AI tutoring framework (4 phases shipped). Read individual pattern files for full details, implementation notes, and common violations. The dense index is in `.claude/rules/patterns.md`.
+Structural patterns for the Praxis AI tutoring framework (Phases 1–14 shipped). Read individual pattern files for full details, implementation notes, and common violations. The dense index is in `.claude/rules/patterns.md`.
 
 ## Available patterns
 
@@ -26,13 +26,21 @@ Structural patterns for the Praxis AI tutoring framework (4 phases shipped). Rea
 - [service-deps-injection.md](service-deps-injection.md) — `ServiceDeps` DI container; `engineFactory` for test injection
 - [load-or-throw.md](load-or-throw.md) — `loadOrThrow(fetch, ctx)` after `db.insert/update/delete().run()`; uniform "X not found after Y: id" wording
 
-### UI patterns
+### UI data patterns
 - [use-resource-hook.md](use-resource-hook.md) — `useResource(loader)` for load-on-mount + `{ data, loading, error, refresh, setData }`; layer mutations on top
+- [context-hook-pair.md](context-hook-pair.md) — `createContext(null)` + Provider + guard-throwing hook; `usePraxisClient`, `useAuthStatus`
+
+### UI component patterns
+- [modal-primitive.md](modal-primitive.md) — `<Modal>` provides backdrop + ESC + ARIA once; 5 modal consumers wrap content inside it
+- [editorial-ui-primitives.md](editorial-ui-primitives.md) — RouteHeader, LibrarySection, EmptyState, LoadingState, ErrorMessage, COPY module, `composes: editorial from global;`
+- [tab-body-isolation.md](tab-body-isolation.md) — all `<ChatTabBody>` instances mounted; `display:none` for inactive — preserves per-tab state across switches
+- [session-tab-open-flow.md](session-tab-open-flow.md) — `openSessionInTab` helper chains `session.start` → `tabs.open` → `navigate`; always use the helper
 
 ### Communication patterns
 - [ipc-channel-convention.md](ipc-channel-convention.md) — `praxis.{domain}.{action}`; streaming adds `.start/.events.<id>/.cancel`
 - [discriminated-union-dispatch.md](discriminated-union-dispatch.md) — `type` for events, `kind` for domain objects; `switch` for exhaustive dispatch
 
 ### Testing patterns
+- [ui-test-helper.md](ui-test-helper.md) — `makeFakeClient(overrides?)` from `__tests__/helpers/`; `<PraxisClientProvider>` render wrapper; TanStack Router mock
 - [temp-db-test-helper.md](temp-db-test-helper.md) — `useTempDb()` from `tests/helpers/db-setup.ts`; import via relative path
 - [slow-test-gating.md](slow-test-gating.md) — `describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)` for Pyodide integration tests
