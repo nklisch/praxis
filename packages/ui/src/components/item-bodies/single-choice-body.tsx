@@ -8,7 +8,7 @@ export interface SingleChoiceBodyProps {
   onChange: (response: string) => void;
   disabled?: boolean;
   /** When set, reveals correct/incorrect feedback on each option. */
-  feedback?: { correctIndex: number };
+  feedback?: { correctIndex: number } | undefined;
 }
 
 export function SingleChoiceBody({

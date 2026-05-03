@@ -4,10 +4,10 @@ import cardStyles from "../assignment-item-card.module.css";
 export interface CodeBodyProps {
   item: CodeItem;
   response: string;
-  work?: string;
+  work?: string | undefined;
   onChange: (response: string) => void;
-  onWorkChange?: (work: string) => void;
-  disabled?: boolean;
+  onWorkChange?: ((work: string) => void) | undefined;
+  disabled?: boolean | undefined;
 }
 
 export function CodeBody({

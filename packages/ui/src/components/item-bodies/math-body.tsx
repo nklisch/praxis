@@ -7,11 +7,11 @@ import { SketchCanvas } from "../sketch-canvas.js";
 export interface MathBodyProps {
   item: MathItem;
   response: string;
-  work?: string;
+  work?: string | undefined;
   onChange: (response: string) => void;
-  onWorkChange?: (work: string) => void;
-  disabled?: boolean;
-  sketchHandleRef?: ForwardedRef<SketchCanvasHandle>;
+  onWorkChange?: ((work: string) => void) | undefined;
+  disabled?: boolean | undefined;
+  sketchHandleRef?: ForwardedRef<SketchCanvasHandle> | undefined;
 }
 
 export function MathBody({

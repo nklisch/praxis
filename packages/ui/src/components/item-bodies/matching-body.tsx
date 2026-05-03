@@ -27,7 +27,7 @@ export interface MatchingBodyProps {
   response: string;
   onChange: (response: string) => void;
   disabled?: boolean;
-  feedback?: { correctPairs: MatchingPair[] };
+  feedback?: { correctPairs: MatchingPair[] } | undefined;
 }
 
 function parsePairs(response: string): MatchingPair[] {
@@ -198,7 +198,7 @@ function DropdownFallback({
   pairs: MatchingPair[];
   onChange: (pairs: MatchingPair[]) => void;
   disabled: boolean;
-  feedback?: { correctPairs: MatchingPair[] };
+  feedback?: { correctPairs: MatchingPair[] } | undefined;
 }) {
   const correctSet = feedback
     ? new Set(feedback.correctPairs.map((p) => `${p.leftId}|${p.rightId}`))

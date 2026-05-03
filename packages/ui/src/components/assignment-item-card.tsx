@@ -102,11 +102,11 @@ export function AssignmentItemCard({
 interface BodyProps {
   item: AssignmentItem;
   response: string;
-  work?: string;
+  work?: string | undefined;
   onResponseChange: (response: string) => void;
-  onWorkChange?: (work: string) => void;
+  onWorkChange?: ((work: string) => void) | undefined;
   disabled: boolean;
-  sketchHandleRef?: ForwardedRef<SketchCanvasHandle>;
+  sketchHandleRef?: ForwardedRef<SketchCanvasHandle> | undefined;
 }
 
 function renderBody({
