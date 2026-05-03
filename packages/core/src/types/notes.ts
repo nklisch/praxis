@@ -1,6 +1,6 @@
 /**
  * Phase 12: NoteBody — discriminated union over the four supported text formats.
- * Sketch is reserved for Phase 13 (tldraw integration).
+ * Phase 15a adds "sketch" (tldraw snapshot stored as opaque JSON).
  *
  * Each value field can contain markdown — the type enforces structure (which
  * region holds what), not content format. Students write naturally in any region.
@@ -10,7 +10,9 @@ export type NoteBody =
   | { kind: "cornell"; questions: string[]; details: string[]; summary: string }
   | { kind: "feynman"; explanation: string; followUps: string[] }
   | { kind: "outline"; root: OutlineNode }
-  | { kind: "free"; text: string };
+  | { kind: "free"; text: string }
+  /** Phase 15a: tldraw snapshot. `snapshot` is opaque JSON from `editor.getSnapshot()`. */
+  | { kind: "sketch"; snapshot: unknown };
 
 /** Recursive outline node. Leaves have no children (empty array). */
 export interface OutlineNode {
@@ -103,8 +105,8 @@ export function parseNoteBody(
       return { kind: "free", text: parsed.text };
     }
     case "sketch": {
-      // Sketch format defers to Phase 13.
-      throw new Error("parseNoteBody: sketch format is not supported in Phase 12");
+      // Phase 15a: snapshot is opaque tldraw JSON — we just pass it through.
+      return { kind: "sketch", snapshot: parsed.snapshot ?? parsed };
     }
     default: {
       // Exhaustiveness guard.

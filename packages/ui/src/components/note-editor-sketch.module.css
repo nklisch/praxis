@@ -1,0 +1,13 @@
+/* ── NoteEditorSketch ─────────────────────────────────────────────────────── */
+
+/**
+ * Fills whatever space the workspace editorBody slot gives it.
+ * The parent note-editor-page.module.css sizes .editorBody; we just expand.
+ */
+.editorWrapper {
+  flex: 1;
+  width: 100%;
+  min-height: 0; /* allow flex children to shrink */
+  display: flex;
+  flex-direction: column;
+}

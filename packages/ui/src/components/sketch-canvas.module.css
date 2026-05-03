@@ -1,0 +1,25 @@
+/* ── SketchCanvas ─────────────────────────────────────────────────────────── */
+
+/**
+ * Inline: fixed 320px height used in the composer expansion and per-item
+ * submission cards. overflow:hidden clips any tldraw UI that escapes.
+ */
+.inline {
+  width: 100%;
+  height: 320px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  /* tldraw needs a positioned parent to anchor its absolute children */
+}
+
+/**
+ * Full: fills whatever container the parent provides. Used in the workspace
+ * sketch-note editor where the parent already sizes itself.
+ */
+.full {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}

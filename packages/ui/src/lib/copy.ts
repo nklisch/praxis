@@ -47,5 +47,14 @@ export const COPY = {
   },
   composer: {
     placeholder: "Type a message… (Enter to send, Shift+Enter for newline)",
+    sketchToggleAriaLabel: "Open sketch input",
+    sketchSubmitButton: "Submit sketch",
+    sketchCancelButton: "Cancel",
+  },
+  sketch: {
+    noVision:
+      "Vision isn't available with the current engine. Switch to one that supports vision.",
+    needsReview:
+      "I read your work but couldn't verify it cleanly. Could you re-write or clarify?",
   },
 } as const;

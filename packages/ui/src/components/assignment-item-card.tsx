@@ -1,4 +1,6 @@
 import type { AssignmentItem } from "@praxis/core/types";
+import type { ForwardedRef } from "react";
+import { type SketchCanvasHandle, SketchCanvas } from "./sketch-canvas.js";
 import styles from "./assignment-item-card.module.css";
 
 export interface AssignmentItemCardProps {
@@ -12,6 +14,12 @@ export interface AssignmentItemCardProps {
   /** Called when shown work changes — only invoked for items with workRubric. */
   onWorkChange?: (work: string) => void;
   disabled?: boolean;
+  /**
+   * Phase 15a: forwarded ref to the item's SketchCanvas imperative handle.
+   * The parent (AssignmentCard) holds these refs and calls capture() on submit.
+   * Only provided for math items; undefined otherwise.
+   */
+  sketchHandleRef?: ForwardedRef<SketchCanvasHandle>;
 }
 
 /**
@@ -29,6 +37,7 @@ export function AssignmentItemCard({
   onResponseChange,
   onWorkChange,
   disabled = false,
+  sketchHandleRef,
 }: AssignmentItemCardProps) {
   const hasWorkRubric = item.workRubric !== undefined;
 
@@ -44,7 +53,7 @@ export function AssignmentItemCard({
 
       <p className={styles.prompt}>{item.prompt}</p>
 
-      {/* Work field — shown for math/code items with workRubric */}
+      {/* Work field — shown for math items with workRubric */}
       {hasWorkRubric && item.kind === "math" && (
         <div className={styles.workSection}>
           <label htmlFor={`work-${item.id}`} className={styles.workLabel}>
@@ -58,6 +67,15 @@ export function AssignmentItemCard({
             disabled={disabled}
             rows={5}
           />
+        </div>
+      )}
+
+      {/* Phase 15a: sketch canvas for math items — draw your work.
+          For v1, capture happens on submit (not auto-saved). */}
+      {item.kind === "math" && sketchHandleRef !== undefined && (
+        <div className={styles.workSection}>
+          <span className={styles.workLabel}>Or sketch your work:</span>
+          <SketchCanvas variant="inline" handleRef={sketchHandleRef} />
         </div>
       )}
 

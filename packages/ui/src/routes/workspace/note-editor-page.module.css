@@ -110,3 +110,18 @@
   font-size: 0.88rem;
   margin: 0;
 }
+
+/* ── Phase 15a: sketch layout overrides ────────────────────────────────────── */
+
+/* Sketch notes fill the full layout without overflow scroll */
+.sketchLayout {
+  overflow: hidden;
+}
+
+/* The sketch editor fills the remaining space (no padding — tldraw manages its own) */
+.sketchEditorBody {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

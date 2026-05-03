@@ -1,8 +1,19 @@
-import type { AssignmentId } from "@praxis/core/types";
-import { useState } from "react";
+/**
+ * Inline assignment card — rendered in the chat surface when a session has an
+ * assignmentId bound to it (quiz / homework / exam sessions).
+ *
+ * Phase 15a: adds per-item SketchCanvas for math items. Sketch capture
+ * happens on submit only (v1 — no auto-save bandwidth; revisit if needed).
+ * The captured sketchId is uploaded via client.sketches.put and recorded
+ * via client.assignments.recordResponse before the final submit call.
+ */
+import type { AssignmentId, SketchId } from "@praxis/core/types";
+import { useRef, useState } from "react";
+import { usePraxisClient } from "../context/client-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
 import styles from "./assignment-card.module.css";
 import { AssignmentFeedback } from "./assignment-feedback.js";
+import type { SketchCanvasHandle } from "./sketch-canvas.js";
 import { AssignmentItemCard } from "./assignment-item-card.js";
 
 export interface AssignmentCardProps {
@@ -15,20 +26,8 @@ export interface AssignmentCardProps {
   examLockdown?: boolean;
 }
 
-/**
- * Inline assignment card rendered in the chat surface when a session has
- * an assignmentId bound to it (quiz / homework / exam sessions).
- *
- * Responsibilities:
- * - Load assignment + existing responses via useAssignment hook.
- * - Render per-item inputs via AssignmentItemCard.
- * - Auto-save on response change (debounced 1s — handled by hook).
- * - Submit → show "Grading…" → render per-item AssignmentFeedback.
- *
- * Future-proofing: does NOT bake in "tutor authored this" assumptions;
- * Phase 11 configure-mode assignments flow through the same component.
- */
 export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: AssignmentCardProps) {
+  const client = usePraxisClient();
   const {
     assignment,
     responses,
@@ -46,7 +45,55 @@ export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: As
     null,
   );
 
+  /**
+   * Phase 15a: per-item sketch handles. Keyed by item.id.
+   * Only math items get a canvas; other kinds will have no entry.
+   * We use a Map stored in a ref (not state) so registering a ref
+   * doesn't trigger re-renders.
+   */
+  const sketchHandleRefs = useRef<Map<string, SketchCanvasHandle | null>>(new Map());
+
   const handleSubmit = async () => {
+    // Phase 15a: capture + upload sketches for any math items that have been drawn.
+    if (assignment) {
+      for (const item of assignment.items) {
+        if (item.kind !== "math") continue;
+        const handle = sketchHandleRefs.current.get(item.id);
+        if (!handle) continue;
+
+        try {
+          const captured = await handle.capture();
+          // Skip empty canvases (no shapes drawn).
+          if (captured.width === 0) continue;
+
+          const summary = await client.sketches.put({
+            snapshot: captured.snapshot,
+            image: captured.image,
+            width: captured.width,
+            height: captured.height,
+          });
+
+          // Record the sketchId alongside the response.
+          // AssignmentsClient.recordResponse doesn't have a sketchId param yet —
+          // for v1 we store the sketch marker in the work field so it reaches
+          // the grading pipeline. Phase 15b will add a dedicated column.
+          await client.assignments
+            .recordResponse({
+              assignmentId,
+              itemId: item.id,
+              response: responses.get(item.id) ?? "",
+              // Append sketch marker to work text; grading pipeline reads it.
+              work: `${work.get(item.id) ?? ""}\n[sketch:${summary.id as SketchId}]`.trim(),
+            })
+            .catch(() => {
+              // Non-fatal — the typed response is still submitted even if sketch fails
+            });
+        } catch {
+          // Capture failure is non-fatal: the typed answer still submits.
+        }
+      }
+    }
+
     const result = await submit();
     if (result) {
       setLocalGrade(result.grade);
@@ -93,6 +140,13 @@ export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: As
         {assignment.items.map((item, i) => {
           const itemGrade = grade?.perItem.find((p) => p.itemId === item.id);
           const hasWorkRubric = item.workRubric !== undefined;
+          // Phase 15a: create a ref setter for math items.
+          const sketchHandleRef =
+            item.kind === "math"
+              ? (handle: SketchCanvasHandle | null) => {
+                  sketchHandleRefs.current.set(item.id, handle);
+                }
+              : undefined;
           return (
             <li key={item.id}>
               <AssignmentItemCard
@@ -108,6 +162,7 @@ export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: As
                     recordResponse(item.id, responses.get(item.id) ?? "", w),
                 })}
                 disabled={isSubmitted || submitting}
+                {...(sketchHandleRef !== undefined && { sketchHandleRef })}
               />
               {itemGrade && (
                 <AssignmentFeedback

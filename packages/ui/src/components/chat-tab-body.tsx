@@ -1,4 +1,4 @@
-import type { AssignmentId, SessionHandle, TabSummary, Timestamp } from "@praxis/core/types";
+import type { AssignmentId, SessionHandle, SketchId, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
 import { type JSX, useEffect, useRef, useState } from "react";
@@ -72,6 +72,8 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
 
   const [examLockdown, setExamLockdown] = useState(false);
   const [composerValue, setComposerValue] = useState("");
+  // Phase 15a: captured sketch attached to the next outgoing message.
+  const [pendingSketchId, setPendingSketchId] = useState<SketchId | undefined>(undefined);
   const [pageImageTarget, setPageImageTarget] = useState<{
     documentId: string;
     page: number;
@@ -102,6 +104,18 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
         flagAuthRequired();
       }
     }
+  };
+
+  /**
+   * Phase 15a: wraps handleSend to append the [sketch:<id>] marker when a
+   * sketch is attached. The agent's prompt fragment (sketch-awareness) instructs
+   * the model to call sketch.read when it sees this marker.
+   */
+  const handleSendWithSketch = async (message: string, sketchId?: SketchId) => {
+    const fullMessage =
+      sketchId !== undefined ? `${message}\n\n[sketch:${sketchId}]` : message;
+    setPendingSketchId(undefined);
+    await handleSend(fullMessage);
   };
 
   const handleViewPage = (documentId: string, page: number) => {
@@ -173,11 +187,12 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
           ref={composerTextareaRef}
           value={composerValue}
           onChange={setComposerValue}
-          onSend={async (msg) => {
+          onSend={async (msg, sketchId) => {
             setComposerValue("");
-            await handleSend(msg);
+            await handleSendWithSketch(msg, sketchId);
           }}
           disabled={isStreaming || examLockdown}
+          sketchEnabled={true}
         />
       </AuthGate>
       {examLockdown && (

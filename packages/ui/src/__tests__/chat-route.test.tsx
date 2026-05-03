@@ -38,6 +38,13 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   };
 });
 
+// tldraw uses canvas APIs not available in jsdom — mock the whole module so
+// <SketchCanvas> (used in <Composer> when sketchEnabled) doesn't crash.
+vi.mock("tldraw", () => ({
+  Tldraw: () => <div data-testid="tldraw-canvas" />,
+}));
+vi.mock("tldraw/tldraw.css", () => ({}));
+
 // ── Tab fixture helpers ────────────────────────────────────────────────────────
 
 function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
@@ -278,6 +285,20 @@ describe("ChatRoute shell", () => {
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: /open new session/i })).toBeNull();
+    });
+  });
+
+  // ── Phase 15a: sketch affordance in ChatTabBody composer ─────────────────
+
+  it("composer renders '✎ Sketch' affordance when a tab is open", async () => {
+    const tab = makeTab({ title: "algebra · teach" });
+    const client = makeTestClient({}, [tab]);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      // The composer should render in the active tab body.
+      // The sketch toggle button is aria-labelled "Open sketch input".
+      expect(screen.getByLabelText("Open sketch input")).toBeDefined();
     });
   });
 });

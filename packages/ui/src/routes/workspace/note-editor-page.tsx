@@ -6,6 +6,7 @@ import { NoteEditorCornell } from "../../components/note-editor-cornell.js";
 import { NoteEditorFeynman } from "../../components/note-editor-feynman.js";
 import { NoteEditorFree } from "../../components/note-editor-free.js";
 import { NoteEditorOutline } from "../../components/note-editor-outline.js";
+import { NoteEditorSketch } from "../../components/note-editor-sketch.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import styles from "./note-editor-page.module.css";
 
@@ -15,6 +16,9 @@ import styles from "./note-editor-page.module.css";
  * Loads the note, parses the body, routes to the right format editor.
  * Save button calls client.notes.update with the current body.
  * Consistent header + footer layout regardless of format.
+ *
+ * Phase 15a: adds the "sketch" format case — renders <NoteEditorSketch>
+ * with a full-canvas tldraw editor. Auto-saves on debounced canvas changes.
  */
 export function NoteEditorPage() {
   const client = usePraxisClient();
@@ -41,7 +45,11 @@ export function NoteEditorPage() {
         return;
       }
       setNote(fetched);
-      const parsed = parseNoteBody(fetched.format, fetched.body ?? null);
+      // For sketch notes, parse returns { kind: "sketch", snapshot } directly.
+      // Other formats parse as before.
+      const parsed = fetched.format === "sketch"
+        ? parseSketchBody(fetched.body ?? null)
+        : parseNoteBody(fetched.format, fetched.body ?? null);
       setBody(parsed);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : String(err));
@@ -72,6 +80,25 @@ export function NoteEditorPage() {
     }
   };
 
+  /**
+   * Phase 15a: auto-save handler for sketch notes. Called by NoteEditorSketch
+   * with the latest tldraw snapshot (already debounced ~2s in the component).
+   */
+  const handleSketchAutoSave = useCallback(
+    async (snapshot: unknown) => {
+      if (!note) return;
+      const sketchBody: NoteBody = { kind: "sketch", snapshot };
+      setBody(sketchBody);
+      try {
+        const updated = await client.notes.update({ noteId: note.id, body: sketchBody });
+        setNote(updated);
+      } catch {
+        // Auto-save failure is silent; the Save button is still available.
+      }
+    },
+    [client, note],
+  );
+
   if (loading) {
     return (
       <div className={styles.layout}>
@@ -95,8 +122,12 @@ export function NoteEditorPage() {
     );
   }
 
+  // Sketch notes use a full-canvas layout — no footer Save button needed
+  // (auto-save handles persistence). We still render the header.
+  const isSketch = body.kind === "sketch";
+
   return (
-    <div className={styles.layout}>
+    <div className={`${styles.layout} ${isSketch ? styles.sketchLayout : ""}`}>
       <header className={styles.header}>
         <button
           type="button"
@@ -113,7 +144,7 @@ export function NoteEditorPage() {
         </div>
       </header>
 
-      <div className={styles.editorBody}>
+      <div className={`${styles.editorBody} ${isSketch ? styles.sketchEditorBody : ""}`}>
         {body.kind === "cornell" && (
           <NoteEditorCornell body={body} onChange={(updated) => setBody(updated)} />
         )}
@@ -126,15 +157,42 @@ export function NoteEditorPage() {
         {body.kind === "free" && (
           <NoteEditorFree body={body} onChange={(updated) => setBody(updated)} />
         )}
+        {body.kind === "sketch" && (
+          <NoteEditorSketch
+            // biome-ignore lint/suspicious/noExplicitAny: NoteId branded — cast safely
+            noteId={note.id as any as NoteId}
+            initialSnapshot={body.snapshot}
+            onSave={handleSketchAutoSave}
+          />
+        )}
       </div>
 
-      <footer className={styles.footer}>
-        {saveError && <p className={styles.error}>{saveError}</p>}
-        {saveSuccess && <p className={styles.success}>Saved!</p>}
-        <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save"}
-        </button>
-      </footer>
+      {!isSketch && (
+        <footer className={styles.footer}>
+          {saveError && <p className={styles.error}>{saveError}</p>}
+          {saveSuccess && <p className={styles.success}>Saved!</p>}
+          <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </footer>
+      )}
     </div>
   );
+}
+
+/**
+ * Parse a sketch note body. The body JSON is { kind: "sketch", snapshot: unknown }.
+ * Falls back to a fresh empty sketch if the body is missing or malformed.
+ */
+function parseSketchBody(bodyJson: string | null): NoteBody {
+  if (!bodyJson) {
+    return { kind: "sketch", snapshot: undefined };
+  }
+  try {
+    // biome-ignore lint/suspicious/noExplicitAny: raw JSON input
+    const parsed = JSON.parse(bodyJson) as any;
+    return { kind: "sketch", snapshot: parsed?.snapshot ?? parsed };
+  } catch {
+    return { kind: "sketch", snapshot: undefined };
+  }
 }

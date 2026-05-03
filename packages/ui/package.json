@@ -23,7 +23,8 @@
     "@xyflow/react": "^12.10.2",
     "dagre": "^0.8.5",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "tldraw": "^4.5.10"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",

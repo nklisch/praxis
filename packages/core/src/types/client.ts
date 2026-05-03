@@ -499,7 +499,7 @@ export interface DocumentsClient {
  */
 export interface NotesClient {
   create(input: {
-    format: "cornell" | "feynman" | "outline" | "free";
+    format: "cornell" | "feynman" | "outline" | "free" | "sketch";
     body: NoteBody;
     context?: NoteContext;
   }): Promise<Note>;
