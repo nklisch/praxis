@@ -113,7 +113,30 @@ type EngineEvent =
   | { type: "tool_result"; callId: string; result: ToolResult }
   | { type: "thinking"; content: string }
   | { type: "error"; error: EngineError }
-  | { type: "final"; usage: TokenUsage };
+  | { type: "final"; usage: TokenUsage }
+  /**
+   * Phase 16: a non-user, non-tool, non-model message appended by the runtime.
+   * Used for assignment-submission notifications so the teach-mode tutor can
+   * narrate per-item feedback. Stored in episodic and surfaced by
+   * loadConversationHistory as a synthetic user turn prefixed `[Praxis] `.
+   */
+  | { type: "system_note"; content: string; origin: SystemNoteOrigin };
+
+/**
+ * Discriminated origin for `system_note` events (Phase 16).
+ * `kind: "assignment_submission"` — fired when a student submits an assignment
+ *   that has a `parentSessionId`; carries grade summary for the tutor to narrate.
+ * `kind: "system"` — generic runtime notification; `topic` names the domain.
+ */
+type SystemNoteOrigin =
+  | {
+      kind: "assignment_submission";
+      assignmentId: string;
+      childSessionId: string;
+      gradeTotal: number;
+      submittedAt: number;
+    }
+  | { kind: "system"; topic: string };
 
 interface HealthStatus {
   ok: boolean;
@@ -268,6 +291,8 @@ interface Course {
   thresholds: ThresholdConfig;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  /** Phase 16: optional assessment plan. Absent for courses bootstrapped before Phase 16. */
+  assessmentPlan?: AssessmentPlan;
 }
 
 type CourseSource =
@@ -303,6 +328,63 @@ interface Reference {
 }
 ```
 
+### Unit / LessonAssessment / AssessmentPlan (Phase 16)
+
+```typescript
+/**
+ * A band of lessons within a course. Courses that predate Phase 16 have no
+ * units; the UI defaults to the flat-lesson view when `course.assessmentPlan`
+ * is absent.
+ */
+interface Unit {
+  id: UnitId;
+  courseId: CourseId;
+  name: string;
+  summary?: string;
+  orderIndex: number;
+  /** Lesson IDs in study order. Resolved from the lessonUnits join. */
+  lessonIds: LessonId[];
+  /** Summative assessment (unit exam / midterm) at the end of this unit. Optional. */
+  summativeAssignmentId?: AssignmentId;
+}
+
+/**
+ * Scheduled assessment attached to a specific lesson.
+ * The assignment.kind says quiz/homework/exam; purpose says why it's here.
+ */
+interface LessonAssessment {
+  id: LessonAssessmentId;
+  lessonId: LessonId;
+  assignmentId: AssignmentId;
+  /** When in the lesson flow this assessment runs. */
+  timing: "before" | "after" | "interleaved";
+  /** Pedagogical role of this assessment. */
+  purpose: "readiness" | "practice" | "checkpoint";
+}
+
+/**
+ * Aggregate description of a course's assessment scaffold. Stored as
+ * JSON on the courses row. Written by persistDraft when the bootstrap
+ * explorer produces a plan; immutable after that except via configure-mode.
+ */
+interface AssessmentPlan {
+  perLesson: {
+    /** Whether every lesson gets a homework assignment. */
+    homework: boolean;
+    /** 0 = no quizzes; N = quiz every Nth lesson. */
+    quizFrequency?: number;
+  };
+  summatives: Array<{
+    kind: "midterm" | "unit_exam" | "final";
+    /** Exam is placed after the unit with this orderIndex. */
+    afterUnitOrderIndex: number;
+    title: string;
+  }>;
+  /** Optional pacing hints for a future calendar-pacing phase. */
+  pacing?: { sessionsPerWeek?: number; weeksTotal?: number };
+}
+```
+
 ### Assignment / Exam
 
 ```typescript
@@ -316,6 +398,8 @@ interface Assignment {
   assignedAt: Timestamp;
   submittedAt?: Timestamp;
   grade?: Grade;
+  /** Phase 16: the teach-mode session that issued this assignment via assignment.create. */
+  parentSessionId?: SessionId;
 }
 
 interface AssignmentItem {
@@ -733,6 +817,25 @@ interface SessionService {
   send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent>;
   end(sessionId: SessionId): Promise<SessionSummary>;
   active(): Promise<SessionHandle | null>;
+  /**
+   * Phase 16: open a child session bound to an assignment, deriving the mode
+   * from the assignment's kind. The child session's parentSessionId is set so
+   * tabs can link back to the tutor session.
+   */
+  spawnFromAssignment(input: {
+    assignmentId: AssignmentId;
+    parentSessionId: SessionId;
+  }): Promise<SessionHandle>;
+  /**
+   * Phase 16: inject a `system_note` event into a running session's event
+   * stream. Used by AssignmentService to notify the teach-mode tutor when
+   * a child assignment is submitted.
+   */
+  notifySession(input: {
+    sessionId: SessionId;
+    note: string;
+    origin: SystemNoteOrigin;
+  }): Promise<void>;
 }
 
 interface ArtifactsService {
@@ -1023,6 +1126,138 @@ All 9 are in `teach` mode's `toolNames` list.
 ### CLI additions (Phase 12)
 
 `pnpm db:cards-due` — queries the `flashcards` table for cards with `nextReviewAt <= now` and prints a table. Uses read-only DB connection.
+
+## Phase 13 additive changes
+
+Phase 13 (editorial foundation) added no new types to this contract. Changes were visual-layer only: editorial CSS, copy module, streaming pacing.
+
+## Phase 14 additive changes
+
+### `TabsService` — new client surface (Phase 14)
+
+Exposed as `PraxisClient.tabs`. Backed by `praxis.tabs.*` IPC channels.
+
+```typescript
+interface TabsClient {
+  list(): Promise<TabSummary[]>;
+  open(input: { sessionId: SessionId; modeId: string; title?: string }): Promise<TabSummary>;
+  close(tabId: string): Promise<void>;
+  rename(tabId: string, title: string): Promise<void>;
+  restore(): Promise<TabSummary[]>; // returns all non-archived tabs for restart
+}
+
+interface TabSummary {
+  id: string;
+  sessionId: SessionId;
+  modeId: string;
+  title: string;
+  openedAt: Timestamp;
+  lastSeenAt: Timestamp;
+  archived: boolean;
+}
+```
+
+### `SessionService.list` — new method (Phase 14)
+
+```typescript
+// Added to SessionService
+list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]>;
+```
+
+## Phase 15a / 15b additive changes
+
+### Sketch input pattern (Phase 15a)
+
+Tools that accept sketched work return `{ json: TldrawSnapshot; image: ImageRef }`. Sketches are `tier: "grounded"`. The `sketch.read` tool is available in `teach` and `exam` modes.
+
+### `ConceptMapDrawing` (Phase 15b)
+
+The `ConceptMapDrawing` artifact and supporting types (`ConceptLink`, `ConceptMapDivergence`, `ConceptMapVersion`, `ConceptMapSummary`) are defined in the Artifact schemas section above. `ConceptMapService` is exposed via `praxis.conceptMaps.*` IPC channels.
+
+## Phase 16 additive changes
+
+### `EngineEvent.system_note` + `SystemNoteOrigin` (Phase 16)
+
+See the updated `EngineEvent` union and `SystemNoteOrigin` type in the Engine adapter contract above.
+
+### `Course.assessmentPlan` (Phase 16)
+
+`Course` gains an optional `assessmentPlan?: AssessmentPlan` field. See the `Unit`, `LessonAssessment`, and `AssessmentPlan` types in the Artifact schemas section above.
+
+### `Assignment.parentSessionId` (Phase 16)
+
+`Assignment` gains an optional `parentSessionId?: SessionId` field tracking which teach-mode session issued the assignment via `assignment.create`.
+
+### `SessionService.spawnFromAssignment` + `SessionService.notifySession` (Phase 16)
+
+Both methods added to `SessionService` — see the updated interface in the Client RPC contract section above.
+
+### `SessionHandle.parentSessionId` (Phase 16)
+
+```typescript
+interface SessionHandle {
+  sessionId: SessionId;
+  courseId?: CourseId;
+  assignmentId?: AssignmentId;        // Phase 8
+  modeId: string;
+  startedAt: Timestamp;
+  parentSessionId?: SessionId;        // Phase 16 — set for sessions opened via spawnFromAssignment
+}
+```
+
+### `ActivityRegistry` / `ActivityItem` / `ActivityEvent` (activity rail)
+
+Ambient progress surface. Producers call `ActivityRegistry.start()` to register a running item; the rail streams `ActivityEvent`s to the renderer.
+
+```typescript
+interface ActivityItem {
+  id: string;
+  label: string;
+  detail?: string;
+  progress?: { value: number; total: number };
+  status: "running" | "done" | "failed";
+  startedAt: Timestamp;
+  endedAt?: Timestamp;
+  errorMessage?: string;
+  quietPeriodMs?: number;   // hide from rail until running this long
+  lingerMs?: number;
+  failedLingerMs?: number;
+  /** Phase 16: opaque producer payload (e.g. `{ kind: "assignment.issued", assignmentId, parentSessionId }`). */
+  metadata?: Record<string, unknown>;
+}
+
+type ActivityEvent =
+  | { kind: "snapshot"; items: readonly ActivityItem[] }
+  | { kind: "added"; item: ActivityItem }
+  | { kind: "updated"; item: ActivityItem }
+  | { kind: "removed"; id: string };
+
+interface ActivityRegistry {
+  start(input: ActivityStartInput): ActivityHandle;
+  list(): readonly ActivityItem[];
+  subscribe(listener: (event: ActivityEvent) => void): () => void;
+  dismiss(id: string): void;
+  shutdown(): void;
+}
+
+interface ActivityHandle {
+  readonly id: string;
+  update(patch: { label?: string; detail?: string; progress?: { value: number; total: number } }): void;
+  finish(status: "done" | "failed", err?: { message: string }): void;
+}
+```
+
+`ActivityRegistry` is injected via `ServiceDeps.activity`. Add new long-running producers by calling `ctx.activity?.start({ label, ... })` — do not create new blocking modals.
+
+### New tools (Phase 16)
+
+| Tool name | Mode(s) | Description |
+|---|---|---|
+| `clarification` | exam | Rephrase a confusing exam prompt; never reveals method or answer |
+| `course.start_exploration` | bootstrap | Entry point for the multi-turn agentic bootstrap explorer |
+| `course.draft_add_unit` | bootstrap (explorer) | Add a proposed unit to the in-progress draft |
+| `course.draft_set_assessment_plan` | bootstrap (explorer) | Set the assessment plan on the draft |
+| `course.draft_add_lesson_assessment` | bootstrap (explorer) | Add an assessment shell to a lesson in the draft |
 
 ## Versioning rules
 

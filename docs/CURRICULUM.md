@@ -69,8 +69,8 @@ The framework defines six v1 modes. Each is a configuration: prompt fragments, t
 The interactive lecture. Concept introduction, scaffolding, worked examples, fading.
 
 - Prompt fragments emphasize: present a concept → ground in textbook → motivate with example → check understanding → fade scaffolding.
-- Tools: retrieval (from textbook), `plot_function`, `render_diagram`, `render_latex`, `pull_pedagogy_strategy`, `record_misconception`, `update_mastery`, course navigation.
-- No grading tools. No exam tools.
+- Tools: `grade_math`, `code_sandbox`, `retrieve_from_textbook`, course-navigation tools (`course.what_can_i_teach`, `course.start_lesson`, `course.current_concept`, `course.mark_studied`), `update_mastery`, `record_misconception`, `assignment.create`, 9 note/flashcard tools (`note.*`, `flashcard.*`), `sketch.read`. See `packages/curriculum/src/modes/teach.ts` for the canonical list.
+- No exam tools. No assessment-taking tools (those live in quiz/homework/exam modes).
 - Style: lecture-leaning *and* Socratic — adapts based on procedural memory (what works for *this* student).
 
 ### `quiz`
@@ -95,7 +95,7 @@ Longer practice across multiple concepts, submitted in one batch. Agent voice: h
 
 Gated assessment. Strict tool subset, no help during the exam.
 
-- Tools: `assignment.show`, `assignment.read_grade` (and nothing else)
+- Tools: `assignment.show`, `assignment.read_grade`, `sketch.read`, `clarification` (and nothing else). The `clarification` tool (Phase 16) lets the agent rephrase a confusing prompt without revealing method or answer. See `packages/curriculum/src/modes/exam.ts` for the canonical list.
 - Approach feedback layer: OFF (verification stance — no post-hoc feedback enrichment)
 - **Free-response items require an explicit `rubric`** (validated at item-create). Rubric agent scores per-criterion (integer 0-10) with written rationales; total computed deterministically as weighted sum. Verification stance preserved through pre-committed criteria + per-criterion auditability + deterministic aggregation.
 - `workRubric`: judgment-call per item. `primaryWeight` defaults to 1.0 (deterministic-only) unless explicitly authored otherwise.
@@ -114,8 +114,8 @@ The metacognition coach's dedicated mode. Teaches and practices the principles-t
 A pre-curricular mode for authoring a new course from uploaded materials. Available without lock; intended for student self-onboard (UX path 2 in `UX.md`) and for the parent / teacher's first course before lock-gated `configure` is set up.
 
 - Prompt fragments: bootstrap-specific role + tools.
-- Tools: `course.list_documents`, `course.propose_draft`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`, plus `retrieve_from_textbook` for ad-hoc lookup while authoring.
-- The agent runs the conversation: proposes a draft, walks the student through it, applies edits one at a time, persists on confirmation.
+- Tools: `course.list_library_documents`, `course.attach_document`, `course.list_canonical_packs`, `course.use_canonical_pack`, `course.start_exploration`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`, `retrieve_from_textbook`. The single-shot `course.propose_draft` is gone (Phase 16 replaced it with the agentic `course.start_exploration` entry point). See `packages/curriculum/src/modes/bootstrap.ts` for the canonical list.
+- `course.start_exploration` runs a multi-turn exploration agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_textbook` and writes unit/lesson/assessment drafts via `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
 - Phase 11's `configure` mode subsumes bootstrap (lock-gated, with full gate / prompt / memory editors layered on).
 
 ### `configure`
@@ -132,6 +132,16 @@ Lock-gated. Parent/teacher (or self-directed learner) authors and tunes.
 - The configurator is the agent's user; the agent helps them author by talking.
 
 **Modes layer the metacognition coach's voice on top.** In `teach`, `quiz`, `homework`, and `exam`, prompt fragments include metacognitive prompts at appropriate triggers (pre-reading: "what do you expect?"; post-error: "what assumption tripped this?"; session-end: "what's one thing you'd review tomorrow?"). The metacognition coach is woven through, not sequestered to one mode.
+
+## Course structure (Phase 16)
+
+Phase 16 adds **units** as a grouping layer between courses and lessons. A course that was bootstrapped with `course.start_exploration` has: course → units → lessons → lesson_assessments. Each `Unit` groups an ordered list of lessons and optionally has a summative assessment (unit exam or midterm) at its end. Each `LessonAssessment` binds an assignment shell to a specific lesson with `timing` (before / after / interleaved) and `purpose` (readiness / practice / checkpoint). The aggregate scaffold is captured in `Course.assessmentPlan` (an `AssessmentPlan`).
+
+Courses bootstrapped before Phase 16 have no units and no `assessmentPlan`; the UI defaults to a flat-lesson view when `course.assessmentPlan` is absent.
+
+## Assessment loop (Phase 16)
+
+The teach-mode tutor authors assignments via `assignment.create`, which records a `parentSessionId` on the assignment linking back to the active teach session. The renderer picks up an `ActivityItem` with `metadata.kind === "assignment.issued"` and auto-opens a child tab in the right modality (quiz / homework / exam) via `useAssignmentIssuedSpawn` — without stealing focus from the teach tab. When the student submits in the child session, `AssignmentServiceImpl` calls `SessionService.notifySession()`, which injects a `system_note` event carrying the grade summary into the parent teach session's stream. The tutor receives the note and narrates per-item feedback on its next turn. The loop: teach session authors → child session submits → teach session narrates.
 
 ## Adaptive memory
 

@@ -2,7 +2,7 @@
 
 The user-facing surfaces of Praxis. `ARCHITECTURE.md` describes what the UI is (a Vite + React + TanStack Router SPA talking to `@praxis/core` over a transport); this document describes what it *does* and what it *feels like* to use.
 
-The UI has two top-level surfaces: **student** (the learning experience) and **configure** (authoring and tuning). They share the same SPA; the lock code controls which is accessible.
+The UI has two top-level surfaces: **student** (the learning experience) and **configure** (authoring and tuning). They share the same SPA; the lock code controls which is accessible. A third ambient surface — `<ActivityRail>` — is mounted at the router root and shows progress for background work (ingestion, indexing, grading) without blocking navigation.
 
 ## Surface map
 
@@ -70,8 +70,8 @@ Praxis supports three onboarding paths. They share the same backend machinery �
 
 1. **First-run greeting** in configure mode. Agent greets, asks for context (who's the student, what subject, what's the goal).
 2. **Subject selection** — pick a canonical subject pack (Math, Biology) or "custom subject."
-3. **Material upload (optional but encouraged)** — drag in textbook PDFs, syllabus, lesson notes. Ingestion runs in the background; UI shows progress.
-4. **Course shape conversation** — agent and configurator co-author lesson sequence. Agent suggests; configurator confirms or edits via chat or via the structured editor visible alongside.
+3. **Material upload (optional but encouraged)** — drag in textbook PDFs, syllabus, lesson notes. Ingestion runs in the background; progress surfaces on the `<ActivityRail>` without blocking other use.
+4. **Course shape conversation** — agent and configurator co-author lesson sequence. Agent suggests; configurator confirms or edits via chat or via the structured editor visible alongside. Courses bootstrapped from materials now have a unit structure (units → lessons → lesson assessments) rather than a flat lesson list.
 5. **Threshold and gate setup** — configurator picks defaults or customizes. Sensible defaults from the canonical pack.
 6. **Teaching style selection** — knobs for Socratic ↔ lecture, terse ↔ verbose, formal ↔ casual. Live preview of a sample exchange.
 7. **Lock code (optional)** — configurator can set a lock now or leave unlocked.
@@ -87,7 +87,7 @@ Praxis supports three onboarding paths. They share the same backend machinery �
 
 1. **Greeting** — agent asks what class they're in.
 2. **Material upload** — student drags in syllabus + textbook + class notes.
-3. **Bootstrap** — single tool call (`course.bootstrap_from_materials(...)`) runs ingestion + concept extraction + draft course assembly. UI shows a progress indicator with explanatory steps ("reading textbook chapters", "identifying concepts", "ordering lessons").
+3. **Bootstrap** — student opens a bootstrap session; the agent calls `course.start_exploration`, which runs a multi-turn agentic loop reading documents via outline / section / page tools and building a draft with units, lessons, and assessment shells. Progress surfaces on the `<ActivityRail>`.
 4. **Confirmation** — UI shows the draft course (lesson sequence, concept graph, suggested gates). Student reviews and edits. Agent walks through it conversationally if asked.
 5. **First session** — student starts a `teach` session on the first concept.
 
@@ -196,7 +196,7 @@ The body of an active tab takes its shape from the mode. The agent is present in
 
 #### teach (chat)
 
-The familiar conversational chat. Streamed messages with KaTeX, code blocks, citations, sketch input (Phase 15). Composer with mode-aware tutor-verb chips above the textarea: *explain · quiz me on · let me try · show your work · slower · go deeper*. This is the default modality; everything that worked in earlier phases continues to work.
+The familiar conversational chat. Streamed messages with KaTeX, code blocks, citations, sketch input. Composer with mode-aware tutor-verb chips above the textarea: *explain · quiz me on · let me try · show your work · slower · go deeper*. This is the default modality; everything that worked in earlier phases continues to work.
 
 ```
 ┌───────────────────────────────────────────────────────────┐
@@ -249,7 +249,7 @@ One item at a time, large display typography, keyboard-driven (`Space` = next, `
 
 #### homework (paginated problem set)
 
-Per-problem workspace combining sketch (Phase 15) + typed input + a chat side-rail. Auto-saves on each navigation. Per-problem feedback after submission of the whole set. The chat side-rail is for asking the tutor to explain a concept — never to solve the problem for you.
+Per-problem workspace combining sketch + typed input + a chat side-rail. Auto-saves on each navigation. Per-problem feedback after submission of the whole set. The chat side-rail is for asking the tutor to explain a concept — never to solve the problem for you.
 
 #### exam (proctored)
 
@@ -281,10 +281,11 @@ These hold inside every tab body, regardless of mode:
 
 - **Streamed messages** — model output streams character-by-character via the transport, with eased pacing (Phase 13) so it reads as someone *thinking and writing*. Tool calls appear as inline status ("checking with sympy…") with results rendered when ready.
 - **Embedded artifacts** — math expressions render via KaTeX; plots render inline; code blocks with syntax highlighting.
-- **Sketch input** — inline tldraw (Phase 15). Stylus / Apple Pencil / Wacom supported via pressure-sensitive Pointer Events. Tutor reads both the tldraw snapshot JSON and the rendered image.
+- **Sketch input** — inline tldraw. Stylus / Apple Pencil / Wacom supported via pressure-sensitive Pointer Events. Tutor reads both the tldraw snapshot JSON and the rendered image.
 - **Source signaling** — citations are clickable chips ("from your textbook, p.47"); clicking opens the source in a side panel.
 - **Productive-failure indicator** — when the tutor is waiting for an attempt, a soft visual indicator shows the wait window without explicit countdown pressure (suspended in exam mode, where time pressure is the explicit point).
 - **Hint requests** — discrete "I'm stuck" affordance available in teach / homework / quiz; absent in exam (the exam agent doesn't hint).
+- **Auto-spawn** — when the teach-mode tutor calls `assignment.create`, `useAssignmentIssuedSpawn` picks up the `ActivityItem` with `metadata.kind === "assignment.issued"` and automatically opens a child tab in the right modality (quiz / homework / exam) without stealing focus from the teach tab. The student finishes the assignment in the child tab; the tutor is notified via `system_note` when they submit.
 
 **What the workspace doesn't do:**
 
@@ -412,7 +413,7 @@ Submission is no longer its own surface; it's an affordance that lives inside th
 **Three input paths** for submitting work:
 
 1. **Type** — direct text/LaTeX input.
-2. **Sketch** — inline tldraw canvas (Phase 15). Stylus-friendly. The tutor reads both the snapshot JSON and the rendered image; the JSON when shape primitives carry meaning, the image otherwise. Higher `needs-human-review` rate than typed input but expected.
+2. **Sketch** — inline tldraw canvas. Stylus-friendly. The tutor reads both the snapshot JSON and the rendered image; the JSON when shape primitives carry meaning, the image otherwise. Higher `needs-human-review` rate than typed input but expected.
 3. **Upload photo** — for paper-and-pencil work. Vision OCR via the engine adapter.
 
 **Upload / sketch flow** (handwritten or drawn work):

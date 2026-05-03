@@ -24,22 +24,28 @@ export interface ServiceDeps {
 ### Example 2: `buildServices` — canonical production construction
 **File**: `packages/desktop/electron/main/services.ts`
 ```typescript
-export function buildServices(dbPath: string): Services {
+export function buildServices(dbPath: string, log: MainLogger): Services {
   const { db } = openDb({ path: dbPath });
+  const activityRegistry = new ActivityRegistryImpl({ log });
   const pyodide = new PyodideHost({ packages: ["sympy"] });
-  const jsHost = new IsolatedVmHost();
   const sympy = new PyodideSymPyService(pyodide);
-  const sandbox = new LocalCodeSandbox(jsHost, pyodide);
+  // QuickJS WASM replaces isolated-vm for JavaScript. No native binding.
+  const sandbox = new CodeSandboxImpl({
+    adapters: [new QuickJsLanguageSandbox(), new PyodideLanguageSandbox(pyodide)],
+  });
+  const codeSandboxTool = createCodeSandboxTool(sandbox);
 
   const deps: ServiceDeps = {
     db,
-    log: consoleLogger,
-    modes: new Map([[teachMode.id, teachMode]]),
-    toolDefinitions: [gradeMathTool, codeSandboxTool],
-    toolServices: { sympy, sandbox },
+    log,
+    modes: new Map([[teachMode.id, teachMode], /* ... all modes ... */]),
+    toolDefinitions: [gradeMathTool, codeSandboxTool, /* ... */],
+    toolServices: { sympy, sandbox, /* ... other services ... */ },
+    activity: activityRegistry,
     // engineFactory omitted — defaults to createEngine() from @praxis/engines
   };
-  return { session: new SessionServiceImpl(deps), config: new ConfigServiceImpl(deps), pyodide };
+  const sessionService = new SessionServiceImpl(deps);
+  return { session: sessionService, config: new ConfigServiceImpl(deps), activity: activityRegistry, /* ... */ };
 }
 ```
 

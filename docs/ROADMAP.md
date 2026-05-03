@@ -4,6 +4,13 @@ Built solo with AI assistance throughout. Phases are chunky — vibe-code each p
 
 Three integration milestones along the way: **M1** end-to-end tutor session (Phase 3), **M2** end-to-end course progression (Phase 9), **M3** shippable v1 (Phase 19).
 
+## Shipped non-phase chunks
+
+These landed alongside the numbered phases but don't carry a phase number of their own:
+
+- **Activity rail** — replaced the `IngestionProgress` blocking modal. `<ActivityRail>` is mounted at the router root and surfaces ambient progress for ingestion, indexing, and grading. Producers inject `ActivityRegistry` via `ServiceDeps.activity`. Design: `docs/designs/activity-rail.md`.
+- **Language sandbox registry** — QuickJS WASM (`quickjs-emscripten`) replaces `isolated-vm` for JavaScript execution. No native build required; no ABI dance. `CodeSandboxImpl` is registry-based with `QuickJsLanguageSandbox` and `PyodideLanguageSandbox` adapters. Design: `docs/designs/language-sandbox-registry.md`.
+
 ---
 
 ## Phase 1: Foundation skeleton
@@ -174,7 +181,7 @@ Three integration milestones along the way: **M1** end-to-end tutor session (Pha
 
 ---
 
-## Phase 10: Knowledge graph + canonical math pack ✓
+## Phase 10: Knowledge graph + canonical math pack ✓ SHIPPED
 
 **Goal:** Ship a curated Algebra 1 / Geometry concept graph; courses built from it route by prerequisite.
 
@@ -240,7 +247,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 13: Editorial foundation
+## Phase 13: Editorial foundation ✓ SHIPPED
 
 **Goal:** The whole app speaks one editorial visual language; the chat composer invites tutor-shaped requests; streamed model output reads as deliberate writing rather than machine output. **No structural changes** — this is a polish phase that establishes the design language all later phases inherit.
 
@@ -255,7 +262,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 14: Tabs + Library
+## Phase 14: Tabs + Library ✓ SHIPPED
 
 **Goal:** Multiple sessions of any mode run as parallel tabs in the chat workspace; a single Library replaces the courses / packs / documents trinity as the front door. Sessions become named arcs you can leave and come back to.
 
@@ -274,7 +281,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 15: Sketching + concept map (tldraw)
+## Phase 15a / 15b: Sketching + concept map (tldraw) ✓ SHIPPED
 
 **Goal:** Stylus-friendly sketching everywhere typing is allowed; student-authored concept maps; tutor reads JSON + image. Foundation primitive that Phase 16's modality bodies depend on.
 
@@ -293,25 +300,46 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 16: Modalities per mode
+## Phase 16a: Bootstrap explorer + course-scoped documents ✓ SHIPPED
 
-**Goal:** Each mode has its own embodied UI shape inside its tab — quiz feels like flashcards, exam feels like a proctored exam, homework like a paginated set, bootstrap like a workspace canvas. The AI agent's presence is preserved everywhere, with one constraint: exam mode restricts the agent to clarifying questions only — like a teacher proctoring an exam.
+**Goal:** Replace the single-shot `course.propose_draft` with an agentic multi-turn exploration loop. The bootstrap agent reads uploaded materials deeply and produces a richer draft with units, lessons, and assessment shells.
+
+**Build:**
+- `course.start_exploration` tool — entry point for the multi-turn bootstrap explorer. Spawns a fresh engine session scoped to the attached documents.
+- Explorer reads documents via `document.outline`, `document.list_sections`, `document.read_pages`, `retrieve_from_textbook`.
+- Draft mutation tools: `course.draft_add_unit`, `course.draft_set_assessment_plan`, `course.draft_add_lesson_assessment` — the explorer builds the draft incrementally.
+- `persistDraft` materialises units + lessons + assessment shells in one transaction on `course.confirm_draft`.
+- `course_documents` join table + `CourseDocumentsServiceImpl` — links ingested documents to specific courses so the explorer's retrieval is scoped.
+- `Unit`, `LessonAssessment`, `AssessmentPlan` types added to `@praxis/artifacts`.
+- Bootstrap mode toolNames updated: `course.start_exploration` replaces `course.propose_draft`.
+
+**Test checkpoint:** Drop a textbook PDF → ingest. Open bootstrap session → `course.start_exploration` → explorer reads chapters → draft contains units + lesson assessments + assessment plan. Confirm → course has structured `assessmentPlan`.
+
+---
+
+## Phase 16b: Modalities per mode + assessment loop ✓ SHIPPED
+
+**Goal:** Each mode has its own embodied UI shape inside its tab. The teach-mode tutor can author assignments that spawn child sessions; when the student submits, the tutor is notified and narrates feedback.
 
 **Build:**
 - Tab body component shape per mode, dispatched by `session.modeId`:
   - **teach** — chat as today (nothing changes)
   - **quiz** — flashcard rhythm: one item at a time, large display typography, keyboard-driven (`Space` = next, `1`–`4` = confidence rating after answering). Tutor visible as a side strip the student can summon.
   - **homework** — paginated problem set; per-problem workspace combining sketch (Phase 15 primitive) + typed input + chat side-rail. Auto-saves on each navigation.
-  - **exam** — proctored full-tab; timer in the kicker; problem-by-problem nav; sketched and/or typed answers; AI agent restricted to a single `clarification` tool — no `explain`, no `let_me_try`, no method help. The agent is present but acts as a proctor: clarifies wording when asked, will not solve.
-  - **bootstrap** — canvas with a side outline of the course being built. Conversation in the body builds an outline structure visibly on the side as the agent drafts and edits.
-  - **configure** — already largely its own surface (split-pane chat + structured editor); polish to match editorial language.
-- Per-mode tool-registry restrictions enforced server-side (not just by prompt). Exam-mode session opens with `mode.toolNames = ["clarification"]`.
-- New `clarification` tool — dispatched by the agent when the student asks "what does this question mean"; returns a normalized clarification, never a hint or partial solution.
-- Mode-aware composer affordances (extends Phase 13 chips) — quiz has `I'm stuck` + `next`; exam has `ask for clarification` + `next problem`; bootstrap has `what should we cover` + `add this`.
+  - **exam** — proctored full-tab; timer in the kicker; problem-by-problem nav; sketched and/or typed answers; AI agent restricted to `clarification` tool only.
+  - **bootstrap** — canvas with a side outline of the course being built.
+  - **configure** — already largely its own surface; editorial polish.
+- `parent_session_id` column on sessions and assignments tables.
+- `assignment.create` records `parentSessionId` on the assignment linking back to the teach session.
+- `SessionService.spawnFromAssignment()` opens a child session whose `parentSessionId` links back.
+- `SessionService.notifySession()` injects a `system_note` event into a running parent session.
+- `system_note` `EngineEvent` variant + `SystemNoteOrigin` discriminated union.
+- `useAssignmentIssuedSpawn` hook — renderer auto-opens a child tab in the right modality when `ActivityItem.metadata.kind === "assignment.issued"` lands.
+- `<SidekickPanel>`, `<ClarificationPill>` — exam-mode UI affordances.
+- `clarification` tool — rephrase a confusing prompt; never reveals method or answer.
+- Mode-aware composer chips extended for quiz / exam / bootstrap modes.
 
-**Research:** Tab body composition pattern in TanStack Router (rendering different React subtrees per `tab.modeId` cleanly); review of Anki / Quizlet flashcard rhythms for what feels good keyboard-only; review of online proctored exam UIs (Pearson VUE, ProctorU) for the proctor-restricted-helper pattern.
-
-**Test checkpoint:** Open one tab per mode. Each looks and behaves distinctly. In exam mode, asking the AI for help returns a clarifying question only — no method help even when explicitly requested. In quiz, keyboard-only navigation works (no mouse needed for a 20-card review). Homework supports per-problem sketching with the side-rail chat. Bootstrap shows the outline growing as the conversation progresses.
+**Test checkpoint:** Teach session authors quiz. `useAssignmentIssuedSpawn` opens quiz tab automatically (no focus steal). Student submits in quiz tab. Teach-session tutor receives `system_note` with grade summary and narrates feedback. In exam mode, asking for help returns only a clarification.
 
 ---
 

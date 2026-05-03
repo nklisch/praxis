@@ -9,7 +9,9 @@ Praxis is **an agent harness specialized for tutoring**. The tutor is always a m
 ```
                 ┌─────────────────────────────────────────────┐
                 │                  UI Surfaces                │
-                │   (student chat, progress map, configure)   │
+                │  (chat workspace, progress map, configure)  │
+                │     <ActivityRail> at router root           │
+                │     (ambient ingestion / indexing progress) │
                 │                [@praxis/ui]                 │
                 └─────────────────────────────────────────────┘
                                       ▲
@@ -41,20 +43,20 @@ The UI never imports `@praxis/core` directly — it goes through `@praxis/client
 
 ## Components
 
-Praxis ships as a pnpm workspace monorepo. Every component is a TypeScript package except `praxis-ingest` (Python).
+Praxis ships as a pnpm workspace monorepo. Every component is a TypeScript package. The `praxis-ingest` Python sidecar is deferred post-v1; ingestion is TS-native via the `Ingestor` port and per-format adapters in `@praxis/tools/runtime/ingestion/`.
 
 | Package | Responsibility |
 |---|---|
-| **`@praxis/core`** | The agent harness. Brief construction, event stream consumption, mode runtime, tool registry, prompt composition. Owns the `run()` loop dispatch. Exposes a typed service interface consumed via transport. |
+| **`@praxis/core`** | The agent harness. Brief construction, event stream consumption, mode runtime, tool registry, prompt composition. Owns the `run()` loop dispatch. Exposes a typed service interface consumed via transport. Houses `ActivityRegistry`, concept-graph indexers, and the ingestion `Ingestor` port + per-format adapters. |
 | **`@praxis/client`** | Typed RPC client for the UI. Bundles two transport implementations (IPC for Electron, WebSocket+HTTP for hosted), selected at runtime. The only `@praxis/*` package the UI imports — enforces the UI/backend boundary. Imports `@praxis/core` types only (no runtime). |
 | **`@praxis/engines`** | The three engine adapters (Claude Code / Codex / Direct). Each implements the engine contract. Self-contained — no other `@praxis/*` package may import here. |
 | **`@praxis/memory`** | Episodic log, the four projection layers, indexer agents that compute projections, the export/import format, the BKT-inspired mastery model. |
-| **`@praxis/artifacts`** | Schemas and persistence for courses, lessons, assignments, exams, gates, flashcards, notes. The "structured world" the agent operates on. |
-| **`@praxis/tools`** | Verification tools (math via sympy, code sandbox, retrieval, vision, citation), pedagogy tools, course tools, gating tools. Zod-typed schemas; engine-adapter-format conversion. |
+| **`@praxis/artifacts`** | Schemas and persistence for courses, lessons, units, assignments, exams, gates, flashcards, notes, concept maps, lesson assessments. The "structured world" the agent operates on. |
+| **`@praxis/tools`** | Verification tools (math via sympy, code sandbox, retrieval, vision, citation), pedagogy tools, course tools, bootstrap-explorer tools (`course.start_exploration`, `course.draft_*`), sketch tools, clarification tool, gating tools. Zod-typed schemas; engine-adapter-format conversion. |
 | **`@praxis/curriculum`** | Mode definitions, pedagogy pack runtime, gating logic, adaptive routing, knowledge-graph schema, BKT-style mastery updates. |
 | **`@praxis/ui`** | Vite + React + TanStack Router SPA. Student surface (chat + progress map + workspace + concept-map), configure surface (course authoring, gate editing, prompt customization), shared component library. Embeds tldraw for sketching surfaces and React Flow for the gate editor. Imports only from `@praxis/client`. |
 | **`@praxis/desktop`** | Electron host. Starts `@praxis/core` in the Electron main process (or a forked child for isolation), mounts the IPC transport server, loads the Vite-built `@praxis/ui` static bundle in the renderer. Adds local-first conveniences (file picker, on-disk storage paths). |
-| **`praxis-ingest`** | Python CLI (separately distributed). Marker-based PDF/EPUB ingestion. Output: structured chunks + manifest JSON. |
+| **`praxis-ingest`** | Python CLI (deferred post-v1). In v1, ingestion is TS-native via `Ingestor` port + per-format adapters in `@praxis/tools/runtime/ingestion/`. The `ActivityRail` surfaces ingestion progress without blocking other use. |
 
 ## Dependency direction
 
@@ -325,11 +327,11 @@ Tutor   ──┘
 
 **Authoring path** (configure mode, parent/teacher or self-directed): the agent has tools that mutate artifacts. The user "talks to the agent" to build a course; the agent calls `course.create()`, `course.add_lesson()`, etc.
 
-**Self-onboard path**: a single tool (`course.bootstrap_from_materials([...]) → draft_course`) runs the ingestion pipeline + concept extraction + draft course assembly, then the agent walks the user through confirming and editing.
+**Self-onboard path**: bootstrap mode is agentic — `course.start_exploration` runs a multi-turn exploration loop. The agent reads ingested documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_textbook` and writes drafts with `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
 
 **Student-facing**: artifacts are read-only to the student via the agent (tutor session) plus directly via the UI (progress map, workspace). The student never sees raw artifact JSON; the UI renders it.
 
-**Concept extraction** is an agent task — a small extractor agent reads chunks, proposes concepts and prerequisite edges, returns a draft graph for human confirmation. Never auto-applied without confirmation in v1.
+**Concept extraction** is an agentic task. Bootstrap mode runs `course.start_exploration`, which spawns a multi-turn exploration agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_textbook` and writes unit/lesson/concept drafts via `course.draft_*` tools. The draft is confirmed by the user; `persistDraft` materialises units + lessons + assessment shells in one transaction. Never auto-applied without confirmation in v1.
 
 ## UI architecture
 
@@ -354,29 +356,31 @@ Tutor   ──┘
 
 ## Ingestion pipeline
 
+Ingestion is TS-native. The `Ingestor` port in `@praxis/tools/runtime/ingestion/` dispatches to per-format adapters: `PlainTextIngestor`, `MarkdownIngestor`, `HtmlIngestor`, `DocxIngestor`, `EpubIngestor`, `JsPdfIngestor`, `VisionPdfIngestor`. The Python `praxis-ingest` sidecar is deferred post-v1.
+
 ```
 User selects file(s) in UI
         │
         ▼
-@praxis/core: ingestion request
+@praxis/core: IngestionService.ingest(file)
         │
         ▼
-spawn praxis-ingest (Python subprocess)
+IngestorRegistry.pick(mimeType) → per-format adapter
         │
         ▼
-Marker parses → structured chunks + manifest JSON
+Adapter parses → structured chunks
         │
         ▼
-@praxis/core ingests output:
+IngestionService:
    ├─ artifacts: store source document and chunks
    ├─ vectors: embed and store (sqlite-vec or pgvector)
-   └─ curriculum: optionally extract a draft concept graph (LLM-assisted)
+   └─ activity: emit ActivityItem via ActivityRegistry (progress on rail)
         │
         ▼
 UI confirms with the user (especially for self-onboard) and persists
 ```
 
-Ingestion is offline batch work, not in the agent's hot path. Long-running ingestion (large textbooks) shows progress in the UI but doesn't block other use.
+Ingestion is offline batch work, not in the agent's hot path. Long-running ingestion (large textbooks) shows progress on the `<ActivityRail>` without blocking other use.
 
 ## Future seams
 

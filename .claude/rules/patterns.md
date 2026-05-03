@@ -18,6 +18,7 @@ Detailed examples for each pattern are in `.claude/skills/patterns/{slug}.md`. R
 ## UI data patterns
 - **use-resource-hook**: `useResource(loader)` returns `{ data, loading, error, refresh, setData }`; loads on mount via useEffect; layer mutations on top using `setData` for optimistic updates; never inline the `setLoading/try/catch/finally` block → [use-resource-hook.md]
 - **context-hook-pair**: `createContext(null)` + Provider + `useX()` that throws if outside Provider; used for PraxisClient (`usePraxisClient`) and auth status (`useAuthStatus`); guards surface missing-provider bugs immediately → [context-hook-pair.md]
+- **activity-rail-producer**: Long-running services inject `ActivityRegistry` via `ServiceDeps.activity`; producers call `ctx.activity?.start({ label, metadata? })` → hold `ActivityHandle` → call `handle.update(patch)` / `handle.finish("done"|"failed")`; items appear on the `<ActivityRail>` after their `quietPeriodMs` threshold (default 800ms for indexers). Never create a blocking modal for background work — use the rail instead. → [service-deps-injection.md]
 
 ## UI component patterns
 - **modal-primitive**: `<Modal onClose={fn}>` provides backdrop + ESC + click-outside + ARIA once; 5 modals wrap content inside it; never duplicate the escape handler or backdrop div → [modal-primitive.md]

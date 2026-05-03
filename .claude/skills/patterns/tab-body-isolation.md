@@ -98,9 +98,10 @@ hook in the shell owns the state.
 
 - Simple navigation patterns (Library, Settings) — those are separate routes; the shell
   unmounts and remounts correctly
-- Phase 16 modality bodies — when quiz/exam/homework get distinct UI shapes, they mount
-  the relevant modality body; the `display:none` pattern applies to the tab wrapper,
-  not to switching modality bodies within a tab
+- Phase 16 modality bodies — quiz/exam/homework/bootstrap each have their own tab body
+  component (`QuizTabBody`, `ExamTabBody`, `HomeworkTabBody`, `BootstrapTabBody`) dispatched
+  by `session.modeId` in `packages/ui/src/components/chat-tab-body.tsx`; the `display:none`
+  pattern applies to the tab wrapper, not to switching modality bodies within a tab
 
 ## Common Violations
 

@@ -107,13 +107,14 @@ Notes:
 
 ## Native modules
 
-Praxis pulls in three native modules that need a C++ toolchain at install time:
+Praxis pulls in two native modules that need a C++ toolchain at install time:
 
 | Module | Used by | Notes |
 |---|---|---|
 | `better-sqlite3` | core, tools | Rebuilt for Electron via `pnpm --filter @praxis/desktop rebuild:electron`; rebuilt for Node via `pnpm rebuild better-sqlite3` |
 | `canvas` | tools (PDF page rendering) | Same dual-rebuild story as better-sqlite3 |
-| `isolated-vm` | tools (JS sandbox) | Currently uncovered for Electron 41's V8. Resolves and works under Node, but the `.node` binding won't load in the packaged desktop app — sandbox features are non-functional in `pnpm dev` / `pnpm dist:*` until [upstream releases a fix](https://github.com/laverdet/isolated-vm). Builds and tests outside Electron still work. |
+
+JS sandbox uses QuickJS WASM (`quickjs-emscripten`) — no native build required.
 
 If `pnpm install` fails with a `node-gyp` error, install Xcode Command Line
 Tools (macOS) or build-essential (Linux). On macOS Apple Silicon, also ensure
@@ -123,16 +124,16 @@ you have Python 3 on PATH.
 
 | Package | Description |
 |---|---|
-| `@praxis/core` | Orchestrator — DB module, shared types, service composition |
-| `@praxis/engines` | LLM engine adapters (Anthropic, OpenAI, Codex, Ollama) |
+| `@praxis/core` | Orchestrator — DB module, shared types, service composition, session loop, ingestion, sketch |
+| `@praxis/engines` | LLM engine adapters (Claude Code, Codex, Direct via Vercel AI SDK) |
 | `@praxis/memory` | Episodic + semantic memory, student-model projections |
-| `@praxis/artifacts` | Courses, lessons, assignments, notes, flashcards |
-| `@praxis/tools` | Deterministic and grounded tool implementations |
-| `@praxis/curriculum` | Concept graphs, prerequisite edges, pedagogy packs |
+| `@praxis/artifacts` | Courses, lessons, assignments, exams, gates, flashcards, notes, concept maps |
+| `@praxis/tools` | Deterministic and grounded tool implementations; Zod schemas |
+| `@praxis/curriculum` | Modes, gating logic, adaptive routing, knowledge graph, pedagogy packs |
 | `@praxis/client` | RPC client types and transport layer |
-| `@praxis/ui` | React component library for the tutor UI |
+| `@praxis/ui` | React SPA — student chat / progress map / workspace / configure |
 | `@praxis/claude-cli-sdk` | Vendored fork of `@nklisch/claude-cli-sdk` — TypeScript wrapper around the Claude Code CLI subprocess. Vendored locally so `pnpm deploy` doesn't choke on the upstream `link:` path |
-| `@praxis/desktop` | Electron entry point — mounts core + UI |
+| `@praxis/desktop` | Electron host: starts core in main process, mounts IPC, loads UI bundle in renderer |
 
 ## Development scripts
 
@@ -173,7 +174,7 @@ See `docs/` for the full design documentation:
 - `docs/VISION.md` — what Praxis is and isn't
 - `docs/ARCHITECTURE.md` — dependency direction rules and system boundaries
 - `docs/CONTRACT.md` — canonical type SSOT for cross-package interfaces
-- `docs/designs/` — per-phase implementation designs (phases 1–12 shipped)
+- `docs/designs/` — per-phase implementation designs (phases 1–16 shipped)
 - `docs/refactors/` — refactor plans (latest: post-phase-12)
 
 For agent-facing project conventions, see `CLAUDE.md` and `.claude/skills/patterns/`.

@@ -41,6 +41,24 @@ const toolDefinitions = [gradeMathTool, codeSandboxTool];
 // Future modes may have subsets of this list
 ```
 
+### Example 4: `exam` mode — minimal tool set (Phase 16 canonical example)
+**File**: `packages/curriculum/src/modes/exam.ts`
+```typescript
+export const examMode: Mode = {
+  id: "exam",
+  toolNames: [
+    "assignment.show",
+    "assignment.read_grade",
+    "sketch.read",       // Phase 15a: read student sketches from exam submissions
+    "clarification",     // Phase 16: rephrase a confusing prompt; no method or answer revealed
+    // No retrieve_from_textbook, no mastery / misconception tools, no graders
+  ],
+  // ...
+};
+```
+
+This is the canonical Phase 16 mode-tool-scoping use case: the tightest possible tool set enforced server-side. Even if the agent's prompt were compromised, `retrieve_from_textbook` and mastery tools simply aren't in the registry for exam sessions.
+
 ## When to Use
 
 - When adding a new tool: add the `ToolDefinition` to `deps.toolDefinitions` in `buildServices` AND add its name to every mode that should expose it
