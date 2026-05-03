@@ -1,4 +1,8 @@
 export { LocalEmbeddingService } from "./embeddings.js";
+export {
+  WorkerEmbeddingService,
+  type WorkerEmbeddingServiceOptions,
+} from "./embeddings-worker-client.js";
 export type {
   ChunkParagraphsOptions,
   HeadingChunkOptions,

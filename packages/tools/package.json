@@ -10,6 +10,7 @@
       "node": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./package.json": "./package.json",
     "./test-tools": {
       "praxis-source": "./src/test-tools/index.ts",
       "types": "./dist/test-tools/index.d.ts",
@@ -37,6 +38,13 @@
       "import": "./dist/runtime/index.js",
       "node": "./dist/runtime/index.js",
       "default": "./dist/runtime/index.js"
+    },
+    "./runtime/embeddings-worker": {
+      "praxis-source": "./src/runtime/embeddings-worker.ts",
+      "types": "./dist/runtime/embeddings-worker.d.ts",
+      "import": "./dist/runtime/embeddings-worker.js",
+      "node": "./dist/runtime/embeddings-worker.js",
+      "default": "./dist/runtime/embeddings-worker.js"
     },
     "./runtime/ingestion": {
       "praxis-source": "./src/runtime/ingestion/index.ts",

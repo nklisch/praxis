@@ -34,11 +34,17 @@ async function createBootstrapLogger(dbPath: string): Promise<MainLogger> {
 
 async function bootstrap(): Promise<void> {
   const dbPath = resolveDbPath();
+
+  // Migrations must run BEFORE createBootstrapLogger — the logger reads its
+  // config from `config_kv`, which doesn't exist until migration 0000 lands.
+  // Pre-logger errors fall through to the .catch() in app.whenReady() and
+  // surface via console.error.
+  await applyMigrations(dbPath);
+
   log = await createBootstrapLogger(dbPath);
   const bootLog = log.child({ component: "bootstrap" });
 
   bootLog.info("bootstrap.start", { dbPath });
-  await applyMigrations(dbPath);
   bootLog.info("bootstrap.migrations_applied");
 
   services = buildServices(dbPath, log);
@@ -93,6 +99,13 @@ app.on("before-quit", async (event) => {
   event.preventDefault();
   try {
     await services.session.shutdown();
+    // Phase 16: tear down forked Node-mode workers so child processes
+    // don't get orphaned. Shutdown is idempotent and best-effort.
+    for (const [name, worker] of Object.entries(services.workers)) {
+      await worker.shutdown().catch((err: unknown) => {
+        log?.warn("worker.shutdown_failed", { name, err: serializeError(err) });
+      });
+    }
   } finally {
     await log?.shutdown();
     app.exit(0);
