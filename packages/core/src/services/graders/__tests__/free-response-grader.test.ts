@@ -39,7 +39,13 @@ function makeFakeEngine(events: EngineEvent[]): Engine {
 
 function makeCtx(engine: Engine, mode: "quiz" | "homework" | "exam" = "quiz"): GraderContext {
   return {
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    log: {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    },
     services: {
       sympy: {} as GraderServices["sympy"],
       sandbox: {} as GraderServices["sandbox"],

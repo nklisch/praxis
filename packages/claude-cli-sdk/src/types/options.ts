@@ -1,5 +1,5 @@
-import type { McpServerConfig } from './mcp.js';
-import type { ToolDefinition, ToolHandler } from './tools.js';
+import type { McpServerConfig } from "./mcp.js";
+import type { ToolDefinition, ToolHandler } from "./tools.js";
 
 // ============================================
 // UUID (branded type for session IDs)
@@ -14,7 +14,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * deterministic session ID that can later be passed to
  * {@link ConversationOptions.resume} for session continuity.
  */
-export type UUID = string & { readonly __brand: 'UUID' };
+export type UUID = string & { readonly __brand: "UUID" };
 
 /**
  * Validate and brand a string as a {@link UUID}.
@@ -65,12 +65,12 @@ export function isUUID(value: string): value is UUID {
  * - `'auto'` — Automatically approve all tool calls (requires trust).
  */
 export type PermissionMode =
-  | 'default'
-  | 'acceptEdits'
-  | 'bypassPermissions'
-  | 'dontAsk'
-  | 'plan'
-  | 'auto';
+  | "default"
+  | "acceptEdits"
+  | "bypassPermissions"
+  | "dontAsk"
+  | "plan"
+  | "auto";
 
 // ============================================
 // TOOL CONTROL
@@ -114,7 +114,7 @@ export interface ToolFilter {
  * - `{ only: [...] }` — whitelist: only these tools visible
  * - `{ deny: [...] }` — blocklist: these tools hidden
  */
-export type ToolControl = 'all' | 'none' | ToolFilter;
+export type ToolControl = "all" | "none" | ToolFilter;
 
 // ============================================
 // AGENT DEFINITION
@@ -150,7 +150,7 @@ export interface AgentDefinition {
   /** Allowlist of tools this sub-agent can use. */
   allowedTools?: string[];
   /** Effort level override for this agent. Added in CLI v2.1.78. */
-  effort?: 'low' | 'medium' | 'high';
+  effort?: "low" | "medium" | "high";
   /** Tools to deny for this agent. Added in CLI v2.1.78. */
   disallowedTools?: string[];
 }
@@ -166,7 +166,7 @@ export interface AgentDefinition {
  * building manually. The CLI constrains model output to match this schema.
  */
 export interface JsonSchemaOutputFormat {
-  type: 'json_schema';
+  type: "json_schema";
   /** The JSON Schema object (must not contain `$schema` key — the CLI rejects it). */
   schema: Record<string, unknown>;
   /** Schema name shown to the model (default: `'Output'`). */
@@ -186,7 +186,7 @@ export interface JsonSchemaOutputFormat {
  * - `'sonnet'` — Balanced speed and capability. Default if omitted.
  * - `'opus'` — Most capable. Best for complex reasoning.
  */
-export type ModelAlias = 'haiku' | 'sonnet' | 'opus';
+export type ModelAlias = "haiku" | "sonnet" | "opus";
 
 /**
  * Base options shared by {@link Options} (one-shot queries) and
@@ -200,7 +200,7 @@ export interface OptionsBase {
   /** Model alias (e.g., 'haiku', 'sonnet', 'opus'). The CLI resolves to the latest version. */
   model?: ModelAlias;
   /** Effort level: 'low' | 'medium' | 'high' */
-  effort?: 'low' | 'medium' | 'high';
+  effort?: "low" | "medium" | "high";
   /** Fallback model if primary fails */
   fallbackModel?: ModelAlias;
 
@@ -319,11 +319,36 @@ type PermissionOptions =
 
 // ---- System prompt: systemPrompt XOR appendSystemPrompt (inline or file, not both) ----
 type SystemPromptOptions =
-  | { systemPrompt: string; systemPromptFile?: never; appendSystemPrompt?: never; appendSystemPromptFile?: never }
-  | { systemPrompt?: never; systemPromptFile: string; appendSystemPrompt?: never; appendSystemPromptFile?: never }
-  | { systemPrompt?: never; systemPromptFile?: never; appendSystemPrompt: string; appendSystemPromptFile?: never }
-  | { systemPrompt?: never; systemPromptFile?: never; appendSystemPrompt?: never; appendSystemPromptFile: string }
-  | { systemPrompt?: never; systemPromptFile?: never; appendSystemPrompt?: never; appendSystemPromptFile?: never };
+  | {
+      systemPrompt: string;
+      systemPromptFile?: never;
+      appendSystemPrompt?: never;
+      appendSystemPromptFile?: never;
+    }
+  | {
+      systemPrompt?: never;
+      systemPromptFile: string;
+      appendSystemPrompt?: never;
+      appendSystemPromptFile?: never;
+    }
+  | {
+      systemPrompt?: never;
+      systemPromptFile?: never;
+      appendSystemPrompt: string;
+      appendSystemPromptFile?: never;
+    }
+  | {
+      systemPrompt?: never;
+      systemPromptFile?: never;
+      appendSystemPrompt?: never;
+      appendSystemPromptFile: string;
+    }
+  | {
+      systemPrompt?: never;
+      systemPromptFile?: never;
+      appendSystemPrompt?: never;
+      appendSystemPromptFile?: never;
+    };
 
 /**
  * Options for {@link query} — one-shot streaming queries.
@@ -368,50 +393,49 @@ export type Options = OptionsBase & SessionOptions & PermissionOptions & SystemP
  *   },
  * })
  */
-export type ConversationOptions =
-  Omit<OptionsBase, 'fallbackModel'> & {
-    permissionMode?: PermissionMode;
-    dangerouslySkipPermissions?: boolean;
-    systemPrompt?: string;
-    /** Path to a file containing the system prompt. Mutually exclusive with systemPrompt. */
-    systemPromptFile?: string;
-    appendSystemPrompt?: string;
-    /** Path to a file containing the append system prompt. Mutually exclusive with appendSystemPrompt. */
-    appendSystemPromptFile?: string;
-    /**
-     * Resume a previous session by ID. The conversation will have full
-     * prior context. Combine with `sessionId` on the original session
-     * for deterministic IDs.
-     *
-     * @example
-     * // Create with known ID:
-     * const conv = createConversation({ sessionId: 'my-id', ... });
-     * await conv.sendAndCollect('start work');
-     * await conv.close();
-     *
-     * // Later, resume:
-     * const conv2 = createConversation({ resume: 'my-id', ... });
-     * await conv2.sendAndCollect('continue');
-     */
-    resume?: string;
-    /**
-     * Handlers for intercepted tool calls. When `sendAndCollect` sees a `tool_use` event
-     * whose name matches a key here, it calls the handler and sends the result back to
-     * Claude automatically, looping until the final result arrives.
-     *
-     * Use the `askUserQuestionHandler` and `sendUserMessageHandler` factories for the
-     * built-in interactive skill tools, or provide a custom handler for any tool name.
-     *
-     * @example
-     * createConversation({
-     *   toolHandlers: {
-     *     AskUserQuestion: askUserQuestionHandler(q => prompt(q)),
-     *     SendUserMessage: sendUserMessageHandler(m => console.log(m)),
-     *   },
-     * });
-     */
-    toolHandlers?: Record<string, ToolHandler>;
-  };
+export type ConversationOptions = Omit<OptionsBase, "fallbackModel"> & {
+  permissionMode?: PermissionMode;
+  dangerouslySkipPermissions?: boolean;
+  systemPrompt?: string;
+  /** Path to a file containing the system prompt. Mutually exclusive with systemPrompt. */
+  systemPromptFile?: string;
+  appendSystemPrompt?: string;
+  /** Path to a file containing the append system prompt. Mutually exclusive with appendSystemPrompt. */
+  appendSystemPromptFile?: string;
+  /**
+   * Resume a previous session by ID. The conversation will have full
+   * prior context. Combine with `sessionId` on the original session
+   * for deterministic IDs.
+   *
+   * @example
+   * // Create with known ID:
+   * const conv = createConversation({ sessionId: 'my-id', ... });
+   * await conv.sendAndCollect('start work');
+   * await conv.close();
+   *
+   * // Later, resume:
+   * const conv2 = createConversation({ resume: 'my-id', ... });
+   * await conv2.sendAndCollect('continue');
+   */
+  resume?: string;
+  /**
+   * Handlers for intercepted tool calls. When `sendAndCollect` sees a `tool_use` event
+   * whose name matches a key here, it calls the handler and sends the result back to
+   * Claude automatically, looping until the final result arrives.
+   *
+   * Use the `askUserQuestionHandler` and `sendUserMessageHandler` factories for the
+   * built-in interactive skill tools, or provide a custom handler for any tool name.
+   *
+   * @example
+   * createConversation({
+   *   toolHandlers: {
+   *     AskUserQuestion: askUserQuestionHandler(q => prompt(q)),
+   *     SendUserMessage: sendUserMessageHandler(m => console.log(m)),
+   *   },
+   * });
+   */
+  toolHandlers?: Record<string, ToolHandler>;
+};
 
 /**
  * Options for {@link discoverTools} — subset of {@link OptionsBase} that
@@ -419,8 +443,17 @@ export type ConversationOptions =
  *
  * Only fields that influence tool enumeration are included.
  */
-export type DiscoverOptions = Pick<OptionsBase,
-  | 'mcpServers' | 'strictMcpConfig' | 'pluginDirs' | 'settings'
-  | 'settingSources' | 'additionalDirectories' | 'workDir'
-  | 'env' | 'betas' | 'agents' | 'disableSlashCommands'
+export type DiscoverOptions = Pick<
+  OptionsBase,
+  | "mcpServers"
+  | "strictMcpConfig"
+  | "pluginDirs"
+  | "settings"
+  | "settingSources"
+  | "additionalDirectories"
+  | "workDir"
+  | "env"
+  | "betas"
+  | "agents"
+  | "disableSlashCommands"
 >;

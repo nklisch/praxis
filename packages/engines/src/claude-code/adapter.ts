@@ -9,7 +9,7 @@ import type {
   HealthStatus,
   VisionCapability,
 } from "@praxis/core/types";
-import { engineError } from "@praxis/core/types";
+import { engineError, serializeError } from "@praxis/core/types";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
@@ -62,7 +62,13 @@ export class ClaudeCodeEngine implements Engine {
           : {},
       });
     } catch (err) {
-      if (bridge) await bridge.close().catch(() => {});
+      if (bridge) {
+        await bridge.close().catch((closeErr: unknown) => {
+          this.opts.deps.log.warn("engine.claude-code.open.bridge_close_failed", {
+            err: serializeError(closeErr),
+          });
+        });
+      }
       throw err;
     }
 
@@ -81,6 +87,7 @@ export class ClaudeCodeEngine implements Engine {
       bridge,
       seedPreface,
       serverName: bridge?.serverName ?? "praxis",
+      log: this.opts.deps.log,
     });
   }
 
@@ -108,6 +115,7 @@ interface ClaudeCodeSessionInit {
   /** Transcript prefix applied to the FIRST send only (when seeded with priorTurns). */
   seedPreface: string;
   serverName: string;
+  log: EngineDeps["log"];
 }
 
 class ClaudeCodeEngineSession implements EngineSession {
@@ -115,6 +123,7 @@ class ClaudeCodeEngineSession implements EngineSession {
   private readonly conv: Conversation;
   private readonly bridge: ToolBridgeHandle | null;
   private readonly serverName: string;
+  private readonly log: EngineDeps["log"];
   private seedPreface: string;
   private closed = false;
 
@@ -123,6 +132,7 @@ class ClaudeCodeEngineSession implements EngineSession {
     this.conv = init.conv;
     this.bridge = init.bridge;
     this.serverName = init.serverName;
+    this.log = init.log;
     this.seedPreface = init.seedPreface;
   }
 
@@ -154,7 +164,13 @@ class ClaudeCodeEngineSession implements EngineSession {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
-    await this.conv.close().catch(() => {});
-    if (this.bridge) await this.bridge.close().catch(() => {});
+    await this.conv.close().catch((err: unknown) => {
+      this.log.warn("engine.claude-code.conversation_close_failed", { err: serializeError(err) });
+    });
+    if (this.bridge) {
+      await this.bridge.close().catch((err: unknown) => {
+        this.log.warn("engine.claude-code.tool_bridge_close_failed", { err: serializeError(err) });
+      });
+    }
   }
 }

@@ -17,7 +17,9 @@ const InputSchema = z.object({
   override: z
     .string()
     .min(1)
-    .describe("New fragment text. Replaces the default template for this (modeId, fragmentId) pair."),
+    .describe(
+      "New fragment text. Replaces the default template for this (modeId, fragmentId) pair.",
+    ),
 });
 
 const OutputSchema = z.object({

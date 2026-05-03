@@ -27,20 +27,11 @@ export function useLock(): UseLockResult {
 
   const loader = useCallback(async () => {
     if (!client.lock) return { isSet: false, isUnlocked: true };
-    const [isSet, isUnlocked] = await Promise.all([
-      client.lock.isSet(),
-      client.lock.isUnlocked(),
-    ]);
+    const [isSet, isUnlocked] = await Promise.all([client.lock.isSet(), client.lock.isUnlocked()]);
     return { isSet, isUnlocked };
   }, [client]);
 
-  const {
-    data,
-    loading: resourceLoading,
-    error,
-    refresh,
-    setData,
-  } = useResource(loader);
+  const { data, loading: resourceLoading, error, refresh, setData } = useResource(loader);
 
   // Treat data === undefined as still loading — preserves the original behavior where
   // loading starts true and guards downstream effects (e.g., configure session start)

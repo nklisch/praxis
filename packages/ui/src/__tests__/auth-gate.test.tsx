@@ -5,8 +5,7 @@
  * AuthProvider. When flagAuthRequired() is called, all gates show their banner.
  * When clearAuthRequired() is called (e.g., after sign-in), all gates clear.
  */
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { fireEvent } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuthGate } from "../components/auth-gate.js";
 import { AuthProvider, useAuthStatus } from "../context/auth-context.js";
@@ -26,10 +25,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 
 // Mock ClaudeAuthModal — we're testing AuthGate's banner behavior, not the modal
 vi.mock("../components/claude-auth-modal.js", () => ({
-  ClaudeAuthModal: ({
-    onClose,
-    onSignedIn,
-  }: { onClose: () => void; onSignedIn: () => void }) => (
+  ClaudeAuthModal: ({ onClose, onSignedIn }: { onClose: () => void; onSignedIn: () => void }) => (
     <div data-testid="auth-modal">
       <button type="button" onClick={onClose}>
         Cancel
@@ -72,14 +68,22 @@ function renderWithProviders(ui: React.ReactNode) {
 
 describe("AuthGate", () => {
   it("does not show the auth banner when needsAuth is false", () => {
-    renderWithProviders(<AuthGate><p>Child content</p></AuthGate>);
+    renderWithProviders(
+      <AuthGate>
+        <p>Child content</p>
+      </AuthGate>,
+    );
 
     expect(screen.queryByText("Not signed in to Claude.")).toBeNull();
     expect(screen.getByText("Child content")).toBeDefined();
   });
 
   it("shows the auth banner when flagAuthRequired is called", async () => {
-    renderWithProviders(<AuthGate><p>Child content</p></AuthGate>);
+    renderWithProviders(
+      <AuthGate>
+        <p>Child content</p>
+      </AuthGate>,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "flag" }));
 
@@ -89,7 +93,11 @@ describe("AuthGate", () => {
   });
 
   it("clears the auth banner when clearAuthRequired is called", async () => {
-    renderWithProviders(<AuthGate><p>Child content</p></AuthGate>);
+    renderWithProviders(
+      <AuthGate>
+        <p>Child content</p>
+      </AuthGate>,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "flag" }));
     await waitFor(() => {
@@ -105,8 +113,12 @@ describe("AuthGate", () => {
   it("both AuthGate instances show banner when flagAuthRequired fires", async () => {
     renderWithProviders(
       <>
-        <AuthGate><p>Gate A</p></AuthGate>
-        <AuthGate><p>Gate B</p></AuthGate>
+        <AuthGate>
+          <p>Gate A</p>
+        </AuthGate>
+        <AuthGate>
+          <p>Gate B</p>
+        </AuthGate>
       </>,
     );
 
@@ -121,8 +133,12 @@ describe("AuthGate", () => {
   it("both AuthGate instances clear when clearAuthRequired fires", async () => {
     renderWithProviders(
       <>
-        <AuthGate><p>Gate A</p></AuthGate>
-        <AuthGate><p>Gate B</p></AuthGate>
+        <AuthGate>
+          <p>Gate A</p>
+        </AuthGate>
+        <AuthGate>
+          <p>Gate B</p>
+        </AuthGate>
       </>,
     );
 
@@ -138,7 +154,11 @@ describe("AuthGate", () => {
   });
 
   it("opens ClaudeAuthModal when Sign in button is clicked", async () => {
-    renderWithProviders(<AuthGate><p>Child</p></AuthGate>);
+    renderWithProviders(
+      <AuthGate>
+        <p>Child</p>
+      </AuthGate>,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "flag" }));
     await waitFor(() => {
@@ -153,7 +173,11 @@ describe("AuthGate", () => {
 
   it("clears the banner and calls onSignedIn when sign-in succeeds", async () => {
     const onSignedIn = vi.fn();
-    renderWithProviders(<AuthGate onSignedIn={onSignedIn}><p>Child</p></AuthGate>);
+    renderWithProviders(
+      <AuthGate onSignedIn={onSignedIn}>
+        <p>Child</p>
+      </AuthGate>,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "flag" }));
     await waitFor(() => {
@@ -177,8 +201,12 @@ describe("AuthGate", () => {
     const onSignedIn = vi.fn();
     renderWithProviders(
       <>
-        <AuthGate onSignedIn={onSignedIn}><p>Gate A</p></AuthGate>
-        <AuthGate><p>Gate B</p></AuthGate>
+        <AuthGate onSignedIn={onSignedIn}>
+          <p>Gate A</p>
+        </AuthGate>
+        <AuthGate>
+          <p>Gate B</p>
+        </AuthGate>
       </>,
     );
 

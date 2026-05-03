@@ -20,9 +20,7 @@ const InputSchema = z.object({
     .number()
     .min(-1)
     .max(1)
-    .describe(
-      "Language register: -1 = formal academic, +1 = casual conversational. 0 = neutral.",
-    ),
+    .describe("Language register: -1 = formal academic, +1 = casual conversational. 0 = neutral."),
 });
 
 const OutputSchema = z.object({

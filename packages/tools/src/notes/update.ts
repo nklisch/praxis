@@ -1,5 +1,5 @@
-import { brandId } from "@praxis/core/types";
 import type { ToolContext, ToolDefinition } from "@praxis/core/types";
+import { brandId } from "@praxis/core/types";
 import { z } from "zod";
 import { NoteBodySchema } from "./schema.js";
 

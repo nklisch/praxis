@@ -1,14 +1,14 @@
-import { createLogger } from '../utils.js';
-import type { StreamEvent, ResultEvent, RateLimitEvent } from '../types/index.js';
+import type { RateLimitEvent, ResultEvent, StreamEvent } from "../types/index.js";
+import { createLogger } from "../utils.js";
 import {
-  RawSystemInitSchema,
   RawAssistantSchema,
-  RawUserSchema,
-  RawResultSchema,
   RawRateLimitSchema,
-} from './schemas.js';
+  RawResultSchema,
+  RawSystemInitSchema,
+  RawUserSchema,
+} from "./schemas.js";
 
-const logger = createLogger('cli');
+const logger = createLogger("cli");
 
 // ============================================
 // STREAM LINE PARSER
@@ -16,7 +16,7 @@ const logger = createLogger('cli');
 
 /** Type guard: checks that a value is a non-null object with a `type` property. */
 function hasType(val: unknown): val is { type: unknown } {
-  return typeof val === 'object' && val !== null && 'type' in val;
+  return typeof val === "object" && val !== null && "type" in val;
 }
 
 /**
@@ -39,50 +39,55 @@ export function parseStreamLine(line: string): StreamEvent | null {
   const type = raw.type;
 
   switch (type) {
-    case 'system': {
+    case "system": {
       const parsed = RawSystemInitSchema.safeParse(raw);
       if (!parsed.success) {
-        logger.warn('Unexpected system event shape from CLI', { issues: parsed.error.issues });
+        logger.warn("Unexpected system event shape from CLI", { issues: parsed.error.issues });
         return null;
       }
       const d = parsed.data;
       return {
-        type: 'system',
-        subtype: 'init',
+        type: "system",
+        subtype: "init",
         sessionId: d.session_id,
         model: d.model,
         tools: d.tools,
         cwd: d.cwd,
-        mcpServers: d.mcp_servers?.map(s => ({ name: s.name, status: s.status })),
+        mcpServers: d.mcp_servers?.map((s) => ({ name: s.name, status: s.status })),
         permissionMode: d.permissionMode,
         claudeCodeVersion: d.claude_code_version,
         agents: d.agents,
         skills: d.skills,
-        plugins: d.plugins?.map(p => typeof p === 'string' ? p : p.name),
+        plugins: d.plugins?.map((p) => (typeof p === "string" ? p : p.name)),
         fastModeState: d.fast_mode_state,
       };
     }
 
-    case 'assistant': {
+    case "assistant": {
       const parsed = RawAssistantSchema.safeParse(raw);
       if (!parsed.success) {
-        logger.warn('Unexpected assistant event shape from CLI', { issues: parsed.error.issues });
+        logger.warn("Unexpected assistant event shape from CLI", { issues: parsed.error.issues });
         return null;
       }
       const content = parsed.data.message.content;
 
       // Text blocks — concatenate all in this message
-      const textBlocks = content.filter((b): b is { type: 'text'; text: string } => b.type === 'text' && 'text' in b);
+      const textBlocks = content.filter(
+        (b): b is { type: "text"; text: string } => b.type === "text" && "text" in b,
+      );
       if (textBlocks.length > 0) {
-        const fullText = textBlocks.map((b) => b.text).join('');
-        return { type: 'assistant', text: fullText, delta: fullText };
+        const fullText = textBlocks.map((b) => b.text).join("");
+        return { type: "assistant", text: fullText, delta: fullText };
       }
 
       // Tool use block
-      const toolBlock = content.find((b): b is { type: 'tool_use'; id: string; name: string; input: unknown } => b.type === 'tool_use');
+      const toolBlock = content.find(
+        (b): b is { type: "tool_use"; id: string; name: string; input: unknown } =>
+          b.type === "tool_use",
+      );
       if (toolBlock) {
         return {
-          type: 'tool_use',
+          type: "tool_use",
           toolName: toolBlock.name,
           toolId: toolBlock.id,
           toolInput: toolBlock.input,
@@ -92,34 +97,46 @@ export function parseStreamLine(line: string): StreamEvent | null {
       return null;
     }
 
-    case 'user': {
+    case "user": {
       const parsed = RawUserSchema.safeParse(raw);
       if (!parsed.success) {
-        logger.warn('Unexpected user event shape from CLI', { issues: parsed.error.issues });
+        logger.warn("Unexpected user event shape from CLI", { issues: parsed.error.issues });
         return null;
       }
       const toolResult = parsed.data.message.content.find(
-        (b): b is { type: 'tool_result'; tool_use_id?: string; content?: unknown; is_error?: boolean } => b.type === 'tool_result'
+        (
+          b,
+        ): b is {
+          type: "tool_result";
+          tool_use_id?: string;
+          content?: unknown;
+          is_error?: boolean;
+        } => b.type === "tool_result",
       );
       if (!toolResult) return null;
 
       return {
-        type: 'tool_result',
+        type: "tool_result",
         toolId: toolResult.tool_use_id,
-        content: typeof toolResult.content === 'string' ? toolResult.content : toolResult.content !== undefined ? JSON.stringify(toolResult.content) : undefined,
+        content:
+          typeof toolResult.content === "string"
+            ? toolResult.content
+            : toolResult.content !== undefined
+              ? JSON.stringify(toolResult.content)
+              : undefined,
         isError: toolResult.is_error,
       };
     }
 
-    case 'result': {
+    case "result": {
       const parsed = RawResultSchema.safeParse(raw);
       if (!parsed.success) {
-        logger.warn('Unexpected result event shape from CLI', { issues: parsed.error.issues });
+        logger.warn("Unexpected result event shape from CLI", { issues: parsed.error.issues });
         return null;
       }
       const d = parsed.data;
       return {
-        type: 'result',
+        type: "result",
         subtype: d.subtype,
         sessionId: d.session_id,
         result: d.result ?? undefined,
@@ -145,19 +162,22 @@ export function parseStreamLine(line: string): StreamEvent | null {
         stopReason: d.stop_reason,
         modelUsage: d.modelUsage
           ? Object.fromEntries(
-              Object.entries(d.modelUsage).map(([model, u]) => [model, {
-                inputTokens: u.inputTokens,
-                outputTokens: u.outputTokens,
-                cacheReadInputTokens: u.cacheReadInputTokens,
-                cacheCreationInputTokens: u.cacheCreationInputTokens,
-                webSearchRequests: u.webSearchRequests,
-                costUsd: u.costUSD,
-                contextWindow: u.contextWindow,
-                maxOutputTokens: u.maxOutputTokens,
-              }])
+              Object.entries(d.modelUsage).map(([model, u]) => [
+                model,
+                {
+                  inputTokens: u.inputTokens,
+                  outputTokens: u.outputTokens,
+                  cacheReadInputTokens: u.cacheReadInputTokens,
+                  cacheCreationInputTokens: u.cacheCreationInputTokens,
+                  webSearchRequests: u.webSearchRequests,
+                  costUsd: u.costUSD,
+                  contextWindow: u.contextWindow,
+                  maxOutputTokens: u.maxOutputTokens,
+                },
+              ]),
             )
           : undefined,
-        permissionDenials: d.permission_denials?.map(pd => ({
+        permissionDenials: d.permission_denials?.map((pd) => ({
           toolName: pd.tool_name,
           toolUseId: pd.tool_use_id,
           toolInput: pd.tool_input,
@@ -165,15 +185,15 @@ export function parseStreamLine(line: string): StreamEvent | null {
       } satisfies ResultEvent;
     }
 
-    case 'rate_limit_event': {
+    case "rate_limit_event": {
       const parsed = RawRateLimitSchema.safeParse(raw);
       if (!parsed.success) {
-        logger.warn('Unexpected rate_limit_event shape from CLI', { issues: parsed.error.issues });
+        logger.warn("Unexpected rate_limit_event shape from CLI", { issues: parsed.error.issues });
         return null;
       }
       const d = parsed.data.rate_limit_info;
       return {
-        type: 'rate_limit_event',
+        type: "rate_limit_event",
         rateLimitInfo: {
           status: d.status,
           resetsAt: d.resetsAt,
@@ -187,7 +207,7 @@ export function parseStreamLine(line: string): StreamEvent | null {
 
     default:
       // Unknown event type — CLI may have added new events; ignore gracefully
-      logger.debug('Unknown CLI event type, ignoring', { type });
+      logger.debug("Unknown CLI event type, ignoring", { type });
       return null;
   }
 }

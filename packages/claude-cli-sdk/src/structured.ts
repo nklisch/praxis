@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { StructuredOutputError } from './errors.js';
-import type { JsonSchemaOutputFormat, ResultEvent } from './types/index.js';
+import { z } from "zod";
+import { StructuredOutputError } from "./errors.js";
+import type { JsonSchemaOutputFormat, ResultEvent } from "./types/index.js";
 
 /**
  * Convert a Zod schema to a {@link JsonSchemaOutputFormat} for the CLI's `--json-schema` flag.
@@ -22,14 +22,14 @@ import type { JsonSchemaOutputFormat, ResultEvent } from './types/index.js';
  */
 export function zodToOutputFormat(
   schema: z.ZodType,
-  name = 'Output',
-  strict = true
+  name = "Output",
+  strict = true,
 ): JsonSchemaOutputFormat {
   const jsonSchema = z.toJSONSchema(schema) as Record<string, unknown>;
   // Remove $schema — the Claude CLI rejects structured output when it's present
-  delete jsonSchema['$schema'];
+  delete jsonSchema["$schema"];
   return {
-    type: 'json_schema',
+    type: "json_schema",
     schema: jsonSchema,
     name,
     strict,
@@ -46,14 +46,14 @@ export function zodToOutputFormat(
  */
 export function parseStructuredOutput<T extends z.ZodType>(
   schema: T,
-  resultEvent: ResultEvent
+  resultEvent: ResultEvent,
 ): z.infer<T> {
   const raw = resultEvent.structuredOutput;
 
   const parsed = schema.safeParse(raw);
 
   if (!parsed.success) {
-    const issues = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
+    const issues = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
     throw new StructuredOutputError(issues, raw);
   }
 
@@ -73,7 +73,9 @@ export function parseStructuredOutput<T extends z.ZodType>(
  * const result = await collectResult(query('What is 2+2?', { maxTurns: 1 }));
  * console.log(result.result, result.costUsd);
  */
-export async function collectResult(gen: AsyncGenerator<unknown, ResultEvent, unknown>): Promise<ResultEvent> {
+export async function collectResult(
+  gen: AsyncGenerator<unknown, ResultEvent, unknown>,
+): Promise<ResultEvent> {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const { done, value } = await gen.next();

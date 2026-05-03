@@ -31,11 +31,39 @@ export interface GenerationParams {
   stopSequences?: string[];
 }
 
+export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
 export interface Logger {
   debug(message: string, fields?: Record<string, unknown>): void;
   info(message: string, fields?: Record<string, unknown>): void;
   warn(message: string, fields?: Record<string, unknown>): void;
   error(message: string, fields?: Record<string, unknown>): void;
+  /**
+   * Returns a new Logger whose every record carries `bindings` merged into
+   * its `bindings` field. Bindings from the parent are preserved; same-key
+   * bindings on the child override the parent.
+   *
+   * Example: `log.child({ component: "session-service", sessionId })`
+   */
+  child(bindings: Readonly<Record<string, unknown>>): Logger;
+}
+
+/**
+ * The shape of a log record as it flows over IPC from renderer → main, and
+ * the canonical wire format for any future log transport. Stored fields and
+ * bindings stay separate so child-logger context is preserved across hops.
+ */
+export interface LogRecord {
+  level: LogLevel;
+  /** Epoch milliseconds. */
+  time: number;
+  /** Free-form short message. By convention: dotted namespace + verb (e.g., "session.start.ok"). */
+  message: string;
+  /** Per-call structured fields. */
+  fields?: Record<string, unknown>;
+  /** Accumulated child-logger bindings (component, sessionId, etc.). */
+  bindings?: Record<string, unknown>;
 }
 
 /**

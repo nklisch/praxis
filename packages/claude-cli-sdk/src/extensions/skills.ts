@@ -1,4 +1,4 @@
-import type { HookEvent, HookMatcher } from './hooks.js';
+import type { HookEvent, HookMatcher } from "./hooks.js";
 
 // ============================================
 // SKILL BUILDER
@@ -30,9 +30,9 @@ export interface SkillConfig {
   /** Model to use when skill is active. */
   model?: string;
   /** Run in forked subagent context. */
-  context?: 'fork';
+  context?: "fork";
   /** Subagent type when context is fork. */
-  agent?: 'Explore' | 'Plan' | 'general-purpose' | string;
+  agent?: "Explore" | "Plan" | "general-purpose" | string;
   /** Hooks scoped to this skill. */
   hooks?: Partial<Record<HookEvent, HookMatcher[]>>;
 }
@@ -53,21 +53,21 @@ export interface SkillConfig {
 export function buildSkill(config: SkillConfig): GeneratedFile {
   const frontmatter: Record<string, unknown> = {};
 
-  if (config.name) frontmatter['name'] = config.name;
-  frontmatter['description'] = config.description;
-  if (config.argumentHint) frontmatter['argument-hint'] = config.argumentHint;
-  if (config.disableModelInvocation) frontmatter['disable-model-invocation'] = true;
-  if (config.userInvocable === false) frontmatter['user-invocable'] = false;
-  if (config.allowedTools?.length) frontmatter['allowed-tools'] = config.allowedTools.join(', ');
-  if (config.model) frontmatter['model'] = config.model;
-  if (config.context) frontmatter['context'] = config.context;
-  if (config.agent) frontmatter['agent'] = config.agent;
-  if (config.hooks) frontmatter['hooks'] = config.hooks;
+  if (config.name) frontmatter["name"] = config.name;
+  frontmatter["description"] = config.description;
+  if (config.argumentHint) frontmatter["argument-hint"] = config.argumentHint;
+  if (config.disableModelInvocation) frontmatter["disable-model-invocation"] = true;
+  if (config.userInvocable === false) frontmatter["user-invocable"] = false;
+  if (config.allowedTools?.length) frontmatter["allowed-tools"] = config.allowedTools.join(", ");
+  if (config.model) frontmatter["model"] = config.model;
+  if (config.context) frontmatter["context"] = config.context;
+  if (config.agent) frontmatter["agent"] = config.agent;
+  if (config.hooks) frontmatter["hooks"] = config.hooks;
 
   const yaml = serializeYaml(frontmatter);
   const content = `---\n${yaml}---\n\n${config.instructions}\n`;
 
-  return { path: 'SKILL.md', content };
+  return { path: "SKILL.md", content };
 }
 
 /**
@@ -75,23 +75,23 @@ export function buildSkill(config: SkillConfig): GeneratedFile {
  * Handles strings, booleans, numbers, and the hooks nested structure.
  */
 function serializeYaml(obj: Record<string, unknown>, indent = 0): string {
-  const pad = '  '.repeat(indent);
-  let out = '';
+  const pad = "  ".repeat(indent);
+  let out = "";
 
   for (const [key, value] of Object.entries(obj)) {
     if (value === undefined) continue;
 
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
       out += `${pad}${key}: ${value}\n`;
     } else if (Array.isArray(value)) {
       out += `${pad}${key}:\n`;
       for (const item of value) {
-        if (typeof item === 'object' && item !== null) {
+        if (typeof item === "object" && item !== null) {
           out += `${pad}  - `;
           const lines = serializeYaml(item as Record<string, unknown>, indent + 2)
-            .split('\n')
+            .split("\n")
             .filter(Boolean);
-          out += lines[0]!.trimStart() + '\n';
+          out += lines[0]!.trimStart() + "\n";
           for (const line of lines.slice(1)) {
             out += `${pad}    ${line.trimStart()}\n`;
           }
@@ -99,7 +99,7 @@ function serializeYaml(obj: Record<string, unknown>, indent = 0): string {
           out += `${pad}  - ${item}\n`;
         }
       }
-    } else if (typeof value === 'object' && value !== null) {
+    } else if (typeof value === "object" && value !== null) {
       out += `${pad}${key}:\n`;
       out += serializeYaml(value as Record<string, unknown>, indent + 1);
     }

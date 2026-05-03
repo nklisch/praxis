@@ -10,7 +10,7 @@ export interface McpServerStatus {
   /** MCP server name (matches the key in `mcpServers` config). */
   name: string;
   /** Connection status. Known values: `'connected'`, `'failed'`, `'pending'`, `'needs-auth'`. */
-  status: 'connected' | 'failed' | 'pending' | 'needs-auth' | string;
+  status: "connected" | "failed" | "pending" | "needs-auth" | string;
 }
 
 /**
@@ -20,8 +20,8 @@ export interface McpServerStatus {
  * Access `sessionId` here or via `query.sessionId` / `conv.sessionId`.
  */
 export interface SystemInitEvent {
-  type: 'system';
-  subtype: 'init';
+  type: "system";
+  subtype: "init";
   /** Session UUID. Same across all turns of a conversation. */
   sessionId: string;
   /** Resolved model ID (e.g. `'claude-sonnet-4-6-20250514'`). */
@@ -53,7 +53,7 @@ export interface SystemInitEvent {
  * `text` contains the full accumulated content block so far.
  */
 export interface AssistantTextEvent {
-  type: 'assistant';
+  type: "assistant";
   /** Full accumulated text content block. */
   text: string;
   /** Incremental text chunk (present during streaming). */
@@ -70,7 +70,7 @@ export interface AssistantTextEvent {
  * handlers and respond via {@link Conversation.sendToolResult}.
  */
 export interface ToolUseEvent {
-  type: 'tool_use';
+  type: "tool_use";
   /** Tool name (e.g. `'Read'`, `'Bash'`, `'mcp__github__read_file'`). */
   toolName: string;
   /** Unique ID for this tool invocation — use in `sendToolResult`. */
@@ -86,7 +86,7 @@ export interface ToolUseEvent {
  * the tool call failed and `content` contains the error message.
  */
 export interface ToolResultEvent {
-  type: 'tool_result';
+  type: "tool_result";
   /** Matches the `toolId` from the corresponding {@link ToolUseEvent}. */
   toolId?: string;
   /** Tool output content (text). */
@@ -154,9 +154,9 @@ export interface ModelUsageEntry {
  * - `'error_interrupted'` — Session was aborted or interrupted.
  */
 export interface ResultEvent {
-  type: 'result';
+  type: "result";
   /** Outcome of the session. */
-  subtype: 'success' | 'error_max_turns' | 'error_during_generation' | 'error_interrupted';
+  subtype: "success" | "error_max_turns" | "error_during_generation" | "error_interrupted";
   /** Session UUID. */
   sessionId: string;
   /** Final text response from the model. */
@@ -199,11 +199,11 @@ export interface ResultEvent {
  */
 export interface RateLimitInfo {
   /** Whether the request was allowed or rate-limited. */
-  status: 'allowed' | 'rate_limited' | string;
+  status: "allowed" | "rate_limited" | string;
   /** Epoch seconds when the rate limit window resets. */
   resetsAt: number;
   /** Which rate limit window this applies to. */
-  rateLimitType: 'five_hour' | 'seven_day' | string;
+  rateLimitType: "five_hour" | "seven_day" | string;
   /** Overage billing status, if applicable. */
   overageStatus?: string;
   /** Epoch seconds when overage window resets. */
@@ -219,7 +219,7 @@ export interface RateLimitInfo {
  * if the request was allowed or rate-limited.
  */
 export interface RateLimitEvent {
-  type: 'rate_limit_event';
+  type: "rate_limit_event";
   rateLimitInfo: RateLimitInfo;
 }
 

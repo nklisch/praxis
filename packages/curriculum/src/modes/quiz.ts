@@ -7,6 +7,7 @@ import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
 import { quizRoleFragment } from "./fragments/quiz-role.js";
+import { sketchAwarenessFragment } from "./fragments/sketch-awareness.js";
 
 export const quizMode: Mode = {
   id: "quiz",
@@ -19,6 +20,7 @@ export const quizMode: Mode = {
     quizRoleFragment,
     principlesFragment,
     assessmentToolsFragment,
+    sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault,
     assignmentContextFragmentDefault,
     constraintsFragment,
@@ -34,6 +36,7 @@ export const quizMode: Mode = {
     "code_sandbox",
     "update_mastery",
     "record_misconception",
+    "sketch.read", // ← Phase 15a: read student sketches from submissions
   ],
   uiSurface: "chat",
 };

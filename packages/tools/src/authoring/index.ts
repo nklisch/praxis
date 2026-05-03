@@ -1,13 +1,13 @@
 export { courseEditTool } from "./course/edit.js";
-export { lessonCreateTool } from "./lesson/create.js";
-export { lessonEditTool } from "./lesson/edit.js";
-export { lessonDeleteTool } from "./lesson/delete.js";
 export { gateCreateTool } from "./gate/create.js";
-export { gateEditTool } from "./gate/edit.js";
 export { gateDeleteTool } from "./gate/delete.js";
+export { gateEditTool } from "./gate/edit.js";
 export { gateOverrideTool } from "./gate/override.js";
-export { promptOverrideFragmentTool } from "./prompt/override-fragment.js";
+export { lessonCreateTool } from "./lesson/create.js";
+export { lessonDeleteTool } from "./lesson/delete.js";
+export { lessonEditTool } from "./lesson/edit.js";
 export { promptClearFragmentTool } from "./prompt/clear-fragment.js";
+export { promptOverrideFragmentTool } from "./prompt/override-fragment.js";
 export { promptSetStyleTool } from "./prompt/set-style.js";
 
 import { courseEditTool } from "./course/edit.js";

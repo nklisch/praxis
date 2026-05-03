@@ -25,6 +25,7 @@ import type {
   SymPyService,
   ToolDefinition,
   VectorStore,
+  VisionService,
 } from "../types/index.js";
 
 export interface ServiceDeps {
@@ -67,6 +68,8 @@ export interface ServiceDeps {
     fsrsScheduler: FsrsScheduler;
     /** Phase 15a: sketch storage + retrieval — used by sketch.read tool. */
     sketches: SketchService;
+    /** Phase 15a: vision capability wrapper — used by grade_math sketch case to OCR drawings. */
+    vision?: VisionService;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will

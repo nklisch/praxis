@@ -45,7 +45,13 @@ function makeErrorEvent(message: string): EngineEvent {
 
 function makeCtx(engine: Engine): GraderContext {
   return {
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    log: {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    },
     services: {
       sympy: {} as GraderServices["sympy"],
       sandbox: {} as GraderServices["sandbox"],
@@ -179,7 +185,13 @@ describe("runRubricAgent", () => {
     const engine = makeFakeEngine([makeModelMessage(json)]);
     const ctx = {
       ...makeCtx(engine),
-      log: { debug: vi.fn(), info: vi.fn(), warn: warnFn, error: vi.fn() },
+      log: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: warnFn,
+        error: vi.fn(),
+        child: vi.fn().mockReturnValue(undefined as any),
+      },
     };
     const result = await runRubricAgent({
       item: ITEM,

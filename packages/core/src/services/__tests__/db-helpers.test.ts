@@ -19,7 +19,13 @@ describe("loadOrThrow", () => {
 
   it("logs ghost-write at warn level when logger is provided and row is null", async () => {
     const fetch = vi.fn().mockResolvedValue(null);
-    const log = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const log = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    };
     await expect(
       loadOrThrow(fetch, { entity: "note", op: "create", id: "note-missing", log }),
     ).rejects.toThrow();
@@ -33,7 +39,13 @@ describe("loadOrThrow", () => {
   it("does not call log when row is found", async () => {
     const row = { id: "gate-1" };
     const fetch = vi.fn().mockResolvedValue(row);
-    const log = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const log = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    };
     await loadOrThrow(fetch, { entity: "gate", op: "override", id: "gate-1", log });
     expect(log.warn).not.toHaveBeenCalled();
   });

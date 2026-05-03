@@ -15,6 +15,7 @@ const noopLog = {
   info: () => {},
   warn: () => {},
   error: () => {},
+  child: () => noopLog,
 };
 
 /** Mock EmbeddingService — returns deterministic canned vectors. */

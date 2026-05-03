@@ -14,6 +14,8 @@ describe("ClaudeAuthServiceImpl", () => {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    // biome-ignore lint/suspicious/noExplicitAny: test mock
+    child: vi.fn().mockReturnValue(undefined as any),
   };
 
   beforeEach(() => {

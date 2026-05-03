@@ -25,6 +25,7 @@ const MOCK_LOG = {
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
+  child: vi.fn(() => MOCK_LOG),
 };
 
 const dbCtx = useTempDb();
@@ -89,7 +90,13 @@ describe("MemoryServiceImpl.resetConcept()", () => {
 
   it("logs the reset with the reason", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const mockLog = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const mockLog = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    };
     const svc = new MemoryServiceImpl({ db, log: mockLog, decayDaysFor: () => 14 });
 
     await svc.resetConcept({ studentId: STUDENT_ID, conceptId: CONCEPT_A, reason: "test" });
@@ -160,7 +167,13 @@ describe("MemoryServiceImpl.clearMisconception()", () => {
   it("logs the clear with the reason", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     seedMisconception(db);
-    const mockLog = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const mockLog = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    };
     const svc = new MemoryServiceImpl({ db, log: mockLog, decayDaysFor: () => 14 });
 
     await svc.clearMisconception({ misconceptionId: MISCONCEPTION_ID, reason: "logged" });

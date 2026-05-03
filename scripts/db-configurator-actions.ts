@@ -33,7 +33,8 @@ for (let i = 0; i < args.length; i++) {
 
 const { db } = openDb({ readonly: true });
 
-const whereClause = fromTs !== undefined ? gte(configuratorActions.ts, new Date(fromTs)) : undefined;
+const whereClause =
+  fromTs !== undefined ? gte(configuratorActions.ts, new Date(fromTs)) : undefined;
 
 const rows = db
   .select()
@@ -76,7 +77,8 @@ const tableRows = rows.map((row) => {
   if (action.misconceptionId) details.push(`misconception=${action.misconceptionId.slice(0, 8)}…`);
   if (action.modeId) details.push(`mode=${action.modeId}`);
   if (action.fragmentId) details.push(`fragment=${action.fragmentId}`);
-  if (action.reason) details.push(`reason="${action.reason.slice(0, 30)}${action.reason.length > 30 ? "…" : ""}"`);
+  if (action.reason)
+    details.push(`reason="${action.reason.slice(0, 30)}${action.reason.length > 30 ? "…" : ""}"`);
 
   return {
     ts,
@@ -86,7 +88,5 @@ const tableRows = rows.map((row) => {
   };
 });
 
-console.log(
-  `\nConfigurator actions (${rows.length} rows, newest first, limit=${limit})\n`,
-);
+console.log(`\nConfigurator actions (${rows.length} rows, newest first, limit=${limit})\n`);
 console.table(tableRows);

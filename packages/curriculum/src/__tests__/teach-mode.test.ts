@@ -21,8 +21,9 @@ describe("mode registry", () => {
     expect(modes.some((m) => m.id === "teach")).toBe(true);
   });
 
-  it("teachMode has all 7 prompt fragments (including tools + course-context)", () => {
-    expect(teachMode.promptFragments).toHaveLength(7);
+  it("teachMode has all 8 prompt fragments (including tools + course-context + sketch-awareness)", () => {
+    expect(teachMode.promptFragments).toHaveLength(8);
+    const ids = teachMode.promptFragments.map((f) => f.id);
     const positions = teachMode.promptFragments.map((f) => f.position);
     expect(positions).toContain("preamble");
     expect(positions).toContain("role");
@@ -31,6 +32,7 @@ describe("mode registry", () => {
     expect(positions).toContain("tools");
     expect(positions).toContain("constraints");
     expect(positions).toContain("postamble");
+    expect(ids).toContain("sketch.awareness"); // Phase 15a
   });
 
   it("teachMode toolNames includes grade_math, code_sandbox and retrieve_from_textbook", () => {

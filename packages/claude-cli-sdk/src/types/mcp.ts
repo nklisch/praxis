@@ -9,7 +9,7 @@
  * { type: 'stdio', command: 'npx', args: ['@gmail/mcp-server'], env: { API_KEY: '...' } }
  */
 export interface McpServerStdioConfig {
-  type: 'stdio';
+  type: "stdio";
   /** Command to execute (e.g. `'npx'`, `'node'`, `'python'`). */
   command: string;
   /** Command arguments. */
@@ -25,7 +25,7 @@ export interface McpServerStdioConfig {
  * { type: 'sse', url: 'http://localhost:3000/sse' }
  */
 export interface McpServerSseConfig {
-  type: 'sse';
+  type: "sse";
   /** SSE endpoint URL. */
   url: string;
   /** Additional HTTP headers. */
@@ -39,7 +39,7 @@ export interface McpServerSseConfig {
  * { type: 'http', url: 'http://localhost:3000/mcp' }
  */
 export interface McpServerHttpConfig {
-  type: 'http';
+  type: "http";
   /** HTTP endpoint URL. */
   url: string;
   /** Additional HTTP headers. */

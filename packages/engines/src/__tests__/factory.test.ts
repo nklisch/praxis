@@ -5,14 +5,14 @@ import { DirectEngine } from "../direct/index.js";
 import { createEngine } from "../factory.js";
 import type { EngineDeps } from "../types.js";
 
-const deps: EngineDeps = {
-  log: {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  },
+const _log = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  child: (): typeof _log => _log,
 };
+const deps: EngineDeps = { log: _log };
 
 describe("createEngine", () => {
   it("claude-code → ClaudeCodeEngine with id 'claude-code'", () => {

@@ -25,7 +25,13 @@ function makeResponse(response: string): AssignmentResponse {
 
 function makeCtx(sympyResult: SymPyCheckSolutionResult): GraderContext {
   return {
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    log: {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    },
     services: {
       sympy: {
         checkSolution: vi.fn().mockResolvedValue(sympyResult),

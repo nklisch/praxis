@@ -23,12 +23,14 @@ function makeDb() {
 }
 
 function makeLog() {
-  return {
+  const log = {
     debug: () => {},
     info: () => {},
     warn: () => {},
     error: () => {},
+    child: () => log,
   };
+  return log;
 }
 
 /** Build a minimal SessionServiceImpl with just enough deps for list(). */

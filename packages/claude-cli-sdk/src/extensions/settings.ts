@@ -1,5 +1,5 @@
-import type { PermissionMode } from '../types/index.js';
-import type { HookEvent, HookMatcher } from './hooks.js';
+import type { PermissionMode } from "../types/index.js";
+import type { HookEvent, HookMatcher } from "./hooks.js";
 
 // ============================================
 // SETTINGS BUILDER

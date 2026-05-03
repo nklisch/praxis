@@ -1,8 +1,8 @@
-import { type ReactNode, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { type ReactNode, useState } from "react";
 import { useAuthStatus } from "../context/auth-context.js";
-import { ClaudeAuthModal } from "./claude-auth-modal.js";
 import styles from "./auth-gate.module.css";
+import { ClaudeAuthModal } from "./claude-auth-modal.js";
 
 export interface AuthGateProps {
   /** What renders inside the gate. */

@@ -28,6 +28,7 @@ const MOCK_LOG = {
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
+  child: vi.fn(() => MOCK_LOG),
 };
 
 /** Phase 9: stub readers — return 0 / null so existing tests are unaffected. */

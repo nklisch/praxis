@@ -5,6 +5,7 @@ import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
 import { roleFragment } from "./fragments/role.js";
+import { sketchAwarenessFragment } from "./fragments/sketch-awareness.js";
 import { toolsFragment } from "./fragments/tools.js";
 
 export const teachMode: Mode = {
@@ -18,6 +19,7 @@ export const teachMode: Mode = {
     roleFragment,
     principlesFragment,
     toolsFragment,
+    sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault, // ← Phase 6: replaced at session start when courseId is set
     constraintsFragment,
     postambleFragment,
@@ -43,6 +45,7 @@ export const teachMode: Mode = {
     "flashcard.from_note",
     "flashcard.review",
     "flashcard.review_next",
+    "sketch.read", // ← Phase 15a: read student sketches from chat
   ],
   uiSurface: "chat",
 };

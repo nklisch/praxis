@@ -1,9 +1,20 @@
-import { createInterface } from 'node:readline';
-import type { ChildProcess } from 'node:child_process';
-import { buildConversationArgs, spawnCli, parseStreamLine, attachSpawnErrorHandler } from './cli/index.js';
-import { CLIError, CLITimeoutError } from './errors.js';
-import { createDeferredPromise } from './utils.js';
-import type { ConversationOptions, StreamEvent, ResultEvent, ToolUseEvent, ToolHandler } from './types/index.js';
+import type { ChildProcess } from "node:child_process";
+import { createInterface } from "node:readline";
+import {
+  attachSpawnErrorHandler,
+  buildConversationArgs,
+  parseStreamLine,
+  spawnCli,
+} from "./cli/index.js";
+import { CLIError, CLITimeoutError } from "./errors.js";
+import type {
+  ConversationOptions,
+  ResultEvent,
+  StreamEvent,
+  ToolHandler,
+  ToolUseEvent,
+} from "./types/index.js";
+import { createDeferredPromise } from "./utils.js";
 
 // ============================================
 // CONVERSATION TYPES
@@ -208,12 +219,16 @@ export function createConversation(options: ConversationOptions = {}): Conversat
 
     const { args, tempFiles, toolServerClose } = await buildConversationArgs(options);
     _toolServerClose = toolServerClose;
-    const spawnResult = spawnCli(args, { workDir: options.workDir, env: options.env, keepStdinOpen: true }, tempFiles);
+    const spawnResult = spawnCli(
+      args,
+      { workDir: options.workDir, env: options.env, keepStdinOpen: true },
+      tempFiles,
+    );
     proc = spawnResult.proc;
     _isOpen = true;
 
     // Collect stderr for error reporting
-    proc.stderr?.on('data', (chunk: unknown) => {
+    proc.stderr?.on("data", (chunk: unknown) => {
       stderrChunks.push(Buffer.isBuffer(chunk) ? chunk.toString() : String(chunk));
     });
 
@@ -225,26 +240,26 @@ export function createConversation(options: ConversationOptions = {}): Conversat
     });
 
     const rl = createInterface({ input: proc.stdout! });
-    rl.on('line', (line: string) => {
+    rl.on("line", (line: string) => {
       lineHandler?.(line);
     });
-    rl.on('close', () => {
+    rl.on("close", () => {
       _isOpen = false;
       closeHandler?.(proc?.exitCode ?? null);
     });
 
-    proc.on('close', (code: number | null) => {
+    proc.on("close", (code: number | null) => {
       _isOpen = false;
       closeHandler?.(code);
     });
 
     ac.signal.addEventListener(
-      'abort',
+      "abort",
       () => {
-        proc?.kill('SIGTERM');
+        proc?.kill("SIGTERM");
         _isOpen = false;
       },
-      { once: true }
+      { once: true },
     );
 
     return proc;
@@ -279,15 +294,17 @@ export function createConversation(options: ConversationOptions = {}): Conversat
     if (turnTimeout > 0 && isFinite(turnTimeout)) {
       timeoutId = setTimeout(() => {
         failTurn(new CLITimeoutError(turnTimeout));
-        proc?.kill('SIGTERM');
+        proc?.kill("SIGTERM");
       }, turnTimeout);
     }
 
     // Wire process exit to wake this turn's iterator
     closeHandler = (exitCode: number | null) => {
       if (!turnDone) {
-        const stderr = stderrChunks.join('');
-        failTurn(new CLIError(exitCode ?? 1, stderr || 'CLI process exited without a result event'));
+        const stderr = stderrChunks.join("");
+        failTurn(
+          new CLIError(exitCode ?? 1, stderr || "CLI process exited without a result event"),
+        );
       }
     };
 
@@ -295,7 +312,7 @@ export function createConversation(options: ConversationOptions = {}): Conversat
       const event = parseStreamLine(line);
       if (!event) return;
 
-      if (event.type === 'system' && event.subtype === 'init') {
+      if (event.type === "system" && event.subtype === "init") {
         sessionId.resolve(event.sessionId);
       }
 
@@ -303,7 +320,7 @@ export function createConversation(options: ConversationOptions = {}): Conversat
       eventResolve?.();
       eventResolve = null;
 
-      if (event.type === 'result') {
+      if (event.type === "result") {
         turnDone = true;
         if (timeoutId) clearTimeout(timeoutId);
         turnResult.resolve({
@@ -320,7 +337,7 @@ export function createConversation(options: ConversationOptions = {}): Conversat
 
     ensureProcess()
       .then((p) => {
-        p.stdin!.write(stdinMessage + '\n');
+        p.stdin!.write(stdinMessage + "\n");
       })
       .catch((err: Error) => {
         failTurn(err instanceof CLIError ? err : new CLIError(1, err.message));
@@ -361,8 +378,8 @@ export function createConversation(options: ConversationOptions = {}): Conversat
     event: ToolUseEvent,
   ): Promise<ToolResultContent> {
     const result = await handler(event);
-    const content = typeof result === 'string' ? result : result.content;
-    const isError = typeof result === 'object' ? result.isError : undefined;
+    const content = typeof result === "string" ? result : result.content;
+    const isError = typeof result === "object" ? result.isError : undefined;
     return { toolUseId: event.toolId, content, isError };
   }
 
@@ -381,19 +398,12 @@ export function createConversation(options: ConversationOptions = {}): Conversat
           for await (const event of currentTurn) {
             yield event;
 
-            if (
-              !intercepted &&
-              event.type === 'tool_use' &&
-              handlers[event.toolName]
-            ) {
-              const result = await invokeToolHandler(
-                handlers[event.toolName]!,
-                event,
-              );
+            if (!intercepted && event.type === "tool_use" && handlers[event.toolName]) {
+              const result = await invokeToolHandler(handlers[event.toolName]!, event);
               intercepted = result;
 
               yield {
-                type: 'tool_result' as const,
+                type: "tool_result" as const,
                 toolId: event.toolId,
                 content: result.content,
                 isError: result.isError,
@@ -402,7 +412,7 @@ export function createConversation(options: ConversationOptions = {}): Conversat
               break;
             }
 
-            if (event.type === 'result') {
+            if (event.type === "result") {
               finalResult.resolve({
                 result: event.result,
                 structuredOutput: event.structuredOutput,
@@ -418,15 +428,17 @@ export function createConversation(options: ConversationOptions = {}): Conversat
 
           if (intercepted) {
             const msg = JSON.stringify({
-              type: 'user',
+              type: "user",
               message: {
-                role: 'user',
-                content: [{
-                  type: 'tool_result',
-                  tool_use_id: intercepted.toolUseId,
-                  content: intercepted.content,
-                  is_error: intercepted.isError ?? false,
-                }],
+                role: "user",
+                content: [
+                  {
+                    type: "tool_result",
+                    tool_use_id: intercepted.toolUseId,
+                    content: intercepted.content,
+                    is_error: intercepted.isError ?? false,
+                  },
+                ],
               },
             });
             currentTurn = createTurn(msg);
@@ -452,19 +464,19 @@ export function createConversation(options: ConversationOptions = {}): Conversat
 
   function send(content: string): Turn {
     const msg = JSON.stringify({
-      type: 'user',
-      message: { role: 'user', content },
+      type: "user",
+      message: { role: "user", content },
     });
     return hasHandlers ? createHandledTurn(msg) : createTurn(msg);
   }
 
   function sendToolResult(results: ToolResultContent[]): Turn {
     const msg = JSON.stringify({
-      type: 'user',
+      type: "user",
       message: {
-        role: 'user',
+        role: "user",
         content: results.map((r) => ({
-          type: 'tool_result',
+          type: "tool_result",
           tool_use_id: r.toolUseId,
           content: r.content,
           is_error: r.isError ?? false,
@@ -489,9 +501,9 @@ export function createConversation(options: ConversationOptions = {}): Conversat
   async function close(): Promise<void> {
     if (proc && _isOpen) {
       proc.stdin?.end();
-      proc.kill('SIGTERM');
+      proc.kill("SIGTERM");
       await new Promise<void>((resolve) => {
-        proc!.on('close', () => resolve());
+        proc!.on("close", () => resolve());
         setTimeout(resolve, 5_000);
       });
     }

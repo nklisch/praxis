@@ -62,6 +62,9 @@ export { SessionServiceImpl } from "./session-service.js";
 // Phase 15a: Sketch service
 export type { SketchServiceDeps } from "./sketch-service.js";
 export { SketchServiceImpl } from "./sketch-service.js";
+// Phase 15a: Vision service
+export type { VisionServiceDeps } from "./vision-service.js";
+export { VisionServiceImpl } from "./vision-service.js";
 export { getOrCreateDefaultStudentId } from "./student.js";
 // Phase 14: Tabs service
 export type { TabsServiceDeps } from "./tabs-service.js";

@@ -1,10 +1,10 @@
-import { createInterface } from 'node:readline';
-import { buildCliArgs, parseStreamLine, spawnCli, isErrnoException } from './cli/index.js';
-import { CLIError, CLINotFoundError, CLITimeoutError } from './errors.js';
-import { createLogger } from './utils.js';
-import type { DiscoverOptions } from './types/index.js';
+import { createInterface } from "node:readline";
+import { buildCliArgs, isErrnoException, parseStreamLine, spawnCli } from "./cli/index.js";
+import { CLIError, CLINotFoundError, CLITimeoutError } from "./errors.js";
+import type { DiscoverOptions } from "./types/index.js";
+import { createLogger } from "./utils.js";
 
-const logger = createLogger('discover');
+const logger = createLogger("discover");
 
 /**
  * Result of {@link discoverTools} — the tools and MCP servers available
@@ -48,10 +48,10 @@ const DISCOVER_TIMEOUT_MS = 30_000;
  * // → ['Bash', 'Read', ..., 'mcp__gmail__list', 'mcp__gmail__read', ...]
  */
 export async function discoverTools(options: DiscoverOptions = {}): Promise<DiscoverResult> {
-  logger.debug('Starting tool discovery');
+  logger.debug("Starting tool discovery");
 
   // Build args — use dangerouslySkipPermissions so the discovery session doesn't prompt
-  const { args, tempFiles } = await buildCliArgs('.', {
+  const { args, tempFiles } = await buildCliArgs(".", {
     maxTurns: 1,
     dangerouslySkipPermissions: true,
     mcpServers: options.mcpServers,
@@ -67,7 +67,11 @@ export async function discoverTools(options: DiscoverOptions = {}): Promise<Disc
     disableSlashCommands: options.disableSlashCommands,
   });
 
-  const { proc, cleanup } = spawnCli(args, { workDir: options.workDir, env: options.env }, tempFiles);
+  const { proc, cleanup } = spawnCli(
+    args,
+    { workDir: options.workDir, env: options.env },
+    tempFiles,
+  );
 
   return new Promise<DiscoverResult>((resolve, reject) => {
     let settled = false;
@@ -77,19 +81,19 @@ export async function discoverTools(options: DiscoverOptions = {}): Promise<Disc
       timedOut = true;
       if (!settled) {
         settled = true;
-        proc.kill('SIGTERM');
+        proc.kill("SIGTERM");
         cleanup().catch(() => {});
         reject(new CLITimeoutError(DISCOVER_TIMEOUT_MS));
       }
     }, DISCOVER_TIMEOUT_MS);
 
     // Handle ENOENT spawn error
-    proc.on('error', (err: Error) => {
+    proc.on("error", (err: Error) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
       cleanup().catch(() => {});
-      if (isErrnoException(err) && err.code === 'ENOENT') {
+      if (isErrnoException(err) && err.code === "ENOENT") {
         reject(new CLINotFoundError());
       } else {
         reject(err);
@@ -97,30 +101,30 @@ export async function discoverTools(options: DiscoverOptions = {}): Promise<Disc
     });
 
     // Handle unexpected exit before system_init
-    proc.on('close', (code: number | null) => {
+    proc.on("close", (code: number | null) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeoutId);
       cleanup().catch(() => {});
       if (!timedOut) {
-        reject(new CLIError(code ?? 1, 'Claude CLI exited before emitting system_init event'));
+        reject(new CLIError(code ?? 1, "Claude CLI exited before emitting system_init event"));
       }
     });
 
     const rl = createInterface({ input: proc.stdout! });
 
-    rl.on('line', (line: string) => {
+    rl.on("line", (line: string) => {
       if (settled) return;
 
       const event = parseStreamLine(line);
-      if (event?.type === 'system' && event.subtype === 'init') {
+      if (event?.type === "system" && event.subtype === "init") {
         settled = true;
         clearTimeout(timeoutId);
         rl.close();
-        proc.kill('SIGTERM');
+        proc.kill("SIGTERM");
         cleanup().catch(() => {});
 
-        logger.debug('Tool discovery complete', {
+        logger.debug("Tool discovery complete", {
           toolCount: event.tools?.length ?? 0,
           mcpServerCount: event.mcpServers?.length ?? 0,
         });
@@ -138,7 +142,7 @@ export async function discoverTools(options: DiscoverOptions = {}): Promise<Disc
 // COMPUTE DISALLOWED TOOLS
 // ============================================
 
-const ALWAYS_ALLOWED = new Set(['ToolSearch']);
+const ALWAYS_ALLOWED = new Set(["ToolSearch"]);
 
 /**
  * Compute the `disallowedTools` list from an allowlist and discovered tools.
@@ -158,12 +162,9 @@ const ALWAYS_ALLOWED = new Set(['ToolSearch']);
  * const disallowed = computeDisallowedTools(tools, ['Read', 'Grep', 'Glob']);
  * // disallowed contains everything except Read, Grep, Glob, and ToolSearch
  */
-export function computeDisallowedTools(
-  allTools: string[],
-  strictAllowed: string[],
-): string[] {
+export function computeDisallowedTools(allTools: string[], strictAllowed: string[]): string[] {
   const allowSet = new Set(strictAllowed);
   // Auto-include ToolSearch — without it the model can't discover deferred tool schemas
   for (const t of ALWAYS_ALLOWED) allowSet.add(t);
-  return allTools.filter(tool => !allowSet.has(tool));
+  return allTools.filter((tool) => !allowSet.has(tool));
 }

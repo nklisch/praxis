@@ -9,7 +9,7 @@ import type {
   HealthStatus,
   VisionCapability,
 } from "@praxis/core/types";
-import { engineError } from "@praxis/core/types";
+import { engineError, serializeError } from "@praxis/core/types";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
@@ -64,7 +64,13 @@ export class CodexEngine implements Engine {
         skipGitRepoCheck: true,
       });
     } catch (err) {
-      if (bridge) await bridge.close().catch(() => {});
+      if (bridge) {
+        await bridge.close().catch((closeErr: unknown) => {
+          this.opts.deps.log.warn("engine.codex.open.bridge_close_failed", {
+            err: serializeError(closeErr),
+          });
+        });
+      }
       throw err;
     }
 
@@ -80,6 +86,7 @@ export class CodexEngine implements Engine {
       bridge,
       seedPreface,
       serverName: bridge?.serverName ?? "praxis",
+      log: this.opts.deps.log,
     });
   }
 
@@ -97,6 +104,7 @@ interface CodexSessionInit {
   bridge: ToolBridgeHandle | null;
   seedPreface: string;
   serverName: string;
+  log: EngineDeps["log"];
 }
 
 class CodexEngineSession implements EngineSession {
@@ -104,6 +112,7 @@ class CodexEngineSession implements EngineSession {
   private readonly thread: Thread;
   private readonly bridge: ToolBridgeHandle | null;
   private readonly serverName: string;
+  private readonly log: EngineDeps["log"];
   private seedPreface: string;
   private closed = false;
 
@@ -112,6 +121,7 @@ class CodexEngineSession implements EngineSession {
     this.thread = init.thread;
     this.bridge = init.bridge;
     this.serverName = init.serverName;
+    this.log = init.log;
     this.seedPreface = init.seedPreface;
   }
 
@@ -138,6 +148,10 @@ class CodexEngineSession implements EngineSession {
     this.closed = true;
     // Codex Thread has no close API — the CLI subprocess persists thread state on disk.
     // Drop our reference. Bridge subprocess gets torn down.
-    if (this.bridge) await this.bridge.close().catch(() => {});
+    if (this.bridge) {
+      await this.bridge.close().catch((err: unknown) => {
+        this.log.warn("engine.codex.tool_bridge_close_failed", { err: serializeError(err) });
+      });
+    }
   }
 }

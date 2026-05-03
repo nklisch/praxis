@@ -11,6 +11,7 @@ const noopLog = {
   info: () => {},
   warn: () => {},
   error: () => {},
+  child: () => noopLog,
 };
 
 function makeEmbedding(seed: number, dim = 384): number[] {

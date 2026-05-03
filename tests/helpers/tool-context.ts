@@ -52,7 +52,18 @@ export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext 
     sessionId: brandId<"SessionId">(opts.sessionId ?? "session-test"),
     ...(opts.courseId !== undefined && { courseId: opts.courseId }),
     ...(opts.assignmentId !== undefined && { assignmentId: opts.assignmentId }),
-    log: opts.log ?? { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    log:
+      opts.log ??
+      (() => {
+        const l: ToolContext["log"] = {
+          debug: vi.fn(),
+          info: vi.fn(),
+          warn: vi.fn(),
+          error: vi.fn(),
+          child: () => l,
+        };
+        return l;
+      })(),
     services,
   };
 }

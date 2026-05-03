@@ -1,14 +1,17 @@
-import { createInterface } from 'node:readline';
-import type { ChildProcess } from 'node:child_process';
-import { CLIError, CLITimeoutError } from '../errors.js';
-import type { StreamEvent } from '../types/index.js';
-import { parseStreamLine } from './parser.js';
+import type { ChildProcess } from "node:child_process";
+import { createInterface } from "node:readline";
+import { CLIError, CLITimeoutError } from "../errors.js";
+import type { StreamEvent } from "../types/index.js";
+import { parseStreamLine } from "./parser.js";
 
 // ============================================
 // STREAM EVENTS ASYNC GENERATOR
 // ============================================
 
-export async function* streamEvents(proc: ChildProcess, timeout: number): AsyncGenerator<StreamEvent> {
+export async function* streamEvents(
+  proc: ChildProcess,
+  timeout: number,
+): AsyncGenerator<StreamEvent> {
   const rl = createInterface({ input: proc.stdout! });
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   let timedOut = false;
@@ -17,26 +20,26 @@ export async function* streamEvents(proc: ChildProcess, timeout: number): AsyncG
   let resolveNext: (() => void) | null = null;
   let done = false;
 
-  rl.on('line', (line: string) => {
+  rl.on("line", (line: string) => {
     lineQueue.push(line);
     resolveNext?.();
     resolveNext = null;
   });
 
-  rl.on('close', () => {
+  rl.on("close", () => {
     done = true;
     resolveNext?.();
     resolveNext = null;
   });
 
   const stderrChunks: string[] = [];
-  proc.stderr?.on('data', (chunk: unknown) => {
+  proc.stderr?.on("data", (chunk: unknown) => {
     stderrChunks.push(Buffer.isBuffer(chunk) ? chunk.toString() : String(chunk));
   });
 
   timeoutId = setTimeout(() => {
     timedOut = true;
-    proc.kill('SIGTERM');
+    proc.kill("SIGTERM");
     done = true;
     resolveNext?.();
     resolveNext = null;
@@ -51,7 +54,7 @@ export async function* streamEvents(proc: ChildProcess, timeout: number): AsyncG
         const event = parseStreamLine(line);
         if (event) {
           yield event;
-          if (event.type === 'result') {
+          if (event.type === "result") {
             gotResult = true;
           }
         }
@@ -85,11 +88,11 @@ export async function* streamEvents(proc: ChildProcess, timeout: number): AsyncG
       resolve(proc.exitCode);
       return;
     }
-    proc.on('close', (code: number | null) => resolve(code ?? 0));
+    proc.on("close", (code: number | null) => resolve(code ?? 0));
   });
 
   if (exitCode !== 0) {
-    const stderr = stderrChunks.join('');
+    const stderr = stderrChunks.join("");
     throw new CLIError(exitCode, stderr);
   }
 }

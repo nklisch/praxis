@@ -1,9 +1,9 @@
-import { buildCliArgs, spawnCli, streamEvents, attachSpawnErrorHandler } from './cli/index.js';
-import { CLIError } from './errors.js';
-import { createLogger, createDeferredPromise } from './utils.js';
-import type { Options, Query, ResultEvent, StreamEvent } from './types/index.js';
+import { attachSpawnErrorHandler, buildCliArgs, spawnCli, streamEvents } from "./cli/index.js";
+import { CLIError } from "./errors.js";
+import type { Options, Query, ResultEvent, StreamEvent } from "./types/index.js";
+import { createDeferredPromise, createLogger } from "./utils.js";
 
-const logger = createLogger('query');
+const logger = createLogger("query");
 
 /**
  * Execute a one-shot query against the Claude CLI, streaming events as they arrive.
@@ -64,19 +64,23 @@ export function query(prompt: string, options: Options = {}): Query {
   async function* generate(): AsyncGenerator<StreamEvent, ResultEvent, unknown> {
     const { args, tempFiles } = await buildCliArgs(prompt, options);
 
-    logger.debug('Spawning CLI', { args: args.slice(0, 6), workDir: options.workDir });
+    logger.debug("Spawning CLI", { args: args.slice(0, 6), workDir: options.workDir });
 
-    const { proc, cleanup } = spawnCli(args, { workDir: options.workDir, env: options.env }, tempFiles);
+    const { proc, cleanup } = spawnCli(
+      args,
+      { workDir: options.workDir, env: options.env },
+      tempFiles,
+    );
     cleanupFn = cleanup;
 
     // Wire abort signal to process kill
     const onAbort = () => {
       if (!procKilled) {
         procKilled = true;
-        proc.kill('SIGTERM');
+        proc.kill("SIGTERM");
       }
     };
-    ac.signal.addEventListener('abort', onAbort, { once: true });
+    ac.signal.addEventListener("abort", onAbort, { once: true });
 
     // Handle ENOENT spawn error
     attachSpawnErrorHandler(proc, result.reject);
@@ -85,11 +89,11 @@ export function query(prompt: string, options: Options = {}): Query {
 
     try {
       for await (const event of streamEvents(proc, timeout)) {
-        if (event.type === 'system' && event.subtype === 'init') {
+        if (event.type === "system" && event.subtype === "init") {
           sessionId.resolve(event.sessionId);
         }
 
-        if (event.type === 'result') {
+        if (event.type === "result") {
           resultEvent = event;
           result.resolve(resultEvent);
         }
@@ -106,18 +110,18 @@ export function query(prompt: string, options: Options = {}): Query {
       // Kill the process if it's still running (e.g. stuck during cleanup)
       if (!procKilled && proc.exitCode === null) {
         procKilled = true;
-        proc.kill('SIGTERM');
+        proc.kill("SIGTERM");
       }
-      ac.signal.removeEventListener('abort', onAbort);
+      ac.signal.removeEventListener("abort", onAbort);
       await cleanup();
     }
 
     if (!resultEvent) {
       // Process ended without a result event
-      const err = new CLIError(0, 'Claude CLI exited without a result event');
+      const err = new CLIError(0, "Claude CLI exited without a result event");
       result.reject(err);
       // Resolve sessionId with empty string if never set
-      sessionId.resolve('');
+      sessionId.resolve("");
       throw err;
     }
 

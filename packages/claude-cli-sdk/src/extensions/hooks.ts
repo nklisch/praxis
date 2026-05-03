@@ -19,21 +19,21 @@
  * - `Elicitation` / `ElicitationResult` — Interactive prompts.
  */
 export type HookEvent =
-  | 'PreToolUse'
-  | 'PostToolUse'
-  | 'PostToolUseFailure'
-  | 'UserPromptSubmit'
-  | 'Notification'
-  | 'Stop'
-  | 'StopFailure'
-  | 'SubagentStart'
-  | 'SubagentStop'
-  | 'SessionStart'
-  | 'SessionEnd'
-  | 'TaskCompleted'
-  | 'PostCompact'
-  | 'Elicitation'
-  | 'ElicitationResult';
+  | "PreToolUse"
+  | "PostToolUse"
+  | "PostToolUseFailure"
+  | "UserPromptSubmit"
+  | "Notification"
+  | "Stop"
+  | "StopFailure"
+  | "SubagentStart"
+  | "SubagentStop"
+  | "SessionStart"
+  | "SessionEnd"
+  | "TaskCompleted"
+  | "PostCompact"
+  | "Elicitation"
+  | "ElicitationResult";
 
 /**
  * A hook action to execute when a {@link HookMatcher} matches.
@@ -45,7 +45,7 @@ export type HookEvent =
  */
 export interface HookHandler {
   /** Hook type — determines which field to set. */
-  type: 'command' | 'http' | 'prompt' | 'agent';
+  type: "command" | "http" | "prompt" | "agent";
   /** Shell command to run (for `type: 'command'`). */
   command?: string;
   /** URL to call (for `type: 'http'`). */

@@ -1,10 +1,12 @@
 import type {
+  Logger,
   ToolContext,
   ToolDefinition,
   ToolDefinitionSummary,
   ToolRegistry,
   ToolResult,
 } from "@praxis/core/types";
+import { serializeError } from "@praxis/core/types";
 import { z } from "zod";
 
 export interface InProcessToolRegistryOptions {
@@ -12,6 +14,8 @@ export interface InProcessToolRegistryOptions {
   tools: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
   /** Per-session context passed to every tool handler. */
   context: ToolContext;
+  /** Logger for dispatch observability. */
+  log: Logger;
 }
 
 /**
@@ -25,9 +29,11 @@ export class InProcessToolRegistry implements ToolRegistry {
   private readonly tools: Map<string, ToolDefinition<z.ZodType, z.ZodType>>;
   private readonly summaries: ToolDefinitionSummary[];
   private readonly context: ToolContext;
+  private readonly log: Logger;
 
   constructor(opts: InProcessToolRegistryOptions) {
     this.context = opts.context;
+    this.log = opts.log;
     this.tools = new Map();
     this.summaries = [];
     for (const tool of opts.tools) {
@@ -50,6 +56,8 @@ export class InProcessToolRegistry implements ToolRegistry {
   }
 
   async dispatch(name: string, args: unknown): Promise<ToolResult> {
+    this.log.debug("tool.dispatch.start", { name });
+    const t0 = performance.now();
     const tool = this.tools.get(name);
     if (!tool) {
       return {
@@ -70,9 +78,15 @@ export class InProcessToolRegistry implements ToolRegistry {
     }
     try {
       const value = await tool.handler(parsed.data, this.context);
+      this.log.debug("tool.dispatch.ok", { name, durationMs: Math.round(performance.now() - t0) });
       return { ok: true, value, tier: tool.tier };
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
+      this.log.warn("tool.dispatch.error", {
+        name,
+        durationMs: Math.round(performance.now() - t0),
+        err: serializeError(cause),
+      });
       return {
         ok: false,
         error: { code: "tool.handler_threw", message, recoverable: false },

@@ -14,6 +14,7 @@ const MOCK_LOG = {
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
+  child: vi.fn(() => MOCK_LOG),
 };
 
 const STUDENT_ID = brandId<"StudentId">("student-notes-test");
@@ -160,7 +161,11 @@ describe("NotesServiceImpl", () => {
         body: { kind: "free", text: "second" },
       });
       // Touch note1 after note2 so it has a later updatedAt.
-      await svc.update({ studentId, noteId: note1.id, body: { kind: "free", text: "first-updated" } });
+      await svc.update({
+        studentId,
+        noteId: note1.id,
+        body: { kind: "free", text: "first-updated" },
+      });
       const notes = await svc.list({ studentId });
       // note1 was updated last, so it should be first in desc order.
       expect(notes[0]?.body).toContain("first-updated");

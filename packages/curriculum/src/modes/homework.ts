@@ -7,6 +7,7 @@ import { homeworkRoleFragment } from "./fragments/homework-role.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
+import { sketchAwarenessFragment } from "./fragments/sketch-awareness.js";
 import { quizMode } from "./quiz.js";
 
 export const homeworkMode: Mode = {
@@ -20,11 +21,12 @@ export const homeworkMode: Mode = {
     homeworkRoleFragment,
     principlesFragment,
     assessmentToolsFragment,
+    sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault,
     assignmentContextFragmentDefault,
     constraintsFragment,
     postambleFragment,
   ],
-  toolNames: quizMode.toolNames, // same as quiz; behavior diverges via prompt
+  toolNames: quizMode.toolNames, // same as quiz (includes sketch.read); behavior diverges via prompt
   uiSurface: "chat",
 };

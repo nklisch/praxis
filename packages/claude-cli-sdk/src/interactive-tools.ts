@@ -1,4 +1,4 @@
-import type { ToolHandler } from './types/index.js';
+import type { ToolHandler } from "./types/index.js";
 
 // ============================================
 // WELL-KNOWN INTERACTIVE TOOL NAMES
@@ -14,9 +14,9 @@ import type { ToolHandler } from './types/index.js';
  */
 export const InteractiveTool = {
   /** Claude calls this to ask the user a question during skill execution. */
-  AskUserQuestion: 'AskUserQuestion',
+  AskUserQuestion: "AskUserQuestion",
   /** Claude calls this to send a one-way notification (requires `brief: true`). */
-  SendUserMessage: 'SendUserMessage',
+  SendUserMessage: "SendUserMessage",
 } as const;
 
 export type InteractiveToolName = (typeof InteractiveTool)[keyof typeof InteractiveTool];
@@ -47,9 +47,7 @@ export type InteractiveToolName = (typeof InteractiveTool)[keyof typeof Interact
  * });
  * const r = await conv.sendAndCollect('/my-interactive-skill');
  */
-export function askUserQuestionHandler(
-  fn: (question: string) => Promise<string>
-): ToolHandler {
+export function askUserQuestionHandler(fn: (question: string) => Promise<string>): ToolHandler {
   return async (event) => {
     const input = event.toolInput as { question: string };
     return fn(input.question);
@@ -74,12 +72,10 @@ export function askUserQuestionHandler(
  *   },
  * });
  */
-export function sendUserMessageHandler(
-  fn: (message: string) => void | Promise<void>
-): ToolHandler {
+export function sendUserMessageHandler(fn: (message: string) => void | Promise<void>): ToolHandler {
   return async (event) => {
     const input = event.toolInput as { message: string };
     await fn(input.message);
-    return '';
+    return "";
   };
 }

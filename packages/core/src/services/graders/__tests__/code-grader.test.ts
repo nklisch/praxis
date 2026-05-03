@@ -30,7 +30,13 @@ function makeResponse(response: string): AssignmentResponse {
 function makeCtx(sandboxResults: CodeSandboxResult[]): GraderContext {
   let callCount = 0;
   return {
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    log: {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    },
     services: {
       sympy: {} as GraderServices["sympy"],
       sandbox: {

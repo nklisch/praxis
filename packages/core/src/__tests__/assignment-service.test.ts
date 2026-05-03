@@ -80,7 +80,13 @@ function makeMCService(noEngine = false): AssignmentServiceImpl {
   }
   return new AssignmentServiceImpl({
     db,
-    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    log: {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(), // biome-ignore lint/suspicious/noExplicitAny: test mock
+      child: vi.fn().mockReturnValue(undefined as any),
+    },
     graderServices: {
       sympy: {
         checkSolution: vi

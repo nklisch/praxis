@@ -1,5 +1,5 @@
-import type { z } from 'zod';
-import type { StreamEvent, ResultEvent } from './events.js';
+import type { z } from "zod";
+import type { ResultEvent, StreamEvent } from "./events.js";
 
 // ============================================
 // QUERY (async generator with extras)
@@ -70,9 +70,7 @@ export interface ToolDefinition<TInput = unknown> {
  * - `{ success: true, content: '...' }` — Tool succeeded, content returned to model.
  * - `{ success: false, error: '...' }` — Tool failed, error message returned to model.
  */
-export type ToolResult =
-  | { success: true; content: string }
-  | { success: false; error: string };
+export type ToolResult = { success: true; content: string } | { success: false; error: string };
 
 // ============================================
 // TOOL HANDLERS (for intercepting tool calls)
@@ -102,4 +100,4 @@ export type ToolHandlerResult = string | { content: string; isError?: boolean };
  *   return { content: await mySearch(input.query) };
  * };
  */
-export type ToolHandler = (event: import('./events.js').ToolUseEvent) => Promise<ToolHandlerResult>;
+export type ToolHandler = (event: import("./events.js").ToolUseEvent) => Promise<ToolHandlerResult>;

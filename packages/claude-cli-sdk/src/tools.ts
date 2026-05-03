@@ -1,5 +1,5 @@
-import type { z } from 'zod';
-import type { ToolDefinition, ToolResult } from './types/index.js';
+import type { z } from "zod";
+import type { ToolDefinition, ToolResult } from "./types/index.js";
 
 /**
  * Create a typed {@link ToolDefinition} for custom tool injection.
@@ -36,7 +36,7 @@ export function tool<TInput>(
   name: string,
   description: string,
   inputSchema: z.ZodType<TInput>,
-  handler: (input: TInput) => Promise<ToolResult> | ToolResult
+  handler: (input: TInput) => Promise<ToolResult> | ToolResult,
 ): ToolDefinition<TInput> {
   return { name, description, inputSchema, handler };
 }

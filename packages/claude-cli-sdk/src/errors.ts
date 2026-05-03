@@ -16,10 +16,10 @@ export class CLIError extends Error {
     /** The process exit code (non-zero). */
     public readonly exitCode: number,
     /** Stderr output from the CLI process. */
-    public readonly stderr: string
+    public readonly stderr: string,
   ) {
     super(`Claude CLI exited with code ${exitCode}: ${stderr}`);
-    this.name = 'CLIError';
+    this.name = "CLIError";
   }
 }
 
@@ -32,10 +32,10 @@ export class CLIError extends Error {
 export class CLITimeoutError extends Error {
   constructor(
     /** The timeout value that was exceeded, in milliseconds. */
-    public readonly timeoutMs: number
+    public readonly timeoutMs: number,
   ) {
     super(`Claude CLI timed out after ${timeoutMs}ms`);
-    this.name = 'CLITimeoutError';
+    this.name = "CLITimeoutError";
   }
 }
 
@@ -47,7 +47,7 @@ export class CLITimeoutError extends Error {
 export class CLINotFoundError extends Error {
   constructor() {
     super('Claude CLI not found. Ensure "claude" is installed and in PATH.');
-    this.name = 'CLINotFoundError';
+    this.name = "CLINotFoundError";
   }
 }
 
@@ -67,7 +67,7 @@ export class InvalidOptionError extends Error {
     public readonly constraint: string,
   ) {
     super(`Invalid option "${option}": ${constraint} (got ${JSON.stringify(value)})`);
-    this.name = 'InvalidOptionError';
+    this.name = "InvalidOptionError";
   }
 }
 
@@ -82,9 +82,9 @@ export class StructuredOutputError extends Error {
     /** Human-readable validation failure messages, one per failing field. */
     public readonly issues: string[],
     /** The raw `structuredOutput` value that failed validation. */
-    public readonly rawOutput: unknown
+    public readonly rawOutput: unknown,
   ) {
-    super(`Structured output validation failed: ${issues.join(', ')}`);
-    this.name = 'StructuredOutputError';
+    super(`Structured output validation failed: ${issues.join(", ")}`);
+    this.name = "StructuredOutputError";
   }
 }

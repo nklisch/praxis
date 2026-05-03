@@ -27,7 +27,7 @@ import type {
   Timestamp,
   ToolContext,
 } from "../types/index.js";
-import { brandId, engineError } from "../types/index.js";
+import { brandId, engineError, serializeError } from "../types/index.js";
 import { getOrCreateDefaultStudentId } from "./student.js";
 import type { ServiceDeps } from "./types.js";
 
@@ -114,6 +114,13 @@ export class SessionServiceImpl implements SessionService {
   }
 
   async *send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent> {
+    const turnIndex = nextTurnIndex(this.deps.db, sessionId);
+    const turnLog = this.deps.log.child({
+      component: "session-service",
+      sessionId,
+      turnIndex,
+    });
+    turnLog.debug("turn.start", { messageLength: message.length });
     const sessionRow = this.deps.db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
     if (!sessionRow) {
       yield {
@@ -142,7 +149,14 @@ export class SessionServiceImpl implements SessionService {
         from: entry.engineId,
         to: currentEngineId,
       });
-      await entry.handle.close().catch(() => {});
+      const _oldEngineId = entry.engineId;
+      await entry.handle.close().catch((err: unknown) => {
+        this.deps.log.warn("session.engine_swap.close_failed", {
+          sessionId,
+          oldEngineId: _oldEngineId,
+          err: serializeError(err),
+        });
+      });
       this.activeSessions.delete(sessionId);
       entry = undefined;
     }
@@ -164,8 +178,6 @@ export class SessionServiceImpl implements SessionService {
           }),
       });
     }
-
-    const turnIndex = nextTurnIndex(this.deps.db, sessionId);
 
     // 1. Record + echo user message.
     recordUserMessage({
@@ -217,7 +229,12 @@ export class SessionServiceImpl implements SessionService {
   async end(sessionId: SessionId): Promise<SessionEndSummary> {
     const entry = this.activeSessions.get(sessionId);
     if (entry) {
-      await entry.handle.close().catch(() => {});
+      await entry.handle.close().catch((err: unknown) => {
+        this.deps.log.warn("session.end.close_failed", {
+          sessionId,
+          err: serializeError(err),
+        });
+      });
       this.activeSessions.delete(sessionId);
     }
 
@@ -356,7 +373,16 @@ export class SessionServiceImpl implements SessionService {
   async shutdown(): Promise<void> {
     const entries = [...this.activeSessions.values()];
     this.activeSessions.clear();
-    await Promise.all(entries.map((e) => e.handle.close().catch(() => {})));
+    await Promise.all(
+      entries.map((e) =>
+        e.handle.close().catch((err: unknown) => {
+          this.deps.log.warn("session.shutdown.close_failed", {
+            sessionId: e.sessionId,
+            err: serializeError(err),
+          });
+        }),
+      ),
+    );
     // Phase 7: shut down the indexer orchestrator (clears all debounce timers).
     this.deps.indexerOrchestrator?.shutdown?.();
   }
@@ -484,6 +510,13 @@ export class SessionServiceImpl implements SessionService {
         flashcards: (this.deps.toolServices.flashcards as any) ?? null,
         // biome-ignore lint/suspicious/noExplicitAny: Phase 12 services; null-safe until wired
         fsrsScheduler: (this.deps.toolServices.fsrsScheduler as any) ?? null,
+        // Phase 15a: sketch + vision — undefined when not wired (tool handlers guard).
+        ...(this.deps.toolServices.sketches !== undefined && {
+          sketches: this.deps.toolServices.sketches,
+        }),
+        ...(this.deps.toolServices.vision !== undefined && {
+          vision: this.deps.toolServices.vision,
+        }),
       },
       log: this.deps.log,
     };
@@ -495,9 +528,11 @@ export class SessionServiceImpl implements SessionService {
         ? this.deps.toolDefinitions // empty array means "all available" for backward compat
         : this.deps.toolDefinitions.filter((t) => enabledNames.has(t.name));
 
+    const sessionId = args.sessionId;
     const tools = new InProcessToolRegistry({
       tools: enabledTools,
       context: toolContext,
+      log: this.deps.log.child({ component: "tool-dispatch", sessionId }),
     });
 
     const handle = await engine.open({

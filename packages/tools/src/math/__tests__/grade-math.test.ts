@@ -1,4 +1,10 @@
-import type { SymPyService, ToolContext } from "@praxis/core/types";
+import type {
+  Sketch,
+  SketchService,
+  SymPyService,
+  ToolContext,
+  VisionService,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { gradeMathInput, gradeMathTool } from "../grade-math.js";
@@ -50,14 +56,14 @@ const mockCtx: ToolContext = {
     sympy: mockSympy,
     sandbox: { run: vi.fn() },
     pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
+    lock: null as any,
+    authoring: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+    notes: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+    flashcards: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+    fsrsScheduler: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
     packs: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 8 placeholder — not used in this test
@@ -68,6 +74,8 @@ const mockCtx: ToolContext = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    // biome-ignore lint/suspicious/noExplicitAny: test mock
+    child: vi.fn().mockReturnValue(undefined as any),
   },
 };
 
@@ -254,5 +262,174 @@ describe("gradeMathInput Zod validation", () => {
       proposedValue: "2",
     });
     expect(parse.success).toBe(true);
+  });
+
+  it("accepts valid sketch input with sketchId only", () => {
+    const parse = gradeMathInput.safeParse({ kind: "sketch", sketchId: "abc123" });
+    expect(parse.success).toBe(true);
+  });
+
+  it("accepts valid sketch input with sketchId and expected", () => {
+    const parse = gradeMathInput.safeParse({
+      kind: "sketch",
+      sketchId: "abc123",
+      expected: "2*x + 5 = 11",
+    });
+    expect(parse.success).toBe(true);
+  });
+
+  it("rejects sketch input missing sketchId", () => {
+    const parse = gradeMathInput.safeParse({ kind: "sketch" });
+    expect(parse.success).toBe(false);
+  });
+});
+
+// ─── Sketch case helpers ──────────────────────────────────────────────────────
+
+function makeTestSketch(): Sketch {
+  return {
+    id: brandId<"SketchId">("abc123"),
+    snapshot: { shapes: [] },
+    image: Buffer.from("fake-png"),
+    width: 640,
+    height: 320,
+    createdAt: 1700000000000 as Sketch["createdAt"],
+  };
+}
+
+function makeSketchCtx(
+  visionText: string,
+  sketchOverrides?: Partial<SketchService>,
+  sympyOverrides?: Partial<SymPyService>,
+): ToolContext {
+  const sketch = makeTestSketch();
+  const sketchService: SketchService = {
+    put: vi.fn(),
+    get: vi.fn().mockResolvedValue(sketch),
+    getSummary: vi.fn().mockResolvedValue(null),
+    ...sketchOverrides,
+  };
+  const visionService: VisionService = {
+    describe: vi.fn().mockResolvedValue({ text: visionText }),
+  };
+  const sympy: SymPyService = {
+    ...mockSympy,
+    checkEquivalent: vi.fn().mockResolvedValue({ equivalent: true, difference: "0" }),
+    simplify: vi.fn().mockResolvedValue({ simplified: "x + 3", simplifiedLatex: "x + 3" }),
+    ...sympyOverrides,
+  };
+  return {
+    ...mockCtx,
+    services: {
+      ...mockCtx.services,
+      sympy,
+      sketches: sketchService,
+      vision: visionService,
+    },
+  };
+}
+
+describe("gradeMathTool handler — sketch (vision OCR pipeline)", () => {
+  it("calls sketches.get with the provided sketchId", async () => {
+    const ctx = makeSketchCtx("x + 3");
+    await gradeMathTool.handler({ kind: "sketch", sketchId: "abc123" }, ctx);
+    // biome-ignore lint/style/noNonNullAssertion: sketches is always defined in makeSketchCtx
+    expect(ctx.services.sketches!.get).toHaveBeenCalledWith("abc123");
+  });
+
+  it("calls vision.describe with the sketch PNG as base64", async () => {
+    const ctx = makeSketchCtx("x + 3");
+    await gradeMathTool.handler({ kind: "sketch", sketchId: "abc123" }, ctx);
+    // biome-ignore lint/style/noNonNullAssertion: vision is always defined in makeSketchCtx
+    const call = vi.mocked(ctx.services.vision!.describe).mock.calls[0]?.[0];
+    expect(call).toBeDefined();
+    // biome-ignore lint/style/noNonNullAssertion: call is asserted defined above
+    expect(call!.images[0]?.data).toBe(Buffer.from("fake-png").toString("base64"));
+    // biome-ignore lint/style/noNonNullAssertion: call is asserted defined above
+    expect(call!.images[0]?.mimeType).toBe("image/png");
+  });
+
+  it("returns visionLatex in the output", async () => {
+    const ctx = makeSketchCtx("2x + 5 = 11");
+    const result = await gradeMathTool.handler({ kind: "sketch", sketchId: "abc123" }, ctx);
+    expect(result.kind).toBe("sketch");
+    if (result.kind === "sketch") {
+      expect(result.visionLatex).toBe("2x + 5 = 11");
+    }
+  });
+
+  it("when expected is provided, calls checkEquivalent with vision LaTeX and expected", async () => {
+    const ctx = makeSketchCtx("2x + 5 = 11");
+    await gradeMathTool.handler({ kind: "sketch", sketchId: "abc123", expected: "x = 3" }, ctx);
+    expect(ctx.services.sympy.checkEquivalent).toHaveBeenCalledWith(
+      expect.objectContaining({ expression1: "2x + 5 = 11", expression2: "x = 3", isLatex: true }),
+    );
+  });
+
+  it("when expected provided and sympy says equivalent, returns correct: true", async () => {
+    const ctx = makeSketchCtx("x = 3", undefined, {
+      checkEquivalent: vi.fn().mockResolvedValue({ equivalent: true, difference: "0" }),
+    });
+    const result = await gradeMathTool.handler(
+      { kind: "sketch", sketchId: "abc123", expected: "x = 3" },
+      ctx,
+    );
+    if (result.kind === "sketch") {
+      expect(result.correct).toBe(true);
+    }
+  });
+
+  it("when no expected provided, calls simplify with the vision LaTeX", async () => {
+    const ctx = makeSketchCtx("x + 3");
+    await gradeMathTool.handler({ kind: "sketch", sketchId: "abc123" }, ctx);
+    expect(ctx.services.sympy.simplify).toHaveBeenCalledWith(
+      expect.objectContaining({ expression: "x + 3", isLatex: true }),
+    );
+  });
+
+  it("when sympy returns parse_error (no expected), returns needs_human_review: true", async () => {
+    const ctx = makeSketchCtx("@#$garbage", undefined, {
+      simplify: vi.fn().mockResolvedValue({
+        simplified: "",
+        simplifiedLatex: "",
+        needsHumanReview: true,
+        parseError: "SyntaxError: unexpected token",
+      }),
+    });
+    const result = await gradeMathTool.handler(
+      { kind: "sketch", sketchId: "abc123" },
+      ctx,
+    );
+    if (result.kind === "sketch") {
+      expect(result.needsHumanReview).toBe(true);
+      expect(result.visionLatex).toBe("@#$garbage");
+    }
+  });
+
+  it("throws when sketch service is unavailable", async () => {
+    const ctx = {
+      ...mockCtx,
+      services: { ...mockCtx.services, sketches: undefined, vision: { describe: vi.fn() } },
+    };
+    await expect(
+      // biome-ignore lint/suspicious/noExplicitAny: partial ToolContext for test
+      gradeMathTool.handler({ kind: "sketch", sketchId: "abc123" }, ctx as any),
+    ).rejects.toThrow("Sketch service is not available");
+  });
+
+  it("throws when vision service is unavailable", async () => {
+    const sketch = makeTestSketch();
+    const ctx = {
+      ...mockCtx,
+      services: {
+        ...mockCtx.services,
+        sketches: { put: vi.fn(), get: vi.fn().mockResolvedValue(sketch), getSummary: vi.fn() },
+        vision: undefined,
+      },
+    };
+    await expect(
+      // biome-ignore lint/suspicious/noExplicitAny: partial ToolContext for test
+      gradeMathTool.handler({ kind: "sketch", sketchId: "abc123" }, ctx as any),
+    ).rejects.toThrow("Vision is not available");
   });
 });

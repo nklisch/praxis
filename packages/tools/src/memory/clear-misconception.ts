@@ -6,9 +6,7 @@ const InputSchema = z.object({
   misconceptionId: z
     .string()
     .min(1)
-    .describe(
-      "The misconception ID to clear. Use memory.misconceptions to list and find the ID.",
-    ),
+    .describe("The misconception ID to clear. Use memory.misconceptions to list and find the ID."),
   reason: z
     .string()
     .min(1)

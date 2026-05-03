@@ -1,7 +1,7 @@
-import type { McpServerConfig } from '../types/index.js';
-import type { HookEvent, HookMatcher } from './hooks.js';
-import type { SkillConfig, GeneratedFile } from './skills.js';
-import { buildSkill } from './skills.js';
+import type { McpServerConfig } from "../types/index.js";
+import type { HookEvent, HookMatcher } from "./hooks.js";
+import type { GeneratedFile, SkillConfig } from "./skills.js";
+import { buildSkill } from "./skills.js";
 
 // ============================================
 // PLUGIN BUILDER
@@ -60,7 +60,7 @@ export function buildPlugin(config: PluginConfig): GeneratedPlugin {
   if (config.author) manifest.author = config.author;
   if (config.license) manifest.license = config.license;
 
-  files.set('.claude-plugin/plugin.json', JSON.stringify(manifest, null, 2));
+  files.set(".claude-plugin/plugin.json", JSON.stringify(manifest, null, 2));
 
   // Skills
   if (config.skills) {
@@ -72,12 +72,12 @@ export function buildPlugin(config: PluginConfig): GeneratedPlugin {
 
   // Hooks
   if (config.hooks && Object.keys(config.hooks).length > 0) {
-    files.set('hooks/hooks.json', JSON.stringify({ hooks: config.hooks }, null, 2));
+    files.set("hooks/hooks.json", JSON.stringify({ hooks: config.hooks }, null, 2));
   }
 
   // MCP servers
   if (config.mcpServers && Object.keys(config.mcpServers).length > 0) {
-    files.set('.mcp.json', JSON.stringify({ mcpServers: config.mcpServers }, null, 2));
+    files.set(".mcp.json", JSON.stringify({ mcpServers: config.mcpServers }, null, 2));
   }
 
   // Additional files
@@ -96,15 +96,15 @@ export function buildPlugin(config: PluginConfig): GeneratedPlugin {
  * Returns the absolute path to the plugin root.
  */
 export async function writePlugin(plugin: GeneratedPlugin, targetDir: string): Promise<string> {
-  const { mkdir, writeFile } = await import('node:fs/promises');
-  const { dirname, resolve, join } = await import('node:path');
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const { dirname, resolve, join } = await import("node:path");
 
   const absDir = resolve(targetDir);
 
   for (const [relPath, content] of plugin.files) {
     const fullPath = join(absDir, relPath);
     await mkdir(dirname(fullPath), { recursive: true });
-    await writeFile(fullPath, content, 'utf8');
+    await writeFile(fullPath, content, "utf8");
   }
 
   return absDir;
@@ -115,10 +115,10 @@ export async function writePlugin(plugin: GeneratedPlugin, targetDir: string): P
  * Returns the absolute path — pass to `pluginDirs`.
  */
 export async function writePluginToTemp(plugin: GeneratedPlugin): Promise<string> {
-  const { mkdtemp } = await import('node:fs/promises');
-  const { tmpdir } = await import('node:os');
-  const { join } = await import('node:path');
+  const { mkdtemp } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
 
-  const dir = await mkdtemp(join(tmpdir(), 'claude-plugin-'));
+  const dir = await mkdtemp(join(tmpdir(), "claude-plugin-"));
   return writePlugin(plugin, dir);
 }

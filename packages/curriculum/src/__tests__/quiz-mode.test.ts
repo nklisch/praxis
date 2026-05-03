@@ -12,13 +12,14 @@ describe("quizMode", () => {
     expect(listModes().some((m) => m.id === "quiz")).toBe(true);
   });
 
-  it("quizMode has 8 prompt fragments including assignment-context", () => {
-    expect(quizMode.promptFragments).toHaveLength(8);
+  it("quizMode has 9 prompt fragments including assignment-context and sketch-awareness", () => {
+    expect(quizMode.promptFragments).toHaveLength(9);
     const ids = quizMode.promptFragments.map((f) => f.id);
     expect(ids).toContain("context.assignment-state");
     expect(ids).toContain("context.course-state");
     expect(ids).toContain("tools.assessment");
     expect(ids).toContain("role.quiz");
+    expect(ids).toContain("sketch.awareness"); // Phase 15a
   });
 
   it("quizMode toolNames includes assignment.show and assignment.read_grade", () => {

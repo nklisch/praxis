@@ -50,7 +50,11 @@ export function LibrarySection<T>({
       {loading ? (
         <LoadingState />
       ) : isEmpty ? (
-        <EmptyState message={emptyMessage} action={emptyAction} compact />
+        <EmptyState
+          message={emptyMessage}
+          {...(emptyAction !== undefined && { action: emptyAction })}
+          compact
+        />
       ) : (
         renderItems(items as ReadonlyArray<T>)
       )}

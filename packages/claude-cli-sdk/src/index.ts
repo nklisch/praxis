@@ -15,96 +15,94 @@
 // Requires: Node >=22, `claude` CLI installed and authenticated.
 // ============================================
 
+export type { ClaudeAuthLoginEvent, ClaudeAuthLoginOptions, ClaudeAuthStatus } from "./auth.js";
 // ---- Auth ----
-export { authStatus, authLogin } from './auth.js';
-export type { ClaudeAuthStatus, ClaudeAuthLoginEvent, ClaudeAuthLoginOptions } from './auth.js';
-
-// ---- Core APIs ----
-export { query } from './query.js';
-export { createConversation } from './conversation.js';
-
-// ---- Tool Discovery ----
-export { discoverTools, computeDisallowedTools } from './discover.js';
-export type { DiscoverResult } from './discover.js';
-
-// ---- Custom Tool Injection ----
-export { tool } from './tools.js';
-export { startToolServer } from './tool-server.js';
-export type { ToolServerHandle } from './tool-server.js';
-
-// ---- Interactive Skill Handlers ----
-export { askUserQuestionHandler, sendUserMessageHandler, InteractiveTool } from './interactive-tools.js';
-
-// ---- Structured Output ----
-export { zodToOutputFormat, parseStructuredOutput, collectResult } from './structured.js';
-
-// ---- Extension Builders (settings, skills, plugins) ----
-export {
-  toolPattern,
-  buildSettings,
-  buildSkill,
-  buildPlugin,
-  writePlugin,
-  writePluginToTemp,
-} from './extensions/index.js';
-
-// ---- UUID Helpers ----
-export { uuid, isUUID } from './types/options.js';
-
-// ---- Error Classes ----
-export { CLIError, CLITimeoutError, CLINotFoundError, StructuredOutputError, InvalidOptionError } from './errors.js';
-
-// Types
-export type {
-  UUID,
-  ModelAlias,
-  Options,
-  OptionsBase,
-  ConversationOptions,
-  DiscoverOptions,
-  Query,
-  StreamEvent,
-  SystemInitEvent,
-  AssistantTextEvent,
-  ToolUseEvent,
-  ToolResultEvent,
-  ResultEvent,
-  TokenUsage,
-  McpServerConfig,
-  McpServerStdioConfig,
-  McpServerSseConfig,
-  McpServerHttpConfig,
-  McpServerStatus,
-  PermissionMode,
-  AgentDefinition,
-  JsonSchemaOutputFormat,
-  ToolDefinition,
-  ToolResult,
-  ToolHandler,
-  ToolHandlerResult,
-  ToolControl,
-  ToolFilter,
-  RateLimitEvent,
-  RateLimitInfo,
-  ModelUsageEntry,
-} from './types/index.js';
-
+export { authLogin, authStatus } from "./auth.js";
 export type {
   Conversation,
+  ToolResultContent,
   Turn,
   TurnResult,
-  ToolResultContent,
-} from './conversation.js';
-
-export type { InteractiveToolName } from './interactive-tools.js';
-
+} from "./conversation.js";
+export { createConversation } from "./conversation.js";
+export type { DiscoverResult } from "./discover.js";
+// ---- Tool Discovery ----
+export { computeDisallowedTools, discoverTools } from "./discover.js";
+// ---- Error Classes ----
+export {
+  CLIError,
+  CLINotFoundError,
+  CLITimeoutError,
+  InvalidOptionError,
+  StructuredOutputError,
+} from "./errors.js";
 export type {
-  HookMatcher,
-  HookHandler,
-  HookEvent,
-  SettingsConfig,
-  SkillConfig,
-  PluginConfig,
   GeneratedFile,
   GeneratedPlugin,
-} from './extensions/index.js';
+  HookEvent,
+  HookHandler,
+  HookMatcher,
+  PluginConfig,
+  SettingsConfig,
+  SkillConfig,
+} from "./extensions/index.js";
+// ---- Extension Builders (settings, skills, plugins) ----
+export {
+  buildPlugin,
+  buildSettings,
+  buildSkill,
+  toolPattern,
+  writePlugin,
+  writePluginToTemp,
+} from "./extensions/index.js";
+export type { InteractiveToolName } from "./interactive-tools.js";
+// ---- Interactive Skill Handlers ----
+export {
+  askUserQuestionHandler,
+  InteractiveTool,
+  sendUserMessageHandler,
+} from "./interactive-tools.js";
+// ---- Core APIs ----
+export { query } from "./query.js";
+// ---- Structured Output ----
+export { collectResult, parseStructuredOutput, zodToOutputFormat } from "./structured.js";
+export type { ToolServerHandle } from "./tool-server.js";
+export { startToolServer } from "./tool-server.js";
+// ---- Custom Tool Injection ----
+export { tool } from "./tools.js";
+// Types
+export type {
+  AgentDefinition,
+  AssistantTextEvent,
+  ConversationOptions,
+  DiscoverOptions,
+  JsonSchemaOutputFormat,
+  McpServerConfig,
+  McpServerHttpConfig,
+  McpServerSseConfig,
+  McpServerStatus,
+  McpServerStdioConfig,
+  ModelAlias,
+  ModelUsageEntry,
+  Options,
+  OptionsBase,
+  PermissionMode,
+  Query,
+  RateLimitEvent,
+  RateLimitInfo,
+  ResultEvent,
+  StreamEvent,
+  SystemInitEvent,
+  TokenUsage,
+  ToolControl,
+  ToolDefinition,
+  ToolFilter,
+  ToolHandler,
+  ToolHandlerResult,
+  ToolResult,
+  ToolResultEvent,
+  ToolUseEvent,
+  UUID,
+} from "./types/index.js";
+// ---- UUID Helpers ----
+export { isUUID, uuid } from "./types/options.js";

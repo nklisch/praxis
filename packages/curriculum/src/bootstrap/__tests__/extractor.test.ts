@@ -20,6 +20,7 @@ const MOCK_LOG: Logger = {
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
+  child: vi.fn(() => MOCK_LOG),
 };
 
 const MOCK_CHUNKS: RunConceptExtractorInput["chunks"] = [

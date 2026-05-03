@@ -1,5 +1,5 @@
-import { brandId } from "@praxis/core/types";
 import type { ToolContext, ToolDefinition } from "@praxis/core/types";
+import { brandId } from "@praxis/core/types";
 import { z } from "zod";
 
 const InputSchema = z.object({
@@ -9,7 +9,13 @@ const InputSchema = z.object({
     .enum(["cornell", "feynman", "outline", "free"])
     .optional()
     .describe("Filter notes by format."),
-  limit: z.number().int().positive().max(200).optional().describe("Maximum notes to return (default 100)."),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .max(200)
+    .optional()
+    .describe("Maximum notes to return (default 100)."),
 });
 
 const OutputSchema = z.object({

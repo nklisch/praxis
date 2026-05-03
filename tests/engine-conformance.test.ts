@@ -88,6 +88,7 @@ const noopLogger = {
   info: () => {},
   warn: () => {},
   error: () => {},
+  child: () => noopLogger,
 };
 
 function makeToolContext() {
@@ -163,6 +164,7 @@ describe("Engine conformance", () => {
     registry = new InProcessToolRegistry({
       tools: [echoTool],
       context: makeToolContext(),
+      log: noopLogger,
     });
     openOpts = {
       systemPrompt: SCENARIO_SYSTEM_PROMPT,

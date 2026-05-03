@@ -24,6 +24,7 @@ const MOCK_LOG = {
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
+  child: vi.fn(() => MOCK_LOG),
 };
 
 const MOCK_MASTERY_READER = { read: vi.fn().mockResolvedValue(0) };

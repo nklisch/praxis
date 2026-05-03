@@ -10,12 +10,14 @@ import { generateTitle, TabsServiceImpl } from "../tabs-service.js";
 const db = useTempDb();
 
 function makeLog() {
-  return {
+  const log = {
     debug: () => {},
     info: () => {},
     warn: () => {},
     error: () => {},
+    child: () => log,
   };
+  return log;
 }
 
 function makeService() {

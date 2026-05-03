@@ -10,7 +10,7 @@ export const toolPattern = {
    * @example toolPattern.bash()          → 'Bash'
    */
   bash(pattern?: string): string {
-    return pattern ? `Bash(${pattern})` : 'Bash';
+    return pattern ? `Bash(${pattern})` : "Bash";
   },
 
   /**
@@ -19,7 +19,7 @@ export const toolPattern = {
    * @example toolPattern.read()               → 'Read'
    */
   read(pattern?: string): string {
-    return pattern ? `Read(${pattern})` : 'Read';
+    return pattern ? `Read(${pattern})` : "Read";
   },
 
   /**
@@ -28,7 +28,7 @@ export const toolPattern = {
    * @example toolPattern.edit()           → 'Edit'
    */
   edit(pattern?: string): string {
-    return pattern ? `Edit(${pattern})` : 'Edit';
+    return pattern ? `Edit(${pattern})` : "Edit";
   },
 
   /**
@@ -37,7 +37,7 @@ export const toolPattern = {
    * @example toolPattern.webFetch()                → 'WebFetch'
    */
   webFetch(domain?: string): string {
-    return domain ? `WebFetch(domain:${domain})` : 'WebFetch';
+    return domain ? `WebFetch(domain:${domain})` : "WebFetch";
   },
 
   /**

@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { basename, extname } from "node:path";
 import { chunkParagraphs } from "./chunker.js";
 import type { IngestedChunk, Ingestor, IngestorOptions, IngestorResult } from "./ingestor.js";
+import { resolvePdfjsAssetUrls } from "./pdfjs-config.js";
 
 /**
  * JsPdfIngestor — text-layer PDF extraction via `pdfjs-dist`.
@@ -30,8 +31,13 @@ export class JsPdfIngestor implements Ingestor {
     // Lazy import — pdfjs-dist legacy build for Node.js
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
+    const { standardFontDataUrl, cMapUrl, wasmUrl } = resolvePdfjsAssetUrls();
     const loadingTask = pdfjs.getDocument({
       data: new Uint8Array(data),
+      standardFontDataUrl,
+      cMapUrl,
+      cMapPacked: true,
+      wasmUrl,
     });
     const pdf = await loadingTask.promise;
 

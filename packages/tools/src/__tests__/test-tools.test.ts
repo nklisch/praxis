@@ -1,4 +1,4 @@
-import type { ToolContext } from "@praxis/core/types";
+import type { Logger, ToolContext } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { echoTool, nowTool } from "../test-tools/index.js";
@@ -32,25 +32,29 @@ const ctx: ToolContext = {
       parseLatex: vi.fn(),
     },
     pedagogyPack: null,
-      lock: null as any,
-      authoring: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      notes: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      flashcards: null as any,
-      // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
-      fsrsScheduler: null as any,
+    lock: null as any,
+    authoring: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+    notes: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+    flashcards: null as any,
+    // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test
+    fsrsScheduler: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 10 placeholder — not used in this test
     packs: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 8 placeholder — not used in this test
     assignments: null as any,
   },
-  log: {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  },
+  log: (() => {
+    const l: Logger = {
+      debug: () => {},
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+      child: () => l,
+    };
+    return l;
+  })(),
 };
 
 describe("echoTool", () => {

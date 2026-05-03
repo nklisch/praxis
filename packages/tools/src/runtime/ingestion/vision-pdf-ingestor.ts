@@ -3,6 +3,7 @@ import { basename, extname } from "node:path";
 import type { PageImageStore } from "@praxis/core/ingestion";
 import type { VisionCapability } from "@praxis/core/types";
 import type { IngestedChunk, Ingestor, IngestorOptions, IngestorResult } from "./ingestor.js";
+import { resolvePdfjsAssetUrls } from "./pdfjs-config.js";
 import { VISION_PROMPT } from "./vision-prompt.js";
 
 export interface VisionPdfIngestorOptions {
@@ -63,7 +64,14 @@ export class VisionPdfIngestor implements Ingestor {
         ? canvasModule.createCanvas
         : canvasModule.default?.createCanvas;
 
-    const pdf = await pdfjs.getDocument({ data: new Uint8Array(data) }).promise;
+    const { standardFontDataUrl, cMapUrl, wasmUrl } = resolvePdfjsAssetUrls();
+    const pdf = await pdfjs.getDocument({
+      data: new Uint8Array(data),
+      standardFontDataUrl,
+      cMapUrl,
+      cMapPacked: true,
+      wasmUrl,
+    }).promise;
 
     const renderScale = this.opts.renderScale ?? 2.0;
     const maxChars = opts.maxChars ?? 2000;

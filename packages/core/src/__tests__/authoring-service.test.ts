@@ -29,6 +29,7 @@ const MOCK_LOG = {
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
+  child: vi.fn(() => MOCK_LOG),
 };
 
 const CONFIGURATOR_ID = brandId<"ConfiguratorId">("default") as ConfiguratorId;

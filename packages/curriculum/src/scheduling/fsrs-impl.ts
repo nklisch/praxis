@@ -15,13 +15,8 @@
  *   - enable_fuzz defaults to false (deterministic; set true in production config if desired).
  */
 
-import {
-  type Card,
-  Rating as TsFsrsRating,
-  createEmptyCard,
-  fsrs,
-} from "ts-fsrs";
 import type { FsrsScheduler, FsrsState, Rating, Timestamp } from "@praxis/core/types";
+import { type Card, createEmptyCard, fsrs, Rating as TsFsrsRating } from "ts-fsrs";
 import { FSRS_DEFAULTS } from "./config.js";
 
 /**
@@ -62,7 +57,10 @@ export class FsrsSchedulerImpl implements FsrsScheduler {
     };
   }
 
-  preview(input: { state: FsrsState; now: Timestamp }): Record<Rating, { nextReviewAt: Timestamp }> {
+  preview(input: {
+    state: FsrsState;
+    now: Timestamp;
+  }): Record<Rating, { nextReviewAt: Timestamp }> {
     const card = input.state.state as unknown as Card;
     const previews = this.engine.repeat(card, new Date(input.now));
     return {
@@ -78,12 +76,18 @@ export class FsrsSchedulerImpl implements FsrsScheduler {
  * Map Praxis Rating to ts-fsrs Grade (which excludes Rating.Manual=0).
  * ts-fsrs's Grade = Exclude<Rating, Rating.Manual> = 1|2|3|4.
  */
-function ratingToGrade(r: Rating): TsFsrsRating.Again | TsFsrsRating.Hard | TsFsrsRating.Good | TsFsrsRating.Easy {
+function ratingToGrade(
+  r: Rating,
+): TsFsrsRating.Again | TsFsrsRating.Hard | TsFsrsRating.Good | TsFsrsRating.Easy {
   switch (r) {
-    case "again": return TsFsrsRating.Again;
-    case "hard": return TsFsrsRating.Hard;
-    case "good": return TsFsrsRating.Good;
-    case "easy": return TsFsrsRating.Easy;
+    case "again":
+      return TsFsrsRating.Again;
+    case "hard":
+      return TsFsrsRating.Hard;
+    case "good":
+      return TsFsrsRating.Good;
+    case "easy":
+      return TsFsrsRating.Easy;
     default: {
       const _exhaust: never = r;
       throw new Error(`Unknown rating: ${_exhaust}`);

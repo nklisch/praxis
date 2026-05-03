@@ -7,6 +7,7 @@ import { examToolsFragment } from "./fragments/exam-tools.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
+import { sketchAwarenessFragment } from "./fragments/sketch-awareness.js";
 
 export const examMode: Mode = {
   id: "exam",
@@ -19,6 +20,7 @@ export const examMode: Mode = {
     examRoleFragment,
     principlesFragment,
     examToolsFragment,
+    sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault,
     assignmentContextFragmentDefault,
     constraintsFragment,
@@ -27,6 +29,7 @@ export const examMode: Mode = {
   toolNames: [
     "assignment.show",
     "assignment.read_grade",
+    "sketch.read", // ← Phase 15a: read student sketches from exam submissions
     // No retrieve_from_textbook, no mastery / misconception tools, no graders
     // (server handles all grading). Deliberately minimal.
   ],

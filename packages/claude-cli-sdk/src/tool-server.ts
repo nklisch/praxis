@@ -1,11 +1,11 @@
-import * as net from 'node:net';
-import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
-import * as path from 'node:path';
-import { createRequire } from 'node:module';
-import { z } from 'zod';
-import type { ToolDefinition, ToolResult } from './types/index.js';
-import { createLogger } from './utils.js';
+import * as fs from "node:fs/promises";
+import { createRequire } from "node:module";
+import * as net from "node:net";
+import * as os from "node:os";
+import * as path from "node:path";
+import { z } from "zod";
+import type { ToolDefinition, ToolResult } from "./types/index.js";
+import { createLogger } from "./utils.js";
 
 /** Resolve the ESM entry points of @modelcontextprotocol/sdk absolutely. */
 function resolveMcpSdkPaths(): {
@@ -15,17 +15,17 @@ function resolveMcpSdkPaths(): {
 } {
   const require = createRequire(import.meta.url);
   // require.resolve returns CJS path; swap dist/cjs → dist/esm for ESM entry points
-  const mcpStdioCjs = require.resolve('@modelcontextprotocol/sdk/server/stdio.js');
-  const mcpServerIndexCjs = require.resolve('@modelcontextprotocol/sdk/server/index.js');
-  const mcpTypesCjs = require.resolve('@modelcontextprotocol/sdk/types.js');
+  const mcpStdioCjs = require.resolve("@modelcontextprotocol/sdk/server/stdio.js");
+  const mcpServerIndexCjs = require.resolve("@modelcontextprotocol/sdk/server/index.js");
+  const mcpTypesCjs = require.resolve("@modelcontextprotocol/sdk/types.js");
   return {
-    mcpServerIndexPath: mcpServerIndexCjs.replace('/dist/cjs/', '/dist/esm/'),
-    mcpStdioPath: mcpStdioCjs.replace('/dist/cjs/', '/dist/esm/'),
-    mcpTypesPath: mcpTypesCjs.replace('/dist/cjs/', '/dist/esm/'),
+    mcpServerIndexPath: mcpServerIndexCjs.replace("/dist/cjs/", "/dist/esm/"),
+    mcpStdioPath: mcpStdioCjs.replace("/dist/cjs/", "/dist/esm/"),
+    mcpTypesPath: mcpTypesCjs.replace("/dist/cjs/", "/dist/esm/"),
   };
 }
 
-const logger = createLogger('tool-server');
+const logger = createLogger("tool-server");
 
 /** Serializable tool schema (no handler — handlers run in the parent process). */
 interface ToolSchema {
@@ -72,37 +72,39 @@ export interface ToolServerHandle {
  * @param tools - Array of {@link ToolDefinition} objects (create with {@link tool}).
  * @returns A {@link ToolServerHandle} with MCP config and cleanup function.
  */
-export async function startToolServer(
-  tools: ToolDefinition[],
-): Promise<ToolServerHandle> {
+export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServerHandle> {
   const handlers = new Map<string, (input: unknown) => Promise<ToolResult> | ToolResult>();
   const schemas: ToolSchema[] = [];
 
   for (const t of tools) {
     const jsonSchema = z.toJSONSchema(t.inputSchema) as Record<string, unknown>;
     // Remove $schema — MCP doesn't want it
-    delete jsonSchema['$schema'];
+    delete jsonSchema["$schema"];
     schemas.push({ name: t.name, description: t.description, inputSchema: jsonSchema });
     handlers.set(t.name, t.handler as (input: unknown) => Promise<ToolResult> | ToolResult);
   }
 
   // Create temp dir for socket and worker script
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-sdk-tools-'));
-  const socketPath = path.join(tempDir, 'handler.sock');
-  const workerPath = path.join(tempDir, 'mcp-worker.mjs');
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "claude-sdk-tools-"));
+  const socketPath = path.join(tempDir, "handler.sock");
+  const workerPath = path.join(tempDir, "mcp-worker.mjs");
 
   // Write worker script with absolute MCP SDK paths (so it works from any dir)
   const { mcpServerIndexPath, mcpStdioPath, mcpTypesPath } = resolveMcpSdkPaths();
-  await fs.writeFile(workerPath, generateWorkerScript(schemas, mcpServerIndexPath, mcpStdioPath, mcpTypesPath), 'utf8');
+  await fs.writeFile(
+    workerPath,
+    generateWorkerScript(schemas, mcpServerIndexPath, mcpStdioPath, mcpTypesPath),
+    "utf8",
+  );
 
   // Start Unix domain socket server for handler dispatch
   const server = net.createServer((conn) => {
-    let buffer = '';
-    conn.on('data', (chunk) => {
+    let buffer = "";
+    conn.on("data", (chunk) => {
       buffer += chunk.toString();
       // Protocol: newline-delimited JSON
       let newlineIdx: number;
-      while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+      while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
         const line = buffer.slice(0, newlineIdx);
         buffer = buffer.slice(newlineIdx + 1);
         if (line.trim()) {
@@ -110,17 +112,17 @@ export async function startToolServer(
         }
       }
     });
-    conn.on('error', (err) => {
-      logger.debug('Tool server connection error', { err: err.message });
+    conn.on("error", (err) => {
+      logger.debug("Tool server connection error", { err: err.message });
     });
   });
 
   await new Promise<void>((resolve, reject) => {
     server.listen(socketPath, () => resolve());
-    server.on('error', reject);
+    server.on("error", reject);
   });
 
-  logger.debug('Tool server listening', { socketPath, tools: schemas.map((s) => s.name) });
+  logger.debug("Tool server listening", { socketPath, tools: schemas.map((s) => s.name) });
 
   return {
     command: process.execPath,
@@ -130,7 +132,7 @@ export async function startToolServer(
     close: async () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
       await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-      logger.debug('Tool server closed', { socketPath });
+      logger.debug("Tool server closed", { socketPath });
     },
   };
 }
@@ -147,18 +149,21 @@ async function handleToolCall(
     const handler = handlers.get(msg.name);
     if (!handler) {
       conn.write(
-        JSON.stringify({ id: msg.id, result: { success: false, error: `Unknown tool: ${msg.name}` } }) + '\n',
+        JSON.stringify({
+          id: msg.id,
+          result: { success: false, error: `Unknown tool: ${msg.name}` },
+        }) + "\n",
       );
       return;
     }
     const result = await handler(msg.input);
-    conn.write(JSON.stringify({ id: msg.id, result }) + '\n');
+    conn.write(JSON.stringify({ id: msg.id, result }) + "\n");
   } catch (err) {
     // Best-effort error response
     if (msgId !== undefined) {
       try {
         conn.write(
-          JSON.stringify({ id: msgId, result: { success: false, error: String(err) } }) + '\n',
+          JSON.stringify({ id: msgId, result: { success: false, error: String(err) } }) + "\n",
         );
       } catch {
         // ignore

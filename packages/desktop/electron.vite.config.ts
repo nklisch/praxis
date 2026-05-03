@@ -51,6 +51,11 @@ const EXTERNAL_THIRD_PARTY = [
   "linkedom",
   "mammoth",
   "@mozilla/readability",
+  // Logging
+  "pino",
+  "pino-pretty",
+  "pino-roll",
+  "thread-stream",
   // Misc
   "uuid",
   "zod",

@@ -1,4 +1,5 @@
 import type {
+  SketchId,
   SymPyCheckEquivalentResult,
   SymPyCheckSolutionResult,
   SymPySimplifyResult,
@@ -40,11 +41,28 @@ const checkEquivalentInput = z.object({
   isLatex: z.boolean().optional(),
 });
 
+const sketchInput = z.object({
+  kind: z.literal("sketch"),
+  sketchId: z
+    .string()
+    .describe("The sketch id from a [sketch:<id>] marker in the student's message."),
+  /**
+   * Optional expected answer. When provided, the vision-extracted LaTeX is
+   * checked against this expression for equivalence via sympy. When absent,
+   * the LaTeX is only parsed/simplified to confirm it's readable.
+   */
+  expected: z
+    .string()
+    .optional()
+    .describe("The expected LaTeX or sympy expression to grade against."),
+});
+
 export const gradeMathInput = z.discriminatedUnion("kind", [
   checkSolutionInput,
   solveEquationInput,
   simplifyInput,
   checkEquivalentInput,
+  sketchInput,
 ]);
 
 const checkSolutionOutput = z.object({
@@ -79,11 +97,37 @@ const checkEquivalentOutput = z.object({
   parseError: z.string().optional(),
 });
 
+/**
+ * Output for kind: "sketch".
+ *
+ * `visionLatex` is always present — the raw LaTeX extracted by vision OCR.
+ * Use it in diagnostic messages so the student can see what the model read.
+ *
+ * When `expected` was provided: `correct` and `expectedSolutions` are set.
+ * When sympy cannot parse the OCR output: `needsHumanReview: true` is set
+ * and `correct` is absent — surface this to the student and ask them to
+ * re-draw or type the expression.
+ */
+const sketchOutput = z.object({
+  kind: z.literal("sketch"),
+  /** LaTeX extracted from the drawing by vision OCR. Always present for diagnostics. */
+  visionLatex: z.string(),
+  /** True/false when sympy validated against `expected`; absent when no expected was given. */
+  correct: z.boolean().optional(),
+  /** Sympy solutions / canonical forms, when an expected answer was graded. */
+  expectedSolutions: z.array(z.string()).optional(),
+  /** Simplified canonical form when no expected answer was given. */
+  simplified: z.string().optional(),
+  needsHumanReview: z.boolean().optional(),
+  parseError: z.string().optional(),
+});
+
 export const gradeMathOutput = z.discriminatedUnion("kind", [
   checkSolutionOutput,
   solveEquationOutput,
   simplifyOutput,
   checkEquivalentOutput,
+  sketchOutput,
 ]);
 
 /** Carry the optional diagnostics fields onto any discriminated output object. */
@@ -149,6 +193,7 @@ Operations:
 - solve_equation: solve an equation for one variable, return all solutions.
 - simplify: algebraic simplification of an expression.
 - check_equivalent: check if two expressions are mathematically equal.
+- sketch: two-step vision OCR pipeline — reads a sketch by id, extracts LaTeX via vision, then validates with sympy. Use when grading sketched math work. Pass expected to grade correctness; omit to just read the expression.
 
 If parse_error or needs_human_review is set, the input couldn't be parsed cleanly — surface this to the student and ask for clarification rather than guessing.`,
   input: gradeMathInput,
@@ -193,6 +238,66 @@ If parse_error or needs_human_review is set, the input couldn't be parsed cleanl
             ...(args.isLatex !== undefined && { isLatex: args.isLatex }),
           }),
         );
+      }
+      case "sketch": {
+        if (!ctx.services.sketches) {
+          throw new Error("Sketch service is not available in this context.");
+        }
+        if (!ctx.services.vision) {
+          throw new Error(
+            "Vision is not available with the current engine. Switch to a vision-capable engine to grade sketched math.",
+          );
+        }
+
+        // Step 1: Fetch the sketch image from the store.
+        const sketch = await ctx.services.sketches.get(args.sketchId as SketchId);
+
+        // Step 2: Vision OCR — extract LaTeX from the drawing.
+        // VisionDescribeRequest uses `images` (array) with `data` (base64, no data: prefix).
+        const visionResult = await ctx.services.vision.describe({
+          images: [
+            {
+              data: sketch.image.toString("base64"),
+              mimeType: "image/png",
+            },
+          ],
+          prompt:
+            "Extract the mathematical expression(s) shown in this drawing as LaTeX. Reply with only the LaTeX, no prose or explanation.",
+        });
+        const latex = visionResult.text.trim();
+
+        // Step 3: Pass the vision-extracted LaTeX to sympy.
+        // When expected is provided: check equivalence.
+        // When no expected: simplify to verify parseability and return canonical form.
+        if (args.expected !== undefined) {
+          const result = await sympy.checkEquivalent({
+            expression1: latex,
+            expression2: args.expected,
+            isLatex: true,
+          });
+          return withDiagnostics(
+            {
+              kind: "sketch",
+              visionLatex: latex,
+              correct: result.equivalent,
+              ...(result.difference !== undefined && { expectedSolutions: [result.difference] }),
+            },
+            result,
+          ) as z.infer<typeof sketchOutput>;
+        }
+
+        // No expected answer — simplify to verify the LaTeX is parseable.
+        const simplifyResult = await sympy.simplify({ expression: latex, isLatex: true });
+        return withDiagnostics(
+          {
+            kind: "sketch",
+            visionLatex: latex,
+            ...(simplifyResult.simplified !== undefined && {
+              simplified: simplifyResult.simplified,
+            }),
+          },
+          simplifyResult,
+        ) as z.infer<typeof sketchOutput>;
       }
     }
   },

@@ -1,5 +1,5 @@
-import { brandId, parseNoteBody } from "@praxis/core/types";
 import type { NoteBody, OutlineNode, ToolContext, ToolDefinition } from "@praxis/core/types";
+import { brandId, parseNoteBody } from "@praxis/core/types";
 import { z } from "zod";
 
 const InputSchema = z.object({
@@ -54,10 +54,7 @@ function proposeFlashcardsFromBody(
   switch (body.kind) {
     case "cornell": {
       const cards: Array<{ front: string; back: string }> = [];
-      const indices =
-        sectionIndex !== undefined
-          ? [sectionIndex]
-          : body.questions.map((_, i) => i);
+      const indices = sectionIndex !== undefined ? [sectionIndex] : body.questions.map((_, i) => i);
       for (const i of indices) {
         const q = body.questions[i]?.trim();
         const d = body.details[i]?.trim();
@@ -97,6 +94,10 @@ function proposeFlashcardsFromBody(
     }
     case "free": {
       // Cannot extract structure from free text.
+      return [];
+    }
+    case "sketch": {
+      // Sketch notes have no extractable text structure for flashcards.
       return [];
     }
     default: {

@@ -31,14 +31,14 @@ vi.mock("ollama-ai-provider-v2", () => ({
 }));
 
 describe("DirectEngine — lifecycle", () => {
-  const deps = {
-    log: {
-      debug: () => {},
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-    },
+  const _depLog = {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    child: (): typeof _depLog => _depLog,
   };
+  const deps = { log: _depLog };
 
   const echoSummary: ToolDefinitionSummary = {
     name: "test.echo",

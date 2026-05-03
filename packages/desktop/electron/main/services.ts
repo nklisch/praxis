@@ -24,6 +24,7 @@ import {
   SessionServiceImpl,
   SketchServiceImpl,
   TabsServiceImpl,
+  VisionServiceImpl,
 } from "@praxis/core/services";
 import { FsSketchStore } from "@praxis/core/sketch";
 import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
@@ -48,6 +49,7 @@ import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
 import { NOTE_TOOLS } from "@praxis/tools/notes";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
+import { sketchReadTool } from "@praxis/tools/sketch";
 import {
   DocxIngestor,
   EpubIngestor,
@@ -257,6 +259,10 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   const sketchStore = new FsSketchStore(join(dataDir, "sketches"));
   const sketchService = new SketchServiceImpl({ db, log, store: sketchStore });
 
+  // Phase 15a: Vision service — thin wrapper around the configured engine's VisionCapability.
+  // Resolves the active engine at call time (same pattern as visionResolver above).
+  const visionService = new VisionServiceImpl({ db, log });
+
   // Phase 12: Notes + Flashcards services.
   // Notes service uses the bootstrap engine resolver for fromSessionSummary.
   const notesService = new NotesServiceImpl({
@@ -306,6 +312,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     ...CONFIGURE_MEMORY_TOOLS, // ← Phase 11
     ...NOTE_TOOLS, // ← Phase 12
     ...FLASHCARD_TOOLS, // ← Phase 12
+    sketchReadTool, // ← Phase 15a
   ];
 
   const deps: ServiceDeps = {
@@ -332,6 +339,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       flashcards: flashcardsService, // ← Phase 12
       fsrsScheduler, // ← Phase 12
       sketches: sketchService, // ← Phase 15a
+      vision: visionService, // ← Phase 15a
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)

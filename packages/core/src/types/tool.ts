@@ -50,6 +50,14 @@ import type {
   StudentModel,
 } from "./memory.js";
 import type { NoteBody } from "./notes.js";
+import type { SketchService } from "./sketches.js";
+import type { VisionDescribeRequest, VisionDescribeResponse } from "./engine.js";
+
+// Re-export VisionService shape inline here so tool handlers can type-check against it
+// without importing from @praxis/core/services (would violate dependency direction).
+export interface VisionService {
+  describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse>;
+}
 
 export type EffectKind =
   | "memory.write"
@@ -122,6 +130,10 @@ export interface ToolServices {
   flashcards: FlashcardsService;
   /** Phase 12: FSRS scheduler — used by FlashcardsServiceImpl and flashcard.review_next tool. */
   fsrsScheduler: FsrsScheduler;
+  /** Phase 15a: sketch storage + retrieval — used by sketch.read and grade_math sketch case. */
+  sketches?: SketchService;
+  /** Phase 15a: vision capability wrapper — used by grade_math sketch case to OCR drawings. */
+  vision?: VisionService;
 }
 
 // ─── Phase 12: NotesService ───────────────────────────────────────────────────
