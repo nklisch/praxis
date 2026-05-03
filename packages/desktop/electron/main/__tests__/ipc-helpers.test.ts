@@ -137,7 +137,7 @@ describe("createIpcHelpers — handle()", () => {
     handle("praxis.test.err", async () => {
       throw new Error("boom");
     });
-    await handlers.get("praxis.test.err")?.({}).catch(() => {
+    await Promise.resolve(handlers.get("praxis.test.err")?.({})).catch(() => {
       /* expected */
     });
     const errRec = records.find((r) => r.message === "ipc.handle.error");
@@ -155,7 +155,8 @@ describe("createIpcHelpers — handle()", () => {
     handle("praxis.test.once", async () => {
       throw new Error("nope");
     });
-    await handlers.get("praxis.test.once")?.({}).catch(() => {
+    const handler = handlers.get("praxis.test.once");
+    await Promise.resolve(handler?.({})).catch(() => {
       /* expected */
     });
     const errRecs = records.filter((r) => r.message === "ipc.handle.error");
