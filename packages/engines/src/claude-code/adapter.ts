@@ -50,14 +50,8 @@ export class ClaudeCodeEngine implements Engine {
         ...(modelHint !== undefined && { model: modelHint }),
         ...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps }),
         systemPrompt: openOpts.systemPrompt,
-        // Praxis drives the CLI non-interactively — there is no human at the
-        // CLI to answer permission prompts. Without this, the CLI defaults
-        // to "default" mode, which prompts on every tool call; the call
-        // silently denies and the model improvises an "I need permission..."
-        // response back to the student. Bypass is correct here because the
-        // only tools we register through the bridge are first-party Praxis
-        // tools the user has already opted into by running the app.
-        permissionMode: "bypassPermissions",
+        // permissionMode defaults to "bypassPermissions" via the SDK when
+        // mcpServers is set (see resolvePermissionMode in cli/args.ts).
         mcpServers: bridge
           ? {
               [bridge.serverName]: {
@@ -159,14 +153,10 @@ class ClaudeCodeEngineSession implements EngineSession {
       if (mapped) yield mapped;
     }
 
-    const result = await turn.result;
-    // The SDK's `result` event flows through the stream; if it didn't, synthesize a final.
-    if (!result.resultEvent) {
-      yield {
-        type: "final",
-        usage: { inputTokens: 0, outputTokens: 0 },
-      };
-    }
+    // Drain `turn.result` so unhandled rejection isn't logged. The final event
+    // already flowed through the stream above (the SDK guarantees a result
+    // event ends every turn — see TurnResult.resultEvent contract in the SDK).
+    await turn.result.catch(() => {});
   }
 
   async close(): Promise<void> {
