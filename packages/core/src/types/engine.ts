@@ -39,11 +39,34 @@ export interface VisionCapability {
 export interface EngineOpenOptions {
   systemPrompt: string;
   tools: ToolRegistry;
-  /** When set, the session is being re-opened with prior context to restore. */
+  /**
+   * Cross-engine fallback ONLY: text-splice prior conversation into the
+   * first user message. Use when no native resume is possible (engine
+   * differs from the one that produced these turns, or a new conversation).
+   * For same-engine continuation prefer `resumeEngineSessionId` — it
+   * preserves full CLI session state without burning context window.
+   */
   priorTurns?: ConversationTurn[];
   /** Per-turn maximum step count (looped engines) or model calls (single-shot). */
   maxSteps?: number;
   generation?: GenerationParams;
+  /**
+   * Resume the underlying engine's native session by id. When set, the
+   * adapter delegates to its SDK's resume primitive (e.g. Claude Code's
+   * `--resume`). Adapters that don't support resumption ignore this and
+   * fall back to `priorTurns` text-splice. Mutually exclusive with the
+   * "fresh start" case — when set, callers should pass empty/no
+   * `priorTurns`.
+   */
+  resumeEngineSessionId?: string;
+  /**
+   * Fired exactly once when the underlying engine session's id is known
+   * (typically when the SDK emits its first `init` event). Used by
+   * SessionService to persist the id in `engine_session_state_json` so a
+   * later open can pass it as `resumeEngineSessionId`. Adapters that don't
+   * have a native session id never fire this.
+   */
+  onEngineSessionReady?: (engineSessionId: string) => void;
 }
 
 /**
@@ -153,7 +176,25 @@ export type EngineEvent =
   | { type: "tool_result"; callId: string; result: ToolResult }
   | { type: "thinking"; content: string }
   | { type: "error"; error: EngineError }
-  | { type: "final"; usage: TokenUsage }
+  | {
+      type: "final";
+      usage: TokenUsage;
+      /**
+       * How the underlying engine session terminated. When absent, treat as
+       * "success". Adapters that surface a richer terminal signal (e.g. the
+       * Claude Code CLI's result.subtype) populate this so consumers can
+       * distinguish a graceful stop from an engine-side max-turns cut-off
+       * without losing the per-turn observability.
+       *
+       * - "success" — model returned without hitting any limit.
+       * - "max_turns" — engine cut the loop short at its own turn cap.
+       * - "generation_error" — model error during generation.
+       * - "interrupted" — session was aborted or interrupted.
+       */
+      finalReason?: "success" | "max_turns" | "generation_error" | "interrupted";
+      /** Human-readable error string when finalReason !== "success". */
+      errorMessage?: string;
+    }
   /**
    * Phase 16: a non-user, non-tool, non-model message appended by the runtime.
    * Used for assignment-submission notifications so the teach-mode tutor can

@@ -423,16 +423,20 @@ export type ConversationOptions = Omit<OptionsBase, "fallbackModel"> & {
    * whose name matches a key here, it calls the handler and sends the result back to
    * Claude automatically, looping until the final result arrives.
    *
-   * Use the `askUserQuestionHandler` and `sendUserMessageHandler` factories for the
-   * built-in interactive skill tools, or provide a custom handler for any tool name.
-   *
    * @example
    * createConversation({
    *   toolHandlers: {
-   *     AskUserQuestion: askUserQuestionHandler(q => prompt(q)),
-   *     SendUserMessage: sendUserMessageHandler(m => console.log(m)),
+   *     MyTool: async (event) => ({ value: 'result' }),
    *   },
    * });
    */
   toolHandlers?: Record<string, ToolHandler>;
+  /**
+   * Called once when the CLI emits its `init` event with the real session ID.
+   * Fires inside the first turn — before any user-visible events flow. Use
+   * this to wire the real session id into your logger bindings without
+   * having to await `conversation.sessionId` (which would deadlock at open
+   * time, before any send).
+   */
+  onSessionReady?: (sessionId: string) => void;
 };

@@ -69,8 +69,11 @@ export interface Turn extends AsyncIterable<StreamEvent> {
 export interface ToolResultContent {
   /** The `toolId` from the {@link ToolUseEvent} this responds to. */
   toolUseId: string;
-  /** The result content to return to the model (typically JSON-stringified). */
-  content: string;
+  /**
+   * The tool's return value. Pass any structured object, array, primitive,
+   * or string — the SDK JSON-stringifies internally for the MCP wire.
+   */
+  value: unknown;
   /** Set `true` to signal that the tool call failed. */
   isError?: boolean;
 }
@@ -314,6 +317,7 @@ export function createConversation(options: ConversationOptions = {}): Conversat
 
       if (event.type === "system" && event.subtype === "init") {
         sessionId.resolve(event.sessionId);
+        options.onSessionReady?.(event.sessionId);
       }
 
       eventQueue.push(event);
@@ -377,10 +381,31 @@ export function createConversation(options: ConversationOptions = {}): Conversat
     handler: ToolHandler,
     event: ToolUseEvent,
   ): Promise<ToolResultContent> {
-    const result = await handler(event);
-    const content = typeof result === "string" ? result : result.content;
-    const isError = typeof result === "object" ? result.isError : undefined;
-    return { toolUseId: event.toolId, content, isError };
+    try {
+      const result = await handler(event);
+      // Two acceptable shapes: a bare value (success) or a structured
+      // `{ value, isError? }` for explicit error signaling. Anything that
+      // looks like the structured form is treated as such; everything else
+      // is treated as a bare value.
+      if (
+        result !== null &&
+        typeof result === "object" &&
+        "value" in (result as Record<string, unknown>)
+      ) {
+        const r = result as { value: unknown; isError?: boolean };
+        return { toolUseId: event.toolId, value: r.value, isError: r.isError };
+      }
+      return { toolUseId: event.toolId, value: result };
+    } catch (err) {
+      // Throws from the handler surface as `isError: true` with the message
+      // string as the value. Lets handlers signal unexpected failures
+      // ergonomically without constructing the structured shape.
+      return {
+        toolUseId: event.toolId,
+        value: err instanceof Error ? err.message : String(err),
+        isError: true,
+      };
+    }
   }
 
   function createHandledTurn(stdinMessage: string): Turn {
@@ -405,7 +430,7 @@ export function createConversation(options: ConversationOptions = {}): Conversat
               yield {
                 type: "tool_result" as const,
                 toolId: event.toolId,
-                content: result.content,
+                value: result.value,
                 isError: result.isError,
               };
 
@@ -435,7 +460,9 @@ export function createConversation(options: ConversationOptions = {}): Conversat
                   {
                     type: "tool_result",
                     tool_use_id: intercepted.toolUseId,
-                    content: intercepted.content,
+                    // MCP wire requires text. JSON-stringify the structured
+                    // value here so the receive side can parse it back.
+                    content: JSON.stringify(intercepted.value),
                     is_error: intercepted.isError ?? false,
                   },
                 ],
@@ -478,7 +505,10 @@ export function createConversation(options: ConversationOptions = {}): Conversat
         content: results.map((r) => ({
           type: "tool_result",
           tool_use_id: r.toolUseId,
-          content: r.content,
+          // MCP wire requires text on the content field. We JSON-stringify
+          // the structured value here so callers don't have to. The receive
+          // side (parseStreamLine + extractToolResultValue) inverts this.
+          content: JSON.stringify(r.value),
           is_error: r.isError ?? false,
         })),
       },

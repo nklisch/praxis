@@ -43,6 +43,8 @@ export class ClaudeCodeEngine implements Engine {
 
     const bridge: ToolBridgeHandle | null =
       openOpts.tools.list().length > 0 ? await startToolBridge({ registry: openOpts.tools }) : null;
+
+    let realSessionId: string | undefined;
     let conv: Conversation;
     try {
       const modelHint = this.modelHint();
@@ -50,6 +52,10 @@ export class ClaudeCodeEngine implements Engine {
         ...(modelHint !== undefined && { model: modelHint }),
         ...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps }),
         systemPrompt: openOpts.systemPrompt,
+        // Native resume — preferred over priorTurns text-splice when available.
+        ...(openOpts.resumeEngineSessionId !== undefined && {
+          resume: openOpts.resumeEngineSessionId,
+        }),
         // permissionMode defaults to "bypassPermissions" via the SDK when
         // mcpServers is set (see resolvePermissionMode in cli/args.ts).
         mcpServers: bridge
@@ -62,6 +68,11 @@ export class ClaudeCodeEngine implements Engine {
               },
             }
           : {},
+        onSessionReady: (id) => {
+          realSessionId = id;
+          this.opts.deps.log.info("engine.claude-code.session_ready", { sessionId: id });
+          openOpts.onEngineSessionReady?.(id);
+        },
       });
     } catch (err) {
       if (bridge) {
@@ -74,17 +85,29 @@ export class ClaudeCodeEngine implements Engine {
       throw err;
     }
 
-    // Synthesize the diagnostic id synchronously. We can't await `conv.sessionId`
-    // here: the SDK lazy-spawns the CLI on first `send()`, and `sessionId` only
-    // resolves once the CLI emits an `init` event. Awaiting it before any send
-    // hangs forever, which surfaces in Electron as
-    // "praxis.session.start: reply was never sent" once the renderer is torn down.
-    // The EngineSession contract permits a synthesized id (it's purely for logs).
-    const sessionId = `claude-code-${Date.now()}`;
-    const seedPreface = buildTranscriptPreface(openOpts.priorTurns ?? []);
+    // Placeholder id used until the CLI emits its init event (which fires the
+    // onSessionReady callback above). The real id is surfaced via the getter on
+    // ClaudeCodeEngineSession once the callback fires.
+    const placeholderId = `claude-code-${Date.now()}`;
+
+    // Cross-engine fallback: build a transcript preface only when no native
+    // resume is available. When resumeEngineSessionId is set, the CLI session
+    // already has the full history — no preface needed.
+    const seedPreface =
+      openOpts.resumeEngineSessionId === undefined
+        ? buildTranscriptPreface(openOpts.priorTurns ?? [])
+        : "";
+
+    if (openOpts.resumeEngineSessionId !== undefined && openOpts.priorTurns?.length) {
+      this.opts.deps.log.warn("engine.claude-code.open.resume_and_prior_turns_both_set", {
+        detail: "resumeEngineSessionId takes precedence; priorTurns ignored",
+        resumeEngineSessionId: openOpts.resumeEngineSessionId,
+      });
+    }
 
     return new ClaudeCodeEngineSession({
-      id: sessionId,
+      placeholderId,
+      getRealId: () => realSessionId,
       conv,
       bridge,
       seedPreface,
@@ -111,7 +134,9 @@ export class ClaudeCodeEngine implements Engine {
 }
 
 interface ClaudeCodeSessionInit {
-  id: string;
+  placeholderId: string;
+  /** Returns the real CLI session id once the init event fires; undefined before then. */
+  getRealId: () => string | undefined;
   conv: Conversation;
   bridge: ToolBridgeHandle | null;
   /** Transcript prefix applied to the FIRST send only (when seeded with priorTurns). */
@@ -121,7 +146,8 @@ interface ClaudeCodeSessionInit {
 }
 
 class ClaudeCodeEngineSession implements EngineSession {
-  readonly id: string;
+  private readonly placeholderId: string;
+  private readonly getRealId: () => string | undefined;
   private readonly conv: Conversation;
   private readonly bridge: ToolBridgeHandle | null;
   private readonly serverName: string;
@@ -130,12 +156,18 @@ class ClaudeCodeEngineSession implements EngineSession {
   private closed = false;
 
   constructor(init: ClaudeCodeSessionInit) {
-    this.id = init.id;
+    this.placeholderId = init.placeholderId;
+    this.getRealId = init.getRealId;
     this.conv = init.conv;
     this.bridge = init.bridge;
     this.serverName = init.serverName;
     this.log = init.log;
     this.seedPreface = init.seedPreface;
+  }
+
+  /** Returns the real CLI session id once the init event fires; falls back to placeholder. */
+  get id(): string {
+    return this.getRealId() ?? this.placeholderId;
   }
 
   async *send(userMessage: string): AsyncIterable<EngineEvent> {
