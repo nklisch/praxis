@@ -52,25 +52,40 @@ export interface Query extends AsyncGenerator<StreamEvent, ResultEvent, unknown>
  * Custom tool names appear as `mcp__sdk__<name>` in the session.
  *
  * @typeParam TInput - The Zod-inferred input type for the handler.
+ * @typeParam TOutput - The Zod-inferred output type for the handler (when `outputSchema` is set).
  */
-export interface ToolDefinition<TInput = unknown> {
+export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
   /** Tool name (becomes `mcp__sdk__<name>` in the CLI session). */
   name: string;
   /** Description shown to the model to help it decide when to use this tool. */
   description: string;
   /** Zod schema defining and validating the tool's input parameters. */
   inputSchema: z.ZodType<TInput>;
+  /**
+   * Optional Zod schema for the handler's `value` on success. When set, the
+   * SDK validates handler returns at the wire boundary and returns
+   * `{ success: false, error: "..." }` on failure instead of forwarding a
+   * malformed value to the model.
+   */
+  outputSchema?: z.ZodType<TOutput>;
   /** Handler function called when the model invokes this tool. */
-  handler: (input: TInput) => Promise<ToolResult> | ToolResult;
+  handler: (input: TInput) => Promise<ToolResult<TOutput>> | ToolResult<TOutput>;
 }
 
 /**
  * Return value from a custom tool handler.
  *
- * - `{ success: true, content: '...' }` — Tool succeeded, content returned to model.
- * - `{ success: false, error: '...' }` — Tool failed, error message returned to model.
+ * - `{ success: true, value }` — Tool succeeded; `value` is sent to the model.
+ *   The SDK JSON-stringifies `value` internally for the MCP wire — pass any
+ *   structured object, array, primitive, or string directly.
+ * - `{ success: false, error: '...' }` — Tool failed; the error message goes
+ *   back to the model with `isError: true`.
+ *
+ * @typeParam TOutput - The type of the success value (defaults to `unknown`).
  */
-export type ToolResult = { success: true; content: string } | { success: false; error: string };
+export type ToolResult<TOutput = unknown> =
+  | { success: true; value: TOutput }
+  | { success: false; error: string };
 
 // ============================================
 // TOOL HANDLERS (for intercepting tool calls)
@@ -79,10 +94,16 @@ export type ToolResult = { success: true; content: string } | { success: false; 
 /**
  * Return value from a {@link ToolHandler}.
  *
- * - `string` — Sent as the tool result content (no error).
- * - `{ content, isError? }` — Full control over result content and error flag.
+ * - Any value — sent to the model as the tool result. The SDK JSON-stringifies
+ *   internally for the MCP wire.
+ * - `{ value, isError? }` — explicit form when you need to signal an error
+ *   without throwing (e.g. expected validation failure that the model should
+ *   handle gracefully).
+ *
+ * To signal an error from the handler, either return `{ value, isError: true }`
+ * or throw — the SDK catches throws and reports them as `isError`.
  */
-export type ToolHandlerResult = string | { content: string; isError?: boolean };
+export type ToolHandlerResult = unknown | { value: unknown; isError?: boolean };
 
 /**
  * Async handler for intercepting tool calls in a conversation.
@@ -92,12 +113,13 @@ export type ToolHandlerResult = string | { content: string; isError?: boolean };
  * instead of letting the CLI execute it, then sends the result back to the model.
  *
  * @param event - The {@link ToolUseEvent} containing tool name, ID, and input.
- * @returns The result to send back to the model.
+ * @returns The result to send back to the model — bare value for success,
+ *   `{ value, isError: true }` for an explicit error, or throw for an unexpected one.
  *
  * @example
  * const handler: ToolHandler = async (event) => {
  *   const input = event.toolInput as { query: string };
- *   return { content: await mySearch(input.query) };
+ *   return await mySearch(input.query); // returns whatever shape mySearch produces
  * };
  */
 export type ToolHandler = (event: import("./events.js").ToolUseEvent) => Promise<ToolHandlerResult>;

@@ -74,14 +74,18 @@ export interface ToolServerHandle {
  */
 export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServerHandle> {
   const handlers = new Map<string, (input: unknown) => Promise<ToolResult> | ToolResult>();
+  const outputSchemas = new Map<string, z.ZodType<unknown>>();
   const schemas: ToolSchema[] = [];
 
   for (const t of tools) {
     const jsonSchema = z.toJSONSchema(t.inputSchema) as Record<string, unknown>;
     // Remove $schema — MCP doesn't want it
-    delete jsonSchema["$schema"];
+    delete jsonSchema.$schema;
     schemas.push({ name: t.name, description: t.description, inputSchema: jsonSchema });
     handlers.set(t.name, t.handler as (input: unknown) => Promise<ToolResult> | ToolResult);
+    if (t.outputSchema) {
+      outputSchemas.set(t.name, t.outputSchema as z.ZodType<unknown>);
+    }
   }
 
   // Create temp dir for socket and worker script
@@ -104,11 +108,12 @@ export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServ
       buffer += chunk.toString();
       // Protocol: newline-delimited JSON
       let newlineIdx: number;
+      // biome-ignore lint/suspicious/noAssignInExpressions: standard readline pattern
       while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
         const line = buffer.slice(0, newlineIdx);
         buffer = buffer.slice(newlineIdx + 1);
         if (line.trim()) {
-          handleToolCall(conn, handlers, line);
+          handleToolCall(conn, handlers, outputSchemas, line);
         }
       }
     });
@@ -140,6 +145,7 @@ export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServ
 async function handleToolCall(
   conn: net.Socket,
   handlers: Map<string, (input: unknown) => Promise<ToolResult> | ToolResult>,
+  outputSchemas: Map<string, z.ZodType<unknown>>,
   line: string,
 ): Promise<void> {
   let msgId: string | undefined;
@@ -149,21 +155,41 @@ async function handleToolCall(
     const handler = handlers.get(msg.name);
     if (!handler) {
       conn.write(
-        JSON.stringify({
+        `${JSON.stringify({
           id: msg.id,
           result: { success: false, error: `Unknown tool: ${msg.name}` },
-        }) + "\n",
+        })}\n`,
       );
       return;
     }
     const result = await handler(msg.input);
-    conn.write(JSON.stringify({ id: msg.id, result }) + "\n");
+    // When outputSchema is set, validate the handler's return value before sending.
+    if (result.success) {
+      const outputSchema = outputSchemas.get(msg.name);
+      if (outputSchema) {
+        const parsed = outputSchema.safeParse(result.value);
+        if (!parsed.success) {
+          const errResult: ToolResult = {
+            success: false,
+            error: `tool "${msg.name}" returned a value that failed its outputSchema: ${parsed.error.message}`,
+          };
+          conn.write(`${JSON.stringify({ id: msg.id, result: errResult })}\n`);
+          return;
+        }
+        // Forward the Zod-parsed (possibly coerced) value, not the original.
+        conn.write(
+          `${JSON.stringify({ id: msg.id, result: { success: true, value: parsed.data } })}\n`,
+        );
+        return;
+      }
+    }
+    conn.write(`${JSON.stringify({ id: msg.id, result })}\n`);
   } catch (err) {
     // Best-effort error response
     if (msgId !== undefined) {
       try {
         conn.write(
-          JSON.stringify({ id: msgId, result: { success: false, error: String(err) } }) + "\n",
+          `${JSON.stringify({ id: msgId, result: { success: false, error: String(err) } })}\n`,
         );
       } catch {
         // ignore
@@ -243,12 +269,16 @@ server.setRequestHandler(ListToolsRequestSchema, () => ({
   })),
 }));
 
-// Handle tools/call — dispatch raw arguments to SDK process via socket
+// Handle tools/call — dispatch raw arguments to SDK process via socket.
+// SDK ToolResult now carries a structured value rather than a pre-stringified
+// blob. We JSON-stringify here because MCP text blocks require strings on
+// the wire; the CLI receive-side parser inverts that (text concat + JSON.parse)
+// so consumers see the original structured value.
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   const result = await callHandler(name, args ?? {});
   if (result.success) {
-    return { content: [{ type: 'text', text: result.content }] };
+    return { content: [{ type: 'text', text: JSON.stringify(result.value) }] };
   } else {
     return { content: [{ type: 'text', text: result.error }], isError: true };
   }

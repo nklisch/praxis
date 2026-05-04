@@ -24,7 +24,7 @@ import type { ToolDefinition, ToolResult } from "./types/index.js";
  *   z.object({ query: z.string() }),
  *   async ({ query }) => {
  *     const results = await webSearch(query);
- *     return { success: true, content: results.join('\n') };
+ *     return { success: true, value: { results, query } };
  *   }
  * );
  *
@@ -32,11 +32,14 @@ import type { ToolDefinition, ToolResult } from "./types/index.js";
  *   tools: { custom: [searchTool] },
  * });
  */
-export function tool<TInput>(
+export function tool<TInput, TOutput = unknown>(
   name: string,
   description: string,
   inputSchema: z.ZodType<TInput>,
-  handler: (input: TInput) => Promise<ToolResult> | ToolResult,
-): ToolDefinition<TInput> {
-  return { name, description, inputSchema, handler };
+  handler: (input: TInput) => Promise<ToolResult<TOutput>> | ToolResult<TOutput>,
+  outputSchema?: z.ZodType<TOutput>,
+): ToolDefinition<TInput, TOutput> {
+  return outputSchema
+    ? { name, description, inputSchema, handler, outputSchema }
+    : { name, description, inputSchema, handler };
 }
