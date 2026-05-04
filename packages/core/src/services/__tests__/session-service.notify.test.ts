@@ -8,8 +8,7 @@
  * (which requires full engine wiring), then assert on the resulting DB state.
  */
 
-import { assignments } from "@praxis/artifacts/schema";
-import { courses } from "@praxis/artifacts/schema";
+import { assignments, courses } from "@praxis/artifacts/schema";
 import { conceptGraphs } from "@praxis/curriculum/schema";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { asc, eq } from "drizzle-orm";
@@ -17,9 +16,6 @@ import { v7 as uuidv7 } from "uuid";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
-import { SessionServiceImpl } from "../session-service.js";
-import { getOrCreateDefaultStudentId } from "../student.js";
-import type { ServiceDeps } from "../types.js";
 import type {
   AssignmentId,
   CourseId,
@@ -29,6 +25,9 @@ import type {
   SystemNoteOrigin,
 } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
+import { SessionServiceImpl } from "../session-service.js";
+import { getOrCreateDefaultStudentId } from "../student.js";
+import type { ServiceDeps } from "../types.js";
 
 const dbCtx = useTempDb();
 
@@ -303,11 +302,7 @@ describe("SessionServiceImpl.spawnFromAssignment", () => {
     expect(handle.courseId).toBe(courseId);
 
     // The session row in the DB should have parentSessionId set
-    const row = db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, handle.sessionId))
-      .get();
+    const row = db.select().from(sessions).where(eq(sessions.id, handle.sessionId)).get();
     expect(row).toBeDefined();
     expect(row?.parentSessionId).toBe(parentSessionId);
     expect(row?.modeId).toBe("quiz");

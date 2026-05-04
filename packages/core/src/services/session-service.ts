@@ -3,7 +3,7 @@ import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { composeAssignmentContextFragment } from "@praxis/curriculum/brief/assignment-context";
 import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
 import { createEngine } from "@praxis/engines";
-import { episodicEvents, sessions } from "@praxis/memory/schema";
+import { type EngineSessionStateJson, episodicEvents, sessions } from "@praxis/memory/schema";
 import { InProcessToolRegistry } from "@praxis/tools";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -666,6 +666,10 @@ export class SessionServiceImpl implements SessionService {
         courseDocuments: this.deps.toolServices.courseDocuments,
         // Phase 16: engine resolver — used by tools that spawn isolated agent sessions.
         engineResolver: this.deps.toolServices.engineResolver,
+        // Bootstrap budget resolver — read by course.start_exploration.
+        ...(this.deps.toolServices.bootstrapConfigResolver !== undefined && {
+          bootstrapConfigResolver: this.deps.toolServices.bootstrapConfigResolver,
+        }),
         // Activity registry — optional; wired from ServiceDeps when available.
         ...(this.deps.activity !== undefined && { activity: this.deps.activity }),
       },
@@ -686,10 +690,22 @@ export class SessionServiceImpl implements SessionService {
       log: this.deps.log.child({ component: "tool-dispatch", sessionId }),
     });
 
+    // Unit 5d: prefer native engine resume over text-splice when possible.
+    const resumeId = this.resolveResumeEngineSessionId(args.sessionId, args.engineId);
+
     const handle = await engine.open({
       systemPrompt,
       tools,
-      ...(args.priorTurns.length > 0 && { priorTurns: args.priorTurns }),
+      ...(resumeId !== undefined
+        ? // Same-engine continuation: use native resume; skip priorTurns.
+          { resumeEngineSessionId: resumeId }
+        : // Engine swap or first open: replay transcript via text-splice.
+          args.priorTurns.length > 0
+          ? { priorTurns: args.priorTurns }
+          : {}),
+      onEngineSessionReady: (engineSessionId) => {
+        this.recordEngineSessionId(args.sessionId, args.engineId, engineSessionId);
+      },
     });
 
     const entry: ActiveEntry = {
@@ -702,6 +718,48 @@ export class SessionServiceImpl implements SessionService {
     };
     this.activeSessions.set(args.sessionId, entry);
     return entry;
+  }
+
+  /**
+   * Looks up engineSessionStateJson on the sessions row and returns the
+   * stored CLI session id for the given engineId if present. Returns
+   * undefined when there is no usable state to resume from.
+   */
+  private resolveResumeEngineSessionId(
+    sessionId: string,
+    engineId: string,
+  ): string | undefined {
+    const row = this.deps.db
+      .select({ state: sessions.engineSessionStateJson })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .get();
+    return row?.state?.[engineId]?.engineSessionId;
+  }
+
+  /**
+   * Atomic read-modify-write: merges `{ engineSessionId, lastTurnAt }` into
+   * engineSessionStateJson under the given engineId. Using a transaction
+   * ensures concurrent opens of the same Praxis session don't clobber state.
+   */
+  private recordEngineSessionId(
+    sessionId: string,
+    engineId: string,
+    engineSessionId: string,
+  ): void {
+    this.deps.db.transaction((tx) => {
+      const row = tx
+        .select({ state: sessions.engineSessionStateJson })
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .get();
+      const next: EngineSessionStateJson = { ...(row?.state ?? {}) };
+      next[engineId] = { engineSessionId, lastTurnAt: Date.now() };
+      tx.update(sessions)
+        .set({ engineSessionStateJson: next })
+        .where(eq(sessions.id, sessionId))
+        .run();
+    });
   }
 
   private requireMode(modeId: string): Mode {
