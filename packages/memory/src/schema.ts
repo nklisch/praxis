@@ -1,5 +1,21 @@
 import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+/**
+ * Per-engine session state keyed by engineId. Stored as a JSON map on the
+ * sessions row. Null on rows that predate this feature or sessions whose
+ * engines don't expose a resumable session id.
+ *
+ * Shape: { [engineId: string]: { engineSessionId: string; lastTurnAt: number } }
+ */
+export type EngineSessionStateJson = {
+  [engineId: string]: {
+    /** The underlying engine's native session id (e.g. Claude Code CLI session UUID). */
+    engineSessionId: string;
+    /** ms epoch — recorded at every onEngineSessionReady call. */
+    lastTurnAt: number;
+  };
+};
+
 export const sessions = sqliteTable(
   "sessions",
   {
@@ -20,6 +36,17 @@ export const sessions = sqliteTable(
      * set-null; application logic handles orphan cleanup).
      */
     parentSessionId: text("parent_session_id"),
+    /**
+     * SDK refactor Unit 5: per-engine state recorded when an underlying engine
+     * session is created/resumed. JSON map keyed by engineId. Null on rows that
+     * predate this feature or sessions whose engines don't expose a resumable
+     * session id.
+     *
+     * Shape: { [engineId: string]: { engineSessionId: string; lastTurnAt: number } }
+     */
+    engineSessionStateJson: text("engine_session_state_json", { mode: "json" }).$type<
+      EngineSessionStateJson | null
+    >(),
   },
   (t) => ({
     studentTimeIdx: index("sessions_student_time_idx").on(t.studentId, t.startedAt),

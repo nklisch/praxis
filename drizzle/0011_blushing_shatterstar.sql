@@ -1,0 +1,1 @@
+ALTER TABLE `sessions` ADD `engine_session_state_json` text;
