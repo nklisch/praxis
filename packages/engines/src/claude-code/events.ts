@@ -1,3 +1,4 @@
+import type { ResultEvent, StreamEvent } from "@praxis/claude-cli-sdk";
 import type { EngineEvent, ToolResult } from "@praxis/core/types";
 
 /**
@@ -25,61 +26,69 @@ export interface MapStreamEventInput {
  * for events with no useful projection (system.init, rate_limit_event we
  * choose to surface as warnings via the log instead).
  */
-export function mapClaudeCodeEvent(event: unknown, ctx: MapStreamEventInput): EngineEvent | null {
-  if (!event || typeof event !== "object" || !("type" in event)) return null;
-  const e = event as Record<string, unknown> & { type: string };
-  switch (e.type) {
+export function mapClaudeCodeEvent(
+  event: StreamEvent,
+  ctx: MapStreamEventInput,
+): EngineEvent | null {
+  switch (event.type) {
     case "system":
       return null; // init / metadata; not part of the normalized stream.
     case "assistant": {
-      const delta = (e.delta as string | undefined) ?? "";
-      const text = (e.text as string | undefined) ?? "";
+      const delta = event.delta ?? "";
       // Prefer delta when present; fall back to full text.
       if (delta) return { type: "model_message", content: delta, partial: true };
-      return { type: "model_message", content: text, partial: false };
+      return { type: "model_message", content: event.text ?? "", partial: false };
     }
     case "tool_use":
       return {
         type: "tool_call",
-        toolName: stripMcpPrefix(String(e.toolName), ctx.serverName),
-        args: e.toolInput,
-        callId: String(e.toolId),
+        toolName: stripMcpPrefix(event.toolName, ctx.serverName),
+        args: event.toolInput,
+        callId: event.toolId,
       };
     case "tool_result": {
-      const isError = Boolean(e.isError);
-      const content = String(e.content ?? "");
+      // The SDK parser already (a) extracted MCP text blocks and (b)
+      // JSON-parsed the result, so `event.value` is the tool handler's actual
+      // return value — no string handling needed here. On error, `event.value`
+      // is typically the error message string from the tool side.
+      const isError = Boolean(event.isError);
       const result: ToolResult = isError
         ? {
             ok: false,
-            error: { code: "tool.sdk_reported_error", message: content, recoverable: false },
+            error: {
+              code: "tool.sdk_reported_error",
+              message:
+                typeof event.value === "string" ? event.value : JSON.stringify(event.value ?? null),
+              recoverable: false,
+            },
           }
-        : { ok: true, value: tryParseJson(content), tier: "deterministic" };
-      return { type: "tool_result", callId: String(e.toolId ?? ""), result };
+        : { ok: true, value: event.value, tier: "deterministic" };
+      return { type: "tool_result", callId: event.toolId ?? "", result };
     }
     case "result": {
-      const usage = (e.usage as Record<string, number> | undefined) ?? {};
+      const usage = event.usage ?? { inputTokens: 0, outputTokens: 0 };
+      const finalReason = mapResultSubtype(event.subtype);
       return {
         type: "final",
         usage: {
-          inputTokens: Number(usage.inputTokens ?? 0),
-          outputTokens: Number(usage.outputTokens ?? 0),
-          ...(usage.cacheReadTokens !== undefined && {
-            cacheReadTokens: Number(usage.cacheReadTokens),
-          }),
+          inputTokens: usage.inputTokens ?? 0,
+          outputTokens: usage.outputTokens ?? 0,
+          ...(usage.cacheReadTokens !== undefined && { cacheReadTokens: usage.cacheReadTokens }),
           ...(usage.cacheWriteTokens !== undefined && {
-            cacheWriteTokens: Number(usage.cacheWriteTokens),
+            cacheWriteTokens: usage.cacheWriteTokens,
           }),
         },
+        finalReason,
+        ...(finalReason !== "success" &&
+          event.error !== undefined && { errorMessage: event.error }),
       };
     }
     case "rate_limit_event": {
-      const info = e.rateLimitInfo as
-        | { status?: string; resetsAt?: number; rateLimitType?: string; isUsingOverage?: boolean }
-        | undefined;
+      const info = event.rateLimitInfo;
       // Informational events (status="allowed") shouldn't error the stream —
       // they're emitted alongside successful turns to advertise quota state.
       // Surface as a warning if a logger is supplied; otherwise drop silently.
-      if (info?.status === "allowed") {
+      if (info.status === "allowed") {
         ctx.log?.warn("engine.claude-code.rate_limit_info", {
           status: info.status,
           rateLimitType: info.rateLimitType,
@@ -92,7 +101,7 @@ export function mapClaudeCodeEvent(event: unknown, ctx: MapStreamEventInput): En
         type: "error",
         error: {
           code: "engine.rate_limited",
-          message: `Rate limited; resets at ${info?.resetsAt}`,
+          message: `Rate limited; resets at ${info.resetsAt}`,
           recoverable: true,
         },
       };
@@ -102,10 +111,26 @@ export function mapClaudeCodeEvent(event: unknown, ctx: MapStreamEventInput): En
   }
 }
 
-function tryParseJson(s: string): unknown {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return s;
+/**
+ * Translate the Claude Code SDK's `result.subtype` into the normalized
+ * `finalReason` field on the framework's final event. The exhaustive switch
+ * catches new SDK subtypes at compile time.
+ */
+function mapResultSubtype(
+  subtype: ResultEvent["subtype"],
+): "success" | "max_turns" | "generation_error" | "interrupted" {
+  switch (subtype) {
+    case "success":
+      return "success";
+    case "error_max_turns":
+      return "max_turns";
+    case "error_interrupted":
+      return "interrupted";
+    case "error_during_generation":
+      return "generation_error";
+    default: {
+      const _exhaustive: never = subtype;
+      throw new Error(`unhandled ResultEvent subtype: ${String(_exhaustive)}`);
+    }
   }
 }
