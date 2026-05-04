@@ -436,24 +436,3 @@ export type ConversationOptions = Omit<OptionsBase, "fallbackModel"> & {
    */
   toolHandlers?: Record<string, ToolHandler>;
 };
-
-/**
- * Options for {@link discoverTools} — subset of {@link OptionsBase} that
- * affects which tools are available (MCP servers, plugins, agents, etc.).
- *
- * Only fields that influence tool enumeration are included.
- */
-export type DiscoverOptions = Pick<
-  OptionsBase,
-  | "mcpServers"
-  | "strictMcpConfig"
-  | "pluginDirs"
-  | "settings"
-  | "settingSources"
-  | "additionalDirectories"
-  | "workDir"
-  | "env"
-  | "betas"
-  | "agents"
-  | "disableSlashCommands"
->;

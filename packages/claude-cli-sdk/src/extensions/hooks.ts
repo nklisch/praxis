@@ -1,3 +1,23 @@
+// HookEvent / HookMatcher / HookHandler — kept type-only.
+//
+// Praxis doesn't currently use the CLI's hooks system. The most likely
+// future use is `PostCompact` with `type: "prompt"` to re-inject Praxis
+// session invariants (mode id, draftId, scoped document set) after the
+// CLI compacts its context and potentially loses them. PostCompact has
+// no equivalent observability surface in StreamEvent — hooks are the
+// only path. Other lifecycle events (PreToolUse / PostToolUse / Stop /
+// SessionEnd) are mostly duplicative of stream events we already
+// process; PreToolUse / PostToolUse only matter if we expose built-in
+// CLI tools to the model, which we don't.
+//
+// Kept here so a future "instrument compaction" task has a typed surface
+// to build against without re-deriving from CLI docs. The handler
+// invocations (`type: "command"` / `"http"`) require a sidecar (local
+// HTTP server or wrapper script for the CLI to call into); the
+// `"prompt"` and `"agent"` types inject directly into the CLI's context
+// and don't need a sidecar — those are the variants Praxis is most
+// likely to use first.
+
 // ============================================
 // HOOK TYPES
 // ============================================

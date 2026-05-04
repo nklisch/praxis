@@ -1,4 +1,3 @@
-import { computeDisallowedTools, discoverTools } from "../discover.js";
 import { InvalidOptionError } from "../errors.js";
 import type { ConversationOptions, Options, OptionsBase, PermissionMode } from "../types/index.js";
 import { isUUID } from "../types/options.js";
@@ -101,31 +100,14 @@ async function buildCommonArgs(
       }
 
       if (only) {
-        // Strict whitelist — discovery + compute deny list
-        const { tools: allTools } = await discoverTools({
-          mcpServers: options.mcpServers,
-          strictMcpConfig: options.strictMcpConfig,
-          pluginDirs: options.pluginDirs,
-          settings: options.settings,
-          settingSources: options.settingSources,
-          additionalDirectories: options.additionalDirectories,
-          workDir: options.workDir,
-          env: options.env,
-          betas: options.betas,
-          agents: options.agents,
-          disableSlashCommands: options.disableSlashCommands,
-        });
-
-        const denied = computeDisallowedTools(allTools, only);
-        if (denied.length > 0) {
-          args.push("--disallowedTools", denied.join(","));
-        }
-
-        logger.debug("tools.only computed deny list", {
-          allowed: only.length,
-          denied: denied.length,
-          total: allTools.length,
-        });
+        // tools.only requires tool discovery which is not supported in Praxis.
+        // Praxis uses permissionMode: bypassPermissions and does not expose
+        // built-in CLI tools (Bash, Read, Edit) to the model.
+        throw new InvalidOptionError(
+          "tools.only",
+          only,
+          "tools.only is not supported — use tools.deny to block specific tools or permissionMode to control access",
+        );
       } else if (deny?.length) {
         args.push("--disallowedTools", deny.join(","));
       }
