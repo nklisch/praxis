@@ -4,6 +4,33 @@ import type { ConversationOptions, Options, OptionsBase, PermissionMode } from "
 import { isUUID } from "../types/options.js";
 import { createLogger, writeTempJson } from "../utils.js";
 
+/**
+ * Resolve the effective permission mode for a conversation.
+ *
+ * When `mcpServers` is provided and `permissionMode` is not explicitly set,
+ * defaults to `"bypassPermissions"`. This is the correct default for
+ * programmatic SDK consumers that register first-party MCP tools — there is
+ * no human at the CLI to answer permission prompts, so bypass is necessary
+ * for tools to actually execute. Callers can still set `permissionMode`
+ * explicitly to opt out of this default.
+ *
+ * When no MCP servers are registered, falls back to the CLI's own default
+ * (`"default"`) by returning `undefined` (no flag emitted).
+ */
+export function resolvePermissionMode(
+  options: Pick<
+    ConversationOptions,
+    "permissionMode" | "dangerouslySkipPermissions" | "mcpServers"
+  >,
+): PermissionMode | undefined {
+  if (options.permissionMode) return options.permissionMode;
+  if (options.dangerouslySkipPermissions) return undefined; // handled separately
+  if (options.mcpServers && Object.keys(options.mcpServers).length > 0) {
+    return "bypassPermissions";
+  }
+  return undefined;
+}
+
 const logger = createLogger("cli");
 
 // ============================================
@@ -45,9 +72,11 @@ async function buildCommonArgs(
     args.push("--effort", options.effort);
   }
 
-  // Permission mode
-  if (options.permissionMode) {
-    args.push("--permission-mode", options.permissionMode);
+  // Permission mode — use resolvePermissionMode to default bypassPermissions
+  // when MCP servers are registered and no explicit mode is set.
+  const effectivePermissionMode = resolvePermissionMode(options);
+  if (effectivePermissionMode) {
+    args.push("--permission-mode", effectivePermissionMode);
   } else if (options.dangerouslySkipPermissions) {
     args.push("--dangerously-skip-permissions");
   }
