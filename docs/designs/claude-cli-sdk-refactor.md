@@ -5,12 +5,13 @@
 Eight refactors that tighten the SDK's surface against how Praxis actually consumes it. Praxis is the only consumer, so the SDK can be modified freely; this design moves the SDK from "faithful CLI wrapper" toward "API shaped for our adapter."
 
 The unifying themes:
-- **Push work into the SDK** so the engine adapter is thin (units 1, 2, 4, 5, 6).
+- **Push work into the SDK** so the engine adapter is thin (units 1, 2, 4, 6).
 - **Tighten loose types** that force defensive coercion downstream (units 1, 8).
 - **Delete unused surface** that's lived since the upstream fork (unit 3).
 - **Encode our deployment assumptions** in the SDK's defaults instead of a comment in the adapter (unit 7).
+- **Use the CLI's native session resumption** instead of text-splicing prior turns into every new conversation (unit 5 — the largest unit; spans schema, service, and adapter).
 
-The goal at the end: `events.ts` has zero `as` casts on SDK-provided fields, `adapter.ts` has zero workaround comments, and the SDK's `index.ts` exports only what Praxis uses.
+The goal at the end: `events.ts` has zero `as` casts on SDK-provided fields, `adapter.ts` has zero workaround comments, the SDK's `index.ts` exports only what Praxis uses, and reopening a Praxis session resumes the underlying CLI session natively rather than replaying a transcript preface to the model.
 
 ## Implementation Units
 
@@ -284,98 +285,333 @@ class ClaudeCodeEngineSession implements EngineSession {
 
 ---
 
-### Unit 5: `priorTurns` as a structured `ConversationOptions` field
+### Unit 5: Native session continuity (resume + cross-engine fallback)
 
-**Files**: `packages/claude-cli-sdk/src/types/options.ts`, `packages/claude-cli-sdk/src/conversation.ts`, `packages/engines/src/claude-code/adapter.ts`, `packages/engines/src/util/transcript.ts`
+**Scope**: This is the largest unit. It spans:
+- The `sessions` schema (one new column + a Drizzle migration)
+- `SessionService` (record + lookup methods)
+- `EngineOpenOptions` (two new fields)
+- The Claude Code adapter (consume the new fields)
+- Codex / Direct adapters (no-op consumers — they fall through to existing behavior; native resume support per-adapter is out of scope)
 
-Today the adapter encodes prior turns as a text preface that's spliced onto the first user message. The mechanism stays the same on the wire (the CLI doesn't have a structured "prior turns" parameter), but the **API** moves into the SDK so the adapter doesn't carry the splice logic.
+**Files**:
+- `drizzle/00NN_engine_session_state.sql` (new migration)
+- `packages/memory/src/schema.ts` (column addition)
+- `packages/core/src/types/engine.ts` (EngineOpenOptions fields)
+- `packages/core/src/services/session-service.ts` (record + lookup, plumbing through to engine.open)
+- `packages/core/src/services/types.ts` (SessionService port — if engine session state needs to be exposed)
+- `packages/engines/src/claude-code/adapter.ts` (consume `resumeEngineSessionId`, wire `onEngineSessionReady`)
+- `packages/engines/src/util/transcript.ts` (kept — text-splice is still the cross-engine fallback)
 
-```typescript
-// types/options.ts
-export interface PriorTurn {
-  role: "user" | "assistant";
-  content: string;
-}
+#### Background — why this changed mid-design
 
-export interface ConversationOptions extends OptionsBase {
-  // ... existing fields ...
-  /**
-   * Prior conversation turns to seed the model's context on the first send.
-   * The SDK formats them as a transcript preface attached to the first user
-   * message — the model reads them as conversation history. Subsequent sends
-   * don't re-attach them.
-   *
-   * Use this when restoring a session after an engine swap or a process
-   * restart. Empty array is equivalent to `undefined`.
-   */
-  priorTurns?: ReadonlyArray<PriorTurn>;
-}
+The CLI persists every session to disk by default and supports `--resume <session-id>` to reload one natively. The SDK already exposes this via `ConversationOptions.resume` plus `OptionsBase.sessionId`, `noSessionPersistence`, and `forkSession`. Resumption is full-fidelity: transcript, tool history, prompt cache — none of it has to be replayed in the next turn's context window.
+
+The original Unit 5 design moved the text-splice from the adapter into the SDK without using `resume`. That was the wrong shape: a Praxis session reopening into the same engine should pick up where the CLI left off, not start a fresh CLI session that happens to have a transcript preface. The text-splice is still right when the engine *changes* between Praxis-session opens (Claude Code → Codex), because the new engine has no native session to resume into.
+
+So this unit replaces the old text-splice-in-SDK plan with a two-path strategy:
+
+1. **Same-engine continuation** → use the CLI's `resume` natively (no transcript replay).
+2. **Cross-engine continuation** → keep the existing `priorTurns` text-splice in `transcript.ts` (no SDK change).
+
+#### 5a. Schema: store engine session state on the `sessions` row
+
+**Migration**: `drizzle/00NN_engine_session_state.sql` (next available number).
+
+```sql
+ALTER TABLE sessions ADD COLUMN engine_session_state_json TEXT;
 ```
 
-In `conversation.ts`, on first `send()`:
+**Schema update** (`packages/memory/src/schema.ts`):
 
 ```typescript
-let firstSendDone = false;
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    // ... existing columns ...
+    /**
+     * Per-engine state recorded when an underlying engine session is
+     * created/resumed. JSON map keyed by engineId. Null on rows that
+     * predate this feature or sessions whose engines don't expose a
+     * resumable session id.
+     *
+     * Shape: { [engineId: string]: { engineSessionId: string; lastTurnAt: number } }
+     */
+    engineSessionStateJson: text("engine_session_state_json", { mode: "json" }).$type<
+      EngineSessionStateJson | null
+    >(),
+  },
+  // ... indexes ...
+);
 
-function send(content: string): Turn {
-  let body = content;
-  if (!firstSendDone && options.priorTurns && options.priorTurns.length > 0) {
-    body = formatTranscriptPreface(options.priorTurns) + content;
-  }
-  firstSendDone = true;
-  // ... existing turn creation with `body` ...
-}
-
-function formatTranscriptPreface(turns: ReadonlyArray<PriorTurn>): string {
-  // Same shape that's currently in @praxis/engines/src/util/transcript.ts;
-  // copied here so the SDK is self-contained.
-  const lines: string[] = [
-    "Previous conversation (for context — do not respond to these):",
-    "",
-  ];
-  for (const t of turns) {
-    lines.push(`${t.role === "user" ? "User" : "Assistant"}: ${t.content}`);
-    lines.push("");
-  }
-  lines.push("--- Continue from here ---", "");
-  return lines.join("\n");
-}
+export type EngineSessionStateJson = {
+  [engineId: string]: {
+    engineSessionId: string;
+    /** ms epoch — recorded at every onEngineSessionReady. Cleanup hook. */
+    lastTurnAt: number;
+  };
+};
 ```
-
-Adapter changes:
-
-```typescript
-// packages/engines/src/claude-code/adapter.ts
-async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
-  // ... existing setup ...
-  conv = createConversation({
-    // ... existing options ...
-    ...(openOpts.priorTurns && openOpts.priorTurns.length > 0 && {
-      priorTurns: openOpts.priorTurns.map((t) => ({
-        role: t.role === "user" ? "user" : "assistant",
-        content: t.content,
-      })),
-    }),
-  });
-  // No more seedPreface, no more buildTranscriptPreface call here.
-}
-```
-
-Delete (or simplify to re-export from the SDK):
-- `packages/engines/src/util/transcript.ts` — `buildTranscriptPreface` has one caller, which is being removed.
-
-**Implementation Notes**:
-- Keep `formatTranscriptPreface` private to the SDK (unexported). The function is one place; if Praxis ever needs the transcript text directly, expose it then.
-- Existing `engine-session-lifecycle` pattern says priorTurns are seeded only on engine swap/restart; semantics don't change — only the API moves.
-- The SDK doesn't change wire behavior: it still produces the same `--input-format stream-json` user message that the CLI consumes.
 
 **Acceptance Criteria**:
-- [ ] `ConversationOptions.priorTurns` is typed and accepted.
-- [ ] When `priorTurns` is provided, the first `send()` sends a message that contains both the formatted preface and the user's content.
-- [ ] When `priorTurns` is empty or absent, the first `send()` sends only the user's content.
-- [ ] Subsequent sends (turn 2+) never re-include the preface.
-- [ ] `buildTranscriptPreface` is no longer called from `claude-code/adapter.ts`.
-- [ ] New SDK test: priorTurns content appears in the wire message captured from the first send; absent on the second send.
+- [ ] Migration applies cleanly to a fresh DB and to a populated dev DB.
+- [ ] Existing sessions rows have `engine_session_state_json = NULL` after the migration.
+- [ ] `pnpm db:show` lists the new column.
+
+#### 5b. `EngineOpenOptions`: two new fields
+
+**File**: `packages/core/src/types/engine.ts`
+
+```typescript
+export interface EngineOpenOptions {
+  systemPrompt: string;
+  tools: ToolRegistry;
+  /**
+   * Cross-engine fallback ONLY: text-splice prior conversation into the
+   * first user message. Use when no native resume is possible (engine
+   * differs from the one that produced these turns, or a new conversation).
+   * For same-engine continuation prefer `resumeEngineSessionId` — it
+   * preserves full CLI session state without burning context window.
+   */
+  priorTurns?: ConversationTurn[];
+  /** Per-turn maximum step count (looped engines) or model calls (single-shot). */
+  maxSteps?: number;
+  generation?: GenerationParams;
+  /**
+   * Resume the underlying engine's native session by id. When set, the
+   * adapter delegates to its SDK's resume primitive (e.g. Claude Code's
+   * `--resume`). Adapters that don't support resumption ignore this and
+   * fall back to `priorTurns` text-splice. Mutually exclusive with the
+   * "fresh start" case — when set, callers should pass empty/no
+   * `priorTurns`.
+   */
+  resumeEngineSessionId?: string;
+  /**
+   * Fired exactly once when the underlying engine session's id is known
+   * (typically when the SDK emits its first `init` event). Used by
+   * SessionService to persist the id in `engine_session_state_json` so a
+   * later open can pass it as `resumeEngineSessionId`. Adapters that don't
+   * have a native session id never fire this.
+   */
+  onEngineSessionReady?: (engineSessionId: string) => void;
+}
+```
+
+**Implementation Notes**:
+- `resumeEngineSessionId` and `priorTurns` shouldn't be used together. SessionService picks one based on whether the stored engine matches the active engine.
+- `onEngineSessionReady` fires synchronously inside the adapter once the SDK's id-ready signal lands. Keep handlers cheap (write to DB happens on the consumer side).
+
+**Acceptance Criteria**:
+- [ ] `EngineOpenOptions` exports the two new optional fields.
+- [ ] All three adapters (Claude Code, Codex, Direct) compile against the new shape; only Claude Code consumes the fields.
+
+#### 5c. Claude Code adapter: consume the new fields
+
+**File**: `packages/engines/src/claude-code/adapter.ts`
+
+```typescript
+async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
+  const status = await authStatus();
+  if (!status.loggedIn) {
+    throw new Error(`claude.auth.required: ${status.error ?? "claude CLI is not signed in"}`);
+  }
+
+  const bridge = openOpts.tools.list().length > 0
+    ? await startToolBridge({ registry: openOpts.tools })
+    : null;
+
+  let realSessionId: string | undefined;
+
+  let conv: Conversation;
+  try {
+    const modelHint = this.modelHint();
+    conv = createConversation({
+      ...(modelHint !== undefined && { model: modelHint }),
+      ...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps }),
+      systemPrompt: openOpts.systemPrompt,
+      // Native resume — preferred over priorTurns text-splice when available.
+      ...(openOpts.resumeEngineSessionId !== undefined && {
+        resume: openOpts.resumeEngineSessionId,
+      }),
+      mcpServers: bridge ? { [bridge.serverName]: { /* ... */ } } : {},
+      // permissionMode default kicks in (Unit 7).
+      onSessionReady: (id) => {
+        realSessionId = id;
+        openOpts.onEngineSessionReady?.(id);
+      },
+    });
+  } catch (err) {
+    if (bridge) await bridge.close().catch(() => {});
+    throw err;
+  }
+
+  // Cross-engine fallback: only used when resumeEngineSessionId is absent
+  // AND priorTurns is provided. SessionService is responsible for the
+  // either/or decision; the adapter just renders priorTurns into a preface
+  // when present.
+  const seedPreface =
+    openOpts.resumeEngineSessionId === undefined
+      ? buildTranscriptPreface(openOpts.priorTurns ?? [])
+      : "";
+
+  return new ClaudeCodeEngineSession({
+    placeholderId: `claude-code-${Date.now()}`,
+    getRealId: () => realSessionId,
+    conv,
+    bridge,
+    seedPreface,
+    serverName: bridge?.serverName ?? "praxis",
+    log: this.opts.deps.log,
+  });
+}
+```
+
+**Implementation Notes**:
+- `EngineSession.id` becomes a getter that returns the real id once known, falling back to the placeholder. Same pattern proposed in Unit 4.
+- Pass-through is simple: SDK `onSessionReady` callback (Unit 4) → adapter hands the id to `openOpts.onEngineSessionReady` (Unit 5).
+- When `resumeEngineSessionId` is set, the seedPreface stays empty regardless of `priorTurns` — defensive against callers passing both.
+- `buildTranscriptPreface` lives in `packages/engines/src/util/transcript.ts` and stays — it's the cross-engine fallback. Don't delete this file.
+
+**Acceptance Criteria**:
+- [ ] When `EngineOpenOptions.resumeEngineSessionId` is provided, `createConversation` is called with `resume: <id>`.
+- [ ] When `resumeEngineSessionId` is absent and `priorTurns` is non-empty, the first `send()` includes a transcript preface (existing behavior preserved).
+- [ ] When both are provided, the adapter ignores `priorTurns` (resume wins) and logs a warning.
+- [ ] `EngineSession.id` returns the real CLI session id after `onSessionReady` fires.
+- [ ] `onEngineSessionReady` fires exactly once per `open()`.
+
+#### 5d. SessionService: record + lookup engine session state
+
+**File**: `packages/core/src/services/session-service.ts`
+
+Two operations to add:
+
+1. **Lookup at open**: when reopening a Praxis session, read `engineSessionStateJson`, find the entry whose key matches the currently-configured `engineId`. If found, pass `resumeEngineSessionId`. If not found, fall back to text-splice `priorTurns` (as today).
+
+2. **Record on ready**: pass an `onEngineSessionReady` callback that writes `{ engineSessionId, lastTurnAt: Date.now() }` under the active engineId into the row's JSON.
+
+Sketch:
+
+```typescript
+class SessionServiceImpl implements SessionService {
+  // ... existing methods ...
+
+  /**
+   * Looks up engineSessionStateJson on the sessions row and returns the
+   * stored CLI session id for `engineId` if present and non-stale. Returns
+   * undefined when there's no usable state to resume from.
+   */
+  private resolveResumeEngineSessionId(
+    sessionId: SessionId,
+    engineId: string,
+  ): string | undefined {
+    const row = this.deps.db
+      .select({ state: sessions.engineSessionStateJson })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .get();
+    return row?.state?.[engineId]?.engineSessionId;
+  }
+
+  /**
+   * Atomic update: merge { [engineId]: { engineSessionId, lastTurnAt } } into
+   * engineSessionStateJson. Read-modify-write inside a transaction so a
+   * concurrent open of the same Praxis session doesn't clobber state.
+   */
+  private recordEngineSessionId(
+    sessionId: SessionId,
+    engineId: string,
+    engineSessionId: string,
+  ): void {
+    this.deps.db.transaction((tx) => {
+      const row = tx
+        .select({ state: sessions.engineSessionStateJson })
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .get();
+      const next: EngineSessionStateJson = { ...(row?.state ?? {}) };
+      next[engineId] = { engineSessionId, lastTurnAt: Date.now() };
+      tx.update(sessions)
+        .set({ engineSessionStateJson: next })
+        .where(eq(sessions.id, sessionId))
+        .run();
+    });
+  }
+}
+```
+
+In `openActive` (or wherever `engine.open(...)` is called for an existing session):
+
+```typescript
+// SessionServiceImpl.openActive — sketch of the new branch
+const resumeId = this.resolveResumeEngineSessionId(args.sessionId, engineId);
+
+const engineOpts: EngineOpenOptions = {
+  systemPrompt,
+  tools: registry,
+  ...(args.maxSteps !== undefined && { maxSteps: args.maxSteps }),
+  ...(resumeId !== undefined
+    // Same-engine continuation: use native resume; skip priorTurns.
+    ? { resumeEngineSessionId: resumeId }
+    // Engine swap or first open: replay transcript via text-splice.
+    : { priorTurns: priorTurnsForCrossEngineReplay }),
+  onEngineSessionReady: (engineSessionId) => {
+    this.recordEngineSessionId(args.sessionId, engineId, engineSessionId);
+  },
+};
+
+const session = await engine.open(engineOpts);
+```
+
+`priorTurnsForCrossEngineReplay` is computed by the existing transcript-loading path (read episodic events, filter to user/assistant turns, pass to engine). That path is **only invoked when no resume id is available**, so the cost of materializing it is paid only on cold starts and engine swaps.
+
+**Implementation Notes**:
+- Don't write to `engineSessionStateJson` for child sessions (the explorer's isolated `runConceptExplorer` sessions don't have a Praxis sessions row — there's nothing to update). The callback is only wired for top-level sessions opened through `SessionService`.
+- A first-time `engine.open` for a fresh Praxis session: `resumeEngineSessionId` is undefined, `priorTurns` is empty (no episodic history yet). The adapter starts a fresh CLI session, the callback fires once with the new id, the row gets its first state entry.
+- An engine-swap: stored state has `{claude-code: {...}}` but the active engineId is `codex`. Lookup misses, fallback to `priorTurns`. After the Codex session opens, the row's state grows to `{claude-code: {...}, codex: {...}}`.
+
+**Acceptance Criteria**:
+- [ ] First `engine.open` for a fresh session passes neither `resumeEngineSessionId` nor `priorTurns`. After the open, the row has a state entry for the active engine.
+- [ ] Reopening that same session with the same active engine passes `resumeEngineSessionId` and no `priorTurns`. Adapter uses CLI native resume.
+- [ ] Reopening with a different active engine (engine swap) passes `priorTurns` (read from episodic history) and no `resumeEngineSessionId`. After the open, the row's state has entries for both engines.
+- [ ] Concurrent opens on the same Praxis session id don't clobber state (the read-modify-write transaction guarantees merge semantics).
+
+#### 5e. Tests
+
+**SDK side** — minimal new tests beyond Unit 4's `onSessionReady`. The CLI's `resume` flag is a thin pass-through; an existing `conversation.test.ts` integration test that exercises spawn args would catch a regression here. If no such test exists, add one:
+
+```typescript
+describe("createConversation — resume", () => {
+  it("passes --resume <id> in CLI args when ConversationOptions.resume is set");
+  it("does not pass --resume when resume is omitted");
+});
+```
+
+**Service side** (`packages/core/src/services/__tests__/session-service.engine-session-state.test.ts` — NEW):
+
+```typescript
+describe("SessionService engine session continuity", () => {
+  it("first open: passes neither resumeEngineSessionId nor priorTurns; records state on ready");
+  it("reopen same engine: passes resumeEngineSessionId; passes no priorTurns");
+  it("reopen after engine swap: passes priorTurns from episodic; passes no resumeEngineSessionId");
+  it("merging state: opens for two different engines accumulate both entries");
+  it("concurrent opens for the same session id don't lose either's state (RMW atomicity)");
+});
+```
+
+Use a `useTempDb()` fixture and a `FakeEngine` that records what it was called with — the existing `engineFactory` test injection seam from `service-deps-injection`.
+
+**Adapter side** (`packages/engines/src/__tests__/claude-code-adapter-resume.test.ts` — NEW):
+
+```typescript
+describe("ClaudeCodeEngine.open — resume + onEngineSessionReady", () => {
+  it("forwards resumeEngineSessionId as ConversationOptions.resume");
+  it("fires onEngineSessionReady exactly once with the SDK-reported session id");
+  it("EngineSession.id returns the real id after the first turn");
+  it("ignores priorTurns when resumeEngineSessionId is also set, and warns");
+});
+```
+
+Mock `createConversation` (per the `vi.mock("@praxis/claude-cli-sdk", ...)` pattern already used in `claude-code-vision.test.ts`) so we can capture the `resume` and `onSessionReady` options without spawning a real CLI.
 
 ---
 
@@ -561,11 +797,11 @@ Order chosen to minimize blast radius and let each unit's tests stand alone:
 3. **Unit 2** — drop dead defensive code (depends on 1 to confirm we trust the types).
 4. **Unit 7** — `permissionMode` default (independent SDK change; isolates a single behavior).
 5. **Unit 3** — delete unused exports (mechanical, contained, but wider blast radius).
-6. **Unit 4** — `onSessionReady` callback (additive SDK API).
-7. **Unit 5** — `priorTurns` as structured option (additive SDK API + adapter cleanup).
-8. **Unit 6** — `outputSchema` on `tool()` (additive SDK API; most invasive — last).
+6. **Unit 4** — `onSessionReady` callback (additive SDK API; prerequisite for 5).
+7. **Unit 5** — native session continuity. Land in sub-unit order: 5a (schema) → 5b (EngineOpenOptions) → 5c (adapter) → 5d (SessionService) → 5e (tests). Each sub-unit can be its own commit; the whole unit is functionally complete only after 5d, so don't ship any of them in isolation without follow-up.
+8. **Unit 6** — `outputSchema` on `tool()` (additive SDK API; most invasive on its own — last).
 
-Each unit gets its own commit (or two — design + tests, code) so a regression can be bisected to a single concern.
+Each non-5 unit gets its own commit (or two — design + tests, code) so a regression can be bisected to a single concern. Unit 5 spans 4-5 commits but is one logical change; describe the dependency in commit bodies.
 
 ## Testing
 
@@ -597,17 +833,15 @@ describe("ClaudeCodeEngineSession.id", () => {
 });
 ```
 
-### Unit 5: `packages/claude-cli-sdk/src/__tests__/conversation-prior-turns.test.ts` (NEW)
+### Unit 5: see Unit 5e in the design above
 
-```typescript
-describe("priorTurns option", () => {
-  it("prepends a transcript preface to the first send when priorTurns is non-empty");
-  it("does not prepend anything when priorTurns is empty or undefined");
-  it("does not re-prepend on subsequent sends");
-});
-```
+Three new test files cover the three layers (SDK, adapter, service). Re-stated here for completeness:
 
-Capture the string written to the CLI's stdin in a `MockChildProcess` fixture and assert the preface presence.
+- `packages/claude-cli-sdk/src/__tests__/conversation-resume.test.ts` (NEW) — verifies the SDK passes `--resume <id>` in CLI args when `ConversationOptions.resume` is set.
+- `packages/engines/src/__tests__/claude-code-adapter-resume.test.ts` (NEW) — verifies the Claude Code adapter forwards `resumeEngineSessionId` to `ConversationOptions.resume`, fires `onEngineSessionReady` once, and prefers resume over `priorTurns` when both are passed.
+- `packages/core/src/services/__tests__/session-service.engine-session-state.test.ts` (NEW) — verifies SessionService's lookup-on-open and write-on-ready semantics using `useTempDb()` and a `FakeEngine` that records its `EngineOpenOptions`.
+
+Existing transcript-preface logic (`buildTranscriptPreface`) tests stay — that path is still exercised on cross-engine swap. No change to that test surface.
 
 ### Unit 6: `packages/claude-cli-sdk/src/__tests__/tool-server-output-schema.test.ts` (NEW)
 
@@ -641,11 +875,18 @@ pnpm typecheck
 pnpm exec biome check packages/claude-cli-sdk/src packages/engines/src/claude-code packages/engines/src/mcp
 pnpm vitest run packages/claude-cli-sdk packages/engines/src/__tests__
 
+# After Unit 5 (schema-touching):
+pnpm db:generate    # produce the migration SQL
+pnpm db:reset       # apply on fresh DB
+pnpm db:show        # confirm engine_session_state_json column
+
 # After all units:
 pnpm rebuild better-sqlite3 canvas
-pnpm test          # full suite
+pnpm test           # full suite
 pnpm typecheck
-pnpm dev           # smoke-test bootstrap mode in the desktop app
+pnpm dev            # smoke: open a bootstrap session, send 1 turn, restart pnpm dev,
+                    #         re-open the same tab, send another turn — verify in logs
+                    #         that the second open passed `resume` (not priorTurns).
 
 # Inspect adapter for residual casts (should return zero matches on event fields):
 grep -E '\bas (string|number|unknown|Record<)' packages/engines/src/claude-code/events.ts
@@ -654,6 +895,12 @@ grep -E 'String\(|Number\(' packages/engines/src/claude-code/events.ts
 # Inspect SDK for residual unused exports:
 grep -rn 'discoverTools\|InteractiveTool\|buildPlugin\|askUserQuestion' packages/ \
   --include='*.ts' --include='*.tsx' | grep -v packages/claude-cli-sdk
+
+# Inspect that text-splice is only called via the cross-engine fallback path:
+grep -rn 'buildTranscriptPreface' packages/engines/src
+# Expected: one call site in claude-code/adapter.ts, one in transcript.ts itself,
+# and one in any other adapter that needs the cross-engine fallback. NOT called
+# unconditionally on every open.
 ```
 
-Expected end state: zero matches on the cast greps, zero matches on the unused-export grep (outside the SDK itself, which is gone), `pnpm typecheck && pnpm test && pnpm lint` all green.
+Expected end state: zero matches on the cast greps, zero matches on the unused-export grep (outside the SDK itself, which is gone), `buildTranscriptPreface` is invoked only when `resumeEngineSessionId` is undefined, the new `engine_session_state_json` column accumulates state across opens of the same Praxis session, and `pnpm typecheck && pnpm test && pnpm lint` all green.
