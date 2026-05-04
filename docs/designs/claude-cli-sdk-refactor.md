@@ -148,17 +148,57 @@ async *send(userMessage: string): AsyncIterable<EngineEvent> {
 
 ---
 
-### Unit 3: Delete unused SDK exports
+### Unit 3: Delete unused SDK exports (with one type-only carve-out)
 
 **Files**: Multiple — see file list below.
 
-Confirmed unused outside the SDK itself (`grep -r '@praxis/claude-cli-sdk'` excluding the SDK source):
+The deletions target a single architectural mismatch: every one of these features assumes "the user is at a terminal, configuring `.claude/` directories, invoking skills via slash commands." Praxis is the inverse: a programmatic consumer driving the CLI as a non-interactive subprocess, with its own UI, MCP-bridged custom tools, and human-in-loop story (`quick_check.*` + `QuickCheckService`). This isn't "we hate this code" — it's "this code targets a CLI-extension consumer profile that Praxis architecturally doesn't have."
 
-- `discover.ts` — `discoverTools`, `computeDisallowedTools`, `DiscoverOptions`, `DiscoverResult`
-- `extensions/` directory — `buildPlugin`, `buildSettings`, `buildSkill`, `writePlugin`, `writePluginToTemp`, `toolPattern`, all `*Config` and `Generated*` types, `HookEvent`, `HookHandler`, `HookMatcher`
-- `interactive-tools.ts` — `InteractiveTool`, `askUserQuestionHandler`, `sendUserMessageHandler`, `InteractiveToolName`
+Two specific sub-decisions deserve their own framing because they look superficially relevant:
 
-Praxis-used exports (verified via grep — keep):
+**On `askUserQuestionHandler` / `sendUserMessageHandler`**: these look like they overlap with Praxis's `quick_check.*` tools — both suspend on a tool call, render a question in UI, resume on user answer. The deletion is appropriate because Praxis's path is **MCP-bridged custom tools** with five typed answer shapes (`single_choice`, `multi_select`, `short_answer`, `matching`, `confidence`), each with a typed input/output schema and a matched UI component. The SDK helpers target a single built-in Claude skill (`AskUserQuestion`) with plain-text in/out via path-2 (`conv.sendToolResult`) dispatch. Replacing `quick_check` with `askUserQuestionHandler` would be a strict downgrade. Resurrecting them later only makes sense if Praxis runs user-installed Claude skills that themselves invoke `AskUserQuestion` — a scenario that would also need bridge-layer design we don't have today.
+
+**On hook types**: hooks aren't passive observation — they're injection points. `PreToolUse` can block tool calls, `UserPromptSubmit` can modify a prompt before the model sees it, and **`PostCompact` can re-inject content into the model's context after the CLI compacts it**. PostCompact has no equivalent observability surface in the stream — there's no `compact` event in `StreamEvent`. If a long tutoring session compacts and the summary loses critical state ("we're in bootstrap mode, draftId is X, scoped to docs Y/Z"), the model can drift silently. PostCompact with `type: "prompt"` is the only path to instrument that.
+
+We're not building that today, but the cost of keeping the **types** for it is negligible (~80 lines of TypeScript declarations, zero runtime), and they're the only typed surface against the hook config JSON shape. So this unit keeps the hook types and deletes the file generators that produced hook configs.
+
+#### Files to delete
+
+- `packages/claude-cli-sdk/src/discover.ts` — `discoverTools`, `computeDisallowedTools`, `DiscoverOptions`, `DiscoverResult`. For CLI-built-in tools (`Bash`, `Read`, `Edit`) we don't expose to the model. Praxis doesn't and shouldn't.
+- `packages/claude-cli-sdk/src/extensions/plugins.ts` — `buildPlugin`, `writePlugin`, `writePluginToTemp`, `PluginConfig`, `GeneratedPlugin`. Generates `.claude-plugin/` directory structures for distributable Claude plugins. No Praxis use.
+- `packages/claude-cli-sdk/src/extensions/settings.ts` — `buildSettings`, `SettingsConfig`. Generates `settings.json` files. No Praxis use.
+- `packages/claude-cli-sdk/src/extensions/skills.ts` — `buildSkill`, `SkillConfig`, `GeneratedFile`. Generates `SKILL.md` for slash-command skills. No Praxis use.
+- `packages/claude-cli-sdk/src/extensions/tool-patterns.ts` — `toolPattern.bash(...)`, `.read(...)`, `.mcp(...)`, etc. String builders for the CLI's `tools.allow` / `tools.deny` permission rules. We use `permissionMode: bypassPermissions` and don't expose built-in tools to the model.
+- `packages/claude-cli-sdk/src/interactive-tools.ts` — `InteractiveTool`, `askUserQuestionHandler`, `sendUserMessageHandler`, `InteractiveToolName`. See the rationale above; superseded by `quick_check.*`.
+
+#### Files to keep — with intent comment
+
+- `packages/claude-cli-sdk/src/extensions/hooks.ts` — type-only file (`HookEvent`, `HookMatcher`, `HookHandler`). Add a leading comment documenting the keep-rationale so a future maintainer doesn't re-evaluate and lop them off:
+
+```typescript
+// HookEvent / HookMatcher / HookHandler — kept type-only.
+//
+// Praxis doesn't currently use the CLI's hooks system. The most likely
+// future use is `PostCompact` with `type: "prompt"` to re-inject Praxis
+// session invariants (mode id, draftId, scoped document set) after the
+// CLI compacts its context and potentially loses them. PostCompact has
+// no equivalent observability surface in StreamEvent — hooks are the
+// only path. Other lifecycle events (PreToolUse / PostToolUse / Stop /
+// SessionEnd) are mostly duplicative of stream events we already
+// process; PreToolUse / PostToolUse only matter if we expose built-in
+// CLI tools to the model, which we don't.
+//
+// Kept here so a future "instrument compaction" task has a typed surface
+// to build against without re-deriving from CLI docs. The handler
+// invocations (`type: "command"` / `"http"`) require a sidecar (local
+// HTTP server or wrapper script for the CLI to call into); the
+// `"prompt"` and `"agent"` types inject directly into the CLI's context
+// and don't need a sidecar — those are the variants Praxis is most
+// likely to use first.
+```
+
+#### Praxis-used exports (verified via grep — keep)
+
 - Auth: `authLogin`, `authStatus`, `ClaudeAuthLoginEvent`, `ClaudeAuthLoginOptions`, `ClaudeAuthStatus`
 - Conversation: `createConversation`, `Conversation`, `ToolResultContent`, `Turn`, `TurnResult`, `ConversationOptions`
 - Query: `query`, `Query`
@@ -167,28 +207,35 @@ Praxis-used exports (verified via grep — keep):
 - Errors: `CLIError`, `CLINotFoundError`, `CLITimeoutError`, `InvalidOptionError`, `StructuredOutputError`
 - Events: `StreamEvent`, `ResultEvent`, `ToolResultEvent`, `ToolUseEvent`, `RateLimitEvent`, `RateLimitInfo`, `SystemInitEvent`, `AssistantTextEvent`, `TokenUsage`, `ModelUsageEntry`
 - Options: `Options`, `OptionsBase`, `PermissionMode`, `ToolControl`, `ToolFilter`, `McpServer*Config`, `McpServerStatus`, `ModelAlias`, `JsonSchemaOutputFormat`, `AgentDefinition`, `UUID`
+- Hook types (this unit's carve-out): `HookEvent`, `HookMatcher`, `HookHandler`
 - Helpers: `isUUID`, `uuid`
 
-Delete:
-- `packages/claude-cli-sdk/src/discover.ts`
-- `packages/claude-cli-sdk/src/extensions/` (entire directory)
-- `packages/claude-cli-sdk/src/interactive-tools.ts`
+#### Index.ts updates
 
-Update `packages/claude-cli-sdk/src/index.ts` to remove all references to the deleted modules.
+`packages/claude-cli-sdk/src/index.ts`:
+- Remove the `discoverTools`, `computeDisallowedTools`, `DiscoverResult` exports.
+- Remove `buildPlugin`, `buildSettings`, `buildSkill`, `writePlugin`, `writePluginToTemp`, `toolPattern` value exports.
+- Remove `PluginConfig`, `GeneratedPlugin`, `SettingsConfig`, `SkillConfig`, `GeneratedFile` type exports.
+- Remove `InteractiveTool`, `askUserQuestionHandler`, `sendUserMessageHandler`, `InteractiveToolName`.
+- Keep `HookEvent`, `HookMatcher`, `HookHandler` exports (type-only) — promote them to a top-level export rather than going through `extensions/index.ts`.
 
-Check `packages/claude-cli-sdk/src/types/options.ts` for transitive types (`DiscoverOptions`, extension-config types) and remove. Check `Options` / `ConversationOptions` for fields that reference deleted types and remove them too.
+`packages/claude-cli-sdk/src/extensions/index.ts`: shrinks to just re-exporting the hook types. Or fold those into the parent `index.ts` directly and delete `extensions/` entirely.
 
-`structured.ts`: keep `query`, `collectResult`, `zodToOutputFormat`. Verify whether `parseStructuredOutput` is used; if not, drop.
+#### Transitive cleanup
+
+- `packages/claude-cli-sdk/src/types/options.ts`: drop `DiscoverOptions` and any extension-config field on `Options` / `ConversationOptions` (e.g., a `discover?: DiscoverOptions` field if present).
+- `packages/claude-cli-sdk/src/structured.ts`: keep `query`, `collectResult`, `zodToOutputFormat`. Verify whether `parseStructuredOutput` is used in Praxis; if not, drop.
 
 **Implementation Notes**:
-- Run `pnpm typecheck` after each file deletion to surface transitive references.
-- The SDK's own internal references to deleted exports get cleaned up — e.g. if `Options` had a `discover?: DiscoverOptions` field, drop it.
-- `pnpm test` confirms nothing in Praxis silently depended on a deleted export through a re-export chain.
+- Delete in a single commit (or two — files-deleted, then index-cleaned-up). Splitting further makes it hard to surface transitive type errors.
+- Run `pnpm typecheck` after the deletions to surface any in-SDK references to deleted exports (e.g., if `Options` had a `discover?: DiscoverOptions` field).
+- `pnpm test` confirms no Praxis code depended on a deleted export through a re-export chain.
 
 **Acceptance Criteria**:
-- [ ] Files listed above no longer exist.
-- [ ] `index.ts` has no exports that reference deleted modules.
-- [ ] `grep -r 'discoverTools\|InteractiveTool\|buildPlugin\|askUserQuestion' packages/` returns zero matches outside test snapshots / git history.
+- [ ] Files listed in "Files to delete" no longer exist.
+- [ ] `extensions/hooks.ts` exists with the keep-rationale comment as the first block.
+- [ ] `index.ts` exports `HookEvent`, `HookMatcher`, `HookHandler` and no other extension-related symbols.
+- [ ] `grep -rn 'discoverTools\|computeDisallowedTools\|InteractiveTool\|askUserQuestion\|sendUserMessage\|buildPlugin\|buildSettings\|buildSkill\|writePlugin\|toolPattern' packages/ --include='*.ts'` returns zero matches outside the SDK's own deleted-or-kept files (i.e., zero in `packages/core`, `packages/engines`, `packages/tools`, `packages/desktop`, `packages/ui`, `packages/curriculum`, `packages/artifacts`, `packages/memory`).
 - [ ] `pnpm typecheck` and `pnpm test` pass.
 
 ---
@@ -892,8 +939,10 @@ pnpm dev            # smoke: open a bootstrap session, send 1 turn, restart pnpm
 grep -E '\bas (string|number|unknown|Record<)' packages/engines/src/claude-code/events.ts
 grep -E 'String\(|Number\(' packages/engines/src/claude-code/events.ts
 
-# Inspect SDK for residual unused exports:
-grep -rn 'discoverTools\|InteractiveTool\|buildPlugin\|askUserQuestion' packages/ \
+# Inspect SDK for residual unused exports — should return zero outside the
+# SDK package itself. (Hook types HookEvent / HookMatcher / HookHandler are
+# kept; see Unit 3 for the rationale and the in-source comment.)
+grep -rn 'discoverTools\|computeDisallowedTools\|InteractiveTool\|askUserQuestion\|sendUserMessage\|buildPlugin\|buildSettings\|buildSkill\|writePlugin\|toolPattern' packages/ \
   --include='*.ts' --include='*.tsx' | grep -v packages/claude-cli-sdk
 
 # Inspect that text-splice is only called via the cross-engine fallback path:
