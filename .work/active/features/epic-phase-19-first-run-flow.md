@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-first-run-flow
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, content]
 parent: epic-phase-19-ship-v1
 depends_on: []
@@ -580,3 +580,60 @@ session works end-to-end.
 
 Single-stride feature. The 9 units chain: backend (1-4) → hook (5)
 → component (6-7) → integration (8) → tests (9). One agent, one pass.
+
+## Implementation notes
+
+- **Files changed**:
+  - `packages/core/src/config/onboarding-config.ts` (new) — Unit 1.
+  - `packages/core/src/config/index.ts` (re-export) — Unit 1.
+  - `packages/core/src/types/client.ts` (`ConfigService` interface
+    extended) — Unit 2.
+  - `packages/core/src/services/config-service.ts` (impl
+    `firstRunCompleted` + `markFirstRunComplete`) — Unit 2.
+  - `packages/desktop/electron/main/ipc-server.ts` (two new
+    `praxis.config.*` handlers) — Unit 3.
+  - `packages/client/src/services/config-client.ts` (two new
+    methods) — Unit 4.
+  - `packages/client/src/__tests__/client.test.ts` (two new
+    channel-routing assertions) — Unit 9.
+  - `packages/ui/src/lib/copy.ts` (`COPY.onboarding.*` namespace) —
+    Unit 7.
+  - `packages/ui/src/hooks/use-first-run.ts` (new) — Unit 5.
+  - `packages/ui/src/components/onboarding-flow.tsx` (new) — Unit 6.
+  - `packages/ui/src/components/onboarding-flow.module.css` (new) —
+    Unit 6.
+  - `packages/ui/src/router.tsx` (root layout swap) — Unit 8.
+  - `packages/ui/src/router.module.css` (`.onboardingLayout` class) —
+    Unit 8.
+  - `packages/ui/src/__tests__/use-first-run.test.tsx` (new) — Unit 9.
+  - `packages/ui/src/__tests__/onboarding-flow.test.tsx` (new) —
+    Unit 9.
+- **Tests added**: 13 total (5 hook, 6 flow, 2 client routing).
+  Full workspace `pnpm test` shows 2248 passing (up from 2235
+  pre-change; +13 new tests, no regressions).
+- **Discrepancies from design**: one. Design's CourseStep specced
+  three distinct course-creation paths (canonical Algebra, canonical
+  Biology, syllabus). Implementation collapses all three into "open a
+  fresh bootstrap session" because no `client.bootstrap.createCourseFromPack`
+  surface exists at the IPC level — canonical-pack course creation
+  goes through the bootstrap-mode agent's `course.use_canonical_pack`
+  tool. The labels still distinguish the three paths so the user
+  knows what to ask the agent for first; the actual landing surface
+  is the same. A follow-up could add a direct
+  `bootstrap.createCourseFromPack` IPC method, but that's
+  post-onboarding-flow work and not required for v1.
+- **Adjacent issues parked**: none. The
+  `bootstrap.createCourseFromPack` IPC gap is captured in this
+  feature's discrepancy note; it'll surface naturally if it ever
+  matters.
+- **Test-assertion style**: the project uses `.toBeDefined()` rather
+  than `@testing-library/jest-dom`'s `.toBeInTheDocument()` matcher.
+  Initial draft used the wrong matcher; corrected before commit.
+- **Engine config UI**: the onboarding's engine step duplicates a
+  small slice of `/settings`'s controls (engine select + API key).
+  Pragmatic for v1 — the surfaces are read-only-after-first-run from
+  most users' perspective; later consolidation can extract a shared
+  `<EngineConfigForm>` if drift becomes a real cost.
+- **Fail-open semantics in `useFirstRun`**: explicitly tested. If the
+  IPC read rejects, the hook treats the user as having already
+  completed onboarding rather than locking them behind a broken gate.

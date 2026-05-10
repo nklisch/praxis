@@ -206,6 +206,14 @@ export function registerIpcHandlers(
     return services.config.setBootstrapConfig(config);
   });
 
+  handle("praxis.config.firstRunCompleted", async () => {
+    return services.config.firstRunCompleted();
+  });
+
+  handle("praxis.config.markFirstRunComplete", async () => {
+    return services.config.markFirstRunComplete();
+  });
+
   // ── Documents ────────────────────────────────────────────────────────────
 
   handle("praxis.documents.list", async () => {

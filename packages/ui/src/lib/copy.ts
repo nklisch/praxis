@@ -61,4 +61,28 @@ export const COPY = {
     noVision: "Vision isn't available with the current engine. Switch to one that supports vision.",
     needsReview: "I read your work but couldn't verify it cleanly. Could you re-write or clarify?",
   },
+  onboarding: {
+    welcomeTitle: "Welcome to Praxis",
+    welcomeBody:
+      "I'm a tutor that adapts to how you learn. We'll set up your engine, pick somewhere to start, and you'll be in your first lesson in a minute.",
+    engineTitle: "Pick your tutor's engine",
+    engineBody:
+      "Praxis can drive Claude, GPT, Gemini, or local models through Ollama. Pick one — you can change this later in Settings.",
+    courseTitle: "Where shall we start?",
+    courseBody:
+      "Choose a curated pack to begin immediately, or hand me a syllabus and we'll shape a course together.",
+    courseAlgebraLabel: "Algebra (canonical)",
+    courseAlgebraBody: "A CCSS-aligned algebra-1 concept graph. Good for learners 9-12.",
+    courseBiologyLabel: "Biology (canonical)",
+    courseBiologyBody:
+      "An NGSS-aligned high-school biology graph spanning cells, genetics, evolution, and ecosystems.",
+    courseFromSyllabusLabel: "From your own syllabus",
+    courseFromSyllabusBody:
+      "Drop in a syllabus or textbook outline and we'll explore it together to draft a course.",
+    skipLabel: "Skip onboarding",
+    continueLabel: "Continue",
+    backLabel: "Back",
+    startLabel: "Start",
+    couldNotStart: "Couldn't start that path. Pick another, or skip and we'll set it up later.",
+  },
 } as const;

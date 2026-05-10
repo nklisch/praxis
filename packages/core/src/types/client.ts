@@ -565,6 +565,9 @@ export interface ConfigService {
   // Bootstrap-mode budget knob.
   bootstrapConfig(): Promise<BootstrapConfigSnapshot>;
   setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void>;
+  // Phase 19 — first-run flow gating.
+  firstRunCompleted(): Promise<boolean>;
+  markFirstRunComplete(): Promise<void>;
 }
 
 // ─── Phase 5: Ingestion + Documents ──────────────────────────────────────────

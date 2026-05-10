@@ -7,6 +7,8 @@ import {
 } from "@tanstack/react-router";
 import { ActivityRail } from "./components/activity-rail.js";
 import { Nav } from "./components/nav.js";
+import { OnboardingFlow } from "./components/onboarding-flow.js";
+import { useFirstRun } from "./hooks/use-first-run.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
 import { ConceptMapEditorRoute } from "./routes/concept-map-editor.js";
@@ -19,8 +21,20 @@ import { SettingsRoute } from "./routes/settings.js";
 import { NoteEditorPage } from "./routes/workspace/note-editor-page.js";
 import { WorkspaceRoute } from "./routes/workspace.js";
 
-const rootRoute = createRootRoute({
-  component: () => (
+function RootLayout() {
+  const { loading, isFirstRun, complete } = useFirstRun();
+
+  if (loading) return null;
+
+  if (isFirstRun) {
+    return (
+      <div className={styles.onboardingLayout}>
+        <OnboardingFlow onComplete={complete} />
+      </div>
+    );
+  }
+
+  return (
     <div className={styles.layout}>
       <Nav />
       <main className={styles.main}>
@@ -28,7 +42,11 @@ const rootRoute = createRootRoute({
       </main>
       <ActivityRail />
     </div>
-  ),
+  );
+}
+
+const rootRoute = createRootRoute({
+  component: RootLayout,
 });
 
 // Phase 14: Library is the front door at both "/" and "/library".

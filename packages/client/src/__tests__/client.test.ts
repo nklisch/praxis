@@ -79,6 +79,20 @@ describe("createPraxisClient", () => {
     expect(invokedChannels[0]?.args[0]).toEqual({ engineId: "direct.anthropic" });
   });
 
+  it("config.firstRunCompleted routes to praxis.config.firstRunCompleted invoke", async () => {
+    const { transport, invokedChannels } = makeTransport();
+    const client = createPraxisClient(transport);
+    await client.config.firstRunCompleted();
+    expect(invokedChannels[0]?.channel).toBe("praxis.config.firstRunCompleted");
+  });
+
+  it("config.markFirstRunComplete routes to praxis.config.markFirstRunComplete invoke", async () => {
+    const { transport, invokedChannels } = makeTransport();
+    const client = createPraxisClient(transport);
+    await client.config.markFirstRunComplete();
+    expect(invokedChannels[0]?.channel).toBe("praxis.config.markFirstRunComplete");
+  });
+
   describe("claudeAuth", () => {
     it("claudeAuth.status() routes to praxis.auth.claude.status invoke", async () => {
       const { transport, invokedChannels } = makeTransport();

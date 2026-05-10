@@ -23,6 +23,11 @@ export {
   writeLoggingConfig,
 } from "./logging-config.js";
 export {
+  markFirstRunComplete,
+  type OnboardingConfig,
+  readOnboardingConfig,
+} from "./onboarding-config.js";
+export {
   DEFAULT_ENGINE_CONFIG,
   ENGINE_IDS,
   type EngineConfig,

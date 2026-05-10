@@ -3,8 +3,10 @@ import {
   BootstrapConfigSchema,
   type EngineConfig,
   EngineConfigSchema,
+  markFirstRunComplete,
   readBootstrapConfig,
   readEngineConfig,
+  readOnboardingConfig,
   writeBootstrapConfig,
   writeEngineConfig,
 } from "../config/index.js";
@@ -60,6 +62,14 @@ export class ConfigServiceImpl implements ConfigService {
   async setBootstrapConfig(snapshot: BootstrapConfigSnapshot): Promise<void> {
     const validated = BootstrapConfigSchema.parse(snapshot);
     writeBootstrapConfig(this.deps.db, validated);
+  }
+
+  async firstRunCompleted(): Promise<boolean> {
+    return readOnboardingConfig(this.deps.db).firstRunCompletedAt !== null;
+  }
+
+  async markFirstRunComplete(): Promise<void> {
+    markFirstRunComplete(this.deps.db);
   }
 }
 

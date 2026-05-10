@@ -45,4 +45,12 @@ export class ConfigClient implements ConfigService {
   setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void> {
     return this.transport.invoke<void>(`${CHANNEL}.setBootstrapConfig`, config);
   }
+
+  firstRunCompleted(): Promise<boolean> {
+    return this.transport.invoke<boolean>(`${CHANNEL}.firstRunCompleted`);
+  }
+
+  markFirstRunComplete(): Promise<void> {
+    return this.transport.invoke<void>(`${CHANNEL}.markFirstRunComplete`);
+  }
 }
