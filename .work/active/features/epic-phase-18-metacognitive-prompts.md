@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-metacognitive-prompts
 kind: feature
-stage: drafting
+stage: implementing
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
@@ -70,3 +70,104 @@ preference can be a follow-on if useful).
   this feature extends
 - `docs/ROADMAP.md` Phase 18 — "Metacognitive prompt injection across
   other modes (pre-reading, post-error, session-end)"
+
+## Design decisions
+
+- **Static fragment with runtime tool lookup**, not dynamic
+  system_note injection. The pedagogy pack already exposes
+  `pedagogy.list_metacognitive_prompts({ trigger })` as a real tool;
+  the fragment teaches the model when to use which trigger and
+  delegates the actual prompt content to the tool. This avoids
+  building a new event-listening service to detect triggers and
+  inject system notes — that's substantially more plumbing for less
+  flexibility (the model's judgment beats hard-coded trigger
+  detection at the margin).
+- **One factory function, four call sites.** The fragment is
+  parameterized by the trigger set so each mode picks its relevant
+  subset. Factory pattern keeps the trigger-guidance text in a single
+  place; mode files just declare which triggers they care about.
+- **Position: `principles`.** The metacognitive-coaching instruction
+  reads as an extension of the project's pedagogical principles, not
+  a standalone tool spec or context block. Two fragments share the
+  `principles` position; composition order within position is the
+  array order in the mode's `promptFragments`.
+- **Trigger sets per mode** (matches the brief and the verification
+  stance):
+  - teach: `["pre-reading", "post-error", "session-end"]` — full
+    coaching loop
+  - quiz: `["pre-quiz", "post-error"]` — predict + reflect on errors
+  - homework: `["pre-reading", "post-error"]` — frame the practice +
+    surface assumption errors
+  - exam: `["session-end"]` ONLY — the verification stance forbids
+    feedback during the exam, but a session-end reflection is fine
+- **Skip study-skills, bootstrap, configure.**
+  - study-skills: its role fragment IS the metacognition coach voice;
+    adding this fragment would duplicate.
+  - bootstrap: pre-curricular onboarding for course authoring; no
+    student-coaching surface.
+  - configure: lock-gated authoring; not for students.
+- **Empty-pack graceful degradation.** When
+  `pedagogy.list_metacognitive_prompts` returns an empty list (no
+  pack loaded, or no prompts for that trigger), the fragment instructs
+  the model to skip the metacognitive surface for that moment. No
+  hard error.
+- **Don't build runtime trigger detection.** The story body's
+  exploration mentioned post-error trigger detection on episodic
+  events, but for v1 the model uses its own judgment about when a
+  trigger applies — same model that decides when to use
+  `quick_check.*` or `assignment.create`. Trigger detection in code
+  is a follow-up if signal quality is poor.
+
+## Architectural choice
+
+Static parameterized prompt fragment with runtime tool lookup.
+Considered alternatives:
+
+- **Dynamic system_note injection.** A new service watches the
+  session, detects trigger conditions on episodic events
+  (post-error after wrong-answer events, session-end on session.end),
+  and injects `system_note` events into the stream that the tutor
+  weaves into its next response. Higher fidelity (the prompt fires
+  precisely when a trigger applies) but ~150 lines of new
+  service+wiring code, plus the system_note path is currently
+  reserved for parent-session grade summaries. Rejected for v1.
+- **Hard-coded prompt strings in the fragment.** Skip the runtime
+  `pedagogy.*` lookup and embed the prompt templates directly in the
+  fragment string. Simpler but bypasses the pedagogy pack's
+  authoritative content; pack updates wouldn't propagate to the
+  fragment. Rejected because the pack is the SSOT for pedagogy.
+
+The chosen shape uses the pack's existing tool surface and the mode's
+existing prompt-composition pipeline. Minimum new code; maximum reuse
+of the patterns already shipped.
+
+## Implementation Order
+
+One child story:
+
+1. `epic-phase-18-metacognitive-prompts-impl` (no deps) — implements
+   the fragment factory, modifies four mode files (teach / quiz /
+   homework / exam) to opt in with their trigger sets and to add the
+   pedagogy.list_metacognitive_prompts tool, and tests in one stride.
+   Single file added, four files modified. ~80 lines TS + tests.
+
+## Risks
+
+- **Prompt-quality risk.** The model needs to interpret "use a
+  metacognitive prompt at this moment" as a judgment call.
+  Over-application clutters the conversation; under-application means
+  the feature ships dark. Mitigation: the fragment text explicitly
+  says "don't surface multiple metacognitive prompts back-to-back;
+  one well-timed prompt beats three perfunctory ones". If quality is
+  poor in dev, tighten guidance or move to runtime trigger detection
+  as a follow-up.
+- **Token-budget impact.** Adding a fragment to four modes increases
+  every session's prompt length. The fragment is ~250 words —
+  modest, but real. Mitigation: keep guidance concise; the trigger
+  list per mode is short (2-3 lines).
+- **Exam-mode tool surface tension.** Exam mode's verification stance
+  has a strict tool subset. Adding `pedagogy.list_metacognitive_prompts`
+  is OK — it's read-only metadata that doesn't reveal answer info —
+  but worth verifying that the exam-mode tool-scoping check doesn't
+  reject it (the existing test suite for exam mode should catch
+  any regression).
