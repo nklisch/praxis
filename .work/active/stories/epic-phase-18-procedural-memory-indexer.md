@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-procedural-memory-indexer
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-procedural-memory
 depends_on: []
@@ -378,3 +378,59 @@ readonly array type.
 - `pnpm --filter @praxis/core test`: 64 files, 611 tests — all pass
 - `pnpm lint`: 8 errors total (all pre-existing in `@praxis/claude-cli-sdk` and
   `tests/`; my new files contribute 0 errors)
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+**Nits** (in conversation only):
+- `procedural-indexer.ts:176` casts `event.result.value as Record<string,
+  unknown> | undefined` — same loose pattern as the affective indexer.
+  Tightening to actual `ToolResult` value-shape unions would catch wire
+  drift earlier; pragmatic for now.
+- `code_sandbox` failure detection requires `exitCode !== 0 && !== null
+  && !== undefined`. A signal-killed sandbox (exitCode null with
+  non-empty stderr) doesn't count as incorrect. Documented in the
+  helper comment; rare in practice.
+- `scoreSessionOutcome`'s tool-name string literals (`"grade_math"`,
+  `"course.mark_studied"`, `"code_sandbox"`) could be hoisted to
+  constants near the top of the file. Minor; the literals are local
+  to one function.
+
+**Notes**:
+- Verified at HEAD (`fc21414`): `pnpm typecheck` clean;
+  `pnpm --filter @praxis/core test` 611 passed (64 files; +30 from this
+  story); `pnpm lint` 4 errors (unchanged baseline).
+- Implementation matches the design exactly. The numbered comments in
+  `run()` (1–4) trace the design steps cleanly. `scoreSessionOutcome`
+  is exported as a pure function for direct unit testing — clean
+  testability seam.
+- `applyDelta` is private; the upsert pattern mirrors
+  `applySignalsToConcept` from `mastery-indexer.ts` (read existing,
+  fold delta, `onConflictDoUpdate`). Hard-clamp at `[-1000, +1000]`
+  applied after the per-session `[-300, +300]` bound — both bounds
+  honored.
+- Active-path-tools comment (line 153-155) documents the no-double-counting
+  invariant. Future addition of new memory-write tools triggers
+  re-evaluation.
+- 23 indexer tests + 7 read-path tests. Coverage spans every
+  design-enumerated case: no-events, no-course, no-lesson,
+  unknown-strategy skip, all-correct, all-incorrect (with 2×
+  amplification), mixed (net=0 skip), upsert with existing row, clamp
+  at +1000, clamp at -1000. The read-path tests verify empty state,
+  populated state with mixed +/- preferences, and DB round-trip
+  persistence.
+- Lint:fix follow-up commit (`fc21414`) auto-organized imports + minor
+  whitespace cleanup on the agent's four touched files. No behavior
+  change.
+
+What's now possible: every `procedural()` call returns real strategy
+preferences with `evidenceCount`. Strategy preferences accumulate over
+sessions — positive outcomes nudge up, negative outcomes nudge down 2×
+faster (loss aversion), bounded per-session at ±300 milli to limit
+single-session influence. The `epic-phase-18-routing-integration`
+feature now has both procedural and affective projections to consume —
+fully unblocked once this and the parent feature reach done.
