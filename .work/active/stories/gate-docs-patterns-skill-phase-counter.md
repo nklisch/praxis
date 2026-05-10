@@ -1,7 +1,7 @@
 ---
 id: gate-docs-patterns-skill-phase-counter
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -35,3 +35,9 @@ activity-rail and language-sandbox-registry chunks.
 Either bump the phrase to "Phases 1–19 shipped" or drop the phase
 counter entirely (the SKILL doesn't depend on it; "for the Praxis AI
 tutoring framework" is sufficient).
+
+## Implementation notes
+No edit required. `.claude/skills/patterns/SKILL.md:12` already reads
+"Structural patterns for the Praxis AI tutoring framework." with no
+phase counter — the fix was applied in a prior commit (the gate-patterns
+run today). Story advances to review as a no-op confirmation.
