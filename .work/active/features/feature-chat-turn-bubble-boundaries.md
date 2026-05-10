@@ -1,7 +1,7 @@
 ---
 id: feature-chat-turn-bubble-boundaries
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: null
 depends_on: [feature-chat-tool-call-visibility]
@@ -675,3 +675,67 @@ after each.
    `items.length`, which Unit 6 of the sibling feature already handles.
    If not, scroll lags one bubble behind. Verify in Unit 5's manual
    eyeballing.
+
+## Implementation notes
+
+### Units landed
+
+All five units landed in a single stride.
+
+- **Unit 1** (`use-streamed-send.ts`): replaced single `assistantMsgId` with
+  lazy `currentAssistantId: string | null` pointer. `openAssistantBubble()` and
+  `closeAssistantBubble()` are the boundary helpers. The eager placeholder bubble
+  pushed at `send()` start is gone; the first `model_message` now opens the first
+  bubble. `system_note` handling added as a pure boundary (no item pushed).
+  `pendingCitations / pendingDrafts / pendingNotes / pendingDueCards` arrays hold
+  harvested renderables until the next `openAssistantBubble` drains them. End-of-
+  stream fallback drains any remaining pending renderables into `lastAssistantId`.
+
+- **Unit 2** (`episodic-to-messages.ts`): rewrote from `AssistantAcc`
+  accumulator model to the same bubble-pointer model. `openBubble()` drains
+  pending renderables immediately. `closeBubble()` is idempotent. The turn-
+  boundary flush (turnIndex change) calls `closeBubble()`. End-of-stream calls
+  `drainPendingInto(lastAssistantId)` for any orphaned renderables.
+
+- **Unit 3** (renderable placement): renderables now attach to the FIRST bubble
+  after the tool resolves (drained in `openAssistantBubble` / `openBubble`).
+  If the stream ends without a subsequent bubble, they fall back to `lastAssistantId`.
+  This is a behavioural change from Wave 1 (which attached renderables to the
+  turn's single `assistantMsgId` immediately on `tool_result`).
+
+- **Unit 4** (tests): extended `use-streamed-send.test.tsx` with 9 new bubble-
+  splitting cases; extended `episodic-to-messages.test.ts` with 7 new cases;
+  created `bubble-boundary-parity.test.ts` with 8 parity scenarios (single-turn,
+  two-bubble-tool, three-bubble-double-tool, tool-only-no-second-bubble,
+  partials-with-non-partial-seal, error-mid-stream, citations-on-post-tool-bubble,
+  system-note-boundary). All 666 tests pass.
+
+- **Unit 5** (CSS): no change needed. `chat-tab-body.module.css` already has
+  `gap: 0.75rem` on the `.messages` flex column; consecutive assistant bubbles
+  inherit natural spacing. Manual `pnpm dev` verification is a QA item.
+
+### Deviations from the design
+
+1. **Closure-over-mutable-variable bug caught during implementation**: the design
+   sample showed `{ ...it, content: activeBubbleContent }` directly in the
+   `setItems` closure. With React's batched functional updates, `activeBubbleContent`
+   is captured by reference — by the time React flushes the queued update, the
+   variable has already advanced to the next bubble's content. Fixed by snapshotting
+   before the closure: `const contentSnapshot = activeBubbleContent; setItems(prev
+   => prev.map(... contentSnapshot ...))`. This is the load-bearing correctness fix;
+   without it, earlier bubbles get overwritten with later bubbles' content.
+
+2. **`episodicToItems` rewritten rather than refactored**: the design suggested
+   an in-place refactor of the existing function. The `AssistantAcc` structure
+   was architecturally different enough from the bubble-pointer model that a
+   clean rewrite was clearer and produced no functional regressions (all 11
+   pre-existing tests still pass unchanged).
+
+3. **`findLastIndex` usage in tests**: ES2023 `Array.prototype.findLastIndex` is
+   used in the test assertions for item ordering. The test environment supports it
+   (Node ≥ 24 as per CLAUDE.md); no polyfill needed.
+
+4. **`system_note` handling in `episodic-to-messages.ts`**: added the `case
+   "system_note": closeBubble(); break;` branch that was entirely missing from
+   Wave 1. Live side also adds `else if (event.type === "system_note")` handling.
+   Both sides now treat system_note as a boundary-only event with no item pushed.

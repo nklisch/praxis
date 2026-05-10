@@ -91,28 +91,74 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
       { kind: "message", id: userMsgId, role: "user", content: message, rawContent: message },
     ]);
 
-    // Add a placeholder assistant bubble for streaming.
-    const assistantMsgId = nextId();
-    setItems((prev) => [
-      ...prev,
-      {
+    // Assistant bubbles open lazily — the first model_message of the turn
+    // triggers openAssistantBubble(). This removes the empty placeholder that
+    // used to appear before any text arrived. The isStreaming flag + any
+    // in-flight interstitial are the user-visible "working" signals.
+
+    setIsStreaming(true);
+
+    // Per-bubble content accumulator. Reset on every openAssistantBubble().
+    let activeBubbleContent = "";
+    // Pointer to the currently open assistant bubble id (null = no open bubble).
+    let currentAssistantId: string | null = null;
+    // Most recent assistant bubble id (for end-of-stream renderable fallback).
+    let lastAssistantId: string | null = null;
+
+    // Track pending tool calls by callId → toolName (supports concurrent fan-out).
+    const pendingByCallId = new Map<string, string>();
+
+    // Pending renderable results — drained into the FIRST bubble that opens
+    // after the tool resolves. If the stream ends with no subsequent bubble,
+    // they drain into the most-recent assistant bubble.
+    const pendingCitations: RetrievalCitation[] = [];
+    const pendingDrafts: ProposedCourse[] = [];
+    const pendingNotes: Note[] = [];
+    const pendingDueCards: ReviewCard[] = [];
+
+    /** Open a new assistant bubble, draining any pending renderables into it. */
+    const openAssistantBubble = (): string => {
+      const id = nextId();
+      activeBubbleContent = "";
+      // Drain pending renderables into this new bubble (Unit 3 placement rule:
+      // renderables attach to the FIRST bubble after the tool resolves).
+      const hasCitations = pendingCitations.length > 0;
+      const hasDrafts = pendingDrafts.length > 0;
+      const hasNotes = pendingNotes.length > 0;
+      const hasDueCards = pendingDueCards.length > 0;
+      const newBubble: ChatStreamItem = {
         kind: "message",
-        id: assistantMsgId,
+        id,
         role: "assistant",
         content: "",
         rawContent: "",
         streaming: true,
-      },
-    ]);
+        ...(hasCitations && { citations: [...pendingCitations] }),
+        ...(hasDrafts && { drafts: [...pendingDrafts] }),
+        ...(hasNotes && { notes: [...pendingNotes] }),
+        ...(hasDueCards && { dueCards: [...pendingDueCards] }),
+      };
+      if (hasCitations) pendingCitations.length = 0;
+      if (hasDrafts) pendingDrafts.length = 0;
+      if (hasNotes) pendingNotes.length = 0;
+      if (hasDueCards) pendingDueCards.length = 0;
+      setItems((prev) => [...prev, newBubble]);
+      currentAssistantId = id;
+      lastAssistantId = id;
+      return id;
+    };
 
-    setIsStreaming(true);
-    let finalContent = "";
-    // Track pending tool calls by callId → toolName (supports concurrent fan-out).
-    const pendingByCallId = new Map<string, string>();
-    const accumulatedCitations: RetrievalCitation[] = [];
-    const accumulatedDrafts: ProposedCourse[] = [];
-    const accumulatedNotes: Note[] = [];
-    const accumulatedDueCards: ReviewCard[] = [];
+    /** Close the current assistant bubble (no-op if already closed). */
+    const closeAssistantBubble = (): void => {
+      if (currentAssistantId === null) return;
+      const id = currentAssistantId;
+      currentAssistantId = null;
+      setItems((prev) =>
+        prev.map((it) =>
+          it.kind === "message" && it.id === id ? { ...it, streaming: false } : it,
+        ),
+      );
+    };
 
     try {
       for await (const event of client.session.send(sessionId, message)) {
@@ -120,21 +166,37 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
         if (event.type === "user_message") continue;
 
         if (event.type === "model_message") {
+          // Lazily open a bubble on the first model_message of this "run".
+          if (currentAssistantId === null) {
+            openAssistantBubble();
+          }
           if (event.partial === true) {
             // Streaming delta — append to running content.
-            finalContent += event.content;
+            activeBubbleContent += event.content;
           } else {
             // Final non-partial — this is the assembled content for the turn.
-            finalContent = event.content;
+            activeBubbleContent = event.content;
           }
+          // Capture both id and content as local consts so the setItems closure
+          // doesn't close over mutable variables — by the time React flushes
+          // the update, activeBubbleContent may have advanced to the next bubble.
+          const id = currentAssistantId; // stable for the closure
+          const contentSnapshot = activeBubbleContent; // snapshot, not ref
           setItems((prev) =>
-            prev.map((item) =>
-              item.kind === "message" && item.id === assistantMsgId
-                ? { ...item, content: finalContent, rawContent: finalContent, streaming: true }
-                : item,
+            prev.map((it) =>
+              it.kind === "message" && it.id === id
+                ? { ...it, content: contentSnapshot, rawContent: contentSnapshot, streaming: true }
+                : it,
             ),
           );
+          if (event.partial !== true) {
+            // Non-partial seals this bubble; next model_message opens a new one.
+            closeAssistantBubble();
+          }
         } else if (event.type === "tool_call") {
+          // tool_call is a bubble boundary — close whatever is open.
+          closeAssistantBubble();
+
           const { toolName, callId } = event;
           // Always track in pendingByCallId for result harvesting (even hidden tools).
           pendingByCallId.set(callId, toolName);
@@ -157,24 +219,25 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
 
             // Settle any visible interstitial with this callId.
             setItems((prev) =>
-              prev.map((item) => {
-                if (item.kind === "interstitial" && item.callId === callId) {
+              prev.map((it) => {
+                if (it.kind === "interstitial" && it.callId === callId) {
                   return {
-                    ...item,
+                    ...it,
                     status: "settled",
                     ...(event.result.ok === false && { errored: true }),
                   };
                 }
-                return item;
+                return it;
               }),
             );
 
-            // Dispatch on tool name for renderable result harvesting.
+            // Harvest renderable results into pending arrays (Unit 3).
+            // They will drain into the FIRST bubble that opens after this result.
             if (event.result.ok) {
               if (toolName === "retrieve_from_textbook") {
                 const value = event.result.value as { citations?: RetrievalCitation[] } | undefined;
                 if (value?.citations && Array.isArray(value.citations)) {
-                  accumulatedCitations.push(...(value.citations as RetrievalCitation[]));
+                  pendingCitations.push(...(value.citations as RetrievalCitation[]));
                 }
               } else if (toolName === "course.show_draft") {
                 const value = event.result.value as
@@ -182,7 +245,7 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
                   | { kind: "not_found" }
                   | undefined;
                 if (value?.kind === "ok" && value.draft?.proposed) {
-                  accumulatedDrafts.push(value.draft.proposed);
+                  pendingDrafts.push(value.draft.proposed);
                 }
               } else if (toolName === "note.show") {
                 const value = event.result.value as
@@ -190,7 +253,7 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
                   | { kind: "not_found" }
                   | undefined;
                 if (value?.kind === "ok" && value.note) {
-                  accumulatedNotes.push(value.note);
+                  pendingNotes.push(value.note);
                 }
               } else if (toolName === "flashcard.review_next") {
                 const value = event.result.value as
@@ -210,37 +273,16 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
                     }
                   | undefined;
                 if (value?.ok && Array.isArray(value.cards)) {
-                  accumulatedDueCards.push(...value.cards);
+                  pendingDueCards.push(...value.cards);
                 }
               }
             }
-
-            // Update the assistant message with accumulated tool-result data.
-            if (
-              accumulatedCitations.length > 0 ||
-              accumulatedDrafts.length > 0 ||
-              accumulatedNotes.length > 0 ||
-              accumulatedDueCards.length > 0
-            ) {
-              setItems((prev) =>
-                prev.map((item) => {
-                  if (item.kind === "message" && item.id === assistantMsgId) {
-                    return {
-                      ...item,
-                      ...(accumulatedCitations.length > 0 && {
-                        citations: [...accumulatedCitations],
-                      }),
-                      ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
-                      ...(accumulatedNotes.length > 0 && { notes: [...accumulatedNotes] }),
-                      ...(accumulatedDueCards.length > 0 && { dueCards: [...accumulatedDueCards] }),
-                    };
-                  }
-                  return item;
-                }),
-              );
-            }
           }
+        } else if (event.type === "system_note") {
+          // system_note acts as a bubble boundary; it is not rendered as an item.
+          closeAssistantBubble();
         } else if (event.type === "error") {
+          closeAssistantBubble();
           setLastError(event.error.message);
           break;
         }
@@ -248,22 +290,39 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     } catch (err) {
       setLastError(err instanceof Error ? err.message : String(err));
     } finally {
-      // Mark assistant message as done (no longer streaming).
-      setItems((prev) =>
-        prev.map((item) => {
-          if (item.kind === "message" && item.id === assistantMsgId) {
-            return {
-              ...item,
-              streaming: false,
-              ...(accumulatedCitations.length > 0 && { citations: [...accumulatedCitations] }),
-              ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
-              ...(accumulatedNotes.length > 0 && { notes: [...accumulatedNotes] }),
-              ...(accumulatedDueCards.length > 0 && { dueCards: [...accumulatedDueCards] }),
-            };
-          }
-          return item;
-        }),
-      );
+      // Ensure any open bubble is closed (marks streaming: false).
+      closeAssistantBubble();
+
+      // Drain any remaining pending renderables into the most-recent assistant
+      // bubble (fallback for the case where tool was the last thing in the stream).
+      if (
+        lastAssistantId !== null &&
+        (pendingCitations.length > 0 ||
+          pendingDrafts.length > 0 ||
+          pendingNotes.length > 0 ||
+          pendingDueCards.length > 0)
+      ) {
+        const targetId = lastAssistantId;
+        const citations = pendingCitations.length > 0 ? [...pendingCitations] : undefined;
+        const drafts = pendingDrafts.length > 0 ? [...pendingDrafts] : undefined;
+        const notes = pendingNotes.length > 0 ? [...pendingNotes] : undefined;
+        const dueCards = pendingDueCards.length > 0 ? [...pendingDueCards] : undefined;
+        setItems((prev) =>
+          prev.map((it) => {
+            if (it.kind === "message" && it.id === targetId) {
+              return {
+                ...it,
+                ...(citations && { citations: [...(it.citations ?? []), ...citations] }),
+                ...(drafts && { drafts: [...(it.drafts ?? []), ...drafts] }),
+                ...(notes && { notes: [...(it.notes ?? []), ...notes] }),
+                ...(dueCards && { dueCards: [...(it.dueCards ?? []), ...dueCards] }),
+              };
+            }
+            return it;
+          }),
+        );
+      }
+
       setIsStreaming(false);
     }
   };

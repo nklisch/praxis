@@ -151,9 +151,7 @@ describe("useStreamedSend", () => {
 
     const userMsg = result.current.items.find((i) => i.kind === "message" && i.role === "user");
     expect(userMsg?.kind === "message" && userMsg.rawContent).toBe("hello");
-    expect(
-      userMsg?.kind === "message" && userMsg.rawContent === userMsg.content,
-    ).toBe(true);
+    expect(userMsg?.kind === "message" && userMsg.rawContent === userMsg.content).toBe(true);
   });
 
   it("assistant message rawContent is populated with streamed content", async () => {
@@ -291,9 +289,7 @@ describe("useStreamedSend", () => {
     // matches the live stream, not the episodic replay.
     expect(result.current.items).toHaveLength(pre);
     expect(
-      result.current.items.some(
-        (i) => i.kind === "message" && i.content === "from-history",
-      ),
+      result.current.items.some((i) => i.kind === "message" && i.content === "from-history"),
     ).toBe(false);
 
     // Drain so vitest's async tracking is happy.
@@ -452,9 +448,9 @@ describe("useStreamedSend", () => {
     );
 
     expect(gradeInterstitial?.kind === "interstitial" && gradeInterstitial.status).toBe("settled");
-    expect(
-      retrieveInterstitial?.kind === "interstitial" && retrieveInterstitial.status,
-    ).toBe("settled");
+    expect(retrieveInterstitial?.kind === "interstitial" && retrieveInterstitial.status).toBe(
+      "settled",
+    );
 
     // Citations should be on the assistant message
     const assistantMsg = result.current.items.find(
@@ -514,5 +510,264 @@ describe("useStreamedSend", () => {
 
     expect(result.current.items).toHaveLength(0);
     expect(result.current.lastError).toBeNull();
+  });
+
+  // ── Bubble-splitting (Unit 1) ─────────────────────────────────────────────────
+
+  it("single non-partial model_message produces exactly one assistant bubble", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "hello", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(1);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].content).toBe("hello");
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].streaming).toBe(false);
+  });
+
+  it("tool_call between two model_messages produces two assistant bubbles", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "A", partial: false },
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "B", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(2);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].content).toBe("A");
+    expect(assistantMsgs[1]?.kind === "message" && assistantMsgs[1].content).toBe("B");
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].streaming).toBe(false);
+    expect(assistantMsgs[1]?.kind === "message" && assistantMsgs[1].streaming).toBe(false);
+
+    // Interstitial sits between the two bubbles
+    const interstitial = result.current.items.find((i) => i.kind === "interstitial");
+    expect(interstitial).toBeDefined();
+    const assistantIdx0 = result.current.items.findIndex(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    const interstitialIdx = result.current.items.findIndex((i) => i.kind === "interstitial");
+    const assistantIdx1 = result.current.items.findLastIndex(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(interstitialIdx).toBeGreaterThan(assistantIdx0);
+    expect(assistantIdx1).toBeGreaterThan(interstitialIdx);
+  });
+
+  it("tool_call closes bubble even with only partial model_messages before it", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "part-A", partial: true },
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "part-B", partial: true },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(2);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].content).toBe("part-A");
+    expect(assistantMsgs[1]?.kind === "message" && assistantMsgs[1].content).toBe("part-B");
+    // Both bubbles closed by finally
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].streaming).toBe(false);
+    expect(assistantMsgs[1]?.kind === "message" && assistantMsgs[1].streaming).toBe(false);
+  });
+
+  it("turn ending on tool_call with no subsequent model_message has no trailing empty bubble", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "Let me check.", partial: false },
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    // One pre-tool bubble, no trailing empty bubble.
+    expect(assistantMsgs).toHaveLength(1);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].content).toBe("Let me check.");
+  });
+
+  it("system_note closes bubble without pushing an item", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "A", partial: false },
+      {
+        type: "system_note",
+        content: "child session submitted",
+        origin: "parent_session",
+      },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    // One assistant bubble from "A"; system_note is UI-invisible.
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(1);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].content).toBe("A");
+    // Total items: user + assistant
+    const msgItems = result.current.items.filter((i) => i.kind === "message");
+    expect(msgItems).toHaveLength(2);
+  });
+
+  it("error mid-stream closes open bubble with streaming: false and surfaces lastError", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "start...", partial: true },
+      { type: "error", error: { code: "engine.error", message: "kaboom", recoverable: false } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    expect(result.current.lastError).toBe("kaboom");
+
+    // The open bubble must be sealed (no dangling streaming: true).
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(1);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].streaming).toBe(false);
+  });
+
+  it("no assistant bubble is created if stream never emits model_message", async () => {
+    const client = makeClient([
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(0);
+  });
+
+  // ── Unit 3: renderable-result placement ──────────────────────────────────────
+
+  it("citations attach to the bubble AFTER the tool, not the bubble before", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "Let me look that up.", partial: false },
+      { type: "tool_call", toolName: "retrieve_from_textbook", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: {
+          ok: true,
+          tier: "deterministic",
+          value: { citations: [{ documentId: "d1", page: 42, snippet: "The answer is..." }] },
+        },
+      },
+      { type: "model_message", content: "Found it on page 42.", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "what does the book say");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(2);
+
+    // Bubble A (pre-tool) has NO citations
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].citations).toBeUndefined();
+    // Bubble B (post-tool) has citations
+    expect(assistantMsgs[1]?.kind === "message" && assistantMsgs[1].citations).toHaveLength(1);
+  });
+
+  it("citations fall back to the most-recent bubble when no subsequent bubble opens", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "Let me look that up.", partial: false },
+      { type: "tool_call", toolName: "retrieve_from_textbook", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: {
+          ok: true,
+          tier: "deterministic",
+          value: { citations: [{ documentId: "d1", page: 10, snippet: "..." }] },
+        },
+      },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "find something");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(1);
+    // Citations fall back to the only (pre-tool) bubble
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].citations).toHaveLength(1);
   });
 });

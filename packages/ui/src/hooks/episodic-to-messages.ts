@@ -7,7 +7,7 @@ import type {
 } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
 import type { ReviewCard } from "../components/flashcard-review.js";
-import type { ChatMessage, ChatStreamItem, ToolInterstitial } from "./use-streamed-send.js";
+import type { ChatStreamItem, ToolInterstitial } from "./use-streamed-send.js";
 
 /** Subset of the streamed `tool_result.value` shapes we render today. Mirrors `useStreamedSend`. */
 type ToolResultValue =
@@ -31,42 +31,26 @@ type ToolResultValue =
     }
   | undefined;
 
-interface AssistantAcc {
-  /** Final assembled assistant text for the turn. */
-  content: string;
-  /** callId → toolName for in-flight tool calls awaiting their tool_result. */
-  pendingByCallId: Map<string, string>;
-  citations: RetrievalCitation[];
-  drafts: ProposedCourse[];
-  notes: Note[];
-  dueCards: ReviewCard[];
-}
-
-function emptyAssistantAcc(): AssistantAcc {
-  return {
-    content: "",
-    pendingByCallId: new Map(),
-    citations: [],
-    drafts: [],
-    notes: [],
-    dueCards: [],
-  };
-}
-
 /**
  * Reconstruct the rendered chat item log from a session's episodic events.
  *
- * The episodic stream is ordered by `(turnIndex asc, ts asc)` (see
- * `MemoryService.episodic`), so we can walk it once. Per turn:
- * - `user_message` → emit a user `ChatMessage`.
- * - `model_message` → assemble into the turn's single assistant message.
- *   Partial deltas append; a non-partial final replaces. This mirrors the
- *   live-stream logic in `useStreamedSend.send`.
- * - `tool_call` → push an interstitial item (if not hidden), track in
- *   pendingByCallId so the matching tool_result knows the tool name.
+ * Applies the same bubble-splitting boundary rule as `useStreamedSend.send`:
+ * - `user_message` → emit a user message item.
+ * - `model_message` → open a bubble lazily on first model_message; seal on
+ *   non-partial (same rule as live streaming). `streaming` is always `false`
+ *   in replay output — history is settled.
+ * - `tool_call` → close the current bubble (boundary), push an interstitial
+ *   (if not hidden), track in pendingByCallId.
  * - `tool_result` → settle the matching interstitial; harvest citations /
- *   drafts / notes / due-cards onto the current assistant message.
- * - `final` / `error` → flush any pending assistant message and move on.
+ *   drafts / notes / due-cards into pending arrays; they drain into the FIRST
+ *   bubble that opens after the tool resolves (Unit 3 placement rule).
+ * - `system_note` → close bubble, no item pushed.
+ * - `final` / `error` → close bubble, no item pushed.
+ *
+ * Cross-cutting invariant: given the same EngineEvent sequence, this function
+ * and `useStreamedSend.send` produce structurally identical items arrays (same
+ * item kinds, roles, content, and renderable attachments). The parity test
+ * suite enforces this.
  *
  * History errors are intentionally not rendered as banners — the user has
  * already moved past them, and surfacing every old failure on reload would be
@@ -75,85 +59,155 @@ function emptyAssistantAcc(): AssistantAcc {
 export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamItem[] {
   const items: ChatStreamItem[] = [];
   let currentTurn: number | null = null;
-  let assistant: AssistantAcc | null = null;
   let counter = 0;
-  const id = (kind: "user" | "asst") => `hist-${kind}-${++counter}`;
+  const nextId = (kind: "user" | "asst") => `hist-${kind}-${++counter}`;
 
-  /** Push the current assistant accumulator (if any) onto items and reset. */
-  const flushAssistant = () => {
-    if (!assistant) return;
-    // Only emit if the turn produced something visible — a model message,
-    // a renderable tool result, or both. Empty assistant turns (pure tool
-    // chatter that produced nothing renderable AND no visible interstitials)
-    // are dropped to keep the restored log compact.
-    const hasContent =
-      assistant.content.length > 0 ||
-      assistant.citations.length > 0 ||
-      assistant.drafts.length > 0 ||
-      assistant.notes.length > 0 ||
-      assistant.dueCards.length > 0;
-    if (hasContent) {
-      const msg: ChatMessage = {
-        id: id("asst"),
-        role: "assistant",
-        content: assistant.content,
-        rawContent: assistant.content,
-        streaming: false,
-      };
-      if (assistant.citations.length > 0) msg.citations = assistant.citations;
-      if (assistant.drafts.length > 0) msg.drafts = assistant.drafts;
-      if (assistant.notes.length > 0) msg.notes = assistant.notes;
-      if (assistant.dueCards.length > 0) msg.dueCards = assistant.dueCards;
-      items.push({ kind: "message", ...msg });
+  // Bubble-pointer model — mirrors useStreamedSend.
+  let currentAssistantId: string | null = null;
+  let lastAssistantId: string | null = null;
+  let activeBubbleContent = "";
+
+  // callId → toolName — per-function scope (callIds are session-unique).
+  const pendingByCallId = new Map<string, string>();
+
+  // Pending renderables (Unit 3): drain into FIRST bubble after tool resolves.
+  const pendingCitations: RetrievalCitation[] = [];
+  const pendingDrafts: ProposedCourse[] = [];
+  const pendingNotes: Note[] = [];
+  const pendingDueCards: ReviewCard[] = [];
+
+  /** Drain pending renderables into an already-pushed assistant bubble item. */
+  const drainPendingInto = (targetId: string): void => {
+    if (
+      pendingCitations.length === 0 &&
+      pendingDrafts.length === 0 &&
+      pendingNotes.length === 0 &&
+      pendingDueCards.length === 0
+    ) {
+      return;
     }
-    assistant = null;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      if (it?.kind === "message" && it.id === targetId) {
+        if (pendingCitations.length > 0) {
+          it.citations = [...(it.citations ?? []), ...pendingCitations];
+          pendingCitations.length = 0;
+        }
+        if (pendingDrafts.length > 0) {
+          it.drafts = [...(it.drafts ?? []), ...pendingDrafts];
+          pendingDrafts.length = 0;
+        }
+        if (pendingNotes.length > 0) {
+          it.notes = [...(it.notes ?? []), ...pendingNotes];
+          pendingNotes.length = 0;
+        }
+        if (pendingDueCards.length > 0) {
+          it.dueCards = [...(it.dueCards ?? []), ...pendingDueCards];
+          pendingDueCards.length = 0;
+        }
+        break;
+      }
+    }
+  };
+
+  /**
+   * Open a new assistant bubble, draining any pending renderables into it
+   * immediately (Unit 3: renderables belong to the FIRST bubble after the tool).
+   */
+  const openBubble = (): string => {
+    const id = nextId("asst");
+    activeBubbleContent = "";
+    // Pre-attach pending renderables to the new bubble before pushing.
+    const hasCitations = pendingCitations.length > 0;
+    const hasDrafts = pendingDrafts.length > 0;
+    const hasNotes = pendingNotes.length > 0;
+    const hasDueCards = pendingDueCards.length > 0;
+    const newItem: ChatStreamItem = {
+      kind: "message",
+      id,
+      role: "assistant",
+      content: "",
+      rawContent: "",
+      streaming: false,
+      ...(hasCitations && { citations: [...pendingCitations] }),
+      ...(hasDrafts && { drafts: [...pendingDrafts] }),
+      ...(hasNotes && { notes: [...pendingNotes] }),
+      ...(hasDueCards && { dueCards: [...pendingDueCards] }),
+    };
+    if (hasCitations) pendingCitations.length = 0;
+    if (hasDrafts) pendingDrafts.length = 0;
+    if (hasNotes) pendingNotes.length = 0;
+    if (hasDueCards) pendingDueCards.length = 0;
+    items.push(newItem);
+    currentAssistantId = id;
+    lastAssistantId = id;
+    return id;
+  };
+
+  /** Close the current bubble (no-op if none open). */
+  const closeBubble = (): void => {
+    if (currentAssistantId === null) return;
+    // Replay bubbles are never "streaming"; nothing to update on the item.
+    currentAssistantId = null;
   };
 
   for (const ep of events) {
     const turnIndex = ep.source.turnIndex;
     if (currentTurn !== null && turnIndex !== currentTurn) {
-      // Turn boundary — finalize whatever the previous turn produced.
-      flushAssistant();
+      // Turn boundary detected via turnIndex change — close any open bubble.
+      closeBubble();
     }
     currentTurn = turnIndex;
     const event = ep.event;
 
     switch (event.type) {
       case "user_message":
-        // A user message starts a new turn; flush any prior assistant first
-        // (defensive — a well-formed stream already had the turn-boundary flush).
-        flushAssistant();
+        // User message is a strong boundary — close any prior assistant bubble.
+        closeBubble();
         items.push({
           kind: "message",
-          id: id("user"),
+          id: nextId("user"),
           role: "user",
           content: event.content,
           rawContent: event.content,
         });
-        assistant = emptyAssistantAcc();
         break;
 
       case "model_message": {
-        if (!assistant) assistant = emptyAssistantAcc();
+        // Lazily open a bubble on the first model_message.
+        if (currentAssistantId === null) openBubble();
         if (event.partial === true) {
-          assistant.content += event.content;
+          activeBubbleContent += event.content;
         } else {
-          assistant.content = event.content;
+          activeBubbleContent = event.content;
+        }
+        // Mutate the bubble item in place (replay; fresh array, not React state).
+        const targetId = currentAssistantId;
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          if (it?.kind === "message" && it.id === targetId) {
+            it.content = activeBubbleContent;
+            it.rawContent = activeBubbleContent;
+            break;
+          }
+        }
+        if (event.partial !== true) {
+          // Non-partial seals this bubble; next model_message opens a new one.
+          closeBubble();
         }
         break;
       }
 
       case "tool_call": {
-        if (!assistant) assistant = emptyAssistantAcc();
+        // tool_call is a bubble boundary.
+        closeBubble();
         const { toolName, callId } = event;
         // Always track for result harvesting, even for hidden tools.
-        assistant.pendingByCallId.set(callId, toolName);
+        pendingByCallId.set(callId, toolName);
 
         const label = getToolLabel(toolName);
         if (!label.hidden) {
-          // Insert a settled interstitial — replay shows the finished state.
-          // We'll update it to settled when we encounter the tool_result.
-          // For now push as in_flight; the tool_result handler will settle it.
+          // Push as in_flight; tool_result handler will settle it.
           const interstitial: ToolInterstitial = {
             callId,
             toolName,
@@ -165,14 +219,11 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
       }
 
       case "tool_result": {
-        if (!assistant) {
-          assistant = emptyAssistantAcc();
-        }
         const { callId } = event;
-        const toolName = assistant.pendingByCallId.get(callId);
-        assistant.pendingByCallId.delete(callId);
+        const toolName = pendingByCallId.get(callId);
+        pendingByCallId.delete(callId);
 
-        // Settle the matching interstitial in the items array (walk from end).
+        // Settle the matching interstitial (walk from end for recency).
         for (let i = items.length - 1; i >= 0; i--) {
           const item = items[i];
           if (item?.kind === "interstitial" && item.callId === callId) {
@@ -187,20 +238,22 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
 
         if (!event.result.ok) break;
         const value = event.result.value as ToolResultValue;
+
+        // Harvest into pending arrays (Unit 3) — drain on next bubble open.
         if (toolName === "retrieve_from_textbook") {
           const v = value as { citations?: RetrievalCitation[] } | undefined;
           if (v?.citations && Array.isArray(v.citations)) {
-            assistant.citations.push(...v.citations);
+            pendingCitations.push(...v.citations);
           }
         } else if (toolName === "course.show_draft") {
           const v = value as
             | { kind: "ok"; draft: { proposed: ProposedCourse } }
             | { kind: "not_found" }
             | undefined;
-          if (v?.kind === "ok" && v.draft?.proposed) assistant.drafts.push(v.draft.proposed);
+          if (v?.kind === "ok" && v.draft?.proposed) pendingDrafts.push(v.draft.proposed);
         } else if (toolName === "note.show") {
           const v = value as { kind: "ok"; note: Note } | { kind: "not_found" } | undefined;
-          if (v?.kind === "ok" && v.note) assistant.notes.push(v.note);
+          if (v?.kind === "ok" && v.note) pendingNotes.push(v.note);
         } else if (toolName === "flashcard.review_next") {
           const v = value as
             | {
@@ -218,21 +271,33 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
                 }>;
               }
             | undefined;
-          if (v?.ok && Array.isArray(v.cards)) assistant.dueCards.push(...v.cards);
+          if (v?.ok && Array.isArray(v.cards)) pendingDueCards.push(...v.cards);
         }
         break;
       }
 
+      case "system_note":
+        // system_note acts as a bubble boundary; not rendered as an item.
+        closeBubble();
+        break;
+
       case "final":
       case "error":
-        // Don't surface; the live error channel handles the active turn,
-        // and `final` is a turn boundary (the next user_message will flush).
+        // final terminates the turn; error is not surfaced in replay.
+        closeBubble();
         break;
     }
   }
 
-  // End-of-stream flush.
-  flushAssistant();
+  // End-of-stream: close any open bubble.
+  closeBubble();
+
+  // Drain any remaining pending renderables into the most-recent assistant
+  // bubble (fallback: tool was the last thing and no subsequent bubble opened).
+  if (lastAssistantId !== null) {
+    drainPendingInto(lastAssistantId);
+  }
+
   return items;
 }
 
