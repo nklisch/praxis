@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-routing-integration
 kind: feature
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-procedural-memory, epic-phase-18-affective-memory]
@@ -171,3 +171,56 @@ One child story:
   procedural data, no affective samples, no misconceptions. The
   router must emit sane defaults. The "all optional → emit normal /
   lesson-default / null" path is tested explicitly.
+
+## Implementation summary (2026-05-10)
+
+Single child story landed at `stage: review`:
+
+- `epic-phase-18-routing-integration-impl` (`457b66d`) —
+  `RouterInput` gains 3 optional fields; `RouterSuggestion` gains 3
+  required fields; `RouterConfig` gains 7 new tunables; 3 chooser
+  helpers + 5 supporting helpers in `router.ts`; `currentConceptTool`
+  reads procedural + affective via `Promise.all` and threads them in;
+  `principlesFragment` gains 2 paragraphs guiding the tutor on
+  difficultyHint + suggestedModeTransition; 25 new tests
+  (16 router + 9 tool integration).
+
+Cross-cutting deviations / non-obvious decisions:
+- **Build required between packages**: vitest resolves cross-package
+  imports against `dist/`, not source (the `praxis-source` TS
+  condition only applies to typecheck). Agent ran
+  `pnpm --filter @praxis/curriculum build` before tools tests could
+  see the new RouterSuggestion fields. Documented for future
+  cross-package router-extension work.
+- **`all_complete` shape**: omits `suggestedStrategy` (no concept
+  being taught) but still surfaces `difficultyHint` +
+  `suggestedModeTransition` (affect-based signals remain actionable
+  even when the lesson stack is empty).
+- **lint:fix side-effect**: the agent's `lint:fix` resolved
+  pre-existing formatting issues in 3 unrelated files. Lint count
+  went 9 → 4 — net improvement, no regression.
+
+Verification at `457b66d`:
+- `pnpm typecheck` clean (all 10 packages)
+- `pnpm --filter @praxis/curriculum test` 323 passed
+- `pnpm --filter @praxis/tools test` 439 passed
+- `pnpm test` (full repo) 2225 passed / 15 skipped
+- `pnpm lint` 4 errors (down from 9 baseline; zero new from this
+  story — net improvement courtesy of lint:fix)
+
+What's now possible:
+- `course.current_concept` returns `suggestedStrategy`,
+  `difficultyHint`, and `suggestedModeTransition` alongside the
+  existing concept fields. The tutor's `principlesFragment`
+  instructs it to honor those fields.
+- Phase 18's behavioral promise closes: frustration → drop
+  difficulty + force worked-examples; sustained ease → push
+  difficulty; sustained high frustration → suggest study-skills mode.
+- Procedural strategy preferences now feed back into teaching: a
+  student who responds well to Socratic over many sessions will
+  start seeing Socratic-styled lessons.
+- `epic-phase-18-study-skills` epic — all 6 child features now
+  shipped or in review. The epic itself is one review pass away from
+  done. Phase 19 (ship v1) unblocks next.
+
+Stage: implementing → review.
