@@ -1,7 +1,7 @@
 ---
 id: gate-security-preload-sandbox-comment-mismatch
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -53,3 +53,12 @@ sentence explaining why — ESM preload constraint).
 
 (b) Convert the preload to CJS so `sandbox: true` becomes available and
 turn it on.
+
+## Implementation notes
+
+Chose path (a): updated the JSDoc comment in `preload/index.ts` to accurately
+reflect `sandbox: false`, and added an explanation matching the one already
+present in `window.ts` (ESM preload constraint). No logic changed — comment
+only. Path (b) (CJS migration) would require changing the electron-vite build
+config and is a larger, separate concern. The actual security properties of the
+window are unchanged and correctly documented in `window.ts:16-19`.

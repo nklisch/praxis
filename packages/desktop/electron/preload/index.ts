@@ -5,7 +5,10 @@ import { contextBridge, ipcRenderer } from "electron";
  * Expose the typed Praxis IPC bridge to the renderer via contextBridge.
  * The renderer accesses this as `window.praxis`.
  *
- * Security: contextIsolation: true, sandbox: true.
+ * Security: contextIsolation: true, sandbox: false.
+ * sandbox: false because electron-vite emits ESM (.mjs) preloads, and
+ * Electron requires CJS preloads when sandbox is true. The renderer is
+ * still locked down via contextIsolation + nodeIntegration: false.
  * Only specific channels are exposed — no raw ipcRenderer.
  */
 const bridge: PraxisIpcBridge = {
