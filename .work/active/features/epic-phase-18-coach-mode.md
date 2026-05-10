@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-coach-mode
 kind: feature
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
@@ -190,3 +190,64 @@ What's now possible:
   noted this hook.
 
 Stage: implementing → review.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+The single child story `epic-phase-18-coach-mode-impl` landed at done with
+its own Approve verdict. The feature delivers the capability the brief
+promised end-to-end:
+
+- `study-skills` mode registered and dispatchable via `getMode` /
+  `requireMode` / `listModes` ✅
+- New role fragment captures the four-step coach loop (explain →
+  demonstrate → practice → reflect) ✅
+- 19-tool surface scoped to coaching only — pedagogy.* + course.what_can_i_teach
+  + note.* + flashcard.* + quick_check.*; explicitly excludes grading
+  and assessment-authoring tools ✅
+- UI dispatcher routes `study-skills` tabs to `StudySkillsTabBody` which
+  renders a "study skills" header chip + embeds `TeachChatTabBody` ✅
+- 30 tests cover registration, shape, fragment composition order, included
+  AND excluded tool names ✅
+
+Aggregate lenses:
+
+- **Design alignment**: Single-story decomposition was the right call —
+  ~150 lines of mode + role-fragment + UI wrapper, plus tests. The
+  story body matches the design's enumerated tool list exactly (the
+  story's "17 tools" preamble was a counting typo; the explicit list is
+  19, and the implementation matches the explicit list).
+- **Foundation-doc alignment**: `docs/CURRICULUM.md:104-110` describes
+  the `study-skills` mode shape exactly — explain → demonstrate →
+  practice → reflect, workspace tools, pedagogy-pack content
+  retrieval. The implementation honors all of that. No drift.
+- **Breaking changes**: none — adds a mode + UI dispatcher case + role
+  fragment. Existing modes / dispatcher fall-throughs untouched.
+- **Capability completeness**: a fresh study-skills tab opens with the
+  chip, the coach prompt fragment, and the coaching tool surface. The
+  tutor can pull pedagogy content via `pedagogy.*`, scaffold notes /
+  flashcards, run formative checks. The ROADMAP test checkpoint ("Run
+  study-skills session on Cornell notes") is now executable end-to-end.
+
+Two nits captured in the story review (in conversation only):
+- Implicit fragment composition order — not enforced by the `Mode`
+  type, asserted only by tests. Cross-mode quality-of-life concern.
+- Story preamble's "17 tools" was a counting typo; explicit list has 19.
+
+**Verification at HEAD** (`4ea0553`): `pnpm typecheck` clean;
+`pnpm --filter @praxis/curriculum test` 246 passed; `pnpm --filter
+@praxis/ui test` 560 passed; `pnpm lint` 4 errors (unchanged baseline;
+zero new from this feature).
+
+What's now possible: every Phase 18 piece needed for the dedicated
+study-skills mode is in place. Two features remain in Phase 18 —
+`epic-phase-18-metacognitive-prompts` (cross-mode prompt injection)
+and `epic-phase-18-routing-integration` (router consumption of
+procedural + affective). Once those land, the Phase 18 epic itself can
+reach review and Phase 19 unblocks.
+
+Stage: review → done.
