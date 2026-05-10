@@ -15,9 +15,9 @@ import type { SketchId } from "@praxis/core/types";
 import { useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { COPY } from "../lib/copy.js";
+import styles from "./composer-sketch.module.css";
 import type { SketchCanvasHandle } from "./sketch-canvas.js";
 import { SketchCanvas } from "./sketch-canvas.js";
-import styles from "./composer-sketch.module.css";
 
 export interface ComposerSketchProps {
   /** Called with the captured SketchId after successful upload. */
@@ -59,12 +59,7 @@ export function ComposerSketch({ onCaptured, onCancel }: ComposerSketchProps) {
       <SketchCanvas variant="inline" handleRef={sketchHandleRef} />
       {error && <p className={styles.error}>{error}</p>}
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.cancelBtn}
-          onClick={onCancel}
-          disabled={uploading}
-        >
+        <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={uploading}>
           {COPY.composer.sketchCancelButton}
         </button>
         <button

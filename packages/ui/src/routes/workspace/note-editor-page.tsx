@@ -47,9 +47,10 @@ export function NoteEditorPage() {
       setNote(fetched);
       // For sketch notes, parse returns { kind: "sketch", snapshot } directly.
       // Other formats parse as before.
-      const parsed = fetched.format === "sketch"
-        ? parseSketchBody(fetched.body ?? null)
-        : parseNoteBody(fetched.format, fetched.body ?? null);
+      const parsed =
+        fetched.format === "sketch"
+          ? parseSketchBody(fetched.body ?? null)
+          : parseNoteBody(fetched.format, fetched.body ?? null);
       setBody(parsed);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : String(err));

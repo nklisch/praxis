@@ -1,34 +1,42 @@
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
 
 /**
- * Resolved file:// URLs for pdfjs-dist asset directories.
+ * Resolved on-disk locations for pdfjs-dist asset directories.
  *
  * pdfjs-dist needs these to decode PDFs that reference non-embedded standard
  * fonts (Helvetica, Times, Symbol, ZapfDingbats, etc.) and CJK / non-Latin
  * CMaps. Without them, pdfjs emits "UnknownErrorException: Ensure that the
  * standardFontDataUrl API parameter is provided" warnings and silently drops
  * affected text — pages can come back empty.
+ *
+ * IMPORTANT: pdfjs's NodeBinaryDataFactory passes the URL string directly to
+ * `fs.readFile()`. Node's fs only accepts URL *instances*, not URL strings —
+ * a `file://...` string fails with ENOENT. So we hand pdfjs a plain
+ * filesystem path with a trailing separator. Its `getFactoryUrlProp` only
+ * checks for the trailing slash, then does `baseUrl + filename`, producing
+ * a valid path that fs can read.
  */
 export interface PdfjsAssetUrls {
-  /** URL of pdfjs-dist/standard_fonts/ — trailing slash required by pdfjs. */
+  /** Path of pdfjs-dist/standard_fonts/ — trailing separator required by pdfjs. */
   standardFontDataUrl: string;
-  /** URL of pdfjs-dist/cmaps/ — trailing slash required by pdfjs. */
+  /** Path of pdfjs-dist/cmaps/ — trailing separator required by pdfjs. */
   cMapUrl: string;
-  /** URL of pdfjs-dist/wasm/ — trailing slash required by pdfjs. */
+  /** Path of pdfjs-dist/wasm/ — trailing separator required by pdfjs. */
   wasmUrl: string;
 }
 
 let cached: PdfjsAssetUrls | undefined;
 
 /**
- * Resolve the on-disk locations of pdfjs-dist's asset directories and return
- * them as file:// URLs (with the trailing slash pdfjs requires).
+ * Resolve the on-disk locations of pdfjs-dist's asset directories.
  *
  * Cached after the first call. Works in both dev (tsx loader, real fs) and
  * packaged Electron (assets live inside the asar archive — Electron's asar
  * shim makes fs reads transparent).
+ *
+ * pdfjs's `getFactoryUrlProp` requires a trailing "/" check; we use the
+ * platform separator so Windows paths still validate.
  */
 export function resolvePdfjsAssetUrls(): PdfjsAssetUrls {
   if (cached) return cached;
@@ -39,12 +47,16 @@ export function resolvePdfjsAssetUrls(): PdfjsAssetUrls {
   const pkgJsonPath = require.resolve("pdfjs-dist/package.json");
   const pkgRoot = dirname(pkgJsonPath);
 
-  const toDirUrl = (sub: string): string => `${pathToFileURL(join(pkgRoot, sub)).href}/`;
+  // pdfjs's `getFactoryUrlProp` requires `.endsWith("/")` literally, so always
+  // terminate with a forward slash regardless of platform. fs.readFile on
+  // Windows tolerates mixed `/` and `\` in paths, so the resulting
+  // `C:\…\standard_fonts/Filename.pfb` is still readable.
+  const toDirPath = (sub: string): string => `${join(pkgRoot, sub)}/`;
 
   cached = {
-    standardFontDataUrl: toDirUrl("standard_fonts"),
-    cMapUrl: toDirUrl("cmaps"),
-    wasmUrl: toDirUrl("wasm"),
+    standardFontDataUrl: toDirPath("standard_fonts"),
+    cMapUrl: toDirPath("cmaps"),
+    wasmUrl: toDirPath("wasm"),
   };
   return cached;
 }

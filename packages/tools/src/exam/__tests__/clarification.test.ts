@@ -76,10 +76,7 @@ describe("clarificationTool — handler", () => {
   });
 
   it("does not include itemId in output when not provided", async () => {
-    const result = await clarificationTool.handler(
-      { studentQuestion: "Unclear question." },
-      ctx,
-    );
+    const result = await clarificationTool.handler({ studentQuestion: "Unclear question." }, ctx);
     expect("itemId" in result).toBe(false);
   });
 });

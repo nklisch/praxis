@@ -36,15 +36,14 @@ const SCENE_A = {
 const dbCtx = useTempDb();
 
 function makeLog() {
-  return {
+  const log = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(function () {
-      return this;
-    }),
+    child: vi.fn(() => log),
   };
+  return log;
 }
 
 function makeCtx(): IndexerContext {

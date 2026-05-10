@@ -11,8 +11,8 @@
 import type { ActivityItem, PraxisClient } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PraxisClientProvider } from "../context/client-context.js";
 import { ActivityRail } from "../components/activity-rail.js";
+import { PraxisClientProvider } from "../context/client-context.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
@@ -72,7 +72,12 @@ describe("ActivityRail", () => {
 
   it("one done item — · glyph visible", async () => {
     const { findByRole } = renderRail([
-      makeItem({ id: "x", label: "indexing", status: "done", endedAt: Date.now() as ActivityItem["endedAt"] }),
+      makeItem({
+        id: "x",
+        label: "indexing",
+        status: "done",
+        endedAt: Date.now() as ActivityItem["endedAt"],
+      }),
     ]);
     const aside = await findByRole("complementary");
     expect(aside.textContent).toContain("·");

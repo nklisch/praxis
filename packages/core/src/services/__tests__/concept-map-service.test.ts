@@ -1,7 +1,14 @@
 import { openDb } from "@praxis/core/db";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
-import type { ConceptLink, ConceptMapId, CourseId, SessionId, StudentId, TldrawSnapshot } from "../../types/index.js";
+import type {
+  ConceptLink,
+  ConceptMapId,
+  CourseId,
+  SessionId,
+  StudentId,
+  TldrawSnapshot,
+} from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { ConceptMapServiceImpl } from "../concept-map-service.js";
 
@@ -29,8 +36,12 @@ const COURSE_Y = brandId<"CourseId">("course-y") as CourseId;
 const SESSION_1 = brandId<"SessionId">("session-1") as SessionId;
 
 const SCENE_EMPTY = {} as TldrawSnapshot;
-const SCENE_A = { shapes: { "shape:1": { type: "text", text: "hello" } } } as unknown as TldrawSnapshot;
-const SCENE_B = { shapes: { "shape:2": { type: "text", text: "world" } } } as unknown as TldrawSnapshot;
+const SCENE_A = {
+  shapes: { "shape:1": { type: "text", text: "hello" } },
+} as unknown as TldrawSnapshot;
+const SCENE_B = {
+  shapes: { "shape:2": { type: "text", text: "world" } },
+} as unknown as TldrawSnapshot;
 
 const LINKS_A: ConceptLink[] = [
   { elementId: "shape:1", conceptId: brandId<"ConceptId">("concept-1"), confidence: 0.9 },
@@ -80,7 +91,11 @@ describe("ConceptMapServiceImpl", () => {
 
     it("returns the map for a known id", async () => {
       const { service } = makeService();
-      const created = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Test" });
+      const created = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Test",
+      });
       const found = await service.get(created.id);
       expect(found?.id).toBe(created.id);
     });
@@ -110,7 +125,11 @@ describe("ConceptMapServiceImpl", () => {
 
     it("summary includes versionCount and hasDivergences", async () => {
       const { service } = makeService();
-      const map = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Div Map" });
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Div Map",
+      });
       await service.setDivergences(map.id, [
         { kind: "missing-concept", description: "Missing X", elementIds: [] },
       ]);
@@ -131,7 +150,11 @@ describe("ConceptMapServiceImpl", () => {
   describe("rename", () => {
     it("updates the title and bumps updatedAt", async () => {
       const { service } = makeService();
-      const map = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Old Name" });
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Old Name",
+      });
       const t0 = map.updatedAt;
       await new Promise((r) => setTimeout(r, 5));
       const renamed = await service.rename(map.id, "New Name");
@@ -143,7 +166,11 @@ describe("ConceptMapServiceImpl", () => {
   describe("updateScene", () => {
     it("persists scene + links and bumps updatedAt without adding a version", async () => {
       const { service } = makeService();
-      const map = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Scene Map" });
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Scene Map",
+      });
       const beforeVersionCount = (await service.listVersions(map.id)).length;
 
       await new Promise((r) => setTimeout(r, 5));
@@ -165,7 +192,11 @@ describe("ConceptMapServiceImpl", () => {
   describe("delete", () => {
     it("removes the map and cascades to versions", async () => {
       const { service } = makeService();
-      const map = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Delete Me" });
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Delete Me",
+      });
 
       await service.delete(map.id);
 
@@ -181,7 +212,11 @@ describe("ConceptMapServiceImpl", () => {
   describe("listVersions", () => {
     it("returns versions ordered by snapshotAt ascending", async () => {
       const { service } = makeService();
-      const map = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Versioned" });
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Versioned",
+      });
 
       // Update scene to create a dirty state.
       await service.updateScene({ id: map.id, scene: SCENE_A, conceptLinks: LINKS_A });
@@ -209,7 +244,11 @@ describe("ConceptMapServiceImpl", () => {
   describe("snapshotIfDirty", () => {
     it("adds a version when scene changed", async () => {
       const { service } = makeService();
-      const map = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Dirty" });
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Dirty",
+      });
 
       await service.updateScene({ id: map.id, scene: SCENE_A, conceptLinks: LINKS_A });
 
@@ -224,7 +263,11 @@ describe("ConceptMapServiceImpl", () => {
 
     it("returns { snapshotted: false } when scene has not changed", async () => {
       const { service } = makeService();
-      const map = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Clean" });
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Clean",
+      });
       // Scene matches initial version — no change.
       const result = await service.snapshotIfDirty({ id: map.id, sessionId: SESSION_1 });
       expect(result.snapshotted).toBe(false);
@@ -233,7 +276,11 @@ describe("ConceptMapServiceImpl", () => {
 
     it("is idempotent: calling twice with no change between calls adds only one version", async () => {
       const { service } = makeService();
-      const map = await service.create({ studentId: STUDENT_A, courseId: COURSE_X, title: "Idempotent" });
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Idempotent",
+      });
 
       await service.updateScene({ id: map.id, scene: SCENE_A, conceptLinks: [] });
 

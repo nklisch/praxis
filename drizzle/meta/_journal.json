@@ -78,6 +78,13 @@
       "when": 1777835091064,
       "tag": "0010_ancient_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1777876855172,
+      "tag": "0011_blushing_shatterstar",
+      "breakpoints": true
     }
   ]
 }

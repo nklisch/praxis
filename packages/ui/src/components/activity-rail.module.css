@@ -2,8 +2,8 @@
  * Italic display serif body, mono kicker, ornament glyph. No icons, no badges. */
 
 .rail {
-  composes: editorial from global;          /* inherit base editorial type */
-  position: sticky;                         /* sticks to bottom of layout */
+  composes: editorial from global; /* inherit base editorial type */
+  position: sticky; /* sticks to bottom of layout */
   bottom: 0;
   width: 100%;
   background: var(--praxis-rail-bg, rgba(20, 20, 20, 0.95));

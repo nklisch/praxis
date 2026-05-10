@@ -4,8 +4,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ActivityRegistryImpl } from "../activity-registry.js";
 import type { ActivityEvent } from "../../types/activity.js";
+import { ActivityRegistryImpl } from "../activity-registry.js";
 
 function noopLogger() {
   return {
@@ -88,7 +88,10 @@ describe("ActivityRegistryImpl", () => {
   it("start() — list() has item; subscriber sees added", () => {
     const handle = registry.start({ label: "loading data" });
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ kind: "added", item: { id: handle.id, label: "loading data", status: "running" } });
+    expect(events[0]).toMatchObject({
+      kind: "added",
+      item: { id: handle.id, label: "loading data", status: "running" },
+    });
     expect(registry.list()).toHaveLength(1);
   });
 
@@ -120,7 +123,10 @@ describe("ActivityRegistryImpl", () => {
     events.length = 0;
 
     handle.finish("failed", { message: "out of memory" });
-    expect(events[0]).toMatchObject({ kind: "updated", item: { status: "failed", errorMessage: "out of memory" } });
+    expect(events[0]).toMatchObject({
+      kind: "updated",
+      item: { status: "failed", errorMessage: "out of memory" },
+    });
 
     // not yet gone at 9s
     advanceTimerBy(9_000);

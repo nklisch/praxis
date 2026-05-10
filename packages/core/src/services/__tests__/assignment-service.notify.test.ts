@@ -9,9 +9,9 @@
  */
 
 import { courses } from "@praxis/artifacts/schema";
-import { conceptGraphs } from "@praxis/curriculum/schema";
 import { openDb } from "@praxis/core/db";
 import { brandId } from "@praxis/core/types";
+import { conceptGraphs } from "@praxis/curriculum/schema";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import type {

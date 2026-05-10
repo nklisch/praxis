@@ -10,9 +10,9 @@ import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ExamTabBody } from "../components/exam-tab-body.js";
 import { AuthProvider } from "../context/auth-context.js";
 import { PraxisClientProvider } from "../context/client-context.js";
-import { ExamTabBody } from "../components/exam-tab-body.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());

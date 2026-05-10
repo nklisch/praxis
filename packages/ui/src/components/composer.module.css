@@ -116,7 +116,10 @@
   padding: 0.3rem 0.6rem;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
   white-space: nowrap;
   line-height: 1;
 }

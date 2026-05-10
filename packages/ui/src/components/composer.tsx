@@ -12,8 +12,8 @@
 import type { SketchId } from "@praxis/core/types";
 import { type FormEvent, forwardRef, useState } from "react";
 import { COPY } from "../lib/copy.js";
-import { ComposerSketch } from "./composer-sketch.js";
 import styles from "./composer.module.css";
+import { ComposerSketch } from "./composer-sketch.js";
 
 export interface ComposerProps {
   /** Controlled value — parent owns the textarea content. */
@@ -73,10 +73,7 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
       {sketchEnabled && (
         <div className={`${styles.sketchContainer} ${sketchOpen ? styles.sketchOpen : ""}`}>
           {sketchOpen && (
-            <ComposerSketch
-              onCaptured={handleSketchCaptured}
-              onCancel={handleSketchCancel}
-            />
+            <ComposerSketch onCaptured={handleSketchCaptured} onCancel={handleSketchCancel} />
           )}
         </div>
       )}

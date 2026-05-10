@@ -4,7 +4,10 @@ import { documentOutlineTool } from "../outline.js";
 
 type MockChunk = { chunkIndex: number; text: string; page?: number; section?: string };
 
-function makeCtx(chunks: MockChunk[], titleMap: Map<string, string> = new Map([["doc-1", "Algebra Textbook"]])) {
+function makeCtx(
+  chunks: MockChunk[],
+  titleMap: Map<string, string> = new Map([["doc-1", "Algebra Textbook"]]),
+) {
   const documents = {
     chunksForDocument: vi.fn().mockResolvedValue(chunks),
     titlesByIds: vi.fn().mockResolvedValue(titleMap),
@@ -43,9 +46,7 @@ describe("document.outline handler", () => {
   });
 
   it("omits pageCount when no chunks have a page", async () => {
-    const chunks: MockChunk[] = [
-      { chunkIndex: 0, text: "No page info." },
-    ];
+    const chunks: MockChunk[] = [{ chunkIndex: 0, text: "No page info." }];
     const ctx = makeCtx(chunks);
     const result = await documentOutlineTool.handler({ documentId: "doc-1" }, ctx);
     expect(result.pageCount).toBeUndefined();

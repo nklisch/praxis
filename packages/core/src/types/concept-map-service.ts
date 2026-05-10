@@ -5,12 +5,16 @@ import type {
   ConceptMapSummary,
   ConceptMapVersion,
 } from "./artifacts.js";
-import type { ConceptMapId, CourseId, SessionId, StudentId } from "./ids.js";
 import type { TldrawSnapshot } from "./common.js";
+import type { ConceptMapId, CourseId, SessionId, StudentId } from "./ids.js";
 
 export interface ConceptMapService {
   /** Create a new empty map for (student, course). Title required. */
-  create(input: { studentId: StudentId; courseId: CourseId; title: string }): Promise<ConceptMapDrawing>;
+  create(input: {
+    studentId: StudentId;
+    courseId: CourseId;
+    title: string;
+  }): Promise<ConceptMapDrawing>;
 
   /** Read by id. Returns null if not found. */
   get(id: ConceptMapId): Promise<ConceptMapDrawing | null>;

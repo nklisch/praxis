@@ -10,8 +10,8 @@
  */
 import type { NoteId } from "@praxis/core/types";
 import { useCallback, useRef } from "react";
-import { type SketchCanvasHandle, SketchCanvas } from "./sketch-canvas.js";
 import styles from "./note-editor-sketch.module.css";
+import { SketchCanvas, type SketchCanvasHandle } from "./sketch-canvas.js";
 
 export interface NoteEditorSketchProps {
   noteId: NoteId;
@@ -26,7 +26,11 @@ export interface NoteEditorSketchProps {
   onSave: (snapshot: unknown) => Promise<void>;
 }
 
-export function NoteEditorSketch({ noteId: _noteId, initialSnapshot, onSave }: NoteEditorSketchProps) {
+export function NoteEditorSketch({
+  noteId: _noteId,
+  initialSnapshot,
+  onSave,
+}: NoteEditorSketchProps) {
   const sketchHandleRef = useRef<SketchCanvasHandle>(null);
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

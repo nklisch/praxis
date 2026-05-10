@@ -1,5 +1,5 @@
 import type { SessionId } from "@praxis/core/types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { Composer } from "./composer.js";
@@ -19,8 +19,15 @@ export interface ConfigureChatPaneProps {
  */
 export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChatPaneProps) {
   const client = usePraxisClient();
-  const { messages, isStreaming, lastError, send } = useStreamedSend(client);
+  const { messages, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
+
+  // Load the persisted transcript when a session id appears (configure pane
+  // is reused across tabs; sessionId can be null while a session is starting).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load once per session id
+  useEffect(() => {
+    if (sessionId) void loadHistory(sessionId);
+  }, [sessionId]);
 
   const handleSend = async (message: string) => {
     if (!sessionId) return;

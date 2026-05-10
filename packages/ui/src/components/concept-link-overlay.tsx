@@ -10,8 +10,9 @@
  * tldraw onMount callback. The overlay subscribes to store changes in a
  * useEffect so the subscription is properly torn down on unmount.
  */
+
+import { type ConceptMatch, matchConceptByLabel } from "@praxis/core/services/concept-link-matcher";
 import type { ConceptId, ConceptLink, ConceptMapDrawing, CourseId } from "@praxis/core/types";
-import { type ConceptMatch, matchConceptByLabel } from "@praxis/core/services";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import type { Editor, TLShapeId } from "tldraw";
 import { usePraxisClient } from "../context/client-context.js";

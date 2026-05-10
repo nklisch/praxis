@@ -16,12 +16,7 @@
  *   or skip the image-export assertion. See sketch-canvas.test.tsx for the
  *   established mock pattern.
  */
-import {
-  type ForwardedRef,
-  useCallback,
-  useImperativeHandle,
-  useRef,
-} from "react";
+import { type ForwardedRef, useCallback, useImperativeHandle, useRef } from "react";
 import { type Editor, Tldraw } from "tldraw";
 import "tldraw/tldraw.css";
 import styles from "./sketch-canvas.module.css";

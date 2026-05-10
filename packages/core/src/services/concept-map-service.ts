@@ -1,8 +1,7 @@
-import { conceptMapVersions, conceptMaps } from "@praxis/memory/schema";
-import { asc, count, desc, eq, and } from "drizzle-orm";
+import { conceptMaps, conceptMapVersions } from "@praxis/memory/schema";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
-import { brandId } from "../types/index.js";
 import type {
   ConceptLink,
   ConceptMapDivergence,
@@ -18,6 +17,7 @@ import type {
   Timestamp,
   TldrawSnapshot,
 } from "../types/index.js";
+import { brandId } from "../types/index.js";
 
 export interface ConceptMapServiceDeps {
   readonly db: PraxisDb;
@@ -124,27 +124,17 @@ export class ConceptMapServiceImpl implements ConceptMapService {
   }
 
   async get(id: ConceptMapId): Promise<ConceptMapDrawing | null> {
-    const row = this.deps.db
-      .select()
-      .from(conceptMaps)
-      .where(eq(conceptMaps.id, id))
-      .get();
+    const row = this.deps.db.select().from(conceptMaps).where(eq(conceptMaps.id, id)).get();
     return row ? rowToDrawing(row as MapRow) : null;
   }
 
-  async list(input: {
-    studentId: StudentId;
-    courseId: CourseId;
-  }): Promise<ConceptMapSummary[]> {
+  async list(input: { studentId: StudentId; courseId: CourseId }): Promise<ConceptMapSummary[]> {
     // Join with a subquery to get version counts and existence of divergences.
     const maps = this.deps.db
       .select()
       .from(conceptMaps)
       .where(
-        and(
-          eq(conceptMaps.studentId, input.studentId),
-          eq(conceptMaps.courseId, input.courseId),
-        ),
+        and(eq(conceptMaps.studentId, input.studentId), eq(conceptMaps.courseId, input.courseId)),
       )
       .orderBy(desc(conceptMaps.updatedAt))
       .all();
@@ -188,8 +178,7 @@ export class ConceptMapServiceImpl implements ConceptMapService {
       .run();
 
     const updated = await this.get(id);
-    if (!updated)
-      throw new Error(`ConceptMapService.rename: not found after update: ${id}`);
+    if (!updated) throw new Error(`ConceptMapService.rename: not found after update: ${id}`);
     return updated;
   }
 
@@ -272,10 +261,7 @@ export class ConceptMapServiceImpl implements ConceptMapService {
     return { snapshotted: true, versionId };
   }
 
-  async setDivergences(
-    id: ConceptMapId,
-    divergences: ConceptMapDivergence[],
-  ): Promise<void> {
+  async setDivergences(id: ConceptMapId, divergences: ConceptMapDivergence[]): Promise<void> {
     this.deps.db
       .update(conceptMaps)
       .set({ divergencesJson: divergences, updatedAt: new Date() })

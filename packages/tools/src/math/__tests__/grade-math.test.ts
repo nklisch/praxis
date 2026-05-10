@@ -400,10 +400,7 @@ describe("gradeMathTool handler — sketch (vision OCR pipeline)", () => {
         parseError: "SyntaxError: unexpected token",
       }),
     });
-    const result = await gradeMathTool.handler(
-      { kind: "sketch", sketchId: "abc123" },
-      ctx,
-    );
+    const result = await gradeMathTool.handler({ kind: "sketch", sketchId: "abc123" }, ctx);
     if (result.kind === "sketch") {
       expect(result.needsHumanReview).toBe(true);
       expect(result.visionLatex).toBe("@#$garbage");

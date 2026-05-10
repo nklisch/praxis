@@ -44,9 +44,9 @@ export const sessions = sqliteTable(
      *
      * Shape: { [engineId: string]: { engineSessionId: string; lastTurnAt: number } }
      */
-    engineSessionStateJson: text("engine_session_state_json", { mode: "json" }).$type<
-      EngineSessionStateJson | null
-    >(),
+    engineSessionStateJson: text("engine_session_state_json", {
+      mode: "json",
+    }).$type<EngineSessionStateJson | null>(),
   },
   (t) => ({
     studentTimeIdx: index("sessions_student_time_idx").on(t.studentId, t.startedAt),

@@ -14,9 +14,9 @@
  * test deterministic. The mock exposes a fake Editor via the `onMount` callback.
  */
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SketchCanvas, type SketchCanvasHandle } from "../components/sketch-canvas.js";
-import { useRef } from "react";
 
 afterEach(() => cleanup());
 
@@ -24,7 +24,9 @@ afterEach(() => cleanup());
 
 const mockGetSnapshot = vi.fn().mockReturnValue({ document: {}, session: {} });
 const mockGetCurrentPageShapes = vi.fn().mockReturnValue([]);
-const mockToImage = vi.fn().mockResolvedValue({ blob: new Blob([], { type: "image/png" }), width: 100, height: 80 });
+const mockToImage = vi
+  .fn()
+  .mockResolvedValue({ blob: new Blob([], { type: "image/png" }), width: 100, height: 80 });
 const mockDeleteShapes = vi.fn();
 const mockLoadSnapshot = vi.fn();
 

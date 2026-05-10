@@ -43,9 +43,7 @@ describe("document.read_pages handler", () => {
   });
 
   it("returns empty chunks when range has no matches", async () => {
-    const chunks: MockChunk[] = [
-      { chunkIndex: 0, text: "page 1", page: 1 },
-    ];
+    const chunks: MockChunk[] = [{ chunkIndex: 0, text: "page 1", page: 1 }];
     const ctx = makeCtx(chunks);
     const result = await documentReadPagesTool.handler(
       { documentId: "doc-1", fromPage: 50, toPage: 60, maxChunks: 20 },

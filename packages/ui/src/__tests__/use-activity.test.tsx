@@ -8,9 +8,8 @@
  * - Unmount stops the loop without throwing.
  */
 import type { ActivityEvent, ActivityItem, PraxisClient } from "@praxis/core/types";
-import { renderHook, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup } from "@testing-library/react";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { useActivity } from "../hooks/use-activity.js";
 import { makeFakeClient } from "./helpers/fake-client.js";

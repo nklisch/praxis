@@ -22,8 +22,11 @@ pnpm db:migrate
 # Type-check (uses tsgo — TypeScript's native Go-based compiler, ~10× faster than tsc)
 pnpm typecheck
 
-# Run the test suite (Vitest, ~1100 tests)
+# Run the test suite (Vitest)
 pnpm test
+
+# Watch mode — re-runs affected tests on save
+pnpm test:watch
 
 # Lint + format check (Biome)
 pnpm lint
@@ -132,29 +135,95 @@ you have Python 3 on PATH.
 | `@praxis/curriculum` | Modes, gating logic, adaptive routing, knowledge graph, pedagogy packs |
 | `@praxis/client` | RPC client types and transport layer |
 | `@praxis/ui` | React SPA — student chat / progress map / workspace / configure |
-| `@praxis/claude-cli-sdk` | Vendored fork of `@nklisch/claude-cli-sdk` — TypeScript wrapper around the Claude Code CLI subprocess. Vendored locally so `pnpm deploy` doesn't choke on the upstream `link:` path |
+| `@praxis/claude-cli-sdk` | First-party TypeScript wrapper around the Claude Code CLI subprocess. Originally forked from `@nklisch/claude-cli-sdk` and brought in-tree so `pnpm deploy --inject-workspace-packages` could see it; Praxis is the only consumer, so it's owned and modified freely as a regular workspace package |
 | `@praxis/desktop` | Electron host: starts core in main process, mounts IPC, loads UI bundle in renderer |
 
 ## Development scripts
 
+### Build, check, test
 | Script | What it does |
 |---|---|
 | `pnpm build` | Compile all packages via TypeScript project references |
 | `pnpm typecheck` | Type-check all packages (uses `tsgo`, the TS native compiler) |
-| `pnpm test` | Run Vitest suite across all packages |
+| `pnpm test` | Run the Vitest suite across all packages |
+| `pnpm test:watch` | Vitest in watch mode |
 | `pnpm lint` | Biome check (lint + format verify) |
 | `pnpm lint:fix` | Biome check with auto-fix applied |
+| `pnpm format` | Biome format-write only (skip lint diagnostics) |
+
+To run a single test file or test name:
+```bash
+pnpm vitest run packages/core/src/__tests__/foo.test.ts
+pnpm vitest run -t "describes substring"
+```
+
+### Database
+| Script | What it does |
+|---|---|
 | `pnpm db:migrate` | Apply pending Drizzle migrations to `.praxis/dev.db` |
 | `pnpm db:generate` | Generate migration SQL from schema changes |
 | `pnpm db:show` | Print all tables and row counts |
-| `pnpm db:reset` | Delete dev DB and re-migrate from scratch |
+| `pnpm db:reset` | Non-interactive: delete the dev DB (keeping caches) and re-migrate from scratch |
+| `pnpm dev:reset` | Interactive: broader reset of all per-machine dev state (DB + page images + main-process logs + transformers.js model cache). See **Reset dev state** below. |
+
+**Domain inspectors** — small read-only scripts that pretty-print the dev DB for a single subsystem. Useful when debugging a specific feature without firing up the desktop app:
+
+```bash
+pnpm db:episodic            # session episodic event log
+pnpm db:mastery             # BKT-style concept mastery scores
+pnpm db:grades              # assignment submissions + grades
+pnpm db:gates               # gate states and unlock evidence
+pnpm db:packs               # imported canonical knowledge packs
+pnpm db:configurator-actions  # configure-mode audit log
+pnpm db:cards-due           # FSRS flashcards due for review
+```
+
+### Desktop app
+| Script | What it does |
+|---|---|
 | `pnpm dev` | Rebuild workspace `dist/` and run the Electron desktop app in dev mode (requires `rebuild:electron` first) |
 | `pnpm desktop:build` | Build the Electron bundle (unpackaged) into `packages/desktop/out/` |
+| `pnpm desktop:start` | Start the prebuilt Electron app from `packages/desktop/out/` (no rebuild) |
 | `pnpm --filter @praxis/desktop rebuild:electron` | Rebuild native modules against Electron's Node ABI |
 | `pnpm --filter @praxis/desktop dist:dir` | Build unpacked Electron app directory (fast, no installer) |
 | `pnpm --filter @praxis/desktop dist:mac` | Build macOS `.dmg` + `.zip` |
 | `pnpm --filter @praxis/desktop dist:win` | Build Windows NSIS installer |
 | `pnpm --filter @praxis/desktop dist:linux` | Build Linux `.AppImage` + `.deb` |
+
+## Reset dev state
+
+Two scripts wipe per-machine state. Pick by scope:
+
+```bash
+pnpm db:reset       # just the SQLite DB; non-interactive; preserves caches
+pnpm dev:reset      # everything below; interactive prompt by default
+
+# pnpm dev:reset accepts:
+#   --yes / -y      skip the confirm prompt (useful for CI / automation)
+#   --keep-cache    leave the transformers.js model cache in place (saves a re-download)
+```
+
+`pnpm dev:reset` removes:
+- The dev SQLite DB(s) — both `./.praxis/dev.db` and `./packages/desktop/.praxis/dev.db`, plus their `-wal` / `-shm` sidecars, plus any path set via `PRAXIS_DB_PATH`.
+- The page-images directory (where the vision-PDF ingestor caches per-page renders). Default per-platform path; `PRAXIS_PAGE_IMAGES_DIR` overrides.
+- The Electron main-process log file at `<userData>/logs/praxis.log` (and rotated variants).
+- The transformers.js model cache under `node_modules/.pnpm/@huggingface+transformers@*/...` (in-repo dev path). Skip with `--keep-cache` if you don't want to re-download embeddings on next boot.
+
+Source code, migrations, and `node_modules/` are never touched — `pnpm install` is the right tool for those.
+
+After either reset, the next `pnpm dev` boot creates a fresh DB and applies all migrations.
+
+## Where dev state lives
+
+| What | Path |
+|---|---|
+| Dev SQLite DB | `./.praxis/dev.db` (CLI scripts) and `./packages/desktop/.praxis/dev.db` (Electron) |
+| Page images cache | `~/Library/Application Support/Praxis/document-pages` (macOS), `%APPDATA%/Praxis/document-pages` (Windows), `~/.local/share/praxis/document-pages` (Linux) |
+| Main-process log | `<userData>/logs/praxis.log` — `userData` is Electron's per-app config dir under `@praxis/desktop` |
+| Embeddings model cache | `node_modules/.pnpm/@huggingface+transformers@*/.../.cache` (dev) or `<userData>/transformers-cache` (packaged) |
+
+Override DB path: `PRAXIS_DB_PATH=/tmp/foo.db pnpm dev`.
+Override page-images dir: `PRAXIS_PAGE_IMAGES_DIR=/tmp/pages pnpm dev`.
 
 ## Stack contract
 

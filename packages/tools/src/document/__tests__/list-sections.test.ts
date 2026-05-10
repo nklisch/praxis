@@ -4,7 +4,10 @@ import { documentListSectionsTool } from "../list-sections.js";
 
 type MockChunk = { chunkIndex: number; text: string; page?: number; section?: string };
 
-function makeCtx(chunks: MockChunk[], titleMap: Map<string, string> = new Map([["doc-1", "Sullivan Algebra"]])) {
+function makeCtx(
+  chunks: MockChunk[],
+  titleMap: Map<string, string> = new Map([["doc-1", "Sullivan Algebra"]]),
+) {
   const documents = {
     chunksForDocument: vi.fn().mockResolvedValue(chunks),
     titlesByIds: vi.fn().mockResolvedValue(titleMap),
@@ -61,9 +64,7 @@ describe("document.list_sections handler", () => {
   });
 
   it("groups chunks without section under (no section)", async () => {
-    const chunks: MockChunk[] = [
-      { chunkIndex: 0, text: "No section chunk", page: 1 },
-    ];
+    const chunks: MockChunk[] = [{ chunkIndex: 0, text: "No section chunk", page: 1 }];
     const ctx = makeCtx(chunks);
     const result = await documentListSectionsTool.handler({ documentId: "doc-1" }, ctx);
     const noSection = result.sections.find((s) => s.section === "(no section)");
