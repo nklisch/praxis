@@ -1,7 +1,7 @@
 ---
 id: feature-chat-markdown-and-code-rendering
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: null
 depends_on: []
@@ -833,3 +833,36 @@ under `/agile-workflow:implement`.
   workspace 2312 tests). The "launch Electron, eyeball markdown rendering
   in the chat surface, confirm no CSP violations" criterion from Unit 4 is
   the manual portion and belongs to the reviewer's pass.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- No explicit heading-mapping assertion in the test suite (e.g., "h1 renders
+  inside `<h2 class=kickerHeading>`"). Wiring is type-checked via the typed
+  `Components` map; visual styling is via CSS module class composition.
+  Adding one or two assertions would be cheap but the failure mode is benign
+  (style regression, not behavior).
+- GFM task-list and strikethrough rendering not exercised by the new tests —
+  they come transitively from `remark-gfm` and are exercised in that
+  package's own suite.
+- `Number(raw)` in the citation-chip renderer would coerce a `null`/`""`
+  property to `0` and pass `Number.isFinite(0) === true`, rendering a
+  `<CitationChip index={0}>`. The plugin always emits a numeric string so
+  this is not reachable today; consider tightening to `Number.isInteger` if
+  the plugin is ever called from a less-trusted upstream.
+
+**Notes**:
+- CSP confirmed permissive for KaTeX inline styles (`packages/desktop/electron/renderer/index.html:8`
+  carries `style-src 'self' 'unsafe-inline'`); no CSP changes required.
+- Foundation-doc alignment: `docs/UX.md:283` already asserted "math
+  expressions render via KaTeX; plots render inline; code blocks with syntax
+  highlighting." The implementation closes the prior gap between that
+  assertion and the actual chat surface — no rolling-foundation update
+  required (the assertion is now correct; previously it was forward-looking).
+- Components map for `<MarkdownContent>` is recreated on every render; the
+  design explicitly deferred memoization until perf evidence accumulates,
+  which is a reasonable call at the current message sizes.
