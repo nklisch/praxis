@@ -20,6 +20,7 @@ import type {
 import { brandId } from "../../types/index.js";
 import type {
   AffectiveModel,
+  AffectSample,
   ConceptMastery,
   EpisodicEvent,
   MasterySignal,
@@ -134,14 +135,58 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
     return { studentId, strategies: new Map() };
   }
 
-  // ── affective (Phase 14 stub) ─────────────────────────────────────────────────
+  // ── affective ─────────────────────────────────────────────────────────────────
 
   async affective(studentId: StudentId): Promise<AffectiveModel> {
-    return {
-      studentId,
-      recent: [],
-      baseline: { engagement: 0.5, frustration: 0.5, confidence: 0.5 },
+    const RECENT_LIMIT = 20;
+    const BASELINE_WINDOW = 50;
+
+    const recentRows = this.deps.db
+      .select()
+      .from(affectiveSamples)
+      .where(eq(affectiveSamples.studentId, studentId))
+      .orderBy(desc(affectiveSamples.ts))
+      .limit(RECENT_LIMIT)
+      .all();
+
+    // Baseline: pull the last BASELINE_WINDOW rows (a superset of recent),
+    // then average the milli-fields and convert back to 0..1 floats.
+    const baselineRows = this.deps.db
+      .select()
+      .from(affectiveSamples)
+      .where(eq(affectiveSamples.studentId, studentId))
+      .orderBy(desc(affectiveSamples.ts))
+      .limit(BASELINE_WINDOW)
+      .all();
+
+    if (baselineRows.length === 0) {
+      // Empty state: return the neutral default — same as the previous Phase 14
+      // stub so existing callers see no behavior change.
+      return {
+        studentId,
+        recent: [],
+        baseline: { engagement: 0.5, frustration: 0.5, confidence: 0.5 },
+      };
+    }
+
+    const sum = (key: "engagementMilli" | "frustrationMilli" | "confidenceMilli") =>
+      baselineRows.reduce((acc, r) => acc + r[key], 0);
+
+    const baseline = {
+      engagement: sum("engagementMilli") / baselineRows.length / 1000,
+      frustration: sum("frustrationMilli") / baselineRows.length / 1000,
+      confidence: sum("confidenceMilli") / baselineRows.length / 1000,
     };
+
+    const recent: AffectSample[] = recentRows.map((r) => ({
+      ts: r.ts.getTime() as Timestamp,
+      source: r.source,
+      engagement: r.engagementMilli / 1000,
+      frustration: r.frustrationMilli / 1000,
+      confidence: r.confidenceMilli / 1000,
+    }));
+
+    return { studentId, recent, baseline };
   }
 
   // ── episodic ─────────────────────────────────────────────────────────────────

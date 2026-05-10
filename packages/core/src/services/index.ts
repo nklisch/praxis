@@ -59,6 +59,9 @@ export { buildGraderRegistry } from "./graders/registry.js";
 export type { RunRubricAgentInput } from "./graders/rubric-agent.js";
 export { runRubricAgent } from "./graders/rubric-agent.js";
 export type { GraderContext, GraderResult, GraderServices, ItemGrader } from "./graders/types.js";
+// Phase 18: Affective indexer
+export type { AffectiveIndexerDeps } from "./indexers/affective-indexer.js";
+export { AffectiveIndexer } from "./indexers/affective-indexer.js";
 // Phase 15b: Concept map divergence indexer
 export type { ConceptMapDivergenceIndexerDeps } from "./indexers/concept-map-divergence-indexer.js";
 export { ConceptMapDivergenceIndexer } from "./indexers/concept-map-divergence-indexer.js";

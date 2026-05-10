@@ -8,6 +8,7 @@ import type { NodeWorker } from "@praxis/core/runtime";
 import type { ServiceDeps } from "@praxis/core/services";
 import {
   ActivityRegistryImpl,
+  AffectiveIndexer,
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
   AuthoringServiceImpl,
@@ -373,12 +374,21 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     courseStateReader: artifactsService,
   });
 
+  // Phase 18: Affective indexer — walks events for quick_check.confidence
+  // check-ins and runs one-shot LLM inference over the transcript.
+  const affectiveIndexer = new AffectiveIndexer({
+    db,
+    log,
+    engineResolver: bootstrapEngineResolver,
+  });
+
   const indexerOrchestrator = new IndexerOrchestratorImpl({
     db,
     log,
     indexers: [
       masteryIndexer,
       misconceptionIndexer,
+      affectiveIndexer, // Phase 18
       conceptMapSnapshotter,
       conceptMapDivergenceIndexer,
     ],
