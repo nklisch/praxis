@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness
 kind: epic
-stage: drafting
+stage: implementing
 tags: [bootstrap, course-authoring, tutor-ux]
 parent: null
 depends_on: []
@@ -37,50 +37,71 @@ and trust the result." Naming/terminology, onboarding card pre-seeding, and
 broader-scope chat improvements are deliberately out of scope; they're
 adjacent arcs that won't block bootstrap landing.
 
-## Realized decomposition (to be expanded by `/agile-workflow:epic-design`)
+## Decomposition
 
-These backlog items are the inputs. `/agile-workflow:epic-design` should
-read each, decide which to merge into a single feature versus split apart,
-and produce child features + stories at `.work/active/` with declared
-`depends_on` chains. The likely groupings are sketched below — design is
-free to re-cluster.
+Split by capability into four features and three stories. The two parks
+covering the `edit_draft` surface (silent no-ops + cascade gaps) merge
+into one feature — they're the same handler, the same `DraftEditOp`
+union, the same `BootstrapServiceImpl` draft state, and splitting them
+would just create an artificial cross-feature edge. `durable-drafts`
+ships first as a foundation because the new `edit_draft` ops in
+`expressive-draft-api` should land on the persistent store directly,
+avoiding a Map→SQLite migration for ops that don't exist yet. The
+remaining four items (structured questions, in-flight affordances, and
+the three small fix/cleanup stories) are independent and can land in
+parallel with the foundation feature.
 
-**Likely Feature: Expressive draft-editing API** (probably merges these two
-parks; same `edit_draft` surface, complementary symptoms)
-- `idea-course-edit-draft-api-gaps` — silent `add-concept` no-ops, missing
-  `relink_concept` op, missing in-`edit_draft` `add_edge` op, no
-  `validate_draft` pass.
-- `idea-bootstrap-draft-edit-and-query-apis` — `remove-lesson` doesn't
-  cascade-clean unit memberships or lesson assessments; `show_draft` returns
-  the whole graph (needs chunked / progressive disclosure: list units, list
-  lessons in unit, get lesson detail, list dangling refs).
+### Child features
 
-**Likely Feature: Durable draft persistence**
-- `idea-persist-partial-courses` — drafts live in memory only and die with
-  the session. Persist to disk during construction so cleanup work isn't
-  lost and the student can resume.
+- `epic-bootstrap-readiness-durable-drafts` — move the in-memory draft
+  Map to SQLite-backed durable storage so partial courses survive
+  restarts. Depends on: `[]`.
+- `epic-bootstrap-readiness-expressive-draft-api` — extend `DraftEditOp`
+  with idempotent `add_concept`, `relink_concept`, `add_edge`,
+  cascade-clean removes, `validate_draft`, plus chunked queries (list
+  units, list lessons in unit, get lesson detail, list dangling refs).
+  Depends on: `[epic-bootstrap-readiness-durable-drafts]`.
+- `epic-bootstrap-readiness-structured-questions` — add an
+  `ask_student_question` tool that reuses the existing
+  human-in-the-loop dispatch pattern (`docs/SPEC.md:109`) and the
+  `QuickCheckService` infrastructure. Replaces the AskUserQuestion gap
+  left by `story-fix-block-claude-code-builtins-from-tutor`. Depends
+  on: `[]`.
+- `epic-bootstrap-readiness-in-flight-affordances` — thinking indicator
+  + working turn cancel. Wires the existing `praxis.session.send.cancel`
+  AbortController through to `conv.abort()` (today it only breaks the
+  IPC for-await, not the engine subprocess). Depends on: `[]`.
 
-**Likely Feature: Tutor-initiated structured questions**
-- `idea-tutor-structured-questions-via-custom-mcp` — `AskUserQuestion`
-  successor as a first-party custom MCP tool routed to the chat UI's
-  quick-check surface. Pattern inspired by upstream
-  `@nklisch/claude-cli-sdk`'s `Tools.intercept('AskUserQuestion', handler)`.
-  Unblocks the bootstrap agent's clarifying-question flow specifically.
+### Child stories (top-level under epic)
 
-**Likely Feature: In-flight chat affordances**
-- `idea-thinking-indicator-and-turn-cancel` — thinking animation when
-  waiting on the model + Esc-to-cancel an in-flight turn (engine already
-  has `conv.abort()`; need IPC + UI wiring + clean episodic-log mark).
+- `story-bootstrap-attach-document-fix` — drop `course.attach_document`
+  from `bootstrapMode.toolNames` + prompt fragment. Tool throws on a
+  bootstrap session every time because there's no `courseId` yet; minimal
+  fix is to stop advertising it. Depends on: `[]`.
+- `story-bootstrap-prompt-no-inline-outline` — revise
+  `bootstrap-tools.ts` / `bootstrap-role.ts` (and audit `configure`
+  mode) so the agent points at the outline panel instead of narrating
+  it. Depends on: `[]`.
+- `story-cleanup-stale-singular-draft-tool-refs` — five tool-description
+  / jsdoc references to draft tools that no longer exist plus stale
+  `packages/tools/dist/` artefacts. Already fully drafted at park time.
+  Depends on: `[]`.
 
-**Likely Stories (top-level under epic; small, fix-shaped)**
-- `idea-bootstrap-attach-document-throws-without-course` — drop the tool
-  from `bootstrapMode.toolNames` (or teach defer-attach via the draft).
-- `idea-bootstrap-prompt-no-inline-outline` — revise
-  `packages/curriculum/src/modes/fragments/bootstrap-*.ts` so the agent
-  points at the outline panel instead of narrating it.
-- `idea-cleanup-stale-singular-draft-tool-refs` — already fully drafted
-  cleanup; five tool-description / jsdoc references to singular draft tools
-  that no longer exist.
+### Decomposition risks
+
+- **`expressive-draft-api` is the riskiest child.** It changes the
+  draft mutation surface that the explorer agent depends on, the
+  `course.edit_draft` Zod schema visible to the model, and likely
+  `docs/CONTRACT.md:1258-1260` (the draft-tool listing). Strong design
+  pass needed before implementing; expect this child to spend the most
+  time at `stage: drafting`.
+- **Serialization point**: only `expressive-draft-api` waits on
+  `durable-drafts`. If `durable-drafts` design surfaces a bigger schema
+  question than expected, the whole epic stalls behind it. Mitigation:
+  the design pass on `durable-drafts` should be the first thing
+  autopilot picks; if it shows signs of expanding, re-evaluate whether
+  to land the expressive ops against the in-memory store first and
+  port later.
 
 ## Out of scope (intentionally separate)
 

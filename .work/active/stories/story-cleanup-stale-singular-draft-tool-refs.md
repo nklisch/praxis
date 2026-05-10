@@ -1,9 +1,9 @@
 ---
-id: idea-cleanup-stale-singular-draft-tool-refs
-kind: feature
-stage: drafting
-tags: [cleanup, content]
-parent: null
+id: story-cleanup-stale-singular-draft-tool-refs
+kind: story
+stage: implementing
+tags: [cleanup, bootstrap]
+parent: epic-bootstrap-readiness
 depends_on: []
 release_binding: null
 gate_origin: null
