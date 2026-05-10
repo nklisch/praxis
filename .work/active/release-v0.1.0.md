@@ -60,4 +60,24 @@ features that landed alongside.
 
 ## Gate runs
 
-(Populated during Phase 4.)
+- **gate-security** (2026-05-10) — 7 findings (1 High, 3 Medium, 3 Low). 4
+  active stories at `release_binding: v0.1.0` (must drain to done before
+  ship); 3 backlog items also bound but parked at backlog stage.
+  - High: `gate-security-update-feed-url-scheme-validation` (active, implementing)
+  - Medium: `gate-security-api-key-cleartext-vs-onboarding-doc` (active, drafting)
+  - Medium: `gate-security-engine-config-ipc-lock-gate` (active, drafting)
+  - Medium: `gate-security-update-feed-integrity-signature` (active, drafting)
+  - Low: `gate-security-browser-window-navigation-guards` (backlog)
+  - Low: `gate-security-preload-sandbox-comment-mismatch` (backlog)
+  - Low: `gate-security-author-export-memory-target-path-validation` (backlog)
+- **gate-tests** (2026-05-10) — 8 findings (1 High, 2 Medium, 5 Low). Zero
+  Criticals; zero tautological tests flagged. Strong overall calibration —
+  41 bundle test files, ~200 cases asserted against acceptance criteria.
+  - High: `gate-tests-onboarding-config-persistence` (active, implementing)
+  - Medium: `gate-tests-metacognitive-prompts-exclusion-assertions` (active, drafting)
+  - Medium: `gate-tests-onboarding-skip-coverage` (active, drafting)
+  - Low: `gate-tests-ipc-handler-seam-first-run-update` (backlog)
+  - Low: `gate-tests-tab-state-isolation-parity` (backlog)
+  - Low: `gate-tests-update-banner-version-edge-inputs` (backlog)
+  - Low: `gate-tests-logger-rotation-behavior` (backlog)
+  - Low: `gate-tests-affective-indexer-transaction-atomicity` (backlog)
