@@ -53,6 +53,9 @@ export { CourseDocumentsServiceImpl } from "./course-documents-service.js";
 export { DrizzleDocumentsReader } from "./documents-reader-impl.js";
 export type { DocumentsServiceDeps } from "./documents-service.js";
 export { DocumentsServiceImpl } from "./documents-service.js";
+// durable-drafts: DraftStore port + SQLite adapter
+export type { DraftStore } from "./draft-store.js";
+export { SqliteDraftStore } from "./draft-store.js";
 // Phase 8: Graders
 export { enrichWithApproachFeedback } from "./graders/approach-feedback.js";
 export { buildGraderRegistry } from "./graders/registry.js";

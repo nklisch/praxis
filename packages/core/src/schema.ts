@@ -1,4 +1,5 @@
 import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import type { DraftCourseState } from "./types/index.js";
 
 export const configKv = sqliteTable("config_kv", {
   key: text("key").primaryKey(),
@@ -51,9 +52,50 @@ export const configuratorActions = sqliteTable(
   }),
 );
 
+/**
+ * Durable per-student draft course state for the bootstrap explorer.
+ * One row per in-flight draft. Indexed columns support student-scoped
+ * list and stale-draft sweep; `state_json` carries the
+ * `DraftCourseState` shape so the schema is stable as ProposedCourse
+ * evolves through the rest of this epic.
+ *
+ * Lifecycle:
+ *   created       → row inserted; confirmedAt = null, discardedAt = null
+ *   active edits  → lastTouchedAt bumped, state_json replaced atomically
+ *   confirmed     → confirmedAt set; row retained for audit (gc later)
+ *   discarded     → discardedAt set; row retained briefly then gc'd
+ *
+ * `confirmedAt` and `discardedAt` are mutually exclusive — at most one
+ * is non-null. A row with both null is "active."
+ */
+export const drafts = sqliteTable(
+  "drafts",
+  {
+    id: text("id").primaryKey(),
+    studentId: text("student_id").notNull(),
+    /** ms epoch — first creation time, immutable. */
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    /** ms epoch — last write or read access. Drives the stale sweep. */
+    lastTouchedAt: integer("last_touched_at", { mode: "timestamp_ms" }).notNull(),
+    /** Set by confirmDraft on successful persist. */
+    confirmedAt: integer("confirmed_at", { mode: "timestamp_ms" }),
+    /** Set by discardDraft (manual or sweep). */
+    discardedAt: integer("discarded_at", { mode: "timestamp_ms" }),
+    /** Resulting course id when confirmed. */
+    courseId: text("course_id"),
+    /** JSON blob: { proposed: ProposedCourse, documentIds: DocumentId[], ... }. */
+    stateJson: text("state_json", { mode: "json" }).$type<DraftCourseState>().notNull(),
+  },
+  (t) => ({
+    studentTouchedIdx: index("drafts_student_touched_idx").on(t.studentId, t.lastTouchedAt),
+    activeSweepIdx: index("drafts_active_sweep_idx").on(t.lastTouchedAt),
+  }),
+);
+
 export const coreSchema = {
   configKv,
   lockState,
   promptOverrides,
   configuratorActions, // ← Phase 11
+  drafts, // ← durable-drafts
 };
