@@ -1,7 +1,7 @@
 ---
 id: gate-security-author-export-memory-target-path-validation
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -75,3 +75,7 @@ use `app.getPath('downloads')`/`app.getPath('userData')` here because
 site. `node:path` imports added: `basename` and `resolve as pathResolve`. The
 write now uses the canonicalised `resolvedPath` rather than the raw
 `input.targetPath`. Typecheck and lint (for touched files) both pass.
+
+## Review (2026-05-10)
+
+**Verdict: Approve.** Both checks are applied before write and the implementation note correctly explains why `app.getPath()` was not used. Placing validation in `memory-service.ts` (not the IPC handler) is the right call — defence-in-depth. `..` segment check on raw input before `pathResolve` plus basename starts-with-`.` block covers the stated threat scenarios cleanly.
