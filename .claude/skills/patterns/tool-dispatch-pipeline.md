@@ -9,7 +9,7 @@ All engines use the same `InProcessToolRegistry` via the `ToolRegistry` interfac
 ## Examples
 
 ### Example 1: `InProcessToolRegistry.dispatch` — Zod validation + handler call
-**File**: `packages/tools/src/registry.ts:52`
+**File**: `packages/tools/src/registry.ts:70`
 ```typescript
 async dispatch(name: string, args: unknown): Promise<ToolResult> {
   const tool = this.tools.get(name);

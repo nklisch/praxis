@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-tool-dispatch-line
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -25,3 +25,6 @@ pattern-skill-staleness
 
 ## Required edit
 Update citation to `packages/tools/src/registry.ts:70`.
+
+## Implementation notes
+Updated `registry.ts:52` → `:70` in tool-dispatch-pipeline.md Example 1. Verified: `async dispatch(name: string, args: unknown)` is at line 70 in the current source. New line number confirmed correct.
