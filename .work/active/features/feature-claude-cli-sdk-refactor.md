@@ -1,7 +1,7 @@
 ---
 id: feature-claude-cli-sdk-refactor
 kind: feature
-stage: review
+stage: implementing
 tags: [refactor]
 parent: null
 depends_on: []
