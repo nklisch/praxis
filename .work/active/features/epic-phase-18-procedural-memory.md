@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-procedural-memory
 kind: feature
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
@@ -187,3 +187,56 @@ What's now possible:
   them. Phase 18's closing piece can land next.
 
 Stage: implementing → review.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+The single child story `epic-phase-18-procedural-memory-indexer` landed at
+done with its own Approve verdict. The feature delivers the capability the
+brief promised end-to-end:
+
+- `MemoryService.procedural(studentId)` returns real strategy preferences
+  (replacing the Phase 14 stub) ✅
+- `ProceduralIndexer` runs at session-end, attributes outcome to
+  `lesson.suggestedStrategy`, validates against the pedagogy pack, applies
+  loss-aversion-asymmetric delta with per-session and hard bounds ✅
+- Wired into `IndexerOrchestratorImpl` alongside mastery / misconception /
+  affective / concept-map indexers ✅
+- 30 new tests across 2 files (23 indexer + 7 read-path) — all green ✅
+
+Aggregate lenses:
+
+- **Design alignment**: Single-story decomposition was right — fit cleanly
+  in one stride. Implementation matches the design exactly, including the
+  reject-don't-write semantics on net=0 sessions and unknown strategies.
+- **Foundation-doc alignment**: `docs/CONTRACT.md:881` already declared
+  `MemoryService.procedural(): Promise<ProceduralModel>`; this feature
+  closes the Phase 14 stub gap. `docs/CURRICULUM.md`'s assertion about
+  procedural memory's role as a routing input is honored — the
+  projection now has real data to feed `routing-integration`. No drift.
+- **Breaking changes**: none. `ProceduralModel` shape is unchanged from
+  the prior stub return; only the contents went from "always empty" to
+  "real preferences".
+- **Capability completeness**: every brief line resolves —
+  `procedural()` real, indexer wired with deps (sessionCourseId +
+  courseStateReader + pedagogyPack), tests cover all enumerated cases.
+
+Three nits captured in the story review (in conversation only):
+- Loose `event.result.value` cast (mirrors affective-indexer pattern)
+- `code_sandbox` null-exit edge case (rare; documented)
+- Tool-name string literals could be hoisted to constants
+
+**Verification at HEAD** (`ba25f60`): `pnpm typecheck` clean;
+`pnpm --filter @praxis/core test` 611 passed (64 files); `pnpm lint`
+4 errors (unchanged baseline; zero new from this feature).
+
+What's now possible: `epic-phase-18-routing-integration` is now FULLY
+unblocked — both procedural and affective memory have real data flowing
+into them. The closing piece of Phase 18 (router consumption of
+strategy preferences and affective signals) can land next.
+
+Stage: review → done.
