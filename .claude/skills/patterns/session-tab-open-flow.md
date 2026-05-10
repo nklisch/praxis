@@ -45,7 +45,7 @@ export async function openSessionInTab(opts: {
 
 ### Example 2: Course-detail entry point
 
-**File**: `packages/ui/src/routes/course-detail.tsx:34-39`
+**File**: `packages/ui/src/routes/course-detail.tsx:102-110`
 
 ```tsx
 const handleStartSession = useCallback(async () => {
@@ -61,7 +61,7 @@ const handleStartSession = useCallback(async () => {
 
 ### Example 3: Library "Continue" CTA
 
-**File**: `packages/ui/src/routes/library.tsx:48-53`
+**File**: `packages/ui/src/routes/library.tsx:48-55` (second call site at `:67-74`)
 
 ```tsx
 const handleOpenInTab = async (c: CourseSummary) => {
@@ -77,7 +77,7 @@ const handleOpenInTab = async (c: CourseSummary) => {
 
 ### Example 4: Opening a tab from within the NewTabPicker modal
 
-**File**: `packages/ui/src/components/new-tab-picker.tsx:56-69`
+**File**: `packages/ui/src/components/new-tab-picker.tsx:50-69`
 
 ```tsx
 const handleSubmit = async (e: FormEvent) => {
