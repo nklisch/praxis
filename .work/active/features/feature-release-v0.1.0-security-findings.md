@@ -1,7 +1,7 @@
 ---
 id: feature-release-v0.1.0-security-findings
 kind: feature
-stage: review
+stage: done
 tags: [security]
 parent: epic-release-v0.1.0-readiness
 depends_on: []
@@ -101,3 +101,13 @@ this feature plus its sibling features). No regressions.
   the doc-fix in `gate-security-api-key-cleartext-vs-onboarding-doc`
 - `idea-update-feed-ed25519-signature` — full signature mechanism
   blocking real auto-update beyond manual-download
+
+## Review (2026-05-10)
+
+**Verdict: Approve**
+
+Capability completeness: All 4 active findings are resolved. The High (URL scheme injection) is closed with a code fix and tests. The two Mediums with code impact (IPC lock gate, ONBOARDING.md doc drift) are each closed by a targeted, verifiable change. The remaining Medium (feed integrity) is correctly handled as doc-only for v0.1.0 with a well-formed follow-up item. The 3 Low backlog items are documented as out-of-autopilot-scope; they carry `gate_origin: security` for traceability.
+
+Cross-cutting review: No regressions introduced across the batch. The four changes touch distinct files (`update-service.ts` / `ipc-server.ts` / `ONBOARDING.md` / `UPDATE-CHANNEL.md`) with no interaction surface between them. The follow-up backlog items (`idea-encrypt-api-key-with-safestorage`, `idea-update-feed-ed25519-signature`) are genuine engineering work with design considerations fully captured — they will not be lost.
+
+Foundation-doc alignment: ONBOARDING.md and UPDATE-CHANNEL.md are now accurate. No "previously" prose, no legacy notation introduced anywhere in the batch.
