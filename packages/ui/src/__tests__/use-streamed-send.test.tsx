@@ -1,11 +1,11 @@
-import type { EngineEvent, PraxisClient } from "@praxis/core/types";
+import type { EngineEvent, EpisodicEvent, PraxisClient } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
-function makeClient(events: EngineEvent[]): PraxisClient {
+function makeClient(events: EngineEvent[], history: EpisodicEvent[] = []): PraxisClient {
   return makeFakeClient({
     session: {
       active: vi.fn().mockResolvedValue(null),
@@ -20,6 +20,11 @@ function makeClient(events: EngineEvent[]): PraxisClient {
         for (const e of events) yield e;
       }) as unknown as PraxisClient["session"]["send"],
     },
+    memory: {
+      episodic: vi.fn(async function* () {
+        for (const ev of history) yield ev;
+      }) as unknown as PraxisClient["memory"]["episodic"],
+    } as unknown as PraxisClient["memory"],
   });
 }
 
@@ -178,6 +183,105 @@ describe("useStreamedSend", () => {
     const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
     expect(assistantMsg?.rawContent).toBe(assistantMsg?.content);
     expect(assistantMsg?.streaming).toBe(false);
+  });
+
+  // ── loadHistory ──────────────────────────────────────────────────────────────
+
+  it("loadHistory replaces messages with the persisted transcript", async () => {
+    const history: EpisodicEvent[] = [
+      {
+        id: "e1" as EpisodicEvent["id"],
+        sessionId: "s1" as EpisodicEvent["sessionId"],
+        studentId: "stu1" as EpisodicEvent["studentId"],
+        ts: 1 as EpisodicEvent["ts"],
+        source: { engineId: "claude-code", modeId: "teach", turnIndex: 0 },
+        event: { type: "user_message", content: "from history" },
+      },
+      {
+        id: "e2" as EpisodicEvent["id"],
+        sessionId: "s1" as EpisodicEvent["sessionId"],
+        studentId: "stu1" as EpisodicEvent["studentId"],
+        ts: 2 as EpisodicEvent["ts"],
+        source: { engineId: "claude-code", modeId: "teach", turnIndex: 0 },
+        event: { type: "model_message", content: "old reply", partial: false },
+      },
+    ];
+    const client = makeClient([], history);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+    expect(result.current.messages).toHaveLength(0);
+
+    await act(async () => {
+      await result.current.loadHistory(brandId<"SessionId">("s1"));
+    });
+
+    await waitFor(() => {
+      expect(result.current.messages).toHaveLength(2);
+    });
+    expect(result.current.messages[0]).toMatchObject({ role: "user", content: "from history" });
+    expect(result.current.messages[1]).toMatchObject({
+      role: "assistant",
+      content: "old reply",
+      streaming: false,
+    });
+  });
+
+  it("loadHistory is a no-op while a turn is mid-stream", async () => {
+    // Build a stream that yields one event then awaits forever so isStreaming
+    // stays true for the duration of the test.
+    let resolveStream: (() => void) | undefined;
+    const streamHold = new Promise<void>((r) => {
+      resolveStream = r;
+    });
+    const history: EpisodicEvent[] = [
+      {
+        id: "e1" as EpisodicEvent["id"],
+        sessionId: "s1" as EpisodicEvent["sessionId"],
+        studentId: "stu1" as EpisodicEvent["studentId"],
+        ts: 1 as EpisodicEvent["ts"],
+        source: { engineId: "claude-code", modeId: "teach", turnIndex: 0 },
+        event: { type: "user_message", content: "from-history" },
+      },
+    ];
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* () {
+          yield { type: "model_message", content: "live", partial: false } as EngineEvent;
+          await streamHold; // hold the stream open
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+      memory: {
+        episodic: vi.fn(async function* () {
+          for (const ev of history) yield ev;
+        }) as unknown as PraxisClient["memory"]["episodic"],
+      } as unknown as PraxisClient["memory"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Kick off a send; don't await it.
+    let sendPromise: Promise<void> | undefined;
+    act(() => {
+      sendPromise = result.current.send(brandId<"SessionId">("s1"), "user-text");
+    });
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+    const pre = result.current.messages.length;
+
+    await act(async () => {
+      await result.current.loadHistory(brandId<"SessionId">("s1"));
+    });
+
+    // History was NOT loaded because a turn was in flight — message log
+    // matches the live stream, not the episodic replay.
+    expect(result.current.messages).toHaveLength(pre);
+    expect(result.current.messages.some((m) => m.content === "from-history")).toBe(false);
+
+    // Drain so vitest's async tracking is happy.
+    resolveStream?.();
+    await act(async () => {
+      await sendPromise;
+    });
   });
 
   it("assistant message placeholder is initialized with rawContent=''", async () => {

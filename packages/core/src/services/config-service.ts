@@ -1,10 +1,18 @@
 import {
+  type BootstrapConfig,
+  BootstrapConfigSchema,
   type EngineConfig,
   EngineConfigSchema,
+  readBootstrapConfig,
   readEngineConfig,
+  writeBootstrapConfig,
   writeEngineConfig,
 } from "../config/index.js";
-import type { ConfigService, EngineConfigSnapshot } from "../types/index.js";
+import type {
+  BootstrapConfigSnapshot,
+  ConfigService,
+  EngineConfigSnapshot,
+} from "../types/index.js";
 import type { ServiceDeps } from "./types.js";
 
 /**
@@ -44,6 +52,19 @@ export class ConfigServiceImpl implements ConfigService {
     const validated = EngineConfigSchema.parse(snapshot);
     writeEngineConfig(this.deps.db, validated);
   }
+
+  async bootstrapConfig(): Promise<BootstrapConfigSnapshot> {
+    return toBootstrapSnapshot(readBootstrapConfig(this.deps.db));
+  }
+
+  async setBootstrapConfig(snapshot: BootstrapConfigSnapshot): Promise<void> {
+    const validated = BootstrapConfigSchema.parse(snapshot);
+    writeBootstrapConfig(this.deps.db, validated);
+  }
+}
+
+function toBootstrapSnapshot(cfg: BootstrapConfig): BootstrapConfigSnapshot {
+  return { maxSteps: cfg.maxSteps };
 }
 
 function toSnapshot(cfg: EngineConfig): EngineConfigSnapshot {

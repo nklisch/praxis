@@ -10,6 +10,7 @@ export type {
   ArtifactsClientSurface,
   AssignmentsClient,
   AuthoringClient,
+  BootstrapConfigSnapshot,
   BootstrapOpts,
   ConceptMapClientApi,
   ConfigService,
@@ -45,6 +46,8 @@ export type * from "./concept-graph.js";
 export type { ConceptMapService } from "./concept-map-service.js";
 export type * from "./configurator.js";
 export type * from "./conversation.js";
+// Bootstrap mode: live draft-stream events surfaced to the renderer.
+export type * from "./draft-stream.js";
 export type * from "./engine.js";
 export { engineError } from "./engine.js"; // runtime helper — not re-exported by `export type *`
 export type * from "./errors.js";

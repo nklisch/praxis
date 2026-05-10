@@ -20,6 +20,7 @@ import type {
 import { brandId, serializeError } from "@praxis/core/types";
 import { ipcMain } from "electron";
 import { registerActivityHandlers } from "./activity-channel.js";
+import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
 import { registerCourseDocumentsHandlers } from "./course-documents-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
@@ -195,6 +196,14 @@ export function registerIpcHandlers(
   handle("praxis.config.setEngineConfig", async (_event, config: unknown) => {
     // biome-ignore lint/suspicious/noExplicitAny: config shape validated inside service
     return services.config.setEngineConfig(config as any);
+  });
+
+  handle("praxis.config.bootstrapConfig", async () => {
+    return services.config.bootstrapConfig();
+  });
+
+  handle("praxis.config.setBootstrapConfig", async (_event, config: { maxSteps: number }) => {
+    return services.config.setBootstrapConfig(config);
   });
 
   // ── Documents ────────────────────────────────────────────────────────────
@@ -1121,6 +1130,10 @@ export function registerIpcHandlers(
 
   registerActivityHandlers(services, webContentsGetter, activeAbortControllers, log);
 
+  // ── Bootstrap-mode draft stream ──────────────────────────────────────────────
+
+  registerBootstrapDraftsHandlers(services, webContentsGetter, activeAbortControllers, log);
+
   // ── Phase 17: QuickCheck ──────────────────────────────────────────────────────
 
   registerQuickCheckHandlers(services, webContentsGetter, activeAbortControllers, log);
@@ -1151,6 +1164,7 @@ export function registerIpcHandlers(
     ipcMain.removeAllListeners("praxis.memory.episodic.cancel");
     ipcMain.removeAllListeners("praxis.auth.claude.login.cancel");
     ipcMain.removeAllListeners("praxis.activity.events.cancel");
+    ipcMain.removeAllListeners("praxis.bootstrap.drafts.events.cancel");
     ipcMain.removeAllListeners("praxis.quickCheck.events.cancel");
     for (const ctrl of activeAbortControllers.values()) {
       ctrl.abort();

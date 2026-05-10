@@ -1,4 +1,15 @@
 export {
+  BOOTSTRAP_CONFIG_KEY,
+  BOOTSTRAP_DEFAULT_MAX_STEPS,
+  BOOTSTRAP_MAX_STEPS_LIMIT,
+  BOOTSTRAP_MIN_STEPS,
+  type BootstrapConfig,
+  BootstrapConfigSchema,
+  DEFAULT_BOOTSTRAP_CONFIG,
+  readBootstrapConfig,
+  writeBootstrapConfig,
+} from "./bootstrap-config.js";
+export {
   providerApiKeyEnvName,
   readEngineConfig,
   writeEngineConfig,

@@ -8,6 +8,7 @@ import { ConceptMapClient } from "./services/concept-map-client.js";
 import { ConfigClient } from "./services/config-client.js";
 import { CourseDocumentsClient } from "./services/course-documents-client.js";
 import { DocumentsClient } from "./services/documents-client.js";
+import { DraftsClient } from "./services/drafts-client.js";
 import { FlashcardsClient } from "./services/flashcards-client.js";
 import { IngestClient } from "./services/ingest-client.js";
 import { LockClientImpl } from "./services/lock-client.js";
@@ -47,6 +48,7 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     conceptMaps: new ConceptMapClient(transport), // ← Phase 15b
     courseDocuments: new CourseDocumentsClient(transport), // ← Phase 16
     activity: new ActivityClient(transport),
+    drafts: new DraftsClient(transport),
     quickCheck: new QuickCheckClient(transport), // ← Phase 17
   };
 }

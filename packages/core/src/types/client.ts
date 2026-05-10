@@ -23,6 +23,7 @@ import type {
 } from "./artifacts.js";
 import type { TimeRange, Timestamp, TldrawSnapshot } from "./common.js";
 import type { ConfiguratorActionRow } from "./configurator.js";
+import type { DraftStreamClient } from "./draft-stream.js";
 import type { EngineEvent } from "./engine.js";
 import type { Rating } from "./flashcards.js";
 import type { GateView } from "./gate.js";
@@ -88,6 +89,12 @@ export interface PraxisClient {
   courseDocuments: CourseDocumentsClientApi;
   /** Activity rail — subscribe to ambient progress events from long-running work. */
   activity: ActivityClient;
+  /**
+   * Bootstrap-mode live draft stream. Yields snapshot + per-mutation events as
+   * the explore agent builds a course outline. The bootstrap tab body
+   * subscribes to render the right-pane outline live.
+   */
+  drafts: DraftStreamClient;
   /** Phase 17: quick check — subscribe to inline question events; resolve student answers. */
   quickCheck: QuickCheckClientApi;
 }
@@ -533,6 +540,19 @@ export interface EngineConfigSnapshot {
   effort?: "minimal" | "low" | "medium" | "high" | "xhigh";
 }
 
+/**
+ * User-tunable bootstrap-mode configuration. Surfaced via ConfigService and
+ * read at runtime by `course.start_exploration` to determine the explore
+ * agent's tool-call budget.
+ */
+export interface BootstrapConfigSnapshot {
+  /**
+   * Max tool-call steps the explore agent may take in a single run.
+   * Bounded server-side; out-of-range values are rejected by the schema.
+   */
+  maxSteps: number;
+}
+
 export interface ConfigService {
   isLocked(): Promise<boolean>;
   setLockCode(code: string): Promise<void>;
@@ -542,6 +562,9 @@ export interface ConfigService {
   // Phase 3 additions:
   engineConfig(): Promise<EngineConfigSnapshot>;
   setEngineConfig(config: EngineConfigSnapshot): Promise<void>;
+  // Bootstrap-mode budget knob.
+  bootstrapConfig(): Promise<BootstrapConfigSnapshot>;
+  setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void>;
 }
 
 // ─── Phase 5: Ingestion + Documents ──────────────────────────────────────────

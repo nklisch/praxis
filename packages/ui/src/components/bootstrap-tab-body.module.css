@@ -31,6 +31,10 @@
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .outlineTitle {
@@ -39,6 +43,39 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-text-muted, #aaa);
+}
+
+.budgetField {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, #aaa);
+}
+
+.budgetInput {
+  width: 3.5rem;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  color: var(--color-text, #ddd);
+}
+
+.budgetInput:focus {
+  outline: 1px solid var(--color-accent, #7aa2f7);
+  outline-offset: 0;
+  border-color: transparent;
+}
+
+.budgetInput:disabled {
+  opacity: 0.5;
 }
 
 .outlinePlaceholder {

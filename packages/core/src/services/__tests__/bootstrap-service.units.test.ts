@@ -10,13 +10,7 @@
  *  - validateProposed: new issue kinds (unit_unknown_lesson, assessment_unknown_concept, unit_lesson_not_in_draft)
  */
 import { describe, expect, it, vi } from "vitest";
-import type {
-  AssessmentPlan,
-  Engine,
-  ProposedCourse,
-  StudentId,
-  Timestamp,
-} from "../../types/index.js";
+import type { AssessmentPlan, Engine, StudentId, Timestamp } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { BootstrapServiceImpl } from "../bootstrap-service.js";
 
@@ -333,18 +327,18 @@ describe("BootstrapServiceImpl.addLessonAssessment", () => {
   });
 });
 
-// ─── DraftSummary.unitCount / assessmentCount ─────────────────────────────────
+// ─── summarize — DraftSummary.unitCount / assessmentCount ─────────────────────
 
-describe("BootstrapServiceImpl.finalizeDraft — DraftSummary unit/assessment counts", () => {
+describe("BootstrapServiceImpl.summarize — DraftSummary unit/assessment counts", () => {
   it("returns unitCount=0 and assessmentCount=0 when no units or assessments", async () => {
     const svc = makeService();
     const draftId = await seedDraft(svc);
 
-    const result = await svc.finalizeDraft({ draftId });
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error();
-    expect(result.summary.unitCount).toBe(0);
-    expect(result.summary.assessmentCount).toBe(0);
+    const summary = await svc.summarize(draftId);
+    expect(summary).not.toBeNull();
+    if (!summary) throw new Error();
+    expect(summary.unitCount).toBe(0);
+    expect(summary.assessmentCount).toBe(0);
 
     svc.shutdown();
   });
@@ -358,7 +352,6 @@ describe("BootstrapServiceImpl.finalizeDraft — DraftSummary unit/assessment co
     await svc.addUnit({
       draftId,
       name: "Unit 1",
-      // biome-ignore lint/style/noNonNullAssertion: seeded above
       draftLessonIds: lessonIds,
       summative: {
         kind: "exam",
@@ -381,20 +374,31 @@ describe("BootstrapServiceImpl.finalizeDraft — DraftSummary unit/assessment co
       rationale: "practice",
     });
 
-    const result = await svc.finalizeDraft({ draftId });
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error();
-    expect(result.summary.unitCount).toBe(1);
+    const summary = await svc.summarize(draftId);
+    expect(summary).not.toBeNull();
+    if (!summary) throw new Error();
+    expect(summary.unitCount).toBe(1);
     // 1 summative + 1 per-lesson = 2
-    expect(result.summary.assessmentCount).toBe(2);
+    expect(summary.assessmentCount).toBe(2);
 
+    svc.shutdown();
+  });
+
+  it("returns null for an unknown draftId", async () => {
+    const svc = makeService();
+    const summary = await svc.summarize("ghost-draft-id");
+    expect(summary).toBeNull();
     svc.shutdown();
   });
 });
 
-// ─── validateProposed — new issue kinds ──────────────────────────────────────
+// ─── validateProposed — surfaced via confirmDraft ────────────────────────────
+//
+// Validation now runs inside confirmDraft (no separate finalize step). Each of
+// these previously-finalize-driven checks now produces { ok: false, issues }
+// from confirmDraft instead, with no DB rows committed.
 
-describe("BootstrapServiceImpl.finalizeDraft — validation of new issue kinds", () => {
+describe("BootstrapServiceImpl.confirmDraft — validation issue kinds", () => {
   it("issues unit_unknown_lesson when unit refs an unknown draftLessonId", async () => {
     const svc = makeService();
     // Bypass addUnit validation to inject a bad unit directly.
@@ -424,7 +428,7 @@ describe("BootstrapServiceImpl.finalizeDraft — validation of new issue kinds",
       },
     ];
 
-    const result = await svc.finalizeDraft({ draftId });
+    const result = await svc.confirmDraft({ draftId, studentId: STUDENT_ID });
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error();
     const kinds = result.issues.map((i) => i.kind);
@@ -470,7 +474,7 @@ describe("BootstrapServiceImpl.finalizeDraft — validation of new issue kinds",
       },
     ];
 
-    const result = await svc.finalizeDraft({ draftId });
+    const result = await svc.confirmDraft({ draftId, studentId: STUDENT_ID });
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error();
     const kinds = result.issues.map((i) => i.kind);
@@ -512,7 +516,7 @@ describe("BootstrapServiceImpl.finalizeDraft — validation of new issue kinds",
       },
     ];
 
-    const result = await svc.finalizeDraft({ draftId });
+    const result = await svc.confirmDraft({ draftId, studentId: STUDENT_ID });
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error();
     const kinds = result.issues.map((i) => i.kind);

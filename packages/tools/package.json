@@ -67,6 +67,13 @@
       "node": "./dist/course/index.js",
       "default": "./dist/course/index.js"
     },
+    "./course/start-exploration": {
+      "praxis-source": "./src/course/start-exploration.ts",
+      "types": "./dist/course/start-exploration.d.ts",
+      "import": "./dist/course/start-exploration.js",
+      "node": "./dist/course/start-exploration.js",
+      "default": "./dist/course/start-exploration.js"
+    },
     "./memory": {
       "praxis-source": "./src/memory/index.ts",
       "types": "./dist/memory/index.d.ts",

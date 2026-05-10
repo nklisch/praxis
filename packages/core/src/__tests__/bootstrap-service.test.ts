@@ -332,6 +332,8 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
 
     const result = await svc.confirmDraft({ draftId, studentId: STUDENT_ID });
 
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok:true");
     expect(typeof result.courseId).toBe("string");
     expect(result.lessonIds).toHaveLength(2);
     expect(typeof result.conceptGraphId).toBe("string");

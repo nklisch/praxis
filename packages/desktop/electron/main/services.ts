@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { assignments } from "@praxis/artifacts/schema";
-import { readEngineConfig } from "@praxis/core/config";
+import { readBootstrapConfig, readEngineConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
 import { FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import type { NodeWorker } from "@praxis/core/runtime";
@@ -52,12 +52,14 @@ import { sessions } from "@praxis/memory/schema";
 import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/assignment";
 import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
+import { startExplorationTool } from "@praxis/tools/course/start-exploration";
 import { DOCUMENT_TOOLS } from "@praxis/tools/document";
 import { EXAM_TOOLS } from "@praxis/tools/exam";
 import { FLASHCARD_TOOLS } from "@praxis/tools/flashcards";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
 import { NOTE_TOOLS } from "@praxis/tools/notes";
+import { QUICK_CHECK_TOOLS } from "@praxis/tools/quick-check";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
 import {
   DocxIngestor,
@@ -77,7 +79,6 @@ import {
 } from "@praxis/tools/runtime";
 import { CodeSandboxImpl, createCodeSandboxTool } from "@praxis/tools/sandbox";
 import { sketchReadTool } from "@praxis/tools/sketch";
-import { QUICK_CHECK_TOOLS } from "@praxis/tools/quick-check";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
 import type { MainLogger } from "./logger.js";
@@ -438,7 +439,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     gradeMathTool,
     codeSandboxTool,
     retrieveFromTextbookTool,
-    ...COURSE_TOOLS, // ← Phase 6
+    ...COURSE_TOOLS,
+    startExplorationTool, // imported via its own subpath to avoid a course-barrel cycle
+
     ...DOCUMENT_TOOLS, // ← Phase 16
     ...MEMORY_TOOLS, // ← Phase 7
     ...ASSIGNMENT_TUTOR_TOOLS, // ← Phase 8
@@ -480,6 +483,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       conceptMaps: conceptMapService, // ← Phase 15b
       courseDocuments: courseDocumentsService, // ← Phase 16
       engineResolver: bootstrapEngineResolver, // ← Phase 16
+      // Lazy-read the user-set bootstrap budget so UI changes apply to the
+      // next exploration without restarting the desktop app.
+      bootstrapConfigResolver: () => readBootstrapConfig(db),
       quickCheck: quickCheckService, // ← Phase 17
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)

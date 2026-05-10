@@ -1,4 +1,8 @@
-import type { ConfigService, EngineConfigSnapshot } from "@praxis/core/types";
+import type {
+  BootstrapConfigSnapshot,
+  ConfigService,
+  EngineConfigSnapshot,
+} from "@praxis/core/types";
 import type { ClientTransport } from "../transport/types.js";
 
 const CHANNEL = "praxis.config";
@@ -32,5 +36,13 @@ export class ConfigClient implements ConfigService {
 
   setEngineConfig(config: EngineConfigSnapshot): Promise<void> {
     return this.transport.invoke<void>(`${CHANNEL}.setEngineConfig`, config);
+  }
+
+  bootstrapConfig(): Promise<BootstrapConfigSnapshot> {
+    return this.transport.invoke<BootstrapConfigSnapshot>(`${CHANNEL}.bootstrapConfig`);
+  }
+
+  setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void> {
+    return this.transport.invoke<void>(`${CHANNEL}.setBootstrapConfig`, config);
   }
 }

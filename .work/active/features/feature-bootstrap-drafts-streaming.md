@@ -1,7 +1,7 @@
 ---
 id: feature-bootstrap-drafts-streaming
 kind: feature
-stage: implementing
+stage: review
 tags: [content, ui]
 parent: null
 depends_on: []

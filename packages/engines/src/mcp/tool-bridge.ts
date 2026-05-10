@@ -38,7 +38,11 @@ function buildSdkTool(summary: ToolDefinitionSummary, registry: ToolRegistry): C
   return tool(summary.name, summary.description, inputSchema, async (input: unknown) => {
     const result = await registry.dispatch(summary.name, input);
     if (result.ok) {
-      return { success: true, content: JSON.stringify(result.value) };
+      // Pass the structured value directly — the SDK JSON-stringifies at the
+      // MCP wire boundary and the receive-side parser inverts that, so
+      // consumers see the original object/array/primitive without any manual
+      // serialization in this layer.
+      return { success: true, value: result.value };
     }
     return { success: false, error: result.error.message };
   });

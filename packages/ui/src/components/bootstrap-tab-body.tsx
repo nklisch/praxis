@@ -2,32 +2,42 @@
  * Bootstrap modality tab body.
  *
  * Two-pane layout: chat on the left (~60%) for tutor conversation; a draft
- * course outline on the right (~40%) that updates as the explorer adds
- * units, lessons, and assessments.
+ * course outline on the right (~40%) that updates live as the explore agent
+ * builds units, lessons, concepts, edges, and assessments.
  *
- * v1 deferred work:
- * - The draft outline panel renders a placeholder stub. The outline should
- *   subscribe to `course.show_draft` tool results (already accumulated in
- *   the chat message stream via useStreamedSend's `drafts` field) and render
- *   a tree of units → lessons. This is deferred because it requires extracting
- *   the draft-from-messages plumbing and designing the live-update subscription.
- *   The left pane (chat) is fully functional via the existing ChatTabBody logic.
- * - The left pane reuses the existing teach-tab chat implementation directly.
+ * The right pane subscribes to `client.drafts.events()` via the `useDrafts`
+ * hook. The bootstrap service emits a `started` event from `initDraft` and
+ * an `updated` event from every mutator, so the outline reflects each tool
+ * call as it lands rather than waiting for `course.show_draft` to fire.
+ *
+ * The outline header also exposes the user's tool-call budget for the explore
+ * agent. Edits persist via ConfigService and are read server-side at the
+ * start of the next exploration — no restart required.
  */
 import type { TabSummary } from "@praxis/core/types";
-import type { JSX } from "react";
+import { type ChangeEvent, type JSX, useEffect, useState } from "react";
+import {
+  BOOTSTRAP_BUDGET_MAX,
+  BOOTSTRAP_BUDGET_MIN,
+  useBootstrapBudget,
+} from "../hooks/use-bootstrap-budget.js";
+import { useDrafts } from "../hooks/use-drafts.js";
 import styles from "./bootstrap-tab-body.module.css";
 import { TeachChatTabBody } from "./chat-tab-body.js";
+import { DraftCard } from "./draft-card.js";
 
 export interface BootstrapTabBodyProps {
   tab: TabSummary;
 }
 
 /**
- * Split-pane bootstrap body: chat on left, course outline stub on right.
- * Left pane is the full existing teach chat. Right pane is deferred (v1 stub).
+ * Split-pane bootstrap body: chat on left, live outline on right. The outline
+ * renders the most recently mutated draft via `<DraftCard>`. While the
+ * explorer hasn't yet called `draft_init`, the placeholder copy persists.
  */
 export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
+  const { current } = useDrafts();
+
   return (
     <div className={styles.container}>
       {/* Left: existing chat body (reused in full) */}
@@ -35,19 +45,72 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
         <TeachChatTabBody tab={tab} />
       </div>
 
-      {/* Right: draft outline — v1 stub, full outline deferred */}
+      {/* Right: live draft outline — driven by the bootstrap-drafts stream. */}
       <aside className={styles.outlinePane} aria-label="Course outline">
         <div className={styles.outlineHeader}>
           <span className={styles.outlineTitle}>course outline</span>
+          <BudgetField />
         </div>
-        <div className={styles.outlinePlaceholder}>
-          {/* TODO(phase-16-follow-up): subscribe to course.show_draft tool results
-              from the message stream and render a tree of units → lessons here.
-              The `drafts` field on ChatMessage (from useStreamedSend) already
-              accumulates ProposedCourse objects. */}
-          <p>the outline will appear here as the tutor builds the course.</p>
-        </div>
+        {current ? (
+          <DraftCard proposed={current.proposed} />
+        ) : (
+          <div className={styles.outlinePlaceholder}>
+            <p>the outline will appear here as the tutor builds the course.</p>
+          </div>
+        )}
       </aside>
     </div>
+  );
+}
+
+/**
+ * Editable numeric input for the explore-agent tool-call budget. Local
+ * input state lets the user type freely; commits on blur or Enter. Clamped
+ * client-side and again server-side by Zod.
+ */
+function BudgetField(): JSX.Element {
+  const { maxSteps, saving, setMaxSteps } = useBootstrapBudget();
+  const [draft, setDraft] = useState<string>("");
+
+  // Sync local draft string when the loaded value arrives or changes externally.
+  useEffect(() => {
+    if (maxSteps !== null) setDraft(String(maxSteps));
+  }, [maxSteps]);
+
+  const commit = () => {
+    const parsed = Number.parseInt(draft, 10);
+    if (Number.isFinite(parsed)) {
+      void setMaxSteps(parsed);
+    } else if (maxSteps !== null) {
+      // Reset to the last good value if the user typed garbage.
+      setDraft(String(maxSteps));
+    }
+  };
+
+  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setDraft(e.target.value);
+  };
+
+  return (
+    <label className={styles.budgetField}>
+      budget
+      <input
+        type="number"
+        className={styles.budgetInput}
+        min={BOOTSTRAP_BUDGET_MIN}
+        max={BOOTSTRAP_BUDGET_MAX}
+        step={1}
+        value={draft}
+        disabled={maxSteps === null || saving}
+        onChange={onChange}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        aria-label="Explore agent tool-call budget"
+        title={`Tool-call budget for the explore agent (${BOOTSTRAP_BUDGET_MIN}–${BOOTSTRAP_BUDGET_MAX} steps).`}
+      />
+      steps
+    </label>
   );
 }

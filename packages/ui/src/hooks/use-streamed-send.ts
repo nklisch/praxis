@@ -1,4 +1,5 @@
 import type {
+  EpisodicEvent,
   Flashcard,
   Note,
   PraxisClient,
@@ -9,6 +10,7 @@ import type {
 } from "@praxis/core/types";
 import { useState } from "react";
 import type { ReviewCard } from "../components/flashcard-review.js";
+import { episodicToMessages } from "./episodic-to-messages.js";
 
 export interface ChatMessage {
   id: string;
@@ -43,6 +45,15 @@ export interface UseStreamedSendResult {
   lastError: string | null;
   send: (sessionId: SessionId, message: string) => Promise<void>;
   clearMessages: () => void;
+  /**
+   * Load the persisted transcript for an existing session and replace the
+   * local message log with it. Call once per session-id on mount so the user
+   * sees their prior conversation when re-opening a tab or relaunching the
+   * app. No-op while a turn is mid-stream — replacing messages then would
+   * lose the in-flight assistant bubble. Errors are reported via `lastError`
+   * so the chat UI can surface them in its existing error banner.
+   */
+  loadHistory: (sessionId: SessionId) => Promise<void>;
 }
 
 let msgCounter = 0;
@@ -208,5 +219,18 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     setLastError(null);
   };
 
-  return { messages, isStreaming, lastError, send, clearMessages };
+  const loadHistory = async (sessionId: SessionId): Promise<void> => {
+    if (isStreaming) return;
+    try {
+      const collected: EpisodicEvent[] = [];
+      for await (const ev of client.memory.episodic({ sessionId })) {
+        collected.push(ev);
+      }
+      setMessages(episodicToMessages(collected));
+    } catch (err) {
+      setLastError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  return { messages, isStreaming, lastError, send, clearMessages, loadHistory };
 }

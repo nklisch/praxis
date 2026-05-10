@@ -161,6 +161,14 @@ export interface ToolServices {
    */
   engineResolver: () => Engine;
   /**
+   * Resolves user-tunable bootstrap config (currently just `maxSteps` —
+   * the explore agent's tool-call budget). Read at call time so UI changes
+   * take effect on the next exploration without a restart. Used by
+   * `course.start_exploration`. Optional so test stubs that don't exercise
+   * the bootstrap path don't need to wire it.
+   */
+  bootstrapConfigResolver?: () => { maxSteps: number };
+  /**
    * Activity registry for ambient progress reporting via the activity rail.
    * Optional so tools that don't need it and test stubs stay simple.
    * Wired in session-service.ts from ServiceDeps.activity.
@@ -659,14 +667,12 @@ export interface BootstrapService {
   }): Promise<{ ok: boolean; reason?: string }>;
 
   /**
-   * Validate and freeze the draft. Returns DraftSummary on success, or structured
-   * issues the explorer can fix.
+   * Build a compact DraftSummary from the live draft state. Returns null if
+   * the draft is gone (expired or never existed). Used by the explore agent
+   * to surface partial progress to the tutor without forcing a separate
+   * "finalize" ritual, and by the tutor's UI to render quick metrics.
    */
-  finalizeDraft(input: {
-    draftId: string;
-  }): Promise<
-    { ok: true; summary: DraftSummary } | { ok: false; issues: ReadonlyArray<DraftIssue> }
-  >;
+  summarize(draftId: string): Promise<DraftSummary | null>;
 
   // ── Phase 16: unit + assessment scaffold ──────────────────────────────────────
 
@@ -714,13 +720,22 @@ export interface BootstrapService {
     title: string;
   }): Promise<{ ok: true; draftAssessmentId: string } | { ok: false; reason: string }>;
 
-  // ── Existing methods (unchanged) ─────────────────────────────────────────────
+  // ── Existing methods ─────────────────────────────────────────────────────────
   showDraft(draftId: string): Promise<DraftCourseState | null>;
   editDraft(input: { draftId: string; op: DraftEditOp }): Promise<DraftCourseState>;
+  /**
+   * Validate and persist the draft. Returns the persisted course identifiers
+   * on success or structured `issues[]` on validation failure. Throws only on
+   * lifecycle errors (draft expired / owner mismatch) — those aren't data the
+   * model can fix.
+   */
   confirmDraft(input: {
     draftId: string;
     studentId: StudentId;
-  }): Promise<{ courseId: CourseId; lessonIds: LessonId[]; conceptGraphId: string }>;
+  }): Promise<
+    | { ok: true; courseId: CourseId; lessonIds: LessonId[]; conceptGraphId: string }
+    | { ok: false; issues: ReadonlyArray<DraftIssue> }
+  >;
   discardDraft(draftId: string): Promise<void>;
   /**
    * Phase 10: Create a course directly from an imported canonical pack.

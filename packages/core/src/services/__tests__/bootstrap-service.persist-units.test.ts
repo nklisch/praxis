@@ -16,7 +16,7 @@ import { assignments, courseUnits, lessonAssessments, lessonUnits } from "@praxi
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
-import type { AssessmentPlan, Engine, ProposedCourse, Timestamp } from "../../types/index.js";
+import type { AssessmentPlan, Engine } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { BootstrapServiceImpl } from "../bootstrap-service.js";
 
@@ -127,6 +127,8 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
 
     // Confirm draft — should persist everything.
     const result = await svc.confirmDraft({ draftId, studentId: STUDENT_ID });
+    if (!result.ok)
+      throw new Error(`expected ok:true, got issues: ${JSON.stringify(result.issues)}`);
     const { courseId } = result;
     expect(typeof courseId).toBe("string");
 
@@ -216,7 +218,8 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
       references: [],
     });
 
-    await svc.confirmDraft({ draftId, studentId: STUDENT_ID });
+    const noUnitsResult = await svc.confirmDraft({ draftId, studentId: STUDENT_ID });
+    expect(noUnitsResult.ok).toBe(true);
 
     // No units or assessments.
     const unitRows = db.select().from(courseUnits).all();
@@ -229,7 +232,11 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
     svc.shutdown();
   });
 
-  it("rolls back the whole transaction when assessment refs unknown concept", async () => {
+  it("returns issues without persisting when assessment refs unknown concept", async () => {
+    // Validation runs inside confirmDraft BEFORE the persist transaction
+    // opens, so a malformed draft never produces partial rows. The test asserts
+    // the same end-state guarantee (no committed rows) via the new
+    // discriminated-union shape rather than a throw.
     const { db } = openDb({ path: dbCtx.dbPath });
     const svc = new BootstrapServiceImpl({
       db,
@@ -273,12 +280,12 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
       },
     ];
 
-    await expect(svc.confirmDraft({ draftId: draftId, studentId: STUDENT_ID })).rejects.toThrow(
-      /unknown concept/i,
-    );
+    const result = await svc.confirmDraft({ draftId: draftId, studentId: STUDENT_ID });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected ok:false");
+    expect(result.issues.some((i) => /unknown.*concept/i.test(i.message))).toBe(true);
 
-    // No courses should exist (transaction rolled back).
-    const courseRows = db.run("SELECT COUNT(*) as n FROM courses");
+    // No courses should exist — validation short-circuited before the transaction.
     const count = db.get<{ n: number }>("SELECT COUNT(*) as n FROM courses");
     expect(count?.n).toBe(0);
 

@@ -20,6 +20,8 @@ import type {
   DocumentId,
   DraftCourseState,
   DraftEditOp,
+  DraftStreamEvent,
+  DraftStreamListener,
   DraftSummary,
   Engine,
   LessonId,
@@ -65,6 +67,13 @@ export interface BootstrapServiceDeps {
  */
 export class BootstrapServiceImpl implements BootstrapService {
   private readonly drafts = new Map<string, DraftCourseState>();
+  /**
+   * Live subscribers (e.g. the bootstrap-drafts IPC channel forwarding to the
+   * renderer's right-pane outline). Each receives a `snapshot` event on
+   * subscribe, then `started` / `updated` / `finalized` / `discarded` per
+   * mutation. Listener exceptions are logged but do not stop other listeners.
+   */
+  private readonly listeners = new Set<DraftStreamListener>();
   private sweepTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly deps: BootstrapServiceDeps) {
@@ -74,6 +83,73 @@ export class BootstrapServiceImpl implements BootstrapService {
     }, period);
     // unref so this timer doesn't keep the process alive.
     this.sweepTimer.unref?.();
+  }
+
+  /**
+   * Subscribe to draft-stream events. Sends a `snapshot` of currently-live
+   * drafts immediately. Returns an unsubscribe function.
+   */
+  subscribe(listener: DraftStreamListener): () => void {
+    listener({ kind: "snapshot", drafts: this.list() });
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  /** Snapshot of currently-live drafts (non-expired). */
+  list(): readonly DraftCourseState[] {
+    const now = Date.now();
+    const out: DraftCourseState[] = [];
+    for (const d of this.drafts.values()) {
+      if (d.expiresAt > now) out.push(d);
+    }
+    return out;
+  }
+
+  private emit(event: DraftStreamEvent): void {
+    // Debug-level visibility into the draft stream. Lets us verify from logs
+    // that the service is firing events even when the renderer isn't visibly
+    // updating — pairs with `bootstrap.drafts.forward` in the IPC channel
+    // so the chain service -> IPC -> renderer is end-to-end traceable.
+    this.deps.log.debug("bootstrap.draft_stream.emit", {
+      eventKind: event.kind,
+      listenerCount: this.listeners.size,
+      ...(event.kind === "snapshot" && { draftCount: event.drafts.length }),
+      ...(event.kind === "started" && { draftId: event.draft.draftId }),
+      ...(event.kind === "updated" && {
+        draftId: event.draft.draftId,
+        conceptCount: event.draft.proposed.proposedConcepts.length,
+        lessonCount: event.draft.proposed.proposedLessons.length,
+        unitCount: (event.draft.proposed.proposedUnits ?? []).length,
+      }),
+      ...(event.kind === "finalized" && {
+        draftId: event.draftId,
+        courseId: event.courseId,
+      }),
+      ...(event.kind === "discarded" && {
+        draftId: event.draftId,
+        reason: event.reason,
+      }),
+    });
+    for (const listener of this.listeners) {
+      try {
+        listener(event);
+      } catch (err) {
+        this.deps.log.warn("bootstrap.draft_listener_threw", { err: String(err) });
+      }
+    }
+  }
+
+  /**
+   * Bump `lastTouchedAt` (and refresh expiry) and emit a `draft_updated`
+   * event so subscribers see the new state. Used by every incremental mutator.
+   */
+  private touchAndEmitUpdate(d: DraftCourseState): void {
+    const now = Date.now() as Timestamp;
+    d.lastTouchedAt = now;
+    d.expiresAt = (now + DRAFT_TTL_MS) as Timestamp;
+    this.emit({ kind: "updated", draft: d });
   }
 
   /**
@@ -113,6 +189,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       expiresAt: (now + DRAFT_TTL_MS) as Timestamp,
     };
     this.drafts.set(draft.draftId, draft);
+    this.emit({ kind: "started", draft });
     return { draftId: draft.draftId };
   }
 
@@ -136,7 +213,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       description: input.description.trim(),
       evidence: [],
     });
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true, conceptCount: d.proposed.proposedConcepts.length };
   }
 
@@ -164,7 +241,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       ...l,
       conceptNames: l.conceptNames.filter((n) => n.trim().toLowerCase() !== lower),
     }));
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -197,7 +274,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       strength: Math.max(0, Math.min(1, input.strength)),
       rationale: input.rationale.trim(),
     });
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -227,7 +304,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       estimatedMinutes: input.estimatedMinutes ?? 45,
     };
     d.proposed.proposedLessons.push(newLesson);
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true, lessonIndex: d.proposed.proposedLessons.length - 1 };
   }
 
@@ -242,7 +319,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       return { ok: false, reason: `lesson index ${input.lessonIndex} out of bounds` };
     }
     d.proposed.proposedLessons.splice(input.lessonIndex, 1);
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -304,7 +381,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     };
     if (!d.proposed.proposedUnits) d.proposed.proposedUnits = [];
     d.proposed.proposedUnits.push(unit);
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true, draftUnitId };
   }
 
@@ -316,7 +393,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     const d = await this.showDraft(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     d.proposed.assessmentPlan = input.plan;
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -364,7 +441,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       }),
       rationale: input.rationale.trim(),
     });
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true, draftAssessmentId };
   }
 
@@ -384,27 +461,20 @@ export class BootstrapServiceImpl implements BootstrapService {
     if (input.thresholds !== undefined) {
       d.proposed.thresholds = { ...d.proposed.thresholds, ...input.thresholds };
     }
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return { ok: true };
   }
 
   /**
-   * Phase 16: validates the draft and returns a DraftSummary on success, or a
-   * structured issues list on failure. No throws on validation failure — returns
-   * errors as data so the model can read and react.
+   * Build a compact summary of the live draft. Returns null if the draft is
+   * gone (expired or never existed). Used by the explorer to surface partial
+   * progress to the tutor without forcing a "finalize" ritual, and by the
+   * tutor's UI to render quick metrics.
    */
-  async finalizeDraft(input: {
-    draftId: string;
-  }): Promise<{ ok: true; summary: DraftSummary } | { ok: false; issues: ReadonlyArray<Issue> }> {
-    const d = await this.showDraft(input.draftId);
-    if (!d)
-      return {
-        ok: false,
-        issues: [{ kind: "draft_missing", message: "draft expired or not found" }],
-      };
-    const issues = validateProposed(d.proposed);
-    if (issues.length > 0) return { ok: false, issues };
-    return { ok: true, summary: buildSummary(d) };
+  async summarize(draftId: string): Promise<DraftSummary | null> {
+    const d = await this.showDraft(draftId);
+    if (!d) return null;
+    return buildSummary(d);
   }
 
   async showDraft(draftId: string): Promise<DraftCourseState | null> {
@@ -412,6 +482,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     if (!d) return null;
     if (d.expiresAt <= Date.now()) {
       this.drafts.delete(draftId);
+      this.emit({ kind: "discarded", draftId, reason: "expired" });
       return null;
     }
     d.lastTouchedAt = Date.now() as Timestamp;
@@ -423,19 +494,35 @@ export class BootstrapServiceImpl implements BootstrapService {
     const d = await this.showDraft(input.draftId);
     if (!d) throw new Error(`Draft not found or expired: ${input.draftId}`);
     d.proposed = applyEdit(d.proposed, input.op);
-    d.lastTouchedAt = Date.now() as Timestamp;
+    this.touchAndEmitUpdate(d);
     return d;
   }
 
+  /**
+   * Validate and persist the draft as a real course. Validation issues are
+   * returned as data (`{ ok: false, issues }`) so the tutor can surface them to
+   * the student and the explore agent can fix and retry without a separate
+   * "finalize" ritual.
+   *
+   * Throws only on lifecycle errors (draft expired, owner mismatch) — those are
+   * not data issues the model can fix, so they don't fit the discriminated
+   * union shape.
+   */
   async confirmDraft(input: {
     draftId: string;
     studentId: StudentId;
-  }): Promise<{ courseId: CourseId; lessonIds: LessonId[]; conceptGraphId: string }> {
+  }): Promise<
+    | { ok: true; courseId: CourseId; lessonIds: LessonId[]; conceptGraphId: string }
+    | { ok: false; issues: ReadonlyArray<Issue> }
+  > {
     const d = await this.showDraft(input.draftId);
     if (!d) throw new Error(`Draft not found or expired: ${input.draftId}`);
     if (d.studentId !== input.studentId) {
       throw new Error(`Draft owner mismatch: draft belongs to a different student`);
     }
+
+    const issues = validateProposed(d.proposed);
+    if (issues.length > 0) return { ok: false, issues };
 
     const result = persistDraft({ db: this.deps.db, draft: d, now: new Date() });
 
@@ -457,11 +544,19 @@ export class BootstrapServiceImpl implements BootstrapService {
     }
 
     this.drafts.delete(input.draftId);
-    return result;
+    this.emit({ kind: "finalized", draftId: input.draftId, courseId: result.courseId });
+    return {
+      ok: true,
+      courseId: result.courseId,
+      lessonIds: result.lessonIds,
+      conceptGraphId: result.conceptGraphId,
+    };
   }
 
   async discardDraft(draftId: string): Promise<void> {
-    this.drafts.delete(draftId);
+    if (this.drafts.delete(draftId)) {
+      this.emit({ kind: "discarded", draftId, reason: "discarded" });
+    }
   }
 
   /**
@@ -587,6 +682,10 @@ export class BootstrapServiceImpl implements BootstrapService {
       this.sweepTimer = null;
     }
     this.drafts.clear();
+    // Drop listeners after drafts so a final snapshot — if anyone re-subscribes
+    // during shutdown — would correctly be empty. Also prevents leaks from
+    // forgotten subscribers.
+    this.listeners.clear();
   }
 
   private sweepExpired(): void {
@@ -594,6 +693,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     for (const [id, d] of this.drafts) {
       if (d.expiresAt <= now) {
         this.drafts.delete(id);
+        this.emit({ kind: "discarded", draftId: id, reason: "expired" });
       }
     }
   }

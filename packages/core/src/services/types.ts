@@ -84,6 +84,13 @@ export interface ServiceDeps {
      */
     engineResolver: () => Engine;
     /**
+     * Resolves the user-tunable bootstrap config (currently just `maxSteps` —
+     * the explore agent's tool-call budget). Read at call time so a UI change
+     * applies to the next exploration. Optional so tests that don't exercise
+     * the bootstrap path don't have to wire it.
+     */
+    bootstrapConfigResolver?: () => { maxSteps: number };
+    /**
      * Phase 17: in-process human-in-the-loop quick check dispatch.
      * Tool handlers call `quickCheck.await(...)` to pend an inline question.
      * Optional so tests that don't need quick checks stay unaffected.
