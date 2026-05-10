@@ -1,7 +1,7 @@
 ---
 id: epic-release-v0.1.0-readiness
 kind: epic
-stage: implementing
+stage: done
 tags: []
 parent: null
 depends_on: []
@@ -79,3 +79,28 @@ for the bind set, the gate-run summaries, and the readiness state table.
 
 (See the four `feature-release-v0.1.0-*-findings` files; each child
 feature lists its bound stories.)
+
+---
+
+## Review (2026-05-10)
+
+**Verdict: Approve. Epic delivered as briefed; advancing to done.**
+
+All 4 child features at `stage: done`:
+- `feature-release-v0.1.0-security-findings` — 4 active findings closed (1 High + 3 Medium); 3 Lows parked.
+- `feature-release-v0.1.0-test-findings` — 3 active findings closed (1 High + 2 Medium); 5 Lows parked.
+- `feature-release-v0.1.0-cruft-findings` — 6 active findings closed (all High mechanical); 1 Low parked.
+- `feature-release-v0.1.0-doc-findings` — 23 active findings closed (foundation-doc roll-forward, pattern-skill citations, CHANGELOG backfill, CONTRACT.md additive sections).
+
+Per the epic-review heuristic in `/agile-workflow:review`: per-line lenses don't apply here (each child was reviewed individually). Aggregate lenses:
+
+- **Capability completeness**: the v0.1.0 release-readiness scope is complete. Every gate-produced active finding from the 4 item-producing gates has been addressed.
+- **Foundation-doc alignment**: ARCHITECTURE / CURRICULUM / UX / SPEC / CONTRACT / README / CLAUDE / patterns are all rolled forward to the v0.1.0 present. No "previously" prose introduced anywhere.
+- **Breaking changes**: none. The IPC handler lock-gate is the only behavioral shift visible to consumers; matches the documented `praxis.author.*` pattern.
+- **Cross-cutting concerns**: 12 new tests landed (2365 → 2377 passing). The mid-drain test fix at `f8795df` resolved the only regression introduced (UX.md scope-stretch's mode-meta entry duplicated a label).
+
+9 backlog children remain bound to v0.1.0 for traceability (3 sec Lows + 5 tests Lows + 1 cruft Low). They do not block this epic's `done` status. To exclude them from the readiness check that gates `release-deploy v0.1.0` ship, edit each backlog file's frontmatter to remove the `release_binding: v0.1.0` line.
+
+## What's now possible
+
+The v0.1.0 readiness epic is complete. Re-run `/agile-workflow:release-deploy v0.1.0` to resume from Phase 5.5 (changelog draft prepends `## v0.1.0` to the now-existing CHANGELOG.md) → Phase 6 (tag-based ship via `git tag v0.1.0 && git push`) → Phase 7 (move all bound items to `.work/releases/v0.1.0/`) → Phase 8 (release file → `stage: released`).
