@@ -59,6 +59,35 @@ The feed is validated at parse time by
 ignored; missing required fields fail validation and the banner stays
 hidden (logged on the main process side).
 
+## Trust model
+
+The current manual-download flow trusts whatever JSON is hosted at
+`PRAXIS_UPDATE_FEED_URL` unconditionally. There is no cryptographic
+signature on the feed JSON and no hash on the linked installer. The
+app verifies that the response is valid JSON matching the expected
+schema, but it cannot tell whether the feed was tampered with in
+transit or at the origin. Even with TLS, a misconfig of the hosting
+bucket, a CDN with a mutable origin, or a compromised maintainer
+account gives an attacker a path to redirect every Praxis install to a
+malicious installer without the user or the app detecting it.
+
+Users should verify the installer signature before running it. On
+macOS, Gatekeeper enforces code-signing checks automatically for
+signed builds; a tampered installer will fail to launch. Windows and
+Linux installers are currently unsigned (see `docs/CODE-SIGNING.md`),
+so users on those platforms have no automated verification and should
+treat the downloaded file with appropriate caution.
+
+**Future (mandatory before moving to actual auto-update):** bundle a
+maintainer Ed25519 public key in the app and require the feed JSON to
+be signed by the corresponding private key. The app must verify the
+signature before offering any update. This also enables integrity
+checks on the downloaded installer (via a signed hash field in the
+feed). This work is tracked in
+`.work/backlog/idea-update-feed-ed25519-signature.md` and becomes a
+hard requirement before the project adopts electron-updater or any
+automatic in-place update mechanism.
+
 ## Configuration
 
 The maintainer configures the feed URL via the `PRAXIS_UPDATE_FEED_URL`

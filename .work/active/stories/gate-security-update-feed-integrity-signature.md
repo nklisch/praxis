@@ -1,7 +1,7 @@
 ---
 id: gate-security-update-feed-integrity-signature
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -53,3 +53,26 @@ For real defense, ship a maintainer Ed25519 public key bundled in the app
 and require the feed JSON to be signed; reject feeds whose signature does
 not verify. This becomes mandatory before the project moves to actual
 auto-update.
+
+## Implementation notes
+
+Chose the **doc-only path** for v0.1.0. The full Ed25519-signed-feed
+implementation is a meaningful engineering effort involving keypair
+management, a signed-release CI pipeline step, installer hash fields in the
+feed schema, backward-compatibility concerns for pre-signing app versions, and
+a key-rotation story. Rushing that work into a v0.1.0 release patch risks
+introducing its own bugs or misconfigurations.
+
+The concrete v0.1.0 deliverable is a "Trust model" section added to
+`docs/UPDATE-CHANNEL.md` that:
+- States plainly that the feed is trusted unconditionally and that there is no
+  signature or hash verification.
+- Instructs users to verify the installer signature manually before running it.
+- Notes that macOS Gatekeeper handles this automatically for signed builds;
+  Windows and Linux installers are currently unsigned (per `docs/CODE-SIGNING.md`).
+- Marks the full Ed25519 implementation as mandatory before moving to
+  electron-updater or any automatic update mechanism.
+
+The full implementation is parked in
+`.work/backlog/idea-update-feed-ed25519-signature.md` with the complete
+remediation direction from the security story preserved verbatim.
