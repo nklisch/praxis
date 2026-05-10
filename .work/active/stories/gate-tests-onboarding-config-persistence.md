@@ -1,7 +1,7 @@
 ---
 id: gate-tests-onboarding-config-persistence
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -52,3 +52,15 @@ schema migration or a Drizzle column-name typo would not be caught until
 manual smoke. The bootstrap-config sibling file
 (`bootstrap-config.test.ts`) tests exactly this surface for `maxSteps` —
 symmetry argues for the missing onboarding-config tests.
+
+## Implementation notes
+
+- Created `packages/core/src/config/__tests__/onboarding-config.test.ts`
+  with 4 tests: fresh-DB null read, valid ISO timestamp on first write,
+  upsert on second call, and strict ordering of two timestamps (with a 2ms
+  `setTimeout` to guarantee the `toISOString()` values differ).
+- Follows the `bootstrap-config.test.ts` pattern exactly: `useTempDb()` +
+  `makeDb()` helper, no shared state between tests, `openDb` from core.
+- The "strictly newer" test uses a real 2ms sleep rather than fake timers
+  because `markFirstRunComplete` calls `new Date()` internally — faking
+  timers here would require invasive mocking for negligible gain.
