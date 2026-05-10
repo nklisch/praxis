@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-ship-checklist
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-phase-19-ship-v1
 depends_on:
@@ -258,3 +258,19 @@ sneak in during implementation.
 ## No child stories
 
 Single doc, single agent, single stride.
+
+## Implementation notes
+
+- **Files changed**:
+  - `docs/v1-ship-checklist.md` (new) — Unit 1.
+- **Tests added**: none (documentation feature).
+- **Discrepancies from design**: none. The doc covers all 7 stages plus
+  the failure-triage rubric, the go/no-go decision section, the
+  pre-publish maintainer tasks, and the known-acceptable-divergences
+  list — exactly as designed.
+- **Adjacent issues parked**: none.
+- **Foundation-doc tone**: present-tense prescriptive; mirrors
+  `docs/CODE-SIGNING.md`, `docs/UPDATE-CHANNEL.md`,
+  `docs/ONBOARDING.md`. Cross-references all three.
+- **No code changes** — `pnpm test` would be a no-op verification
+  since no test surface is touched.
