@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-dead-queries-persist-units-test
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
@@ -54,3 +54,7 @@ as `noUnusedVariables`.
 ## Implementation notes
 
 Deleted the `courseRow` query (with its indirect-select and stale comment), the `rawCourse` line, and the `better-sqlite3 run()` comment — lines 177-184 as specified. Restored a clean "Verify courses.assessment_plan_json is written." comment above `courseData` to preserve assertion intent. All actual assertions on `courseData` are untouched.
+
+## Review (2026-05-10)
+
+Approve. Mechanical removal verified clean. Both dead query declarations (`courseRow`, `rawCourse`) and their associated stale comments removed; the live `courseData` query and all assertions are untouched. Restored comment preserves assertion intent. No findings.
