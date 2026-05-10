@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-coach-mode-impl
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-coach-mode
 depends_on: []
@@ -311,3 +311,52 @@ pnpm --filter @praxis/ui test          → 560 tests passed (75 files)
 ```
 
 All new tests green: 26 curriculum + 4 UI = 30 new tests total.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+**Nits** (in conversation only):
+- `study-skills.ts:19` lists fragments in a 7-element array
+  (preamble / role / principles / tools / course-context / constraints
+  / postamble). Same composition order as `teach.ts`. The order is
+  asserted in tests but the order is implicit — a Mode shape that
+  enforces composition order via discriminated positions would be a
+  quality-of-life upgrade across all modes. Cross-mode concern, not
+  this story.
+- `studySkillsRoleFragment.template` is ~30 lines of prose. Solid
+  content; no concerns.
+
+**Notes**:
+- Verified at HEAD (`b488710`): `pnpm typecheck` clean;
+  `pnpm --filter @praxis/curriculum test` 246 passed;
+  `pnpm --filter @praxis/ui test` 560 passed; `pnpm lint` 4 errors
+  (unchanged baseline).
+- 30 new tests across 2 files. The 26-test curriculum suite covers
+  registration, shape, fragment composition order, included tools,
+  and (importantly) explicit assertions that the EXCLUDED tools
+  aren't in the toolNames list — a guard against future edits
+  silently broadening the coaching mode's surface.
+- Mode tool list: 19 tools, all of which exist in the registry today
+  (verified by reading the tool barrels: pedagogy/index.ts,
+  course/index.ts, notes/index.ts, flashcards/index.ts,
+  quick-check/index.ts).
+- Tab dispatcher routes `modeId === "study-skills"` to
+  `StudySkillsTabBody` which renders a "study skills" chip + embeds
+  `<TeachChatTabBody>`. Clean separation; the chip wrapper is
+  ~30 lines.
+- The story preamble's "17 tools" was a counting typo — the explicit
+  enumerated list is 19. Implementation matches the explicit list
+  (5 pedagogy + 1 course nav + 5 note + 4 flashcard + 4 quick_check).
+  Documented in the implementation summary.
+
+What's now possible: the metacognition coach's dedicated mode is
+registered and dispatchable. A study-skills tab swaps in the coach
+role fragment + the coaching-only tool surface + a study-skills
+header chip. The `epic-phase-18-routing-integration` feature can
+now reference `study-skills` as a mode-transition target ("after
+persistent misconception, suggest study-skills mode") — its design
+already wired this hook.
