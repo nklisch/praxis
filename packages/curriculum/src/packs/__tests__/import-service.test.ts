@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { openDb } from "@praxis/core/db";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
@@ -258,6 +259,57 @@ describe("PackImportServiceImpl", () => {
       const graphId = await svc.getConceptGraphForPack("test-pack");
 
       expect(graphId).toBe(conceptGraphId);
+    });
+  });
+
+  describe("biology pack smoke test", () => {
+    // Points at the real packs/ directory so this exercises the actual pack
+    // file shipped with the repo, not a fixture.
+    function makeServiceForRealPacks() {
+      const { db, sqlite } = openDb({ path: ctx.dbPath });
+      const embeddingStore = new SqliteConceptEmbeddingsStore(sqlite, noopLog);
+      // Path: __tests__/ → packs/ → src/ → curriculum/ → packs/
+      const realPacksDir = resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../packs",
+      );
+      return new PackImportServiceImpl({
+        db,
+        log: noopLog,
+        embeddings: makeEmbeddings(),
+        conceptEmbeddings: embeddingStore,
+        packsDir: realPacksDir,
+      });
+    }
+
+    it("imports the real biology.json end-to-end", async () => {
+      const svc = makeServiceForRealPacks();
+      const result = await svc.importPack("biology");
+
+      expect(result.packId).toBe("biology");
+      expect(result.version).toBe("1.0.0");
+      expect(typeof result.conceptGraphId).toBe("string");
+      expect(result.conceptGraphId.length).toBeGreaterThan(0);
+    });
+
+    it("listAvailablePacks reports biology with realistic counts", async () => {
+      const svc = makeServiceForRealPacks();
+      const packs = await svc.listAvailablePacks();
+      const bio = packs.find((p) => p.id === "biology");
+      expect(bio, "biology pack must be discoverable in packs/").toBeDefined();
+      if (bio) {
+        expect(bio.conceptCount).toBeGreaterThanOrEqual(90);
+        expect(bio.conceptCount).toBeLessThanOrEqual(120);
+        expect(bio.edgeCount).toBeGreaterThanOrEqual(100);
+      }
+    });
+
+    it("re-importing biology is idempotent", async () => {
+      const svc = makeServiceForRealPacks();
+      const first = await svc.importPack("biology");
+      const second = await svc.importPack("biology");
+      expect(second.conceptGraphId).toBe(first.conceptGraphId);
+      expect(second.importedAt).toBe(first.importedAt);
     });
   });
 });

@@ -1,0 +1,898 @@
+{
+  "id": "biology",
+  "version": "1.0.0",
+  "name": "High School Biology (NGSS)",
+  "subject": "science.biology",
+  "gradeLevel": "9-12",
+  "standardsRef": { "body": "NGSS-HS-LS", "version": "2013" },
+  "authoredBy": "Praxis curriculum team",
+  "authoredAt": "2026-05-10T00:00:00.000Z",
+  "concepts": [
+    {
+      "id": "biology.cell-theory",
+      "name": "Cell Theory",
+      "description": "All living organisms are composed of one or more cells, the cell is the basic unit of structure and function in living things, and new cells arise only from existing cells. This unifying principle frames every other topic in cellular and organismal biology.",
+      "aliases": ["cell doctrine"],
+      "standardsTags": ["HS-LS1-1"]
+    },
+    {
+      "id": "biology.prokaryotic-cells",
+      "name": "Prokaryotic Cells",
+      "description": "Cells lacking a membrane-bound nucleus and most other internal organelles; their DNA sits free in the cytoplasm in a region called the nucleoid. Bacteria and archaea are prokaryotic; their compact organisation enables fast division.",
+      "aliases": ["prokaryotes", "bacterial cells"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.eukaryotic-cells",
+      "name": "Eukaryotic Cells",
+      "description": "Cells with a true membrane-bound nucleus and specialised internal organelles such as mitochondria, endoplasmic reticulum, and Golgi apparatus. Animals, plants, fungi, and protists are all eukaryotic.",
+      "aliases": ["eukaryotes"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.cell-membrane",
+      "name": "Cell Membrane",
+      "description": "A phospholipid bilayer studded with proteins that surrounds every cell, controlling what enters and leaves. The fluid-mosaic model describes how lipids and proteins move within the membrane while maintaining a selectively permeable barrier.",
+      "aliases": ["plasma membrane", "phospholipid bilayer"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.cell-wall",
+      "name": "Cell Wall",
+      "description": "A rigid outer layer outside the cell membrane in plants (cellulose), fungi (chitin), and most bacteria (peptidoglycan), providing structural support and protection. Animal cells lack cell walls and rely on the cytoskeleton for shape.",
+      "aliases": ["cellulose wall"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.cytoplasm",
+      "name": "Cytoplasm",
+      "description": "The gel-like interior of a cell where organelles are suspended and most metabolic reactions occur. Cytoplasm includes the cytosol (the fluid component) and the cytoskeleton.",
+      "aliases": ["cytosol"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.nucleus",
+      "name": "Nucleus",
+      "description": "The membrane-bound organelle in eukaryotic cells that contains the cell's chromosomal DNA. The nuclear envelope, perforated by nuclear pores, separates transcription from translation and is the defining feature of eukaryotes.",
+      "aliases": ["cell nucleus"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.mitochondria",
+      "name": "Mitochondria",
+      "description": "Double-membraned organelles that generate most of the cell's ATP through aerobic respiration. The inner membrane is folded into cristae that house the electron transport chain; mitochondria carry their own circular DNA, evidence of their endosymbiotic origin.",
+      "aliases": ["mitochondrion", "powerhouse of the cell"],
+      "standardsTags": ["HS-LS1-2", "HS-LS1-7"]
+    },
+    {
+      "id": "biology.chloroplasts",
+      "name": "Chloroplasts",
+      "description": "Plant and algal organelles that capture light energy and convert it to chemical energy through photosynthesis. Stacked thylakoid membranes (grana) house chlorophyll; the surrounding stroma is where the Calvin cycle runs.",
+      "aliases": ["chloroplast"],
+      "standardsTags": ["HS-LS1-2", "HS-LS1-5"]
+    },
+    {
+      "id": "biology.endoplasmic-reticulum",
+      "name": "Endoplasmic Reticulum",
+      "description": "An interconnected network of membrane sacs and tubules. Rough ER (studded with ribosomes) makes proteins destined for membranes or secretion; smooth ER synthesises lipids and detoxifies compounds.",
+      "aliases": ["ER", "rough ER", "smooth ER"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.golgi-apparatus",
+      "name": "Golgi Apparatus",
+      "description": "A stack of flattened membrane sacs that modifies, sorts, and packages proteins and lipids received from the endoplasmic reticulum. Vesicles bud off the trans face carrying cargo to its destination.",
+      "aliases": ["Golgi body", "Golgi complex"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.ribosomes",
+      "name": "Ribosomes",
+      "description": "RNA-protein complexes that translate messenger RNA into polypeptide chains. Free ribosomes make cytoplasmic proteins; ribosomes bound to the rough ER make secreted and membrane proteins.",
+      "aliases": ["ribosome"],
+      "standardsTags": ["HS-LS1-1"]
+    },
+    {
+      "id": "biology.lysosomes",
+      "name": "Lysosomes",
+      "description": "Membrane-bound digestive organelles in animal cells that contain hydrolytic enzymes for breaking down waste, damaged organelles, and engulfed pathogens. Plants use vacuoles for similar functions.",
+      "aliases": ["lysosome"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.cytoskeleton",
+      "name": "Cytoskeleton",
+      "description": "A network of protein fibers — microfilaments, intermediate filaments, and microtubules — that gives the cell shape, anchors organelles, and powers movement. Motor proteins walk along microtubules to transport vesicles.",
+      "aliases": ["microtubules", "microfilaments"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.carbohydrates",
+      "name": "Carbohydrates",
+      "description": "Biomolecules made of carbon, hydrogen, and oxygen, typically with the formula (CH2O)n. Monosaccharides like glucose are immediate energy sources; polysaccharides like starch and cellulose serve as energy storage and structural material.",
+      "aliases": ["sugars", "saccharides"],
+      "standardsTags": ["HS-LS1-6"]
+    },
+    {
+      "id": "biology.lipids",
+      "name": "Lipids",
+      "description": "A diverse group of hydrophobic biomolecules including fats, oils, waxes, phospholipids, and steroids. Fats are dense long-term energy stores; phospholipids form cell membranes; steroids like cholesterol regulate membrane fluidity and serve as hormone precursors.",
+      "aliases": ["fats", "phospholipids"],
+      "standardsTags": ["HS-LS1-6"]
+    },
+    {
+      "id": "biology.proteins",
+      "name": "Proteins",
+      "description": "Polymers of amino acids whose sequence and folding determine their function. Proteins serve as enzymes, structural elements, transporters, signaling molecules, and antibodies — they do most of the work in cells.",
+      "aliases": ["polypeptides"],
+      "standardsTags": ["HS-LS1-1", "HS-LS1-6"]
+    },
+    {
+      "id": "biology.nucleic-acids",
+      "name": "Nucleic Acids",
+      "description": "Polymers of nucleotides — DNA and RNA. Each nucleotide has a sugar, a phosphate, and a nitrogenous base. Nucleic acids store hereditary information and direct protein synthesis.",
+      "aliases": ["DNA and RNA"],
+      "standardsTags": ["HS-LS1-1", "HS-LS3-1"]
+    },
+    {
+      "id": "biology.enzymes",
+      "name": "Enzymes",
+      "description": "Protein catalysts that lower the activation energy of biochemical reactions, vastly accelerating their rate. Enzymes are highly specific — each one binds particular substrates at its active site — and are regulated by temperature, pH, and inhibitors.",
+      "aliases": ["biological catalysts"],
+      "standardsTags": ["HS-LS1-6"]
+    },
+    {
+      "id": "biology.atp",
+      "name": "ATP (Adenosine Triphosphate)",
+      "description": "The cell's primary short-term energy currency. Hydrolysis of ATP's terminal phosphate bond releases energy used to drive metabolism, transport, and movement; ATP is regenerated by cellular respiration and photosynthesis.",
+      "aliases": ["adenosine triphosphate", "ATP/ADP cycle"],
+      "standardsTags": ["HS-LS1-7"]
+    },
+    {
+      "id": "biology.passive-transport",
+      "name": "Passive Transport",
+      "description": "Movement of substances across a membrane without energy input, driven by concentration gradients. Includes simple diffusion and facilitated diffusion through channel and carrier proteins.",
+      "aliases": ["facilitated diffusion"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.active-transport",
+      "name": "Active Transport",
+      "description": "Movement of substances against their concentration gradient, requiring energy from ATP. Pump proteins like the sodium-potassium pump are classic examples; bulk transport via endocytosis and exocytosis is also active.",
+      "aliases": ["ATP-driven transport"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.diffusion",
+      "name": "Diffusion",
+      "description": "Net movement of particles from regions of higher concentration to lower concentration due to random thermal motion. Equilibrium is reached when concentrations are equal; rate depends on the concentration gradient, temperature, and particle size.",
+      "aliases": ["concentration gradient"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.osmosis",
+      "name": "Osmosis",
+      "description": "The diffusion of water across a selectively permeable membrane from regions of higher water potential to lower water potential (lower to higher solute concentration). Osmotic balance — isotonic, hypertonic, hypotonic — determines whether cells swell, shrink, or hold steady.",
+      "aliases": ["water diffusion", "tonicity"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.metabolism",
+      "name": "Metabolism",
+      "description": "The total set of chemical reactions in a cell, comprising anabolism (building molecules, requires energy) and catabolism (breaking molecules down, releases energy). Coupled reactions and ATP shuttle energy between pathways.",
+      "aliases": ["anabolism", "catabolism"],
+      "standardsTags": ["HS-LS1-7"]
+    },
+    {
+      "id": "biology.photosynthesis",
+      "name": "Photosynthesis",
+      "description": "The process by which plants, algae, and some bacteria convert light energy, carbon dioxide, and water into glucose and oxygen. Overall: 6CO2 + 6H2O + light → C6H12O6 + 6O2. The light reactions capture energy; the Calvin cycle fixes carbon.",
+      "aliases": ["photoautotrophy"],
+      "standardsTags": ["HS-LS1-5"]
+    },
+    {
+      "id": "biology.light-reactions",
+      "name": "Light Reactions",
+      "description": "The light-dependent stage of photosynthesis, occurring in the thylakoid membranes. Photosystems II and I capture light to split water (releasing O2), pump protons, and produce ATP and NADPH for the Calvin cycle.",
+      "aliases": ["light-dependent reactions", "photosystems"],
+      "standardsTags": ["HS-LS1-5"]
+    },
+    {
+      "id": "biology.calvin-cycle",
+      "name": "Calvin Cycle",
+      "description": "The light-independent stage of photosynthesis, occurring in the chloroplast stroma. Uses ATP and NADPH from the light reactions to fix CO2 into glucose via the enzyme RuBisCO; three turns produce one G3P, six turns produce one glucose.",
+      "aliases": ["dark reactions", "carbon fixation", "RuBisCO"],
+      "standardsTags": ["HS-LS1-5"]
+    },
+    {
+      "id": "biology.cellular-respiration",
+      "name": "Cellular Respiration",
+      "description": "The process by which cells extract energy from glucose to produce ATP. Overall: C6H12O6 + 6O2 → 6CO2 + 6H2O + ATP. Comprises glycolysis, the Krebs cycle, and the electron transport chain; aerobic respiration yields ~30-32 ATP per glucose.",
+      "aliases": ["aerobic respiration"],
+      "standardsTags": ["HS-LS1-7"]
+    },
+    {
+      "id": "biology.glycolysis",
+      "name": "Glycolysis",
+      "description": "The first stage of cellular respiration, occurring in the cytoplasm. Splits one glucose into two pyruvate molecules, producing a net of 2 ATP and 2 NADH. Does not require oxygen.",
+      "aliases": ["glucose splitting"],
+      "standardsTags": ["HS-LS1-7"]
+    },
+    {
+      "id": "biology.krebs-cycle",
+      "name": "Krebs Cycle",
+      "description": "The cyclic stage of aerobic respiration in the mitochondrial matrix. Each acetyl-CoA enters and is fully oxidised to CO2, generating ATP, NADH, and FADH2 across two turns per glucose.",
+      "aliases": ["citric acid cycle", "TCA cycle"],
+      "standardsTags": ["HS-LS1-7"]
+    },
+    {
+      "id": "biology.electron-transport-chain",
+      "name": "Electron Transport Chain",
+      "description": "A series of protein complexes embedded in the inner mitochondrial membrane that transfers electrons from NADH and FADH2 to oxygen, pumping protons to drive ATP synthase. The bulk of cellular ATP — roughly 26-28 of the 30-32 per glucose — comes from this stage.",
+      "aliases": ["ETC", "oxidative phosphorylation", "ATP synthase"],
+      "standardsTags": ["HS-LS1-7"]
+    },
+    {
+      "id": "biology.fermentation",
+      "name": "Fermentation",
+      "description": "Anaerobic regeneration of NAD+ from NADH so that glycolysis can continue when oxygen is absent. Lactic acid fermentation occurs in muscle cells under exertion; alcoholic fermentation in yeast produces ethanol and CO2.",
+      "aliases": ["anaerobic respiration", "lactic acid fermentation"],
+      "standardsTags": ["HS-LS1-7"]
+    },
+    {
+      "id": "biology.cell-cycle",
+      "name": "Cell Cycle",
+      "description": "The ordered sequence of events from one cell division to the next: G1 (growth), S (DNA replication), G2 (preparation), and M (mitosis and cytokinesis). Checkpoints regulate progression and prevent damaged cells from dividing.",
+      "aliases": ["cell division cycle", "G1 S G2 M phases"],
+      "standardsTags": ["HS-LS1-4"]
+    },
+    {
+      "id": "biology.dna-replication",
+      "name": "DNA Replication",
+      "description": "The semiconservative process by which a DNA molecule is duplicated before cell division. Helicase unwinds the helix, DNA polymerase synthesises new strands using each parent strand as a template, and the result is two identical DNA molecules.",
+      "aliases": ["semiconservative replication", "DNA polymerase"],
+      "standardsTags": ["HS-LS1-1", "HS-LS3-1"]
+    },
+    {
+      "id": "biology.mitosis",
+      "name": "Mitosis",
+      "description": "Nuclear division producing two genetically identical diploid daughter cells. Proceeds through prophase, metaphase, anaphase, and telophase; underlies growth, repair, and asexual reproduction.",
+      "aliases": ["nuclear division", "prophase metaphase anaphase telophase"],
+      "standardsTags": ["HS-LS1-4"]
+    },
+    {
+      "id": "biology.meiosis",
+      "name": "Meiosis",
+      "description": "A specialised cell division producing four genetically distinct haploid gametes from one diploid cell. Two divisions (meiosis I and II), crossing-over in prophase I, and independent assortment in metaphase I together drive genetic variation.",
+      "aliases": ["gamete formation", "crossing-over", "independent assortment"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.homeostasis",
+      "name": "Homeostasis",
+      "description": "The maintenance of stable internal conditions — temperature, pH, glucose, water balance — in the face of external change. Achieved through coordinated feedback systems across multiple organs.",
+      "aliases": ["internal balance", "physiological regulation"],
+      "standardsTags": ["HS-LS1-3"]
+    },
+    {
+      "id": "biology.negative-feedback",
+      "name": "Negative Feedback",
+      "description": "A regulatory mechanism in which a deviation from a setpoint triggers a response that reverses the deviation. Body temperature, blood glucose, and blood pressure are all stabilised by negative feedback loops.",
+      "aliases": ["negative feedback loop"],
+      "standardsTags": ["HS-LS1-3"]
+    },
+    {
+      "id": "biology.tissues-organs-systems",
+      "name": "Tissues, Organs, and Organ Systems",
+      "description": "The hierarchical organisation of multicellular life: cells form tissues (epithelial, connective, muscle, nervous), tissues form organs, and organs form organ systems with coordinated functions like circulation or digestion.",
+      "aliases": ["levels of organisation", "multicellular hierarchy"],
+      "standardsTags": ["HS-LS1-2"]
+    },
+    {
+      "id": "biology.dna-structure",
+      "name": "DNA Structure",
+      "description": "Deoxyribonucleic acid is a double helix of two antiparallel strands. Each strand is a sugar-phosphate backbone with nitrogenous bases (adenine, thymine, guanine, cytosine) extending inward; A pairs with T and G with C via hydrogen bonds.",
+      "aliases": ["double helix", "Watson-Crick model", "base pairing"],
+      "standardsTags": ["HS-LS1-1", "HS-LS3-1"]
+    },
+    {
+      "id": "biology.rna-structure",
+      "name": "RNA Structure",
+      "description": "Ribonucleic acid is typically single-stranded, uses ribose instead of deoxyribose, and substitutes uracil for thymine. Three main types — mRNA, tRNA, and rRNA — together translate genetic information into protein.",
+      "aliases": ["mRNA", "tRNA", "rRNA"],
+      "standardsTags": ["HS-LS1-1"]
+    },
+    {
+      "id": "biology.genes",
+      "name": "Genes",
+      "description": "Stretches of DNA that code for functional products — usually proteins via mRNA, sometimes non-coding RNAs. A gene includes coding sequences, regulatory regions, and (in eukaryotes) introns and exons.",
+      "aliases": ["coding sequence", "alleles"],
+      "standardsTags": ["HS-LS3-1"]
+    },
+    {
+      "id": "biology.chromosomes",
+      "name": "Chromosomes",
+      "description": "Highly condensed structures of DNA wound around histone proteins. Humans have 46 chromosomes (23 pairs); each carries thousands of genes and is duplicated before cell division.",
+      "aliases": ["chromatin", "homologous chromosomes"],
+      "standardsTags": ["HS-LS3-1"]
+    },
+    {
+      "id": "biology.genome",
+      "name": "Genome",
+      "description": "The complete set of DNA in an organism, including all genes and non-coding regions. The human genome contains roughly 3 billion base pairs and ~20,000 protein-coding genes.",
+      "aliases": ["genomic DNA"],
+      "standardsTags": ["HS-LS3-1"]
+    },
+    {
+      "id": "biology.transcription",
+      "name": "Transcription",
+      "description": "The synthesis of an mRNA copy from a DNA template, catalysed by RNA polymerase. The mRNA carries the gene's information from the nucleus to the ribosomes for translation; in eukaryotes, mRNA is spliced and capped before export.",
+      "aliases": ["mRNA synthesis", "RNA polymerase"],
+      "standardsTags": ["HS-LS1-1", "HS-LS3-1"]
+    },
+    {
+      "id": "biology.translation",
+      "name": "Translation",
+      "description": "The synthesis of a polypeptide from an mRNA template at the ribosome. Transfer RNAs deliver amino acids matching each three-base codon; the ribosome catalyses peptide bond formation and reads until a stop codon.",
+      "aliases": ["protein synthesis", "codon anticodon"],
+      "standardsTags": ["HS-LS1-1"]
+    },
+    {
+      "id": "biology.genetic-code",
+      "name": "Genetic Code",
+      "description": "The set of rules mapping mRNA codons (three-base sequences) to amino acids. The code is nearly universal across all life, redundant (most amino acids are specified by multiple codons), and includes start (AUG) and stop codons.",
+      "aliases": ["codon table", "universal code"],
+      "standardsTags": ["HS-LS1-1"]
+    },
+    {
+      "id": "biology.central-dogma",
+      "name": "Central Dogma",
+      "description": "The flow of genetic information in living systems: DNA → RNA → protein. Transcription copies DNA to mRNA; translation decodes mRNA into a polypeptide; the resulting proteins do most of the work of life.",
+      "aliases": ["DNA to RNA to protein"],
+      "standardsTags": ["HS-LS1-1"]
+    },
+    {
+      "id": "biology.mendel-laws",
+      "name": "Mendel's Laws",
+      "description": "Two foundational principles of inheritance derived from pea-plant crosses: the law of segregation (allele pairs separate during gamete formation) and the law of independent assortment (alleles of different genes are inherited independently).",
+      "aliases": ["law of segregation", "law of independent assortment"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.dominant-recessive",
+      "name": "Dominant and Recessive Alleles",
+      "description": "Alleles whose phenotype is expressed in heterozygotes are dominant; those masked in heterozygotes are recessive. By convention, dominant alleles are written with capital letters (A) and recessive with lowercase (a).",
+      "aliases": ["dominance", "alleles"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.punnett-square",
+      "name": "Punnett Square",
+      "description": "A grid that organises possible genotype combinations from a cross between two parents. Each box is the probability of one offspring genotype; useful for predicting monohybrid and dihybrid cross outcomes.",
+      "aliases": ["genetic cross diagram"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.mendelian-inheritance",
+      "name": "Mendelian Inheritance",
+      "description": "The pattern of inheritance described by Mendel's laws — single-gene traits with two alleles, one of which is dominant. Many human traits follow this pattern, including some genetic disorders like cystic fibrosis and Huntington's disease.",
+      "aliases": ["single-gene traits", "monohybrid cross"],
+      "standardsTags": ["HS-LS3-2", "HS-LS3-3"]
+    },
+    {
+      "id": "biology.incomplete-dominance",
+      "name": "Incomplete Dominance",
+      "description": "An inheritance pattern in which the heterozygous phenotype is intermediate between the two homozygotes. A red snapdragon crossed with a white one gives pink offspring rather than red or white.",
+      "aliases": ["intermediate inheritance"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.codominance",
+      "name": "Codominance",
+      "description": "An inheritance pattern in which both alleles in a heterozygote are fully expressed simultaneously. Human ABO blood types display codominance — the AB genotype produces both A and B surface antigens on red blood cells.",
+      "aliases": ["both alleles expressed"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.multiple-alleles",
+      "name": "Multiple Alleles",
+      "description": "Genes that have more than two allelic forms within a population. Although any one individual carries at most two alleles, the population variation produces more than three possible genotypes — the ABO blood-group gene with alleles I^A, I^B, and i is the textbook example.",
+      "aliases": ["allelic series"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.polygenic-traits",
+      "name": "Polygenic Traits",
+      "description": "Traits influenced by two or more genes, often producing a continuous range of phenotypes rather than discrete categories. Human height, skin colour, and eye colour are classic examples.",
+      "aliases": ["quantitative traits"],
+      "standardsTags": ["HS-LS3-2", "HS-LS3-3"]
+    },
+    {
+      "id": "biology.sex-linked-inheritance",
+      "name": "Sex-Linked Inheritance",
+      "description": "Inheritance of traits whose genes lie on the sex chromosomes (typically the X). Recessive X-linked traits like red-green colour blindness and hemophilia appear far more often in males because they have only one X.",
+      "aliases": ["X-linked traits"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.mutations",
+      "name": "Mutations",
+      "description": "Heritable changes in DNA sequence. Mutations can be silent, harmful, or beneficial; they arise from replication errors, radiation, or chemicals and are the ultimate source of new genetic variation.",
+      "aliases": ["genetic mutation"],
+      "standardsTags": ["HS-LS3-1", "HS-LS3-2"]
+    },
+    {
+      "id": "biology.point-mutations",
+      "name": "Point Mutations",
+      "description": "Single-base changes — substitutions, insertions, or deletions of one nucleotide. Substitutions can be silent, missense (changing an amino acid), or nonsense (creating a premature stop); insertions and deletions cause frameshifts unless they are multiples of three.",
+      "aliases": ["substitution mutation", "frameshift"],
+      "standardsTags": ["HS-LS3-1", "HS-LS3-2"]
+    },
+    {
+      "id": "biology.chromosomal-mutations",
+      "name": "Chromosomal Mutations",
+      "description": "Large-scale mutations involving deletion, duplication, inversion, or translocation of chromosome segments, plus aneuploidies like trisomy 21. Often arise from errors in meiosis and have substantial phenotypic effects.",
+      "aliases": ["chromosomal aberrations", "aneuploidy"],
+      "standardsTags": ["HS-LS3-2"]
+    },
+    {
+      "id": "biology.genetic-variation",
+      "name": "Genetic Variation",
+      "description": "Differences in DNA sequence among individuals in a population. Generated by mutation and shuffled by independent assortment, crossing-over, and random fertilisation, genetic variation is the raw material on which natural selection acts.",
+      "aliases": ["allelic variation"],
+      "standardsTags": ["HS-LS3-3", "HS-LS4-2"]
+    },
+    {
+      "id": "biology.natural-selection",
+      "name": "Natural Selection",
+      "description": "The process by which heritable traits that increase reproductive success become more common in a population over generations. Requires variation, heritability, differential survival/reproduction, and time; produces adaptation.",
+      "aliases": ["survival of the fittest", "differential reproduction"],
+      "standardsTags": ["HS-LS4-2", "HS-LS4-3"]
+    },
+    {
+      "id": "biology.variation-and-fitness",
+      "name": "Variation and Fitness",
+      "description": "Within a population, individuals vary in heritable traits, and fitness is the relative reproductive success conferred by those traits in a given environment. Fitness is environment-dependent — what helps in one habitat may hurt in another.",
+      "aliases": ["reproductive success", "relative fitness"],
+      "standardsTags": ["HS-LS4-2", "HS-LS4-3"]
+    },
+    {
+      "id": "biology.adaptation",
+      "name": "Adaptation",
+      "description": "A heritable trait that increases an organism's fitness in its environment, produced over generations by natural selection. Examples range from the cryptic colouration of insects to the long necks of giraffes.",
+      "aliases": ["evolutionary adaptation"],
+      "standardsTags": ["HS-LS4-2", "HS-LS4-4"]
+    },
+    {
+      "id": "biology.species-concept",
+      "name": "Species Concept",
+      "description": "A definition of what counts as a species. The biological species concept defines a species as a group of organisms that can interbreed and produce fertile offspring; other concepts (morphological, ecological, phylogenetic) handle organisms where the biological concept fails.",
+      "aliases": ["biological species concept"],
+      "standardsTags": ["HS-LS4-5"]
+    },
+    {
+      "id": "biology.speciation",
+      "name": "Speciation",
+      "description": "The formation of new species. Allopatric speciation arises when populations are geographically separated; sympatric speciation occurs without geographic isolation, often via polyploidy in plants or behavioural differences.",
+      "aliases": ["allopatric speciation", "sympatric speciation"],
+      "standardsTags": ["HS-LS4-5"]
+    },
+    {
+      "id": "biology.genetic-drift",
+      "name": "Genetic Drift",
+      "description": "Random change in allele frequencies due to chance events, especially pronounced in small populations. Bottleneck and founder effects are special cases that can sharply reduce genetic diversity.",
+      "aliases": ["bottleneck effect", "founder effect"],
+      "standardsTags": ["HS-LS4-3"]
+    },
+    {
+      "id": "biology.gene-flow",
+      "name": "Gene Flow",
+      "description": "The movement of alleles between populations through migration and interbreeding. Gene flow tends to homogenise populations and counteract divergence driven by selection or drift.",
+      "aliases": ["migration", "allele migration"],
+      "standardsTags": ["HS-LS4-3"]
+    },
+    {
+      "id": "biology.hardy-weinberg",
+      "name": "Hardy-Weinberg Equilibrium",
+      "description": "A null model for population genetics: under no mutation, no selection, no migration, no drift, and random mating, allele and genotype frequencies stay constant. Deviations from p² + 2pq + q² = 1 signal that one of the assumptions is being violated.",
+      "aliases": ["Hardy-Weinberg principle", "p squared plus 2pq plus q squared"],
+      "standardsTags": ["HS-LS4-3"]
+    },
+    {
+      "id": "biology.evolution-evidence-fossils",
+      "name": "Evidence for Evolution: Fossils",
+      "description": "The fossil record documents transitions between major groups, the appearance and extinction of lineages, and the deep time of life on Earth. Transitional fossils like Tiktaalik and Archaeopteryx connect distinct body plans across geological eras.",
+      "aliases": ["fossil record"],
+      "standardsTags": ["HS-LS4-1"]
+    },
+    {
+      "id": "biology.evolution-evidence-anatomy",
+      "name": "Evidence for Evolution: Comparative Anatomy",
+      "description": "Homologous structures (e.g., tetrapod limbs) reveal shared ancestry, while analogous structures (e.g., bat and bird wings) reveal convergent solutions to similar selective pressures. Vestigial structures point to evolutionary history.",
+      "aliases": ["homologous structures", "vestigial structures"],
+      "standardsTags": ["HS-LS4-1"]
+    },
+    {
+      "id": "biology.evolution-evidence-molecular",
+      "name": "Evidence for Evolution: Molecular Biology",
+      "description": "Shared genetic code, conserved gene sequences, and pseudogenes reveal universal common ancestry. Sequence differences between species accumulate roughly with time since divergence, allowing molecular clocks.",
+      "aliases": ["molecular clock", "conserved genes"],
+      "standardsTags": ["HS-LS4-1"]
+    },
+    {
+      "id": "biology.evolution-evidence-biogeography",
+      "name": "Evidence for Evolution: Biogeography",
+      "description": "Patterns of species distribution — endemic species on isolated islands, similar adaptive radiations on different continents — reflect evolutionary history, not just current habitat. Darwin's Galápagos finches are the classic example.",
+      "aliases": ["species distribution", "adaptive radiation"],
+      "standardsTags": ["HS-LS4-1"]
+    },
+    {
+      "id": "biology.phylogeny",
+      "name": "Phylogeny",
+      "description": "The evolutionary history of a lineage, often depicted as a branching tree where nodes represent common ancestors and branch lengths can represent time or genetic distance. Modern phylogenies are inferred from DNA and protein sequences.",
+      "aliases": ["evolutionary tree", "phylogenetic tree"],
+      "standardsTags": ["HS-LS4-1"]
+    },
+    {
+      "id": "biology.cladistics",
+      "name": "Cladistics",
+      "description": "A method of classifying organisms by shared derived characteristics (synapomorphies) so that every named group is monophyletic — including a common ancestor and all its descendants.",
+      "aliases": ["clade", "monophyletic group"],
+      "standardsTags": ["HS-LS4-1"]
+    },
+    {
+      "id": "biology.common-ancestry",
+      "name": "Common Ancestry",
+      "description": "The principle that all life on Earth descends from a single last universal common ancestor (LUCA). Evidence comes from the universal genetic code, shared core biochemistry, and homologous structures across taxa.",
+      "aliases": ["LUCA", "universal common descent"],
+      "standardsTags": ["HS-LS4-1"]
+    },
+    {
+      "id": "biology.coevolution",
+      "name": "Coevolution",
+      "description": "Reciprocal evolutionary change in two interacting species, each driving adaptive responses in the other. Predator-prey arms races, plant-pollinator specialisation, and host-parasite dynamics are all coevolutionary.",
+      "aliases": ["coevolutionary arms race"],
+      "standardsTags": ["HS-LS4-4"]
+    },
+    {
+      "id": "biology.extinction",
+      "name": "Extinction",
+      "description": "The permanent loss of a species. Background extinction is steady; mass extinctions — the end-Permian, end-Cretaceous, and the current Anthropocene — clear evolutionary stages and reshape biodiversity.",
+      "aliases": ["mass extinction"],
+      "standardsTags": ["HS-LS4-5", "HS-LS4-6"]
+    },
+    {
+      "id": "biology.biodiversity",
+      "name": "Biodiversity",
+      "description": "The variety of life at all levels — genetic diversity within species, species richness within communities, and ecosystem diversity across landscapes. Biodiversity supports ecosystem services and resilience.",
+      "aliases": ["species diversity", "ecosystem diversity"],
+      "standardsTags": ["HS-LS2-7", "HS-LS4-6"]
+    },
+    {
+      "id": "biology.ecosystem",
+      "name": "Ecosystem",
+      "description": "A community of organisms together with their physical environment, treated as an interacting system. Ecosystems include all biotic and abiotic components and the flows of energy and matter between them.",
+      "aliases": ["biotic community plus abiotic"],
+      "standardsTags": ["HS-LS2-1", "HS-LS2-2"]
+    },
+    {
+      "id": "biology.abiotic-factors",
+      "name": "Abiotic Factors",
+      "description": "Non-living components of an ecosystem — temperature, water, sunlight, soil chemistry, salinity. Abiotic factors set the limits on which species can live where and shape the community structure.",
+      "aliases": ["non-living factors"],
+      "standardsTags": ["HS-LS2-1"]
+    },
+    {
+      "id": "biology.biotic-factors",
+      "name": "Biotic Factors",
+      "description": "The living components of an ecosystem — plants, animals, fungi, microbes — and their interactions. Predation, competition, and symbiosis are all biotic-factor relationships.",
+      "aliases": ["living factors"],
+      "standardsTags": ["HS-LS2-1"]
+    },
+    {
+      "id": "biology.levels-of-organization-ecology",
+      "name": "Levels of Ecological Organisation",
+      "description": "The hierarchy from individual to biosphere: individual → population → community → ecosystem → biome → biosphere. Each level has emergent properties that lower levels do not.",
+      "aliases": ["population community ecosystem"],
+      "standardsTags": ["HS-LS2-1"]
+    },
+    {
+      "id": "biology.population",
+      "name": "Population",
+      "description": "All individuals of a single species living in a defined area at a given time. Populations have measurable properties — size, density, age structure, growth rate — that the individual does not.",
+      "aliases": ["population biology"],
+      "standardsTags": ["HS-LS2-1", "HS-LS2-2"]
+    },
+    {
+      "id": "biology.community",
+      "name": "Community (Ecology)",
+      "description": "All the populations of different species that interact in a given area. Community-level properties include species richness, diversity, dominant species, and the network of biotic interactions.",
+      "aliases": ["biological community"],
+      "standardsTags": ["HS-LS2-2"]
+    },
+    {
+      "id": "biology.carrying-capacity",
+      "name": "Carrying Capacity",
+      "description": "The maximum population size an environment can sustain indefinitely given available resources. Populations near carrying capacity grow slowly; those above it crash.",
+      "aliases": ["K", "environmental carrying capacity"],
+      "standardsTags": ["HS-LS2-1", "HS-LS2-2"]
+    },
+    {
+      "id": "biology.exponential-growth",
+      "name": "Exponential Growth",
+      "description": "Population growth proportional to current size, producing a J-shaped curve. Occurs when resources are unlimited; rare in nature except briefly after a population is introduced to a new environment.",
+      "aliases": ["J-curve", "unrestricted growth"],
+      "standardsTags": ["HS-LS2-1"]
+    },
+    {
+      "id": "biology.logistic-growth",
+      "name": "Logistic Growth",
+      "description": "Population growth that slows as size approaches carrying capacity, producing an S-shaped curve. The logistic equation includes a 1 - N/K term that drives growth toward zero at K.",
+      "aliases": ["S-curve", "density-dependent growth"],
+      "standardsTags": ["HS-LS2-1", "HS-LS2-2"]
+    },
+    {
+      "id": "biology.limiting-factors",
+      "name": "Limiting Factors",
+      "description": "Resources or conditions that restrict population growth — food, water, space, predation, disease. Density-dependent factors intensify with population size; density-independent factors (e.g., weather) do not.",
+      "aliases": ["density-dependent", "density-independent"],
+      "standardsTags": ["HS-LS2-1", "HS-LS2-2"]
+    },
+    {
+      "id": "biology.trophic-levels",
+      "name": "Trophic Levels",
+      "description": "The feeding positions in an ecosystem: producers, primary consumers, secondary consumers, tertiary consumers, and decomposers. Energy and matter flow upward through trophic levels with substantial loss at each transfer.",
+      "aliases": ["producer", "consumer", "decomposer"],
+      "standardsTags": ["HS-LS2-3", "HS-LS2-4"]
+    },
+    {
+      "id": "biology.food-chains",
+      "name": "Food Chains",
+      "description": "A linear sequence of organisms in which each is eaten by the next, depicting one path of energy flow through an ecosystem. Real ecosystems are better described by food webs.",
+      "aliases": ["linear food chain"],
+      "standardsTags": ["HS-LS2-3", "HS-LS2-4"]
+    },
+    {
+      "id": "biology.food-webs",
+      "name": "Food Webs",
+      "description": "A network of interconnected food chains representing the full set of feeding relationships in a community. Food webs reveal redundancy, keystone species, and the consequences of removing any node.",
+      "aliases": ["trophic web"],
+      "standardsTags": ["HS-LS2-3", "HS-LS2-4"]
+    },
+    {
+      "id": "biology.ecosystem-energy-flow",
+      "name": "Ecosystem Energy Flow",
+      "description": "The one-way movement of energy through an ecosystem, captured as chemical energy by producers and dissipated as heat at each subsequent transfer. Energy is not recycled — it flows in and is lost.",
+      "aliases": ["energy flow", "energy pyramid"],
+      "standardsTags": ["HS-LS2-3", "HS-LS2-4"]
+    },
+    {
+      "id": "biology.ten-percent-rule",
+      "name": "Ten Percent Rule",
+      "description": "Roughly 10% of the energy at one trophic level is incorporated into the next; the remaining 90% is lost as heat, used in metabolism, or in undigested material. The rule explains why ecosystems support fewer top predators than primary consumers.",
+      "aliases": ["energy efficiency", "trophic efficiency"],
+      "standardsTags": ["HS-LS2-4"]
+    },
+    {
+      "id": "biology.primary-productivity",
+      "name": "Primary Productivity",
+      "description": "The rate at which producers convert solar energy (or chemical energy in chemoautotrophs) into biomass per unit area per time. Net primary productivity is what is available to consumers after producers' respiration.",
+      "aliases": ["NPP", "GPP"],
+      "standardsTags": ["HS-LS2-3", "HS-LS2-5"]
+    },
+    {
+      "id": "biology.carbon-cycle",
+      "name": "Carbon Cycle",
+      "description": "The biogeochemical cycle moving carbon between atmosphere, biosphere, hydrosphere, and lithosphere. Photosynthesis fixes atmospheric CO2; respiration, decomposition, and combustion return it. Fossil-fuel combustion has substantially perturbed the cycle.",
+      "aliases": ["CO2 cycle"],
+      "standardsTags": ["HS-LS2-5"]
+    },
+    {
+      "id": "biology.nitrogen-cycle",
+      "name": "Nitrogen Cycle",
+      "description": "The cycle of nitrogen through fixation (atmospheric N2 → ammonia, by bacteria), nitrification (ammonia → nitrite → nitrate), assimilation by plants, and denitrification (nitrate → N2). Nitrogen is often the limiting nutrient in ecosystems.",
+      "aliases": ["N cycle", "nitrogen fixation"],
+      "standardsTags": ["HS-LS2-3", "HS-LS2-5"]
+    },
+    {
+      "id": "biology.water-cycle",
+      "name": "Water Cycle",
+      "description": "The continuous circulation of water through evaporation, transpiration, condensation, precipitation, and runoff. The water cycle distributes heat, sculpts landscapes, and supports all life.",
+      "aliases": ["hydrologic cycle"],
+      "standardsTags": ["HS-LS2-5"]
+    },
+    {
+      "id": "biology.phosphorus-cycle",
+      "name": "Phosphorus Cycle",
+      "description": "The cycling of phosphorus through rocks, soils, water, and organisms. Unlike carbon and nitrogen, phosphorus has no significant atmospheric phase; weathering of rock is the main natural source, and it is often a limiting nutrient in freshwater ecosystems.",
+      "aliases": ["P cycle"],
+      "standardsTags": ["HS-LS2-5"]
+    },
+    {
+      "id": "biology.symbiosis",
+      "name": "Symbiosis",
+      "description": "Long-term, close interactions between species — mutualism (both benefit), commensalism (one benefits, the other is neutral), and parasitism (one benefits, the other is harmed). Symbiotic relationships drive coevolution and shape communities.",
+      "aliases": ["mutualism", "commensalism", "parasitism"],
+      "standardsTags": ["HS-LS2-6"]
+    },
+    {
+      "id": "biology.predation",
+      "name": "Predation",
+      "description": "An interaction in which one organism kills and consumes another. Predator and prey populations often cycle in linked oscillations; predation drives the evolution of defensive adaptations like camouflage and toxicity.",
+      "aliases": ["predator-prey"],
+      "standardsTags": ["HS-LS2-6"]
+    },
+    {
+      "id": "biology.competition",
+      "name": "Competition",
+      "description": "Interaction in which organisms vie for the same limited resource. Intraspecific competition drives density-dependent effects within a species; interspecific competition can lead to competitive exclusion or resource partitioning.",
+      "aliases": ["competitive exclusion", "resource partitioning"],
+      "standardsTags": ["HS-LS2-6"]
+    },
+    {
+      "id": "biology.ecological-succession",
+      "name": "Ecological Succession",
+      "description": "The gradual change in community composition after a disturbance. Primary succession starts on bare substrate (lava flow, retreating glacier); secondary succession follows disturbances that leave soil intact (fire, abandoned field).",
+      "aliases": ["primary succession", "secondary succession"],
+      "standardsTags": ["HS-LS2-2", "HS-LS2-6"]
+    },
+    {
+      "id": "biology.human-impact",
+      "name": "Human Impact on Ecosystems",
+      "description": "Land-use change, pollution, overharvesting, and species introductions have altered most ecosystems on Earth. Conservation biology combines ecology, genetics, and policy to address biodiversity loss and habitat degradation.",
+      "aliases": ["anthropogenic impact", "conservation"],
+      "standardsTags": ["HS-LS2-7", "HS-LS4-6"]
+    },
+    {
+      "id": "biology.climate-change-impacts",
+      "name": "Climate Change Impacts on Biology",
+      "description": "Rising atmospheric CO2 and global temperatures have shifted phenology, distributions, and community composition; warming oceans cause coral bleaching and ocean acidification. Many species lack the dispersal speed or adaptive capacity to keep pace.",
+      "aliases": ["global warming impacts", "ocean acidification"],
+      "standardsTags": ["HS-LS2-7", "HS-LS4-6"]
+    }
+  ],
+  "edges": [
+    { "fromId": "biology.cell-theory", "toId": "biology.prokaryotic-cells", "strength": 0.9 },
+    { "fromId": "biology.cell-theory", "toId": "biology.eukaryotic-cells", "strength": 0.9 },
+    { "fromId": "biology.prokaryotic-cells", "toId": "biology.cell-membrane", "strength": 0.85 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.cell-membrane", "strength": 0.85 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.nucleus", "strength": 0.95 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.mitochondria", "strength": 0.9 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.endoplasmic-reticulum", "strength": 0.85 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.golgi-apparatus", "strength": 0.85 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.lysosomes", "strength": 0.8 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.cytoskeleton", "strength": 0.8 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.chloroplasts", "strength": 0.85 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.cell-wall", "strength": 0.7 },
+    { "fromId": "biology.cell-membrane", "toId": "biology.cytoplasm", "strength": 0.85 },
+    { "fromId": "biology.cell-membrane", "toId": "biology.diffusion", "strength": 0.9 },
+    { "fromId": "biology.cell-membrane", "toId": "biology.osmosis", "strength": 0.9 },
+    { "fromId": "biology.cell-membrane", "toId": "biology.passive-transport", "strength": 0.95 },
+    { "fromId": "biology.cell-membrane", "toId": "biology.active-transport", "strength": 0.95 },
+    { "fromId": "biology.diffusion", "toId": "biology.osmosis", "strength": 0.85 },
+    { "fromId": "biology.diffusion", "toId": "biology.passive-transport", "strength": 0.9 },
+    { "fromId": "biology.atp", "toId": "biology.active-transport", "strength": 0.85 },
+    { "fromId": "biology.endoplasmic-reticulum", "toId": "biology.golgi-apparatus", "strength": 0.9 },
+    { "fromId": "biology.golgi-apparatus", "toId": "biology.lysosomes", "strength": 0.8 },
+    { "fromId": "biology.ribosomes", "toId": "biology.endoplasmic-reticulum", "strength": 0.8 },
+    { "fromId": "biology.proteins", "toId": "biology.enzymes", "strength": 0.95 },
+    { "fromId": "biology.carbohydrates", "toId": "biology.metabolism", "strength": 0.85 },
+    { "fromId": "biology.lipids", "toId": "biology.cell-membrane", "strength": 0.9 },
+    { "fromId": "biology.proteins", "toId": "biology.cell-membrane", "strength": 0.7 },
+    { "fromId": "biology.nucleic-acids", "toId": "biology.dna-structure", "strength": 0.95 },
+    { "fromId": "biology.nucleic-acids", "toId": "biology.rna-structure", "strength": 0.95 },
+    { "fromId": "biology.enzymes", "toId": "biology.metabolism", "strength": 0.95 },
+    { "fromId": "biology.atp", "toId": "biology.metabolism", "strength": 0.95 },
+    { "fromId": "biology.metabolism", "toId": "biology.photosynthesis", "strength": 0.85 },
+    { "fromId": "biology.metabolism", "toId": "biology.cellular-respiration", "strength": 0.9 },
+    { "fromId": "biology.chloroplasts", "toId": "biology.photosynthesis", "strength": 0.95 },
+    { "fromId": "biology.photosynthesis", "toId": "biology.light-reactions", "strength": 0.95 },
+    { "fromId": "biology.photosynthesis", "toId": "biology.calvin-cycle", "strength": 0.95 },
+    { "fromId": "biology.light-reactions", "toId": "biology.calvin-cycle", "strength": 0.85 },
+    { "fromId": "biology.mitochondria", "toId": "biology.cellular-respiration", "strength": 0.95 },
+    { "fromId": "biology.cellular-respiration", "toId": "biology.glycolysis", "strength": 0.95 },
+    { "fromId": "biology.cellular-respiration", "toId": "biology.krebs-cycle", "strength": 0.95 },
+    { "fromId": "biology.cellular-respiration", "toId": "biology.electron-transport-chain", "strength": 0.95 },
+    { "fromId": "biology.glycolysis", "toId": "biology.krebs-cycle", "strength": 0.9 },
+    { "fromId": "biology.krebs-cycle", "toId": "biology.electron-transport-chain", "strength": 0.9 },
+    { "fromId": "biology.glycolysis", "toId": "biology.fermentation", "strength": 0.85 },
+    { "fromId": "biology.dna-structure", "toId": "biology.dna-replication", "strength": 0.95 },
+    { "fromId": "biology.dna-replication", "toId": "biology.cell-cycle", "strength": 0.85 },
+    { "fromId": "biology.cell-cycle", "toId": "biology.mitosis", "strength": 0.95 },
+    { "fromId": "biology.mitosis", "toId": "biology.meiosis", "strength": 0.85 },
+    { "fromId": "biology.dna-replication", "toId": "biology.meiosis", "strength": 0.7 },
+    { "fromId": "biology.cell-membrane", "toId": "biology.homeostasis", "strength": 0.7 },
+    { "fromId": "biology.homeostasis", "toId": "biology.negative-feedback", "strength": 0.95 },
+    { "fromId": "biology.eukaryotic-cells", "toId": "biology.tissues-organs-systems", "strength": 0.85 },
+    { "fromId": "biology.homeostasis", "toId": "biology.tissues-organs-systems", "strength": 0.7 },
+    { "fromId": "biology.dna-structure", "toId": "biology.rna-structure", "strength": 0.85 },
+    { "fromId": "biology.dna-structure", "toId": "biology.genes", "strength": 0.95 },
+    { "fromId": "biology.dna-structure", "toId": "biology.chromosomes", "strength": 0.9 },
+    { "fromId": "biology.genes", "toId": "biology.chromosomes", "strength": 0.85 },
+    { "fromId": "biology.chromosomes", "toId": "biology.genome", "strength": 0.9 },
+    { "fromId": "biology.dna-structure", "toId": "biology.transcription", "strength": 0.95 },
+    { "fromId": "biology.rna-structure", "toId": "biology.transcription", "strength": 0.85 },
+    { "fromId": "biology.transcription", "toId": "biology.translation", "strength": 0.95 },
+    { "fromId": "biology.ribosomes", "toId": "biology.translation", "strength": 0.9 },
+    { "fromId": "biology.proteins", "toId": "biology.translation", "strength": 0.7 },
+    { "fromId": "biology.translation", "toId": "biology.genetic-code", "strength": 0.85 },
+    { "fromId": "biology.transcription", "toId": "biology.central-dogma", "strength": 0.85 },
+    { "fromId": "biology.translation", "toId": "biology.central-dogma", "strength": 0.85 },
+    { "fromId": "biology.meiosis", "toId": "biology.mendel-laws", "strength": 0.85 },
+    { "fromId": "biology.genes", "toId": "biology.mendel-laws", "strength": 0.85 },
+    { "fromId": "biology.mendel-laws", "toId": "biology.dominant-recessive", "strength": 0.95 },
+    { "fromId": "biology.dominant-recessive", "toId": "biology.punnett-square", "strength": 0.9 },
+    { "fromId": "biology.punnett-square", "toId": "biology.mendelian-inheritance", "strength": 0.95 },
+    { "fromId": "biology.dominant-recessive", "toId": "biology.mendelian-inheritance", "strength": 0.85 },
+    { "fromId": "biology.mendelian-inheritance", "toId": "biology.incomplete-dominance", "strength": 0.85 },
+    { "fromId": "biology.mendelian-inheritance", "toId": "biology.codominance", "strength": 0.85 },
+    { "fromId": "biology.codominance", "toId": "biology.multiple-alleles", "strength": 0.85 },
+    { "fromId": "biology.mendelian-inheritance", "toId": "biology.polygenic-traits", "strength": 0.8 },
+    { "fromId": "biology.chromosomes", "toId": "biology.sex-linked-inheritance", "strength": 0.85 },
+    { "fromId": "biology.mendelian-inheritance", "toId": "biology.sex-linked-inheritance", "strength": 0.85 },
+    { "fromId": "biology.dna-replication", "toId": "biology.mutations", "strength": 0.85 },
+    { "fromId": "biology.mutations", "toId": "biology.point-mutations", "strength": 0.95 },
+    { "fromId": "biology.mutations", "toId": "biology.chromosomal-mutations", "strength": 0.95 },
+    { "fromId": "biology.meiosis", "toId": "biology.genetic-variation", "strength": 0.85 },
+    { "fromId": "biology.mutations", "toId": "biology.genetic-variation", "strength": 0.9 },
+    { "fromId": "biology.genetic-variation", "toId": "biology.natural-selection", "strength": 0.95 },
+    { "fromId": "biology.natural-selection", "toId": "biology.variation-and-fitness", "strength": 0.95 },
+    { "fromId": "biology.variation-and-fitness", "toId": "biology.adaptation", "strength": 0.95 },
+    { "fromId": "biology.natural-selection", "toId": "biology.adaptation", "strength": 0.9 },
+    { "fromId": "biology.adaptation", "toId": "biology.species-concept", "strength": 0.7 },
+    { "fromId": "biology.species-concept", "toId": "biology.speciation", "strength": 0.9 },
+    { "fromId": "biology.natural-selection", "toId": "biology.speciation", "strength": 0.85 },
+    { "fromId": "biology.genetic-variation", "toId": "biology.genetic-drift", "strength": 0.85 },
+    { "fromId": "biology.genetic-variation", "toId": "biology.gene-flow", "strength": 0.8 },
+    { "fromId": "biology.natural-selection", "toId": "biology.hardy-weinberg", "strength": 0.85 },
+    { "fromId": "biology.genetic-drift", "toId": "biology.hardy-weinberg", "strength": 0.85 },
+    { "fromId": "biology.gene-flow", "toId": "biology.hardy-weinberg", "strength": 0.85 },
+    { "fromId": "biology.natural-selection", "toId": "biology.evolution-evidence-fossils", "strength": 0.85 },
+    { "fromId": "biology.natural-selection", "toId": "biology.evolution-evidence-anatomy", "strength": 0.85 },
+    { "fromId": "biology.natural-selection", "toId": "biology.evolution-evidence-molecular", "strength": 0.85 },
+    { "fromId": "biology.natural-selection", "toId": "biology.evolution-evidence-biogeography", "strength": 0.85 },
+    { "fromId": "biology.evolution-evidence-molecular", "toId": "biology.phylogeny", "strength": 0.9 },
+    { "fromId": "biology.evolution-evidence-anatomy", "toId": "biology.phylogeny", "strength": 0.85 },
+    { "fromId": "biology.phylogeny", "toId": "biology.cladistics", "strength": 0.95 },
+    { "fromId": "biology.phylogeny", "toId": "biology.common-ancestry", "strength": 0.9 },
+    { "fromId": "biology.adaptation", "toId": "biology.coevolution", "strength": 0.85 },
+    { "fromId": "biology.speciation", "toId": "biology.extinction", "strength": 0.7 },
+    { "fromId": "biology.extinction", "toId": "biology.biodiversity", "strength": 0.85 },
+    { "fromId": "biology.speciation", "toId": "biology.biodiversity", "strength": 0.85 },
+    { "fromId": "biology.ecosystem", "toId": "biology.abiotic-factors", "strength": 0.95 },
+    { "fromId": "biology.ecosystem", "toId": "biology.biotic-factors", "strength": 0.95 },
+    { "fromId": "biology.ecosystem", "toId": "biology.levels-of-organization-ecology", "strength": 0.85 },
+    { "fromId": "biology.levels-of-organization-ecology", "toId": "biology.population", "strength": 0.95 },
+    { "fromId": "biology.population", "toId": "biology.community", "strength": 0.95 },
+    { "fromId": "biology.population", "toId": "biology.carrying-capacity", "strength": 0.9 },
+    { "fromId": "biology.population", "toId": "biology.exponential-growth", "strength": 0.9 },
+    { "fromId": "biology.exponential-growth", "toId": "biology.logistic-growth", "strength": 0.95 },
+    { "fromId": "biology.carrying-capacity", "toId": "biology.logistic-growth", "strength": 0.95 },
+    { "fromId": "biology.population", "toId": "biology.limiting-factors", "strength": 0.9 },
+    { "fromId": "biology.limiting-factors", "toId": "biology.carrying-capacity", "strength": 0.85 },
+    { "fromId": "biology.community", "toId": "biology.trophic-levels", "strength": 0.85 },
+    { "fromId": "biology.cellular-respiration", "toId": "biology.trophic-levels", "strength": 0.7 },
+    { "fromId": "biology.photosynthesis", "toId": "biology.trophic-levels", "strength": 0.7 },
+    { "fromId": "biology.trophic-levels", "toId": "biology.food-chains", "strength": 0.95 },
+    { "fromId": "biology.food-chains", "toId": "biology.food-webs", "strength": 0.95 },
+    { "fromId": "biology.food-webs", "toId": "biology.ecosystem-energy-flow", "strength": 0.9 },
+    { "fromId": "biology.trophic-levels", "toId": "biology.ecosystem-energy-flow", "strength": 0.9 },
+    { "fromId": "biology.ecosystem-energy-flow", "toId": "biology.ten-percent-rule", "strength": 0.95 },
+    { "fromId": "biology.photosynthesis", "toId": "biology.primary-productivity", "strength": 0.9 },
+    { "fromId": "biology.ecosystem-energy-flow", "toId": "biology.primary-productivity", "strength": 0.85 },
+    { "fromId": "biology.photosynthesis", "toId": "biology.carbon-cycle", "strength": 0.9 },
+    { "fromId": "biology.cellular-respiration", "toId": "biology.carbon-cycle", "strength": 0.9 },
+    { "fromId": "biology.ecosystem", "toId": "biology.nitrogen-cycle", "strength": 0.7 },
+    { "fromId": "biology.ecosystem", "toId": "biology.water-cycle", "strength": 0.7 },
+    { "fromId": "biology.ecosystem", "toId": "biology.phosphorus-cycle", "strength": 0.7 },
+    { "fromId": "biology.community", "toId": "biology.symbiosis", "strength": 0.9 },
+    { "fromId": "biology.community", "toId": "biology.predation", "strength": 0.9 },
+    { "fromId": "biology.community", "toId": "biology.competition", "strength": 0.9 },
+    { "fromId": "biology.competition", "toId": "biology.ecological-succession", "strength": 0.7 },
+    { "fromId": "biology.community", "toId": "biology.ecological-succession", "strength": 0.85 },
+    { "fromId": "biology.ecosystem", "toId": "biology.human-impact", "strength": 0.85 },
+    { "fromId": "biology.biodiversity", "toId": "biology.human-impact", "strength": 0.85 },
+    { "fromId": "biology.human-impact", "toId": "biology.climate-change-impacts", "strength": 0.9 },
+    { "fromId": "biology.carbon-cycle", "toId": "biology.climate-change-impacts", "strength": 0.85 }
+  ]
+}

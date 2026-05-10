@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-biology-pack
 kind: feature
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-19-ship-v1
 depends_on: []
@@ -401,3 +401,43 @@ across the whole workspace before declaring done.
   underweight description quality.** The implementation prompt should
   emphasize the 90-120 cap and the description-quality bar, with the
   v1 target framed as "shippable, not exhaustive."
+
+## Implementation notes
+
+- **Files changed**:
+  - `packages/curriculum/packs/biology.json` (new — the canonical pack)
+  - `packages/curriculum/src/packs/__tests__/pack-content.test.ts` (extended
+    with a `describe("biology.json", ...)` block — 7 new tests)
+  - `packages/curriculum/src/packs/__tests__/import-service.test.ts` (extended
+    with a `describe("biology pack smoke test", ...)` block — 3 new tests
+    that exercise the real pack file end-to-end)
+- **Tests added**: 10 total. All pass; full workspace `pnpm test` green
+  at 2235 passing.
+- **Pack stats**: 106 concepts, 142 edges. Distribution roughly:
+  LS1 (cells, biomolecules, photosynthesis/respiration, cell division,
+  homeostasis) ~41 concepts; LS3 (heredity) ~22; LS4 (evolution) ~18;
+  LS2 (ecosystems) ~25. Within design ±10 tolerance for each strand.
+- **Discrepancies from design**: one. The design listed "every concept
+  has at least one `standardsTag`" plus an additional sanity test
+  "references the NGSS HS-LS standards body" — I added the standards-body
+  test as a 7th biology assertion (small extension, kept the design's
+  spirit). The shape and intent of all other tests match the spec.
+- **Adjacent issues parked**: none — pre-existing lint warnings in
+  `packages/claude-cli-sdk/` and `tests/` are unrelated to this work
+  and predate this feature.
+- **Cycle-debug story**: The first run of `pack-content.test.ts`
+  surfaced a circular prerequisite chain
+  (`ecosystem → levels-of-organization-ecology → population →
+  community → ecosystem`). The schema's `superRefine` cycle detector
+  caught it cleanly. Fixed by removing the `community → ecosystem`
+  edge — pedagogically correct anyway, since "ecosystem" is taught as
+  a high-level frame before its components are unpacked.
+- **Anchor concepts confirmed**: `cell-theory`, `dna-structure`,
+  `natural-selection`, `photosynthesis`, `cellular-respiration`,
+  `mendelian-inheritance`, and `ecosystem-energy-flow` are all present
+  with the expected ids — the anchor test passes.
+- **Standards mapping**: every concept carries at least one
+  `HS-LS[1-4]-\d+` performance-expectation code. Mapping accuracy is
+  the review-time check, not a lint-able property.
+- **No code changes outside curriculum/packs/ and its tests** — schema
+  and loader untouched, as design promised.

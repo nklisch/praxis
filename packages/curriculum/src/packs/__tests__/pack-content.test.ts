@@ -141,6 +141,96 @@ describe("Starter pack content validation", () => {
     });
   });
 
+  describe("biology.json", () => {
+    it("parses successfully against PackManifestSchema", () => {
+      const result = loadAndValidate("biology.json");
+      if (!result.success) {
+        throw new Error(`biology.json failed validation:\n${result.error.message}`);
+      }
+      expect(result.success).toBe(true);
+    });
+
+    it("has between 90 and 120 concepts", () => {
+      const result = loadAndValidate("biology.json");
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.concepts.length).toBeGreaterThanOrEqual(90);
+        expect(result.data.concepts.length).toBeLessThanOrEqual(120);
+      }
+    });
+
+    it("has at least 100 prerequisite edges", () => {
+      const result = loadAndValidate("biology.json");
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.edges.length).toBeGreaterThanOrEqual(100);
+      }
+    });
+
+    it("every concept has a description ≥ 50 characters", () => {
+      const result = loadAndValidate("biology.json");
+      expect(result.success).toBe(true);
+      if (result.success) {
+        for (const concept of result.data.concepts) {
+          expect(
+            concept.description.length,
+            `concept ${concept.id} description too short`,
+          ).toBeGreaterThanOrEqual(50);
+        }
+      }
+    });
+
+    it("every concept has at least one NGSS HS-LS standards tag", () => {
+      const result = loadAndValidate("biology.json");
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const ngssRe = /^HS-LS[1-4]-\d+$/;
+        for (const concept of result.data.concepts) {
+          expect(
+            concept.standardsTags.length,
+            `concept ${concept.id} has no standards tags`,
+          ).toBeGreaterThan(0);
+          for (const tag of concept.standardsTags) {
+            expect(tag, `concept ${concept.id} tag '${tag}' not NGSS HS-LS`).toMatch(
+              ngssRe,
+            );
+          }
+        }
+      }
+    });
+
+    it("contains the expected anchor concepts", () => {
+      const result = loadAndValidate("biology.json");
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const names = new Set(result.data.concepts.map((c) => c.name.toLowerCase()));
+        const ids = new Set(result.data.concepts.map((c) => c.id));
+        const anchors = [
+          "cell theory",
+          "dna structure",
+          "natural selection",
+          "photosynthesis",
+          "cellular respiration",
+          "mendelian inheritance",
+          "ecosystem energy flow",
+        ];
+        for (const anchor of anchors) {
+          const found =
+            names.has(anchor) || ids.has(`biology.${anchor.replace(/\s+/g, "-")}`);
+          expect(found, `missing anchor concept: ${anchor}`).toBe(true);
+        }
+      }
+    });
+
+    it("references the NGSS HS-LS standards body", () => {
+      const result = loadAndValidate("biology.json");
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.standardsRef?.body).toBe("NGSS-HS-LS");
+      }
+    });
+  });
+
   describe("schema rejection cases", () => {
     it("rejects a pack with a cyclic prerequisite chain", () => {
       const cyclic = {
