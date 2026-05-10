@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-misplaced-noexplicitany-suppression-client-test
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
@@ -48,3 +48,7 @@ suppression sits before the `await` call, so it doesn't apply to the
   match the established style of the `attach` test directly above. Both
   `as any` casts are still currently warning-flagged by Biome — the
   inline ignores will silence them.
+
+## Implementation notes
+
+Deleted the single pre-`await` `biome-ignore` comment (line 310). Added two inline `biome-ignore lint/suspicious/noExplicitAny: branded string passthrough` comments — one immediately before each `as any` cast on the `courseId` and `documentId` lines — matching the established pattern of the adjacent `attach` test.

@@ -307,9 +307,10 @@ describe("createPraxisClient", () => {
     it("courseDocuments.detach() routes to praxis.courseDocuments.detach with courseId + documentId", async () => {
       const { transport, invokedChannels } = makeTransport();
       const client = createPraxisClient(transport);
-      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
       await client.courseDocuments.detach({
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
         courseId: "course-1" as any,
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
         documentId: "doc-1" as any,
       });
       expect(invokedChannels[0]?.channel).toBe("praxis.courseDocuments.detach");
