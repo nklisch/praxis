@@ -91,3 +91,18 @@ features that landed alongside.
   - High: `gate-cruft-misplaced-noexplicitany-suppression-client-test` (active, implementing)
   - High: `gate-cruft-unused-noexplicitany-suppression-pedagogy-pack` (active, implementing)
   - Low: `gate-cruft-stale-single-item-adds-comment` (backlog)
+- **gate-docs** (2026-05-10) — 23 findings, all High confidence. Heavy
+  drift expected: the bundle shipped Phases 17, 18, 19 of work without
+  rolling foundation docs forward in between. Categories:
+  - foundation-doc-assertion: 10 — ARCHITECTURE.md (3), CURRICULUM.md (4),
+    UX.md (1), CONTRACT.md (1), Phase 17 "(planned)" tag stale across
+    SPEC/CURRICULUM/UX (1).
+  - changelog-gap: 1 — CHANGELOG.md does not exist; needs backfilled v0
+    section before release-deploy Phase 5.5 prepends v0.1.0.
+  - readme-staleness: 1 — phase counter.
+  - repo-skill-staleness: 2 — patterns SKILL.md phase counter + CLAUDE.md
+    tab-body enumeration missing `StudySkillsTabBody`.
+  - pattern-skill-staleness: 9 — file:line drift across 8 pattern skills
+    plus an API-shape drift in `tab-body-isolation` (`useStreamedSend`
+    returns `items`/`loadHistory`, not `messages`/`clearMessages`).
+  - All 23 items at `stage: implementing` in active/stories.

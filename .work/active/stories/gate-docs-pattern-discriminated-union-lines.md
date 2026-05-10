@@ -1,0 +1,33 @@
+---
+id: gate-docs-pattern-discriminated-union-lines
+kind: story
+stage: implementing
+tags: [documentation]
+parent: null
+depends_on: []
+release_binding: v0.1.0
+gate_origin: docs
+created: 2026-05-10
+updated: 2026-05-10
+---
+
+# Pattern `discriminated-union-dispatch.md` cites stale `grade-math.ts:160` and `:36`
+
+## Drift category
+pattern-skill-staleness
+
+## Location
+- Doc: `.claude/skills/patterns/discriminated-union-dispatch.md:24` and `:36`
+- Code: `packages/tools/src/math/grade-math.ts:60` (Zod schema),
+  `packages/tools/src/math/grade-math.ts:205` (switch on `args.kind`)
+
+## Current doc text
+> **File**: `packages/tools/src/math/grade-math.ts:160`
+> **File**: `packages/tools/src/math/grade-math.ts:36`
+
+## Required edit
+Update the two citations to:
+- `packages/tools/src/math/grade-math.ts:205` (switch on `args.kind`)
+- `packages/tools/src/math/grade-math.ts:60` (Zod schema)
+
+The cited code is otherwise still accurate.
