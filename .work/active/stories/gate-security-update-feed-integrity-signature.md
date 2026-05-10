@@ -1,7 +1,7 @@
 ---
 id: gate-security-update-feed-integrity-signature
 kind: story
-stage: drafting
+stage: implementing
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []

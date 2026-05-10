@@ -1,7 +1,7 @@
 ---
 id: gate-tests-onboarding-skip-coverage
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
