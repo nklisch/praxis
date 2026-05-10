@@ -10,15 +10,16 @@
  *  - Summative assignment shells have items:[] and submittedAt:null
  *  - Per-lesson assessment shells + lesson_assessments join rows
  *  - courses.assessment_plan_json is written
- *  - FK integrity: unknown concept in assessment → rollback (no half-built course)
+ *  - FK integrity: unknown concept in assessment → validation short-circuits (no half-built course)
  */
 import { assignments, courseUnits, lessonAssessments, lessonUnits } from "@praxis/artifacts/schema";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
-import type { AssessmentPlan, Engine } from "../../types/index.js";
+import type { AssessmentPlan, Engine, Timestamp } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { BootstrapServiceImpl } from "../bootstrap-service.js";
+import { SqliteDraftStore } from "../draft-store.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-persist-units");
 
@@ -49,12 +50,14 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
 
   it("materialises course_units, lesson_units, and assessment shells", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
+    const store = new SqliteDraftStore(db);
     const svc = new BootstrapServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
       courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
+      draftStore: store,
     });
 
     // Build a draft with 2 lessons, 1 unit, 1 summative, 1 per-lesson assessment.
@@ -84,11 +87,10 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
     expect(r1.ok).toBe(true);
     expect(r2.ok).toBe(true);
 
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    const draft = (svc as any).drafts.get(draftId);
-    const [l1Id, l2Id] = draft.proposed.proposedLessons.map(
-      (l: { draftLessonId: string }) => l.draftLessonId,
-    );
+    // Read lesson ids via the public API.
+    const draft = await svc.showDraft(draftId);
+    expect(draft).not.toBeNull();
+    const [l1Id, l2Id] = draft?.proposed.proposedLessons.map((l) => l.draftLessonId) ?? [];
 
     const plan: AssessmentPlan = {
       perLesson: { homework: true, quizFrequency: 2 },
@@ -231,12 +233,14 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
     // the same end-state guarantee (no committed rows) via the new
     // discriminated-union shape rather than a throw.
     const { db } = openDb({ path: dbCtx.dbPath });
+    const store = new SqliteDraftStore(db);
     const svc = new BootstrapServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
       courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
+      draftStore: store,
     });
 
     const { draftId } = await svc.initDraft({
@@ -254,15 +258,18 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
       references: [],
     });
 
-    // Inject a unit with an assessment that refs a ghost concept (bypassing method-level validation).
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    const draft = (svc as any).drafts.get(draftId);
-    const lessonId = draft.proposed.proposedLessons[0].draftLessonId;
+    // Inject a unit with an assessment that refs a ghost concept via the store
+    // (bypassing method-level validation).
+    const draft = store.load(draftId);
+    expect(draft).not.toBeNull();
+    if (!draft) throw new Error();
+    const lessonId = draft.proposed.proposedLessons[0]?.draftLessonId;
     draft.proposed.proposedUnits = [
       {
         draftUnitId: "u1",
         name: "Unit 1",
-        draftLessonIds: [lessonId],
+        // biome-ignore lint/style/noNonNullAssertion: seeded above
+        draftLessonIds: [lessonId!],
         summative: {
           draftAssessmentId: "a1",
           kind: "exam",
@@ -272,6 +279,8 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
         },
       },
     ];
+    draft.lastTouchedAt = Date.now() as Timestamp;
+    store.save(draft);
 
     const result = await svc.confirmDraft({ draftId: draftId, studentId: STUDENT_ID });
     expect(result.ok).toBe(false);

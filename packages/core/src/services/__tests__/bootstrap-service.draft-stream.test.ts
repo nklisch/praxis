@@ -9,12 +9,14 @@
  *  - confirmDraft emits `finalized` (mocked persistence; we only assert the
  *    event surface — full persistence is covered by other suites)
  *  - discardDraft emits `discarded`
- *  - showDraft on an expired draft emits `discarded` with reason "expired"
- *  - sweepExpired emits `discarded` for each swept draft
+ *  - discardDraft via store.markDiscarded then showDraft → null (no event; expiry handled by sweep)
+ *  - sweepStale emits `discarded` for each swept draft
  *  - shutdown clears listeners
  *  - listener exceptions don't stop other listeners
  */
 import { describe, expect, it, vi } from "vitest";
+import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
+import { openDb } from "../../db/index.js";
 import type {
   DraftStreamEvent,
   DraftStreamListener,
@@ -24,6 +26,7 @@ import type {
 } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { BootstrapServiceImpl } from "../bootstrap-service.js";
+import { SqliteDraftStore } from "../draft-store.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-test") as StudentId;
 
@@ -47,14 +50,21 @@ function makeEngine(): Engine {
   return { open: vi.fn() } as unknown as Engine;
 }
 
+// All tests share one temp DB; each test creates a fresh service + store.
+const dbCtx = useTempDb();
+
 function makeService(opts?: { sweepIntervalMs?: number }) {
-  return new BootstrapServiceImpl({
-    db: null as never,
+  const { db } = openDb({ path: dbCtx.dbPath });
+  const store = new SqliteDraftStore(db);
+  const svc = new BootstrapServiceImpl({
+    db,
     log: MOCK_LOG,
     engineResolver: makeEngine,
     courseDocuments: MOCK_COURSE_DOCUMENTS,
     sweepIntervalMs: opts?.sweepIntervalMs ?? 9_999_999,
+    draftStore: store,
   });
+  return { svc, store, db };
 }
 
 function makeListener(): {
@@ -72,7 +82,7 @@ function makeListener(): {
 
 describe("BootstrapServiceImpl — draft stream", () => {
   it("subscribe emits a snapshot of currently-live drafts", async () => {
-    const svc = makeService();
+    const { svc } = makeService();
     // Seed a draft BEFORE subscribing.
     const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
@@ -94,10 +104,11 @@ describe("BootstrapServiceImpl — draft stream", () => {
     }
 
     unsubscribe();
+    svc.shutdown();
   });
 
   it("initDraft emits a `started` event", async () => {
-    const svc = makeService();
+    const { svc } = makeService();
     const { events, listener } = makeListener();
     svc.subscribe(listener);
     // Drop the snapshot.
@@ -117,10 +128,11 @@ describe("BootstrapServiceImpl — draft stream", () => {
       expect(events[0].draft.draftId).toBe(draftId);
       expect(events[0].draft.proposed.title).toBe("Algebra 1");
     }
+    svc.shutdown();
   });
 
   it("each mutator emits an `updated` event with the post-mutation draft", async () => {
-    const svc = makeService();
+    const { svc } = makeService();
     const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
@@ -212,10 +224,11 @@ describe("BootstrapServiceImpl — draft stream", () => {
 
     // Sanity: every step we exercised should have produced an `updated`.
     expect(events.every((e) => e.kind === "updated")).toBe(true);
+    svc.shutdown();
   });
 
   it("discardDraft emits `discarded` with reason 'discarded'", async () => {
-    const svc = makeService();
+    const { svc } = makeService();
     const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
@@ -232,10 +245,11 @@ describe("BootstrapServiceImpl — draft stream", () => {
 
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual({ kind: "discarded", draftId, reason: "discarded" });
+    svc.shutdown();
   });
 
   it("discardDraft on a missing id is a silent no-op", async () => {
-    const svc = makeService();
+    const { svc } = makeService();
     const { events, listener } = makeListener();
     svc.subscribe(listener);
     events.length = 0;
@@ -243,10 +257,13 @@ describe("BootstrapServiceImpl — draft stream", () => {
     await svc.discardDraft("does-not-exist");
 
     expect(events).toHaveLength(0);
+    svc.shutdown();
   });
 
-  it("showDraft of an expired draft emits `discarded` with reason 'expired'", async () => {
-    const svc = makeService();
+  it("showDraft of a discarded draft returns null", async () => {
+    // The store-based lifecycle: showDraft returns null for confirmed/discarded rows.
+    // Stale sweeping is tested separately. Here we manually discard and verify null.
+    const { svc, store } = makeService();
     const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
@@ -255,30 +272,19 @@ describe("BootstrapServiceImpl — draft stream", () => {
       gradeLevel: "9",
     });
 
-    // Force expiry by reaching into the internal map. The TTL is 2h, so we
-    // can't realistically wait it out — mutating expiresAt directly is the
-    // only sane approach in a unit test.
-    // biome-ignore lint/suspicious/noExplicitAny: white-box — bootstrap service exposes drafts privately
-    const internal = (svc as any).drafts as Map<string, { expiresAt: Timestamp }>;
-    const d = internal.get(draftId);
-    expect(d).toBeDefined();
-    if (d) d.expiresAt = (Date.now() - 1000) as Timestamp;
-
-    const { events, listener } = makeListener();
-    svc.subscribe(listener);
-    events.length = 0;
+    // Manually mark discarded via the store (simulating external discard or sweep).
+    store.markDiscarded(draftId);
 
     const result = await svc.showDraft(draftId);
     expect(result).toBeNull();
-    expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ kind: "discarded", draftId, reason: "expired" });
+    svc.shutdown();
   });
 
-  it("sweepExpired emits `discarded` for every swept draft", async () => {
-    // Use a tiny sweep interval so we can drive it via a fake timer.
+  it("sweepStale emits `discarded` for every swept draft", async () => {
+    // Use a tiny sweep interval and fake timers to drive the sweep.
     vi.useFakeTimers();
     try {
-      const svc = makeService({ sweepIntervalMs: 50 });
+      const { svc, store } = makeService({ sweepIntervalMs: 50 });
       const { draftId: id1 } = await svc.initDraft({
         studentId: STUDENT_ID,
         documentIds: [],
@@ -294,20 +300,21 @@ describe("BootstrapServiceImpl — draft stream", () => {
         gradeLevel: "9",
       });
 
-      // Force both expired.
-      // biome-ignore lint/suspicious/noExplicitAny: white-box
-      const internal = (svc as any).drafts as Map<string, { expiresAt: Timestamp }>;
-      const past = (Date.now() - 1000) as Timestamp;
-      const d1 = internal.get(id1);
-      const d2 = internal.get(id2);
-      if (d1) d1.expiresAt = past;
-      if (d2) d2.expiresAt = past;
+      // Set both drafts' lastTouchedAt to 8 days ago so they're swept.
+      const eightDaysAgo = (Date.now() - 8 * 24 * 60 * 60 * 1000) as Timestamp;
+      for (const id of [id1, id2]) {
+        const d = store.load(id);
+        if (d) {
+          d.lastTouchedAt = eightDaysAgo;
+          store.save(d);
+        }
+      }
 
       const { events, listener } = makeListener();
       svc.subscribe(listener);
       events.length = 0;
 
-      // Advance to fire the sweep.
+      // Advance clock to fire the sweep.
       await vi.advanceTimersByTimeAsync(60);
 
       const discardEvents = events.filter((e) => e.kind === "discarded");
@@ -317,33 +324,32 @@ describe("BootstrapServiceImpl — draft stream", () => {
       for (const e of discardEvents) {
         if (e.kind === "discarded") expect(e.reason).toBe("expired");
       }
+      svc.shutdown();
     } finally {
       vi.useRealTimers();
     }
   });
 
   it("shutdown clears listeners — no further events after shutdown", async () => {
-    const svc = makeService();
+    const { svc } = makeService();
     const { events, listener } = makeListener();
     svc.subscribe(listener);
     events.length = 0;
 
     svc.shutdown();
 
-    // After shutdown, even mutations should not reach the listener (and
-    // anyway, the drafts map is empty so initDraft is the only thing that
-    // would emit). Subscribe a fresh listener and verify it sees an empty
-    // snapshot.
+    // After shutdown, listeners are cleared. A fresh subscribe should still
+    // see the store's active drafts in the snapshot (store survives shutdown).
     const fresh = makeListener();
     svc.subscribe(fresh.listener);
     expect(fresh.events).toHaveLength(1);
-    if (fresh.events[0]?.kind === "snapshot") {
-      expect(fresh.events[0].drafts).toHaveLength(0);
-    }
+    // The snapshot may contain previously created drafts from the store,
+    // but the original listener should have received no events.
+    expect(events).toHaveLength(0);
   });
 
   it("a throwing listener does not break other listeners on emitted events", async () => {
-    const svc = makeService();
+    const { svc } = makeService();
     const a = makeListener();
     const b = makeListener();
     // Throws only after the initial snapshot — the snapshot delivery in
@@ -369,10 +375,11 @@ describe("BootstrapServiceImpl — draft stream", () => {
     expect(b.events).toHaveLength(1);
     // The thrower's failure is logged via deps.log.warn — we don't assert on
     // that here (the mock log captures it), only that it didn't propagate.
+    svc.shutdown();
   });
 
   it("unsubscribe() stops further events", async () => {
-    const svc = makeService();
+    const { svc } = makeService();
     const { events, listener } = makeListener();
     const unsub = svc.subscribe(listener);
     events.length = 0;
@@ -388,5 +395,6 @@ describe("BootstrapServiceImpl — draft stream", () => {
     });
 
     expect(events).toHaveLength(0);
+    svc.shutdown();
   });
 });

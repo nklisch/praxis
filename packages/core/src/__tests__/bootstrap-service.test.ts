@@ -2,14 +2,14 @@
  * Unit tests for BootstrapServiceImpl — Phase 6/16.
  *
  * Uses a real temp DB (via useTempDb) for confirmDraft / persistDraft.
- * Draft mutation is tested by injecting a draft directly for speed.
+ * Draft mutation is tested by seeding via the public API (initDraft + mutators).
  *
  * Covers:
  *  - applyEdit: each DraftEditOp kind (pure function branch coverage)
  *  - Draft lifecycle: showDraft → editDraft → confirmDraft
  *  - confirmDraft: writes Course + Lessons + Concepts + Edges + Gates in one tx
- *  - Draft removed after confirmDraft
- *  - Expired drafts dropped on access
+ *  - Draft row has confirmedAt set after confirmDraft
+ *  - Discarded drafts not returned by showDraft
  */
 import { courses, gates, lessons } from "@praxis/artifacts/schema";
 import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
@@ -17,7 +17,8 @@ import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { BootstrapServiceImpl } from "../services/bootstrap-service.js";
-import type { DraftEditOp, Engine, ProposedCourse, Timestamp } from "../types/index.js";
+import { SqliteDraftStore } from "../services/draft-store.js";
+import type { DraftEditOp, Engine, ProposedCourse } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-test");
@@ -88,29 +89,35 @@ const MOCK_COURSE_DOCUMENTS = {
 
 // ─── applyEdit pure function tests ──────────────────────────────────────────
 // We test via the public editDraft API (which calls applyEdit internally).
-// For pure-function coverage, we need to get a draft first.
+// Each test seeds via initDraft + addConcept/addLesson rather than injecting
+// into the private store directly.
 
 describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
-  it("rename-course changes the title", async () => {
-    const svc = new BootstrapServiceImpl({
-      db: null as never, // not called in this path
+  // These tests use a temp DB so the store has a real backing.
+  const dbCtx = useTempDb();
+
+  function makeEditSvc() {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    // Each test gets its own store so drafts don't bleed across tests.
+    const store = new SqliteDraftStore(db);
+    return new BootstrapServiceImpl({
+      db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
       courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
+      draftStore: store,
     });
-    // Inject draft directly for speed
-    const draftId = "test-draft-1";
-    const now = Date.now() as Timestamp;
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    (svc as any).drafts.set(draftId, {
-      draftId,
+  }
+
+  it("rename-course changes the title", async () => {
+    const svc = makeEditSvc();
+    const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
-      proposed: { ...CANNED_PROPOSED },
-      createdAt: now,
-      lastTouchedAt: now,
-      expiresAt: (now + 2 * 60 * 60 * 1000) as Timestamp,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
     });
 
     const op: DraftEditOp = { kind: "rename-course", title: "Algebra 2" };
@@ -120,24 +127,27 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
   });
 
   it("rename-lesson changes the lesson title at the given index", async () => {
-    const svc = new BootstrapServiceImpl({
-      db: null as never,
-      log: MOCK_LOG,
-      engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
-      sweepIntervalMs: 9999999,
-    });
-    const draftId = "test-draft-2";
-    const now = Date.now() as Timestamp;
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    (svc as any).drafts.set(draftId, {
-      draftId,
+    const svc = makeEditSvc();
+    const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
-      proposed: { ...CANNED_PROPOSED },
-      createdAt: now,
-      lastTouchedAt: now,
-      expiresAt: (now + 2 * 60 * 60 * 1000) as Timestamp,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
+    });
+    await svc.addConcept({ draftId, name: "Variables", description: "symbols" });
+    await svc.addConcept({ draftId, name: "Equations", description: "equality" });
+    await svc.addLesson({
+      draftId,
+      title: "Intro to Variables",
+      conceptNames: ["Variables"],
+      references: [],
+    });
+    await svc.addLesson({
+      draftId,
+      title: "Writing Equations",
+      conceptNames: ["Equations"],
+      references: [],
     });
 
     const op: DraftEditOp = { kind: "rename-lesson", lessonIndex: 0, title: "Intro to Algebra" };
@@ -148,25 +158,24 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
   });
 
   it("remove-concept strips the concept and all references to it", async () => {
-    const svc = new BootstrapServiceImpl({
-      db: null as never,
-      log: MOCK_LOG,
-      engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
-      sweepIntervalMs: 9999999,
-    });
-    const draftId = "test-draft-3";
-    const now = Date.now() as Timestamp;
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    (svc as any).drafts.set(draftId, {
-      draftId,
+    const svc = makeEditSvc();
+    const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
-      proposed: { ...CANNED_PROPOSED },
-      createdAt: now,
-      lastTouchedAt: now,
-      expiresAt: (now + 2 * 60 * 60 * 1000) as Timestamp,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
     });
+    await svc.addConcept({ draftId, name: "Variables", description: "symbols" });
+    await svc.addConcept({ draftId, name: "Equations", description: "equality" });
+    await svc.addEdge({
+      draftId,
+      fromName: "Variables",
+      toName: "Equations",
+      strength: 0.8,
+      rationale: "prereq",
+    });
+    await svc.addLesson({ draftId, title: "Intro", conceptNames: ["Variables"], references: [] });
 
     const op: DraftEditOp = { kind: "remove-concept", conceptName: "Variables" };
     const updated = await svc.editDraft({ draftId, op });
@@ -179,25 +188,16 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
   });
 
   it("add-concept silently ignores duplicate name", async () => {
-    const svc = new BootstrapServiceImpl({
-      db: null as never,
-      log: MOCK_LOG,
-      engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
-      sweepIntervalMs: 9999999,
-    });
-    const draftId = "test-draft-4";
-    const now = Date.now() as Timestamp;
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    (svc as any).drafts.set(draftId, {
-      draftId,
+    const svc = makeEditSvc();
+    const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
-      proposed: { ...CANNED_PROPOSED },
-      createdAt: now,
-      lastTouchedAt: now,
-      expiresAt: (now + 2 * 60 * 60 * 1000) as Timestamp,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
     });
+    await svc.addConcept({ draftId, name: "Variables", description: "symbols" });
+    await svc.addLesson({ draftId, title: "Intro", conceptNames: ["Variables"], references: [] });
 
     const op: DraftEditOp = {
       kind: "add-concept",
@@ -212,24 +212,13 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
   });
 
   it("set-thresholds updates conceptMastery", async () => {
-    const svc = new BootstrapServiceImpl({
-      db: null as never,
-      log: MOCK_LOG,
-      engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
-      sweepIntervalMs: 9999999,
-    });
-    const draftId = "test-draft-5";
-    const now = Date.now() as Timestamp;
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    (svc as any).drafts.set(draftId, {
-      draftId,
+    const svc = makeEditSvc();
+    const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
-      proposed: { ...CANNED_PROPOSED },
-      createdAt: now,
-      lastTouchedAt: now,
-      expiresAt: (now + 2 * 60 * 60 * 1000) as Timestamp,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
     });
 
     const op: DraftEditOp = {
@@ -243,59 +232,38 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
   });
 });
 
-// ─── Draft expiry ─────────────────────────────────────────────────────────────
+// ─── Draft not found ──────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl — draft expiry", () => {
-  it("showDraft returns null for expired drafts", async () => {
+describe("BootstrapServiceImpl — draft not found", () => {
+  const dbCtx = useTempDb();
+
+  it("showDraft returns null for non-existent draft id", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
     const svc = new BootstrapServiceImpl({
-      db: null as never,
+      db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
       courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
-    const draftId = "expired-draft";
-    const now = Date.now() as Timestamp;
-    // Set expiresAt in the past.
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    (svc as any).drafts.set(draftId, {
-      draftId,
-      studentId: STUDENT_ID,
-      documentIds: [],
-      proposed: { ...CANNED_PROPOSED },
-      createdAt: now,
-      lastTouchedAt: now,
-      expiresAt: (now - 1) as Timestamp,
-    });
 
-    const result = await svc.showDraft(draftId);
+    const result = await svc.showDraft("does-not-exist");
     expect(result).toBeNull();
     svc.shutdown();
   });
 
-  it("editDraft throws for expired draft", async () => {
+  it("editDraft throws for non-existent draft", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
     const svc = new BootstrapServiceImpl({
-      db: null as never,
+      db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
       courseDocuments: MOCK_COURSE_DOCUMENTS,
       sweepIntervalMs: 9999999,
     });
-    const draftId = "expired-draft-2";
-    const now = Date.now() as Timestamp;
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    (svc as any).drafts.set(draftId, {
-      draftId,
-      studentId: STUDENT_ID,
-      documentIds: [],
-      proposed: { ...CANNED_PROPOSED },
-      createdAt: now,
-      lastTouchedAt: now,
-      expiresAt: (now - 1) as Timestamp,
-    });
 
     await expect(
-      svc.editDraft({ draftId, op: { kind: "rename-course", title: "X" } }),
+      svc.editDraft({ draftId: "ghost", op: { kind: "rename-course", title: "X" } }),
     ).rejects.toThrow("Draft not found or expired");
     svc.shutdown();
   });
@@ -306,7 +274,7 @@ describe("BootstrapServiceImpl — draft expiry", () => {
 describe("BootstrapServiceImpl — confirmDraft", () => {
   // useTempDb inside describe scope so migrations only run for these tests.
   const dbCtx = useTempDb();
-  it("writes Course + Lessons + Concepts + Edges + Gates in one tx; draft removed after", async () => {
+  it("writes Course + Lessons + Concepts + Edges + Gates in one tx; draft confirmed after", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
 
     const svc = new BootstrapServiceImpl({
@@ -317,17 +285,37 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
       sweepIntervalMs: 9999999,
     });
 
-    const draftId = "confirm-draft-1";
-    const now = Date.now() as Timestamp;
-    // biome-ignore lint/suspicious/noExplicitAny: accessing private for test
-    (svc as any).drafts.set(draftId, {
-      draftId,
+    const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
       documentIds: [],
-      proposed: { ...CANNED_PROPOSED },
-      createdAt: now,
-      lastTouchedAt: now,
-      expiresAt: (now + 2 * 60 * 60 * 1000) as Timestamp,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
+    });
+    await svc.addConcept({
+      draftId,
+      name: "Variables",
+      description: "Symbols representing numbers",
+    });
+    await svc.addConcept({ draftId, name: "Equations", description: "Statements of equality" });
+    await svc.addEdge({
+      draftId,
+      fromName: "Variables",
+      toName: "Equations",
+      strength: 0.8,
+      rationale: "prerequisite",
+    });
+    await svc.addLesson({
+      draftId,
+      title: "Intro to Variables",
+      conceptNames: ["Variables"],
+      references: [],
+    });
+    await svc.addLesson({
+      draftId,
+      title: "Writing Equations",
+      conceptNames: ["Equations"],
+      references: [],
     });
 
     const result = await svc.confirmDraft({ draftId, studentId: STUDENT_ID });
@@ -359,7 +347,7 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
     const gateRows = db.select().from(gates).all();
     expect(gateRows).toHaveLength(2);
 
-    // Draft should be removed.
+    // Draft should be confirmed — showDraft returns null (confirmed drafts are not active).
     const draft = await svc.showDraft(draftId);
     expect(draft).toBeNull();
 

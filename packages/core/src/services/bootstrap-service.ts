@@ -35,13 +35,15 @@ import type {
   Timestamp,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import { type DraftStore, SqliteDraftStore } from "./draft-store.js";
 
 export interface Issue {
   kind: string;
   message: string;
 }
 
-const DRAFT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+/** Drafts not touched in 7 days are swept as stale. */
+export const DRAFT_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface BootstrapServiceDeps {
   db: PraxisDb;
@@ -50,22 +52,24 @@ export interface BootstrapServiceDeps {
   engineResolver: () => Engine;
   /** Phase 16: course ↔ document attachment — used by confirmDraft to attach source docs. */
   courseDocuments: CourseDocumentsService;
-  /** Sweep period for expired drafts. Defaults to 60 seconds. */
+  /** Sweep period for stale drafts. Defaults to 60 seconds. */
   sweepIntervalMs?: number;
+  /** Test injection seam: supply a custom DraftStore instead of SqliteDraftStore. */
+  draftStore?: DraftStore;
 }
 
 /**
- * BootstrapServiceImpl — owns the in-memory draft cache and the
- * `confirmDraft` transactional persist.
+ * BootstrapServiceImpl — owns draft lifecycle and the `confirmDraft`
+ * transactional persist.
  *
- * Drafts live 2 hours after last access and are dropped on process exit.
- * Recovery is "re-run start_exploration against the same documents."
+ * Drafts are durable: they survive process restarts via SqliteDraftStore.
+ * Drafts not touched in 7 days (DRAFT_STALE_MS) are swept as stale.
  *
  * This class is mode-agnostic — it does not know whether the caller is in
  * bootstrap mode or configure mode. Methods accept inputs, return outputs.
  */
 export class BootstrapServiceImpl implements BootstrapService {
-  private readonly drafts = new Map<string, DraftCourseState>();
+  private readonly store: DraftStore;
   /**
    * Live subscribers (e.g. the bootstrap-drafts IPC channel forwarding to the
    * renderer's right-pane outline). Each receives a `snapshot` event on
@@ -76,9 +80,10 @@ export class BootstrapServiceImpl implements BootstrapService {
   private sweepTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly deps: BootstrapServiceDeps) {
+    this.store = deps.draftStore ?? new SqliteDraftStore(deps.db);
     const period = deps.sweepIntervalMs ?? 60_000;
     this.sweepTimer = setInterval(() => {
-      this.sweepExpired();
+      this.sweepStale();
     }, period);
     // unref so this timer doesn't keep the process alive.
     this.sweepTimer.unref?.();
@@ -96,14 +101,14 @@ export class BootstrapServiceImpl implements BootstrapService {
     };
   }
 
-  /** Snapshot of currently-live drafts (non-expired). */
+  /** Snapshot of currently-active drafts (not confirmed, not discarded). */
   list(): readonly DraftCourseState[] {
-    const now = Date.now();
-    const out: DraftCourseState[] = [];
-    for (const d of this.drafts.values()) {
-      if (d.expiresAt > now) out.push(d);
-    }
-    return out;
+    return this.store.listActive();
+  }
+
+  /** Active drafts for a specific student, ordered by lastTouchedAt DESC. */
+  listActiveForStudent(studentId: StudentId): readonly DraftCourseState[] {
+    return this.store.listForStudent(studentId);
   }
 
   private emit(event: DraftStreamEvent): void {
@@ -141,13 +146,12 @@ export class BootstrapServiceImpl implements BootstrapService {
   }
 
   /**
-   * Bump `lastTouchedAt` (and refresh expiry) and emit a `draft_updated`
-   * event so subscribers see the new state. Used by every incremental mutator.
+   * Persist the mutated draft (with `lastTouchedAt` already bumped by the
+   * caller) and emit an `updated` event so subscribers see the new state.
+   * Used by every incremental mutator.
    */
-  private touchAndEmitUpdate(d: DraftCourseState): void {
-    const now = Date.now() as Timestamp;
-    d.lastTouchedAt = now;
-    d.expiresAt = (now + DRAFT_TTL_MS) as Timestamp;
+  private saveAndEmitUpdate(d: DraftCourseState): void {
+    this.store.save(d);
     this.emit({ kind: "updated", draft: d });
   }
 
@@ -185,9 +189,9 @@ export class BootstrapServiceImpl implements BootstrapService {
       },
       createdAt: now,
       lastTouchedAt: now,
-      expiresAt: (now + DRAFT_TTL_MS) as Timestamp,
+      expiresAt: (now + DRAFT_STALE_MS) as Timestamp,
     };
-    this.drafts.set(draft.draftId, draft);
+    this.store.save(draft);
     this.emit({ kind: "started", draft });
     return { draftId: draft.draftId };
   }
@@ -201,7 +205,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     name: string;
     description: string;
   }): Promise<{ ok: true; conceptCount: number } | { ok: false; reason: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const lower = input.name.trim().toLowerCase();
     if (d.proposed.proposedConcepts.some((c) => c.name.trim().toLowerCase() === lower)) {
@@ -212,7 +216,8 @@ export class BootstrapServiceImpl implements BootstrapService {
       description: input.description.trim(),
       evidence: [],
     });
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true, conceptCount: d.proposed.proposedConcepts.length };
   }
 
@@ -221,7 +226,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     draftId: string;
     name: string;
   }): Promise<{ ok: boolean; reason?: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const lower = input.name.trim().toLowerCase();
     const before = d.proposed.proposedConcepts.length;
@@ -240,7 +245,8 @@ export class BootstrapServiceImpl implements BootstrapService {
       ...l,
       conceptNames: l.conceptNames.filter((n) => n.trim().toLowerCase() !== lower),
     }));
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -252,7 +258,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     strength: number;
     rationale: string;
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const known = new Set(d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
     const fromLower = input.fromName.trim().toLowerCase();
@@ -273,7 +279,8 @@ export class BootstrapServiceImpl implements BootstrapService {
       strength: Math.max(0, Math.min(1, input.strength)),
       rationale: input.rationale.trim(),
     });
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -286,7 +293,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     suggestedStrategy?: StrategyId;
     estimatedMinutes?: number;
   }): Promise<{ ok: true; lessonIndex: number } | { ok: false; reason: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const known = new Set(d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
     for (const cn of input.conceptNames) {
@@ -303,7 +310,8 @@ export class BootstrapServiceImpl implements BootstrapService {
       estimatedMinutes: input.estimatedMinutes ?? 45,
     };
     d.proposed.proposedLessons.push(newLesson);
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true, lessonIndex: d.proposed.proposedLessons.length - 1 };
   }
 
@@ -312,13 +320,14 @@ export class BootstrapServiceImpl implements BootstrapService {
     draftId: string;
     lessonIndex: number;
   }): Promise<{ ok: boolean; reason?: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     if (input.lessonIndex < 0 || input.lessonIndex >= d.proposed.proposedLessons.length) {
       return { ok: false, reason: `lesson index ${input.lessonIndex} out of bounds` };
     }
     d.proposed.proposedLessons.splice(input.lessonIndex, 1);
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -338,7 +347,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       rationale: string;
     };
   }): Promise<{ ok: true; draftUnitId: string } | { ok: false; reason: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const knownLessons = new Set(d.proposed.proposedLessons.map((l) => l.draftLessonId));
     for (const id of input.draftLessonIds) {
@@ -380,7 +389,8 @@ export class BootstrapServiceImpl implements BootstrapService {
     };
     if (!d.proposed.proposedUnits) d.proposed.proposedUnits = [];
     d.proposed.proposedUnits.push(unit);
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true, draftUnitId };
   }
 
@@ -389,10 +399,11 @@ export class BootstrapServiceImpl implements BootstrapService {
     draftId: string;
     plan: AssessmentPlan;
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     d.proposed.assessmentPlan = input.plan;
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -408,7 +419,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     rationale: string;
     title: string;
   }): Promise<{ ok: true; draftAssessmentId: string } | { ok: false; reason: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const knownLessons = new Set(d.proposed.proposedLessons.map((l) => l.draftLessonId));
     if (!knownLessons.has(input.draftLessonId)) {
@@ -440,7 +451,8 @@ export class BootstrapServiceImpl implements BootstrapService {
       }),
       rationale: input.rationale.trim(),
     });
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true, draftAssessmentId };
   }
 
@@ -452,7 +464,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     gradeLevel?: string;
     thresholds?: Partial<ThresholdConfig>;
   }): Promise<{ ok: boolean; reason?: string }> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     if (input.title !== undefined) d.proposed.title = input.title.trim();
     if (input.subject !== undefined) d.proposed.subject = input.subject.trim();
@@ -460,7 +472,8 @@ export class BootstrapServiceImpl implements BootstrapService {
     if (input.thresholds !== undefined) {
       d.proposed.thresholds = { ...d.proposed.thresholds, ...input.thresholds };
     }
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return { ok: true };
   }
 
@@ -477,23 +490,19 @@ export class BootstrapServiceImpl implements BootstrapService {
   }
 
   async showDraft(draftId: string): Promise<DraftCourseState | null> {
-    const d = this.drafts.get(draftId);
+    const d = this.store.load(draftId);
     if (!d) return null;
-    if (d.expiresAt <= Date.now()) {
-      this.drafts.delete(draftId);
-      this.emit({ kind: "discarded", draftId, reason: "expired" });
-      return null;
-    }
-    d.lastTouchedAt = Date.now() as Timestamp;
-    d.expiresAt = (d.lastTouchedAt + DRAFT_TTL_MS) as Timestamp;
+    // Column-only bump — no blob re-serialization needed for a read.
+    this.store.touch(draftId);
     return d;
   }
 
   async editDraft(input: { draftId: string; op: DraftEditOp }): Promise<DraftCourseState> {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) throw new Error(`Draft not found or expired: ${input.draftId}`);
     d.proposed = applyEdit(d.proposed, input.op);
-    this.touchAndEmitUpdate(d);
+    d.lastTouchedAt = Date.now() as Timestamp;
+    this.saveAndEmitUpdate(d);
     return d;
   }
 
@@ -514,7 +523,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     | { ok: true; courseId: CourseId; lessonIds: LessonId[]; conceptGraphId: string }
     | { ok: false; issues: ReadonlyArray<Issue> }
   > {
-    const d = await this.showDraft(input.draftId);
+    const d = this.store.load(input.draftId);
     if (!d) throw new Error(`Draft not found or expired: ${input.draftId}`);
     if (d.studentId !== input.studentId) {
       throw new Error(`Draft owner mismatch: draft belongs to a different student`);
@@ -523,7 +532,14 @@ export class BootstrapServiceImpl implements BootstrapService {
     const issues = validateProposed(d.proposed);
     if (issues.length > 0) return { ok: false, issues };
 
-    const result = persistDraft({ db: this.deps.db, draft: d, now: new Date() });
+    const now = new Date();
+    // confirmDraft is atomic: persistDraftTx and markConfirmedTx run in the
+    // same Drizzle transaction. If the persist fails, the draft row stays active.
+    const result = this.deps.db.transaction((tx) => {
+      const r = persistDraftTx({ tx, draft: d, now });
+      this.store.markConfirmedTx(tx, input.draftId, r.courseId);
+      return r;
+    });
 
     // Phase 16: attach source documents to the new course.
     if (d.documentIds.length > 0) {
@@ -542,7 +558,6 @@ export class BootstrapServiceImpl implements BootstrapService {
       }
     }
 
-    this.drafts.delete(input.draftId);
     this.emit({ kind: "finalized", draftId: input.draftId, courseId: result.courseId });
     return {
       ok: true,
@@ -553,7 +568,9 @@ export class BootstrapServiceImpl implements BootstrapService {
   }
 
   async discardDraft(draftId: string): Promise<void> {
-    if (this.drafts.delete(draftId)) {
+    const d = this.store.load(draftId);
+    if (d) {
+      this.store.markDiscarded(draftId);
       this.emit({ kind: "discarded", draftId, reason: "discarded" });
     }
   }
@@ -669,31 +686,30 @@ export class BootstrapServiceImpl implements BootstrapService {
     };
   }
 
-  /** Test/observability handle: count active (non-expired) drafts. */
+  /** Test/observability handle: count active (non-confirmed, non-discarded) drafts. */
   size(): number {
-    return this.drafts.size;
+    return this.store.listActive().length;
   }
 
-  /** Cleanup helper for host shutdown. */
+  /**
+   * Cleanup helper for host shutdown.
+   * Clears the sweep timer and in-process listeners ONLY — draft rows survive
+   * in the DB so they can be resumed after restart.
+   */
   shutdown(): void {
     if (this.sweepTimer) {
       clearInterval(this.sweepTimer);
       this.sweepTimer = null;
     }
-    this.drafts.clear();
-    // Drop listeners after drafts so a final snapshot — if anyone re-subscribes
-    // during shutdown — would correctly be empty. Also prevents leaks from
-    // forgotten subscribers.
+    // Drop listeners — prevents leaks from forgotten subscribers.
     this.listeners.clear();
   }
 
-  private sweepExpired(): void {
-    const now = Date.now();
-    for (const [id, d] of this.drafts) {
-      if (d.expiresAt <= now) {
-        this.drafts.delete(id);
-        this.emit({ kind: "discarded", draftId: id, reason: "expired" });
-      }
+  private sweepStale(): void {
+    const cutoff = Date.now() - DRAFT_STALE_MS;
+    const sweptIds = this.store.sweepStale(cutoff);
+    for (const id of sweptIds) {
+      this.emit({ kind: "discarded", draftId: id, reason: "expired" });
     }
   }
 }
@@ -910,239 +926,239 @@ function applyEdit(p: ProposedCourse, op: DraftEditOp): ProposedCourse {
   }
 }
 
-interface PersistDraftArgs {
-  db: PraxisDb;
+interface PersistDraftTxArgs {
+  tx: PraxisDb;
   draft: DraftCourseState;
   now: Date;
 }
 
 /**
- * Write the confirmed draft to DB in a single synchronous Drizzle transaction.
- * Better-sqlite3 transactions are synchronous; the surrounding async wrapper
- * just satisfies the Promise shape the rest of the codebase expects.
+ * Inner body of the confirmDraft transaction. Accepts an already-open Drizzle
+ * transaction handle so that `markConfirmedTx` can run in the same tx —
+ * keeping the confirm atomic with the course write.
+ *
+ * All writes use the provided `tx` — no nested transaction is opened here.
  */
-function persistDraft(args: PersistDraftArgs): {
+function persistDraftTx(args: PersistDraftTxArgs): {
   courseId: CourseId;
   lessonIds: LessonId[];
   conceptGraphId: string;
 } {
-  const { db, draft, now } = args;
+  const { tx, draft, now } = args;
 
-  return db.transaction((tx) => {
-    // 1. ConceptGraph row.
-    const conceptGraphId = uuidv7();
-    tx.insert(conceptGraphs)
-      .values({
-        id: conceptGraphId,
-        source: "extracted",
-        name: `${draft.proposed.title} graph`,
-        version: "1",
-        createdAt: now,
-      })
-      .run();
+  // 1. ConceptGraph row.
+  const conceptGraphId = uuidv7();
+  tx.insert(conceptGraphs)
+    .values({
+      id: conceptGraphId,
+      source: "extracted",
+      name: `${draft.proposed.title} graph`,
+      version: "1",
+      createdAt: now,
+    })
+    .run();
 
-    // 2. Concept rows — assign stable UUIDs keyed by name.
-    const conceptIdByName = new Map<string, string>();
-    const conceptRowValues = draft.proposed.proposedConcepts.map((c) => {
-      const id = uuidv7();
-      conceptIdByName.set(c.name, id);
-      return {
-        id,
-        graphId: conceptGraphId,
-        name: c.name,
-        description: c.description,
-        aliasesJson: [] as string[],
-        standardsTagsJson: [] as string[],
-      };
-    });
-    if (conceptRowValues.length > 0) {
-      tx.insert(concepts).values(conceptRowValues).run();
-    }
-
-    // 3. Prerequisite edge rows.
-    const edgeRowValues = draft.proposed.proposedEdges.map((e) => ({
-      // biome-ignore lint/style/noNonNullAssertion: edge names validated against conceptIdByName in validateProposed
-      fromId: conceptIdByName.get(e.fromName)!,
-      // biome-ignore lint/style/noNonNullAssertion: edge names validated against conceptIdByName in validateProposed
-      toId: conceptIdByName.get(e.toName)!,
-      strengthMilli: Math.round(Math.max(0, Math.min(1, e.strength)) * 1000),
-      source: "extracted" as const,
-    }));
-    if (edgeRowValues.length > 0) {
-      tx.insert(prerequisiteEdges).values(edgeRowValues).run();
-    }
-
-    // 4. Course row.
-    const courseId = uuidv7();
-    tx.insert(courses)
-      .values({
-        id: courseId,
-        studentId: draft.studentId,
-        title: draft.proposed.title,
-        subject: draft.proposed.subject,
-        gradeLevel: draft.proposed.gradeLevel,
-        sourceJson: { kind: "bootstrapped", sourceMaterials: draft.documentIds },
-        conceptGraphId,
-        thresholdsJson: draft.proposed.thresholds,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
-
-    // 5. Lesson rows — preserve declared order.
-    const lessonRowValues = draft.proposed.proposedLessons.map((l, i) => ({
-      id: uuidv7(),
-      courseId,
-      title: l.title,
-      orderIndex: i,
-      // biome-ignore lint/style/noNonNullAssertion: concept names validated against conceptIdByName in validateProposed
-      conceptIdsJson: l.conceptNames.map((n) => conceptIdByName.get(n)!),
-      referencesJson: l.references,
-      suggestedStrategy: l.suggestedStrategy,
-      estimatedMinutes: l.estimatedMinutes,
-    }));
-    if (lessonRowValues.length > 0) {
-      tx.insert(lessons).values(lessonRowValues).run();
-    }
-
-    // 6. Skeleton gates — one per lesson, chained, all initially locked.
-    //    Phase 9 overwrites with proper gate evaluation. Phase 6 just persists
-    //    rows so future code can find them.
-    const gateIds = lessonRowValues.map(() => uuidv7());
-    const gateRowValues = lessonRowValues.map((l, i) => ({
-      // biome-ignore lint/style/noNonNullAssertion: gateIds is same-length as lessonRowValues; i is a valid index
-      id: gateIds[i]!,
-      courseId,
-      guardsJson: { kind: "lesson", lessonId: l.id },
-      // biome-ignore lint/style/noNonNullAssertion: gateIds[i-1] exists for i > 0
-      prerequisitesJson: i > 0 ? [gateIds[i - 1]!] : [],
-      successCriteriaJson: {
-        kind: "mastery-threshold",
-        conceptIds: l.conceptIdsJson,
-        minScore: draft.proposed.thresholds.conceptMastery,
-      },
-      stateJson: {
-        kind: "locked",
-        // biome-ignore lint/style/noNonNullAssertion: gateIds[i-1] exists for i > 0
-        missingPrerequisites: i > 0 ? [gateIds[i - 1]!] : [],
-      },
-      evidenceJson: [],
-    }));
-    if (gateRowValues.length > 0) {
-      tx.insert(gates).values(gateRowValues).run();
-    }
-
-    // Build a map from draftLessonId → real lessonId for unit/assessment wiring.
-    const draftLessonIdToLessonId = new Map<string, string>();
-    draft.proposed.proposedLessons.forEach((pl, i) => {
-      const row = lessonRowValues[i];
-      if (row) draftLessonIdToLessonId.set(pl.draftLessonId, row.id);
-    });
-
-    // Helper: materialise an assessment shell inside the transaction.
-    function materializeShell(shellInput: {
-      kind: "quiz" | "homework" | "exam";
-      title: string;
-      conceptNames: string[];
-    }): string {
-      const assignmentId = uuidv7();
-      const conceptIds = shellInput.conceptNames.map((n) => {
-        const id = conceptIdByName.get(n);
-        if (!id) throw new Error(`assessment shell refs unknown concept: "${n}"`);
-        return id;
-      });
-      tx.insert(assignments)
-        .values({
-          id: assignmentId,
-          courseId,
-          kind: shellInput.kind,
-          title: shellInput.title,
-          itemsJson: [],
-          conceptIdsJson: conceptIds,
-          assignedAt: now,
-          submittedAt: null,
-          gradeJson: null,
-          parentSessionId: null,
-        })
-        .run();
-      return assignmentId;
-    }
-
-    // 7. Phase 16: materialise units, lesson_units, and summative assignment shells.
-    for (const [i, proposedUnit] of (draft.proposed.proposedUnits ?? []).entries()) {
-      const unitId = uuidv7();
-      tx.insert(courseUnits)
-        .values({
-          id: unitId,
-          courseId,
-          name: proposedUnit.name,
-          summary: proposedUnit.summary ?? null,
-          orderIndex: i,
-          summativeAssignmentId: null,
-        })
-        .run();
-
-      // Bind lessons to this unit.
-      for (const draftLessonId of proposedUnit.draftLessonIds) {
-        const lessonId = draftLessonIdToLessonId.get(draftLessonId);
-        if (!lessonId) {
-          throw new Error(`unit "${proposedUnit.name}" refs unknown lesson id "${draftLessonId}"`);
-        }
-        tx.insert(lessonUnits).values({ lessonId, unitId }).run();
-      }
-
-      // Materialise summative if present.
-      if (proposedUnit.summative) {
-        const summativeId = materializeShell({
-          kind: proposedUnit.summative.kind,
-          title: proposedUnit.summative.title,
-          conceptNames: proposedUnit.summative.conceptNames,
-        });
-        tx.update(courseUnits)
-          .set({ summativeAssignmentId: summativeId })
-          .where(eq(courseUnits.id, unitId))
-          .run();
-      }
-    }
-
-    // 8. Phase 16: materialise per-lesson assessment shells.
-    for (const la of draft.proposed.proposedLessonAssessments ?? []) {
-      const lessonId = draftLessonIdToLessonId.get(la.draftLessonId);
-      if (!lessonId) {
-        throw new Error(
-          `lesson assessment "${la.title}" refs unknown lesson id "${la.draftLessonId}"`,
-        );
-      }
-      const assignmentId = materializeShell({
-        kind: la.kind,
-        title: la.title,
-        conceptNames: la.conceptNames,
-      });
-      tx.insert(lessonAssessments)
-        .values({
-          id: uuidv7(),
-          lessonId,
-          assignmentId,
-          timing: la.timing,
-          purpose: la.purpose,
-        })
-        .run();
-    }
-
-    // 9. Phase 16: write assessment plan onto the course row if present.
-    if (draft.proposed.assessmentPlan !== undefined) {
-      tx.update(courses)
-        .set({
-          assessmentPlanJson: draft.proposed.assessmentPlan as unknown as Record<string, unknown>,
-        })
-        .where(eq(courses.id, courseId))
-        .run();
-    }
-
+  // 2. Concept rows — assign stable UUIDs keyed by name.
+  const conceptIdByName = new Map<string, string>();
+  const conceptRowValues = draft.proposed.proposedConcepts.map((c) => {
+    const id = uuidv7();
+    conceptIdByName.set(c.name, id);
     return {
-      courseId: brandId<"CourseId">(courseId),
-      lessonIds: lessonRowValues.map((r) => brandId<"LessonId">(r.id)),
-      conceptGraphId,
+      id,
+      graphId: conceptGraphId,
+      name: c.name,
+      description: c.description,
+      aliasesJson: [] as string[],
+      standardsTagsJson: [] as string[],
     };
   });
+  if (conceptRowValues.length > 0) {
+    tx.insert(concepts).values(conceptRowValues).run();
+  }
+
+  // 3. Prerequisite edge rows.
+  const edgeRowValues = draft.proposed.proposedEdges.map((e) => ({
+    // biome-ignore lint/style/noNonNullAssertion: edge names validated against conceptIdByName in validateProposed
+    fromId: conceptIdByName.get(e.fromName)!,
+    // biome-ignore lint/style/noNonNullAssertion: edge names validated against conceptIdByName in validateProposed
+    toId: conceptIdByName.get(e.toName)!,
+    strengthMilli: Math.round(Math.max(0, Math.min(1, e.strength)) * 1000),
+    source: "extracted" as const,
+  }));
+  if (edgeRowValues.length > 0) {
+    tx.insert(prerequisiteEdges).values(edgeRowValues).run();
+  }
+
+  // 4. Course row.
+  const courseId = uuidv7();
+  tx.insert(courses)
+    .values({
+      id: courseId,
+      studentId: draft.studentId,
+      title: draft.proposed.title,
+      subject: draft.proposed.subject,
+      gradeLevel: draft.proposed.gradeLevel,
+      sourceJson: { kind: "bootstrapped", sourceMaterials: draft.documentIds },
+      conceptGraphId,
+      thresholdsJson: draft.proposed.thresholds,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run();
+
+  // 5. Lesson rows — preserve declared order.
+  const lessonRowValues = draft.proposed.proposedLessons.map((l, i) => ({
+    id: uuidv7(),
+    courseId,
+    title: l.title,
+    orderIndex: i,
+    // biome-ignore lint/style/noNonNullAssertion: concept names validated against conceptIdByName in validateProposed
+    conceptIdsJson: l.conceptNames.map((n) => conceptIdByName.get(n)!),
+    referencesJson: l.references,
+    suggestedStrategy: l.suggestedStrategy,
+    estimatedMinutes: l.estimatedMinutes,
+  }));
+  if (lessonRowValues.length > 0) {
+    tx.insert(lessons).values(lessonRowValues).run();
+  }
+
+  // 6. Skeleton gates — one per lesson, chained, all initially locked.
+  //    Phase 9 overwrites with proper gate evaluation. Phase 6 just persists
+  //    rows so future code can find them.
+  const gateIds = lessonRowValues.map(() => uuidv7());
+  const gateRowValues = lessonRowValues.map((l, i) => ({
+    // biome-ignore lint/style/noNonNullAssertion: gateIds is same-length as lessonRowValues; i is a valid index
+    id: gateIds[i]!,
+    courseId,
+    guardsJson: { kind: "lesson", lessonId: l.id },
+    // biome-ignore lint/style/noNonNullAssertion: gateIds[i-1] exists for i > 0
+    prerequisitesJson: i > 0 ? [gateIds[i - 1]!] : [],
+    successCriteriaJson: {
+      kind: "mastery-threshold",
+      conceptIds: l.conceptIdsJson,
+      minScore: draft.proposed.thresholds.conceptMastery,
+    },
+    stateJson: {
+      kind: "locked",
+      // biome-ignore lint/style/noNonNullAssertion: gateIds[i-1] exists for i > 0
+      missingPrerequisites: i > 0 ? [gateIds[i - 1]!] : [],
+    },
+    evidenceJson: [],
+  }));
+  if (gateRowValues.length > 0) {
+    tx.insert(gates).values(gateRowValues).run();
+  }
+
+  // Build a map from draftLessonId → real lessonId for unit/assessment wiring.
+  const draftLessonIdToLessonId = new Map<string, string>();
+  draft.proposed.proposedLessons.forEach((pl, i) => {
+    const row = lessonRowValues[i];
+    if (row) draftLessonIdToLessonId.set(pl.draftLessonId, row.id);
+  });
+
+  // Helper: materialise an assessment shell inside the transaction.
+  function materializeShell(shellInput: {
+    kind: "quiz" | "homework" | "exam";
+    title: string;
+    conceptNames: string[];
+  }): string {
+    const assignmentId = uuidv7();
+    const conceptIds = shellInput.conceptNames.map((n) => {
+      const id = conceptIdByName.get(n);
+      if (!id) throw new Error(`assessment shell refs unknown concept: "${n}"`);
+      return id;
+    });
+    tx.insert(assignments)
+      .values({
+        id: assignmentId,
+        courseId,
+        kind: shellInput.kind,
+        title: shellInput.title,
+        itemsJson: [],
+        conceptIdsJson: conceptIds,
+        assignedAt: now,
+        submittedAt: null,
+        gradeJson: null,
+        parentSessionId: null,
+      })
+      .run();
+    return assignmentId;
+  }
+
+  // 7. Phase 16: materialise units, lesson_units, and summative assignment shells.
+  for (const [i, proposedUnit] of (draft.proposed.proposedUnits ?? []).entries()) {
+    const unitId = uuidv7();
+    tx.insert(courseUnits)
+      .values({
+        id: unitId,
+        courseId,
+        name: proposedUnit.name,
+        summary: proposedUnit.summary ?? null,
+        orderIndex: i,
+        summativeAssignmentId: null,
+      })
+      .run();
+
+    // Bind lessons to this unit.
+    for (const draftLessonId of proposedUnit.draftLessonIds) {
+      const lessonId = draftLessonIdToLessonId.get(draftLessonId);
+      if (!lessonId) {
+        throw new Error(`unit "${proposedUnit.name}" refs unknown lesson id "${draftLessonId}"`);
+      }
+      tx.insert(lessonUnits).values({ lessonId, unitId }).run();
+    }
+
+    // Materialise summative if present.
+    if (proposedUnit.summative) {
+      const summativeId = materializeShell({
+        kind: proposedUnit.summative.kind,
+        title: proposedUnit.summative.title,
+        conceptNames: proposedUnit.summative.conceptNames,
+      });
+      tx.update(courseUnits)
+        .set({ summativeAssignmentId: summativeId })
+        .where(eq(courseUnits.id, unitId))
+        .run();
+    }
+  }
+
+  // 8. Phase 16: materialise per-lesson assessment shells.
+  for (const la of draft.proposed.proposedLessonAssessments ?? []) {
+    const lessonId = draftLessonIdToLessonId.get(la.draftLessonId);
+    if (!lessonId) {
+      throw new Error(
+        `lesson assessment "${la.title}" refs unknown lesson id "${la.draftLessonId}"`,
+      );
+    }
+    const assignmentId = materializeShell({
+      kind: la.kind,
+      title: la.title,
+      conceptNames: la.conceptNames,
+    });
+    tx.insert(lessonAssessments)
+      .values({
+        id: uuidv7(),
+        lessonId,
+        assignmentId,
+        timing: la.timing,
+        purpose: la.purpose,
+      })
+      .run();
+  }
+
+  // 9. Phase 16: write assessment plan onto the course row if present.
+  if (draft.proposed.assessmentPlan !== undefined) {
+    tx.update(courses)
+      .set({
+        assessmentPlanJson: draft.proposed.assessmentPlan as unknown as Record<string, unknown>,
+      })
+      .where(eq(courses.id, courseId))
+      .run();
+  }
+
+  return {
+    courseId: brandId<"CourseId">(courseId),
+    lessonIds: lessonRowValues.map((r) => brandId<"LessonId">(r.id)),
+    conceptGraphId,
+  };
 }

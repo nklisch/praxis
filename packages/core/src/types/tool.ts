@@ -747,6 +747,11 @@ export interface BootstrapService {
   >;
   discardDraft(draftId: string): Promise<void>;
   /**
+   * Active drafts for a specific student, ordered by lastTouchedAt DESC.
+   * Returns drafts that are neither confirmed nor discarded.
+   */
+  listActiveForStudent(studentId: StudentId): readonly DraftCourseState[];
+  /**
    * Phase 10: Create a course directly from an imported canonical pack.
    * Groups concepts into lessons (one per 5-8 sequential concepts) and inserts
    * course + lessons + skeleton gates in a single transaction.
