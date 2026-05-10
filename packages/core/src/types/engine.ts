@@ -88,8 +88,15 @@ export interface EngineSession {
    * internal loop completes for this turn. Subsequent calls continue the same
    * conversation — the adapter's underlying SDK preserves history natively
    * (Claude Code, Codex) or via an in-memory messages array (Direct).
+   *
+   * The optional `signal` allows the caller to abort the in-flight turn.
+   * Adapters wire the signal to their underlying SDK's abort mechanism where
+   * supported. When the signal fires, the adapter should stop emitting events;
+   * `SessionServiceImpl.send` emits a synthetic `{ type: "interrupted" }` event
+   * as the final event so consumers and the episodic log know the turn ended
+   * early.
    */
-  send(userMessage: string): AsyncIterable<EngineEvent>;
+  send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent>;
 
   /**
    * Tear down the underlying SDK session, MCP bridge subprocess, etc.
@@ -201,7 +208,16 @@ export type EngineEvent =
    * narrate per-item feedback. Stored in episodic and surfaced by
    * `loadConversationHistory` as a synthetic user turn prefixed `[Praxis] `.
    */
-  | { type: "system_note"; content: string; origin: SystemNoteOrigin };
+  | { type: "system_note"; content: string; origin: SystemNoteOrigin }
+  /**
+   * Framework-emitted when a user-initiated cancel aborts the in-flight turn.
+   * Yielded as the final event in the generator; persisted to the episodic log
+   * so the transcript reflects that the turn ended early.
+   *
+   * - "user_cancel" — `AbortSignal` from the client was aborted mid-turn.
+   * - "engine_abort" — adapter-level abort without a client-side signal.
+   */
+  | { type: "interrupted"; reason: "user_cancel" | "engine_abort" };
 
 export interface EngineError {
   code: string;

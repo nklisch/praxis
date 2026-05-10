@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-in-flight-affordances-signal
 kind: story
-stage: implementing
+stage: review
 tags: [engine, ipc, tutor-ux]
 parent: epic-bootstrap-readiness-in-flight-affordances
 depends_on: []
@@ -96,3 +96,38 @@ subprocess instead of just breaking the for-await loop.
 - Parent epic: `epic-bootstrap-readiness`
 - Independent from the sibling UI story. Both can land in parallel; the
   feature is whole only when both reach `done`.
+
+## Implementation notes
+
+### Files changed
+
+- `packages/core/src/types/engine.ts` — Added `{ type: "interrupted"; reason: "user_cancel" | "engine_abort" }` to `EngineEvent` union. Extended `EngineSession.send` signature to accept optional `AbortSignal`.
+- `packages/core/src/types/client.ts` — Extended `SessionService.send` interface to include optional `signal?: AbortSignal`.
+- `packages/core/src/services/session-service.ts` — `SessionServiceImpl.send` accepts and threads `AbortSignal` into the engine; defensive `signal?.aborted` check after each yielded event emits and persists a synthetic `interrupted` event, then returns cleanly.
+- `packages/engines/src/claude-code/adapter.ts` — `ClaudeCodeEngineSession.send` accepts `AbortSignal`; registers a one-shot `abort` listener that calls `conv.abort()` and removes itself in the `finally` block; handles pre-aborted signals synchronously.
+- `packages/engines/src/codex/adapter.ts` — Threads `AbortSignal` into `thread.runStreamed(message, { signal })` (Codex SDK `TurnOptions` supports it).
+- `packages/engines/src/direct/adapter.ts` — Threads `AbortSignal` into `streamText({ ..., abortSignal: signal })` (Vercel AI SDK supports it natively).
+- `packages/desktop/electron/main/ipc-server.ts` — Passes `controller.signal` as the third arg to `services.session.send(sessionId, message, controller.signal)`.
+- `packages/ui/src/hooks/episodic-to-messages.ts` — Added `case "interrupted":` (closes active bubble, no-op render; UI sibling story adds the visual indicator).
+
+### Exhaustive-switch sites updated
+
+1 site updated: `episodic-to-messages.ts` — the only switch without a `default` clause covering `EngineEvent`. The two indexer switches (`affective-indexer.ts`, `misconception-indexer.ts`) filter by `relevantTypes` set + `default: continue`, so they already handle unknown types safely. No new case was needed there.
+
+### Tests added
+
+- `packages/core/src/__tests__/session-service-cancel.test.ts` — 5 new tests: signal threading, interrupted event yield + clean return, episodic append, no-interrupted on clean turn, backward-compat no-signal.
+- `packages/engines/src/__tests__/claude-code.test.ts` — 2 new tests: `conv.abort()` called on mid-turn signal fire; `conv.abort()` called immediately on pre-aborted signal.
+
+### Codex/Direct best-effort caveats
+
+- **Codex**: `thread.runStreamed(message, { signal })` passes the signal to the SDK. The Codex SDK honors it on the underlying network request. If the SDK version in use doesn't propagate deep enough, `SessionServiceImpl`'s defensive `signal?.aborted` guard backstops it.
+- **Direct** (Vercel AI SDK `streamText`): `abortSignal` is a first-class parameter; the SDK propagates it to the underlying HTTP stream.
+
+### Verification
+
+- `pnpm typecheck` — only pre-existing `structured-question` errors (separate in-flight story); no new errors from this story's changes.
+- `pnpm --filter @praxis/core test` — 69 test files, 657 tests, all passed.
+- `pnpm --filter @praxis/engines test` — 13 test files, 96 tests, all passed.
+- `pnpm test` — 284 test files (1 skipped), 2425 tests (15 skipped), all passed.
+- `pnpm lint` — no errors in our changed files; pre-existing lint errors in other files unchanged.

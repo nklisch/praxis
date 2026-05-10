@@ -286,6 +286,12 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         // final terminates the turn; error is not surfaced in replay.
         closeBubble();
         break;
+
+      case "interrupted":
+        // interrupted terminates the turn (user cancel); close any open bubble.
+        // The UI sibling story will add a visible cancellation indicator.
+        closeBubble();
+        break;
     }
   }
 

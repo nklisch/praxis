@@ -219,7 +219,7 @@ export interface SessionService {
     assignmentId?: AssignmentId;
     modeId: string;
   }): Promise<SessionHandle>;
-  send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent>;
+  send(sessionId: SessionId, message: string, signal?: AbortSignal): AsyncIterable<EngineEvent>;
   end(sessionId: SessionId): Promise<SessionEndSummary>;
   active(): Promise<SessionHandle | null>;
   /**

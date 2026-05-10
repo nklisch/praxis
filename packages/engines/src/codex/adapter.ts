@@ -125,7 +125,7 @@ class CodexEngineSession implements EngineSession {
     this.seedPreface = init.seedPreface;
   }
 
-  async *send(userMessage: string): AsyncIterable<EngineEvent> {
+  async *send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent> {
     if (this.closed) {
       yield { type: "error", error: engineError("session.closed", "EngineSession is closed") };
       return;
@@ -134,7 +134,12 @@ class CodexEngineSession implements EngineSession {
     const message = this.seedPreface ? `${this.seedPreface}${userMessage}` : userMessage;
     this.seedPreface = "";
 
-    const { events } = await this.thread.runStreamed(message);
+    // Pass the AbortSignal to runStreamed — the Codex SDK's TurnOptions honors
+    // it to cancel the underlying network request. Best-effort: if the SDK
+    // version in use doesn't propagate the signal deep enough to abort a
+    // mid-stream turn, SessionServiceImpl's defensive signal?.aborted check
+    // still stops the generator on the next yielded event.
+    const { events } = await this.thread.runStreamed(message, { signal });
     const state = newMapState();
     const itemIndex = { value: 0 };
     for await (const event of events) {

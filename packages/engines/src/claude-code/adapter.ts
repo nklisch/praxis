@@ -180,7 +180,7 @@ class ClaudeCodeEngineSession implements EngineSession {
     return this.getRealId() ?? this.placeholderId;
   }
 
-  async *send(userMessage: string): AsyncIterable<EngineEvent> {
+  async *send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent> {
     if (this.closed) {
       yield { type: "error", error: engineError("session.closed", "EngineSession is closed") };
       return;
@@ -190,15 +190,37 @@ class ClaudeCodeEngineSession implements EngineSession {
     this.seedPreface = "";
 
     const turn = this.conv.send(message);
-    for await (const event of turn) {
-      const mapped = mapClaudeCodeEvent(event, { serverName: this.serverName });
-      if (mapped) yield mapped;
+
+    // Wire the AbortSignal → conv.abort(). One-shot listener so the handler
+    // fires at most once even if the signal is reused.
+    const onAbort = (): void => {
+      try {
+        this.conv.abort();
+      } catch (err) {
+        this.log.warn("engine.claude-code.abort_failed", { err: serializeError(err) });
+      }
+    };
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+      } else {
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
     }
 
-    // Drain `turn.result` so unhandled rejection isn't logged. The final event
-    // already flowed through the stream above (the SDK guarantees a result
-    // event ends every turn — see TurnResult.resultEvent contract in the SDK).
-    await turn.result.catch(() => {});
+    try {
+      for await (const event of turn) {
+        const mapped = mapClaudeCodeEvent(event, { serverName: this.serverName });
+        if (mapped) yield mapped;
+      }
+
+      // Drain `turn.result` so unhandled rejection isn't logged. The final event
+      // already flowed through the stream above (the SDK guarantees a result
+      // event ends every turn — see TurnResult.resultEvent contract in the SDK).
+      await turn.result.catch(() => {});
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
   }
 
   async close(): Promise<void> {

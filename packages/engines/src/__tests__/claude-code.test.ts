@@ -505,4 +505,108 @@ describe("ClaudeCodeEngine — lifecycle", () => {
     }
     expect(events[0]).toMatchObject({ type: "error", error: { code: "session.closed" } });
   });
+
+  // ── AbortSignal → conv.abort() ─────────────────────────────────────────────
+
+  it("calls conv.abort() when the AbortSignal fires mid-turn", async () => {
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const abortMock = vi.fn(() => {});
+    const controller = new AbortController();
+
+    // Build a conv mock whose send() yields a couple of events then waits.
+    // We'll abort the controller after the first event is consumed.
+    let resolveStream!: () => void;
+    const streamBlocked = new Promise<void>((res) => {
+      resolveStream = res;
+    });
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+
+    async function* blockingStream() {
+      yield { type: "assistant", text: "Thinking...", delta: "Thinking..." };
+      // Park here until the test tells us to proceed (or abort fires).
+      await streamBlocked;
+      yield resultEventObj;
+    }
+
+    const convMock = {
+      sessionId: Promise.resolve("test-session-id"),
+      isOpen: true,
+      send: vi.fn(() => {
+        const iter = blockingStream();
+        return Object.assign(iter, { result: Promise.resolve({ result: "done" }) });
+      }),
+      sendAndCollect: vi.fn(),
+      sendToolResult: vi.fn(),
+      close: vi.fn(async () => {}),
+      abort: abortMock,
+      [Symbol.asyncDispose]: vi.fn(async () => {}),
+    };
+
+    vi.mocked(createConversation).mockReturnValue(convMock as any);
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    // Collect events in the background; abort after the first one arrives.
+    const eventsPromise = (async () => {
+      const collected = [];
+      for await (const ev of session.send("hello", controller.signal)) {
+        collected.push(ev);
+        // Abort after first event — triggers the onAbort listener.
+        controller.abort();
+        // Unblock the stream so it can drain cleanly.
+        resolveStream();
+      }
+      return collected;
+    })();
+
+    await eventsPromise;
+    await session.close();
+
+    expect(abortMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls conv.abort() immediately when signal is already aborted before send", async () => {
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const abortMock = vi.fn(() => {});
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+
+    const convMock = makeConvMock([resultEventObj], resultEventObj);
+    (convMock as unknown as { abort: typeof abortMock }).abort = abortMock;
+    vi.mocked(createConversation).mockReturnValue(convMock);
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    // Pre-abort the controller before calling send.
+    const controller = new AbortController();
+    controller.abort();
+
+    for await (const _ of session.send("hello", controller.signal)) {
+      /* drain */
+    }
+
+    await session.close();
+
+    // conv.abort() must have been called synchronously during send().
+    expect(abortMock).toHaveBeenCalledTimes(1);
+  });
 });

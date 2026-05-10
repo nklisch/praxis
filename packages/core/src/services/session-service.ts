@@ -122,7 +122,11 @@ export class SessionServiceImpl implements SessionService {
     };
   }
 
-  async *send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent> {
+  async *send(
+    sessionId: SessionId,
+    message: string,
+    signal?: AbortSignal,
+  ): AsyncIterable<EngineEvent> {
     const turnIndex = nextTurnIndex(this.deps.db, sessionId);
     const turnLog = this.deps.log.child({
       component: "session-service",
@@ -204,7 +208,7 @@ export class SessionServiceImpl implements SessionService {
     const capturedEntry = entry;
     capturedEntry.turnInFlight = true;
     try {
-      for await (const event of capturedEntry.handle.send(message)) {
+      for await (const event of capturedEntry.handle.send(message, signal)) {
         try {
           appendEpisodic({
             db: this.deps.db,
@@ -223,6 +227,27 @@ export class SessionServiceImpl implements SessionService {
           };
         }
         yield event;
+
+        // Defensive short-circuit: if the signal aborted but the engine didn't
+        // honor it promptly, emit the interrupted event and return cleanly.
+        if (signal?.aborted) {
+          const interrupted: EngineEvent = { type: "interrupted", reason: "user_cancel" };
+          try {
+            appendEpisodic({
+              db: this.deps.db,
+              sessionId,
+              studentId,
+              engineId: capturedEntry.engineId,
+              modeId: mode.id,
+              turnIndex,
+              event: interrupted,
+            });
+          } catch {
+            /* non-fatal: episodic write failure on interrupt is best-effort */
+          }
+          yield interrupted;
+          return;
+        }
       }
     } catch (cause) {
       const errMsg = cause instanceof Error ? cause.message : String(cause);

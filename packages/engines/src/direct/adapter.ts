@@ -88,15 +88,20 @@ class DirectEngineSession implements EngineSession {
     this.messages = init.priorTurns.map((t) => ({ role: t.role, content: t.content }));
   }
 
-  async *send(userMessage: string): AsyncIterable<EngineEvent> {
+  async *send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent> {
     this.messages.push({ role: "user", content: userMessage });
     const model = resolveModel(this.provider, this.config);
+    // The Vercel AI SDK's streamText accepts abortSignal to cancel the
+    // underlying HTTP request mid-stream. Signal is threaded best-effort;
+    // SessionServiceImpl's defensive signal?.aborted check backstops adapters
+    // that can't cancel in-flight.
     const result = streamText({
       model,
       system: this.systemPrompt,
       messages: this.messages,
       tools: toVercelTools(this.tools),
       stopWhen: stepCountIs(this.maxSteps),
+      ...(signal !== undefined && { abortSignal: signal }),
       ...(this.generation?.temperature !== undefined && {
         temperature: this.generation.temperature,
       }),

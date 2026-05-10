@@ -136,7 +136,7 @@ export function registerIpcHandlers(
       streamLog.info("session.send.start", { messageLength: message.length });
       try {
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-        const stream = services.session.send(sessionId as any, message);
+        const stream = services.session.send(sessionId as any, message, controller.signal);
         for await (const event of stream) {
           if (controller.signal.aborted) break;
           eventCount++;
