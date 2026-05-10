@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-coach-mode-impl
 kind: story
-stage: done
+stage: review
 tags: [content]
 parent: epic-phase-18-coach-mode
 depends_on: []

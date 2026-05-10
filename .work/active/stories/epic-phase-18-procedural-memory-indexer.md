@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-procedural-memory-indexer
 kind: story
-stage: done
+stage: review
 tags: [content]
 parent: epic-phase-18-procedural-memory
 depends_on: []
