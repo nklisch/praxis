@@ -112,7 +112,7 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
       // Draft init + metadata.
       draftInitTool,
       draftSetMetadataTool,
-      // Concept + edge mutations (batch — single-item adds removed).
+      // Concept + edge mutations (batch only).
       draftAddConceptsTool,
       draftRemoveConceptTool,
       draftAddEdgesTool,

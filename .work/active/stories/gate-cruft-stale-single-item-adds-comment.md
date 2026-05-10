@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-stale-single-item-adds-comment
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
@@ -45,3 +45,7 @@ Pure comment edit; no code change. Low confidence because it's a
 judgment call — the existing wording could be intentional context for
 someone reading the explorer's tool list to know that single-item adds
 were considered and rejected.
+
+## Implementation notes
+
+Replaced the stale parenthetical in `start-exploration.ts:115` with `// Concept + edge mutations (batch only).` — pure comment edit, no logic touched.
