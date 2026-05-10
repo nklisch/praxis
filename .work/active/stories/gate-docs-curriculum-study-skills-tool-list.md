@@ -1,7 +1,7 @@
 ---
 id: gate-docs-curriculum-study-skills-tool-list
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -46,3 +46,6 @@ concept-graph navigation (`course.what_can_i_teach`), workspace tools
 (4 `quick_check.*` tools). Reference
 `packages/curriculum/src/modes/study-skills.ts` as the canonical list
 (matching the pattern used in the other mode entries).
+
+## Implementation notes
+Replaced the stale "Cornell, Feynman, concept-map editors / scheduling for spaced review" tool description with the exact four tool families from `study-skills.ts`. No concept-map editor tools exist in this mode; FSRS scheduling is internal to flashcard tools, not a surfaced capability.

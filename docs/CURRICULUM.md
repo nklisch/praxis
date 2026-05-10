@@ -106,7 +106,7 @@ Gated assessment. Strict tool subset, no help during the exam.
 The metacognition coach's dedicated mode. Teaches and practices the principles-taught list above.
 
 - Prompt fragments emphasize: explain the technique → demonstrate → have student practice → reflect.
-- Tools: workspace tools (Cornell, Feynman, concept-map editors), pedagogy-pack content retrieval, scheduling for spaced review.
+- Tools: pedagogy-pack reads (`pedagogy.list_strategies`, `pedagogy.get_strategy`, `pedagogy.list_techniques`, `pedagogy.get_technique`, `pedagogy.list_metacognitive_prompts`), concept-graph navigation (`course.what_can_i_teach`), workspace tools (5 `note.*` + 4 `flashcard.*`), inline quick checks (`quick_check.single_choice`, `quick_check.multi_select`, `quick_check.short_answer`, `quick_check.confidence`). See `packages/curriculum/src/modes/study-skills.ts` for the canonical list.
 - Often spans across courses — study skills generalize.
 
 ### `bootstrap`
