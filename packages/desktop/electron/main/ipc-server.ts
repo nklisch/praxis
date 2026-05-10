@@ -190,10 +190,12 @@ export function registerIpcHandlers(
   });
 
   handle("praxis.config.engineConfig", async () => {
+    await requireUnlocked();
     return services.config.engineConfig();
   });
 
   handle("praxis.config.setEngineConfig", async (_event, config: unknown) => {
+    await requireUnlocked();
     // biome-ignore lint/suspicious/noExplicitAny: config shape validated inside service
     return services.config.setEngineConfig(config as any);
   });

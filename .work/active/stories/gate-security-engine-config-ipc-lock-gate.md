@@ -1,7 +1,7 @@
 ---
 id: gate-security-engine-config-ipc-lock-gate
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -51,3 +51,19 @@ Alternatively, return a redacted snapshot from `engineConfig()`
 `praxis.config.engineConfig.withSecret` channel that requires unlock. This
 is the same pattern most desktop apps use: read of secret-bearing config
 requires re-auth.
+
+## Implementation notes
+
+Added `await requireUnlocked()` as the first statement in both the
+`praxis.config.engineConfig` and `praxis.config.setEngineConfig` handlers
+in `packages/desktop/electron/main/ipc-server.ts:192-199`, mirroring the
+`praxis.author.*` pattern exactly. Typecheck passes with no new errors.
+
+No new tests added: `ipc-server.ts` is wired up as a large integration unit
+(it takes live `Services` / `BrowserWindow` / etc.) and there is no existing
+test harness for the config IPC handlers — the unit tests in
+`packages/desktop/electron/main/__tests__/` cover only `ipc-helpers.ts`,
+`log-channel.ts`, and `logger.ts`. The correct pattern (testing `requireUnlocked`
+gate behaviour) would need a mock-services integration fixture similar to the
+`praxis.author.*` coverage, which is out of scope for this security story. A
+follow-up story should add that fixture.
