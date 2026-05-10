@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-pedagogy-pack-service
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-pedagogy-pack
 depends_on: []
@@ -524,3 +524,26 @@ working `PedagogyPackService` to consume. The service is empty-mode
 today; once `epic-phase-18-pedagogy-pack-v1-content` lands, accessors
 will return real strategies / techniques / prompts without further
 service-layer changes.
+
+## Re-review (2026-05-10)
+
+**Verdict**: Approve
+
+User reopened phase 18 items (done → review) to re-run reviews. Fresh pass
+through the implementation:
+
+- `pnpm --filter @praxis/curriculum test`: 323 tests / 25 files — green.
+- `pnpm --filter @praxis/tools test`: 439 passed / 14 skipped — green.
+- `pnpm typecheck`: clean across all 10 packages.
+- Re-walked schema, service impl, and all 5 tool definitions. Empty-pack
+  fallback still operates correctly; `superRefine` uniqueness checks
+  cover strategy / technique / prompt ids; 5 tools dispatch through the
+  registry with consistent `kind: "not_found"` shape.
+- No new blockers or important findings. The 4 nits identified in the
+  first review (dead biome-ignore at line 125, ENOTDIR vs ENOENT in
+  empty-mode test path at line 156, inline `import("...").StrategyId`
+  type syntax in `get-strategy.ts:43` and `helpers.ts`, concrete impl
+  vs interface typing in `desktop/.../services.ts:151`) all persist —
+  intentional since they were nit-tier and not parked as items.
+
+Approved on the same grounds as the first review; advancing to done.
