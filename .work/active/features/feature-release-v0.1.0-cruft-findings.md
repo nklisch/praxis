@@ -1,7 +1,7 @@
 ---
 id: feature-release-v0.1.0-cruft-findings
 kind: feature
-stage: review
+stage: done
 tags: [cleanup]
 parent: epic-release-v0.1.0-readiness
 depends_on: []
@@ -92,3 +92,9 @@ feature's advancement.
 `pnpm typecheck && pnpm lint && pnpm test` clean. Pre-existing 18 lint
 errors in `claude-cli-sdk` and end-to-end tests are unchanged (none
 introduced by this work).
+
+## Review (2026-05-10)
+
+Approve. All 6 active children reviewed and advanced to `done`. The batch is entirely mechanical Biome-detected fixes — unused imports, dead state variables, misplaced/unused lint suppressions — each a 1-3 line edit in a different file with no cross-cutting risk. Every diff was applied cleanly with no orphan blank lines or broken surroundings.
+
+The one documented deviation (`SketchId` import retention in `gate-cruft-dead-pending-sketch-id-state`) is confirmed correct: `SketchId` is still used at `chat-tab-body.tsx:145` as the parameter type for `handleSendWithSketch`. No findings across the batch.
