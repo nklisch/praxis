@@ -1,7 +1,7 @@
 ---
 id: feature-release-v0.1.0-test-findings
 kind: feature
-stage: review
+stage: done
 tags: [testing]
 parent: epic-release-v0.1.0-readiness
 depends_on: []
@@ -87,3 +87,23 @@ do not block this feature's advancement.
 
 12 new tests added across this feature + the sibling security/cruft work
 (2365 → 2377 passing). Typecheck clean across all 10 workspace packages.
+
+## Review (2026-05-10)
+
+Approve. All 3 active children reviewed and approved individually. The
+3 changes close the full High+Medium finding set from the test-quality
+gate:
+
+- `onboarding-config-persistence`: new file in the correct package,
+  isolated DB tests, all 4 spec partitions covered.
+- `metacognitive-prompts-exclusion-assertions`: appended to the
+  existing integration test file, uses live mode imports, covers all 3
+  required excluded modes.
+- `onboarding-skip-coverage`: appended to the existing onboarding flow
+  test, correct async hygiene, all 3 skip partitions now asserted.
+
+Tests integrate cleanly into existing infrastructure (`useTempDb`,
+`makeFakeClient`, existing `it.each` patterns in the curriculum suite).
+No cross-file conflicts; 2377 passing confirmed by sub-agent. 5 Low
+backlog items remain bound to v0.1.0 for traceability — they do not
+block this feature's done status.
