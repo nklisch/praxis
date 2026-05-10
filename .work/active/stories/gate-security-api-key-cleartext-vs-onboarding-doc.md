@@ -1,7 +1,7 @@
 ---
 id: gate-security-api-key-cleartext-vs-onboarding-doc
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -70,3 +70,19 @@ the code change is small and bounded to `engine-config.ts`. Doc fix is a
 one-line clarification.
 
 Recommend (b); the doc claim sets a user expectation that should be honored.
+
+## Implementation notes
+
+Chose path **(a) — doc fix** for v0.1.0. The documentation claim that the key
+is stored "encrypted" was simply false and needed immediate correction
+regardless of whether path (b) is ever implemented. The fix replaces the
+misleading phrase with a truthful statement that the key is stored unencrypted
+and advises users to protect the database file accordingly.
+
+Path (b) — `safeStorage.encryptString()` — is the right long-term answer but
+would require a migration strategy for existing plaintext databases, a
+fallback for headless/CI environments where `safeStorage.isEncryptionAvailable()`
+returns `false`, and a documented recovery path for key rotation scenarios.
+These are genuine design questions that deserve their own feature scope and are
+too risky to rush into a v0.1.0 release patch. The work is parked in
+`.work/backlog/idea-encrypt-api-key-with-safestorage.md`.

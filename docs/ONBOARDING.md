@@ -64,7 +64,8 @@ Pick the model engine you'll use:
 
 - **Direct — Anthropic (Claude)** / **Direct — OpenAI (GPT)** /
   **Direct — Google (Gemini)**: enter your API key. The key is stored
-  encrypted in the local `config_kv` table; it never leaves your
+  unencrypted in the local SQLite database (`config_kv` table) — protect
+  that file as you would any password file; it never leaves your
   machine except in API requests to the chosen provider.
 - **Claude Code**: no API key needed — Praxis uses your existing
   Claude Code CLI authentication. If you haven't authenticated the
