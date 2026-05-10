@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-stale-single-item-adds-comment
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
@@ -49,3 +49,7 @@ were considered and rejected.
 ## Implementation notes
 
 Replaced the stale parenthetical in `start-exploration.ts:115` with `// Concept + edge mutations (batch only).` — pure comment edit, no logic touched.
+
+## Review (2026-05-10)
+
+**Verdict: Approve.** Comment reads cleanly; removes the misleading historical reference without losing the "batch only" signal a reader needs. No logic touched.
