@@ -1,7 +1,7 @@
 ---
 id: story-bootstrap-prompt-no-inline-outline
 kind: story
-stage: implementing
+stage: review
 tags: [bootstrap, prompts, tutor-ux]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -70,6 +70,26 @@ behaviour-code changes.
   landing after `expressive-draft-api` if chunked-query ops change what
   the agent should narrate, but it's worth landing now regardless to fix
   the current trap.
+
+## Implementation notes
+
+### Files changed
+
+- `packages/curriculum/src/modes/fragments/bootstrap-tools.ts` — added two new workflow rules after the existing `course.show_draft` call rules:
+  - "After course.show_draft or course.start_exploration, the structured outline appears in the right-side panel automatically. Do NOT re-narrate the outline in chat — instead, summarise it in one sentence (e.g., '8 units, 26 lessons — outline is on the right') and ask what to do next."
+  - "Keep chat for decisions, questions, and short next-step nudges. The outline panel is the canonical view of the course structure; do not reproduce it in text."
+
+- `packages/curriculum/src/modes/fragments/bootstrap-role.ts` — appended a `Chat discipline:` paragraph at the end of the template reinforcing the same restraint: "Never reproduce the outline unit-by-unit or lesson-by-lesson in chat. A brief one-sentence shape summary ('8 units, 26 lessons — see the outline on the right') followed by a concrete next-step question is the correct response pattern."
+
+- `packages/curriculum/src/modes/fragments/configure-tools.ts` — configure mode has its own tools fragment (it does NOT reuse `bootstrapToolsFragment`). Added the same two outline-panel rules to its `Workflow rules` section. The `After course.show_draft` rule that previously said "offer to confirm or keep editing" was replaced with the panel-reference rule (confirm/keep-editing guidance is already embedded in the role fragment).
+
+- `packages/curriculum/src/modes/fragments/__tests__/bootstrap-no-inline-outline.test.ts` — new snapshot test (11 assertions) verifying the key phrases are present in all three fragments.
+
+### Verification
+
+- `pnpm --filter @praxis/curriculum test`: 358 tests passed (27 test files), including the 11 new assertions.
+- `pnpm typecheck`: clean across all packages.
+- `pnpm lint`: pre-existing errors in `packages/claude-cli-sdk` and `tests/` only — zero errors in any file touched by this story.
 
 ## Originating backlog
 - `idea-bootstrap-prompt-no-inline-outline` — consumed by this story;

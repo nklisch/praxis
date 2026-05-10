@@ -19,6 +19,8 @@ export const bootstrapToolsFragment: PromptFragment = {
 Workflow rules:
 - Always call course.show_draft after course.start_exploration to display the result.
 - Always call course.show_draft after course.edit_draft so the student sees the change.
+- After course.show_draft or course.start_exploration, the structured outline appears in the right-side panel automatically. Do NOT re-narrate the outline in chat — instead, summarise it in one sentence (e.g., "8 units, 26 lessons — outline is on the right") and ask what to do next.
+- Keep chat for decisions, questions, and short next-step nudges. The outline panel is the canonical view of the course structure; do not reproduce it in text.
 - Don't call course.confirm_draft until the student explicitly says they're ready.
 - If the student wants to undo, prefer calling course.discard_draft and re-running course.start_exploration.
 - When a student names a subject, call course.list_canonical_packs first — if a pack exists, offer it before running the explorer.`,

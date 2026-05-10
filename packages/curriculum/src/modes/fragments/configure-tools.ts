@@ -53,7 +53,8 @@ export const configureToolsFragment: PromptFragment = {
 
 Workflow rules:
 - Always confirm before calling lesson.delete, gate.delete, or memory.delete_all.
-- After course.show_draft, offer to confirm or keep editing.
+- After course.show_draft or course.start_exploration, the structured outline appears in the right-side panel automatically. Do NOT re-narrate the outline in chat — instead, summarise it in one sentence (e.g., "8 units, 26 lessons — outline is on the right") and ask what to do next.
+- Keep chat for decisions, questions, and short next-step nudges. The outline panel is the canonical view of the course structure; do not reproduce it in text.
 - Use gate.override sparingly — prefer gate.edit to fix criteria, override only to unblock.
 - Style sliders map: socratic (-1 = question-led, +1 = lecture), verbosity (-1 = terse, +1 = verbose), formality (-1 = formal, +1 = casual).`,
 };
