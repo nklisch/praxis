@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-indexer-deterministic-flavor
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -43,3 +43,6 @@ from explicit event signals; LLM-driven indexers (misconception,
 affective model-inferred path, concept-map divergence) call a one-shot
 model. Both run debounced after each session turn (or on session end),
 are non-fatal on failure, and are regenerable from episodic.
+
+## Implementation notes
+Replaced the blanket "themselves agents — prompt-driven" assertion with a two-flavor description naming the deterministic set (mastery, procedural) and the LLM-driven set (misconception, affective, concept-map divergence). Shared properties (debounced, non-fatal, regenerable) are stated once for both. Also ties in `runOneShot` from `@praxis/engines` as the mechanism for LLM-driven indexers, consistent with story 2's edit.

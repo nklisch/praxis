@@ -284,7 +284,7 @@ Five layers over an immutable episodic log.
 
 **Misconception** is an explicit list of wrong mental models the student has shown, each tagged with the concept it attaches to, the form of the error, evidence pointers, and a remediation strategy. The most actionable layer.
 
-**Indexer agents** are themselves agents — small, narrow-purpose, prompt-driven — that read recent episodic events and write projection updates. They run debounced after each session turn (or on session end for expensive ones). Failures are logged; projections continue from last known good state. Projections are regenerable from episodic, so an indexer bug is recoverable.
+**Indexers** come in two flavors. Deterministic indexers (mastery, procedural) compute projection updates directly from explicit event signals — no LLM call. LLM-driven indexers (misconception, affective model-inferred path, concept-map divergence) call `runOneShot` from `@praxis/engines` to infer a projection update from recent episodic events. Both flavors run debounced after each session turn (or on session end), are non-fatal on failure, and are regenerable from episodic, so an indexer bug is recoverable.
 
 ## Tool dispatch architecture
 
