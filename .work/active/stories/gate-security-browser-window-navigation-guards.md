@@ -1,7 +1,7 @@
 ---
 id: gate-security-browser-window-navigation-guards
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -65,3 +65,15 @@ win.webContents.setWindowOpenHandler(({ url }) => {
 
 Both should refuse anything that isn't the bundled `app://` / `file://`
 renderer URL.
+
+## Implementation notes
+
+Added `shell` to the `electron` import in `window.ts`. After `loadURL`/`loadFile`,
+installed both guards: `will-navigate` computes `appOrigin` from
+`ELECTRON_RENDERER_URL` (dev) or falls back to `"file://"` (prod), and prevents
+navigation to any URL that doesn't start with the app origin or `file://`.
+`setWindowOpenHandler` denies all popups; http/https links are forwarded to
+`shell.openExternal` (matching the existing `praxis.shell.openExternal` http/https
+filter in ipc-server.ts). Non-http(s) URLs are silently dropped — no external
+handler invoked. Typecheck passes; pre-existing test suite failures are a
+better-sqlite3 ABI mismatch unrelated to this change.

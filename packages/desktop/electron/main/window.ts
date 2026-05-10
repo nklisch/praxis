@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BrowserWindow } from "electron";
+import { BrowserWindow, shell } from "electron";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -28,6 +28,29 @@ export function createMainWindow(): BrowserWindow {
   } else {
     win.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  // Security: refuse renderer-initiated navigation away from the app origin.
+  // A hypothetical XSS or programmatic navigation could otherwise load a
+  // remote origin into the same webContents that has `window.praxis` exposed.
+  const appOrigin = process.env["ELECTRON_RENDERER_URL"] ?? "file://";
+  const isAppOrigin = (url: string): boolean =>
+    url.startsWith(appOrigin) || url.startsWith("file://");
+
+  win.webContents.on("will-navigate", (e, url) => {
+    if (!isAppOrigin(url)) {
+      e.preventDefault();
+    }
+  });
+
+  // Security: block window.open and forward to shell.openExternal (which
+  // already limits to http/https in ipc-server.ts). All popups are denied
+  // at the Electron level; external links open in the system browser.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) {
+      void shell.openExternal(url);
+    }
+    return { action: "deny" };
+  });
 
   return win;
 }
