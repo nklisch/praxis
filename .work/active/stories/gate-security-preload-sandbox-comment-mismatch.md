@@ -1,7 +1,7 @@
 ---
 id: gate-security-preload-sandbox-comment-mismatch
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -62,3 +62,7 @@ present in `window.ts` (ESM preload constraint). No logic changed — comment
 only. Path (b) (CJS migration) would require changing the electron-vite build
 config and is a larger, separate concern. The actual security properties of the
 window are unchanged and correctly documented in `window.ts:16-19`.
+
+## Review (2026-05-10)
+
+**Verdict: Approve.** Comment now accurately states `sandbox: false` with the ESM constraint explanation, matching the authoritative comment already in `window.ts`. No logic change. Path (b) (CJS migration) is correctly deferred.
