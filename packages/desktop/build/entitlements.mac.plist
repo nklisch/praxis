@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- V8 JIT in the renderer. -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+
+  <!-- QuickJS WASM and JIT in some native modules need this. -->
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+
+  <!-- Native modules (better-sqlite3, canvas, sqlite-vec, onnxruntime-node)
+       come from electron-rebuild and are not Apple-signed; without this
+       entitlement, dlopen rejects them under hardened runtime. -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+
+  <!-- Lets Electron pass DYLD_* env vars to child processes; commonly
+       included in Electron entitlements baselines. -->
+  <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+  <true/>
+
+  <!-- Outbound network: engine APIs, retrieve_from_textbook, model fetch. -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+
+  <!-- Inbound network: local IPC, dev server, future hosted-mode. -->
+  <key>com.apple.security.network.server</key>
+  <true/>
+
+  <!-- Document ingestion via file picker. -->
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+</dict>
+</plist>

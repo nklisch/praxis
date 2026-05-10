@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-electron-signing
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-phase-19-ship-v1
 depends_on: []
@@ -474,3 +474,41 @@ ship-checklist exercises.)
 Single feature, single stride. The five units are tightly coupled (each
 references the others' paths) and can be implemented in one pass. No
 parallelisation upside; no multi-session resume needed.
+
+## Implementation notes
+
+- **Files changed**:
+  - `packages/desktop/build/entitlements.mac.plist` (new) — Unit 1.
+  - `packages/desktop/package.json` (`build.mac` block expanded) — Unit 2.
+  - `packages/desktop/scripts/build-dist.sh` (resign step replaced;
+    notarise + staple steps added) — Unit 3.
+  - `docs/CODE-SIGNING.md` (new) — Unit 4.
+  - `README.md` ("Build a distributable" notes updated) — Unit 5.
+- **Tests added**: none. Per design's "Testing" section, no automated
+  test surface here pays for itself; the existing test suite acts as a
+  regression check (2235 passing before and after this change).
+- **Discrepancies from design**: none. All five units land as designed,
+  with the same env-var contract and step numbering (8/11 ... 11/11).
+- **Adjacent issues parked**: none.
+- **Verification on this host (Linux)**:
+  - `package.json` parses as valid JSON.
+  - `bash -n packages/desktop/scripts/build-dist.sh` reports clean
+    syntax.
+  - Plist sanity check via Node script confirms balanced `<dict>` /
+    `<key>` / `<true/>` counts.
+  - `pnpm typecheck` green; `pnpm test` shows 2235 passed (same as
+    pre-change baseline).
+- **Verification deferred to a macOS host (ship-checklist)**:
+  - `pnpm --filter @praxis/desktop dist:dir` produces a working
+    unsigned `.app` (the design's regression-check acceptance
+    criterion). Cannot run on Linux because the mac-specific resign
+    block in `build-dist.sh` is gated on finding `Praxis.app` and
+    that path is only produced by `dist:mac` / `dist:dir` on macOS.
+  - `plutil -lint` of the entitlements plist (Apple-only utility).
+  - Full signed-build smoke: `MAC_SIGNING_IDENTITY=...` + Apple creds
+    + `pnpm --filter @praxis/desktop dist:mac`. Requires real cert.
+- **No code changes outside `packages/desktop/{build,scripts}/` and the
+  three docs files** — no service, IPC, UI, or DB changes.
+- **Production env-var contract**: `MAC_SIGNING_IDENTITY` (signing only),
+  plus `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID` for
+  notarisation. All four are read-only by the script; none are persisted.

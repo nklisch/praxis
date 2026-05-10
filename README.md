@@ -104,7 +104,7 @@ pnpm --filter @praxis/desktop dist:dir
 ```
 
 Notes:
-- Builds are unsigned. macOS first-run requires right-click → Open to bypass Gatekeeper; Windows shows a SmartScreen warning until reputation builds. See `docs/refactors/` for code-signing rollout notes.
+- Builds are unsigned by default. The macOS pipeline can produce signed + notarised installers when the maintainer exports the right environment variables — see `docs/CODE-SIGNING.md`. Without those env vars, the script falls back to ad-hoc signing: macOS first-run requires right-click → Open to bypass Gatekeeper, and Windows shows a SmartScreen warning until reputation builds.
 - Cross-compile is limited: native modules must rebuild on the target OS. Build macOS artifacts on macOS, Windows on Windows, etc.
 - Output lands at `packages/desktop/release/` (gitignored).
 

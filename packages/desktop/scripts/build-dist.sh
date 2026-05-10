@@ -93,7 +93,7 @@ cd "$DEPLOY_DIR"
 # macOS / dir builds: post-process the asar and resign.
 APP_PATH="$(find "$DEPLOY_DIR/release" -maxdepth 3 -name 'Praxis.app' -type d 2>/dev/null | head -1)"
 if [ -n "$APP_PATH" ]; then
-  echo "==> [8/8] Fix @praxis path mangling in asar + resign"
+  echo "==> [8/11] Fix @praxis path mangling in asar"
   ASAR_PATH="$APP_PATH/Contents/Resources/app.asar"
   STAGING="$DEPLOY_DIR/.asar-staging"
   rm -rf "$STAGING"
@@ -123,7 +123,48 @@ if [ -n "$APP_PATH" ]; then
     --unpack-dir "{**/node_modules/better-sqlite3,**/node_modules/canvas,**/node_modules/sqlite-vec,**/node_modules/sqlite-vec-*,**/node_modules/@img/sharp-*,**/node_modules/sharp,**/node_modules/onnxruntime-node,**/node_modules/onnxruntime-common}"
   rm -rf "$STAGING"
 
-  codesign --force --deep --sign - "$APP_PATH"
+  # Sign the .app. With env-driven creds we use the production identity
+  # plus hardened runtime + entitlements; without them we fall back to
+  # ad-hoc (the local-dev path that's worked since the script existed).
+  SIGN_IDENTITY="${MAC_SIGNING_IDENTITY:-}"
+  ENTITLEMENTS="$DESKTOP_DIR/build/entitlements.mac.plist"
+
+  echo "==> [9/11] Sign .app"
+  if [ -n "$SIGN_IDENTITY" ] && [ -f "$ENTITLEMENTS" ]; then
+    echo "    identity: $SIGN_IDENTITY (hardened runtime + entitlements)"
+    codesign --force --deep \
+      --sign "$SIGN_IDENTITY" \
+      --options runtime \
+      --entitlements "$ENTITLEMENTS" \
+      --timestamp \
+      "$APP_PATH"
+  else
+    echo "    no MAC_SIGNING_IDENTITY set — using ad-hoc signature (unsigned local build)"
+    codesign --force --deep --sign - "$APP_PATH"
+  fi
+
+  # If a .dmg exists and we have a real identity, rebuild it from the
+  # (now-modified) .app — the original .dmg embeds the pre-fixup .app
+  # whose signature is now stale. Then notarise + staple.
+  DMG_PATH="$(find "$DEPLOY_DIR/release" -maxdepth 2 -name '*.dmg' 2>/dev/null | head -1)"
+  if [ -n "$SIGN_IDENTITY" ] && [ -n "$DMG_PATH" ]; then
+    echo "==> [10/11] Rebuild .dmg from signed .app and sign it"
+    rm -f "$DMG_PATH"
+    hdiutil create -volname "Praxis" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_PATH"
+    codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG_PATH"
+
+    if [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ]; then
+      echo "==> [11/11] Submit to Apple notary (this can take 5-15 minutes) and staple"
+      xcrun notarytool submit "$DMG_PATH" \
+        --apple-id "$APPLE_ID" \
+        --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+        --team-id "$APPLE_TEAM_ID" \
+        --wait
+      xcrun stapler staple "$DMG_PATH"
+    else
+      echo "==> [11/11] Skipping notarisation — APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID not all set"
+    fi
+  fi
 fi
 
 # Mirror artifacts into the desktop package's release/ for tooling that expects them there.
