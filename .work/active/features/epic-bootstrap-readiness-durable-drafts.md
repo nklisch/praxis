@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness-durable-drafts
 kind: feature
-stage: implementing
+stage: review
 tags: [bootstrap, persistence]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -425,6 +425,21 @@ tests) + `story-epic-bootstrap-readiness-durable-drafts-integration`
 ### Integration: existing `bootstrap-service.test.ts`
 - All existing tests pass unchanged. The temp-DB fixture they already
   use makes the durable swap transparent.
+
+## Implementation run summary (2026-05-10)
+
+Both child stories landed at `stage: review`. Build, typecheck, and full test
+suite green (2498 tests).
+
+- `story-epic-bootstrap-readiness-durable-drafts-store` — schema + migration
+  (`drizzle/0012_odd_rumiko_fujikawa.sql`) + `DraftStore` port + `SqliteDraftStore`
+  adapter + 13 store tests. Caller-supplies-lastTouchedAt deviation from design
+  noted in the story body.
+- `story-epic-bootstrap-readiness-durable-drafts-integration` — `BootstrapServiceImpl`
+  Map-to-store swap on every mutator; atomic confirm via `persistDraftTx` inside
+  the existing transaction; `DRAFT_STALE_MS = 7d`; `listActiveForStudent`; 8 new
+  durability tests; 665 core tests green. `persistDraft` wrapper removed in favor
+  of `persistDraftTx` only (deviation noted).
 
 ## Risks
 

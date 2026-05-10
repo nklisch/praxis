@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness-in-flight-affordances
 kind: feature
-stage: implementing
+stage: review
 tags: [tutor-ux, chat]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -603,3 +603,27 @@ half a feature, not a broken one.
   still hit. Probably fine (the transcript records a yielded event),
   but verify the test that the post-abort state is internally
   consistent.
+
+## Implementation run summary (2026-05-10)
+
+Both child stories landed at `stage: review`. Build, typecheck, and full test
+suite green (2498 tests).
+
+- `story-epic-bootstrap-readiness-in-flight-affordances-signal` — added
+  `{ type: "interrupted"; reason: "user_cancel" | "engine_abort" }` to
+  `EngineEvent`; threaded optional `AbortSignal` through
+  `SessionService.send` → `EngineSession.send` → `conv.abort()` in the
+  Claude Code adapter; Codex + Direct adapters honor the signal natively;
+  IPC server passes `controller.signal` through. Only one switch site
+  needed a new case (`packages/ui/src/hooks/episodic-to-messages.ts`);
+  indexer switches were already default-safe. 7 new tests.
+- `story-epic-bootstrap-readiness-in-flight-affordances-ui` — `useStreamedSend`
+  gained `thinking: boolean` and `cancel: () => void`; new
+  `<ThinkingIndicator />` component; chat-tab-body renders the indicator
+  + Stop button + Esc keybinding; `interrupted` event closes the active
+  bubble and appends a `cancel-marker` item. 18 new tests.
+
+Combined effect: a real cancel now stops the engine subprocess via
+`conv.abort()`, the chat surfaces both the pending state (thinking dots)
+and the cancel affordance (button + Esc), and the episodic log records
+the interruption cleanly.

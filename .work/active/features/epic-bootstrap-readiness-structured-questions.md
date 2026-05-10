@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness-structured-questions
 kind: feature
-stage: implementing
+stage: review
 tags: [bootstrap, tutor-ux, tools]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -633,3 +633,26 @@ When this feature lands, update:
 - `docs/SPEC.md:111` — no change needed; the section already
   anticipates "multi-step approval flows, disambiguation prompts" and
   this tool slots in.
+
+## Implementation run summary (2026-05-10)
+
+Both child stories landed at `stage: review`. Build, typecheck, and full test
+suite green (2498 tests).
+
+- `story-epic-bootstrap-readiness-structured-questions-tool` — added
+  `StructuredQuestionItem` to `AssignmentItem`; `structured-question`
+  variant to `QuickCheckAnswer`; new `ask_student_question` tool at
+  `packages/tools/src/dialog/`; bootstrap + configure modes register
+  the tool; bootstrap-tools prompt fragment documents it; exhaustive
+  switch sites updated (graders/registry, approach-feedback, rubric-agent,
+  assignment-service, two UI cards). 22 new tests.
+- `story-epic-bootstrap-readiness-structured-questions-ui` — new
+  `<StructuredQuestionCard />` component with fieldset-per-question,
+  single/multi-select toggle logic, gating-aware Submit; chat-tab-body
+  switches `structured-question` items to the new card while other
+  quick-check kinds continue through `<QuickCheckCard />`. 19 new tests.
+
+Combined effect: the tutor can call `ask_student_question` to surface a
+structured decision card, the student picks, and the answer round-trips
+to the model via the existing `QuickCheckService` blocking-dispatch
+pipeline.
