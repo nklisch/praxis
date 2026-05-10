@@ -9,18 +9,22 @@ Different modes have different capabilities: `exam` mode excludes `model-derived
 ## Examples
 
 ### Example 1: `teach` mode declares its tools
-**File**: `packages/curriculum/src/modes/teach.ts:9`
+**File**: `packages/curriculum/src/modes/teach.ts:12`
 ```typescript
 export const teachMode: Mode = {
   id: "teach",
-  toolNames: ["grade_math", "code_sandbox"],  // only these tools visible to the agent
-  promptFragments: [preambleFragment, roleFragment, principlesFragment, toolsFragment, constraintsFragment, postambleFragment],
+  toolNames: [
+    "grade_math", "code_sandbox", "retrieve_from_textbook",
+    // ... 24-entry list — see packages/curriculum/src/modes/teach.ts:31 for the full set
+    "pedagogy.list_metacognitive_prompts",
+  ],
+  promptFragments: [...],
   // ...
 };
 ```
 
 ### Example 2: `SessionServiceImpl.openActive` — filtering and registry construction
-**File**: `packages/core/src/services/session-service.ts:247`
+**File**: `packages/core/src/services/session-service.ts:680`
 ```typescript
 const enabledNames = new Set(args.mode.toolNames);
 const enabledTools =
@@ -33,12 +37,11 @@ const handle = await engine.open({ systemPrompt, tools, ... });
 ```
 
 ### Example 3: Tool definitions registered in `buildServices`
-**File**: `packages/desktop/electron/main/services.ts:31`
+**File**: `packages/desktop/electron/main/services.ts:472`
 ```typescript
-const toolDefinitions = [gradeMathTool, codeSandboxTool];
-// teachMode.toolNames = ["grade_math", "code_sandbox"]
-// → both are registered when openActive runs for a teach session
-// Future modes may have subsets of this list
+const toolDefinitions = [gradeMathTool, codeSandboxTool, retrieveFromTextbookTool, ...COURSE_TOOLS, ...DOCUMENT_TOOLS, ...MEMORY_TOOLS, ...ASSIGNMENT_TUTOR_TOOLS, /* ... */];
+// All registered tool definitions are filtered by each mode's toolNames at session open.
+// See teach.ts:31 for the full 24-entry toolNames list.
 ```
 
 ### Example 4: `exam` mode — minimal tool set (Phase 16 canonical example)

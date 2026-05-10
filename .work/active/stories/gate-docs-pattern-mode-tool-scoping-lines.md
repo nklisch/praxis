@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-mode-tool-scoping-lines
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -44,3 +44,6 @@ that no longer reflects reality.
   24-entry list") or trim to a representative slice with an ellipsis
   (e.g., `["grade_math", "code_sandbox", "retrieve_from_textbook", ..., "pedagogy.list_metacognitive_prompts"]`
   plus a note to read the file).
+
+## Implementation notes
+Updated three line citations: teach.ts:9 → :12, session-service.ts:247 → :680, services.ts:31 → :472 — all verified against current source. Replaced the stub `toolNames: ["grade_math", "code_sandbox"]` snippet with a representative ellipsis form pointing readers to teach.ts:31 for the full 24-entry list. Updated the services.ts Example 3 snippet to show the actual spread-based toolDefinitions array with a comment linking to teach.ts.
