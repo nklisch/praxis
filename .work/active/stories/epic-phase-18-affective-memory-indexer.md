@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-affective-memory-indexer
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-affective-memory
 depends_on: []
@@ -318,3 +318,55 @@ mocked at the `runOneShot` level (use `vi.mock("@praxis/engines", ...)`).
 - `pnpm typecheck`: clean (all 10 workspace packages pass)
 - `pnpm lint`: 4 errors (7 baseline → 4 after lint:fix on new files)
 - `pnpm --filter @praxis/core test`: 581 tests pass, 0 failures (62 test files)
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+**Nits** (in conversation only):
+- `affective-indexer.ts:142-146` casts `event.result` to a hand-written
+  union `{ ok: true; value: { rating: number }; tier: string } | { ok: false } | undefined`
+  rather than the actual `ToolResult` union from `@praxis/core/types`.
+  Tightening to the real union would catch shape drift if `ToolResult`
+  evolves. Pragmatic for now.
+- `MemoryService.affective()` runs two sequential queries against
+  `affectiveSamples` (one for `recent[20]`, one for `baseline[50]`).
+  Since `baseline_window ≥ recent_limit`, one query for the larger set
+  and an in-memory slice would halve the round-trips. Mild overhead at
+  ≤50 rows; not worth chasing today.
+- `event.toolName === "quick_check.confidence"` literal at line 127
+  could go through the existing `CONFIDENCE_TOOL_NAME` constant defined
+  at line 30 (currently unused — minor cleanup).
+
+**Notes**:
+- Verified at HEAD (`24eda41`): `pnpm typecheck` clean; `pnpm --filter
+  @praxis/core test` 581 passed (62 files); `pnpm lint` 4 errors
+  (unchanged baseline).
+- Implementation mirrors `MisconceptionIndexer` faithfully — same
+  schedule, same `runOneShot` shape, same `parseOutput` flow with Zod.
+  The only structural addition is the explicit-checkin extraction
+  loop, which sits cleanly alongside the model-inference path and
+  shares the transaction.
+- Test surface covers every design-enumerated case: empty/tiny
+  session, explicit-only, transcript-only, model failure, mixed
+  paths, out-of-range model output, abandoned check-ins (rating=0).
+  Uses `useTempDb()` for real SQLite isolation; mocks `runOneShot`
+  at module level.
+- Reject-don't-clamp policy is correctly implemented: an `engagement:
+  1.5` model output trips the Zod schema's `.max(1)` and the indexer
+  drops the inferred sample (still writes any explicit check-ins from
+  the same pass).
+- `parseAffectiveOutput` handles both fenced ```json blocks and
+  free-form `{...}` JSON. Robust to small format slips from the model.
+- Read-path empty-state returns `{0.5, 0.5, 0.5}` — same as the prior
+  Phase 14 stub. Existing callers see no behavior change.
+
+What's now possible: every `affective()` call returns real data;
+`quick_check.confidence` ratings flow into the affective table after
+session-end; per-session model-inferred engagement / frustration /
+confidence land via the LLM one-shot. The
+`epic-phase-18-routing-integration` feature can now consume the
+projection — once procedural-memory also lands.
