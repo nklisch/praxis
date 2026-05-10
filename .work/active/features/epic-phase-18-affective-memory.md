@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-affective-memory
 kind: feature
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: []
@@ -152,3 +152,42 @@ One child story:
   the explicit-checkin path (which doesn't depend on the model) remains
   intact. If reject rates climb in dev, tighten the prompt before
   switching to clamping.
+
+## Implementation summary (2026-05-10)
+
+Single child story landed at `stage: review`:
+
+- `epic-phase-18-affective-memory-indexer` (`4abc318`) — `AffectiveIndexer`
+  + `affective-prompt` + real `MemoryService.affective()` + services-wiring
+  + tests. 17 indexer tests across 6 describe blocks, 8 read-path tests,
+  all green.
+
+Cross-cutting deviations:
+- Story design's pseudocode for the explicit-checkin extraction had to be
+  adjusted: `ToolResult` type requires a `tier` field that wasn't in the
+  pseudocode; the implementing agent threaded it through both production
+  code and test fixtures.
+- Test isolation: agent added `beforeEach(() => mockRunOneShot.mockReset())`
+  to prevent vi mock call-count leakage across the indexer test file.
+
+Verification at `4abc318`:
+- `pnpm typecheck` clean (all 10 packages)
+- `pnpm --filter @praxis/core test`: 581 tests passing, 0 failures
+  (was 558 before this story; +23 from new pedagogy tests... wait, the
+  pedagogy tests landed earlier — these +23 are from the new affective
+  indexer + read-path tests)
+- `pnpm lint`: 4 errors (unchanged baseline; the agent ran a `lint:fix`
+  mid-flow that was net-improving rather than regressing)
+
+What's now possible:
+- `MemoryService.affective(studentId)` returns real samples and a real
+  baseline instead of the Phase 14 stub's neutral default.
+- `quick_check.confidence` ratings flow into the affective table at
+  session-end via the explicit-checkin path.
+- Model-inferred engagement/frustration/confidence per session at
+  session-end via the LLM one-shot.
+- `epic-phase-18-routing-integration` is one step closer to ready: it
+  needs procedural-memory next, then both indexers' projections power
+  the routing logic.
+
+Stage: implementing → review.
