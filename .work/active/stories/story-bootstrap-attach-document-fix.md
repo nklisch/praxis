@@ -1,7 +1,7 @@
 ---
 id: story-bootstrap-attach-document-fix
 kind: story
-stage: implementing
+stage: review
 tags: [bug, bootstrap]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -76,3 +76,14 @@ a feature, not a fix, and if anyone wants it the right home is
 - `idea-bootstrap-attach-document-throws-without-course` — consumed by
   this story; will be removed from `.work/backlog/` as part of
   epic-design.
+
+## Implementation notes
+
+Files changed:
+- `packages/curriculum/src/modes/bootstrap.ts` — removed `"course.attach_document"` from `toolNames`; updated comment on the library-tools block.
+- `packages/curriculum/src/modes/fragments/bootstrap-tools.ts` — removed the `- course.attach_document — ...` bullet from the prose listing.
+- `packages/curriculum/src/modes/__tests__/bootstrap-toolnames.test.ts` — new regression test file; 11 tests covering the excluded tool and all expected included tools.
+
+Regression test: `bootstrapMode.toolNames — excluded tools > does NOT include course.attach_document (bootstrap sessions have no courseId; handler throws)`
+
+Verification: `pnpm --filter @praxis/curriculum test` → 347 tests passed (26 test files). `pnpm typecheck` → clean. `pnpm lint` → no new errors (pre-existing lint failures in other packages unchanged).

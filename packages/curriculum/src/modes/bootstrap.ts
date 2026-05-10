@@ -34,9 +34,8 @@ export const bootstrapMode: Mode = {
     postambleFragment,
   ],
   toolNames: [
-    // Library + course-document tools
+    // Library tools (attach_document omitted — bootstrap sessions have no courseId; persistDraft handles attachment at confirm time)
     "course.list_library_documents",
-    "course.attach_document",
     // Canonical packs (Phase 10) — unchanged
     "course.list_canonical_packs",
     "course.use_canonical_pack",

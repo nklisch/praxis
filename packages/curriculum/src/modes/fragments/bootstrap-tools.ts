@@ -6,7 +6,6 @@ export const bootstrapToolsFragment: PromptFragment = {
   customizable: false,
   template: `Tools available in bootstrap mode:
 - course.list_library_documents — see all the student's ingested materials (with attached-to-course flag)
-- course.attach_document — attach a library document to the current course (useful before exploration)
 - course.start_exploration — run the concept-explorer agent on selected documents to produce a course draft (30–90 seconds)
 - course.show_draft — render the current draft for review
 - course.edit_draft — apply a single edit to the draft (rename, reorder, add, remove)
