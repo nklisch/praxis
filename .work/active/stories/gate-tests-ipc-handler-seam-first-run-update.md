@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ipc-handler-seam-first-run-update
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -59,3 +59,7 @@ also stubs `app.getVersion()` returning `"1.2.3"` so the `checkLatest` handler's
 forwarding can be asserted precisely. `registerIpcHandlers` registers many channels; the fake
 services object only populates the three under test plus minimal stubs for the other config
 methods that are registered unconditionally at startup.
+
+## Review (2026-05-10)
+
+**Verdict: Approve.** New file mirrors the log-channel.test.ts pattern exactly: mock at `ipcMain.handle` level, invoke captured handler, assert delegation. 6 tests cover registration, delegation, and version-forwarding for all 3 channels. The `app.getVersion()` stub is a clean approach — no test pollution since electron is fully mocked.
