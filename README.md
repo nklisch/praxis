@@ -2,6 +2,10 @@
 
 An open-source AI tutoring framework. Praxis powers adaptive, personalized tutoring sessions backed by a concept graph, spaced-repetition memory, and a pluggable engine layer.
 
+## For users
+
+If you just want to use Praxis, see `docs/ONBOARDING.md` — it walks through install, first run, and your first teach session. The rest of this README is for developers building or contributing to Praxis.
+
 ## Quickstart
 
 ```bash
@@ -105,6 +109,7 @@ pnpm --filter @praxis/desktop dist:dir
 
 Notes:
 - Builds are unsigned by default. The macOS pipeline can produce signed + notarised installers when the maintainer exports the right environment variables — see `docs/CODE-SIGNING.md`. Without those env vars, the script falls back to ad-hoc signing: macOS first-run requires right-click → Open to bypass Gatekeeper, and Windows shows a SmartScreen warning until reputation builds.
+- Updates: when shipping new versions, host a feed JSON and set `PRAXIS_UPDATE_FEED_URL` in production builds so the in-app banner picks it up. See `docs/UPDATE-CHANNEL.md`.
 - Cross-compile is limited: native modules must rebuild on the target OS. Build macOS artifacts on macOS, Windows on Windows, etc.
 - Output lands at `packages/desktop/release/` (gitignored).
 

@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-onboarding-docs
 kind: feature
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-phase-19-ship-v1
 depends_on: [epic-phase-19-first-run-flow]
@@ -283,3 +283,35 @@ its acceptance script.
 ## No child stories
 
 Three small, sequentially dependent units. Single-stride, one agent.
+
+## Implementation notes
+
+- **Files changed**:
+  - `docs/ONBOARDING.md` (new) — Unit 1.
+  - `README.md` ("For users" section + "Updates" pointer) — Unit 2.
+- **Tests added**: none (documentation feature; existing test suite acts
+  as regression check). Full workspace `pnpm test` shows 2270 passing
+  — same as before this feature.
+- **Discrepancies from design**: none.
+- **Adjacent issues parked**: none.
+- **Unit 3 (COPY alignment) — produced zero diff**. Audit completed:
+  every user-visible string in `COPY.onboarding.*` matches the
+  vocabulary table in `docs/ONBOARDING.md`. Specifically:
+  - welcomeTitle, engineTitle, courseTitle, the three course labels,
+    skipLabel, continueLabel, backLabel, startLabel — all
+    consistent with the doc's narrative.
+  - The vocabulary table notes "first run" is the preferred narrative
+    term while "onboarding" appears in the existing button label
+    "Skip onboarding". Acceptable: users see the button, the doc
+    describes it.
+- **Placeholders left in `docs/ONBOARDING.md`**:
+  - `<DOWNLOADS_URL>` — maintainer fills in pre-publish.
+  - `[Screenshot: bootstrap mode chat]` and `[Screenshot: chat
+    workspace mid-session]` — maintainer captures during screencast
+    recording and replaces these markers with image references.
+- **No COPY changes needed**, so no React tests touched.
+- **Foundation-doc alignment**: new doc uses present-tense
+  prescriptive tone matching `docs/CODE-SIGNING.md` and
+  `docs/UPDATE-CHANNEL.md`. README additions are surgical (no
+  rewrite). VISION/SPEC/ARCHITECTURE/UX/CURRICULUM unchanged — they
+  describe the system at higher levels than user onboarding.
