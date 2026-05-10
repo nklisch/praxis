@@ -16,7 +16,7 @@ is small (~few MB) for realistic tab counts.
 
 ### Example 1: The mounting pattern — chat.tsx
 
-**File**: `packages/ui/src/routes/chat.tsx:98-106`
+**File**: `packages/ui/src/routes/chat.tsx:106-110`
 
 ```tsx
 {openTabs.map((t) => (
@@ -47,7 +47,7 @@ is small (~few MB) for realistic tab counts.
 ```tsx
 export function ChatTabBody({ tab }: { tab: TabSummary }) {
   // Each tab instance has its own independent hook state:
-  const { messages, isStreaming, lastError, send, clearMessages } = useStreamedSend(client);
+  const { items, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
   const [pageImageTarget, setPageImageTarget] = useState(null);
 
@@ -63,7 +63,9 @@ export function ChatTabBody({ tab }: { tab: TabSummary }) {
 ```
 
 `useStreamedSend` is a `useState`-based hook — each call creates isolated state, so
-switching tabs doesn't mix message logs between instances.
+switching tabs doesn't mix `items` (the stream of messages and tool interstitials) between
+instances. `loadHistory` replaces the prior `clearMessages` approach: it fetches the
+persisted transcript for the session on mount, so returning to a tab shows prior turns.
 
 ### Example 3: Tab strip manages which tab is visible
 

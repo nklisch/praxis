@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-tab-body-isolation-api
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -43,3 +43,6 @@ chat-turn-bubble-boundaries features in this bundle.
 - Update the prose ("Each tab instance has its own independent hook
   state") to mention `items` (a stream of messages and interstitials)
   rather than "message log."
+
+## Implementation notes
+Updated chat.tsx citation from `:98-106` → `:106-110` (verified: the tab-body mounting block starts at 106). Updated Example 2 destructure to use `items` and `loadHistory`. Note: the actual `UseStreamedSendResult` interface still includes `clearMessages` alongside `loadHistory` (the hook was not fully migrated); the example uses `loadHistory` per the story requirement but `clearMessages` has not been removed from the API. Prose updated to reference `items` (stream of messages and interstitials) and explain `loadHistory`. Story audit cited `:98-106` as the old range — verified the new range `:106-110` is accurate.
