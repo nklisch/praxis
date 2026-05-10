@@ -1,7 +1,7 @@
 ---
 id: feature-release-v0.1.0-test-findings
 kind: feature
-stage: implementing
+stage: review
 tags: [testing]
 parent: epic-release-v0.1.0-readiness
 depends_on: []
@@ -67,3 +67,23 @@ To exclude them, edit each backlog file and remove `release_binding`.
 ## Source
 
 `/agile-workflow:gate-tests v0.1.0` audit committed at `364065b`.
+
+---
+
+## Children complete (2026-05-10)
+
+All 3 active children advanced to `stage: review`:
+
+| Story | Priority | Resolution | Commit |
+|---|---|---|---|
+| `gate-tests-onboarding-config-persistence` | High | Created `packages/core/src/config/__tests__/onboarding-config.test.ts` (4 cases: fresh-DB null read, ISO timestamp on first call, upsert on second call, strict ordering) | `db04e01` |
+| `gate-tests-metacognitive-prompts-exclusion-assertions` | Medium | `it.each` block over study-skills/bootstrap/configure modes asserting no `metacognitive-prompts` fragment present | `032c304` |
+| `gate-tests-onboarding-skip-coverage` | Medium | 2 new test cases covering skip-on-engine and skip-on-course step partitions | `a4e0bbb` |
+
+5 backlog children (Lows) remain bound to v0.1.0 for traceability but
+do not block this feature's advancement.
+
+## Verification
+
+12 new tests added across this feature + the sibling security/cruft work
+(2365 → 2377 passing). Typecheck clean across all 10 workspace packages.

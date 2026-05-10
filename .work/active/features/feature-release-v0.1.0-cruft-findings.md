@@ -1,7 +1,7 @@
 ---
 id: feature-release-v0.1.0-cruft-findings
 kind: feature
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: epic-release-v0.1.0-readiness
 depends_on: []
@@ -59,3 +59,36 @@ interact. A single sub-agent could drain them in one pass.
 ## Source
 
 `/agile-workflow:gate-cruft v0.1.0` audit committed at `c59a5b2`.
+
+---
+
+## Children complete (2026-05-10)
+
+All 6 active children advanced to `stage: review` in a single
+sub-agent's drain pass:
+
+| Story | Commit |
+|---|---|
+| `gate-cruft-unused-import-proposed-assessment` | `0afa517` |
+| `gate-cruft-unused-import-timestamp-bootstrap-test` | `8ea39e9` |
+| `gate-cruft-dead-pending-sketch-id-state` | `f4c48ca` |
+| `gate-cruft-dead-queries-persist-units-test` | `8de0e79` |
+| `gate-cruft-misplaced-noexplicitany-suppression-client-test` | `a423144` |
+| `gate-cruft-unused-noexplicitany-suppression-pedagogy-pack` | `9350ca7` |
+
+One small deviation: the `gate-cruft-dead-pending-sketch-id-state` story
+suggested removing the `SketchId` import alongside the dead state hook,
+but `SketchId` is still used as the type annotation for the `sketchId`
+parameter on `handleSendWithSketch`. The import was correctly retained;
+only the dead `useState` declaration and its lone setter call were
+deleted.
+
+1 backlog child (Low: `gate-cruft-stale-single-item-adds-comment`)
+remains bound to v0.1.0 for traceability but does not block this
+feature's advancement.
+
+## Verification
+
+`pnpm typecheck && pnpm lint && pnpm test` clean. Pre-existing 18 lint
+errors in `claude-cli-sdk` and end-to-end tests are unchanged (none
+introduced by this work).

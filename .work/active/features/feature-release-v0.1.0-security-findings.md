@@ -1,7 +1,7 @@
 ---
 id: feature-release-v0.1.0-security-findings
 kind: feature
-stage: implementing
+stage: review
 tags: [security]
 parent: epic-release-v0.1.0-readiness
 depends_on: []
@@ -68,3 +68,36 @@ from v0.1.0, edit the backlog file's frontmatter to remove the
 
 `/agile-workflow:gate-security v0.1.0` audit committed at `3644ab7`.
 Full reasoning per finding lives in each child story's body.
+
+---
+
+## Children complete (2026-05-10)
+
+All 4 active children advanced to `stage: review`:
+
+| Story | Severity | Resolution | Commit |
+|---|---|---|---|
+| `gate-security-update-feed-url-scheme-validation` | High | `z.url().refine(http(s) only)` on `downloadUrl` + `releaseNotesUrl`; 3 new test cases | `c659fdd` |
+| `gate-security-engine-config-ipc-lock-gate` | Medium | Wrapped both IPC handlers in `await requireUnlocked()` matching `praxis.author.*` pattern | `82995dd` |
+| `gate-security-api-key-cleartext-vs-onboarding-doc` | Medium | Doc-fix path (a) chosen; safeStorage-encryption path (b) parked as `idea-encrypt-api-key-with-safestorage` | `58ef027` |
+| `gate-security-update-feed-integrity-signature` | Medium | Doc-only "Trust model" section in UPDATE-CHANNEL.md; full Ed25519 signing parked as `idea-update-feed-ed25519-signature` | `38db2e1` |
+
+3 backlog children (Lows) remain bound to v0.1.0 for traceability but do
+not block this feature's advancement (out of autopilot scope per Phase 2).
+To exclude from the release readiness check, edit each backlog file's
+frontmatter to remove `release_binding: v0.1.0`:
+- `gate-security-author-export-memory-target-path-validation`
+- `gate-security-browser-window-navigation-guards`
+- `gate-security-preload-sandbox-comment-mismatch`
+
+## Verification
+
+`pnpm typecheck && pnpm test` clean (2377 tests; 12 new tests added by
+this feature plus its sibling features). No regressions.
+
+## Follow-ups parked to backlog
+
+- `idea-encrypt-api-key-with-safestorage` — long-term replacement for
+  the doc-fix in `gate-security-api-key-cleartext-vs-onboarding-doc`
+- `idea-update-feed-ed25519-signature` — full signature mechanism
+  blocking real auto-update beyond manual-download

@@ -1,7 +1,7 @@
 ---
 id: feature-release-v0.1.0-doc-findings
 kind: feature
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-release-v0.1.0-readiness
 depends_on: []
@@ -91,3 +91,58 @@ this gate means Phase 5.5 just prepends.
 
 `/agile-workflow:gate-docs v0.1.0` audit committed at `68f4b44`. Full
 reasoning and remediation per finding lives in each child story's body.
+
+---
+
+## Children complete (2026-05-10)
+
+All 23 active children advanced to `stage: review`. Drain ran across
+three sub-agents in parallel.
+
+### Pattern-skill citation bumps (9, all single-file edits)
+`6201884` `6d9b069` `d4e29a5` `ffee203` `988346b` `32ea77b` `f73cef6`
+`85e4c29` `19226eb`
+
+Two notable adaptations during the drain:
+1. `gate-docs-pattern-tab-body-isolation-api`: the audit said
+   `clearMessages` was removed from `useStreamedSend`'s API. It's
+   actually still present alongside the new `loadHistory`. The pattern
+   example was updated to show `loadHistory` per the story's intent;
+   the discrepancy is noted in the story so the real cleanup (removing
+   `clearMessages`) can be tracked if needed.
+2. `gate-docs-pattern-service-deps-injection`: the example interface
+   was rewritten more substantially (~25 lines) to capture the actual
+   `ServiceDeps` shape — the prior 6-line stub was misleading new
+   contributors.
+
+### Foundation-doc rolls (10)
+`33cc5f4` (README) `29e673e` (patterns SKILL — was already fixed)
+`5f56447` (CLAUDE.md tab-body) `ebda848` (CHANGELOG.md backfill)
+`4fc5277` `33ee39c` `f21ac9e` (3 ARCHITECTURE.md edits)
+`3f37e7b` `a7a2324` `85f8b4e` `ebeb5d2` (4 CURRICULUM.md edits)
+`54fb191` (UX.md + scope-stretch on `mode-meta.ts`)
+`0faf8a8` (Phase 17 "(planned)" tag stripped from 4 headings)
+`e68cd22` (CONTRACT.md Phase 17/18/19 sections — 337 LoC)
+
+The CONTRACT.md edit was the largest single piece of writing in the
+drain — three new additive sections matching the existing
+`## Phase N additive changes` shape, covering item kinds, quick-check
+service, pedagogy pack, study-skills mode, indexers, update service,
+onboarding config, draft-stream client, and biology canonical pack.
+
+The UX.md edit stretched scope to add a `study-skills` entry to
+`mode-meta.ts` (tint `#7b9e87`, ornament `‖`, deck "building the
+craft of learning"). Caused one test failure (`getByText` matched
+twice when "study skills" appeared in both the chip and the
+mode-header); fixed inline with `getAllByText` (`f8795df`).
+
+### CHANGELOG.md created
+`gate-docs-changelog-missing` created the file with a Keep-a-Changelog
+header and a backfilled `## v0` section enumerating the 23 items in
+`.work/releases/v0/`. The file is left ready for `release-deploy`
+Phase 5.5 to prepend the `## v0.1.0` section.
+
+## Verification
+
+`pnpm typecheck && pnpm test` clean (2377 tests; one mid-drain test
+fix at `f8795df` resolved the mode-meta scope-stretch's duplication).
