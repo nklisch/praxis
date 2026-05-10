@@ -3,11 +3,12 @@
  *
  * The factory is pure — same input always produces the same template.
  */
-import { describe, expect, it } from "vitest";
+
 import type { MetacognitivePromptTrigger } from "@praxis/core/types";
+import { describe, expect, it } from "vitest";
 import {
-  metacognitivePromptsFragment,
   type MetacognitivePromptsFragmentInput,
+  metacognitivePromptsFragment,
 } from "../metacognitive-prompts.js";
 
 const ALL_TRIGGERS: MetacognitivePromptTrigger[] = [
@@ -88,11 +89,7 @@ describe("metacognitivePromptsFragment — template content", () => {
 
 describe("metacognitivePromptsFragment — subset triggers", () => {
   it("only includes bullets for the requested triggers (teach set)", () => {
-    const triggers: MetacognitivePromptTrigger[] = [
-      "pre-reading",
-      "post-error",
-      "session-end",
-    ];
+    const triggers: MetacognitivePromptTrigger[] = ["pre-reading", "post-error", "session-end"];
     const fragment = metacognitivePromptsFragment({ triggers });
     expect(fragment.template).toContain("- **pre-reading** —");
     expect(fragment.template).toContain("- **post-error** —");
@@ -144,9 +141,7 @@ describe("metacognitivePromptsFragment — purity", () => {
 describe("metacognitivePromptsFragment — round-trip all trigger values", () => {
   for (const trigger of ALL_TRIGGERS) {
     it(`does not throw for trigger '${trigger}'`, () => {
-      expect(() =>
-        metacognitivePromptsFragment({ triggers: [trigger] }),
-      ).not.toThrow();
+      expect(() => metacognitivePromptsFragment({ triggers: [trigger] })).not.toThrow();
     });
 
     it(`includes bullet for trigger '${trigger}'`, () => {

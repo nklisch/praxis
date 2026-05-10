@@ -1,4 +1,5 @@
-import type { ConceptId, LessonId, Timestamp } from "@praxis/core/types";
+import type { ConceptId, LessonId, StrategyId, Timestamp } from "@praxis/core/types";
+import { brandId } from "@praxis/core/types";
 import { DEFAULT_ROUTER_CONFIG, type RouterConfig } from "./config.js";
 import type { ConceptCandidate, RouterInput, RouterSuggestion } from "./types.js";
 
@@ -27,7 +28,14 @@ export function suggestNext(
 ): RouterSuggestion {
   // No current lesson → course is complete or not started.
   if (input.snapshot.currentLesson === null) {
-    return { primary: null, reviews: [], interleaves: [] };
+    return {
+      primary: null,
+      reviews: [],
+      interleaves: [],
+      suggestedStrategy: brandId<"StrategyId">("worked-examples"),
+      difficultyHint: chooseDifficultyHint(input, config),
+      suggestedModeTransition: chooseModeTransition(input, config),
+    };
   }
 
   const currentLessonId = input.snapshot.currentLesson.id;
@@ -50,7 +58,14 @@ export function suggestNext(
   const reviews = pickReviews(earlierCandidates, config);
   const interleaves = pickInterleaves(earlierCandidates, input, config, reviews);
 
-  return { primary, reviews, interleaves };
+  return {
+    primary,
+    reviews,
+    interleaves,
+    suggestedStrategy: chooseStrategy(input, config, primary?.lessonId ?? null),
+    difficultyHint: chooseDifficultyHint(input, config),
+    suggestedModeTransition: chooseModeTransition(input, config),
+  };
 }
 
 // ─── Internal annotated candidate ────────────────────────────────────────────
@@ -192,4 +207,120 @@ function toCandidate(
     masteryNow: c.masteryNow,
     uncertainty: c.uncertainty,
   };
+}
+
+// ─── Phase 18: Strategy / difficulty / mode-transition choosers ───────────────
+
+/**
+ * Choose a teaching strategy, weighing procedural preferences + affective state.
+ * PURE — no DB access, no Date.now().
+ */
+function chooseStrategy(
+  input: RouterInput,
+  config: RouterConfig,
+  primaryLessonId: LessonId | null,
+): StrategyId {
+  // Default: the current lesson's suggestedStrategy.
+  const lesson = primaryLessonId
+    ? input.snapshot.lessons.find((l) => l.id === primaryLessonId)
+    : null;
+  const lessonStrategy: StrategyId =
+    lesson?.suggestedStrategy ?? brandId<"StrategyId">("worked-examples");
+
+  // Frustration fallback: if frustration is spiking above baseline, force
+  // worked-examples (low cognitive load). Beats both lesson default and
+  // procedural override — affect-now trumps history when the student is hot.
+  if (isFrustrationSpike(input, config)) {
+    return brandId<"StrategyId">("worked-examples");
+  }
+
+  // Procedural override: if the student has a clear preference for a
+  // specific strategy and enough evidence to trust it, use that.
+  const top = topProceduralStrategy(input, config);
+  if (top) return top;
+
+  // No override; use the lesson's declared strategy.
+  return lessonStrategy;
+}
+
+/**
+ * Compute the difficulty modulation hint based on affective state.
+ * PURE — no DB access, no Date.now().
+ */
+function chooseDifficultyHint(
+  input: RouterInput,
+  config: RouterConfig,
+): "easier" | "normal" | "harder" {
+  if (!input.affectiveBaseline || !input.recentAffect || input.recentAffect.length === 0) {
+    return "normal";
+  }
+  if (isFrustrationSpike(input, config)) return "easier";
+  if (isSustainedEase(input, config)) return "harder";
+  return "normal";
+}
+
+/**
+ * Determine whether to suggest a mode transition based on affective state.
+ * PURE — no DB access, no Date.now().
+ */
+function chooseModeTransition(input: RouterInput, config: RouterConfig): "study-skills" | null {
+  if (isSustainedHighFrustration(input, config)) return "study-skills";
+  return null;
+}
+
+// ─── Phase 18: Affective detection helpers ─────────────────────────────────────
+
+function isFrustrationSpike(input: RouterInput, config: RouterConfig): boolean {
+  if (!input.affectiveBaseline || !input.recentAffect || input.recentAffect.length === 0) {
+    return false;
+  }
+  const window = input.recentAffect.slice(0, config.affectWindowSize);
+  const avgFrustration = avg(window.map((s) => s.frustration));
+  return avgFrustration > input.affectiveBaseline.frustration + config.frustrationSpikeDelta;
+}
+
+function isSustainedEase(input: RouterInput, config: RouterConfig): boolean {
+  if (!input.affectiveBaseline || !input.recentAffect || input.recentAffect.length === 0) {
+    return false;
+  }
+  const window = input.recentAffect.slice(0, config.affectWindowSize);
+  if (window.length < config.affectWindowSize) return false; // need full window
+  const avgFrustration = avg(window.map((s) => s.frustration));
+  const avgConfidence = avg(window.map((s) => s.confidence));
+  return (
+    avgFrustration < input.affectiveBaseline.frustration - config.easeFrustrationDelta &&
+    avgConfidence > input.affectiveBaseline.confidence + config.easeConfidenceDelta
+  );
+}
+
+function isSustainedHighFrustration(input: RouterInput, config: RouterConfig): boolean {
+  if (!input.affectiveBaseline || !input.recentAffect || input.recentAffect.length === 0) {
+    return false;
+  }
+  const window = input.recentAffect.slice(0, config.affectWindowSize);
+  if (window.length < config.affectWindowSize) return false;
+  const avgFrustration = avg(window.map((s) => s.frustration));
+  return avgFrustration > input.affectiveBaseline.frustration + config.studySkillsFrustrationDelta;
+}
+
+/**
+ * Pick the highest-preference procedural strategy that meets the evidence +
+ * preference thresholds. Returns null when no strategy qualifies.
+ */
+function topProceduralStrategy(input: RouterInput, config: RouterConfig): StrategyId | null {
+  if (!input.proceduralStrategies) return null;
+  let best: { id: StrategyId; preference: number } | null = null;
+  for (const [id, p] of input.proceduralStrategies) {
+    if (p.evidenceCount < config.proceduralMinEvidence) continue;
+    if (p.preference < config.proceduralMinPreference) continue;
+    if (best === null || p.preference > best.preference) {
+      best = { id: brandId<"StrategyId">(id), preference: p.preference };
+    }
+  }
+  return best?.id ?? null;
+}
+
+function avg(xs: number[]): number {
+  if (xs.length === 0) return 0;
+  return xs.reduce((a, b) => a + b, 0) / xs.length;
 }

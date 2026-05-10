@@ -20,9 +20,7 @@ const TRIGGER_GUIDANCE: Record<MetacognitivePromptTrigger, string> = {
 export function metacognitivePromptsFragment(
   input: MetacognitivePromptsFragmentInput,
 ): PromptFragment {
-  const triggerLines = input.triggers
-    .map((t) => `- **${t}** — ${TRIGGER_GUIDANCE[t]}`)
-    .join("\n");
+  const triggerLines = input.triggers.map((t) => `- **${t}** — ${TRIGGER_GUIDANCE[t]}`).join("\n");
 
   return {
     id: "metacognitive-prompts",

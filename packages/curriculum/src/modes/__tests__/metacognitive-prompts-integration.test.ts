@@ -9,8 +9,9 @@
  * include the cross-mode metacognitive fragment (they have their own
  * metacognition surfaces or are non-student-facing).
  */
-import { describe, expect, it } from "vitest";
+
 import type { PromptFragment } from "@praxis/core/types";
+import { describe, expect, it } from "vitest";
 import { examMode } from "../exam.js";
 import { homeworkMode } from "../homework.js";
 import { quizMode } from "../quiz.js";
@@ -19,9 +20,7 @@ import { teachMode } from "../teach.js";
 const METACOGNITIVE_FRAGMENT_ID = "metacognitive-prompts";
 const LIST_TOOL = "pedagogy.list_metacognitive_prompts";
 
-function findMetacogFragment(
-  fragments: PromptFragment[],
-): PromptFragment | undefined {
+function findMetacogFragment(fragments: PromptFragment[]): PromptFragment | undefined {
   return fragments.find((f) => f.id === METACOGNITIVE_FRAGMENT_ID);
 }
 

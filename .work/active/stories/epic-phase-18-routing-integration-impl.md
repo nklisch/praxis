@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-routing-integration-impl
 kind: story
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-routing-integration
 depends_on: []
@@ -444,5 +444,34 @@ Integration tests:
       to act on the new fields.
 - [ ] All existing router and current-concept tests continue to pass.
 - [ ] New unit + integration tests cover every branch in unit 6.
-- [ ] `pnpm typecheck && pnpm test` green.
-- [ ] `pnpm lint` shows no regression past the current 9-error baseline.
+- [x] `pnpm typecheck && pnpm test` green.
+- [x] `pnpm lint` shows no regression past the current 9-error baseline.
+
+## Implementation notes
+
+### Files created
+- `packages/curriculum/src/router/__tests__/routing-integration.test.ts` — 16 pure-function router tests covering all acceptance-criteria branches.
+- `packages/tools/src/course/__tests__/current-concept-routing.test.ts` — 9 integration tests for the tool's new output fields.
+
+### Files modified
+- `packages/curriculum/src/router/types.ts` — added 3 optional `RouterInput` fields and 3 required `RouterSuggestion` fields, plus `StrategyId` import.
+- `packages/curriculum/src/router/config.ts` — added 7 new tunables to `RouterConfig` and `DEFAULT_ROUTER_CONFIG`.
+- `packages/curriculum/src/router/router.ts` — added `chooseStrategy`, `chooseDifficultyHint`, `chooseModeTransition` (3 choosers) and `isFrustrationSpike`, `isSustainedEase`, `isSustainedHighFrustration`, `topProceduralStrategy`, `avg` (5 helpers). Wired into `suggestNext` return. Also fixed the early-return path (no currentLesson) to include the 3 new required fields.
+- `packages/tools/src/course/current-concept.ts` — reads `memory.procedural()` + `memory.affective()` in parallel. Threads `proceduralStrategies`, `affectiveBaseline`, `recentAffect` into router. Surfaces 3 new fields in `"ok"` response and `"all_complete"` response (all_complete gets `difficultyHint` + `suggestedModeTransition`).
+- `packages/curriculum/src/modes/fragments/principles.ts` — appended 2 paragraphs explaining `difficultyHint` and `suggestedModeTransition` to the tutor.
+- `packages/tools/src/course/__tests__/current-concept-adaptive.test.ts` — updated `makeCtxForSnapshot` and one inline test to add `procedural` + `affective` mocks (required since the handler now calls both).
+- `packages/curriculum/src/modes/fragments/metacognitive-prompts.ts` + related test files — formatting-only changes from `pnpm lint:fix`.
+
+### Discrepancies from design
+- The design specified `all_complete` case doesn't include `suggestedStrategy`. The story says both `"ok"` and `all_complete` should have the fields. The implementation follows the story: `all_complete` gets `difficultyHint` + `suggestedModeTransition` (affect-based signals still useful), but NOT `suggestedStrategy` (no concept being taught → no strategy needed).
+- Lint baseline improved from 9 to 4 errors (lint:fix resolved pre-existing formatting issues in unrelated files during the fix pass).
+
+### Build note
+After editing router source, `pnpm --filter @praxis/curriculum build` was needed before running tools tests. The `praxis-source` TS custom condition applies to typecheck only; vitest resolves cross-package imports against `dist/` at runtime.
+
+### Verification results
+- `pnpm typecheck`: green (all packages).
+- `pnpm --filter @praxis/curriculum test`: 323 tests passed (25 files), includes 16 new routing-integration tests.
+- `pnpm --filter @praxis/tools test`: 439 tests passed (58 files, 1 skipped), includes 9 new current-concept-routing tests.
+- `pnpm test` (full repo): 2225 passed, 15 skipped (268 test files).
+- `pnpm lint`: 4 errors (down from 9 baseline; all remaining errors are pre-existing in unmodified files).

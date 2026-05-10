@@ -51,6 +51,22 @@ export interface RouterConfig {
    * Default: 0.85.
    */
   masteredThreshold: number;
+
+  // ── Phase 18 routing-integration additions ─────────────────────────────────
+  /** Window size (most-recent samples) to average for affect spike/ease detection. Default: 3. */
+  affectWindowSize: number;
+  /** Frustration delta above baseline that constitutes a "spike". Default: 0.2. */
+  frustrationSpikeDelta: number;
+  /** Frustration delta below baseline (toward 0) for sustained ease. Default: 0.15. */
+  easeFrustrationDelta: number;
+  /** Confidence delta above baseline for sustained ease. Default: 0.15. */
+  easeConfidenceDelta: number;
+  /** Frustration delta above baseline that triggers a study-skills transition. Default: 0.3. */
+  studySkillsFrustrationDelta: number;
+  /** Minimum evidence count for procedural preferences to be honored. Default: 5. */
+  proceduralMinEvidence: number;
+  /** Minimum preference (0..1) for procedural override. Default: 0.3. */
+  proceduralMinPreference: number;
 }
 
 /**
@@ -65,4 +81,11 @@ export const DEFAULT_ROUTER_CONFIG: RouterConfig = {
   interleaveMinMastery: 0.7,
   interleaveMinDays: 5,
   masteredThreshold: 0.85,
+  affectWindowSize: 3,
+  frustrationSpikeDelta: 0.2,
+  easeFrustrationDelta: 0.15,
+  easeConfidenceDelta: 0.15,
+  studySkillsFrustrationDelta: 0.3,
+  proceduralMinEvidence: 5,
+  proceduralMinPreference: 0.3,
 } as const satisfies RouterConfig;

@@ -45,8 +45,21 @@ const OutputSchema = z.discriminatedUnion("kind", [
         }),
       )
       .default([]),
+    /** Phase 18: recommended teaching strategy (from procedural preferences + affective state). */
+    suggestedStrategy: z.string(),
+    /** Phase 18: difficulty modulation hint for the next item. */
+    difficultyHint: z.enum(["easier", "normal", "harder"]),
+    /** Phase 18: mode-transition suggestion (null = no transition recommended). */
+    suggestedModeTransition: z.enum(["study-skills"]).nullable(),
   }),
-  z.object({ kind: z.literal("all_complete"), courseId: z.string() }),
+  z.object({
+    kind: z.literal("all_complete"),
+    courseId: z.string(),
+    /** Phase 18: difficulty modulation hint — still computable from affective state. */
+    difficultyHint: z.enum(["easier", "normal", "harder"]),
+    /** Phase 18: mode-transition suggestion. */
+    suggestedModeTransition: z.enum(["study-skills"]).nullable(),
+  }),
   z.object({ kind: z.literal("no_active_lesson"), courseId: z.string() }),
 ]);
 
@@ -67,17 +80,52 @@ export const currentConceptTool: ToolDefinition<typeof InputSchema, typeof Outpu
     }
     const courseId = brandId<"CourseId">(rawId);
 
-    // Read course snapshot + student model in parallel for performance.
-    const [snapshot, studentModel] = await Promise.all([
+    // Read course snapshot + student model + procedural + affective in parallel for performance.
+    const [snapshot, studentModel, proceduralModel, affectiveModel] = await Promise.all([
       ctx.services.courseState.read({ studentId: ctx.studentId, courseId }),
       ctx.services.memory.studentModel(ctx.studentId),
+      ctx.services.memory.procedural(ctx.studentId),
+      ctx.services.memory.affective(ctx.studentId),
     ]);
 
     if (!snapshot) {
       throw new Error(`Course not found for this student: ${rawId}`);
     }
+
+    // Build procedural strategy map for the router (string keys; router brands at read).
+    const proceduralStrategies = new Map<string, { preference: number; evidenceCount: number }>();
+    for (const [id, pref] of proceduralModel.strategies) {
+      proceduralStrategies.set(id as string, {
+        preference: pref.preference,
+        evidenceCount: pref.evidenceCount,
+      });
+    }
+
+    const recentAffect = affectiveModel.recent.map((s) => ({
+      engagement: s.engagement,
+      frustration: s.frustration,
+      confidence: s.confidence,
+    }));
+
     if (!snapshot.currentLesson) {
-      return { kind: "all_complete", courseId: snapshot.course.id };
+      // Even when the course is complete, we can still compute affect-based signals.
+      const completeSuggestion = suggestNext({
+        snapshot,
+        masteryByConceptId: new Map(),
+        uncertaintyByConceptId: new Map(),
+        lastPracticedByConceptId: new Map(),
+        now: Date.now() as import("@praxis/core/types").Timestamp,
+        decayDays: snapshot.course.thresholds.decayDays,
+        proceduralStrategies,
+        affectiveBaseline: affectiveModel.baseline,
+        recentAffect,
+      });
+      return {
+        kind: "all_complete",
+        courseId: snapshot.course.id,
+        difficultyHint: completeSuggestion.difficultyHint,
+        suggestedModeTransition: completeSuggestion.suggestedModeTransition,
+      };
     }
 
     // Build router input maps from the student model's conceptMastery.
@@ -101,10 +149,18 @@ export const currentConceptTool: ToolDefinition<typeof InputSchema, typeof Outpu
       lastPracticedByConceptId,
       now: Date.now() as import("@praxis/core/types").Timestamp,
       decayDays,
+      proceduralStrategies,
+      affectiveBaseline: affectiveModel.baseline,
+      recentAffect,
     });
 
     if (!suggestion.primary) {
-      return { kind: "all_complete", courseId: snapshot.course.id };
+      return {
+        kind: "all_complete",
+        courseId: snapshot.course.id,
+        difficultyHint: suggestion.difficultyHint,
+        suggestedModeTransition: suggestion.suggestedModeTransition,
+      };
     }
 
     const primaryReason = suggestion.primary.reason as Exclude<RouterReason, "all-complete">;
@@ -130,6 +186,9 @@ export const currentConceptTool: ToolDefinition<typeof InputSchema, typeof Outpu
         reason: "interleave" as const,
         masteryNow: i.masteryNow,
       })),
+      suggestedStrategy: suggestion.suggestedStrategy as string,
+      difficultyHint: suggestion.difficultyHint,
+      suggestedModeTransition: suggestion.suggestedModeTransition,
     };
   },
 };

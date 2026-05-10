@@ -12,6 +12,7 @@
  *  - Uses args.courseId over ctx.courseId
  */
 import type {
+  AffectiveModel,
   ConceptId,
   CourseId,
   CourseStateReader,
@@ -19,6 +20,8 @@ import type {
   GradeBand,
   LessonId,
   MemoryService,
+  ProceduralModel,
+  StudentId,
   Timestamp,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
@@ -113,6 +116,18 @@ function makeStudentModel(masteryEntries: Array<[ConceptId, number]> = []) {
 
 // ─── Context builder ─────────────────────────────────────────────────────────
 
+function makeProceduralModel(studentId: StudentId): ProceduralModel {
+  return { studentId, strategies: new Map() };
+}
+
+function makeAffectiveModel(studentId: StudentId): AffectiveModel {
+  return {
+    studentId,
+    recent: [],
+    baseline: { engagement: 0.5, frustration: 0.3, confidence: 0.5 },
+  };
+}
+
 function makeCtxForSnapshot(
   snapshot: CourseStateSnapshot | null,
   masteryEntries: Array<[ConceptId, number]> = [],
@@ -124,6 +139,8 @@ function makeCtxForSnapshot(
   };
   const memory = {
     studentModel: vi.fn().mockResolvedValue(studentModel),
+    procedural: vi.fn().mockResolvedValue(makeProceduralModel(STUDENT_ID)),
+    affective: vi.fn().mockResolvedValue(makeAffectiveModel(STUDENT_ID)),
   } as Partial<MemoryService>;
   return makeToolContext({
     studentId: STUDENT_ID,
@@ -218,6 +235,8 @@ describe("course.current_concept — adaptive routing (Phase 10)", () => {
         courseState,
         memory: {
           studentModel: vi.fn().mockResolvedValue(studentModel),
+          procedural: vi.fn().mockResolvedValue(makeProceduralModel(STUDENT_ID)),
+          affective: vi.fn().mockResolvedValue(makeAffectiveModel(STUDENT_ID)),
         } as Partial<MemoryService> as MemoryService,
       },
     });
