@@ -5,7 +5,7 @@ stage: done
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
-release_binding: null
+release_binding: v0.1.0
 gate_origin: null
 created: 2026-05-10
 updated: 2026-05-10

@@ -10,7 +10,7 @@ depends_on:
   - epic-phase-19-auto-update
   - epic-phase-19-first-run-flow
   - epic-phase-19-onboarding-docs
-release_binding: null
+release_binding: v0.1.0
 gate_origin: null
 created: 2026-05-10
 updated: 2026-05-10

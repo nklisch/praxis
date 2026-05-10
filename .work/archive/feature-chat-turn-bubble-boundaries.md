@@ -5,7 +5,7 @@ stage: done
 tags: [ui]
 parent: null
 depends_on: [feature-chat-tool-call-visibility]
-release_binding: null
+release_binding: v0.1.0
 gate_origin: null
 created: 2026-05-09
 updated: 2026-05-10
