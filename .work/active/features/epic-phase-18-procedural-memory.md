@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-procedural-memory
 kind: feature
-stage: drafting
+stage: implementing
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
@@ -56,3 +56,99 @@ MemoryService."
   procedural query (line ~881)
 - `docs/ARCHITECTURE.md` — Memory architecture / Indexer agents section
 - `docs/CURRICULUM.md` — adaptive routing's procedural inputs
+
+## Design decisions
+
+- **Schedule: session-end.** Strategy preference is an aggregate signal —
+  it doesn't need real-time updates within a turn. Mirrors mastery and
+  affective indexers.
+- **Heuristic v1 (no LLM).** Score the session's outcome from
+  deterministic events (grade_math correctness, course.mark_studied,
+  code_sandbox exit codes), attribute the delta to the lesson's
+  `suggestedStrategy`, write. No model call needed. Simpler,
+  deterministic, cheap. If signal quality is poor, a future feature can
+  add LLM-based "what strategy was the tutor actually using" inference.
+- **Strategy attribution = lesson.suggestedStrategy.** The teach-mode
+  tutor doesn't emit explicit "I'm using strategy X" events. Use the
+  lesson's declared strategy as the proxy. The router will be the
+  ultimate consumer; the tutor and the router both read this same field
+  to pick a strategy, so attributing outcomes to the same source closes
+  the feedback loop.
+- **Loss aversion** (asymmetric delta): negative experiences nudge
+  preference 2× faster than positive ones (`net < 0` → `delta *= 2`).
+  Cognitive-science precedent (Tversky & Kahneman, 1979) and a
+  pedagogically reasonable bias — students remember what didn't work
+  and we should avoid those approaches faster than we cement what did
+  work.
+- **Per-session bound**: delta clamped to `[-300, +300]` milli per
+  session. Caps single-session influence so one outlier (e.g. a
+  frustrated session that happened to use a strategy that's actually
+  great long-term) doesn't dominate the running preference.
+- **Validate against pedagogy pack.** If the lesson's
+  `suggestedStrategy` isn't a known strategy id in the loaded pack, skip
+  the write and log debug. Guards against stale `StrategyId`s
+  surviving in `lessons.suggestedStrategy` across pack version bumps.
+- **Net == 0 skip.** A session with equal correct/incorrect counts
+  produces no signal — skip rather than writing a zero-delta row that
+  bumps `evidenceCount` without information.
+- **Active-path tools** (`update_mastery`, `record_misconception`):
+  these tools write to mastery / misconception directly. They aren't
+  among the tool names this indexer reads, so no double-counting concern
+  in v1. Documented for safety so a future tool addition triggers
+  re-evaluation.
+
+## Architectural choice
+
+Heuristic deterministic indexer. Considered alternatives:
+
+- **LLM-based strategy detection.** The model reads the transcript and
+  infers which teaching strategy was actually used. Higher fidelity but
+  costs an LLM call per session and adds prompt-quality risk to the
+  feedback loop. Rejected for v1; the heuristic produces the right
+  shape for the ROADMAP test checkpoint ("preferences reflect strategy
+  preferences"). Upgrade to LLM detection if heuristic precision is
+  insufficient when the routing-integration feature lands.
+- **Per-attempt scoring (every grade event)**. Track preference deltas
+  per individual attempt rather than per session. More granular but
+  heavier per-write cost and the `proceduralStrategies` table doesn't
+  carry per-attempt timestamps. v1 aggregates per session.
+
+The chosen shape mirrors the project's existing indexer conventions
+exactly: session-end, deps-injected, single-table write, idempotent on
+the (studentId, strategyId) key.
+
+## Implementation Order
+
+One child story:
+
+1. `epic-phase-18-procedural-memory-indexer` (no deps) — implements the
+   read path, the `ProceduralIndexer` with `scoreSessionOutcome`
+   helper, services wiring, and tests in one stride. The whole feature
+   is ~250 lines of TS + tests; the parallelization gain from splitting
+   wouldn't repay the orchestration overhead. Mirrors the
+   `affective-memory-indexer` shape (which also went single-story).
+
+## Risks
+
+- **Heuristic signal quality.** The session-score heuristic
+  (correct - incorrect) may be too coarse for fine-grained strategy
+  comparison. A student who struggles on a worked-examples lesson might
+  not be a worked-examples-aversion signal — they might just be
+  unfamiliar with the underlying concept. Mitigation: the
+  `evidenceCount` field accumulates over many sessions, so the
+  long-term average smooths out individual-session noise. Routing
+  consumers should weight preference by `evidenceCount` (ignore
+  preferences with <5 evidence as still-noisy). Documented for the
+  routing-integration design.
+- **Lesson `suggestedStrategy` is the tutor's recommendation, not what
+  the tutor actually used.** A teach-mode tutor that ignores the
+  strategy field still has its outcome attributed to that strategy.
+  Mitigation: in practice the tutor's prompt fragment honors
+  `suggestedStrategy` (it's part of the lesson context). When the
+  metacognitive-prompts feature lands, it can wire the strategy hint
+  into more places. Long-term fix is the LLM-based strategy detection.
+- **Pack version drift.** A pack upgrade that renames or removes a
+  strategy id leaves orphaned `proceduralStrategies` rows for the old
+  id. The validation step in the indexer skips writes to unknown
+  strategies, but historical rows persist. v1 doesn't migrate them; a
+  future "pack-migration" feature can.
