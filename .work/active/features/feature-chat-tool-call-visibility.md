@@ -33,6 +33,18 @@ phase decides which based on tool semantics. The pattern should feel like
 the same restraint the `<ActivityRail />` uses for background work: present
 when relevant, never demanding attention.
 
+**Scope of the interstitial — what it renders.** Just enough to communicate
+that *something is happening and roughly what*. The tool name (humanised) or
+a one-phrase summary is sufficient — no arguments, no JSON, no raw payloads,
+no expandable disclosure. The interstitial is **animated to indicate live
+activity** (subtle pulsing dots, a slow ellipsis cadence, or a gentle opacity
+drift — design phase picks the specific motion language) so the student can
+distinguish "still working" from "stuck". Animation is the *only* permissible
+attention-grabber; it stops the moment the tool resolves. Rich tool outputs
+(citations, drafts, notes, due-cards) already render via their own dedicated
+components — this feature does NOT duplicate or preview those. The
+interstitial is a thin presence indicator, not a debug log.
+
 The feature owns:
 
 - A mapping from tool name → human-readable present-progressive label and an
@@ -46,8 +58,9 @@ The feature owns:
   and assumes strict serialization — verify or replace).
 - Rendering inside `<MessageBubble>` (or a new sibling component for between-
   bubble interstitials) that hits the editorial primitives — no badges, no
-  spinning icons, no dopamine taps. Static italic text, optional muted
-  ellipsis cadence at most.
+  spinning icons, no dopamine taps. Italic text plus a subtle activity
+  animation (e.g., paced ellipsis, low-amplitude opacity breath); just enough
+  motion to read as "live", nothing closer to a marketing splash.
 - Replay parity through `episodicToMessages` so that re-opening a tab shows
   the same interstitials a live viewer saw, in the same positions relative
   to bubbles.
