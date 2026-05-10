@@ -24,6 +24,7 @@ import type {
   Mode,
   NotesService,
   PackImportService,
+  PedagogyPackService,
   QuickCheckService,
   SketchService,
   SymPyService,
@@ -60,6 +61,8 @@ export interface ServiceDeps {
     assignments: AssignmentService;
     /** Phase 10: canonical knowledge packs — list, import. */
     packs: PackImportService;
+    /** Phase 18: pedagogy pack — read-only teaching strategies, techniques, prompts. */
+    pedagogyPack: PedagogyPackService;
     /** Phase 11: local lock code gate. */
     lock: LockService;
     /** Phase 11: configurator authoring + memory writes. */

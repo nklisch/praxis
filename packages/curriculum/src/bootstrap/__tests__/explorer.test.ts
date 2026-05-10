@@ -23,6 +23,7 @@ import type {
   ToolDefinition,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
+import { makeEmptyPedagogyPackService } from "../../pedagogy/pedagogy-pack-service.js";
 import {
   draftAddConceptsTool,
   draftAddEdgesTool,
@@ -96,7 +97,7 @@ function makeBaseContext(
       assignments: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: stub
       packs: null as any,
-      pedagogyPack: null,
+      pedagogyPack: makeEmptyPedagogyPackService(),
       // biome-ignore lint/suspicious/noExplicitAny: stub
       lock: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: stub

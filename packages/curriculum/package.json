@@ -66,6 +66,13 @@
       "node": "./dist/packs/index.js",
       "default": "./dist/packs/index.js"
     },
+    "./pedagogy": {
+      "praxis-source": "./src/pedagogy/index.ts",
+      "types": "./dist/pedagogy/index.d.ts",
+      "import": "./dist/pedagogy/index.js",
+      "node": "./dist/pedagogy/index.js",
+      "default": "./dist/pedagogy/index.js"
+    },
     "./router": {
       "praxis-source": "./src/router/index.ts",
       "types": "./dist/router/index.d.ts",

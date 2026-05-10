@@ -3,6 +3,10 @@ import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { codeSandboxInput, codeSandboxTool } from "../code-sandbox.js";
 
+function makeEmptyPedagogyPackService() {
+  return { current: () => null, listStrategies: () => [], getStrategy: () => null, listTechniques: () => [], getTechnique: () => null, listMetacognitivePrompts: () => [] };
+}
+
 const mockSandbox: CodeSandbox = {
   availableLanguages: ["javascript", "python"],
   run: vi.fn().mockResolvedValue({
@@ -42,7 +46,7 @@ const mockCtx: ToolContext = {
       parseLatex: vi.fn(),
     },
     sandbox: mockSandbox,
-    pedagogyPack: null,
+    pedagogyPack: makeEmptyPedagogyPackService(),
     lock: null as any,
     authoring: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test

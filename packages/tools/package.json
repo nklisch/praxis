@@ -136,6 +136,13 @@
       "import": "./dist/quick-check/index.js",
       "node": "./dist/quick-check/index.js",
       "default": "./dist/quick-check/index.js"
+    },
+    "./pedagogy": {
+      "praxis-source": "./src/pedagogy/index.ts",
+      "types": "./dist/pedagogy/index.d.ts",
+      "import": "./dist/pedagogy/index.js",
+      "node": "./dist/pedagogy/index.js",
+      "default": "./dist/pedagogy/index.js"
     }
   },
   "scripts": {

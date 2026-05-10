@@ -3,6 +3,10 @@ import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { echoTool, nowTool } from "../test-tools/index.js";
 
+function makeEmptyPedagogyPackService() {
+  return { current: () => null, listStrategies: () => [], getStrategy: () => null, listTechniques: () => [], getTechnique: () => null, listMetacognitivePrompts: () => [] };
+}
+
 const ctx: ToolContext = {
   studentId: brandId<"StudentId">("student-1"),
   sessionId: brandId<"SessionId">("session-1"),
@@ -31,7 +35,7 @@ const ctx: ToolContext = {
       checkEquivalent: vi.fn(),
       parseLatex: vi.fn(),
     },
-    pedagogyPack: null,
+    pedagogyPack: makeEmptyPedagogyPackService(),
     lock: null as any,
     authoring: null as any,
     // biome-ignore lint/suspicious/noExplicitAny: Phase 12 — not used in this test

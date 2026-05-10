@@ -45,6 +45,9 @@ import {
   quizMode,
   teachMode,
 } from "@praxis/curriculum/modes";
+import {
+  PedagogyPackServiceImpl,
+} from "@praxis/curriculum/pedagogy";
 import { PackImportServiceImpl, SqliteConceptEmbeddingsStore } from "@praxis/curriculum/packs";
 import { FsrsSchedulerImpl } from "@praxis/curriculum/scheduling";
 import { createEngine } from "@praxis/engines";
@@ -146,6 +149,8 @@ export interface Services {
   activity: ActivityRegistryImpl;
   /** Phase 17: quick check service — human-in-the-loop dispatch for quick_check.* tools. */
   quickCheck: QuickCheckServiceImpl;
+  /** Phase 18: pedagogy pack service — read-only service over the bundled pedagogy pack. */
+  pedagogyPack: PedagogyPackServiceImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: WorkerEmbeddingService; // exposed so main can preload it
@@ -224,6 +229,11 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     embeddings, // reuse the same LocalEmbeddingService (bge-small-en-v1.5, 384d)
     conceptEmbeddings,
   });
+
+  // Phase 18: pedagogy pack service — loads the bundled pack JSON at boot.
+  // Empty-pack mode when the v1 content file hasn't landed yet (no packPath override needed;
+  // the default path resolves to packages/curriculum/pedagogy/v1.json at runtime).
+  const pedagogyPackService = new PedagogyPackServiceImpl({ log });
 
   // Vision resolver — looks up the active engine config at call time so swaps reflect immediately
   const visionResolver = () => {
@@ -473,6 +483,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       memory: memoryService, // ← Phase 7
       assignments: assignmentService, // ← Phase 8
       packs: packImportService, // ← Phase 10
+      pedagogyPack: pedagogyPackService, // ← Phase 18
       lock: lockService, // ← Phase 11
       authoring: authoringService, // ← Phase 11
       notes: notesService, // ← Phase 12
@@ -533,6 +544,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     memory: memoryService, // ← Phase 7
     assignments: assignmentService, // ← Phase 8
     packs: packImportService, // ← Phase 10
+    pedagogyPack: pedagogyPackService, // ← Phase 18
     lock: lockService, // ← Phase 11
     claudeAuth: claudeAuthService,
     tabs: tabsService, // ← Phase 14

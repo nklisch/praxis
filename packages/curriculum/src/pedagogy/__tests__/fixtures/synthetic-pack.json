@@ -1,0 +1,73 @@
+{
+  "version": "0.1.0",
+  "signature": "v1-unsigned",
+  "manifest": {
+    "name": "Synthetic Test Pack",
+    "description": "Minimal pack used by service tests.",
+    "praxisCompatible": ">=0.1.0",
+    "publishedAt": 1700000000,
+    "authors": ["Test Author"]
+  },
+  "strategies": [
+    {
+      "id": "worked-examples",
+      "name": "Worked Examples",
+      "description": "Solve problems step-by-step before asking the student to attempt similar ones.",
+      "applicability": {
+        "conceptKinds": ["procedural"],
+        "bloomsLevels": ["apply", "analyze"],
+        "cognitiveLoad": "medium"
+      },
+      "promptFragment": "Walk through a worked example first.",
+      "citations": [
+        {
+          "source": "Sweller, J. (1988). Cognitive load during problem solving.",
+          "locator": { "page": 257 }
+        }
+      ]
+    },
+    {
+      "id": "socratic",
+      "name": "Socratic Questioning",
+      "description": "Lead the student to insight through targeted questions rather than direct explanation.",
+      "applicability": {
+        "conceptKinds": ["conceptual"],
+        "bloomsLevels": ["understand", "evaluate"],
+        "cognitiveLoad": "high"
+      },
+      "promptFragment": "Ask guiding questions instead of giving the answer directly.",
+      "citations": []
+    }
+  ],
+  "studyTechniques": [
+    {
+      "id": "spaced-repetition",
+      "name": "Spaced Repetition",
+      "description": "Review material at increasing intervals to move it into long-term memory.",
+      "uiAffordances": ["flashcard-deck"],
+      "curriculum": {
+        "lessons": [
+          {
+            "id": "sr-intro",
+            "title": "Why Spacing Works",
+            "body": "Memory decays over time. Reviewing just before forgetting strengthens the trace.",
+            "practicePromptIds": []
+          }
+        ]
+      },
+      "citations": []
+    }
+  ],
+  "metacognitivePrompts": [
+    {
+      "id": "pre-reading-goals",
+      "trigger": "pre-reading",
+      "template": "Before you start, what do you already know about {{topic}}? What do you hope to learn?"
+    },
+    {
+      "id": "post-error-reflect",
+      "trigger": "post-error",
+      "template": "You got that one wrong. What was your reasoning? Where did it diverge from the correct approach?"
+    }
+  ]
+}

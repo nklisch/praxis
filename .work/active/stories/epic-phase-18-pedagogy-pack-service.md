@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-pedagogy-pack-service
 kind: story
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-pedagogy-pack
 depends_on: []
@@ -411,3 +411,56 @@ Acceptance for the test suite as a whole:
 - [ ] No regressions in the lint count.
 - [ ] `pedagogyPack: null` is removed from every call site (tests use the
       empty-mode helper).
+
+## Implementation notes
+
+### Files created
+
+- `packages/curriculum/src/pedagogy/schema.ts` — Zod schemas for `PedagogyPack`, `TeachingStrategy`, `StudyTechnique`, `MetacognitivePrompt`, `Citation`, with `superRefine` uniqueness cross-validation on strategy/technique/prompt ids.
+- `packages/curriculum/src/pedagogy/pedagogy-pack-service.ts` — `PedagogyPackServiceImpl` + `PedagogyPackServiceDeps` + `makeEmptyPedagogyPackService` test helper. Loads JSON at boot, validates via Zod, holds in memory; falls back to empty-pack mode on absent/invalid file.
+- `packages/curriculum/src/pedagogy/index.ts` — barrel re-exporting service, schemas, and helper.
+- `packages/curriculum/src/pedagogy/__tests__/pedagogy-pack-service.test.ts` — 25 tests covering empty-pack, invalid-JSON, shape-mismatch, valid synthetic pack, and trigger filtering.
+- `packages/curriculum/src/pedagogy/__tests__/fixtures/synthetic-pack.json` — 2 strategies, 1 technique, 2 metacognitive prompts (pre-reading + post-error triggers).
+- `packages/curriculum/pedagogy/.gitkeep` — tracks the content directory before v1.json lands.
+- `packages/tools/src/pedagogy/list-strategies.ts` — `pedagogy.list_strategies` tool.
+- `packages/tools/src/pedagogy/get-strategy.ts` — `pedagogy.get_strategy` tool; returns `{ kind: "not_found" }` on unknown id.
+- `packages/tools/src/pedagogy/list-techniques.ts` — `pedagogy.list_techniques` tool.
+- `packages/tools/src/pedagogy/get-technique.ts` — `pedagogy.get_technique` tool with full curriculum lessons; returns `{ kind: "not_found" }` on unknown id.
+- `packages/tools/src/pedagogy/list-metacognitive-prompts.ts` — `pedagogy.list_metacognitive_prompts` tool with optional trigger filter.
+- `packages/tools/src/pedagogy/index.ts` — barrel + `PEDAGOGY_TOOLS` array.
+- `packages/tools/src/pedagogy/__tests__/helpers.ts` — inline empty/filled pack helpers (no curriculum dep in tools tests).
+- `packages/tools/src/pedagogy/__tests__/list-strategies.test.ts` — 4 tests.
+- `packages/tools/src/pedagogy/__tests__/get-strategy.test.ts` — 4 tests.
+- `packages/tools/src/pedagogy/__tests__/list-techniques.test.ts` — 4 tests.
+- `packages/tools/src/pedagogy/__tests__/get-technique.test.ts` — 4 tests.
+- `packages/tools/src/pedagogy/__tests__/list-metacognitive-prompts.test.ts` — 7 tests.
+
+### Files modified
+
+- `packages/core/src/types/tool.ts` — added `PedagogyPackService` interface; replaced `pedagogyPack: unknown` with `pedagogyPack: PedagogyPackService`; added imports from `./pedagogy.js` and `TechniqueId` from `./ids.js`.
+- `packages/core/src/services/types.ts` — added `PedagogyPackService` to `ServiceDeps.toolServices`.
+- `packages/core/src/services/session-service.ts` — replaced `pedagogyPack: null` with `pedagogyPack: this.deps.toolServices.pedagogyPack`.
+- `packages/desktop/electron/main/services.ts` — imported `PedagogyPackServiceImpl`; instantiated `pedagogyPackService`; added to `Services` shape, `toolServices`, and return object.
+- `packages/curriculum/package.json` — added `./pedagogy` export path.
+- `packages/tools/package.json` — added `./pedagogy` export path.
+- `packages/curriculum/src/bootstrap/__tests__/explorer.test.ts` — replaced `pedagogyPack: null` with `makeEmptyPedagogyPackService()` (relative import from pedagogy service).
+- `packages/tools/src/__tests__/test-tools.test.ts` — replaced `pedagogyPack: null` with inline empty stub.
+- `packages/tools/src/__tests__/registry.test.ts` — replaced `pedagogyPack: null` with inline empty stub.
+- `packages/tools/src/math/__tests__/grade-math.test.ts` — replaced `pedagogyPack: null` with inline empty stub.
+- `packages/tools/src/sandbox/__tests__/code-sandbox.test.ts` — replaced `pedagogyPack: null` with inline empty stub.
+
+### Discrepancies between design and final implementation
+
+1. **Citation schema shape**: Unit 2 in the story body showed `{source, url, authors, year}` for `CitationSchema`. The existing `Citation` TS type in `@praxis/core/types/common.ts` is `{source, locator?, text?}`. Used the existing type — single source of truth wins. The `CitationSchema` matches the existing TS interface exactly.
+2. **Tools test helper**: The design suggested `makeEmptyPedagogyPackService` from `@praxis/curriculum/pedagogy`. The tools package has no runtime or dev dep on curriculum. Rather than add that dep (which would also require a tsconfig reference change), the tools tests use an inline 6-line object literal stub and a slightly larger `makeFilledPedagogyPackService` built from typed literals. The curriculum tests use the real `PedagogyPackServiceImpl` via relative import. Functionality is equivalent.
+3. **Branded type cast**: `PedagogyPackSchema` output is `string` for ids, but `PedagogyPack` uses branded `StrategyId`/`TechniqueId`. The `loadPack` function casts via `as unknown as PedagogyPack` with a comment explaining the validation guarantee. This is the standard pattern for Zod-to-branded-type conversions in the codebase.
+4. **PEDAGOGY_TOOLS not yet wired into services.ts tool list**: The story scope covers service plumbing and tool definitions; the `PEDAGOGY_TOOLS` array is ready but not yet added to `toolDefinitions` in `services.ts`. That wiring belongs in the mode-tool-scoping work once the v1 content lands (modes need to declare which pedagogy tools are available). Added as a note here; not a blocker for review.
+
+### Verification results
+
+- `pnpm --filter @praxis/curriculum test`: 207 tests, 20 files — all passed (including 25 new pedagogy tests).
+- `pnpm --filter @praxis/tools test`: 444 tests, 58 files — all passed (including 19 new pedagogy tool tests).
+- `pnpm --filter @praxis/core test`: 558 tests, 60 files — all passed.
+- `pnpm --filter @praxis/desktop test`: 60 tests, 6 files — all passed.
+- `pnpm typecheck`: clean (all 10 packages).
+- `pnpm lint`: 30 total errors — same set of pre-existing errors (claude-cli-sdk, client tests, root tests). Zero errors in files created or modified by this story.

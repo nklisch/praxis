@@ -42,7 +42,15 @@ import type {
   SessionId,
   StrategyId,
   StudentId,
+  TechniqueId,
 } from "./ids.js";
+import type {
+  MetacognitivePrompt,
+  MetacognitivePromptTrigger,
+  PedagogyPack,
+  StudyTechnique,
+  TeachingStrategy,
+} from "./pedagogy.js";
 import type {
   AffectiveModel,
   EpisodicEvent,
@@ -137,7 +145,8 @@ export interface ToolServices {
   assignments: AssignmentService;
   /** Phase 10: pack import + listing — canonical curriculum packs. */
   packs: PackImportService;
-  pedagogyPack: unknown; // PedagogyPackService — concrete in Phase 14
+  /** Phase 18: pedagogy pack read-only service. */
+  pedagogyPack: PedagogyPackService;
   /** Phase 11: local lock code gate. */
   lock: LockService;
   /** Phase 11: configurator-driven authoring + memory writes. */
@@ -792,6 +801,40 @@ export interface PackImportService {
   findPackBySubject(subject: string): Promise<PackSummaryView | null>;
   /** Return the conceptGraphId for the latest imported version of a pack. */
   getConceptGraphForPack(packId: string): Promise<string | null>;
+}
+
+// ─── Phase 18: PedagogyPackService ───────────────────────────────────────────
+
+/**
+ * Read-only service over the loaded pedagogy pack. Synchronous accessors —
+ * the pack is loaded once at boot and held in memory (~50 KB upper bound for v1).
+ * When no pack file is available at runtime, every accessor returns empty arrays
+ * or null (empty-pack mode). Implemented by `PedagogyPackServiceImpl` in
+ * `@praxis/curriculum/pedagogy`.
+ */
+export interface PedagogyPackService {
+  /** Returns the loaded pack, or `null` if no pack is available at runtime. */
+  current(): PedagogyPack | null;
+
+  /** All teaching strategies in the loaded pack (empty if no pack). */
+  listStrategies(): readonly TeachingStrategy[];
+
+  /** Lookup a teaching strategy by id. Returns `null` if no pack or unknown id. */
+  getStrategy(id: StrategyId): TeachingStrategy | null;
+
+  /** All study techniques in the loaded pack (empty if no pack). */
+  listTechniques(): readonly StudyTechnique[];
+
+  /** Lookup a study technique by id. Returns `null` if no pack or unknown id. */
+  getTechnique(id: TechniqueId): StudyTechnique | null;
+
+  /**
+   * Metacognitive prompts in the loaded pack, optionally filtered by trigger.
+   * Returns an empty array if no pack is loaded.
+   */
+  listMetacognitivePrompts(opts?: {
+    trigger?: MetacognitivePromptTrigger;
+  }): readonly MetacognitivePrompt[];
 }
 
 // ─── Phase 7: MemoryService (server-side) ─────────────────────────────────────
