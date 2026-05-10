@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-procedural-memory
 kind: feature
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
@@ -152,3 +152,38 @@ One child story:
   id. The validation step in the indexer skips writes to unknown
   strategies, but historical rows persist. v1 doesn't migrate them; a
   future "pack-migration" feature can.
+
+## Implementation summary (2026-05-10)
+
+Single child story landed at `stage: review`:
+
+- `epic-phase-18-procedural-memory-indexer` (`8048577`) —
+  `ProceduralIndexer` (session-end, deterministic heuristic) +
+  `scoreSessionOutcome` pure helper + real `MemoryService.procedural()`
+  + services-wiring + 30 tests (23 indexer + 7 read-path).
+
+Cross-cutting deviations:
+- Test arrays declared as `IndexerContext["events"][number][]` (mutable
+  element array) rather than the readonly version, so `.push()` works
+  in test setup. Pragmatic; doesn't leak to production.
+- A follow-up `lint:fix` commit (`fc21414`) auto-organized imports and
+  did minor whitespace cleanup on the agent's four touched files. Lint
+  count flat at 4 errors (baseline).
+
+Verification at `fc21414`:
+- `pnpm typecheck` clean (all 10 packages)
+- `pnpm --filter @praxis/core test` 611 passed (64 files)
+- `pnpm lint` 4 errors (baseline; zero new)
+
+What's now possible:
+- `MemoryService.procedural(studentId)` returns real strategy
+  preferences with `evidenceCount` instead of the Phase 14 stub's
+  empty Map.
+- Strategy preferences accumulate over sessions: positive outcomes
+  nudge preference up by `correct * 50` milli (capped at +300/session);
+  negative outcomes nudge down 2× as fast (loss aversion).
+- `epic-phase-18-routing-integration` is now fully unblocked: both
+  procedural and affective projections have real data flowing into
+  them. Phase 18's closing piece can land next.
+
+Stage: implementing → review.
