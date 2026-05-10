@@ -175,13 +175,6 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
     expect(hw?.itemsJson).toEqual([]);
 
     // Verify courses.assessment_plan_json is written.
-    const courseRow = db
-      .select({ apj: courseUnits.id }) // indirect: just check via courses table below
-      .from(courseUnits)
-      .all();
-    // We already verified courseUnits; check assessmentPlanJson via direct sql.
-    const rawCourse = db.run(`SELECT assessment_plan_json FROM courses WHERE id = '${courseId}'`);
-    // better-sqlite3 run() returns { changes, lastInsertRowid }; use get() instead
     const courseData = db.get<{ assessment_plan_json: string }>(
       `SELECT assessment_plan_json FROM courses WHERE id = '${courseId}'`,
     );
