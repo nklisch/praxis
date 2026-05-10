@@ -244,6 +244,36 @@ export interface Rubric {
 }
 
 /**
+ * Inline structured-question prompt rendered as a card in the chat.
+ * The tutor uses this when it needs the student to make a decision the
+ * model can't make on the student's behalf — pack vs textbook,
+ * confidence-on-this-topic, branch-here-or-there. Multiple questions
+ * in one call (rendered as a stack); each question has its own option
+ * list and single-vs-multi-select flag.
+ *
+ * Not an assessment item — the model doesn't grade the answer; it
+ * just acts on it. Reuses AssignmentItem's union to inherit the
+ * existing quick-check dispatch pipeline.
+ */
+export interface StructuredQuestionItem {
+  kind: "structured-question";
+  /** Tool call id (uuidv7); also used as the React key. */
+  id: string;
+  questions: Array<{
+    /** Very short label shown as a chip / tag (max ~12 chars). */
+    header: string;
+    /** Full question text shown above the options. */
+    prompt: string;
+    /** When true, the student can pick more than one option. */
+    multiSelect: boolean;
+    options: Array<{
+      label: string;
+      description?: string;
+    }>;
+  }>;
+}
+
+/**
  * Phase 17: AssignmentItem discriminated union. Each kind is a separate
  * interface with only the fields relevant to that kind. The `kind` field is
  * the discriminant.
@@ -261,7 +291,8 @@ export type AssignmentItem =
   | NumericalItem
   | MatchingItem
   | OrderingItem
-  | TwoTierItem;
+  | TwoTierItem
+  | StructuredQuestionItem;
 
 /** Per-item entry on the Grade. */
 export interface GradeItem {

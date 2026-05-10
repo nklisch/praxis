@@ -178,8 +178,10 @@ export async function runRubricAgent(input: RunRubricAgentInput): Promise<Grader
 function buildRubricUserMessage(item: AssignmentItem, rubric: Rubric, text: string): string {
   const lines: string[] = [];
 
+  // structured-question items are never graded; all assessment items have a prompt.
+  const prompt = "prompt" in item ? (item.prompt as string) : "(no prompt)";
   lines.push("## Assignment item");
-  lines.push(item.prompt);
+  lines.push(prompt);
   lines.push("");
 
   lines.push("## Rubric");

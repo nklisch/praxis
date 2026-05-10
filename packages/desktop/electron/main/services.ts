@@ -18,7 +18,6 @@ import {
   ConceptMapServiceImpl,
   ConceptMapSnapshotter,
   ConfigServiceImpl,
-  UpdateServiceImpl,
   CourseDocumentsServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
@@ -35,6 +34,7 @@ import {
   SessionServiceImpl,
   SketchServiceImpl,
   TabsServiceImpl,
+  UpdateServiceImpl,
   VisionServiceImpl,
 } from "@praxis/core/services";
 import { FsSketchStore } from "@praxis/core/sketch";
@@ -57,6 +57,7 @@ import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/ass
 import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
 import { startExplorationTool } from "@praxis/tools/course/start-exploration";
+import { DIALOG_TOOLS } from "@praxis/tools/dialog";
 import { DOCUMENT_TOOLS } from "@praxis/tools/document";
 import { EXAM_TOOLS } from "@praxis/tools/exam";
 import { FLASHCARD_TOOLS } from "@praxis/tools/flashcards";
@@ -487,6 +488,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     sketchReadTool, // ← Phase 15a
     ...EXAM_TOOLS, // ← Phase 16
     ...QUICK_CHECK_TOOLS, // ← Phase 17
+    ...DIALOG_TOOLS, // ← Phase 17 structured-question dialog
   ];
 
   const deps: ServiceDeps = {

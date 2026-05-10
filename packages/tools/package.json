@@ -137,6 +137,13 @@
       "node": "./dist/quick-check/index.js",
       "default": "./dist/quick-check/index.js"
     },
+    "./dialog": {
+      "praxis-source": "./src/dialog/index.ts",
+      "types": "./dist/dialog/index.d.ts",
+      "import": "./dist/dialog/index.js",
+      "node": "./dist/dialog/index.js",
+      "default": "./dist/dialog/index.js"
+    },
     "./pedagogy": {
       "praxis-source": "./src/pedagogy/index.ts",
       "types": "./dist/pedagogy/index.d.ts",

@@ -15,6 +15,7 @@ export const bootstrapToolsFragment: PromptFragment = {
 - retrieve_from_textbook — search ingested materials for ad-hoc lookup while authoring
 - course.list_canonical_packs — list curated canonical knowledge packs; filter by subject id (e.g., "math.algebra-1")
 - course.use_canonical_pack — create a course from a canonical pack (faster than exploration; imports pack automatically if needed)
+- ask_student_question — ask the student a structured choice question (or up to 4 at once) when you need a decision before proceeding. Use this instead of guessing or apologising in text. Examples: choosing between two starting paths, picking a sub-topic to dive into, confirming a destructive action.
 
 Workflow rules:
 - Always call course.show_draft after course.start_exploration to display the result.

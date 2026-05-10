@@ -20,6 +20,7 @@ import { NumericalGrader } from "./numerical-grader.js";
 import { OrderingGrader } from "./ordering-grader.js";
 import { ShortAnswerGrader } from "./short-answer-grader.js";
 import { SingleChoiceGrader } from "./single-choice-grader.js";
+import { StructuredQuestionGrader } from "./structured-question-grader.js";
 import { TwoTierGrader } from "./two-tier-grader.js";
 import type { ItemGrader } from "./types.js";
 
@@ -35,5 +36,7 @@ export function buildGraderRegistry(): Record<AssignmentItem["kind"], ItemGrader
     matching: new MatchingGrader(),
     ordering: new OrderingGrader(),
     "two-tier": new TwoTierGrader(),
+    // structured-question is not an assessment item; grader throws if ever called
+    "structured-question": new StructuredQuestionGrader(),
   };
 }

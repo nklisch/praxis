@@ -49,6 +49,8 @@ export const bootstrapMode: Mode = {
     "course.discard_draft",
     // Retrieval — for ad-hoc lookup by the tutor (NOT the explorer; explorer has its own registry)
     "retrieve_from_textbook",
+    // Dialog — structured choice questions the model poses to the student
+    "ask_student_question",
   ],
   uiSurface: "chat",
 };

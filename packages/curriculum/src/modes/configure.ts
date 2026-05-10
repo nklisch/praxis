@@ -65,6 +65,8 @@ export const configureMode: Mode = {
     "memory.clear_misconception",
     "memory.export",
     "memory.delete_all",
+    // ── Dialog tools — structured choice questions ────────────────────────────
+    "ask_student_question",
   ],
   uiSurface: "configure",
 };

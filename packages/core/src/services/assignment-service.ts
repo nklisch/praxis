@@ -403,10 +403,15 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
     const now = new Date();
 
     // Propagate authoredBy to items that don't have it set.
-    const itemsWithProvenance = input.items.map((it) => ({
-      ...it,
-      authoredBy: it.authoredBy ?? input.authoredBy ?? "tutor",
-    }));
+    // structured-question items are not assessment items and don't carry authoredBy;
+    // all other item kinds have the optional authoredBy field.
+    const itemsWithProvenance = input.items.map((it) => {
+      if (it.kind === "structured-question") return it;
+      return {
+        ...it,
+        authoredBy: it.authoredBy ?? input.authoredBy ?? "tutor",
+      };
+    });
 
     // Drizzle with exactOptionalPropertyTypes requires null (not undefined) for nullable text columns.
     const parentSessionIdValue: string | null = input.parentSessionId ?? null;

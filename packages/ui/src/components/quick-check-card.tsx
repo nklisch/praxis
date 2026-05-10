@@ -66,7 +66,7 @@ export function QuickCheckCard({ callId, item, onResolve }: QuickCheckCardProps)
         <span>tutor asked</span>
       </div>
 
-      <p className={styles.prompt}>{item.prompt}</p>
+      {"prompt" in item && <p className={styles.prompt}>{item.prompt as string}</p>}
 
       {renderQuickCheckBody({
         item,
@@ -214,6 +214,12 @@ function renderQuickCheckBody({ item, response, onResponseChange, disabled }: Qu
           }}
         />
       );
+
+    case "structured-question":
+      // structured-question cards are rendered by <StructuredQuestionCard /> in
+      // the chat tab body (wired by the sibling UI story). They do not pass through
+      // QuickCheckCard's body dispatcher — this branch satisfies TS exhaustiveness.
+      return null;
   }
 }
 

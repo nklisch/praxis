@@ -19,6 +19,16 @@ export type QuickCheckAnswer =
   | { kind: "short-answer"; text: string }
   | { kind: "matching"; pairs: Array<{ leftId: string; rightId: string }> }
   | { kind: "confidence"; rating: number }
+  | {
+      kind: "structured-question";
+      /**
+       * One entry per question in the card, keyed by questionIndex.
+       * `selectedIndices` handles both single- and multi-select:
+       *  - single-select: exactly one element
+       *  - multi-select: zero or more elements
+       */
+      answers: Array<{ questionIndex: number; selectedIndices: number[] }>;
+    }
   | { kind: "abandoned" };
 
 /**

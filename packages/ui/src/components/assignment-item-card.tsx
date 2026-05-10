@@ -70,7 +70,7 @@ export function AssignmentItemCard({
         )}
       </div>
 
-      <p className={styles.prompt}>{item.prompt}</p>
+      {"prompt" in item && <p className={styles.prompt}>{item.prompt as string}</p>}
 
       {/* Per-kind body — dispatched by kind */}
       {renderBody({
@@ -223,5 +223,12 @@ function renderBody({
           disabled={disabled}
         />
       );
+
+    case "structured-question":
+      // structured-question items are not placed in assignments; they come through
+      // the quick-check pipeline via ask_student_question. This branch should not
+      // be reached, but satisfies TS exhaustiveness. The sibling UI story wires
+      // <StructuredQuestionCard /> in the chat tab body instead.
+      return null;
   }
 }

@@ -206,7 +206,9 @@ describe("AssignmentServiceImpl.create", () => {
       authoredBy: "tutor",
     });
     const assignment = await svc.get({ assignmentId });
-    expect(assignment?.items[0]?.authoredBy).toBe("tutor");
+    // single-choice items always have authoredBy; cast to access it.
+    const item0 = assignment?.items[0];
+    expect(item0 && "authoredBy" in item0 ? item0.authoredBy : undefined).toBe("tutor");
   });
 });
 

@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-structured-questions-tool
 kind: story
-stage: implementing
+stage: review
 tags: [tools, bootstrap, tutor-ux]
 parent: epic-bootstrap-readiness-structured-questions
 depends_on: []
@@ -93,3 +93,56 @@ wiring that exposes it to bootstrap and configure modes.
 - Parent epic: `epic-bootstrap-readiness`
 - Sibling story `story-epic-bootstrap-readiness-structured-questions-ui`
   depends on this one (needs the types).
+
+## Implementation notes
+
+### Files changed
+
+**New files:**
+- `packages/tools/src/dialog/ask-student-question.ts` — tool definition with Zod schema + handler
+- `packages/tools/src/dialog/index.ts` — barrel + `DIALOG_TOOLS` array
+- `packages/core/src/services/graders/structured-question-grader.ts` — no-op grader for registry exhaustiveness
+- `packages/tools/src/dialog/__tests__/ask-student-question.test.ts` — 15 tests
+- `packages/core/src/__tests__/quick-check-service-structured.test.ts` — 7 tests
+
+**Modified files:**
+- `packages/core/src/types/artifacts.ts` — added `StructuredQuestionItem` interface and appended to `AssignmentItem` union
+- `packages/core/src/types/quick-check.ts` — added `structured-question` variant to `QuickCheckAnswer`
+- `packages/core/src/services/graders/registry.ts` — added `structured-question` entry pointing to no-op grader
+- `packages/core/src/services/assignment-service.ts` — fixed `authoredBy` propagation to skip `structured-question` items
+- `packages/core/src/services/graders/approach-feedback.ts` — guarded `item.prompt` access for union exhaustiveness
+- `packages/core/src/services/graders/rubric-agent.ts` — guarded `item.prompt` access for union exhaustiveness
+- `packages/core/src/__tests__/assignment-service.test.ts` — narrowed `authoredBy` access to satisfy TS
+- `packages/curriculum/src/modes/bootstrap.ts` — added `"ask_student_question"` to toolNames
+- `packages/curriculum/src/modes/configure.ts` — added `"ask_student_question"` to toolNames
+- `packages/curriculum/src/modes/fragments/bootstrap-tools.ts` — added tool listing line
+- `packages/tools/package.json` — added `./dialog` export path
+- `packages/desktop/electron/main/services.ts` — imported and spread `DIALOG_TOOLS`
+- `packages/ui/src/components/assignment-item-card.tsx` — added `structured-question` no-op case + guarded `item.prompt`
+- `packages/ui/src/components/quick-check-card.tsx` — added `structured-question` no-op case + guarded `item.prompt`
+
+### Exhaustive-switch sites updated
+
+- **`graders/registry.ts`**: `Record<AssignmentItem["kind"], ItemGrader>` — added `StructuredQuestionGrader` (throws if called).
+- **`ui/assignment-item-card.tsx`**: `renderBody()` switch — added `case "structured-question": return null;`
+- **`ui/quick-check-card.tsx`**: `renderQuickCheckBody()` switch — added `case "structured-question": return null;` (sibling story wires real UI).
+- **`graders/approach-feedback.ts`** and **`rubric-agent.ts`**: accessed `item.prompt` via `"prompt" in item` narrowing guard.
+
+### AssignmentItem-union friction notes
+
+- `StructuredQuestionItem` intentionally lacks `prompt` (top-level), `authoredBy`, and grading fields. This required:
+  - Guarding `item.prompt` accesses in two grader helpers (approach-feedback + rubric-agent).
+  - Fixing the `authoredBy` propagation in `assignment-service.ts` to skip `structured-question` items.
+  - Fixing one test that accessed `authoredBy` on the unnarrowed union.
+  - Adding a no-op `StructuredQuestionGrader` to satisfy the exhaustive `Record<>` registry type.
+- The `AssignmentItemSchema` (Zod) in `packages/tools/src/assignment/item-schema.ts` was NOT updated — `structured-question` items are never placed in `Assignment.items` and `assignment.create` should reject them.
+- The `exactOptionalPropertyTypes` flag required explicit mapping of `options` in the handler to omit `description` when undefined.
+
+### Test count
+
+- Tool tests: 15 (schema validation ×9, handler ×5, registry integration ×1)
+- QuickCheckService round-trip tests: 7
+
+### Verification status
+
+`pnpm typecheck && pnpm lint && pnpm test` — all green (2434 tests pass, 6 pre-existing lint errors unrelated to this story).

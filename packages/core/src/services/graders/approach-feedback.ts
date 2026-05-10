@@ -104,9 +104,11 @@ function buildApproachUserMessage(
   response: string,
   base: GraderResult,
 ): string {
+  // structured-question items are never graded; all assessment items have a prompt.
+  const prompt = "prompt" in item ? (item.prompt as string) : "(no prompt)";
   return [
     "## Item prompt",
-    item.prompt,
+    prompt,
     "",
     "## Student response",
     response,
