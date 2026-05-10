@@ -1,7 +1,7 @@
 ---
 id: gate-docs-patterns-skill-phase-counter
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -41,3 +41,7 @@ No edit required. `.claude/skills/patterns/SKILL.md:12` already reads
 "Structural patterns for the Praxis AI tutoring framework." with no
 phase counter — the fix was applied in a prior commit (the gate-patterns
 run today). Story advances to review as a no-op confirmation.
+
+## Review (2026-05-10)
+
+Verified: `.claude/skills/patterns/SKILL.md` has no phase counter as of HEAD — the prior gate-patterns run already applied the fix. This story is a correct no-op confirmation; the finding is resolved. Approve.

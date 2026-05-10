@@ -1,7 +1,7 @@
 ---
 id: gate-docs-changelog-missing
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -50,3 +50,7 @@ a `v0 — 2026-05-09 (retro-release)` section. All 23 items in
 Foundation and engines, Content and curriculum, UI shell and editorial.
 The file is left ready for release-deploy Phase 5.5 to prepend the
 v0.1.0 section above the v0 block. No v0.1.0 section was added here.
+
+## Review (2026-05-10)
+
+Read the full CHANGELOG.md. Keep-a-Changelog header is correct. The `v0` section is a clean retrospective backfill — factual, no marketing language, thematically grouped. The retro-release note is honest (no v0 git tag, exists for substrate referencing). All major shipped items are enumerated and technically accurate. Correctly leaves no v0.1.0 section for release-deploy to prepend. Approve.

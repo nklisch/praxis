@@ -1,7 +1,7 @@
 ---
 id: gate-docs-readme-phase-counter
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -44,3 +44,7 @@ Applied the durable wording: replaced `(phases 1–16 shipped)` with
 `(historical artifacts; new design lives in .work/active/features/<id>.md
 bodies per the rolling-foundation principle)` at `README.md:251`. This
 avoids the counter going stale again.
+
+## Review (2026-05-10)
+
+Durable wording is the right call — removing the counter eliminates the entire class of staleness. The new text correctly describes how design now lives in the substrate rather than in `docs/designs/`. Approve.
