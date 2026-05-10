@@ -1,7 +1,7 @@
 ---
 id: gate-security-browser-window-navigation-guards
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -77,3 +77,7 @@ navigation to any URL that doesn't start with the app origin or `file://`.
 filter in ipc-server.ts). Non-http(s) URLs are silently dropped — no external
 handler invoked. Typecheck passes; pre-existing test suite failures are a
 better-sqlite3 ABI mismatch unrelated to this change.
+
+## Review (2026-05-10)
+
+**Verdict: Approve.** Both `will-navigate` and `setWindowOpenHandler` guards are present and correct. The `appOrigin` fallback to `"file://"` in prod is appropriate. The `setWindowOpenHandler` http/https filter for `shell.openExternal` matches the existing IPC server pattern. Comment bundle staging (test code for two other stories in this commit) is an artefact of sub-agent sequencing, not a review concern.
