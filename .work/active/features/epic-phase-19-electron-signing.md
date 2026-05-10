@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-electron-signing
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-phase-19-ship-v1
 depends_on: []
@@ -523,3 +523,58 @@ parallelisation upside; no multi-session resume needed.
 - **Production env-var contract**: `MAC_SIGNING_IDENTITY` (signing only),
   plus `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID` for
   notarisation. All four are read-only by the script; none are persisted.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+
+**Important**: none — the dual-arch design discovery was caught at
+implementation time, rolled back inline, and filed as
+`idea-electron-multi-arch-rebuild` for post-v1.
+
+**Nits**:
+- `xcrun stapler staple` doesn't have retry logic; under `set -e` a
+  transient stapler failure aborts the build. Apple's stapling
+  service is generally reliable but post-v1 hardening could add a
+  retry loop. Documented in `docs/CODE-SIGNING.md`'s troubleshooting
+  section.
+- The `type: "distribution"` + `identity: null` combination in
+  `build.mac` is the right shape for "configured for production but
+  unsigned by default", but its interaction with electron-builder's
+  internal validation is best confirmed on a macOS host. Implementation
+  notes flag this as deferred-to-macOS verification; ship-checklist
+  catches it.
+
+**Notes**:
+- Five units delivered: entitlements plist, package.json
+  `build.mac` extension, build-dist.sh sign+notarise+staple flow,
+  `docs/CODE-SIGNING.md`, README cross-reference.
+- `pnpm typecheck` and `pnpm test` both green at 2235 passing tests
+  before and after — no regression on the verifiable surface.
+- Bash quoting safe: every env var is interpolated via `"$VAR"`; no
+  shell injection vector.
+- Foundation-doc alignment: README rolled forward (removed stale
+  `docs/refactors/` reference), new `docs/CODE-SIGNING.md` added in
+  foundation-style prose. `docs/ARCHITECTURE.md` and `docs/SPEC.md`
+  needed no updates — they describe the system at a higher level
+  than build-time signing.
+- The single-arch rollback is the correct call for v1; documented as a
+  design discovery, with the multi-arch follow-up scoped as
+  `idea-electron-multi-arch-rebuild` in the backlog.
+
+## What's now possible
+
+- A maintainer with an Apple Developer ID Application certificate and
+  notary creds can run `pnpm --filter @praxis/desktop dist:mac` and
+  produce a signed, notarised, stapled `.dmg` ready to ship to users.
+- Local-development `pnpm dist:dir` and unsigned `dist:mac` continue
+  working with the same command surface as before — degrades gracefully
+  when env vars are absent.
+- `epic-phase-19-auto-update` is unblocked: its `depends_on` is
+  satisfied, and it can now reason about what kind of update flow to
+  build on top of a signed-installer foundation.
+- The Phase 19 ship-checklist gains its second hard prerequisite (the
+  first was biology-pack); only first-run-flow, auto-update, and
+  onboarding-docs remain before the checklist can run.
