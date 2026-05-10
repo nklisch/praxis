@@ -1259,6 +1259,339 @@ interface ActivityHandle {
 | `course.draft_set_assessment_plan` | bootstrap (explorer) | Set the assessment plan on the draft |
 | `course.draft_add_lesson_assessment` | bootstrap (explorer) | Add an assessment shell to a lesson in the draft |
 
+## Phase 17 additive changes
+
+Phase 17 (item types and quick-checks) expanded `AssignmentItem` into a full discriminated union and introduced the `QuickCheckService` human-in-the-loop dispatch pattern that lets the tutor pose inline formative questions mid-session without creating a graded assignment.
+
+### `AssignmentItem` discriminated union expansion (Phase 17)
+
+Six new item kinds join the existing `single-choice`, `multi-select`, `short-answer`, `free-response`, `math`, and `code` kinds in `packages/core/src/types/artifacts.ts`. The `kind` field is the discriminant throughout.
+
+```typescript
+// Phase 17 additions to AssignmentItem
+
+interface NumericalItem {
+  kind: "numerical";
+  id: string;
+  prompt: string;
+  expectedValue: number;
+  /** Absolute tolerance: |studentValue - expectedValue| ≤ tolerance. Default 0. */
+  tolerance?: number;
+  /** Optional units; case-insensitive exact-string match. */
+  expectedUnits?: string;
+  /** When set, student answer must round to this many significant figures. */
+  significantFigures?: number;
+  workRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+interface MatchingItem {
+  kind: "matching";
+  id: string;
+  prompt: string;
+  leftItems: Array<{ id: string; text: string }>;
+  rightItems: Array<{ id: string; text: string }>;
+  /** Correct pairs as (leftId, rightId). One-to-one bijection in v1. */
+  correctPairs: Array<{ leftId: string; rightId: string }>;
+  authoredBy?: "tutor" | "configurator";
+}
+
+interface OrderingItem {
+  kind: "ordering";
+  id: string;
+  prompt: string;
+  /** Items shown in shuffled order to the student. Each has a stable id. */
+  items: Array<{ id: string; text: string }>;
+  /** Correct sequence as an array of item ids. Must be a permutation of items[].id. */
+  correctOrder: string[];
+  authoredBy?: "tutor" | "configurator";
+}
+
+interface TwoTierItem {
+  kind: "two-tier";
+  id: string;
+  prompt: string;
+  options: string[];
+  correctOptionIndex: number;
+  reasonPrompt: string;
+  reasonOptions: string[];
+  correctReasonIndex: number;
+  /**
+   * Maps each reason option index to a misconception id (or null when the
+   * option is correct or has no clear misconception). Length must equal
+   * reasonOptions.length.
+   */
+  misconceptionByReasonIndex: Array<string | null>;
+  requireReasoning?: boolean;
+  reasoningRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+// Full union after Phase 17
+type AssignmentItem =
+  | SingleChoiceItem
+  | MultiSelectItem
+  | ShortAnswerItem
+  | FreeResponseItem
+  | MathItem
+  | CodeItem
+  | NumericalItem
+  | MatchingItem
+  | OrderingItem
+  | TwoTierItem;
+```
+
+Note: `"single-choice"` is the canonical kind (renamed from the pre-Phase-17 `"multiple-choice"`); a one-shot Drizzle migration rewrites stored JSON.
+
+### `QuickCheckService` — in-process human-in-the-loop dispatch (`packages/core/src/types/quick-check.ts`)
+
+Tool handlers call `await()` to block until the student answers an inline card; the renderer resolves via IPC. The service never persists answers — it is purely in-memory coordination.
+
+```typescript
+type QuickCheckAnswer =
+  | { kind: "single-choice"; selectedIndex: number }
+  | { kind: "multi-select"; selectedIndices: number[] }
+  | { kind: "short-answer"; text: string }
+  | { kind: "matching"; pairs: Array<{ leftId: string; rightId: string }> }
+  | { kind: "confidence"; rating: number }
+  | { kind: "abandoned" };
+
+type QuickCheckEvent =
+  | { kind: "pending"; callId: string; sessionId: SessionId; item: AssignmentItem }
+  | { kind: "resolved"; callId: string; answer: QuickCheckAnswer };
+
+interface QuickCheckService {
+  await(input: {
+    callId: string;
+    sessionId: SessionId;
+    item: AssignmentItem;
+    timeoutMs?: number;
+  }): Promise<QuickCheckAnswer>;
+  resolve(input: { callId: string; answer: QuickCheckAnswer }): void;
+  cancel(callId: string): void;
+  subscribe(listener: (event: QuickCheckEvent) => void): () => void;
+}
+```
+
+`QuickCheckService` is injected into `ToolServices` at `ctx.services.quickCheck`. Tool handlers receive it through `ToolContext.services`.
+
+### `QuickCheckClientApi` — renderer-side surface (`packages/core/src/types/client.ts`)
+
+```typescript
+interface QuickCheckClientApi {
+  events(): AsyncIterable<QuickCheckEvent>;
+  resolve(input: { callId: string; answer: QuickCheckAnswer }): Promise<void>;
+}
+```
+
+Exposed as `PraxisClient.quickCheck`. The renderer subscribes to `events()` once per app session and renders a `<QuickCheckCard>` whenever a `pending` event arrives; it calls `resolve()` when the student submits.
+
+### IPC channel family `praxis.quickCheck.*` (`packages/desktop/electron/main/quick-check-channel.ts`)
+
+- `praxis.quickCheck.events.start` (invoke with streamId) — subscribe to `QuickCheckEvent` stream
+- `praxis.quickCheck.events.events.<streamId>` (push) — `IpcStreamMessage<QuickCheckEvent>`
+- `praxis.quickCheck.events.cancel` (on streamId) — unsubscribe
+- `praxis.quickCheck.resolve` (invoke) — deliver `{ callId, answer }` to the waiting tool handler
+
+### New tools (Phase 17)
+
+| Tool name | Mode(s) | Description |
+|---|---|---|
+| `quick_check.single_choice` | teach, study-skills | Inline single-choice card; blocks until the student answers |
+| `quick_check.multi_select` | teach, study-skills | Inline multi-select card; blocks until the student submits |
+| `quick_check.short_answer` | teach, study-skills | Inline free-text card; formative only, no answer key |
+| `quick_check.matching` | teach, study-skills | Inline drag-and-drop pairing card |
+| `quick_check.confidence` | teach, study-skills | Inline self-assessed confidence rating (1–4 or 1–5 scale) |
+
+## Phase 18 additive changes
+
+Phase 18 (study-skills + procedural memory) introduced the `study-skills` mode, the `PedagogyPackService` read-only pack accessor, five pedagogy tools, the metacognitive-prompts prompt fragment, and two new session-end indexers (`AffectiveIndexer`, `ProceduralIndexer`) backed by new schema tables. The router's `RouterInput` and `RouterSuggestion` types also gained affective and procedural fields.
+
+### `PedagogyPackService` — read-only pack accessor (`packages/core/src/types/tool.ts`)
+
+Loads the pedagogy pack JSON at boot; every accessor is synchronous. In empty-pack mode (no file or invalid JSON), all methods return empty arrays or `null`. Implemented by `PedagogyPackServiceImpl` in `@praxis/curriculum/pedagogy`; injected at `ServiceDeps.toolServices.pedagogyPack`.
+
+```typescript
+interface PedagogyPackService {
+  /** Returns the loaded pack, or null if no pack is available at runtime. */
+  current(): PedagogyPack | null;
+  /** All teaching strategies in the loaded pack (empty if no pack). */
+  listStrategies(): readonly TeachingStrategy[];
+  /** Lookup a teaching strategy by id. Returns null if no pack or unknown id. */
+  getStrategy(id: StrategyId): TeachingStrategy | null;
+  /** All study techniques in the loaded pack (empty if no pack). */
+  listTechniques(): readonly StudyTechnique[];
+  /** Lookup a study technique by id. Returns null if no pack or unknown id. */
+  getTechnique(id: TechniqueId): StudyTechnique | null;
+  /**
+   * Metacognitive prompts in the loaded pack, optionally filtered by trigger.
+   * Returns an empty array if no pack is loaded.
+   */
+  listMetacognitivePrompts(opts?: {
+    trigger?: MetacognitivePromptTrigger;
+  }): readonly MetacognitivePrompt[];
+}
+```
+
+### `study-skills` mode (Phase 18)
+
+New mode (`packages/curriculum/src/modes/study-skills.ts`): `id: "study-skills"`, `label: "Study Skills"`, `requiredRole: "student"`, `uiSurface: "chat"`. Tool set: all five `pedagogy.*` tools, `course.what_can_i_teach`, all five `note.*` and four `flashcard.*` workspace tools, and four `quick_check.*` tools (excludes `quick_check.matching`). The mode does **not** include the metacognitive-prompts fragment (the fragment is excluded from study-skills, bootstrap, and configure).
+
+### Metacognitive-prompts prompt fragment (`packages/curriculum/src/modes/fragments/metacognitive-prompts.ts`)
+
+A parameterised fragment (`position: "principles"`, `customizable: false`) injected into `teach`, `quiz`, `homework`, and `exam` modes. It instructs the model to call `pedagogy.list_metacognitive_prompts({ trigger })` at five trigger moments (`pre-reading`, `post-reading`, `pre-quiz`, `post-error`, `session-end`) and weave one prompt naturally into the response. The fragment is absent from `study-skills`, `bootstrap`, and `configure`.
+
+```typescript
+type MetacognitivePromptTrigger =
+  | "pre-reading"
+  | "post-reading"
+  | "pre-quiz"
+  | "post-error"
+  | "session-end";
+```
+
+### Affective and procedural indexer schema additions (`packages/memory/src/schema.ts`)
+
+Two new tables written by the session-end indexers:
+
+```typescript
+// affective_samples — written by AffectiveIndexer
+// source: "explicit-checkin" from quick_check.confidence tool results;
+//         "model-inferred" from a one-shot LLM pass over the transcript.
+// Values stored as milli-units (0..1000 = 0..1 float).
+
+// procedural_strategies — written by ProceduralIndexer
+// Tracks per-student, per-strategy preference in milli-units (-1000..1000).
+// evidenceCount accumulates across sessions; delta per session capped to [-300, +300].
+// Composite primary key: (studentId, strategyId).
+```
+
+`AffectiveIndexer` (`packages/core/src/services/indexers/affective-indexer.ts`) runs at `schedule: "session-end"`. It extracts `quick_check.confidence` tool_call/tool_result pairs as `source: "explicit-checkin"` rows, then runs a one-shot LLM inference over the transcript to produce one `source: "model-inferred"` row per session. Either path failing is non-fatal.
+
+`ProceduralIndexer` (`packages/core/src/services/indexers/procedural-indexer.ts`) runs at `schedule: "session-end"`. It reads the session's current lesson `suggestedStrategy`, validates it against the loaded pedagogy pack, scores a preference delta from deterministic event signals (`grade_math`, `course.mark_studied`, `code_sandbox`), and upserts the `procedural_strategies` row with loss aversion (negative delta ×2).
+
+### `RouterInput` and `RouterSuggestion` — Phase 18 additions (`packages/curriculum/src/router/types.ts`)
+
+```typescript
+// Fields added to RouterInput (Phase 18)
+interface RouterInput {
+  // ... existing fields ...
+  /** Per-strategy preference + evidence, from the procedural indexer. Optional. */
+  proceduralStrategies?: ReadonlyMap<string, { preference: number; evidenceCount: number }>;
+  /** Rolling baseline engagement / frustration / confidence averages. Optional. */
+  affectiveBaseline?: { engagement: number; frustration: number; confidence: number };
+  /** Most-recent affect samples, most-recent first. Optional. */
+  recentAffect?: ReadonlyArray<{ engagement: number; frustration: number; confidence: number }>;
+}
+
+// Fields added to RouterSuggestion (Phase 18)
+interface RouterSuggestion {
+  // ... existing fields ...
+  /** Teaching strategy for the primary concept; overridden by procedural preferences when evidence is sufficient. */
+  suggestedStrategy: StrategyId;
+  /** "easier" | "normal" | "harder" based on frustration/ease signals from affective data. */
+  difficultyHint: "easier" | "normal" | "harder";
+  /** "study-skills" when sustained high frustration is detected; null otherwise. */
+  suggestedModeTransition: "study-skills" | null;
+}
+```
+
+### New tools (Phase 18)
+
+| Tool name | Mode(s) | Description |
+|---|---|---|
+| `pedagogy.list_strategies` | teach, quiz, homework, exam, study-skills | List all teaching strategies from the loaded pedagogy pack |
+| `pedagogy.get_strategy` | teach, quiz, homework, exam, study-skills | Fetch a single teaching strategy by id |
+| `pedagogy.list_techniques` | teach, quiz, homework, exam, study-skills | List all study techniques from the loaded pedagogy pack |
+| `pedagogy.get_technique` | teach, quiz, homework, exam, study-skills | Fetch a single study technique by id |
+| `pedagogy.list_metacognitive_prompts` | teach, quiz, homework, exam, study-skills | List metacognitive prompts, optionally filtered by trigger |
+
+## Phase 19 additive changes
+
+Phase 19 (ship-v1) added the auto-update check surface, the first-run onboarding config, the bootstrap draft-stream client, and the biology canonical pack. These are additive surfaces; no existing interfaces changed shape.
+
+### `UpdateService` / `UpdateClientApi` / `UpdateCheckResult` (Phase 19)
+
+`UpdateService` lives server-side (`packages/core/src/services/update-service.ts`). The renderer-side port is `UpdateClientApi` (`packages/core/src/types/client.ts`). The renderer's surface is parameter-less — the main process knows the app version via `app.getVersion()`.
+
+```typescript
+type UpdateCheckResult =
+  | { status: "disabled" }
+  | { status: "up-to-date"; current: string }
+  | { status: "available"; current: string; latest: UpdateFeed }
+  | { status: "error"; message: string };
+
+interface UpdateFeed {
+  version: string;          // semver
+  releaseDate?: string;     // ISO datetime
+  downloadUrl: string;
+  releaseNotesUrl?: string;
+}
+
+// Server-side
+interface UpdateService {
+  /**
+   * One-shot update check. Returns "disabled" when no PRAXIS_UPDATE_FEED_URL
+   * env var is set. Never throws — callers always receive a typed result.
+   */
+  checkLatest(currentVersion: string): Promise<UpdateCheckResult>;
+}
+
+// Renderer-side (via PraxisClient.update)
+interface UpdateClientApi {
+  checkLatest(): Promise<UpdateCheckResult>;
+}
+```
+
+`UpdateFeed` is validated with Zod at runtime; a schema-mismatch yields `{ status: "error" }`. Enabled by setting `PRAXIS_UPDATE_FEED_URL` to a JSON endpoint.
+
+- IPC channel: `praxis.update.checkLatest` (invoke) — handler in `packages/desktop/electron/main/ipc-server.ts`.
+- Exposed as `PraxisClient.update`.
+
+### `OnboardingConfig` — first-run state (`packages/core/src/config/onboarding-config.ts`)
+
+```typescript
+interface OnboardingConfig {
+  /** ISO timestamp; null means first-run is not yet complete. */
+  firstRunCompletedAt: string | null;
+}
+```
+
+Stored in the `config_kv` table under key `"onboarding"`. Read by `readOnboardingConfig(db)`, written by `markFirstRunComplete(db)`. Default (fresh database): `{ firstRunCompletedAt: null }`.
+
+- IPC channels (invoke): `praxis.config.firstRunCompleted`, `praxis.config.markFirstRunComplete` — both registered in `packages/desktop/electron/main/ipc-server.ts`.
+
+### `DraftStreamClient` / `DraftStreamEvent` — bootstrap draft stream (`packages/core/src/types/draft-stream.ts`)
+
+The bootstrap service streams draft mutations to the renderer so the right-pane outline rebuilds without polling.
+
+```typescript
+type DraftStreamEvent =
+  | { kind: "snapshot"; drafts: readonly DraftCourseState[] }
+  | { kind: "started"; draft: DraftCourseState }
+  | { kind: "updated"; draft: DraftCourseState }
+  | { kind: "finalized"; draftId: string; courseId: string }
+  | { kind: "discarded"; draftId: string; reason: "expired" | "discarded" };
+
+interface DraftStreamClient {
+  events(): AsyncIterable<DraftStreamEvent>;
+}
+```
+
+The server always delivers a `snapshot` event first on subscribe so a fresh subscriber sees current state immediately. Implemented by `DraftsClient` in `packages/client/src/services/drafts-client.ts`.
+
+- IPC channel family (`packages/desktop/electron/main/bootstrap-drafts-channel.ts`):
+  - `praxis.bootstrap.drafts.events.start` (invoke with streamId) — open subscription
+  - `praxis.bootstrap.drafts.events.events.<streamId>` (push) — `IpcStreamMessage<DraftStreamEvent>`
+  - `praxis.bootstrap.drafts.events.cancel` (on) — unsubscribe
+- Exposed as `PraxisClient.drafts`.
+
+### Biology canonical pack (`packages/curriculum/packs/biology.json`)
+
+A second subject pack alongside `algebra-1.json` and `geometry.json`. Referenced by `course.use_canonical_pack` via subject id `"science.biology"`. The pack ships with the desktop bundle; its content version is tracked in the pack's top-level `version` field.
+
 ## Versioning rules
 
 - All packages follow semver.

@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-phase17-18-19-sections
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -61,3 +61,7 @@ Phases 10–16. Each should declare the new interfaces
 channel families (`praxis.bootstrap.drafts.events.*`,
 `praxis.update.*`). Surface the new tool families (`pedagogy.*`,
 `quick_check.*`) in the New tools table at the bottom.
+
+## Implementation notes
+
+Added ~280 lines to `docs/CONTRACT.md` across three new phase sections. Documented 14 surfaces total: `AssignmentItem` union (10 kinds), `QuickCheckService`/`QuickCheckClientApi`, `PedagogyPackService`, `study-skills` mode, metacognitive-prompts fragment, `AffectiveIndexer`/`ProceduralIndexer` schema tables, `RouterInput`/`RouterSuggestion` Phase 18 additions, `UpdateService`/`UpdateClientApi`/`UpdateCheckResult`, `OnboardingConfig`, `DraftStreamClient`/`DraftStreamEvent`, and biology canonical pack. All type signatures drawn directly from source files.
