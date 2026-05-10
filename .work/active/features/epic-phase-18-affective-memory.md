@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-affective-memory
 kind: feature
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: []
@@ -191,3 +191,60 @@ What's now possible:
   the routing logic.
 
 Stage: implementing → review.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+The single child story `epic-phase-18-affective-memory-indexer` landed at
+done with its own Approve verdict. The feature delivers the capability the
+brief promised end-to-end:
+
+- `MemoryService.affective(studentId)` returns real samples + a real
+  baseline (replacing the Phase 14 stub) ✅
+- `AffectiveIndexer` runs at session-end with both paths in one
+  transaction (explicit-checkin extraction from `quick_check.confidence`
+  + model-inferred per-session inference) ✅
+- Wired into `IndexerOrchestratorImpl` alongside mastery / misconception /
+  concept-map indexers ✅
+- 25 new tests across 2 files (17 indexer + 8 read-path) — all green ✅
+
+Aggregate lenses:
+
+- **Design alignment**: Single-story decomposition was the right call —
+  the work fit cleanly in one stride. The implementation matches the
+  design exactly, including the reject-don't-clamp policy on
+  out-of-range model output and the neutral-impute on explicit-checkin
+  engagement / frustration.
+- **Foundation-doc alignment**: `docs/CONTRACT.md:882` already declared
+  `MemoryService.affective(): Promise<AffectiveModel>`; this feature
+  closes the Phase 14 stub gap. `docs/ARCHITECTURE.md:282`'s assertion
+  about affective signal sources is honored. No drift.
+- **Breaking changes**: none. The shape of `AffectiveModel` is the same
+  as the prior stub returned; only the contents changed from "always
+  empty/neutral" to "real data".
+- **Capability completeness**: every brief line resolves —
+  `affective()` real, indexer wired, explicit-checkin pipe wired,
+  model-inferred path wired, tests cover all six required cases.
+
+Three nits captured in the story review (in conversation only, not
+worth substrate items):
+- `ToolResult` type cast in `extractExplicitCheckins` could tighten to
+  the real union
+- `affective()` runs two queries where one would do at small N
+- `CONFIDENCE_TOOL_NAME` constant is defined but the literal string is
+  used at the actual comparison site
+
+**Verification at HEAD** (`bc0dd52`): `pnpm typecheck` clean;
+`pnpm --filter @praxis/core test` 581 passed (62 files); `pnpm lint`
+4 errors (unchanged baseline; zero new from this feature).
+
+What's now possible: `epic-phase-18-routing-integration` is one closer
+step from ready — it now needs only `procedural-memory` to reach done
+before the routing-integration feature can build against the
+two-projection input the brief calls for.
+
+Stage: review → done.
