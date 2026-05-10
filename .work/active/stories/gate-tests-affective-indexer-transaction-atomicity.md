@@ -1,7 +1,7 @@
 ---
 id: gate-tests-affective-indexer-transaction-atomicity
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -55,3 +55,7 @@ Constraint-violation injection was considered but rejected because uuidv7 IDs ne
 a Drizzle middleware approach was considered but Drizzle ORM doesn't expose a middleware API
 on the transaction object. The `mockImplementationOnce` ensures subsequent test cases get the
 real `db.transaction` back without cleanup friction.
+
+## Review (2026-05-10)
+
+**Verdict: Approve.** The test genuinely proves rollback: it asserts `rows.length === 0` after the failure, confirms the spy fired at least twice (i.e., the second insert was reached), and uses the real SQLite `BEGIN/ROLLBACK` path rather than a mock. The `try/catch` wrapper correctly accepts either propagation or swallow — what matters is the row count. `mockImplementationOnce` ensures clean test isolation.
