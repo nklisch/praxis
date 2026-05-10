@@ -1,7 +1,7 @@
 ---
 id: release-v0.1.0
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
@@ -143,3 +143,33 @@ Drain options:
 
 Re-run `/agile-workflow:release-deploy v0.1.0` after draining to resume
 from Phase 5.5 (changelog draft) → Phase 6 (ship).
+
+---
+
+## Shipped (2026-05-10)
+
+**Date**: 2026-05-10
+**Mapping**: tag-based
+**Tag**: `v0.1.0` (annotated, local — not yet pushed per user choice)
+**Items shipped**: 79 total in `.work/releases/v0.1.0/`
+- 1 release file
+- 1 epic-phase-19-ship-v1 + 6 phase-19 features
+- 14 phase-18 study-skills items (epic + features + stories)
+- 6 standalone features (chat surface fidelity, claude-cli-sdk fork, logger rotation, bootstrap drafts streaming)
+- 1 organisational epic (epic-release-v0.1.0-readiness) + 4 organisational features (one per gate origin)
+- 45 gate-produced findings (security 7 + tests 8 + cruft 7 + docs 23) + 1 patterns tracking item
+
+**Gate finding totals (all drained to done)**:
+- security: 7 (1 H + 3 M + 3 L)
+- tests: 8 (1 H + 2 M + 5 L)
+- cruft: 7 (6 H + 1 L)
+- docs: 23 (all H — heavy foundation-doc roll-forward expected since the bundle covered Phases 17, 18, 19)
+- patterns: 4 patterns codified (subscriber-fanout-stream, lazy-resolver-thunk, indexer-class, mode-prompt-fragment-composition); 0 inconsistencies flagged
+
+**Verification at ship**: 2389 tests passing (12 net new from this release's gate-produced test additions). Typecheck clean across all 10 workspace packages.
+
+**Follow-ups parked to backlog**:
+- `idea-encrypt-api-key-with-safestorage`
+- `idea-update-feed-ed25519-signature`
+
+**Pre-existing 18 lint errors** in `@praxis/claude-cli-sdk` and a few end-to-end test files were unchanged by this release; none introduced.
