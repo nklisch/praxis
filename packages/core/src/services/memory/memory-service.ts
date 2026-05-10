@@ -27,6 +27,7 @@ import type {
   MemoryExport,
   Misconception,
   ProceduralModel,
+  StrategyPreference,
   StudentModel,
 } from "../../types/memory.js";
 // Import server-side MemoryService (with studentId params) directly from tool.ts.
@@ -129,10 +130,26 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
     }));
   }
 
-  // ── procedural (Phase 14 stub) ────────────────────────────────────────────────
+  // ── procedural ────────────────────────────────────────────────────────────────
 
   async procedural(studentId: StudentId): Promise<ProceduralModel> {
-    return { studentId, strategies: new Map() };
+    const rows = this.deps.db
+      .select()
+      .from(proceduralStrategies)
+      .where(eq(proceduralStrategies.studentId, studentId))
+      .all();
+
+    const strategies = new Map<StrategyId, StrategyPreference>();
+    for (const r of rows) {
+      const id = brandId<"StrategyId">(r.strategyId);
+      strategies.set(id, {
+        strategyId: id,
+        preference: r.preferenceMilli / 1000, // -1..1
+        evidenceCount: r.evidenceCount,
+      });
+    }
+
+    return { studentId, strategies };
   }
 
   // ── affective ─────────────────────────────────────────────────────────────────

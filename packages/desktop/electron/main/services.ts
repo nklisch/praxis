@@ -9,6 +9,7 @@ import type { ServiceDeps } from "@praxis/core/services";
 import {
   ActivityRegistryImpl,
   AffectiveIndexer,
+  ProceduralIndexer,
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
   AuthoringServiceImpl,
@@ -382,6 +383,17 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     engineResolver: bootstrapEngineResolver,
   });
 
+  // Phase 18: Procedural indexer — scores session outcome from deterministic
+  // event signals and updates strategy preferences for the current lesson's
+  // suggestedStrategy.
+  const proceduralIndexer = new ProceduralIndexer({
+    db,
+    log,
+    sessionCourseId: readSessionCourseId,
+    courseStateReader: artifactsService,
+    pedagogyPack: pedagogyPackService,
+  });
+
   const indexerOrchestrator = new IndexerOrchestratorImpl({
     db,
     log,
@@ -389,6 +401,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       masteryIndexer,
       misconceptionIndexer,
       affectiveIndexer, // Phase 18
+      proceduralIndexer, // Phase 18
       conceptMapSnapshotter,
       conceptMapDivergenceIndexer,
     ],
