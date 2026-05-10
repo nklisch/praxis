@@ -69,7 +69,7 @@ The framework defines six v1 modes. Each is a configuration: prompt fragments, t
 The interactive lecture. Concept introduction, scaffolding, worked examples, fading.
 
 - Prompt fragments emphasize: present a concept → ground in textbook → motivate with example → check understanding → fade scaffolding.
-- Tools: `grade_math`, `code_sandbox`, `retrieve_from_textbook`, course-navigation tools (`course.what_can_i_teach`, `course.start_lesson`, `course.current_concept`, `course.mark_studied`), `update_mastery`, `record_misconception`, `assignment.create`, 9 note/flashcard tools (`note.*`, `flashcard.*`), `sketch.read`. See `packages/curriculum/src/modes/teach.ts` for the canonical list.
+- Tools: `grade_math`, `code_sandbox`, `retrieve_from_textbook`, course-navigation tools (`course.what_can_i_teach`, `course.start_lesson`, `course.current_concept`, `course.mark_studied`), `update_mastery`, `record_misconception`, `assignment.create`, 9 note/flashcard tools (`note.*`, `flashcard.*`), `sketch.read`, inline quick checks (`quick_check.single_choice`, `quick_check.multi_select`, `quick_check.short_answer`, `quick_check.matching`, `quick_check.confidence`), `pedagogy.list_metacognitive_prompts`. See `packages/curriculum/src/modes/teach.ts` for the canonical list.
 - No exam tools. No assessment-taking tools (those live in quiz/homework/exam modes).
 - Style: lecture-leaning *and* Socratic — adapts based on procedural memory (what works for *this* student).
 

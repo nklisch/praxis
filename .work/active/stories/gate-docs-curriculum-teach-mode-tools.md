@@ -1,7 +1,7 @@
 ---
 id: gate-docs-curriculum-teach-mode-tools
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -36,3 +36,6 @@ is missing 6 tools.
 Append the Phase 17 quick-check family
 (`quick_check.{single_choice,multi_select,short_answer,matching,confidence}`)
 and `pedagogy.list_metacognitive_prompts` to the teach-mode tools list.
+
+## Implementation notes
+Verified `teach.ts:53-59` — five `quick_check.*` tools and `pedagogy.list_metacognitive_prompts` were all present. Appended both families inline (before the canonical-list pointer) to keep the summary accurate without reformatting the full list.
