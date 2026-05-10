@@ -1,7 +1,7 @@
 ---
 id: feature-release-v0.1.0-doc-findings
 kind: feature
-stage: review
+stage: done
 tags: [docs]
 parent: epic-release-v0.1.0-readiness
 depends_on: []
@@ -146,3 +146,21 @@ Phase 5.5 to prepend the `## v0.1.0` section.
 
 `pnpm typecheck && pnpm test` clean (2377 tests; one mid-drain test
 fix at `f8795df` resolved the mode-meta scope-stretch's duplication).
+
+## Review (2026-05-10)
+
+All 23 child stories reviewed and advanced to `done`. Feature-level assessment:
+
+**Cumulative roll-forward coverage**: The batch brought the four highest-traffic foundation docs fully current for v0.1.0:
+- ARCHITECTURE.md now has the correct package table (10 packages including `@praxis/claude-cli-sdk`), correct `@praxis/engines` boundary with `runOneShot` carve-out, and accurate two-flavor indexer description.
+- CURRICULUM.md now has correct tool lists for all five modes (teach, quiz, homework, exam, study-skills). The study-skills mode entry was a material correction — concept-map editors and "scheduling for spaced review" tools don't exist in that mode.
+- CONTRACT.md grew from Phase 16-only to Phase 19-complete, adding three new `## Phase N additive changes` sections (~340 LoC). The writing is accurate, internally consistent, and follows the established section shape.
+- UX.md gained the study-skills mode row with values verified against the live `mode-meta.ts` entry.
+
+**Cross-doc coherence**: The three docs that touch the pedagogy-pack and quick-check surfaces (CURRICULUM.md, CONTRACT.md, ARCHITECTURE.md) are mutually consistent: pedagogy tools appear in all five modes in CURRICULUM.md, `PedagogyPackService` is declared in CONTRACT.md, and the indexer description in ARCHITECTURE.md uses `runOneShot` consistently with the `engines-runOneShot-export` fix. The study-skills mode is consistent across UX.md (surface map + tints table), CURRICULUM.md (tool list), and CONTRACT.md (mode declaration).
+
+**Rolling-foundation principle**: No "previously this was" prose, no "(planned)" tags surviving in body text, no phase-counter strings in heading positions. The one potential concern — the Phase 17 new-tools table in CONTRACT.md listing study-skills as a mode for `quick_check.*` tools (study-skills is Phase 18) — is correct as a capability-availability table rather than an introduction-order table. Not a violation.
+
+**One nit (not blocking)**: The `tab-body-isolation.md` "When NOT to Use" section still lists only four modal tab bodies (`QuizTabBody`, `ExamTabBody`, `HomeworkTabBody`, `BootstrapTabBody`) and omits `StudySkillsTabBody`. This is cosmetic — the prose says "each have their own tab body component" which is still true — and is exactly the kind of secondary-ripple fix that could be tracked in a follow-up nit rather than bouncing this story. Captured here for awareness.
+
+All 23 stories: Approve. No blockers found. No items parked to backlog (no Important-class findings surfaced — all nits are cosmetic and do not affect correctness for contributors reading the docs). Approve.
