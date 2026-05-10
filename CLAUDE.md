@@ -81,7 +81,7 @@ UI (@praxis/ui) ──→ @praxis/client ──RPC over transport──→ @prax
 | `@praxis/client` | Typed RPC client; bundles IPC and WS+HTTP transports. Type-only deps on core. |
 | `@praxis/ui` | React SPA — student chat / progress map / workspace / configure |
 | `@praxis/desktop` | Electron host: starts core in main process, mounts IPC, loads UI bundle in renderer |
-| `@praxis/claude-cli-sdk` | Vendored fork of `@nklisch/claude-cli-sdk` (TS wrapper around Claude Code CLI subprocess); vendored so `pnpm deploy` doesn't choke on `link:` paths |
+| `@praxis/claude-cli-sdk` | First-party TS wrapper around the Claude Code CLI subprocess. Originally forked from `@nklisch/claude-cli-sdk` and brought in-tree so `pnpm deploy --inject-workspace-packages` could see it (it can't follow `link:` paths); Praxis is the only consumer, so it's owned and modified freely — refactor it like any other workspace package. |
 
 ### Dependency direction rules
 
@@ -178,3 +178,26 @@ Prefer `unknown` with a type guard, or a precise union, over `any`.
 ## Phase map
 
 Praxis is built in numbered phases; each has a design doc in `docs/designs/`. Always check the relevant design before implementing. Phases 1–16 have shipped (foundation → engine layer → UI shell → verification tools → textbook RAG → course/lesson bootstrap → adaptive memory → multi-mode assessment → gates/progress map → knowledge-graph canonical pack → configure-mode authoring → workspace notes/flashcards → editorial foundation → tabs and library → sketch/concept maps → bootstrap explorer + modalities/assessment loop). Also shipped as non-phase chunks: **activity rail** (ambient progress surface — replaces the `IngestionProgress` modal; design in `docs/designs/activity-rail.md`) and **language-sandbox-registry** (QuickJS replaces isolated-vm; design in `docs/designs/language-sandbox-registry.md`). New design docs go in `docs/designs/phase-NN-*.md`; refactor plans in `docs/refactors/`.
+
+<!-- agile-workflow:start -->
+## Agile-Workflow Substrate
+
+This project tracks work in `.work/` (markdown items + frontmatter).
+See `.claude/rules/agile-workflow.md` for navigation primitives.
+
+Quick reference:
+- `.work/bin/work-view --help` — query items
+- `.work/active/` — in-flight; `.work/backlog/` — parked ideas
+- Foundation docs in `docs/` describe the system NOW; never add legacy notes
+
+Common skills (auto-triggered by conversation):
+- park an idea               | scope a backlog item up
+- design a drafting feature  | implement an implementing feature
+- review work at review      | fix a quick bug as a story
+
+Heavy-weight skills (you invoke explicitly):
+- /agile-workflow:ideate          — foundation docs
+- /agile-workflow:epicize         — decompose into epics
+- /agile-workflow:autopilot       — drain queue
+- /agile-workflow:release-deploy  — bind, gate, ship
+<!-- agile-workflow:end -->
