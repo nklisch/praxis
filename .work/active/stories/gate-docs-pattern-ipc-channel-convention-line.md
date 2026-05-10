@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-ipc-channel-convention-line
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -28,3 +28,6 @@ pattern-skill-staleness
 Update citation to `packages/desktop/electron/main/ipc-server.ts:81` (or
 remove the line cite and reference the `registerSessionHandlers` block
 more loosely — it's a more durable reference).
+
+## Implementation notes
+Updated `ipc-server.ts:29` → `:81` in ipc-channel-convention.md Example 1. Verified: the `handle("praxis.session.active", ...)` call (first session channel registration) is at line 81 in the current source. New line number confirmed correct.

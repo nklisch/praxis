@@ -9,7 +9,7 @@ Electron's `ipcMain.handle` is Promise-based (single response). Streaming requir
 ## Examples
 
 ### Example 1: IPC server — registering all channels
-**File**: `packages/desktop/electron/main/ipc-server.ts:29`
+**File**: `packages/desktop/electron/main/ipc-server.ts:81`
 ```typescript
 // Non-streaming channels (invoke → single Promise response):
 handle("praxis.session.active", async () => services.session.active());
