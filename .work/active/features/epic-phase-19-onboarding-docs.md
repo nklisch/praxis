@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-onboarding-docs
 kind: feature
-stage: review
+stage: done
 tags: [docs]
 parent: epic-phase-19-ship-v1
 depends_on: [epic-phase-19-first-run-flow]
@@ -304,6 +304,54 @@ Three small, sequentially dependent units. Single-stride, one agent.
     term while "onboarding" appears in the existing button label
     "Skip onboarding". Acceptable: users see the button, the doc
     describes it.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+This is a documentation feature with no code changes. The 230-line
+`docs/ONBOARDING.md` covers all 9 outline sections from the design,
+matches the foundation-doc tone of the other recently-added docs
+(`docs/CODE-SIGNING.md`, `docs/UPDATE-CHANNEL.md`), and cross-references
+them appropriately. README additions are minimal and surgical. The
+copy-alignment audit (Unit 3) confirmed no COPY drift — `pnpm test`
+remains at 2270 passing.
+
+**Blockers**: none
+
+**Important**: none
+
+**Nits**:
+- `<DOWNLOADS_URL>` and screenshot placeholders are intentional and
+  flagged in implementation notes — the maintainer fills these in
+  during the v1.0.0 publish dance. Worth a one-line "remember this"
+  in the ship-checklist's acceptance script.
+- The doc's vocabulary table is more aspirational than enforced —
+  it's a soft guide for future contributors. Fine for v1; could
+  evolve into a linted style guide if drift becomes a problem.
+
+**Notes**:
+- Foundation-doc alignment: `docs/ONBOARDING.md` joins
+  `docs/CODE-SIGNING.md` and `docs/UPDATE-CHANNEL.md` as the trio of
+  v1-ship operational/user-facing docs. ROADMAP Phase 19's
+  "Documentation pass: README + onboarding video / screencast" is
+  satisfied (the screencast plan is in the doc; the recording itself
+  is a maintainer task).
+- Breaking changes: none. Pure docs.
+- Security: no-op.
+
+## What's now possible
+
+- A new user landing on the project's downloads page can install
+  Praxis, complete first run, and run their first teach session
+  without dev tooling — `docs/ONBOARDING.md` walks them through
+  every step.
+- `epic-phase-19-ship-checklist` is now unblocked: its last unmet
+  dependency (`onboarding-docs`) is satisfied. The Phase 19 epic
+  has only the ship-checklist feature left before it can advance.
+- The screencast plan is concrete enough that the maintainer can
+  record the video in one ~30-minute session against a clean install
+  of the v1.0.0 build.
 - **Placeholders left in `docs/ONBOARDING.md`**:
   - `<DOWNLOADS_URL>` — maintainer fills in pre-publish.
   - `[Screenshot: bootstrap mode chat]` and `[Screenshot: chat
