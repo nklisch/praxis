@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-coach-mode
 kind: feature
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
@@ -154,3 +154,39 @@ One child story:
   but easy to expand into "header chip + sidebar of techniques + new
   composer affordance". The story scope explicitly limits the wrapper
   to a chip; future UX iteration can expand if usage warrants.
+
+## Implementation summary (2026-05-10)
+
+Single child story landed at `stage: review`:
+
+- `epic-phase-18-coach-mode-impl` (`800030c`) — `studySkillsRoleFragment` +
+  `studySkillsMode` Mode definition + registry registration +
+  `StudySkillsTabBody` UI wrapper (chip + embedded `TeachChatTabBody`) +
+  CSS module + 30 tests (26 curriculum + 4 UI).
+
+Cross-cutting deviations:
+- The story preamble said "17 tools" but the explicit per-tool list
+  enumerates 19 (5 pedagogy + 1 course.what_can_i_teach + 5 note + 4
+  flashcard + 4 quick_check). Implementation matches the explicit list
+  (19); the "17" was a counting typo in the design preamble.
+  Documented; not a behavior change.
+
+Verification at `800030c`:
+- `pnpm typecheck` clean (all 10 packages)
+- `pnpm --filter @praxis/curriculum test` 246 passed
+- `pnpm --filter @praxis/ui test` 560 passed
+- `pnpm lint` 4 errors (unchanged baseline; zero new from this story)
+
+What's now possible:
+- Students can open a `study-skills` tab — the chat surface gets a
+  "study skills" header chip, the tutor-prompt swaps in the coach role
+  fragment, and the tool surface narrows to coaching tools only (no
+  grading, no assignment.create, no mastery writes).
+- The metacognition-coach voice that CURRICULUM.md describes is now
+  registered and dispatchable.
+- `epic-phase-18-routing-integration` can now reference
+  `study-skills` as a mode-transition target ("after persistent
+  misconception, suggest study-skills mode") — its design already
+  noted this hook.
+
+Stage: implementing → review.
