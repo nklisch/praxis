@@ -275,7 +275,7 @@ The pedagogy pack is the curated, versioned content that the framework uses for 
 
 **Custom packs.** Configurators can author custom packs for specialized contexts (e.g., a subject-specific pedagogy pack for music theory, or a culturally-adapted pack for a specific student population). The pack format is the contract; provenance is whoever signs it.
 
-## Assessment item design (Phase 17, planned)
+## Assessment item design
 
 ### When to use which item kind
 

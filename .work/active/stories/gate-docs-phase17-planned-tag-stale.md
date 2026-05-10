@@ -1,7 +1,7 @@
 ---
 id: gate-docs-phase17-planned-tag-stale
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -44,3 +44,6 @@ headings — they should read `## Human-in-the-loop tool dispatch`,
 `## Assessment item design`, `## Inline quick-check cards`, `## Item
 kind UX patterns`. Per the rolling-foundation principle the doc
 describes the present, not a phase plan.
+
+## Implementation notes
+Stripped the full `(Phase 17, planned)` parenthetical from all four headings across three docs. The body prose in each section already describes the shipped implementation; no prose changes were needed.

@@ -106,7 +106,7 @@ The **graded grounding hierarchy.** The tutor prefers the most authoritative sou
 
 These rules are enforced **by tool design** — the tool that grades math literally uses sympy; the tool that quotes the textbook literally retrieves. The agent's only choice is whether to call the tool. That's a model-behavior concern handled by prompts and engine selection, not architecture.
 
-## Human-in-the-loop tool dispatch (Phase 17, planned)
+## Human-in-the-loop tool dispatch
 
 Most tools return a result synchronously — they do computation or call a service, then resolve. A small class of tools needs to block on user input before they can return. Phase 17 introduces this pattern for the `quick_check.*` family; the mechanism is general enough to serve future uses (multi-step approval flows, disambiguation prompts).
 

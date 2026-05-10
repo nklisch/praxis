@@ -434,7 +434,7 @@ Submission is no longer its own surface; it's an affordance that lives inside th
 - In **homework** submission is per-problem with auto-save; the chat side-rail is available for explanation but won't solve the problem.
 - In **exam** submission is per-problem with no live feedback; the agent is restricted to clarifying ambiguous wording (no method help, no hints).
 
-## Inline quick-check cards (Phase 17, planned)
+## Inline quick-check cards
 
 Quick checks are formative probes the tutor calls mid-explanation without spawning an assignment tab. Each one renders inline in the chat thread as a `<QuickCheckCard>` — a system-tagged message bubble, visually distinct from ordinary chat messages and from the graded assignment surface.
 
@@ -452,7 +452,7 @@ Quick checks are formative probes the tutor calls mid-explanation without spawni
 
 ---
 
-## Item kind UX patterns (Phase 17, planned)
+## Item kind UX patterns
 
 The nine item kinds share a common outer wrapper (`<AssignmentItemCard>`) but each has a distinct input control. The same per-kind body components power both the assignment surface and `<QuickCheckCard>`.
 
