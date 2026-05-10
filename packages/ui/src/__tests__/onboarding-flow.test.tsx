@@ -113,6 +113,32 @@ describe("OnboardingFlow", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
   });
 
+  it("skip on engine step calls onComplete", async () => {
+    const onComplete = vi.fn(async () => undefined);
+    renderFlow({ onComplete });
+    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+    await waitFor(() =>
+      expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined(),
+    );
+    fireEvent.click(screen.getAllByText(COPY.onboarding.skipLabel)[0]);
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+  });
+
+  it("skip on course step calls onComplete", async () => {
+    const onComplete = vi.fn(async () => undefined);
+    renderFlow({ onComplete });
+    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+    await waitFor(() =>
+      expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined(),
+    );
+    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+    await waitFor(() =>
+      expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined(),
+    );
+    fireEvent.click(screen.getByText(COPY.onboarding.skipLabel));
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+  });
+
   it("engine step writes engine config when continuing", async () => {
     const setEngineConfigSpy = vi.fn();
     const client = buildClient({ setEngineConfigSpy });

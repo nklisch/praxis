@@ -1,7 +1,7 @@
 ---
 id: gate-tests-onboarding-skip-coverage
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -47,3 +47,6 @@ it("skip on course step calls onComplete", async () => { /* analogous */ });
 The acceptance reads "any step" but only welcome is asserted; a regression
 that wires the skip handler differently per step (a plausible refactor
 outcome of step-specific guard logic) wouldn't fail.
+
+## Implementation notes
+Added two tests reusing the existing `renderFlow` helper. The engine-step test uses `getAllByText(skipLabel)[0]` because the engine step renders both a Back and a Skip button alongside Continue — `getByText` would throw on duplicates. The course-step test navigates through engine via a second `continueLabel` click then finds the lone skip button. All 8 tests pass.
