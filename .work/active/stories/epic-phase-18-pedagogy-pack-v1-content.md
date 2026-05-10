@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-pedagogy-pack-v1-content
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-pedagogy-pack
 depends_on: [epic-phase-18-pedagogy-pack-service]
@@ -206,3 +206,56 @@ pnpm test       — 257 test files, 2056 tests, all pass (0 regressions)
 The `pedagogy.pack_loaded` log path in `loadPack()` emits counts at info
 level on every successful boot — verified by reading the service source.
 The smoke test confirms the log fires with non-zero counts.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+**Nits** (in conversation only):
+- `uiAffordances` strings on study techniques don't all line up with
+  existing UI component file names:
+  - `cornell-notes` → `["cornell-note-editor"]` but the component is
+    `packages/ui/src/components/note-editor-cornell.tsx`
+  - `feynman-explanation` → `[]` despite
+    `packages/ui/src/components/note-editor-feynman.tsx` existing
+  - `spaced-repetition` → `["flashcard-review"]` ✅ (matches
+    `flashcard-review.tsx`)
+  - `concept-mapping-technique` → `["concept-map-editor"]` ✅ (matches
+    `concept-map-editor.tsx`)
+  Not a blocker because `uiAffordances` semantics aren't defined yet —
+  the schema treats them as free-form strings, and `epic-phase-18-coach-mode`
+  is the first consumer that will pin the contract. When that feature
+  designs its UI surface, normalize the strings (and add the missing
+  Feynman affordance) at the same time.
+- `v1-pack.test.ts:26` uses `// biome-ignore lint/suspicious/noExplicitAny`
+  for `logger.child()` return — mirrors common test-stub patterns; harmless.
+
+**Notes**:
+- Verified: `pnpm typecheck` clean; `pnpm test` 2056 passed (15 skipped),
+  zero regressions; lint at 4 errors (unchanged baseline; this story
+  added no errors).
+- Pack structure verified via `jq`: v1.0.0, signature `v1-unsigned`,
+  manifest authors populated, prompt counts evenly 3-per-trigger across
+  all 5 triggers.
+- Citation provenance sampled: `worked-examples` cites Sweller 1988
+  (Cognitive Science 12:257–285) and Sweller/Ayres/Kalyuga 2011 (Springer)
+  — both real, accurate references. The implementation notes catalogue
+  every citation against verifiable primary literature; no
+  `(citation needs verification)` markers needed.
+- Smoke test (`v1-pack.test.ts`) covers count thresholds, the
+  `pedagogy.pack_loaded` log emission, and representative `getStrategy`/
+  `getTechnique`/`listMetacognitivePrompts` lookups. No brittle
+  text-content assertions.
+- `manifest.publishedAt: 1747526400000` resolves to 2025-05-18 UTC, which
+  predates the project's current date (2026-05-10) by about a year. The
+  semantic isn't load-bearing (no enforcement on the field) but a future
+  pack revision could carry the actual landing time. Cosmetic.
+
+What's now possible: `epic-phase-18-metacognitive-prompts`,
+`epic-phase-18-coach-mode`, and `epic-phase-18-procedural-memory` can
+build against real strategy / technique / prompt content instead of the
+empty-mode fallback. The metacognition coach has a research-backed
+foundation to teach from.
