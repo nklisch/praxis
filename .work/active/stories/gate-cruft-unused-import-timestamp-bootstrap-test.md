@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-unused-import-timestamp-bootstrap-test
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
@@ -33,3 +33,7 @@ import type { AssessmentPlan, Engine, StudentId, Timestamp } from "../../types/i
 Delete `Timestamp` from the import list. The remaining three
 (`AssessmentPlan`, `Engine`, `StudentId`) are all used. Tool-detected by
 Biome's `noUnusedImports` (FIXABLE).
+
+## Implementation notes
+
+Deleted `Timestamp` from the single-line `import type` in `bootstrap-service.units.test.ts` line 13. Remaining three imports (`AssessmentPlan`, `Engine`, `StudentId`) verified as used in the file.

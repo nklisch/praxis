@@ -10,7 +10,7 @@
  *  - validateProposed: new issue kinds (unit_unknown_lesson, assessment_unknown_concept, unit_lesson_not_in_draft)
  */
 import { describe, expect, it, vi } from "vitest";
-import type { AssessmentPlan, Engine, StudentId, Timestamp } from "../../types/index.js";
+import type { AssessmentPlan, Engine, StudentId } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { BootstrapServiceImpl } from "../bootstrap-service.js";
 
