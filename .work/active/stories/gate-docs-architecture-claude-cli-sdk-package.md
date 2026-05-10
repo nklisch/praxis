@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-claude-cli-sdk-package
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -38,3 +38,6 @@ Add a row to the ARCHITECTURE.md package table for `@praxis/claude-cli-sdk`
 describing it as the in-tree TypeScript wrapper around the Claude Code
 CLI subprocess (consumed by `@praxis/engines`'s Claude Code adapter),
 matching the wording in CLAUDE.md.
+
+## Implementation notes
+Added `@praxis/claude-cli-sdk` row between `@praxis/desktop` and `praxis-ingest`, matching surrounding column structure and tone. Wording mirrors CLAUDE.md: in-tree fork of `@nklisch/claude-cli-sdk`, sole consumer is `@praxis/engines`'s Claude Code adapter, freely modifiable as Praxis is the only consumer.

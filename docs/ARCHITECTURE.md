@@ -56,6 +56,7 @@ Praxis ships as a pnpm workspace monorepo. Every component is a TypeScript packa
 | **`@praxis/curriculum`** | Mode definitions, pedagogy pack runtime, gating logic, adaptive routing, knowledge-graph schema, BKT-style mastery updates. |
 | **`@praxis/ui`** | Vite + React + TanStack Router SPA. Student surface (chat + progress map + workspace + concept-map), configure surface (course authoring, gate editing, prompt customization), shared component library. Embeds tldraw for sketching surfaces and React Flow for the gate editor. Imports only from `@praxis/client`. |
 | **`@praxis/desktop`** | Electron host. Starts `@praxis/core` in the Electron main process (or a forked child for isolation), mounts the IPC transport server, loads the Vite-built `@praxis/ui` static bundle in the renderer. Adds local-first conveniences (file picker, on-disk storage paths). |
+| **`@praxis/claude-cli-sdk`** | In-tree TypeScript wrapper around the Claude Code CLI subprocess. Forked from `@nklisch/claude-cli-sdk` and brought in-tree so the workspace deploy pipeline can resolve it. Consumed exclusively by `@praxis/engines`'s Claude Code adapter. Owned and modified freely — Praxis is the only consumer. |
 | **`praxis-ingest`** | Python CLI (deferred post-v1). In v1, ingestion is TS-native via `Ingestor` port + per-format adapters in `@praxis/tools/runtime/ingestion/`. The `ActivityRail` surfaces ingestion progress without blocking other use. |
 
 ## Dependency direction
