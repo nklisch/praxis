@@ -1,7 +1,7 @@
 ---
 id: gate-tests-logger-rotation-behavior
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -60,3 +60,7 @@ schedules the reopen on `drain`. A simple `setImmediate` yield is insufficient b
 async I/O cycles are needed before rotation files appear on disk. The test uses a polling loop
 (20ms ticks, 3s deadline) to wait for more than one `praxis.log.*` file — reliable since 100
 records × ~150 B ≈ 15 KB far exceeds the 1 KB threshold and rotation fires multiple times.
+
+## Review (2026-05-10)
+
+**Verdict: Approve.** The polling approach (20ms ticks, 3s deadline) is the right solution given pino-roll's async drain-triggered rotation. Not flaky-by-design: 100 records at ~150 B each is ~15 KB against a 1 KB threshold — rotation fires multiple times, giving a wide margin. The 3s deadline is generous for a local I/O operation. `readdirSync` static import promotion is a clean secondary improvement.
