@@ -1,7 +1,7 @@
 ---
 id: gate-docs-claudemd-tab-body-enumeration
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -36,3 +36,8 @@ Phase 18 routing-integration work.
 Append `StudySkillsTabBody` to the enumeration: `QuizTabBody`,
 `HomeworkTabBody`, `ExamTabBody`, `BootstrapTabBody`,
 `StudySkillsTabBody`.
+
+## Implementation notes
+Added `StudySkillsTabBody` to the per-mode tab bodies list at
+`CLAUDE.md:112`. The enumeration now correctly lists all five dispatch
+targets that `ChatTabBody` routes to by `session.modeId`.
