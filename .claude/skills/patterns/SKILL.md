@@ -9,7 +9,7 @@ allowed-tools: Read, Glob, Grep
 
 # Praxis Code Patterns Reference
 
-Structural patterns for the Praxis AI tutoring framework (Phases 1–14 shipped). Read individual pattern files for full details, implementation notes, and common violations. The dense index is in `.claude/rules/patterns.md`.
+Structural patterns for the Praxis AI tutoring framework. Read individual pattern files for full details, implementation notes, and common violations. The dense index is in `.claude/rules/patterns.md`.
 
 ## Available patterns
 
@@ -24,7 +24,12 @@ Structural patterns for the Praxis AI tutoring framework (Phases 1–14 shipped)
 - [config-kv-store.md](config-kv-store.md) — `config_kv` table for app-wide K/V; merge stored + defaults + env
 - [mode-tool-scoping.md](mode-tool-scoping.md) — `mode.toolNames` filters tools for each session's registry
 - [service-deps-injection.md](service-deps-injection.md) — `ServiceDeps` DI container; `engineFactory` for test injection
+- [lazy-resolver-thunk.md](lazy-resolver-thunk.md) — `() => T` / `(id) => T | null` thunks for late-bound deps (engine, vision, bootstrap config, course lookup); call per-use, never capture
 - [load-or-throw.md](load-or-throw.md) — `loadOrThrow(fetch, ctx)` after `db.insert/update/delete().run()`; uniform "X not found after Y: id" wording
+
+### Memory and indexer patterns
+- [indexer-class.md](indexer-class.md) — `Indexer` interface (`id`, `schedule: "post-turn" | "session-end"`, `run(ctx)`); orchestrator handles debounce + parallel + error isolation
+- [mode-prompt-fragment-composition.md](mode-prompt-fragment-composition.md) — `Mode` is a list of `PromptFragment` objects; `composeSystemPrompt` sorts by fixed `FRAGMENT_ORDER` and applies overrides; non-customizable overrides throw
 
 ### UI data patterns
 - [use-resource-hook.md](use-resource-hook.md) — `useResource(loader)` for load-on-mount + `{ data, loading, error, refresh, setData }`; layer mutations on top
@@ -39,6 +44,7 @@ Structural patterns for the Praxis AI tutoring framework (Phases 1–14 shipped)
 ### Communication patterns
 - [ipc-channel-convention.md](ipc-channel-convention.md) — `praxis.{domain}.{action}`; streaming adds `.start/.events.<id>/.cancel`
 - [discriminated-union-dispatch.md](discriminated-union-dispatch.md) — `type` for events, `kind` for domain objects; `switch` for exhaustive dispatch
+- [subscriber-fanout-stream.md](subscriber-fanout-stream.md) — service `subscribe(listener)` (sends `snapshot` first) → `*-channel.ts` fanout with AbortController hold-open → client `events()` → UI hook iterating `for await` and folding `event.kind` into a Map
 
 ### Testing patterns
 - [ui-test-helper.md](ui-test-helper.md) — `makeFakeClient(overrides?)` from `__tests__/helpers/`; `<PraxisClientProvider>` render wrapper; TanStack Router mock

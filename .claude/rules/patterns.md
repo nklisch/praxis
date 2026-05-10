@@ -13,7 +13,12 @@ Detailed examples for each pattern are in `.claude/skills/patterns/{slug}.md`. R
 - **config-kv-store**: `config_kv` table stores app-wide key/value config as JSON; read merges stored + defaults + env overrides; write via `onConflictDoUpdate` → [config-kv-store.md]
 - **mode-tool-scoping**: `mode.toolNames` filters `ServiceDeps.toolDefinitions` in `SessionServiceImpl.openActive`; `toolNames === []` means all tools (backward compat); always keep `toolNames` and prompt fragment in sync → [mode-tool-scoping.md]
 - **service-deps-injection**: `ServiceDeps` is the single DI container; `engineFactory?: fn` is the test injection seam for `FakeEngine`; `toolServices: { sympy, sandbox }` populated in `buildServices` → [service-deps-injection.md]
+- **lazy-resolver-thunk**: For deps that must be late-bound (user-tunable config, runtime swaps, acyclic ordering, narrow lookup-by-id), declare the dep as `() => T` or `(id) => T | null` and call it per-use; never capture the result at construction → [lazy-resolver-thunk.md]
 - **load-or-throw**: After `.insert/update/delete().run()`, call `loadOrThrow(() => this.get(...), { entity, op, id, log })` to round-trip — never inline the if-null-throw; uniform error format `"<entity> not found after <op>: <id>"` → [load-or-throw.md]
+
+## Memory and curriculum patterns
+- **indexer-class**: Background memory writers implement `Indexer` (`id`, `schedule: "post-turn" | "session-end"`, `async run(ctx)`); registered as an array on `IndexerOrchestratorImpl`, which handles debounce + parallel fan-out + per-indexer error isolation + turnFloor advancement → [indexer-class.md]
+- **mode-prompt-fragment-composition**: A `Mode` is a list of `PromptFragment` objects (`{ id, position, customizable, template }`); `composeSystemPrompt` sorts mode + additional fragments by a fixed `FRAGMENT_ORDER` and applies `overrides`; non-customizable overrides throw — share fragments across modes, don't inline mode-specific content into shared ones → [mode-prompt-fragment-composition.md]
 
 ## UI data patterns
 - **use-resource-hook**: `useResource(loader)` returns `{ data, loading, error, refresh, setData }`; loads on mount via useEffect; layer mutations on top using `setData` for optimistic updates; never inline the `setLoading/try/catch/finally` block → [use-resource-hook.md]
@@ -29,6 +34,7 @@ Detailed examples for each pattern are in `.claude/skills/patterns/{slug}.md`. R
 ## Communication patterns
 - **ipc-channel-convention**: Channels follow `praxis.{domain}.{action}`; streaming splits into `.start` (invoke) / `.events.<streamId>` (push) / `.cancel` (signal); subscribe before invoking to avoid race → [ipc-channel-convention.md]
 - **discriminated-union-dispatch**: Use `type` for streamed events (`EngineEvent`), `kind` for stored/transmitted domain objects (tool inputs, artifact variants); `switch` for exhaustive dispatch; `z.discriminatedUnion("kind", [...])` for Zod schemas → [discriminated-union-dispatch.md]
+- **subscriber-fanout-stream**: For shared mutable main-process state surfaced to many renderers — service `subscribe(listener)` (sends `snapshot` first) → `*-channel.ts` fanout with AbortController hold-open → client `events()` → UI hook iterating `for await` and folding `event.kind` into a Map → setState → [subscriber-fanout-stream.md]
 
 ## Testing patterns
 - **ui-test-helper**: `makeFakeClient(overrides?)` from `__tests__/helpers/fake-client.ts` is the single SOT for test PraxisClient stubs; wrap renders in `<PraxisClientProvider>`; mock `@tanstack/react-router` with `async importOriginal` form to preserve non-hook exports → [ui-test-helper.md]

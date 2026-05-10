@@ -106,3 +106,14 @@ features that landed alongside.
     plus an API-shape drift in `tab-body-isolation` (`useStreamedSend`
     returns `items`/`loadHistory`, not `messages`/`clearMessages`).
   - All 23 items at `stage: implementing` in active/stories.
+- **gate-patterns** (2026-05-10) — 4 new patterns codified, 0 inconsistencies.
+  - `subscriber-fanout-stream` — service subscribe + IPC fanout + client events()
+    + UI hook fold (3 end-to-end instances: activity rail, bootstrap drafts,
+    quick-check bridge)
+  - `lazy-resolver-thunk` — `() => T` / `(id) => T | null` for late-bound deps
+    (5+ uses: engine, vision, bootstrap config, course lookup)
+  - `indexer-class` — `Indexer` interface + orchestrator (5 concrete impls)
+  - `mode-prompt-fragment-composition` — Mode = list of fragments; fixed
+    FRAGMENT_ORDER + overrides (7 modes, 20 fragments)
+  - Tracking item `gate-patterns-v0.1.0` at `stage: done` (gate's deliverable
+    is the pattern files themselves).
