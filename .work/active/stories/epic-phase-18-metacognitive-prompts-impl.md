@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-metacognitive-prompts-impl
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-metacognitive-prompts
 depends_on: []
@@ -266,3 +266,54 @@ reflection.
 - `pnpm test` (full repo): 2200 tests pass, 15 skipped (slow Pyodide),
   265 test files, 1 skipped.
 - `pnpm lint`: 9 errors — same as HEAD baseline; no new errors.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+**Nits** (in conversation only):
+- `TRIGGER_GUIDANCE` is a hardcoded TS table. Could conceivably pull
+  from the pedagogy pack at runtime to keep guidance consistent with
+  pack content, but that would couple mode definitions to pack state
+  and complicate the static type. Static guidance is the right call —
+  the table teaches the model WHEN to look up a trigger; the prompt
+  template itself comes from the pack via the runtime tool call.
+- Homework mode reuses `quizMode.toolNames` via direct reference — a
+  pre-existing pattern that means homework gets `pedagogy.list_metacognitive_prompts`
+  transitively when quiz adds it. Smart deduplication; called out
+  with an explanatory comment.
+
+**Notes**:
+- Verified at HEAD (`87217c6`): `pnpm typecheck` clean;
+  `pnpm --filter @praxis/curriculum test` 307 passed; `pnpm test`
+  (full repo) 2200 passed / 15 skipped; `pnpm lint` 9 errors
+  (unchanged baseline; zero new from this story).
+- Implementation matches the design exactly: factory is pure
+  (parameterized by trigger set, deterministic output), each opting
+  mode (teach / quiz / homework / exam) calls the factory with its
+  declared trigger subset, and each opting mode's toolNames includes
+  `pedagogy.list_metacognitive_prompts`.
+- Exam mode's verification stance preserved: the addition of
+  `pedagogy.list_metacognitive_prompts` is read-only metadata and
+  doesn't reveal answer information. The fragment opts in with
+  `["session-end"]` only, so no during-exam coaching surfaces.
+- 27 factory unit tests + 34 integration tests + 3 updated per-mode
+  test files (count assertions bumped). Coverage is solid: shape
+  assertions, empty-trigger fallback, subset triggers, all five
+  trigger values round-trip, per-mode promptFragments and toolNames
+  membership.
+- Trigger sets per mode match the design exactly:
+  - teach: `["pre-reading", "post-error", "session-end"]`
+  - quiz: `["pre-quiz", "post-error"]`
+  - homework: `["pre-reading", "post-error"]`
+  - exam: `["session-end"]` only
+
+What's now possible: the metacognition coach voice is now woven
+through every student-facing teaching mode. CURRICULUM.md's assertion
+("Modes layer the metacognition coach's voice on top") is now
+operational. The closing piece of Phase 18 — `routing-integration` —
+can now design against a complete coach surface (including the
+mode-transition target into `study-skills`).
