@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-pedagogy-pack
 kind: feature
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: []
@@ -194,3 +194,65 @@ authored, not stubbed.
 
 Stage: implementing → review. Run
 `/agile-workflow:review epic-phase-18-pedagogy-pack` to evaluate.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+Both child stories landed at `done` after their own reviews
+(`epic-phase-18-pedagogy-pack-service` Approve;
+`epic-phase-18-pedagogy-pack-v1-content` Approve). The feature delivers
+the capability the brief promised end-to-end:
+
+- Service loads + validates the JSON pack with empty-pack fallback ✅
+- Five `pedagogy.*` read-only tools dispatch through the registry ✅
+- v1 pack ships 7 strategies / 4 techniques / 15 metacognitive prompts
+  with primary-source citations ✅
+- Production wiring instantiates the real service in
+  `desktop/electron/main/services.ts` ✅
+
+Aggregate lenses (per the feature review skill):
+
+- **Design alignment**: Two-story decomposition (service + content) held
+  up. The empty-pack fallback decoupling let the engineering and
+  content-authoring stories land independently and ship in order.
+- **Foundation-doc alignment**: This feature CLOSES a pre-existing drift
+  in `docs/CONTRACT.md:228` (the contract asserted
+  `pedagogyPack: PedagogyPackService` while code carried `unknown`).
+  No new drift introduced.
+- **Breaking changes**: `ToolServices.pedagogyPack` type narrowed from
+  `unknown` to `PedagogyPackService`. Internal-only; all six call
+  sites updated in the same change.
+- **Cross-story consistency**: both stories converged on the existing
+  `Citation` TS type (from `@praxis/core/types/common.ts`) instead of
+  the story sketch's invented shape. Both used the same brand-cast
+  pattern at the schema → branded-type boundary.
+
+**Nits flagged in story reviews** (not refiled here):
+- The superfluous `// biome-ignore lint/suspicious/noExplicitAny` on
+  `pedagogy-pack-service.ts:125-126` (no `any` in the cast below).
+- `makeEmptyPedagogyPackService` triggers ENOTDIR-warn rather than
+  ENOENT-info; logger noop in tests so no observable impact.
+- `uiAffordances` strings on techniques aren't all aligned with the
+  actual UI component file names. Will get normalized when
+  `epic-phase-18-coach-mode` designs its UI consumer (the first
+  feature that pins `uiAffordances` semantics).
+- `PEDAGOGY_TOOLS` array exists but isn't yet wired into
+  `services.ts` `toolDefinitions`. That belongs in mode-tool-scoping
+  for the prompts / coach-mode features.
+
+**Verification at HEAD** (`854bd9b`): `pnpm typecheck` clean;
+`pnpm test` 2056 passed / 15 skipped (zero regressions); `pnpm lint`
+4 errors (down from 22 baseline; net improvement courtesy of the
+`lint:fix` follow-up commit `925e847` that landed during the implementation
+arc).
+
+What's now possible: every downstream Phase 18 feature can build against
+real pedagogy content. `epic-phase-18-procedural-memory` /
+`epic-phase-18-metacognitive-prompts` / `epic-phase-18-coach-mode` are
+all newly unblocked by this feature reaching done.
+
+Stage: review → done.
