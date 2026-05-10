@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-biology-pack
 kind: feature
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-19-ship-v1
 depends_on: []
@@ -441,3 +441,52 @@ across the whole workspace before declaring done.
   the review-time check, not a lint-able property.
 - **No code changes outside curriculum/packs/ and its tests** — schema
   and loader untouched, as design promised.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- *Test coverage gap relative to design Unit 3* — design called for a DB
+  round-trip select on the `concepts` table after import plus an
+  end-to-end exercise of `BootstrapServiceImpl.createCourseFromPack`
+  with the biology pack. Implementation covered `PackImportServiceImpl`
+  paths but not the bootstrap leg. Algebra-1 / geometry already exercise
+  `createCourseFromPack`, so this is a coverage-completeness concern
+  rather than an unverified-path concern. Filed as
+  `idea-biology-pack-bootstrap-smoke-test` in the backlog.
+
+**Nits**:
+- Some `standardsTags` mappings are approximate — e.g.,
+  `biology.cell-theory → HS-LS1-1` is the closest applicable
+  performance expectation but not a perfect topical match. The design
+  flagged "NGSS standards mapping accuracy" as a known risk to be
+  judged at review time; subject-matter expert review before public
+  release would tighten these. Acceptable for v1.
+- The cycle-debug note in Implementation notes is a useful trace; future
+  pack authors will hit similar issues and the schema's `superRefine`
+  detector keeps catching them cleanly.
+
+**Notes**:
+- 106 concepts (within 90-120), 142 edges (≥100), 24 pack-content tests
+  + 18 import-service tests all green. Full workspace `pnpm test` shows
+  2235 passing.
+- ROADMAP rolling-foundation: Phase 19 still says "~250 concepts". The
+  v1 pull-back to ~106 is documented in the feature body (Design
+  decisions) and will be reconciled in ROADMAP when the Phase 19 epic
+  reaches done — premature now.
+- Schema, loader, and bootstrap services untouched. Pure additive
+  content delivery. No breaking changes.
+
+## What's now possible
+
+- `course.list_canonical_packs` now offers Biology alongside Algebra-1
+  and Geometry.
+- `course.use_canonical_pack` can create a high-school biology course
+  from a single tool call — the bootstrap-mode default fast path for
+  biology learners.
+- Phase 19's "v1 ships with both canonical packs" requirement is half
+  satisfied (math from Phase 10 + biology now); ship-checklist can
+  exercise the canonical-pack picker against a real biology course.
