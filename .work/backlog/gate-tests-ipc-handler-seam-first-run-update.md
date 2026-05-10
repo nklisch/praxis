@@ -2,7 +2,7 @@
 id: gate-tests-ipc-handler-seam-first-run-update
 kind: story
 tags: [testing]
-parent: null
+parent: feature-release-v0.1.0-test-findings
 depends_on: []
 release_binding: v0.1.0
 gate_origin: tests

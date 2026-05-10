@@ -2,7 +2,7 @@
 id: gate-cruft-stale-single-item-adds-comment
 kind: story
 tags: [cleanup]
-parent: null
+parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
 release_binding: v0.1.0
 gate_origin: cruft

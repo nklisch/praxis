@@ -2,7 +2,7 @@
 id: gate-security-author-export-memory-target-path-validation
 kind: story
 tags: [security]
-parent: null
+parent: feature-release-v0.1.0-security-findings
 depends_on: []
 release_binding: v0.1.0
 gate_origin: security

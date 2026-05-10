@@ -3,7 +3,7 @@ id: gate-tests-metacognitive-prompts-exclusion-assertions
 kind: story
 stage: drafting
 tags: [testing]
-parent: null
+parent: feature-release-v0.1.0-test-findings
 depends_on: []
 release_binding: v0.1.0
 gate_origin: tests

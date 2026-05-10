@@ -3,7 +3,7 @@ id: gate-security-engine-config-ipc-lock-gate
 kind: story
 stage: drafting
 tags: [security]
-parent: null
+parent: feature-release-v0.1.0-security-findings
 depends_on: []
 release_binding: v0.1.0
 gate_origin: security

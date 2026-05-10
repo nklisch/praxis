@@ -3,7 +3,7 @@ id: gate-tests-onboarding-config-persistence
 kind: story
 stage: implementing
 tags: [testing]
-parent: null
+parent: feature-release-v0.1.0-test-findings
 depends_on: []
 release_binding: v0.1.0
 gate_origin: tests

@@ -3,7 +3,7 @@ id: gate-docs-phase17-planned-tag-stale
 kind: story
 stage: implementing
 tags: [documentation]
-parent: null
+parent: feature-release-v0.1.0-doc-findings
 depends_on: []
 release_binding: v0.1.0
 gate_origin: docs

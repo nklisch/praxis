@@ -3,7 +3,7 @@ id: gate-security-update-feed-url-scheme-validation
 kind: story
 stage: implementing
 tags: [security]
-parent: null
+parent: feature-release-v0.1.0-security-findings
 depends_on: []
 release_binding: v0.1.0
 gate_origin: security
