@@ -1,7 +1,7 @@
 ---
 id: gate-tests-tab-state-isolation-parity
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -46,3 +46,13 @@ The `tab-body-isolation` pattern in `.claude/rules/patterns.md` is
 load-bearing (all tabs mount at once with `display:none`), and the
 explicit acceptance asks for the no-bleed property. Today the test
 renders each mode in isolation only.
+
+## Implementation notes
+Appended one test to `packages/ui/src/__tests__/study-skills-tab-body.test.tsx` in a new
+`describe("Tab-state isolation — teach ↔ study-skills chip parity")` block. The story sketch
+proposed `data-chip='study-skills'` but `StudySkillsTabBody` renders a plain `<span
+className={styles.chip}>study skills</span>` with no data attribute. Used
+`screen.queryByText("study skills")` for absence and `screen.getAllByText(...).length > 0` for
+presence instead — equivalent semantically. `ChatTabBody` is a pure dispatcher (switch on
+`modeId`), so state isolation is structural; the test pins this so a future keep-alive
+refactor can't silently break it.
