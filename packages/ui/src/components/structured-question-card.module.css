@@ -1,0 +1,149 @@
+/* ── Structured-question card ────────────────────────────────────────────────── */
+
+.card {
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  background: var(--color-surface-2, rgba(255, 255, 255, 0.03));
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* Slightly offset from the message column to signal system origin */
+  margin-left: 0.5rem;
+  margin-right: 2rem;
+}
+
+/* "tutor asked" tag — mirrors quick-check-card */
+.tag {
+  composes: editorial from global;
+  font-size: 0.68rem;
+  color: var(--color-text-muted, #aaa);
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tagOrnament {
+  color: var(--color-accent, #60a5fa);
+  font-style: normal;
+}
+
+/* Per-question fieldset */
+.question {
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.10));
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem 0.75rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.question:disabled {
+  opacity: 0.7;
+}
+
+/* Header chip in the fieldset legend */
+.headerChip {
+  composes: editorial from global;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent, #60a5fa);
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+/* Question body text */
+.prompt {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text, #e5e5e5);
+  margin: 0;
+}
+
+/* Option list — unstyled */
+.options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Option button — default (unselected) */
+.option {
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.65rem;
+  background: var(--color-surface-3, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.10));
+  border-radius: 4px;
+  color: var(--color-text, #e5e5e5);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  transition: border-color 0.1s, background 0.1s;
+}
+
+.option:hover:not(:disabled) {
+  border-color: var(--color-accent, #60a5fa);
+  background: rgba(96, 165, 250, 0.06);
+}
+
+/* Option button — selected */
+.optionSelected {
+  composes: option;
+  border-color: var(--color-accent, #60a5fa);
+  background: rgba(96, 165, 250, 0.12);
+}
+
+fieldset:disabled .option,
+fieldset:disabled .optionSelected {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.optionLabel {
+  font-weight: 500;
+}
+
+.optionDesc {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #aaa);
+  line-height: 1.4;
+}
+
+/* Footer row — submit button aligned right */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 0.1rem;
+}
+
+.submit {
+  padding: 0.3rem 0.75rem;
+  background: var(--color-accent, #60a5fa);
+  border: none;
+  border-radius: 4px;
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.submit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -26,6 +26,7 @@ import { MessageBubble } from "./message.js";
 import { ModeHeader } from "./mode-header.js";
 import { PageImagePanel } from "./page-image-panel.js";
 import { QuickCheckCard } from "./quick-check-card.js";
+import { StructuredQuestionCard } from "./structured-question-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
 import { StudySkillsTabBody } from "./study-skills-tab-body.js";
 import { ThinkingIndicator } from "./thinking-indicator.js";
@@ -234,14 +235,26 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
             Each pending check stays visible in arrival order; cards lock
             after the student submits (resolved === true). Per tab-body-isolation,
             these mount once per tab instance and survive display:none switches. */}
-        {quickChecks.map((check) => (
-          <QuickCheckCard
-            key={check.callId}
-            callId={check.callId}
-            item={check.item}
-            onResolve={resolveQuickCheck}
-          />
-        ))}
+        {quickChecks.map((check) => {
+          if (check.item.kind === "structured-question") {
+            return (
+              <StructuredQuestionCard
+                key={check.callId}
+                callId={check.callId}
+                item={check.item}
+                onResolve={resolveQuickCheck}
+              />
+            );
+          }
+          return (
+            <QuickCheckCard
+              key={check.callId}
+              callId={check.callId}
+              item={check.item}
+              onResolve={resolveQuickCheck}
+            />
+          );
+        })}
 
         {session.assignmentId && (
           <AssignmentCard assignmentId={session.assignmentId} examLockdown={examLockdown} />

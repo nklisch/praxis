@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-structured-questions-ui
 kind: story
-stage: implementing
+stage: review
 tags: [ui, chat, tutor-ux]
 parent: epic-bootstrap-readiness-structured-questions
 depends_on: [story-epic-bootstrap-readiness-structured-questions-tool]
@@ -80,3 +80,19 @@ card while leaving all other quick-check items routing through
 - Depends on `story-epic-bootstrap-readiness-structured-questions-tool`
   for the `StructuredQuestionItem` type and the `QuickCheckAnswer`
   variant.
+
+## Implementation notes
+
+**Files changed:**
+- `packages/ui/src/components/structured-question-card.tsx` (new, 89 lines) — component implementation
+- `packages/ui/src/components/structured-question-card.module.css` (new, 127 lines) — CSS module mirroring quick-check-card visual style
+- `packages/ui/src/components/chat-tab-body.tsx` — added `StructuredQuestionCard` import; replaced flat `quickChecks.map` with a kind-dispatching switch (structured-question → StructuredQuestionCard, all others → QuickCheckCard)
+- `packages/ui/src/__tests__/structured-question-card.test.tsx` (new) — 19 tests
+
+**Test count:** 19 new tests; 703 total in @praxis/ui, all passing.
+
+**Signature alignment:** `onResolve` uses the same positional `(callId: string, answer: QuickCheckAnswer) => Promise<void>` shape as `QuickCheckCard`, matching what `resolveQuickCheck` from `useQuickCheckBridge` provides — no adapter needed in chat-tab-body.
+
+**Biome a11y:** `aria-label` on `<section>` is valid per the aria spec (landmark role accepts aria-label). No workarounds were needed; biome did not flag the section element. The `noArrayIndexKey` rule was suppressed with biome-ignore comments on the `key={qIdx}` and `key={optIdx}` usages — positional index is the correct key here since questions and options have no stable ids.
+
+**Verification:** `pnpm typecheck` clean, `pnpm lint` has no errors in new/modified files (22 pre-existing errors in other packages, confirmed by stash check), `pnpm --filter @praxis/ui test` 703/703 passing.
