@@ -1,7 +1,7 @@
 ---
 id: feature-bootstrap-drafts-streaming
 kind: feature
-stage: review
+stage: done
 tags: [content, ui]
 parent: null
 depends_on: []
@@ -117,3 +117,40 @@ complete, then advances to `review` for the user.
 
 Land the closing commit, advance `stage: review`. User runs
 `/agile-workflow:review feature-bootstrap-drafts-streaming` to evaluate.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: stale tool descriptions still reference the removed singular
+tool names (`course.draft_add_concept`, `_add_edge`, `_add_lesson`,
+`_finalize`). These are visible to the explore agent and could waste a
+step on a phantom tool name. Filed as
+`idea-cleanup-stale-singular-draft-tool-refs` in `.work/backlog/`.
+
+**Nits** (in conversation only):
+- `lessonCount` / `conceptCount` returned by the batch tools is `0` when
+  every item in a batch fails, even if the draft already had items. Field
+  description says "total count after the batch" — technically correct only
+  in the success path. Fix is two-line (read existing length before the
+  loop) but low-impact: the model can call `course.show_draft` to disambiguate.
+- `packages/tools/dist/course/` retains `.js` artefacts for the deleted
+  singular tools. Off the import path, but dead weight. Captured in the
+  same backlog item.
+
+**Notes**:
+- Acceptance criteria verified: `pnpm typecheck` green; `pnpm test` green
+  (2000 passed / 15 skipped after `pnpm rebuild better-sqlite3 canvas` to
+  restore Node ABI from a prior Electron rebuild); `pnpm lint` shows 13
+  errors — flat against the closing commit's 13 (down from the 51 baseline
+  pre-bootstrap), so the "must not regress" criterion holds.
+- Architecture lenses: snapshot-first stream, listener-exception isolation,
+  TTL-with-unref, transaction-coherent persist, `setContextField` injection
+  for `draftId` mid-explorer-loop — all consistent with the project's
+  patterns (`async-generator-event-stream`, `engine-session-lifecycle`,
+  `activity-rail-producer`).
+- Capability check: the streamed-outline + budget-knob + batch-tool trio
+  delivers the user-visible behaviour the brief promised — the student now
+  watches the course assemble live, the user can tune how aggressive the
+  explore agent is, and tool-call traffic is greatly reduced. Ship-worthy.
