@@ -125,4 +125,24 @@ describe("UpdateServiceImpl.checkLatest", () => {
     expect(r.status).toBe("error");
     if (r.status === "error") expect(r.message).toContain("validation");
   });
+
+  it.each([
+    ["javascript:", "javascript:alert(1)"],
+    ["data:", "data:text/html,<script>alert(1)</script>"],
+    ["file:", "file:///etc/passwd"],
+  ])("returns error when downloadUrl uses %s scheme", async (_scheme, dangerousUrl) => {
+    process.env[FEED_URL_ENV] = "https://example.com/feed.json";
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        version: "1.0.1",
+        downloadUrl: dangerousUrl,
+      }),
+    });
+    const svc = new UpdateServiceImpl(fakeDeps);
+    const r = await svc.checkLatest("1.0.0");
+    // Schema refine must reject non-http(s) schemes — never throw, always error status
+    expect(r.status).toBe("error");
+    if (r.status === "error") expect(r.message).toContain("validation");
+  });
 });

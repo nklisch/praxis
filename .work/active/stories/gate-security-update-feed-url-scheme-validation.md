@@ -1,7 +1,7 @@
 ---
 id: gate-security-update-feed-url-scheme-validation
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -62,3 +62,17 @@ rendering an `<a href>`, or sanitise client-side. Longer-term the feed needs
 a signature mechanism (a detached Ed25519 over the feed JSON, public key
 embedded in the app) before the manual-download channel becomes a real
 auto-update channel.
+
+## Implementation notes
+
+- Added `.refine(u => /^https?:\/\//i.test(u), "downloadUrl must be http(s)")` to
+  `UpdateFeedSchema.downloadUrl` (and symmetrically to `releaseNotesUrl`) in
+  `packages/core/src/services/update-service.ts`. Wording mirrors the
+  `praxis.shell.openExternal` comment in `ipc-server.ts:1162`.
+- Added `it.each` over `javascript:`, `data:`, and `file:` schemes in
+  `update-service.test.ts`; all three now assert `status === "error"` — the
+  schema refine causes `safeParse` to fail, which surfaces as the existing
+  validation-error branch. No throwing, no panicking.
+- Hardening `update-banner.tsx` to route through `shell.openExternal` is
+  defense-in-depth and is explicitly OUT OF SCOPE for this story; the schema
+  rejection is the primary fix. That change should be tracked as a separate item.

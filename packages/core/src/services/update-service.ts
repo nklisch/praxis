@@ -6,8 +6,15 @@ const FEED_URL_ENV = "PRAXIS_UPDATE_FEED_URL";
 export const UpdateFeedSchema = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/, "version must be semver"),
   releaseDate: z.string().datetime().optional(),
-  downloadUrl: z.url(),
-  releaseNotesUrl: z.url().optional(),
+  // Defensive URL allowlist: only http/https. Refuse javascript:, data:, file:,
+  // etc. to prevent a compromised feed from delivering a click-targeted injection
+  // into the renderer. Mirrors the same allowlist that praxis.shell.openExternal
+  // enforces in ipc-server.ts.
+  downloadUrl: z.url().refine((u) => /^https?:\/\//i.test(u), "downloadUrl must be http(s)"),
+  releaseNotesUrl: z
+    .url()
+    .refine((u) => /^https?:\/\//i.test(u), "releaseNotesUrl must be http(s)")
+    .optional(),
 });
 
 export type UpdateFeed = z.infer<typeof UpdateFeedSchema>;
