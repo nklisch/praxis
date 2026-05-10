@@ -95,6 +95,9 @@ export function SidekickPanel({
               />
             );
           }
+          if (item.kind === "cancel-marker") {
+            return null;
+          }
           return (
             <MessageBubble
               key={item.id}

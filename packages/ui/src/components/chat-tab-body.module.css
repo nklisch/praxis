@@ -42,3 +42,41 @@
   text-align: center;
   flex-shrink: 0;
 }
+
+.stopRow {
+  display: flex;
+  justify-content: center;
+  padding: 0.4rem 1rem 0;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.stopButton {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.stopButton:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.cancelMarker {
+  composes: editorial from global;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0.1rem 0 0.1rem 0.25rem;
+  padding: 0;
+  align-self: flex-start;
+  opacity: 0.6;
+}

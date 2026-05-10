@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-in-flight-affordances-ui
 kind: story
-stage: implementing
+stage: review
 tags: [ui, chat, tutor-ux]
 parent: epic-bootstrap-readiness-in-flight-affordances
 depends_on: []
@@ -110,3 +110,24 @@ subprocess.
 - Parent epic: `epic-bootstrap-readiness`
 - Independent from the sibling signal story. Both can land in parallel;
   the feature is whole only when both reach `done`.
+
+## Implementation notes
+
+**Files changed:**
+- `packages/ui/src/hooks/use-streamed-send.ts` — added `thinking: boolean`, `cancel: () => void`, `CancelMarker` type, and `cancel-marker` item kind. Refactored from `for await ... of` to manual `iter.next()` loop with `iteratorRef` ref. Handles `interrupted` event (closes bubble, appends cancel-marker, sets `thinking = false`). Also added `EngineEvent` import and `useCallback`/`useRef` imports.
+- `packages/ui/src/components/thinking-indicator.tsx` (new) — `<ThinkingIndicator>` with `aria-live="polite"` and `aria-atomic="true"` (aria-label on `<p>` is not ARIA-valid per biome a11y rules; `aria-atomic` ensures the whole region is announced atomically). Three animated dots matching `tool-interstitial` visual style.
+- `packages/ui/src/components/thinking-indicator.module.css` (new) — CSS mirrors `tool-interstitial.module.css` animation with a distinct `praxis-thinking-pulse` keyframe name.
+- `packages/ui/src/components/chat-tab-body.tsx` — destructured `thinking` and `cancel` from hook; added Esc key `useEffect`; renders `<ThinkingIndicator />` between items list and quick-check cards; renders Stop button (in a `.stopRow` div above `<Composer>`) when `isStreaming`; renders `cancel-marker` as a "Cancelled" `<p>` inline.
+- `packages/ui/src/components/chat-tab-body.module.css` — added `.stopRow`, `.stopButton`, `.cancelMarker` rules.
+- `packages/ui/src/components/configure-chat-pane.tsx` — added `cancel-marker` guard (returns `null`) to prevent TS narrowing error.
+- `packages/ui/src/components/sidekick-panel.tsx` — same `cancel-marker` guard.
+- `packages/ui/src/__tests__/use-streamed-send.test.tsx` — 13 new test cases for `thinking` state machine and `cancel()`.
+- `packages/ui/src/components/__tests__/thinking-indicator.test.tsx` (new) — 5 test cases.
+
+**Test count:** 684 total, all passing (up from 671).
+
+**Deviations from spec:**
+- `aria-label="Tutor is thinking"` on `<p>` was replaced with `aria-atomic="true"` — biome's `useAriaPropsSupportedByRole` rule correctly flags `aria-label` on a paragraph as invalid ARIA. The `aria-live` + visible "Thinking" text + `aria-atomic` combination is semantically equivalent for screen readers.
+- Cancel in `configure-chat-pane` and `sidekick-panel` renders nothing (null) rather than a "Cancelled" pill — these secondary panels don't need the cancellation affordance as prominently.
+
+**Verification:** `pnpm --filter @praxis/ui test` ✓ · `pnpm typecheck` ✓ · `pnpm exec biome check [changed files]` ✓

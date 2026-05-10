@@ -1,4 +1,5 @@
 import type {
+  EngineEvent,
   EpisodicEvent,
   Note,
   PraxisClient,
@@ -8,7 +9,7 @@ import type {
   Timestamp,
 } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { ReviewCard } from "../components/flashcard-review.js";
 import { episodicToItems } from "./episodic-to-messages.js";
 
@@ -49,15 +50,28 @@ export interface ToolInterstitial {
   errored?: boolean;
 }
 
+/** Synthetic item appended when a turn is cancelled via the interrupted event. */
+export interface CancelMarker {
+  id: string;
+}
+
 export type ChatStreamItem =
   | ({ kind: "message" } & ChatMessage)
-  | ({ kind: "interstitial" } & ToolInterstitial);
+  | ({ kind: "interstitial" } & ToolInterstitial)
+  | ({ kind: "cancel-marker" } & CancelMarker);
 
 export interface UseStreamedSendResult {
   items: ChatStreamItem[];
   isStreaming: boolean;
+  /** True when the engine is working but has not yet emitted assistant text in the current segment. */
+  thinking: boolean;
   lastError: string | null;
   send: (sessionId: SessionId, message: string) => Promise<void>;
+  /**
+   * Cancel the in-flight turn. No-op if not currently streaming.
+   * Triggers iterator.return() which fires the praxis.session.send.cancel IPC channel.
+   */
+  cancel: () => void;
   clearMessages: () => void;
   /**
    * Load the persisted transcript for an existing session and replace the
@@ -78,7 +92,15 @@ function nextId(): string {
 export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
   const [items, setItems] = useState<ChatStreamItem[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [thinking, setThinking] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+
+  // Ref to the active iterator so cancel() can call .return() from outside the send closure.
+  const iteratorRef = useRef<AsyncIterator<EngineEvent> | null>(null);
+
+  const cancel = useCallback((): void => {
+    iteratorRef.current?.return?.();
+  }, []);
 
   const send = async (sessionId: SessionId, message: string): Promise<void> => {
     if (isStreaming) return;
@@ -97,6 +119,7 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     // in-flight interstitial are the user-visible "working" signals.
 
     setIsStreaming(true);
+    setThinking(true);
 
     // Per-bubble content accumulator. Reset on every openAssistantBubble().
     let activeBubbleContent = "";
@@ -161,11 +184,22 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     };
 
     try {
-      for await (const event of client.session.send(sessionId, message)) {
+      const stream = client.session.send(sessionId, message);
+      const iter = stream[Symbol.asyncIterator]();
+      iteratorRef.current = iter;
+
+      while (true) {
+        const r = await iter.next();
+        if (r.done) break;
+        const event = r.value;
+
         // Ignore user_message events — user bubble already in local state.
         if (event.type === "user_message") continue;
 
         if (event.type === "model_message") {
+          // First model_message of this segment — we're no longer just thinking.
+          setThinking(false);
+
           // Lazily open a bubble on the first model_message of this "run".
           if (currentAssistantId === null) {
             openAssistantBubble();
@@ -210,6 +244,9 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
             ]);
           }
         } else if (event.type === "tool_result") {
+          // After a tool_result, we're back to thinking until the next model_message.
+          setThinking(true);
+
           const { callId } = event;
           const toolName = pendingByCallId.get(callId);
           if (toolName === undefined) {
@@ -281,15 +318,24 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
         } else if (event.type === "system_note") {
           // system_note acts as a bubble boundary; it is not rendered as an item.
           closeAssistantBubble();
+        } else if (event.type === "interrupted") {
+          // Turn was cancelled — close the open bubble and append a cancel marker.
+          closeAssistantBubble();
+          setThinking(false);
+          setItems((prev) => [...prev, { kind: "cancel-marker", id: nextId() }]);
+          break;
         } else if (event.type === "error") {
           closeAssistantBubble();
+          setThinking(false);
           setLastError(event.error.message);
           break;
         }
       }
     } catch (err) {
+      setThinking(false);
       setLastError(err instanceof Error ? err.message : String(err));
     } finally {
+      iteratorRef.current = null;
       // Ensure any open bubble is closed (marks streaming: false).
       closeAssistantBubble();
 
@@ -324,6 +370,7 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
       }
 
       setIsStreaming(false);
+      setThinking(false);
     }
   };
 
@@ -345,5 +392,5 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     }
   };
 
-  return { items, isStreaming, lastError, send, clearMessages, loadHistory };
+  return { items, isStreaming, thinking, lastError, send, cancel, clearMessages, loadHistory };
 }

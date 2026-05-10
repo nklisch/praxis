@@ -24,11 +24,12 @@ import { ExamTabBody } from "./exam-tab-body.js";
 import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
 import { ModeHeader } from "./mode-header.js";
-import { ToolInterstitial } from "./tool-interstitial.js";
 import { PageImagePanel } from "./page-image-panel.js";
 import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
 import { StudySkillsTabBody } from "./study-skills-tab-body.js";
+import { ThinkingIndicator } from "./thinking-indicator.js";
+import { ToolInterstitial } from "./tool-interstitial.js";
 
 export interface ChatTabBodyProps {
   tab: TabSummary;
@@ -72,7 +73,8 @@ function ExamLockdownGate({
 export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
-  const { items, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
+  const { items, isStreaming, thinking, lastError, send, cancel, loadHistory } =
+    useStreamedSend(client);
   const { flagAuthRequired } = useAuthStatus();
 
   // Load the persisted transcript on first mount (or when this tab body is
@@ -126,6 +128,19 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
       flagAuthRequired();
     }
   }, [lastError, flagAuthRequired]);
+
+  // Esc key binding — cancel an in-flight turn.
+  useEffect(() => {
+    if (!isStreaming) return;
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cancel();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isStreaming, cancel]);
 
   const handleSend = async (message: string) => {
     try {
@@ -187,6 +202,13 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
               />
             );
           }
+          if (item.kind === "cancel-marker") {
+            return (
+              <p key={item.id} className={styles.cancelMarker}>
+                Cancelled
+              </p>
+            );
+          }
           return (
             <MessageBubble
               key={item.id}
@@ -206,6 +228,8 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
             />
           );
         })}
+        {/* Thinking indicator — shown when engine is working but no assistant text yet. */}
+        {thinking && <ThinkingIndicator />}
         {/* Phase 17: quick-check cards appended after the most recent message.
             Each pending check stays visible in arrival order; cards lock
             after the student submits (resolved === true). Per tab-body-isolation,
@@ -237,6 +261,18 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
             composerTextareaRef.current?.focus();
           }}
         />
+        {isStreaming && (
+          <div className={styles.stopRow}>
+            <button
+              type="button"
+              className={styles.stopButton}
+              onClick={cancel}
+              aria-label="Stop generating"
+            >
+              Stop
+            </button>
+          </div>
+        )}
         <Composer
           ref={composerTextareaRef}
           value={composerValue}

@@ -286,9 +286,9 @@ describe("useStreamedSend", () => {
     // the loadHistory guard is meant to preserve.
     await waitFor(() => {
       expect(result.current.isStreaming).toBe(true);
-      expect(
-        result.current.items.some((i) => i.kind === "message" && i.content === "live"),
-      ).toBe(true);
+      expect(result.current.items.some((i) => i.kind === "message" && i.content === "live")).toBe(
+        true,
+      );
     });
     const pre = result.current.items.length;
 
@@ -780,5 +780,211 @@ describe("useStreamedSend", () => {
     expect(assistantMsgs).toHaveLength(1);
     // Citations fall back to the only (pre-tool) bubble
     expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].citations).toHaveLength(1);
+  });
+
+  // ── Unit 5: thinking state machine ───────────────────────────────────────────
+
+  it("thinking is false before any send", () => {
+    const client = makeClient([]);
+    const { result } = renderHook(() => useStreamedSend(client));
+    expect(result.current.thinking).toBe(false);
+  });
+
+  it("thinking is true at send start before any model_message", async () => {
+    // Stream that holds open — we check thinking mid-stream before any model_message.
+    let resolveStream: (() => void) | undefined;
+    const streamHold = new Promise<void>((r) => {
+      resolveStream = r;
+    });
+
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* () {
+          await streamHold;
+          yield { type: "model_message", content: "hi", partial: false } as EngineEvent;
+          yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Fire send without awaiting — it will hold in the stream.
+    let sendDone = false;
+    act(() => {
+      result.current.send(brandId<"SessionId">("s1"), "hello").then(() => {
+        sendDone = true;
+      });
+    });
+
+    // Thinking should flip to true immediately after setIsStreaming(true).
+    await waitFor(() => expect(result.current.thinking).toBe(true));
+    expect(sendDone).toBe(false); // still streaming
+
+    // Unblock.
+    resolveStream?.();
+    await waitFor(() => expect(sendDone).toBe(true));
+    expect(result.current.thinking).toBe(false);
+  });
+
+  it("thinking flips to false on first model_message", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "hello", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    // After stream ends, thinking should be false.
+    expect(result.current.thinking).toBe(false);
+  });
+
+  it("thinking flips back to true on tool_result and false on final", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "A", partial: false },
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "B", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "grade");
+    });
+
+    // After completion, thinking is false.
+    expect(result.current.thinking).toBe(false);
+    expect(result.current.isStreaming).toBe(false);
+  });
+
+  it("thinking is false after stream ends (finally path)", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "done", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    expect(result.current.thinking).toBe(false);
+    expect(result.current.isStreaming).toBe(false);
+  });
+
+  it("thinking is false after interrupted event", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "partial...", partial: true },
+      { type: "interrupted", reason: "user_cancel" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    expect(result.current.thinking).toBe(false);
+    expect(result.current.isStreaming).toBe(false);
+  });
+
+  it("interrupted event appends a cancel-marker item", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "hi", partial: false },
+      { type: "interrupted", reason: "user_cancel" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const cancelMarkers = result.current.items.filter((i) => i.kind === "cancel-marker");
+    expect(cancelMarkers).toHaveLength(1);
+  });
+
+  it("interrupted event closes the open bubble (no dangling streaming: true)", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "partial...", partial: true },
+      { type: "interrupted", reason: "user_cancel" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(1);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].streaming).toBe(false);
+  });
+
+  it("cancel() calls iter.return() which terminates the stream", async () => {
+    const returnSpy = vi.fn().mockResolvedValue({ done: true, value: undefined });
+
+    // Build a stream iterator with a spy on .return().
+    // The stream holds open via a promise so cancel() can fire mid-stream.
+    let resolveStream: (() => void) | undefined;
+    const streamHold = new Promise<void>((r) => {
+      resolveStream = r;
+    });
+
+    const mockIterator: AsyncIterator<EngineEvent> = {
+      next: vi.fn(async () => {
+        await streamHold;
+        return { done: true, value: undefined } as IteratorResult<EngineEvent>;
+      }),
+      return: returnSpy,
+    };
+
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(() => ({
+          [Symbol.asyncIterator]: () => mockIterator,
+        })) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Start send without awaiting.
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "hello");
+    });
+
+    // Wait for streaming to start.
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    // Call cancel.
+    act(() => {
+      result.current.cancel();
+    });
+
+    // iter.return() should have been called.
+    expect(returnSpy).toHaveBeenCalled();
+
+    // Unblock so test cleanup is happy.
+    resolveStream?.();
+  });
+
+  it("cancel() is a no-op when not streaming", () => {
+    const client = makeClient([]);
+    const { result } = renderHook(() => useStreamedSend(client));
+    expect(() => result.current.cancel()).not.toThrow();
   });
 });

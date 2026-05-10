@@ -61,6 +61,9 @@ export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChat
               />
             );
           }
+          if (item.kind === "cancel-marker") {
+            return null;
+          }
           return (
             <MessageBubble
               key={item.id}
