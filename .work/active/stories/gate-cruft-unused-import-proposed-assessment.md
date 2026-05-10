@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-unused-import-proposed-assessment
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
@@ -43,3 +43,7 @@ Tool-detected by Biome's `noUnusedImports` (FIXABLE).
 ## Implementation notes
 
 Deleted `ProposedAssessment,` from the `import type` block in `bootstrap-service.ts` line 29. Confirmed `ProposedCourse` and `ProposedUnit` remain; no other reference to `ProposedAssessment` exists in the file.
+
+## Review (2026-05-10)
+
+Approve. Mechanical removal verified clean. Single line deleted from the `import type` block; `ProposedCourse` and `ProposedUnit` remain intact; no orphan blank lines. No findings.
