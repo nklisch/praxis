@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-claude-cli-sdk-package
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -41,3 +41,7 @@ matching the wording in CLAUDE.md.
 
 ## Implementation notes
 Added `@praxis/claude-cli-sdk` row between `@praxis/desktop` and `praxis-ingest`, matching surrounding column structure and tone. Wording mirrors CLAUDE.md: in-tree fork of `@nklisch/claude-cli-sdk`, sole consumer is `@praxis/engines`'s Claude Code adapter, freely modifiable as Praxis is the only consumer.
+
+## Review (2026-05-10)
+
+Verified ARCHITECTURE.md:59 now has the `@praxis/claude-cli-sdk` row. Wording correctly describes its in-tree status, sole consumer, and provenance — consistent with CLAUDE.md:60 and README.md:143. No rolling-foundation violations. Approve.

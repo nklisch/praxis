@@ -1,7 +1,7 @@
 ---
 id: gate-docs-curriculum-exam-tools
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -40,3 +40,7 @@ stance because it returns metadata, not method/answer help).
 
 ## Implementation notes
 Dropped "(and nothing else)" and appended `pedagogy.list_metacognitive_prompts` with an inline rationale: read-only metadata, not method/answer help, consistent with verification stance. Matches the comment in `exam.ts:38`.
+
+## Review (2026-05-10)
+
+The "(and nothing else)" claim was factually incorrect after Phase 18. The rationale for allowing `pedagogy.list_metacognitive_prompts` in exam mode (read-only metadata, verification stance maintained) is well-reasoned and consistent with `exam.ts:38`'s inline comment. No rolling-foundation violations. Approve.

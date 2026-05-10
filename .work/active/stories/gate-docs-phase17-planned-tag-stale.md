@@ -1,7 +1,7 @@
 ---
 id: gate-docs-phase17-planned-tag-stale
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -47,3 +47,7 @@ describes the present, not a phase plan.
 
 ## Implementation notes
 Stripped the full `(Phase 17, planned)` parenthetical from all four headings across three docs. The body prose in each section already describes the shipped implementation; no prose changes were needed.
+
+## Review (2026-05-10)
+
+Four heading parentheticals stripped. This is a clean rolling-foundation fix — the body prose already described the shipped implementation, only the headings were stale. No prose rewrites needed; none were made. Approve.

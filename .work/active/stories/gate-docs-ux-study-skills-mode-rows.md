@@ -1,7 +1,7 @@
 ---
 id: gate-docs-ux-study-skills-mode-rows
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -50,3 +50,7 @@ land alongside the mode-meta entry as a single doc+code stride.
 
 ## Implementation notes
 Stretched scope: added the `study-skills` entry to `mode-meta.ts` in the same stride (tint `#7b9e87` muted teal, ornament `‖`, deck "building the craft of learning"). All other mode ornaments were already taken, so `‖` (double vertical line) was chosen as an unused typographic mark. UX.md mode-tints table and surface-map ASCII block updated with the real values from mode-meta.ts.
+
+## Review (2026-05-10)
+
+Scope stretch was appropriate — the doc and code fix had to land together or the UX.md table would have been half-correct. Verified: `mode-meta.ts:61` has `"study-skills"` with tint `#7b9e87` and ornament `‖`. UX.md:29 and :55 both updated. The `#7b9e87` muted teal is visually distinct from the existing palette (amber, sage, steel-blue, indigo, crimson, silver). `‖` is unused among the existing ornaments (`§`, `¶`, `‡`, `❦`, `†`, `⁂`). Inline test fix (`f8795df`) is clean — `getAllByText` is correct when the same string appears in both the chip and the mode header. Rolling-foundation principle respected. Approve.

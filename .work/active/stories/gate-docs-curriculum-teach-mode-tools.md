@@ -1,7 +1,7 @@
 ---
 id: gate-docs-curriculum-teach-mode-tools
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -39,3 +39,7 @@ and `pedagogy.list_metacognitive_prompts` to the teach-mode tools list.
 
 ## Implementation notes
 Verified `teach.ts:53-59` — five `quick_check.*` tools and `pedagogy.list_metacognitive_prompts` were all present. Appended both families inline (before the canonical-list pointer) to keep the summary accurate without reformatting the full list.
+
+## Review (2026-05-10)
+
+Additive accuracy fix — 6 tools that were genuinely missing from the summary. The canonical-list pointer to `teach.ts` is preserved, so the authoritative source is still referenced. Rolling-foundation principle respected (no "previously" notes). Approve.

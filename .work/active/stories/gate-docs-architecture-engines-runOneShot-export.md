@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-engines-runOneShot-export
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -44,3 +44,7 @@ CLAUDE.md (`packages/core/src/services/` may import `@praxis/engines` and
 
 ## Implementation notes
 Replaced "Self-contained — no other `@praxis/*` package may import here" with language acknowledging `runOneShot` and the `services/` carve-out, matching the exception already documented in CLAUDE.md. The boundary is clarified as `services/` only — not all of `@praxis/core`.
+
+## Review (2026-05-10)
+
+Verified ARCHITECTURE.md:52 now describes `runOneShot` and explicitly names `@praxis/core/services` as the carve-out. Correctly narrows the boundary to `services/` only — not the whole of `@praxis/core`. This is coherent with the architecture story (indexers in `services/` call `runOneShot`). No rolling-foundation violations. Approve.
