@@ -21,7 +21,7 @@ switch (p.type) {  // EngineEvent.type field
 ```
 
 ### Example 2: `gradeMathTool.handler` — domain input uses `kind`
-**File**: `packages/tools/src/math/grade-math.ts:160`
+**File**: `packages/tools/src/math/grade-math.ts:205`
 ```typescript
 switch (args.kind) {  // gradeMathInput.kind field (Zod discriminatedUnion)
   case "check_solution":   return buildCheckSolutionOutput(await sympy.checkSolution(...));
@@ -33,7 +33,7 @@ switch (args.kind) {  // gradeMathInput.kind field (Zod discriminatedUnion)
 ```
 
 ### Example 3: Zod discriminated union schema for tool input
-**File**: `packages/tools/src/math/grade-math.ts:36`
+**File**: `packages/tools/src/math/grade-math.ts:60`
 ```typescript
 export const gradeMathInput = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("check_solution"), equation: z.string(), variable: z.string(), proposedValue: z.string(), isLatex: z.boolean().optional() }),

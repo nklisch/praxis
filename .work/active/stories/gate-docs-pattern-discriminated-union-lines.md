@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-discriminated-union-lines
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -31,3 +31,6 @@ Update the two citations to:
 - `packages/tools/src/math/grade-math.ts:60` (Zod schema)
 
 The cited code is otherwise still accurate.
+
+## Implementation notes
+Updated `grade-math.ts:160` → `:205` (switch on args.kind) and `grade-math.ts:36` → `:60` (gradeMathInput discriminatedUnion). Verified both in source: `gradeMathInput = z.discriminatedUnion` is at line 60, `switch (args.kind)` is at line 205. New line numbers confirmed correct.
