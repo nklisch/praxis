@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-auto-update
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-phase-19-ship-v1
 depends_on: [epic-phase-19-electron-signing]
@@ -614,3 +614,56 @@ pass.
 - **No migration to electron-updater required for v1**. The migration
   path is documented in `docs/UPDATE-CHANNEL.md` § "Migration to
   electron-updater (post-v1)".
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+
+**Important**: none
+
+**Nits**:
+- The renderer always issues the IPC roundtrip on launch even when
+  `PRAXIS_UPDATE_FEED_URL` is unset; the result is `{ status: "disabled" }`
+  but the call still costs ~1ms. Short-circuiting on the renderer side
+  would require a separate "is feature enabled?" channel or a
+  build-time `import.meta.env` flag — not worth v1 complexity.
+- `docs/UPDATE-CHANNEL.md` could be cross-linked from README's "Build a
+  distributable" section. The `epic-phase-19-onboarding-docs` feature
+  will add this naturally (its scope is the README rewrite); not filed
+  separately.
+
+**Notes**:
+- 22 tests added (10 service, 5 hook, 6 banner, 1 client routing). Full
+  workspace `pnpm test` 2270 passing — no regressions.
+- Two design discrepancies are documented inline and both are
+  improvements over the original spec: split `UpdateService` into a
+  main-process service (with currentVersion arg) and a renderer
+  `UpdateClientApi` (parameter-less, version sourced via
+  `app.getVersion()` in IPC); added a localStorage polyfill to the
+  jsdom test setup since jsdom 29 ships without it.
+- Security: outbound link uses `target="_blank" rel="noreferrer noopener"`,
+  schema validation gates the feed JSON, no auth/secrets touched.
+- Breaking changes: `PraxisClient.update: UpdateClientApi` is additive;
+  test stubs use the existing `as unknown as PraxisClient[...]` cast
+  pattern and don't gate on the new method.
+- Foundation-doc alignment: new `docs/UPDATE-CHANNEL.md` documents the
+  decision in foundation-doc style. ROADMAP Phase 19's
+  "Auto-update channel decision" satisfied. Other foundation docs
+  (ARCHITECTURE, SPEC, VISION) are unchanged — appropriate, none
+  asserted anything specific about updates.
+
+## What's now possible
+
+- The desktop app silently checks for new releases on launch when
+  `PRAXIS_UPDATE_FEED_URL` is set, and surfaces a dismissible banner
+  when a newer version is published. Users get a one-click path to
+  the download page.
+- `epic-phase-19-onboarding-docs` is now unblocked (its
+  `depends_on` was `epic-phase-19-first-run-flow` which is already
+  done; this feature being done unblocks the ship-checklist's last
+  remaining sibling dependency).
+- The migration path to `electron-updater` is documented and small —
+  flip `notarize: true`, add a `publish` block, install
+  `electron-updater`, drop the `<UpdateBanner>`. Post-v1 work.
