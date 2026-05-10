@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-metacognitive-prompts
 kind: feature
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
@@ -211,3 +211,61 @@ What's now possible:
   the loop closed.
 
 Stage: implementing → review.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+The single child story `epic-phase-18-metacognitive-prompts-impl` landed
+at done with its own Approve verdict. The feature delivers the
+capability the brief promised end-to-end:
+
+- `metacognitivePromptsFragment(triggers)` factory exists and is pure ✅
+- teach / quiz / homework / exam modes opt in with their declared
+  trigger sets ✅
+- Each opting mode has `pedagogy.list_metacognitive_prompts` in
+  toolNames ✅
+- study-skills / bootstrap / configure modes correctly skip the fragment ✅
+- 61 tests cover factory shape, trigger filtering, per-mode integration,
+  and the existing per-mode tests' counts updated to match ✅
+
+Aggregate lenses:
+
+- **Design alignment**: Single-story decomposition was right.
+  Implementation matches the design's enumerated trigger sets per mode
+  exactly. Factory pattern keeps trigger-guidance text in one place
+  (TRIGGER_GUIDANCE table); mode files declare their subsets.
+- **Foundation-doc alignment**: `docs/CURRICULUM.md:134` ("Modes layer
+  the metacognition coach's voice on top") is now operational —
+  teach / quiz / homework / exam tutors all surface metacognitive
+  prompts at the right triggers. No drift.
+- **Breaking changes**: none. Adding a fragment to a mode's
+  `promptFragments` array is additive; adding a tool name is additive.
+  Existing per-mode tests' count assertions were updated alongside.
+- **Capability completeness**: every brief line resolves —
+  cross-mode prompt injection, per-mode trigger sets, runtime tool
+  lookup via `pedagogy.list_metacognitive_prompts`, empty-pack
+  graceful degradation. The ROADMAP test checkpoint ("Run several
+  teach sessions; …") now has the metacognition surface in place.
+
+Two nits captured in the story review (in conversation only):
+- TRIGGER_GUIDANCE is a hardcoded TS table — the right call (static
+  guidance teaches WHEN; the pack is the SSOT for prompt content).
+- Homework reuses `quizMode.toolNames` reference — pre-existing pattern;
+  pedagogy tool surfaces transitively when quiz includes it.
+
+**Verification at HEAD** (`c184737`): `pnpm typecheck` clean;
+`pnpm --filter @praxis/curriculum test` 307 passed; `pnpm test`
+(full repo) 2200 passed / 15 skipped; `pnpm lint` 9 errors (unchanged
+baseline; zero new from this feature).
+
+What's now possible: the metacognition coach voice is woven through
+every student-facing teaching mode (5 modes total counting study-skills).
+`epic-phase-18-routing-integration` is the LAST remaining Phase 18
+feature — and it can now design against a complete cross-mode coach
+surface. Once it lands, the Phase 18 epic auto-advances to review.
+
+Stage: review → done.
