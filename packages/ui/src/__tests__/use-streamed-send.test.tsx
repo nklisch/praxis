@@ -278,7 +278,18 @@ describe("useStreamedSend", () => {
       sendPromise = result.current.send(brandId<"SessionId">("s1"), "user-text");
     });
 
-    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+    // Wait for both `isStreaming === true` AND the live model_message to have
+    // rendered. The bubble-boundaries refactor opens the assistant bubble
+    // lazily on the first model_message, so a snapshot taken purely on
+    // `isStreaming` would race with the lazy push. Snapshot only after the
+    // live "live" content is in place — that's the stable mid-stream state
+    // the loadHistory guard is meant to preserve.
+    await waitFor(() => {
+      expect(result.current.isStreaming).toBe(true);
+      expect(
+        result.current.items.some((i) => i.kind === "message" && i.content === "live"),
+      ).toBe(true);
+    });
     const pre = result.current.items.length;
 
     await act(async () => {
