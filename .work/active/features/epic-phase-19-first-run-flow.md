@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-first-run-flow
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui, content]
 parent: epic-phase-19-ship-v1
 depends_on: []
@@ -72,5 +72,511 @@ What this feature does NOT cover:
 - `packages/core/src/services/` and `packages/core/src/db/` — `config_kv`
   pattern for the first-run flag.
 
-<!-- Feature-design pass will spec the route, the step UI shape, the
-config flag's read/write surface, and the test approach. -->
+## Design decisions
+
+- **First-run gate lives in the root route component, not the router's
+  `beforeLoad`.** TanStack Router's `beforeLoad` can be async, but
+  threading the IPC client through the router config is awkward versus
+  reading the flag inside a component via the existing
+  `usePraxisClient()` hook. The trade-off — a momentary pre-mount where
+  the layout might briefly render empty — is a non-issue under the
+  loading-state pattern; the cost of router-level wiring isn't worth
+  it.
+- **Storage: `config_kv` row keyed `firstRunCompletedAt`.** A single
+  ISO-timestamp string (or `null`). Mirror the existing
+  `engine-config.ts` and `bootstrap-config.ts` patterns — small reader
+  and writer functions, JSON-serialised value via the existing
+  `configKv` schema.
+- **Three steps, not five.** Welcome → Engine + Sign-in → Course pick.
+  The original brief mentioned a "brand intro" and an "engine choice"
+  separately; collapsing the welcome into a single step keeps the
+  total ceremony short. Power users can hit "Skip" on any step to
+  immediately complete the flag and land on Library.
+- **Engine step reuses the existing `ConfigService.setEngineConfig`.**
+  No new auth surface; the step embeds the same control set as
+  `/settings`. For Claude Code, the existing `<ClaudeAuthModal>` is
+  triggered from inside the step.
+- **Course step offers three forks — Algebra, Biology, "from a
+  syllabus".** Algebra and Biology both call the existing
+  `course.use_canonical_pack` path (via
+  `BootstrapServiceImpl.createCourseFromPack`). The syllabus path
+  starts a `bootstrap` mode session — same as today's
+  `+ New course` button on `/courses`.
+- **No router-level redirect for non-Library routes during first-run.**
+  Hiding the side nav while the gate is active is sufficient — the
+  user has nowhere to navigate except the flow. If a returning user
+  enters via a deep link before completion, the gate intercepts at
+  the root component and the deep link is replayed via TanStack
+  Router state when the user lands on a real route.
+- **No child stories.** The change is ~9 small files: 1 backend
+  config module, 2 service-method additions, 2 IPC handlers, 2 client
+  methods, 1 hook, 1 component (+ css), 1 router edit. Tightly
+  cohesive (every test exercises the same first-run path); no
+  parallelisation upside; single-stride implementation.
+- **No first-run telemetry.** v1 doesn't ship analytics. A
+  post-onboarding "did you complete?" signal is post-v1.
+
+## Architectural choice
+
+**Inline replacement at the root route component**: a `useFirstRun()`
+hook reads the flag via the IPC config service. When the flag is unset
+and the read has resolved, the root component renders an
+`<OnboardingFlow />` in place of the normal layout (Nav + Outlet +
+ActivityRail). When the flow completes, the flag is written and the
+hook re-fetches; the normal layout takes over.
+
+Alternatives considered:
+
+- *Dedicated `/onboarding` route with `beforeLoad` redirect from the
+  root.* Rejected: async client access at the route layer adds
+  plumbing for no UX benefit. Same number of files, more wiring.
+- *Modal overlay on the Library route.* Rejected: leaves the rest of
+  the app accessible via deep link / sidebar; first-run would feel
+  optional rather than guided. Defeats the "land in real state, not a
+  tutorial" goal.
+
+## Implementation Units
+
+### Unit 1 (trickiest): `packages/core/src/config/onboarding-config.ts`
+**File**: `packages/core/src/config/onboarding-config.ts` (new)
+
+Reader and writer for the `firstRunCompletedAt` flag in `config_kv`.
+Mirrors the shape of `engine-config.ts`.
+
+```typescript
+import { eq } from "drizzle-orm";
+import type { PraxisDb } from "../db/index.js";
+import { configKv } from "../schema.js";
+
+const CONFIG_KEY = "onboarding";
+
+export interface OnboardingConfig {
+  /** ISO timestamp; null means first-run is not yet complete. */
+  firstRunCompletedAt: string | null;
+}
+
+const DEFAULT_ONBOARDING_CONFIG: OnboardingConfig = {
+  firstRunCompletedAt: null,
+};
+
+export function readOnboardingConfig(db: PraxisDb): OnboardingConfig {
+  const rows = db.select().from(configKv).where(eq(configKv.key, CONFIG_KEY)).all();
+  const stored = rows[0]?.valueJson as Partial<OnboardingConfig> | undefined;
+  return { ...DEFAULT_ONBOARDING_CONFIG, ...stored };
+}
+
+export function markFirstRunComplete(db: PraxisDb): void {
+  const next: OnboardingConfig = {
+    firstRunCompletedAt: new Date().toISOString(),
+  };
+  db.insert(configKv)
+    .values({
+      key: CONFIG_KEY,
+      valueJson: next,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: configKv.key,
+      set: { valueJson: next, updatedAt: new Date() },
+    })
+    .run();
+}
+```
+
+**Implementation Notes**:
+
+- `valueJson` already accepts arbitrary JSON via the existing
+  `configKv` schema; no migration needed.
+- Read merges stored + defaults; write is idempotent via
+  `onConflictDoUpdate`.
+- No env-var override pathway — first-run completion is a real-state
+  signal, not a configurable preference.
+
+**Acceptance Criteria**:
+
+- [ ] `readOnboardingConfig(db)` returns `{ firstRunCompletedAt: null }`
+      on a fresh database.
+- [ ] After `markFirstRunComplete(db)`, the read returns a valid
+      ISO timestamp.
+- [ ] Calling `markFirstRunComplete` twice updates the timestamp
+      (idempotent + monotonic).
+
+### Unit 2: extend `ConfigService` interface and impl
+**File**: `packages/core/src/services/types.ts` (interface),
+`packages/core/src/services/config-service.ts` (impl)
+
+Add two methods to `ConfigService`:
+
+```typescript
+interface ConfigService {
+  // ... existing methods ...
+  firstRunCompleted(): Promise<boolean>;
+  markFirstRunComplete(): Promise<void>;
+}
+```
+
+The implementation is a one-liner each, delegating to the unit-1
+helpers.
+
+**Implementation Notes**:
+
+- Match the existing async return-type style even though the operation
+  is sync (DB read/write) — keep the IPC contract uniform.
+
+**Acceptance Criteria**:
+
+- [ ] Interface declares the two methods.
+- [ ] Impl wires through to `readOnboardingConfig` /
+      `markFirstRunComplete`.
+- [ ] `pnpm typecheck` clean across the workspace.
+
+### Unit 3: IPC handlers
+**File**: `packages/desktop/electron/main/ipc-server.ts`
+
+Add two handlers under the `praxis.config.*` channel namespace:
+
+```typescript
+handle("praxis.config.firstRunCompleted", async () => {
+  return services.config.firstRunCompleted();
+});
+handle("praxis.config.markFirstRunComplete", async () => {
+  await services.config.markFirstRunComplete();
+});
+```
+
+**Implementation Notes**:
+
+- Naming follows the established `praxis.{domain}.{action}` convention
+  (`ipc-channel-convention` pattern).
+
+**Acceptance Criteria**:
+
+- [ ] Two handlers registered alongside the existing `praxis.config.*`.
+
+### Unit 4: client methods
+**File**: `packages/client/src/services/config-client.ts`
+
+Add the corresponding client methods:
+
+```typescript
+firstRunCompleted(): Promise<boolean> {
+  return this.transport.invoke<boolean>(`${CHANNEL}.firstRunCompleted`);
+}
+
+markFirstRunComplete(): Promise<void> {
+  return this.transport.invoke<void>(`${CHANNEL}.markFirstRunComplete`);
+}
+```
+
+**Acceptance Criteria**:
+
+- [ ] Both methods present and typed.
+- [ ] Existing client tests still pass; no fake-client breakage in UI tests.
+
+### Unit 5: `useFirstRun` hook
+**File**: `packages/ui/src/hooks/use-first-run.ts` (new)
+
+Reads the flag via the client and exposes loading / value / a
+`complete()` function that writes the flag and refreshes.
+
+```typescript
+import { useCallback, useEffect, useState } from "react";
+import { usePraxisClient } from "../context/client-context.js";
+
+export interface UseFirstRunResult {
+  loading: boolean;
+  isFirstRun: boolean | null; // null while loading
+  complete: () => Promise<void>;
+}
+
+export function useFirstRun(): UseFirstRunResult {
+  const client = usePraxisClient();
+  const [loading, setLoading] = useState(true);
+  const [completed, setCompleted] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    client.config
+      .firstRunCompleted()
+      .then((done) => {
+        if (!cancelled) {
+          setCompleted(done);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        // On error, fail open — assume not first-run so the user isn't
+        // trapped behind a broken IPC. The error shows on the normal
+        // app surface.
+        if (!cancelled) {
+          setCompleted(true);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client]);
+
+  const complete = useCallback(async () => {
+    await client.config.markFirstRunComplete();
+    setCompleted(true);
+  }, [client]);
+
+  return { loading, isFirstRun: completed === null ? null : !completed, complete };
+}
+```
+
+**Implementation Notes**:
+
+- Fail-open on IPC error: if the read fails, treat the user as
+  having already completed first-run rather than locking them out.
+- The hook does NOT use `useResource` (the existing data-fetch hook)
+  because the first-run flag is a one-time read, not a refresh-able
+  resource — a smaller bespoke hook is clearer.
+- `complete()` writes the flag and updates local state — no refetch
+  round-trip needed.
+
+**Acceptance Criteria**:
+
+- [ ] Hook returns `loading: true, isFirstRun: null` initially.
+- [ ] Resolves to `loading: false, isFirstRun: true` for fresh DBs.
+- [ ] Resolves to `loading: false, isFirstRun: false` after
+      `markFirstRunComplete` was called previously.
+- [ ] `complete()` flips `isFirstRun` to `false` synchronously after
+      the IPC resolves.
+- [ ] On IPC error, settles to `loading: false, isFirstRun: false`.
+
+### Unit 6: `OnboardingFlow` component
+**File**: `packages/ui/src/components/onboarding-flow.tsx` (new)
+**Style**: `packages/ui/src/components/onboarding-flow.module.css` (new)
+
+A self-contained three-step component. Internal `useState` drives step
+transitions. Reuses `<ClaudeAuthModal>` for the Claude Code engine.
+
+```typescript
+import { type JSX, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { usePraxisClient } from "../context/client-context.js";
+import { ClaudeAuthModal } from "./claude-auth-modal.js";
+import styles from "./onboarding-flow.module.css";
+
+export interface OnboardingFlowProps {
+  onComplete: () => Promise<void>;
+}
+
+type Step = "welcome" | "engine" | "course";
+
+export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element {
+  const [step, setStep] = useState<Step>("welcome");
+  // ...
+}
+```
+
+Each step is a sub-component:
+
+- `<WelcomeStep onNext onSkip />` — brand title, 1-2 sentences, two
+  buttons.
+- `<EngineStep onNext onBack onSkip />` — engine select, API-key
+  field (visible per engine), or `Sign in to Claude Code` button.
+  On Next: writes `setEngineConfig`, advances. On Skip: completes
+  immediately.
+- `<CourseStep onComplete onBack onSkip />` — three big cards: Algebra,
+  Biology, From a syllabus. Each card on click calls the appropriate
+  service and `onComplete`. On Skip: completes without opening a
+  course.
+
+Wire to the editorial design system: use the COPY module for
+copy strings (add new entries under `COPY.onboarding.*`), use editorial
+typography classes via `composes: editorial from global;`, layout via
+the existing primitives (`<RouteHeader>` if helpful, otherwise a
+straight grid).
+
+**Implementation Notes**:
+
+- The component is self-contained — no router redirects from inside.
+  When a step's "Continue" handler resolves, the component calls
+  `onComplete` (provided by the root route) which writes the flag
+  and unmounts the flow.
+- The course-fork CTA uses `client.bootstrap.createCourseFromPack`
+  for canonical packs, `client.session.start({ modeId: "bootstrap" })`
+  for the syllabus path. Both already exist.
+- The Skip button on each step calls `onComplete` directly — no
+  validation, no required fields.
+- The engine step's API-key visibility logic mirrors `/settings` —
+  Claude Code shows the "Sign in" trigger; direct providers show
+  the key field.
+
+**Acceptance Criteria**:
+
+- [ ] Renders three distinct steps; default is `welcome`.
+- [ ] "Continue" on welcome → engine step.
+- [ ] "Continue" on engine writes engine config, advances to course.
+- [ ] "Continue" on a course card calls the right service and
+      `onComplete`.
+- [ ] "Skip" on any step calls `onComplete` immediately.
+- [ ] Component matches editorial tone — copy from `COPY.onboarding.*`.
+
+### Unit 7: extend `COPY` module
+**File**: `packages/ui/src/lib/copy.ts`
+
+Add an `onboarding` namespace with copy for each step's headers,
+buttons, and helper text.
+
+```typescript
+export const COPY = {
+  // ... existing ...
+  onboarding: {
+    welcomeTitle: "Welcome to Praxis",
+    welcomeBody: "...",
+    engineTitle: "Pick your tutor's engine",
+    courseTitle: "Where shall we start?",
+    skipLabel: "Skip onboarding",
+    continueLabel: "Continue",
+    backLabel: "Back",
+    courseAlgebra: "Algebra (canonical)",
+    courseBiology: "Biology (canonical)",
+    courseFromSyllabus: "From your own syllabus",
+  },
+};
+```
+
+**Acceptance Criteria**:
+
+- [ ] All copy strings used by the onboarding component live in
+      `COPY.onboarding.*`.
+
+### Unit 8: integrate into the root route
+**File**: `packages/ui/src/router.tsx`
+
+Wrap the root component to render `<OnboardingFlow />` when first-run.
+
+```typescript
+const rootRoute = createRootRoute({
+  component: () => {
+    const { loading, isFirstRun, complete } = useFirstRun();
+
+    if (loading) return null; // or a tiny splash
+
+    if (isFirstRun) {
+      return (
+        <div className={styles.onboardingLayout}>
+          <OnboardingFlow onComplete={complete} />
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.layout}>
+        <Nav />
+        <main className={styles.main}>
+          <Outlet />
+        </main>
+        <ActivityRail />
+      </div>
+    );
+  },
+});
+```
+
+**Implementation Notes**:
+
+- The pre-resolution `null` render is acceptable — IPC returns within
+  ~10ms locally; a flash isn't observable. If we later decide a splash
+  is needed, slot it in here.
+- An `.onboardingLayout` CSS class in `router.module.css` provides
+  full-bleed centering for the flow.
+
+**Acceptance Criteria**:
+
+- [ ] When `isFirstRun: true`, the layout renders only
+      `<OnboardingFlow />` — no Nav, no ActivityRail.
+- [ ] When `isFirstRun: false`, the existing layout renders unchanged.
+- [ ] After `complete()` resolves, the layout swaps without a refresh.
+
+### Unit 9: tests
+**Files**:
+
+- `packages/ui/src/__tests__/use-first-run.test.tsx` (new)
+- `packages/ui/src/__tests__/onboarding-flow.test.tsx` (new)
+- `packages/client/src/__tests__/client.test.ts` (extend with two
+  channel-routing assertions)
+
+Tests focus on:
+
+- The hook's loading / resolved / error / complete-flow states.
+- The flow's step transitions: Welcome → Engine → Course → done.
+- Skip from each step.
+- Engine selection persists via the fake client.
+- Course fork CTAs call the right client methods.
+
+Use the existing `makeFakeClient(overrides?)` helper from
+`__tests__/helpers/fake-client.ts` (`ui-test-helper` pattern).
+
+**Acceptance Criteria**:
+
+- [ ] All new tests pass.
+- [ ] Full `pnpm test` workspace stays green.
+
+## Implementation Order
+
+1. **Unit 1** (config_kv reader/writer) — the foundation; no deps.
+2. **Unit 2** (ConfigService methods) — surfaces unit 1 to the
+   service layer.
+3. **Unit 3** (IPC handlers) — surfaces unit 2 to the renderer.
+4. **Unit 4** (client methods) — surfaces unit 3 to the UI.
+5. **Unit 5** (useFirstRun hook) — consumes unit 4.
+6. **Unit 7** (COPY extension) — small, slot in before Unit 6.
+7. **Unit 6** (OnboardingFlow component) — consumes units 4 + 7.
+8. **Unit 8** (router integration) — consumes units 5 + 6.
+9. **Unit 9** (tests) — covers everything.
+
+After all units: `pnpm typecheck && pnpm lint && pnpm test`.
+
+## Testing
+
+### Unit tests
+
+- `packages/ui/src/__tests__/use-first-run.test.tsx`:
+  loading-then-resolved transitions, error path, complete() effect.
+- `packages/ui/src/__tests__/onboarding-flow.test.tsx`:
+  step-transition assertions, skip semantics, button presence per
+  step.
+- `packages/client/src/__tests__/client.test.ts`:
+  routes the two new methods to the right IPC channels.
+
+### Integration coverage
+
+The full user flow (first launch → write engine config → start a
+course → land in chat) is exercised by the ship-checklist feature, not
+unit tests — the rendered DOM doesn't tell you whether a real teach
+session works end-to-end.
+
+## Risks
+
+- **IPC error during first-run blocks the user.** Mitigated by
+  fail-open in the hook (Unit 5) — on read error, treat as completed.
+  The user lands on the normal app and can sort out the underlying
+  error from there.
+- **Course-step actions can fail (engine config invalid, pack import
+  error).** Each course-card handler should surface failures inline
+  on the step (a `<div className={styles.error}>` slot) rather than
+  trapping the user in a half-completed flow. Implementation pass
+  must handle this.
+- **`/settings` already exists with substantial engine config UI.**
+  Risk: drifting between the onboarding engine step and the settings
+  surface. Mitigation: reuse the same form components, or at minimum
+  the same client methods. If component reuse is hard, document the
+  parallel for a follow-up consolidation.
+- **Skip-onboarding is the easy escape; users may always pick it.**
+  That's fine for v1 — onboarding is additive value. If
+  ship-checklist reveals users routinely skip and then can't run a
+  session, surface the missing piece in the empty state on Library.
+- **First-run state is per-DB.** A user resetting their DB
+  (`pnpm db:reset`) hits onboarding again. That's the correct
+  behaviour — different from per-machine state.
+
+## No child stories
+
+Single-stride feature. The 9 units chain: backend (1-4) → hook (5)
+→ component (6-7) → integration (8) → tests (9). One agent, one pass.
