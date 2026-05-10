@@ -1,7 +1,7 @@
 ---
 id: gate-security-update-feed-integrity-signature
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -76,3 +76,13 @@ The concrete v0.1.0 deliverable is a "Trust model" section added to
 The full implementation is parked in
 `.work/backlog/idea-update-feed-ed25519-signature.md` with the complete
 remediation direction from the security story preserved verbatim.
+
+## Review (2026-05-10)
+
+**Verdict: Approve**
+
+Correctness: The "Trust model" section in `UPDATE-CHANNEL.md` accurately describes the current state — no signature, no hash, unconditional trust in the feed host. The manual verification guidance is platform-appropriate: Gatekeeper is correctly identified as the macOS backstop for signed builds; Windows and Linux are correctly flagged as unsigned with no automated verification. The Ed25519 gate is correctly marked as mandatory before auto-update, not advisory.
+
+Foundation-doc alignment: The section is written in current-tense declarative style with no legacy framing. "Future (mandatory before moving to actual auto-update)" is forward-looking guidance, not historical notation — appropriate for a foundation doc. The section integrates cleanly into UPDATE-CHANNEL.md's existing flow.
+
+Security: The doc-only path is the right call for v0.1.0 — the Ed25519 implementation involves keypair management, CI pipeline changes, backward-compatibility for pre-signing clients, and a failure UX; rushing it introduces its own risks. The backlog item preserves the full remediation direction verbatim, including the installer hash field and key-rotation story, so nothing is lost when the follow-up is scoped.
