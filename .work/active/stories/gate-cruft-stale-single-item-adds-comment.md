@@ -1,6 +1,7 @@
 ---
 id: gate-cruft-stale-single-item-adds-comment
 kind: story
+stage: implementing
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []

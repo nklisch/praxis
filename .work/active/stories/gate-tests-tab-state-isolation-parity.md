@@ -1,6 +1,7 @@
 ---
 id: gate-tests-tab-state-isolation-parity
 kind: story
+stage: implementing
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []

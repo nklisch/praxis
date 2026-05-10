@@ -1,6 +1,7 @@
 ---
 id: gate-security-author-export-memory-target-path-validation
 kind: story
+stage: implementing
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []

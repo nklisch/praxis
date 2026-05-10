@@ -1,6 +1,7 @@
 ---
 id: gate-security-preload-sandbox-comment-mismatch
 kind: story
+stage: implementing
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
