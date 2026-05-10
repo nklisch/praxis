@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-first-run-flow
 kind: feature
-stage: review
+stage: done
 tags: [ui, content]
 parent: epic-phase-19-ship-v1
 depends_on: []
@@ -637,3 +637,70 @@ Single-stride feature. The 9 units chain: backend (1-4) → hook (5)
 - **Fail-open semantics in `useFirstRun`**: explicitly tested. If the
   IPC read rejects, the hook treats the user as having already
   completed onboarding rather than locking them behind a broken gate.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- *Engine step lacks inline Claude Code sign-in* — design specced that
+  picking `claude-code` would surface a "Sign in" button triggering
+  `<ClaudeAuthModal>` inline. Implementation hides the API-key field
+  for Claude Code but does not yet render the sign-in trigger. Users
+  who pick Claude Code must skip onboarding and sign in via /settings
+  before they can run a session. Filed as
+  `idea-onboarding-claude-code-signin`.
+- *Course-card labels suggest direct course creation; all paths land
+  in a generic bootstrap session* — clicking "Biology (canonical)"
+  doesn't import biology and start a course; it opens an empty
+  bootstrap chat where the user must ask the agent to use the pack.
+  The bootstrap-mode role prompt already nudges toward canonical
+  packs, so the flow still works, but labels-match-outcomes is a real
+  UX polish gap. Filed as `idea-onboarding-course-card-pre-seed`.
+
+**Nits**:
+- Engine-step API-key visibility (hide for `claude-code` and
+  `direct.ollama`) is correct but lacks a dedicated test that switches
+  engines and asserts the field's absence — implicit coverage via the
+  "writes engine config when continuing" test. Worth tightening if
+  another engine ever joins the no-key family.
+- The CourseStep's `await onComplete()` runs before
+  `await openSessionInTab(...)`; the await chain handles the
+  unmount-mid-await case correctly via captured navigate ref, but
+  future maintainers may want a comment explaining the order.
+
+**Notes**:
+- 13 tests added (5 hook, 6 flow, 2 client routing). Full workspace
+  `pnpm test` shows 2248 passing (up from 2235; no regressions).
+- `pnpm typecheck` clean across the workspace; one bumpy moment when
+  `@praxis/core` had stale `dist/` d.ts and the UI typecheck couldn't
+  see the new ConfigService methods — `pnpm --filter @praxis/core build`
+  refreshed it. Worth flagging that the workspace's
+  source-resolution-via-praxis-source condition has at least one path
+  (UI's `tsgo` typecheck) where the dist d.ts is what gets read.
+  Existing behaviour, not a regression.
+- Foundation-doc alignment: no drift. The first-run flow is orthogonal
+  to the modes / curriculum / architecture docs.
+- Backward compatibility: ConfigService interface gained two methods.
+  Existing test stubs use `as unknown as PraxisClient["config"]` casts
+  and don't typecheck the surface, so they continue working. Fail-open
+  on the hook keeps users who hit IPC errors out of a broken gate.
+
+## What's now possible
+
+- Fresh installs of Praxis present a guided three-step welcome →
+  engine → course flow rather than dropping the user into the Library
+  with no idea how to start.
+- The flow is dismissible at any step ("Skip onboarding") and
+  re-running is gated by a single `firstRunCompletedAt` flag in
+  `config_kv` — running `pnpm db:reset` brings it back, useful for
+  testing.
+- `epic-phase-19-onboarding-docs` is unblocked: its `depends_on`
+  (`epic-phase-19-first-run-flow`) is satisfied, so docs work can
+  describe the realised flow accurately.
+- The Phase 19 ship-checklist gains a third hard prerequisite met
+  (biology-pack + electron-signing + first-run-flow); two more
+  features remain (auto-update, onboarding-docs) before the
+  checklist can run.
