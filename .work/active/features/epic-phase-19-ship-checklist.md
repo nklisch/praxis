@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-ship-checklist
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-phase-19-ship-v1
 depends_on:
@@ -274,3 +274,47 @@ Single doc, single agent, single stride.
   `docs/ONBOARDING.md`. Cross-references all three.
 - **No code changes** — `pnpm test` would be a no-op verification
   since no test surface is touched.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+`docs/v1-ship-checklist.md` covers all 7 stages, the failure-triage
+rubric, the go/no-go decision flow, the pre-publish maintainer
+checklist, and the known-acceptable-divergences list — exactly as
+designed. Foundation-doc tone matches the trio of v1-ship docs already
+landed (`CODE-SIGNING`, `UPDATE-CHANNEL`, `ONBOARDING`).
+
+**Blockers**: none
+
+**Important**: none
+
+**Nits**:
+- The checklist instructs the maintainer to "paste the run summary
+  into the review record" — the review skill currently does this
+  manually rather than via tooling. Acceptable for v1; could add a
+  small CLI helper post-v1 if rehearsals get frequent.
+
+**Notes**:
+- The checklist itself is for the maintainer to *execute*, not for an
+  agent. This feature ships when the script is written + reviewed; the
+  rehearsal-execution that produces the actual go/no-go signal is a
+  separate event the maintainer drives outside the autopilot loop.
+- ROADMAP Phase 19's "Test checkpoint" requirement is satisfied: the
+  script captures every requirement on that checkpoint line ("Build
+  signed installer. Install on clean machine. Self-onboard with real
+  syllabus + textbook. Session, sketch math, submit homework, pass
+  exam, unlock, notes, flashcards.") plus the persistence + update
+  scenarios.
+
+## What's now possible
+
+- The Phase 19 epic has all 6 child features at `done`. The epic can
+  advance from `implementing` → `review` (auto-handled by the next
+  review pass on a child, or manually).
+- The maintainer has a single artefact (`docs/v1-ship-checklist.md`)
+  to follow when running the v1.0.0 acceptance rehearsal — no
+  improvising, no missed steps.
+- After the rehearsal produces a "Go" signal,
+  `/agile-workflow:release-deploy v1.0.0` runs to bind Phase 19
+  features into `.work/releases/v1.0.0/` and execute the gate sweep.
