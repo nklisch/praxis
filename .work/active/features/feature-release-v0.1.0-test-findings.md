@@ -107,3 +107,17 @@ Tests integrate cleanly into existing infrastructure (`useTempDb`,
 No cross-file conflicts; 2377 passing confirmed by sub-agent. 5 Low
 backlog items remain bound to v0.1.0 for traceability — they do not
 block this feature's done status.
+
+## Lows drained (2026-05-10)
+
+All 5 backlog Low stories were lifted into active and drained by user request via `/agile-workflow:release-deploy v0.1.0` (option "Drain them now"). Test code landed across 2 consolidated commits (`31ae176` and `794a1fc`) due to sub-agent staging sequencing; story body updates landed in the same window.
+
+| Story | Tests added | Commits |
+|---|---|---|
+| `gate-tests-ipc-handler-seam-first-run-update` | 6 tests — new `ipc-server.first-run-update.test.ts` mirroring log-channel pattern | `2c72664` (code), `31ae176` (story body) |
+| `gate-tests-tab-state-isolation-parity` | 1 test — teach→study-skills→teach chip no-bleed assertion | `794a1fc` (code + story body) |
+| `gate-tests-update-banner-version-edge-inputs` | 3 tests — edge inputs + prerelease schema rejection | `2c72664` (code), `794a1fc` (story body) |
+| `gate-tests-logger-rotation-behavior` | 1 test — pino-roll size rotation confirmed via polling loop | `31ae176` (code), `794a1fc` (story body) |
+| `gate-tests-affective-indexer-transaction-atomicity` | 1 test — `vi.spyOn` mid-batch failure, real SQLite ROLLBACK asserted via row count | `31ae176` (code), `794a1fc` (story body) |
+
+Test count: 2377 → 2389 (+12 tests). All 5 stories at `stage: done`.
