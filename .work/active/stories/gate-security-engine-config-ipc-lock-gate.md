@@ -1,7 +1,7 @@
 ---
 id: gate-security-engine-config-ipc-lock-gate
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -67,3 +67,15 @@ test harness for the config IPC handlers — the unit tests in
 gate behaviour) would need a mock-services integration fixture similar to the
 `praxis.author.*` coverage, which is out of scope for this security story. A
 follow-up story should add that fixture.
+
+## Review (2026-05-10)
+
+**Verdict: Approve**
+
+Correctness: `await requireUnlocked()` is placed as the first statement in both handlers before any service call, matching the `praxis.author.*` pattern exactly. Read (`engineConfig`) and write (`setEngineConfig`) are both gated — the finding covered both directions and both are closed. The existing `biome-ignore` comment on the `config as any` cast is preserved and unaffected.
+
+Design alignment: The story named the `praxis.author.*` pattern as the target and the implementation follows it precisely. The story also offered a "redacted snapshot + separate `.withSecret` channel" alternative; choosing the simpler uniform gate is sound for v0.1.0.
+
+Tests: Absence of new tests is honestly documented in implementation notes with a clear rationale (no mock-services fixture exists for IPC handlers). The gap is real but scoped correctly as a follow-up — it does not block approval of the security change itself.
+
+Security: The lock gate is now consistent across all config-surface channels that touch secrets. A locked-state call to either handler throws before any data is read or written.
