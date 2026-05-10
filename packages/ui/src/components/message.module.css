@@ -65,9 +65,14 @@
   width: 100%;
 }
 
-.streaming .content::after {
-  content: "▋";
+.cursor {
+  display: inline-block;
+  margin-left: 0.1em;
   animation: blink 1s step-start infinite;
+}
+
+.cursor::before {
+  content: "▋";
 }
 
 @keyframes blink {

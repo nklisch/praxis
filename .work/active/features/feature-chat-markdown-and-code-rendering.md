@@ -1,7 +1,7 @@
 ---
 id: feature-chat-markdown-and-code-rendering
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: null
 depends_on: []
@@ -770,3 +770,66 @@ CSS module, one wiring change in `MessageBubble`, one new test file.
 No parallelizable units, no resume-point need, no heterogeneous
 acceptance surfaces. All four units land in one implementation pass
 under `/agile-workflow:implement`.
+
+## Implementation notes
+
+- **Files added**:
+  - `packages/ui/src/lib/balance-fences.ts`
+  - `packages/ui/src/lib/rehype-citation-chips.ts`
+  - `packages/ui/src/components/markdown-content.tsx`
+  - `packages/ui/src/components/markdown-content.module.css`
+  - `packages/ui/src/__tests__/balance-fences.test.ts` (8 tests)
+  - `packages/ui/src/__tests__/rehype-citation-chips.test.ts` (7 tests)
+  - `packages/ui/src/__tests__/markdown-content.test.tsx` (18 tests)
+  - `packages/ui/src/__tests__/message.test.tsx` (9 tests)
+
+- **Files modified**:
+  - `packages/ui/src/components/message.tsx` — replaced `renderContentWithCitations`
+    helper and `CHIP_REGEX` with `<MarkdownContent>` for the assistant branch;
+    user branch continues to render plain text via `<p className={styles.content}>`.
+    Streaming cursor moved to a sibling `<span aria-hidden>` element rendered
+    when `streaming === true`.
+  - `packages/ui/src/components/message.module.css` — replaced
+    `.streaming .content::after` with a standalone `.cursor` class using
+    `::before` content + the existing `blink` keyframes.
+  - `packages/ui/src/mount.tsx` — added `import "katex/dist/katex.min.css";`
+    after the global stylesheet.
+  - `packages/ui/package.json` — added `react-markdown ^10.1.0`,
+    `remark-gfm ^4.0.1`, `remark-math ^6.0.0`, `rehype-katex ^7.0.1`,
+    `rehype-highlight ^7.0.2`, `katex ^0.16.45`, `unist-util-visit-parents ^6.0.2`;
+    devDep `@types/hast`.
+
+- **Discrepancies from design**:
+  - **react-markdown v10, not v9.** The design pinned `^9.0.0`; npm currently
+    publishes v10. API used in the design (the `components` prop, plugin
+    arrays, `node` prop on custom-element renderers) is unchanged in v10.
+  - **`balance-fences` fence-counting formula.** The design summed
+    `(/^```/gm count) + (\n``` count)`, which double-counts every fence after
+    the first (the `m` flag's `^` already matches positions immediately after
+    `\n`, so the second regex re-matches the same characters). Replaced with
+    a single `/^[ \t]{0,3}```/gm` count — same intent, correctly counted, plus
+    it tolerates the up-to-3-space indent that CommonMark allows before a
+    fence.
+  - **Plugin type imported locally.** The design used `Plugin<[], Root>` from
+    `"unified"`. Adding `unified` as a direct dep solely for one type is
+    overkill; defined a local `type RehypePlugin = () => (tree: Root) => void`
+    instead. Identical contract.
+  - **`Components` typing for the custom element.** Design suggested an `any`
+    cast on the `"citation-chip"` renderer. Used a typed intersection
+    `Components & { "citation-chip": (props: any) => ReactElement | null }`
+    so the rest of the components map keeps full react-markdown typings; only
+    the custom-tag renderer escapes the static check.
+  - **Test render helper.** Biome's `useValidAriaRole` lint flags literal
+    `role="user" | role="assistant"` JSX attributes (it reads `role` as the
+    ARIA role attribute, not a domain prop). The MessageBubble component's
+    `role` is a speaker discriminator (existing wire shape, used by
+    `chat-tab-body` etc. with expression form). Tests use a `renderBubble`
+    helper that spreads props rather than passing `role` as a JSX literal.
+
+- **Adjacent issues parked**: none. The change is bounded.
+
+- **Visual smoke pass deferred to review.** The implementation passes all
+  automated acceptance criteria (42 new tests, all 624 UI tests, full
+  workspace 2312 tests). The "launch Electron, eyeball markdown rendering
+  in the chat surface, confirm no CSP violations" criterion from Unit 4 is
+  the manual portion and belongs to the reviewer's pass.

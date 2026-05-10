@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { PraxisApp } from "./app.js";
 import "./styles/global.css";
+import "katex/dist/katex.min.css";
 
 export interface MountOptions {
   client: PraxisClient;
