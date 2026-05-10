@@ -9,7 +9,6 @@ import type { ServiceDeps } from "@praxis/core/services";
 import {
   ActivityRegistryImpl,
   AffectiveIndexer,
-  ProceduralIndexer,
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
   AuthoringServiceImpl,
@@ -30,6 +29,7 @@ import {
   MemoryServiceImpl,
   MisconceptionIndexer,
   NotesServiceImpl,
+  ProceduralIndexer,
   QuickCheckServiceImpl,
   SessionServiceImpl,
   SketchServiceImpl,

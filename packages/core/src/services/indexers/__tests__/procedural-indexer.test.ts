@@ -75,9 +75,7 @@ function makeEmptyPackService(): PedagogyPackService {
 }
 
 /** A CourseStateReader that returns a snapshot with the given strategy. */
-function makeCourseStateReader(
-  strategyId: StrategyId = KNOWN_STRATEGY_ID,
-): CourseStateReader {
+function makeCourseStateReader(strategyId: StrategyId = KNOWN_STRATEGY_ID): CourseStateReader {
   const snapshot: CourseStateSnapshot = {
     course: {
       id: COURSE_ID,

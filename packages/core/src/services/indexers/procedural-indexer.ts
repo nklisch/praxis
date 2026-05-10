@@ -92,11 +92,7 @@ export class ProceduralIndexer implements Indexer {
     this.applyDelta(ctx.studentId, strategyId, score);
   }
 
-  private applyDelta(
-    studentId: StudentId,
-    strategyId: StrategyId,
-    score: SessionOutcome,
-  ): void {
+  private applyDelta(studentId: StudentId, strategyId: StrategyId, score: SessionOutcome): void {
     const existing = this.deps.db
       .select()
       .from(proceduralStrategies)
