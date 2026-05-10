@@ -16,6 +16,7 @@ import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
 import { MessageBubble } from "./message.js";
 import styles from "./sidekick-panel.module.css";
+import { ToolInterstitial } from "./tool-interstitial.js";
 
 export interface SidekickPanelProps {
   sessionId: SessionId;
@@ -35,13 +36,13 @@ export function SidekickPanel({
   onOpenChange,
 }: SidekickPanelProps): JSX.Element {
   const client = usePraxisClient();
-  const { messages, isStreaming, lastError, send } = useStreamedSend(client);
+  const { items, isStreaming, lastError, send } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom on new messages
-  const messageCount = messages.length;
+  // Scroll to bottom on new items
+  const messageCount = items.length;
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on count change; ref is stable
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,21 +79,33 @@ export function SidekickPanel({
       </div>
 
       <div className={styles.messages}>
-        {messages.length === 0 && (
+        {items.length === 0 && (
           <p className={styles.emptyState}>
             ask a question — the tutor is here to nudge, not give away the answer.
           </p>
         )}
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            role={msg.role}
-            content={msg.content}
-            rawContent={msg.rawContent}
-            {...(msg.streaming !== undefined && { streaming: msg.streaming })}
-            {...(msg.citations !== undefined && { citations: msg.citations })}
-          />
-        ))}
+        {items.map((item) => {
+          if (item.kind === "interstitial") {
+            return (
+              <ToolInterstitial
+                key={`tc-${item.callId}`}
+                toolName={item.toolName}
+                status={item.status}
+                {...(item.errored !== undefined && { errored: item.errored })}
+              />
+            );
+          }
+          return (
+            <MessageBubble
+              key={item.id}
+              role={item.role}
+              content={item.content}
+              rawContent={item.rawContent}
+              {...(item.streaming !== undefined && { streaming: item.streaming })}
+              {...(item.citations !== undefined && { citations: item.citations })}
+            />
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 

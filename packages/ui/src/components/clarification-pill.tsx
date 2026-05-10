@@ -26,26 +26,27 @@ const DISMISSAL_DELAY_MS = 30_000;
  */
 export function ClarificationPill({ sessionId }: ClarificationPillProps): JSX.Element {
   const client = usePraxisClient();
-  const { messages, isStreaming, send } = useStreamedSend(client);
+  const { items, isStreaming, send } = useStreamedSend(client);
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [overlay, setOverlay] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Pull latest assistant response out of messages and surface it as overlay
+  // Pull latest assistant response out of items and surface it as overlay
   useEffect(() => {
     // Use a manual reverse-scan instead of findLast for ES2022 compat.
-    let last: (typeof messages)[number] | undefined;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m !== undefined && m.role === "assistant" && !m.streaming) {
-        last = m;
+    // Skip interstitial items — only message items have role/streaming.
+    let lastContent: string | undefined;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      if (item?.kind === "message" && item.role === "assistant" && !item.streaming) {
+        lastContent = item.content;
         break;
       }
     }
-    if (last?.content) {
-      setOverlay(last.content);
+    if (lastContent) {
+      setOverlay(lastContent);
       // Auto-dismiss after 30s
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
       dismissTimerRef.current = setTimeout(() => {
@@ -55,7 +56,7 @@ export function ClarificationPill({ sessionId }: ClarificationPillProps): JSX.El
     return () => {
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [messages]);
+  }, [items]);
 
   // Focus input when opening
   useEffect(() => {

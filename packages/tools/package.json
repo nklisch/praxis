@@ -143,6 +143,13 @@
       "import": "./dist/pedagogy/index.js",
       "node": "./dist/pedagogy/index.js",
       "default": "./dist/pedagogy/index.js"
+    },
+    "./labels": {
+      "praxis-source": "./src/labels/index.ts",
+      "types": "./dist/labels/index.d.ts",
+      "import": "./dist/labels/index.js",
+      "node": "./dist/labels/index.js",
+      "default": "./dist/labels/index.js"
     }
   },
   "scripts": {

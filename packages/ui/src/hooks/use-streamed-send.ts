@@ -1,6 +1,5 @@
 import type {
   EpisodicEvent,
-  Flashcard,
   Note,
   PraxisClient,
   ProposedCourse,
@@ -8,9 +7,10 @@ import type {
   SessionId,
   Timestamp,
 } from "@praxis/core/types";
+import { getToolLabel } from "@praxis/tools/labels";
 import { useState } from "react";
 import type { ReviewCard } from "../components/flashcard-review.js";
-import { episodicToMessages } from "./episodic-to-messages.js";
+import { episodicToItems } from "./episodic-to-messages.js";
 
 export interface ChatMessage {
   id: string;
@@ -39,17 +39,31 @@ export interface ChatMessage {
   dueCards?: ReviewCard[];
 }
 
+export interface ToolInterstitial {
+  /** EngineEvent.callId — pairs tool_call with tool_result. */
+  callId: string;
+  toolName: string;
+  /** "in_flight" while awaiting tool_result; "settled" once the result lands. */
+  status: "in_flight" | "settled";
+  /** True when the matched tool_result.ok === false. */
+  errored?: boolean;
+}
+
+export type ChatStreamItem =
+  | ({ kind: "message" } & ChatMessage)
+  | ({ kind: "interstitial" } & ToolInterstitial);
+
 export interface UseStreamedSendResult {
-  messages: ChatMessage[];
+  items: ChatStreamItem[];
   isStreaming: boolean;
   lastError: string | null;
   send: (sessionId: SessionId, message: string) => Promise<void>;
   clearMessages: () => void;
   /**
    * Load the persisted transcript for an existing session and replace the
-   * local message log with it. Call once per session-id on mount so the user
+   * local item log with it. Call once per session-id on mount so the user
    * sees their prior conversation when re-opening a tab or relaunching the
-   * app. No-op while a turn is mid-stream — replacing messages then would
+   * app. No-op while a turn is mid-stream — replacing items then would
    * lose the in-flight assistant bubble. Errors are reported via `lastError`
    * so the chat UI can surface them in its existing error banner.
    */
@@ -62,7 +76,7 @@ function nextId(): string {
 }
 
 export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [items, setItems] = useState<ChatStreamItem[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -72,22 +86,29 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
 
     // Immediately add user bubble to local state.
     const userMsgId = nextId();
-    setMessages((prev) => [
+    setItems((prev) => [
       ...prev,
-      { id: userMsgId, role: "user", content: message, rawContent: message },
+      { kind: "message", id: userMsgId, role: "user", content: message, rawContent: message },
     ]);
 
     // Add a placeholder assistant bubble for streaming.
     const assistantMsgId = nextId();
-    setMessages((prev) => [
+    setItems((prev) => [
       ...prev,
-      { id: assistantMsgId, role: "assistant", content: "", rawContent: "", streaming: true },
+      {
+        kind: "message",
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        rawContent: "",
+        streaming: true,
+      },
     ]);
 
     setIsStreaming(true);
     let finalContent = "";
-    // Track the most recent tool_call name so we know which tool_result to harvest
-    let lastToolCallName: string | null = null;
+    // Track pending tool calls by callId → toolName (supports concurrent fan-out).
+    const pendingByCallId = new Map<string, string>();
     const accumulatedCitations: RetrievalCitation[] = [];
     const accumulatedDrafts: ProposedCourse[] = [];
     const accumulatedNotes: Note[] = [];
@@ -106,86 +127,118 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
             // Final non-partial — this is the assembled content for the turn.
             finalContent = event.content;
           }
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsgId
-                ? { ...m, content: finalContent, rawContent: finalContent, streaming: true }
-                : m,
+          setItems((prev) =>
+            prev.map((item) =>
+              item.kind === "message" && item.id === assistantMsgId
+                ? { ...item, content: finalContent, rawContent: finalContent, streaming: true }
+                : item,
             ),
           );
         } else if (event.type === "tool_call") {
-          // Track the tool name so we know what to expect in tool_result
-          lastToolCallName = event.toolName;
-        } else if (event.type === "tool_result") {
-          // Dispatch on tool name — extensible: add new renderable tools here.
-          if (lastToolCallName === "retrieve_from_textbook" && event.result.ok) {
-            const value = event.result.value as { citations?: RetrievalCitation[] } | undefined;
-            if (value?.citations && Array.isArray(value.citations)) {
-              accumulatedCitations.push(...(value.citations as RetrievalCitation[]));
-            }
-          } else if (lastToolCallName === "course.show_draft" && event.result.ok) {
-            // show_draft returns { kind: "ok", draft: DraftCourseState } or { kind: "not_found" }
-            const value = event.result.value as
-              | { kind: "ok"; draft: { proposed: ProposedCourse } }
-              | { kind: "not_found" }
-              | undefined;
-            if (value?.kind === "ok" && value.draft?.proposed) {
-              accumulatedDrafts.push(value.draft.proposed);
-            }
-          } else if (lastToolCallName === "note.show" && event.result.ok) {
-            // note.show returns { kind: "ok", note: Note } or { kind: "not_found" }
-            const value = event.result.value as
-              | { kind: "ok"; note: Note }
-              | { kind: "not_found" }
-              | undefined;
-            if (value?.kind === "ok" && value.note) {
-              accumulatedNotes.push(value.note);
-            }
-          } else if (lastToolCallName === "flashcard.review_next" && event.result.ok) {
-            // review_next returns { ok: true, cards: Array<{flashcardId, front, conceptId?, preview}> }
-            const value = event.result.value as
-              | {
-                  ok: true;
-                  cards: Array<{
-                    flashcardId: string;
-                    front: string;
-                    conceptId?: string;
-                    preview?: {
-                      again: { nextReviewAt: Timestamp };
-                      hard: { nextReviewAt: Timestamp };
-                      good: { nextReviewAt: Timestamp };
-                      easy: { nextReviewAt: Timestamp };
-                    };
-                  }>;
-                }
-              | undefined;
-            if (value?.ok && Array.isArray(value.cards)) {
-              accumulatedDueCards.push(...value.cards);
-            }
+          const { toolName, callId } = event;
+          // Always track in pendingByCallId for result harvesting (even hidden tools).
+          pendingByCallId.set(callId, toolName);
+
+          const label = getToolLabel(toolName);
+          if (!label.hidden) {
+            // Push a visible interstitial item for this tool call.
+            setItems((prev) => [
+              ...prev,
+              { kind: "interstitial", callId, toolName, status: "in_flight" },
+            ]);
           }
-          lastToolCallName = null;
-          // Update message with accumulated tool-result data
-          if (
-            accumulatedCitations.length > 0 ||
-            accumulatedDrafts.length > 0 ||
-            accumulatedNotes.length > 0 ||
-            accumulatedDueCards.length > 0
-          ) {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsgId
-                  ? {
-                      ...m,
+        } else if (event.type === "tool_result") {
+          const { callId } = event;
+          const toolName = pendingByCallId.get(callId);
+          if (toolName === undefined) {
+            console.warn(`[useStreamedSend] Unmatched tool_result for callId=${callId}`);
+          } else {
+            pendingByCallId.delete(callId);
+
+            // Settle any visible interstitial with this callId.
+            setItems((prev) =>
+              prev.map((item) => {
+                if (item.kind === "interstitial" && item.callId === callId) {
+                  return {
+                    ...item,
+                    status: "settled",
+                    ...(event.result.ok === false && { errored: true }),
+                  };
+                }
+                return item;
+              }),
+            );
+
+            // Dispatch on tool name for renderable result harvesting.
+            if (event.result.ok) {
+              if (toolName === "retrieve_from_textbook") {
+                const value = event.result.value as { citations?: RetrievalCitation[] } | undefined;
+                if (value?.citations && Array.isArray(value.citations)) {
+                  accumulatedCitations.push(...(value.citations as RetrievalCitation[]));
+                }
+              } else if (toolName === "course.show_draft") {
+                const value = event.result.value as
+                  | { kind: "ok"; draft: { proposed: ProposedCourse } }
+                  | { kind: "not_found" }
+                  | undefined;
+                if (value?.kind === "ok" && value.draft?.proposed) {
+                  accumulatedDrafts.push(value.draft.proposed);
+                }
+              } else if (toolName === "note.show") {
+                const value = event.result.value as
+                  | { kind: "ok"; note: Note }
+                  | { kind: "not_found" }
+                  | undefined;
+                if (value?.kind === "ok" && value.note) {
+                  accumulatedNotes.push(value.note);
+                }
+              } else if (toolName === "flashcard.review_next") {
+                const value = event.result.value as
+                  | {
+                      ok: true;
+                      cards: Array<{
+                        flashcardId: string;
+                        front: string;
+                        conceptId?: string;
+                        preview?: {
+                          again: { nextReviewAt: Timestamp };
+                          hard: { nextReviewAt: Timestamp };
+                          good: { nextReviewAt: Timestamp };
+                          easy: { nextReviewAt: Timestamp };
+                        };
+                      }>;
+                    }
+                  | undefined;
+                if (value?.ok && Array.isArray(value.cards)) {
+                  accumulatedDueCards.push(...value.cards);
+                }
+              }
+            }
+
+            // Update the assistant message with accumulated tool-result data.
+            if (
+              accumulatedCitations.length > 0 ||
+              accumulatedDrafts.length > 0 ||
+              accumulatedNotes.length > 0 ||
+              accumulatedDueCards.length > 0
+            ) {
+              setItems((prev) =>
+                prev.map((item) => {
+                  if (item.kind === "message" && item.id === assistantMsgId) {
+                    return {
+                      ...item,
                       ...(accumulatedCitations.length > 0 && {
                         citations: [...accumulatedCitations],
                       }),
                       ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
                       ...(accumulatedNotes.length > 0 && { notes: [...accumulatedNotes] }),
                       ...(accumulatedDueCards.length > 0 && { dueCards: [...accumulatedDueCards] }),
-                    }
-                  : m,
-              ),
-            );
+                    };
+                  }
+                  return item;
+                }),
+              );
+            }
           }
         } else if (event.type === "error") {
           setLastError(event.error.message);
@@ -196,26 +249,27 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
       setLastError(err instanceof Error ? err.message : String(err));
     } finally {
       // Mark assistant message as done (no longer streaming).
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantMsgId
-            ? {
-                ...m,
-                streaming: false,
-                ...(accumulatedCitations.length > 0 && { citations: [...accumulatedCitations] }),
-                ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
-                ...(accumulatedNotes.length > 0 && { notes: [...accumulatedNotes] }),
-                ...(accumulatedDueCards.length > 0 && { dueCards: [...accumulatedDueCards] }),
-              }
-            : m,
-        ),
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.kind === "message" && item.id === assistantMsgId) {
+            return {
+              ...item,
+              streaming: false,
+              ...(accumulatedCitations.length > 0 && { citations: [...accumulatedCitations] }),
+              ...(accumulatedDrafts.length > 0 && { drafts: [...accumulatedDrafts] }),
+              ...(accumulatedNotes.length > 0 && { notes: [...accumulatedNotes] }),
+              ...(accumulatedDueCards.length > 0 && { dueCards: [...accumulatedDueCards] }),
+            };
+          }
+          return item;
+        }),
       );
       setIsStreaming(false);
     }
   };
 
   const clearMessages = () => {
-    setMessages([]);
+    setItems([]);
     setLastError(null);
   };
 
@@ -226,11 +280,11 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
       for await (const ev of client.memory.episodic({ sessionId })) {
         collected.push(ev);
       }
-      setMessages(episodicToMessages(collected));
+      setItems(episodicToItems(collected));
     } catch (err) {
       setLastError(err instanceof Error ? err.message : String(err));
     }
   };
 
-  return { messages, isStreaming, lastError, send, clearMessages, loadHistory };
+  return { items, isStreaming, lastError, send, clearMessages, loadHistory };
 }

@@ -24,6 +24,7 @@ import { ExamTabBody } from "./exam-tab-body.js";
 import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
 import { ModeHeader } from "./mode-header.js";
+import { ToolInterstitial } from "./tool-interstitial.js";
 import { PageImagePanel } from "./page-image-panel.js";
 import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
@@ -71,7 +72,7 @@ function ExamLockdownGate({
 export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
-  const { messages, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
+  const { items, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
   const { flagAuthRequired } = useAuthStatus();
 
   // Load the persisted transcript on first mount (or when this tab body is
@@ -114,8 +115,8 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Scroll to bottom when the message count changes.
-  const messageCount = messages.length;
+  // Scroll to bottom when the item count changes.
+  const messageCount = items.length;
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on count change; ref is stable
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -175,27 +176,39 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
       )}
 
       <div className={styles.messages}>
-        {messages.length === 0 && (
+        {items.length === 0 && (
           <p className={styles.emptyState}>Start a conversation with your tutor.</p>
         )}
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            role={msg.role}
-            content={msg.content}
-            rawContent={msg.rawContent}
-            {...(msg.streaming !== undefined && { streaming: msg.streaming })}
-            {...(msg.citations !== undefined && { citations: msg.citations })}
-            {...(msg.drafts !== undefined && { drafts: msg.drafts })}
-            {...(msg.notes !== undefined && { notes: msg.notes })}
-            {...(msg.dueCards !== undefined && { dueCards: msg.dueCards })}
-            onViewPage={handleViewPage}
-            onRateCard={async (flashcardId, rating) => {
-              // biome-ignore lint/suspicious/noExplicitAny: FlashcardId branded cast
-              await client.flashcards.review({ flashcardId: flashcardId as any, rating });
-            }}
-          />
-        ))}
+        {items.map((item) => {
+          if (item.kind === "interstitial") {
+            return (
+              <ToolInterstitial
+                key={`tc-${item.callId}`}
+                toolName={item.toolName}
+                status={item.status}
+                {...(item.errored !== undefined && { errored: item.errored })}
+              />
+            );
+          }
+          return (
+            <MessageBubble
+              key={item.id}
+              role={item.role}
+              content={item.content}
+              rawContent={item.rawContent}
+              {...(item.streaming !== undefined && { streaming: item.streaming })}
+              {...(item.citations !== undefined && { citations: item.citations })}
+              {...(item.drafts !== undefined && { drafts: item.drafts })}
+              {...(item.notes !== undefined && { notes: item.notes })}
+              {...(item.dueCards !== undefined && { dueCards: item.dueCards })}
+              onViewPage={handleViewPage}
+              onRateCard={async (flashcardId, rating) => {
+                // biome-ignore lint/suspicious/noExplicitAny: FlashcardId branded cast
+                await client.flashcards.review({ flashcardId: flashcardId as any, rating });
+              }}
+            />
+          );
+        })}
         {/* Phase 17: quick-check cards appended after the most recent message.
             Each pending check stays visible in arrival order; cards lock
             after the student submits (resolved === true). Per tab-body-isolation,

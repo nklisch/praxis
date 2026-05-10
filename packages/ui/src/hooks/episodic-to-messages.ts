@@ -5,8 +5,9 @@ import type {
   RetrievalCitation,
   Timestamp,
 } from "@praxis/core/types";
+import { getToolLabel } from "@praxis/tools/labels";
 import type { ReviewCard } from "../components/flashcard-review.js";
-import type { ChatMessage } from "./use-streamed-send.js";
+import type { ChatMessage, ChatStreamItem, ToolInterstitial } from "./use-streamed-send.js";
 
 /** Subset of the streamed `tool_result.value` shapes we render today. Mirrors `useStreamedSend`. */
 type ToolResultValue =
@@ -33,8 +34,8 @@ type ToolResultValue =
 interface AssistantAcc {
   /** Final assembled assistant text for the turn. */
   content: string;
-  /** Most-recent in-flight tool_call name awaiting its tool_result. */
-  pendingToolName: string | null;
+  /** callId → toolName for in-flight tool calls awaiting their tool_result. */
+  pendingByCallId: Map<string, string>;
   citations: RetrievalCitation[];
   drafts: ProposedCourse[];
   notes: Note[];
@@ -44,7 +45,7 @@ interface AssistantAcc {
 function emptyAssistantAcc(): AssistantAcc {
   return {
     content: "",
-    pendingToolName: null,
+    pendingByCallId: new Map(),
     citations: [],
     drafts: [],
     notes: [],
@@ -53,7 +54,7 @@ function emptyAssistantAcc(): AssistantAcc {
 }
 
 /**
- * Reconstruct the rendered chat message log from a session's episodic events.
+ * Reconstruct the rendered chat item log from a session's episodic events.
  *
  * The episodic stream is ordered by `(turnIndex asc, ts asc)` (see
  * `MemoryService.episodic`), so we can walk it once. Per turn:
@@ -61,30 +62,30 @@ function emptyAssistantAcc(): AssistantAcc {
  * - `model_message` → assemble into the turn's single assistant message.
  *   Partial deltas append; a non-partial final replaces. This mirrors the
  *   live-stream logic in `useStreamedSend.send`.
- * - `tool_call` → remember the tool name so the matching `tool_result` knows
- *   which renderable shape to harvest into.
- * - `tool_result` → harvest citations / drafts / notes / due-cards onto the
- *   current assistant message.
+ * - `tool_call` → push an interstitial item (if not hidden), track in
+ *   pendingByCallId so the matching tool_result knows the tool name.
+ * - `tool_result` → settle the matching interstitial; harvest citations /
+ *   drafts / notes / due-cards onto the current assistant message.
  * - `final` / `error` → flush any pending assistant message and move on.
  *
  * History errors are intentionally not rendered as banners — the user has
  * already moved past them, and surfacing every old failure on reload would be
  * noise. The live `lastError` channel handles errors from the active turn.
  */
-export function episodicToMessages(events: readonly EpisodicEvent[]): ChatMessage[] {
-  const messages: ChatMessage[] = [];
+export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamItem[] {
+  const items: ChatStreamItem[] = [];
   let currentTurn: number | null = null;
   let assistant: AssistantAcc | null = null;
   let counter = 0;
   const id = (kind: "user" | "asst") => `hist-${kind}-${++counter}`;
 
-  /** Push the current assistant accumulator (if any) onto messages and reset. */
+  /** Push the current assistant accumulator (if any) onto items and reset. */
   const flushAssistant = () => {
     if (!assistant) return;
     // Only emit if the turn produced something visible — a model message,
     // a renderable tool result, or both. Empty assistant turns (pure tool
-    // chatter that produced nothing renderable) are dropped to keep the
-    // restored log compact.
+    // chatter that produced nothing renderable AND no visible interstitials)
+    // are dropped to keep the restored log compact.
     const hasContent =
       assistant.content.length > 0 ||
       assistant.citations.length > 0 ||
@@ -103,7 +104,7 @@ export function episodicToMessages(events: readonly EpisodicEvent[]): ChatMessag
       if (assistant.drafts.length > 0) msg.drafts = assistant.drafts;
       if (assistant.notes.length > 0) msg.notes = assistant.notes;
       if (assistant.dueCards.length > 0) msg.dueCards = assistant.dueCards;
-      messages.push(msg);
+      items.push({ kind: "message", ...msg });
     }
     assistant = null;
   };
@@ -122,7 +123,8 @@ export function episodicToMessages(events: readonly EpisodicEvent[]): ChatMessag
         // A user message starts a new turn; flush any prior assistant first
         // (defensive — a well-formed stream already had the turn-boundary flush).
         flushAssistant();
-        messages.push({
+        items.push({
+          kind: "message",
           id: id("user"),
           role: "user",
           content: event.content,
@@ -141,17 +143,48 @@ export function episodicToMessages(events: readonly EpisodicEvent[]): ChatMessag
         break;
       }
 
-      case "tool_call":
+      case "tool_call": {
         if (!assistant) assistant = emptyAssistantAcc();
-        assistant.pendingToolName = event.toolName;
+        const { toolName, callId } = event;
+        // Always track for result harvesting, even for hidden tools.
+        assistant.pendingByCallId.set(callId, toolName);
+
+        const label = getToolLabel(toolName);
+        if (!label.hidden) {
+          // Insert a settled interstitial — replay shows the finished state.
+          // We'll update it to settled when we encounter the tool_result.
+          // For now push as in_flight; the tool_result handler will settle it.
+          const interstitial: ToolInterstitial = {
+            callId,
+            toolName,
+            status: "in_flight",
+          };
+          items.push({ kind: "interstitial", ...interstitial });
+        }
         break;
+      }
 
       case "tool_result": {
         if (!assistant) {
           assistant = emptyAssistantAcc();
         }
-        const toolName = assistant.pendingToolName;
-        assistant.pendingToolName = null;
+        const { callId } = event;
+        const toolName = assistant.pendingByCallId.get(callId);
+        assistant.pendingByCallId.delete(callId);
+
+        // Settle the matching interstitial in the items array (walk from end).
+        for (let i = items.length - 1; i >= 0; i--) {
+          const item = items[i];
+          if (item?.kind === "interstitial" && item.callId === callId) {
+            items[i] = {
+              ...item,
+              status: "settled",
+              ...(event.result.ok === false && { errored: true }),
+            };
+            break;
+          }
+        }
+
         if (!event.result.ok) break;
         const value = event.result.value as ToolResultValue;
         if (toolName === "retrieve_from_textbook") {
@@ -200,5 +233,11 @@ export function episodicToMessages(events: readonly EpisodicEvent[]): ChatMessag
 
   // End-of-stream flush.
   flushAssistant();
-  return messages;
+  return items;
 }
+
+/**
+ * @deprecated Use `episodicToItems` instead. Returns `ChatStreamItem[]` now.
+ * This alias exists for the transition; it will be removed in a follow-up.
+ */
+export const episodicToMessages = episodicToItems;

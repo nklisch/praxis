@@ -5,6 +5,7 @@ import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { Composer } from "./composer.js";
 import styles from "./configure-chat-pane.module.css";
 import { MessageBubble } from "./message.js";
+import { ToolInterstitial } from "./tool-interstitial.js";
 
 export interface ConfigureChatPaneProps {
   sessionId: SessionId | null;
@@ -19,7 +20,7 @@ export interface ConfigureChatPaneProps {
  */
 export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChatPaneProps) {
   const client = usePraxisClient();
-  const { messages, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
+  const { items, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
 
   // Load the persisted transcript when a session id appears (configure pane
@@ -44,22 +45,34 @@ export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChat
       </div>
 
       <div className={styles.messages}>
-        {messages.length === 0 && (
+        {items.length === 0 && (
           <p className={styles.emptyState}>
             Ask me to edit courses, lessons, gates, or customize prompts.
           </p>
         )}
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            role={msg.role}
-            content={msg.content}
-            rawContent={msg.rawContent}
-            {...(msg.streaming !== undefined && { streaming: msg.streaming })}
-            {...(msg.citations !== undefined && { citations: msg.citations })}
-            {...(msg.drafts !== undefined && { drafts: msg.drafts })}
-          />
-        ))}
+        {items.map((item) => {
+          if (item.kind === "interstitial") {
+            return (
+              <ToolInterstitial
+                key={`tc-${item.callId}`}
+                toolName={item.toolName}
+                status={item.status}
+                {...(item.errored !== undefined && { errored: item.errored })}
+              />
+            );
+          }
+          return (
+            <MessageBubble
+              key={item.id}
+              role={item.role}
+              content={item.content}
+              rawContent={item.rawContent}
+              {...(item.streaming !== undefined && { streaming: item.streaming })}
+              {...(item.citations !== undefined && { citations: item.citations })}
+              {...(item.drafts !== undefined && { drafts: item.drafts })}
+            />
+          );
+        })}
       </div>
 
       {lastError && (

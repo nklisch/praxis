@@ -470,6 +470,9 @@ importers:
       '@praxis/core':
         specifier: workspace:*
         version: link:../core
+      '@praxis/tools':
+        specifier: workspace:*
+        version: link:../tools
       '@tanstack/react-router':
         specifier: 1.169.1
         version: 1.169.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)

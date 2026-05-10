@@ -41,8 +41,8 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "hello");
     });
 
-    const userMsg = result.current.messages.find((m) => m.role === "user");
-    expect(userMsg?.content).toBe("hello");
+    const userMsg = result.current.items.find((i) => i.kind === "message" && i.role === "user");
+    expect(userMsg?.kind === "message" && userMsg.content).toBe("hello");
   });
 
   it("ignores user_message events from the stream", async () => {
@@ -59,9 +59,9 @@ describe("useStreamedSend", () => {
     });
 
     // Should only have one user message (from local state), not two.
-    const userMsgs = result.current.messages.filter((m) => m.role === "user");
+    const userMsgs = result.current.items.filter((i) => i.kind === "message" && i.role === "user");
     expect(userMsgs).toHaveLength(1);
-    expect(userMsgs[0]?.content).toBe("hello");
+    expect(userMsgs[0]?.kind === "message" && userMsgs[0].content).toBe("hello");
   });
 
   it("accumulates partial deltas", async () => {
@@ -78,9 +78,11 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "hi");
     });
 
-    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistantMsg?.content).toBe("Hello world");
-    expect(assistantMsg?.streaming).toBe(false);
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsg?.kind === "message" && assistantMsg.content).toBe("Hello world");
+    expect(assistantMsg?.kind === "message" && assistantMsg.streaming).toBe(false);
   });
 
   it("sets lastError on error event", async () => {
@@ -109,8 +111,10 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "test");
     });
 
-    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistantMsg?.streaming).toBe(false);
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsg?.kind === "message" && assistantMsg.streaming).toBe(false);
   });
 
   it("clearMessages resets to empty", async () => {
@@ -122,13 +126,13 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "hi");
     });
 
-    expect(result.current.messages.length).toBeGreaterThan(0);
+    expect(result.current.items.length).toBeGreaterThan(0);
 
     act(() => {
       result.current.clearMessages();
     });
 
-    expect(result.current.messages).toHaveLength(0);
+    expect(result.current.items).toHaveLength(0);
   });
 
   // ── rawContent field ─────────────────────────────────────────────────────────
@@ -145,9 +149,11 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "hello");
     });
 
-    const userMsg = result.current.messages.find((m) => m.role === "user");
-    expect(userMsg?.rawContent).toBe("hello");
-    expect(userMsg?.rawContent).toBe(userMsg?.content);
+    const userMsg = result.current.items.find((i) => i.kind === "message" && i.role === "user");
+    expect(userMsg?.kind === "message" && userMsg.rawContent).toBe("hello");
+    expect(
+      userMsg?.kind === "message" && userMsg.rawContent === userMsg.content,
+    ).toBe(true);
   });
 
   it("assistant message rawContent is populated with streamed content", async () => {
@@ -164,8 +170,10 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "hi");
     });
 
-    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistantMsg?.rawContent).toBe("Hello world");
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsg?.kind === "message" && assistantMsg.rawContent).toBe("Hello world");
   });
 
   it("rawContent equals content on the settled assistant message", async () => {
@@ -180,14 +188,18 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "test");
     });
 
-    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistantMsg?.rawContent).toBe(assistantMsg?.content);
-    expect(assistantMsg?.streaming).toBe(false);
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(
+      assistantMsg?.kind === "message" && assistantMsg.rawContent === assistantMsg.content,
+    ).toBe(true);
+    expect(assistantMsg?.kind === "message" && assistantMsg.streaming).toBe(false);
   });
 
   // ── loadHistory ──────────────────────────────────────────────────────────────
 
-  it("loadHistory replaces messages with the persisted transcript", async () => {
+  it("loadHistory replaces items with the persisted transcript", async () => {
     const history: EpisodicEvent[] = [
       {
         id: "e1" as EpisodicEvent["id"],
@@ -209,17 +221,20 @@ describe("useStreamedSend", () => {
     const client = makeClient([], history);
 
     const { result } = renderHook(() => useStreamedSend(client));
-    expect(result.current.messages).toHaveLength(0);
+    expect(result.current.items).toHaveLength(0);
 
     await act(async () => {
       await result.current.loadHistory(brandId<"SessionId">("s1"));
     });
 
     await waitFor(() => {
-      expect(result.current.messages).toHaveLength(2);
+      // 2 message items (user + assistant)
+      expect(result.current.items.filter((i) => i.kind === "message")).toHaveLength(2);
     });
-    expect(result.current.messages[0]).toMatchObject({ role: "user", content: "from history" });
-    expect(result.current.messages[1]).toMatchObject({
+    const messages = result.current.items.filter((i) => i.kind === "message");
+    expect(messages[0]).toMatchObject({ kind: "message", role: "user", content: "from history" });
+    expect(messages[1]).toMatchObject({
+      kind: "message",
       role: "assistant",
       content: "old reply",
       streaming: false,
@@ -266,16 +281,20 @@ describe("useStreamedSend", () => {
     });
 
     await waitFor(() => expect(result.current.isStreaming).toBe(true));
-    const pre = result.current.messages.length;
+    const pre = result.current.items.length;
 
     await act(async () => {
       await result.current.loadHistory(brandId<"SessionId">("s1"));
     });
 
-    // History was NOT loaded because a turn was in flight — message log
+    // History was NOT loaded because a turn was in flight — item log
     // matches the live stream, not the episodic replay.
-    expect(result.current.messages).toHaveLength(pre);
-    expect(result.current.messages.some((m) => m.content === "from-history")).toBe(false);
+    expect(result.current.items).toHaveLength(pre);
+    expect(
+      result.current.items.some(
+        (i) => i.kind === "message" && i.content === "from-history",
+      ),
+    ).toBe(false);
 
     // Drain so vitest's async tracking is happy.
     resolveStream?.();
@@ -300,10 +319,200 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "hello");
     });
 
-    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
     // rawContent accumulated the partials ("He" + "llo" = "Hello")
-    expect(assistantMsg?.rawContent).toBe("Hello");
+    expect(assistantMsg?.kind === "message" && assistantMsg.rawContent).toBe("Hello");
     // content mirrors rawContent (set on each update)
-    expect(assistantMsg?.content).toBe("Hello");
+    expect(assistantMsg?.kind === "message" && assistantMsg.content).toBe("Hello");
+  });
+
+  // ── Interstitial behaviour ────────────────────────────────────────────────────
+
+  it("tool_call → tool_result produces an interstitial that flips in_flight → settled", async () => {
+    const client = makeClient([
+      {
+        type: "tool_call",
+        toolName: "grade_math",
+        args: {},
+        callId: "c1",
+      },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "done", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "grade this");
+    });
+
+    const interstitials = result.current.items.filter((i) => i.kind === "interstitial");
+    expect(interstitials).toHaveLength(1);
+    const interstitial = interstitials[0];
+    expect(interstitial?.kind === "interstitial" && interstitial.toolName).toBe("grade_math");
+    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
+    expect(interstitial?.kind === "interstitial" && interstitial.errored).toBeUndefined();
+  });
+
+  it("tool_result.ok === false sets errored: true on the matching interstitial", async () => {
+    const client = makeClient([
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: false, error: { code: "tool.error", message: "failed" } },
+      },
+      { type: "model_message", content: "oops", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "grade this");
+    });
+
+    const interstitial = result.current.items.find((i) => i.kind === "interstitial");
+    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
+    expect(interstitial?.kind === "interstitial" && interstitial.errored).toBe(true);
+  });
+
+  it("hidden tool (flashcard.review_next) produces no interstitial but still populates dueCards", async () => {
+    const cards = [{ flashcardId: "f1", front: "Q" }];
+    const client = makeClient([
+      { type: "tool_call", toolName: "flashcard.review_next", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: { ok: true, cards } },
+      },
+      { type: "model_message", content: "here are your cards", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "show me cards");
+    });
+
+    const interstitials = result.current.items.filter((i) => i.kind === "interstitial");
+    expect(interstitials).toHaveLength(0);
+
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsg?.kind === "message" && assistantMsg.dueCards).toHaveLength(1);
+  });
+
+  it("two concurrent tool_calls with different callIds settle correctly", async () => {
+    const client = makeClient([
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "cA" },
+      { type: "tool_call", toolName: "retrieve_from_textbook", args: {}, callId: "cB" },
+      // results out of order
+      {
+        type: "tool_result",
+        callId: "cB",
+        result: {
+          ok: true,
+          tier: "deterministic",
+          value: { citations: [{ documentId: "d1", page: 5, snippet: "s" }] },
+        },
+      },
+      {
+        type: "tool_result",
+        callId: "cA",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "all done", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "do two things");
+    });
+
+    const interstitials = result.current.items.filter((i) => i.kind === "interstitial");
+    expect(interstitials).toHaveLength(2);
+
+    const gradeInterstitial = interstitials.find(
+      (i) => i.kind === "interstitial" && i.toolName === "grade_math",
+    );
+    const retrieveInterstitial = interstitials.find(
+      (i) => i.kind === "interstitial" && i.toolName === "retrieve_from_textbook",
+    );
+
+    expect(gradeInterstitial?.kind === "interstitial" && gradeInterstitial.status).toBe("settled");
+    expect(
+      retrieveInterstitial?.kind === "interstitial" && retrieveInterstitial.status,
+    ).toBe("settled");
+
+    // Citations should be on the assistant message
+    const assistantMsg = result.current.items.find(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsg?.kind === "message" && assistantMsg.citations).toHaveLength(1);
+  });
+
+  it("unmatched tool_result is a no-op (no throw, no items mutation)", async () => {
+    const client = makeClient([
+      // tool_result with no preceding tool_call (unmatched)
+      {
+        type: "tool_result",
+        callId: "orphan",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "ok", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Should not throw
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const interstitials = result.current.items.filter((i) => i.kind === "interstitial");
+    expect(interstitials).toHaveLength(0);
+    // Stream completed normally
+    expect(result.current.lastError).toBeNull();
+  });
+
+  it("clearMessages empties items and lastError", async () => {
+    const client = makeClient([
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "done", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    expect(result.current.items.length).toBeGreaterThan(0);
+
+    act(() => {
+      result.current.clearMessages();
+    });
+
+    expect(result.current.items).toHaveLength(0);
+    expect(result.current.lastError).toBeNull();
   });
 });

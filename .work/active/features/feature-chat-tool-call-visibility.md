@@ -1,7 +1,7 @@
 ---
 id: feature-chat-tool-call-visibility
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: null
 depends_on: []
@@ -812,3 +812,35 @@ after Unit 1, `pnpm typecheck && pnpm build` after Unit 2,
    a code surface. The committed table is a first pass; expect a follow-up
    review pass once the feature is live and the cadence is observable in
    real sessions.
+
+---
+
+## Implementation notes
+
+All six units landed in a single stride. Key deviations from the design and implementation findings:
+
+**Four consumers, not one.** The design stated "the chat-tab-body is the only consumer" of `useStreamedSend`. The actual consumer count was four: `chat-tab-body.tsx`, `configure-chat-pane.tsx`, `sidekick-panel.tsx`, and `clarification-pill.tsx`. All four were updated to destructure `items` instead of `messages`, and render `<ToolInterstitial>` for `kind === "interstitial"` items. The `clarification-pill` needed special treatment in its reverse-scan loop — added `item?.kind === "message"` guard before accessing `item.role` and `item.streaming`.
+
+**Existing test file, not new.** `packages/ui/src/__tests__/use-streamed-send.test.tsx` already existed (the design called it "new"). It was migrated to the new `items` shape (`.messages` → `.items.find(i => i.kind === "message" && ...)`) and extended with six new interstitial test cases. Similarly, `episodic-to-messages.test.ts` was updated in-place.
+
+**Vitest resolve conditions.** The `@praxis/tools/labels` subpath export failed to resolve in UI tests because Vite's default resolver uses the `import` condition (looking for `dist/labels/index.js`, which doesn't exist until a build). Added `resolve.conditions: ["praxis-source", "import", "module", "browser", "default"]` to `packages/ui/vitest.config.ts` to mirror `tsconfig.base.json`'s `customConditions: ["praxis-source"]`. This enables source-to-source resolution of workspace subpath exports in tests without a prior build step — consistent with how the rest of the repo works during development.
+
+**Deprecated alias.** `episodicToMessages` is re-exported as a deprecated alias from `episodic-to-messages.ts` to catch any future call sites. The primary export is now `episodicToItems`.
+
+**Unused `Flashcard` import removed.** The original `use-streamed-send.ts` imported `Flashcard` from `@praxis/core/types` but never used it. Removed as part of the rewrite.
+
+**Pre-existing lint errors unchanged.** `pnpm lint` reports 18 errors, all in `@praxis/claude-cli-sdk`. None introduced by this feature.
+
+**Units landed:**
+- Unit 1: `packages/tools/src/labels/index.ts` + `src/labels/__tests__/index.test.ts`
+- Unit 2: `packages/tools/package.json` (./labels export) + `packages/ui/package.json` (@praxis/tools dep) + `packages/ui/vitest.config.ts` (praxis-source condition)
+- Unit 3: `packages/ui/src/hooks/use-streamed-send.ts` (ChatStreamItem, pendingByCallId, items)
+- Unit 4: `packages/ui/src/hooks/episodic-to-messages.ts` (episodicToItems, interstitial items)
+- Unit 5: `packages/ui/src/components/tool-interstitial.tsx` + `.module.css`
+- Unit 6: `chat-tab-body.tsx`, `configure-chat-pane.tsx`, `sidekick-panel.tsx`, `clarification-pill.tsx`; updated `use-streamed-send.test.tsx`, `episodic-to-messages.test.ts`; new `tool-interstitial.test.tsx`
+
+**QA items to eyeball in a live session:**
+- A teach-mode session that calls `retrieve_from_textbook` should show "Looking up textbook references…" (animated dots) then collapse to "Cited textbook" alongside the source cards
+- Bootstrap exploration session should show rapid unit/lesson interstitials during the multi-tool exploration loop
+- Hidden tools (quick checks, flashcard review) should produce no interstitial — only their card surfaces
+- `prefers-reduced-motion` media query keeps dots visible but stops animation
