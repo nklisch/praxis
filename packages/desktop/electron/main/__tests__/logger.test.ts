@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { LogRecord } from "@praxis/core/types";
@@ -377,7 +377,7 @@ describe("createMainLogger (smoke)", () => {
 
     // pino-roll appends `.1` (or higher) to the base filename. Find any file
     // produced under the smoke dir and assert it has both records.
-    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const { statSync } = await import("node:fs");
     const entries = readdirSync(smokeDir).filter((e) => e.startsWith("praxis.log"));
     expect(entries.length).toBeGreaterThan(0);
     let totalSize = 0;
@@ -390,5 +390,30 @@ describe("createMainLogger (smoke)", () => {
     expect(totalSize).toBeGreaterThan(0);
     expect(combinedContent).toContain("file.write.test");
     expect(combinedContent).toContain("file.write.warn");
+  });
+
+  it("rotates to a new file when maxFileSizeMb is exceeded", async () => {
+    // 0.001 MB ≈ 1 KB threshold. Each JSONL record is ~150 bytes;
+    // 100 records × ~150 B ≈ 15 KB >> 1 KB, so rotation fires multiple times.
+    const log = await createMainLogger(smokeOpts({ maxFileSizeMb: 0.001 }));
+    for (let i = 0; i < 100; i++) {
+      log.info("rotate.test", { i, padding: "x".repeat(50) });
+    }
+
+    // pino-roll rotation is event-driven: it reopens to a new numbered file
+    // after the SonicBoom 'drain' event fires (async fs.write callback).
+    // Poll until more than one praxis.log.* file appears — guaranteed within
+    // a few event-loop turns since we wrote 15× the threshold.
+    const deadline = Date.now() + 3000;
+    while (readdirSync(smokeDir).filter((e) => e.startsWith("praxis.log")).length <= 1) {
+      if (Date.now() > deadline) break;
+      await new Promise<void>((resolve) => setTimeout(resolve, 20));
+    }
+    await log.shutdown();
+
+    // More than one file confirms pino-roll actually rotated; a single growing
+    // file means the size option was misconfigured (wrong unit, wrong arg name).
+    const entries = readdirSync(smokeDir).filter((e) => e.startsWith("praxis.log"));
+    expect(entries.length).toBeGreaterThan(1);
   });
 });

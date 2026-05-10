@@ -425,6 +425,73 @@ describe("AffectiveIndexer — out-of-range model output", () => {
   });
 });
 
+// ── Transaction atomicity ─────────────────────────────────────────────────────
+
+describe("AffectiveIndexer — transaction atomicity", () => {
+  it("rolls back all rows when a mid-batch insert throws; no rows persist", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const engine = makeFakeEngine();
+
+    // Two explicit check-ins guarantee two inserts in the transaction.
+    // We do NOT call runOneShot (model-inferred = null) to keep the test
+    // focused on the explicit-checkin path.
+    mockRunOneShot.mockReturnValueOnce(
+      // Model returns empty output → inferred = null; only explicit path runs.
+      makeEventStream([{ type: "final", usage: { inputTokens: 5, outputTokens: 0 } }]),
+    );
+
+    // Spy on db.transaction to intercept the `tx` context and make the
+    // second tx.insert call throw, simulating a mid-batch write failure.
+    // The real SQLite transaction must roll back so no rows survive.
+    const realTransaction = db.transaction.bind(db);
+    let txCallCount = 0;
+    vi.spyOn(db, "transaction").mockImplementationOnce((callback) => {
+      return realTransaction((tx) => {
+        // Wrap tx.insert: allow the first call, throw on the second.
+        const realInsert = tx.insert.bind(tx);
+        vi.spyOn(tx, "insert").mockImplementation((...args) => {
+          txCallCount++;
+          if (txCallCount >= 2) {
+            throw new Error("simulated mid-batch write failure");
+          }
+          // biome-ignore lint/suspicious/noExplicitAny: forwarding variadic args
+          return realInsert(...(args as [any]));
+        });
+        return callback(tx);
+      });
+    });
+
+    const indexer = new AffectiveIndexer({ db, log: MOCK_LOG, engineResolver: () => engine });
+
+    const ctx = makeCtx([
+      makeEvent("e1", 0, { type: "user_message", content: "hi" }),
+      // Two confidence check-ins → two explicit-checkin insert attempts.
+      makeToolCallEvent("e2", 1, "call-a", "1-4"),
+      makeToolResultEvent("e3", 1, "call-a", 3),
+      makeToolCallEvent("e4", 2, "call-b", "1-4"),
+      makeToolResultEvent("e5", 2, "call-b", 2),
+    ]);
+
+    // The indexer's run() should reject or silently swallow the error;
+    // either way, the transaction must have rolled back.
+    try {
+      await indexer.run(ctx);
+    } catch {
+      // run() may propagate the error or swallow it — both are acceptable.
+      // What matters is that no rows are left in the DB.
+    }
+
+    // The transaction rolled back: zero rows must remain.
+    const rows = db
+      .select()
+      .from(affectiveSamples)
+      .where(eq(affectiveSamples.studentId, STUDENT_ID))
+      .all();
+    expect(rows).toHaveLength(0);
+    expect(txCallCount).toBeGreaterThanOrEqual(2); // confirms the spy fired
+  });
+});
+
 // ── extractExplicitCheckins unit tests ────────────────────────────────────────
 
 describe("extractExplicitCheckins", () => {
