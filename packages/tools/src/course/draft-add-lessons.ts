@@ -53,7 +53,7 @@ const OutputSchema = z.object({
 export const draftAddLessonsTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.draft_add_lessons",
   description:
-    "Add many lessons to the draft in one tool call. Each lesson's conceptNames must already exist. Lessons are appended in declared order; order is preserved across the batch. Costs one step regardless of array length — prefer this over course.draft_add_lesson when adding more than one lesson at a time. Per-lesson failures are reported in `results` without aborting subsequent lessons.",
+    "Add many lessons to the draft in one tool call. Each lesson's conceptNames must already exist. Lessons are appended in declared order; order is preserved across the batch. Costs one step regardless of array length. Per-lesson failures are reported in `results` without aborting subsequent lessons.",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",

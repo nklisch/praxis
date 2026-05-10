@@ -698,7 +698,7 @@ export interface DraftCourseState {
   expiresAt: Timestamp;
 }
 
-/** Compact summary returned by `course.start_exploration` / `course.draft_finalize` to keep tool output small. */
+/** Compact summary returned by `course.start_exploration` to keep tool output small. */
 export interface DraftSummary {
   draftId: string;
   title: string;

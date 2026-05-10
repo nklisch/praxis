@@ -26,7 +26,7 @@ const InputSchema = z.object({
     .array(z.string())
     .min(1)
     .describe(
-      "Draft lesson ids (from course.draft_add_lesson) belonging to this unit, in study order.",
+      "Draft lesson ids (from course.draft_add_lessons) belonging to this unit, in study order.",
     ),
   summative: SummativeSchema.optional().describe(
     "Optional summative assessment at the end of this unit (e.g. unit exam, midterm).",

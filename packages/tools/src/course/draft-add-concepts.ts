@@ -37,7 +37,7 @@ const OutputSchema = z.object({
 export const draftAddConceptsTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.draft_add_concepts",
   description:
-    "Add many concepts to the draft in one tool call. Order preserved. Each concept is independently validated; duplicates and invalid entries are reported in `results` without aborting the rest. Prefer this over course.draft_add_concept whenever you have more than one concept to add — it costs one step regardless of array length.",
+    "Add many concepts to the draft in one tool call. Order preserved. Each concept is independently validated; duplicates and invalid entries are reported in `results` without aborting the rest. Costs one step regardless of array length.",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",

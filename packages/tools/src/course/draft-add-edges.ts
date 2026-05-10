@@ -41,7 +41,7 @@ const OutputSchema = z.object({
 export const draftAddEdgesTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.draft_add_edges",
   description:
-    "Add many prerequisite edges in one tool call. Each fromName/toName must reference an existing concept. Costs one step regardless of array length — prefer this over course.draft_add_edge for any non-trivial edge set. Per-item failures (unknown concept, duplicate edge, self-edge) are reported in `results` without aborting the rest.",
+    "Add many prerequisite edges in one tool call. Each fromName/toName must reference an existing concept. Costs one step regardless of array length. Per-item failures (unknown concept, duplicate edge, self-edge) are reported in `results` without aborting the rest.",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",

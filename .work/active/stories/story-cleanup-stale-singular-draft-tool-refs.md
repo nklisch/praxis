@@ -1,7 +1,7 @@
 ---
 id: story-cleanup-stale-singular-draft-tool-refs
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup, bootstrap]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -61,3 +61,19 @@ cleanup.
 - No grep hit for `draft_add_concept\b`, `draft_add_edge\b`,
   `draft_add_lesson\b` (excluding `_assessment`/`s` suffixes), or
   `draft_finalize\b` anywhere under `packages/`.
+
+## Implementation notes
+
+Files changed (post-edit line numbers):
+- `packages/tools/src/course/draft-add-unit.ts:29` — `course.draft_add_lesson` → `course.draft_add_lessons`
+- `packages/tools/src/course/draft-add-concepts.ts:40` — dropped "Prefer this over course.draft_add_concept whenever you have more than one concept to add —"
+- `packages/tools/src/course/draft-add-lessons.ts:56` — dropped "— prefer this over course.draft_add_lesson when adding more than one lesson at a time"
+- `packages/tools/src/course/draft-add-edges.ts:44` — dropped "— prefer this over course.draft_add_edge for any non-trivial edge set"
+- `packages/core/src/types/artifacts.ts:701` — jsdoc updated: removed `/ course.draft_finalize`
+
+Stale dist files deleted (20 files: 5 singular tools × 4 extensions each: `.js`, `.js.map`, `.d.ts`, `.d.ts.map`):
+- `draft-add-concept.*`, `draft-add-edge.*`, `draft-add-lesson.*`, `draft-add-lesson-assessment.*`, `draft-finalize.*`
+
+Grep verification output: empty (no matches).
+
+Verification status: `pnpm build` green, `pnpm typecheck` green, `pnpm test` 2479 passed / 15 skipped. Lint pre-existing errors only (not in changed files).
