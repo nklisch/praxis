@@ -81,3 +81,13 @@ features that landed alongside.
   - Low: `gate-tests-update-banner-version-edge-inputs` (backlog)
   - Low: `gate-tests-logger-rotation-behavior` (backlog)
   - Low: `gate-tests-affective-indexer-transaction-atomicity` (backlog)
+- **gate-cruft** (2026-05-10) — 7 findings (6 High, 0 Medium, 1 Low). All 6
+  Highs are mechanical Biome-detected issues (unused imports, dead vars,
+  misplaced suppressions) — easy to drain in a single pass.
+  - High: `gate-cruft-unused-import-proposed-assessment` (active, implementing)
+  - High: `gate-cruft-unused-import-timestamp-bootstrap-test` (active, implementing)
+  - High: `gate-cruft-dead-pending-sketch-id-state` (active, implementing)
+  - High: `gate-cruft-dead-queries-persist-units-test` (active, implementing)
+  - High: `gate-cruft-misplaced-noexplicitany-suppression-client-test` (active, implementing)
+  - High: `gate-cruft-unused-noexplicitany-suppression-pedagogy-pack` (active, implementing)
+  - Low: `gate-cruft-stale-single-item-adds-comment` (backlog)
