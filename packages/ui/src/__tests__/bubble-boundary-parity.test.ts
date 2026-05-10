@@ -161,7 +161,11 @@ const CITATIONS_ON_POST_TOOL_BUBBLE: EngineEvent[] = [
 /** Scenario 8: system_note closes bubble without emitting an item. */
 const SYSTEM_NOTE_BOUNDARY: EngineEvent[] = [
   { type: "model_message", content: "A", partial: false },
-  { type: "system_note", content: "child session submitted", origin: "parent_session" },
+  {
+    type: "system_note",
+    content: "child session submitted",
+    origin: { kind: "system", topic: "parent_session" },
+  },
   { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
 ];
 

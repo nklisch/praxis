@@ -1,7 +1,7 @@
 ---
 id: feature-chat-turn-bubble-boundaries
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: null
 depends_on: [feature-chat-tool-call-visibility]
@@ -739,3 +739,23 @@ All five units landed in a single stride.
    "system_note": closeBubble(); break;` branch that was entirely missing from
    Wave 1. Live side also adds `else if (event.type === "system_note")` handling.
    Both sides now treat system_note as a boundary-only event with no item pushed.
+
+---
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The `loadHistory` test in `use-streamed-send.test.tsx:281` raced the lazy bubble open after this feature landed (snapshotted `items.length` before the live `model_message` was processed). Fixed inline in commit `6e21bc9` by waiting for the live content to render before snapshotting; the post-loadHistory length comparison is now meaningful again.
+- `SYSTEM_NOTE_BOUNDARY` fixture in `bubble-boundary-parity.test.ts:164` originally passed `origin: "parent_session"` (a bare string) which doesn't satisfy `SystemNoteOrigin`. The UI tsconfig excludes `__tests__/` from typecheck so it slipped through; the runtime test still validated the right behaviour because the hooks key on `event.type` not `event.origin`. Fixed inline during review to `{ kind: "system", topic: "parent_session" }` so the fixture matches the discriminated union.
+
+**Notes**:
+- The closure-over-mutable-variable bug caught during implementation (and documented in the deviations section) is the load-bearing correctness insight. The fix — snapshot `activeBubbleContent` to a `const` before passing it into the `setItems` updater — is small but absolutely necessary; without it, multi-bubble turns would have shown all bubbles with the last bubble's content. Glad the implementer found it; this is exactly the kind of React batching gotcha that the parity tests would have caught only because they assert per-bubble content equality across live and replay.
+- The bubble-boundary parity sweep is the right cross-cutting test. Eight scenarios cover the boundary-rule matrix end-to-end, and `stripIds()` normalization keeps the assertion focused on shape rather than ids/streaming flags. New scenarios (e.g. concurrent fan-out across multiple turns) can be added one entry at a time.
+- The `episodicToItems` rewrite (vs in-place refactor) was the right call given how different the bubble-pointer model is from the prior `AssistantAcc` accumulator. All pre-existing tests still pass — the rewrite preserved the contract.
+- Renderable placement now follows "first bubble after the tool resolves" with end-of-stream fallback to the most-recent bubble. This is a behavioural change from Wave 1; the implementation notes flag it explicitly. Documented behaviour and tests cover both branches.
+- No security surface; no foundation-doc drift.
+- Wave 2 produces the visible UX gain Wave 1 set up the surface for: a multi-turn tutor exchange now reads as distinct utterances rather than one growing wall of text. Worth eyeballing in `pnpm dev` once on a teach session that does a couple of `retrieve_from_textbook` round-trips.
