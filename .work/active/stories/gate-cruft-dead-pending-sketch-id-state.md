@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-dead-pending-sketch-id-state
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
@@ -49,3 +49,7 @@ reads in the package). Biome flagged `pendingSketchId` as
 The Phase 15a comment can stay if `handleSendWithSketch` still appends the
 `[sketch:<id>]` marker via its parameter — the parameter-passing path
 still works without the local state.
+
+## Implementation notes
+
+Deleted the `pendingSketchId` state declaration (line 109, including the Phase 15a comment) and the `setPendingSketchId(undefined)` call inside `handleSendWithSketch` (line 149). `SketchId` was retained in the import because it is still used as the parameter type on line 147. The Phase 15a JSDoc comment above `handleSendWithSketch` was preserved as it explains the sketch-marker protocol.

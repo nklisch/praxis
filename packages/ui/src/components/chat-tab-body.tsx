@@ -105,8 +105,6 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
 
   const [examLockdown, setExamLockdown] = useState(false);
   const [composerValue, setComposerValue] = useState("");
-  // Phase 15a: captured sketch attached to the next outgoing message.
-  const [pendingSketchId, setPendingSketchId] = useState<SketchId | undefined>(undefined);
   const [pageImageTarget, setPageImageTarget] = useState<{
     documentId: string;
     page: number;
@@ -146,7 +144,6 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
    */
   const handleSendWithSketch = async (message: string, sketchId?: SketchId) => {
     const fullMessage = sketchId !== undefined ? `${message}\n\n[sketch:${sketchId}]` : message;
-    setPendingSketchId(undefined);
     await handleSend(fullMessage);
   };
 
