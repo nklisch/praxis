@@ -1,7 +1,7 @@
 ---
 id: story-fix-block-claude-code-builtins-from-tutor
 kind: story
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
@@ -115,3 +115,33 @@ ever drops the option, the test fails.
   In bootstrap mode there's no course yet, so the model is invited to call a
   tool that always fails. Either drop it from `bootstrapMode.toolNames` or
   teach the tool to defer-attach via the draft.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: `idea-engine-cli-integration-smoke-test` — the regression test
+locks the SDK call shape (`tools: "none"`) but never exercises the real
+`claude` CLI. The fix relies on `--tools ""` and `--mcp-config` being
+independent flags. They clearly are at the SDK layer
+(`packages/claude-cli-sdk/src/cli/args.ts:87` vs `:196`), but a CLI-side
+interpretation change that strips MCP tools alongside built-ins would silently
+zero out the entire tutor toolset. A slow-test-gated integration smoke is the
+right level for catching that.
+**Nits**:
+- The new comment block in `packages/engines/src/claude-code/adapter.ts` is 8
+  lines — a little long. Kept as-is because it documents a real footgun and a
+  future reader stumbling on `tools: "none"` will need the breadcrumb back to
+  the "Couldn't finish askuserquestion." symptom.
+
+**Notes**:
+- Fix is minimal and surgical (one option added).
+- Brings code into compliance with the foundation assertion at
+  `docs/designs/claude-cli-sdk-refactor.md:167-171` ("Praxis doesn't and
+  shouldn't" expose CLI built-ins to the model) — that doc claimed the
+  invariant held; this fix actually establishes it.
+- No foundation-doc drift introduced.
+- 94/94 engines tests pass; typecheck clean; biome clean on changed files.
+- Security: net tightening — built-ins were nominally reachable under
+  `bypassPermissions`; now they're invisible to the model. No new surface.
