@@ -248,7 +248,7 @@ See `docs/` for the full design documentation:
 - `docs/VISION.md` — what Praxis is and isn't
 - `docs/ARCHITECTURE.md` — dependency direction rules and system boundaries
 - `docs/CONTRACT.md` — canonical type SSOT for cross-package interfaces
-- `docs/designs/` — per-phase implementation designs (phases 1–16 shipped)
+- `docs/designs/` — per-phase implementation designs (historical artifacts; new design lives in `.work/active/features/<id>.md` bodies per the rolling-foundation principle)
 - `docs/refactors/` — refactor plans (latest: post-phase-12)
 
 For agent-facing project conventions, see `CLAUDE.md` and `.claude/skills/patterns/`.

@@ -1,7 +1,7 @@
 ---
 id: gate-docs-readme-phase-counter
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -38,3 +38,9 @@ trailing parenthetical and just say "per-phase implementation designs
 (historical artifacts; new design lives in `.work/active/features/<id>.md`
 bodies per the rolling-foundation principle)" matching the wording in
 CLAUDE.md.
+
+## Implementation notes
+Applied the durable wording: replaced `(phases 1–16 shipped)` with
+`(historical artifacts; new design lives in .work/active/features/<id>.md
+bodies per the rolling-foundation principle)` at `README.md:251`. This
+avoids the counter going stale again.
