@@ -129,6 +129,34 @@ describe("ClaudeCodeEngine — lifecycle", () => {
     await session.close();
   });
 
+  // Regression: the tutor model used to call Claude Code's built-in
+  // AskUserQuestion (and could reach for Bash/Read/Edit/etc. too). The CLI
+  // subprocess has no TTY and Praxis doesn't register toolHandlers, so those
+  // calls error and the UI renders "Couldn't finish askuserquestion." Lock
+  // the contract: only first-party MCP tools are exposed to the tutor.
+  it("open() passes tools: 'none' to createConversation so built-ins (AskUserQuestion, Bash, …) stay hidden from the model", async () => {
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: echoRegistry });
+
+    expect(vi.mocked(createConversation)).toHaveBeenCalledTimes(1);
+    const sdkOpts = vi.mocked(createConversation).mock.calls[0]?.[0];
+    expect(sdkOpts?.tools).toBe("none");
+
+    await session.close();
+  });
+
   it("two sends on the same session call conv.send twice (createConversation called once)", async () => {
     const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");

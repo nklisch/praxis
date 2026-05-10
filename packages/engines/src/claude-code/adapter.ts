@@ -56,6 +56,16 @@ export class ClaudeCodeEngine implements Engine {
         ...(openOpts.resumeEngineSessionId !== undefined && {
           resume: openOpts.resumeEngineSessionId,
         }),
+        // Block ALL Claude Code built-in tools (AskUserQuestion, Bash, Read,
+        // Edit, Write, Glob, Grep, WebFetch, WebSearch, Task, TodoWrite, …).
+        // Praxis only exposes its first-party tools through the MCP bridge;
+        // built-ins like AskUserQuestion can't be serviced — the CLI subprocess
+        // has no TTY and no toolHandlers are registered — so the model calling
+        // them produces a "Couldn't finish askuserquestion." interstitial and
+        // the tutor degrades into improvised text apologies. `tools: "none"`
+        // takes the door off the hinges for built-ins; MCP tools registered
+        // via `mcpServers` below remain available.
+        tools: "none",
         // permissionMode defaults to "bypassPermissions" via the SDK when
         // mcpServers is set (see resolvePermissionMode in cli/args.ts).
         mcpServers: bridge
