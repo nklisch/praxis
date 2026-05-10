@@ -63,11 +63,16 @@ pnpm --filter @praxis/desktop dist:mac
 
 Output lands at `packages/desktop/release/`:
 
-- `Praxis-<version>-arm64.dmg` and `Praxis-<version>-x64.dmg` — signed,
-  notarised, stapled.
-- `Praxis-<version>-arm64.zip` and `Praxis-<version>-x64.zip` — signed.
-- `Praxis-<version>-arm64.dmg.blockmap` etc. — electron-builder
-  metadata for future auto-update.
+- `Praxis-<version>.dmg` — signed, notarised, stapled.
+- `Praxis-<version>-mac.zip` — signed.
+- `Praxis-<version>.dmg.blockmap` — electron-builder metadata for
+  future auto-update.
+
+The build is single-arch: the artifact's architecture matches the
+maintainer's host (Apple Silicon → arm64, Intel Mac → x64). Dual-arch
+packaging is a post-v1 feature that requires per-arch native-module
+rebuilds; see the backlog idea
+`idea-electron-multi-arch-rebuild`.
 
 ## What the pipeline does
 
@@ -134,10 +139,10 @@ with no helpful message.
 
 ```bash
 # Confirm the .dmg is signed with the expected identity.
-codesign -dv --verbose=4 packages/desktop/release/Praxis-1.0.0-arm64.dmg
+codesign -dv --verbose=4 packages/desktop/release/Praxis-<version>.dmg
 
 # Confirm the notary ticket is stapled.
-xcrun stapler validate packages/desktop/release/Praxis-1.0.0-arm64.dmg
+xcrun stapler validate packages/desktop/release/Praxis-<version>.dmg
 ```
 
 Manual smoke test — required before shipping:

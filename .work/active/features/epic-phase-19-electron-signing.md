@@ -487,8 +487,19 @@ parallelisation upside; no multi-session resume needed.
 - **Tests added**: none. Per design's "Testing" section, no automated
   test surface here pays for itself; the existing test suite acts as a
   regression check (2235 passing before and after this change).
-- **Discrepancies from design**: none. All five units land as designed,
-  with the same env-var contract and step numbering (8/11 ... 11/11).
+- **Discrepancies from design**: one. Design said
+  `target: [{target: "dmg", arch: ["arm64", "x64"]}, ...]` for
+  per-arch artifacts. Rolled back to the original
+  `target: ["dmg", "zip"]` (host-arch single-target) on second
+  review: dual-arch packaging requires `electron-rebuild` to produce
+  native modules for both arm64 and x64, and the current
+  `--module-dir "$DEPLOY_DIR" --version "$ELECTRON_VERSION"`
+  invocation rebuilds for the host arch only. Telling
+  electron-builder to package x64 with arm64-only native modules
+  silently fails at runtime. v1 ships single-arch (the maintainer's
+  host); a follow-up feature can add dual-arch when the rebuild
+  pipeline supports it. Filed as a backlog item:
+  `idea-electron-multi-arch-rebuild`.
 - **Adjacent issues parked**: none.
 - **Verification on this host (Linux)**:
   - `package.json` parses as valid JSON.
