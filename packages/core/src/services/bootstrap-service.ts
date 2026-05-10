@@ -26,7 +26,6 @@ import type {
   Engine,
   LessonId,
   Logger,
-  ProposedAssessment,
   ProposedCourse,
   ProposedUnit,
   Reference,
