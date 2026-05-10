@@ -117,3 +117,29 @@ features that landed alongside.
     FRAGMENT_ORDER + overrides (7 modes, 20 fragments)
   - Tracking item `gate-patterns-v0.1.0` at `stage: done` (gate's deliverable
     is the pattern files themselves).
+
+## Readiness state (2026-05-10)
+
+**Not ready.** 45 gate-produced items remain active. Stage stays at
+`quality-gate` until they all reach `stage: done`.
+
+| Gate | High/Critical | Medium | Low (backlog) | Total |
+|---|---|---|---|---|
+| security | 1 | 3 | 3 | 7 |
+| tests | 1 | 2 | 5 | 8 |
+| cruft | 6 | 0 | 1 | 7 |
+| docs | 23 | 0 | 0 | 23 |
+| patterns | (4 patterns codified, no findings) | | | 0 |
+
+Drain options:
+- Implement findings via `/agile-workflow:autopilot --all` (will pick up
+  every active stage:implementing item across all gate origins).
+- Or scope individually: `/agile-workflow:implement <id>` per item.
+- The 9 Low backlog items are bound to `release_binding: v0.1.0` for
+  attribution but have no `stage` field — they will block readiness as
+  written. To exclude from the release, edit each backlog item's
+  frontmatter and remove the `release_binding` line (they remain
+  `gate_origin: <name>` for historical traceability).
+
+Re-run `/agile-workflow:release-deploy v0.1.0` after draining to resume
+from Phase 5.5 (changelog draft) → Phase 6 (ship).
