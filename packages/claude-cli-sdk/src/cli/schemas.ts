@@ -14,6 +14,39 @@ export const RawContentBlockSchema = z.union([
   z.object({ type: z.string() }).passthrough(),
 ]);
 
+/**
+ * MCP tool-result content block. The MCP protocol's standard shape for the
+ * payload returned from a tool call. Older or simpler MCP implementations may
+ * send a bare string instead — handled separately in McpToolResultContentSchema.
+ */
+export const McpContentBlockSchema = z.union([
+  z.object({ type: z.literal("text"), text: z.string() }),
+  z.object({
+    type: z.literal("image"),
+    data: z.string().optional(),
+    mimeType: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal("audio"),
+    data: z.string().optional(),
+    mimeType: z.string().optional(),
+  }),
+  z.object({ type: z.literal("resource"), resource: z.unknown().optional() }).passthrough(),
+  // Unknown future block types — passthrough so a new block doesn't reject the
+  // whole event.
+  z.object({ type: z.string() }).passthrough(),
+]);
+
+/**
+ * Allowed shapes for `tool_result.content` on the MCP wire. Either a bare
+ * string (older / simpler MCP impls) or an array of content blocks (modern
+ * standard).
+ */
+export const McpToolResultContentSchema = z.union([z.string(), z.array(McpContentBlockSchema)]);
+
+export type McpContentBlock = z.infer<typeof McpContentBlockSchema>;
+export type McpToolResultContent = z.infer<typeof McpToolResultContentSchema>;
+
 export const RawSystemInitSchema = z.object({
   type: z.literal("system"),
   subtype: z.literal("init"),
@@ -60,7 +93,9 @@ export const RawUserSchema = z.object({
         z.object({
           type: z.literal("tool_result"),
           tool_use_id: z.string().optional(),
-          content: z.unknown().optional(),
+          // MCP wire shape: string or array of content blocks. The parser
+          // flattens arrays to text before passing the result up.
+          content: McpToolResultContentSchema.optional(),
           is_error: z.boolean().optional(),
         }),
         z.object({ type: z.string() }).passthrough(),

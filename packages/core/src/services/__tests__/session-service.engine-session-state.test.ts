@@ -20,7 +20,6 @@ import type {
   EngineSession,
   SessionId,
 } from "../../types/index.js";
-import { brandId } from "../../types/index.js";
 import { SessionServiceImpl } from "../session-service.js";
 import { getOrCreateDefaultStudentId } from "../student.js";
 import type { ServiceDeps } from "../types.js";
@@ -97,10 +96,7 @@ function makeFakeEngine(
   return { engine, calls };
 }
 
-function makeService(
-  db: ReturnType<typeof openDb>["db"],
-  engine: Engine,
-): SessionServiceImpl {
+function makeService(db: ReturnType<typeof openDb>["db"], engine: Engine): SessionServiceImpl {
   const log = makeLog();
 
   const deps: ServiceDeps = {
@@ -109,8 +105,8 @@ function makeService(
     modes: new Map([["teach", makeTeachMode()]]),
     toolDefinitions: [],
     toolServices: {
-      // biome-ignore lint/suspicious/noExplicitAny: test stub
       courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+      // biome-ignore lint/suspicious/noExplicitAny: minimal test stub — only courseDocuments is exercised by these tests
     } as any,
     lockService: {
       isSet: async () => false,
@@ -126,9 +122,7 @@ function makeService(
   return new SessionServiceImpl(deps);
 }
 
-async function startAndSendOneTurn(
-  svc: SessionServiceImpl,
-): Promise<SessionId> {
+async function startAndSendOneTurn(svc: SessionServiceImpl): Promise<SessionId> {
   const handle = await svc.start({ modeId: "teach" });
   const sessionId = handle.sessionId;
   // Drain the first turn so the engine session is opened and the callback fires.
@@ -158,7 +152,9 @@ describe("SessionServiceImpl engine session continuity", () => {
 
     // First open should pass neither resume nor priorTurns
     expect(calls).toHaveLength(1);
-    const openOpts = calls[0]!.openOpts;
+    const firstCall = calls[0];
+    if (!firstCall) throw new Error("expected one engine open call");
+    const openOpts = firstCall.openOpts;
     expect(openOpts.resumeEngineSessionId).toBeUndefined();
     expect(openOpts.priorTurns ?? []).toHaveLength(0);
 
@@ -187,7 +183,9 @@ describe("SessionServiceImpl engine session continuity", () => {
 
     expect(calls1).toHaveLength(1);
     expect(calls2).toHaveLength(1);
-    const reopenOpts = calls2[0]!.openOpts;
+    const reopenCall = calls2[0];
+    if (!reopenCall) throw new Error("expected one reopen call");
+    const reopenOpts = reopenCall.openOpts;
     // Must use native resume
     expect(reopenOpts.resumeEngineSessionId).toBe("cli-session-A");
     // Must NOT pass priorTurns (text-splice skipped)
@@ -214,7 +212,9 @@ describe("SessionServiceImpl engine session continuity", () => {
     }
 
     expect(codexCalls).toHaveLength(1);
-    const swapOpts = codexCalls[0]!.openOpts;
+    const swapCall = codexCalls[0];
+    if (!swapCall) throw new Error("expected one swap call");
+    const swapOpts = swapCall.openOpts;
     // No native resume — engine changed, so no state for "codex" yet
     expect(swapOpts.resumeEngineSessionId).toBeUndefined();
     // Should have priorTurns from the episodic log (at least the user message from turn 1)
@@ -241,6 +241,6 @@ describe("SessionServiceImpl engine session continuity", () => {
     // Both engine state entries must be present in the sessions row.
     const row = db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
     expect(row?.engineSessionStateJson?.["claude-code"]?.engineSessionId).toBe("cli-session-C");
-    expect(row?.engineSessionStateJson?.["codex"]?.engineSessionId).toBe("codex-session-C");
+    expect(row?.engineSessionStateJson?.codex?.engineSessionId).toBe("codex-session-C");
   });
 });

@@ -19,6 +19,16 @@ function hasType(val: unknown): val is { type: unknown } {
   return typeof val === "object" && val !== null && "type" in val;
 }
 
+/** Type guard: checks that a value has a string-valued `subtype` property. */
+function hasStringSubtype(val: unknown): val is { subtype: string } {
+  return (
+    typeof val === "object" &&
+    val !== null &&
+    "subtype" in val &&
+    typeof (val as { subtype: unknown }).subtype === "string"
+  );
+}
+
 /**
  * Parse a single stream-json line into a StreamEvent.
  * Uses Zod schemas to validate the wire format before mapping to typed events.
@@ -40,6 +50,16 @@ export function parseStreamLine(line: string): StreamEvent | null {
 
   switch (type) {
     case "system": {
+      // Only the `init` subtype is exposed to consumers as a SystemInitEvent.
+      // The CLI emits many other system subtypes (e.g. `compact_boundary`,
+      // `task_progress`, `mcp_status`, `notification`, ...) that are internal
+      // bookkeeping for interactive use and are not part of our public event
+      // surface. Drop them silently — only warn when the subtype IS `init` but
+      // the rest of the shape is wrong (a real schema regression).
+      if (hasStringSubtype(raw) && raw.subtype !== "init") {
+        logger.debug("Ignoring non-init system event subtype", { subtype: raw.subtype });
+        return null;
+      }
       const parsed = RawSystemInitSchema.safeParse(raw);
       if (!parsed.success) {
         logger.warn("Unexpected system event shape from CLI", { issues: parsed.error.issues });
@@ -104,26 +124,14 @@ export function parseStreamLine(line: string): StreamEvent | null {
         return null;
       }
       const toolResult = parsed.data.message.content.find(
-        (
-          b,
-        ): b is {
-          type: "tool_result";
-          tool_use_id?: string;
-          content?: unknown;
-          is_error?: boolean;
-        } => b.type === "tool_result",
+        (b): b is Extract<typeof b, { type: "tool_result" }> => b.type === "tool_result",
       );
       if (!toolResult) return null;
 
       return {
         type: "tool_result",
         toolId: toolResult.tool_use_id,
-        content:
-          typeof toolResult.content === "string"
-            ? toolResult.content
-            : toolResult.content !== undefined
-              ? JSON.stringify(toolResult.content)
-              : undefined,
+        value: extractToolResultValue(toolResult.content),
         isError: toolResult.is_error,
       };
     }
@@ -210,4 +218,58 @@ export function parseStreamLine(line: string): StreamEvent | null {
       logger.debug("Unknown CLI event type, ignoring", { type });
       return null;
   }
+}
+
+/**
+ * Decode an MCP tool-result content payload into the tool's actual return
+ * value.
+ *
+ * Two layers of decoding happen here so consumers never have to:
+ *
+ * 1. **MCP content-block extraction.** The wire format for `tool_result.content`
+ *    is either a bare string (older / simpler MCP servers) or an array of
+ *    content blocks. The standard shape from a modern MCP server is
+ *    `[{ type: "text", text: "<payload>" }]`, but the spec allows `image`,
+ *    `audio`, and `resource` blocks too. We concatenate text from every text
+ *    block in order; non-text blocks become `[image]` / `[audio]` placeholders.
+ *
+ * 2. **JSON parse.** Tool implementations (especially ours via the Praxis MCP
+ *    bridge) typically JSON-stringify their structured return values when
+ *    placing them in the text block. We try-parse the concatenated text — on
+ *    success the consumer gets the original structured value; on failure we
+ *    return the raw string (markdown / plain text tools).
+ *
+ * Returns `undefined` when no content was provided (the parent message had
+ * a `tool_result` block with no content field).
+ */
+function extractToolResultValue(content: unknown): unknown {
+  const text = extractToolResultText(content);
+  if (text === undefined) return undefined;
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Not JSON — caller's tool returned plain text. Pass through as a string.
+    return text;
+  }
+}
+
+function extractToolResultText(content: unknown): string | undefined {
+  if (content === undefined || content === null) return undefined;
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) {
+    // Defensive: the parent message-content union has a `passthrough` catch-all
+    // for forward-compat with unknown block types, which can let a malformed
+    // tool_result block (e.g. `content` as an object instead of an array)
+    // slip past schema validation. Drop it cleanly rather than crash on
+    // `.map is not a function`.
+    return undefined;
+  }
+  return content
+    .map((b: unknown) => {
+      if (typeof b !== "object" || b === null) return "";
+      const block = b as { type?: unknown; text?: unknown };
+      if (block.type === "text" && typeof block.text === "string") return block.text;
+      return typeof block.type === "string" ? `[${block.type}]` : "";
+    })
+    .join("");
 }

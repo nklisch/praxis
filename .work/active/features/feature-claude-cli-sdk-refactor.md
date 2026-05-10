@@ -1,7 +1,7 @@
 ---
 id: feature-claude-cli-sdk-refactor
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -36,17 +36,21 @@ All 8 implementation units have landed as commits:
 | 7 | Default `permissionMode: bypassPermissions` when `mcpServers` is set | `108d146` |
 | 8 | Make `ResultEvent.subtype` non-nullable + tighten parser | `ed76a2e` |
 
-## Outstanding work
+## Implementation closing (landed in this stride)
 
-The repo's working tree at substrate-bootstrap time has uncommitted changes related to
-the parser/conversation/resume tests that complete this design's "What ships" list:
+All pending tests + parser/schema/events tightening landed in the closing commit
+right after this item was scoped. SDK targeted suite: 41/41 green;
+engines targeted suite: 93/93 green; full repo `pnpm test`: 2000/2000 green
+(15 skipped).
 
-- `packages/claude-cli-sdk/src/__tests__/conversation-resume.test.ts` (new)
-- `packages/claude-cli-sdk/src/__tests__/conversation.test.ts` (new)
-- `packages/claude-cli-sdk/src/__tests__/parser.test.ts` (new)
-- `packages/engines/src/__tests__/claude-code-adapter-resume.test.ts` (new)
-- Modifications to `packages/claude-cli-sdk/src/cli/parser.ts`,
-  `cli/schemas.ts`, `types/events.ts` and engine session-state tests
+- `packages/claude-cli-sdk/src/__tests__/conversation-resume.test.ts` (new) — Unit 5 args pass-through
+- `packages/claude-cli-sdk/src/__tests__/conversation.test.ts` (new) — Unit 7 permissionMode resolution
+- `packages/claude-cli-sdk/src/__tests__/parser.test.ts` (new) — MCP tool_result content extraction + JSON parse
+- `packages/engines/src/__tests__/claude-code-adapter-resume.test.ts` (new) — Unit 5c adapter passthrough
+- `packages/claude-cli-sdk/src/cli/parser.ts` — `hasStringSubtype` guard, dropped `as` cast on subtype
+- `packages/claude-cli-sdk/src/cli/schemas.ts` — tightened result schema
+- `packages/claude-cli-sdk/src/types/events.ts` — non-nullable `ResultEvent.subtype` cleanup
+- `packages/core/src/services/__tests__/session-service.engine-session-state.test.ts` — resume coverage touch-ups
 
 ## Acceptance criteria
 
@@ -61,6 +65,6 @@ the parser/conversation/resume tests that complete this design's "What ships" li
 
 ## Next step
 
-Land the pending test files + parser/schema/events modifications as the closing commits,
-then `/agile-workflow:review` to advance to `done`. On the next release (v0.2.0 or v1.0),
+Run `/agile-workflow:review feature-claude-cli-sdk-refactor` to evaluate. On the
+next release (v0.2.0 or v1.0),
 this feature gets bound and bundled.

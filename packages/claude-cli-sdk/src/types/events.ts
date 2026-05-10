@@ -82,15 +82,25 @@ export interface ToolUseEvent {
 /**
  * Result of a tool execution.
  *
- * Emitted after a {@link ToolUseEvent} completes. When `isError` is `true`,
- * the tool call failed and `content` contains the error message.
+ * Emitted after a {@link ToolUseEvent} completes. The SDK has already done
+ * the MCP content-block extraction AND the JSON parse — `value` is the tool
+ * handler's actual return value (object, array, primitive, or string when
+ * the wire content wasn't valid JSON). When `isError` is `true`, the tool
+ * call failed and `value` is typically a string error message.
  */
 export interface ToolResultEvent {
   type: "tool_result";
   /** Matches the `toolId` from the corresponding {@link ToolUseEvent}. */
   toolId?: string;
-  /** Tool output content (text). */
-  content?: string;
+  /**
+   * The tool handler's parsed return value. SDK pipeline:
+   *   1. CLI delivers MCP content blocks (text/image/...) for this tool result.
+   *   2. Parser concatenates text-block contents.
+   *   3. Parser tries to JSON.parse the concatenated text; falls back to the
+   *      raw string if it isn't valid JSON.
+   * Consumers read `value` directly — no need to unwrap MCP shape or parse JSON.
+   */
+  value?: unknown;
   /** `true` if the tool call failed. */
   isError?: boolean;
 }
