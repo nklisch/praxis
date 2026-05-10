@@ -1,7 +1,7 @@
 ---
 id: feature-chat-tool-call-visibility
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: null
 depends_on: []
@@ -844,3 +844,21 @@ All six units landed in a single stride. Key deviations from the design and impl
 - Bootstrap exploration session should show rapid unit/lesson interstitials during the multi-tool exploration loop
 - Hidden tools (quick checks, flashcard review) should produce no interstitial — only their card surfaces
 - `prefers-reduced-motion` media query keeps dots visible but stops animation
+
+---
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `messageCount` variable in `chat-tab-body.tsx:118` and `sidekick-panel.tsx:44` is now misleadingly named — it counts items (bubbles + interstitials), not messages. Renaming to `itemCount` would be a one-line cleanup. Inline comment was already updated to "item count" so the inconsistency is minor.
+- The `episodicToMessages` deprecated alias (`episodic-to-messages.ts:308`) preserves the symbol name through the rename but the return type changed from `ChatMessage[]` to `ChatStreamItem[]`. Any future caller that explicitly types the return will fail to compile — that's the desired behaviour, just worth noting that the alias is name-only, not shape-compatible.
+
+**Notes**:
+- The implementation handled four hook consumers (chat-tab-body, configure-chat-pane, sidekick-panel, clarification-pill) where the design only anticipated one. The implementation notes document this clearly.
+- Vitest config gained a `praxis-source` resolve condition to enable subpath-export resolution in tests without a build step. The change mirrors `tsconfig.base.json`'s `customConditions` and is the right fix; no foundation-doc drift.
+- Test coverage is dense: labels registry has a no-emoji codepoint sweep across all values, the interstitial component verifies no `img`/`svg`/bubble-style elements, the hook tests cover concurrent callId pairing, errored results, hidden tools, and unmatched results.
+- No security surface; no breaking change for external consumers (intra-workspace UI rename only); no foundation-doc assertions invalidated.
