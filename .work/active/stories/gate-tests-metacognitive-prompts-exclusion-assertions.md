@@ -1,7 +1,7 @@
 ---
 id: gate-tests-metacognitive-prompts-exclusion-assertions
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -49,3 +49,6 @@ Spec is explicit about exclusion; today the only protection is that the
 imports aren't there. A future refactor that "helpfully" adds the fragment
 to study-skills (where it would duplicate the role voice) or bootstrap
 (pre-curricular onboarding) wouldn't trip any test.
+
+## Implementation notes
+Added a `describe` block using `it.each` over `[["study-skills", studySkillsMode], ["bootstrap", bootstrapMode], ["configure", configureMode]]` — imported the three mode objects directly (same pattern as the existing opt-in tests, no `requireMode` indirection needed). All 37 tests pass.

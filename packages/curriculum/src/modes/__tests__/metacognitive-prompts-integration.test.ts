@@ -12,9 +12,12 @@
 
 import type { PromptFragment } from "@praxis/core/types";
 import { describe, expect, it } from "vitest";
+import { bootstrapMode } from "../bootstrap.js";
+import { configureMode } from "../configure.js";
 import { examMode } from "../exam.js";
 import { homeworkMode } from "../homework.js";
 import { quizMode } from "../quiz.js";
+import { studySkillsMode } from "../study-skills.js";
 import { teachMode } from "../teach.js";
 
 const METACOGNITIVE_FRAGMENT_ID = "metacognitive-prompts";
@@ -226,4 +229,22 @@ describe("exam mode — metacognitive prompt opt-in (session-end only)", () => {
     expect(examMode.toolNames).toContain("sketch.read");
     expect(examMode.toolNames).toContain("clarification");
   });
+});
+
+// ---------------------------------------------------------------------------
+// Modes that must NOT carry the metacognitive-prompts fragment
+// ---------------------------------------------------------------------------
+describe("modes that must NOT carry the metacognitive-prompts fragment", () => {
+  it.each([
+    ["study-skills", studySkillsMode],
+    ["bootstrap", bootstrapMode],
+    ["configure", configureMode],
+  ] as const)(
+    "%s mode has no metacognitive-prompts fragment",
+    (_modeId, mode) => {
+      expect(
+        mode.promptFragments.find((f) => f.id === METACOGNITIVE_FRAGMENT_ID),
+      ).toBeUndefined();
+    },
+  );
 });
