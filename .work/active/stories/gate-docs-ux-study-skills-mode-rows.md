@@ -1,7 +1,7 @@
 ---
 id: gate-docs-ux-study-skills-mode-rows
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -47,3 +47,6 @@ Add a `study-skills` row to the mode-tints table (line 46-53) and a
 (line 24-28). The actual tint/ornament must come from `mode-meta.ts`
 once added there; if the team prefers to stage this, the doc edit can
 land alongside the mode-meta entry as a single doc+code stride.
+
+## Implementation notes
+Stretched scope: added the `study-skills` entry to `mode-meta.ts` in the same stride (tint `#7b9e87` muted teal, ornament `‖`, deck "building the craft of learning"). All other mode ornaments were already taken, so `‖` (double vertical line) was chosen as an unused typographic mark. UX.md mode-tints table and surface-map ASCII block updated with the real values from mode-meta.ts.

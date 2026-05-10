@@ -21,11 +21,12 @@ The UI has two top-level surfaces: **student** (the learning experience) and **c
             documents · archive            ▸ Prompt customization
         ▸ Chat workspace (tabs)            ▸ Memory inspector
             tab body shape per mode:       ▸ Engine / config settings
-              teach    → chat
-              bootstrap→ canvas + outline
-              quiz     → flashcard rhythm
-              homework → paginated set
-              exam     → proctored
+              teach       → chat
+              bootstrap   → canvas + outline
+              quiz        → flashcard rhythm
+              homework    → paginated set
+              exam        → proctored
+              study-skills→ coach reflection
         ▸ Workspace (notes)
         ▸ Concept map (tldraw)
         ▸ Progress map
@@ -51,6 +52,7 @@ Praxis is a literary review, not a chat app. The visual system is editorial: typ
 | homework | indigo | ❦ |
 | exam | crimson | † |
 | configure | graphite | ⁂ |
+| study-skills | muted teal | ‖ |
 
 **Layout.** Asymmetric, with hanging ornaments and editorial decks — like the opening of a literary essay. Dropped initials, sectional rules, generous trapped white space. Cards exist only where they earn their place; tables-of-contents are preferred for listings.
 

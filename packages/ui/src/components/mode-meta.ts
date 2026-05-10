@@ -58,6 +58,12 @@ const META: Record<string, ModeMeta> = {
     ornament: "⁂",
     tint: "#9b9b9b",
   },
+  "study-skills": {
+    name: "study skills",
+    deck: "building the craft of learning",
+    ornament: "‖",
+    tint: "#7b9e87",
+  },
 };
 
 const UNKNOWN: ModeMeta = {
