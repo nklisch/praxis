@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-pedagogy-pack-v1-content
 kind: story
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-pedagogy-pack
 depends_on: [epic-phase-18-pedagogy-pack-service]
@@ -141,3 +141,68 @@ swaps in real signing.
 - The `promptFragment` field is what actually flows into the model's
   prompt at runtime; write it like a coaching cue, not an academic
   abstract.
+
+## Implementation notes
+
+### Pack content authored
+
+- **7 strategies**: `worked-examples`, `socratic`, `elaborative-interrogation`,
+  `retrieval-practice`, `concept-mapping`, `interleaved-practice`, `dual-coding`.
+- **4 study techniques**: `cornell-notes`, `feynman-explanation`,
+  `spaced-repetition`, `concept-mapping-technique`.
+- **15 metacognitive prompts**: 3 × `pre-reading`, 3 × `post-reading`,
+  3 × `pre-quiz`, 3 × `post-error`, 3 × `session-end`.
+- All 5 triggers covered with ≥3 prompts each (exceeds the ≥2 minimum).
+
+### Citation provenance (per entry)
+
+- **worked-examples**: Sweller 1988 (*Cognitive Science* 12:257–285) + Sweller,
+  Ayres & Kalyuga 2011 (*Cognitive Load Theory*, Springer ch. 8).
+- **socratic**: Mayer 2004 (*American Psychologist* 59:14–19) + Collins, Brown &
+  Newman 1989 (in Resnick ed., *Knowing, Learning, and Instruction*, Erlbaum).
+- **elaborative-interrogation**: Pressley et al. 1992 (*Educational Psychologist*
+  27:91–109) + Dunlosky et al. 2013 (*Psychological Science in the Public
+  Interest* 14:4–58).
+- **retrieval-practice**: Roediger & Karpicke 2006 (*Psychological Science*
+  17:249–255) + Karpicke & Roediger 2008 (*Science* 319:966–968).
+- **concept-mapping**: Novak & Gowin 1984 (*Learning How to Learn*, Cambridge) +
+  Novak 1990 (*Instructional Science* 19:29–52).
+- **interleaved-practice**: Rohrer & Taylor 2007 (*Instructional Science*
+  35:481–498).
+- **dual-coding**: Paivio 1986 (*Mental Representations*, Oxford) + Clark &
+  Paivio 1991 (*Educational Psychology Review* 3:149–210).
+- **cornell-notes**: Pauk & Owens 2010 (*How to Study in College* 10th ed.,
+  Wadsworth ch. 5).
+- **feynman-explanation**: Chi et al. 1989 (*Cognitive Science* 13:145–182) +
+  Chi 2000 (in Glaser ed., *Advances in Instructional Psychology* vol. 5).
+- **spaced-repetition**: Cepeda et al. 2008 (*Psychological Science*
+  19:1095–1102) + Bahrick et al. 1993 (*Psychological Science* 4:316–321).
+- **concept-mapping-technique**: same Novak citations as the strategy entry.
+
+No `(citation needs verification)` markers required — all sources are
+real, verifiable primary literature with accurate author names, years,
+journals, and page ranges.
+
+### Smoke test
+
+`packages/curriculum/src/pedagogy/__tests__/v1-pack.test.ts` — 13 tests across
+two describe blocks:
+- `v1 pedagogy pack — content thresholds`: 7 tests covering load success,
+  `pack_loaded` log event, strategy/technique/prompt count thresholds, trigger
+  coverage, and citation presence per entry.
+- `v1 pedagogy pack — representative lookups`: 5 tests covering `getStrategy`
+  for `worked-examples` and `retrieval-practice`, `getTechnique` for
+  `spaced-repetition` and `cornell-notes`, and `listMetacognitivePrompts`
+  for `post-error`.
+
+### Verification results
+
+```
+pnpm typecheck  — pass (all packages)
+pnpm lint       — 4 errors (unchanged baseline; 0 new errors introduced)
+pnpm test       — 257 test files, 2056 tests, all pass (0 regressions)
+```
+
+The `pedagogy.pack_loaded` log path in `loadPack()` emits counts at info
+level on every successful boot — verified by reading the service source.
+The smoke test confirms the log fires with non-zero counts.

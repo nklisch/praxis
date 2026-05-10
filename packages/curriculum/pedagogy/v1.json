@@ -1,0 +1,407 @@
+{
+  "version": "1.0.0",
+  "signature": "v1-unsigned",
+  "manifest": {
+    "name": "Praxis pedagogy pack — v1",
+    "description": "Foundational teaching strategies, study techniques, and metacognitive prompts grounded in cognitive-science primary sources.",
+    "praxisCompatible": "^0.1.0",
+    "publishedAt": 1747526400000,
+    "authors": ["Praxis curriculum team"]
+  },
+  "strategies": [
+    {
+      "id": "worked-examples",
+      "name": "Worked Examples",
+      "description": "Present fully solved problems step-by-step before asking the student to attempt analogous ones. Worked examples reduce extraneous cognitive load by letting the learner study expert solution procedures without simultaneously managing problem-solving demands.",
+      "applicability": {
+        "conceptKinds": ["procedural", "algorithmic"],
+        "bloomsLevels": ["remember", "understand", "apply"],
+        "cognitiveLoad": "low"
+      },
+      "promptFragment": "Walk through a complete worked example — narrate every step and why it follows. Only after that invite the student to try a parallel problem on their own. If they get stuck, offer a partial step rather than the full solution.",
+      "citations": [
+        {
+          "source": "Sweller, J. (1988). Cognitive load during problem solving: Effects on learning. Cognitive Science, 12(2), 257–285.",
+          "locator": { "page": 257 }
+        },
+        {
+          "source": "Sweller, J., Ayres, P., & Kalyuga, S. (2011). Cognitive Load Theory. Springer.",
+          "locator": { "section": "Chapter 8: Worked Example Effect" }
+        }
+      ]
+    },
+    {
+      "id": "socratic",
+      "name": "Socratic Questioning",
+      "description": "Guide the student toward insight through a sequence of probing questions rather than direct explanation. Effective guided discovery keeps the learner in the zone of proximal development — neither spoon-feeding answers nor abandoning them in unproductive struggle.",
+      "applicability": {
+        "conceptKinds": ["conceptual", "causal", "evaluative"],
+        "bloomsLevels": ["understand", "analyze", "evaluate"],
+        "cognitiveLoad": "high"
+      },
+      "promptFragment": "Ask the student one question at a time instead of explaining. Start with what they already believe, then probe the edges of that belief. When they reach a correct insight, validate it briefly and push one level deeper.",
+      "citations": [
+        {
+          "source": "Mayer, R. E. (2004). Should there be a three-strikes rule against pure discovery learning? American Psychologist, 59(1), 14–19.",
+          "locator": { "page": 14 }
+        },
+        {
+          "source": "Collins, A., Brown, J. S., & Newman, S. E. (1989). Cognitive apprenticeship: Teaching the crafts of reading, writing, and mathematics. In L. B. Resnick (Ed.), Knowing, Learning, and Instruction: Essays in Honor of Robert Glaser (pp. 453–494). Erlbaum.",
+          "locator": { "page": 453 }
+        }
+      ]
+    },
+    {
+      "id": "elaborative-interrogation",
+      "name": "Elaborative Interrogation",
+      "description": "Prompt the student to explain *why* a stated fact is true rather than merely restating it. Generating reasons integrates new information with prior knowledge and substantially improves retention compared to passive re-reading.",
+      "applicability": {
+        "conceptKinds": ["factual", "conceptual", "causal"],
+        "bloomsLevels": ["understand", "analyze"],
+        "cognitiveLoad": "medium"
+      },
+      "promptFragment": "After presenting a fact or rule, ask: \"Why is that true? What makes that the case?\" Encourage the student to connect the new idea to something they already know. Accept partial answers and scaffold from there.",
+      "citations": [
+        {
+          "source": "Pressley, M., Wood, E., Woloshyn, V. E., Martin, V., King, A., & Menke, D. (1992). Encouraging mindful use of prior knowledge: Attempting to construct explanatory answers facilitates learning. Educational Psychologist, 27(1), 91–109.",
+          "locator": { "page": 91 }
+        },
+        {
+          "source": "Dunlosky, J., Rawson, K. A., Marsh, E. J., Nathan, M. J., & Willingham, D. T. (2013). Improving students' learning with effective learning techniques. Psychological Science in the Public Interest, 14(1), 4–58.",
+          "locator": { "page": 22 }
+        }
+      ]
+    },
+    {
+      "id": "retrieval-practice",
+      "name": "Retrieval Practice",
+      "description": "Ask the student to actively recall material from memory rather than re-reading or re-watching it. The act of retrieval itself strengthens the memory trace far more than equivalent restudy time — a finding replicated across content domains and age groups.",
+      "applicability": {
+        "conceptKinds": ["factual", "procedural", "conceptual"],
+        "bloomsLevels": ["remember", "apply"],
+        "cognitiveLoad": "medium"
+      },
+      "promptFragment": "Instead of reviewing the concept together, close the notes and ask the student to reconstruct it from memory. Prompt: \"Without looking, can you explain X in your own words?\" After they try, compare against the source and discuss any gaps.",
+      "citations": [
+        {
+          "source": "Roediger, H. L., & Karpicke, J. D. (2006). Test-enhanced learning: Taking memory tests improves long-term retention. Psychological Science, 17(3), 249–255.",
+          "locator": { "page": 249 }
+        },
+        {
+          "source": "Karpicke, J. D., & Roediger, H. L. (2008). The critical importance of retrieval for learning. Science, 319(5865), 966–968.",
+          "locator": { "page": 966 }
+        }
+      ]
+    },
+    {
+      "id": "concept-mapping",
+      "name": "Concept Mapping",
+      "description": "Have the student build a node-link diagram that externalizes the relationships between key ideas. The act of deciding which concepts connect and labeling the relationship forces meaningful encoding and reveals misconceptions that prose writing can hide.",
+      "applicability": {
+        "conceptKinds": ["conceptual", "structural", "relational"],
+        "bloomsLevels": ["understand", "analyze", "create"],
+        "cognitiveLoad": "medium"
+      },
+      "promptFragment": "Ask the student to draw a concept map connecting the main ideas from this topic. Each link should have a label: what is the relationship? After they share it, ask about any link that looks surprising or any important concept that's missing.",
+      "citations": [
+        {
+          "source": "Novak, J. D., & Gowin, D. B. (1984). Learning How to Learn. Cambridge University Press.",
+          "locator": { "section": "Chapter 1" }
+        },
+        {
+          "source": "Novak, J. D. (1990). Concept maps and Vee diagrams: Two metacognitive tools to facilitate meaningful learning. Instructional Science, 19(1), 29–52.",
+          "locator": { "page": 29 }
+        }
+      ]
+    },
+    {
+      "id": "interleaved-practice",
+      "name": "Interleaved Practice",
+      "description": "Mix different problem types or topics within a single practice session rather than blocking all problems of one kind together. Interleaving forces the student to identify *which* strategy applies before executing it, building discrimination skills that blocked practice does not.",
+      "applicability": {
+        "conceptKinds": ["procedural", "algorithmic"],
+        "bloomsLevels": ["apply", "analyze"],
+        "cognitiveLoad": "high"
+      },
+      "promptFragment": "Mix up the problem types in this practice set — don't give three of the same kind in a row. When the student pauses before starting, that's productive: they're figuring out which method fits. Resist supplying the method name unprompted.",
+      "citations": [
+        {
+          "source": "Rohrer, D., & Taylor, K. (2007). The shuffling of mathematics problems improves learning. Instructional Science, 35(6), 481–498.",
+          "locator": { "page": 481 }
+        }
+      ]
+    },
+    {
+      "id": "dual-coding",
+      "name": "Dual Coding",
+      "description": "Pair verbal explanations with a complementary visual representation (diagram, timeline, illustration). When information is encoded in both verbal and visual channels simultaneously, long-term retention and transfer improve because learners build richer mental models.",
+      "applicability": {
+        "conceptKinds": ["conceptual", "structural", "procedural"],
+        "bloomsLevels": ["understand", "apply"],
+        "cognitiveLoad": "low"
+      },
+      "promptFragment": "Ask the student to sketch a diagram, timeline, or visual analogy for what they just learned — not to decorate, but to capture the *structure*. Then explain how the visual connects to the verbal description.",
+      "citations": [
+        {
+          "source": "Paivio, A. (1986). Mental Representations: A Dual Coding Approach. Oxford University Press.",
+          "locator": { "section": "Chapter 3" }
+        },
+        {
+          "source": "Clark, J. M., & Paivio, A. (1991). Dual coding theory and education. Educational Psychology Review, 3(3), 149–210.",
+          "locator": { "page": 149 }
+        }
+      ]
+    }
+  ],
+  "studyTechniques": [
+    {
+      "id": "cornell-notes",
+      "name": "Cornell Notes",
+      "description": "A structured note-taking format that divides the page into a main notes column, a narrower cue/question column, and a summary section at the bottom. Regular use of the cue column transforms passive notes into a self-quizzing tool.",
+      "uiAffordances": ["cornell-note-editor"],
+      "curriculum": {
+        "lessons": [
+          {
+            "id": "cn-intro",
+            "title": "Why Structure Matters",
+            "body": "Raw notes capture words; Cornell notes capture structure. The two-column format forces you to separate *what was said* from *why it matters*. This session introduces the layout and the habit of filling the cue column within 24 hours.",
+            "practicePromptIds": []
+          },
+          {
+            "id": "cn-cue-column",
+            "title": "Writing Effective Cue Questions",
+            "body": "The cue column is where learning actually happens. For each block of notes, write a question whose answer is the note. Good cue questions start with 'Why', 'How', or 'What is the difference between'. Weak ones start with 'What is' and invite one-word answers.",
+            "practicePromptIds": ["pre-quiz-self-predict"]
+          },
+          {
+            "id": "cn-summary",
+            "title": "The Summary Discipline",
+            "body": "Cover your notes, read only the cue questions, and write a 2–3 sentence summary at the bottom of each page in your own words. If you can't write the summary, the cue questions you wrote weren't strong enough — revise them.",
+            "practicePromptIds": ["post-reading-central-claim"]
+          },
+          {
+            "id": "cn-review-cycle",
+            "title": "The Weekly Review Cycle",
+            "body": "Cornell notes pay off at review time. Cover the notes column, read each cue question aloud, and try to answer before uncovering. This turns review from re-reading into retrieval practice — the single most effective study behaviour for retention.",
+            "practicePromptIds": ["session-end-one-to-review"]
+          }
+        ]
+      },
+      "citations": [
+        {
+          "source": "Pauk, W., & Owens, R. J. Q. (2010). How to Study in College (10th ed.). Wadsworth.",
+          "locator": { "section": "Chapter 5: The Cornell System" }
+        }
+      ]
+    },
+    {
+      "id": "feynman-explanation",
+      "name": "Feynman Explanation",
+      "description": "Explain a concept as if teaching it to someone with no background knowledge, identify any points where the explanation breaks down, then return to the source to repair those gaps. The technique leverages self-explanation effects: generating explanations produces far deeper encoding than passive review.",
+      "uiAffordances": [],
+      "curriculum": {
+        "lessons": [
+          {
+            "id": "fe-intro",
+            "title": "Teaching as Learning",
+            "body": "The Feynman technique starts with a simple bet: if you can explain it simply, you understand it; if you can't, you don't yet. This session introduces the four-step loop: choose a concept, explain it plainly, find the gaps, and simplify.",
+            "practicePromptIds": ["pre-reading-expectations"]
+          },
+          {
+            "id": "fe-explain-plainly",
+            "title": "Explain It Without Jargon",
+            "body": "Write or say an explanation of your chosen concept as if speaking to a 12-year-old. Jargon is allowed only if you define it in plain language first. If you catch yourself using a technical term as a black box, that's your first gap — mark it.",
+            "practicePromptIds": []
+          },
+          {
+            "id": "fe-gap-hunt",
+            "title": "Finding and Fixing the Gaps",
+            "body": "Every place your explanation stalled or turned vague is a gap in understanding. Go back to source material only for those gaps — then try the explanation again from scratch. Targeted repair beats re-reading the whole chapter.",
+            "practicePromptIds": ["post-error-assumption-trace"]
+          },
+          {
+            "id": "fe-simplify",
+            "title": "Simplify Until It Clicks",
+            "body": "After repairing gaps, rewrite the explanation using analogies from everyday life. A good analogy maps the *structure* of the concept onto something familiar. If you can make someone smile in recognition, the analogy is working.",
+            "practicePromptIds": ["session-end-one-solid"]
+          }
+        ]
+      },
+      "citations": [
+        {
+          "source": "Chi, M. T. H., Bassok, M., Lewis, M. W., Reimann, P., & Glaser, R. (1989). Self-explanations: How students study and use examples in learning to solve problems. Cognitive Science, 13(2), 145–182.",
+          "locator": { "page": 145 }
+        },
+        {
+          "source": "Chi, M. T. H. (2000). Self-explaining expository texts: The dual processes of generating inferences and repairing mental models. In R. Glaser (Ed.), Advances in Instructional Psychology (Vol. 5, pp. 161–238). Erlbaum.",
+          "locator": { "page": 161 }
+        }
+      ]
+    },
+    {
+      "id": "spaced-repetition",
+      "name": "Spaced Repetition",
+      "description": "Schedule reviews of material at expanding intervals, revisiting items just before they would be forgotten. Spacing reviews across days and weeks dramatically outperforms massed practice at the same total study time, particularly for long-term retention.",
+      "uiAffordances": ["flashcard-review"],
+      "curriculum": {
+        "lessons": [
+          {
+            "id": "sr-why-spacing",
+            "title": "Why Spacing Works",
+            "body": "Memory fades over time following a forgetting curve. Reviewing material just before you forget it strengthens the memory trace more than reviewing it when it is still fresh. This session shows how the spacing effect works and why most students study at exactly the wrong time.",
+            "practicePromptIds": []
+          },
+          {
+            "id": "sr-making-cards",
+            "title": "Making Good Flashcards",
+            "body": "One idea per card. The front should ask one specific question; the back should give the minimum correct answer. Avoid 'reverse' cards with long lists — split them. A card you can answer in two seconds is too easy; one that takes more than 20 seconds is too hard.",
+            "practicePromptIds": []
+          },
+          {
+            "id": "sr-reviewing",
+            "title": "The Review Ritual",
+            "body": "Answer every card before looking at the back. Rating your confidence honestly — not 'I basically knew it' but 'I recalled it immediately without any hesitation' — is what makes the scheduling algorithm work. Honest ratings lead to review dates that match your actual forgetting rate.",
+            "practicePromptIds": ["pre-quiz-self-predict"]
+          },
+          {
+            "id": "sr-long-intervals",
+            "title": "Trusting Long Intervals",
+            "body": "As cards age, review intervals stretch to weeks or months. Students often feel anxious when they see a due date three weeks out — that anxiety is normal and should be trusted. Research by Bahrick and colleagues shows that very long intervals are the ones that produce decades-long retention.",
+            "practicePromptIds": ["session-end-one-to-review"]
+          }
+        ]
+      },
+      "citations": [
+        {
+          "source": "Cepeda, N. J., Vul, E., Rohrer, D., Wixted, J. T., & Pashler, H. (2008). Spacing effects in learning: A temporal ridgeline of optimal retention. Psychological Science, 19(11), 1095–1102.",
+          "locator": { "page": 1095 }
+        },
+        {
+          "source": "Bahrick, H. P., Bahrick, L. E., Bahrick, A. S., & Bahrick, P. E. (1993). Maintenance of foreign language vocabulary and the spacing effect. Psychological Science, 4(5), 316–321.",
+          "locator": { "page": 316 }
+        }
+      ]
+    },
+    {
+      "id": "concept-mapping-technique",
+      "name": "Concept Mapping (Student Practice)",
+      "description": "Student-driven practice of building node-link diagrams to externalise the structure of a topic. Where the strategy (used by the tutor) focuses on prompting, this technique focuses on the student learning to construct and revise maps independently as a study habit.",
+      "uiAffordances": ["concept-map-editor"],
+      "curriculum": {
+        "lessons": [
+          {
+            "id": "cm-what-is",
+            "title": "What a Concept Map Is (and Is Not)",
+            "body": "A concept map is not a mind map and not an outline. Every link between nodes must carry a label describing the relationship. 'photosynthesis → glucose' is incomplete; 'photosynthesis *produces* glucose' is a concept map. This distinction forces precision.",
+            "practicePromptIds": []
+          },
+          {
+            "id": "cm-building",
+            "title": "Building Your First Map",
+            "body": "Start with the central concept as the top node. Identify 4–6 subordinate concepts and draw labeled links downward. Then look for cross-links — connections between branches. Cross-links are where the deepest understanding lives.",
+            "practicePromptIds": []
+          },
+          {
+            "id": "cm-revising",
+            "title": "Revising and Expanding",
+            "body": "After building an initial map, revisit your source material and ask: what's missing? What links are mislabeled? A map that survives two revision passes almost always reveals something you thought you understood but didn't. The revision process is the learning.",
+            "practicePromptIds": ["post-reading-central-claim"]
+          },
+          {
+            "id": "cm-from-memory",
+            "title": "Mapping from Memory",
+            "body": "Close all materials and redraw the concept map from scratch. Compare your memory map to your studied map. Nodes missing from the memory map are candidates for flashcards. Links whose labels you couldn't reconstruct are gaps to revisit.",
+            "practicePromptIds": ["session-end-one-to-review"]
+          }
+        ]
+      },
+      "citations": [
+        {
+          "source": "Novak, J. D., & Gowin, D. B. (1984). Learning How to Learn. Cambridge University Press.",
+          "locator": { "section": "Chapter 2" }
+        },
+        {
+          "source": "Novak, J. D. (1990). Concept maps and Vee diagrams: Two metacognitive tools to facilitate meaningful learning. Instructional Science, 19(1), 29–52.",
+          "locator": { "page": 29 }
+        }
+      ]
+    }
+  ],
+  "metacognitivePrompts": [
+    {
+      "id": "pre-reading-expectations",
+      "trigger": "pre-reading",
+      "template": "Before you start: what do you already think you know about this topic? Write down one thing you're confident about and one thing you suspect you might be wrong about."
+    },
+    {
+      "id": "pre-reading-purpose",
+      "trigger": "pre-reading",
+      "template": "What are you reading this to find out? Name the question you're trying to answer — even a vague one. Reading without a question is browsing, not studying."
+    },
+    {
+      "id": "pre-reading-predict",
+      "trigger": "pre-reading",
+      "template": "Scan the headings and first sentences only. What do you predict this material will say? Write your prediction now — we'll check it when you're done."
+    },
+    {
+      "id": "post-reading-central-claim",
+      "trigger": "post-reading",
+      "template": "In one sentence, what is the central claim of what you just read? If you're stuck, re-read only the topic sentence of each paragraph, then try again."
+    },
+    {
+      "id": "post-reading-surprised",
+      "trigger": "post-reading",
+      "template": "What surprised you most in that reading? Something that contradicted what you expected counts double — write about why your earlier assumption led you there."
+    },
+    {
+      "id": "post-reading-explain-to-friend",
+      "trigger": "post-reading",
+      "template": "Imagine a friend asks what you just read about. Write a 2–3 sentence summary in your own words — no jargon allowed unless you define it. Where does your explanation feel thin?"
+    },
+    {
+      "id": "pre-quiz-self-predict",
+      "trigger": "pre-quiz",
+      "template": "Before the first question: on a scale of 1–5, how confident are you about this material right now? Write the number. We'll compare it to how you actually do."
+    },
+    {
+      "id": "pre-quiz-fear-inventory",
+      "trigger": "pre-quiz",
+      "template": "Which part of this quiz worries you most? Name the specific concept or problem type, not just 'the hard parts'. Naming it precisely is the first step to handling it."
+    },
+    {
+      "id": "pre-quiz-strategy-plan",
+      "trigger": "pre-quiz",
+      "template": "What will you do if you hit a question you don't immediately know? Decide your fallback strategy now — skip and return, eliminate and guess, or derive from first principles — before pressure forces the choice."
+    },
+    {
+      "id": "post-error-assumption-trace",
+      "trigger": "post-error",
+      "template": "Pause. What assumption did your wrong answer rely on? Trace back: where did that assumption come from — a misread, a shortcut, or something you thought you understood but hadn't tested?"
+    },
+    {
+      "id": "post-error-rephrase",
+      "trigger": "post-error",
+      "template": "Read the correct answer. Now close it and explain in your own words *why* the correct answer is right — not just that it is. If your explanation feels thin, that's the real gap."
+    },
+    {
+      "id": "post-error-next-time",
+      "trigger": "post-error",
+      "template": "If you saw this problem again in three weeks, what's the one thing you'd want to remember so you don't make the same mistake? Write it as a note to your future self."
+    },
+    {
+      "id": "session-end-one-to-review",
+      "trigger": "session-end",
+      "template": "Name one thing from today that you'd want to revisit tomorrow, and one thing you feel genuinely solid on. The first becomes a review card; the second tells you what teaching actually worked."
+    },
+    {
+      "id": "session-end-effort-reflection",
+      "trigger": "session-end",
+      "template": "On a scale of 1–5, how hard did you push yourself this session — not how much you studied, but how uncomfortable the thinking felt? What would have made it a 5?"
+    },
+    {
+      "id": "session-end-one-solid",
+      "trigger": "session-end",
+      "template": "What's one idea from today that you could explain to someone who has never heard of it? If you can name it, you've got something real. If nothing comes to mind, what does that tell you?"
+    }
+  ]
+}
