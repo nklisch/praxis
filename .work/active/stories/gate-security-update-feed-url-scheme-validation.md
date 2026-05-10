@@ -1,7 +1,7 @@
 ---
 id: gate-security-update-feed-url-scheme-validation
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -76,3 +76,13 @@ auto-update channel.
 - Hardening `update-banner.tsx` to route through `shell.openExternal` is
   defense-in-depth and is explicitly OUT OF SCOPE for this story; the schema
   rejection is the primary fix. That change should be tracked as a separate item.
+
+## Review (2026-05-10)
+
+**Verdict: Approve**
+
+Correctness: The `.refine(u => /^https?:\/\//i.test(u), ...)` on both `downloadUrl` and `releaseNotesUrl` is correct and sufficient. `safeParse` returns a failure result (never throws) when the refine rejects — the existing validation-error branch in `checkLatest` surfaces this as `{ status: "error" }` cleanly. The regex is case-insensitive and anchored, so uppercase `HTTPS://` is accepted and there is no partial-match risk.
+
+Tests: The `it.each` over `javascript:`, `data:`, and `file:` schemes precisely matches the three evidence cases from the story. Each asserts `status === "error"` and that the message contains "validation". Coverage of the happy path already existed; the three new cases are the right complement.
+
+Security: The schema change closes the injection vector at the point of feed parse, before the URL ever reaches the renderer. The comment in source code accurately credits the `openExternal` allowlist as the prior art, which is a useful audit trail for future reviewers.
