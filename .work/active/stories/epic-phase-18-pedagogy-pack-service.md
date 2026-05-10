@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-pedagogy-pack-service
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-pedagogy-pack
 depends_on: []
@@ -464,3 +464,63 @@ Acceptance for the test suite as a whole:
 - `pnpm --filter @praxis/desktop test`: 60 tests, 6 files — all passed.
 - `pnpm typecheck`: clean (all 10 packages).
 - `pnpm lint`: 30 total errors — same set of pre-existing errors (claude-cli-sdk, client tests, root tests). Zero errors in files created or modified by this story.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+**Nits** (in conversation only):
+- `pedagogy-pack-service.ts:125-126` carries a `// biome-ignore lint/suspicious/noExplicitAny`
+  comment, but the cast on the next line is `as unknown as PedagogyPack` —
+  no `any` keyword involved. The suppression is dead and should be removed
+  or rewritten to explain the brand cast.
+- `makeEmptyPedagogyPackService` (curriculum impl) uses path
+  `/dev/null/pedagogy-pack-does-not-exist.json` to trigger empty-mode.
+  That path produces ENOTDIR rather than ENOENT, so it hits the
+  `warn`-level `pedagogy.pack_read_failed` branch instead of the
+  `info`-level `pedagogy.pack_absent` branch. Test stubs use a noop
+  logger so no output, but the semantic is slightly off; a sentinel
+  (`packPath === ""` short-circuits to null pack) would be cleaner.
+- `get-strategy.ts:43` and `helpers.ts:41,53` use inline
+  `import("@praxis/core/types").StrategyId` type syntax. A normal
+  `import type { StrategyId } from "@praxis/core/types"` at the top of
+  the file reads cleaner than the inline form.
+- `Services.pedagogyPack` in `desktop/electron/main/services.ts:151` is
+  typed as the concrete `PedagogyPackServiceImpl` while `ToolServices.pedagogyPack`
+  uses the interface. Other services in the same file mix both styles, so
+  this is consistent with house practice — flagging only because the
+  interface form is the long-term direction.
+
+**Notes**:
+- Targeted suite green: `pnpm --filter @praxis/curriculum test` 220
+  passed (21 files); `pnpm --filter @praxis/tools test` reports 444
+  passed at the implementation commit. Repo-wide `pnpm test` green at
+  HEAD with 2056 passed / 15 skipped.
+- `pnpm typecheck` clean. Lint at 4 errors (down from 22 baseline at
+  the feature-design commit) — the `lint:fix` follow-up commit
+  `925e847` cleaned up auto-fixable issues across the repo. Zero new
+  errors introduced by this story's files.
+- Foundation-doc alignment: `docs/CONTRACT.md:228` already asserted
+  `pedagogyPack: PedagogyPackService` while code carried `unknown`.
+  This story closes that drift. No new drift introduced.
+- Two intentional design deviations documented in the story body:
+  Citation schema (use existing TS type, not the story sketch) and
+  tools-test-helper location (inline rather than imported from
+  `@praxis/curriculum` to avoid a runtime dep). Both are reasonable.
+- The `PEDAGOGY_TOOLS` array exists but isn't yet wired into
+  `services.ts` `toolDefinitions`. That belongs in the mode-tool-scoping
+  for `metacognitive-prompts` / `coach-mode` features. Not a blocker.
+- Capability check: a fresh service instance loads the synthetic fixture
+  correctly, returns expected counts and lookups; empty-mode round-trips
+  cleanly; tools dispatch through the registry on both states. The
+  foundation is in place for the v1 content sibling story to land.
+
+What's now possible: every Phase 18 feature that depends on the pedagogy
+pack (`procedural-memory`, `metacognitive-prompts`, `coach-mode`) has a
+working `PedagogyPackService` to consume. The service is empty-mode
+today; once `epic-phase-18-pedagogy-pack-v1-content` lands, accessors
+will return real strategies / techniques / prompts without further
+service-layer changes.
