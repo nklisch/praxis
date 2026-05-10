@@ -1,7 +1,7 @@
 ---
 id: gate-docs-curriculum-quiz-homework-tools
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -36,3 +36,6 @@ doc's quiz tool list is missing this entry.
 ## Required edit
 Append `pedagogy.list_metacognitive_prompts` to the quiz-mode tool list
 (homework inherits via "same as quiz").
+
+## Implementation notes
+Appended `pedagogy.list_metacognitive_prompts` to the quiz tool list on line 80. Confirmed that the homework section still reads "Tools: same as `quiz`" — no separate edit needed there.

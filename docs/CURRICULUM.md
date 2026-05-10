@@ -77,7 +77,7 @@ The interactive lecture. Concept introduction, scaffolding, worked examples, fad
 
 Short-form retrieval practice during or between lessons. Items rendered as a structured `<AssignmentCard>` inline in the chat. Agent voice: lively scaffolding; offers hints sparingly during work; narrates per-item feedback warmly after submission.
 
-- Tools: `assignment.show`, `assignment.read_grade`, `course.what_can_i_teach`, `course.current_concept`, `retrieve_from_textbook`, `grade_math`, `code_sandbox`, `update_mastery`, `record_misconception`
+- Tools: `assignment.show`, `assignment.read_grade`, `course.what_can_i_teach`, `course.current_concept`, `retrieve_from_textbook`, `grade_math`, `code_sandbox`, `update_mastery`, `record_misconception`, `pedagogy.list_metacognitive_prompts`
 - `workRubric`: rare. Reserve for the 1-2 multi-step items per quiz where partial credit adds value.
 - Approach feedback layer: ON for items without a rubric/workRubric (fallback enrichment)
 - Submission: chat composer remains active throughout
