@@ -1,4 +1,5 @@
 import { writeFile } from "node:fs/promises";
+import { basename, resolve as pathResolve } from "node:path";
 import {
   affectiveSamples,
   episodicEvents,
@@ -415,7 +416,34 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
     };
     const json = JSON.stringify(serializable, null, 2);
     const bytes = Buffer.byteLength(json, "utf-8");
-    await writeFile(input.targetPath, json, "utf-8");
+
+    // Path validation: canonicalise and refuse dangerous patterns before
+    // writing. This runs in @praxis/core (no Electron dependency), so we
+    // cannot call app.getPath(). We apply two portable checks instead:
+    //   1. Refuse paths whose raw segments include `..` — catches traversal
+    //      attempts before resolution (e.g. "/downloads/../../../etc/passwd").
+    //      Checked on the raw input so the intent is unambiguous even after
+    //      pathResolve would otherwise silently absorb the traversal.
+    //   2. Refuse paths whose basename starts with `.` — prevents dropping
+    //      hidden files (.envrc, .bashrc, etc.) that could affect shell or
+    //      tool behaviour.
+    // These are defence-in-depth controls; the renderer is already isolated
+    // via contextIsolation. The IPC handler in ipc-server.ts is the primary
+    // enforcement point; this layer prevents abuse if the handler is relaxed.
+    const rawSegments = input.targetPath.split(/[/\\]/);
+    if (rawSegments.includes("..")) {
+      throw new Error(
+        `exportMemory: targetPath must not contain '..' segments: ${input.targetPath}`,
+      );
+    }
+    const resolvedPath = pathResolve(input.targetPath);
+    if (basename(resolvedPath).startsWith(".")) {
+      throw new Error(
+        `exportMemory: targetPath basename must not start with '.': ${basename(resolvedPath)}`,
+      );
+    }
+
+    await writeFile(resolvedPath, json, "utf-8");
     return { ok: true, bytesWritten: bytes };
   }
 

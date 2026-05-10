@@ -1,7 +1,7 @@
 ---
 id: gate-security-author-export-memory-target-path-validation
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-release-v0.1.0-security-findings
 depends_on: []
@@ -60,3 +60,18 @@ If the path must come from the renderer for UX reasons, validate it:
 canonicalise via `path.resolve`, refuse paths outside
 `app.getPath('downloads')` or `app.getPath('userData')` or a
 user-confirmed directory, refuse paths whose basename starts with `.`.
+
+## Implementation notes
+
+Chose the renderer-supplies-path path (no `dialog.showSaveDialog` — avoids IPC
+contract change). Validation added in `memory-service.ts::exportToFile` (not in
+the IPC handler) so it applies regardless of call site. Two checks: (1) refuse
+raw `..` segments in the input path, caught by splitting on `/\` and checking for
+`".."` — this is checked *before* `pathResolve` so traversal intent is explicit
+even though `resolve` would absorb it; (2) refuse a resolved basename starting
+with `.` to block hidden-file injection (`.envrc`, `.bashrc`, etc.). We could not
+use `app.getPath('downloads')`/`app.getPath('userData')` here because
+`@praxis/core` has no Electron dependency — noted in a comment at the validation
+site. `node:path` imports added: `basename` and `resolve as pathResolve`. The
+write now uses the canonicalised `resolvedPath` rather than the raw
+`input.targetPath`. Typecheck and lint (for touched files) both pass.
