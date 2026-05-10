@@ -43,7 +43,9 @@ const REDACT_PATHS = [
   "headers.Authorization",
 ] as const;
 
-function makeRig(opts: { allowPrompts?: boolean; baseBindings?: Record<string, unknown> } = {}): TestRig {
+function makeRig(
+  opts: { allowPrompts?: boolean; baseBindings?: Record<string, unknown> } = {},
+): TestRig {
   const dir = mkdtempSync(join(tmpdir(), "praxis-logger-"));
   const file = join(dir, "out.log");
   const dest = pino.destination({ sync: true, dest: file });
@@ -346,11 +348,9 @@ describe("createMainLogger (smoke)", () => {
     const nested = join(smokeDir, "a", "b", "c", "praxis.log");
     // mkdirSync on the parent runs synchronously inside createMainLogger;
     // when the path is missing we'd throw without it.
-    const log = createMainLogger(smokeOpts({ filePath: nested }));
+    const log = await createMainLogger(smokeOpts({ filePath: nested }));
     log.info("dir.created");
-    // The directory must exist after construction — the worker may not have
-    // written to the file yet (Vitest stdio capture interferes with pino's
-    // transport worker), but the mkdir step is sync and observable.
+    // The directory must exist after construction.
     const { existsSync, statSync } = await import("node:fs");
     const dirOf = join(smokeDir, "a", "b", "c");
     expect(existsSync(dirOf)).toBe(true);
@@ -359,13 +359,36 @@ describe("createMainLogger (smoke)", () => {
   });
 
   it("shutdown resolves without throwing", async () => {
-    const log = createMainLogger(smokeOpts());
+    const log = await createMainLogger(smokeOpts());
     log.info("smoke");
     await expect(log.shutdown()).resolves.toBeUndefined();
   });
 
   it("shutdown is safe when no records were emitted", async () => {
-    const log = createMainLogger(smokeOpts());
+    const log = await createMainLogger(smokeOpts());
     await expect(log.shutdown()).resolves.toBeUndefined();
+  });
+
+  it("actually writes records to the file (pino-roll in-process)", async () => {
+    const log = await createMainLogger(smokeOpts({ pretty: false }));
+    log.info("file.write.test", { ok: true });
+    log.warn("file.write.warn");
+    await log.shutdown();
+
+    // pino-roll appends `.1` (or higher) to the base filename. Find any file
+    // produced under the smoke dir and assert it has both records.
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const entries = readdirSync(smokeDir).filter((e) => e.startsWith("praxis.log"));
+    expect(entries.length).toBeGreaterThan(0);
+    let totalSize = 0;
+    let combinedContent = "";
+    for (const e of entries) {
+      const p = join(smokeDir, e);
+      totalSize += statSync(p).size;
+      combinedContent += readFileSync(p, "utf8");
+    }
+    expect(totalSize).toBeGreaterThan(0);
+    expect(combinedContent).toContain("file.write.test");
+    expect(combinedContent).toContain("file.write.warn");
   });
 });

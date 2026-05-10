@@ -80,10 +80,11 @@ describe("registerLogChannel", () => {
 
   it("accepts a record without optional fields/bindings", () => {
     registerLogChannel(makeFakeLogger());
-    listeners.get(LOG_CHANNEL)?.(
-      {},
-      { level: "warn", time: 1, message: "minimal" } satisfies LogRecord,
-    );
+    listeners.get(LOG_CHANNEL)?.({}, {
+      level: "warn",
+      time: 1,
+      message: "minimal",
+    } satisfies LogRecord);
     expect(captured).toHaveLength(1);
     expect(captured[0]?.level).toBe("warn");
   });
@@ -130,12 +131,15 @@ describe("registerLogChannel", () => {
 
   it("drops a record with non-object fields", () => {
     registerLogChannel(makeFakeLogger());
-    listeners.get(LOG_CHANNEL)?.({}, {
-      level: "info",
-      time: 1,
-      message: "x",
-      fields: "not-an-object",
-    });
+    listeners.get(LOG_CHANNEL)?.(
+      {},
+      {
+        level: "info",
+        time: 1,
+        message: "x",
+        fields: "not-an-object",
+      },
+    );
     expect(captured).toHaveLength(0);
   });
 

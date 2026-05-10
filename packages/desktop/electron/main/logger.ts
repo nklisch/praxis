@@ -1,8 +1,10 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Logger, LogLevel, LogRecord } from "@praxis/core/types";
-import type { Logger as PinoInstance } from "pino";
+import type { DestinationStream, Logger as PinoInstance, StreamEntry } from "pino";
 import pino from "pino";
+import pretty from "pino-pretty";
+import buildPinoRoll from "pino-roll";
 
 const REDACT_PATHS = [
   "apiKey",
@@ -54,45 +56,69 @@ export interface MainLogger extends Logger {
   shutdown(): Promise<void>;
 }
 
-export function createMainLogger(opts: MainLoggerOptions): MainLogger {
+/**
+ * Minimal contract for streams pino's `multistream` accepts. Each underlying
+ * stream (pino-pretty, pino-roll's SonicBoom) has a `flushSync()` and an
+ * `end()`; we wait for the corresponding `finish` / `close` to drain before
+ * resolving shutdown. This shape avoids reaching into pino internals.
+ */
+interface FlushableStream {
+  flushSync?: () => void;
+  end?: () => void;
+  once?: (event: "finish" | "close" | "end" | "drain", cb: () => void) => unknown;
+  on?: (event: "error", cb: (err: unknown) => void) => unknown;
+}
+
+export async function createMainLogger(opts: MainLoggerOptions): Promise<MainLogger> {
   if (opts.filePath) mkdirSync(dirname(opts.filePath), { recursive: true });
 
-  const targets: Array<{ target: string; level: LogLevel; options: Record<string, unknown> }> = [];
+  // We deliberately use `pino.multistream` with in-process streams (one for
+  // pretty stdout, one for the rolling file) rather than `pino.transport({
+  // targets })` with worker-thread targets. The worker-thread approach has
+  // silent-failure modes in environments with unusual stdio handling
+  // (Electron's main process, Vitest's stdio capture) where the transport
+  // appears to initialize but no records reach disk. Multistream runs every
+  // stream on the main thread so failures are observable and writes are
+  // synchronous-ish (flushed each tick by sonic-boom).
+  const streams: StreamEntry<LogLevel>[] = [];
+  const flushables: FlushableStream[] = [];
 
   if (opts.pretty) {
-    targets.push({
-      target: "pino-pretty",
-      level: opts.level,
-      options: {
-        colorize: true,
-        translateTime: "HH:MM:ss.l",
-        ignore: "pid,hostname",
-        singleLine: false,
-      },
+    const prettyStream = pretty({
+      colorize: true,
+      translateTime: "HH:MM:ss.l",
+      ignore: "pid,hostname",
+      singleLine: false,
+      destination: 1, // stdout fd
     });
+    streams.push({ stream: prettyStream as unknown as DestinationStream, level: opts.level });
+    flushables.push(prettyStream as unknown as FlushableStream);
   } else {
-    // Production stdout: JSONL (one record per line).
-    targets.push({
-      target: "pino/file",
-      level: opts.level,
-      options: { destination: 1 }, // 1 = stdout fd
-    });
+    // Production: JSONL to stdout via raw fd (no formatting).
+    const stdoutStream = pino.destination({ dest: 1, sync: false });
+    streams.push({ stream: stdoutStream, level: opts.level });
+    flushables.push(stdoutStream as unknown as FlushableStream);
   }
 
   if (opts.filePath) {
-    targets.push({
-      target: "pino-roll",
-      level: opts.level,
-      options: {
-        file: opts.filePath,
-        size: `${opts.maxFileSizeMb}m`,
-        limit: { count: opts.maxFiles },
-        mkdir: true,
-      },
+    // pino-roll@3 returns a SonicBoom stream from `build()`. Running it
+    // in-process (not via pino.transport target) is the load-bearing change
+    // for reliable file output — see the comment above multistream.
+    const fileStream = await buildPinoRoll({
+      file: opts.filePath,
+      size: `${opts.maxFileSizeMb}m`,
+      limit: { count: opts.maxFiles },
+      mkdir: true,
     });
+    fileStream.on?.("error", (err: unknown) => {
+      // Surface file-stream errors to stderr so they can't fail silently.
+      // Logger errors going to the logger itself would loop; stderr is the
+      // backstop.
+      console.error("praxis.logger.file_stream_error", err);
+    });
+    streams.push({ stream: fileStream as DestinationStream, level: opts.level });
+    flushables.push(fileStream as FlushableStream);
   }
-
-  const transport = pino.transport({ targets });
 
   const root = pino(
     {
@@ -104,28 +130,10 @@ export function createMainLogger(opts: MainLoggerOptions): MainLogger {
         level: (label) => ({ level: label }),
       },
     },
-    transport,
+    pino.multistream(streams),
   );
 
-  return wrap(root, opts.prompts, transport);
-}
-
-/**
- * Pino's worker transport (thread-stream) needs end() + the 'finish' event
- * to drain the worker before the process exits. flush() only asks the local
- * side to push pending bytes; without waiting for the transport to finish,
- * the final records can be truncated when app.exit() runs immediately after
- * shutdown().
- *
- * Note: thread-stream's end(cb) does NOT fire the callback reliably — listen
- * for the 'finish' event instead. Verified empirically against pino@9.
- *
- * Typed loosely because pino's public surface doesn't export the
- * thread-stream type directly; the methods used here are stable.
- */
-interface TransportStreamLike {
-  end: () => void;
-  once: (event: "finish" | "close" | "end", listener: () => void) => unknown;
+  return wrap(root, opts.prompts, flushables);
 }
 
 /**
@@ -137,17 +145,14 @@ interface TransportStreamLike {
  *
  * @internal
  */
-export function wrapPinoForTesting(
-  pinoInstance: PinoInstance,
-  allowPrompts: boolean,
-): MainLogger {
+export function wrapPinoForTesting(pinoInstance: PinoInstance, allowPrompts: boolean): MainLogger {
   return wrap(pinoInstance, allowPrompts);
 }
 
 function wrap(
   pinoInstance: PinoInstance,
   allowPrompts: boolean,
-  transport?: TransportStreamLike,
+  flushables?: FlushableStream[],
 ): MainLogger {
   const guard = (fields?: Record<string, unknown>): Record<string, unknown> | undefined => {
     if (!fields || allowPrompts) return fields;
@@ -175,28 +180,37 @@ function wrap(
       child[record.level](fields ?? {}, record.message);
     },
     shutdown: async () => {
-      // Step 1: ask pino to flush its in-process buffer to the transport.
+      // Step 1: ask pino to flush its in-process buffer.
       await new Promise<void>((resolve) => pinoInstance.flush(() => resolve()));
-      // Step 2: end the transport stream and wait for it to drain. Listen
-      // for 'finish' (callback to .end() does not fire reliably under pino's
-      // thread-stream). Bound the wait — if the worker is wedged, prefer to
-      // exit anyway rather than hang forever on shutdown.
-      if (transport) {
-        await new Promise<void>((resolve) => {
-          let settled = false;
-          const done = (): void => {
-            if (settled) return;
-            settled = true;
-            resolve();
-          };
-          transport.once("finish", done);
-          transport.once("close", done);
-          transport.end();
-          // 2s ceiling — the worker normally drains in ~30ms; any longer
-          // means something is stuck and we should not hold up app.exit().
-          setTimeout(done, 2000).unref?.();
-        });
-      }
+      // Step 2: end each underlying stream and wait for it to drain. Bound the
+      // wait per stream — a stuck stream shouldn't hold up app.exit().
+      if (!flushables) return;
+      await Promise.all(
+        flushables.map(
+          (stream) =>
+            new Promise<void>((resolve) => {
+              let settled = false;
+              const done = (): void => {
+                if (settled) return;
+                settled = true;
+                resolve();
+              };
+              try {
+                stream.flushSync?.();
+              } catch {
+                // best-effort sync flush
+              }
+              stream.once?.("finish", done);
+              stream.once?.("close", done);
+              try {
+                stream.end?.();
+              } catch {
+                done();
+              }
+              setTimeout(done, 2000).unref?.();
+            }),
+        ),
+      );
     },
   };
   return wrapped;
