@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-async-generator-line
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -34,3 +34,7 @@ Update the file:line citation to
 
 ## Implementation notes
 Updated `session-service.ts:91` → `:125` in async-generator-event-stream.md Example 1. Verified: `async *send(sessionId: SessionId, message: string)` is at line 125 in the current source file. New line number confirmed correct.
+
+## Review (2026-05-10)
+
+Spot-checked: `grep -n "async \*send"` on `session-service.ts` confirms line 125. Citation accurate. Approve.

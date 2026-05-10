@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-episodic-append-line
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -32,3 +32,7 @@ Update the citation to `packages/core/src/services/session-service.ts:125`.
 
 ## Implementation notes
 Updated `session-service.ts:139` → `:125` in episodic-append-ordering.md Example 1. Verified: `async *send` is at line 125 in the current source. The `episodic.ts:19` reference (Example 2) was already accurate and left unchanged.
+
+## Review (2026-05-10)
+
+Citation verified: `async *send` is at session-service.ts:125 (confirmed independently). No other changes needed. Approve.

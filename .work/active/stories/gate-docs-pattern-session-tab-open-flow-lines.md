@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-session-tab-open-flow-lines
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -41,3 +41,7 @@ The described behavior is unchanged; only line ranges shifted.
 
 ## Implementation notes
 Updated three citations: course-detail.tsx:34-39 → :102-110 (story said :102-118 but lines 111-118 are an unrelated loading block; used the accurate function boundary), library.tsx:48-53 → :48-55 with second site noted at :67-74, new-tab-picker.tsx:56-69 → :50-69. All new ranges verified against current source.
+
+## Review (2026-05-10)
+
+The narrowing from `:102-118` to `:102-110` is a deliberate improvement: the agent confirmed lines 111-118 are an unrelated loading block and chose the tighter function boundary. This is the correct call — a citation should point at exactly the code being discussed, not adjacent boilerplate. Three citations updated; intent and behavior description unchanged. Approve.

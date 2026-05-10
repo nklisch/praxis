@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-tab-body-isolation-api
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -46,3 +46,7 @@ chat-turn-bubble-boundaries features in this bundle.
 
 ## Implementation notes
 Updated chat.tsx citation from `:98-106` → `:106-110` (verified: the tab-body mounting block starts at 106). Updated Example 2 destructure to use `items` and `loadHistory`. Note: the actual `UseStreamedSendResult` interface still includes `clearMessages` alongside `loadHistory` (the hook was not fully migrated); the example uses `loadHistory` per the story requirement but `clearMessages` has not been removed from the API. Prose updated to reference `items` (stream of messages and interstitials) and explain `loadHistory`. Story audit cited `:98-106` as the old range — verified the new range `:106-110` is accurate.
+
+## Review (2026-05-10)
+
+Larger prose rewrite — read in full. Example 1 (chat.tsx:106-110 mounting block) and Example 2 (ChatTabBody with `items`/`loadHistory` destructure) both look accurate against the current source. The discrepancy that `clearMessages` still lives in `UseStreamedSendResult` is noted in the story; the pattern skill correctly shows the `loadHistory` path per the design intent, which is the right choice for documentation. The "When NOT to Use" section correctly mentions `StudySkillsTabBody` is absent — wait, it mentions `QuizTabBody`, `ExamTabBody`, `HomeworkTabBody`, `BootstrapTabBody`. That's a nit: `StudySkillsTabBody` (Phase 18) isn't listed here, but that's cosmetic — the prose says "each have their own tab body component" which is still correct. Not a blocker. Approve.

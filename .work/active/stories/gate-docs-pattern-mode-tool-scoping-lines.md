@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-mode-tool-scoping-lines
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -47,3 +47,7 @@ that no longer reflects reality.
 
 ## Implementation notes
 Updated three line citations: teach.ts:9 → :12, session-service.ts:247 → :680, services.ts:31 → :472 — all verified against current source. Replaced the stub `toolNames: ["grade_math", "code_sandbox"]` snippet with a representative ellipsis form pointing readers to teach.ts:31 for the full 24-entry list. Updated the services.ts Example 3 snippet to show the actual spread-based toolDefinitions array with a comment linking to teach.ts.
+
+## Review (2026-05-10)
+
+Spot-checked: teach.ts:12 (`export const teachMode`), session-service.ts:680 (`enabledNames = new Set`), services.ts:472 (`const toolDefinitions`) — all confirmed correct. The ellipsis stub replacement is good; the old two-tool example was actively misleading for a 24-tool mode. Approve.

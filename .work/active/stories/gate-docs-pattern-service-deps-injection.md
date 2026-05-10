@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-service-deps-injection
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -52,3 +52,7 @@ contributors looking at it as a guide.
 
 ## Implementation notes
 Updated `types.ts:13` → `:36` (verified: `export interface ServiceDeps` is at line 36). Replaced the stripped-down 6-field example with a documented summary form: `toolServices` struct is noted as 22 fields with key examples listed in a JSDoc comment, and the top-level fields `indexerOrchestrator`, `engineFactory`, `lockService`, `activity` are shown with their optionality. Readers are linked to `types.ts:45` for the full 22-field struct definition.
+
+## Review (2026-05-10)
+
+Read the full rewrite. The updated `service-deps-injection.md` is substantially better than the prior 6-field stub — it shows the actual top-level fields with optionality markers, uses a JSDoc comment to name the 22 `toolServices` entries, and points to `types.ts:45` for the complete struct. Crucially `lockService` (required) is now shown as required (no `?`), and `engineFactory`, `indexerOrchestrator`, `activity` are correctly marked optional. The `buildServices` example and test example both look accurate. Spot-checked: `export interface ServiceDeps` is at types.ts:36. Approve.
