@@ -1,7 +1,7 @@
 ---
 id: gate-docs-curriculum-exam-tools
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -37,3 +37,6 @@ Add `pedagogy.list_metacognitive_prompts` to the exam tool list and
 update the surrounding sentence ("and nothing else" → drop, or expand
 to note this read-only pedagogy lookup is acceptable in the verification
 stance because it returns metadata, not method/answer help).
+
+## Implementation notes
+Dropped "(and nothing else)" and appended `pedagogy.list_metacognitive_prompts` with an inline rationale: read-only metadata, not method/answer help, consistent with verification stance. Matches the comment in `exam.ts:38`.

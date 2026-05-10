@@ -95,7 +95,7 @@ Longer practice across multiple concepts, submitted in one batch. Agent voice: h
 
 Gated assessment. Strict tool subset, no help during the exam.
 
-- Tools: `assignment.show`, `assignment.read_grade`, `sketch.read`, `clarification` (and nothing else). The `clarification` tool (Phase 16) lets the agent rephrase a confusing prompt without revealing method or answer. See `packages/curriculum/src/modes/exam.ts` for the canonical list.
+- Tools: `assignment.show`, `assignment.read_grade`, `sketch.read`, `clarification`, `pedagogy.list_metacognitive_prompts`. The `clarification` tool lets the agent rephrase a confusing prompt without revealing method or answer. `pedagogy.list_metacognitive_prompts` is permitted because it returns read-only metadata (reflection prompts), not method or answer help — consistent with the verification stance. See `packages/curriculum/src/modes/exam.ts` for the canonical list.
 - Approach feedback layer: OFF (verification stance — no post-hoc feedback enrichment)
 - **Free-response items require an explicit `rubric`** (validated at item-create). Rubric agent scores per-criterion (integer 0-10) with written rationales; total computed deterministically as weighted sum. Verification stance preserved through pre-committed criteria + per-criterion auditability + deterministic aggregation.
 - `workRubric`: judgment-call per item. `primaryWeight` defaults to 1.0 (deterministic-only) unless explicitly authored otherwise.
