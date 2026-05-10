@@ -111,3 +111,15 @@ Capability completeness: All 4 active findings are resolved. The High (URL schem
 Cross-cutting review: No regressions introduced across the batch. The four changes touch distinct files (`update-service.ts` / `ipc-server.ts` / `ONBOARDING.md` / `UPDATE-CHANNEL.md`) with no interaction surface between them. The follow-up backlog items (`idea-encrypt-api-key-with-safestorage`, `idea-update-feed-ed25519-signature`) are genuine engineering work with design considerations fully captured — they will not be lost.
 
 Foundation-doc alignment: ONBOARDING.md and UPDATE-CHANNEL.md are now accurate. No "previously" prose, no legacy notation introduced anywhere in the batch.
+
+## Lows drained (2026-05-10)
+
+All 3 backlog Low stories were lifted into active and drained by user request via `/agile-workflow:release-deploy v0.1.0` (option "Drain them now").
+
+| Story | Resolution | Commit |
+|---|---|---|
+| `gate-security-author-export-memory-target-path-validation` | `..` segment + hidden-file basename checks in `memory-service.ts::exportToFile`; write uses canonicalised `resolvedPath` | `2132bdb` |
+| `gate-security-browser-window-navigation-guards` | `will-navigate` guard + `setWindowOpenHandler` added to `window.ts`; `shell.openExternal` for http/https popups | `2c72664` |
+| `gate-security-preload-sandbox-comment-mismatch` | JSDoc in `preload/index.ts` corrected to `sandbox: false` with ESM constraint explanation | `6169d65` |
+
+All 3 reviewed and approved (2026-05-10); all at `stage: done`.
