@@ -20,6 +20,7 @@ import { SessionClient } from "./services/session-client.js";
 import { ShellClientImpl } from "./services/shell-client.js";
 import { SketchClient } from "./services/sketch-client.js";
 import { TabsClient } from "./services/tabs-client.js";
+import { UpdateClient } from "./services/update-client.js";
 import type { ClientTransport } from "./transport/types.js";
 
 /**
@@ -50,5 +51,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     activity: new ActivityClient(transport),
     drafts: new DraftsClient(transport),
     quickCheck: new QuickCheckClient(transport), // ← Phase 17
+    update: new UpdateClient(transport), // ← Phase 19
   };
 }

@@ -97,6 +97,15 @@ export { getOrCreateDefaultStudentId } from "./student.js";
 export type { TabsServiceDeps } from "./tabs-service.js";
 export { TabsServiceImpl } from "./tabs-service.js";
 export type { ServiceDeps } from "./types.js";
+// Phase 19: Update check (manual-download flow)
+export {
+  compareVersions,
+  type UpdateCheckResult,
+  type UpdateFeed,
+  UpdateFeedSchema,
+  type UpdateService,
+  UpdateServiceImpl,
+} from "./update-service.js";
 // Phase 15a: Vision service
 export type { VisionServiceDeps } from "./vision-service.js";
 export { VisionServiceImpl } from "./vision-service.js";

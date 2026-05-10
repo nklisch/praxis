@@ -8,6 +8,7 @@ import {
 import { ActivityRail } from "./components/activity-rail.js";
 import { Nav } from "./components/nav.js";
 import { OnboardingFlow } from "./components/onboarding-flow.js";
+import { UpdateBanner } from "./components/update-banner.js";
 import { useFirstRun } from "./hooks/use-first-run.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
@@ -36,6 +37,7 @@ function RootLayout() {
 
   return (
     <div className={styles.layout}>
+      <UpdateBanner />
       <Nav />
       <main className={styles.main}>
         <Outlet />

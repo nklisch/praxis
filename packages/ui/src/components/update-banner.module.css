@@ -1,0 +1,42 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-bg-subtle, #f6f3ee);
+  border-bottom: 1px solid var(--color-rule, #d0d0d0);
+  font-size: 0.95rem;
+}
+
+.message {
+  flex: 1;
+  color: var(--color-fg, #111111);
+}
+
+.downloadLink {
+  font-weight: 600;
+  color: var(--color-accent, #2563eb);
+  text-decoration: none;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+
+.downloadLink:hover {
+  background: var(--color-accent, #2563eb);
+  color: var(--color-bg, #ffffff);
+}
+
+.dismissButton {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0.2rem 0.5rem;
+  color: var(--color-fg-muted, #5a5a5a);
+  cursor: pointer;
+}
+
+.dismissButton:hover {
+  color: var(--color-fg, #111111);
+}

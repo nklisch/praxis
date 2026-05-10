@@ -37,6 +37,7 @@ export type {
   ShellClient,
   SketchClientApi,
   TabsClientApi,
+  UpdateClientApi,
 } from "./client.js";
 // ActivityClient is also exported via `export type * from "./activity.js"` above.
 export type * from "./common.js";

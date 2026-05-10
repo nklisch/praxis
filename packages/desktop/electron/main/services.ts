@@ -18,6 +18,7 @@ import {
   ConceptMapServiceImpl,
   ConceptMapSnapshotter,
   ConfigServiceImpl,
+  UpdateServiceImpl,
   CourseDocumentsServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
@@ -117,6 +118,8 @@ function resolveDistPath(packageName: string, distSubpath: string): string {
 export interface Services {
   session: SessionServiceImpl;
   config: ConfigServiceImpl;
+  /** Phase 19: manual-download update check. */
+  update: UpdateServiceImpl;
   ingestion: IngestionService;
   documents: DocumentsServiceImpl;
   artifacts: ArtifactsServiceImpl; // ← Phase 6: exposed for IPC handlers
@@ -558,6 +561,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   return {
     session: sessionService,
     config: new ConfigServiceImpl(deps),
+    update: new UpdateServiceImpl(deps),
     ingestion,
     documents: documentsService,
     artifacts: artifactsService,

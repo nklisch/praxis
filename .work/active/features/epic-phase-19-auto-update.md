@@ -1,7 +1,7 @@
 ---
 id: epic-phase-19-auto-update
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-phase-19-ship-v1
 depends_on: [epic-phase-19-electron-signing]
@@ -547,3 +547,70 @@ working end-to-end (no feed exists at v1.0.0 ship time).
 Single-stride feature. Tightly cohesive — the units chain through one
 data flow (env var → service → IPC → hook → banner). One agent, one
 pass.
+
+## Implementation notes
+
+- **Files changed**:
+  - `packages/core/src/services/update-service.ts` (new) — Unit 1.
+  - `packages/core/src/services/index.ts` (re-export) — Unit 1.
+  - `packages/core/src/types/client.ts` (`UpdateClientApi` interface +
+    `update: UpdateClientApi` on `PraxisClient`) — Unit 2.
+  - `packages/core/src/types/index.ts` (re-export `UpdateClientApi`) —
+    Unit 2.
+  - `packages/desktop/electron/main/services.ts` (`Services.update` +
+    `UpdateServiceImpl` wiring) — Unit 2.
+  - `packages/desktop/electron/main/ipc-server.ts` (handler) — Unit 3.
+  - `packages/client/src/services/update-client.ts` (new) — Unit 4.
+  - `packages/client/src/client.ts` (wire into `createPraxisClient`) —
+    Unit 4.
+  - `packages/client/src/__tests__/client.test.ts` (channel-routing
+    test) — Unit 9.
+  - `packages/ui/src/lib/copy.ts` (`COPY.update.*`) — Unit 7a.
+  - `packages/ui/src/hooks/use-update-check.ts` (new) — Unit 5.
+  - `packages/ui/src/components/update-banner.tsx` (new) — Unit 6.
+  - `packages/ui/src/components/update-banner.module.css` (new) —
+    Unit 6.
+  - `packages/ui/src/router.tsx` (mount `<UpdateBanner />` in the
+    non-onboarding layout) — Unit 7b.
+  - `packages/ui/src/__tests__/helpers/fake-client.ts` (add `update`
+    field) — Unit 9.
+  - `packages/ui/src/__tests__/setup.ts` (localStorage polyfill) —
+    test infrastructure.
+  - `packages/ui/src/__tests__/use-update-check.test.tsx` (new) —
+    Unit 9.
+  - `packages/ui/src/__tests__/update-banner.test.tsx` (new) — Unit 9.
+  - `packages/core/src/services/__tests__/update-service.test.ts`
+    (new) — Unit 9.
+  - `docs/UPDATE-CHANNEL.md` (new) — Unit 8.
+- **Tests added**: 22 total (10 service, 5 hook, 6 banner, 1 client
+  routing). Full workspace `pnpm test` shows 2270 passing (up from
+  2248). No regressions.
+- **Discrepancies from design**:
+  1. *Two interface shapes for the update surface.* The design body
+     showed `UpdateService` as a single interface used by both the
+     main-process impl and the renderer client. At implementation
+     time it became clear the client doesn't need to pass
+     `currentVersion` (the main process can read it via
+     `app.getVersion()`), and forcing the same parameter shape made
+     the IPC awkward. Split into:
+     - Main-process `UpdateService.checkLatest(currentVersion: string)`
+       in `packages/core/src/services/update-service.ts`.
+     - Renderer `UpdateClientApi.checkLatest()` in `packages/core/src/types/client.ts`.
+     The IPC handler bridges them by calling `app.getVersion()` and
+     forwarding to the service. Cleaner contract, no functional
+     difference vs the design.
+  2. *Test setup gained a localStorage polyfill.* jsdom 29 ships
+     without `window.localStorage`. The polyfill is a minimal
+     in-memory `Map`-backed implementation in
+     `packages/ui/src/__tests__/setup.ts`; will benefit any future
+     test that touches localStorage too.
+- **Adjacent issues parked**: none. All findings folded into the
+  feature itself.
+- **Update-feed-URL provenance**: read from `process.env.PRAXIS_UPDATE_FEED_URL`
+  at call time (not cached). Operationally, set it in the user's shell
+  before launching Electron; packaged builds inherit the parent shell's
+  env. v1.0.0 ships with no feed URL set — the banner is dormant until
+  v1.0.1 gives the maintainer something to point it at.
+- **No migration to electron-updater required for v1**. The migration
+  path is documented in `docs/UPDATE-CHANNEL.md` § "Migration to
+  electron-updater (post-v1)".

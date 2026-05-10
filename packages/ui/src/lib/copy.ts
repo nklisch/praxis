@@ -61,6 +61,11 @@ export const COPY = {
     noVision: "Vision isn't available with the current engine. Switch to one that supports vision.",
     needsReview: "I read your work but couldn't verify it cleanly. Could you re-write or clarify?",
   },
+  update: {
+    available: (version: string): string => `A newer Praxis is available — v${version}.`,
+    downloadLabel: "Download",
+    dismissLabel: "Dismiss this update",
+  },
   onboarding: {
     welcomeTitle: "Welcome to Praxis",
     welcomeBody:

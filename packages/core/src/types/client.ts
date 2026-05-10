@@ -1,4 +1,5 @@
 import type { ClaudeAuthService } from "../services/claude-auth.js";
+import type { UpdateCheckResult } from "../services/update-service.js";
 import type { ActivityClient } from "./activity.js";
 import type {
   Assignment,
@@ -97,6 +98,8 @@ export interface PraxisClient {
   drafts: DraftStreamClient;
   /** Phase 17: quick check — subscribe to inline question events; resolve student answers. */
   quickCheck: QuickCheckClientApi;
+  /** Phase 19: manual-download update check (env-var-gated; no-op when not configured). */
+  update: UpdateClientApi;
 }
 
 /**
@@ -659,4 +662,14 @@ export interface FlashcardsClient {
   }): Promise<{ flashcard: Flashcard; nextReviewAt: Timestamp }>;
 
   dueCount(): Promise<number>;
+}
+
+/**
+ * Phase 19: renderer-side update-check API. The main-process `UpdateService`
+ * accepts a version string; the IPC handler reads `app.getVersion()`
+ * internally and passes it through, so the renderer's surface is
+ * parameter-less.
+ */
+export interface UpdateClientApi {
+  checkLatest(): Promise<UpdateCheckResult>;
 }

@@ -93,6 +93,13 @@ describe("createPraxisClient", () => {
     expect(invokedChannels[0]?.channel).toBe("praxis.config.markFirstRunComplete");
   });
 
+  it("update.checkLatest routes to praxis.update.checkLatest invoke", async () => {
+    const { transport, invokedChannels } = makeTransport();
+    const client = createPraxisClient(transport);
+    await client.update.checkLatest();
+    expect(invokedChannels[0]?.channel).toBe("praxis.update.checkLatest");
+  });
+
   describe("claudeAuth", () => {
     it("claudeAuth.status() routes to praxis.auth.claude.status invoke", async () => {
       const { transport, invokedChannels } = makeTransport();

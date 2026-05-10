@@ -18,7 +18,7 @@ import type {
   TldrawSnapshot,
 } from "@praxis/core/types";
 import { brandId, serializeError } from "@praxis/core/types";
-import { ipcMain } from "electron";
+import { app, ipcMain } from "electron";
 import { registerActivityHandlers } from "./activity-channel.js";
 import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
 import { registerCourseDocumentsHandlers } from "./course-documents-channel.js";
@@ -212,6 +212,12 @@ export function registerIpcHandlers(
 
   handle("praxis.config.markFirstRunComplete", async () => {
     return services.config.markFirstRunComplete();
+  });
+
+  // ── Update check (manual-download flow) ──────────────────────────────────
+
+  handle("praxis.update.checkLatest", async () => {
+    return services.update.checkLatest(app.getVersion());
   });
 
   // ── Documents ────────────────────────────────────────────────────────────
