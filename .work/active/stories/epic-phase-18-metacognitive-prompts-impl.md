@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-metacognitive-prompts-impl
 kind: story
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-metacognitive-prompts
 depends_on: []
@@ -200,17 +200,69 @@ reflection.
 
 ## Acceptance criteria (story)
 
-- [ ] `metacognitivePromptsFragment(triggers)` factory exists and is
+- [x] `metacognitivePromptsFragment(triggers)` factory exists and is
       pure.
-- [ ] Teach / quiz / homework / exam modes opt in with their respective
+- [x] Teach / quiz / homework / exam modes opt in with their respective
       trigger sets.
-- [ ] Each opting mode's toolNames includes
+- [x] Each opting mode's toolNames includes
       `pedagogy.list_metacognitive_prompts`.
-- [ ] `study-skills` mode does NOT include this fragment (its role
+- [x] `study-skills` mode does NOT include this fragment (its role
       fragment IS the metacognition coach voice — adding the cross-mode
       fragment would duplicate).
-- [ ] `bootstrap` and `configure` modes also do NOT include the
+- [x] `bootstrap` and `configure` modes also do NOT include the
       fragment — they're pre-curricular / authoring contexts, not
       student-facing teaching.
-- [ ] `pnpm typecheck && pnpm test` green.
-- [ ] `pnpm lint` shows no regression past the current 4-error baseline.
+- [x] `pnpm typecheck && pnpm test` green.
+- [x] `pnpm lint` shows no regression past the current 9-error baseline
+      (the story description cited 4 but the actual HEAD baseline is 9 —
+      all pre-existing in `@praxis/claude-cli-sdk` and `@praxis/client`).
+
+## Implementation notes
+
+### Files created
+
+- `packages/curriculum/src/modes/fragments/metacognitive-prompts.ts`
+  — `metacognitivePromptsFragment(input)` factory with `TRIGGER_GUIDANCE`
+  table for all five `MetacognitivePromptTrigger` values.
+- `packages/curriculum/src/modes/fragments/__tests__/metacognitive-prompts.test.ts`
+  — 27 unit tests: shape, empty triggers, subset triggers, round-trip
+  all trigger values, purity.
+- `packages/curriculum/src/modes/__tests__/metacognitive-prompts-integration.test.ts`
+  — 34 integration tests asserting each opting mode's fragment list,
+  trigger set content, and toolNames.
+
+### Files modified
+
+- `packages/curriculum/src/modes/teach.ts` — import factory, insert
+  fragment after `principlesFragment`, add tool to `toolNames`.
+- `packages/curriculum/src/modes/quiz.ts` — same pattern, trigger set
+  `["pre-quiz", "post-error"]`.
+- `packages/curriculum/src/modes/homework.ts` — same pattern, trigger
+  set `["pre-reading", "post-error"]`. Note: `toolNames` is still
+  `quizMode.toolNames` (shared reference) — since `quizMode.toolNames`
+  now includes `pedagogy.list_metacognitive_prompts`, homework
+  automatically inherits it. This is correct because the
+  `promptFragments` arrays are independent (each declares its own
+  trigger set).
+- `packages/curriculum/src/modes/exam.ts` — trigger set `["session-end"]`
+  only; `pedagogy.list_metacognitive_prompts` added explicitly to the
+  minimal verification-stance toolNames.
+- `packages/curriculum/src/__tests__/teach-mode.test.ts` — updated
+  hardcoded fragment count 8 → 9.
+- `packages/curriculum/src/__tests__/quiz-mode.test.ts` — updated
+  hardcoded fragment count 9 → 10.
+- `packages/curriculum/src/__tests__/exam-mode.test.ts` — updated
+  hardcoded toolNames count 4 → 5; added assertion for new tool.
+
+### Discrepancies from design
+
+- Lint baseline was 9 errors at HEAD, not 4 as stated in the story
+  prompt. No new errors introduced.
+
+### Verification results
+
+- `pnpm typecheck`: clean (all packages pass tsgo).
+- `pnpm --filter @praxis/curriculum test`: 307 tests, all pass.
+- `pnpm test` (full repo): 2200 tests pass, 15 skipped (slow Pyodide),
+  265 test files, 1 skipped.
+- `pnpm lint`: 9 errors — same as HEAD baseline; no new errors.

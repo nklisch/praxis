@@ -4,6 +4,7 @@ import { assignmentContextFragmentDefault } from "./fragments/assignment-context
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
 import { homeworkRoleFragment } from "./fragments/homework-role.js";
+import { metacognitivePromptsFragment } from "./fragments/metacognitive-prompts.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
@@ -20,6 +21,9 @@ export const homeworkMode: Mode = {
     preambleFragment,
     homeworkRoleFragment,
     principlesFragment,
+    metacognitivePromptsFragment({
+      triggers: ["pre-reading", "post-error"],
+    }), // ← Phase 18: metacognitive coaching guidance
     assessmentToolsFragment,
     sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault,
@@ -27,6 +31,6 @@ export const homeworkMode: Mode = {
     constraintsFragment,
     postambleFragment,
   ],
-  toolNames: quizMode.toolNames, // same as quiz (includes sketch.read); behavior diverges via prompt
+  toolNames: quizMode.toolNames, // same as quiz (includes sketch.read + pedagogy.list_metacognitive_prompts); behavior diverges via prompt
   uiSurface: "chat",
 };

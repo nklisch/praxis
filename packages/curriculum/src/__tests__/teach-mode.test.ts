@@ -21,8 +21,8 @@ describe("mode registry", () => {
     expect(modes.some((m) => m.id === "teach")).toBe(true);
   });
 
-  it("teachMode has all 8 prompt fragments (including tools + course-context + sketch-awareness)", () => {
-    expect(teachMode.promptFragments).toHaveLength(8);
+  it("teachMode has all 9 prompt fragments (including tools + course-context + sketch-awareness + metacognitive)", () => {
+    expect(teachMode.promptFragments).toHaveLength(9);
     const ids = teachMode.promptFragments.map((f) => f.id);
     const positions = teachMode.promptFragments.map((f) => f.position);
     expect(positions).toContain("preamble");

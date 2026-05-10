@@ -1,6 +1,7 @@
 import type { Mode } from "@praxis/core/types";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
+import { metacognitivePromptsFragment } from "./fragments/metacognitive-prompts.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
@@ -18,6 +19,9 @@ export const teachMode: Mode = {
     preambleFragment,
     roleFragment,
     principlesFragment,
+    metacognitivePromptsFragment({
+      triggers: ["pre-reading", "post-error", "session-end"],
+    }), // ← Phase 18: metacognitive coaching guidance
     toolsFragment,
     sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault, // ← Phase 6: replaced at session start when courseId is set
@@ -52,6 +56,7 @@ export const teachMode: Mode = {
     "quick_check.short_answer",
     "quick_check.matching",
     "quick_check.confidence",
+    "pedagogy.list_metacognitive_prompts", // ← Phase 18: metacognitive prompts
   ],
   uiSurface: "chat",
 };
