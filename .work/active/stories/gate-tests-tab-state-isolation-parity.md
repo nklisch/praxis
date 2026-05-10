@@ -1,7 +1,7 @@
 ---
 id: gate-tests-tab-state-isolation-parity
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -56,3 +56,7 @@ className={styles.chip}>study skills</span>` with no data attribute. Used
 presence instead — equivalent semantically. `ChatTabBody` is a pure dispatcher (switch on
 `modeId`), so state isolation is structural; the test pins this so a future keep-alive
 refactor can't silently break it.
+
+## Review (2026-05-10)
+
+**Verdict: Approve.** Test correctly uses `queryByText`/`getAllByText` since the chip is a plain `<span>` with no data attribute — equivalent coverage to the story sketch's `data-chip` approach. The three-step teach→study-skills→teach rerender sequence precisely pins the no-bleed invariant. Structural isolation via `ChatTabBody`'s dispatcher pattern makes this durable.
