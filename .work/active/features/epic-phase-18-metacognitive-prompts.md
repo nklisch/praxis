@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-metacognitive-prompts
 kind: feature
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]
@@ -171,3 +171,43 @@ One child story:
   but worth verifying that the exam-mode tool-scoping check doesn't
   reject it (the existing test suite for exam mode should catch
   any regression).
+
+## Implementation summary (2026-05-10)
+
+Single child story landed at `stage: review`:
+
+- `epic-phase-18-metacognitive-prompts-impl` (`6e34c37`) —
+  `metacognitivePromptsFragment(triggers)` factory + 4 mode opt-ins
+  (teach / quiz / homework / exam) + 61 tests (27 unit + 34
+  integration).
+
+Cross-cutting deviations:
+- Existing per-mode tests (`teach-mode.test.ts`, `quiz-mode.test.ts`,
+  `exam-mode.test.ts`) had hardcoded fragment + tool counts that
+  needed bumping (8→9 fragments, 9→10 fragments, 4→5 tools). The
+  agent updated those alongside the new tests.
+- Lint baseline reconciliation: the implementation prompt cited 4
+  errors as baseline; actual baseline at HEAD is 9 (all pre-existing
+  in `@praxis/claude-cli-sdk` and `@praxis/client` test files). No
+  new errors introduced. The "4" earlier was a transient post-`lint:fix`
+  reading that drifted back as later commits re-introduced
+  auto-fixable issues elsewhere.
+
+Verification at `6e34c37`:
+- `pnpm typecheck` clean (all 10 packages)
+- `pnpm --filter @praxis/curriculum test` 307 passed
+- `pnpm test` (full repo) 2200 passed / 15 skipped
+- `pnpm lint` 9 errors (unchanged baseline; zero new from this story)
+
+What's now possible:
+- Teach / quiz / homework / exam tutors are now woven through with
+  metacognition-coach guidance at the right triggers — pre-reading,
+  post-reading, pre-quiz, post-error, session-end.
+- The metacognition coach is no longer sequestered to the
+  `study-skills` mode (per CURRICULUM.md's "Modes layer the
+  metacognition coach's voice on top" assertion).
+- `epic-phase-18-routing-integration` is the last remaining Phase 18
+  feature — it consumes procedural + affective projections and ties
+  the loop closed.
+
+Stage: implementing → review.
