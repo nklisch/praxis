@@ -1,7 +1,7 @@
 ---
 id: gate-tests-onboarding-config-persistence
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -64,3 +64,16 @@ symmetry argues for the missing onboarding-config tests.
 - The "strictly newer" test uses a real 2ms sleep rather than fake timers
   because `markFirstRunComplete` calls `new Date()` internally — faking
   timers here would require invasive mocking for negligible gain.
+
+## Review (2026-05-10)
+
+Approve. All 4 spec cases are present: fresh-DB null read, valid ISO
+timestamp bounds-checked against `Date.now()` before/after the call,
+upsert-keeps-row (≥ first), and strictly-newer (2ms sleep correctly
+forces distinct `toISOString()` values). Each test calls `makeDb()` for
+a fresh connection — no shared mutable state. Follows the
+`bootstrap-config.test.ts` isolation pattern exactly. No tautology; the
+tests would catch a column-name typo or schema migration regression.
+The `≥` assertion in the upsert test is correct (same-millisecond calls
+are possible); the strict-ordering test handles the distinct-timestamp
+guarantee separately. No blockers, no important findings.
