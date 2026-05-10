@@ -1,7 +1,7 @@
 ---
 id: gate-docs-changelog-missing
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -42,3 +42,11 @@ foundation, tabs and library, sketch/concept maps, bootstrap explorer,
 item types + quick checks, activity-rail, language sandbox registry,
 Claude auth). The release-deploy Phase 5.5 step will then prepend the
 v0.1.0 section.
+
+## Implementation notes
+Created `CHANGELOG.md` at the repo root with Keep-a-Changelog header and
+a `v0 — 2026-05-09 (retro-release)` section. All 23 items in
+`.work/releases/v0/` are enumerated across four thematic groups:
+Foundation and engines, Content and curriculum, UI shell and editorial.
+The file is left ready for release-deploy Phase 5.5 to prepend the
+v0.1.0 section above the v0 block. No v0.1.0 section was added here.
