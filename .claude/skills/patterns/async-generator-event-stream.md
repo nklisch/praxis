@@ -12,7 +12,7 @@ Every agent turn produces an ordered stream of `EngineEvent` values. The stream 
 ## Examples
 
 ### Example 1: `SessionServiceImpl.send` — the full orchestration chain
-**File**: `packages/core/src/services/session-service.ts:91`
+**File**: `packages/core/src/services/session-service.ts:125`
 ```typescript
 async *send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent> {
   // ... validation yields error events and returns

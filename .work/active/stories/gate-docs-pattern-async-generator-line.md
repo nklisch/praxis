@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-async-generator-line
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -31,3 +31,6 @@ changes. The `engines/src/types.ts:12` reference is still accurate.
 ## Required edit
 Update the file:line citation to
 `packages/core/src/services/session-service.ts:125`.
+
+## Implementation notes
+Updated `session-service.ts:91` → `:125` in async-generator-event-stream.md Example 1. Verified: `async *send(sessionId: SessionId, message: string)` is at line 125 in the current source file. New line number confirmed correct.
