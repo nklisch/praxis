@@ -725,10 +725,7 @@ export class SessionServiceImpl implements SessionService {
    * stored CLI session id for the given engineId if present. Returns
    * undefined when there is no usable state to resume from.
    */
-  private resolveResumeEngineSessionId(
-    sessionId: string,
-    engineId: string,
-  ): string | undefined {
+  private resolveResumeEngineSessionId(sessionId: string, engineId: string): string | undefined {
     const row = this.deps.db
       .select({ state: sessions.engineSessionStateJson })
       .from(sessions)

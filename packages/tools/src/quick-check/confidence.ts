@@ -42,7 +42,7 @@ const OutputSchema = z.object({
 export const quickCheckConfidenceTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "quick_check.confidence",
   description:
-    'Ask the student to self-assess their confidence on a rating scale inline in chat. Use after a worked example, after the student attempts a problem, or before revealing the answer to a question you just posed. Pairs well with other quick_check tools: pose a single_choice first, then follow with a confidence check to surface overconfidence. Returns a numeric rating (1 = lowest). Abandoned → rating: 0.',
+    "Ask the student to self-assess their confidence on a rating scale inline in chat. Use after a worked example, after the student attempts a problem, or before revealing the answer to a question you just posed. Pairs well with other quick_check tools: pose a single_choice first, then follow with a confidence check to surface overconfidence. Returns a numeric rating (1 = lowest). Abandoned → rating: 0.",
   input: InputSchema,
   output: OutputSchema,
   tier: "model-derived",

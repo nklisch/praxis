@@ -16,7 +16,10 @@ export const CitationSchema = z.object({
 });
 
 export const TeachingStrategySchema = z.object({
-  id: z.string().min(1).regex(/^[a-z0-9-]+$/, "strategy id must be lowercase kebab-case"),
+  id: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9-]+$/, "strategy id must be lowercase kebab-case"),
   name: z.string().min(1),
   description: z.string().min(1),
   applicability: z.object({
@@ -36,7 +39,10 @@ export const TechniqueLessonSchema = z.object({
 });
 
 export const StudyTechniqueSchema = z.object({
-  id: z.string().min(1).regex(/^[a-z0-9-]+$/, "technique id must be lowercase kebab-case"),
+  id: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9-]+$/, "technique id must be lowercase kebab-case"),
   name: z.string().min(1),
   description: z.string().min(1),
   uiAffordances: z.array(z.string()).default([]),

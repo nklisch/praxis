@@ -45,10 +45,8 @@ import {
   quizMode,
   teachMode,
 } from "@praxis/curriculum/modes";
-import {
-  PedagogyPackServiceImpl,
-} from "@praxis/curriculum/pedagogy";
 import { PackImportServiceImpl, SqliteConceptEmbeddingsStore } from "@praxis/curriculum/packs";
+import { PedagogyPackServiceImpl } from "@praxis/curriculum/pedagogy";
 import { FsrsSchedulerImpl } from "@praxis/curriculum/scheduling";
 import { createEngine } from "@praxis/engines";
 import { sessions } from "@praxis/memory/schema";

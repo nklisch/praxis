@@ -1,8 +1,8 @@
-export { quickCheckSingleChoiceTool } from "./single-choice.js";
+export { quickCheckConfidenceTool } from "./confidence.js";
+export { quickCheckMatchingTool } from "./matching.js";
 export { quickCheckMultiSelectTool } from "./multi-select.js";
 export { quickCheckShortAnswerTool } from "./short-answer.js";
-export { quickCheckMatchingTool } from "./matching.js";
-export { quickCheckConfidenceTool } from "./confidence.js";
+export { quickCheckSingleChoiceTool } from "./single-choice.js";
 
 import { quickCheckConfidenceTool } from "./confidence.js";
 import { quickCheckMatchingTool } from "./matching.js";

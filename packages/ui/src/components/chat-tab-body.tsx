@@ -11,14 +11,13 @@ import { type JSX, useEffect, useRef, useState } from "react";
 import { useAuthStatus } from "../context/auth-context.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
+import { useQuickCheckBridge } from "../hooks/use-quick-check-bridge.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { isClaudeAuthRequiredError } from "../lib/auth-error.js";
-import { useQuickCheckBridge } from "../hooks/use-quick-check-bridge.js";
 import { AssignmentCard } from "./assignment-card.js";
 import { AuthGate } from "./auth-gate.js";
 import { BootstrapTabBody } from "./bootstrap-tab-body.js";
 import styles from "./chat-tab-body.module.css";
-import { QuickCheckCard } from "./quick-check-card.js";
 import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
 import { ExamTabBody } from "./exam-tab-body.js";
@@ -26,6 +25,7 @@ import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
 import { ModeHeader } from "./mode-header.js";
 import { PageImagePanel } from "./page-image-panel.js";
+import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
 
 export interface ChatTabBodyProps {

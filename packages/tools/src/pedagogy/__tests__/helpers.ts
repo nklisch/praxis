@@ -84,8 +84,16 @@ export function makeFilledPedagogyPackService(): PedagogyPackService {
   ];
 
   const prompts = [
-    { id: "pre-reading-goals", trigger: "pre-reading" as const, template: "What do you already know about {{topic}}?" },
-    { id: "post-error-reflect", trigger: "post-error" as const, template: "What was your reasoning?" },
+    {
+      id: "pre-reading-goals",
+      trigger: "pre-reading" as const,
+      template: "What do you already know about {{topic}}?",
+    },
+    {
+      id: "post-error-reflect",
+      trigger: "post-error" as const,
+      template: "What was your reasoning?",
+    },
   ];
 
   return {

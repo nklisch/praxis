@@ -43,9 +43,7 @@ export class PedagogyPackServiceImpl implements PedagogyPackService {
 
   constructor(deps: PedagogyPackServiceDeps) {
     this.pack = loadPack(deps);
-    this.strategiesById = new Map(
-      (this.pack?.strategies ?? []).map((s) => [s.id as string, s]),
-    );
+    this.strategiesById = new Map((this.pack?.strategies ?? []).map((s) => [s.id as string, s]));
     this.techniquesById = new Map(
       (this.pack?.studyTechniques ?? []).map((t) => [t.id as string, t]),
     );

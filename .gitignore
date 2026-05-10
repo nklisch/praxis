@@ -42,3 +42,7 @@ tests/helpers/*.d.ts.map
 
 # Drizzle: keep migrations/, ignore meta-cache
 drizzle/meta/_journal.bak
+
+# Claude Code: per-machine session artefacts
+.claude/scheduled_tasks.lock
+.claude/settings.local.json

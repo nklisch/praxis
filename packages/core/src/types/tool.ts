@@ -45,13 +45,6 @@ import type {
   TechniqueId,
 } from "./ids.js";
 import type {
-  MetacognitivePrompt,
-  MetacognitivePromptTrigger,
-  PedagogyPack,
-  StudyTechnique,
-  TeachingStrategy,
-} from "./pedagogy.js";
-import type {
   AffectiveModel,
   EpisodicEvent,
   IndexerOrchestrator,
@@ -61,6 +54,13 @@ import type {
   StudentModel,
 } from "./memory.js";
 import type { NoteBody } from "./notes.js";
+import type {
+  MetacognitivePrompt,
+  MetacognitivePromptTrigger,
+  PedagogyPack,
+  StudyTechnique,
+  TeachingStrategy,
+} from "./pedagogy.js";
 import type { QuickCheckService } from "./quick-check.js";
 import type { SketchService } from "./sketches.js";
 

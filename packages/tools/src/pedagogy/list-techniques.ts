@@ -20,10 +20,7 @@ const OutputSchema = z.object({
   techniques: z.array(TechniqueWireSchema),
 });
 
-export const pedagogyListTechniquesTool: ToolDefinition<
-  typeof InputSchema,
-  typeof OutputSchema
-> = {
+export const pedagogyListTechniquesTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "pedagogy.list_techniques",
   description:
     "List all study techniques in the active pedagogy pack. Returns id, name, description, and uiAffordances per technique. Use pedagogy.get_technique to retrieve the full curriculum with lesson content. Returns an empty array when no pack is loaded.",

@@ -55,7 +55,12 @@ describe("mapClaudeCodeEvent — rate_limit_event", () => {
       mapClaudeCodeEvent(
         {
           type: "rate_limit_event",
-          rateLimitInfo: { status: "allowed", resetsAt: 0, rateLimitType: "five_hour", isUsingOverage: false },
+          rateLimitInfo: {
+            status: "allowed",
+            resetsAt: 0,
+            rateLimitType: "five_hour",
+            isUsingOverage: false,
+          },
         },
         { serverName: "praxis" },
       ),

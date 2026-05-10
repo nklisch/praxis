@@ -28,44 +28,43 @@ const OutputSchema = z.object({
   correct: z.boolean().optional(),
 });
 
-export const quickCheckSingleChoiceTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> =
-  {
-    name: "quick_check.single_choice",
-    description:
-      'Ask the student a single-choice question inline in the current conversation. Renders an interactive card; blocks until the student answers. Use for formative checks-for-understanding mid-explanation, after a worked example, or before introducing a new concept. For graded work that warrants its own tab, use assignment.create instead. Set correctIndex when you want grader feedback on the selection; omit it for open-ended probes where you\'ll react qualitatively. Abandoned answers (student closed tab) return selectedIndex: -1.',
-    input: InputSchema,
-    output: OutputSchema,
-    tier: "model-derived",
-    effects: [],
-    async handler(args, ctx) {
-      const callId = uuidv7();
-      const item: SingleChoiceItem = {
-        kind: "single-choice",
-        id: callId,
-        prompt: args.prompt,
-        options: args.options,
-        correctOptionIndex: args.correctIndex ?? -1,
-      };
+export const quickCheckSingleChoiceTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
+  name: "quick_check.single_choice",
+  description:
+    "Ask the student a single-choice question inline in the current conversation. Renders an interactive card; blocks until the student answers. Use for formative checks-for-understanding mid-explanation, after a worked example, or before introducing a new concept. For graded work that warrants its own tab, use assignment.create instead. Set correctIndex when you want grader feedback on the selection; omit it for open-ended probes where you'll react qualitatively. Abandoned answers (student closed tab) return selectedIndex: -1.",
+  input: InputSchema,
+  output: OutputSchema,
+  tier: "model-derived",
+  effects: [],
+  async handler(args, ctx) {
+    const callId = uuidv7();
+    const item: SingleChoiceItem = {
+      kind: "single-choice",
+      id: callId,
+      prompt: args.prompt,
+      options: args.options,
+      correctOptionIndex: args.correctIndex ?? -1,
+    };
 
-      const answer = await ctx.services.quickCheck?.await({
-        callId,
-        sessionId: ctx.sessionId,
-        item,
-      });
+    const answer = await ctx.services.quickCheck?.await({
+      callId,
+      sessionId: ctx.sessionId,
+      item,
+    });
 
-      if (!answer || answer.kind === "abandoned") {
-        return { selectedIndex: -1 };
-      }
+    if (!answer || answer.kind === "abandoned") {
+      return { selectedIndex: -1 };
+    }
 
-      if (answer.kind !== "single-choice") {
-        throw new Error(`unexpected answer kind: ${answer.kind}`);
-      }
+    if (answer.kind !== "single-choice") {
+      throw new Error(`unexpected answer kind: ${answer.kind}`);
+    }
 
-      return {
-        selectedIndex: answer.selectedIndex,
-        ...(args.correctIndex !== undefined && {
-          correct: answer.selectedIndex === args.correctIndex,
-        }),
-      };
-    },
-  };
+    return {
+      selectedIndex: answer.selectedIndex,
+      ...(args.correctIndex !== undefined && {
+        correct: answer.selectedIndex === args.correctIndex,
+      }),
+    };
+  },
+};

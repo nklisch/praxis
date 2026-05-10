@@ -4,7 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 import { codeSandboxInput, codeSandboxTool } from "../code-sandbox.js";
 
 function makeEmptyPedagogyPackService() {
-  return { current: () => null, listStrategies: () => [], getStrategy: () => null, listTechniques: () => [], getTechnique: () => null, listMetacognitivePrompts: () => [] };
+  return {
+    current: () => null,
+    listStrategies: () => [],
+    getStrategy: () => null,
+    listTechniques: () => [],
+    getTechnique: () => null,
+    listMetacognitivePrompts: () => [],
+  };
 }
 
 const mockSandbox: CodeSandbox = {

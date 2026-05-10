@@ -29,7 +29,10 @@ describe("PedagogyPackServiceImpl — empty-pack mode (file absent)", () => {
   });
 
   it("logs pack_absent once", () => {
-    expect(log.info).toHaveBeenCalledWith("pedagogy.pack_absent", expect.objectContaining({ path: expect.any(String) }));
+    expect(log.info).toHaveBeenCalledWith(
+      "pedagogy.pack_absent",
+      expect.objectContaining({ path: expect.any(String) }),
+    );
   });
 
   it("current() returns null", () => {
@@ -107,7 +110,11 @@ describe("PedagogyPackServiceImpl — shape-mismatch file", () => {
     const dir = await mkdtemp(join(tmpdir(), "praxis-pedagogy-test-"));
     const badPath = join(dir, "mismatch.json");
     // Valid JSON but missing required fields (no version, no manifest.authors).
-    await writeFile(badPath, JSON.stringify({ version: "1.0.0", manifest: { name: "Oops" } }), "utf8");
+    await writeFile(
+      badPath,
+      JSON.stringify({ version: "1.0.0", manifest: { name: "Oops" } }),
+      "utf8",
+    );
 
     const log = makeLogger();
     const svc = new PedagogyPackServiceImpl({ log, packPath: badPath });
@@ -211,10 +218,30 @@ describe("PedagogyPackSchema — cross-validation", () => {
     const pack = {
       version: "0.1.0",
       signature: "v1-unsigned",
-      manifest: { name: "X", description: "Y", praxisCompatible: ">=0.1.0", publishedAt: 1, authors: ["A"] },
+      manifest: {
+        name: "X",
+        description: "Y",
+        praxisCompatible: ">=0.1.0",
+        publishedAt: 1,
+        authors: ["A"],
+      },
       strategies: [
-        { id: "s1", name: "S1", description: "d", applicability: { conceptKinds: [], bloomsLevels: [], cognitiveLoad: "low" }, promptFragment: "p", citations: [] },
-        { id: "s1", name: "S1-dup", description: "d", applicability: { conceptKinds: [], bloomsLevels: [], cognitiveLoad: "low" }, promptFragment: "p", citations: [] },
+        {
+          id: "s1",
+          name: "S1",
+          description: "d",
+          applicability: { conceptKinds: [], bloomsLevels: [], cognitiveLoad: "low" },
+          promptFragment: "p",
+          citations: [],
+        },
+        {
+          id: "s1",
+          name: "S1-dup",
+          description: "d",
+          applicability: { conceptKinds: [], bloomsLevels: [], cognitiveLoad: "low" },
+          promptFragment: "p",
+          citations: [],
+        },
       ],
     };
     await writeFile(badPath, JSON.stringify(pack), "utf8");
@@ -237,7 +264,13 @@ describe("PedagogyPackSchema — cross-validation", () => {
     const pack = {
       version: "0.1.0",
       signature: "v1-unsigned",
-      manifest: { name: "X", description: "Y", praxisCompatible: ">=0.1.0", publishedAt: 1, authors: [] },
+      manifest: {
+        name: "X",
+        description: "Y",
+        praxisCompatible: ">=0.1.0",
+        publishedAt: 1,
+        authors: [],
+      },
     };
     await writeFile(badPath, JSON.stringify(pack), "utf8");
 

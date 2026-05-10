@@ -25,10 +25,7 @@ const OutputSchema = z.object({
   strategies: z.array(StrategyWireSchema),
 });
 
-export const pedagogyListStrategiesTool: ToolDefinition<
-  typeof InputSchema,
-  typeof OutputSchema
-> = {
+export const pedagogyListStrategiesTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "pedagogy.list_strategies",
   description:
     "List all teaching strategies in the active pedagogy pack. Returns id, name, description, applicability metadata, and the prompt fragment for each strategy. Returns an empty array when no pack is loaded.",

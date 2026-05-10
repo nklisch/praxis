@@ -23,7 +23,6 @@ import type {
   ToolDefinition,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { makeEmptyPedagogyPackService } from "../../pedagogy/pedagogy-pack-service.js";
 import {
   draftAddConceptsTool,
   draftAddEdgesTool,
@@ -34,6 +33,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
+import { makeEmptyPedagogyPackService } from "../../pedagogy/pedagogy-pack-service.js";
 import { runConceptExplorer } from "../explorer.js";
 import { ScriptedEngine } from "./helpers/scripted-engine.js";
 

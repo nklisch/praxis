@@ -11,15 +11,15 @@
  */
 import type { QuickCheckAnswer, QuickCheckService, ToolDefinition } from "@praxis/core/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
-import { InProcessToolRegistry } from "../../registry.js";
+import type { z } from "zod";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
+import { InProcessToolRegistry } from "../../registry.js";
 import { quickCheckConfidenceTool } from "../confidence.js";
+import { QUICK_CHECK_TOOLS } from "../index.js";
 import { quickCheckMatchingTool } from "../matching.js";
 import { quickCheckMultiSelectTool } from "../multi-select.js";
 import { quickCheckShortAnswerTool } from "../short-answer.js";
 import { quickCheckSingleChoiceTool } from "../single-choice.js";
-import { QUICK_CHECK_TOOLS } from "../index.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -143,10 +143,7 @@ describe("quickCheckShortAnswerTool", () => {
   it("returns the student's text", async () => {
     const quickCheck = makeQuickCheckService({ kind: "short-answer", text: "photosynthesis" });
     const ctx = makeToolContext({ services: { quickCheck } });
-    const result = await quickCheckShortAnswerTool.handler(
-      { prompt: "Explain the process" },
-      ctx,
-    );
+    const result = await quickCheckShortAnswerTool.handler({ prompt: "Explain the process" }, ctx);
     expect(result.text).toBe("photosynthesis");
   });
 

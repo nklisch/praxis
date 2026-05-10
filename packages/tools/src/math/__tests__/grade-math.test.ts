@@ -10,7 +10,14 @@ import { describe, expect, it, vi } from "vitest";
 import { gradeMathInput, gradeMathTool } from "../grade-math.js";
 
 function makeEmptyPedagogyPackService() {
-  return { current: () => null, listStrategies: () => [], getStrategy: () => null, listTechniques: () => [], getTechnique: () => null, listMetacognitivePrompts: () => [] };
+  return {
+    current: () => null,
+    listStrategies: () => [],
+    getStrategy: () => null,
+    listTechniques: () => [],
+    getTechnique: () => null,
+    listMetacognitivePrompts: () => [],
+  };
 }
 
 // Mock SymPyService

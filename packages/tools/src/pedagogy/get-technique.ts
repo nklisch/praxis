@@ -36,10 +36,7 @@ const OutputSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const pedagogyGetTechniqueTool: ToolDefinition<
-  typeof InputSchema,
-  typeof OutputSchema
-> = {
+export const pedagogyGetTechniqueTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "pedagogy.get_technique",
   description:
     "Look up a single study technique by id. Returns the full technique including curriculum lessons on success, or { kind: 'not_found' } when the id is unknown or no pack is loaded.",

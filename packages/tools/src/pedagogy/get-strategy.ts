@@ -30,10 +30,7 @@ const OutputSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const pedagogyGetStrategyTool: ToolDefinition<
-  typeof InputSchema,
-  typeof OutputSchema
-> = {
+export const pedagogyGetStrategyTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "pedagogy.get_strategy",
   description:
     "Look up a single teaching strategy by id. Returns the full strategy shape (minus citations) on success, or { kind: 'not_found' } when the id is unknown or no pack is loaded.",
