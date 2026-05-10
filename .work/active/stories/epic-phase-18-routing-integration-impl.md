@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-routing-integration-impl
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-routing-integration
 depends_on: []
@@ -475,3 +475,75 @@ After editing router source, `pnpm --filter @praxis/curriculum build` was needed
 - `pnpm --filter @praxis/tools test`: 439 tests passed (58 files, 1 skipped), includes 9 new current-concept-routing tests.
 - `pnpm test` (full repo): 2225 passed, 15 skipped (268 test files).
 - `pnpm lint`: 4 errors (down from 9 baseline; all remaining errors are pre-existing in unmodified files).
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+
+**Nits** (in conversation only):
+- Asymmetry between `isFrustrationSpike` (doesn't require full window)
+  and `isSustainedEase` / `isSustainedHighFrustration` (require full
+  `affectWindowSize` window). Intentional — frustration is an
+  instantaneous concern; ease is a sustained pattern — but a one-line
+  comment in `router.ts` near each helper would help future readers
+  understand the asymmetry without re-deriving it from the design.
+- The early-return path at `router.ts:35` emits
+  `suggestedStrategy: "worked-examples"` as a literal. Reasonable
+  default for the no-lesson case but couples the early-return to a
+  specific strategy id. A future pack rename would need updating
+  here too. Minor — flagged for visibility.
+
+**Notes**:
+- Verified at HEAD (`7ba5586`): `pnpm typecheck` clean;
+  `pnpm --filter @praxis/curriculum test` 323 passed;
+  `pnpm --filter @praxis/tools test` 439 passed; `pnpm test`
+  (full repo) 2225 passed / 15 skipped; `pnpm lint` 4 errors
+  (down from 9 baseline; net improvement from agent's `lint:fix`
+  pass).
+- Implementation matches the design exactly: 3 optional
+  RouterInput fields, 3 required RouterSuggestion fields, 7 new
+  RouterConfig tunables with documented defaults, 3 chooser
+  helpers + 5 supporting helpers (`isFrustrationSpike`,
+  `isSustainedEase`, `isSustainedHighFrustration`,
+  `topProceduralStrategy`, `avg`), wired into `suggestNext` for
+  both the early-return (no-lesson) path and the main path.
+- `currentConceptTool` reads procedural + affective via
+  `Promise.all` (parallel) and threads them in. OutputSchema
+  surfaces all 3 new fields in `kind: "ok"` and 2 of 3 in
+  `kind: "all_complete"` (omits `suggestedStrategy` since no
+  concept is being taught — sensible).
+- `principlesFragment` gains 2 paragraphs guiding the tutor on
+  honoring `difficultyHint` (adapt next assignment / quick_check
+  complexity) and `suggestedModeTransition` (offer the transition,
+  don't force it). Modes that include the principles fragment all
+  get this guidance for free.
+- Pure-function constraint preserved — no DB access, no `Date.now()`
+  inside the router. Caller threads in. Tests run in microseconds.
+- 25 new tests across 2 files cover every branch: no procedural /
+  no affective → defaults; frustration spike → easier + worked-examples
+  override; sustained ease → harder; sustained high frustration →
+  study-skills transition; procedural preference with sufficient
+  evidence → wins; preference with insufficient evidence → ignored;
+  zero-state inputs → sane defaults.
+- Cross-package build dance documented as a non-obvious decision —
+  vitest resolves cross-package imports against `dist/`, not source,
+  so the agent ran `pnpm --filter @praxis/curriculum build` before
+  tools tests could see the new RouterSuggestion fields. Worth
+  noting for future router-extension work.
+
+What's now possible: Phase 18's behavioral promise is closed. A
+student who shows sustained frustration sees the next item drop in
+difficulty AND gets `worked-examples` as the teaching strategy AND
+gets a "want to step back into study-skills?" suggestion. A student
+who shows sustained ease and confidence sees difficulty bump up.
+Strategy preferences accumulate over sessions and the router honors
+them once they're well-evidenced. The metacognition loop the
+ROADMAP test checkpoint asks for is now wired end-to-end.
+
+What's now possible at the epic level: `epic-phase-18-study-skills`
+has all 6 children at done or one review pass away. The Phase 18
+epic auto-advances to review when this story's parent feature reaches
+done.
