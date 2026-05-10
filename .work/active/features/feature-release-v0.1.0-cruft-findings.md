@@ -98,3 +98,13 @@ introduced by this work).
 Approve. All 6 active children reviewed and advanced to `done`. The batch is entirely mechanical Biome-detected fixes — unused imports, dead state variables, misplaced/unused lint suppressions — each a 1-3 line edit in a different file with no cross-cutting risk. Every diff was applied cleanly with no orphan blank lines or broken surroundings.
 
 The one documented deviation (`SketchId` import retention in `gate-cruft-dead-pending-sketch-id-state`) is confirmed correct: `SketchId` is still used at `chat-tab-body.tsx:145` as the parameter type for `handleSendWithSketch`. No findings across the batch.
+
+## Lows drained (2026-05-10)
+
+The 1 backlog Low story was lifted into active and drained by user request via `/agile-workflow:release-deploy v0.1.0` (option "Drain them now").
+
+| Story | Resolution | Commit |
+|---|---|---|
+| `gate-cruft-stale-single-item-adds-comment` | Replaced `// Concept + edge mutations (batch — single-item adds removed).` with `// Concept + edge mutations (batch only).` in `start-exploration.ts:115` | `e058455` |
+
+Reviewed and approved (2026-05-10); at `stage: done`.
