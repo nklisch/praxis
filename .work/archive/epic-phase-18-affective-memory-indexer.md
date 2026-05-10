@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-affective-memory-indexer
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-affective-memory
 depends_on: []

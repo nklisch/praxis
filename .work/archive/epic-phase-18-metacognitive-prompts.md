@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-metacognitive-prompts
 kind: feature
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: [epic-phase-18-pedagogy-pack]

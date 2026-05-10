@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-metacognitive-prompts-impl
 kind: story
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-metacognitive-prompts
 depends_on: []

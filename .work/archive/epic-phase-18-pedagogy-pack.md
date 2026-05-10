@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-pedagogy-pack
 kind: feature
-stage: review
+stage: done
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: []
