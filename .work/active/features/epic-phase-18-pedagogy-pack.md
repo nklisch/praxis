@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-pedagogy-pack
 kind: feature
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-study-skills
 depends_on: []
@@ -143,3 +143,54 @@ Two child stories:
   with the real interface, not a maybe-null). Mitigation: ship a
   `makeEmptyPedagogyPackService()` test helper rather than scattering
   `null`-handling through production code.
+
+## Implementation summary (2026-05-10)
+
+Both child stories landed and are at `stage: review`:
+
+- `epic-phase-18-pedagogy-pack-service` (`65f7196`) — port + Zod schema +
+  `PedagogyPackServiceImpl` + `makeEmptyPedagogyPackService` helper +
+  five `pedagogy.*` read-only tools + services.ts wiring + replacement
+  of every `pedagogyPack: null` test stub. 19 files created, 11 modified.
+  25 service tests + 30+ tool tests added.
+- `epic-phase-18-pedagogy-pack-v1-content` (`d0acbe5`) — authored
+  `packages/curriculum/pedagogy/v1.json` with 7 strategies, 4 study
+  techniques, 15 metacognitive prompts (3 per trigger × 5 triggers).
+  Every strategy and technique cites a primary source — no
+  `(citation TBD)` markers needed; the author resolved every citation
+  to confirmed primary literature (Sweller, Mayer, Pressley,
+  Roediger/Karpicke, Novak/Gowin, Rohrer/Taylor, Paivio, Pauk/Owens,
+  Chi, Cepeda/Bahrick). 13 smoke tests added.
+
+Cross-cutting deviations:
+- The story sketch for the citation Zod shape (`{source, url, authors,
+  year}`) contradicted the existing `Citation` TS type
+  (`{source, locator?, text?}`). Both implementing stories used the
+  existing TS type — single source of truth wins. Recorded as a flagged
+  discrepancy in both implementation notes.
+- A follow-up `lint:fix: auto-fix biome issues` commit (`925e847`) ran
+  biome `--write` across the repo to clean up `organizeImports`, format,
+  `useTemplate`, `useLiteralKeys`, and `noUnusedImports`/`noUnusedVariables`
+  finds. Lint count went from 22 (pre-feature) → 4 errors. The 4
+  remaining errors are pre-existing `noNonNullAssertion` hits in
+  `@praxis/claude-cli-sdk` that need manual review.
+- `.gitignore` extended to track `.claude/scheduled_tasks.lock` and
+  `.claude/settings.local.json` as per-machine artefacts.
+
+Verification at `d0acbe5`:
+- `pnpm typecheck` clean
+- `pnpm lint` 4 errors (down from 22 baseline; zero new)
+- `pnpm test` 2056 tests passing across 257 files; 15 skipped; zero
+  regressions
+- `pedagogy.pack_loaded` log path firing at boot (asserted by smoke test)
+
+What's now possible: every downstream Phase 18 feature
+(`procedural-memory`, `metacognitive-prompts`, `coach-mode`) has a real
+`PedagogyPackService` to pull from. Strategy ids in the procedural
+indexer can reference real entries. The cross-mode metacognitive
+fragment can pull templates by trigger from the loaded pack. The
+study-skills mode can teach techniques whose curriculum content is
+authored, not stubbed.
+
+Stage: implementing → review. Run
+`/agile-workflow:review epic-phase-18-pedagogy-pack` to evaluate.
