@@ -125,3 +125,50 @@ describe("ChatTabBody dispatcher routes study-skills", () => {
     expect(screen.getByRole("textbox")).toBeDefined();
   });
 });
+
+describe("Tab-state isolation — teach ↔ study-skills chip parity", () => {
+  /**
+   * Asserts the no-bleed acceptance criterion from epic-phase-18-coach-mode-impl:
+   * switching teach → study-skills → teach must NOT leave study-skills chip
+   * state behind in the teach render.
+   *
+   * Implementation note: the story sketch proposed `data-chip='study-skills'`
+   * but the actual StudySkillsTabBody renders a plain <span className={styles.chip}>
+   * with text "study skills". We test via text presence/absence, which is
+   * equivalent (the chip is the only source of that text in teach mode).
+   *
+   * ChatTabBody is a pure dispatcher — rerendering with a different modeId
+   * swaps the entire child tree, so state isolation is structural. The test
+   * pins this invariant so a future refactor (e.g. keep-alive) can't silently
+   * break it.
+   */
+  it("switching teach → study-skills → teach preserves chip absence vs presence per tab", () => {
+    const client = makeClient();
+    const teachTab = makeTab({ modeId: "teach", title: "teach session" });
+    const studySkillsTab = makeTab({ modeId: "study-skills", title: "study skills session" });
+
+    // 1. Start with a teach tab — no study-skills chip.
+    const { rerender } = renderWithProviders(<ChatTabBody tab={teachTab} />, client);
+    expect(screen.queryByText("study skills")).toBeNull();
+
+    // 2. Switch to study-skills — chip appears.
+    rerender(
+      <PraxisClientProvider client={client}>
+        <AuthProvider>
+          <ChatTabBody tab={studySkillsTab} />
+        </AuthProvider>
+      </PraxisClientProvider>,
+    );
+    expect(screen.getAllByText("study skills").length).toBeGreaterThan(0);
+
+    // 3. Switch back to teach — chip must be gone; no bleed.
+    rerender(
+      <PraxisClientProvider client={client}>
+        <AuthProvider>
+          <ChatTabBody tab={teachTab} />
+        </AuthProvider>
+      </PraxisClientProvider>,
+    );
+    expect(screen.queryByText("study skills")).toBeNull();
+  });
+});

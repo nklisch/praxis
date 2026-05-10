@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ipc-handler-seam-first-run-update
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -50,3 +50,12 @@ tests), but the bridge itself isn't. The pattern exists already in
 `log-channel.test.ts`. Low priority because the handlers are one-line
 pass-throughs; downgrade if the team prefers to rely on manual smoke per
 ship-checklist Step 4.
+
+## Implementation notes
+New file: `packages/desktop/electron/main/__tests__/ipc-server.first-run-update.test.ts` (6 tests).
+Mirrors log-channel.test.ts pattern: stub `electron.ipcMain.handle` to capture registered
+handlers, then invoke them directly with a minimal fake services object. The electron mock
+also stubs `app.getVersion()` returning `"1.2.3"` so the `checkLatest` handler's version
+forwarding can be asserted precisely. `registerIpcHandlers` registers many channels; the fake
+services object only populates the three under test plus minimal stubs for the other config
+methods that are registered unconditionally at startup.

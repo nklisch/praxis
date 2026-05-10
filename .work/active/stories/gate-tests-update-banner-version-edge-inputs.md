@@ -1,7 +1,7 @@
 ---
 id: gate-tests-update-banner-version-edge-inputs
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -54,3 +54,13 @@ inputs across versions; an attacker-controlled or upstream-corrupted feed
 could plausibly carry a SemVer prerelease. The schema parse should reject
 it (returning `error` status, never throwing) — that path is currently
 asserted only for `"not-semver"`, not the more realistic `"1.0.0-beta"`.
+
+## Implementation notes
+Added 3 tests to `packages/core/src/services/__tests__/update-service.test.ts`. Key deviation
+from the story sketch: `compareVersions("1.0.0-beta", "1.0.0")` returns `NaN`, not `≤ 0`.
+The story said "NaN-Number coerces to 0" but `??` only catches `null | undefined` — `NaN ??
+0` returns `NaN`. The test was corrected to assert `Number.isNaN(result)` and documents this
+as a pinned behavior (not a bug — the function is spec'd for `MAJOR.MINOR.PATCH` inputs
+only). The `checkLatest` prerelease test required its own `beforeEach/afterEach` to restore
+`globalThis.fetch` since it lives outside the outer `UpdateServiceImpl.checkLatest` describe
+block that owns fetch cleanup.

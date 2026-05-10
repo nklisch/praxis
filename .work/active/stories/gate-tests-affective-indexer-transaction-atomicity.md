@@ -1,7 +1,7 @@
 ---
 id: gate-tests-affective-indexer-transaction-atomicity
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: feature-release-v0.1.0-test-findings
 depends_on: []
@@ -43,3 +43,15 @@ All mixed-path tests assume both writes succeed or the model fails before
 any write. The all-or-nothing transaction property is unasserted. A
 regression that drops the `db.transaction(() => { ... })` wrapper would
 not be caught.
+
+## Implementation notes
+Added one test in a new `describe("AffectiveIndexer — transaction atomicity")` block in
+`packages/core/src/services/indexers/__tests__/affective-indexer.test.ts`. Failure injection
+technique: `vi.spyOn(db, "transaction").mockImplementationOnce(callback => realTransaction(tx
+=> { vi.spyOn(tx, "insert").mockImplementation(...) }))` — spy on `db.transaction` to intercept
+the `tx` context, then spy on `tx.insert` to throw on the second call. This exercises the real
+SQLite transaction (`BEGIN/ROLLBACK`) so atomicity is genuinely tested, not simulated.
+Constraint-violation injection was considered but rejected because uuidv7 IDs never collide;
+a Drizzle middleware approach was considered but Drizzle ORM doesn't expose a middleware API
+on the transaction object. The `mockImplementationOnce` ensures subsequent test cases get the
+real `db.transaction` back without cleanup friction.
