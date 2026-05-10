@@ -27,6 +27,7 @@ import { ModeHeader } from "./mode-header.js";
 import { PageImagePanel } from "./page-image-panel.js";
 import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
+import { StudySkillsTabBody } from "./study-skills-tab-body.js";
 
 export interface ChatTabBodyProps {
   tab: TabSummary;
@@ -274,6 +275,8 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
       return <ExamTabBody tab={tab} />;
     case "bootstrap":
       return <BootstrapTabBody tab={tab} />;
+    case "study-skills":
+      return <StudySkillsTabBody tab={tab} />;
     default:
       return <TeachChatTabBody tab={tab} />;
   }

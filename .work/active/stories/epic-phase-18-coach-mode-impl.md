@@ -1,7 +1,7 @@
 ---
 id: epic-phase-18-coach-mode-impl
 kind: story
-stage: implementing
+stage: review
 tags: [content]
 parent: epic-phase-18-coach-mode
 depends_on: []
@@ -254,13 +254,60 @@ requireMode). Mirror that shape.
 
 ## Acceptance criteria (story)
 
-- [ ] `study-skills` mode appears in `listModes()` and is dispatchable
+- [x] `study-skills` mode appears in `listModes()` and is dispatchable
       via `getMode("study-skills")`.
-- [ ] A study-skills session uses the new role fragment and the
+- [x] A study-skills session uses the new role fragment and the
       pedagogy.* / note.* / flashcard.* / quick_check.* tools (no
       assignment.create, no grade_math, no code_sandbox).
-- [ ] UI tab dispatch routes `modeId === "study-skills"` to the new
+- [x] UI tab dispatch routes `modeId === "study-skills"` to the new
       `StudySkillsTabBody`, which renders a header chip + delegates
       body to `TeachChatTabBody`.
-- [ ] `pnpm typecheck && pnpm test` green.
-- [ ] `pnpm lint` shows no regression past the current 4-error baseline.
+- [x] `pnpm typecheck && pnpm test` green.
+- [x] `pnpm lint` shows no regression past the current 4-error baseline.
+
+## Implementation notes
+
+### Files created
+
+- `packages/curriculum/src/modes/fragments/study-skills-role.ts` — role fragment
+  with `id: "role.study-skills"`, `position: "role"`, `customizable: true`;
+  four-step coaching loop (explain → demonstrate → practice → reflect).
+- `packages/curriculum/src/modes/study-skills.ts` — full `Mode` definition with
+  19 tools (5 pedagogy + 1 course nav + 5 note + 4 flashcard + 4 quick_check).
+- `packages/curriculum/src/modes/__tests__/study-skills.test.ts` — 26 tests
+  covering registry, shape, fragment composition, included tools, and excluded
+  tools.
+- `packages/ui/src/components/study-skills-tab-body.tsx` — ~30-line wrapper
+  rendering a "study skills" chip + embedded `<TeachChatTabBody>`.
+- `packages/ui/src/components/study-skills-tab-body.module.css` — chip accent
+  styling (flex column container, pill chip with accent colour).
+- `packages/ui/src/__tests__/study-skills-tab-body.test.tsx` — 4 tests asserting
+  chip renders, composer present, and dispatcher routes correctly.
+
+### Files modified
+
+- `packages/curriculum/src/modes/index.ts` — added `studySkillsMode` to
+  `MODE_REGISTRY` Map and re-exported from barrel.
+- `packages/ui/src/components/chat-tab-body.tsx` — added `import` for
+  `StudySkillsTabBody` and `case "study-skills":` to the dispatcher.
+
+### Discrepancies
+
+- Story acceptance says "17 tools" but the explicit list in unit 2 of the story
+  body enumerates 19 (5 pedagogy + 1 course + 5 note + 4 flashcard + 4
+  quick_check). The code and tests use 19, which matches the per-tool list in
+  the spec; "17" appears to be a transient typo in the preamble.
+- The `packages/curriculum/src/modes/__tests__/` directory didn't exist at the
+  start — created it. Existing mode tests live in
+  `packages/curriculum/src/__tests__/`; the new test follows the same shape.
+
+### Verification results
+
+```
+pnpm typecheck   → all packages green (0 errors)
+pnpm lint        → 4 errors (baseline; none from new files)
+pnpm --filter @praxis/curriculum test  → 246 tests passed (22 files)
+pnpm --filter @praxis/ui test          → 560 tests passed (75 files)
+```
+
+All new tests green: 26 curriculum + 4 UI = 30 new tests total.

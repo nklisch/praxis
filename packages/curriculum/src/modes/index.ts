@@ -4,6 +4,7 @@ import { configureMode } from "./configure.js";
 import { examMode } from "./exam.js";
 import { homeworkMode } from "./homework.js";
 import { quizMode } from "./quiz.js";
+import { studySkillsMode } from "./study-skills.js";
 import { teachMode } from "./teach.js";
 
 const MODE_REGISTRY: ReadonlyMap<string, Mode> = new Map([
@@ -13,6 +14,7 @@ const MODE_REGISTRY: ReadonlyMap<string, Mode> = new Map([
   [homeworkMode.id, homeworkMode],
   [examMode.id, examMode],
   [configureMode.id, configureMode], // ← Phase 11
+  [studySkillsMode.id, studySkillsMode], // ← Phase 18
 ]);
 
 export function getMode(id: string): Mode | undefined {
@@ -34,4 +36,5 @@ export { configureMode } from "./configure.js"; // ← Phase 11
 export { examMode } from "./exam.js";
 export { homeworkMode } from "./homework.js";
 export { quizMode } from "./quiz.js";
+export { studySkillsMode } from "./study-skills.js"; // ← Phase 18
 export { teachMode } from "./teach.js";
