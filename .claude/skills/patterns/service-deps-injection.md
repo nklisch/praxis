@@ -9,15 +9,38 @@ A single struct instead of parameter telescoping. Services can access `db`, `log
 ## Examples
 
 ### Example 1: `ServiceDeps` interface — complete shape
-**File**: `packages/core/src/services/types.ts:13`
+**File**: `packages/core/src/services/types.ts:36`
 ```typescript
 export interface ServiceDeps {
   db: PraxisDb;
   log: Logger;
   modes: ReadonlyMap<string, Mode>;
   toolDefinitions: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
-  toolServices: { sympy: SymPyService; sandbox: CodeSandbox };
-  engineFactory?: (config: EngineConfig, deps: { log: Logger }) => Engine;  // test injection seam
+  /**
+   * Home for ALL injected tool services — every service a tool handler touches
+   * lives here (22 fields as of Phase 19). Key entries include:
+   *   sympy, sandbox, vectorStore, ftsStore, embeddings, documents,
+   *   artifacts, bootstrap, courseState, memory, assignments, packs,
+   *   pedagogyPack, lock, authoring, notes, flashcards, fsrsScheduler,
+   *   sketches, conceptMaps, courseDocuments, engineResolver,
+   *   bootstrapConfigResolver? (optional), quickCheck? (optional)
+   * — see types.ts for the full set; adding a new tool service = add here.
+   */
+  toolServices: {
+    sympy: SymPyService;
+    sandbox: CodeSandbox;
+    vectorStore: VectorStore;
+    // ... (other fields elided; see types.ts:45 for the full 22-field struct)
+    engineResolver: () => Engine;
+  };
+  /** Phase 7: optional indexer orchestrator for post-turn memory indexing. */
+  indexerOrchestrator?: IndexerOrchestrator;
+  /** Test injection seam — omit in production to use createEngine() from @praxis/engines. */
+  engineFactory?: (config: EngineConfig, deps: { log: Logger }) => Engine;
+  /** Phase 11: required lock service for configure-mode session guard. */
+  lockService: LockService;
+  /** Phase 11: optional activity registry for the activity rail. */
+  activity?: ActivityRegistry;
 }
 ```
 

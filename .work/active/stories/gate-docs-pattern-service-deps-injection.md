@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-service-deps-injection
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -49,3 +49,6 @@ contributors looking at it as a guide.
   (with `vectorStore`, `memory`, `pedagogyPack`, etc. as load-bearing
   entries) and that `activity`, `lockService`, `indexerOrchestrator`,
   `engineFactory` are top-level alongside it.
+
+## Implementation notes
+Updated `types.ts:13` → `:36` (verified: `export interface ServiceDeps` is at line 36). Replaced the stripped-down 6-field example with a documented summary form: `toolServices` struct is noted as 22 fields with key examples listed in a JSDoc comment, and the top-level fields `indexerOrchestrator`, `engineFactory`, `lockService`, `activity` are shown with their optionality. Readers are linked to `types.ts:45` for the full 22-field struct definition.
