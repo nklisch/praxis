@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-engines-runOneShot-export
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: feature-release-v0.1.0-doc-findings
 depends_on: []
@@ -41,3 +41,6 @@ also exports `runOneShot` for use by `@praxis/core/services` indexers,
 mirroring the dependency-direction exception already documented in
 CLAUDE.md (`packages/core/src/services/` may import `@praxis/engines` and
 `@praxis/tools` at runtime — the rest of `@praxis/core` may not).
+
+## Implementation notes
+Replaced "Self-contained — no other `@praxis/*` package may import here" with language acknowledging `runOneShot` and the `services/` carve-out, matching the exception already documented in CLAUDE.md. The boundary is clarified as `services/` only — not all of `@praxis/core`.
