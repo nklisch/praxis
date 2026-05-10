@@ -122,7 +122,6 @@ function loadPack(deps: PedagogyPackServiceDeps): PedagogyPack | null {
   // The Zod schema validates structure; branded ids (StrategyId, TechniqueId)
   // are nominal wrappers over string — safe to cast here because the schema
   // already enforced the string constraint.
-  // biome-ignore lint/suspicious/noExplicitAny: Zod output→PedagogyPack brand cast
   return result.data as unknown as PedagogyPack;
 }
 

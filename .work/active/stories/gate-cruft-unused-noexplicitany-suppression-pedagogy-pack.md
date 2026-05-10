@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-unused-noexplicitany-suppression-pedagogy-pack
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: feature-release-v0.1.0-cruft-findings
 depends_on: []
@@ -41,3 +41,7 @@ for the suppression to apply to. Biome flagged it as `suppressions/unused`.
 - Keep the explanatory comment on lines 122-124 — it's still useful
   context for the `as unknown as` cast.
 - Keep line 126 unchanged.
+
+## Implementation notes
+
+Deleted line 125 (the `// biome-ignore lint/suspicious/noExplicitAny: Zod output→PedagogyPack brand cast` comment). The explanatory three-line comment on lines 122-124 is preserved. The `as unknown as PedagogyPack` cast on line 126 is untouched — it never involved `any`, so no suppression was needed.
