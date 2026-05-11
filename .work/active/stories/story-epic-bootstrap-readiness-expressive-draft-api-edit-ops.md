@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-expressive-draft-api-edit-ops
 kind: story
-stage: review
+stage: done
 tags: [bootstrap, course-authoring, tools]
 parent: epic-bootstrap-readiness-expressive-draft-api
 depends_on: []
@@ -128,3 +128,14 @@ None. The return-shape change (`editDraft` → `{ draft, warnings }`) only touch
 - `pnpm typecheck` — clean
 - `pnpm lint` — 4 pre-existing errors in untouched files; 0 errors in changed files
 - `pnpm test` — 2510 passed, 15 skipped (slow tests gated behind env flag)
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `docs/CONTRACT.md:1258-1260` lists draft tools but doesn't yet include the four new edit-op variants. The docs gate at release-deploy will catch this.
+
+**Notes**: Clean conversion of `applyEdit` to `{state, warnings}` across all 13 cases. The new `ok()` helper keeps each case branch terse. `add-concept` duplicate-warning text matches the design's wording. `remove-lesson` cascade is correct — filters `proposedUnits[*].draftLessonIds`, drops matching `proposedLessonAssessments`, single summary warning with counts. `relink-concept` handles both branches (positive lessonIndex moves the name, `-1` orphans it) without touching concept node or edges. `add-edge` reuses the same validation logic as the standalone `addEdge` method; throws on missing/self/duplicate. `validate-draft` cleanly wraps `validateProposed`. 11 new tests pin everything. No deviations from design.

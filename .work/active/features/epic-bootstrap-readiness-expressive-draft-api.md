@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness-expressive-draft-api
 kind: feature
-stage: review
+stage: done
 tags: [bootstrap, course-authoring]
 parent: epic-bootstrap-readiness
 depends_on: [epic-bootstrap-readiness-durable-drafts]
@@ -583,3 +583,32 @@ dangling-refs) without dragging the whole graph through every turn —
 which was the original pain that surfaced the
 `idea-course-edit-draft-api-gaps` and
 `idea-bootstrap-draft-edit-and-query-apis` parks.
+
+## Feature Review (2026-05-10)
+
+**Verdict**: Approve
+
+Both child stories at `done`. The brief's promise — "the tutor can refactor
+a draft non-trivially AND inspect it in chunks without dragging the whole
+graph through every turn" — is delivered end-to-end:
+
+- `DraftEditOp` extended with `relink-concept`, `add-edge`, `remove-unit`,
+  `validate-draft`. `applyEdit` returns `{ state, warnings }`. The
+  `course.edit_draft` tool surfaces warnings to the model so it can see
+  "concept already exists" / "removed lesson cascaded N memberships" /
+  validation issues.
+- `course.list_units`, `course.list_lessons_in_unit`,
+  `course.get_lesson_detail`, `course.list_dangling_refs` tools shipped
+  with matching `BootstrapServiceImpl` methods. `list_dangling_refs`
+  identifies the four real dangling categories that surfaced in the
+  parked sessions.
+- Existing `add-concept` silent-merge bug is fixed: duplicate names now
+  return a warning naming the conflict instead of pretending to succeed.
+- Existing `remove-lesson` non-cascade bug is fixed: removing a lesson
+  cascade-cleans unit memberships and lesson assessments in the same op.
+
+Per-child review nits flagged `docs/CONTRACT.md` doesn't yet list the
+new ops and tools. The docs gate during release-deploy will catch this.
+
+Test count delta: 48 new tests (11 service edit-ops + 16 service queries
++ 21 tool tests). Full workspace suite 2547 passing.

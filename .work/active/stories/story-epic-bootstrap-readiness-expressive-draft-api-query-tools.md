@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-expressive-draft-api-query-tools
 kind: story
-stage: review
+stage: done
 tags: [bootstrap, course-authoring, tools]
 parent: epic-bootstrap-readiness-expressive-draft-api
 depends_on: [story-epic-bootstrap-readiness-expressive-draft-api-edit-ops]
@@ -125,3 +125,14 @@ stays for the whole-draft view; the new tools are scoped projections.
   `story-epic-bootstrap-readiness-expressive-draft-api-edit-ops` —
   sibling story modifies `bootstrap-service.ts` extensively;
   serializing avoids merge conflicts.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Same `docs/CONTRACT.md` nit as the sibling — the four new read tools need to be added to the tool listing during release-deploy.
+
+**Notes**: Four small focused tools, each backed by a pure projection method on `BootstrapServiceImpl`. The "unknown sub-id returns null" decision (for `listLessonsInUnit` and `getLessonDetail`) is a sensible extension of the `showDraft` pattern. `listDanglingRefs` correctly identifies all four dangling categories (orphan concepts, unit memberships, lesson assessments, edge endpoints). The dangling-refs tests use `store.save()` to inject malformed state directly — pragmatic since the public mutators cascade-clean and would prevent the test setup. 16 service tests + 21 tool tests; all 2547 workspace tests passing.
