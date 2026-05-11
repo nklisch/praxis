@@ -17,6 +17,7 @@ import type {
   VectorStore,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import type { EmbeddedImageStore } from "./embedded-images.js";
 import type { PageImageStore } from "./page-images.js";
 
 export interface IngestionServiceDeps {
@@ -27,6 +28,8 @@ export interface IngestionServiceDeps {
   embeddings: EmbeddingService;
   ingestorRegistry: IngestorRegistry;
   pageImageStore: PageImageStore;
+  /** Store for embedded images extracted from PPTX (and future: DOCX) files. */
+  embeddedImageStore: EmbeddedImageStore;
   /** Phase 16: when provided, auto-attaches ingested documents to the course specified in IngestionRequest.courseId. */
   courseDocuments?: CourseDocumentsService;
   /** Activity registry for ambient progress reporting via the activity rail. */
@@ -152,6 +155,26 @@ export class IngestionService {
       }
     }
 
+    // 4b. Rename embedded-image directory from synthetic → real documentId
+    if (result.pendingEmbeddedImageDocId) {
+      try {
+        // pathFor returns a full file path; strip the filename to get the dir.
+        const synthDir = join(
+          this.deps.embeddedImageStore
+            .pathFor({ documentId: result.pendingEmbeddedImageDocId, imageName: "_" })
+            .replace(/[\\/][^/\\]+$/, ""),
+        );
+        const realDir = join(
+          this.deps.embeddedImageStore
+            .pathFor({ documentId, imageName: "_" })
+            .replace(/[\\/][^/\\]+$/, ""),
+        );
+        await rename(synthDir, realDir);
+      } catch (e) {
+        this.deps.log.warn("embedded-image rename failed", { error: String(e) });
+      }
+    }
+
     // 5. Persist chunk rows
     const chunkRows = result.chunks.map((c) => ({
       id: uuidv7(),
@@ -162,6 +185,7 @@ export class IngestionService {
         page: c.page ?? null,
         section: c.section ?? null,
         blockType: c.blockType ?? null,
+        imageNames: c.imageNames ?? null,
       },
     }));
 

@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { assignments } from "@praxis/artifacts/schema";
 import { readBootstrapConfig, readEngineConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
-import { FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
+import { FsEmbeddedImageStore, FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import type { NodeWorker } from "@praxis/core/runtime";
 import type { ServiceDeps } from "@praxis/core/services";
 import {
@@ -224,6 +224,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     dimension: EMBEDDINGS_DIMENSION,
   });
   const pageImageStore = new FsPageImageStore();
+  const embeddedImageStore = new FsEmbeddedImageStore();
   const documentsReader = new DrizzleDocumentsReader(db, pageImageStore);
 
   // Phase 10: concept embeddings + pack import service.
@@ -282,7 +283,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     new DocxIngestor(),
     new EpubIngestor(),
     new JsPdfIngestor(),
-    new PptxIngestor(),
+    new PptxIngestor({ embeddedImageStore }),
     new VisionPdfIngestor({ visionResolver, pageImageStore }),
   ]);
 
@@ -540,6 +541,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     embeddings,
     ingestorRegistry,
     pageImageStore,
+    embeddedImageStore,
     courseDocuments: courseDocumentsService, // ← Phase 16
     activity: activityRegistry,
   });

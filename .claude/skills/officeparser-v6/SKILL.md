@@ -113,12 +113,18 @@ on v6.1.1 during implementation of
 `feature-powerpoint-ingestion-text-extraction`:
 
 - **`"slide"` is a first-class top-level node type for PPTX.** A PPTX parses
-  as `ast.content = [slide1, slide2, …]` where each entry has
-  `type === "slide"`, `metadata.slideNumber: number` (1-based), and
-  `children: OfficeContentNode[]` containing the slide's body.
-- **`"note"` is a node type for speaker notes**, nested as children inside
-  the relevant `"slide"` node. Filter `slide.children` by `type === "note"`
-  to separate body text from speaker notes.
+  as `ast.content = [slide1, note1, slide2, note2, …, slideN, …]` where each
+  slide entry has `type === "slide"`, `metadata.slideNumber: number` (1-based),
+  `text: undefined` (text lives in children), and `children: OfficeContentNode[]`
+  containing the slide's body (paragraphs, headings, images, etc.).
+- **`"note"` nodes for speaker notes are top-level siblings in `ast.content`**,
+  NOT children of their `"slide"` node. Each note node has
+  `metadata.slideNumber` linking it to its slide, and `children` that contain
+  paragraph nodes with the note text. To correlate notes to slides, build a
+  `Map<slideNumber, note[]>` from `ast.content.filter(n => n.type === "note")`.
+  Do NOT look for note nodes in `slide.children` — they are not there.
+  *(Correction from Story 1 implementation notes, which were wrong on this
+  point; verified by running against the real fixture in Story 2.)*
 - **`"chart"`, `"drawing"`, `"sheet"`, `"row"`, `"cell"`, `"page"` are also
   valid node types** that the original README sketch omits. Most aren't
   relevant for PPTX but you'll see them when parsing other office formats.
@@ -150,11 +156,20 @@ function imageNameFor(node: OfficeContentNode): string | undefined {
 
 **Slide boundaries.** Top-level `"slide"` nodes in `ast.content`. Read
 `slide.metadata.slideNumber` for the 1-based page number, then walk
-`slide.children` to assemble body text. Separate `"note"` children for
-speaker notes — Praxis chunks them as `section: "Slide N (notes)"` and
+`slide.children` to assemble body text. `slide.text` is `undefined` —
+text is always in the children. For speaker notes, build a map from
+`ast.content.filter(n => n.type === "note")` keyed by
+`note.metadata.slideNumber` — notes are top-level siblings, not children
+of the slide node. Praxis chunks them as `section: "Slide N (notes)"` and
 keeps body chunks as `section: "Slide N"`. If for some reason a parse
 returns zero `"slide"` nodes (corrupt or unusual deck), fall back to
 `ast.toText()` + `chunkMarkdown`.
+
+**Slow integration tests must not mock officeparser.** Vitest's `vi.mock`
+is module-scoped; if a test file uses `vi.mock("officeparser", ...)`, all
+tests in that file see the mock — including `describe.skipIf` blocks. Put
+slow tests that need the real library in a **separate file** that doesn't
+call `vi.mock`. See `pptx-ingestor-integration.test.ts`.
 
 **Test fixture.** A redistributable 89 KB `.pptx` from officeparser's own
 MIT-licensed test suite lives at

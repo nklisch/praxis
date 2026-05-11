@@ -1,16 +1,40 @@
 import { basename, extname } from "node:path";
+import { randomUUID } from "node:crypto";
+import type { EmbeddedImageStore } from "@praxis/core/ingestion";
 import { chunkMarkdown, chunkParagraphs } from "./chunker.js";
 import type { IngestedChunk, Ingestor, IngestorOptions, IngestorResult } from "./ingestor.js";
+
+export interface PptxIngestorOptions {
+  /**
+   * When provided, embedded images in the PPTX are extracted and saved to
+   * this store under a synthetic documentId. The result will include
+   * `pendingEmbeddedImageDocId` so IngestionService can rename the directory
+   * to the real documentId after the document row is persisted.
+   */
+  embeddedImageStore?: EmbeddedImageStore;
+}
 
 /**
  * PptxIngestor — handles `.pptx` files via `officeparser` v6.
  *
  * PowerPoint slides surface as top-level `"slide"` nodes in the AST, each
- * carrying `SlideMetadata.slideNumber`. `tryChunkBySlide` walks these to
+ * carrying `metadata.slideNumber` (1-based). `tryChunkBySlide` walks these to
  * produce per-slide chunks with `chunk.page` set to the slide number.
- * Speaker notes appear as `"note"` children inside each slide node and are
- * appended inline.  If the slide structure is not detectable (e.g. an
- * unusual export), the code falls through to `ast.toText()` + `chunkMarkdown`.
+ *
+ * **Verified real-world AST shape** (from running against the fixture): in
+ * officeparser v6.1.x, speaker notes appear as **top-level `"note"` sibling
+ * nodes** in `ast.content` alongside slides, NOT as children inside the slide
+ * node. Each note node has `metadata.slideNumber` linking it to its slide.
+ * Slide nodes have `text: undefined`; their textual content lives in
+ * `children` (paragraphs, headings, etc.).
+ *
+ * If no `"slide"` nodes are found the code falls through to
+ * `ast.toText()` + `chunkMarkdown`.
+ *
+ * When `opts.embeddedImageStore` is provided, embedded images (PNG, JPEG,
+ * etc.) are extracted from `ast.attachments`, decoded from Base64, and saved
+ * to the store. Each slide's chunks are tagged with the image names that
+ * appear in that slide's child subtree via `chunk.imageNames`.
  *
  * Lazy-imports `officeparser` inside `parse()` — the package transitively
  * pulls in Tesseract.js and PDF.js, so keep them off the cold path (same
@@ -24,17 +48,21 @@ export class PptxIngestor implements Ingestor {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   ] as const;
 
+  constructor(private readonly opts: PptxIngestorOptions = {}) {}
+
   async isAvailable(): Promise<boolean> {
     return true;
   }
 
-  async parse(filePath: string, opts: IngestorOptions = {}): Promise<IngestorResult> {
+  async parse(filePath: string, parseOpts: IngestorOptions = {}): Promise<IngestorResult> {
     // Lazy import — officeparser transitively pulls in Tesseract.js and PDF.js.
     // Same pattern as DocxIngestor with mammoth, VisionPdfIngestor with pdfjs-dist.
     const { OfficeParser } = await import("officeparser");
 
+    const extractAttachments = this.opts.embeddedImageStore !== undefined;
+
     const ast = await OfficeParser.parseOffice(filePath, {
-      extractAttachments: false, // text-only in this story; Story 2 adds images
+      extractAttachments,
       ignoreNotes: false, // keep speaker notes — pedagogically valuable
       putNotesAtLast: false, // keep notes inline with their slide
       ocr: false, // vision pipeline handles images better
@@ -48,13 +76,51 @@ export class PptxIngestor implements Ingestor {
       findFirstHeadingText(ast.content) ??
       fallbackTitle;
 
+    // Build a map from slide index to image names appearing in that slide's
+    // AST subtree. We do this before chunking so chunk production can tag each
+    // slide's chunks with the right names.
+    const slideImageNames = extractAttachments
+      ? buildSlideImageNamesMap(ast.content)
+      : new Map<number, string[]>();
+
     const chunks =
-      tryChunkBySlide(ast.content, opts.maxChars) ??
+      tryChunkBySlide(ast.content, parseOpts.maxChars, slideImageNames) ??
       chunkMarkdown(ast.toText(), {
-        ...(opts.maxChars !== undefined && { maxChars: opts.maxChars }),
+        ...(parseOpts.maxChars !== undefined && { maxChars: parseOpts.maxChars }),
       }).chunks;
 
-    return { title, chunks, ingestorId: this.id };
+    // Extract and save image attachments when a store is provided.
+    let pendingEmbeddedImageDocId: string | undefined;
+    if (this.opts.embeddedImageStore !== undefined && ast.attachments.length > 0) {
+      const store = this.opts.embeddedImageStore;
+      const syntheticDocId = `_pending_${randomUUID()}`;
+      const seen = new Set<string>();
+
+      for (const att of ast.attachments) {
+        if (att.type !== "image") continue;
+        if (seen.has(att.name)) continue; // dedup — same image can be referenced from multiple slides
+        seen.add(att.name);
+
+        const bytes = Buffer.from(att.data, "base64");
+        await store.save({
+          documentId: syntheticDocId,
+          imageName: att.name,
+          bytes,
+          mimeType: att.mimeType,
+        });
+      }
+
+      if (seen.size > 0) {
+        pendingEmbeddedImageDocId = syntheticDocId;
+      }
+    }
+
+    return {
+      title,
+      chunks,
+      ingestorId: this.id,
+      ...(pendingEmbeddedImageDocId !== undefined && { pendingEmbeddedImageDocId }),
+    };
   }
 }
 
@@ -97,12 +163,65 @@ interface OfficeNodeLike {
 }
 
 /**
+ * Walk the top-level slide nodes and collect, per slideNumber, all
+ * `attachmentName` values found in `"image"` child nodes. Returns a Map
+ * keyed by `slideNumber` (1-based, from `metadata.slideNumber`).
+ *
+ * We key by slideNumber because the real AST has note nodes interleaved as
+ * siblings of slides, so array indices are not a stable per-slide key. When
+ * slideNumber is undefined (unusual export) we fall back to array index.
+ */
+function buildSlideImageNamesMap(nodes: OfficeNodeLike[]): Map<number, string[]> {
+  const result = new Map<number, string[]>();
+  nodes.forEach((node, idx) => {
+    if (node.type !== "slide") return;
+    const names = collectImageNames(node.children ?? []);
+    if (names.length > 0) {
+      const key =
+        typeof node.metadata?.slideNumber === "number" ? node.metadata.slideNumber : idx;
+      result.set(key, names);
+    }
+  });
+  return result;
+}
+
+/**
+ * Recursively collect all `attachmentName` strings from `"image"` nodes
+ * within a subtree. Returns deduplicated names in encounter order.
+ */
+function collectImageNames(nodes: OfficeNodeLike[]): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+
+  function walk(ns: OfficeNodeLike[]): void {
+    for (const n of ns) {
+      if (n.type === "image") {
+        const attName: unknown = n.metadata?.attachmentName;
+        if (typeof attName === "string" && attName.length > 0 && !seen.has(attName)) {
+          seen.add(attName);
+          names.push(attName);
+        }
+      }
+      if (n.children) walk(n.children);
+    }
+  }
+
+  walk(nodes);
+  return names;
+}
+
+/**
  * Attempt to produce per-slide chunks from the AST.
  *
- * PPTX files parsed by officeparser v6 expose slides as top-level `"slide"`
- * nodes with `metadata.slideNumber` (1-based).  Each slide node's children
- * contain the actual content (paragraphs, headings, lists, images, …) and
- * optionally a `"note"` child that carries the speaker notes.
+ * **Real officeparser v6 AST shape (verified)**: slides are top-level nodes in
+ * `ast.content` with `type === "slide"` and `metadata.slideNumber` (1-based).
+ * Speaker notes are **separate top-level `"note"` nodes** (NOT children of the
+ * slide) with their own `metadata.slideNumber` linking them to the slide.
+ * Slide body text lives in the slide's `children` array.
+ *
+ * When `slideImageNames` is provided (image extraction path), each slide's
+ * body and notes chunks are tagged with the image names from that slide's
+ * subtree via `chunk.imageNames`.
  *
  * Returns `null` if no `"slide"` nodes are found — the caller falls back to
  * `ast.toText()` + `chunkMarkdown` in that case.
@@ -110,9 +229,22 @@ interface OfficeNodeLike {
 function tryChunkBySlide(
   nodes: OfficeNodeLike[],
   maxChars: number | undefined,
+  slideImageNames: Map<number, string[]> = new Map(),
 ): IngestedChunk[] | null {
   const slideNodes = nodes.filter((n) => n.type === "slide");
   if (slideNodes.length === 0) return null;
+
+  // Build a Map from slideNumber → note node(s) so we can look them up
+  // efficiently. Real AST: notes are top-level siblings with metadata.slideNumber.
+  const notesBySlideNumber = new Map<number, OfficeNodeLike[]>();
+  for (const node of nodes) {
+    if (node.type !== "note") continue;
+    const slideNum = typeof node.metadata?.slideNumber === "number" ? node.metadata.slideNumber : -1;
+    if (slideNum < 0) continue;
+    const existing = notesBySlideNumber.get(slideNum) ?? [];
+    existing.push(node);
+    notesBySlideNumber.set(slideNum, existing);
+  }
 
   const chunks: IngestedChunk[] = [];
   let chunkIndex = 0;
@@ -123,20 +255,13 @@ function tryChunkBySlide(
 
     const slideLabel = slideNumber !== undefined ? `Slide ${slideNumber}` : "Slide";
 
-    // Separate content nodes from note nodes within this slide.
-    const contentNodes: OfficeNodeLike[] = [];
-    const noteNodes: OfficeNodeLike[] = [];
+    // Look up image names by slideNumber (the stable per-slide key).
+    const imageNames =
+      slideNumber !== undefined ? slideImageNames.get(slideNumber) : undefined;
 
-    for (const child of slide.children ?? []) {
-      if (child.type === "note") {
-        noteNodes.push(child);
-      } else {
-        contentNodes.push(child);
-      }
-    }
-
-    // Build a markdown-like text block for the slide body.
-    const slideText = nodesToText(contentNodes).trim();
+    // Slide children are the body content (paragraphs, headings, images, etc.).
+    // No "note" children appear here in the real AST — notes are siblings.
+    const slideText = nodesToText(slide.children ?? []).trim();
 
     if (slideText) {
       const slideChunks = chunkParagraphs(slideText, {
@@ -145,15 +270,26 @@ function tryChunkBySlide(
         section: slideLabel,
         ...(maxChars !== undefined && { maxChars }),
       });
+      if (imageNames !== undefined) {
+        for (const c of slideChunks) {
+          c.imageNames = imageNames;
+        }
+      }
       chunks.push(...slideChunks);
       chunkIndex += slideChunks.length;
     }
 
     // Append speaker notes as separate chunks so they're searchable but
-    // visually distinguishable from body content.  Tag each with
-    // blockType:"Body" — ChunkParagraphsOptions doesn't carry blockType so we
-    // set it after chunking.
-    const notesText = nodesToText(noteNodes).trim();
+    // visually distinguishable from body content.
+    const noteNodes =
+      slideNumber !== undefined ? (notesBySlideNumber.get(slideNumber) ?? []) : [];
+    const notesText = noteNodes
+      .flatMap((note) => note.children ?? [])
+      .map(nodeToText)
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+
     if (notesText) {
       const notesSection = `${slideLabel} (notes)`;
       const noteChunks = chunkParagraphs(notesText, {
@@ -164,6 +300,9 @@ function tryChunkBySlide(
       });
       for (const nc of noteChunks) {
         nc.blockType = "Body";
+        if (imageNames !== undefined) {
+          nc.imageNames = imageNames;
+        }
       }
       chunks.push(...noteChunks);
       chunkIndex += noteChunks.length;
@@ -180,11 +319,25 @@ function tryChunkBySlide(
 /**
  * Flatten an array of AST nodes into a plain-text string, preserving
  * paragraph separation with blank lines so `chunkParagraphs` can split them.
+ *
+ * Uses `node.text` for leaf nodes. Recurses into children when `node.text`
+ * is absent (e.g. slide-level container nodes in officeparser v6).
  */
 function nodesToText(nodes: OfficeNodeLike[]): string {
   return nodes.map(nodeToText).filter(Boolean).join("\n\n");
 }
 
 function nodeToText(node: OfficeNodeLike): string {
-  return (node.text ?? "").trim();
+  // Image nodes have no displayable text — skip them.
+  if (node.type === "image") return "";
+  // Prefer node.text (set for paragraphs, headings, text nodes, etc.).
+  if (node.text) return node.text.trim();
+  // For container nodes where text is absent (unusual), fall back to children.
+  if (node.children) {
+    return node.children
+      .map(nodeToText)
+      .filter(Boolean)
+      .join(" ");
+  }
+  return "";
 }

@@ -18,6 +18,8 @@ export interface IngestedChunk {
   section?: string;
   /** Block type hint for downstream consumers (e.g., "SectionHeader", "Body"). */
   blockType?: "SectionHeader" | "Body" | "Code" | "Table" | "Figure";
+  /** Filenames of embedded images referenced by this chunk (from PPTX, future: DOCX). */
+  imageNames?: string[];
 }
 
 export interface IngestorResult {
@@ -35,6 +37,12 @@ export interface IngestorResult {
    * documentId after persisting the document row.
    */
   pendingPageImageDocId?: string;
+  /**
+   * Set by PptxIngestor when embedded image attachments were saved under a
+   * synthetic document-id directory. IngestionService renames the directory
+   * to the real documentId after persisting the document row.
+   */
+  pendingEmbeddedImageDocId?: string;
 }
 
 export interface IngestorOptions {

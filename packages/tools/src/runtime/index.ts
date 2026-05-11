@@ -10,6 +10,7 @@ export type {
   Ingestor,
   IngestorOptions,
   IngestorResult,
+  PptxIngestorOptions,
   SelectInput,
   VisionPdfIngestorOptions,
 } from "./ingestion/index.js";
@@ -23,6 +24,7 @@ export {
   JsPdfIngestor,
   MarkdownIngestor,
   PlainTextIngestor,
+  PptxIngestor,
   VISION_PROMPT,
   VisionPdfIngestor,
 } from "./ingestion/index.js";

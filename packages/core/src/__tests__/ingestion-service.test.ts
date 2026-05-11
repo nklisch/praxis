@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { noopLogger } from "../../../../tests/helpers/mocks.js";
 import { openDb } from "../db/index.js";
+import { FsEmbeddedImageStore } from "../ingestion/embedded-images.js";
 import { FsPageImageStore } from "../ingestion/page-images.js";
 import { IngestionService } from "../ingestion/service.js";
 import type { IngestionEvent } from "../types/index.js";
@@ -111,10 +112,12 @@ async function collectEvents(
 describe("IngestionService", () => {
   let tmpDir: string;
   let pageImageStore: FsPageImageStore;
+  let embeddedImageStore: FsEmbeddedImageStore;
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), "praxis-ingest-test-"));
     pageImageStore = new FsPageImageStore(tmpDir);
+    embeddedImageStore = new FsEmbeddedImageStore(join(tmpDir, "embedded"));
   });
 
   afterEach(() => {
@@ -136,6 +139,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: registry,
       pageImageStore,
+      embeddedImageStore,
     });
 
     const events = await collectEvents(svc, {
@@ -168,6 +172,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: makeRegistry(ingestor),
       pageImageStore,
+      embeddedImageStore,
     });
 
     const events = await collectEvents(svc, {
@@ -200,6 +205,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: makeRegistry(ingestor),
       pageImageStore,
+      embeddedImageStore,
     });
 
     await collectEvents(svc, {
@@ -227,6 +233,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: makeRegistry(ingestor),
       pageImageStore,
+      embeddedImageStore,
     });
 
     await collectEvents(svc, {
@@ -253,6 +260,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: makeRegistry(null), // no ingestor
       pageImageStore,
+      embeddedImageStore,
     });
 
     const events = await collectEvents(svc, {
@@ -285,6 +293,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: makeRegistry(ingestor),
       pageImageStore,
+      embeddedImageStore,
     });
 
     const events = await collectEvents(svc, {
@@ -317,6 +326,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: makeRegistry(ingestor),
       pageImageStore,
+      embeddedImageStore,
     });
 
     const controller = new AbortController();
@@ -364,6 +374,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: makeRegistry(ingestor),
       pageImageStore,
+      embeddedImageStore,
     });
 
     const events = await collectEvents(svc, {
@@ -400,6 +411,7 @@ describe("IngestionService", () => {
       embeddings,
       ingestorRegistry: makeRegistry(ingestor),
       pageImageStore,
+      embeddedImageStore,
     });
 
     const events = await collectEvents(svc, {
