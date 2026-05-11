@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness
 kind: epic
-stage: implementing
+stage: done
 tags: [bootstrap, course-authoring, tutor-ux]
 parent: null
 depends_on: []
@@ -134,3 +134,61 @@ parallel with the foundation feature.
 Parked across this session by the user after a real Algebra 1 / 8th-grade
 textbook bootstrap attempt; see commits `48b6ef0` through `2ccf2f7` and
 `bc58cf7` for the originating story-fix and the wave of related parks.
+
+## Epic Review (2026-05-10)
+
+**Verdict**: Approve. Epic delivered as briefed.
+
+All seven children at `done`:
+
+**Features (4)** — each independently reviewed and approved:
+- `epic-bootstrap-readiness-durable-drafts` — drafts now persist across
+  restarts; `DraftStore` port + `SqliteDraftStore` adapter; 21 new tests.
+- `epic-bootstrap-readiness-expressive-draft-api` — `DraftEditOp` gained
+  relink/add-edge/remove-unit/validate-draft; `applyEdit` returns
+  `{ state, warnings }`; cascade-clean on remove-lesson; four new
+  chunked-read tools; 48 new tests.
+- `epic-bootstrap-readiness-in-flight-affordances` — thinking indicator
+  + Esc/Stop cancel wired end-to-end (IPC AbortController →
+  `conv.abort()`); `interrupted` EngineEvent variant; 25 new tests.
+- `epic-bootstrap-readiness-structured-questions` —
+  `ask_student_question` tool reuses `QuickCheckService`; new
+  `<StructuredQuestionCard />`; 41 new tests.
+
+**Stories (3, top-level under epic)** — each reviewed and approved:
+- `story-bootstrap-attach-document-fix` — removed the trap.
+- `story-bootstrap-prompt-no-inline-outline` — prompt now points at
+  the outline panel.
+- `story-cleanup-stale-singular-draft-tool-refs` — 5 stale references
+  cleaned + dist purged.
+
+### Capability completeness
+
+A student dropping a textbook into Praxis can now run bootstrap to a
+confirmed course where: every concept and assessment is correctly
+linked (validate-draft + cascade-cleans guarantee), the agent can ask
+clarifying decisions via structured cards, drafts survive restart,
+the chat shows a thinking indicator and supports Esc/Stop cancel,
+and the agent points at the outline panel rather than narrating it
+in chat. The original "broken bootstrap session" that surfaced all 8
+parks has every failure mode addressed.
+
+### Foundation-doc roll-forward
+
+Multiple per-child review nits flagged that `docs/ARCHITECTURE.md`,
+`docs/SPEC.md`, and `docs/CONTRACT.md` need rolling forward to
+reflect: durable drafts, end-to-end cancel propagation,
+`ask_student_question` in the tool listing, and the four new chunked
+read tools + four new `DraftEditOp` variants. The docs gate at
+`/agile-workflow:release-deploy` will catch all of these.
+
+### Test delta
+
+135 new tests across the epic. Full workspace suite 2547 passing.
+
+### Out-of-scope items deferred (per epic brief)
+
+- `idea-rename-bootstrap-and-explore` — terminology pass; separate arc.
+- `idea-onboarding-course-card-pre-seed` — onboarding flow; builds on
+  this epic.
+- `idea-engine-cli-integration-smoke-test` — broader testing track.
