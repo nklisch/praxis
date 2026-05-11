@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-durable-drafts-integration
 kind: story
-stage: review
+stage: done
 tags: [bootstrap, persistence]
 parent: epic-bootstrap-readiness-durable-drafts
 depends_on: [story-epic-bootstrap-readiness-durable-drafts-store]
@@ -128,3 +128,15 @@ the operation is atomic.
 - `expiresAt` field retained in `DraftCourseState` (type unchanged) — set to
   `now + DRAFT_STALE_MS` at creation but not read for expiry decisions; the
   store's `lastTouchedAt` column is the authoritative expiry signal.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Same foundation-doc nit as the sibling store story: `docs/ARCHITECTURE.md:331-335` and `docs/SPEC.md` are silent on durable in-progress drafts. The docs gate during release will catch and roll this assertion forward.
+- `confirmDraft` no longer deletes the draft row after `persistDraft` — this is the intended audit-retention change but worth noting for anyone tracing the lifecycle. The `Cleanup helper for host shutdown` JSDoc on `shutdown()` flags the related "rows survive in DB" semantics clearly.
+
+**Notes**: Atomic-confirm wired exactly right — `persistDraftTx + markConfirmedTx` run inside one `db.transaction((tx) => …)` callback, so a failure inside `persistDraftTx` rolls back both the course write AND the `confirmedAt` flip. The Map→store conversion is consistent across all 10 mutators (load → mutate → bump `lastTouchedAt` → save). `shutdown()` correctly drops only the sweep timer and listeners, not the draft rows — restart-survival smoke test verifies this. `attachMany` outside the tx (post-commit, non-fatal on failure) preserves the pre-feature behaviour. 8 new durability tests + 4 existing test files rewritten to seed via public API. The `persistDraft({db, …})` outer-wrapper removal is a clean deviation — single call site, no point keeping the wrapper.
