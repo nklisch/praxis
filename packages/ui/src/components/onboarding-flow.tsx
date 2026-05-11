@@ -41,9 +41,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
   };
 
   if (step === "welcome") {
-    return (
-      <WelcomeStep onNext={() => setStep("engine")} onSkip={handleSkip} />
-    );
+    return <WelcomeStep onNext={() => setStep("engine")} onSkip={handleSkip} />;
   }
 
   if (step === "engine") {
@@ -57,11 +55,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
   }
 
   return (
-    <CourseStep
-      onComplete={onComplete}
-      onBack={() => setStep("engine")}
-      onSkip={handleSkip}
-    />
+    <CourseStep onComplete={onComplete} onBack={() => setStep("engine")} onSkip={handleSkip} />
   );
 }
 
@@ -144,8 +138,7 @@ function EngineStep({
     );
   }
 
-  const showApiKey =
-    config.engineId !== "claude-code" && config.engineId !== "direct.ollama";
+  const showApiKey = config.engineId !== "claude-code" && config.engineId !== "direct.ollama";
 
   return (
     <form className={styles.step} onSubmit={handleContinue}>
@@ -191,20 +184,10 @@ function EngineStep({
       {error && <p className={styles.error}>{error}</p>}
 
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.ghostButton}
-          onClick={onBack}
-          disabled={saving}
-        >
+        <button type="button" className={styles.ghostButton} onClick={onBack} disabled={saving}>
           {COPY.onboarding.backLabel}
         </button>
-        <button
-          type="button"
-          className={styles.ghostButton}
-          onClick={onSkip}
-          disabled={saving}
-        >
+        <button type="button" className={styles.ghostButton} onClick={onSkip} disabled={saving}>
           {COPY.onboarding.skipLabel}
         </button>
         <button type="submit" className={styles.primaryButton} disabled={saving}>
@@ -320,12 +303,7 @@ function CourseCard({
   onStart: () => void;
 }): JSX.Element {
   return (
-    <button
-      type="button"
-      className={styles.card}
-      onClick={onStart}
-      disabled={disabled}
-    >
+    <button type="button" className={styles.card} onClick={onStart} disabled={disabled}>
       <span className={styles.cardLabel}>{label}</span>
       <span className={styles.cardBody}>{body}</span>
       <span className={styles.cardCta}>

@@ -35,8 +35,7 @@ export function useUpdateCheck(): UseUpdateCheckResult {
         if (!cancelled) setResult(r);
       })
       .catch(() => {
-        if (!cancelled)
-          setResult({ status: "error", message: "ipc-failed" });
+        if (!cancelled) setResult({ status: "error", message: "ipc-failed" });
       });
     return () => {
       cancelled = true;

@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-expressive-draft-api-edit-ops
 kind: story
-stage: implementing
+stage: review
 tags: [bootstrap, course-authoring, tools]
 parent: epic-bootstrap-readiness-expressive-draft-api
 depends_on: []
@@ -102,3 +102,29 @@ also cascaded N memberships." Surfaces the warnings through
   `story-epic-bootstrap-readiness-expressive-draft-api-query-tools`
   depends on this one (lands after, avoids merge conflicts on
   `bootstrap-service.ts`).
+
+## Implementation notes
+
+### Files changed
+
+- `packages/core/src/types/artifacts.ts` — Added 4 new `DraftEditOp` variants: `relink-concept`, `add-edge`, `remove-unit`, `validate-draft`.
+- `packages/core/src/types/tool.ts` — Updated `BootstrapService.editDraft` interface return type from `Promise<DraftCourseState>` to `Promise<{ draft: DraftCourseState; warnings: readonly string[] }>`.
+- `packages/core/src/services/bootstrap-service.ts` — Introduced `EditResult` interface and `ok()` helper; rewrote `applyEdit` to return `EditResult` across all 13 cases; updated `editDraft` method to consume and forward warnings; added new cases for all 4 new ops.
+- `packages/tools/src/course/edit-draft.ts` — Appended 4 Zod discriminant variants; added `warnings: z.array(z.string()).optional()` to `OutputSchema`; updated handler to destructure `{ draft, warnings }` from the new return shape.
+- `packages/core/src/__tests__/bootstrap-service.test.ts` — Updated 5 existing `editDraft` call sites to destructure `{ draft }` / `{ draft, warnings }`; added 11 new tests covering all 4 new ops plus the warning shape.
+
+### Deviations
+
+None. The return-shape change (`editDraft` → `{ draft, warnings }`) only touches the one caller in `edit-draft.ts` tool handler — no other service imports `applyEdit` or calls `editDraft`. The design's escape-hatch condition was not triggered.
+
+### Test count
+
+- Before: 21 tests in `bootstrap-service.test.ts`
+- After: 21 (existing, updated) + 11 (new) = 32 tests; 677 core tests total, 2510 workspace-wide.
+
+### Verification
+
+- `pnpm --filter @praxis/core test` — 677 passed
+- `pnpm typecheck` — clean
+- `pnpm lint` — 4 pre-existing errors in untouched files; 0 errors in changed files
+- `pnpm test` — 2510 passed, 15 skipped (slow tests gated behind env flag)

@@ -249,9 +249,7 @@ describe("StructuredQuestionCard — submit gating", () => {
     // mixedItem has one single-select (index 0) and one multi-select (index 1).
     // Selecting one option for the single-select should enable Submit even
     // though the multi-select has zero selections.
-    render(
-      <StructuredQuestionCard callId="c3" item={mixedItem} onResolve={async () => {}} />,
-    );
+    render(<StructuredQuestionCard callId="c3" item={mixedItem} onResolve={async () => {}} />);
     const submitBtn = screen.getByRole("button", { name: /submit/i }) as HTMLButtonElement;
 
     fireEvent.click(screen.getByText("Easy").closest("button")!);
@@ -264,9 +262,7 @@ describe("StructuredQuestionCard — submit gating", () => {
 describe("StructuredQuestionCard — onResolve", () => {
   it("calls onResolve with structured-question answer after submit", async () => {
     const onResolve = vi.fn().mockResolvedValue(undefined);
-    render(
-      <StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={onResolve} />,
-    );
+    render(<StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={onResolve} />);
 
     fireEvent.click(screen.getByText("Somewhat confident").closest("button")!);
     fireEvent.click(screen.getByRole("button", { name: /submit/i }));
@@ -281,9 +277,7 @@ describe("StructuredQuestionCard — onResolve", () => {
 
   it("selectedIndices are sorted ascending for multi-select", async () => {
     const onResolve = vi.fn().mockResolvedValue(undefined);
-    render(
-      <StructuredQuestionCard callId="c2" item={multiSelectItem} onResolve={onResolve} />,
-    );
+    render(<StructuredQuestionCard callId="c2" item={multiSelectItem} onResolve={onResolve} />);
 
     // Select index 2 then index 0 (out of order)
     fireEvent.click(screen.getByText("Limits").closest("button")!);
@@ -302,9 +296,7 @@ describe("StructuredQuestionCard — onResolve", () => {
 
   it("sends correct questionIndex mapping for mixed multi-question item", async () => {
     const onResolve = vi.fn().mockResolvedValue(undefined);
-    render(
-      <StructuredQuestionCard callId="c3" item={mixedItem} onResolve={onResolve} />,
-    );
+    render(<StructuredQuestionCard callId="c3" item={mixedItem} onResolve={onResolve} />);
 
     // Single-select (question 0): pick "Medium" (index 1)
     fireEvent.click(screen.getByText("Medium").closest("button")!);
@@ -331,9 +323,7 @@ describe("StructuredQuestionCard — onResolve", () => {
 describe("StructuredQuestionCard — post-submit state", () => {
   it("shows 'Submitted' and disables button after submit", async () => {
     const onResolve = vi.fn().mockResolvedValue(undefined);
-    render(
-      <StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={onResolve} />,
-    );
+    render(<StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={onResolve} />);
 
     fireEvent.click(screen.getByText("Very confident").closest("button")!);
     fireEvent.click(screen.getByRole("button", { name: /submit/i }));
@@ -349,9 +339,7 @@ describe("StructuredQuestionCard — post-submit state", () => {
 
   it("option buttons are disabled (via fieldset) after submit", async () => {
     const onResolve = vi.fn().mockResolvedValue(undefined);
-    render(
-      <StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={onResolve} />,
-    );
+    render(<StructuredQuestionCard callId="c1" item={singleSelectItem} onResolve={onResolve} />);
 
     fireEvent.click(screen.getByText("Very confident").closest("button")!);
     fireEvent.click(screen.getByRole("button", { name: /submit/i }));

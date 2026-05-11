@@ -758,7 +758,11 @@
     { "fromId": "biology.eukaryotic-cells", "toId": "biology.cell-membrane", "strength": 0.85 },
     { "fromId": "biology.eukaryotic-cells", "toId": "biology.nucleus", "strength": 0.95 },
     { "fromId": "biology.eukaryotic-cells", "toId": "biology.mitochondria", "strength": 0.9 },
-    { "fromId": "biology.eukaryotic-cells", "toId": "biology.endoplasmic-reticulum", "strength": 0.85 },
+    {
+      "fromId": "biology.eukaryotic-cells",
+      "toId": "biology.endoplasmic-reticulum",
+      "strength": 0.85
+    },
     { "fromId": "biology.eukaryotic-cells", "toId": "biology.golgi-apparatus", "strength": 0.85 },
     { "fromId": "biology.eukaryotic-cells", "toId": "biology.lysosomes", "strength": 0.8 },
     { "fromId": "biology.eukaryotic-cells", "toId": "biology.cytoskeleton", "strength": 0.8 },
@@ -772,7 +776,11 @@
     { "fromId": "biology.diffusion", "toId": "biology.osmosis", "strength": 0.85 },
     { "fromId": "biology.diffusion", "toId": "biology.passive-transport", "strength": 0.9 },
     { "fromId": "biology.atp", "toId": "biology.active-transport", "strength": 0.85 },
-    { "fromId": "biology.endoplasmic-reticulum", "toId": "biology.golgi-apparatus", "strength": 0.9 },
+    {
+      "fromId": "biology.endoplasmic-reticulum",
+      "toId": "biology.golgi-apparatus",
+      "strength": 0.9
+    },
     { "fromId": "biology.golgi-apparatus", "toId": "biology.lysosomes", "strength": 0.8 },
     { "fromId": "biology.ribosomes", "toId": "biology.endoplasmic-reticulum", "strength": 0.8 },
     { "fromId": "biology.proteins", "toId": "biology.enzymes", "strength": 0.95 },
@@ -792,9 +800,17 @@
     { "fromId": "biology.mitochondria", "toId": "biology.cellular-respiration", "strength": 0.95 },
     { "fromId": "biology.cellular-respiration", "toId": "biology.glycolysis", "strength": 0.95 },
     { "fromId": "biology.cellular-respiration", "toId": "biology.krebs-cycle", "strength": 0.95 },
-    { "fromId": "biology.cellular-respiration", "toId": "biology.electron-transport-chain", "strength": 0.95 },
+    {
+      "fromId": "biology.cellular-respiration",
+      "toId": "biology.electron-transport-chain",
+      "strength": 0.95
+    },
     { "fromId": "biology.glycolysis", "toId": "biology.krebs-cycle", "strength": 0.9 },
-    { "fromId": "biology.krebs-cycle", "toId": "biology.electron-transport-chain", "strength": 0.9 },
+    {
+      "fromId": "biology.krebs-cycle",
+      "toId": "biology.electron-transport-chain",
+      "strength": 0.9
+    },
     { "fromId": "biology.glycolysis", "toId": "biology.fermentation", "strength": 0.85 },
     { "fromId": "biology.dna-structure", "toId": "biology.dna-replication", "strength": 0.95 },
     { "fromId": "biology.dna-replication", "toId": "biology.cell-cycle", "strength": 0.85 },
@@ -803,7 +819,11 @@
     { "fromId": "biology.dna-replication", "toId": "biology.meiosis", "strength": 0.7 },
     { "fromId": "biology.cell-membrane", "toId": "biology.homeostasis", "strength": 0.7 },
     { "fromId": "biology.homeostasis", "toId": "biology.negative-feedback", "strength": 0.95 },
-    { "fromId": "biology.eukaryotic-cells", "toId": "biology.tissues-organs-systems", "strength": 0.85 },
+    {
+      "fromId": "biology.eukaryotic-cells",
+      "toId": "biology.tissues-organs-systems",
+      "strength": 0.85
+    },
     { "fromId": "biology.homeostasis", "toId": "biology.tissues-organs-systems", "strength": 0.7 },
     { "fromId": "biology.dna-structure", "toId": "biology.rna-structure", "strength": 0.85 },
     { "fromId": "biology.dna-structure", "toId": "biology.genes", "strength": 0.95 },
@@ -822,21 +842,49 @@
     { "fromId": "biology.genes", "toId": "biology.mendel-laws", "strength": 0.85 },
     { "fromId": "biology.mendel-laws", "toId": "biology.dominant-recessive", "strength": 0.95 },
     { "fromId": "biology.dominant-recessive", "toId": "biology.punnett-square", "strength": 0.9 },
-    { "fromId": "biology.punnett-square", "toId": "biology.mendelian-inheritance", "strength": 0.95 },
-    { "fromId": "biology.dominant-recessive", "toId": "biology.mendelian-inheritance", "strength": 0.85 },
-    { "fromId": "biology.mendelian-inheritance", "toId": "biology.incomplete-dominance", "strength": 0.85 },
+    {
+      "fromId": "biology.punnett-square",
+      "toId": "biology.mendelian-inheritance",
+      "strength": 0.95
+    },
+    {
+      "fromId": "biology.dominant-recessive",
+      "toId": "biology.mendelian-inheritance",
+      "strength": 0.85
+    },
+    {
+      "fromId": "biology.mendelian-inheritance",
+      "toId": "biology.incomplete-dominance",
+      "strength": 0.85
+    },
     { "fromId": "biology.mendelian-inheritance", "toId": "biology.codominance", "strength": 0.85 },
     { "fromId": "biology.codominance", "toId": "biology.multiple-alleles", "strength": 0.85 },
-    { "fromId": "biology.mendelian-inheritance", "toId": "biology.polygenic-traits", "strength": 0.8 },
+    {
+      "fromId": "biology.mendelian-inheritance",
+      "toId": "biology.polygenic-traits",
+      "strength": 0.8
+    },
     { "fromId": "biology.chromosomes", "toId": "biology.sex-linked-inheritance", "strength": 0.85 },
-    { "fromId": "biology.mendelian-inheritance", "toId": "biology.sex-linked-inheritance", "strength": 0.85 },
+    {
+      "fromId": "biology.mendelian-inheritance",
+      "toId": "biology.sex-linked-inheritance",
+      "strength": 0.85
+    },
     { "fromId": "biology.dna-replication", "toId": "biology.mutations", "strength": 0.85 },
     { "fromId": "biology.mutations", "toId": "biology.point-mutations", "strength": 0.95 },
     { "fromId": "biology.mutations", "toId": "biology.chromosomal-mutations", "strength": 0.95 },
     { "fromId": "biology.meiosis", "toId": "biology.genetic-variation", "strength": 0.85 },
     { "fromId": "biology.mutations", "toId": "biology.genetic-variation", "strength": 0.9 },
-    { "fromId": "biology.genetic-variation", "toId": "biology.natural-selection", "strength": 0.95 },
-    { "fromId": "biology.natural-selection", "toId": "biology.variation-and-fitness", "strength": 0.95 },
+    {
+      "fromId": "biology.genetic-variation",
+      "toId": "biology.natural-selection",
+      "strength": 0.95
+    },
+    {
+      "fromId": "biology.natural-selection",
+      "toId": "biology.variation-and-fitness",
+      "strength": 0.95
+    },
     { "fromId": "biology.variation-and-fitness", "toId": "biology.adaptation", "strength": 0.95 },
     { "fromId": "biology.natural-selection", "toId": "biology.adaptation", "strength": 0.9 },
     { "fromId": "biology.adaptation", "toId": "biology.species-concept", "strength": 0.7 },
@@ -847,12 +895,36 @@
     { "fromId": "biology.natural-selection", "toId": "biology.hardy-weinberg", "strength": 0.85 },
     { "fromId": "biology.genetic-drift", "toId": "biology.hardy-weinberg", "strength": 0.85 },
     { "fromId": "biology.gene-flow", "toId": "biology.hardy-weinberg", "strength": 0.85 },
-    { "fromId": "biology.natural-selection", "toId": "biology.evolution-evidence-fossils", "strength": 0.85 },
-    { "fromId": "biology.natural-selection", "toId": "biology.evolution-evidence-anatomy", "strength": 0.85 },
-    { "fromId": "biology.natural-selection", "toId": "biology.evolution-evidence-molecular", "strength": 0.85 },
-    { "fromId": "biology.natural-selection", "toId": "biology.evolution-evidence-biogeography", "strength": 0.85 },
-    { "fromId": "biology.evolution-evidence-molecular", "toId": "biology.phylogeny", "strength": 0.9 },
-    { "fromId": "biology.evolution-evidence-anatomy", "toId": "biology.phylogeny", "strength": 0.85 },
+    {
+      "fromId": "biology.natural-selection",
+      "toId": "biology.evolution-evidence-fossils",
+      "strength": 0.85
+    },
+    {
+      "fromId": "biology.natural-selection",
+      "toId": "biology.evolution-evidence-anatomy",
+      "strength": 0.85
+    },
+    {
+      "fromId": "biology.natural-selection",
+      "toId": "biology.evolution-evidence-molecular",
+      "strength": 0.85
+    },
+    {
+      "fromId": "biology.natural-selection",
+      "toId": "biology.evolution-evidence-biogeography",
+      "strength": 0.85
+    },
+    {
+      "fromId": "biology.evolution-evidence-molecular",
+      "toId": "biology.phylogeny",
+      "strength": 0.9
+    },
+    {
+      "fromId": "biology.evolution-evidence-anatomy",
+      "toId": "biology.phylogeny",
+      "strength": 0.85
+    },
     { "fromId": "biology.phylogeny", "toId": "biology.cladistics", "strength": 0.95 },
     { "fromId": "biology.phylogeny", "toId": "biology.common-ancestry", "strength": 0.9 },
     { "fromId": "biology.adaptation", "toId": "biology.coevolution", "strength": 0.85 },
@@ -861,8 +933,16 @@
     { "fromId": "biology.speciation", "toId": "biology.biodiversity", "strength": 0.85 },
     { "fromId": "biology.ecosystem", "toId": "biology.abiotic-factors", "strength": 0.95 },
     { "fromId": "biology.ecosystem", "toId": "biology.biotic-factors", "strength": 0.95 },
-    { "fromId": "biology.ecosystem", "toId": "biology.levels-of-organization-ecology", "strength": 0.85 },
-    { "fromId": "biology.levels-of-organization-ecology", "toId": "biology.population", "strength": 0.95 },
+    {
+      "fromId": "biology.ecosystem",
+      "toId": "biology.levels-of-organization-ecology",
+      "strength": 0.85
+    },
+    {
+      "fromId": "biology.levels-of-organization-ecology",
+      "toId": "biology.population",
+      "strength": 0.95
+    },
     { "fromId": "biology.population", "toId": "biology.community", "strength": 0.95 },
     { "fromId": "biology.population", "toId": "biology.carrying-capacity", "strength": 0.9 },
     { "fromId": "biology.population", "toId": "biology.exponential-growth", "strength": 0.9 },
@@ -876,10 +956,22 @@
     { "fromId": "biology.trophic-levels", "toId": "biology.food-chains", "strength": 0.95 },
     { "fromId": "biology.food-chains", "toId": "biology.food-webs", "strength": 0.95 },
     { "fromId": "biology.food-webs", "toId": "biology.ecosystem-energy-flow", "strength": 0.9 },
-    { "fromId": "biology.trophic-levels", "toId": "biology.ecosystem-energy-flow", "strength": 0.9 },
-    { "fromId": "biology.ecosystem-energy-flow", "toId": "biology.ten-percent-rule", "strength": 0.95 },
+    {
+      "fromId": "biology.trophic-levels",
+      "toId": "biology.ecosystem-energy-flow",
+      "strength": 0.9
+    },
+    {
+      "fromId": "biology.ecosystem-energy-flow",
+      "toId": "biology.ten-percent-rule",
+      "strength": 0.95
+    },
     { "fromId": "biology.photosynthesis", "toId": "biology.primary-productivity", "strength": 0.9 },
-    { "fromId": "biology.ecosystem-energy-flow", "toId": "biology.primary-productivity", "strength": 0.85 },
+    {
+      "fromId": "biology.ecosystem-energy-flow",
+      "toId": "biology.primary-productivity",
+      "strength": 0.85
+    },
     { "fromId": "biology.photosynthesis", "toId": "biology.carbon-cycle", "strength": 0.9 },
     { "fromId": "biology.cellular-respiration", "toId": "biology.carbon-cycle", "strength": 0.9 },
     { "fromId": "biology.ecosystem", "toId": "biology.nitrogen-cycle", "strength": 0.7 },

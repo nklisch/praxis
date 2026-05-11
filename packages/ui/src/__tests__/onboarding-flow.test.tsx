@@ -62,10 +62,7 @@ function buildClient(opts?: {
   });
 }
 
-function renderFlow(opts?: {
-  onComplete?: () => Promise<void>;
-  client?: PraxisClient;
-}) {
+function renderFlow(opts?: { onComplete?: () => Promise<void>; client?: PraxisClient }) {
   const client = opts?.client ?? buildClient();
   const onComplete = opts?.onComplete ?? vi.fn(async () => undefined);
   render(
@@ -85,22 +82,16 @@ describe("OnboardingFlow", () => {
   it("continue advances welcome → engine → course", async () => {
     renderFlow();
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
 
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
   });
 
   it("back from engine returns to welcome", async () => {
     renderFlow();
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
 
     fireEvent.click(screen.getByText(COPY.onboarding.backLabel));
     expect(screen.getByText(COPY.onboarding.welcomeTitle)).toBeDefined();
@@ -117,9 +108,7 @@ describe("OnboardingFlow", () => {
     const onComplete = vi.fn(async () => undefined);
     renderFlow({ onComplete });
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
     fireEvent.click(screen.getAllByText(COPY.onboarding.skipLabel)[0]);
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
   });
@@ -128,13 +117,9 @@ describe("OnboardingFlow", () => {
     const onComplete = vi.fn(async () => undefined);
     renderFlow({ onComplete });
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
     fireEvent.click(screen.getByText(COPY.onboarding.skipLabel));
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
   });
@@ -144,9 +129,7 @@ describe("OnboardingFlow", () => {
     const client = buildClient({ setEngineConfigSpy });
     renderFlow({ client });
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
 
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
     await waitFor(() => expect(setEngineConfigSpy).toHaveBeenCalledTimes(1));
@@ -158,13 +141,9 @@ describe("OnboardingFlow", () => {
     const client = buildClient({ startSpy });
     renderFlow({ client, onComplete });
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
     fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
-    await waitFor(() =>
-      expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
 
     fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
     await waitFor(() => expect(onComplete).toHaveBeenCalled());

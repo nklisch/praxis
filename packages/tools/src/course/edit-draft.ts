@@ -51,6 +51,30 @@ const DraftEditOpSchema = z.discriminatedUnion("kind", [
       decayDays: z.number().int().positive(),
     }),
   }),
+  z.object({
+    kind: z.literal("relink-concept"),
+    conceptName: z.string().min(1),
+    /** Destination lesson index. -1 to orphan (remove from all lessons without deleting node/edges). */
+    lessonIndex: z.number().int().min(-1),
+    /** Insert position in destination lesson. Inserts at afterConceptIndex+1, or end if absent. */
+    afterConceptIndex: z.number().int().nonnegative().optional(),
+  }),
+  z.object({
+    kind: z.literal("add-edge"),
+    fromName: z.string().min(1),
+    toName: z.string().min(1),
+    /** Edge strength in [0, 1]. */
+    strength: z.number().min(0).max(1),
+    rationale: z.string().optional(),
+  }),
+  z.object({
+    kind: z.literal("remove-unit"),
+    /** The draftUnitId of the unit to remove. */
+    draftUnitId: z.string().min(1),
+  }),
+  z.object({
+    kind: z.literal("validate-draft"),
+  }),
 ]);
 
 const InputSchema = z.object({
@@ -66,6 +90,7 @@ const OutputSchema = z.object({
     lessonCount: z.number().int(),
     conceptCount: z.number().int(),
   }),
+  warnings: z.array(z.string()).optional(),
 });
 
 export const editDraftTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
@@ -73,15 +98,19 @@ export const editDraftTool: ToolDefinition<typeof InputSchema, typeof OutputSche
   description: `Apply an edit operation to an in-memory course draft. Operations:
 - rename-course: change the course title
 - rename-lesson / reorder-lessons / remove-lesson / add-lesson: lesson sequence edits
-- rename-concept / remove-concept / add-concept: concept-graph edits
+- rename-concept / remove-concept / add-concept / relink-concept: concept-graph edits
+- add-edge: add a prerequisite edge between two existing concepts
+- remove-unit: remove a unit (cascades lesson membership removal)
 - set-thresholds: change mastery / exam-pass thresholds
-After each edit, call course.show_draft to display the new state.`,
+- validate-draft: validate the current draft and surface issues as warnings
+After each edit, call course.show_draft to display the new state.
+The response includes an optional warnings[] array with informational signals (e.g. duplicate concept, cascaded removals).`,
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",
   effects: ["none"], // in-memory only; no DB writes
   async handler(args, ctx: ToolContext): Promise<z.infer<typeof OutputSchema>> {
-    const draft = await ctx.services.bootstrap.editDraft({
+    const { draft, warnings } = await ctx.services.bootstrap.editDraft({
       draftId: args.draftId,
       op: args.op as DraftEditOp,
     });
@@ -93,6 +122,7 @@ After each edit, call course.show_draft to display the new state.`,
         lessonCount: draft.proposed.proposedLessons.length,
         conceptCount: draft.proposed.proposedConcepts.length,
       },
+      ...(warnings.length > 0 ? { warnings: [...warnings] } : {}),
     };
   },
 };

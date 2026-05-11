@@ -126,52 +126,52 @@ describe("UpdateServiceImpl.checkLatest", () => {
     if (r.status === "error") expect(r.message).toContain("validation");
   });
 
-describe("compareVersions edge inputs", () => {
-  it("treats missing patch segment as 0 (1.0 == 1.0.0)", () => {
-    // split(".")+map(Number) yields [1, 0, undefined]; aPatch ?? 0 = 0.
-    expect(compareVersions("1.0", "1.0.0")).toBe(0);
-  });
-
-  it("returns NaN for prerelease suffix (Number('0-beta') = NaN, not coerced to 0)", () => {
-    // '1.0.0-beta'.split('.') = ['1','0','0-beta']; Number('0-beta') = NaN.
-    // NaN ?? 0 returns NaN (not 0) because ?? only catches null/undefined.
-    // The current implementation therefore returns NaN — not negative, not zero.
-    // This test pins that behavior so a future change to reject or coerce
-    // prerelease suffixes in compareVersions is noticed.
-    const result = compareVersions("1.0.0-beta", "1.0.0");
-    expect(Number.isNaN(result)).toBe(true);
-  });
-});
-
-describe("checkLatest with feed containing prerelease tags", () => {
-  // Restore globalThis.fetch between tests in this describe block.
-  const originalFetch = globalThis.fetch;
-  beforeEach(() => {
-    globalThis.fetch = vi.fn() as unknown as typeof globalThis.fetch;
-  });
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
-
-  it("rejects 1.0.0-beta via schema (regex requires d+.d+.d+)", async () => {
-    process.env[FEED_URL_ENV] = "https://example.com/feed.json";
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        version: "1.0.0-beta",
-        downloadUrl: "https://example.com/Praxis-1.0.0-beta.dmg",
-      }),
+  describe("compareVersions edge inputs", () => {
+    it("treats missing patch segment as 0 (1.0 == 1.0.0)", () => {
+      // split(".")+map(Number) yields [1, 0, undefined]; aPatch ?? 0 = 0.
+      expect(compareVersions("1.0", "1.0.0")).toBe(0);
     });
-    const svc = new UpdateServiceImpl(fakeDeps);
-    const r = await svc.checkLatest("1.0.0");
-    // The schema regex /^\d+\.\d+\.\d+$/ rejects "1.0.0-beta" because of the suffix.
-    expect(r.status).toBe("error");
-    if (r.status === "error") {
-      expect(r.message).toContain("validation");
-    }
-    delete process.env[FEED_URL_ENV];
+
+    it("returns NaN for prerelease suffix (Number('0-beta') = NaN, not coerced to 0)", () => {
+      // '1.0.0-beta'.split('.') = ['1','0','0-beta']; Number('0-beta') = NaN.
+      // NaN ?? 0 returns NaN (not 0) because ?? only catches null/undefined.
+      // The current implementation therefore returns NaN — not negative, not zero.
+      // This test pins that behavior so a future change to reject or coerce
+      // prerelease suffixes in compareVersions is noticed.
+      const result = compareVersions("1.0.0-beta", "1.0.0");
+      expect(Number.isNaN(result)).toBe(true);
+    });
   });
-});
+
+  describe("checkLatest with feed containing prerelease tags", () => {
+    // Restore globalThis.fetch between tests in this describe block.
+    const originalFetch = globalThis.fetch;
+    beforeEach(() => {
+      globalThis.fetch = vi.fn() as unknown as typeof globalThis.fetch;
+    });
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+    });
+
+    it("rejects 1.0.0-beta via schema (regex requires d+.d+.d+)", async () => {
+      process.env[FEED_URL_ENV] = "https://example.com/feed.json";
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          version: "1.0.0-beta",
+          downloadUrl: "https://example.com/Praxis-1.0.0-beta.dmg",
+        }),
+      });
+      const svc = new UpdateServiceImpl(fakeDeps);
+      const r = await svc.checkLatest("1.0.0");
+      // The schema regex /^\d+\.\d+\.\d+$/ rejects "1.0.0-beta" because of the suffix.
+      expect(r.status).toBe("error");
+      if (r.status === "error") {
+        expect(r.message).toContain("validation");
+      }
+      delete process.env[FEED_URL_ENV];
+    });
+  });
 
   it.each([
     ["javascript:", "javascript:alert(1)"],

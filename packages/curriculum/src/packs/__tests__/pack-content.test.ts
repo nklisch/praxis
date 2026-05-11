@@ -191,9 +191,7 @@ describe("Starter pack content validation", () => {
             `concept ${concept.id} has no standards tags`,
           ).toBeGreaterThan(0);
           for (const tag of concept.standardsTags) {
-            expect(tag, `concept ${concept.id} tag '${tag}' not NGSS HS-LS`).toMatch(
-              ngssRe,
-            );
+            expect(tag, `concept ${concept.id} tag '${tag}' not NGSS HS-LS`).toMatch(ngssRe);
           }
         }
       }
@@ -215,8 +213,7 @@ describe("Starter pack content validation", () => {
           "ecosystem energy flow",
         ];
         for (const anchor of anchors) {
-          const found =
-            names.has(anchor) || ids.has(`biology.${anchor.replace(/\s+/g, "-")}`);
+          const found = names.has(anchor) || ids.has(`biology.${anchor.replace(/\s+/g, "-")}`);
           expect(found, `missing anchor concept: ${anchor}`).toBe(true);
         }
       }

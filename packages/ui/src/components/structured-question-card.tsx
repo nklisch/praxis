@@ -1,5 +1,5 @@
 import type { QuickCheckAnswer, StructuredQuestionItem } from "@praxis/core/types";
-import { useState, type JSX } from "react";
+import { type JSX, useState } from "react";
 import styles from "./structured-question-card.module.css";
 
 export interface StructuredQuestionCardProps {
@@ -58,9 +58,7 @@ export function StructuredQuestionCard({
 
   // Submit is only gated on single-select questions: each must have exactly one
   // selection. Multi-select questions allow zero selections — no gating.
-  const canSubmit = item.questions.every(
-    (q, i) => q.multiSelect || selections[i]!.size === 1,
-  );
+  const canSubmit = item.questions.every((q, i) => q.multiSelect || selections[i]!.size === 1);
 
   return (
     <section className={styles.card}>

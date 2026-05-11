@@ -269,10 +269,7 @@ describe("PackImportServiceImpl", () => {
       const { db, sqlite } = openDb({ path: ctx.dbPath });
       const embeddingStore = new SqliteConceptEmbeddingsStore(sqlite, noopLog);
       // Path: __tests__/ → packs/ → src/ → curriculum/ → packs/
-      const realPacksDir = resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        "../../../packs",
-      );
+      const realPacksDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../../packs");
       return new PackImportServiceImpl({
         db,
         log: noopLog,

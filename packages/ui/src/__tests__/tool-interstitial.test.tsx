@@ -4,9 +4,7 @@ import { ToolInterstitial } from "../components/tool-interstitial.js";
 
 describe("ToolInterstitial", () => {
   it("renders in-flight state with present-progressive text and animated dots", () => {
-    const { container } = render(
-      <ToolInterstitial toolName="grade_math" status="in_flight" />,
-    );
+    const { container } = render(<ToolInterstitial toolName="grade_math" status="in_flight" />);
 
     expect(screen.getByText("Grading your work")).toBeDefined();
     // aria-live on the paragraph
@@ -28,9 +26,7 @@ describe("ToolInterstitial", () => {
   });
 
   it("returns null for settled-without-past (silent collapse)", () => {
-    const { container } = render(
-      <ToolInterstitial toolName="note.create" status="settled" />,
-    );
+    const { container } = render(<ToolInterstitial toolName="note.create" status="settled" />);
     // note.create has no `past` → should render nothing
     expect(container.firstChild).toBeNull();
   });
@@ -69,9 +65,7 @@ describe("ToolInterstitial", () => {
   });
 
   it("does not render bubble-style elements (root is a p, no nested divs)", () => {
-    const { container } = render(
-      <ToolInterstitial toolName="grade_math" status="in_flight" />,
-    );
+    const { container } = render(<ToolInterstitial toolName="grade_math" status="in_flight" />);
     // The root element should be a <p>, not a bubble container <div>
     expect(container.firstElementChild?.tagName.toLowerCase()).toBe("p");
     // No nested divs

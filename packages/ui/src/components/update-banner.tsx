@@ -18,9 +18,7 @@ export function UpdateBanner(): JSX.Element | null {
 
   return (
     <div className={styles.banner} role="status">
-      <span className={styles.message}>
-        {COPY.update.available(result.latest.version)}
-      </span>
+      <span className={styles.message}>{COPY.update.available(result.latest.version)}</span>
       <a
         className={styles.downloadLink}
         href={result.latest.downloadUrl}

@@ -239,12 +239,7 @@ describe("modes that must NOT carry the metacognitive-prompts fragment", () => {
     ["study-skills", studySkillsMode],
     ["bootstrap", bootstrapMode],
     ["configure", configureMode],
-  ] as const)(
-    "%s mode has no metacognitive-prompts fragment",
-    (_modeId, mode) => {
-      expect(
-        mode.promptFragments.find((f) => f.id === METACOGNITIVE_FRAGMENT_ID),
-      ).toBeUndefined();
-    },
-  );
+  ] as const)("%s mode has no metacognitive-prompts fragment", (_modeId, mode) => {
+    expect(mode.promptFragments.find((f) => f.id === METACOGNITIVE_FRAGMENT_ID)).toBeUndefined();
+  });
 });

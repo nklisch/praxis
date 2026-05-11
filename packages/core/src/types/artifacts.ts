@@ -730,7 +730,29 @@ export type DraftEditOp =
       description: string;
       afterConceptIndex?: number;
     }
-  | { kind: "set-thresholds"; thresholds: ThresholdConfig };
+  | { kind: "set-thresholds"; thresholds: ThresholdConfig }
+  | {
+      kind: "relink-concept";
+      conceptName: string;
+      /** Destination lesson index. -1 to orphan (remove from all lessons without deleting node/edges). */
+      lessonIndex: number;
+      /** Insert position in destination lesson. Inserts at afterConceptIndex+1, or end if absent. */
+      afterConceptIndex?: number;
+    }
+  | {
+      kind: "add-edge";
+      fromName: string;
+      toName: string;
+      /** Edge strength in [0, 1]. */
+      strength: number;
+      rationale?: string;
+    }
+  | {
+      kind: "remove-unit";
+      /** The draftUnitId of the unit to remove. Cascades: also removes lesson memberships within the unit. */
+      draftUnitId: string;
+    }
+  | { kind: "validate-draft" };
 
 // ─── Phase 6: Course summary (for list views) ─────────────────────────────────
 

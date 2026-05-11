@@ -731,7 +731,10 @@ export interface BootstrapService {
 
   // ── Existing methods ─────────────────────────────────────────────────────────
   showDraft(draftId: string): Promise<DraftCourseState | null>;
-  editDraft(input: { draftId: string; op: DraftEditOp }): Promise<DraftCourseState>;
+  editDraft(input: {
+    draftId: string;
+    op: DraftEditOp;
+  }): Promise<{ draft: DraftCourseState; warnings: readonly string[] }>;
   /**
    * Validate and persist the draft. Returns the persisted course identifiers
    * on success or structured `issues[]` on validation failure. Throws only on

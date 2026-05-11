@@ -5,8 +5,9 @@
  * - Renders nothing for null / disabled / up-to-date / error / dismissed.
  * - Renders banner for "available" with download link + dismiss button.
  */
-import type { PraxisClient } from "@praxis/core/types";
+
 import type { UpdateCheckResult } from "@praxis/core/services";
+import type { PraxisClient } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UpdateBanner } from "../components/update-banner.js";
@@ -77,9 +78,7 @@ describe("UpdateBanner", () => {
       latest: { version: "1.0.1", downloadUrl: "https://example.com/Praxis-1.0.1.dmg" },
     });
 
-    await waitFor(() =>
-      expect(screen.getByText(COPY.update.available("1.0.1"))).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.update.available("1.0.1"))).toBeDefined());
     const link = screen.getByText(COPY.update.downloadLabel) as HTMLAnchorElement;
     expect(link.href).toBe("https://example.com/Praxis-1.0.1.dmg");
     expect(link.target).toBe("_blank");
@@ -92,16 +91,12 @@ describe("UpdateBanner", () => {
       latest: { version: "1.0.1", downloadUrl: "https://example.com/Praxis-1.0.1.dmg" },
     });
 
-    await waitFor(() =>
-      expect(screen.getByText(COPY.update.available("1.0.1"))).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(COPY.update.available("1.0.1"))).toBeDefined());
 
     const dismissBtn = screen.getByLabelText(COPY.update.dismissLabel);
     fireEvent.click(dismissBtn);
 
-    await waitFor(() =>
-      expect(screen.queryByText(COPY.update.available("1.0.1"))).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByText(COPY.update.available("1.0.1"))).toBeNull());
     expect(window.localStorage.getItem(DISMISS_KEY)).toBe("1.0.1");
   });
 

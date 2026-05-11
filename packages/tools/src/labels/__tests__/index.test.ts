@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TOOL_LABELS, getToolLabel } from "../index.js";
+import { getToolLabel, TOOL_LABELS } from "../index.js";
 
 describe("getToolLabel", () => {
   it("returns present and past for retrieve_from_textbook", () => {
