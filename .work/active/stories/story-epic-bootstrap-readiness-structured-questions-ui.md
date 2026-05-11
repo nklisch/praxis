@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-structured-questions-ui
 kind: story
-stage: review
+stage: done
 tags: [ui, chat, tutor-ux]
 parent: epic-bootstrap-readiness-structured-questions
 depends_on: [story-epic-bootstrap-readiness-structured-questions-tool]
@@ -96,3 +96,13 @@ card while leaving all other quick-check items routing through
 **Biome a11y:** `aria-label` on `<section>` is valid per the aria spec (landmark role accepts aria-label). No workarounds were needed; biome did not flag the section element. The `noArrayIndexKey` rule was suppressed with biome-ignore comments on the `key={qIdx}` and `key={optIdx}` usages — positional index is the correct key here since questions and options have no stable ids.
 
 **Verification:** `pnpm typecheck` clean, `pnpm lint` has no errors in new/modified files (22 pre-existing errors in other packages, confirmed by stash check), `pnpm --filter @praxis/ui test` 703/703 passing.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Component matches design. The `onResolve(callId, answer)` positional signature is a sensible adaptation — the agent verified that the actual `resolveQuickCheck` bridge from `useQuickCheckBridge` already takes that shape, so no chat-tab-body adapter is needed. Toggle logic is right: single-select clears-then-adds, multi-select uses `has`/`delete`/`add`. `<fieldset disabled={submitted}>` disables every control with a single attribute. `canSubmit` enforces "multi-select OR exactly-one-selection" per design. The "tutor asked" tag is a clean UX cue distinguishing this from assessment cards. `noArrayIndexKey` suppressions are justified — questions and options have no stable IDs and positional indexing is the right key. 19 component tests; chat-tab-body switch routes by `item.kind`. 703 ui tests passing.
