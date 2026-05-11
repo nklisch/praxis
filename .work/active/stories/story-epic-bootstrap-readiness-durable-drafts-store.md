@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-durable-drafts-store
 kind: story
-stage: review
+stage: done
 tags: [bootstrap, persistence]
 parent: epic-bootstrap-readiness-durable-drafts
 depends_on: []
@@ -122,3 +122,14 @@ sibling integration story.
 - `pnpm typecheck` — no new errors introduced (pre-existing errors in
   `assignment-service.ts` / `structured-question-grader.ts` are from other
   in-progress work, not this story).
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `docs/ARCHITECTURE.md:331-335` describes the bootstrap draft pipeline but is silent on where in-progress drafts live. After this story + the integration sibling land, drafts persist durably. The doc isn't wrong (just unwritten on that layer); the docs gate during release will catch the omission and roll the assertion forward.
+
+**Notes**: Clean adapter. `isActive` predicate composed once and reused (DRY). `markConfirmedTx` takes an explicit `tx` handle so the sibling integration story can wire it inside the existing `db.transaction((tx) => …)` block — atomic-confirm correctly delegated. `sweepStale` early-returns on empty `inArray` (would otherwise be a Drizzle/SQLite edge case). The caller-supplies-`lastTouchedAt` deviation is sensible — the service layer knows whether a call should bump the timestamp; baking the bump into the store would make sweep tests awkward. 13 tests covering load/save/list/markConfirmedTx-rollback/markDiscarded/sweepStale/touch.
