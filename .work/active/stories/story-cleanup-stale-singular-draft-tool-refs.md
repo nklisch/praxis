@@ -1,7 +1,7 @@
 ---
 id: story-cleanup-stale-singular-draft-tool-refs
 kind: story
-stage: review
+stage: done
 tags: [cleanup, bootstrap]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -77,3 +77,13 @@ Stale dist files deleted (20 files: 5 singular tools × 4 extensions each: `.js`
 Grep verification output: empty (no matches).
 
 Verification status: `pnpm build` green, `pnpm typecheck` green, `pnpm test` 2479 passed / 15 skipped. Lint pre-existing errors only (not in changed files).
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Description-text cleanup matching the parked spec verbatim. Final grep for the singular names returns empty, full workspace test suite green (2479 passing). Stale dist artefacts purged in the rebuild. No tests needed for description-string changes — the descriptions are themselves the surface, and the new strings are correct by inspection.
