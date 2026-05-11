@@ -1,7 +1,7 @@
 ---
 id: story-bootstrap-prompt-no-inline-outline
 kind: story
-stage: review
+stage: done
 tags: [bootstrap, prompts, tutor-ux]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -94,3 +94,13 @@ behaviour-code changes.
 ## Originating backlog
 - `idea-bootstrap-prompt-no-inline-outline` — consumed by this story;
   will be removed from `.work/backlog/` as part of epic-design.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean prompt-fragment edits matching the design. The agent correctly discovered that configure mode has its own tools fragment (rather than reusing bootstrap-tools) and applied the same rules — appropriate independent judgment. 11 snapshot assertions verify the new restraint language lands in all three fragments. No foundation-doc drift; prompt-fragment composition is a curriculum-internal concern.
