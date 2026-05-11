@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-expressive-draft-api-query-tools
 kind: story
-stage: implementing
+stage: review
 tags: [bootstrap, course-authoring, tools]
 parent: epic-bootstrap-readiness-expressive-draft-api
 depends_on: [story-epic-bootstrap-readiness-expressive-draft-api-edit-ops]
@@ -89,6 +89,33 @@ stays for the whole-draft view; the new tools are scoped projections.
 - All edit-op extensions (relink-concept, add-edge, remove-unit,
   validate-draft, cascade-removes, applyEdit return-shape change).
 - The `course.edit_draft` tool output `warnings` field.
+
+## Implementation notes
+
+**Files changed**:
+- `packages/core/src/types/tool.ts` — added `UnitListEntry`, `LessonsInUnit`, `LessonDetail`, `DanglingRefsReport` interfaces and four method signatures to `BootstrapService` interface.
+- `packages/core/src/services/bootstrap-service.ts` — implemented `listUnits`, `listLessonsInUnit`, `getLessonDetail`, `listDanglingRefs` as async methods. Return type imports added.
+- `packages/tools/src/course/list-units.ts` (new) — `course.list_units` tool.
+- `packages/tools/src/course/list-lessons-in-unit.ts` (new) — `course.list_lessons_in_unit` tool.
+- `packages/tools/src/course/get-lesson-detail.ts` (new) — `course.get_lesson_detail` tool.
+- `packages/tools/src/course/list-dangling-refs.ts` (new) — `course.list_dangling_refs` tool.
+- `packages/tools/src/course/index.ts` — added 4 imports/exports + added tools to `COURSE_TOOLS` array.
+- `packages/curriculum/src/modes/bootstrap.ts` — added 4 tool names.
+- `packages/curriculum/src/modes/configure.ts` — added 4 tool names.
+- `packages/curriculum/src/modes/fragments/bootstrap-tools.ts` — added 4 one-line bullets.
+- `packages/curriculum/src/modes/fragments/configure-tools.ts` — added 4 one-line bullets.
+
+**Types defined in**: `packages/core/src/types/tool.ts`, in the new "Chunked-query return types" section.
+
+**Unknown draftId return**: all four methods return `null` (consistent with `showDraft`). Tools convert null to a thrown Error with the draftId in the message.
+
+**Unknown unitId/lessonId**: `listLessonsInUnit` and `getLessonDetail` return `null` for unknown sub-ids within an existing draft.
+
+**Dangling refs test approach**: `remove-concept` and `remove-lesson` cascade-clean edges and assessments respectively. The dangling-refs tests for assessments, unit memberships, and edges inject state directly via `store.save()` (the `SqliteDraftStore` is returned from `makeService` for this purpose).
+
+**Test count**: 16 service tests (bootstrap-service.queries.test.ts) + 21 tool tests (4 files × ~5 each). All 2547 workspace tests pass.
+
+**Verification**: `pnpm typecheck` clean; `pnpm lint` — 4 pre-existing errors in unrelated files (claude-cli-sdk, client, tests/quiz-end-to-end.test.ts); zero errors in new files.
 
 ## Parent context
 

@@ -46,6 +46,11 @@ export const bootstrapMode: Mode = {
     "course.edit_draft",
     "course.confirm_draft",
     "course.discard_draft",
+    // Chunked-query tools (expressive-draft-api)
+    "course.list_units",
+    "course.list_lessons_in_unit",
+    "course.get_lesson_detail",
+    "course.list_dangling_refs",
     // Retrieval — for ad-hoc lookup by the tutor (NOT the explorer; explorer has its own registry)
     "retrieve_from_textbook",
     // Dialog — structured choice questions the model poses to the student

@@ -47,6 +47,11 @@ export const configureMode: Mode = {
     "course.discard_draft",
     "course.list_canonical_packs",
     "course.use_canonical_pack",
+    // Chunked-query tools (expressive-draft-api)
+    "course.list_units",
+    "course.list_lessons_in_unit",
+    "course.get_lesson_detail",
+    "course.list_dangling_refs",
     "retrieve_from_textbook",
     // ── Authoring tools (Phase 11) ───────────────────────────────────────────
     "course.edit",

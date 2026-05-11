@@ -28,6 +28,10 @@ export const configureToolsFragment: PromptFragment = {
 - course.discard_draft — drop a draft and start over
 - course.list_canonical_packs — list curated packs; filter by subject id
 - course.use_canonical_pack — create a course from a canonical pack
+- course.list_units — list draft units with lesson counts and whether each has a summative
+- course.list_lessons_in_unit — list lessons within a specific unit (returns title + concept count + assessment count per lesson)
+- course.get_lesson_detail — full lesson detail including concept names, lesson assessments, and parent unit
+- course.list_dangling_refs — list orphan concepts, dangling unit memberships, dangling lesson assessments, and edges referencing unknown concepts (use before confirm_draft to inspect integrity)
 - retrieve_from_textbook — search ingested materials
 
 ── Course editing ──

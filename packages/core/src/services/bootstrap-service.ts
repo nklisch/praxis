@@ -17,6 +17,7 @@ import type {
   ConceptGraphId,
   CourseDocumentsService,
   CourseId,
+  DanglingRefsReport,
   DocumentId,
   DraftCourseState,
   DraftEditOp,
@@ -24,7 +25,9 @@ import type {
   DraftStreamListener,
   DraftSummary,
   Engine,
+  LessonDetail,
   LessonId,
+  LessonsInUnit,
   Logger,
   ProposedCourse,
   ProposedUnit,
@@ -33,6 +36,7 @@ import type {
   StudentId,
   ThresholdConfig,
   Timestamp,
+  UnitListEntry,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
 import { type DraftStore, SqliteDraftStore } from "./draft-store.js";
@@ -687,6 +691,142 @@ export class BootstrapServiceImpl implements BootstrapService {
     return {
       courseId: result.courseId,
       conceptCount: result.conceptCount,
+    };
+  }
+
+  // ── Chunked-query methods (expressive-draft-api) ─────────────────────────
+
+  async listUnits(draftId: string): Promise<UnitListEntry[] | null> {
+    const d = this.store.load(draftId);
+    if (!d) return null;
+    const p = d.proposed;
+    return (p.proposedUnits ?? []).map((u) => ({
+      draftUnitId: u.draftUnitId,
+      name: u.name,
+      ...(u.summary !== undefined && { summary: u.summary }),
+      lessonCount: u.draftLessonIds.length,
+      hasSummative: u.summative !== undefined,
+    }));
+  }
+
+  async listLessonsInUnit(input: {
+    draftId: string;
+    draftUnitId: string;
+  }): Promise<LessonsInUnit | null> {
+    const d = this.store.load(input.draftId);
+    if (!d) return null;
+    const p = d.proposed;
+    const unit = (p.proposedUnits ?? []).find((u) => u.draftUnitId === input.draftUnitId);
+    if (!unit) return null;
+
+    // Count assessments per lesson from proposedLessonAssessments.
+    const assessmentsByLesson = new Map<string, number>();
+    for (const la of p.proposedLessonAssessments ?? []) {
+      assessmentsByLesson.set(
+        la.draftLessonId,
+        (assessmentsByLesson.get(la.draftLessonId) ?? 0) + 1,
+      );
+    }
+
+    const lessonMap = new Map(p.proposedLessons.map((l) => [l.draftLessonId, l]));
+    const lessons = unit.draftLessonIds.flatMap((id) => {
+      const lesson = lessonMap.get(id);
+      if (!lesson) return [];
+      return [
+        {
+          draftLessonId: lesson.draftLessonId,
+          title: lesson.title,
+          conceptCount: lesson.conceptNames.length,
+          assessmentCount: assessmentsByLesson.get(id) ?? 0,
+        },
+      ];
+    });
+
+    return {
+      draftUnitId: unit.draftUnitId,
+      unitName: unit.name,
+      lessons,
+    };
+  }
+
+  async getLessonDetail(input: {
+    draftId: string;
+    draftLessonId: string;
+  }): Promise<LessonDetail | null> {
+    const d = this.store.load(input.draftId);
+    if (!d) return null;
+    const p = d.proposed;
+
+    const lesson = p.proposedLessons.find((l) => l.draftLessonId === input.draftLessonId);
+    if (!lesson) return null;
+
+    const assessments = (p.proposedLessonAssessments ?? [])
+      .filter((la) => la.draftLessonId === input.draftLessonId)
+      .map((la) => ({
+        draftAssessmentId: la.draftAssessmentId,
+        kind: la.kind,
+        timing: la.timing,
+        purpose: la.purpose,
+        title: la.title,
+      }));
+
+    const parentUnit =
+      (p.proposedUnits ?? []).find((u) => u.draftLessonIds.includes(input.draftLessonId)) ?? null;
+
+    return {
+      draftLessonId: lesson.draftLessonId,
+      title: lesson.title,
+      conceptNames: lesson.conceptNames,
+      assessments,
+      parentUnit: parentUnit
+        ? { draftUnitId: parentUnit.draftUnitId, name: parentUnit.name }
+        : null,
+    };
+  }
+
+  async listDanglingRefs(draftId: string): Promise<DanglingRefsReport | null> {
+    const d = this.store.load(draftId);
+    if (!d) return null;
+    const p = d.proposed;
+
+    // Orphan concepts: in proposedConcepts but referenced by zero lessons.
+    const conceptsInLessons = new Set<string>();
+    for (const lesson of p.proposedLessons) {
+      for (const cn of lesson.conceptNames) conceptsInLessons.add(cn);
+    }
+    const orphanConcepts = p.proposedConcepts
+      .filter((c) => !conceptsInLessons.has(c.name))
+      .map((c) => c.name);
+
+    // Dangling unit memberships: unit's draftLessonIds not in proposedLessons.
+    const knownLessonIds = new Set(p.proposedLessons.map((l) => l.draftLessonId));
+    const danglingUnitMemberships = (p.proposedUnits ?? [])
+      .map((u) => ({
+        draftUnitId: u.draftUnitId,
+        unitName: u.name,
+        badLessonIds: u.draftLessonIds.filter((id) => !knownLessonIds.has(id)),
+      }))
+      .filter((u) => u.badLessonIds.length > 0);
+
+    // Dangling lesson assessments.
+    const danglingLessonAssessments = (p.proposedLessonAssessments ?? [])
+      .filter((la) => !knownLessonIds.has(la.draftLessonId))
+      .map((la) => ({
+        draftAssessmentId: la.draftAssessmentId,
+        badLessonId: la.draftLessonId,
+      }));
+
+    // Edges referencing unknown concepts.
+    const knownConcepts = new Set(p.proposedConcepts.map((c) => c.name));
+    const edgesReferencingUnknownConcepts = p.proposedEdges
+      .filter((e) => !knownConcepts.has(e.fromName) || !knownConcepts.has(e.toName))
+      .map((e) => ({ fromName: e.fromName, toName: e.toName }));
+
+    return {
+      orphanConcepts,
+      danglingUnitMemberships,
+      danglingLessonAssessments,
+      edgesReferencingUnknownConcepts,
     };
   }
 

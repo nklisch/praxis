@@ -11,6 +11,10 @@ export const bootstrapToolsFragment: PromptFragment = {
 - course.edit_draft — apply a single edit to the draft (rename, reorder, add, remove)
 - course.confirm_draft — persist the draft as a real course; attached documents are recorded automatically
 - course.discard_draft — drop a draft and start over
+- course.list_units — list draft units with lesson counts and whether each has a summative
+- course.list_lessons_in_unit — list lessons within a specific unit (returns title + concept count + assessment count per lesson)
+- course.get_lesson_detail — full lesson detail including concept names, lesson assessments, and parent unit
+- course.list_dangling_refs — list orphan concepts, dangling unit memberships, dangling lesson assessments, and edges referencing unknown concepts (use before confirm_draft to inspect integrity)
 - retrieve_from_textbook — search ingested materials for ad-hoc lookup while authoring
 - course.list_canonical_packs — list curated canonical knowledge packs; filter by subject id (e.g., "math.algebra-1")
 - course.use_canonical_pack — create a course from a canonical pack (faster than exploration; imports pack automatically if needed)

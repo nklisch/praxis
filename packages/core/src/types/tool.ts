@@ -766,6 +766,89 @@ export interface BootstrapService {
     courseTitle: string;
     gradeLevel: string;
   }): Promise<{ courseId: string; conceptCount: number }>;
+
+  // ── Chunked-query tools (expressive-draft-api) ───────────────────────────
+
+  /**
+   * List all units in a draft with summary metrics.
+   * Returns null if the draft is not found.
+   */
+  listUnits(draftId: string): Promise<UnitListEntry[] | null>;
+
+  /**
+   * List lessons within a specific unit.
+   * Returns null if the draft is not found, or if the draftUnitId is not found
+   * within the draft.
+   */
+  listLessonsInUnit(input: { draftId: string; draftUnitId: string }): Promise<LessonsInUnit | null>;
+
+  /**
+   * Return full lesson detail including concept names, assessments, and parent unit.
+   * Returns null if the draft or the draftLessonId is not found.
+   */
+  getLessonDetail(input: { draftId: string; draftLessonId: string }): Promise<LessonDetail | null>;
+
+  /**
+   * Inspect referential integrity of the draft.
+   * Returns null if the draft is not found.
+   */
+  listDanglingRefs(draftId: string): Promise<DanglingRefsReport | null>;
+}
+
+// ─── Chunked-query return types ───────────────────────────────────────────────
+
+/** One entry in the list returned by `BootstrapService.listUnits`. */
+export interface UnitListEntry {
+  draftUnitId: string;
+  name: string;
+  summary?: string;
+  lessonCount: number;
+  hasSummative: boolean;
+}
+
+/** Result of `BootstrapService.listLessonsInUnit`. */
+export interface LessonsInUnit {
+  draftUnitId: string;
+  unitName: string;
+  lessons: Array<{
+    draftLessonId: string;
+    title: string;
+    conceptCount: number;
+    assessmentCount: number;
+  }>;
+}
+
+/** Result of `BootstrapService.getLessonDetail`. */
+export interface LessonDetail {
+  draftLessonId: string;
+  title: string;
+  conceptNames: string[];
+  assessments: Array<{
+    draftAssessmentId: string;
+    kind: "quiz" | "homework" | "exam";
+    timing: "before" | "after" | "interleaved";
+    purpose: "readiness" | "practice" | "checkpoint";
+    title: string;
+  }>;
+  parentUnit: { draftUnitId: string; name: string } | null;
+}
+
+/** Result of `BootstrapService.listDanglingRefs`. */
+export interface DanglingRefsReport {
+  orphanConcepts: string[];
+  danglingUnitMemberships: Array<{
+    draftUnitId: string;
+    unitName: string;
+    badLessonIds: string[];
+  }>;
+  danglingLessonAssessments: Array<{
+    draftAssessmentId: string;
+    badLessonId: string;
+  }>;
+  edgesReferencingUnknownConcepts: Array<{
+    fromName: string;
+    toName: string;
+  }>;
 }
 
 // ─── Phase 10: PackImportService (port) ──────────────────────────────────────

@@ -23,9 +23,13 @@ import { draftRemoveLessonTool } from "./draft-remove-lesson.js";
 import { draftSetAssessmentPlanTool } from "./draft-set-assessment-plan.js";
 import { draftSetMetadataTool } from "./draft-set-metadata.js";
 import { editDraftTool } from "./edit-draft.js";
+import { getLessonDetailTool } from "./get-lesson-detail.js";
 import { listCanonicalPacksTool } from "./list-canonical-packs.js";
 import { listCourseDocumentsTool } from "./list-course-documents.js";
+import { listDanglingRefsTool } from "./list-dangling-refs.js";
+import { listLessonsInUnitTool } from "./list-lessons-in-unit.js";
 import { listLibraryDocumentsTool } from "./list-library-documents.js";
+import { listUnitsTool } from "./list-units.js";
 import { markStudiedTool } from "./mark-studied.js";
 import { showDraftTool } from "./show-draft.js";
 import { startLessonTool } from "./start-lesson.js";
@@ -49,9 +53,13 @@ export {
   draftSetAssessmentPlanTool,
   draftSetMetadataTool,
   editDraftTool,
+  getLessonDetailTool,
   listCanonicalPacksTool,
   listCourseDocumentsTool,
+  listDanglingRefsTool,
+  listLessonsInUnitTool,
   listLibraryDocumentsTool,
+  listUnitsTool,
   markStudiedTool,
   showDraftTool,
   startLessonTool,
@@ -97,4 +105,9 @@ export const COURSE_TOOLS = [
   discardDraftTool,
   listCanonicalPacksTool,
   useCanonicalPackTool,
+  // Chunked-query tools (expressive-draft-api).
+  getLessonDetailTool,
+  listDanglingRefsTool,
+  listLessonsInUnitTool,
+  listUnitsTool,
 ] as const;
