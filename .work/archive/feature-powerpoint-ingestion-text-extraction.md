@@ -1,7 +1,7 @@
 ---
 id: feature-powerpoint-ingestion-text-extraction
 kind: story
-stage: review
+stage: done
 tags: [ingestion]
 parent: feature-powerpoint-ingestion
 depends_on: []

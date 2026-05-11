@@ -1,7 +1,7 @@
 ---
 id: feature-powerpoint-ingestion
 kind: feature
-stage: review
+stage: done
 tags: [ingestion]
 parent: null
 depends_on: []
@@ -488,3 +488,21 @@ Edited:
 - `packages/desktop/electron/main/services.ts` — `FsEmbeddedImageStore` instance, `PptxIngestor({ embeddedImageStore })` registration
 - `packages/desktop/electron/main/ingest-channel.ts` — `"pptx"` in file picker filter
 - `.claude/skills/officeparser-v6/SKILL.md` — AST discoveries + dedup behaviour
+
+## Review (2026-05-11)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none (one was caught and fixed inline — see Notes)
+**Important**: filed as backlog ideas, not in this feature's scope:
+- `idea-embedded-image-store-delete-cascade` — `DocumentsServiceImpl.delete()` doesn't cascade-clean the new embedded-image store; per-document image dirs leak on delete
+- `idea-image-store-dirfor-abstraction` — both image stores would benefit from a `dirFor({ documentId })` method to remove a regex-strip leak from `IngestionService`
+- `idea-pptx-slide-image-map-dead-fallback` — `buildSlideImageNamesMap` has an array-index fallback that the lookup site never consults; dead path that silently loses image correlation in the edge case
+
+**Nits**:
+- Asymmetric `blockType` assignment: notes chunks get `"Body"` but body chunks get nothing (`pptx-ingestor.ts:300`). Cosmetic; downstream consumers don't currently switch on `blockType`.
+
+**Notes**:
+- Blocker caught: making `embeddedImageStore` mandatory on `IngestionServiceDeps` broke 3 `new IngestionService({...})` sites in `tests/textbook-rag-end-to-end.test.ts` that Wave 2 missed. Slipped through CI because `pnpm typecheck` runs `pnpm -r run typecheck` (per-package only) — the root `tsconfig.json` (which governs `tests/` and `scripts/`) is never typechecked. Fixed the test sites inline. Filed `idea-root-tsconfig-typecheck-coverage` because this is a real CI gap larger than this feature: several other pre-existing type errors live in root-tsconfig scope and aren't caught either.
+- Review lenses applied: correctness, tests, design alignment, security (path traversal sanitization verified), breaking changes (one mandatory-field change identified above), foundation-doc alignment (no drift — ingestion architecture story unchanged by adding another format), naming/comments (clean — the "verified real AST shape" comment will save the next maintainer real time).
+- Code quality is high. The Wave 2 agent's discovery that note nodes are top-level siblings (not children of slides) was correctly applied across ingestor, mock builder, integration test, and the auto-loading skill — all four stay consistent.

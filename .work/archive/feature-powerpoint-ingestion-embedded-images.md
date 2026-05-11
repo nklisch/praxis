@@ -1,7 +1,7 @@
 ---
 id: feature-powerpoint-ingestion-embedded-images
 kind: story
-stage: review
+stage: done
 tags: [ingestion]
 parent: feature-powerpoint-ingestion
 depends_on: [feature-powerpoint-ingestion-text-extraction]
