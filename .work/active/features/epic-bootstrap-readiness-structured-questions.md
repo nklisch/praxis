@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness-structured-questions
 kind: feature
-stage: review
+stage: done
 tags: [bootstrap, tutor-ux, tools]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -656,3 +656,31 @@ Combined effect: the tutor can call `ask_student_question` to surface a
 structured decision card, the student picks, and the answer round-trips
 to the model via the existing `QuickCheckService` blocking-dispatch
 pipeline.
+
+## Feature Review (2026-05-10)
+
+**Verdict**: Approve
+
+Both child stories at `done`. The brief's promise — "the bootstrap agent can
+surface a structured choice to the student and the student's answer round-trips
+through the model" — is delivered end-to-end:
+
+- `AssignmentItem` and `QuickCheckAnswer` unions extended with the
+  `structured-question` variant.
+- `ask_student_question` tool at `packages/tools/src/dialog/` with Zod-validated
+  schema (1-4 questions, 2-8 options each). Tool handler builds the item,
+  awaits via `QuickCheckService`, returns the answer or `{ answers: [], abandoned: true }`.
+- Bootstrap and configure modes register the tool; the prompt fragment
+  steers the model toward decision-time invocation.
+- `<StructuredQuestionCard />` renders fieldsets with header chips, prompt,
+  option buttons (`aria-pressed`), and a gated Submit.
+- chat-tab-body switches on `check.item.kind` to route structured-question
+  items to the new card.
+
+Per-child review nits flagged docs/CONTRACT.md should list `ask_student_question`
+alongside the `quick_check.*` family, and the AssignmentItem-union overload
+is a structural smell worth watching. Docs gate at release-deploy will catch
+the contract listing.
+
+Test count delta: 41 new tests (22 tool + 19 ui). Full workspace suite 2498
+passing.

@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness-in-flight-affordances
 kind: feature
-stage: review
+stage: done
 tags: [tutor-ux, chat]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -627,3 +627,34 @@ Combined effect: a real cancel now stops the engine subprocess via
 `conv.abort()`, the chat surfaces both the pending state (thinking dots)
 and the cancel affordance (button + Esc), and the episodic log records
 the interruption cleanly.
+
+## Feature Review (2026-05-10)
+
+**Verdict**: Approve
+
+Both child stories at `done`. The brief's promised capability — "a thinking
+indicator + a working cancel that actually stops the engine subprocess" — is
+delivered end-to-end:
+
+- `EngineEvent` union has `interrupted`. `SessionService.send` and
+  `EngineSession.send` both accept optional `AbortSignal`. The Claude Code
+  adapter wires the signal to `conv.abort()` (synchronous if pre-aborted,
+  one-shot listener otherwise). Codex (`thread.runStreamed({ signal })`)
+  and Direct (`streamText({ abortSignal })`) thread the signal natively.
+  IPC server passes `controller.signal` through. End-to-end: a student
+  Esc in the renderer → `iter.return()` → `praxis.session.send.cancel`
+  → `controller.abort()` → engine subprocess stops generating.
+- `useStreamedSend` exposes `thinking: boolean` + `cancel: () => void`.
+  State machine: true on send start, false on first `model_message`,
+  true again on `tool_result`, false on `final`/`interrupted`/`error`.
+- `<ThinkingIndicator />` renders three animated dots + "Thinking" with
+  `aria-live="polite"` + `aria-atomic="true"`.
+- Stop button + Esc keybinding in `chat-tab-body.tsx`; `interrupted`
+  event closes the open bubble and appends a `cancel-marker` line.
+
+Per-child review nits flagged `docs/SPEC.md` doesn't yet document the
+end-to-end cancel mechanism. The docs gate during release-deploy will
+catch this.
+
+Test count delta: 25 new tests (7 signal + 18 ui). Full workspace suite
+2498 passing.

@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness-durable-drafts
 kind: feature
-stage: review
+stage: done
 tags: [bootstrap, persistence]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -462,3 +462,26 @@ suite green (2498 tests).
   section of the bootstrap mode prompt fragment so it's discoverable.
   (Not a blocker; flag for the prompt-no-inline-outline story to pick
   up.)
+
+## Feature Review (2026-05-10)
+
+**Verdict**: Approve
+
+Both child stories at `done`. The brief's promise — "partial courses survive
+restarts, crashes, and explorer timeouts" — is delivered end-to-end:
+
+- Schema landed via `drafts` table + `drizzle/0012_*.sql`.
+- `DraftStore` port + `SqliteDraftStore` adapter (Ports & Adapters preserved).
+- `BootstrapServiceImpl` Map fully swapped; all 10 mutators use the store;
+  `confirmDraft` atomically flips `confirmedAt` inside the persist transaction;
+  `shutdown()` no longer destroys state.
+- `listActiveForStudent(studentId)` on the public `BootstrapService` interface.
+- Restart-survival smoke test verifies a draft created by service A is visible
+  to service B over the same DB.
+
+Per-child review nits flagged a foundation-doc roll-forward opportunity
+(ARCHITECTURE.md / SPEC.md silent on durable in-progress drafts). The docs gate
+during release-deploy will catch this — not blocking the feature.
+
+Test count delta: 21 new tests (13 store + 8 service durability). Full
+workspace suite 2498 passing.
