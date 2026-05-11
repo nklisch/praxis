@@ -1,7 +1,7 @@
 ---
 id: epic-bootstrap-readiness-expressive-draft-api
 kind: feature
-stage: implementing
+stage: review
 tags: [bootstrap, course-authoring]
 parent: epic-bootstrap-readiness
 depends_on: [epic-bootstrap-readiness-durable-drafts]
@@ -555,3 +555,31 @@ Two stories with one dep edge (Story B depends on Story A):
   The exhaustive-switch updates in graders/UI from that feature must
   not regress here — the cascade ops don't touch `AssignmentItem`,
   but the test fixtures might. Spot-check after implementation.
+
+## Implementation run summary (2026-05-10)
+
+Both child stories landed at `stage: review`. Build, typecheck, and full
+test suite green (2547 tests).
+
+- `story-epic-bootstrap-readiness-expressive-draft-api-edit-ops` —
+  `DraftEditOp` union extended with `relink-concept`, `add-edge`,
+  `remove-unit`, `validate-draft`. `applyEdit` returns
+  `{ state, warnings[] }`; `editDraft` threads warnings up to the tool.
+  `add-concept` on duplicate name no longer silently merges — returns
+  a warning. `remove-lesson` cascade-cleans unit memberships and
+  lesson assessments with one summary warning. 11 new tests.
+- `story-epic-bootstrap-readiness-expressive-draft-api-query-tools` —
+  four new read tools (`course.list_units`,
+  `course.list_lessons_in_unit`, `course.get_lesson_detail`,
+  `course.list_dangling_refs`) with matching `BootstrapService`
+  methods. Dangling-refs report identifies orphan concepts, dangling
+  unit memberships, dangling lesson assessments, and edges referencing
+  unknown concepts. 37 new tests (16 service + 21 tool).
+
+Combined effect: the tutor can now refactor a draft (relink concepts,
+add edges, cascade-remove lessons/units, validate before confirm) AND
+inspect parts of a draft (units, lessons-in-unit, lesson detail,
+dangling-refs) without dragging the whole graph through every turn —
+which was the original pain that surfaced the
+`idea-course-edit-draft-api-gaps` and
+`idea-bootstrap-draft-edit-and-query-apis` parks.
