@@ -1,7 +1,7 @@
 ---
 id: story-bootstrap-attach-document-fix
 kind: story
-stage: review
+stage: done
 tags: [bug, bootstrap]
 parent: epic-bootstrap-readiness
 depends_on: []
@@ -87,3 +87,13 @@ Files changed:
 Regression test: `bootstrapMode.toolNames — excluded tools > does NOT include course.attach_document (bootstrap sessions have no courseId; handler throws)`
 
 Verification: `pnpm --filter @praxis/curriculum test` → 347 tests passed (26 test files). `pnpm typecheck` → clean. `pnpm lint` → no new errors (pre-existing lint failures in other packages unchanged).
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none — the inline comment "Library tools (attach_document omitted — bootstrap sessions have no courseId; persistDraft handles attachment at confirm time)" is the right shape; explains *why* a future reader stumbling on the singleton entry needs to know.
+
+**Notes**: Minimal, surgical change matching design Option 1 exactly. Two file edits + a focused regression test. The tool itself stays available in `configureMode.toolNames` where a course can actually be in scope. No foundation-doc drift; the design doc already anticipated this fix shape. Net: closes the trap without disturbing anything adjacent.
