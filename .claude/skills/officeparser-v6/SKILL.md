@@ -42,11 +42,21 @@ Other fields exist (`ocrLanguage`, `includeBreakNodes`) but aren't relevant to P
 
 ## Result shape
 
+> The README documents this loosely. The authoritative source is the
+> installed package's `dist/types.d.ts` — read it whenever the README seems
+> incomplete. The shapes below are corrected against that file as of v6.1.1
+> (see "AST shape — verified against installed types" below for the
+> discoveries that landed in this skill after Story 1 of
+> `feature-powerpoint-ingestion`).
+
 ```typescript
 type OfficeParserAST = {
   content: OfficeContentNode[];
   attachments: OfficeAttachment[];
-  metadata: { /* doc metadata */ };
+  metadata: {
+    title?: string;          // document properties — prefer over first-heading
+    /* …other doc metadata */
+  };
   toText(): string;
 };
 
@@ -59,8 +69,14 @@ type OfficeAttachment = {
   chartData?: { title: string; dataSets: unknown[]; labels: string[] };
 };
 
+// Full node-type union (verified against dist/types.d.ts):
+type OfficeContentNodeType =
+  | "paragraph" | "heading" | "table" | "list" | "text" | "image"
+  | "chart" | "drawing" | "slide" | "note" | "sheet" | "row" | "cell"
+  | "page" | "break";
+
 type OfficeContentNode = {
-  type: "paragraph" | "heading" | "table" | "list" | "text" | "image" | "break";
+  type: OfficeContentNodeType;
   text: string;
   children?: OfficeContentNode[];
   formatting?: {
@@ -68,15 +84,49 @@ type OfficeContentNode = {
     color?: string; size?: string; font?: string;
     alignment?: "left" | "center" | "right" | "justify";
   };
+  // metadata is a discriminated union per node type; use type-narrowing.
+  // SlideMetadata has slideNumber: number (1-based).
+  // HeadingMetadata has level: number.
+  // ImageMetadata has attachmentName: string (links to OfficeAttachment.name).
+  // The union doesn't share a common index signature — typing this as
+  // `Record<string, unknown>` fails strict TS. Pragmatic options:
+  //   a) define a local OfficeNodeLike with `metadata?: any` and a
+  //      `biome-ignore lint/suspicious/noExplicitAny: …` reason comment
+  //      (this is what PptxIngestor does); or
+  //   b) narrow via the type discriminant before reading metadata fields.
   metadata?: {
-    level?: number;          // heading level
+    slideNumber?: number;    // SlideMetadata (when type === "slide")
+    level?: number;          // HeadingMetadata
     listId?: string;
     row?: number; col?: number;
-    attachmentName?: string; // links a node back to OfficeAttachment.name
+    attachmentName?: string; // ImageMetadata — links to OfficeAttachment.name
   };
   rawContent?: string;       // only if config.includeRawContent === true
 };
 ```
+
+## AST shape — verified against installed types
+
+These are the corrections to the README-derived sketch above. Verified by
+reading `node_modules/.pnpm/officeparser@*/node_modules/officeparser/dist/types.d.ts`
+on v6.1.1 during implementation of
+`feature-powerpoint-ingestion-text-extraction`:
+
+- **`"slide"` is a first-class top-level node type for PPTX.** A PPTX parses
+  as `ast.content = [slide1, slide2, …]` where each entry has
+  `type === "slide"`, `metadata.slideNumber: number` (1-based), and
+  `children: OfficeContentNode[]` containing the slide's body.
+- **`"note"` is a node type for speaker notes**, nested as children inside
+  the relevant `"slide"` node. Filter `slide.children` by `type === "note"`
+  to separate body text from speaker notes.
+- **`"chart"`, `"drawing"`, `"sheet"`, `"row"`, `"cell"`, `"page"` are also
+  valid node types** that the original README sketch omits. Most aren't
+  relevant for PPTX but you'll see them when parsing other office formats.
+- **`ast.metadata.title` is populated from the document's "Title" property**
+  when set. Prefer this over scanning for the first heading — it's what the
+  PowerPoint author explicitly named the deck.
+
+## Patterns the ingestor uses
 
 ## Patterns the ingestor uses
 
@@ -98,7 +148,21 @@ function imageNameFor(node: OfficeContentNode): string | undefined {
 }
 ```
 
-**Slide boundaries.** PowerPoint slides surface as top-level groupings in `ast.content`. If the AST doesn't expose an obvious slide marker for a particular file, the MVP fallback is `ast.toText()` + the existing `chunkMarkdown` flow — slide-level page numbers can be reconciled later.
+**Slide boundaries.** Top-level `"slide"` nodes in `ast.content`. Read
+`slide.metadata.slideNumber` for the 1-based page number, then walk
+`slide.children` to assemble body text. Separate `"note"` children for
+speaker notes — Praxis chunks them as `section: "Slide N (notes)"` and
+keeps body chunks as `section: "Slide N"`. If for some reason a parse
+returns zero `"slide"` nodes (corrupt or unusual deck), fall back to
+`ast.toText()` + `chunkMarkdown`.
+
+**Test fixture.** A redistributable 89 KB `.pptx` from officeparser's own
+MIT-licensed test suite lives at
+`packages/tools/src/runtime/ingestion/__tests__/fixtures/sample.pptx`
+(9 slides, 4 with speaker notes, 1 embedded image). Use it for any
+slow-test-gated integration test against the real library — don't try to
+generate a PPTX programmatically. See the sibling `sample.pptx.md` for
+attribution and contents.
 
 ## Pitfalls
 
