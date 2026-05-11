@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-in-flight-affordances-signal
 kind: story
-stage: review
+stage: done
 tags: [engine, ipc, tutor-ux]
 parent: epic-bootstrap-readiness-in-flight-affordances
 depends_on: []
@@ -131,3 +131,14 @@ subprocess instead of just breaking the for-await loop.
 - `pnpm --filter @praxis/engines test` — 13 test files, 96 tests, all passed.
 - `pnpm test` — 284 test files (1 skipped), 2425 tests (15 skipped), all passed.
 - `pnpm lint` — no errors in our changed files; pre-existing lint errors in other files unchanged.
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `docs/SPEC.md` doesn't yet describe end-to-end cancel propagation (IPC AbortController → SessionService → EngineSession → `conv.abort()`). The docs gate during release will catch this and roll it forward — the mechanism is now load-bearing for tutor UX.
+
+**Notes**: Claude Code adapter wires the signal correctly — synchronous abort branch for pre-aborted signals, one-shot listener for in-flight aborts, defensive try/catch around `conv.abort()`, `signal?.removeEventListener` in `finally`. The session-service's `signal?.aborted` check after each yielded event is a clean defense-in-depth backstop for adapters that don't honor mid-stream abort promptly. Codex (`thread.runStreamed({ signal })`) and Direct (`streamText({ abortSignal })`) thread the signal natively — best-effort caveats correctly documented in the implementation notes. Only one switch site needed a new `case "interrupted":` (`episodic-to-messages.ts`); indexer switches were already default-safe. 7 new tests; full suite (2425) passes.
