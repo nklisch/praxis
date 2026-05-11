@@ -134,8 +134,6 @@ on v6.1.1 during implementation of
 
 ## Patterns the ingestor uses
 
-## Patterns the ingestor uses
-
 **Decode Base64 before storage.** Don't pass Base64 through to the page-image store.
 
 ```typescript

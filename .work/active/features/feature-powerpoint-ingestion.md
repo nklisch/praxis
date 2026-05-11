@@ -1,7 +1,7 @@
 ---
 id: feature-powerpoint-ingestion
 kind: feature
-stage: implementing
+stage: review
 tags: [ingestion]
 parent: null
 depends_on: []
@@ -419,3 +419,72 @@ Story 2 (separate test file or extended file):
   about without opening the file in PowerPoint.
 
 <!-- Implementation Notes accumulate here as work progresses. -->
+
+## Implementation summary
+
+Both child stories landed and are at `stage: review`.
+
+- **Story 1** (`feature-powerpoint-ingestion-text-extraction`, commit
+  `30d0700`): `PptxIngestor` with text-only path, registered in the desktop
+  ingestor registry and the file picker filter. Unit tests mock officeparser
+  with synthetic AST. 15 tests, all green.
+- **Fixture + skill update** (commit `e8a95f8`): pulled officeparser's
+  own MIT-licensed 89 KB `test.pptx` as `sample.pptx` (9 slides, 4 with
+  speaker notes, 1 embedded image), with attribution sidecar. Updated the
+  `officeparser-v6` skill with Story 1's AST-shape discoveries.
+- **Story 2** (`feature-powerpoint-ingestion-embedded-images`, commit
+  `65605aa`): `EmbeddedImageStore` port + `FsEmbeddedImageStore` impl
+  mirroring `FsPageImageStore`. Extended `IngestedChunk` with
+  `imageNames?: string[]` and `IngestorResult` with
+  `pendingEmbeddedImageDocId?: string`. `IngestionService` got a parallel
+  rename block and a `locatorJson.imageNames` field. `PptxIngestor` accepts
+  an optional `embeddedImageStore` and correlates AST image nodes to slide
+  chunks via `metadata.attachmentName`. New slow-test-gated integration
+  file `pptx-ingestor-integration.test.ts` exercises the full path against
+  the real fixture and passes (6/6 with `PRAXIS_RUN_SLOW_TESTS=1`).
+- **Lint cleanup** (this orchestrator pass): Wave 2 left four
+  `organizeImports` issues and one line-length formatter issue in the
+  files it created/touched. Auto-fixed via `biome check --write` scoped to
+  those files. Pre-existing lint errors in unrelated packages
+  (`claude-cli-sdk`, `client/__tests__`, `core/__tests__/artifacts`,
+  `tests/quiz-end-to-end`) were left alone — not in this feature's scope.
+
+### Deviation from the design — speaker notes shape
+
+The design (and Story 1's first-pass notes) assumed `"note"` nodes nest as
+children of their `"slide"` node. Running against the real fixture in
+Story 2 revealed that officeparser v6.1.x emits **note nodes as top-level
+siblings** in `ast.content` with `metadata.slideNumber` linking them back
+to their slide. `PptxIngestor` now builds a `Map<slideNumber, note[]>` from
+the top-level note nodes; the SKILL.md was updated in place to reflect
+this correction (rolling-foundation; Git carries the history).
+
+### Verification
+
+- `pnpm typecheck` — green workspace-wide.
+- `pnpm --filter @praxis/tools test` — 511 passed / 20 skipped.
+- `pnpm --filter @praxis/core test` — 708 passed.
+- `PRAXIS_RUN_SLOW_TESTS=1 pnpm --filter @praxis/tools test pptx-ingestor` —
+  6/6 integration tests pass against the real fixture and real library.
+- `biome check` scoped to files this feature touched — clean.
+
+### Files changed
+
+New:
+- `packages/tools/src/runtime/ingestion/pptx-ingestor.ts`
+- `packages/tools/src/runtime/ingestion/__tests__/pptx-ingestor.test.ts`
+- `packages/tools/src/runtime/ingestion/__tests__/pptx-ingestor-integration.test.ts`
+- `packages/tools/src/runtime/ingestion/__tests__/fixtures/sample.pptx`
+- `packages/tools/src/runtime/ingestion/__tests__/fixtures/sample.pptx.md`
+- `packages/core/src/ingestion/embedded-images.ts`
+- `packages/core/src/ingestion/__tests__/embedded-images.test.ts`
+
+Edited:
+- `packages/tools/src/runtime/ingestion/ingestor.ts` — `IngestedChunk.imageNames`, `IngestorResult.pendingEmbeddedImageDocId`
+- `packages/tools/src/runtime/ingestion/index.ts` — `PptxIngestor` export
+- `packages/tools/src/runtime/index.ts` — `PptxIngestor` export (also fixed a pre-existing missing export gap)
+- `packages/core/src/ingestion/index.ts` — `EmbeddedImageStore`, `FsEmbeddedImageStore` exports
+- `packages/core/src/ingestion/service.ts` — `IngestionServiceDeps.embeddedImageStore`, parallel rename block, `locatorJson.imageNames`
+- `packages/desktop/electron/main/services.ts` — `FsEmbeddedImageStore` instance, `PptxIngestor({ embeddedImageStore })` registration
+- `packages/desktop/electron/main/ingest-channel.ts` — `"pptx"` in file picker filter
+- `.claude/skills/officeparser-v6/SKILL.md` — AST discoveries + dedup behaviour

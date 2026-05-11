@@ -17,8 +17,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
 import { FsEmbeddedImageStore } from "@praxis/core/ingestion";
+import { describe, expect, it } from "vitest";
 import { PptxIngestor } from "../pptx-ingestor.js";
 
 const fixturePath = join(import.meta.dirname, "fixtures", "sample.pptx");
@@ -62,7 +62,10 @@ describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)(
         // The store saves it under the synthetic doc ID.
         // biome-ignore lint/style/noNonNullAssertion: checked above
         const syntheticDocId = result.pendingEmbeddedImageDocId!;
-        const savedImage = await store.read({ documentId: syntheticDocId, imageName: "image1.png" });
+        const savedImage = await store.read({
+          documentId: syntheticDocId,
+          imageName: "image1.png",
+        });
         expect(savedImage).not.toBeNull();
         // biome-ignore lint/style/noNonNullAssertion: checked above
         expect(savedImage!.length).toBeGreaterThan(0);
@@ -80,9 +83,7 @@ describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)(
 
         // image1.png appears on slide 7 — at least the slide 7 body chunk
         // should be tagged.
-        const chunksWithImage = result.chunks.filter(
-          (c) => c.imageNames?.includes("image1.png"),
-        );
+        const chunksWithImage = result.chunks.filter((c) => c.imageNames?.includes("image1.png"));
         expect(chunksWithImage.length).toBeGreaterThan(0);
       } finally {
         await rm(storeDir, { recursive: true, force: true });

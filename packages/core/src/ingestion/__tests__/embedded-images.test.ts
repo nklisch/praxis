@@ -32,7 +32,12 @@ const SAMPLE_BYTES = Buffer.from("fake png bytes");
 describe("FsEmbeddedImageStore — save and read round-trip", () => {
   it("saves and reads back the exact bytes", async () => {
     const store = makeStore();
-    await store.save({ documentId: DOC_ID, imageName: IMAGE_NAME, bytes: SAMPLE_BYTES, mimeType: MIME_TYPE });
+    await store.save({
+      documentId: DOC_ID,
+      imageName: IMAGE_NAME,
+      bytes: SAMPLE_BYTES,
+      mimeType: MIME_TYPE,
+    });
 
     const result = await store.read({ documentId: DOC_ID, imageName: IMAGE_NAME });
     expect(result).not.toBeNull();
@@ -64,7 +69,12 @@ describe("FsEmbeddedImageStore — save and read round-trip", () => {
     // Nested doc ID with slashes would normally fail, but we're using flat doc IDs.
     // This test verifies mkdir -p behaviour is in place.
     await expect(
-      store.save({ documentId: "nested-doc", imageName: "slide1.jpg", bytes: SAMPLE_BYTES, mimeType: "image/jpeg" }),
+      store.save({
+        documentId: "nested-doc",
+        imageName: "slide1.jpg",
+        bytes: SAMPLE_BYTES,
+        mimeType: "image/jpeg",
+      }),
     ).resolves.not.toThrow();
 
     const result = await store.read({ documentId: "nested-doc", imageName: "slide1.jpg" });
@@ -101,7 +111,12 @@ describe("FsEmbeddedImageStore — sanitization (via save/read)", () => {
     const sanitized = sanitizeImageName(rawName);
     expect(sanitized).toBe("my_image__copy_.png");
 
-    await store.save({ documentId: DOC_ID, imageName: rawName, bytes: SAMPLE_BYTES, mimeType: MIME_TYPE });
+    await store.save({
+      documentId: DOC_ID,
+      imageName: rawName,
+      bytes: SAMPLE_BYTES,
+      mimeType: MIME_TYPE,
+    });
     const result = await store.read({ documentId: DOC_ID, imageName: rawName });
     expect(result?.equals(SAMPLE_BYTES)).toBe(true);
   });
@@ -116,8 +131,18 @@ describe("FsEmbeddedImageStore — sanitization (via save/read)", () => {
 describe("FsEmbeddedImageStore — deleteByDocumentId", () => {
   it("removes all images for a document", async () => {
     const store = makeStore();
-    await store.save({ documentId: DOC_ID, imageName: "img1.png", bytes: SAMPLE_BYTES, mimeType: MIME_TYPE });
-    await store.save({ documentId: DOC_ID, imageName: "img2.png", bytes: SAMPLE_BYTES, mimeType: MIME_TYPE });
+    await store.save({
+      documentId: DOC_ID,
+      imageName: "img1.png",
+      bytes: SAMPLE_BYTES,
+      mimeType: MIME_TYPE,
+    });
+    await store.save({
+      documentId: DOC_ID,
+      imageName: "img2.png",
+      bytes: SAMPLE_BYTES,
+      mimeType: MIME_TYPE,
+    });
 
     await store.deleteByDocumentId(DOC_ID);
 
@@ -132,8 +157,18 @@ describe("FsEmbeddedImageStore — deleteByDocumentId", () => {
 
   it("does not affect images under other document IDs", async () => {
     const store = makeStore();
-    await store.save({ documentId: "doc-a", imageName: "img.png", bytes: SAMPLE_BYTES, mimeType: MIME_TYPE });
-    await store.save({ documentId: "doc-b", imageName: "img.png", bytes: SAMPLE_BYTES, mimeType: MIME_TYPE });
+    await store.save({
+      documentId: "doc-a",
+      imageName: "img.png",
+      bytes: SAMPLE_BYTES,
+      mimeType: MIME_TYPE,
+    });
+    await store.save({
+      documentId: "doc-b",
+      imageName: "img.png",
+      bytes: SAMPLE_BYTES,
+      mimeType: MIME_TYPE,
+    });
 
     await store.deleteByDocumentId("doc-a");
 

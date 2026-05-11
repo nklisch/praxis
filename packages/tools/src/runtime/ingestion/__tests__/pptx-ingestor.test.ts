@@ -1,8 +1,8 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FsEmbeddedImageStore } from "@praxis/core/ingestion";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PptxIngestor } from "../pptx-ingestor.js";
 
 // ---------------------------------------------------------------------------
@@ -411,9 +411,7 @@ describe("PptxIngestor — embedded image extraction", () => {
 
     // save() should be called exactly once despite two slides referencing the image
     expect(saveSpy).toHaveBeenCalledTimes(1);
-    expect(saveSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ imageName: "image1.png" }),
-    );
+    expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({ imageName: "image1.png" }));
 
     // pendingEmbeddedImageDocId should be set and start with "_pending_"
     expect(result.pendingEmbeddedImageDocId).toBeDefined();
@@ -536,9 +534,7 @@ describe("PptxIngestor — embedded image extraction", () => {
 
   it("text-only path is unaffected (no store → no imageNames, no pendingEmbeddedImageDocId)", async () => {
     const mockParse = await getMockParseOffice();
-    mockParse.mockResolvedValue(
-      makeMockAst([{ slideNumber: 1, content: "Plain text slide." }]),
-    );
+    mockParse.mockResolvedValue(makeMockAst([{ slideNumber: 1, content: "Plain text slide." }]));
 
     const filePath = join(tmpDir, "text-only.pptx");
     await writeFile(filePath, "fake pptx bytes");

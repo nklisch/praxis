@@ -1,5 +1,5 @@
-import { basename, extname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { basename, extname } from "node:path";
 import type { EmbeddedImageStore } from "@praxis/core/ingestion";
 import { chunkMarkdown, chunkParagraphs } from "./chunker.js";
 import type { IngestedChunk, Ingestor, IngestorOptions, IngestorResult } from "./ingestor.js";
@@ -177,8 +177,7 @@ function buildSlideImageNamesMap(nodes: OfficeNodeLike[]): Map<number, string[]>
     if (node.type !== "slide") return;
     const names = collectImageNames(node.children ?? []);
     if (names.length > 0) {
-      const key =
-        typeof node.metadata?.slideNumber === "number" ? node.metadata.slideNumber : idx;
+      const key = typeof node.metadata?.slideNumber === "number" ? node.metadata.slideNumber : idx;
       result.set(key, names);
     }
   });
@@ -239,7 +238,8 @@ function tryChunkBySlide(
   const notesBySlideNumber = new Map<number, OfficeNodeLike[]>();
   for (const node of nodes) {
     if (node.type !== "note") continue;
-    const slideNum = typeof node.metadata?.slideNumber === "number" ? node.metadata.slideNumber : -1;
+    const slideNum =
+      typeof node.metadata?.slideNumber === "number" ? node.metadata.slideNumber : -1;
     if (slideNum < 0) continue;
     const existing = notesBySlideNumber.get(slideNum) ?? [];
     existing.push(node);
@@ -256,8 +256,7 @@ function tryChunkBySlide(
     const slideLabel = slideNumber !== undefined ? `Slide ${slideNumber}` : "Slide";
 
     // Look up image names by slideNumber (the stable per-slide key).
-    const imageNames =
-      slideNumber !== undefined ? slideImageNames.get(slideNumber) : undefined;
+    const imageNames = slideNumber !== undefined ? slideImageNames.get(slideNumber) : undefined;
 
     // Slide children are the body content (paragraphs, headings, images, etc.).
     // No "note" children appear here in the real AST — notes are siblings.
@@ -281,8 +280,7 @@ function tryChunkBySlide(
 
     // Append speaker notes as separate chunks so they're searchable but
     // visually distinguishable from body content.
-    const noteNodes =
-      slideNumber !== undefined ? (notesBySlideNumber.get(slideNumber) ?? []) : [];
+    const noteNodes = slideNumber !== undefined ? (notesBySlideNumber.get(slideNumber) ?? []) : [];
     const notesText = noteNodes
       .flatMap((note) => note.children ?? [])
       .map(nodeToText)
@@ -334,10 +332,7 @@ function nodeToText(node: OfficeNodeLike): string {
   if (node.text) return node.text.trim();
   // For container nodes where text is absent (unusual), fall back to children.
   if (node.children) {
-    return node.children
-      .map(nodeToText)
-      .filter(Boolean)
-      .join(" ");
+    return node.children.map(nodeToText).filter(Boolean).join(" ");
   }
   return "";
 }
