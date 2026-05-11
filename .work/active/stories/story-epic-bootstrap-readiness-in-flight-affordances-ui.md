@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-in-flight-affordances-ui
 kind: story
-stage: review
+stage: done
 tags: [ui, chat, tutor-ux]
 parent: epic-bootstrap-readiness-in-flight-affordances
 depends_on: []
@@ -131,3 +131,13 @@ subprocess.
 - Cancel in `configure-chat-pane` and `sidekick-panel` renders nothing (null) rather than a "Cancelled" pill — these secondary panels don't need the cancellation affordance as prominently.
 
 **Verification:** `pnpm --filter @praxis/ui test` ✓ · `pnpm typecheck` ✓ · `pnpm exec biome check [changed files]` ✓
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Hook state machine is clean — `iteratorRef` lifted to component scope (stable across renders) and `cancel` is a `useCallback` so it's safe to add to `useEffect` deps. The `thinking` transitions land at the right boundaries (send start → first `model_message` → `tool_result` → next `model_message`). The `interrupted` event branch closes the open bubble and appends a `cancel-marker` item — clean separation between hook state and the visual marker. Biome's a11y rule correctly rejected `aria-label` on `<p>`; `aria-atomic="true"` is the right substitute. The secondary panels (`configure-chat-pane`, `sidekick-panel`) opt out of rendering the cancel marker — the call site noted it as a deliberate choice, and `null` returns are exhaustiveness-safe. 18 new tests; 684 ui passing.
