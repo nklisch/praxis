@@ -15,7 +15,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDb } from "@praxis/core/db";
-import { FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
+import {
+  FsEmbeddedImageStore,
+  FsPageImageStore,
+  IngestionService,
+} from "@praxis/core/ingestion";
 import { DocumentsServiceImpl } from "@praxis/core/services";
 import type { ToolContext } from "@praxis/core/types";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
@@ -64,6 +68,7 @@ let tmpDir: string;
 let vecStore: SqliteVecStore;
 let ftsStore: SqliteFtsStore;
 let pageImageStore: FsPageImageStore;
+let embeddedImageStore: FsEmbeddedImageStore;
 
 // Embeddings mock: each text gets a deterministic vector based on its content hash
 function textToVec(text: string): number[] {
@@ -87,6 +92,7 @@ beforeEach(() => {
   vecStore = new SqliteVecStore(sqlite);
   ftsStore = new SqliteFtsStore(sqlite);
   pageImageStore = new FsPageImageStore(tmpDir);
+  embeddedImageStore = new FsEmbeddedImageStore(join(tmpDir, "embedded"));
 });
 
 afterEach(() => {
@@ -114,6 +120,7 @@ describe("textbook RAG end-to-end", () => {
       embeddings: mockEmbeddings,
       ingestorRegistry: registry,
       pageImageStore,
+      embeddedImageStore,
     });
 
     const events = [];
@@ -168,6 +175,7 @@ describe("textbook RAG end-to-end", () => {
       embeddings: mockEmbeddings,
       ingestorRegistry: registry,
       pageImageStore,
+      embeddedImageStore,
     });
 
     // Ingest
@@ -231,6 +239,7 @@ describe("textbook RAG end-to-end", () => {
       embeddings: mockEmbeddings,
       ingestorRegistry: registry,
       pageImageStore,
+      embeddedImageStore,
     });
 
     for await (const _ of svc.ingest({
