@@ -1,7 +1,7 @@
 ---
 id: story-epic-bootstrap-readiness-structured-questions-tool
 kind: story
-stage: review
+stage: done
 tags: [tools, bootstrap, tutor-ux]
 parent: epic-bootstrap-readiness-structured-questions
 depends_on: []
@@ -146,3 +146,15 @@ wiring that exposes it to bootstrap and configure modes.
 ### Verification status
 
 `pnpm typecheck && pnpm lint && pnpm test` — all green (2434 tests pass, 6 pre-existing lint errors unrelated to this story).
+
+## Review (2026-05-10)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `docs/CONTRACT.md:1402-1406` lists the `quick_check.*` tools; `ask_student_question` joins that category but isn't documented in CONTRACT yet. The docs gate during release will catch this.
+- The `StructuredQuestionGrader` defensive throw is the right shape, but its existence is a structural smell — `AssignmentItem` is now genuinely overloaded between assessment items and dialog items. The design's risk callout flagged this; revisit if a third non-assessment kind appears.
+
+**Notes**: Tool handler is clean — Zod schema enforces bounds (1-4 questions, 2-8 options, required `header`/`prompt`), default `multiSelect: false`, abandoned-path early return, defensive throw for wrong-kind answer. The `exactOptionalPropertyTypes`-compatible options build avoids a strict-mode trap. Exhaustive-switch sites updated mechanically: graders/registry adds the no-op grader, approach-feedback + rubric-agent + assignment-service + two UI cards each get a case (most are guards/early-returns since `prompt` doesn't exist on `StructuredQuestionItem`). Tool description steers the model correctly with do/don't examples. 22 new tests; full suite green.
