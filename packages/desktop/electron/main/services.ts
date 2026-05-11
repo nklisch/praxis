@@ -74,6 +74,7 @@ import {
   JsPdfIngestor,
   MarkdownIngestor,
   PlainTextIngestor,
+  PptxIngestor,
   PyodideHost,
   PyodideLanguageSandbox,
   QuickJsLanguageSandbox,
@@ -273,7 +274,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     return row?.courseId ?? null;
   };
 
-  // Ingestor registry — all 7 ingestors
+  // Ingestor registry — all 8 ingestors
   const ingestorRegistry = new IngestorRegistry([
     new PlainTextIngestor(),
     new MarkdownIngestor(),
@@ -281,6 +282,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     new DocxIngestor(),
     new EpubIngestor(),
     new JsPdfIngestor(),
+    new PptxIngestor(),
     new VisionPdfIngestor({ visionResolver, pageImageStore }),
   ]);
 

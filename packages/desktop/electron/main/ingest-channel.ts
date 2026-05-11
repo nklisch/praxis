@@ -37,7 +37,7 @@ export function registerIngestHandlers(
       filters: [
         {
           name: "Supported documents",
-          extensions: ["pdf", "docx", "epub", "html", "htm", "md", "markdown", "txt"],
+          extensions: ["pdf", "docx", "epub", "html", "htm", "md", "markdown", "txt", "pptx"],
         },
         { name: "All Files", extensions: ["*"] },
       ],

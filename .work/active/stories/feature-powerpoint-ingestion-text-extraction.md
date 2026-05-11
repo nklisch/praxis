@@ -1,7 +1,7 @@
 ---
 id: feature-powerpoint-ingestion-text-extraction
 kind: story
-stage: implementing
+stage: review
 tags: [ingestion]
 parent: feature-powerpoint-ingestion
 depends_on: []
@@ -98,3 +98,48 @@ clear slide boundaries. The documented `OfficeContentNode.type` values are
 - `.ppt` legacy binary format.
 - UI surfacing of slide images on source cards.
 - Slide-as-PNG render for "view slide" feature.
+
+## Implementation notes
+
+### Library installation
+
+`pnpm --filter @praxis/tools add officeparser@^6.1.0` — installed cleanly. No native build required (pure JS + WASM).
+
+### Slide-boundary spike findings
+
+The story brief noted that the documented `OfficeContentNode.type` values were `paragraph | heading | table | list | text | image | break` — no `"slide"` type visible in the SKILL.md. However, reading the actual `dist/types.d.ts` from the installed package revealed the full union:
+
+```
+'paragraph' | 'heading' | 'table' | 'list' | 'text' | 'image' | 'chart' |
+'drawing' | 'slide' | 'note' | 'sheet' | 'row' | 'cell' | 'page' | 'break'
+```
+
+`"slide"` **is** a first-class node type, with `SlideMetadata` carrying a `slideNumber: number` (1-based). PPTX content surfaces as an array of top-level `"slide"` nodes, each with `metadata.slideNumber`.  Speaker notes appear as `"note"` child nodes inside each slide.
+
+**`tryChunkBySlide` is fully implemented** — not a stub. It:
+- Filters top-level nodes for `type === "slide"`
+- Reads `slide.metadata.slideNumber` (guards with `typeof === "number"`)
+- Separates `"note"` children from body children
+- Produces per-slide body chunks with `chunk.page = slideNumber` and `chunk.section = "Slide N"`
+- Produces per-slide notes chunks with `chunk.section = "Slide N (notes)"` and `chunk.blockType = "Body"`
+- Returns `null` (triggering fallback to `ast.toText() + chunkMarkdown`) only when no `"slide"` nodes exist or all slides are empty
+
+### Test approach
+
+Chose **option 1 — mock officeparser entirely** using `vi.mock`. The officeparser npm package ships no `.pptx` fixtures. The `makeMockAst()` helper constructs synthetic AST objects shaped like real `OfficeParserAST` returns, allowing full coverage of the ingestor's orchestration logic without binary files.
+
+No binary fixture was committed. Story 2 (embedded images) will benefit from a real fixture when testing attachment extraction; at that point, a small fixture can be added and a `PRAXIS_RUN_SLOW_TESTS`-gated integration test added.
+
+### Deviations from the feature design sketch
+
+- `findFirstHeadingText` searches the full `ast.content` tree recursively (including inside `"slide"` children), not just top-level nodes. This handles decks where the title slide heading is a child of a `"slide"` node.
+- Title resolution order: `ast.metadata.title` (document properties) → first heading in AST → filename fallback. The design sketch didn't mention `ast.metadata.title`; adding it is strictly additive.
+- `OfficeNodeLike.metadata` is typed `any` with a `biome-ignore` comment — the `ContentMetadata` union from officeparser doesn't have a shared index signature, so using `Record<string, unknown>` was rejected by the strict TS checker. This is contained to the internal helper interface, not the public API.
+
+### Files changed
+
+- `packages/tools/src/runtime/ingestion/pptx-ingestor.ts` (new)
+- `packages/tools/src/runtime/ingestion/__tests__/pptx-ingestor.test.ts` (new, 15 tests)
+- `packages/tools/src/runtime/ingestion/index.ts` (export added)
+- `packages/desktop/electron/main/services.ts` (import + registry registration)
+- `packages/desktop/electron/main/ingest-channel.ts` (file picker filter)

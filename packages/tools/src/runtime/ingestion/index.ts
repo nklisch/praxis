@@ -12,6 +12,7 @@ export type {
 export { JsPdfIngestor } from "./js-pdf-ingestor.js";
 export { MarkdownIngestor } from "./markdown-ingestor.js";
 export { PlainTextIngestor } from "./plain-text-ingestor.js";
+export { PptxIngestor } from "./pptx-ingestor.js";
 export type { SelectInput } from "./registry.js";
 export { IngestorRegistry } from "./registry.js";
 export type { VisionPdfIngestorOptions } from "./vision-pdf-ingestor.js";
