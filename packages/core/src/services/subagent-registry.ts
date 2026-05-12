@@ -92,7 +92,8 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
   }
 
   subscribe(listener: SubAgentListener, filter?: { parentCallId?: string }): () => void {
-    const entry = { listener, filter };
+    const entry: { listener: SubAgentListener; filter?: { parentCallId?: string } } =
+      filter !== undefined ? { listener, filter } : { listener };
     // Deliver immediate snapshot (filtered if requested).
     const snapshot: SubAgentItem[] = filter?.parentCallId
       ? Array.from(this.items.values()).filter((i) => i.parentCallId === filter.parentCallId)
