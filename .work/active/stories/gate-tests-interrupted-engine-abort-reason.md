@@ -1,7 +1,7 @@
 ---
 id: gate-tests-interrupted-engine-abort-reason
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -36,3 +36,17 @@ it("renders cancel-marker for interrupted event with reason 'engine_abort'", asy
 
 ## Test location (suggested)
 `packages/ui/src/__tests__/use-streamed-send.test.tsx`
+
+## Implementation notes
+
+The `interrupted` handler in `use-streamed-send.ts` (line 449) does **not** branch on `reason` — both `"user_cancel"` and `"engine_abort"` follow the identical code path: close the open assistant bubble, close any in-flight reasoning block, clear all pending settle timers (leaving interstitials `in_flight`), set `thinking: false`, and append a `kind: "cancel-marker"` item.
+
+Five tests were added to `/home/nathan/dev/praxis/packages/ui/src/__tests__/use-streamed-send.test.tsx` under the `── engine_abort reason (mirrors user_cancel treatment) ──` heading, mirroring the existing `user_cancel` tests one-for-one:
+
+1. `thinking` and `isStreaming` are both `false` after stream ends.
+2. A single `cancel-marker` item is appended.
+3. An open assistant bubble is sealed (`streaming: false`) — no dangling partial.
+4. With a preceding tool call, the interstitial stays `in_flight` and a cancel-marker appears.
+5. An in-progress reasoning block is closed (`streaming → false`) but not deleted.
+
+Locked treatment: **identical to `user_cancel`** — same cancel-marker UI, no distinct rendering.

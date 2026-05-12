@@ -1227,4 +1227,106 @@ describe("useStreamedSend", () => {
     // But streaming is closed
     expect(thinkingItems[0]?.kind === "thinking" && thinkingItems[0].streaming).toBe(false);
   });
+
+  // ── engine_abort reason (mirrors user_cancel treatment) ───────────────────────
+
+  it("thinking is false after interrupted event with reason 'engine_abort'", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "partial...", partial: true },
+      { type: "interrupted", reason: "engine_abort" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    expect(result.current.thinking).toBe(false);
+    expect(result.current.isStreaming).toBe(false);
+  });
+
+  it("interrupted event with reason 'engine_abort' appends a cancel-marker item", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "hi", partial: false },
+      { type: "interrupted", reason: "engine_abort" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const cancelMarkers = result.current.items.filter((i) => i.kind === "cancel-marker");
+    expect(cancelMarkers).toHaveLength(1);
+  });
+
+  it("interrupted event with reason 'engine_abort' closes the open bubble (no dangling streaming: true)", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "partial...", partial: true },
+      { type: "interrupted", reason: "engine_abort" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(1);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].streaming).toBe(false);
+  });
+
+  it("engine_abort: interstitial stays in_flight, cancel-marker appears", async () => {
+    // engine_abort has no client-side cancel signal; the adapter aborted.
+    // Pending settle timers are cleared — interstitials remain in_flight.
+    const client = makeClient([
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "interrupted", reason: "engine_abort" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "go");
+    });
+
+    // Cancel-marker was appended.
+    expect(result.current.items.some((i) => i.kind === "cancel-marker")).toBe(true);
+
+    // The interstitial remains in_flight — cancelled turn, timer was cleared.
+    const it = result.current.items.find((i) => i.kind === "interstitial");
+    expect(it?.kind === "interstitial" && it.status).toBe("in_flight");
+
+    // isStreaming is false (stream ended).
+    expect(result.current.isStreaming).toBe(false);
+  });
+
+  it("on engine_abort, in-progress reasoning block is closed (streaming → false), not deleted", async () => {
+    const client = makeClient([
+      { type: "thinking", content: "Mid-thought..." },
+      { type: "interrupted", reason: "engine_abort" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const thinkingItems = result.current.items.filter((i) => i.kind === "thinking");
+    // Block remains in the list (not deleted)
+    expect(thinkingItems).toHaveLength(1);
+    // But streaming is closed
+    expect(thinkingItems[0]?.kind === "thinking" && thinkingItems[0].streaming).toBe(false);
+  });
 });
