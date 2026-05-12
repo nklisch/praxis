@@ -1,7 +1,7 @@
 ---
 id: gate-tests-attach-document-configure-mode-includes
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -33,3 +33,7 @@ it("course.attach_document IS still in configureMode.toolNames (course-scoped se
 
 ## Test location (suggested)
 `packages/curriculum/src/modes/__tests__/bootstrap-toolnames.test.ts`
+
+## Implementation notes
+
+Added the symmetry assertion inside the existing `"bootstrapMode.toolNames — excluded tools"` describe block in `packages/curriculum/src/modes/__tests__/bootstrap-toolnames.test.ts`. The new test imports `configureMode` from `../configure.js` and asserts `configureMode.toolNames` contains `"course.attach_document"`, sitting directly below its sibling exclusion test so future readers see them as a matched pair. All 368 curriculum tests pass; typecheck clean.

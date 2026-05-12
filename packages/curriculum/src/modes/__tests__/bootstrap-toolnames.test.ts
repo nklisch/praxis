@@ -6,10 +6,17 @@
  */
 import { describe, expect, it } from "vitest";
 import { bootstrapMode } from "../bootstrap.js";
+import { configureMode } from "../configure.js";
 
 describe("bootstrapMode.toolNames — excluded tools", () => {
   it("does NOT include course.attach_document (bootstrap sessions have no courseId; handler throws)", () => {
     expect(bootstrapMode.toolNames).not.toContain("course.attach_document");
+  });
+
+  it("course.attach_document IS still in configureMode.toolNames (course-scoped sessions only)", () => {
+    // Symmetry guard: the tool was removed from bootstrapMode but must remain available
+    // in configureMode where a confirmed courseId is always in scope.
+    expect(configureMode.toolNames).toContain("course.attach_document");
   });
 });
 
