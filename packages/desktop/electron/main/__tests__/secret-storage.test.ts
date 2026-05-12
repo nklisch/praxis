@@ -15,7 +15,7 @@
  * the slow-test-gating pattern — those tests require a running Electron
  * main process.
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the Electron module so the adapter is constructible in Node test context.
 vi.mock("electron", () => ({
@@ -26,6 +26,7 @@ vi.mock("electron", () => ({
   },
 }));
 
+import { SecretStorageError } from "@praxis/core/types";
 import { ElectronSafeStorageAdapter } from "../secret-storage.js";
 
 describe("ElectronSafeStorageAdapter", () => {
@@ -69,5 +70,36 @@ describe("ElectronSafeStorageAdapter", () => {
 
     // biome-ignore lint/suspicious/noExplicitAny: restoring mocked module
     (safeStorage as any).decryptString = original;
+  });
+});
+
+describe("ElectronSafeStorageAdapter — safeStorage unavailable", () => {
+  // Shadow the module-level mock's `isEncryptionAvailable` with one that
+  // returns false, then restore it so other tests are unaffected.
+  beforeEach(async () => {
+    const { safeStorage } = await import("electron");
+    vi.spyOn(safeStorage, "isEncryptionAvailable").mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("encrypt throws SecretStorageError with code='unavailable' when isEncryptionAvailable returns false", async () => {
+    const adapter = new ElectronSafeStorageAdapter();
+    expect(() => adapter.encrypt("secret-api-key")).toThrowError(SecretStorageError);
+    try {
+      adapter.encrypt("secret-api-key");
+      expect.fail("expected SecretStorageError to be thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(SecretStorageError);
+      expect((err as SecretStorageError).code).toBe("unavailable");
+    }
+  });
+
+  it("decrypt returns null (not throws) when isEncryptionAvailable returns false", async () => {
+    const adapter = new ElectronSafeStorageAdapter();
+    const result = adapter.decrypt("dGVzdA==");
+    expect(result).toBeNull();
   });
 });

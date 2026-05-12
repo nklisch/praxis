@@ -1,7 +1,7 @@
 ---
 id: gate-tests-secret-storage-unavailable-encrypt
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -42,3 +42,13 @@ it("decrypt returns null when isEncryptionAvailable=false", async () => { /* …
 
 ## Test location (suggested)
 `packages/desktop/electron/main/__tests__/secret-storage.test.ts`
+
+## Implementation notes
+
+Added a new `describe("ElectronSafeStorageAdapter — safeStorage unavailable", ...)` block in `packages/desktop/electron/main/__tests__/secret-storage.test.ts` containing two tests:
+
+1. **`encrypt` throws `SecretStorageError` with `code='unavailable'`** — uses `vi.spyOn(safeStorage, "isEncryptionAvailable").mockReturnValue(false)` in `beforeEach` to override the module-level mock, then asserts both that `toThrowError(SecretStorageError)` and that `err.code === "unavailable"`.
+
+2. **`decrypt` returns `null` (not throws)** — same `beforeEach` spy, verifies the documented silent-null contract when encryption is unavailable.
+
+`vi.restoreAllMocks()` in `afterEach` resets the spy so the happy-path tests in the outer `describe` block remain unaffected. `SecretStorageError` is imported from `@praxis/core/types` (the canonical definition). All 7 tests pass; typecheck and lint are clean on the changed file.
