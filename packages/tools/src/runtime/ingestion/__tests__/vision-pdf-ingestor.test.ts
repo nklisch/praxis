@@ -48,6 +48,8 @@ function makePageImageStore(): PageImageStore {
     deleteByDocumentId: vi.fn(async (_id: any): Promise<void> => {}),
     // biome-ignore lint/suspicious/noExplicitAny: test mock
     pathFor: vi.fn(({ documentId, page }: any): string => `/fake/${documentId}/${page}.png`),
+    // biome-ignore lint/suspicious/noExplicitAny: test mock
+    dirFor: vi.fn(({ documentId }: any): string => `/fake/${documentId}`),
   };
 }
 
