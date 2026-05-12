@@ -1,7 +1,7 @@
 ---
 id: gate-tests-write-engine-config-empty-api-key
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -36,3 +36,13 @@ it("writeEngineConfig with apiKey: '' (empty string) does not persist either fie
 
 ## Test location (suggested)
 `packages/core/src/__tests__/engine-config.test.ts`
+
+## Implementation notes
+
+Added two tests inside the `"encrypt/decrypt round-trip — apiKey at rest"` describe block in `packages/core/src/__tests__/engine-config.test.ts`:
+
+1. **`writeEngineConfig with apiKey: '' does not persist either key field — UI clear path`** — fresh write with empty string; asserts both `apiKey` and `apiKeyEncrypted` absent from the raw stored row.
+
+2. **`writeEngineConfig with apiKey: '' clears a previously stored encrypted key`** — writes a real key first (verifying it lands as `apiKeyEncrypted`), then overwrites with `apiKey: ""`; asserts both key fields absent from the row, and `readEngineConfig` returns `apiKey: undefined`.
+
+Implementation at `engine-config.ts:140` confirmed: `if (apiKey === undefined || apiKey === "")` — the spec claim is accurate, no design flaw found. All 33 tests green.

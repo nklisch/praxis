@@ -254,6 +254,51 @@ describe("encrypt/decrypt round-trip — apiKey at rest", () => {
     ).not.toThrow();
   });
 
+  it("writeEngineConfig with apiKey: '' does not persist either key field — UI clear path", () => {
+    const { db: client } = openDb({ path: db.dbPath });
+    const ss = inMemorySecretStorage();
+    writeEngineConfig(client, ss, { engineId: "claude-code", apiKey: "" });
+
+    const rows = client.select().from(configKv).where(eq(configKv.key, "engine")).all();
+    const stored = rows[0]?.valueJson as Record<string, unknown> | undefined;
+    expect(stored?.apiKey).toBeUndefined();
+    expect(stored?.apiKeyEncrypted).toBeUndefined();
+  });
+
+  it("writeEngineConfig with apiKey: '' clears a previously stored encrypted key", () => {
+    const { db: client } = openDb({ path: db.dbPath });
+    const ss = inMemorySecretStorage();
+
+    // First write: store a real key.
+    writeEngineConfig(client, ss, {
+      engineId: "direct.anthropic",
+      model: "claude-sonnet-4-5",
+      apiKey: "sk-to-clear",
+    });
+
+    // Verify the key was stored encrypted.
+    const rowsBefore = client.select().from(configKv).where(eq(configKv.key, "engine")).all();
+    const storedBefore = rowsBefore[0]?.valueJson as Record<string, unknown> | undefined;
+    expect(storedBefore?.apiKeyEncrypted).toBeDefined();
+
+    // Second write: UI clears the field by submitting apiKey: "".
+    writeEngineConfig(client, ss, {
+      engineId: "direct.anthropic",
+      model: "claude-sonnet-4-5",
+      apiKey: "",
+    });
+
+    // Both key fields must now be absent from the row.
+    const rowsAfter = client.select().from(configKv).where(eq(configKv.key, "engine")).all();
+    const storedAfter = rowsAfter[0]?.valueJson as Record<string, unknown> | undefined;
+    expect(storedAfter?.apiKey).toBeUndefined();
+    expect(storedAfter?.apiKeyEncrypted).toBeUndefined();
+
+    // Reading back should yield no apiKey.
+    const config = readEngineConfig(client, ss);
+    expect(config.apiKey).toBeUndefined();
+  });
+
   it("PRAXIS_API_KEY env var overrides stored encrypted key", () => {
     const { db: client } = openDb({ path: db.dbPath });
     const ss = inMemorySecretStorage();
