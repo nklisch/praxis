@@ -1,7 +1,7 @@
 ---
 id: feature-root-tsconfig-typecheck-coverage
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -315,3 +315,21 @@ All three child stories have landed and are at `stage: review` or `done`:
 **Capability realized**: the root tier (`tests/`, `scripts/`, `drizzle.config.ts`) is now type-checked alongside the per-package code. Future type-level regressions in those files surface at `pnpm typecheck` instead of slipping past CI.
 
 Advancing feature `implementing → review`. The next autopilot review pass will evaluate the bundle.
+
+## Review (2026-05-12, feature-level)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Brief satisfied end-to-end: `pnpm typecheck` now runs root tsconfig as the final step; smoke test confirms regressions are caught.
+- Decomposition matches design: scripts-cleanup and tests-cleanup as parallel siblings, enable-gate depending on both. Wave structure played out exactly as the design predicted.
+- Cross-cutting helpers landed in canonical SSOT (`tests/helpers/mocks.ts`) — `noopLockService()` and `noopCourseDocuments()` follow the existing `noopLogger()` style.
+- Foundation-doc alignment: CLAUDE.md "Common commands" line tightened to note root-tier coverage (line 14). No SPEC/ARCH drift.
+- Breaking changes: none. The `scripts/run-session.ts` deletion is justified by git history (broken since `language-sandbox-registry` shipped); replacement intent captured by `story-engine-cli-integration-smoke-test` already in active stories.
+- Side benefit: the gate immediately surfaced one pre-existing rot (`tests/configure-end-to-end.test.ts` missing `promptCustomization` field) which was fixed inline. Going forward, this class of drift is detected at PR time instead of at release time.
+
+Feature delivered as briefed. Advancing to done.
