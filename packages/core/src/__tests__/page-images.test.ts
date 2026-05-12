@@ -88,6 +88,17 @@ describe("FsPageImageStore", () => {
     expect(path.startsWith(tmpDir)).toBe(true);
   });
 
+  it("dirFor returns <baseDir>/<documentId>", () => {
+    const dir = store.dirFor({ documentId: "doc-1" });
+    expect(dir).toBe(join(tmpDir, "doc-1"));
+  });
+
+  it("pathFor delegates to dirFor (path is dirFor + page filename)", () => {
+    const dir = store.dirFor({ documentId: "doc-1" });
+    const path = store.pathFor({ documentId: "doc-1", page: 7 });
+    expect(path).toBe(join(dir, "7.png"));
+  });
+
   it("PRAXIS_PAGE_IMAGES_DIR env var controls the default base dir", () => {
     const customDir = join(tmpDir, "custom");
     process.env.PRAXIS_PAGE_IMAGES_DIR = customDir;

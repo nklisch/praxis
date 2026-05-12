@@ -19,6 +19,8 @@ export interface PageImageStore {
   read(input: { documentId: string; page: number }): Promise<Buffer | null>;
   /** Delete all page images for a document. Called when the document is removed. */
   deleteByDocumentId(documentId: string): Promise<void>;
+  /** Absolute path to the directory that holds all page images for a document. */
+  dirFor(input: { documentId: string }): string;
   /** Absolute path where a page image would be (or is) stored. */
   pathFor(input: { documentId: string; page: number }): string;
 }
@@ -30,8 +32,12 @@ export class FsPageImageStore implements PageImageStore {
     this.baseDir = baseDir ?? defaultBaseDir();
   }
 
+  dirFor(input: { documentId: string }): string {
+    return join(this.baseDir, input.documentId);
+  }
+
   pathFor(input: { documentId: string; page: number }): string {
-    return join(this.baseDir, input.documentId, `${input.page}.png`);
+    return join(this.dirFor(input), `${input.page}.png`);
   }
 
   async save(input: { documentId: string; page: number; pngBytes: Buffer }): Promise<string> {

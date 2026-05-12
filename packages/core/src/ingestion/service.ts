@@ -1,5 +1,4 @@
 import { rename } from "node:fs/promises";
-import { join } from "node:path";
 import { documentChunks, documents } from "@praxis/artifacts/schema";
 import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { v7 as uuidv7 } from "uuid";
@@ -141,14 +140,10 @@ export class IngestionService {
     // 4. Rename page-image directory from synthetic → real documentId
     if (result.pendingPageImageDocId) {
       try {
-        const synthDir = join(
-          this.deps.pageImageStore
-            .pathFor({ documentId: result.pendingPageImageDocId, page: 1 })
-            .replace(/[\\/]1\.png$/, ""),
-        );
-        const realDir = join(
-          this.deps.pageImageStore.pathFor({ documentId, page: 1 }).replace(/[\\/]1\.png$/, ""),
-        );
+        const synthDir = this.deps.pageImageStore.dirFor({
+          documentId: result.pendingPageImageDocId,
+        });
+        const realDir = this.deps.pageImageStore.dirFor({ documentId });
         await rename(synthDir, realDir);
       } catch (e) {
         this.deps.log.warn("page-image rename failed", { error: String(e) });
@@ -158,17 +153,10 @@ export class IngestionService {
     // 4b. Rename embedded-image directory from synthetic → real documentId
     if (result.pendingEmbeddedImageDocId) {
       try {
-        // pathFor returns a full file path; strip the filename to get the dir.
-        const synthDir = join(
-          this.deps.embeddedImageStore
-            .pathFor({ documentId: result.pendingEmbeddedImageDocId, imageName: "_" })
-            .replace(/[\\/][^/\\]+$/, ""),
-        );
-        const realDir = join(
-          this.deps.embeddedImageStore
-            .pathFor({ documentId, imageName: "_" })
-            .replace(/[\\/][^/\\]+$/, ""),
-        );
+        const synthDir = this.deps.embeddedImageStore.dirFor({
+          documentId: result.pendingEmbeddedImageDocId,
+        });
+        const realDir = this.deps.embeddedImageStore.dirFor({ documentId });
         await rename(synthDir, realDir);
       } catch (e) {
         this.deps.log.warn("embedded-image rename failed", { error: String(e) });

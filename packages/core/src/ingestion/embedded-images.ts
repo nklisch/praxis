@@ -24,6 +24,8 @@ export interface EmbeddedImageStore {
   read(input: { documentId: string; imageName: string }): Promise<Buffer | null>;
   /** Delete all embedded images for a document. Called when the document is removed. */
   deleteByDocumentId(documentId: string): Promise<void>;
+  /** Absolute path to the directory that holds all embedded images for a document. */
+  dirFor(input: { documentId: string }): string;
   /** Absolute path where an embedded image would be (or is) stored. */
   pathFor(input: { documentId: string; imageName: string }): string;
 }
@@ -35,8 +37,12 @@ export class FsEmbeddedImageStore implements EmbeddedImageStore {
     this.baseDir = baseDir ?? defaultBaseDir();
   }
 
+  dirFor(input: { documentId: string }): string {
+    return join(this.baseDir, input.documentId);
+  }
+
   pathFor(input: { documentId: string; imageName: string }): string {
-    return join(this.baseDir, input.documentId, sanitizeImageName(input.imageName));
+    return join(this.dirFor(input), sanitizeImageName(input.imageName));
   }
 
   async save(input: {

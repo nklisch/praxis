@@ -82,6 +82,21 @@ describe("FsEmbeddedImageStore — save and read round-trip", () => {
   });
 });
 
+describe("FsEmbeddedImageStore — dirFor", () => {
+  it("returns <baseDir>/<documentId>", () => {
+    const store = makeStore();
+    const dir = store.dirFor({ documentId: DOC_ID });
+    expect(dir).toBe(join(baseDir, DOC_ID));
+  });
+
+  it("pathFor delegates to dirFor (path is dirFor + sanitized filename)", () => {
+    const store = makeStore();
+    const dir = store.dirFor({ documentId: DOC_ID });
+    const path = store.pathFor({ documentId: DOC_ID, imageName: IMAGE_NAME });
+    expect(path).toBe(join(dir, IMAGE_NAME));
+  });
+});
+
 describe("FsEmbeddedImageStore — pathFor", () => {
   it("returns a path under <baseDir>/<documentId>/<sanitizedImageName>", () => {
     const store = makeStore();
