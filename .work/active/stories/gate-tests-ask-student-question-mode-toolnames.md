@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ask-student-question-mode-toolnames
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -37,3 +37,12 @@ it("bootstrapMode.toolNames includes ask_student_question", () => {
 
 ## Test location (suggested)
 `packages/curriculum/src/__tests__/configure-mode.test.ts`
+
+## Implementation notes
+
+Both `configureMode` and `bootstrapMode` already included `ask_student_question` in their `toolNames` arrays — no mode-file changes were needed.
+
+- `bootstrapMode.toolNames` assertion was already present in `packages/curriculum/src/modes/__tests__/bootstrap-toolnames.test.ts` (added as part of the "included tools" describe block).
+- Added `configureMode.toolNames` assertion to the `"configure mode toolNames"` describe block in `packages/curriculum/src/__tests__/configure-mode.test.ts`.
+
+All 369 curriculum tests pass; typecheck clean.

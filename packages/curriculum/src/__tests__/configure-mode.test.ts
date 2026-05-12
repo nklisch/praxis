@@ -85,6 +85,10 @@ describe("configure mode toolNames", () => {
     expect(names).toContain("course.use_canonical_pack");
   });
 
+  it("includes ask_student_question", () => {
+    expect(configureMode.toolNames).toContain("ask_student_question");
+  });
+
   it("does not include teach-mode tools like update_mastery or record_misconception", () => {
     const names = configureMode.toolNames;
     expect(names).not.toContain("update_mastery");
