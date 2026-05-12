@@ -1,7 +1,7 @@
 ---
 id: gate-docs-changelog-v0-1-1-entry
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ Release `v0.1.1` is at `stage: quality-gate` per `.work/active/release-v0.1.1.md
 
 ## Required edit
 Add a `## v0.1.1 — 2026-05-12` section above the existing `v0.1.0` entry, summarizing the bootstrap-readiness epic, v1 security hardening, PPTX/DOCX ingestion, agent-transparency UX, prompt-customization layers, onboarding completion, editorial polish, and root-tsconfig typecheck coverage. (Phase 5.5 of `/agile-workflow:release-deploy` will draft this entry; the story tracks completion.)
+
+## Implementation notes
+Drafted the v0.1.1 entry inline as part of the autopilot batch (Phase 5.5 equivalent). Entry covers bootstrap-readiness, security hardening, PPTX ingestion, agent transparency, prompt customization, onboarding completion, several fixes, and rolling-foundation doc updates.

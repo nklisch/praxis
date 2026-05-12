@@ -5,6 +5,98 @@ All notable changes to Praxis are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.1.1 — 2026-05-12
+
+Iteration release on the v0.1.0 base. Focuses on tutor-side authoring quality
+(durable bootstrap drafts, expressive draft API, in-flight cancel, structured
+questions), security hardening (apiKey encrypted at rest, signed-update-feed
+verification), additional document formats (PowerPoint + cleaner DOCX path),
+and chat-surface transparency (sub-agent channel, stream pacing).
+
+### Features
+
+- **Bootstrap readiness** — the explorer now persists its draft state to
+  SQLite (`SqliteDraftStore`), so refreshing or restarting mid-bootstrap no
+  longer loses the work. The draft API gained query and edit-ops tools that
+  let the agent revise unit/lesson/concept drafts in place, plus
+  `course.list_dangling_refs` to surface broken back-references before commit.
+- **In-flight affordances** — cancelling a turn now propagates through the
+  full IPC path to `conv.abort()` in the Claude Code adapter. The new
+  `interrupted` `EngineEvent` variant carries `reason: "user_cancel" |
+  "engine_abort"` so the UI can distinguish a deliberate cancel from an
+  adapter-level abort.
+- **Structured questions** — new `ask_student_question` tool surfaces an
+  inline `<StructuredQuestionCard>` in the chat thread; the tool blocks until
+  the student answers via the same IPC family that powers quick-checks. Used
+  by bootstrap / configure flows where the agent needs to disambiguate intent
+  without yielding the turn.
+- **Agent transparency UX** — sub-agent runs (e.g. the bootstrap explorer)
+  now surface a `<SubAgentBlock>` inline next to the parent `tool_call`,
+  streaming `step_started` / `step_settled` / `phase_changed` events through
+  the new `praxis.subAgent.*` IPC family. MCP `callId` propagation
+  (`ToolDispatchMeta` → `ToolContext.callId`) keys events to the originating
+  tool_call.
+- **Prompt customization layers** — two new authoring slots: a cross-mode
+  `user-global` fragment (Settings) and a per-mode `user-append` fragment
+  (Configure prompt tab). Backed by `PromptCustomizationServiceImpl`;
+  injected into the system prompt via `additionalFragments` at session open.
+  Audit log records character counts only — secrets pasted into prompts
+  never reach the audit trail.
+- **PowerPoint ingestion** — `.pptx` files now ingest via `PptxIngestor`
+  (`officeparser` for the AST). Embedded figures land in the new
+  `EmbeddedImageStore` content-addressed under the document.
+- **Onboarding completion** — the engine step in `<OnboardingFlow>` now
+  offers inline Claude Code sign-in next to the engine selector (no more
+  "happens in your first session"). Picking a canonical pack pre-seeds the
+  course-card on the home tab so the next launch lands ready-to-tutor.
+
+### Security
+
+- **API key encrypted at rest** — Electron `safeStorage` (Keychain on macOS,
+  DPAPI on Windows, libsecret / kwallet on Linux) protects the stored
+  apiKey via `ElectronSafeStorageAdapter` (the new `SecretStorage` port).
+  On platforms with no OS keyring, the config service refuses to persist
+  the key and instructs the user to use `PRAXIS_API_KEY` instead. Legacy
+  plaintext rows migrate forward on the next write.
+- **Signed update feed** — `praxis.update.checkLatest` now verifies the feed
+  payload with an Ed25519 detached signature against a baked-in public key.
+  Tampered feeds are rejected; the banner only surfaces verified entries.
+
+### Fixes
+
+- **Attach-document flow** — `course.attach_document` removed from
+  `bootstrapMode.toolNames` (it can't run before a course exists); stays
+  available in `configureMode` where a course is already in scope.
+- **Block Claude Code builtins from tutor** — the tutor's MCP bridge no
+  longer leaks Claude Code's built-in tools alongside the Praxis tool set.
+- **QuickCheck `ToolContext` wiring** — `quick_check.*` handlers now
+  receive the populated `ctx.services.quickCheck`; missing-service crashes
+  resolved.
+- **Embedded image store delete cascade** — deleting a document cleans up
+  its image directory; `dirFor` abstraction landed for both stores
+  (`EmbeddedImageStore`, `PageImageStore`).
+- **PPTX slide-image map dead-fallback** — unused fallback branch removed
+  during ingestion; correct path now exercised on all real fixtures.
+
+### Refactor
+
+- **DOCX ingestor cleanup** — switched to `mammoth.convertToMarkdown()`,
+  retiring the regex-strip-from-HTML pipeline; shares the embedded-image
+  store with PPTX.
+- **Editorial polish pass** — theme tokens normalized, notes markdown
+  styling tightened, concepts navigation cleaned up, styling sweep across
+  the shared design-system primitives.
+- **Root-tsconfig typecheck coverage** — `pnpm typecheck` now covers
+  `tests/` and `scripts/` via the root tsconfig; the typecheck gate catches
+  type errors in non-package code that previously slipped through.
+
+### Documentation
+
+- Rolling-foundation roll-forward for `CONTRACT.md`, `ARCHITECTURE.md`,
+  `ROADMAP.md`, `ONBOARDING.md`, and the pattern-skill catalog. New
+  patterns codified: `batch-tool-per-item-results`,
+  `shared-test-fake-factories`.
+
 ## v0.1.0 — 2026-05-10
 
 The first versioned release. Praxis ships as an Electron desktop app with a
