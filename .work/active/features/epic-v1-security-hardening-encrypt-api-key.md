@@ -1,7 +1,7 @@
 ---
 id: epic-v1-security-hardening-encrypt-api-key
 kind: feature
-stage: review
+stage: done
 tags: [security]
 parent: epic-v1-security-hardening
 depends_on: []
@@ -796,3 +796,23 @@ Electron 41's `safeStorage` API matches the assumed shape. The `VisionServiceImp
 had its own `VisionServiceDeps` (not `ServiceDeps`) that also needed
 `secretStorage` wired — discovered via typecheck, added cleanly. No escape
 hatch was needed.
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `engine-config.ts:92-97` has a residual orphan comment ("If we are on the legacy plaintext path without safeStorage, clear apiKey from the stored spread...") that doesn't precede the code it describes — the conditional-spread on line 86-90 already handles both cases. Cleanup opportunity, not worth a follow-up.
+
+**Notes**:
+- Diff at commit `6722806`: 25 files, +702/-43 lines. Implementation faithful to the design across all 6 units. Port + adapter pattern preserves the @praxis/core ↔ @praxis/desktop boundary; no Electron imports leaked.
+- `apiKey === ""` is treated as no-apiKey (line 143) — handles the UI clearing the field, in addition to `undefined`.
+- Foundation-doc alignment: SPEC.md and VISION.md reference API keys only as a deployment concern, not a storage commitment — no drift introduced.
+- The root tsconfig gate (recently enabled) earned its keep — surfacing every missing `secretStorage` field across 10 test files at typecheck time. Recent infrastructure investment paid off.
+- Security improvement is real: platform keychain backs the encryption; tampered/missing blobs degrade gracefully (warn + null) rather than crashing or silently downgrading.
+- `VisionServiceImpl` got `secretStorage` threaded through its own `VisionServiceDeps` — out of strict scope but the right call (mandatory ServiceDeps cascaded into the sub-deps). Documented in the agent's notes.
+- 8 new test scenarios cover round-trip, row inspection, migration, idempotency, decryption failure, unavailable+write, unavailable+no-key, env override. 0 regressions across 2802 tests workspace-wide.
+
+Approved and advancing to done.
