@@ -1,7 +1,7 @@
 ---
 id: feature-onboarding-completion-claude-code-signin
 kind: story
-stage: review
+stage: done
 tags: [ui, onboarding]
 parent: feature-onboarding-completion
 depends_on: []
@@ -76,3 +76,17 @@ can run a session. After this story, they can sign in inline.
 `ClaudeAuthModal` is mocked in tests to avoid pulling in `client.claudeAuth.login()` stream infrastructure. The mock exposes `data-testid="claude-auth-modal"` and stub "Close" / "Signed In" buttons to simulate both close and success paths.
 
 **Verification:** `pnpm --filter @praxis/ui typecheck` ✓, `pnpm typecheck` ✓, `pnpm --filter @praxis/ui test` ✓ (827 tests pass). Lint: no new errors in changed files (pre-existing unrelated failures in root lint not introduced by this change).
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none. **Important**: none. **Nits**: none.
+
+**Notes**:
+- Diff at commit `59bf4be`: clean. Direct call to `client.claudeAuth.status()` in `useEffect` is the right shape — the design's mention of `useAuthStatus()` was based on the wrong hook (that one tracks in-session auth errors, not the upfront logged-in boolean). Implementer correctly diagnosed and used the actual API.
+- `<ClaudeAuthModal>` reused as-is; `onSignedIn` callback flips the label optimistically without a round-trip.
+- 5 new tests lock the contract; `<ClaudeAuthModal>` mocked via `vi.mock` to avoid pulling in the full CLI auth stream.
+- Button styling: `primaryButton` (accent) for not-signed-in, `signedInButton` (muted) for signed-in. Visually consistent with the rest of EngineStep.
+
+Approved and advancing to done.

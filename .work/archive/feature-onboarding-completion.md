@@ -1,7 +1,7 @@
 ---
 id: feature-onboarding-completion
 kind: feature
-stage: implementing
+stage: done
 tags: [ui, onboarding]
 parent: null
 depends_on: []
@@ -148,3 +148,21 @@ Manual smoke (out of automated test scope):
    mode's role prompt already nudges canonical packs; the pre-seed message
    needs to match what the tutor expects. If the tutor's tool layer keys
    on a specific phrase, use that phrase.
+
+## Children complete + Review (2026-05-12, feature-level)
+
+Both child stories landed and are at `stage: done`:
+
+- `feature-onboarding-completion-claude-code-signin` — **done** (commit `59bf4be`). EngineStep renders sign-in button when `engineId === "claude-code"`; calls `client.claudeAuth.status()` directly (the design's mention of `useAuthStatus()` was the wrong hook — implementer correctly used `ClaudeAuthStatus.loggedIn`). 5 new tests.
+- `feature-onboarding-completion-course-card-preseed` — **done** (commit `29549db`). Algebra and Biology cards pre-seed canonical-pack messages via fire-and-forget IIFE after `session.start`. Pack ids verified (`algebra-1`, `biology`). Non-blocking — pre-seed failure warn-logs, navigation proceeds. 3 new tests.
+
+**Verdict**: Approve (feature-level).
+
+**Notes**:
+- Both gaps from `epic-phase-19-first-run-flow` review are closed.
+- Decomposition matches design: 2 independent stories, no shared infrastructure, no IPC contract change.
+- Foundation-doc alignment: no SPEC.md / VISION.md / ARCHITECTURE.md touched — the onboarding flow is implementation detail under the existing first-run epic.
+- One discovery in Story 1 (the `useAuthStatus()` vs `claudeAuth.status()` distinction) — implementer recognized and corrected without bouncing back to design.
+- Workspace verification: `pnpm typecheck` green; `pnpm --filter @praxis/ui test` 830 passing.
+
+Feature delivered as briefed. Advancing to done; archiving feature + both stories.

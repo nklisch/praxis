@@ -1,7 +1,7 @@
 ---
 id: feature-onboarding-completion-course-card-preseed
 kind: story
-stage: review
+stage: done
 tags: [ui, onboarding]
 parent: feature-onboarding-completion
 depends_on: []
@@ -100,3 +100,17 @@ The `buildClient` helper was extended with a `sendSpy` option and a `send` mock 
 - `pnpm biome check` on modified files — passed (also auto-fixed formatter)
 - `pnpm --filter @praxis/ui test` — 830/830 passed (16 in onboarding-flow.test.tsx, 13 pre-existing + 3 new)
 - `pnpm typecheck` (full workspace) — passed
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none. **Important**: none. **Nits**: none.
+
+**Notes**:
+- Diff at commit `29549db`: clean. The fire-and-forget IIFE pattern (`void (async () => { for await (...) {} })()`) starts the stream without blocking navigation — correct shape for a non-blocking pre-seed. try/catch with warn-log + cleanup matches the design's "transient send failure shouldn't degrade UX" requirement.
+- Pack ids verified against the actual canonical packs (`algebra-1`, `biology`) — no message text adjustment needed.
+- `openSessionInTab` helper inlined into `handleStart` because the helper provided no hook between `start` and `tabs.open` — a reasonable structural choice. The syllabus path stays clean (just skips the pre-seed step).
+- 3 new tests + `buildClient` helper extension for the `sendSpy`. Test count went up by 3 (16 vs 13 prior in `onboarding-flow.test.tsx`).
+
+Approved and advancing to done.
