@@ -1,9 +1,23 @@
-import type { EngineConfigSnapshot, PraxisClient } from "@praxis/core/types";
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import type { EngineConfigSnapshot, LockClient, PraxisClient } from "@praxis/core/types";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { SettingsRoute } from "../routes/settings.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
+
+afterEach(() => cleanup());
+
+function makeLockClient(overrides?: Partial<LockClient>): LockClient {
+  return {
+    isSet: vi.fn().mockResolvedValue(false),
+    isUnlocked: vi.fn().mockResolvedValue(true),
+    setLockCode: vi.fn().mockResolvedValue(undefined),
+    unlock: vi.fn().mockResolvedValue({ ok: true }),
+    lock: vi.fn().mockResolvedValue(undefined),
+    clearLock: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
 
 function makeSettingsClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisClient {
   const defaultConfig: EngineConfigSnapshot = {
@@ -21,6 +35,34 @@ function makeSettingsClient(configOverride?: Partial<EngineConfigSnapshot>): Pra
       engineConfig: vi.fn().mockResolvedValue(defaultConfig),
       setEngineConfig: vi.fn().mockResolvedValue(undefined),
     },
+    author: {
+      getGlobalPrompt: vi.fn().mockResolvedValue(null),
+      setGlobalPrompt: vi.fn().mockResolvedValue(undefined),
+      previewPrompt: vi.fn().mockResolvedValue("preview text"),
+      createCourse: vi.fn(),
+      editGate: vi.fn(),
+      bootstrap: vi.fn(),
+      customizePrompt: vi.fn(),
+      updateCourse: vi.fn(),
+      createLesson: vi.fn(),
+      updateLesson: vi.fn(),
+      deleteLesson: vi.fn(),
+      createGate: vi.fn(),
+      updateGate: vi.fn(),
+      deleteGate: vi.fn(),
+      overrideGate: vi.fn(),
+      getCourseSummary: vi.fn(),
+      clearFragmentOverride: vi.fn(),
+      setStyleSliders: vi.fn(),
+      setModeAppend: vi.fn(),
+      getModeAppend: vi.fn(),
+      resetConcept: vi.fn(),
+      clearMisconception: vi.fn(),
+      exportMemory: vi.fn(),
+      deleteAllMemory: vi.fn(),
+      listConfiguratorActions: vi.fn(),
+    } as PraxisClient["author"],
+    lock: makeLockClient(),
   });
 }
 
@@ -76,5 +118,23 @@ describe("SettingsRoute", () => {
     renderWithClient(client);
     // COPY.loading.default = "loading…"
     expect(screen.getByText("loading…")).toBeDefined();
+  });
+
+  it("renders the Global prompt section after loading", async () => {
+    const client = makeSettingsClient();
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByText("Global prompt")).toBeDefined();
+    });
+  });
+
+  it("renders the GlobalPromptEditor textarea after loading", async () => {
+    const client = makeSettingsClient();
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("textbox", { name: /global prompt text/i })).toBeDefined();
+    });
   });
 });
