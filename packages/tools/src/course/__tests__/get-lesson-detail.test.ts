@@ -66,7 +66,7 @@ describe("course.get_lesson_detail handler", () => {
     );
   });
 
-  it("throws when draft or lesson is not found (service returns null)", async () => {
+  it("throws when draft or lesson does not exist — locks the throw-contract chosen over empty+warning to distinguish 'caller error' from 'legitimate empty state'", async () => {
     const bootstrap: Partial<BootstrapService> = {
       getLessonDetail: vi.fn().mockResolvedValue(null),
     };

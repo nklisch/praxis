@@ -8,7 +8,7 @@ depends_on: [epic-bootstrap-readiness-durable-drafts]
 release_binding: v0.1.1
 gate_origin: null
 created: 2026-05-10
-updated: 2026-05-10
+updated: 2026-05-12
 ---
 
 # Expressive draft-editing API
@@ -483,6 +483,16 @@ async listDanglingRefs(draftId: string): Promise<DanglingRefsReport | null> {
   the tool throws a recognizable error and the model sees it via the
   tool-error path. Pick one and use it consistently. Prefer the "return
   empty + warning" pattern since `course.list_*` tools shouldn't fail-hard.
+- **Contract decision (post-implementation)**: The design's stated preference
+  for `empty + warning` was rejected in favor of **throw**. Rationale: an
+  empty+warning response loses the distinction between "caller supplied a
+  bogus draftId" (a caller error — the draft never existed) and "the draft
+  exists but is genuinely empty" (a legitimate state the model should reason
+  about). Throwing on a missing draft surfaces the caller error clearly and
+  keeps the empty-result path unambiguous. Tests at
+  `packages/tools/src/course/__tests__/list-*.test.ts` and
+  `packages/tools/src/course/__tests__/get-lesson-detail.test.ts` lock this
+  contract with rationale in the test name.
 - Prompt fragment listing: append four short bullets to
   `bootstrapToolsFragment` and `configureToolsFragment` describing each
   tool one-line.

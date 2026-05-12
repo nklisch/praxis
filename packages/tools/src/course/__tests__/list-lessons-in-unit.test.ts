@@ -58,7 +58,7 @@ describe("course.list_lessons_in_unit handler", () => {
     );
   });
 
-  it("throws when draft or unit is not found (service returns null)", async () => {
+  it("throws when draft or unit does not exist — locks the throw-contract chosen over empty+warning to distinguish 'caller error' from 'legitimate empty state'", async () => {
     const bootstrap: Partial<BootstrapService> = {
       listLessonsInUnit: vi.fn().mockResolvedValue(null),
     };

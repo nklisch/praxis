@@ -45,7 +45,7 @@ describe("course.list_units handler", () => {
     expect(bootstrap.listUnits).toHaveBeenCalledWith("ctx-draft");
   });
 
-  it("throws when draft is not found (service returns null)", async () => {
+  it("throws when draft does not exist — locks the throw-contract chosen over empty+warning to distinguish 'caller error' from 'legitimate empty state'", async () => {
     const bootstrap: Partial<BootstrapService> = {
       listUnits: vi.fn().mockResolvedValue(null),
     };

@@ -43,7 +43,7 @@ describe("course.list_dangling_refs handler", () => {
     expect(bootstrap.listDanglingRefs).toHaveBeenCalledWith("ctx-draft");
   });
 
-  it("throws when draft is not found (service returns null)", async () => {
+  it("throws when draft does not exist — locks the throw-contract chosen over empty+warning to distinguish 'caller error' from 'legitimate empty state'", async () => {
     const bootstrap: Partial<BootstrapService> = {
       listDanglingRefs: vi.fn().mockResolvedValue(null),
     };

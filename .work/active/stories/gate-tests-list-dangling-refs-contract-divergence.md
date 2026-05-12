@@ -1,7 +1,7 @@
 ---
 id: gate-tests-list-dangling-refs-contract-divergence
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -32,3 +32,24 @@ Pick **"throw" as the contract** — current implementation behavior. Rationale:
 
 ## Test location (suggested)
 `packages/tools/src/course/__tests__/list-dangling-refs.test.ts` (and siblings)
+
+## Implementation notes
+
+Four sibling chunked-query tools share the draft-not-found throw contract:
+`course.list_dangling_refs`, `course.list_units`, `course.list_lessons_in_unit`,
+`course.get_lesson_detail`. The throw-contract test in each was renamed to
+make the rationale explicit:
+
+> "throws when draft does not exist — locks the throw-contract chosen over
+> empty+warning to distinguish 'caller error' from 'legitimate empty state'"
+
+(`list_lessons_in_unit` and `get_lesson_detail` say "draft or unit/lesson does
+not exist" since either the draft or the child entity can be the missing
+party.)
+
+The feature body (`epic-bootstrap-readiness-expressive-draft-api`, Unit 2
+Implementation Notes) was updated with a **Contract decision** paragraph
+documenting why `empty + warning` was rejected.
+
+No assertions changed — only test descriptions and the feature doc note.
+Typecheck and full `@praxis/tools` test suite (538 tests) green.
