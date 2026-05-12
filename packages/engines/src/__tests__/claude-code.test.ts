@@ -264,6 +264,82 @@ describe("ClaudeCodeEngine — lifecycle", () => {
     expect(types).toContain("final");
   });
 
+  it("callId counter persists across send() calls in the same session", async () => {
+    // Regression: the MCP bridge worker spawns once per Conversation and its
+    // callCounter persists across all turns. The Claude Code adapter mirrors
+    // that counter via a per-session event state. If the adapter accidentally
+    // reset the state per send(), the second send's tool_use events would
+    // carry callId "1" again while the bridge worker would emit "3" — the
+    // sub-agent UI subscription would no longer match the registry's stored
+    // parentCallId.
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+
+    // Queue distinct stream events per send. Each send emits one tool_use.
+    const streamQueue: unknown[][] = [
+      [
+        { type: "tool_use", toolName: "mcp__praxis__t1", toolId: "toolu_AAA", toolInput: {} },
+        resultEventObj,
+      ],
+      [
+        { type: "tool_use", toolName: "mcp__praxis__t2", toolId: "toolu_BBB", toolInput: {} },
+        resultEventObj,
+      ],
+    ];
+
+    const convMock = {
+      sessionId: Promise.resolve("test-session-id"),
+      isOpen: true,
+      send: vi.fn(() => {
+        const events = streamQueue.shift() ?? [resultEventObj];
+        async function* fakeStream() {
+          for (const e of events) yield e;
+        }
+        const streamIterable = fakeStream();
+        return Object.assign(streamIterable, {
+          result: Promise.resolve({
+            result: "done",
+            sessionId: "test-session-id",
+            resultEvent: resultEventObj,
+          }),
+        });
+      }),
+      sendAndCollect: vi.fn(),
+      sendToolResult: vi.fn(),
+      close: vi.fn(async () => {}),
+      abort: vi.fn(() => {}),
+      [Symbol.asyncDispose]: vi.fn(async () => {}),
+    } as unknown as Conversation;
+    vi.mocked(createConversation).mockReturnValue(convMock);
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    const firstSendCallIds: string[] = [];
+    for await (const event of session.send("first")) {
+      if (event.type === "tool_call") firstSendCallIds.push(event.callId);
+    }
+    const secondSendCallIds: string[] = [];
+    for await (const event of session.send("second")) {
+      if (event.type === "tool_call") secondSendCallIds.push(event.callId);
+    }
+    await session.close();
+
+    // First send: tool_use_id "toolu_AAA" → callId "1"
+    expect(firstSendCallIds).toEqual(["1"]);
+    // Second send must continue from "2", NOT reset to "1" — that's the bug
+    // this test guards against.
+    expect(secondSendCallIds).toEqual(["2"]);
+  });
+
   it("strips MCP prefix from tool_use event toolName", async () => {
     const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");

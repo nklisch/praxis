@@ -164,6 +164,12 @@ class ClaudeCodeEngineSession implements EngineSession {
   private readonly log: EngineDeps["log"];
   private seedPreface: string;
   private closed = false;
+  // Per-session (not per-send) state for callId translation. The MCP bridge
+  // worker spawns once per Conversation (lazily on first send) and its
+  // callCounter persists across all turns — so we must mirror that lifetime
+  // here. A fresh state per send() would diverge starting on turn 2+ in any
+  // conversation with multiple tool-calling turns.
+  private readonly eventState = createEventState();
 
   constructor(init: ClaudeCodeSessionInit) {
     this.placeholderId = init.placeholderId;
@@ -209,12 +215,16 @@ class ClaudeCodeEngineSession implements EngineSession {
     }
 
     try {
-      // Create a fresh per-turn state to translate Claude UUIDs → bridge counters.
-      // The bridge worker resets its callCounter for each new conversation send,
-      // so we create a new state here to mirror that reset.
-      const eventState = createEventState();
+      // Use the session-scoped event state. The MCP bridge worker spawns once
+      // per Conversation and its callCounter persists across all turns; the
+      // adapter's mirror counter must persist for the same lifetime to keep
+      // both channels aligned (see this.eventState declaration).
       for await (const event of turn) {
-        const mapped = mapClaudeCodeEvent(event, { serverName: this.serverName }, eventState);
+        const mapped = mapClaudeCodeEvent(
+          event,
+          { serverName: this.serverName },
+          this.eventState,
+        );
         if (mapped) yield mapped;
       }
 
