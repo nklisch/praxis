@@ -5,7 +5,7 @@ stage: backlog
 tags: [testing]
 parent: null
 depends_on: []
-release_binding: v0.1.1
+release_binding: null
 gate_origin: tests
 created: 2026-05-12
 updated: 2026-05-12

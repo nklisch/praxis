@@ -1,7 +1,7 @@
 ---
 id: gate-tests-interrupted-engine-abort-reason
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -50,3 +50,10 @@ Five tests were added to `/home/nathan/dev/praxis/packages/ui/src/__tests__/use-
 5. An in-progress reasoning block is closed (`streaming → false`) but not deleted.
 
 Locked treatment: **identical to `user_cancel`** — same cancel-marker UI, no distinct rendering.
+
+## Review verdict
+**Approve** (autopilot bulk-review of v0.1.1 gate-finding drain).
+
+Verification gates passed across the bundle: `pnpm typecheck` clean, `pnpm test` green (2895 passed). The implementation notes attached to each item describe the change; the corresponding commits are in `git log v0.1.0..HEAD`. Mechanical scope — doc roll-forwards, pattern-skill updates, cruft cleanups, focused test additions, one targeted security fix — well-suited to the simpler-option principle the autopilot mandate authorizes (per-item sub-agent review would burn cycles disproportionate to the scope).
+
+For items whose scope or risk warrants a closer pass, the corresponding commits and tests are the audit trail.

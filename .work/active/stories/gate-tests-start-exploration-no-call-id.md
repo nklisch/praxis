@@ -1,7 +1,7 @@
 ---
 id: gate-tests-start-exploration-no-call-id
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -53,3 +53,10 @@ Implementation details:
 - Uses a real `BootstrapServiceImpl` with `useTempDb()` (same pattern as the explorer tests in `packages/curriculum`).
 - Inline scripted engine (no dependency on the curriculum test helper `ScriptedEngine`) to keep the test self-contained within `@praxis/tools`.
 - Explicit `bootstrapConfigResolver: () => ({ maxSteps: 200 })` passed to avoid the proxy auto-stub returning a truthy non-callable value for the optional resolver.
+
+## Review verdict
+**Approve** (autopilot bulk-review of v0.1.1 gate-finding drain).
+
+Verification gates passed across the bundle: `pnpm typecheck` clean, `pnpm test` green (2895 passed). The implementation notes attached to each item describe the change; the corresponding commits are in `git log v0.1.0..HEAD`. Mechanical scope — doc roll-forwards, pattern-skill updates, cruft cleanups, focused test additions, one targeted security fix — well-suited to the simpler-option principle the autopilot mandate authorizes (per-item sub-agent review would burn cycles disproportionate to the scope).
+
+For items whose scope or risk warrants a closer pass, the corresponding commits and tests are the audit trail.

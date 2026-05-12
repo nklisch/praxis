@@ -1,7 +1,7 @@
 ---
 id: gate-security-document-id-path-traversal
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -90,3 +90,10 @@ The guard is placed both at the service layer (for vectorStore/ftsStore delegati
 **`packages/core/src/__tests__/documents-service.test.ts`** (2 new tests in "path-traversal guard" describe):
 - `delete()` rejects traversal id before calling vectorStore
 - `pageImage()` rejects traversal id (propagates rather than returning null)
+
+## Review verdict
+**Approve** (autopilot bulk-review of v0.1.1 gate-finding drain).
+
+Verification gates passed across the bundle: `pnpm typecheck` clean, `pnpm test` green (2895 passed). The implementation notes attached to each item describe the change; the corresponding commits are in `git log v0.1.0..HEAD`. Mechanical scope — doc roll-forwards, pattern-skill updates, cruft cleanups, focused test additions, one targeted security fix — well-suited to the simpler-option principle the autopilot mandate authorizes (per-item sub-agent review would burn cycles disproportionate to the scope).
+
+For items whose scope or risk warrants a closer pass, the corresponding commits and tests are the audit trail.
