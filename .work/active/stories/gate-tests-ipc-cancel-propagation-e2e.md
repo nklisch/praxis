@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ipc-cancel-propagation-e2e
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []

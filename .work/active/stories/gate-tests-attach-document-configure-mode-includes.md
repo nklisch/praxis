@@ -1,7 +1,7 @@
 ---
 id: gate-tests-attach-document-configure-mode-includes
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []

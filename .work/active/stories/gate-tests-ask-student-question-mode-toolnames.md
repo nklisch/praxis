@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ask-student-question-mode-toolnames
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []

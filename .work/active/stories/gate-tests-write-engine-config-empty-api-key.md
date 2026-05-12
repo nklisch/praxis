@@ -1,7 +1,7 @@
 ---
 id: gate-tests-write-engine-config-empty-api-key
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []

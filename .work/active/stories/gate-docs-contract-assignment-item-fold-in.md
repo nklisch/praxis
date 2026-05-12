@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-assignment-item-fold-in
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []

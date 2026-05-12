@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ingestion-service-rename-embedded-image-dir
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []

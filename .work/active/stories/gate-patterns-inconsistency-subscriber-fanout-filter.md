@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-subscriber-fanout-filter
 kind: story
-stage: drafting
+stage: implementing
 tags: [refactor, documentation]
 parent: null
 depends_on: []

@@ -1,7 +1,7 @@
 ---
 id: gate-security-document-id-path-traversal
 kind: story
-stage: drafting
+stage: implementing
 tags: [security]
 parent: null
 depends_on: []

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-interrupted-engine-abort-reason
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []

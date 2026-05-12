@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-service-deps-required-ports
 kind: story
-stage: drafting
+stage: implementing
 tags: [refactor, documentation]
 parent: null
 depends_on: []

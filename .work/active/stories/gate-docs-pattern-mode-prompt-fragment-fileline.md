@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-mode-prompt-fragment-fileline
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []

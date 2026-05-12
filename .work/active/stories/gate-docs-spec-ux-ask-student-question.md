@@ -1,7 +1,7 @@
 ---
 id: gate-docs-spec-ux-ask-student-question
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []

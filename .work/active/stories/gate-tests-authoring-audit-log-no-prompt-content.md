@@ -1,7 +1,7 @@
 ---
 id: gate-tests-authoring-audit-log-no-prompt-content
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, security]
 parent: null
 depends_on: []

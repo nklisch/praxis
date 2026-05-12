@@ -1,7 +1,7 @@
 ---
 id: gate-tests-engine-config-decryption-failure-idempotent
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []

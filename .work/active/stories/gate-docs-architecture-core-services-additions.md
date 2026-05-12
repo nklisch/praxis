@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-core-services-additions
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []

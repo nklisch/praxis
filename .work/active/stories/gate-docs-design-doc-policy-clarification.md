@@ -1,7 +1,7 @@
 ---
 id: gate-docs-design-doc-policy-clarification
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []
@@ -26,9 +26,14 @@ design-doc-gap
 ## Reality
 All four features/epics carry their design INSIDE the substrate item bodies per the rolling-foundation principle ("Item-IS-the-Work"). No separate `docs/designs/*.md` was created for any of them. The existing `docs/designs/` directory holds Phase 1–17 + activity-rail / claude-auth / claude-cli-sdk-refactor / language-sandbox-registry / bootstrap-explorer — i.e., earlier work only.
 
-## Required edit
-Pick one and apply:
-- (a) Update CLAUDE.md's "New design docs go in `docs/designs/phase-NN-*.md`" line to clarify that design docs are **optional** and only used for major phase work — feature- and epic-level designs live in the substrate item body per the Item-IS-the-Work principle.
-- (b) Backfill condensed design notes for these four substrate-driven features into `docs/designs/` to maintain symmetry with earlier phases.
+## Resolution (autopilot judgment)
+Pick **(a)** — update CLAUDE.md to clarify that design docs are optional.
 
-Recommend (a) — aligns with rolling-foundation. Owner judgment.
+Rationale: aligns with the rolling-foundation principle ("Item-IS-the-Work"). Earlier phases (1–17) predate the substrate; their `docs/designs/*.md` files served as the design SOT before items existed. After substrate adoption, feature/epic-level designs live in the item body. The CLAUDE.md line is the only doc that implies design-doc creation is mandatory; updating it removes the perceived obligation.
+
+## Implementation direction
+Edit `CLAUDE.md` "Phase map" paragraph. Current text:
+> "New design docs go in `docs/designs/phase-NN-*.md`; refactor plans in `docs/refactors/`."
+
+Replace with:
+> "Major phase work (e.g. a new `Phase NN`) may warrant a `docs/designs/phase-NN-*.md`. Feature- and epic-level designs live in the substrate item body per the Item-IS-the-Work principle — don't create a separate doc unless the work is genuinely cross-cutting. Refactor plans in `docs/refactors/`."

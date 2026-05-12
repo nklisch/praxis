@@ -1,7 +1,7 @@
 ---
 id: gate-tests-list-dangling-refs-contract-divergence
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []
@@ -23,10 +23,12 @@ Acceptance criterion (design): "All four tools share a 'draft not found' handler
 ## Gap type
 tautological-rework / spec-vs-impl divergence — current handler tests assert "throws when draft is not found." Either the design's preference was inverted in implementation, or the design statement is stale. A test pinning the actual contract resolves which it is.
 
-## Suggested resolution
-Surface for review:
-- If "throw" is the right contract → rewrite test names to document the rationale ("contract: tool throws on missing draft — design's empty+warning alternative was rejected because ...") and update the feature body to reflect.
-- If "empty+warning" is the right contract → change the implementation and tests across all 4 list tools (`list_dangling_refs`, plus the three sibling query tools).
+## Resolution (autopilot judgment)
+Pick **"throw" as the contract** — current implementation behavior. Rationale: the design's stated preference for "empty+warning" would lose the distinction between "draft doesn't exist (caller error)" and "draft exists but is empty (legitimate empty state)". Lock current behavior in tests with explicit rationale in test names.
+
+## Implementation direction
+- Rewrite the existing tests' descriptions to document the rationale, e.g. `it("throws when draft does not exist — distinguishes draft-not-found from draft-empty")`.
+- Add a brief note to the feature body (`epic-bootstrap-readiness-expressive-draft-api`) documenting that the design's empty+warning alternative was rejected for this reason.
 
 ## Test location (suggested)
 `packages/tools/src/course/__tests__/list-dangling-refs.test.ts` (and siblings)

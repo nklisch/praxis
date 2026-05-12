@@ -1,7 +1,7 @@
 ---
 id: gate-docs-roadmap-phases-17-19-mark-shipped
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []
