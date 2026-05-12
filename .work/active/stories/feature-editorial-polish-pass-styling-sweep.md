@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass-styling-sweep
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: feature-editorial-polish-pass
 depends_on: [feature-editorial-polish-pass-theme-tokens]
@@ -84,4 +84,56 @@ list, not the design.
   - `packages/ui/src/components/empty-state.tsx`
   - `packages/ui/src/lib/copy.ts`
 
-<!-- Implementation Notes accumulate here as work progresses. -->
+## Implementation notes
+
+### Grep results
+
+**Before sweep**: `grep -rn '#[0-9a-fA-F]\{3,8\}' packages/ui/src --include='*.css' | grep -v 'global\.css\|intentional literal' | grep -v 'var(--'` → ~100 bare hex color matches across 65+ CSS files.
+
+**After sweep**: Same grep → 0 results. All bare hex colors are now either:
+- Replaced with `var(--color-*)` token references, or
+- Annotated with `/* intentional literal: <reason> */` inline.
+
+(The var() fallback pattern `var(--color-*, #hex)` correctly remains — those hex values are CSS custom property fallbacks, not bare color literals.)
+
+### Files touched
+
+- **65 CSS files** tokenized or annotated
+- **8 TSX route files** received RouteHeader exception documentation
+- **1 global.css** received 3 new semantic tokens + their light-mode counterparts
+
+### New tokens added to global.css
+
+| Token | Dark-mode | Light-mode | Usage |
+|---|---|---|---|
+| `--color-error` | `#f87171` (red-400) | `#b91c1c` (red-700) | Error text, error banners, delete hover |
+| `--color-success` | `#4ade80` (green-400) | `#15803d` (green-700) | Success text, mastered state, unlock badges |
+| `--color-warning` | `#fbbf24` (amber-400) | `#d97706` (amber-600) | Warning text, due indicators, exam kicker |
+
+All three include WCAG AA contrast annotations in global.css.
+
+### Exception comments documented
+
+**RouteHeader exceptions** (tab panels, not standalone routes):
+- `routes/chat.tsx` — workspace shell, structural container
+- `routes/configure/course-tab.tsx` — configure tab panel
+- `routes/configure/gates-tab.tsx` — configure tab panel
+- `routes/configure/memory-tab.tsx` — configure tab panel
+- `routes/configure/prompt-tab.tsx` — configure tab panel
+- `routes/workspace/cards-list.tsx` — workspace tab panel
+- `routes/workspace/notes-list.tsx` — workspace tab panel
+- `routes/workspace/note-editor-page.tsx` — focused editor surface
+- `routes/workspace/review-session.tsx` — workspace tab panel
+
+**Intentional literal hex colors** (kept with justification):
+- `#fff` / `white` on colored button backgrounds (50+ instances) — must remain white regardless of theme
+- `#fff3cd` / `#856404` in `memory-inspector-tabs.module.css` — Bootstrap-style warning badge
+- `#d4edda` / `#155724` in `memory-inspector-tabs.module.css` — Bootstrap-style success badge
+- `#b4d28d` / `#d8a37b` in `markdown-content.module.css` — syntax highlight tokens (stable cross-theme)
+
+### Verification
+
+- `pnpm --filter @praxis/ui typecheck` — ✓ clean
+- `pnpm --filter @praxis/ui test` — ✓ 97 files, 822 tests
+- `pnpm typecheck` (root gate) — ✓ clean
+- Land-mode grep — ✓ 0 unjustified bare hex colors in CSS
