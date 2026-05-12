@@ -1,7 +1,7 @@
 ---
 id: feature-prompt-customization-layers-settings-global
 kind: story
-stage: review
+stage: done
 tags: [ui, content]
 parent: feature-prompt-customization-layers
 depends_on: [feature-prompt-customization-layers-compose-wiring]
@@ -121,3 +121,18 @@ CSS grid with `grid-template-columns: 1fr 1fr` on wide viewports, collapsing to 
 - `pnpm --filter @praxis/ui typecheck` — clean
 - `pnpm typecheck` (workspace) — clean
 - `pnpm --filter @praxis/ui test` — 90 files, 754 tests, all pass
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `e93f7f0`: clean implementation. Lock state from `useLock()`, save semantics gated by `dirty && !saving && !isLocked`, stack-on-narrow-viewport CSS, 12 tests covering all acceptance criteria including locked-state.
+- `<PromptPreviewPane>`'s `useDeferredValue` + conditional-spread on draft inputs is the right shape — `undefined` = use stored, `null` = omit slot, string = use draft. Aligns with the foundation story's `previewPrompt` IPC.
+- Shared primitive is strictly presentational + IPC; no save logic — keeps it composable for the configure-mode-append consumer (which has consumed it cleanly).
+
+Approved and advancing to done.
