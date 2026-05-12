@@ -1,7 +1,7 @@
 ---
 id: gate-tests-update-feed-public-key-length-guard
 kind: story
-stage: implementing
+stage: review
 tags: [testing, refactor]
 parent: null
 depends_on: []
@@ -41,3 +41,17 @@ Delete or replace the existing tautological assertion in the same file.
 
 ## Test location (suggested)
 `packages/core/src/services/__tests__/update-feed-public-key.test.ts`
+
+## Implementation notes
+
+The story's suggested `vi.doMock` + `importOriginal` spread approach does not work in this codebase's ESM setup: `importUpdateFeedPublicKey` closes over the original module-scope `UPDATE_FEED_PUBLIC_KEY_BASE64` binding, so even with the mock's exported constant overridden, the real function still reads the original empty string and throws "not configured" rather than reaching the length guard.
+
+**Resolution**: Added an optional `_keyBase64Override?: string` parameter to `importUpdateFeedPublicKey` as a test seam. Production callers (only `update-service.ts:116`) pass no argument, so behaviour is identical. Tests pass the tampered constant directly, exercising the real guard branch.
+
+**Tests added** in `packages/core/src/services/__tests__/update-feed-public-key.test.ts`:
+- `rejects a key that decodes to 31 bytes` — exercises the `rawKey.length !== 32` branch (under-length)
+- `rejects a key that decodes to 33 bytes` — exercises the same branch (over-length)
+- `rejects malformed base64 that produces zero decoded bytes` — documents that Node's `Buffer.from(..., "base64")` silently ignores invalid chars; zero-byte result hits the same length guard
+- `imports a valid 32-byte raw Ed25519 public key and returns a CryptoKey` — updated from indirect `crypto.subtle` call to calling the real function via the seam
+
+Source change: `packages/core/src/services/update-feed-public-key.ts` — optional `_keyBase64Override` parameter only; no public API break.

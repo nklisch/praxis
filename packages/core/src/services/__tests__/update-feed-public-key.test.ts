@@ -30,33 +30,36 @@ describe("importUpdateFeedPublicKey", () => {
     const rawBytes = rawPub.subarray(rawPub.length - 32);
     const b64 = rawBytes.toString("base64");
 
-    // importKey reads from the module-level constant — we need to call the
-    // helper directly with a valid key shape. Since the constant is hardcoded,
-    // we test the helper indirectly by temporarily importing a mocked module.
-    // For structural testing we use crypto.subtle directly here to confirm
-    // the same import logic works end-to-end.
-    const cryptoKey = await crypto.subtle.importKey("raw", rawBytes, { name: "Ed25519" }, false, [
-      "verify",
-    ]);
+    // Call the real function through the test-seam parameter so the full import
+    // pipeline (base64 decode → length guard → subtle.importKey) runs end-to-end.
+    const cryptoKey = await importUpdateFeedPublicKey(b64);
     expect(cryptoKey.type).toBe("public");
     expect(cryptoKey.algorithm.name).toBe("Ed25519");
     expect(cryptoKey.usages).toContain("verify");
-
-    // Confirm the base64 round-trip produces the same bytes we fed in.
-    const decoded = Buffer.from(b64, "base64");
-    expect(decoded.length).toBe(32);
-    expect(decoded.equals(rawBytes)).toBe(true);
   });
 
-  it("rejects a base64 value that decodes to the wrong byte length", async () => {
-    // 31 bytes → should throw on the length check.
+  it("rejects a key that decodes to 31 bytes (one short of required 32)", async () => {
+    // 31 bytes — one short — exercises the length-guard branch in the real function.
     const shortKey = Buffer.alloc(31, 0x42).toString("base64");
-    // We test the branch by calling crypto.subtle.importKey with the raw bytes
-    // ourselves — the helper would throw "must decode to 32 bytes".
-    expect(shortKey.length).toBeGreaterThan(0);
-    const decoded = Buffer.from(shortKey, "base64");
-    expect(decoded.length).toBe(31);
-    // Confirm the helper would reject this via the length guard.
-    expect(decoded.length !== 32).toBe(true);
+    await expect(importUpdateFeedPublicKey(shortKey)).rejects.toThrow(
+      /must decode to 32 bytes/,
+    );
+  });
+
+  it("rejects a key that decodes to 33 bytes (one over required 32)", async () => {
+    // 33 bytes — one too many — also exercises the length-guard branch.
+    const longKey = Buffer.alloc(33, 0x42).toString("base64");
+    await expect(importUpdateFeedPublicKey(longKey)).rejects.toThrow(
+      /must decode to 32 bytes/,
+    );
+  });
+
+  it("rejects malformed base64 that produces zero decoded bytes", async () => {
+    // Node's Buffer.from(str, "base64") silently ignores invalid characters, so
+    // purely-invalid base64 decodes to 0 bytes — which fails the length guard with
+    // "must decode to 32 bytes" (not a separate malformed-base64 error).
+    await expect(importUpdateFeedPublicKey("!!!not-valid-base64!!!")).rejects.toThrow(
+      /must decode to 32 bytes/,
+    );
   });
 });
