@@ -532,6 +532,27 @@ describe("AuthoringServiceImpl — setGlobalPrompt / getGlobalPrompt", () => {
     await svc.getGlobalPrompt();
     expect(countActions(db)).toBe(before);
   });
+
+  it("setGlobalPrompt audit row does NOT contain the prompt text — only the char count", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+
+    const secretText = "sk-API_KEY_LEAKED_INTO_PROMPT_xyzzy_12345";
+    await svc.setGlobalPrompt(secretText);
+
+    // Serialize ALL rows — not just the new one — to catch any leakage into surrounding logs.
+    const rows = db.select().from(configuratorActions).all();
+    const allActionJson = JSON.stringify(rows);
+    expect(allActionJson).not.toContain("xyzzy");
+    expect(allActionJson).not.toContain(secretText);
+
+    // Bonus: the most recent row records the char count, not the content.
+    // biome-ignore lint/style/noNonNullAssertion: test always writes a row before reading
+    const last = rows[rows.length - 1]!;
+    const action = last.actionJson as { kind: string; chars: number };
+    expect(action.kind).toBe("prompt.set_global_fragment");
+    expect(action.chars).toBe(secretText.trim().length);
+  });
 });
 
 describe("AuthoringServiceImpl — setModeAppend / getModeAppend", () => {
@@ -574,6 +595,28 @@ describe("AuthoringServiceImpl — setModeAppend / getModeAppend", () => {
     const before = countActions(db);
     await svc.getModeAppend("teach");
     expect(countActions(db)).toBe(before);
+  });
+
+  it("setModeAppend audit row does NOT contain the prompt text — only the char count", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+
+    const secretText = "sk-API_KEY_LEAKED_INTO_MODE_APPEND_xyzzy_67890";
+    await svc.setModeAppend({ modeId: "teach", text: secretText });
+
+    // Serialize ALL rows — not just the new one — to catch any leakage into surrounding logs.
+    const rows = db.select().from(configuratorActions).all();
+    const allActionJson = JSON.stringify(rows);
+    expect(allActionJson).not.toContain("xyzzy");
+    expect(allActionJson).not.toContain(secretText);
+
+    // Bonus: the most recent row records modeId and char count, not the content.
+    // biome-ignore lint/style/noNonNullAssertion: test always writes a row before reading
+    const last = rows[rows.length - 1]!;
+    const action = last.actionJson as { kind: string; modeId: string; chars: number };
+    expect(action.kind).toBe("prompt.set_mode_append");
+    expect(action.modeId).toBe("teach");
+    expect(action.chars).toBe(secretText.trim().length);
   });
 });
 
