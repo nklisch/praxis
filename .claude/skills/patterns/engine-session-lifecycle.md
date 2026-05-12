@@ -30,10 +30,10 @@ export class ClaudeCodeEngine implements Engine {
 }
 ```
 
-### Example 2: `ClaudeCodeEngineSession.send` — seed on first call, native on subsequent
+### Example 2: `ClaudeCodeEngineSession.send` — seed on first call, native on subsequent, signal-aware
 **File**: `packages/engines/src/claude-code/adapter.ts`
 ```typescript
-async *send(userMessage: string): AsyncIterable<EngineEvent> {
+async *send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent> {
   if (this.closed) {
     yield { type: "error", error: engineError("session.closed", "EngineSession is closed") };
     return;
@@ -41,12 +41,19 @@ async *send(userMessage: string): AsyncIterable<EngineEvent> {
   const message = this.seedPreface ? `${this.seedPreface}${userMessage}` : userMessage;
   this.seedPreface = "";  // clear after first send — subsequent sends are native
   const turn = this.conv.send(message);
+  // Adapter wires `signal` to its SDK's abort: when fired, the SDK terminates
+  // the turn and the framework synthesises an `interrupted` event upstream.
+  signal?.addEventListener("abort", () => this.conv.abort(), { once: true });
   for await (const event of turn) {
     const mapped = mapClaudeCodeEvent(event, { serverName: this.bridge?.serverName ?? "praxis" });
     if (mapped) yield mapped;
   }
 }
 ```
+
+### Cancellation contract
+
+`send(userMessage, signal?)` accepts an optional `AbortSignal` and wires it to the adapter's SDK abort mechanism. When the signal fires mid-turn, the adapter terminates its internal loop and `SessionServiceImpl.send` yields a synthetic `{ type: "interrupted", reason: "user_cancel" }` event as the final event for the turn (no `final` follows). Adapter-initiated aborts (e.g. an SDK-level error path that calls `conv.abort()` without a client-side signal) surface as `reason: "engine_abort"`. All three engine adapters implement this; tests stub it out via `FakeEngine`.
 
 ### Example 3: `SessionServiceImpl.openActive` — framework-side lifecycle management
 **File**: `packages/core/src/services/session-service.ts`

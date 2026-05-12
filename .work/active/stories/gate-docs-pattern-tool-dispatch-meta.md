@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-tool-dispatch-meta
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ pattern-skill-staleness
 
 ## Required edit
 Update Example 1 to show the third `meta` parameter and the `callContext = meta?.callId !== undefined ? { ...this.context, callId: meta.callId } : this.context` branch. Add a one-line "When to Use" entry about plumbing `meta.callId` through adapter boundaries.
+
+## Implementation notes
+Pattern-skill edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Snippets rolled forward to match current code.

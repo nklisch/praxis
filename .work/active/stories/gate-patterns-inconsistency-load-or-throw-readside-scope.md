@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-load-or-throw-readside-scope
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, documentation]
 parent: null
 depends_on: []
@@ -37,3 +37,6 @@ Either:
 - (b) Factor a sibling `getOrThrow(load, ctx)` helper for the lookup case and migrate the three new call sites + any historical inline forms to it.
 
 Recommend (a) — the read-side case is structurally different enough that a separate helper risks bloat. The boundary just needs explicit documentation.
+
+## Implementation notes
+Pattern-skill edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Snippets rolled forward to match current code.

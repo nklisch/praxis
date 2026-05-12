@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-service-deps-new-fields
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ pattern-skill-staleness
 
 ## Required edit
 Update the snippet (or the comment listing of `toolServices` fields) to add the three new top-level fields. Mark `subAgent` and `promptCustomization` optional, `secretStorage` required. Update the `buildServices` example to construct `secretStorage: new ElectronSafeStorageAdapter()`.
+
+## Implementation notes
+Pattern-skill edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Snippets rolled forward to match current code.

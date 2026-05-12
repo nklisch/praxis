@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-subscriber-fanout-filter
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, documentation]
 parent: null
 depends_on: []
@@ -32,3 +32,6 @@ Update `subscriber-fanout-stream.md` to document the optional filter argument:
 - Cross-reference how `subagent-channel.ts` uses the filter to scope events to a specific tool_call
 
 Without this update, future channels needing a filter will re-derive it.
+
+## Implementation notes
+Pattern-skill edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Snippets rolled forward to match current code.

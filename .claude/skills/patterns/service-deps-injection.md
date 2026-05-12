@@ -18,11 +18,12 @@ export interface ServiceDeps {
   toolDefinitions: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
   /**
    * Home for ALL injected tool services — every service a tool handler touches
-   * lives here (22 fields as of Phase 19). Key entries include:
+   * lives here. Key entries include:
    *   sympy, sandbox, vectorStore, ftsStore, embeddings, documents,
    *   artifacts, bootstrap, courseState, memory, assignments, packs,
    *   pedagogyPack, lock, authoring, notes, flashcards, fsrsScheduler,
    *   sketches, conceptMaps, courseDocuments, engineResolver,
+   *   subAgent? (optional sub-agent registry for tools that spawn agents),
    *   bootstrapConfigResolver? (optional), quickCheck? (optional)
    * — see types.ts for the full set; adding a new tool service = add here.
    */
@@ -30,19 +31,28 @@ export interface ServiceDeps {
     sympy: SymPyService;
     sandbox: CodeSandbox;
     vectorStore: VectorStore;
-    // ... (other fields elided; see types.ts:45 for the full 22-field struct)
+    // ... (other fields elided; see types.ts for the full struct)
     engineResolver: () => Engine;
+    subAgent?: SubAgentRegistry;
   };
-  /** Phase 7: optional indexer orchestrator for post-turn memory indexing. */
+  /** Required: at-rest secret encryption. ElectronSafeStorageAdapter in production; inMemorySecretStorage() in tests. */
+  secretStorage: SecretStorage;
+  /** Required: lock service for configure-mode session guard. */
+  lockService: LockService;
+  /** Optional indexer orchestrator for post-turn memory indexing. */
   indexerOrchestrator?: IndexerOrchestrator;
   /** Test injection seam — omit in production to use createEngine() from @praxis/engines. */
   engineFactory?: (config: EngineConfig, deps: { log: Logger }) => Engine;
-  /** Phase 11: required lock service for configure-mode session guard. */
-  lockService: LockService;
-  /** Phase 11: optional activity registry for the activity rail. */
+  /** Optional activity registry for the activity rail. */
   activity?: ActivityRegistry;
+  /** Optional prompt-customization service (user-global + per-mode-append fragments). */
+  promptCustomization?: PromptCustomizationService;
+  /** Optional top-level sub-agent registry (mirrors `toolServices.subAgent` for IPC fanout). */
+  subAgent?: SubAgentRegistry;
 }
 ```
+
+Tests that build `ServiceDeps` literals must satisfy the **required** ports (`db`, `log`, `secretStorage`, `lockService`, `modes`, `toolDefinitions`, `toolServices`). The canonical no-op factories live at `tests/helpers/mocks.ts` — see the `shared-test-fake-factories` pattern. Use `inMemorySecretStorage()` for the default success path and `unavailableSecretStorage()` to exercise the "safeStorage unavailable" branch.
 
 ### Example 2: `buildServices` — canonical production construction
 **File**: `packages/desktop/electron/main/services.ts`
@@ -64,6 +74,8 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     modes: new Map([[teachMode.id, teachMode], /* ... all modes ... */]),
     toolDefinitions: [gradeMathTool, codeSandboxTool, /* ... */],
     toolServices: { sympy, sandbox, /* ... other services ... */ },
+    secretStorage: new ElectronSafeStorageAdapter(),
+    lockService,
     activity: activityRegistry,
     // engineFactory omitted — defaults to createEngine() from @praxis/engines
   };

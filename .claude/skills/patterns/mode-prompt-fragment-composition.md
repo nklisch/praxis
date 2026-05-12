@@ -41,7 +41,7 @@ export const teachMode: Mode = {
 ```
 
 ### Example 3: composeSystemPrompt — fixed-order sort + override application
-**File**: `packages/curriculum/src/brief/compose.ts:35`
+**File**: `packages/curriculum/src/brief/compose.ts:52`
 ```typescript
 // 9-entry FRAGMENT_ORDER as of prompt-customization-layers feature.
 // "user-global" and "user-append" slot in between "constraints" and "postamble":

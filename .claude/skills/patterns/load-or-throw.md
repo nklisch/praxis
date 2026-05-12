@@ -2,6 +2,8 @@
 
 `loadOrThrow(fetch, ctx)` round-trips a freshly-written row by calling the service's reader and throwing a uniform error if it comes back null. Call once after every `db.insert(...).run()` / `db.update(...).run()` / `db.delete(...).run()` that needs to return the persisted shape — never inline the if-null-throw.
 
+**Scope (strict)**: this pattern is for **post-write round-trips only**. It is NOT for read-side pre-condition checks. A simple `if (!row) throw new Error("X not found: ...")` after a `get(id)` lookup that isn't paired with a write is a different concern (asserting a caller's invariant, not verifying a write landed). Don't reach for `loadOrThrow` there — its error wording, observability hook, and `op` parameter all assume the row was just written.
+
 ## Rationale
 
 Three services (`notes`, `flashcards`, `artifacts`) each performed write → re-fetch → null-check in 10 inconsistent ways: "X disappeared after insert", "X not found after update: id", "Failed to retrieve X after create: id". The helper unifies the error wording (`"<entity> not found after <op>: <id>"`) and adds a single observability hook (an optional `log?.warn("ghost-write detected", ...)`) so unexpected null-back-reads are detectable from logs in one place.

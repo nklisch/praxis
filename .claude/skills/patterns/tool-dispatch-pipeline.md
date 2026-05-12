@@ -1,6 +1,6 @@
 # Pattern: Tool Dispatch Pipeline
 
-A tool call routes: **model calls tool → adapter maps to (name, args, callId) → `registry.dispatch(name, args)` → Zod validation → `handler(parsed.data, ToolContext)` → `ToolResult`**. The same `registry.dispatch` path is used regardless of which engine adapter is running.
+A tool call routes: **model calls tool → adapter maps to (name, args, callId) → `registry.dispatch(name, args, meta?)` → Zod validation → `handler(parsed.data, ToolContext)` → `ToolResult`**. The same `registry.dispatch` path is used regardless of which engine adapter is running. Adapters pass the SDK-supplied `callId` through `meta`; the registry injects it into `ToolContext.callId` so handlers that spawn sub-agents can key their events on the parent tool_call.
 
 ## Rationale
 
@@ -8,10 +8,10 @@ All engines use the same `InProcessToolRegistry` via the `ToolRegistry` interfac
 
 ## Examples
 
-### Example 1: `InProcessToolRegistry.dispatch` — Zod validation + handler call
-**File**: `packages/tools/src/registry.ts:70`
+### Example 1: `InProcessToolRegistry.dispatch` — Zod validation + callId-injecting handler call
+**File**: `packages/tools/src/registry.ts:80`
 ```typescript
-async dispatch(name: string, args: unknown): Promise<ToolResult> {
+async dispatch(name: string, args: unknown, meta?: { callId?: string }): Promise<ToolResult> {
   const tool = this.tools.get(name);
   if (!tool) {
     return { ok: false, error: { code: "tool.not_found", message: `Unknown tool: ${name}`, recoverable: false } };
@@ -20,8 +20,12 @@ async dispatch(name: string, args: unknown): Promise<ToolResult> {
   if (!parsed.success) {
     return { ok: false, error: { code: "tool.invalid_args", message: `...${parsed.error.message}`, recoverable: true } };
   }
+  // Build a per-call context only when meta supplies a callId — keeps the
+  // hot path allocation-free for tools that don't need correlation.
+  const callContext =
+    meta?.callId !== undefined ? { ...this.context, callId: meta.callId } : this.context;
   try {
-    const value = await tool.handler(parsed.data, this.context);
+    const value = await tool.handler(parsed.data, callContext);
     return { ok: true, value, tier: tool.tier };
   } catch (cause) {
     return { ok: false, error: { code: "tool.handler_threw", message: String(cause), recoverable: false } };
@@ -38,8 +42,11 @@ export function toVercelTools(registry: ToolRegistry): Record<string, Tool> {
     out[summary.name] = tool({
       description: summary.description,
       inputSchema: jsonSchema(summary.inputSchemaJson as object),
-      execute: async (input: unknown) => {
-        const result = await registry.dispatch(summary.name, input);
+      execute: async (input: unknown, opts?: { callId?: string }) => {
+        // Vercel exposes the SDK-side callId via the second `opts` arg. Pass it
+        // through `meta` so sub-agent-emitting tools can key their events on
+        // the parent tool_call.
+        const result = await registry.dispatch(summary.name, input, { callId: opts?.callId });
         if (result.ok) return result.value;
         throw Object.assign(new Error(result.error.message), { code: result.error.code });
       },

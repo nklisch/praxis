@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-engine-session-lifecycle-signal
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ pattern-skill-staleness
 
 ## Required edit
 Update the Example 2 signature to include `signal?: AbortSignal` and add one sentence in the surrounding "Rationale" or a new "Cancellation" subsection noting that adapters wire the signal to the SDK's abort mechanism and that `SessionServiceImpl` synthesizes an `interrupted` event when the signal fires.
+
+## Implementation notes
+Pattern-skill edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Snippets rolled forward to match current code.

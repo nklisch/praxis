@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-mode-prompt-fragment-fileline
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ Cited line 35 now lands on `const FRAGMENT_ORDER` (technically correct), but the
 
 ## Required edit
 Change the example header to `packages/curriculum/src/brief/compose.ts:52` (the `composeSystemPrompt` start), which is the more meaningful anchor for what the snippet shows.
+
+## Implementation notes
+Pattern-skill edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Snippets rolled forward to match current code.

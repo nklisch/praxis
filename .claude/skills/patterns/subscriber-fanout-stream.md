@@ -1,6 +1,8 @@
 # Subscriber-Fanout Stream
 
-A service exposes `subscribe(listener) → unsubscribe`, an Electron main-process channel module fans events out to a `webContents`, a client class wraps it as `events(): AsyncIterable<E>`, and a UI hook iterates that stream while folding `event.kind` into a local Map → setState array. `snapshot` is sent first on subscribe so a fresh subscriber sees current state without waiting for the next mutation.
+A service exposes `subscribe(listener[, filter?]) → unsubscribe`, an Electron main-process channel module fans events out to a `webContents`, a client class wraps it as `events(): AsyncIterable<E>`, and a UI hook iterates that stream while folding `event.kind` into a local Map → setState array. `snapshot` is sent first on subscribe so a fresh subscriber sees current state without waiting for the next mutation.
+
+**Filtered subscribe**: services may accept an optional filter argument on `subscribe` to scope what a listener receives. The filter is applied at the fanout layer (the service's `notify` loop) — the listener is never invoked with events that don't match. `SubAgentRegistry.subscribe(listener, { parentCallId })` is the canonical example: a renderer that opened the chat thread for one parent `tool_call` only receives sub-agent events keyed to that callId. The unfiltered call (`subscribe(listener)`) remains the default. When adding a new subscribe-fanout channel, prefer unfiltered unless there's a concrete reason (UI scoped to a parent entity, fanout cost too high without the filter).
 
 ## Rationale
 

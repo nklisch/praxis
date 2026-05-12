@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-service-deps-required-ports
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, documentation]
 parent: null
 depends_on: []
@@ -34,3 +34,6 @@ Update `service-deps-injection.md` to:
 - Update the `buildServices` example to construct `secretStorage: new ElectronSafeStorageAdapter()`
 
 (Overlaps with `gate-docs-pattern-service-deps-new-fields` — pick one and close the other as duplicate during implementation.)
+
+## Implementation notes
+Pattern-skill edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Snippets rolled forward to match current code.
