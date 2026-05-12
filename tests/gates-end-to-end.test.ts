@@ -30,7 +30,7 @@ import { teachMode } from "@praxis/curriculum/modes";
 import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLogger } from "./helpers/mocks.js";
+import { noopLockService, noopLogger } from "./helpers/mocks.js";
 
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 
@@ -219,6 +219,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
       courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
     } as any,
     engineFactory: () => new FakeEngine(),
+    lockService: noopLockService(),
   });
 
   return { memoryService, artifactsService, sessionService };
@@ -235,7 +236,6 @@ describe("gates end-to-end", () => {
 
     const handle = await sessionService.start({
       modeId: "teach",
-      studentId: STUDENT_ID,
       courseId: COURSE_ID,
     });
 
@@ -266,7 +266,6 @@ describe("gates end-to-end", () => {
 
     const handle = await sessionService.start({
       modeId: "teach",
-      studentId: STUDENT_ID,
       courseId: COURSE_ID,
     });
 
@@ -298,7 +297,6 @@ describe("gates end-to-end", () => {
 
     const handle = await sessionService.start({
       modeId: "teach",
-      studentId: STUDENT_ID,
       courseId: COURSE_ID,
     });
     for await (const _ of sessionService.send(handle.sessionId, "hello")) {
@@ -350,7 +348,6 @@ describe("gates end-to-end", () => {
     // First session
     const h1 = await sessionService.start({
       modeId: "teach",
-      studentId: STUDENT_ID,
       courseId: COURSE_ID,
     });
     for await (const _ of sessionService.send(h1.sessionId, "hello")) {
@@ -362,7 +359,6 @@ describe("gates end-to-end", () => {
     // Second session
     const h2 = await sessionService.start({
       modeId: "teach",
-      studentId: STUDENT_ID,
       courseId: COURSE_ID,
     });
     for await (const _ of sessionService.send(h2.sessionId, "hi")) {

@@ -134,8 +134,8 @@ describe("exam end-to-end", () => {
     const { db: client } = openDb({ path: dbCtx.dbPath });
 
     // Set up a course
-    const courseId = brandId<CourseId>("course-exam-e2e");
-    const studentId = brandId<StudentId>("student-exam-e2e");
+    const courseId = brandId<"CourseId">("course-exam-e2e");
+    const studentId = brandId<"StudentId">("student-exam-e2e");
     const now = new Date();
     client
       .insert(courses)
@@ -245,8 +245,8 @@ describe("exam end-to-end", () => {
   it("rejects exam free-response item without rubric at create time", async () => {
     const { db: client } = openDb({ path: dbCtx.dbPath });
 
-    const courseId = brandId<CourseId>("course-exam-reject");
-    const studentId = brandId<StudentId>("student-exam-reject");
+    const courseId = brandId<"CourseId">("course-exam-reject");
+    const studentId = brandId<"StudentId">("student-exam-reject");
     const now = new Date();
     client
       .insert(courses)
@@ -301,8 +301,8 @@ describe("exam end-to-end", () => {
   it("does not invoke approach feedback for exam items (approach feedback is OFF)", async () => {
     const { db: client } = openDb({ path: dbCtx.dbPath });
 
-    const courseId = brandId<CourseId>("course-exam-approach");
-    const studentId = brandId<StudentId>("student-exam-approach");
+    const courseId = brandId<"CourseId">("course-exam-approach");
+    const studentId = brandId<"StudentId">("student-exam-approach");
     const now = new Date();
     client
       .insert(courses)

@@ -41,7 +41,7 @@ import { studentMastery } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLogger } from "./helpers/mocks.js";
+import { noopCourseDocuments, noopLogger } from "./helpers/mocks.js";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -153,6 +153,7 @@ async function setupCourse(db: ReturnType<typeof openDb>["db"]) {
     db,
     log: noopLogger(),
     engineResolver: () => new FakeEngine(),
+    courseDocuments: noopCourseDocuments(),
   });
 
   const { courseId } = await bootstrapService.createCourseFromPack({

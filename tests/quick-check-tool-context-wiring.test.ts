@@ -39,16 +39,7 @@ import { bootstrapMode } from "@praxis/curriculum/modes";
 import { askStudentQuestionTool } from "@praxis/tools/dialog";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  child(): typeof noopLogger {
-    return this;
-  },
-};
+import { noopLockService, noopLogger } from "./helpers/mocks.js";
 
 /**
  * Engine stub that captures the `ToolRegistry` handed to `open()` so the
@@ -126,12 +117,11 @@ describe("QuickCheckService wiring into ToolContext", () => {
 
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: noopLogger(),
       modes,
       toolDefinitions: [askStudentQuestionTool],
       toolServices,
-      // biome-ignore lint/suspicious/noExplicitAny: test stubs LockService through engineFactory path; not exercised here
-      lockService: { isUnlocked: vi.fn().mockResolvedValue(true) } as any,
+      lockService: noopLockService(),
       engineFactory: () => engine,
     });
 

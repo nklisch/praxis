@@ -24,6 +24,7 @@ import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
+import { noopLockService, noopLogger } from "./helpers/mocks.js";
 
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 
@@ -71,13 +72,7 @@ class FakeEngine implements Engine {
 
 const db = useTempDb();
 
-const noopLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  child: () => noopLogger,
-};
+const log = noopLogger();
 
 const mockSympy: SymPyService = {
   checkSolution: vi.fn(),
@@ -146,11 +141,12 @@ describe("full turn with fake engine", () => {
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: log,
       modes,
       toolDefinitions: [],
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
+      lockService: noopLockService(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -191,11 +187,12 @@ describe("full turn with fake engine", () => {
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: log,
       modes,
       toolDefinitions: [],
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
+      lockService: noopLockService(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -223,11 +220,12 @@ describe("full turn with fake engine", () => {
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: log,
       modes,
       toolDefinitions: [],
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
+      lockService: noopLockService(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -257,11 +255,12 @@ describe("full turn with fake engine", () => {
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: log,
       modes,
       toolDefinitions: [],
       toolServices: mockToolServices,
       engineFactory: () => new CountingFakeEngine(),
+      lockService: noopLockService(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -285,11 +284,12 @@ describe("full turn with fake engine", () => {
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: log,
       modes,
       toolDefinitions: [],
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
+      lockService: noopLockService(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -318,11 +318,12 @@ describe("full turn with fake engine", () => {
     const modes = new Map([["teach", teachMode]]);
     const svc = new SessionServiceImpl({
       db: client,
-      log: noopLogger,
+      log: log,
       modes,
       toolDefinitions: [],
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
+      lockService: noopLockService(),
     });
 
     expect(await svc.active()).toBeNull();

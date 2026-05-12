@@ -60,3 +60,8 @@ export type { Schema } from "./all-schemas.js";
 export { schema } from "./all-schemas.js";
 export { resolveDbPath } from "./paths.js";
 export { initConceptEmbeddingStore, initFtsStore, initVectorStore } from "./vector-init.js";
+// Expose the better-sqlite3 instance type so root-tier tests can reference it
+// from @praxis/core/db without adding a root-level @types/better-sqlite3 dep.
+// `Database` (the CJS namespace) has the instance interface at Database.Database;
+// we alias it here as `SqliteDatabase` for clarity.
+export type SqliteDatabase = Database.Database;

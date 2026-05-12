@@ -59,7 +59,10 @@ class StubEngine implements Engine {
     return new StubEngineSession();
   }
   async health(): Promise<HealthStatus> {
-    return { ok: true, latencyMs: 0 };
+    return {
+      ok: true,
+      capabilities: { vision: false, streaming: false, nativeMCP: false, contextWindow: 4096 },
+    };
   }
 }
 

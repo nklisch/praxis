@@ -1,7 +1,7 @@
+import type { SqliteDatabase } from "@praxis/core/db";
 import { openDb } from "@praxis/core/db";
 import { runMigrations } from "@praxis/core/db/migrate";
 import { listTables } from "@praxis/core/db/show";
-import type { Database } from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
 
@@ -37,13 +37,15 @@ describe("foundation: migration + schema discovery", () => {
   it("enables WAL mode and foreign keys", () => {
     runMigrations({ path: db.dbPath });
     const { db: client } = openDb({ path: db.dbPath });
-    const sqlite = (client as unknown as { $client: Database }).$client;
-    expect((sqlite.pragma("journal_mode") as Array<{ journal_mode: string }>)[0].journal_mode).toBe(
-      "wal",
-    );
-    expect((sqlite.pragma("foreign_keys") as Array<{ foreign_keys: number }>)[0].foreign_keys).toBe(
-      1,
-    );
+    const sqlite = (client as unknown as { $client: SqliteDatabase }).$client;
+    // biome-ignore lint/style/noNonNullAssertion: pragma always returns at least one row
+    expect(
+      (sqlite.pragma("journal_mode") as Array<{ journal_mode: string }>)[0]!.journal_mode,
+    ).toBe("wal");
+    // biome-ignore lint/style/noNonNullAssertion: pragma always returns at least one row
+    expect(
+      (sqlite.pragma("foreign_keys") as Array<{ foreign_keys: number }>)[0]!.foreign_keys,
+    ).toBe(1);
   });
 
   it("cascades episodic delete when a session is deleted", async () => {

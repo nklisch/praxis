@@ -10,7 +10,13 @@
       "@praxis/memory": ["./packages/memory/src/index.ts"],
       "@praxis/memory/*": ["./packages/memory/src/*.ts"],
       "@praxis/curriculum": ["./packages/curriculum/src/index.ts"],
-      "@praxis/curriculum/*": ["./packages/curriculum/src/*.ts"]
+      "@praxis/curriculum/*": ["./packages/curriculum/src/*.ts"],
+      "@praxis/engines": ["./packages/engines/src/index.ts"],
+      "@praxis/engines/*": ["./packages/engines/src/*.ts"],
+      "@praxis/tools": ["./packages/tools/src/index.ts"],
+      "@praxis/tools/*": ["./packages/tools/src/*.ts"],
+      "@praxis/claude-cli-sdk": ["./packages/claude-cli-sdk/src/index.ts"],
+      "@praxis/claude-cli-sdk/*": ["./packages/claude-cli-sdk/src/*.ts"]
     }
   },
   "include": ["scripts/**/*", "tests/**/*", "drizzle.config.ts"],

@@ -34,7 +34,7 @@ import { sessions, studentMastery } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLogger } from "./helpers/mocks.js";
+import { noopLockService, noopLogger } from "./helpers/mocks.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -275,6 +275,7 @@ describe("mastery end-to-end", () => {
       } as any,
       indexerOrchestrator,
       engineFactory: () => new FakeEngine(),
+      lockService: noopLockService(),
     });
 
     const handle = await svc.start({ modeId: "teach" });

@@ -18,8 +18,6 @@ import { AssignmentServiceImpl, SessionServiceImpl } from "@praxis/core/services
 import type {
   AssignmentItem,
   CodeSandbox,
-  ConceptId,
-  CourseId,
   Engine,
   EngineEvent,
   EngineOpenOptions,
@@ -33,7 +31,7 @@ import { sessions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLogger } from "./helpers/mocks.js";
+import { noopLockService, noopLogger } from "./helpers/mocks.js";
 
 // ── FakeEngine — deterministic canned response ─────────────────────────────────
 
@@ -175,7 +173,7 @@ describe("quiz end-to-end", () => {
 
     // 1. Set up a minimal course row (need a valid courseId for FK constraint)
     const courseId = brandId<"CourseId">("course-quiz-e2e");
-    const studentId = brandId<import("@praxis/core/types").StudentId>("student-quiz-e2e");
+    const studentId = brandId<"StudentId">("student-quiz-e2e");
     const now = new Date();
     client
       .insert(courses)
@@ -278,7 +276,7 @@ describe("quiz end-to-end", () => {
       kind: "quiz",
       title: "Algebra Basics Quiz",
       items,
-      conceptIds: [brandId<ConceptId>("concept-algebra-basics")],
+      conceptIds: [brandId<"ConceptId">("concept-algebra-basics")],
       authoredBy: "tutor",
     });
 
@@ -294,7 +292,8 @@ describe("quiz end-to-end", () => {
     const storedItems = assignmentRow?.itemsJson as AssignmentItem[];
     expect(storedItems).toHaveLength(5);
     const mathItem = storedItems.find((i) => i.id === "item-math-work");
-    expect(mathItem?.workRubric).toBeDefined();
+    // Narrow to MathItem to access workRubric (discriminated union — not on base type)
+    expect(mathItem?.kind === "math" ? mathItem.workRubric : undefined).toBeDefined();
 
     // 6. Start a quiz session bound to the assignment
     const svc = new SessionServiceImpl({
@@ -305,7 +304,6 @@ describe("quiz end-to-end", () => {
         [quizMode.id, quizMode],
       ]),
       toolDefinitions: [],
-      // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
       toolServices: {
         sympy: mockSympy,
         sandbox: mockSandbox,
@@ -320,8 +318,10 @@ describe("quiz end-to-end", () => {
         assignments: assignmentService,
         // Phase 16: minimal stub for course-scoped session bootstrapping.
         courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+        // biome-ignore lint/suspicious/noExplicitAny: partial test stub — only quiz assignment path is exercised
       } as any,
       engineFactory: () => new FakeEngine(),
+      lockService: noopLockService(),
     });
 
     const handle = await svc.start({
