@@ -1,7 +1,7 @@
 ---
 id: feature-agent-transparency-ux-subagent-channel
 kind: story
-stage: review
+stage: implementing
 tags: [ui, chat, core]
 parent: feature-agent-transparency-ux
 depends_on: []
@@ -143,3 +143,32 @@ Risk 2 from the parent feature design materialized: the MCP SDK worker script (`
 - `pnpm test`: 2651 passed / 21 skipped / 0 failed (303 test files)
 - `pnpm typecheck`: passes for all packages except `@praxis/tools` (pre-existing `dirFor` error)
 - `pnpm lint`: 4 errors all in `claude-cli-sdk` (pre-existing); 0 errors in changed files
+
+## Review (2026-05-12)
+
+**Verdict**: Request changes — sending back to implementing.
+
+**Blockers**:
+
+- **MCP-side callId propagation incomplete.** The bridge at `packages/engines/src/mcp/tool-bridge.ts:42-48` generates `const callId = uuidv7()` for `registry.dispatch`, but the Claude Code adapter at `packages/engines/src/claude-code/events.ts:47` separately emits `tool_call` events with `callId: event.toolId` (the SDK's sequential `callCounter` value from `packages/claude-cli-sdk/src/tool-server.ts:249`). These IDs never match. The story's acceptance criterion called for the fallback to be "propagated on both sides" (see Risk 2 in the parent feature); only the registry/handler side is done. Result: under the Claude Code engine (the default), the upcoming sub-agent UI will subscribe with `parentCallId = "1" | "2" | ...` (the SDK toolId) while the registry stores under `parentCallId = "<uuidv7>"`. Subscription delivers nothing. The Direct adapter path is unaffected (Vercel's `toolCallId` is used consistently for both event mapping and dispatch).
+
+  **Fix direction (recommended)**: surface the SDK's `callCounter` value through the `tool()` callback in `@praxis/claude-cli-sdk/src/tool-server.ts` so the bridge can reuse it as `callId` rather than generating its own uuid. The forked SDK is owned by Praxis (per `CLAUDE.md`: "Praxis is the only consumer, so it's owned and modified freely — refactor it like any other workspace package").
+
+  **Alternative**: maintain a synchronized `sdkToolId → bridgeUuid` map in the adapter and translate `event.toolId → bridgeUuid` inside `claude-code/events.ts`'s `tool_use` case.
+
+  **Test to add**: drive a `tool_call` end-to-end through the Claude Code adapter (mocked SDK) and assert that the engine event's `callId` equals the `ctx.callId` the handler observes. Currently no test covers this cross-channel agreement; that's why the gap shipped.
+
+**Important**: none beyond the blocker.
+
+**Nits**: none.
+
+**Notes on what landed cleanly (carry forward; do not redo)**:
+- Types contract (`packages/core/src/types/subagent.ts`) — solid.
+- `SubAgentRegistryImpl` (`packages/core/src/services/subagent-registry.ts`) — mirrors `ActivityRegistryImpl` correctly, with the appropriate differences (no quiet-period, ~30s linger, `parentCallId`-keyed, MAX_STEPS=200, filtered subscribe). The orchestrator's integration follow-up (`ed9c1e7`) fixed an `exactOptionalPropertyTypes` issue with `{ filter: undefined }`.
+- `ToolContext.callId` extension + `dispatch(name, args, meta)` extension — solid.
+- Direct adapter path — correct end-to-end; tests pass.
+- Explorer emission — wired correctly.
+- IPC channel + client — wired correctly.
+- 15+ registry tests + 5 explorer tests + adapter dispatch-threading tests.
+
+The Claude Code path is the only thing missing. Do not redo the rest.
