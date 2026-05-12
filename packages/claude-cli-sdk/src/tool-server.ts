@@ -73,7 +73,10 @@ export interface ToolServerHandle {
  * @returns A {@link ToolServerHandle} with MCP config and cleanup function.
  */
 export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServerHandle> {
-  const handlers = new Map<string, (input: unknown) => Promise<ToolResult> | ToolResult>();
+  const handlers = new Map<
+    string,
+    (input: unknown, meta: { callId: string }) => Promise<ToolResult> | ToolResult
+  >();
   const outputSchemas = new Map<string, z.ZodType<unknown>>();
   const schemas: ToolSchema[] = [];
 
@@ -82,7 +85,10 @@ export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServ
     // Remove $schema — MCP doesn't want it
     delete jsonSchema.$schema;
     schemas.push({ name: t.name, description: t.description, inputSchema: jsonSchema });
-    handlers.set(t.name, t.handler as (input: unknown) => Promise<ToolResult> | ToolResult);
+    handlers.set(
+      t.name,
+      t.handler as (input: unknown, meta: { callId: string }) => Promise<ToolResult> | ToolResult,
+    );
     if (t.outputSchema) {
       outputSchemas.set(t.name, t.outputSchema as z.ZodType<unknown>);
     }
@@ -144,7 +150,10 @@ export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServ
 
 async function handleToolCall(
   conn: net.Socket,
-  handlers: Map<string, (input: unknown) => Promise<ToolResult> | ToolResult>,
+  handlers: Map<
+    string,
+    (input: unknown, meta: { callId: string }) => Promise<ToolResult> | ToolResult
+  >,
   outputSchemas: Map<string, z.ZodType<unknown>>,
   line: string,
 ): Promise<void> {
@@ -162,7 +171,7 @@ async function handleToolCall(
       );
       return;
     }
-    const result = await handler(msg.input);
+    const result = await handler(msg.input, { callId: msg.id });
     // When outputSchema is set, validate the handler's return value before sending.
     if (result.success) {
       const outputSchema = outputSchemas.get(msg.name);

@@ -69,7 +69,10 @@ export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
    */
   outputSchema?: z.ZodType<TOutput>;
   /** Handler function called when the model invokes this tool. */
-  handler: (input: TInput) => Promise<ToolResult<TOutput>> | ToolResult<TOutput>;
+  handler: (
+    input: TInput,
+    meta: { callId: string },
+  ) => Promise<ToolResult<TOutput>> | ToolResult<TOutput>;
 }
 
 /**

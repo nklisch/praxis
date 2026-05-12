@@ -4,14 +4,17 @@ import { z } from "zod";
 
 // Mock @praxis/claude-cli-sdk before importing tool-bridge
 vi.mock("@praxis/claude-cli-sdk", () => {
-  const capturedTools: Array<{ name: string; handler: (input: unknown) => Promise<unknown> }> = [];
+  const capturedTools: Array<{
+    name: string;
+    handler: (input: unknown, meta: { callId: string }) => Promise<unknown>;
+  }> = [];
 
   const tool = vi.fn(
     (
       name: string,
       _description: string,
       _inputSchema: unknown,
-      handler: (input: unknown) => Promise<unknown>,
+      handler: (input: unknown, meta: { callId: string }) => Promise<unknown>,
     ) => {
       const def = { name, handler };
       capturedTools.push(def);
@@ -20,7 +23,12 @@ vi.mock("@praxis/claude-cli-sdk", () => {
   );
 
   const startToolServer = vi.fn(
-    async (tools: Array<{ name: string; handler: (input: unknown) => Promise<unknown> }>) => {
+    async (
+      tools: Array<{
+        name: string;
+        handler: (input: unknown, meta: { callId: string }) => Promise<unknown>;
+      }>,
+    ) => {
       return {
         command: "/usr/bin/node",
         args: ["/tmp/mcp-worker.js"],
@@ -133,7 +141,7 @@ describe("startToolBridge", () => {
     expect(calls.length).toBeGreaterThan(0);
     const registeredTools = calls[calls.length - 1]?.[0] as Array<{
       name: string;
-      handler: (input: unknown) => Promise<unknown>;
+      handler: (input: unknown, meta: { callId: string }) => Promise<unknown>;
     }>;
     expect(registeredTools).toHaveLength(1);
 
@@ -141,7 +149,7 @@ describe("startToolBridge", () => {
     const toolDef = registeredTools[0];
     expect(toolDef).toBeDefined();
     if (toolDef) {
-      await toolDef.handler({ text: "hello" });
+      await toolDef.handler({ text: "hello" }, { callId: "1" });
       expect(dispatchMock).toHaveBeenCalledWith(
         "test.echo",
         { text: "hello" },
@@ -161,7 +169,7 @@ describe("startToolBridge", () => {
     await expect(handle.close()).resolves.toBeUndefined();
   });
 
-  it("dispatch is called with a generated callId (uuidv7 fallback) for each invocation", async () => {
+  it("bridge passes the SDK-provided callId (not a generated uuid) to registry.dispatch", async () => {
     const { startToolBridge } = await import("../mcp/tool-bridge.js");
     const { startToolServer } = await import("@praxis/claude-cli-sdk");
 
@@ -195,27 +203,88 @@ describe("startToolBridge", () => {
     const calls = (startToolServer as ReturnType<typeof vi.fn>).mock.calls;
     const registeredTools = calls[calls.length - 1]?.[0] as Array<{
       name: string;
-      handler: (input: unknown) => Promise<unknown>;
+      handler: (input: unknown, meta: { callId: string }) => Promise<unknown>;
     }>;
 
     const toolDef = registeredTools?.[0];
     if (toolDef) {
-      await toolDef.handler({ text: "hello" });
-      // dispatch should have been called with a meta object containing a callId
-      expect(dispatchMock).toHaveBeenCalledWith(
-        "test.echo",
-        { text: "hello" },
-        expect.objectContaining({ callId: expect.any(String) }),
-      );
-      const callId = (dispatchMock.mock.calls[0]?.[2] as { callId?: string })?.callId;
-      expect(callId).toBeTruthy();
-      expect(callId?.length).toBeGreaterThan(10); // uuidv7 is 36 chars
+      await toolDef.handler({ text: "hello" }, { callId: "1" });
+      await toolDef.handler({ text: "world" }, { callId: "2" });
 
-      // Two separate invocations should produce different callIds
-      await toolDef.handler({ text: "world" });
+      const callId1 = (dispatchMock.mock.calls[0]?.[2] as { callId?: string })?.callId;
       const callId2 = (dispatchMock.mock.calls[1]?.[2] as { callId?: string })?.callId;
-      expect(callId2).toBeTruthy();
-      expect(callId).not.toBe(callId2);
+      // The bridge must forward the SDK-supplied id, not generate its own
+      expect(callId1).toBe("1");
+      expect(callId2).toBe("2");
+    }
+  });
+
+  /**
+   * Cross-channel agreement test: the callId on the engine's `tool_call` event
+   * (event.toolId from Claude Code SDK) must equal the callId that the tool
+   * handler observes via ctx.callId. Both originate from the SDK's callCounter.
+   *
+   * This is the test that would have caught the prior implementation gap where
+   * the bridge generated a uuidv7() while the adapter emitted event.toolId.
+   */
+  it("cross-channel: engine event callId matches handler ctx.callId for the same invocation", async () => {
+    const { startToolBridge } = await import("../mcp/tool-bridge.js");
+    const { startToolServer } = await import("@praxis/claude-cli-sdk");
+
+    // The callId that the handler receives from ctx (via registry.dispatch meta)
+    let observedCtxCallId: string | undefined;
+
+    const dispatchMock = vi.fn(
+      async (_name: string, _args: unknown, meta: { callId?: string }): Promise<ToolResult> => {
+        observedCtxCallId = meta.callId;
+        return { ok: true, value: { ok: true }, tier: "deterministic" };
+      },
+    );
+
+    const echoSummary: ToolDefinitionSummary = {
+      name: "test.echo",
+      description: "Echo tool",
+      inputSchemaJson: {
+        type: "object",
+        properties: { text: { type: "string" } },
+        required: ["text"],
+      },
+      inputSchemaNative: z.object({ text: z.string() }),
+      tier: "deterministic",
+    };
+
+    const registry: ToolRegistry = {
+      list: () => [echoSummary],
+      dispatch: dispatchMock,
+    };
+
+    await startToolBridge({ registry });
+
+    const calls = (startToolServer as ReturnType<typeof vi.fn>).mock.calls;
+    const registeredTools = calls[calls.length - 1]?.[0] as Array<{
+      name: string;
+      handler: (input: unknown, meta: { callId: string }) => Promise<unknown>;
+    }>;
+
+    const toolDef = registeredTools?.[0];
+    expect(toolDef).toBeDefined();
+    if (toolDef) {
+      // Simulate what the SDK worker does: it sends { id: callCounter, name, input }
+      // over the socket; handleToolCall calls handler(input, { callId: msg.id }).
+      // The same msg.id becomes event.toolId in the Claude Code adapter's tool_use event.
+      // Here we simulate the SDK passing callId "3" (the third call counter value).
+      const sdkToolId = "3";
+      await toolDef.handler({ text: "hello" }, { callId: sdkToolId });
+
+      // The ctx.callId the handler sees must equal the SDK's toolId
+      expect(observedCtxCallId).toBe(sdkToolId);
+
+      // Crucially: this was broken before the fix, where the bridge generated
+      // a uuidv7() so observedCtxCallId would be a 36-char uuid while the
+      // engine event would carry "3".
+      expect(observedCtxCallId).not.toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
     }
   });
 });

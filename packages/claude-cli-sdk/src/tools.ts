@@ -36,7 +36,10 @@ export function tool<TInput, TOutput = unknown>(
   name: string,
   description: string,
   inputSchema: z.ZodType<TInput>,
-  handler: (input: TInput) => Promise<ToolResult<TOutput>> | ToolResult<TOutput>,
+  handler: (
+    input: TInput,
+    meta: { callId: string },
+  ) => Promise<ToolResult<TOutput>> | ToolResult<TOutput>,
   outputSchema?: z.ZodType<TOutput>,
 ): ToolDefinition<TInput, TOutput> {
   return outputSchema

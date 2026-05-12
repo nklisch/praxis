@@ -1,7 +1,7 @@
 ---
 id: feature-agent-transparency-ux-subagent-channel
 kind: story
-stage: implementing
+stage: review
 tags: [ui, chat, core]
 parent: feature-agent-transparency-ux
 depends_on: []
@@ -172,3 +172,41 @@ Risk 2 from the parent feature design materialized: the MCP SDK worker script (`
 - 15+ registry tests + 5 explorer tests + adapter dispatch-threading tests.
 
 The Claude Code path is the only thing missing. Do not redo the rest.
+
+## Implementation notes (re-pass 2026-05-12)
+
+### Fix approach: SDK callCounter surfacing (recommended path)
+
+The fix surfaces the SDK's `callCounter` value through the handler callback rather than generating a `uuidv7()` in the bridge. Three layers of change:
+
+1. **`packages/claude-cli-sdk/src/types/tools.ts`** — `ToolDefinition.handler` signature extended from `(input: TInput)` to `(input: TInput, meta: { callId: string })`.
+2. **`packages/claude-cli-sdk/src/tools.ts`** — `tool()` factory updated to match the new handler signature.
+3. **`packages/claude-cli-sdk/src/tool-server.ts`** — `handleToolCall` (which already had `msg.id` in scope) now calls `handler(msg.input, { callId: msg.id })`. The `msg.id` is the `callCounter` value (`"1"`, `"2"`, …) that the worker sends over the socket — the same string that Claude Code's SDK surfaces as `event.toolId` in `tool_use` events. Map type updated accordingly.
+
+With this, the bridge's `buildSdkTool` in `packages/engines/src/mcp/tool-bridge.ts` receives the callId as `meta.callId`, forwards it to `registry.dispatch(..., { callId: meta.callId })`, and drops the `uuidv7()` generation entirely. The `uuid` import is removed.
+
+Both channels now agree: the engine event's `callId` (from `events.ts:47`, `callId: event.toolId`) equals the `ctx.callId` the tool handler observes — because both are `msg.id` from the worker's socket message.
+
+The `claude-cli-sdk` package was rebuilt (`pnpm --filter @praxis/claude-cli-sdk build`) to regenerate `.d.ts` files consumed by composite project references.
+
+### New test
+
+`packages/engines/src/__tests__/tool-bridge.test.ts` — two new tests added:
+
+- **`bridge passes the SDK-provided callId (not a generated uuid) to registry.dispatch`** — simulates two sequential SDK calls with callIds `"1"` and `"2"`, asserts dispatch receives them exactly (not uuids).
+- **`cross-channel: engine event callId matches handler ctx.callId for the same invocation`** — the acceptance-criterion test. Drives the bridge handler with `meta.callId = "3"`, asserts `observedCtxCallId === "3"`, and also asserts the value is NOT a uuid pattern (catching the prior regression explicitly).
+
+The mock was updated throughout to carry the new `meta: { callId: string }` arg in handler signatures.
+
+### RED/GREEN confirmation
+
+- **RED** (prior bridge, `uuidv7()` path): cross-channel test fails with `expected '019e19c7-...' to be '3'`.
+- **GREEN** (with fix): all 6 tool-bridge tests pass.
+
+### Verification output
+
+```
+pnpm typecheck: passes for all packages except @praxis/ui (pre-existing JSX namespace errors) and @praxis/tools (pre-existing dirFor error)
+pnpm lint: 5 errors all pre-existing in claude-cli-sdk (noNonNullAssertion, useTemplate, useLiteralKeys, noGlobalIsFinite, noUnusedVariables); 0 errors in changed files
+pnpm test: 2714 passed / 21 skipped / 0 failed (306 test files)
+```

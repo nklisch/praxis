@@ -1,7 +1,6 @@
 import type { ToolDefinition as CCToolDefinition } from "@praxis/claude-cli-sdk";
 import { startToolServer, tool } from "@praxis/claude-cli-sdk";
 import type { ToolDefinitionSummary, ToolRegistry } from "@praxis/core/types";
-import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import { jsonSchemaToZod } from "../util/json-schema-to-zod.js";
 import type { StartToolBridgeInput, ToolBridgeHandle } from "./types.js";
@@ -36,24 +35,27 @@ export async function startToolBridge(input: StartToolBridgeInput): Promise<Tool
 
 function buildSdkTool(summary: ToolDefinitionSummary, registry: ToolRegistry): CCToolDefinition {
   const inputSchema = resolveInputSchema(summary);
-  return tool(summary.name, summary.description, inputSchema, async (input: unknown) => {
-    // The @modelcontextprotocol/sdk does NOT surface the MCP request id through
-    // the `tool()` callback. The worker script in @praxis/claude-cli-sdk/tool-server.ts
-    // uses its own sequential callCounter ("1", "2", …) as the wire id, but that id
-    // never reaches this callback — only `input` is passed. We therefore generate a
-    // uuidv7 here as the callId so both the registry and the ToolContext agree on the
-    // same id. This is Risk #2 from the feature design (MCP callId surfacing fallback).
-    const callId = uuidv7();
-    const result = await registry.dispatch(summary.name, input, { callId });
-    if (result.ok) {
-      // Pass the structured value directly — the SDK JSON-stringifies at the
-      // MCP wire boundary and the receive-side parser inverts that, so
-      // consumers see the original object/array/primitive without any manual
-      // serialization in this layer.
-      return { success: true, value: result.value };
-    }
-    return { success: false, error: result.error.message };
-  });
+  return tool(
+    summary.name,
+    summary.description,
+    inputSchema,
+    async (input: unknown, meta: { callId: string }) => {
+      // The worker script in @praxis/claude-cli-sdk/tool-server.ts uses its own sequential
+      // callCounter ("1", "2", …) as the wire id. The same id appears as `event.toolId` in
+      // the Claude Code adapter's `tool_use` event (events.ts). We receive it here via
+      // `meta.callId` so both channels (engine event + registry/ToolContext) agree on the
+      // same id — no uuid generation needed.
+      const result = await registry.dispatch(summary.name, input, { callId: meta.callId });
+      if (result.ok) {
+        // Pass the structured value directly — the SDK JSON-stringifies at the
+        // MCP wire boundary and the receive-side parser inverts that, so
+        // consumers see the original object/array/primitive without any manual
+        // serialization in this layer.
+        return { success: true, value: result.value };
+      }
+      return { success: false, error: result.error.message };
+    },
+  );
 }
 
 function resolveInputSchema(summary: ToolDefinitionSummary): z.ZodType<unknown> {
