@@ -1,7 +1,7 @@
 ---
 id: feature-agent-transparency-ux
 kind: feature
-stage: review
+stage: done
 tags: [ui, chat]
 parent: null
 depends_on: []
@@ -945,3 +945,20 @@ All four child stories have landed and are at `stage: review` or `done`:
 Advancing feature `implementing → review`. The next autopilot review pass will evaluate the realized capability.
 
 Resolves: backlog idea `idea-subagent-callid-end-to-end-verification` (subagent-ui's adapter-side translation map answers that question).
+
+## Review (2026-05-12, feature-level)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Brief satisfied end-to-end across all three concerns (stream pacing, sub-agent transparency, rename). Every acceptance criterion in the children's stories is now at done.
+- Decomposition matches design with one acknowledged iteration: subagent-channel bounced once (incomplete MCP propagation) and subagent-ui surfaced the deeper cross-channel question, which was resolved via the adapter-side translation map (`ClaudeCodeEventState`). The state's lifetime bug was caught and fixed inline during subagent-ui review (commit `615f2d9`).
+- Capability check works in real flows: thinking → reasoning blocks, interstitial pacing, sub-agent inline + side-panel, student-facing names.
+- Foundation-doc alignment: VISION.md's anti-numeric stance honored (no line counts, no progress %); SPEC.md memory commitments respected (sub-agent events use a separate registry, not the parent's episodic log). No drift.
+- Breaking changes contained to internal seams: `ToolDefinition.handler` in `@praxis/claude-cli-sdk` gained a second arg (Praxis is the only consumer; updated); `mapClaudeCodeEvent` gained an optional state parameter (backward-compatible — undefined falls through to raw toolId).
+
+Feature delivered as briefed. Advancing to done.
