@@ -1,7 +1,7 @@
 ---
 id: feature-root-tsconfig-typecheck-coverage-scripts-cleanup
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: feature-root-tsconfig-typecheck-coverage
 depends_on: []
@@ -142,3 +142,19 @@ packages/tools typecheck: Done
 packages/ui typecheck: Done
 packages/desktop typecheck: Done
 ```
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Original ad-hoc loggers in `db-gates.ts`/`db-packs.ts` emitted to `console` with prefixes; `noopLogger()` is silent. Service-layer log output (e.g., `PackImportServiceImpl` warnings) no longer surfaces to the operator. The scripts' own `console.log` statements still cover user-facing progress, and the design implicitly accepted this trade-off by calling the originals "noopLogger-style stubs". Worth noting only for the next person who wonders where service logs went.
+
+**Notes**:
+- Diff at commit `3693287`: clean. Both db-* scripts use the canonical helper.
+- `scripts/run-session.ts` deletion is justified — git log shows no meaningful commits since Phase 4 (April 28, 2026), and `language-sandbox-registry` replaced `IsolatedVmHost`/`LocalCodeSandbox` shortly after with no follow-up fix.
+- Replacement-intent is captured by the existing `story-engine-cli-integration-smoke-test` (currently at stage: drafting in active), so deleting `run-session.ts` doesn't lose the smoke-test concept.
+- `tsgo --noEmit -p tsconfig.json | grep '^scripts/'` confirmed empty post-change in implementation notes.
+
+Approved and advancing to done.
