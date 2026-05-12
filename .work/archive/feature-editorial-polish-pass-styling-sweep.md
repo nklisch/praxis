@@ -5,7 +5,7 @@ stage: done
 tags: [ui]
 parent: feature-editorial-polish-pass
 depends_on: [feature-editorial-polish-pass-theme-tokens]
-release_binding: null
+release_binding: v0.1.1
 gate_origin: null
 created: 2026-05-12
 updated: 2026-05-12

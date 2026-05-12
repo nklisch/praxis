@@ -5,7 +5,7 @@ stage: done
 tags: [bootstrap, persistence]
 parent: epic-bootstrap-readiness-durable-drafts
 depends_on: [story-epic-bootstrap-readiness-durable-drafts-store]
-release_binding: null
+release_binding: v0.1.1
 gate_origin: null
 created: 2026-05-10
 updated: 2026-05-10

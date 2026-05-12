@@ -5,7 +5,7 @@ stage: done
 tags: [ui, chat]
 parent: feature-agent-transparency-ux
 depends_on: []
-release_binding: null
+release_binding: v0.1.1
 gate_origin: null
 created: 2026-05-11
 updated: 2026-05-12

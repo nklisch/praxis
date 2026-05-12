@@ -5,7 +5,7 @@ stage: done
 tags: [tools, bootstrap, tutor-ux]
 parent: epic-bootstrap-readiness-structured-questions
 depends_on: []
-release_binding: null
+release_binding: v0.1.1
 gate_origin: null
 created: 2026-05-10
 updated: 2026-05-10

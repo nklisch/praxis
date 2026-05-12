@@ -5,7 +5,7 @@ stage: done
 tags: [ui, content]
 parent: feature-prompt-customization-layers
 depends_on: [feature-prompt-customization-layers-compose-wiring]
-release_binding: null
+release_binding: v0.1.1
 gate_origin: null
 created: 2026-05-11
 updated: 2026-05-12

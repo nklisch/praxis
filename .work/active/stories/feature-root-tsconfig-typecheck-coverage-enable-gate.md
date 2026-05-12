@@ -7,7 +7,7 @@ parent: feature-root-tsconfig-typecheck-coverage
 depends_on:
   - feature-root-tsconfig-typecheck-coverage-scripts-cleanup
   - feature-root-tsconfig-typecheck-coverage-tests-cleanup
-release_binding: null
+release_binding: v0.1.1
 gate_origin: null
 created: 2026-05-11
 updated: 2026-05-12
