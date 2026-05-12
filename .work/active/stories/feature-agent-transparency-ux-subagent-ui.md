@@ -1,7 +1,7 @@
 ---
 id: feature-agent-transparency-ux-subagent-ui
 kind: story
-stage: review
+stage: done
 tags: [ui, chat]
 parent: feature-agent-transparency-ux
 depends_on: [feature-agent-transparency-ux-subagent-channel]
@@ -130,3 +130,23 @@ pnpm --filter @praxis/ui test: 798 passed / 0 failed (94 test files)
 pnpm typecheck: passes for all packages
 pnpm lint: 16 errors all pre-existing in claude-cli-sdk and client/__tests__; 0 errors in changed files
 ```
+
+## Review (2026-05-12)
+
+**Verdict**: Approve (with one inline fix folded in)
+
+**Blockers (fixed inline by reviewer)**:
+- `eventState` was created per-`send()` in `ClaudeCodeEngineSession`, but the MCP bridge worker's `callCounter` is per-conversation (worker is spawned lazily on first `Conversation.send()` and lives until session close). On the second `send()` in any session, the adapter would mirror "1, 2…" while the bridge kept counting "3, 4…" — IDs would diverge silently. Fixed inline at commit `615f2d9`: hoisted `eventState` to a `private readonly` field on `ClaudeCodeEngineSession`, shared across all `send()` calls. Added regression test in `packages/engines/src/__tests__/claude-code.test.ts` that drives two `send()` calls and asserts `firstSendCallIds === ["1"]`, `secondSendCallIds === ["2"]`.
+
+**Important**: none beyond the blocker.
+
+**Nits**: none.
+
+**Notes**:
+- The agent's adapter-side translation map (`ClaudeCodeEventState.toolIdToCallId`) is the right architecture — Claude assigns UUIDs, the bridge assigns counters; the adapter mediates by mirroring the counter sequence. The lifetime bug was a subtle but real correctness issue; the structural fix is correct.
+- `<SubAgentBlock>` settle path correctly skips the `MIN_INTERSTITIAL_VISIBLE_MS` pacing (sub-agent items have their own internal pacing via event stream).
+- `<SubAgentTranscript>` only mounts when the panel is toggled visible — avoids unnecessary subscriptions when hidden.
+- 4 cross-channel agreement tests in `claude-code-events.test.ts` + 8+ component tests on `<SubAgentBlock>` + the new regression test for cross-send callId continuity.
+- Verification post-fix: `pnpm typecheck` green (incl. root gate), `pnpm test` 2763 passing.
+
+Approved and advancing to done.
