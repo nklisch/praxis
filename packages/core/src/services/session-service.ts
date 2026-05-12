@@ -697,6 +697,10 @@ export class SessionServiceImpl implements SessionService {
         }),
         // Activity registry — optional; wired from ServiceDeps when available.
         ...(this.deps.activity !== undefined && { activity: this.deps.activity }),
+        // Sub-agent transparency registry — optional; wired from ServiceDeps.toolServices.
+        ...(this.deps.toolServices.subAgent !== undefined && {
+          subAgent: this.deps.toolServices.subAgent,
+        }),
         // Phase 17: quick-check dispatch — wires the human-in-the-loop service
         // through to ask_student_question and the five quick_check.* tools.
         // Without this, those handlers see `quickCheck === undefined`, short-circuit

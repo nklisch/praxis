@@ -36,6 +36,7 @@ export type {
   SessionSummary,
   ShellClient,
   SketchClientApi,
+  SubAgentClientApi,
   TabsClientApi,
   UpdateClientApi,
 } from "./client.js";
@@ -73,7 +74,18 @@ export type {
 } from "./quick-check.js";
 // Phase 15a: Sketch types.
 export type { Sketch, SketchId, SketchService, SketchSummary } from "./sketches.js";
+// Agent-transparency: sub-agent registry + event types.
+export type {
+  SubAgentEvent,
+  SubAgentHandle,
+  SubAgentItem,
+  SubAgentListener,
+  SubAgentRegistry,
+  SubAgentStartInput,
+  SubAgentStep,
+} from "./subagent.js";
 // Phase 14: Tab strip types.
 export type { TabId, TabSummary, TabsService } from "./tabs.js";
 // tool.ts: MemoryService here is the server-side interface (with studentId params).
 export type * from "./tool.js";
+// ToolDispatchMeta is re-exported via engine.ts through the wildcard above.

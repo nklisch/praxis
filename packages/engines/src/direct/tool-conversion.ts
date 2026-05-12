@@ -6,6 +6,10 @@ import { jsonSchema, type Tool, tool } from "ai";
  * Each Vercel `tool` wraps a call to `registry.dispatch`. The Vercel SDK runs the
  * `execute` function automatically inside its agentic loop and feeds the result back
  * to the model.
+ *
+ * The Vercel AI SDK's `execute` callback receives `{ toolCallId, ... }` as its second
+ * argument. We thread `toolCallId` through as `meta.callId` so tool handlers that spawn
+ * sub-agents can publish events keyed on the parent session's tool_call.callId.
  */
 export function toVercelTools(registry: ToolRegistry): Record<string, Tool> {
   const summaries = registry.list();
@@ -14,8 +18,8 @@ export function toVercelTools(registry: ToolRegistry): Record<string, Tool> {
     out[summary.name] = tool({
       description: summary.description,
       inputSchema: jsonSchema(summary.inputSchemaJson as object),
-      execute: async (input: unknown) => {
-        const result = await registry.dispatch(summary.name, input);
+      execute: async (input: unknown, { toolCallId }: { toolCallId: string }) => {
+        const result = await registry.dispatch(summary.name, input, { callId: toolCallId });
         if (result.ok) return result.value;
         // Throw so Vercel SDK emits a tool-error event we can map.
         const err = new Error(result.error.message);

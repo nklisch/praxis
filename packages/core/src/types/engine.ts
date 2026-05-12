@@ -136,9 +136,24 @@ export interface Engine {
   readonly vision?: VisionCapability;
 }
 
+/**
+ * Optional per-call metadata for `ToolRegistry.dispatch`.
+ * Engine adapters supply this to thread the engine-side correlation id
+ * through to the tool handler via `ToolContext.callId`.
+ */
+export interface ToolDispatchMeta {
+  /** Engine-side correlation id for this tool invocation. */
+  callId?: string;
+}
+
 export interface ToolRegistry {
   list(): ToolDefinitionSummary[];
-  dispatch(name: string, args: unknown): Promise<ToolResult>;
+  /**
+   * Dispatch a tool call by name with optional per-call metadata.
+   * `meta.callId` is threaded into `ToolContext.callId` so tool handlers
+   * that spawn sub-agents can publish events keyed on the parent's callId.
+   */
+  dispatch(name: string, args: unknown, meta?: ToolDispatchMeta): Promise<ToolResult>;
 }
 
 export interface ToolDefinitionSummary {

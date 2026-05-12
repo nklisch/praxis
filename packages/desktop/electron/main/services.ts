@@ -33,6 +33,7 @@ import {
   QuickCheckServiceImpl,
   SessionServiceImpl,
   SketchServiceImpl,
+  SubAgentRegistryImpl,
   TabsServiceImpl,
   UpdateServiceImpl,
   VisionServiceImpl,
@@ -61,6 +62,7 @@ import { DIALOG_TOOLS } from "@praxis/tools/dialog";
 import { DOCUMENT_TOOLS } from "@praxis/tools/document";
 import { EXAM_TOOLS } from "@praxis/tools/exam";
 import { FLASHCARD_TOOLS } from "@praxis/tools/flashcards";
+import { getToolLabel } from "@praxis/tools/labels";
 import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
 import { NOTE_TOOLS } from "@praxis/tools/notes";
@@ -152,6 +154,8 @@ export interface Services {
   courseDocuments: CourseDocumentsServiceImpl;
   /** Activity registry — exposed for the activity IPC channel and shutdown. */
   activity: ActivityRegistryImpl;
+  /** Sub-agent transparency registry — exposed for the subagent IPC channel. */
+  subAgent: SubAgentRegistryImpl;
   /** Phase 17: quick check service — human-in-the-loop dispatch for quick_check.* tools. */
   quickCheck: QuickCheckServiceImpl;
   /** Phase 18: pedagogy pack service — read-only service over the bundled pedagogy pack. */
@@ -176,6 +180,13 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
 
   // Activity registry — constructed first so all producers can reference it.
   const activityRegistry = new ActivityRegistryImpl({ log });
+
+  // Sub-agent transparency registry — resolves step labels from @praxis/tools/labels
+  // so the registry doesn't need to import from @praxis/tools itself.
+  const subAgentRegistry = new SubAgentRegistryImpl({
+    log,
+    resolveLabel: (toolName) => getToolLabel(toolName).present,
+  });
 
   // Phase 17: QuickCheckService — stateless in-process dispatch.
   const quickCheckService = new QuickCheckServiceImpl();
@@ -527,10 +538,12 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       // next exploration without restarting the desktop app.
       bootstrapConfigResolver: () => readBootstrapConfig(db),
       quickCheck: quickCheckService, // ← Phase 17
+      subAgent: subAgentRegistry,
     },
     indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
     lockService, // ← Phase 11 (session.start lock check for configure mode)
     activity: activityRegistry,
+    subAgent: subAgentRegistry,
   };
 
   const ingestion = new IngestionService({
@@ -587,6 +600,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     conceptMaps: conceptMapService, // ← Phase 15b
     courseDocuments: courseDocumentsService, // ← Phase 16
     activity: activityRegistry,
+    subAgent: subAgentRegistry,
     quickCheck: quickCheckService, // ← Phase 17
     ingestorRegistry,
     pyodide,

@@ -27,6 +27,7 @@ import type {
   PedagogyPackService,
   QuickCheckService,
   SketchService,
+  SubAgentRegistry,
   SymPyService,
   ToolDefinition,
   VectorStore,
@@ -99,6 +100,13 @@ export interface ServiceDeps {
      * Optional so tests that don't need quick checks stay unaffected.
      */
     quickCheck?: QuickCheckService;
+    /**
+     * Sub-agent transparency registry. Tool handlers that spawn sub-agents
+     * (e.g., `course.start_exploration`) use this to publish step-level events
+     * that the UI subscribes to for the inline sub-agent block.
+     * Optional so tests that don't wire it stay unaffected.
+     */
+    subAgent?: SubAgentRegistry;
   };
   /**
    * Phase 7: optional indexer orchestrator. When set, SessionServiceImpl will
@@ -123,4 +131,10 @@ export interface ServiceDeps {
    * Optional so tests that don't need activity reporting stay unaffected.
    */
   activity?: ActivityRegistry;
+  /**
+   * Sub-agent transparency registry. Surfaced to the renderer via the
+   * subagent IPC channel. Optional so tests that don't exercise the
+   * sub-agent path stay unaffected.
+   */
+  subAgent?: SubAgentRegistry;
 }

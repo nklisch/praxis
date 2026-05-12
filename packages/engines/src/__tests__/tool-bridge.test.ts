@@ -142,7 +142,11 @@ describe("startToolBridge", () => {
     expect(toolDef).toBeDefined();
     if (toolDef) {
       await toolDef.handler({ text: "hello" });
-      expect(dispatchMock).toHaveBeenCalledWith("test.echo", { text: "hello" });
+      expect(dispatchMock).toHaveBeenCalledWith(
+        "test.echo",
+        { text: "hello" },
+        expect.objectContaining({ callId: expect.any(String) }),
+      );
     }
   });
 
@@ -155,5 +159,63 @@ describe("startToolBridge", () => {
     const handle = await startToolBridge({ registry });
     await expect(handle.close()).resolves.toBeUndefined();
     await expect(handle.close()).resolves.toBeUndefined();
+  });
+
+  it("dispatch is called with a generated callId (uuidv7 fallback) for each invocation", async () => {
+    const { startToolBridge } = await import("../mcp/tool-bridge.js");
+    const { startToolServer } = await import("@praxis/claude-cli-sdk");
+
+    const dispatchMock = vi.fn(
+      async (): Promise<ToolResult> => ({
+        ok: true,
+        value: { echoed: "hello" },
+        tier: "deterministic",
+      }),
+    );
+
+    const echoSummary: ToolDefinitionSummary = {
+      name: "test.echo",
+      description: "Echo tool",
+      inputSchemaJson: {
+        type: "object",
+        properties: { text: { type: "string" } },
+        required: ["text"],
+      },
+      inputSchemaNative: z.object({ text: z.string() }),
+      tier: "deterministic",
+    };
+
+    const registry: ToolRegistry = {
+      list: () => [echoSummary],
+      dispatch: dispatchMock,
+    };
+
+    await startToolBridge({ registry });
+
+    const calls = (startToolServer as ReturnType<typeof vi.fn>).mock.calls;
+    const registeredTools = calls[calls.length - 1]?.[0] as Array<{
+      name: string;
+      handler: (input: unknown) => Promise<unknown>;
+    }>;
+
+    const toolDef = registeredTools?.[0];
+    if (toolDef) {
+      await toolDef.handler({ text: "hello" });
+      // dispatch should have been called with a meta object containing a callId
+      expect(dispatchMock).toHaveBeenCalledWith(
+        "test.echo",
+        { text: "hello" },
+        expect.objectContaining({ callId: expect.any(String) }),
+      );
+      const callId = (dispatchMock.mock.calls[0]?.[2] as { callId?: string })?.callId;
+      expect(callId).toBeTruthy();
+      expect(callId?.length).toBeGreaterThan(10); // uuidv7 is 36 chars
+
+      // Two separate invocations should produce different callIds
+      await toolDef.handler({ text: "world" });
+      const callId2 = (dispatchMock.mock.calls[1]?.[2] as { callId?: string })?.callId;
+      expect(callId2).toBeTruthy();
+      expect(callId).not.toBe(callId2);
+    }
   });
 });

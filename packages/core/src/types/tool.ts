@@ -63,6 +63,7 @@ import type {
 } from "./pedagogy.js";
 import type { QuickCheckService } from "./quick-check.js";
 import type { SketchService } from "./sketches.js";
+import type { SubAgentRegistry } from "./subagent.js";
 
 // Re-export VisionService shape inline here so tool handlers can type-check against it
 // without importing from @praxis/core/services (would violate dependency direction).
@@ -117,6 +118,16 @@ export interface ToolContext {
    * the explorer, this is undefined.
    */
   draftId?: string;
+  /**
+   * Agent-transparency (feature-agent-transparency-ux): the engine-emitted
+   * tool_call.callId for this invocation. Populated by
+   * `InProcessToolRegistry.dispatch(name, args, { callId })` when the engine
+   * adapter passes the per-request correlation id. Tools that spawn sub-agents
+   * (e.g., `course.start_exploration`) use this as their `parentCallId` when
+   * registering on `SubAgentRegistry` so the UI can subscribe to the right stream.
+   * Absent when dispatched from test stubs that don't supply a callId.
+   */
+  callId?: string;
   services: ToolServices;
   log: Logger;
 }
@@ -183,6 +194,12 @@ export interface ToolServices {
    * Wired in session-service.ts from ServiceDeps.activity.
    */
   activity?: ActivityRegistry;
+  /**
+   * Sub-agent transparency registry. Optional so tools that don't spawn
+   * sub-agents and test stubs that don't wire it stay simple.
+   * Wired in session-service.ts from ServiceDeps.subAgent.
+   */
+  subAgent?: SubAgentRegistry;
   /**
    * Phase 17: human-in-the-loop dispatch for quick_check.* tools.
    * Optional so existing tool stubs and tests don't need to wire it.

@@ -288,11 +288,15 @@ describe("DirectEngine — lifecycle", () => {
     await session.close();
 
     const echoCaptured = capturedTools["test.echo"] as {
-      execute?: (args: unknown) => Promise<unknown>;
+      execute?: (args: unknown, opts: { toolCallId: string }) => Promise<unknown>;
     };
     if (echoCaptured?.execute) {
-      await echoCaptured.execute({ text: "hello" });
-      expect(dispatchSpy).toHaveBeenCalledWith("test.echo", { text: "hello" });
+      await echoCaptured.execute({ text: "hello" }, { toolCallId: "test-call-id" });
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        "test.echo",
+        { text: "hello" },
+        expect.objectContaining({ callId: "test-call-id" }),
+      );
     }
   });
 
@@ -346,5 +350,52 @@ describe("DirectEngine — lifecycle", () => {
 
     // messages should contain the 2 prior turns + 1 new user message = 3 total
     expect(capturedMessages).toHaveLength(3);
+  });
+});
+
+describe("DirectEngine — toVercelTools callId threading", () => {
+  it("execute passes toolCallId as meta.callId to registry.dispatch", async () => {
+    const { toVercelTools } = await import("../direct/tool-conversion.js");
+
+    const dispatchMock = vi.fn(
+      async (): Promise<ToolResult> => ({
+        ok: true,
+        value: { echoed: "hello" },
+        tier: "deterministic",
+      }),
+    );
+
+    const registry: ToolRegistry = {
+      list: () => [
+        {
+          name: "test.echo",
+          description: "Echo",
+          inputSchemaJson: { type: "object", properties: {}, additionalProperties: true },
+          tier: "deterministic",
+        },
+      ],
+      dispatch: dispatchMock,
+    };
+
+    const vercelTools = toVercelTools(registry);
+    const echoTool = vercelTools["test.echo"];
+    expect(echoTool).toBeDefined();
+    if (!echoTool) return;
+
+    // Simulate Vercel SDK calling execute with toolCallId in the second arg.
+    // biome-ignore lint/suspicious/noExplicitAny: accessing execute on Vercel tool type
+    const execute = (echoTool as any).execute as (
+      input: unknown,
+      opts: { toolCallId: string },
+    ) => Promise<unknown>;
+
+    expect(execute).toBeDefined();
+    await execute({ text: "hello" }, { toolCallId: "vercel-call-xyz" });
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      "test.echo",
+      { text: "hello" },
+      { callId: "vercel-call-xyz" },
+    );
   });
 });

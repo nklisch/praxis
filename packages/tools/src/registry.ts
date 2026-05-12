@@ -9,6 +9,16 @@ import type {
 import { serializeError } from "@praxis/core/types";
 import { z } from "zod";
 
+/**
+ * Optional per-call metadata passed to `InProcessToolRegistry.dispatch`.
+ * Engine adapters supply this to thread the engine-side correlation id
+ * through to the tool handler's `ToolContext.callId`.
+ */
+export interface DispatchMeta {
+  /** Engine-side correlation id for this tool invocation. */
+  callId?: string;
+}
+
 export interface InProcessToolRegistryOptions {
   /** Tool definitions registered into this registry (Zod-schema-typed). */
   tools: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
@@ -67,8 +77,11 @@ export class InProcessToolRegistry implements ToolRegistry {
     (this.context as unknown as Record<string, unknown>)[key as string] = value as unknown;
   }
 
-  async dispatch(name: string, args: unknown): Promise<ToolResult> {
-    this.log.debug("tool.dispatch.start", { name });
+  async dispatch(name: string, args: unknown, meta?: DispatchMeta): Promise<ToolResult> {
+    this.log.debug("tool.dispatch.start", {
+      name,
+      ...(meta?.callId !== undefined && { callId: meta.callId }),
+    });
     const t0 = performance.now();
     const tool = this.tools.get(name);
     if (!tool) {
@@ -88,8 +101,12 @@ export class InProcessToolRegistry implements ToolRegistry {
         },
       };
     }
+    // Build a per-call context with callId injected when supplied by the engine adapter.
+    // We shallow-copy to avoid mutating the registry's stored context.
+    const callContext: ToolContext =
+      meta?.callId !== undefined ? { ...this.context, callId: meta.callId } : this.context;
     try {
-      const value = await tool.handler(parsed.data, this.context);
+      const value = await tool.handler(parsed.data, callContext);
       this.log.debug("tool.dispatch.ok", { name, durationMs: Math.round(performance.now() - t0) });
       return { ok: true, value, tier: tool.tier };
     } catch (cause) {

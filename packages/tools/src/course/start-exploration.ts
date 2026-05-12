@@ -136,6 +136,15 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
     const requested = args.maxSteps ?? userMax;
     const effectiveMaxSteps = Math.min(requested, userMax);
 
+    const subHandle =
+      ctx.callId !== undefined
+        ? ctx.services.subAgent?.start({
+            parentCallId: ctx.callId,
+            sessionId: ctx.sessionId,
+            label: args.draftId !== undefined ? "continuing your draft" : "reading your materials",
+          })
+        : undefined;
+
     const actHandle = ctx.services.activity?.start({
       label: `${args.draftId !== undefined ? "continuing" : "exploring"} ${args.courseTitle.toLowerCase()}`,
       detail: args.draftId !== undefined ? "reading prior draft" : "reading materials",
@@ -153,6 +162,7 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
       maxSteps: effectiveMaxSteps,
       ...(args.draftId !== undefined && { draftId: args.draftId }),
       ...(args.instructions !== undefined && { instructions: args.instructions }),
+      subAgentHandle: subHandle,
       onProgress: (phase) => {
         const detail =
           phase === "reading"
@@ -161,9 +171,16 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
               ? "shaping the course"
               : "finalizing";
         actHandle?.update({ detail });
+        // Sub-agent label updates are emitted inside the explorer's loop via
+        // subAgentHandle.setLabel() on phase transitions (reading/shaping/finalizing).
+        // The onProgress callback here drives the activity rail detail; the sub-agent
+        // handle drives the inline sub-agent block label.
       },
     });
 
+    subHandle?.finish(result.ok ? "done" : "failed", {
+      message: result.ok ? "done" : (result.reason ?? "explorer error"),
+    });
     actHandle?.finish(result.ok ? "done" : "failed", {
       message: result.ok ? "done" : (result.reason ?? "explorer error"),
     });

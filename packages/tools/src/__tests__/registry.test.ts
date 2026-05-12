@@ -127,4 +127,70 @@ describe("InProcessToolRegistry", () => {
       new InProcessToolRegistry({ tools: [echoTool, echoTool], context: ctx, log: ctx.log });
     }).toThrow(`Tool "test.echo" registered twice`);
   });
+
+  it("dispatch with meta.callId threads callId into ToolContext", async () => {
+    let capturedCallId: string | undefined = "initial-sentinel";
+
+    const callIdCaptureTool = {
+      name: "test.capture_call_id",
+      description: "Captures the callId from ToolContext",
+      input: z.object({}),
+      output: z.object({ callId: z.string().optional() }),
+      tier: "deterministic" as const,
+      effects: [] as const,
+      async handler(_args: unknown, toolCtx: import("@praxis/core/types").ToolContext) {
+        capturedCallId = toolCtx.callId;
+        return { callId: toolCtx.callId };
+      },
+    };
+
+    const registry = new InProcessToolRegistry({
+      tools: [callIdCaptureTool],
+      context: ctx,
+      log: ctx.log,
+    });
+
+    await registry.dispatch("test.capture_call_id", {}, { callId: "abc-123" });
+    expect(capturedCallId).toBe("abc-123");
+
+    // Without meta, callId should be undefined (base ctx has no callId).
+    capturedCallId = "initial-sentinel";
+    await registry.dispatch("test.capture_call_id", {});
+    expect(capturedCallId).toBeUndefined();
+  });
+
+  it("dispatch with meta.callId does not mutate the registry's stored context", async () => {
+    let ctx1CallId: string | undefined;
+    let ctx2CallId: string | undefined;
+
+    const captureCtxTool = {
+      name: "test.capture_ctx",
+      description: "Captures context callId",
+      input: z.object({}),
+      output: z.object({}),
+      tier: "deterministic" as const,
+      effects: [] as const,
+      async handler(_args: unknown, toolCtx: import("@praxis/core/types").ToolContext) {
+        if (ctx1CallId === undefined) {
+          ctx1CallId = toolCtx.callId;
+        } else {
+          ctx2CallId = toolCtx.callId;
+        }
+        return {};
+      },
+    };
+
+    const registry = new InProcessToolRegistry({
+      tools: [captureCtxTool],
+      context: ctx,
+      log: ctx.log,
+    });
+
+    await registry.dispatch("test.capture_ctx", {}, { callId: "first" });
+    await registry.dispatch("test.capture_ctx", {}, { callId: "second" });
+
+    // Each dispatch should see its own callId, not the other's.
+    expect(ctx1CallId).toBe("first");
+    expect(ctx2CallId).toBe("second");
+  });
 });

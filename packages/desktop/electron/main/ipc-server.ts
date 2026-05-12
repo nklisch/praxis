@@ -26,6 +26,7 @@ import { registerIngestHandlers } from "./ingest-channel.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
 import type { Services } from "./services.js";
+import { registerSubAgentHandlers } from "./subagent-channel.js";
 
 /**
  * Register all IPC handlers for the Praxis services.
@@ -1145,6 +1146,10 @@ export function registerIpcHandlers(
   // ── Activity rail ─────────────────────────────────────────────────────────────
 
   registerActivityHandlers(services, webContentsGetter, activeAbortControllers, log);
+
+  // ── Sub-agent transparency ─────────────────────────────────────────────────────
+
+  registerSubAgentHandlers(services, webContentsGetter, activeAbortControllers, log);
 
   // ── Bootstrap-mode draft stream ──────────────────────────────────────────────
 

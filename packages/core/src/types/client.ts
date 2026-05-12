@@ -55,6 +55,7 @@ import type {
 import type { NoteBody } from "./notes.js";
 import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
+import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
 import type { TabId, TabSummary } from "./tabs.js";
 import type { DocumentSummaryItem } from "./tool.js";
 
@@ -100,6 +101,8 @@ export interface PraxisClient {
   quickCheck: QuickCheckClientApi;
   /** Phase 19: manual-download update check (env-var-gated; no-op when not configured). */
   update: UpdateClientApi;
+  /** Sub-agent transparency — subscribe to step-level events from sub-agent runs. */
+  subAgent: SubAgentClientApi;
 }
 
 /**
@@ -110,6 +113,16 @@ export interface PraxisClient {
 export interface QuickCheckClientApi {
   events(): AsyncIterable<QuickCheckEvent>;
   resolve(input: { callId: string; answer: QuickCheckAnswer }): Promise<void>;
+}
+
+/**
+ * Agent-transparency: client-side sub-agent API.
+ * The renderer subscribes to `events()` to receive step-level transparency
+ * events from active sub-agent runs. Optionally filter to one parentCallId.
+ */
+export interface SubAgentClientApi {
+  events(input?: { parentCallId?: string }): AsyncIterable<SubAgentEvent>;
+  list(): Promise<readonly SubAgentItem[]>;
 }
 
 /**

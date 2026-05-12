@@ -3,6 +3,7 @@ import type {
   DraftSummary,
   Engine,
   Logger,
+  SubAgentHandle,
   ToolContext,
   ToolDefinition,
 } from "@praxis/core/types";
@@ -51,6 +52,13 @@ export interface RunConceptExplorerInput {
    * state and the callback does not fire until the first transition from it.
    */
   onProgress?: (phase: "reading" | "shaping" | "finalizing") => void;
+  /**
+   * Sub-agent transparency handle. When provided, the explorer emits
+   * step_started / step_settled events on each tool_call / tool_result, and
+   * calls setLabel on phase transitions. When absent (test stubs without a
+   * full engine), all emissions are no-ops — existing tests pass unchanged.
+   */
+  subAgentHandle?: SubAgentHandle;
 }
 
 export interface RunConceptExplorerResult {
@@ -173,11 +181,21 @@ export async function runConceptExplorer(
           callId: ev.callId,
           argFingerprint: fingerprintArgs(ev.args),
         });
-        // Track coarse phase transitions for the activity rail.
+        // Emit sub-agent step_started event for transparency UI.
+        input.subAgentHandle?.stepStarted({ callId: ev.callId, toolName: ev.toolName });
+        // Track coarse phase transitions for the activity rail and sub-agent label.
         if (input.onProgress) {
           if (currentPhase === "reading" && ev.toolName === "course.draft_init") {
             currentPhase = "shaping";
             input.onProgress("shaping");
+            input.subAgentHandle?.setLabel("drafting an outline");
+          } else if (
+            currentPhase === "shaping" &&
+            stepsUsed >= Math.floor((input.maxSteps ?? 30) * 0.8)
+          ) {
+            currentPhase = "finalizing";
+            input.onProgress("finalizing");
+            input.subAgentHandle?.setLabel("finalizing the draft");
           }
         }
       }
@@ -188,6 +206,8 @@ export async function runConceptExplorer(
           ok: ev.result.ok,
           resultFingerprint: fingerprintResult(ev.result),
         });
+        // Emit sub-agent step_settled event for transparency UI.
+        input.subAgentHandle?.stepSettled({ callId: ev.callId, ok: ev.result.ok });
         if (ev.result.ok) {
           const value = ev.result.value as Record<string, unknown>;
           // Capture draftId from draft_init result and inject into context so

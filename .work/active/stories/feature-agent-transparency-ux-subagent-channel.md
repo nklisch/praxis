@@ -1,14 +1,14 @@
 ---
 id: feature-agent-transparency-ux-subagent-channel
 kind: story
-stage: implementing
+stage: review
 tags: [ui, chat, core]
 parent: feature-agent-transparency-ux
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # SubAgentRegistry + IPC channel + explorer emission
@@ -101,4 +101,45 @@ producer; the producer has nowhere to publish without the registry.
 - Patterns to mirror: `ActivityRegistryImpl` (`packages/core/src/services/activity-registry.ts`), activity-channel IPC, `service-deps-injection`, `subscriber-fanout-stream`, `ipc-channel-convention`.
 - Existing producer pattern: `ctx.services.activity?.start(...)` in `packages/tools/src/course/start-exploration.ts:139–169`.
 
-<!-- Implementation Notes accumulate here as work progresses. -->
+## Implementation notes
+
+### Files changed (new)
+- `packages/core/src/types/subagent.ts` — full type contract: `SubAgentItem`, `SubAgentStep`, `SubAgentEvent` (kind discriminator), `SubAgentHandle`, `SubAgentListener`, `SubAgentRegistry`, `SubAgentStartInput`
+- `packages/core/src/services/subagent-registry.ts` — `SubAgentRegistryImpl` with 30s linger, 200 step cap, filtered subscribe, dep-injected `resolveLabel`
+- `packages/core/src/services/__tests__/subagent-registry.test.ts` — 15 tests covering all registry behaviors
+- `packages/client/src/services/sub-agent-client.ts` — `SubAgentClient` with `events(input?)` and `list()`
+- `packages/desktop/electron/main/subagent-channel.ts` — IPC fanout following subscriber-fanout-stream pattern
+
+### Files changed (modified)
+- `packages/core/src/types/tool.ts` — `ToolContext.callId?: string`, `ToolServices.subAgent?: SubAgentRegistry`
+- `packages/core/src/types/engine.ts` — `ToolDispatchMeta { callId?: string }`, extended `ToolRegistry.dispatch` signature
+- `packages/core/src/types/client.ts` — `SubAgentClientApi` interface, `PraxisClient.subAgent`
+- `packages/core/src/types/index.ts` — re-exports for all SubAgent types + `SubAgentClientApi`
+- `packages/core/src/services/index.ts` — exports `SubAgentRegistryImpl` and `SubAgentRegistryDeps`
+- `packages/core/src/services/types.ts` — `toolServices.subAgent?` and top-level `ServiceDeps.subAgent?`
+- `packages/core/src/services/session-service.ts` — threads `subAgent` into tool context construction
+- `packages/tools/src/registry.ts` — `dispatch(name, args, meta?: DispatchMeta)`, per-call context shallow-copy with `callId`
+- `packages/tools/src/index.ts` — exports `DispatchMeta`
+- `packages/engines/src/mcp/tool-bridge.ts` — generates `uuidv7()` per invocation as callId fallback (MCP SDK doesn't surface per-request id through tool callback)
+- `packages/engines/src/direct/tool-conversion.ts` — passes Vercel's `toolCallId` from execute callback as `{ callId }`
+- `packages/desktop/electron/main/services.ts` — instantiates `SubAgentRegistryImpl` with `resolveLabel` from `@praxis/tools/labels`
+- `packages/desktop/electron/main/ipc-server.ts` — registers sub-agent IPC handlers
+- `packages/client/src/client.ts` — mounts `SubAgentClient` as `subAgent` on `PraxisClient`
+- `packages/curriculum/src/bootstrap/explorer.ts` — `subAgentHandle?` on input, step emissions, phase transition labels
+- `packages/tools/src/course/start-exploration.ts` — creates sub-agent handle from `ctx.callId`, passes to explorer, calls `finish`
+- `packages/tools/src/__tests__/registry.test.ts` — added callId threading tests
+- `packages/engines/src/__tests__/tool-bridge.test.ts` — added uuidv7 callId uniqueness test, updated existing dispatch assertion
+- `packages/engines/src/__tests__/direct.test.ts` — added `toVercelTools callId threading` describe, updated existing dispatch assertion
+- `packages/curriculum/src/bootstrap/__tests__/explorer.test.ts` — added `subAgentHandle emissions` describe (5 tests)
+
+### MCP callId resolution
+Risk 2 from the parent feature design materialized: the MCP SDK worker script (`@praxis/claude-cli-sdk/src/tool-server.ts`) forwards only `name` and `input` to the parent process callback — not the per-request id. Resolution: `buildSdkTool` in `tool-bridge.ts` generates a `uuidv7()` per invocation and passes it as `{ callId }` to `registry.dispatch`. Each call still gets a unique, sortable id; it just doesn't correlate back to the MCP protocol layer.
+
+### Pre-existing issues (not fixed, out of scope)
+- `packages/tools/src/runtime/ingestion/__tests__/vision-pdf-ingestor.test.ts` — missing `dirFor` property on `PageImageStore` mock; typecheck error in `@praxis/tools` predates this story
+- `packages/claude-cli-sdk/` — 4 lint errors (`noNonNullAssertion`, `noUnusedVariables`, `noGlobalIsFinite`, `useLiteralKeys`) all pre-existing
+
+### Verification
+- `pnpm test`: 2651 passed / 21 skipped / 0 failed (303 test files)
+- `pnpm typecheck`: passes for all packages except `@praxis/tools` (pre-existing `dirFor` error)
+- `pnpm lint`: 4 errors all in `claude-cli-sdk` (pre-existing); 0 errors in changed files

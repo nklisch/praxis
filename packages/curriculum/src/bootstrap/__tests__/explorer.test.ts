@@ -35,6 +35,7 @@ import { z } from "zod";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { makeEmptyPedagogyPackService } from "../../pedagogy/pedagogy-pack-service.js";
 import { runConceptExplorer } from "../explorer.js";
+import type { ScriptedStep } from "./helpers/scripted-engine.js";
 import { ScriptedEngine } from "./helpers/scripted-engine.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-explorer-test");
@@ -661,3 +662,256 @@ describe("runConceptExplorer — document scoping", () => {
 
 const recordCtxInput = z.object({});
 const recordCtxOutput = z.object({ ok: z.literal(true) });
+
+// ─── subAgentHandle emissions ─────────────────────────────────────────────────
+
+describe("runConceptExplorer — subAgentHandle emissions", () => {
+  /**
+   * Minimal fake SubAgentHandle that records all calls for assertion.
+   */
+  function makeFakeHandle() {
+    const stepStartedCalls: Array<{ callId: string; toolName: string }> = [];
+    const stepSettledCalls: Array<{ callId: string; ok: boolean }> = [];
+    const setLabelCalls: string[] = [];
+    const finishCalls: Array<{ status: "done" | "failed"; message?: string }> = [];
+
+    const handle: import("@praxis/core/types").SubAgentHandle = {
+      parentCallId: "test-parent-call",
+      stepStarted: (args) => {
+        stepStartedCalls.push(args);
+      },
+      stepSettled: (args) => {
+        stepSettledCalls.push(args);
+      },
+      setLabel: (label) => {
+        setLabelCalls.push(label);
+      },
+      finish: (status, err) => {
+        finishCalls.push({ status, message: err?.message });
+      },
+    };
+
+    return { handle, stepStartedCalls, stepSettledCalls, setLabelCalls, finishCalls };
+  }
+
+  const dbCtx = useTempDb();
+
+  it("emits stepStarted and stepSettled once per tool_call/tool_result pair", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const bootstrap = makeBootstrapService(db);
+    const { handle, stepStartedCalls, stepSettledCalls } = makeFakeHandle();
+
+    const engine = new ScriptedEngine([
+      {
+        toolName: "course.draft_init",
+        args: {
+          courseTitle: "Algebra 1",
+          subject: "math",
+          gradeLevel: "9",
+          documentIds: ["doc-1"],
+        },
+      },
+      {
+        toolName: "course.draft_add_concepts",
+        args: { concepts: [{ name: "Variables", description: "Symbols" }] },
+      },
+    ]);
+
+    await runConceptExplorer({
+      engine,
+      baseContext: makeBaseContext(bootstrap),
+      toolDefinitions: EXPLORER_TOOLS,
+      documentIds: DOC_IDS,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
+      log: MOCK_LOG,
+      maxSteps: 30,
+      subAgentHandle: handle,
+    });
+
+    // 2 tool calls → 2 stepStarted, 2 stepSettled.
+    expect(stepStartedCalls).toHaveLength(2);
+    expect(stepStartedCalls[0]?.toolName).toBe("course.draft_init");
+    expect(stepStartedCalls[1]?.toolName).toBe("course.draft_add_concepts");
+
+    expect(stepSettledCalls).toHaveLength(2);
+    // draft_init succeeded → ok: true
+    expect(stepSettledCalls[0]?.ok).toBe(true);
+    expect(stepSettledCalls[1]?.ok).toBe(true);
+
+    // callIds should be consistent between started/settled pairs.
+    expect(stepStartedCalls[0]?.callId).toBe(stepSettledCalls[0]?.callId);
+    expect(stepStartedCalls[1]?.callId).toBe(stepSettledCalls[1]?.callId);
+
+    bootstrap.shutdown();
+  });
+
+  it("emits setLabel('drafting an outline') when draft_init fires during reading phase", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const bootstrap = makeBootstrapService(db);
+    const { handle, setLabelCalls } = makeFakeHandle();
+
+    const engine = new ScriptedEngine([
+      {
+        toolName: "course.draft_init",
+        args: {
+          courseTitle: "Algebra 1",
+          subject: "math",
+          gradeLevel: "9",
+          documentIds: ["doc-1"],
+        },
+      },
+    ]);
+
+    await runConceptExplorer({
+      engine,
+      baseContext: makeBaseContext(bootstrap),
+      toolDefinitions: EXPLORER_TOOLS,
+      documentIds: DOC_IDS,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
+      log: MOCK_LOG,
+      maxSteps: 30,
+      // onProgress must be provided for phase transitions to fire.
+      onProgress: vi.fn(),
+      subAgentHandle: handle,
+    });
+
+    expect(setLabelCalls).toContain("drafting an outline");
+
+    bootstrap.shutdown();
+  });
+
+  it("emits setLabel('finalizing the draft') when budget hits 80%", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const bootstrap = makeBootstrapService(db);
+    const { handle, setLabelCalls } = makeFakeHandle();
+
+    // Budget = 5; 80% threshold = 4. We'll have: init (step 1) + 3 concept batches
+    // (steps 2-4). Step 4 is >= 4, so finalizing fires on step 4.
+    const steps: ScriptedStep[] = [
+      {
+        toolName: "course.draft_init",
+        args: {
+          courseTitle: "Algebra 1",
+          subject: "math",
+          gradeLevel: "9",
+          documentIds: ["doc-1"],
+        },
+      },
+    ];
+    for (let i = 0; i < 3; i++) {
+      steps.push({
+        toolName: "course.draft_add_concepts",
+        // biome-ignore lint/suspicious/noExplicitAny: scripted args type is loose
+        args: { concepts: [{ name: `Concept ${i}`, description: "desc" }] } as any,
+      });
+    }
+
+    const engine = new ScriptedEngine(steps);
+
+    await runConceptExplorer({
+      engine,
+      baseContext: makeBaseContext(bootstrap),
+      toolDefinitions: EXPLORER_TOOLS,
+      documentIds: DOC_IDS,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
+      log: MOCK_LOG,
+      maxSteps: 5,
+      onProgress: vi.fn(),
+      subAgentHandle: handle,
+    });
+
+    expect(setLabelCalls).toContain("finalizing the draft");
+
+    bootstrap.shutdown();
+  });
+
+  it("does not emit stepStarted/stepSettled when subAgentHandle is absent", async () => {
+    // Just verify the explorer doesn't error when handle is undefined (the
+    // optional-chaining guard means this is a no-op path).
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const bootstrap = makeBootstrapService(db);
+
+    const engine = new ScriptedEngine([
+      {
+        toolName: "course.draft_init",
+        args: {
+          courseTitle: "Algebra 1",
+          subject: "math",
+          gradeLevel: "9",
+          documentIds: ["doc-1"],
+        },
+      },
+    ]);
+
+    const result = await runConceptExplorer({
+      engine,
+      baseContext: makeBaseContext(bootstrap),
+      toolDefinitions: EXPLORER_TOOLS,
+      documentIds: DOC_IDS,
+      courseTitle: "Algebra 1",
+      subject: "math",
+      gradeLevel: "9",
+      log: MOCK_LOG,
+      maxSteps: 30,
+      // No subAgentHandle — all emissions are no-ops.
+    });
+
+    expect(result.ok).toBe(true);
+
+    bootstrap.shutdown();
+  });
+
+  it("engine_error path: finish is not called by the explorer (caller is responsible)", async () => {
+    // The explorer itself does not call subHandle.finish — start-exploration.ts does.
+    // This test confirms no finish call happens from within runConceptExplorer on error.
+    const { handle, finishCalls } = makeFakeHandle();
+
+    const errorEngine: import("@praxis/core/types").Engine = {
+      id: "error-engine",
+      kind: "looped" as const,
+      open: async () => ({
+        id: "err-session",
+        send: (_msg: string): AsyncIterable<import("@praxis/core/types").EngineEvent> => ({
+          [Symbol.asyncIterator]: async function* () {
+            yield {
+              type: "error" as const,
+              error: { code: "network_error", message: "connection refused", recoverable: false },
+            };
+          },
+        }),
+        close: async () => {},
+      }),
+      health: async () => ({
+        ok: false,
+        capabilities: { vision: false, streaming: false, nativeMCP: false, contextWindow: 0 },
+      }),
+    };
+
+    // biome-ignore lint/suspicious/noExplicitAny: stub context for error test
+    const baseContext = makeBaseContext(null as any);
+
+    const result = await runConceptExplorer({
+      engine: errorEngine,
+      baseContext,
+      toolDefinitions: EXPLORER_TOOLS,
+      documentIds: DOC_IDS,
+      courseTitle: "Error Course",
+      subject: "test",
+      gradeLevel: "1",
+      log: MOCK_LOG,
+      maxSteps: 30,
+      subAgentHandle: handle,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("engine_error");
+    // The explorer does NOT call finish — the caller (start-exploration.ts) does.
+    expect(finishCalls).toHaveLength(0);
+  });
+});

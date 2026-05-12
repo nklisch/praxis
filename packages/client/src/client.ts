@@ -19,6 +19,7 @@ import { QuickCheckClient } from "./services/quick-check-client.js";
 import { SessionClient } from "./services/session-client.js";
 import { ShellClientImpl } from "./services/shell-client.js";
 import { SketchClient } from "./services/sketch-client.js";
+import { SubAgentClient } from "./services/sub-agent-client.js";
 import { TabsClient } from "./services/tabs-client.js";
 import { UpdateClient } from "./services/update-client.js";
 import type { ClientTransport } from "./transport/types.js";
@@ -52,5 +53,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     drafts: new DraftsClient(transport),
     quickCheck: new QuickCheckClient(transport), // ← Phase 17
     update: new UpdateClient(transport), // ← Phase 19
+    subAgent: new SubAgentClient(transport),
   };
 }

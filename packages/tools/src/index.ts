@@ -2,6 +2,7 @@ export { gradeMathInput, gradeMathOutput, gradeMathTool } from "./math/grade-mat
 export { type LatexVerifyInput, type LatexVerifyResult, verifyLatex } from "./math/latex-verify.js";
 export { PyodideSymPyService } from "./math/sympy-service.js";
 export {
+  type DispatchMeta,
   InProcessToolRegistry,
   type InProcessToolRegistryOptions,
   jsonSchemaFromZod,
