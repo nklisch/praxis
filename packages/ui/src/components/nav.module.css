@@ -50,8 +50,8 @@
 }
 
 .dueBadge {
-  background: #f59e0b;
-  color: #000;
+  background: var(--color-badge);
+  color: var(--color-badge-text);
   font-size: 0.65rem;
   font-weight: 700;
   min-width: 1.2em;
