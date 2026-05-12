@@ -1,7 +1,7 @@
 ---
 id: idea-root-vitest-praxis-source-condition
-kind: story
-stage: implementing
+kind: idea
+stage: backlog
 tags: [testing, tooling, dx]
 parent: null
 depends_on: []
