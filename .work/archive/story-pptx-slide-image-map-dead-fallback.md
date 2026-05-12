@@ -1,7 +1,7 @@
 ---
 id: story-pptx-slide-image-map-dead-fallback
 kind: story
-stage: review
+stage: done
 tags: [ingestion, cleanup]
 parent: null
 depends_on: []
@@ -109,3 +109,19 @@ at `__tests__/fixtures/sample.pptx` before committing.
 - `packages/tools/src/runtime/ingestion/__tests__/pptx-ingestor.test.ts`: Added test case "slide without slideNumber gets no imageNames (option-a: fail-loud, no index fallback)" under the embedded image extraction describe block. The test constructs a raw AST with one malformed slide (no `slideNumber`) and one well-formed slide, asserts that `imageNames` is absent for the malformed slide's chunks.
 
 **Verification status:** `pnpm --filter @praxis/tools typecheck` — clean. Biome check on changed files — clean. `pnpm --filter @praxis/tools test` — 24/24 pptx-ingestor tests pass (497 total passing, up from 496). The 15 failures in `sqlite-stores.test.ts` are pre-existing native ABI mismatches (`better-sqlite3` compiled against a different Node.js version) and were present before this change.
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff verified at commit `39aaec7`: writer (`buildSlideImageNamesMap`) and reader (`tryChunkBySlide`) now agree on key shape. Early `continue` on missing `slideNumber` is the right shape for option (a); doc comment updated alongside to explain the fail-loud rationale.
+- Regression test exercises both arms (malformed slide → no imageNames; well-formed slide → unaffected) and would have caught the original asymmetry. Mock-AST shape is realistic.
+- Real-fixture integration tests (`pptx-ingestor-integration.test.ts`) continue passing per implementation notes — well-formed input behavior is unchanged.
+- `sqlite-stores.test.ts` ABI failures noted in implementation notes are pre-existing Electron-ABI artifacts, not caused by this change. Resolved at workspace level by `pnpm rebuild better-sqlite3 canvas`.
+
+Approved and advancing to done.
