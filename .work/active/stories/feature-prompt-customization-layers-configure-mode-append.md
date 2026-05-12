@@ -1,14 +1,14 @@
 ---
 id: feature-prompt-customization-layers-configure-mode-append
 kind: story
-stage: implementing
+stage: review
 tags: [ui, content]
 parent: feature-prompt-customization-layers
 depends_on: [feature-prompt-customization-layers-compose-wiring]
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Configure prompt-tab per-mode append editor
@@ -82,4 +82,40 @@ instead (just lift it into a separate file as part of this story's commits).
 - Existing prompt tab: `packages/ui/src/routes/configure/prompt-tab.tsx`
 - Existing fragment editor: `packages/ui/src/components/prompt-fragment-editor.tsx`
 
-<!-- Implementation Notes accumulate here as work progresses. -->
+## Implementation notes
+
+### Files created
+
+- `packages/ui/src/components/mode-append-editor.tsx` — new component; mode-selector dropdown + textarea + lock-gate logic. Mirrors `GlobalPromptEditor` shape.
+- `packages/ui/src/components/mode-append-editor.module.css` — styles; side-by-side grid layout matching the global editor.
+- `packages/ui/src/components/__tests__/mode-append-editor.test.tsx` — 14 tests covering: initial load, mode switch, save, null-clear, locked state, confirm-on-unsaved-switch, preview IPC.
+- `packages/ui/src/__tests__/configure-prompt-tab.test.tsx` — new; 7 tests: section heading, intro copy, section order (DOM heading order assertion), style-slider regression, fragment-editor regression.
+
+### Modified files
+
+- `packages/ui/src/routes/configure/prompt-tab.tsx` — new Per-mode append section inserted at top; Advanced framing copy on the fragment-overrides section; `<ModeAppendEditor />` imported and rendered.
+
+### `<PromptPreviewPane>` reuse
+
+The sibling story (`feature-prompt-customization-layers-settings-global`) had already landed `prompt-preview-pane.tsx`. Consumed as-is with `modeId={selectedMode}` and `draftAppend={draft}`. The pane owns `useDeferredValue` debounce internally so no manual timer in `ModeAppendEditor`.
+
+### Mode-switch unsaved-draft strategy
+
+Used `window.confirm("You have unsaved changes. Discard and switch mode?")` — the simpler default specified in the story. Confirm returns `false` → no mode change; `true` → `setSelectedMode` triggers the load effect.
+
+### Lock-gate handling
+
+`useLock()` hook (same as `GlobalPromptEditor`). `isLocked = isSet && !isUnlocked`. Locked: `readOnly={true}` on textarea, save button hidden, lock-hint `<p role="note">` shown.
+
+### Ordering verified
+
+Section order in `prompt-tab.tsx`: Per-mode append (line 42) → Teaching Style (line 51) → Prompt Fragment Overrides (line 100). DOM heading order assertion in `configure-prompt-tab.test.tsx` confirms this programmatically.
+
+### Verification
+
+```
+pnpm --filter @praxis/ui typecheck  → clean
+pnpm typecheck                      → clean (all packages)
+pnpm --filter @praxis/ui test       → 777 tests, all pass
+pnpm lint                           → 9 pre-existing errors in claude-cli-sdk; 0 new errors in our files
+```

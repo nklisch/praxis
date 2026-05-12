@@ -1,13 +1,15 @@
 import { type FormEvent, useState } from "react";
+import { ModeAppendEditor } from "../../components/mode-append-editor.js";
 import { PromptFragmentEditor } from "../../components/prompt-fragment-editor.js";
 import { StyleSlider } from "../../components/style-slider.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import styles from "./prompt-tab.module.css";
 
 /**
- * Prompt tab — two sections:
- *  1. Style sliders: Socratic/Lecture, Terse/Verbose, Formal/Casual → setStyleSliders
- *  2. Fragment editor: per-mode fragment override textarea
+ * Prompt tab — three sections:
+ *  1. Per-mode append: add text to the end of a specific mode's prompt
+ *  2. Style sliders: Socratic/Lecture, Terse/Verbose, Formal/Casual → setStyleSliders
+ *  3. Fragment editor (Advanced): per-mode fragment override textarea
  */
 export function PromptTab() {
   const client = usePraxisClient();
@@ -37,6 +39,15 @@ export function PromptTab() {
 
   return (
     <div className={styles.layout}>
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Per-mode append</h2>
+        <p className={styles.sectionDesc}>
+          Add text to the end of a specific mode&apos;s prompt. The text appears after the
+          framework&apos;s content and before the postamble.
+        </p>
+        <ModeAppendEditor />
+      </section>
+
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Teaching Style</h2>
         <p className={styles.sectionDesc}>
@@ -89,8 +100,8 @@ export function PromptTab() {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Prompt Fragment Overrides</h2>
         <p className={styles.sectionDesc}>
-          Override individual prompt fragments for specific modes. The agent uses these instead of
-          the built-in defaults.
+          Advanced: replace specific framework fragments wholesale. Use append above for additive
+          customization first.
         </p>
 
         <PromptFragmentEditor />
