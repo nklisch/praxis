@@ -87,4 +87,22 @@ coverage, and a handful of standalone bug fixes / cleanups.
 
 ## Gate runs
 
-_(populated by Phase 4)_
+- **gate-security** (2026-05-12) — 8 findings (0 Critical, 0 High, 1 Medium, 7 Low)
+  - 1 Medium → `.work/active/stories/` (`gate-security-document-id-path-traversal`)
+  - 7 Low → `.work/backlog/` (DOM ID guard, openExternal URL parse, IPC error leak, engineConfig plaintext apiKey, logger secret scrubber, setEngineConfig strict schema, tool-socket perms/token)
+- **gate-docs** (2026-05-12) — 20 rolling-foundation findings (15 implementing, 5 drafting)
+  - 14 CONTRACT.md / ARCHITECTURE.md / ROADMAP.md / ONBOARDING.md drifts
+  - 4 pattern-skill staleness (engine-session-lifecycle signal, tool-dispatch meta, service-deps new fields, mode-prompt-fragment file:line)
+  - 1 CHANGELOG gap (will be created by Phase 5.5)
+  - 1 design-doc policy clarification
+- **gate-cruft** (2026-05-12) — 11 findings (7 High, 4 Medium, 0 Low)
+  - 7 High → `.work/active/stories/` (unused clearTimer, episodicToMessages alias, skipped Claude Code conformance test, misplaced biome-ignore suppressions, stale biome-ignore noExplicitAny, unused exam-test imports, unused MasterySignal import)
+  - 4 Medium → `.work/active/stories/` (composeBrief unused export, docx-ingestor prior-pipeline comment, engine-config orphan comment, AuthoringClient Phase 3/11 narrative JSDoc)
+- **gate-patterns** (2026-05-12) — 2 patterns extracted, 3 inconsistencies flagged
+  - New patterns: `batch-tool-per-item-results`, `shared-test-fake-factories`
+  - Inconsistencies (→ `[refactor]` stories at drafting): service-deps-injection required ports, subscriber-fanout-stream filter variant, load-or-throw read-side scope
+  - Pattern files at `.claude/skills/patterns/`; index updated in `.claude/rules/patterns.md`; tracking item `gate-patterns-v0-1-1` at stage:done
+- **gate-tests** (2026-05-12) — 20 findings (0 Critical, 3 High, 10 Medium, 7 Low)
+  - 3 High → `.work/active/stories/` (SecretStorage unavailable encrypt, importUpdateFeedPublicKey length-guard tautology, prompt-customization lock-gating)
+  - 10 Medium → `.work/active/stories/` (attach_document configureMode, ask_student_question toolnames, interrupted engine_abort, decryption-failure idempotency, empty apiKey write, ingestion-service embedded-image rename, IPC cancel e2e, authoring audit-log no-content, list_dangling_refs contract divergence, start_exploration without callId)
+  - 7 Low → `.work/backlog/` (draft-store rapid save, image cross-chunk boundary, update-banner installer hash UI, pptx slide-fallback real fixture, engineId rename without key, sub-agent collision warn-log, cancel-idempotency states)
