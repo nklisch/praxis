@@ -1,14 +1,14 @@
 ---
 id: feature-agent-transparency-ux
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, chat]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Agent transparency UX
@@ -920,3 +920,28 @@ Stories 1, 2, 4 can run in parallel. Story 3 lands after Story 2.
 6. **Renaming `course.start_exploration`'s present label from "Exploring your sources" to "Reading your materials" creates terminology consistency.** Since Story 4 lands the rename and Story 3 already references `getToolLabel(item.toolName).present` for the fallback initialLabel on `<SubAgentBlock>`, the rename's effect is automatic — no extra wiring.
 
 <!-- Implementation Notes accumulate here as work progresses. -->
+
+## Children complete (2026-05-12)
+
+All four child stories have landed and are at `stage: review` or `done`:
+
+- `feature-agent-transparency-ux-stream-pacing` — **done** (commit `8fc1d2f`, reviewed and approved `eab5ce8`). Tool-interstitial pacing (`MIN_INTERSTITIAL_VISIBLE_MS = 800`); `kind: "thinking"` ChatStreamItem variant + `<ReasoningBlock>`; near-bottom (80px) scroll heuristic. 36 new tests.
+- `feature-agent-transparency-ux-subagent-channel` — **done** (commit `cab64a4` + re-pass `17c1421`, reviewed `a808a1e`). `SubAgentRegistry` + IPC channel + explorer emission; `callId` threaded through tool dispatch via SDK callCounter surfacing.
+- `feature-agent-transparency-ux-rename-course-design` — **done** (commit `5b0ccdb`, reviewed and approved `243f806`). Student-facing rename "bootstrap" → "course design", "explore" → "reading your materials". Internal identifiers untouched.
+- `feature-agent-transparency-ux-subagent-ui` — **review** (commit `c78e7e9`). Inline `<SubAgentBlock>` + bootstrap-tab side panel `<SubAgentPanel>`; `useSubAgent` and `useCurrentSubAgent` hooks; `spawnsSubAgent` flag on `course.start_exploration`. **Resolves the cross-channel agreement question end-to-end** via an adapter-side translation map in `packages/engines/src/claude-code/events.ts` (`ClaudeCodeEventState.toolIdToCallId`) — Claude's UUID `tool_use_id` is now translated to the bridge's sequential callId before being emitted as `tool_call.callId`, so engine event and registry agree. 4 cross-channel agreement tests.
+
+**Cross-cutting deviation**: the subagent-channel story bounced once during review (MCP-side callId propagation was incomplete in the first pass; re-pass surfaced the SDK's callCounter through the `tool()` callback). The subagent-ui story then surfaced the deeper issue (Claude's `tool_use_id` ≠ worker's `callCounter`) and landed the adapter-side translation map. Both the registry and the chat-stream now agree on a single id for each tool call.
+
+**Verification (workspace-wide)**: `pnpm typecheck` green across all 10 packages (including the root tsconfig gate); `pnpm test` 798+ UI tests pass; 103 engine tests pass with the 4 new cross-channel agreement tests.
+
+**Capability check (end-to-end)**:
+- Tutor's thinking content renders as a faint expandable summary (`<ReasoningBlock>`) when the engine emits thinking events.
+- Tool interstitials respect a minimum 800ms visible time before settling, so fast tools don't flash.
+- Auto-scroll only fires when the user is within 80px of the bottom.
+- Sub-agent runs (e.g., `course.start_exploration`) render an inline `<SubAgentBlock>` in the chat with live step count; expandable to show step labels; settled-but-visible after completion.
+- Bootstrap tab body's right pane has a "show sub-agent transcript" toggle that reveals the full step list.
+- Mode picker / tab labels / tool interstitial labels read "course design" / "Reading your materials" instead of "bootstrap" / "Exploring your sources".
+
+Advancing feature `implementing → review`. The next autopilot review pass will evaluate the realized capability.
+
+Resolves: backlog idea `idea-subagent-callid-end-to-end-verification` (subagent-ui's adapter-side translation map answers that question).
