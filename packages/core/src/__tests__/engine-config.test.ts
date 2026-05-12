@@ -192,6 +192,50 @@ describe("encrypt/decrypt round-trip — apiKey at rest", () => {
     expect(stored?.apiKeyEncrypted).toBeDefined();
   });
 
+  it("decryption failure is idempotent across multiple reads — blob is preserved every time", () => {
+    const { db: client } = openDb({ path: db.dbPath });
+
+    const corruptBlob = "not-valid-ciphertext!";
+    const seedUpdatedAt = new Date(Date.now() - 5_000); // 5 s in the past
+
+    client
+      .insert(configKv)
+      .values({
+        key: "engine",
+        valueJson: { engineId: "claude-code", apiKeyEncrypted: corruptBlob },
+        updatedAt: seedUpdatedAt,
+      })
+      .run();
+
+    const failingSs: SecretStorage = {
+      isAvailable: () => true,
+      encrypt: (p) => Buffer.from(p).toString("base64"),
+      decrypt: () => null,
+    };
+
+    // First read: apiKey undefined, blob still there.
+    const config1 = readEngineConfig(client, failingSs);
+    expect(config1.apiKey).toBeUndefined();
+
+    const rows1 = client.select().from(configKv).where(eq(configKv.key, "engine")).all();
+    const stored1 = rows1[0]?.valueJson as Record<string, unknown> | undefined;
+    expect(stored1?.apiKeyEncrypted).toBe(corruptBlob);
+    const updatedAt1 = rows1[0]?.updatedAt?.getTime();
+
+    // Second read: same result — no write happened between reads.
+    const config2 = readEngineConfig(client, failingSs);
+    expect(config2.apiKey).toBeUndefined();
+
+    const rows2 = client.select().from(configKv).where(eq(configKv.key, "engine")).all();
+    const stored2 = rows2[0]?.valueJson as Record<string, unknown> | undefined;
+    expect(stored2?.apiKeyEncrypted).toBe(corruptBlob);
+    const updatedAt2 = rows2[0]?.updatedAt?.getTime();
+
+    // updatedAt must not have changed — no migration write fired on either read.
+    expect(updatedAt2).toBe(updatedAt1);
+    expect(updatedAt1).toBe(seedUpdatedAt.getTime());
+  });
+
   it("writeEngineConfig with unavailable safeStorage + apiKey throws", () => {
     const { db: client } = openDb({ path: db.dbPath });
     expect(() =>
