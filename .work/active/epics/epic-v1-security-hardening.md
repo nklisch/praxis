@@ -1,7 +1,7 @@
 ---
 id: epic-v1-security-hardening
 kind: epic
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -154,3 +154,20 @@ independent at every layer; their only commonality is the v0.2 release
 bundle. The riskiest sub-element is the API-key migration of existing
 plaintext rows (covered in the encrypt-api-key feature's design
 considerations as a dedicated story), but it's bounded and well-scoped.
+
+## Children complete (2026-05-12)
+
+Both child features have landed and are at `stage: done`:
+
+- `epic-v1-security-hardening-encrypt-api-key` — **done** (commit `6722806`, reviewed and approved `1bb082c`). SecretStorage port + ElectronSafeStorageAdapter; legacy plaintext rows migrated on first read; refuse-to-save when safeStorage unavailable; inMemorySecretStorage() helper for tests.
+- `epic-v1-security-hardening-sign-update-feed` — **done** (commit `f9fe7ac`, reviewed and approved `fa91660`). Detached Ed25519 sig file convention; bundled public key constant (placeholder empty until maintainer generates keypair); installerSha256 surfaced in banner for manual verification; scripts/sign-update-feed.ts for release-time signing; UPDATE-CHANNEL.md trust model rolled forward.
+
+**Cross-cutting**: no shared code between the two features, as the decomposition predicted. Both delivered independently with no integration friction.
+
+**Verification (workspace-wide)**: `pnpm typecheck` green across all 10 packages (incl. root gate); `pnpm test` green (~2810+ tests); `pnpm lint` shows only pre-existing claude-cli-sdk warnings.
+
+**Capability realized**: v1 security commitment delivered end-to-end —
+1. API keys at rest are encrypted via the platform keychain (Keychain / DPAPI / libsecret).
+2. The update feed is cryptographically signed and verified before any update is surfaced to the user. Tampered feeds produce silent failures with detailed main-process logs.
+
+Advancing epic `implementing → review`. The next autopilot review pass will evaluate the bundle.
