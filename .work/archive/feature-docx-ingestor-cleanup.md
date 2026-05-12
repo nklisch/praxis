@@ -1,7 +1,7 @@
 ---
 id: feature-docx-ingestor-cleanup
 kind: feature
-stage: review
+stage: done
 tags: [ingestion]
 parent: null
 depends_on: [feature-powerpoint-ingestion]
@@ -494,3 +494,22 @@ pnpm lint (root)                       → no errors in changed files
 - A side-by-side fixture-comparison harness (deferred with the swap).
 - Refactoring the `chunkMarkdown` to know about image references natively;
   the post-chunking regex scan is enough for this feature's scope.
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `_pendingDocId` instance field doubles as "synthetic doc id set inside runMammoth" and "result to capture next" — works correctly via the if/reset block, but could be cleaner as a return value from `runMammoth`. Not worth a follow-up.
+
+**Notes**:
+- Diff at commit `0751695`: clean implementation. The 40-line HTML-stripping regex chain is gone; replaced by `mammoth.convertToMarkdown()` directly.
+- Two real mammoth-API discoveries documented in implementation notes: (1) `convertToMarkdown` is at runtime in `mammoth@1.12.0` but absent from the bundled `.d.ts` — handled via local `MammothWithMarkdown` augmentation; (2) `image.contentType` is a sync `string`, not a Promise. Both are recorded for future readers.
+- `praxis://embedded/<imageName>` URI is an internal marker — `tagChunksWithImages` is the only consumer; embedded-image reads use `{ documentId, imageName }` against the store. No external leak surface.
+- No-store fast path skips `convertImage` entirely — DOCX without images pays zero IO cost.
+- Composition root reuses the existing shared `embeddedImageStore` instance (same one passed to `PptxIngestor`), so the cascade-delete path landed by `story-embedded-image-store-delete-cascade` covers DOCX images for free.
+- 24 new tests cover Unit 1 (text-path swap), Unit 2 (image extraction), `mimeToExt` cases, and per-parse state reset.
+
+Approved and advancing to done.
