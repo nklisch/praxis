@@ -1,14 +1,14 @@
 ---
 id: epic-v1-security-hardening
 kind: epic
-stage: drafting
+stage: implementing
 tags: [security]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # V1 security hardening
@@ -118,3 +118,39 @@ Origins: `.work/backlog/idea-encrypt-api-key-with-safestorage.md`,
 `.work/backlog/idea-update-feed-ed25519-signature.md`.
 
 <!-- Epic-design decomposes this into two child features. -->
+
+## Decomposition
+
+Split by capability, not by layer. The two findings come from the same v0.1.0
+security gate but address different attack surfaces (data-at-rest vs. update
+supply-chain), touch different files, and use different libraries (Electron
+safeStorage vs. Web Crypto Ed25519). No shared types or contracts — they
+parallelize cleanly. Grouping them as one epic lets `release-deploy` bind
+both into the v0.2 security release with a single user-facing commitment
+("v1 stores secrets safely and verifies updates before recommending them"),
+while letting each child feature land independently.
+
+### Child features
+
+- `epic-v1-security-hardening-encrypt-api-key` — Wrap the `apiKey` field in
+  `engine-config.ts` with Electron's `safeStorage` via a `SecretStorage`
+  port + `@praxis/desktop` adapter; one-time migration of plaintext rows on
+  startup. Depends on: `[]`
+- `epic-v1-security-hardening-sign-update-feed` — Add Ed25519 signature to
+  the update feed and verify in `update-service.ts` via Web Crypto before
+  surfacing any update banner; bundle the maintainer public key as a
+  hardcoded constant. Depends on: `[]`
+
+### Tags propagated
+
+`[security]` propagated to both children. No `[refactor]` or `[perf]` —
+both are greenfield capabilities, so the standard feature-design family
+runs.
+
+### Decomposition risks
+
+None surfaced during the pre-mortem. The two features are genuinely
+independent at every layer; their only commonality is the v0.2 release
+bundle. The riskiest sub-element is the API-key migration of existing
+plaintext rows (covered in the encrypt-api-key feature's design
+considerations as a dedicated story), but it's bounded and well-scoped.
