@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass-theme-tokens
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: feature-editorial-polish-pass
 depends_on: []
@@ -81,3 +81,18 @@ Badge tokens (`--color-badge: #f59e0b`, `--color-badge-text: #000000`) are decla
 ### Deviations from design suggestions
 
 None. The design's candidate values all held up under contrast verification and were shipped as given.
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `0e9e763`: clean. Media query block contains all 8 surface tokens; nav was already mostly tokenized except `.dueBadge` (the 2 hex values are now `--color-badge` / `--color-badge-text`, declared mode-invariant in `:root`).
+- WCAG AA contrast verified for every relevant text-on-background pairing (18.7:1 down to the muted-on-bg 6.2:1 — all clear AA).
+- 6 new tests (4 CSS structure + 2 `<Nav />` smoke). Workspace-wide typecheck green; 806 UI tests pass.
+
+Approved and advancing to done.

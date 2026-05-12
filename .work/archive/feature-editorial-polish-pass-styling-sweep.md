@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass-styling-sweep
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: feature-editorial-polish-pass
 depends_on: [feature-editorial-polish-pass-theme-tokens]
@@ -137,3 +137,19 @@ All three include WCAG AA contrast annotations in global.css.
 - `pnpm --filter @praxis/ui test` — ✓ 97 files, 822 tests
 - `pnpm typecheck` (root gate) — ✓ clean
 - Land-mode grep — ✓ 0 unjustified bare hex colors in CSS
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `52b05f7` (impl) + `718cd37` (stage): 65 CSS files audited; 0 unjustified bare hex colors remain. The grep-driven approach is the right one — exhaustive at the value level.
+- 3 new semantic tokens added (`--color-error`, `--color-success`, `--color-warning`) each with dark and light values; surfaces error/success/warning states across the app consistently in both modes.
+- Intentional-literal exemptions are well-justified: white text on colored buttons (must remain white regardless of theme), Bootstrap-style status badges in memory-inspector, syntax-highlight tokens in markdown-content. Each is marked inline so future sweeps recognize them.
+- 9 RouteHeader exceptions documented — all are legitimate tab panels / focused editors / workspace shells that aren't standalone routes. The decisions reflect editorial-system understanding, not just "couldn't be bothered".
+
+Approved and advancing to done. With this and the 3 sibling stories all done, the parent feature is ready for the feature-level review pass.

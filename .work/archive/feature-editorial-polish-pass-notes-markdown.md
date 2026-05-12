@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass-notes-markdown
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: feature-editorial-polish-pass
 depends_on: [feature-editorial-polish-pass-theme-tokens]
@@ -68,3 +68,18 @@ Not triggered — `<MarkdownContent>` rendered cleanly inside the note card butt
 - `pnpm --filter @praxis/ui typecheck` — pass
 - `pnpm typecheck` (root gate) — pass (all 10 packages)
 - `pnpm --filter @praxis/ui test` — 812/812 tests pass (96 test files)
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `380297d`: notes-list table cells render through `<MarkdownContent>`. Per-format extraction (`noteBodyToMarkdown`: free→text, cornell→first detail, feynman→explanation, outline→root.text, sketch→empty) preserves the existing preview semantics while gaining markdown rendering.
+- `-webkit-line-clamp: 3` + `overflow-wrap: anywhere` + flattened heading sizes keeps the cell layout stable for any markdown shape.
+- 6 new tests cover bold / list / inline-code / plain-text / empty-body / feynman-format cases.
+
+Approved and advancing to done.

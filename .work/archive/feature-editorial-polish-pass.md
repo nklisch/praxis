@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: null
 depends_on: []
@@ -324,3 +324,20 @@ All four child stories landed and are at `stage: review`:
 **Capability realized**: app surfaces now theme-respond to OS-level light/dark preference; notes display with proper markdown formatting; concepts surface is scrollable and filterable; every CSS color comes from a token (or is justified). The editorial design system has full surface coverage.
 
 Advancing feature `implementing → review`.
+
+## Review (2026-05-12, feature-level)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes (aggregate-only — per-line lenses exercised in each child's review)**:
+- Decomposition delivered as designed. Story 1 (theme-tokens) shipped the foundation; Stories 2/3/4 fanned out in parallel in Wave 2-3.
+- One in-scope expansion: Story 3 (concepts-navigation) discovered no flat-list concepts route existed, so the implementer created one at `/courses/$courseId/concepts` per the escape-hatch documented in the story brief. This is a real new capability (not just a polish), but the brief authorized it and the result is bounded.
+- Cross-cutting deliverables: the design system now has full color-token coverage (3 new semantic tokens + 9 light-mode overrides + 65 CSS files audited), the markdown rendering path is reused in notes (consistent with chat), and the editorial-primitives compliance is enforced with documented exceptions.
+- Foundation-doc alignment: no SPEC.md / VISION.md / ARCHITECTURE.md commitments touched. The "editorial design system" stays as the implicit architectural feature it already was.
+- Verification: workspace `pnpm typecheck` green (incl. root gate); 822 UI tests passing; lint clean on touched files.
+
+Feature delivered as briefed (and slightly beyond, with documented justification). Advancing to done.

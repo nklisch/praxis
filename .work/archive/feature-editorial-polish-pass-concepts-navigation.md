@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass-concepts-navigation
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: feature-editorial-polish-pass
 depends_on: [feature-editorial-polish-pass-theme-tokens]
@@ -132,3 +132,19 @@ pnpm --filter @praxis/ui typecheck  ✓  (no errors)
 pnpm --filter @praxis/ui test       ✓  (97 files, 822 tests all pass)
 pnpm typecheck                      ✓  (all packages clean)
 ```
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `68ca55d`: new flat-list route created at `/courses/$courseId/concepts` (the implementer's discovery: no such route existed; escape-hatch path taken per the story brief). Grouping by lesson title (units aren't surfaced through artifacts client — documented as the available proxy with "Ungrouped" fallback for concepts in no lesson).
+- Filter UX is clean: `<input type="search">`, case-insensitive substring on name + description, Escape clears + blurs, `×` clear button visible when non-empty. Browser's native search-cancel suppressed via `::-webkit-search-cancel-button { display: none }` to avoid double-clear controls.
+- 10 new test cases cover empty state, grouping (with/without lesson), filter narrowing, case-insensitivity, description matching, Escape behavior, clear-button behavior, no-results message, navigation back.
+- Surfaces a real new capability — a flat-list concepts route — beyond the strict "polish" scope. Worth noting in the feature-level review.
+
+Approved and advancing to done.
