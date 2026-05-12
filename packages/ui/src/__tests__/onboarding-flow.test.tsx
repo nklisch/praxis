@@ -22,13 +22,7 @@ import { makeFakeClient } from "./helpers/fake-client.js";
 
 // Mock ClaudeAuthModal to avoid rendering its internals (requires client.claudeAuth.login stream).
 vi.mock("../components/claude-auth-modal.js", () => ({
-  ClaudeAuthModal: ({
-    onClose,
-    onSignedIn,
-  }: {
-    onClose: () => void;
-    onSignedIn: () => void;
-  }) => (
+  ClaudeAuthModal: ({ onClose, onSignedIn }: { onClose: () => void; onSignedIn: () => void }) => (
     <div data-testid="claude-auth-modal">
       <button type="button" onClick={onClose}>
         Close
@@ -57,6 +51,7 @@ function buildClient(opts?: {
   startRejects?: boolean;
   engineId?: string;
   claudeLoggedIn?: boolean;
+  sendSpy?: (sessionId: string, message: string) => void;
 }): PraxisClient {
   return makeFakeClient({
     config: {
@@ -65,9 +60,7 @@ function buildClient(opts?: {
       unlock: vi.fn(),
       selectedEngine: vi.fn(),
       setSelectedEngine: vi.fn(),
-      engineConfig: vi
-        .fn()
-        .mockResolvedValue({ engineId: opts?.engineId ?? "direct.anthropic" }),
+      engineConfig: vi.fn().mockResolvedValue({ engineId: opts?.engineId ?? "direct.anthropic" }),
       setEngineConfig: vi.fn(async (cfg: { engineId: string; apiKey?: string }) => {
         await opts?.setEngineConfigSpy?.(cfg);
       }),
@@ -81,6 +74,17 @@ function buildClient(opts?: {
         if (opts?.startRejects) throw new Error("session start failed");
         await opts?.startSpy?.(input);
         return { sessionId: "sess-1" };
+      }),
+      send: vi.fn((sessionId: string, message: string) => {
+        opts?.sendSpy?.(sessionId, message);
+        // Return an async iterable that completes immediately.
+        return {
+          [Symbol.asyncIterator]() {
+            return {
+              next: async () => ({ value: undefined as never, done: true as const }),
+            };
+          },
+        };
       }),
     } as unknown as PraxisClient["session"],
     tabs: {
@@ -181,6 +185,57 @@ describe("OnboardingFlow", () => {
     expect(startSpy).toHaveBeenCalledWith({ modeId: "bootstrap" });
   });
 
+  describe("pre-seed messages on canonical course cards", () => {
+    async function goToCourseStep(client: PraxisClient) {
+      const onComplete = vi.fn(async () => undefined);
+      renderFlow({ client, onComplete });
+      fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+      await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
+      fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+      await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
+      return { onComplete };
+    }
+
+    it("Algebra card pre-seeds canonical algebra-1 pack message", async () => {
+      const sendSpy = vi.fn();
+      const client = buildClient({ sendSpy });
+      await goToCourseStep(client);
+
+      fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
+      await waitFor(() =>
+        expect(sendSpy).toHaveBeenCalledWith(
+          "sess-1",
+          "Please use the canonical algebra-1 pack to create my course.",
+        ),
+      );
+    });
+
+    it("Biology card pre-seeds canonical biology pack message", async () => {
+      const sendSpy = vi.fn();
+      const client = buildClient({ sendSpy });
+      await goToCourseStep(client);
+
+      fireEvent.click(screen.getByText(COPY.onboarding.courseBiologyLabel));
+      await waitFor(() =>
+        expect(sendSpy).toHaveBeenCalledWith(
+          "sess-1",
+          "Please use the canonical biology pack to create my course.",
+        ),
+      );
+    });
+
+    it("Syllabus card does not call session.send", async () => {
+      const sendSpy = vi.fn();
+      const client = buildClient({ sendSpy });
+      await goToCourseStep(client);
+
+      fireEvent.click(screen.getByText(COPY.onboarding.courseFromSyllabusLabel));
+      // Allow async work to settle before asserting absence.
+      await waitFor(() => expect(client.tabs.open).toHaveBeenCalled());
+      expect(sendSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe("EngineStep — claude-code sign-in button", () => {
     async function goToEngineStep(client: PraxisClient) {
       const onComplete = vi.fn(async () => undefined);
@@ -193,17 +248,13 @@ describe("OnboardingFlow", () => {
     it("shows 'Sign in to Claude Code' button when engine is claude-code and not signed in", async () => {
       const client = buildClient({ engineId: "claude-code", claudeLoggedIn: false });
       await goToEngineStep(client);
-      await waitFor(() =>
-        expect(screen.getByText("Sign in to Claude Code")).toBeDefined(),
-      );
+      await waitFor(() => expect(screen.getByText("Sign in to Claude Code")).toBeDefined());
     });
 
     it("shows 'Signed in to Claude Code ✓' when engine is claude-code and already signed in", async () => {
       const client = buildClient({ engineId: "claude-code", claudeLoggedIn: true });
       await goToEngineStep(client);
-      await waitFor(() =>
-        expect(screen.getByText("Signed in to Claude Code ✓")).toBeDefined(),
-      );
+      await waitFor(() => expect(screen.getByText("Signed in to Claude Code ✓")).toBeDefined());
     });
 
     it("does not render the sign-in button for non-claude-code engines", async () => {
@@ -230,9 +281,7 @@ describe("OnboardingFlow", () => {
       fireEvent.click(screen.getByText("Sign in to Claude Code"));
       // Simulate successful sign-in via the mock modal's "Signed In" button.
       fireEvent.click(screen.getByText("Signed In"));
-      await waitFor(() =>
-        expect(screen.getByText("Signed in to Claude Code ✓")).toBeDefined(),
-      );
+      await waitFor(() => expect(screen.getByText("Signed in to Claude Code ✓")).toBeDefined());
     });
   });
 });

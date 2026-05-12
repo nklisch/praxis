@@ -3,7 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type JSX, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { COPY } from "../lib/copy.js";
-import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import { ClaudeAuthModal } from "./claude-auth-modal.js";
 import styles from "./onboarding-flow.module.css";
 
@@ -248,6 +247,18 @@ function EngineStep({
 
 type CoursePath = "algebra" | "biology" | "syllabus";
 
+/**
+ * Pre-seed messages injected into the bootstrap session after `session.start`
+ * resolves. null means no pre-seed (syllabus path — user supplies their own
+ * context). Pack ids ("algebra-1", "biology") match the canonical JSON
+ * manifests in packages/curriculum/packs/.
+ */
+const PRESEED_MESSAGES: Record<CoursePath, string | null> = {
+  algebra: "Please use the canonical algebra-1 pack to create my course.",
+  biology: "Please use the canonical biology pack to create my course.",
+  syllabus: null,
+};
+
 function CourseStep({
   onComplete,
   onBack,
@@ -271,11 +282,31 @@ function CourseStep({
       // exploration based on the user's first message. The labels guide the
       // user toward the right initial prompt.
       await onComplete();
-      await openSessionInTab({
-        client,
-        navigate,
-        startOpts: { modeId: "bootstrap" },
-      });
+
+      // Inline the start → (optional pre-seed send) → tabs.open → navigate
+      // sequence so we can inject a canonical-pack message for algebra and
+      // biology before the user lands in the chat.
+      const handle = await client.session.start({ modeId: "bootstrap" });
+
+      const preSeedMessage = PRESEED_MESSAGES[path];
+      if (preSeedMessage !== null) {
+        // Fire-and-forget: start consuming the send stream so the message is
+        // in-flight when the user arrives, but don't block navigation on it.
+        // If the pre-seed fails for any transient reason, we log a warning and
+        // proceed — the user can type the same message themselves.
+        void (async () => {
+          try {
+            for await (const _event of client.session.send(handle.sessionId, preSeedMessage)) {
+              // Drain events; the session service persists them server-side.
+            }
+          } catch (err) {
+            console.warn("[onboarding] pre-seed send failed (non-blocking):", err);
+          }
+        })();
+      }
+
+      const tab = await client.tabs.open({ sessionId: handle.sessionId });
+      await navigate({ to: "/chat/$tabId", params: { tabId: tab.id } });
     } catch {
       setError(COPY.onboarding.couldNotStart);
       setBusy(null);
