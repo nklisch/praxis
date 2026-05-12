@@ -1,14 +1,14 @@
 ---
 id: feature-agent-transparency-ux-rename-course-design
 kind: story
-stage: implementing
+stage: review
 tags: [ui, content]
 parent: feature-agent-transparency-ux
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Rename "bootstrap" / "explore" to "course design" / "reading your materials"
@@ -67,4 +67,24 @@ flows through automatically.
 - COPY module SSOT: `packages/ui/src/lib/copy.ts`
 - Tool labels SSOT: `packages/tools/src/labels/index.ts`
 
-<!-- Implementation Notes accumulate here as work progresses. -->
+## Implementation notes
+
+### Files touched
+
+- `packages/curriculum/src/modes/bootstrap.ts` — `label` and `description` updated; `id: "bootstrap"` unchanged.
+- `packages/ui/src/components/mode-meta.ts` — `bootstrap` entry `name` changed to `"course design"`.
+- `packages/ui/src/components/new-tab-picker.tsx` — radio label now renders `getModeMeta(mode).name`; `getModeMeta` import added.
+- `packages/ui/src/lib/copy.ts` — `empty.libraryCoursesEmpty` and `onboarding.courseFromSyllabusBody` updated.
+- `packages/ui/src/components/bootstrap-tab-body.tsx` — JSDoc comments, `aria-label`, and `title` on the budget input updated.
+- `packages/tools/src/labels/index.ts` — `course.start_exploration` `present` updated; `past` added.
+
+### Tests updated
+
+- `packages/ui/src/__tests__/new-tab-picker.test.tsx` — radio name assertion for bootstrap mode updated from `"bootstrap"` to `"course design"`.
+- No other tests asserted on the renamed strings (onboarding flow uses `COPY.*` keys; library/chat/courses tests use `modeId: "bootstrap"` as a code value, not a display string).
+
+### Verification
+
+- `pnpm typecheck` — passed (all 10 packages clean).
+- `pnpm test` — 301 files passed, 2 skipped; 2651 tests passed, 21 skipped.
+- Lint pre-existing failures in `packages/claude-cli-sdk/` and `packages/client/` test files; none in touched files.
