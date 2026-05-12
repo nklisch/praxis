@@ -1,7 +1,7 @@
 ---
 id: feature-docx-ingestor-cleanup
 kind: feature
-stage: implementing
+stage: review
 tags: [ingestion]
 parent: null
 depends_on: [feature-powerpoint-ingestion]
@@ -415,6 +415,75 @@ after ingest) is enough.
    no consumer parses the URI. If we want to strip it from rendered text
    later, a post-chunk-text-sanitizer can do that without changing the
    ingestor contract.
+
+## Implementation notes
+
+### Files changed
+
+- **`packages/tools/src/runtime/ingestion/docx-ingestor.ts`** — full rewrite.
+  Deleted `docxHtmlToMarkdown` and `stripTags` helpers (the entire HTML-regex
+  chain). Added `DocxIngestorOptions` interface, constructor, `runMammoth`
+  private method, `tagChunksWithImages` helper, `mimeToExt` helper, and
+  `MammothWithMarkdown` local type augmentation.
+- **`packages/tools/src/runtime/ingestion/__tests__/docx-ingestor.test.ts`** —
+  new test file with 24 tests covering all three units. Mocks mammoth via
+  `vi.mock("mammoth")` (same pattern as pptx-ingestor.test.ts with officeparser).
+- **`packages/desktop/electron/main/services.ts`** — line 295: `new DocxIngestor()`
+  → `new DocxIngestor({ embeddedImageStore })`.
+
+### Mammoth API verification (mammoth@1.12.0)
+
+- `convertToMarkdown` exists **at runtime** (`lib/index.js:13`) but is **absent
+  from the bundled `.d.ts`** (`lib/index.d.ts` only declares `convertToHtml`,
+  `extractRawText`, `embedStyleMap`). Resolved by casting through `unknown` to
+  a local `MammothWithMarkdown` interface with the correct signatures.
+- `image.contentType` is a **sync string** in this version (not a Promise).
+  The design body said `await image.contentType ?? "image/png"` — adapted to
+  remove the unnecessary `await` at the call site.
+- `image.readAsBase64String()` returns `Promise<string>` — matches the design.
+- `images.imgElement(fn)` takes `fn: (image: Image) => Promise<ImageAttributes>` —
+  matches the design exactly.
+- `mammoth.convertToMarkdown` is called with the same `Options` shape as
+  `convertToHtml`; the `convertImage` option is wired through `Options.convertImage`.
+
+### Tests added
+
+24 tests across five describe blocks:
+- **DocxIngestor — metadata**: `isAvailable()`, id/label/extensions/mimeTypes.
+- **DocxIngestor — text extraction (Unit 1)**: ingestorId, H1 title, filename
+  fallback, chunk production, sequential indices, maxChars pass-through, no
+  pendingEmbeddedImageDocId without store, no imageNames without store.
+- **DocxIngestor — embedded image extraction (Unit 2)**: save + pendingDocId set,
+  multiple images sequential naming, imageNames tagged on containing chunks,
+  no pendingDocId when document has no images, Base64 decode verification,
+  text-only path unaffected, per-parse independence (pendingDocId resets).
+- **DocxIngestor — mimeToExt coverage**: 7 mime-type → extension cases including
+  fallback `.bin`.
+
+No binary fixture was needed — mammoth is mocked at the vi.mock boundary.
+The `simulateConvertToMarkdownWithImages` helper drives the `imgElement` callback
+directly, injecting fake `{ contentType, readAsBase64String }` image objects.
+
+### Markdown output vs. prior implementation
+
+The prior `convertToHtml` + regex pipeline produced heading-prefixed text blocks
+(`# Heading\n\nparagraph`). `convertToMarkdown` produces structurally equivalent
+output for the structures the chunker cares about (h1-h6, paragraphs, lists).
+Minor differences: mammoth's markdown writer may emit `**bold**` and `_italic_`
+inline emphasis (the regex chain stripped them). These are kept verbatim in
+`chunk.text` — no consumer depends on text being emphasis-free, and the
+heading-aware grouping in `chunkMarkdown` is unaffected.
+
+### Verification output
+
+```
+pnpm --filter @praxis/tools typecheck  → pass
+pnpm typecheck (root gate)             → pass (all 10 packages)
+pnpm --filter @praxis/tools test       → 538 passed, 20 skipped (68 test files)
+  docx-ingestor.test.ts               → 24/24 passed
+pnpm lint (root)                       → no errors in changed files
+                                         (18 pre-existing errors in other files)
+```
 
 ## Out of scope
 

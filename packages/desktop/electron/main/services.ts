@@ -292,7 +292,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     new PlainTextIngestor(),
     new MarkdownIngestor(),
     new HtmlIngestor(),
-    new DocxIngestor(),
+    new DocxIngestor({ embeddedImageStore }),
     new EpubIngestor(),
     new JsPdfIngestor(),
     new PptxIngestor({ embeddedImageStore }),
