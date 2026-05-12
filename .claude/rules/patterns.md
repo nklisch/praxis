@@ -7,6 +7,7 @@ Detailed examples for each pattern are in `.claude/skills/patterns/{slug}.md`. R
 - **engine-session-lifecycle**: `Engine.open(opts)` → `EngineSession`; `send(msg)` reuses the live SDK conversation; `close()` in `finally`; seed with `priorTurns` only on engine swap/restart → [engine-session-lifecycle.md]
 - **sdk-event-mapping**: Each adapter has a `map*Event(sdkEvent, ctx)` in its `events.ts` that returns `EngineEvent | null`; Codex returns `EngineEvent[]` (one SDK event can produce multiple) → [sdk-event-mapping.md]
 - **tool-dispatch-pipeline**: Model call → adapter maps to `registry.dispatch(name, args)` → Zod validation → `handler(parsed.data, ToolContext)` → `ToolResult`; all adapters share the same dispatch path → [tool-dispatch-pipeline.md]
+- **batch-tool-per-item-results**: Tools that mutate N items in one step return `{ ok: AND(item.ok), results: ({ok:true, ...id} | {ok:false, ...id, reason})[] }` and never abort on per-item failure; sequential `await` to preserve order; per-item `reason` is the model's correction signal → [batch-tool-per-item-results.md]
 - **episodic-append-ordering**: Within a turn: `recordUserMessage` → yield `user_message` → `for await engine events` → `appendEpisodic` immediately per event → yield event; write-failure is non-fatal → [episodic-append-ordering.md]
 
 ## Configuration and data patterns
@@ -40,3 +41,4 @@ Detailed examples for each pattern are in `.claude/skills/patterns/{slug}.md`. R
 - **ui-test-helper**: `makeFakeClient(overrides?)` from `__tests__/helpers/fake-client.ts` is the single SOT for test PraxisClient stubs; wrap renders in `<PraxisClientProvider>`; mock `@tanstack/react-router` with `async importOriginal` form to preserve non-hook exports → [ui-test-helper.md]
 - **temp-db-test-helper**: `useTempDb(opts?)` from `tests/helpers/db-setup.ts` sets up per-test isolated SQLite + migrations; from per-package tests import via `../../../../tests/helpers/db-setup.js` → [temp-db-test-helper.md]
 - **slow-test-gating**: Pyodide integration tests use `describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)` with `{ timeout: 120_000 }`; fast unit tests mock the runtime → [slow-test-gating.md]
+- **shared-test-fake-factories**: Port test doubles live as factory functions in `tests/helpers/mocks.ts` (`noopLogger`, `noopLockService`, `inMemorySecretStorage`, `unavailableSecretStorage`, `noopCourseDocuments`, `recordingLogger`); tests import these instead of inlining literal mocks — new ports added to `ServiceDeps` warrant a fake here when 3+ tests will need it → [shared-test-fake-factories.md]

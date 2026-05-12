@@ -18,6 +18,7 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [engine-session-lifecycle.md](engine-session-lifecycle.md) — `Engine.open()` → `EngineSession.send()/close()`; native SDK multi-turn
 - [sdk-event-mapping.md](sdk-event-mapping.md) — per-adapter `map*Event()` translates SDK events to `EngineEvent`
 - [tool-dispatch-pipeline.md](tool-dispatch-pipeline.md) — model → `registry.dispatch()` → Zod → `handler(args, ToolContext)`
+- [batch-tool-per-item-results.md](batch-tool-per-item-results.md) — batch tools collapse N mutations into one model step; return `{ ok: AND(item.ok), results: ({ok:true, ...id} | {ok:false, ...id, reason})[] }`; never abort on per-item failure
 - [episodic-append-ordering.md](episodic-append-ordering.md) — user message persisted before engine runs; engine events appended per-event
 
 ### Configuration and data patterns
@@ -50,3 +51,4 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [ui-test-helper.md](ui-test-helper.md) — `makeFakeClient(overrides?)` from `__tests__/helpers/`; `<PraxisClientProvider>` render wrapper; TanStack Router mock
 - [temp-db-test-helper.md](temp-db-test-helper.md) — `useTempDb()` from `tests/helpers/db-setup.ts`; import via relative path
 - [slow-test-gating.md](slow-test-gating.md) — `describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)` for Pyodide integration tests
+- [shared-test-fake-factories.md](shared-test-fake-factories.md) — port test doubles live in `tests/helpers/mocks.ts` as factory fns (`inMemorySecretStorage`, `noopLockService`, `recordingLogger`); new ports added to `ServiceDeps` get a factory here when 3+ tests will need it
