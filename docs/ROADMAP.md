@@ -343,7 +343,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 17: Item type expansion + inline quick checks
+## Phase 17: Item type expansion + inline quick checks ✓ SHIPPED
 
 **Goal:** Expand the assessment item palette from five kinds to nine and introduce inline formative checks. The tutor gains a lightweight `quick_check.*` tool family for single-question probes mid-conversation — no assignment tab required, no context switch, just a card in the thread and a reaction in the same turn.
 
@@ -364,7 +364,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 18: Study-skills + pedagogy pack + remaining memory
+## Phase 18: Study-skills + pedagogy pack + remaining memory ✓ SHIPPED
 
 **Goal:** Dedicated metacognition coach mode plus the procedural / affective memory it relies on.
 
@@ -382,7 +382,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 19: Biology canonical + Electron packaging + ship
+## Phase 19: Biology canonical + Electron packaging + ship ✓ SHIPPED
 
 **Goal:** Shippable v1 — signed installer for at least one platform with both canonical packs.
 
@@ -415,5 +415,5 @@ Items with a clear owner-defined trigger to revisit, but explicitly out of scope
 - **Vision-capable Claude Code / Codex pass-through optimization**: Phase 5 ships pass-through but uses one-shot SDK sessions per page (clean isolation). A future optimization could batch multi-page calls to reduce subscription/API overhead.
 - **PDF page rendering in citation cards**: Phase 5 cards show extracted text + page number; rendered page images would require pdfjs-dist in the renderer process. Couples to Phase 13 vision work.
 - **Hybrid keyword + vector search**: pure vector for v1; BM25 layer is a future polish.
-- **EPUB-with-images, PPTX, RTF**: skipped in Phase 5 by deliberate format-set choice; revisit if user demand emerges.
+- **EPUB-with-images, RTF**: skipped in Phase 5 by deliberate format-set choice; revisit if user demand emerges.
 - **Image OCR for raw photo uploads (PNG/JPG)**: Phase 13 territory (vision OCR for handwritten student work uses the same path).

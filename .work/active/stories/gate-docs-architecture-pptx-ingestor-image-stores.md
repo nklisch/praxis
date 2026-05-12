@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-pptx-ingestor-image-stores
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ A `PptxIngestor` ships via `feature-powerpoint-ingestion`, using `officeparser` 
 
 ## Required edit
 Add `PptxIngestor` to the per-format adapter list. Append a sentence describing the `EmbeddedImageStore` / `PageImageStore` ports for storing extracted figures, content-addressed under the document.
+
+## Implementation notes
+Edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Rolling-foundation discipline: stale assertions replaced in place; no "previously" prose.

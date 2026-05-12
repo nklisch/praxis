@@ -47,7 +47,7 @@ Praxis ships as a pnpm workspace monorepo. Every component is a TypeScript packa
 
 | Package | Responsibility |
 |---|---|
-| **`@praxis/core`** | The agent harness. Brief construction, event stream consumption, mode runtime, tool registry, prompt composition. Owns the `run()` loop dispatch. Exposes a typed service interface consumed via transport. Houses `ActivityRegistry`, concept-graph indexers, and the ingestion `Ingestor` port + per-format adapters. |
+| **`@praxis/core`** | The agent harness. Brief construction, event stream consumption, mode runtime, tool registry, prompt composition. Owns the `run()` loop dispatch. Exposes a typed service interface consumed via transport. Houses `ActivityRegistry`, concept-graph indexers, draft persistence (`SqliteDraftStore`), prompt-customization layers (`PromptCustomizationService`), `SubAgentRegistry`, the signed-update verifier (`UpdateServiceImpl` + `update-feed-public-key`), and the ingestion `Ingestor` port + per-format adapters. |
 | **`@praxis/client`** | Typed RPC client for the UI. Bundles two transport implementations (IPC for Electron, WebSocket+HTTP for hosted), selected at runtime. The only `@praxis/*` package the UI imports — enforces the UI/backend boundary. Imports `@praxis/core` types only (no runtime). |
 | **`@praxis/engines`** | The three engine adapters (Claude Code / Codex / Direct). Each implements the engine contract. Also exports `runOneShot` (a one-turn convenience helper) used by `@praxis/core/services` indexers and the bootstrap explorer at runtime. The rest of `@praxis/core` (outside `services/`) must not import `@praxis/engines`. |
 | **`@praxis/memory`** | Episodic log, the four projection layers, indexer agents that compute projections, the export/import format, the BKT-inspired mastery model. |
@@ -55,7 +55,7 @@ Praxis ships as a pnpm workspace monorepo. Every component is a TypeScript packa
 | **`@praxis/tools`** | Verification tools (math via sympy, code sandbox, retrieval, vision, citation), pedagogy tools, course tools, bootstrap-explorer tools (`course.start_exploration`, `course.draft_*`), sketch tools, clarification tool, gating tools. Zod-typed schemas; engine-adapter-format conversion. |
 | **`@praxis/curriculum`** | Mode definitions, pedagogy pack runtime, gating logic, adaptive routing, knowledge-graph schema, BKT-style mastery updates. |
 | **`@praxis/ui`** | Vite + React + TanStack Router SPA. Student surface (chat + progress map + workspace + concept-map), configure surface (course authoring, gate editing, prompt customization), shared component library. Embeds tldraw for sketching surfaces and React Flow for the gate editor. Imports only from `@praxis/client`. |
-| **`@praxis/desktop`** | Electron host. Starts `@praxis/core` in the Electron main process (or a forked child for isolation), mounts the IPC transport server, loads the Vite-built `@praxis/ui` static bundle in the renderer. Adds local-first conveniences (file picker, on-disk storage paths). |
+| **`@praxis/desktop`** | Electron host. Starts `@praxis/core` in the Electron main process (or a forked child for isolation), mounts the IPC transport server, loads the Vite-built `@praxis/ui` static bundle in the renderer. Adds local-first conveniences (file picker, on-disk storage paths) and at-rest secret encryption via `ElectronSafeStorageAdapter` (the `SecretStorage` port implementation backed by OS keyring through Electron `safeStorage`). |
 | **`@praxis/claude-cli-sdk`** | In-tree TypeScript wrapper around the Claude Code CLI subprocess. Forked from `@nklisch/claude-cli-sdk` and brought in-tree so the workspace deploy pipeline can resolve it. Consumed exclusively by `@praxis/engines`'s Claude Code adapter. Owned and modified freely — Praxis is the only consumer. |
 | **`praxis-ingest`** | Python CLI (deferred post-v1). In v1, ingestion is TS-native via `Ingestor` port + per-format adapters in `@praxis/tools/runtime/ingestion/`. The `ActivityRail` surfaces ingestion progress without blocking other use. |
 
@@ -307,7 +307,7 @@ Tools are defined in `@praxis/tools` with Zod schemas and runtime handlers. Engi
 This means:
 
 - One implementation of `grade_math` that always uses sympy, regardless of which engine is active.
-- Tool implementations may themselves call sub-agents (e.g., `grade_with_rubric` runs a small grader agent against the rubric).
+- Tool implementations may themselves call sub-agents (e.g., `course.start_exploration` runs the bootstrap explorer agent; `grade_with_rubric` runs a small grader agent against the rubric). Sub-agent activity is published through `SubAgentRegistry` — the registry surfaces a `SubAgentItem` per parent `tool_call`, streams `step_started` / `step_settled` / `phase_changed` events, and is fanned out to renderers over the `praxis.subAgent.events` IPC family. The chat UI renders these inline as `<SubAgentBlock>` next to the originating tool_call. Tools key their items on `ctx.callId` (threaded in via `ToolDispatchMeta`); when `ctx.callId` is absent (tests, direct invocation) the registry returns null and the tool simply doesn't publish.
 - Adding a tool is a single-place change: define schema + handler in `@praxis/tools`, register in the right mode's tool subset.
 
 ## Artifact lifecycle
@@ -357,7 +357,7 @@ Tutor   ──┘
 
 ## Ingestion pipeline
 
-Ingestion is TS-native. The `Ingestor` port in `@praxis/tools/runtime/ingestion/` dispatches to per-format adapters: `PlainTextIngestor`, `MarkdownIngestor`, `HtmlIngestor`, `DocxIngestor`, `EpubIngestor`, `JsPdfIngestor`, `VisionPdfIngestor`. The Python `praxis-ingest` sidecar is deferred post-v1.
+Ingestion is TS-native. The `Ingestor` port in `@praxis/tools/runtime/ingestion/` dispatches to per-format adapters: `PlainTextIngestor`, `MarkdownIngestor`, `HtmlIngestor`, `DocxIngestor`, `EpubIngestor`, `PptxIngestor`, `JsPdfIngestor`, `VisionPdfIngestor`. Embedded figures extracted by `DocxIngestor` / `PptxIngestor` are saved to the `EmbeddedImageStore` port; page rasters from `VisionPdfIngestor` go to the `PageImageStore` port. Both stores are content-addressed under the document id. The Python `praxis-ingest` sidecar is deferred post-v1.
 
 ```
 User selects file(s) in UI

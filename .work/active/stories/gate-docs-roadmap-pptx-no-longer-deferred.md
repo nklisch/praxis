@@ -1,7 +1,7 @@
 ---
 id: gate-docs-roadmap-pptx-no-longer-deferred
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ PPTX shipped as `PptxIngestor` via `feature-powerpoint-ingestion` (text extracti
 
 ## Required edit
 Remove `PPTX` from the bullet — leave `EPUB-with-images, RTF`.
+
+## Implementation notes
+Edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Rolling-foundation discipline: stale assertions replaced in place; no "previously" prose.

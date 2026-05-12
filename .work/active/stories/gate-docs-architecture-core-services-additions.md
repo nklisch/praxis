@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-core-services-additions
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ Five new services landed in v0.1.1 but the doc is silent on them. The package-le
 
 ## Required edit
 Expand `@praxis/core`'s row to mention "draft persistence (SqliteDraftStore), prompt customization, sub-agent registry, signed update verifier" alongside the existing "ingestion `Ingestor` port + per-format adapters"; expand `@praxis/desktop`'s row to mention "at-rest secret storage via `ElectronSafeStorageAdapter`". (Aligns with rolling-foundation by editing the existing line, not appending "additions in v0.1.1".)
+
+## Implementation notes
+Edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Rolling-foundation discipline: stale assertions replaced in place; no "previously" prose.

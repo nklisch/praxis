@@ -1,7 +1,7 @@
 ---
 id: gate-docs-design-doc-policy-clarification
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -37,3 +37,6 @@ Edit `CLAUDE.md` "Phase map" paragraph. Current text:
 
 Replace with:
 > "Major phase work (e.g. a new `Phase NN`) may warrant a `docs/designs/phase-NN-*.md`. Feature- and epic-level designs live in the substrate item body per the Item-IS-the-Work principle — don't create a separate doc unless the work is genuinely cross-cutting. Refactor plans in `docs/refactors/`."
+
+## Implementation notes
+Edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Rolling-foundation discipline: stale assertions replaced in place; no "previously" prose.

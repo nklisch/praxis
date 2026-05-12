@@ -1,7 +1,7 @@
 ---
 id: gate-docs-roadmap-phases-17-19-mark-shipped
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ Phases 17, 18, 19 are all complete — shipped before v0.1.0 per the CHANGELOG v
 
 ## Required edit
 Append "✓ SHIPPED" to each of the three phase headings, matching the convention used for Phases 10–16.
+
+## Implementation notes
+Edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Rolling-foundation discipline: stale assertions replaced in place; no "previously" prose.

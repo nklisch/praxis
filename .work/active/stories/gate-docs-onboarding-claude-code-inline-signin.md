@@ -1,7 +1,7 @@
 ---
 id: gate-docs-onboarding-claude-code-inline-signin
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ When the user selects Claude Code as their engine during onboarding Step 2, an i
 
 ## Required edit
 Rewrite the Claude Code bullet to describe the inline sign-in affordance in Step 2; remove the "first session prompts you" sentence.
+
+## Implementation notes
+Edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Rolling-foundation discipline: stale assertions replaced in place; no "previously" prose.

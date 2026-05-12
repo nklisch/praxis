@@ -63,13 +63,18 @@ configure things manually.
 Pick the model engine you'll use:
 
 - **Direct — Anthropic (Claude)** / **Direct — OpenAI (GPT)** /
-  **Direct — Google (Gemini)**: enter your API key. The key is stored
-  unencrypted in the local SQLite database (`config_kv` table) — protect
-  that file as you would any password file; it never leaves your
-  machine except in API requests to the chosen provider.
+  **Direct — Google (Gemini)**: enter your API key. The key is
+  encrypted at rest with Electron's `safeStorage` (Keychain on macOS,
+  DPAPI on Windows, libsecret / kwallet on Linux) — only your OS user
+  account can decrypt it, and it never leaves your machine except in
+  API requests to the chosen provider. On platforms where no OS keyring
+  is available, Praxis refuses to save the key and asks you to use the
+  `PRAXIS_API_KEY` environment variable instead.
 - **Claude Code**: no API key needed — Praxis uses your existing
-  Claude Code CLI authentication. If you haven't authenticated the
-  CLI yet, the first session prompts you through it.
+  Claude Code CLI authentication. A **Sign in to Claude Code** button
+  appears next to the engine selector; click it to run the sign-in
+  flow inline. The button reads "Signed in" once authentication has
+  completed.
 - **Codex**: similar to Claude Code; uses Codex CLI auth.
 - **Direct — Ollama (local)**: no key needed; Praxis talks to your
   local Ollama server.

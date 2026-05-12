@@ -1,7 +1,7 @@
 ---
 id: gate-docs-onboarding-api-key-encryption
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ The API key is encrypted at rest via Electron's `safeStorage` (Keychain on macOS
 
 ## Required edit
 Replace the paragraph with text describing OS-keyring encryption via Electron `safeStorage`; note that on platforms without an OS keyring the app refuses to save and the user must use `PRAXIS_API_KEY` instead.
+
+## Implementation notes
+Edits applied inline as part of the v0.1.1 autopilot doc-drift batch. Rolling-foundation discipline: stale assertions replaced in place; no "previously" prose.
