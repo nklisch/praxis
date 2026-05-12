@@ -98,7 +98,7 @@
 }
 
 .removeBtn:hover {
-  color: #f87171;
+  color: var(--color-error);
   background: rgba(248, 113, 113, 0.1);
 }
 

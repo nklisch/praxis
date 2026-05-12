@@ -67,7 +67,7 @@
 }
 
 .deleteBtn:hover {
-  color: #f87171;
+  color: var(--color-error);
 }
 
 .status,
@@ -80,6 +80,6 @@
 
 .error {
   font-size: 0.82rem;
-  color: #f87171;
+  color: var(--color-error);
   padding: 0.5rem;
 }

@@ -6,6 +6,9 @@ import styles from "./memory-tab.module.css";
  *
  * Sub-tabs: Student model / Misconceptions / Audit
  * Strategies + Affective + Episodic are "Phase 14" placeholders in MemoryInspectorTabs.
+ *
+ * No RouteHeader: this is a tab panel inside <ConfigureRoute>, not a standalone route.
+ * The parent route owns the header (configure.tsx renders <RouteHeader>).
  */
 export function MemoryTab() {
   return (

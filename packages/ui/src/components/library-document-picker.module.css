@@ -75,7 +75,7 @@
 
 .rowError {
   font-size: 0.75rem;
-  color: #f87171;
+  color: var(--color-error);
 }
 
 .attachedBadge {

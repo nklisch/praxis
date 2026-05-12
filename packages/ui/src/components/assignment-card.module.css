@@ -27,7 +27,7 @@
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   background: var(--color-accent, #60a5fa);
-  color: #0f172a;
+  color: #fff; /* intentional literal: badge text always white regardless of theme */
 }
 
 .title {
@@ -63,7 +63,7 @@
 }
 
 .error {
-  color: #f87171;
+  color: var(--color-error);
 }
 
 /* Submit section */
@@ -79,7 +79,7 @@
   background: var(--color-accent, #60a5fa);
   border: none;
   border-radius: 5px;
-  color: #0f172a;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
@@ -97,7 +97,7 @@
 
 .submitError {
   font-size: 0.8rem;
-  color: #f87171;
+  color: var(--color-error);
 }
 
 /* Submitted state */

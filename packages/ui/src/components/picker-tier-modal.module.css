@@ -61,7 +61,7 @@
 .confirmBtn {
   background: var(--color-accent, #6366f1);
   border: 1px solid transparent;
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
 }
 
 .confirmBtn:hover {

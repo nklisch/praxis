@@ -96,7 +96,7 @@
 .masteryProgress {
   flex: 1;
   height: 6px;
-  accent-color: #6366f1;
+  accent-color: var(--color-accent); /* intentional literal: native <progress> accent */
   border-radius: 3px;
 }
 
@@ -111,7 +111,7 @@
 
 .masteredNote {
   font-size: 0.78rem;
-  color: #22c55e;
+  color: var(--color-success);
   margin: 0;
 }
 
@@ -137,13 +137,13 @@
 .gateProgress {
   flex: 1;
   height: 5px;
-  accent-color: #f59e0b;
+  accent-color: var(--color-warning); /* intentional literal: native <progress> accent */
   border-radius: 2px;
 }
 
 .gateProgressLabel {
   font-size: 0.75rem;
-  color: #f59e0b;
+  color: var(--color-warning);
   min-width: 2rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -158,7 +158,7 @@
 
 .unlockedNote {
   font-size: 0.78rem;
-  color: #22c55e;
+  color: var(--color-success);
   margin: 0;
 }
 

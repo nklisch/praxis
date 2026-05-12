@@ -33,7 +33,7 @@
 }
 
 .error {
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.9rem;
 }
 
@@ -119,8 +119,8 @@
 }
 
 .importedBadge {
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-success); /* green background for "imported" status badge */
+  color: #fff; /* intentional literal: badge text always white regardless of theme */
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.1rem 0.4rem;
@@ -152,7 +152,7 @@
 
 .importBtn {
   background: var(--color-accent, #6366f1);
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   padding: 0.4rem 0.9rem;
   border-radius: 6px;

@@ -51,7 +51,7 @@
   border: none;
   border-radius: 4px;
   background: var(--color-accent, #4a90e2);
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;

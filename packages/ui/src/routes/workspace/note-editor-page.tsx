@@ -19,6 +19,10 @@ import styles from "./note-editor-page.module.css";
  *
  * Phase 15a: adds the "sketch" format case — renders <NoteEditorSketch>
  * with a full-canvas tldraw editor. Auto-saves on debounced canvas changes.
+ *
+ * No RouteHeader: this page has a bespoke back-button + format-badge header
+ * rather than the editorial RouteHeader pattern — the note editor is a
+ * focused full-screen editing surface, not a library/list route.
  */
 export function NoteEditorPage() {
   const client = usePraxisClient();

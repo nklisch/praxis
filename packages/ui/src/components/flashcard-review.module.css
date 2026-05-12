@@ -42,7 +42,7 @@
 
 .showAnswerBtn {
   background: var(--color-accent, #6366f1);
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   border-radius: 6px;
   font-size: 0.88rem;
@@ -63,7 +63,7 @@
 
 .fetchError {
   font-size: 0.82rem;
-  color: #f87171;
+  color: var(--color-error);
   margin: 0;
 }
 
@@ -131,7 +131,7 @@
 /* Rating colour palette */
 .ratingAgain {
   background: rgba(239, 68, 68, 0.18);
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .ratingAgain:hover:not(:disabled) {
@@ -140,7 +140,7 @@
 
 .ratingHard {
   background: rgba(245, 158, 11, 0.18);
-  color: #f59e0b;
+  color: var(--color-warning);
 }
 
 .ratingHard:hover:not(:disabled) {
@@ -149,7 +149,7 @@
 
 .ratingGood {
   background: rgba(34, 197, 94, 0.18);
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .ratingGood:hover:not(:disabled) {

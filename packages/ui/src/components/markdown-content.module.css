@@ -86,11 +86,11 @@
 }
 .root :global(.hljs-string),
 .root :global(.hljs-attr) {
-  color: #b4d28d;
+  color: #b4d28d; /* intentional literal: syntax highlight — muted sage green, stable across themes */
 }
 .root :global(.hljs-number),
 .root :global(.hljs-literal) {
-  color: #d8a37b;
+  color: #d8a37b; /* intentional literal: syntax highlight — warm amber/rust, stable across themes */
 }
 .root :global(.hljs-comment) {
   color: var(--color-text-muted);

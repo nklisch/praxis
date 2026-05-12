@@ -23,7 +23,7 @@
 
 .newCourseBtn {
   background: var(--color-accent, #6366f1);
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   padding: 0.45rem 1rem;
   border-radius: 6px;
@@ -43,7 +43,7 @@
 }
 
 .error {
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.9rem;
 }
 

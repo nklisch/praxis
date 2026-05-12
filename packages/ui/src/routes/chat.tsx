@@ -22,6 +22,10 @@ import styles from "./chat.module.css";
  * Handles both /chat (bare) and /chat/$tabId routes. When tabId param is
  * present, syncs it to the active tab; when activeTabId changes (e.g. closing
  * a tab), navigates to /chat/$tabId for the new active tab.
+ *
+ * No RouteHeader: this is a full-screen workspace shell (sidebar + tab strip +
+ * chat bodies). It is a structural container, not a library/list route — it has
+ * no persistent page title or kicker that RouteHeader would provide.
  */
 export function ChatRoute() {
   const navigate = useNavigate();

@@ -70,7 +70,7 @@
   padding: 0.4rem 0.875rem;
   background: rgba(220, 50, 50, 0.12);
   border-top: 1px solid rgba(220, 50, 50, 0.25);
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.8rem;
   flex-shrink: 0;
 }

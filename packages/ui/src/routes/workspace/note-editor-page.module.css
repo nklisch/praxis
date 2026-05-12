@@ -71,7 +71,7 @@
 
 .saveBtn {
   background: var(--color-accent, #6366f1);
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   border-radius: 6px;
   font-size: 0.9rem;
@@ -100,13 +100,13 @@
 }
 
 .error {
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.88rem;
   margin: 0;
 }
 
 .success {
-  color: #22c55e;
+  color: var(--color-success);
   font-size: 0.88rem;
   margin: 0;
 }

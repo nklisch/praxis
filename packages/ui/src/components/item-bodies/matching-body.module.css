@@ -127,12 +127,12 @@
 }
 
 .connectionLine.correct {
-  stroke: #4ade80;
+  stroke: var(--color-success);
   stroke-opacity: 0.8;
 }
 
 .connectionLine.incorrect {
-  stroke: #f87171;
+  stroke: var(--color-error);
   stroke-opacity: 0.8;
 }
 

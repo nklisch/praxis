@@ -27,6 +27,9 @@ function emptyBody(format: NoteFormat): NoteBody {
 /**
  * Notes tab in the workspace — list of notes with format filter.
  * "New note" opens the format picker modal then creates and navigates.
+ *
+ * No RouteHeader: this is a tab panel inside <WorkspaceRoute>, not a standalone route.
+ * The parent route owns the header (workspace.tsx renders <RouteHeader>).
  */
 export function NotesListTab() {
   const client = usePraxisClient();

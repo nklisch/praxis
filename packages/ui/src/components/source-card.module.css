@@ -58,6 +58,6 @@
 
 .viewPageBtn:hover {
   background: var(--color-accent, #6366f1);
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   border-color: transparent;
 }

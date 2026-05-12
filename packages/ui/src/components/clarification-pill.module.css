@@ -57,7 +57,7 @@
 
 .promptSubmit {
   background: var(--color-accent, #60a5fa);
-  color: #0f172a;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   border-radius: 4px;
   padding: 0.3rem 0.7rem;

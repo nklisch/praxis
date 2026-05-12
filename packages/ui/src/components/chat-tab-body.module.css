@@ -28,7 +28,7 @@
   padding: 0.5rem 1rem;
   background: rgba(220, 50, 50, 0.15);
   border-top: 1px solid rgba(220, 50, 50, 0.3);
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.85rem;
   flex-shrink: 0;
 }
@@ -37,7 +37,7 @@
   padding: 0.4rem 1rem;
   background: rgba(251, 191, 36, 0.1);
   border-top: 1px solid rgba(251, 191, 36, 0.25);
-  color: #fbbf24;
+  color: var(--color-warning);
   font-size: 0.8rem;
   text-align: center;
   flex-shrink: 0;

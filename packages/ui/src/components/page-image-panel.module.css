@@ -63,7 +63,7 @@
 }
 
 .error {
-  color: #f87171;
+  color: var(--color-error);
 }
 
 .image {

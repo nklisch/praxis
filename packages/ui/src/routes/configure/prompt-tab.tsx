@@ -10,6 +10,9 @@ import styles from "./prompt-tab.module.css";
  *  1. Per-mode append: add text to the end of a specific mode's prompt
  *  2. Style sliders: Socratic/Lecture, Terse/Verbose, Formal/Casual → setStyleSliders
  *  3. Fragment editor (Advanced): per-mode fragment override textarea
+ *
+ * No RouteHeader: this is a tab panel inside <ConfigureRoute>, not a standalone route.
+ * The parent route owns the header (configure.tsx renders <RouteHeader>).
  */
 export function PromptTab() {
   const client = usePraxisClient();

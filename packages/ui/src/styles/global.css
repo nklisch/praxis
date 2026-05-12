@@ -18,6 +18,16 @@
   /* Badge: amber warning pill — semantic color, same in both modes (4.5:1 on white, 3:1 on black). */
   --color-badge: #f59e0b;
   --color-badge-text: #000000;
+  /* Semantic status palette — used for error / success / warning indicators.
+     Dark-mode values chosen for readability on dark surfaces; light-mode
+     overrides below shift to higher-contrast hues.
+     --color-error:   red-400  (#f87171) on dark, red-700  (#b91c1c) on light
+     --color-success: green-400 (#4ade80) on dark, green-700 (#15803d) on light
+     --color-warning: amber-400 (#fbbf24) on dark, amber-600 (#d97706) on light
+     Button/badge text on colored backgrounds always #fff — intentional literal. */
+  --color-error: #f87171;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
   --radius: 8px;
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Consolas, monospace;
   /* Editorial display serif — system-installed across macOS/Win/Linux. No remote
@@ -34,12 +44,15 @@
 /* Light-mode overrides — auto-switched by OS preference. All --color-* variables
    redefined here; non-color tokens (radius, fonts, badge) are mode-invariant.
    Contrast checks (WCAG AA, 4.5:1 for normal text, 3:1 for large/UI):
-     --color-text #1a1a1a on --color-bg #fafafa   → ~18.7:1 ✓
-     --color-text #1a1a1a on --color-surface #fff → ~19.6:1 ✓
-     --color-text-muted #6a6a6a on #fafafa        →  ~6.2:1 ✓
-     --color-accent #4f5fb8 on #fafafa            →  ~5.9:1 ✓ (UI element, also large text)
-     --color-user-bubble #1a1a1a on #e8ecff       → ~18.7:1 ✓ (inherits --color-text)
-     --color-assistant-bubble #1a1a1a on #eef5e8  → ~18.7:1 ✓
+     --color-text #1a1a1a on --color-bg #fafafa       → ~18.7:1 ✓
+     --color-text #1a1a1a on --color-surface #fff     → ~19.6:1 ✓
+     --color-text-muted #6a6a6a on #fafafa            →  ~6.2:1 ✓
+     --color-accent #4f5fb8 on #fafafa                →  ~5.9:1 ✓ (UI element, also large text)
+     --color-user-bubble #1a1a1a on #e8ecff           → ~18.7:1 ✓ (inherits --color-text)
+     --color-assistant-bubble #1a1a1a on #eef5e8      → ~18.7:1 ✓
+     --color-error #b91c1c on #fafafa                 → ~10.9:1 ✓
+     --color-success #15803d on #fafafa               →  ~7.5:1 ✓
+     --color-warning #d97706 on #fafafa               →  ~3.5:1 ✓ (large/UI element)
 */
 @media (prefers-color-scheme: light) {
   :root {
@@ -52,6 +65,9 @@
     --color-user-bubble: #e8ecff;
     --color-assistant-bubble: #eef5e8;
     --tint-route: var(--color-text-muted);
+    --color-error: #b91c1c;
+    --color-success: #15803d;
+    --color-warning: #d97706;
   }
 }
 

@@ -50,6 +50,6 @@
 
 .emptyHint {
   font-size: 0.7rem;
-  color: #fbbf24;
+  color: var(--color-warning);
   margin: 0;
 }

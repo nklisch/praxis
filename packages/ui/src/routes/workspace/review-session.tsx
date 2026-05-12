@@ -11,6 +11,9 @@ import styles from "./review-session.module.css";
  * After rating, removes the card from the queue (optimistic) and advances.
  * When the queue empties, shows an "All done" celebration screen.
  * Pre-fetches no data — back text is already on the Flashcard object.
+ *
+ * No RouteHeader: this is a tab panel inside <WorkspaceRoute>, not a standalone route.
+ * The parent route owns the header (workspace.tsx renders <RouteHeader>).
  */
 export function ReviewSessionTab() {
   const { dueList, loading, error, refresh, reviewCard } = useDueCards();

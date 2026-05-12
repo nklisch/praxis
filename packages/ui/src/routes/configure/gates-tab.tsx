@@ -15,6 +15,13 @@ import { useCourses } from "../../hooks/use-courses.js";
 import { useGates } from "../../hooks/use-gates.js";
 import styles from "./gates-tab.module.css";
 
+/**
+ * Gates tab — React Flow graph of lesson gates for a selected course.
+ *
+ * No RouteHeader: this is a tab panel inside <ConfigureRoute>, not a standalone route.
+ * The parent route owns the header (configure.tsx renders <RouteHeader>).
+ */
+
 const NODE_WIDTH = 160;
 const NODE_HEIGHT = 70;
 

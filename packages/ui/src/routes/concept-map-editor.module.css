@@ -13,7 +13,7 @@
 }
 
 .error {
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.9rem;
 }
 
@@ -59,7 +59,7 @@
 
 .renameSaveBtn {
   background: var(--color-accent, #6366f1);
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   padding: 0.4rem 0.85rem;
   border-radius: 5px;

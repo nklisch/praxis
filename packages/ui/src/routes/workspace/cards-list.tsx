@@ -7,6 +7,9 @@ import styles from "./cards-list.module.css";
 /**
  * Cards tab — browse all flashcards with stats: due now, learning, mature.
  * Filterable by concept (v1: text input, not a full picker).
+ *
+ * No RouteHeader: this is a tab panel inside <WorkspaceRoute>, not a standalone route.
+ * The parent route owns the header (workspace.tsx renders <RouteHeader>).
  */
 export function CardsListTab() {
   const client = usePraxisClient();

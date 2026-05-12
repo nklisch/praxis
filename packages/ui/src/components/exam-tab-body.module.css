@@ -24,7 +24,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #fbbf24; /* amber — exam is distinct from quiz/homework */
+  color: var(--color-warning); /* amber — exam is distinct from quiz/homework */
 }
 
 .kickerTitle {

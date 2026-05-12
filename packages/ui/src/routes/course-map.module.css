@@ -90,6 +90,6 @@
 
 .error {
   padding: 1.5rem;
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.9rem;
 }

@@ -18,6 +18,9 @@ interface CourseTabProps {
  *  - Course picker (dropdown from useCourses)
  *  - If course selected: list of lessons (each as LessonEditor), + Add lesson button
  *  - Edits flow through client.author.updateLesson / createLesson / deleteLesson
+ *
+ * No RouteHeader: this is a tab panel inside <ConfigureRoute>, not a standalone route.
+ * The parent route owns the header (configure.tsx renders <RouteHeader>).
  */
 export function CourseTab({ sessionId }: CourseTabProps) {
   const client = usePraxisClient();

@@ -52,7 +52,7 @@
   margin: 0 0 1rem;
   padding: 0.5rem 0.75rem;
   background: rgba(220, 50, 50, 0.12);
-  color: #b91c1c;
+  color: var(--color-error);
   border-radius: 4px;
 }
 
@@ -74,7 +74,7 @@
 
 .primary {
   background: var(--color-primary, #2563eb);
-  color: #fff;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   border-color: var(--color-primary, #2563eb);
 }
 

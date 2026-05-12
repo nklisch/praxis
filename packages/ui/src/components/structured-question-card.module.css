@@ -134,7 +134,7 @@ fieldset:disabled .optionSelected {
   background: var(--color-accent, #60a5fa);
   border: none;
   border-radius: 4px;
-  color: #0f172a;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;

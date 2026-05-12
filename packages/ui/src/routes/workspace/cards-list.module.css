@@ -37,7 +37,7 @@
 }
 
 .stat.due .statNum {
-  color: #f59e0b;
+  color: var(--color-warning);
 }
 
 .statSep {
@@ -72,7 +72,7 @@
 }
 
 .error {
-  color: #f87171;
+  color: var(--color-error);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -166,7 +166,7 @@
   font-size: 0.7rem;
   font-weight: 700;
   background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  color: var(--color-warning);
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
 }
@@ -218,7 +218,7 @@
 }
 
 .deleteBtn:hover:not(:disabled) {
-  color: #f87171;
+  color: var(--color-error);
   background: rgba(248, 113, 113, 0.08);
 }
 
