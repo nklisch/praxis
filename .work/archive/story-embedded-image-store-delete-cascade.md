@@ -1,7 +1,7 @@
 ---
 id: story-embedded-image-store-delete-cascade
 kind: story
-stage: review
+stage: done
 tags: [ingestion, bug]
 parent: null
 depends_on: []
@@ -117,3 +117,19 @@ Discovered during review of `feature-powerpoint-ingestion`.
 **Regression test:** `vi.spyOn(embeddedImageStore, "deleteByDocumentId")` asserts the call is made with the correct `documentId`. Locks the cascade without testing store internals.
 
 **Verification:** `pnpm --filter @praxis/core typecheck` ✓, workspace `pnpm typecheck` ✓, `pnpm --filter @praxis/core test` 770/770 ✓, `tests/textbook-rag-end-to-end.test.ts` 3/3 ✓. Lint errors are pre-existing in unrelated files.
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `7de9319`: clean cascade insertion in `DocumentsServiceImpl.delete()` between `pageImageStore.deleteByDocumentId` and the DB delete. Class doc comment updated to list the 5-step cascade.
+- Mandatory `embeddedImageStore` field on `DocumentsServiceDeps` is the right call — matches `IngestionServiceDeps`'s shape and surfaces missing wire-ups at compile time. The 11 construction sites were updated atomically; the `services.ts` reuse decision (single shared `FsEmbeddedImageStore` instance) avoids state divergence.
+- Regression test uses `vi.spyOn(embeddedImageStore, "deleteByDocumentId")` to lock the cascade call without testing store internals. Right shape.
+- This closes a real user-facing privacy gap: "delete document" now actually deletes.
+
+Approved and advancing to done.
