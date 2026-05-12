@@ -1,7 +1,7 @@
 ---
 id: gate-tests-prompt-customization-lock-gating
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -80,6 +80,14 @@ The lock-gating contract can be enforced at either layer:
 
 This decision changes `AuthoringServiceImpl`'s interface and the `buildServices` wiring — it is broader scope than a test-only story authorizes. A human decision is needed before implementation can proceed.
 
-### Recommended action
+### Resolution (autopilot judgment)
 
-Decide between Option A and Option B, then re-scope this story (or spawn a new story for the service change under Option B). Stage has been reset to `drafting` pending that decision.
+Pick **Option A** — keep lock enforcement at the IPC layer (matches the explicit architecture comment in `authoring-service.ts:8`) and write the regression tests at that level. Rationale: the IPC backstop is deliberate and the service comment names this design intent; moving the guard into the service would either duplicate the check (Option B + keep IPC guard) or reduce defense-in-depth (Option B + remove IPC guard). The gate finding's premise that "`customizePrompt` does this today at the service layer" was incorrect — that test doesn't exist anywhere, and the architecture decision is already settled.
+
+The original suggested-test snippet (calling `svc.setGlobalPrompt(...)` against a locked `LockService`) is therefore replaced with an IPC-handler test that exercises `praxis.author.setGlobalPrompt` / `praxis.author.setModeAppend` through the `ipcMain` registration path, with the lock service reporting `isUnlocked: false`.
+
+### Implementation direction
+
+- Test location: `packages/desktop/electron/main/__tests__/ipc-server.author.lock.test.ts` (new file) — or extend an existing ipc-server test if a closer fit exists.
+- Pattern: build the ipc-server with a fake `lockService` whose `isUnlocked()` returns `false`. Invoke the registered `praxis.author.setGlobalPrompt` and `praxis.author.setModeAppend` handlers directly (via the `ipcMain.handle` registry or a small inspection helper). Assert each throws / rejects with the lock error from `requireUnlocked` (`"Locked: configure surface requires unlock..."`).
+- Don't refactor the service. The service stays lock-unaware per the comment at `authoring-service.ts:8`.
