@@ -1,14 +1,14 @@
 ---
 id: feature-onboarding-completion
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui, onboarding]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Onboarding flow completion
@@ -54,3 +54,97 @@ Origins: `.work/backlog/idea-onboarding-claude-code-signin.md`,
 `epic-phase-19-first-run-flow`).
 
 <!-- Design and Implementation Notes accumulate here as work progresses. -->
+
+## Design decisions
+
+Ambiguities resolved during this design pass (autopilot delegation, judgment-based):
+
+- **Pre-seed mechanism**: UI-side `session.send(handle.sessionId, message)` after `session.start`. The brief explicitly accepts either; UI-side is simpler (no IPC contract change, no additional `session.start` parameter to thread through the client/IPC/core stack). If a future mode wants `initialMessage` on start, that's a separate small refactor — premature here.
+- **Pre-seed messages** (exact text):
+  - Algebra → `"Please use the canonical algebra-1 pack to create my course."`
+  - Biology → `"Please use the canonical biology pack to create my course."`
+  - Syllabus → no pre-seed (user uploads their own materials and types from scratch).
+  Pack ids verified against existing canonical packs at implementation time.
+- **Sign-in button placement** (Gap 1): inside the EngineStep, right where the apiKey field would be for non-Claude-Code engines. Same vertical position so the visual rhythm is consistent across engine choices.
+- **Sign-in button label**: `"Sign in to Claude Code"` when not signed in; `"Signed in to Claude Code ✓"` (or similar, leveraging existing copy) when signed in. The `useAuthStatus()` hook drives the label.
+- **Signed-in state visual treatment**: muted / disabled-looking button when already signed in (still clickable to re-trigger the modal, e.g., for re-auth). Don't hide the button entirely — the user might want to switch accounts.
+- **Story decomposition**: 2 child stories, both independent (different files, different concerns). Parallelizable in one wave.
+
+## Architectural choice
+
+**Two independent UI stories, no shared infrastructure**:
+- Story 1 fixes Gap 1 in `EngineStep` only (one component, one new hook usage).
+- Story 2 fixes Gap 2 in the course-card click handlers in `onboarding-flow.tsx` (or wherever those handlers live).
+
+No new IPC, no new core types, no session.start parameter. Both ride on existing surfaces (`<ClaudeAuthModal>`, `client.session.send`, `useAuthStatus`).
+
+## Implementation Units (child stories)
+
+### Story 1: Inline Claude Code sign-in in EngineStep
+**ID**: `feature-onboarding-completion-claude-code-signin`
+**Depends on**: `[]`
+
+Scope: In `packages/ui/src/components/onboarding-flow.tsx`'s `EngineStep`,
+when `config.engineId === "claude-code"`, render a "Sign in to Claude Code"
+button that opens `<ClaudeAuthModal>`. Read auth state via `useAuthStatus()`;
+button label flips on signed-in. Hidden state when engineId !== "claude-code".
+
+Files:
+- `packages/ui/src/components/onboarding-flow.tsx` — extend `EngineStep`.
+- `packages/ui/src/__tests__/onboarding-flow.test.tsx` (or similar — find existing test file) — add cases asserting the button renders only for claude-code, opens the modal on click, label flips based on `useAuthStatus()`.
+
+Acceptance:
+- [ ] When `config.engineId === "claude-code"` and `useAuthStatus().loggedIn === false`, the sign-in button is visible and labeled "Sign in to Claude Code".
+- [ ] When signed-in, button label reads "Signed in" (or similar) and is visually muted but still clickable.
+- [ ] Clicking the button opens `<ClaudeAuthModal />`.
+- [ ] When `engineId !== "claude-code"`, the sign-in button is not rendered.
+- [ ] Existing apiKey field logic (hidden for claude-code / ollama; visible otherwise) is unchanged.
+
+### Story 2: Pre-seed course-card messages
+**ID**: `feature-onboarding-completion-course-card-preseed`
+**Depends on**: `[]`
+
+Scope: Two course-card click handlers (Algebra, Biology) pre-seed a bootstrap
+message after `session.start`. Syllabus stays no-pre-seed.
+
+Files:
+- `packages/ui/src/components/onboarding-flow.tsx` (or the course-step file if separate) — extend the Algebra and Biology click handlers to call `client.session.send(handle.sessionId, message)` after `session.start` resolves.
+- Test file — add cases asserting the send is invoked with the correct message for each card; syllabus card produces no `send`.
+
+Acceptance:
+- [ ] Clicking "Algebra (canonical)" calls `session.start` → `session.send` with `"Please use the canonical algebra-1 pack to create my course."`.
+- [ ] Clicking "Biology (canonical)" calls `session.start` → `session.send` with `"Please use the canonical biology pack to create my course."`.
+- [ ] Clicking "From your own syllabus" calls `session.start` only; no `session.send`.
+- [ ] All three paths still open a bootstrap-mode session and route the user to the chat tab as before.
+- [ ] No regression in existing onboarding tests.
+
+## Implementation Order
+
+Both stories independent — implementable in parallel. The orchestrator runs
+them as a 2-agent wave.
+
+## Testing
+
+Per-story tests above. Cross-cutting:
+- `pnpm --filter @praxis/ui typecheck && lint && test`
+- `pnpm typecheck` (root gate)
+
+Manual smoke (out of automated test scope):
+- Run `pnpm dev` with a fresh database; complete onboarding selecting Claude Code → confirm the sign-in button appears and opens the modal.
+- Click "Algebra (canonical)" → confirm the bootstrap session opens with the pre-seed message visible as the first user turn.
+
+## Risks
+
+1. **`useAuthStatus()` may not exist with that exact name or signature.**
+   Verify before implementation; the design body mentions it as a known hook.
+   If it's named differently (e.g., `useClaudeAuthStatus()`), adapt.
+2. **`<ClaudeAuthModal>` may already be in use elsewhere.** Reuse the same
+   component; don't fork.
+3. **`client.session.send(handle.sessionId, message)` shape may differ from
+   what the story assumes.** Verify against the existing client API; adapt
+   if needed.
+4. **Pack ids** (`canonical algebra-1`, `canonical biology pack`) — verify
+   the exact wording the bootstrap mode's tutor recognizes. The bootstrap
+   mode's role prompt already nudges canonical packs; the pre-seed message
+   needs to match what the tutor expects. If the tutor's tool layer keys
+   on a specific phrase, use that phrase.
