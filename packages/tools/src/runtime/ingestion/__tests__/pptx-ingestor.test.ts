@@ -532,6 +532,63 @@ describe("PptxIngestor — embedded image extraction", () => {
     expect(savedBytes.equals(rawBytes)).toBe(true);
   });
 
+  it("slide without slideNumber gets no imageNames (option-a: fail-loud, no index fallback)", async () => {
+    // Simulates an unusual export where a slide node is missing metadata.slideNumber.
+    // buildSlideImageNamesMap must skip it rather than storing under array index,
+    // because tryChunkBySlide only looks up by slideNumber — an index-keyed entry
+    // would be permanently unreadable (dead code). Expected behavior: imageNames
+    // is absent for the no-slideNumber slide; the well-formed slide is unaffected.
+    const mockParse = await getMockParseOffice();
+    const att = makeFakeAttachment("diagram.png");
+
+    const malformedSlide = {
+      type: "slide",
+      // metadata.slideNumber intentionally absent
+      metadata: {},
+      children: [
+        { type: "image", text: "", metadata: { attachmentName: "diagram.png" }, children: [] },
+        { type: "paragraph", text: "Slide without slideNumber.", children: [] },
+      ],
+    };
+    const wellFormedSlide = {
+      type: "slide",
+      metadata: { slideNumber: 2 },
+      children: [{ type: "paragraph", text: "Normal slide content.", children: [] }],
+    };
+
+    mockParse.mockResolvedValue({
+      content: [malformedSlide, wellFormedSlide],
+      attachments: [att],
+      metadata: {},
+      toText: () => "Slide without slideNumber.\n\nNormal slide content.",
+    });
+
+    const filePath = join(tmpDir, "no-slide-number.pptx");
+    await writeFile(filePath, "fake pptx bytes");
+
+    const storeDir = join(tmpDir, "store-no-slide-number");
+    const store = new FsEmbeddedImageStore(storeDir);
+    const result = await new PptxIngestor({ embeddedImageStore: store }).parse(filePath);
+
+    // The malformed slide (no slideNumber) produces a chunk — text is still extracted —
+    // but imageNames must be absent because the key was never stored in the map.
+    const malformedChunks = result.chunks.filter((c) =>
+      c.text.includes("Slide without slideNumber"),
+    );
+    expect(malformedChunks.length).toBeGreaterThan(0);
+    for (const c of malformedChunks) {
+      expect(c.imageNames).toBeUndefined();
+    }
+
+    // The well-formed slide (slideNumber: 2) has no images, so imageNames is
+    // also absent — but for the right reason (no images, not broken indexing).
+    const normalChunks = result.chunks.filter((c) => c.text.includes("Normal slide content"));
+    expect(normalChunks.length).toBeGreaterThan(0);
+    for (const c of normalChunks) {
+      expect(c.imageNames).toBeUndefined();
+    }
+  });
+
   it("text-only path is unaffected (no store → no imageNames, no pendingEmbeddedImageDocId)", async () => {
     const mockParse = await getMockParseOffice();
     mockParse.mockResolvedValue(makeMockAst([{ slideNumber: 1, content: "Plain text slide." }]));

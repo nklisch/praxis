@@ -168,19 +168,23 @@ interface OfficeNodeLike {
  * keyed by `slideNumber` (1-based, from `metadata.slideNumber`).
  *
  * We key by slideNumber because the real AST has note nodes interleaved as
- * siblings of slides, so array indices are not a stable per-slide key. When
- * slideNumber is undefined (unusual export) we fall back to array index.
+ * siblings of slides, so array indices are not a stable per-slide key.
+ * Slides without a numeric `slideNumber` are skipped — image correlation is
+ * silently absent for them, which is an honest signal that the AST shape
+ * changed. officeparser v6 always emits slideNumber for PPTX; a missing
+ * value would indicate an unusual export where silent degradation beats a
+ * misleading index-keyed entry that nothing can ever read.
  */
 function buildSlideImageNamesMap(nodes: OfficeNodeLike[]): Map<number, string[]> {
   const result = new Map<number, string[]>();
-  nodes.forEach((node, idx) => {
-    if (node.type !== "slide") return;
+  for (const node of nodes) {
+    if (node.type !== "slide") continue;
+    if (typeof node.metadata?.slideNumber !== "number") continue;
     const names = collectImageNames(node.children ?? []);
     if (names.length > 0) {
-      const key = typeof node.metadata?.slideNumber === "number" ? node.metadata.slideNumber : idx;
-      result.set(key, names);
+      result.set(node.metadata.slideNumber, names);
     }
-  });
+  }
   return result;
 }
 
