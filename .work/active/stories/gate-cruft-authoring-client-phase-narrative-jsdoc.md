@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-authoring-client-phase-narrative-jsdoc
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -40,3 +40,6 @@ Pre-1.0 the interface ships as the v1 surface; framing some methods as "Phase 3 
 
 ## Removal
 Replace the JSDoc with a description of the interface's purpose ("Authoring surface — methods for creating, editing, and customizing courses, gates, and lessons"). Drop the Phase 3 / Phase 11 section headers in favor of grouping by capability (course, lesson, gate, customization).
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

@@ -73,7 +73,6 @@ export class InProcessToolRegistry implements ToolRegistry {
    * explicitly through every arg.
    */
   setContextField<K extends keyof ToolContext>(key: K, value: ToolContext[K]): void {
-    // biome-ignore lint/suspicious/noExplicitAny: deliberate post-construction context mutation; typed via generic
     (this.context as unknown as Record<string, unknown>)[key as string] = value as unknown;
   }
 

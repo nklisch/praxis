@@ -57,7 +57,6 @@ async function evaluateMasteryThreshold(
     };
   }
 
-  // biome-ignore lint/suspicious/noExplicitAny: StudentId brand cast needed for cross-module use
   const scores = await Promise.all(
     c.conceptIds.map((id) =>
       reader.read({

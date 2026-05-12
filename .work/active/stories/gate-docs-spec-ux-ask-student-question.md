@@ -1,7 +1,7 @@
 ---
 id: gate-docs-spec-ux-ask-student-question
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ SPEC.md has a "Human-in-the-loop tool dispatch" section that documents the `quic
 
 ## Required edit
 In SPEC.md "Human-in-the-loop tool dispatch", add a paragraph noting that `ask_student_question` is a second consumer of the same dispatch pattern (scoped to bootstrap/configure). In UX.md, add a "Structured question cards" subsection under the chat workspace covering visual treatment and locked-state behavior.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

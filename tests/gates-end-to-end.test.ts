@@ -203,7 +203,6 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
     log: noopLogger(),
     modes: new Map([[teachMode.id, teachMode]]),
     toolDefinitions: [],
-    // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
     toolServices: {
       sympy: mockSympy,
       sandbox: mockSandbox,
@@ -217,6 +216,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
       memory: memoryService,
       // Phase 16: minimal stub for course-scoped session bootstrapping.
       courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+      // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
     } as any,
     engineFactory: () => new FakeEngine(),
     lockService: noopLockService(),

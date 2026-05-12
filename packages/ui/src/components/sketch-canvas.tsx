@@ -141,7 +141,6 @@ export function SketchCanvas({
     // Only register once on mount — onChange is read via onChangeRef.
     // initialSnapshot is only applied at mount time; subsequent changes must
     // use clear() + capture() rather than re-loading.
-    // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only registration
     [],
   );
 

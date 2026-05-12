@@ -111,7 +111,6 @@ const mockDocuments = {
   pageImage: vi.fn().mockResolvedValue(null),
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
 const mockToolServices: ServiceDeps["toolServices"] = {
   sympy: mockSympy,
   sandbox: mockSandbox,

@@ -38,12 +38,12 @@ describe("foundation: migration + schema discovery", () => {
     runMigrations({ path: db.dbPath });
     const { db: client } = openDb({ path: db.dbPath });
     const sqlite = (client as unknown as { $client: SqliteDatabase }).$client;
-    // biome-ignore lint/style/noNonNullAssertion: pragma always returns at least one row
     expect(
+      // biome-ignore lint/style/noNonNullAssertion: pragma always returns at least one row
       (sqlite.pragma("journal_mode") as Array<{ journal_mode: string }>)[0]!.journal_mode,
     ).toBe("wal");
-    // biome-ignore lint/style/noNonNullAssertion: pragma always returns at least one row
     expect(
+      // biome-ignore lint/style/noNonNullAssertion: pragma always returns at least one row
       (sqlite.pragma("foreign_keys") as Array<{ foreign_keys: number }>)[0]!.foreign_keys,
     ).toBe(1);
   });

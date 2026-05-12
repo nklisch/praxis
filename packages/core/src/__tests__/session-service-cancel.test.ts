@@ -81,8 +81,8 @@ function makeService(
     modes: new Map([["teach", makeMode("teach")]]),
     toolDefinitions: [],
     toolServices: {
-      // biome-ignore lint/suspicious/noExplicitAny: test stub — send path only calls courseDocuments.listForCourse
       courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+      // biome-ignore lint/suspicious/noExplicitAny: test stub — send path only calls courseDocuments.listForCourse
     } as any,
     lockService: {
       isSet: async () => false,

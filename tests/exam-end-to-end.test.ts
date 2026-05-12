@@ -15,14 +15,12 @@ import { AssignmentServiceImpl } from "@praxis/core/services";
 import type {
   AssignmentItem,
   CodeSandbox,
-  CourseId,
   Engine,
   EngineEvent,
   EngineOpenOptions,
   EngineSession,
   HealthStatus,
   Rubric,
-  StudentId,
   SymPyService,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";

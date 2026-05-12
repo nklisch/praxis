@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-unused-mastery-signal-import
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -34,3 +34,6 @@ import type {
 
 ## Removal
 Drop `MasterySignal` from the import list. `biome check --write` will also do this mechanically.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

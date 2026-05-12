@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-docx-ingestor-prior-pipeline-comment
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -38,3 +38,6 @@ stale comment
 
 ## Removal
 Rewrite to describe the current pipeline only: "Uses `mammoth.convertToMarkdown()` to produce markdown chunks. When `opts.embeddedImageStore` is provided, embedded images are extracted via mammoth's `convertImage` option and saved to the store, mirroring the `PptxIngestor` embedded-image contract."
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

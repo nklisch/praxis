@@ -25,7 +25,6 @@ import type {
   EngineOpenOptions,
   EngineSession,
   HealthStatus,
-  MasterySignal,
   SymPyService,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
@@ -258,7 +257,6 @@ describe("mastery end-to-end", () => {
       log: noopLogger(),
       modes: new Map([[teachMode.id, teachMode]]),
       toolDefinitions: [],
-      // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
       toolServices: {
         sympy: mockSympy,
         sandbox: mockSandbox,
@@ -272,6 +270,7 @@ describe("mastery end-to-end", () => {
         memory: memoryService,
         // Phase 16: minimal stub for course-scoped session bootstrapping.
         courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+        // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
       } as any,
       indexerOrchestrator,
       engineFactory: () => new FakeEngine(),

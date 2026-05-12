@@ -9,10 +9,10 @@ import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TeachChatTabBody } from "../chat-tab-body.js";
+import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
 import { AuthProvider } from "../../context/auth-context.js";
 import { PraxisClientProvider } from "../../context/client-context.js";
-import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
+import { TeachChatTabBody } from "../chat-tab-body.js";
 
 afterEach(() => cleanup());
 
@@ -112,8 +112,12 @@ describe("TeachChatTabBody scroll heuristic", () => {
       session: {
         send: vi.fn(async function* () {
           // Emit one message so messageCount changes and the scroll effect fires.
-          yield { type: "model_message", content: "hello", partial: false } as Parameters<PraxisClient["session"]["send"]>[1];
-          yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as Parameters<PraxisClient["session"]["send"]>[1];
+          yield { type: "model_message", content: "hello", partial: false } as Parameters<
+            PraxisClient["session"]["send"]
+          >[1];
+          yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as Parameters<
+            PraxisClient["session"]["send"]
+          >[1];
         }) as unknown as PraxisClient["session"]["send"],
       } as unknown as PraxisClient["session"],
       memory: {

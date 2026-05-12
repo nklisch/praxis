@@ -308,9 +308,3 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
 
   return items;
 }
-
-/**
- * @deprecated Use `episodicToItems` instead. Returns `ChatStreamItem[]` now.
- * This alias exists for the transition; it will be removed in a follow-up.
- */
-export const episodicToMessages = episodicToItems;

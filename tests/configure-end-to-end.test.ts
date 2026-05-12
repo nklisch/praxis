@@ -217,7 +217,6 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
     log: noopLogger(),
     modes,
     toolDefinitions: [],
-    // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
     toolServices: {
       sympy: mockSympy,
       sandbox: mockSandbox,
@@ -233,6 +232,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
       authoring: authoringService,
       // Phase 16: minimal stub for course-scoped session bootstrapping.
       courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+      // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
     } as any,
     // Activity registry stub — tests don't assert on rail output.
     activity: {

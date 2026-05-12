@@ -67,12 +67,12 @@ export function composeSystemPrompt(input: ComposeSystemPromptInput): string {
 
 /**
  * Build a complete one-shot brief: system prompt + user message + context.
- * Used by `runOneShot` and any future single-turn paths. The lifecycle path
- * (SessionServiceImpl) uses `composeSystemPrompt` directly.
- *
- * Note: `Brief` is now a curriculum-local type (`ComposedBrief`). Engines
- * no longer accept Brief — they accept EngineOpenOptions (system prompt) and
- * a user message string.
+ * Kept as the brief-shape source of truth and tested in isolation — no
+ * production call sites at present (the lifecycle path in `SessionServiceImpl`
+ * uses `composeSystemPrompt` directly; `runOneShot` takes `EngineOpenOptions`
+ * and a user message string rather than a `Brief`). Reach for this when a
+ * future single-turn path needs a `Brief`-shaped value; delete if no caller
+ * materialises.
  */
 export function composeBrief(input: ComposeBriefInput): ComposedBrief {
   const systemPrompt = composeSystemPrompt({

@@ -75,7 +75,13 @@ describe("DocumentsServiceImpl.list()", () => {
   it("returns empty array when no documents exist", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const { vectorStore, ftsStore } = makeMockStores();
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
 
     const docs = await svc.list();
     expect(docs).toHaveLength(0);
@@ -87,7 +93,13 @@ describe("DocumentsServiceImpl.list()", () => {
     insertDoc(db, "doc-2", { filename: "chemistry.md", chunkCount: 20, ingestorId: "markdown" });
 
     const { vectorStore, ftsStore } = makeMockStores();
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
 
     const docs = await svc.list();
     expect(docs).toHaveLength(2);
@@ -115,7 +127,13 @@ describe("DocumentsServiceImpl.list()", () => {
       .run();
 
     const { vectorStore, ftsStore } = makeMockStores();
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
 
     const docs = await svc.list();
     const doc = docs.find((d) => d.documentId === "doc-no-ingestor-id");
@@ -132,7 +150,13 @@ describe("DocumentsServiceImpl.delete()", () => {
     const { vectorStore, ftsStore } = makeMockStores();
     const pageImageDeleteSpy = vi.spyOn(pageImageStore, "deleteByDocumentId");
 
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
     await svc.delete("doc-to-delete");
 
     expect(vectorStore.deleteByDocumentId).toHaveBeenCalledWith("doc-to-delete");
@@ -147,7 +171,13 @@ describe("DocumentsServiceImpl.delete()", () => {
     const { vectorStore, ftsStore } = makeMockStores();
     const embeddedDeleteSpy = vi.spyOn(embeddedImageStore, "deleteByDocumentId");
 
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
     await svc.delete("doc-embedded-cascade");
 
     expect(embeddedDeleteSpy).toHaveBeenCalledWith("doc-embedded-cascade");
@@ -158,7 +188,13 @@ describe("DocumentsServiceImpl.delete()", () => {
     insertDoc(db, "doc-delete-row");
 
     const { vectorStore, ftsStore } = makeMockStores();
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
 
     await svc.delete("doc-delete-row");
 
@@ -172,7 +208,13 @@ describe("DocumentsServiceImpl.delete()", () => {
     insertDoc(db, "doc-stays");
 
     const { vectorStore, ftsStore } = makeMockStores();
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
 
     await svc.delete("doc-gone");
 
@@ -186,7 +228,13 @@ describe("DocumentsServiceImpl.pageImage()", () => {
   it("returns null when no image has been saved", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const { vectorStore, ftsStore } = makeMockStores();
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
 
     const buf = await svc.pageImage({ documentId: "doc-no-img", page: 1 });
     expect(buf).toBeNull();
@@ -198,7 +246,13 @@ describe("DocumentsServiceImpl.pageImage()", () => {
     await pageImageStore.save({ documentId: "doc-img", page: 1, pngBytes });
 
     const { vectorStore, ftsStore } = makeMockStores();
-    const svc = new DocumentsServiceImpl({ db, vectorStore, ftsStore, pageImageStore, embeddedImageStore });
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
 
     const buf = await svc.pageImage({ documentId: "doc-img", page: 1 });
     expect(buf).not.toBeNull();

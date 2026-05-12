@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-engine-config-orphan-comment
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -41,3 +41,6 @@ No code between line 96 and line 98 implements what the comment describes. The o
 
 ## Removal
 Delete lines 94-96.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

@@ -91,9 +91,6 @@ export function readEngineConfig(
     : {};
   // Drop apiKeyEncrypted from the in-memory shape — downstream sees only apiKey.
   delete inMemoryStored.apiKeyEncrypted;
-  // If we are on the legacy plaintext path without safeStorage, clear apiKey
-  // from the stored spread so we re-derive it from resolvedApiKey above. This
-  // avoids a double-assignment that is harmless but confusing.
 
   const merged: EngineConfig = EngineConfigSchema.parse({
     ...DEFAULT_ENGINE_CONFIG,

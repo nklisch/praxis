@@ -2,8 +2,8 @@ import type { SessionId, TabId, TabSummary } from "@praxis/core/types";
 import { type FormEvent, type JSX, useCallback, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useResource } from "../hooks/use-resource.js";
-import { getModeMeta } from "./mode-meta.js";
 import { Modal } from "./modal.js";
+import { getModeMeta } from "./mode-meta.js";
 import styles from "./new-tab-picker.module.css";
 
 /** Modes available to open from the picker (ordered for display). */

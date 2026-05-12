@@ -237,10 +237,7 @@ describe("AuthGate", () => {
     // Silence expected console.error from React
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => {
-      render(
-        // biome-ignore lint/suspicious/noExplicitAny: test for error boundary
-        <AuthHarness>{null}</AuthHarness>,
-      );
+      render(<AuthHarness>{null}</AuthHarness>);
     }).toThrow("useAuthStatus must be used inside <AuthProvider>");
     spy.mockRestore();
   });

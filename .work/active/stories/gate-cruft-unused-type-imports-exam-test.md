@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-unused-type-imports-exam-test
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -42,3 +42,6 @@ Biome `lint/correctness/noUnusedImports` flags 7 of these names.
 
 ## Removal
 Run `npx biome check --write tests/exam-end-to-end.test.ts` or delete the unused names manually.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

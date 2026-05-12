@@ -18,11 +18,10 @@ export interface DocxIngestorOptions {
 /**
  * DocxIngestor — handles `.docx` files via `mammoth`.
  *
- * Uses `mammoth.convertToMarkdown()` directly, replacing the prior
- * `convertToHtml` + regex-stripping pipeline. When `opts.embeddedImageStore`
- * is provided, embedded images are extracted via mammoth's `convertImage`
- * option and saved to the store under a synthetic documentId, mirroring the
- * `PptxIngestor` embedded-image contract.
+ * Uses `mammoth.convertToMarkdown()` to produce markdown chunks. When
+ * `opts.embeddedImageStore` is provided, embedded images are extracted via
+ * mammoth's `convertImage` option and saved to the store under a synthetic
+ * documentId, mirroring the `PptxIngestor` embedded-image contract.
  */
 export class DocxIngestor implements Ingestor {
   readonly id = "docx" as const;
@@ -42,7 +41,6 @@ export class DocxIngestor implements Ingestor {
     // Lazy import — mammoth is only loaded when DOCX is being parsed.
     // convertToMarkdown is present at runtime (mammoth@1.12.0) but absent from
     // the bundled .d.ts; cast to the extended type.
-    // biome-ignore lint/suspicious/noExplicitAny: mammoth@1.12.0 .d.ts lacks convertToMarkdown; cast through unknown to extend
     const mammoth = (await import("mammoth")) as unknown as MammothWithMarkdown;
 
     // Reset per-parse state so the same ingestor instance is reusable.

@@ -415,19 +415,18 @@ export interface ProgressSnapshot {
 }
 
 /**
- * Client-side authoring surface (no studentId on methods — resolved server-side
- * via getOrCreateDefaultStudentId in IPC handlers).
- *
- * Phase 3 methods kept for backward compatibility; Phase 11 adds the full v1 surface.
+ * Client-side authoring surface — methods for creating, editing, and
+ * customizing courses, gates, lessons, and prompts. No `studentId` on methods;
+ * resolved server-side via `getOrCreateDefaultStudentId` in IPC handlers.
  */
 export interface AuthoringClient {
-  // ── Phase 3 surface (now real) ────────────────────────────────────────────
+  // ── Course / draft bootstrap ──────────────────────────────────────────────
   createCourse(input: CreateCourseInput): Promise<Course>;
   editGate(id: GateId, patch: Partial<Gate>): Promise<Gate>;
   bootstrap(files: FileRef[], opts: BootstrapOpts): Promise<DraftCourse>;
   customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
 
-  // ── Phase 11: course / lesson / gate edits ────────────────────────────────
+  // ── Course / lesson / gate edits ──────────────────────────────────────────
   updateCourse(input: {
     courseId: CourseId;
     patch: Partial<
@@ -486,7 +485,7 @@ export interface AuthoringClient {
     }>;
   }>;
 
-  // ── Phase 11: prompt customization ───────────────────────────────────────
+  // ── Prompt customization ──────────────────────────────────────────────────
   clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void>;
   setStyleSliders(input: { socratic: number; verbosity: number; formality: number }): Promise<void>;
   /** Set the global cross-mode fragment. Pass null to clear. */
@@ -507,13 +506,13 @@ export interface AuthoringClient {
     draftAppend?: string | null;
   }): Promise<string>;
 
-  // ── Phase 11: memory administration (no studentId — resolved server-side) ─
+  // ── Memory administration ─────────────────────────────────────────────────
   resetConcept(input: { conceptId: ConceptId; reason: string }): Promise<void>;
   clearMisconception(input: { misconceptionId: MisconceptionId; reason: string }): Promise<void>;
   exportMemory(input: { targetPath: string }): Promise<{ ok: true; bytesWritten: number }>;
   deleteAllMemory(input: { reason: string; confirm: true }): Promise<void>;
 
-  // ── Phase 11: audit log ───────────────────────────────────────────────────
+  // ── Audit log ─────────────────────────────────────────────────────────────
   listConfiguratorActions(input?: {
     fromTs?: Timestamp;
     limit?: number;

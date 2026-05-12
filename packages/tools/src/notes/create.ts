@@ -30,10 +30,10 @@ export const createNoteTool: ToolDefinition<typeof InputSchema, typeof OutputSch
   tier: "grounded",
   effects: ["artifact.mutate"],
   async handler(args, ctx: ToolContext): Promise<z.infer<typeof OutputSchema>> {
-    // biome-ignore lint/suspicious/noExplicitAny: NoteBody discriminated union passed through
     const note = await ctx.services.notes.create({
       studentId: ctx.studentId,
       format: args.format,
+      // biome-ignore lint/suspicious/noExplicitAny: NoteBody discriminated union passed through
       body: args.body as any,
       ...(args.context !== undefined && {
         context: {

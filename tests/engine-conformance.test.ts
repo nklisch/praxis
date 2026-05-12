@@ -12,7 +12,6 @@
 import type { EngineEvent, EngineOpenOptions } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { runOneShot } from "@praxis/engines";
-import { ClaudeCodeEngine } from "@praxis/engines/claude-code";
 import { CodexEngine } from "@praxis/engines/codex";
 import { DirectEngine } from "@praxis/engines/direct";
 import { InProcessToolRegistry } from "@praxis/tools";
@@ -156,7 +155,6 @@ describe("Engine conformance", () => {
     vi.clearAllMocks();
     registry = new InProcessToolRegistry({
       tools: [echoTool],
-      // biome-ignore lint/suspicious/noExplicitAny: test stub — partial ToolContext; the echo tool doesn't use services
       context: makeToolContext() as unknown as import("@praxis/core/types").ToolContext,
       log: noopLogger,
     });
@@ -166,74 +164,9 @@ describe("Engine conformance", () => {
     };
   });
 
-  // SKIP: vitest's mock factory at the root tests/ project level doesn't
-  // intercept `@praxis/claude-cli-sdk` imports made by `@praxis/engines`'s
-  // compiled dist code — the real `authStatus` runs and either hangs in a
-  // sandbox or leaks the developer's actual auth state. The same coverage
-  // (Claude Code adapter open + send + map events) lives in
-  // `packages/engines/src/__tests__/claude-code.test.ts`, which uses the
-  // `importOriginal` mock pattern at the engines-project level and passes.
-  it.skip("Claude Code adapter produces normalized turn", async () => {
-    const { createConversation } = await import("@praxis/claude-cli-sdk");
-
-    const resultEventObj = {
-      type: "result" as const,
-      subtype: "success" as const,
-      sessionId: "test-session-id",
-      result: "...done",
-      usage: { inputTokens: 10, outputTokens: 20 },
-    };
-
-    // biome-ignore lint/suspicious/noExplicitAny: skipped test — Conversation type drifted; cast to avoid blocking the typecheck gate
-    vi.mocked(createConversation).mockImplementation((() => {
-      async function* fakeStream() {
-        yield { type: "assistant", text: "Calling echo...", delta: "Calling echo..." };
-        yield {
-          type: "tool_use",
-          toolName: "mcp__praxis__test.echo",
-          toolId: "tu-1",
-          toolInput: { text: "hello" },
-        };
-        yield {
-          type: "tool_result",
-          toolId: "tu-1",
-          content: JSON.stringify({ echoed: "hello" }),
-          isError: false,
-        };
-        yield { type: "assistant", text: "...done", delta: "...done" };
-        yield resultEventObj;
-      }
-
-      return {
-        sessionId: Promise.resolve("test-session-id"),
-        isOpen: true,
-        send: () => {
-          const stream = fakeStream();
-          return Object.assign(stream, {
-            result: Promise.resolve({
-              result: "...done",
-              sessionId: "test-session-id",
-              resultEvent: resultEventObj,
-            }),
-          });
-        },
-        sendAndCollect: vi.fn(),
-        sendToolResult: vi.fn(),
-        close: vi.fn(async () => {}),
-        abort: vi.fn(() => {}),
-        [Symbol.asyncDispose]: vi.fn(async () => {}),
-      };
-    }) as any);
-
-    const engine = new ClaudeCodeEngine({
-      config: { engineId: "claude-code" },
-      deps: { log: noopLogger },
-    });
-    const turn = await collect(runOneShot(engine, openOpts, SCENARIO_USER_MESSAGE));
-    expect(turn.text).toContain("done");
-    expect(turn.toolCalls).toEqual([{ toolName: "test.echo", args: { text: "hello" } }]);
-    expect(turn.hasFinal).toBe(true);
-  });
+  // Claude Code adapter coverage lives in `packages/engines/src/__tests__/claude-code.test.ts`
+  // (root-level `vi.mock` against compiled dist doesn't intercept the SDK import; the per-package
+  // test uses `importOriginal` and exercises open + send + event mapping end-to-end).
 
   it("Codex adapter produces normalized turn", async () => {
     const { Codex } = await import("@openai/codex-sdk");

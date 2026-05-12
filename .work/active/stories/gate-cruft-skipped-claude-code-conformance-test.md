@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-skipped-claude-code-conformance-test
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -38,3 +38,6 @@ it.skip("Claude Code adapter produces normalized turn", async () => {
 
 ## Removal
 Delete the entire `it.skip(...)` block (lines 169-236). The comment confirms equivalent coverage is in `packages/engines/src/__tests__/claude-code.test.ts`. Leaving an `it.skip` with a full body is exactly the AI-accumulated dead code this gate looks for.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

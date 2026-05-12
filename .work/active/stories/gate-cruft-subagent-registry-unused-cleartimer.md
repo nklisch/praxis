@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-subagent-registry-unused-cleartimer
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -33,3 +33,6 @@ this.clearTimer = deps.clearTimeout ?? globalThis.clearTimeout;
 
 ## Removal
 Delete the `clearTimer` field (line 57) and its initialization (line 65). If the `deps.clearTimeout` injection seam was added speculatively for tests but no test uses it, also drop `clearTimeout?` from the `SubAgentRegistryDeps` interface (lines 24-25) — verify no test wires it before removing the dep slot.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

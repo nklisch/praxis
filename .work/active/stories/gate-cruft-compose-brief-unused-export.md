@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-compose-brief-unused-export
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -40,3 +40,6 @@ Either:
 - (b) Fix the stale "Used by runOneShot" doc to acknowledge it's currently unused but kept as the brief-shape SOT.
 
 Medium confidence because the type may be needed by a planned hosted-Node path; check with curriculum/brief owner before deleting.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

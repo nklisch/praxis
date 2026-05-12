@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-stale-biome-ignore-no-any
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -38,3 +38,6 @@ const mammoth = (await import("mammoth")) as unknown as MammothWithMarkdown;
 
 ## Removal
 Delete both stale `biome-ignore` lines. The casts already use `unknown` (which Biome accepts) so no suppression is needed.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

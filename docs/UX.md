@@ -450,6 +450,14 @@ Quick checks are formative probes the tutor calls mid-explanation without spawni
 
 **What stays out of episodic.** The synthetic system message that holds the card never reaches the episodic log. The `tool_call` event and the `tool_result` event that bracket the card do appear in episodic — the transcript shows that the tutor asked a question and the student answered, in the normal event flow.
 
+## Structured question cards (bootstrap / configure)
+
+`ask_student_question` is the bootstrap / configure cousin of the quick-check card — a structured-choice prompt the agent uses mid-flow to clarify intent without yielding the turn. Visually identical chassis to `<QuickCheckCard>` (kicker tag, prompt body, choice control, submit button), but the kicker reads `tutor asked` in configure-mode contexts and the card always carries a `choice required` semantic — the agent's next step depends on the answer, so there is no "skip" affordance. Rendered as `<StructuredQuestionCard>` (`packages/ui/src/components/structured-question-card.tsx`).
+
+Locked-state treatment mirrors quick-check: controls become inert on submission and the submit button is replaced with a quiet `answered` marker. Because these questions don't carry a `correctIndex` (they're disambiguation, not assessment), the locked card omits correctness feedback — only the chosen answer is shown.
+
+Persistence across tab switches and abandonment semantics are identical to quick-check (the same tool-bridge IPC family applies). The chat-thread placement and "stays out of episodic" rules also apply.
+
 ---
 
 ## Item kind UX patterns

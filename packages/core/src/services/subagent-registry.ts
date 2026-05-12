@@ -21,8 +21,6 @@ export interface SubAgentRegistryDeps {
   now?: () => number;
   /** setTimeout-shaped scheduler (testable seam). */
   setTimeout?: typeof globalThis.setTimeout;
-  /** clearTimeout-shaped (testable seam). */
-  clearTimeout?: typeof globalThis.clearTimeout;
   /**
    * Optional label resolver: given a tool name, returns a human-friendly
    * present-tense label (e.g. "Reading pages"). When omitted, falls back
@@ -54,7 +52,6 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
 
   private readonly now: () => number;
   private readonly setTimer: typeof globalThis.setTimeout;
-  private readonly clearTimer: typeof globalThis.clearTimeout;
   private readonly resolveLabel: (toolName: string) => string;
 
   private static readonly MAX_STEPS = 200;
@@ -62,7 +59,6 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
   constructor(private readonly deps: SubAgentRegistryDeps) {
     this.now = deps.now ?? Date.now;
     this.setTimer = deps.setTimeout ?? globalThis.setTimeout;
-    this.clearTimer = deps.clearTimeout ?? globalThis.clearTimeout;
     this.resolveLabel = deps.resolveLabel ?? ((name) => name);
   }
 

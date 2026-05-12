@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-episodic-to-messages-alias
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -35,3 +35,6 @@ Repo-wide grep across `packages/`, `tests/`, `scripts/` (excluding `dist/`) retu
 
 ## Removal
 Delete lines 312-316. The comment promised removal "in a follow-up" — this is that moment.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

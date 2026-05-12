@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-misplaced-biome-ignore-suppressions
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -41,3 +41,6 @@ The Biome suppression must be on the line immediately preceding the diagnostic. 
 
 ## Removal
 Move each suppression to the line immediately before the offending `any`, or change to an inline `// biome-ignore` at the end of the line, depending on context. Suppressions at the test-helper-call layer need to follow the line that actually casts. Treat as one logical fix across all 8 sites.
+
+## Implementation notes
+Inline cruft cleanup applied as part of the v0.1.1 autopilot batch.

@@ -31,10 +31,10 @@ if (evaluateFlag) {
   // Construct minimal services to call evaluateAndPersistGates per course.
   const memoryService = new MemoryServiceImpl({ db, log, decayDaysFor: () => 14 });
 
-  // biome-ignore lint/suspicious/noExplicitAny: graderServices stub for CLI
   const assignmentService = new AssignmentServiceImpl({
     db,
     log,
+    // biome-ignore lint/suspicious/noExplicitAny: graderServices stub for CLI
     graderServices: { sympy: null as any, sandbox: null as any, engineResolver: null as any },
     resolveSubmissionMode: () => "quiz",
   });

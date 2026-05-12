@@ -34,10 +34,6 @@ describe("SubAgentRegistryImpl", () => {
     return id as any;
   });
 
-  const fakeClearTimeout = vi.fn((id: number) => {
-    pendingTimers.delete(id);
-  });
-
   function fireTimers() {
     for (const [id, { fn }] of pendingTimers) {
       pendingTimers.delete(id);
@@ -50,15 +46,12 @@ describe("SubAgentRegistryImpl", () => {
     pendingTimers.clear();
     nextTimerId = 1;
     fakeSetTimeout.mockClear();
-    fakeClearTimeout.mockClear();
 
     registry = new SubAgentRegistryImpl({
       log: noopLogger() as ReturnType<typeof noopLogger>,
       now: () => fakeNow.value,
       // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
       setTimeout: fakeSetTimeout as any,
-      // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
-      clearTimeout: fakeClearTimeout as any,
       resolveLabel: (toolName) => `[${toolName}]`,
     });
 
