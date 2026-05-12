@@ -22,13 +22,47 @@ export interface MapStreamEventInput {
 }
 
 /**
+ * Per-session state for the Claude Code event mapper.
+ *
+ * Claude's wire protocol assigns UUIDs (e.g. `"toolu_01ABC..."`) to tool use
+ * blocks (`tool_use.id`). The MCP bridge's worker script independently assigns
+ * sequential callCounters (`"1"`, `"2"`, …) when it dispatches to the Praxis
+ * tool registry — these are the `ctx.callId` values tool handlers observe.
+ *
+ * To keep both channels in agreement, this state maintains a monotonically
+ * increasing `orderCounter` that increments each time a `tool_use` event
+ * arrives, and a `toolIdToCallId` map from Claude UUID → bridge callCounter.
+ * The bridge counter resets to 0 at session start; the adapter counter mirrors
+ * it. This produces identical `callId` values on both sides:
+ *   engine event `tool_call.callId === "1"` ⟺ handler `ctx.callId === "1"`.
+ *
+ * State is per-session: create a new `ClaudeCodeEventState` for each
+ * `ClaudeCodeEngineSession.send()` call.
+ */
+export interface ClaudeCodeEventState {
+  /** Monotonically increasing counter, mirrors the bridge's callCounter. */
+  orderCounter: number;
+  /** Maps Claude tool_use UUID → sequential callId string used by the bridge. */
+  toolIdToCallId: Map<string, string>;
+}
+
+export function createEventState(): ClaudeCodeEventState {
+  return { orderCounter: 0, toolIdToCallId: new Map() };
+}
+
+/**
  * Map a Claude Code SDK StreamEvent to a Praxis EngineEvent. Returns null
  * for events with no useful projection (system.init, rate_limit_event we
  * choose to surface as warnings via the log instead).
+ *
+ * `state` is a per-session mutable accumulator used to translate Claude's UUID
+ * tool IDs to the sequential callIds the MCP bridge emits. Pass the same state
+ * object for every event in one session's stream; create a fresh one per session.
  */
 export function mapClaudeCodeEvent(
   event: StreamEvent,
   ctx: MapStreamEventInput,
+  state?: ClaudeCodeEventState,
 ): EngineEvent | null {
   switch (event.type) {
     case "system":
@@ -39,13 +73,25 @@ export function mapClaudeCodeEvent(
       if (delta) return { type: "model_message", content: delta, partial: true };
       return { type: "model_message", content: event.text ?? "", partial: false };
     }
-    case "tool_use":
+    case "tool_use": {
+      // Translate Claude's UUID tool ID to the sequential callId the bridge uses.
+      // The bridge worker increments a callCounter for each tool call in order,
+      // starting at 1. We mirror that counter here so both channels agree on the
+      // same callId string for the same tool invocation.
+      const callId = state
+        ? (() => {
+            const seq = String(++state.orderCounter);
+            state.toolIdToCallId.set(event.toolId, seq);
+            return seq;
+          })()
+        : event.toolId; // fallback: pass through Claude UUID when no state (tests without bridge)
       return {
         type: "tool_call",
         toolName: stripMcpPrefix(event.toolName, ctx.serverName),
         args: event.toolInput,
-        callId: event.toolId,
+        callId,
       };
+    }
     case "tool_result": {
       // The SDK parser already (a) extracted MCP text blocks and (b)
       // JSON-parsed the result, so `event.value` is the tool handler's actual
@@ -63,7 +109,13 @@ export function mapClaudeCodeEvent(
             },
           }
         : { ok: true, value: event.value, tier: "deterministic" };
-      return { type: "tool_result", callId: event.toolId ?? "", result };
+      // Translate the Claude UUID back to the sequential callId via the state map.
+      // If the UUID is unknown (no state, or unexpected result without prior tool_use),
+      // fall through to the raw toolId string as a safe fallback.
+      const rawToolId = event.toolId ?? "";
+      const resolvedCallId =
+        state?.toolIdToCallId.get(rawToolId) ?? rawToolId;
+      return { type: "tool_result", callId: resolvedCallId, result };
     }
     case "result": {
       const usage = event.usage ?? { inputTokens: 0, outputTokens: 0 };

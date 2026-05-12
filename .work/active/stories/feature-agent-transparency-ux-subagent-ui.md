@@ -1,14 +1,14 @@
 ---
 id: feature-agent-transparency-ux-subagent-ui
 kind: story
-stage: implementing
+stage: review
 tags: [ui, chat]
 parent: feature-agent-transparency-ux
 depends_on: [feature-agent-transparency-ux-subagent-channel]
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Inline sub-agent block + bootstrap side-panel transcript
@@ -85,3 +85,48 @@ story is at `stage: done`.
 - Existing tab-body: `packages/ui/src/components/bootstrap-tab-body.tsx`
 
 <!-- Implementation Notes accumulate here as work progresses. -->
+
+## Implementation notes
+
+### Files created (new)
+
+- `packages/ui/src/hooks/use-sub-agent.ts` — `useSubAgent(parentCallId)` subscribes to `client.subAgent.events({ parentCallId })` and folds all event kinds (snapshot / started / step_started / step_settled / phase_changed / finished) into local state. Mirrors `useActivity()` shape: same try/catch cleanup, same `cancelled` flag, same per-`parentCallId` dep.
+- `packages/ui/src/hooks/use-current-sub-agent.ts` — `useCurrentSubAgent()` subscribes to the unfiltered event stream and calls `client.subAgent.list()` on each event to pick the most-recently-started running item. Returns `parentCallId | null`.
+- `packages/ui/src/components/sub-agent-block.tsx` — `<SubAgentBlock>` inline collapsible block. Default-collapsed summary line: `▸ <label> · N steps · live`. Expands to show the 8 most-recent steps with `└` bullets. Settles quietly when `status === "settled"`; shows "couldn't finish" when `errored`. Stays in the items list as the historical record.
+- `packages/ui/src/components/sub-agent-block.module.css` — editorial CSS: composes from global, `└` bullet, live-pulse animation, faint muted colors.
+- `packages/ui/src/components/sub-agent-panel.tsx` — `<SubAgentPanel parentCallId>` bootstrap right-pane side panel with show/hide toggle. Renders null when `parentCallId` is null. Mounts `<SubAgentTranscript>` only when visible (avoids unnecessary subscriptions). Shows full step list (scrollable, no cap).
+- `packages/ui/src/components/sub-agent-panel.module.css`
+- `packages/ui/src/hooks/__tests__/use-sub-agent.test.tsx` — 10 tests covering snapshot, started, step_started, step_settled, phase_changed, finished, non-matching events, stream error resilience, unmount safety.
+- `packages/ui/src/components/__tests__/sub-agent-block.test.tsx` — 8 tests: initialLabel-only render, no step count at zero, step count after snapshot, expand shows steps, 8-step cap, live indicator, no-live when settled, "couldn't finish" on errored+settled.
+
+### Files modified
+
+- `packages/tools/src/labels/index.ts` — added `spawnsSubAgent?: boolean` to `ToolLabel`; set `spawnsSubAgent: true` on `course.start_exploration`.
+- `packages/ui/src/hooks/use-streamed-send.ts` — added `SubAgentSpawn` interface and `kind: "sub-agent"` to `ChatStreamItem`; routed `tool_call` branch to push sub-agent item when `label.spawnsSubAgent === true`; added immediate settle (no pacing timer) for sub-agent items in `tool_result` branch.
+- `packages/ui/src/components/chat-tab-body.tsx` — added `kind: "sub-agent"` branch to item loop rendering `<SubAgentBlock>`; added `getToolLabel` import.
+- `packages/ui/src/components/configure-chat-pane.tsx` — added `kind: "sub-agent"` guard returning null (sub-agent blocks don't appear in configure pane).
+- `packages/ui/src/components/sidekick-panel.tsx` — same null guard for sub-agent kind.
+- `packages/ui/src/components/bootstrap-tab-body.tsx` — added `useCurrentSubAgent()` call and `<SubAgentPanel parentCallId={currentSubAgent} />` below the outline.
+- `packages/ui/src/__tests__/helpers/fake-client.ts` — added `subAgent: {} as PraxisClient["subAgent"]` stub to `makeFakeClient`.
+- `packages/engines/src/claude-code/events.ts` — added `ClaudeCodeEventState` interface and `createEventState()` factory; extended `mapClaudeCodeEvent` with optional `state` parameter; when state is provided, `tool_use` events are translated to sequential callIds (`"1"`, `"2"`, …) matching the bridge worker's counter, and `tool_result` events resolve back via the translation map.
+- `packages/engines/src/claude-code/adapter.ts` — creates a fresh `eventState` per `send()` call and threads it into `mapClaudeCodeEvent`.
+- `packages/engines/src/__tests__/claude-code-events.test.ts` — added 4 cross-channel agreement tests under `"cross-channel callId agreement"` describe block.
+
+### Cross-channel question resolution: **IDs DISAGREE in production, adapter-side fix landed**
+
+The review of `subagent-channel` parked an open question: do `event.toolId` (Claude UUID from the wire protocol, e.g. `"toolu_01ABC..."`) and `ctx.callId` (the bridge worker's sequential counter `"1"`, `"2"`, ...) agree for the same tool invocation?
+
+**Finding**: They do NOT agree in production. Claude's API assigns UUIDs to tool use blocks; the MCP bridge worker maintains an independent `callCounter` for its Unix socket IPC. These are in different namespaces with no shared identity.
+
+**Fix landed** (adapter-side translation): `packages/engines/src/claude-code/events.ts` now maintains a `ClaudeCodeEventState` (per-session, per-turn) with an `orderCounter` and a `toolIdToCallId: Map<string, string>`. Each `tool_use` event increments the counter (producing `"1"`, `"2"`, ...) and stores the Claude UUID → sequential id mapping. Each `tool_result` resolves the Claude UUID back to the same sequential id. Both channels now emit identical callId values for the same invocation.
+
+**Tests**: 4 new tests in `claude-code-events.test.ts` verify sequential assignment, tool_result resolution, out-of-order result resolution, and backward-compat (no state → raw UUID passthrough). All pass.
+
+### Verification
+
+```
+pnpm --filter @praxis/engines test: 103 passed / 0 failed (13 test files)
+pnpm --filter @praxis/ui test: 798 passed / 0 failed (94 test files)
+pnpm typecheck: passes for all packages
+pnpm lint: 16 errors all pre-existing in claude-cli-sdk and client/__tests__; 0 errors in changed files
+```

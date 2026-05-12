@@ -6,6 +6,7 @@ import type {
   Timestamp,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
+import { getToolLabel } from "@praxis/tools/labels";
 import { useNavigate } from "@tanstack/react-router";
 import { type JSX, useEffect, useRef, useState } from "react";
 import { useAuthStatus } from "../context/auth-context.js";
@@ -30,6 +31,7 @@ import { QuizTabBody } from "./quiz-tab-body.js";
 import { ReasoningBlock } from "./reasoning-block.js";
 import { StructuredQuestionCard } from "./structured-question-card.js";
 import { StudySkillsTabBody } from "./study-skills-tab-body.js";
+import { SubAgentBlock } from "./sub-agent-block.js";
 import { ThinkingIndicator } from "./thinking-indicator.js";
 import { ToolInterstitial } from "./tool-interstitial.js";
 
@@ -213,13 +215,20 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
               />
             );
           }
+          if (item.kind === "sub-agent") {
+            return (
+              <SubAgentBlock
+                key={`sa-${item.callId}`}
+                parentCallId={item.callId}
+                initialLabel={getToolLabel(item.toolName).present.toLowerCase()}
+                status={item.status}
+                {...(item.errored !== undefined && { errored: item.errored })}
+              />
+            );
+          }
           if (item.kind === "thinking") {
             return (
-              <ReasoningBlock
-                key={item.id}
-                content={item.content}
-                streaming={item.streaming}
-              />
+              <ReasoningBlock key={item.id} content={item.content} streaming={item.streaming} />
             );
           }
           if (item.kind === "cancel-marker") {

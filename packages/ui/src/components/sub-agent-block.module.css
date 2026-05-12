@@ -1,0 +1,102 @@
+/* sub-agent-block.module.css — editorial restraint, mirrors tool-interstitial. */
+
+.block {
+  margin: 0.25rem 0 0.25rem 0.25rem;
+  align-self: flex-start;
+  max-width: 80%;
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  font-family: inherit;
+  text-align: left;
+}
+
+.summary:hover {
+  opacity: 0.85;
+}
+
+.chevron {
+  font-size: 0.75em;
+  flex-shrink: 0;
+}
+
+.label {
+  composes: editorial from global;
+}
+
+.meta {
+  composes: editorial from global;
+  opacity: 0.7;
+}
+
+.live {
+  composes: editorial from global;
+  opacity: 0.85;
+  animation: praxis-subagent-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes praxis-subagent-live-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live {
+    animation: none;
+    opacity: 0.75;
+  }
+}
+
+.errored {
+  composes: editorial from global;
+  color: var(--color-warning, var(--color-text-muted));
+  opacity: 0.85;
+}
+
+.steps {
+  list-style: none;
+  margin: 0.3rem 0 0 1ch;
+  padding: 0;
+}
+
+.step {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  opacity: 0.75;
+  line-height: 1.5;
+  padding: 0.05rem 0;
+}
+
+.stepFailed {
+  color: var(--color-warning, var(--color-text-muted));
+}
+
+.bullet {
+  flex-shrink: 0;
+  font-size: 0.85em;
+  opacity: 0.6;
+}
+
+.stepLabel {
+  composes: editorial from global;
+  font-size: inherit;
+}

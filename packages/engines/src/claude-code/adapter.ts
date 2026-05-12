@@ -14,7 +14,7 @@ import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
 import { buildTranscriptPreface } from "../util/transcript.js";
-import { mapClaudeCodeEvent } from "./events.js";
+import { createEventState, mapClaudeCodeEvent } from "./events.js";
 import { ClaudeCodeVision } from "./vision.js";
 
 export interface ClaudeCodeEngineOptions {
@@ -209,8 +209,12 @@ class ClaudeCodeEngineSession implements EngineSession {
     }
 
     try {
+      // Create a fresh per-turn state to translate Claude UUIDs → bridge counters.
+      // The bridge worker resets its callCounter for each new conversation send,
+      // so we create a new state here to mirror that reset.
+      const eventState = createEventState();
       for await (const event of turn) {
-        const mapped = mapClaudeCodeEvent(event, { serverName: this.serverName });
+        const mapped = mapClaudeCodeEvent(event, { serverName: this.serverName }, eventState);
         if (mapped) yield mapped;
       }
 

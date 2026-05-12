@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { mapClaudeCodeEvent } from "../claude-code/events.js";
+import { createEventState, mapClaudeCodeEvent } from "../claude-code/events.js";
 
 describe("mapClaudeCodeEvent — rate_limit_event", () => {
   it("drops informational events (status=allowed) and logs a warning instead of erroring the stream", () => {
@@ -228,5 +228,119 @@ describe("mapClaudeCodeEvent — tool_result", () => {
     } else {
       throw new Error("expected error tool_result");
     }
+  });
+});
+
+/**
+ * Cross-channel ID agreement: the engine's tool_call.callId MUST equal the
+ * ctx.callId the tool handler receives via the bridge for the same invocation.
+ *
+ * The Claude Code adapter uses a per-session state to translate Claude UUIDs
+ * to sequential callCounters that mirror the bridge worker's counter. Both
+ * sides therefore agree on the same callId string.
+ *
+ * This test verifies the adapter-side translation produces sequential ids that
+ * match the bridge counter sequence ("1", "2", "3", …), and that the
+ * tool_result side resolves back to the same translated id.
+ *
+ * Context: the bridge worker (`@praxis/claude-cli-sdk/src/tool-server.ts`) uses
+ * its own callCounter for socket IPC. The Claude Code adapter previously used
+ * `event.toolId` (a Claude UUID like "toolu_01ABC…") which never matched.
+ * This fix maintains an adapter-side orderCounter that mirrors the bridge counter.
+ */
+describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
+  it("tool_use events with state produce sequential callIds matching bridge counter", () => {
+    const state = createEventState();
+    const ctx = { serverName: "praxis" };
+
+    const event1 = mapClaudeCodeEvent(
+      { type: "tool_use", toolName: "praxis__document.outline", toolId: "toolu_01ABC", toolInput: {} },
+      ctx,
+      state,
+    );
+    const event2 = mapClaudeCodeEvent(
+      { type: "tool_use", toolName: "praxis__document.read_pages", toolId: "toolu_02DEF", toolInput: {} },
+      ctx,
+      state,
+    );
+    const event3 = mapClaudeCodeEvent(
+      { type: "tool_use", toolName: "praxis__course.start_exploration", toolId: "toolu_03GHI", toolInput: {} },
+      ctx,
+      state,
+    );
+
+    expect(event1?.type === "tool_call" && event1.callId).toBe("1");
+    expect(event2?.type === "tool_call" && event2.callId).toBe("2");
+    expect(event3?.type === "tool_call" && event3.callId).toBe("3");
+  });
+
+  it("tool_result with state resolves to the same callId as the corresponding tool_use", () => {
+    const state = createEventState();
+    const ctx = { serverName: "praxis" };
+
+    // Simulate a tool_use that gets callId "1".
+    mapClaudeCodeEvent(
+      { type: "tool_use", toolName: "praxis__course.start_exploration", toolId: "toolu_01ABC", toolInput: {} },
+      ctx,
+      state,
+    );
+
+    // The matching tool_result should resolve to "1", not "toolu_01ABC".
+    const result = mapClaudeCodeEvent(
+      { type: "tool_result", toolId: "toolu_01ABC", value: { ok: true }, isError: false },
+      ctx,
+      state,
+    );
+
+    expect(result?.type).toBe("tool_result");
+    if (result?.type === "tool_result") {
+      expect(result.callId).toBe("1");
+      // Regression guard: must NOT be the raw Claude UUID.
+      expect(result.callId).not.toMatch(/^toolu_/);
+    }
+  });
+
+  it("sequential tool_use/tool_result pairs maintain independent translation", () => {
+    const state = createEventState();
+    const ctx = { serverName: "praxis" };
+
+    // Two tool_use events.
+    const tc1 = mapClaudeCodeEvent(
+      { type: "tool_use", toolName: "praxis__document.outline", toolId: "toolu_AAA", toolInput: {} },
+      ctx,
+      state,
+    );
+    const tc2 = mapClaudeCodeEvent(
+      { type: "tool_use", toolName: "praxis__document.read_pages", toolId: "toolu_BBB", toolInput: {} },
+      ctx,
+      state,
+    );
+
+    // Results arrive (possibly out of Claude's internal order, but still matched by toolId).
+    const tr2 = mapClaudeCodeEvent(
+      { type: "tool_result", toolId: "toolu_BBB", value: "pages content", isError: false },
+      ctx,
+      state,
+    );
+    const tr1 = mapClaudeCodeEvent(
+      { type: "tool_result", toolId: "toolu_AAA", value: "outline content", isError: false },
+      ctx,
+      state,
+    );
+
+    expect(tc1?.type === "tool_call" && tc1.callId).toBe("1");
+    expect(tc2?.type === "tool_call" && tc2.callId).toBe("2");
+    // Results resolve back to their assigned sequential ids.
+    expect(tr2?.type === "tool_result" && tr2.callId).toBe("2");
+    expect(tr1?.type === "tool_result" && tr1.callId).toBe("1");
+  });
+
+  it("without state, tool_use falls back to raw Claude UUID (backward-compat for tests)", () => {
+    const result = mapClaudeCodeEvent(
+      { type: "tool_use", toolName: "praxis__course.start_exploration", toolId: "toolu_01ABC", toolInput: {} },
+      { serverName: "praxis" },
+      // no state
+    );
+    expect(result?.type === "tool_call" && result.callId).toBe("toolu_01ABC");
   });
 });

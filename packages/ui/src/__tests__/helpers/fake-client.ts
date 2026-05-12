@@ -31,6 +31,7 @@ export function makeFakeClient(overrides?: Partial<PraxisClient>): PraxisClient 
     drafts: {} as PraxisClient["drafts"],
     quickCheck: {} as PraxisClient["quickCheck"],
     update: {} as PraxisClient["update"],
+    subAgent: {} as PraxisClient["subAgent"],
     ...overrides,
   };
 }

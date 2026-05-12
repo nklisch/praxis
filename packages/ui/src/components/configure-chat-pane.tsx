@@ -61,6 +61,10 @@ export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChat
               />
             );
           }
+          if (item.kind === "sub-agent") {
+            // Sub-agent blocks don't appear in the configure pane — render nothing.
+            return null;
+          }
           if (item.kind === "thinking") {
             // Reasoning blocks don't appear in the configure pane — render nothing.
             return null;

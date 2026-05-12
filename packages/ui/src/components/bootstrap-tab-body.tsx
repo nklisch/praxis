@@ -21,10 +21,12 @@ import {
   BOOTSTRAP_BUDGET_MIN,
   useBootstrapBudget,
 } from "../hooks/use-bootstrap-budget.js";
+import { useCurrentSubAgent } from "../hooks/use-current-sub-agent.js";
 import { useDrafts } from "../hooks/use-drafts.js";
 import styles from "./bootstrap-tab-body.module.css";
 import { TeachChatTabBody } from "./chat-tab-body.js";
 import { DraftCard } from "./draft-card.js";
+import { SubAgentPanel } from "./sub-agent-panel.js";
 
 export interface BootstrapTabBodyProps {
   tab: TabSummary;
@@ -37,6 +39,7 @@ export interface BootstrapTabBodyProps {
  */
 export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
   const { current } = useDrafts();
+  const currentSubAgent = useCurrentSubAgent();
 
   return (
     <div className={styles.container}>
@@ -58,6 +61,9 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
             <p>the outline will appear here as the tutor builds the course.</p>
           </div>
         )}
+        {/* Sub-agent transcript panel — visible only when an exploration is running.
+            Default-hidden; the user toggles via the button inside SubAgentPanel. */}
+        <SubAgentPanel parentCallId={currentSubAgent} />
       </aside>
     </div>
   );

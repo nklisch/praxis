@@ -68,9 +68,30 @@ export interface CancelMarker {
   id: string;
 }
 
+/**
+ * A sub-agent spawn item — promoted from a `tool_call` whose label has
+ * `spawnsSubAgent: true`. Rather than showing as a standard `<ToolInterstitial>`,
+ * this item renders as `<SubAgentBlock>` which subscribes to
+ * `client.subAgent.events({ parentCallId })` and shows live step progress.
+ *
+ * The pacing logic (MIN_INTERSTITIAL_VISIBLE_MS) is NOT applied to sub-agent
+ * items — they have their own event stream for progress; the settle transition
+ * just mirrors the parent `tool_result`.
+ */
+export interface SubAgentSpawn {
+  /** Parent session's tool_call.callId — subscription key for the sub-agent stream. */
+  callId: string;
+  toolName: string;
+  /** "in_flight" while awaiting tool_result; "settled" once the result lands. */
+  status: "in_flight" | "settled";
+  /** True when the matched tool_result.ok === false. */
+  errored?: boolean;
+}
+
 export type ChatStreamItem =
   | ({ kind: "message" } & ChatMessage)
   | ({ kind: "interstitial" } & ToolInterstitial)
+  | ({ kind: "sub-agent" } & SubAgentSpawn)
   | ({ kind: "thinking" } & ReasoningItem)
   | ({ kind: "cancel-marker" } & CancelMarker);
 
@@ -151,7 +172,10 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
 
     // Pending settle timers — cleared on interrupted / error / finally to avoid leaks.
     // Value is { timer, settleNow } so the finally drain can invoke settleNow directly.
-    const pendingSettleTimers = new Map<string, { timer: ReturnType<typeof setTimeout>; settleNow: () => void }>();
+    const pendingSettleTimers = new Map<
+      string,
+      { timer: ReturnType<typeof setTimeout>; settleNow: () => void }
+    >();
 
     // Active reasoning block id (null = no open block).
     let currentReasoningId: string | null = null;
@@ -214,7 +238,9 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
       const id = currentReasoningId;
       currentReasoningId = null;
       setItems((prev) =>
-        prev.map((it) => (it.kind === "thinking" && it.id === id ? { ...it, streaming: false } : it)),
+        prev.map((it) =>
+          it.kind === "thinking" && it.id === id ? { ...it, streaming: false } : it,
+        ),
       );
     };
 
@@ -297,7 +323,14 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           pendingByCallId.set(callId, toolName);
 
           const label = getToolLabel(toolName);
-          if (!label.hidden) {
+          if (label.spawnsSubAgent === true) {
+            // Promote to a sub-agent block — subscribes to client.subAgent.events
+            // rather than showing a static interstitial. No pacing timer applied.
+            setItems((prev) => [
+              ...prev,
+              { kind: "sub-agent", callId, toolName, status: "in_flight" },
+            ]);
+          } else if (!label.hidden) {
             // Push a visible interstitial item for this tool call.
             const firstSeenAt = Date.now();
             interstitialFirstSeenAt.set(callId, firstSeenAt);
@@ -317,10 +350,25 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           } else {
             pendingByCallId.delete(callId);
 
+            const errored = event.result.ok === false;
+
+            // Settle sub-agent items immediately (no pacing — the sub-agent block
+            // has its own live event stream; the settle just marks the parent call done).
+            setItems((prev) =>
+              prev.map((it) => {
+                if (it.kind === "sub-agent" && it.callId === callId) {
+                  return {
+                    ...it,
+                    status: "settled" as const,
+                    ...(errored && { errored: true }),
+                  };
+                }
+                return it;
+              }),
+            );
+
             // Settle any visible interstitial with this callId, pacing to MIN_INTERSTITIAL_VISIBLE_MS.
             const seenAt = interstitialFirstSeenAt.get(callId);
-
-            const errored = event.result.ok === false;
             const settleNow = (): void => {
               setItems((prev) =>
                 prev.map((it) => {
