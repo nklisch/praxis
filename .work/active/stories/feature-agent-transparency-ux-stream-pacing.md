@@ -1,7 +1,7 @@
 ---
 id: feature-agent-transparency-ux-stream-pacing
 kind: story
-stage: review
+stage: done
 tags: [ui, chat]
 parent: feature-agent-transparency-ux
 depends_on: []
@@ -108,3 +108,21 @@ and the same `ChatStreamItem` discriminated union.
 - `pnpm --filter @praxis/ui test` — 739 tests pass (36 new tests added)
 - `pnpm typecheck` (workspace) — clean
 - Pre-existing `claude-cli-sdk` lint warnings are unchanged (not caused by this PR)
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `8fc1d2f`: solid implementation of all three concerns (pacing, reasoning block, scroll heuristic).
+- The in-closure `interstitialFirstSeenAt` Map (parallel to `ToolInterstitial.firstSeenAt`) avoids React-state read-back; both Maps drain symmetrically in `interrupted` and `finally`. Stored `settleNow` closure preserves the `errored` flag through the timer.
+- `closeReasoningBlock` is idempotent — `interrupted` → `finally` double-close is a safe no-op.
+- The `finally` drain fires pending `settleNow`s immediately on normal stream completion, which is correct: holding `in_flight` post-stream would just leave visual cruft.
+- 36 new tests cover fast/slow tool pacing, cancel cleanup, thinking-event accumulation, reasoning-block close on tool_call/model_message, multiple non-contiguous reasoning blocks, and scroll-when-near-bottom / don't-scroll-when-up.
+- `ToolInterstitial.firstSeenAt` is mandatory; agent correctly updated `bubble-boundary-parity.test.ts` comparisons and added `kind: "thinking"` guards in `configure-chat-pane.tsx` / `sidekick-panel.tsx`.
+
+Approved and advancing to done.
