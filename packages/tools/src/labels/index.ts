@@ -30,7 +30,7 @@ export const TOOL_LABELS: Readonly<Record<string, ToolLabel>> = {
   "document.read_pages": { present: "Reading pages" },
 
   // Course bootstrap (drafting)
-  "course.start_exploration": { present: "Exploring your sources" },
+  "course.start_exploration": { present: "Reading your materials", past: "Read your materials" },
   "course.draft_init": { present: "Sketching a course outline" },
   "course.draft_add_unit": { present: "Adding a unit" },
   "course.draft_add_lessons": { present: "Adding lessons" },

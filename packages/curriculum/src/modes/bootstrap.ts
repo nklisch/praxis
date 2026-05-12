@@ -21,8 +21,8 @@ import { principlesFragment } from "./fragments/principles.js";
  */
 export const bootstrapMode: Mode = {
   id: "bootstrap",
-  label: "Bootstrap a course",
-  description: "Conversational mode for authoring a new course from ingested documents.",
+  label: "Design a course",
+  description: "Conversational mode for designing a new course from your materials.",
   requiredRole: "student",
   promptFragments: [
     preambleFragment,

@@ -26,7 +26,7 @@ export const COPY = {
       "No concept maps yet. Sketch one to externalize how the ideas connect — your tutor will compare it to the canonical graph and discuss productive differences with you.",
     /** Library section empty states — each is an invitation, not a notice. */
     libraryCoursesEmpty:
-      "No courses in progress. Import a pack to begin, or start a bootstrap session.",
+      "No courses in progress. Import a pack to begin, or design one from your materials.",
     libraryPacksEmpty:
       "No knowledge packs available. Drop a pack JSON into the packs directory and it will appear here.",
     libraryDocumentsEmpty:
@@ -83,7 +83,7 @@ export const COPY = {
       "An NGSS-aligned high-school biology graph spanning cells, genetics, evolution, and ecosystems.",
     courseFromSyllabusLabel: "From your own syllabus",
     courseFromSyllabusBody:
-      "Drop in a syllabus or textbook outline and we'll explore it together to draft a course.",
+      "Drop in a syllabus or textbook outline and we'll design a course together from it.",
     skipLabel: "Skip onboarding",
     continueLabel: "Continue",
     backLabel: "Back",

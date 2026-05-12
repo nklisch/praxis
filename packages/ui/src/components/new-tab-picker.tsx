@@ -2,6 +2,7 @@ import type { SessionId, TabId, TabSummary } from "@praxis/core/types";
 import { type FormEvent, type JSX, useCallback, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useResource } from "../hooks/use-resource.js";
+import { getModeMeta } from "./mode-meta.js";
 import { Modal } from "./modal.js";
 import styles from "./new-tab-picker.module.css";
 
@@ -98,7 +99,7 @@ export function NewTabPicker({ onClose, openTab, onOpened }: NewTabPickerProps):
                   onChange={() => setModeId(mode)}
                   className={styles.radioInput}
                 />
-                <span className={styles.radioText}>{mode}</span>
+                <span className={styles.radioText}>{getModeMeta(mode).name}</span>
               </label>
             ))}
           </div>

@@ -2,7 +2,7 @@
  * Bootstrap modality tab body.
  *
  * Two-pane layout: chat on the left (~60%) for tutor conversation; a draft
- * course outline on the right (~40%) that updates live as the explore agent
+ * course outline on the right (~40%) that updates live as the course-design sub-agent
  * builds units, lessons, concepts, edges, and assessments.
  *
  * The right pane subscribes to `client.drafts.events()` via the `useDrafts`
@@ -10,8 +10,8 @@
  * an `updated` event from every mutator, so the outline reflects each tool
  * call as it lands rather than waiting for `course.show_draft` to fire.
  *
- * The outline header also exposes the user's tool-call budget for the explore
- * agent. Edits persist via ConfigService and are read server-side at the
+ * The outline header also exposes the user's tool-call budget for the course-design sub-agent.
+ * Edits persist via ConfigService and are read server-side at the
  * start of the next exploration — no restart required.
  */
 import type { TabSummary } from "@praxis/core/types";
@@ -64,7 +64,7 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
 }
 
 /**
- * Editable numeric input for the explore-agent tool-call budget. Local
+ * Editable numeric input for the course-design sub-agent tool-call budget. Local
  * input state lets the user type freely; commits on blur or Enter. Clamped
  * client-side and again server-side by Zod.
  */
@@ -107,8 +107,8 @@ function BudgetField(): JSX.Element {
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
-        aria-label="Explore agent tool-call budget"
-        title={`Tool-call budget for the explore agent (${BOOTSTRAP_BUDGET_MIN}–${BOOTSTRAP_BUDGET_MAX} steps).`}
+        aria-label="Course-design budget"
+        title={`Tool-call budget for the course-design sub-agent (${BOOTSTRAP_BUDGET_MIN}–${BOOTSTRAP_BUDGET_MAX} steps).`}
       />
       steps
     </label>

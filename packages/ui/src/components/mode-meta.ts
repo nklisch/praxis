@@ -29,7 +29,7 @@ const META: Record<string, ModeMeta> = {
     tint: "#d4a373",
   },
   bootstrap: {
-    name: "bootstrap",
+    name: "course design",
     deck: "shaping a new course together",
     ornament: "¶",
     tint: "#a3b18a",
