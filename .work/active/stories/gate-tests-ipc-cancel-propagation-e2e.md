@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ipc-cancel-propagation-e2e
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -37,3 +37,17 @@ it("praxis.session.send.cancel propagates to engine conv.abort via controller si
 
 ## Test location (suggested)
 `packages/desktop/electron/main/__tests__/ipc-server.cancel.test.ts`
+
+## Implementation notes
+
+Created `packages/desktop/electron/main/__tests__/ipc-server.cancel.test.ts` with 3 tests:
+
+1. **Registration check** — verifies both `praxis.session.send.start` (handle) and `praxis.session.send.cancel` (on) are registered by `registerIpcHandlers`.
+
+2. **Cancel propagation** — the core seam test: starts a streaming turn via `praxis.session.send.start`, parks the fake `session.send` generator mid-stream using a signal-aware await, fires `praxis.session.send.cancel` with the same `streamId`, and asserts the `AbortSignal` passed to `session.send` is immediately `aborted`. Verifies the ipc-server's `activeAbortControllers` map round-trip (`set` on start, `abort` on cancel, `delete` in finally).
+
+3. **Stream isolation** — fires two concurrent streams with different `streamId`s, cancels only stream A, and confirms stream B's signal remains unaborted.
+
+Test strategy: mirrors `ipc-server.first-run-update.test.ts` — mocks `electron` to capture `ipcMain.handle` and `ipcMain.on` registrations, then invokes them directly. No real DB, no Electron process. The cancel path (`activeAbortControllers.get(streamId)?.abort()`) is traced end-to-end through the `AbortSignal` visible to the fake `session.send` generator.
+
+No design-flaw discovered: the signal threads cleanly from `praxis.session.send.cancel` → `AbortController.abort()` → `controller.signal` passed to `services.session.send`. The per-layer tests in `session-service-cancel.test.ts` cover the signal-to-engine dispatch; this test covers the IPC seam that was missing.
