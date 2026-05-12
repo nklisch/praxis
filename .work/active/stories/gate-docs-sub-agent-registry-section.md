@@ -1,7 +1,7 @@
 ---
 id: gate-docs-sub-agent-registry-section
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ A first-class `SubAgentRegistry` port ships in `ServiceDeps.subAgent` and `Servi
 
 ## Required edit
 Add a new CONTRACT.md section "Sub-agent transparency" containing `SubAgentItem`, `SubAgentStep`, `SubAgentEvent`, `SubAgentRegistry`, `SubAgentHandle` types and the IPC channel names. In ARCHITECTURE.md, extend the "Where the big pieces live" enumeration and the "Tool dispatch architecture" section to describe sub-agent event publication.
+
+## Implementation notes
+Edits applied inline to `docs/CONTRACT.md` as part of the v0.1.1 autopilot doc-drift batch. The roll-forward replaces stale assertions in place per the rolling-foundation principle — no "previously" prose; git history is the audit trail.

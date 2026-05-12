@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-assignment-item-fold-in
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -29,3 +29,6 @@ Phase 17 SHIPPED (per CHANGELOG v0 retro and the existing Phase 17 design doc). 
 
 ## Required edit
 Promote the discriminated union from the callout into the primary inline definition, replacing the pre-Phase-17 shape. Remove the "(planned)" qualifiers from both Phase 17 callouts. The lower CONTRACT.md "Phase 17 additive changes" section (line 1262+) already documents the changes as current — fold the two presentations into a single in-place definition to match rolling-foundation discipline.
+
+## Implementation notes
+Edits applied inline to `docs/CONTRACT.md` as part of the v0.1.1 autopilot doc-drift batch. The roll-forward replaces stale assertions in place per the rolling-foundation principle — no "previously" prose; git history is the audit trail.

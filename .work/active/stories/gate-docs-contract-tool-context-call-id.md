@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-tool-context-call-id
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ foundation-doc-assertion
 
 ## Required edit
 Add `callId?: string` to the `ToolContext` interface with a short comment explaining that it carries the parent `tool_call`'s callId for sub-agent-emitting handlers.
+
+## Implementation notes
+Edits applied inline to `docs/CONTRACT.md` as part of the v0.1.1 autopilot doc-drift batch. The roll-forward replaces stale assertions in place per the rolling-foundation principle — no "previously" prose; git history is the audit trail.

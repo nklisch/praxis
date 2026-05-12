@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-engine-event-interrupted-variant
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ Union includes seventh variant `| { type: "interrupted"; reason: "user_cancel" |
 
 ## Required edit
 Add the `interrupted` variant with a short doc comment on `user_cancel`/`engine_abort`; extend the `final` shape with `finalReason` and `errorMessage`.
+
+## Implementation notes
+Edits applied inline to `docs/CONTRACT.md` as part of the v0.1.1 autopilot doc-drift batch. The roll-forward replaces stale assertions in place per the rolling-foundation principle — no "previously" prose; git history is the audit trail.

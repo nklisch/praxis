@@ -68,8 +68,14 @@ interface EngineSession {
    * internal loop completes for this turn. Subsequent calls continue the same
    * conversation — the adapter's underlying SDK preserves history natively
    * (Claude Code, Codex) or via an in-memory messages array (Direct).
+   *
+   * `signal` is wired to the adapter's SDK abort mechanism. When fired,
+   * `SessionServiceImpl.send` yields a synthetic
+   * `{ type: "interrupted", reason: "user_cancel" }` event as the final event
+   * for the turn. Adapters that abort internally (engine_abort) yield the
+   * same event with `reason: "engine_abort"`.
    */
-  send(userMessage: string): AsyncIterable<EngineEvent>;
+  send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent>;
 
   /**
    * Tear down the underlying SDK session, MCP bridge subprocess, etc.
@@ -86,7 +92,17 @@ interface ConversationTurn {
 
 interface ToolRegistry {
   list(): ToolDefinitionSummary[];
-  dispatch(name: string, args: unknown): Promise<ToolResult>;
+  dispatch(name: string, args: unknown, meta?: ToolDispatchMeta): Promise<ToolResult>;
+}
+
+/**
+ * Per-call metadata threaded by engine adapters when invoking the registry.
+ * Currently carries the SDK-supplied `callId` of the originating `tool_call`,
+ * which the registry injects into `ToolContext.callId` so handlers that spawn
+ * sub-agents can publish events keyed on the parent's call.
+ */
+interface ToolDispatchMeta {
+  callId?: string;
 }
 
 interface ToolDefinitionSummary {
@@ -113,7 +129,21 @@ type EngineEvent =
   | { type: "tool_result"; callId: string; result: ToolResult }
   | { type: "thinking"; content: string }
   | { type: "error"; error: EngineError }
-  | { type: "final"; usage: TokenUsage }
+  | {
+      type: "final";
+      usage: TokenUsage;
+      /** Why the turn ended. Absent on legacy adapter paths; present in current adapters. */
+      finalReason?: "success" | "max_turns" | "generation_error" | "interrupted";
+      /** Populated when `finalReason === "generation_error"`. */
+      errorMessage?: string;
+    }
+  /**
+   * The turn was cut short. `user_cancel` = caller fired the `AbortSignal`
+   * passed to `send()`. `engine_abort` = the adapter aborted internally
+   * (e.g., SDK-level abort without a client-side signal). Yielded as the
+   * last event for the turn; no `final` follows.
+   */
+  | { type: "interrupted"; reason: "user_cancel" | "engine_abort" }
   /**
    * Phase 16: a non-user, non-tool, non-model message appended by the runtime.
    * Used for assignment-submission notifications so the teach-mode tutor can
@@ -219,6 +249,14 @@ type EffectKind =
 interface ToolContext {
   studentId: StudentId;
   sessionId: SessionId;
+  /**
+   * The `callId` of the parent `tool_call` that invoked this handler. Set by
+   * `InProcessToolRegistry.dispatch` when the engine adapter supplies it via
+   * `ToolDispatchMeta`. Sub-agent-emitting tools key their `SubAgentRegistry`
+   * events on this value so the UI can correlate sub-agent activity with the
+   * parent tool_call in the chat thread.
+   */
+  callId?: string;
   services: {
     memory: MemoryService;
     artifacts: ArtifactsService;
@@ -226,6 +264,7 @@ interface ToolContext {
     sandbox: CodeSandbox;
     sympy: SymPyService;
     pedagogyPack: PedagogyPackService;
+    subAgent?: SubAgentRegistry;
   };
   log: Logger;
 }
@@ -265,11 +304,22 @@ interface Mode {
 
 interface PromptFragment {
   id: string;
-  position: "preamble" | "role" | "principles" | "tools" | "context" | "constraints" | "postamble";
+  position:
+    | "preamble"
+    | "role"
+    | "principles"
+    | "tools"
+    | "context"
+    | "constraints"
+    | "user-global"   // cross-mode global prompt from config_kv (user authoring)
+    | "user-append"   // per-mode append from mode_prompt_appends (user authoring)
+    | "postamble";
   template: string;       // may contain `{{template_vars}}`
   customizable: boolean;  // can parent/teacher override in configure UI?
 }
 ```
+
+**User-authored fragments**: `user-global` carries the cross-mode global prompt stored at `config_kv.prompt.global_fragment`; `user-append` carries the per-mode append stored in the `mode_prompt_appends` table. Both are injected via `additionalFragments` by `SessionServiceImpl.openActive` through `PromptCustomizationService.getEffectiveAdditionalFragments(modeId)`. Order within the composed prompt is enforced by `FRAGMENT_ORDER` — user-authored slots sit between `constraints` and `postamble` so they can amend the system's behavior without overriding load-bearing constraints.
 
 ## Artifact schemas
 
@@ -402,131 +452,117 @@ interface Assignment {
   parentSessionId?: SessionId;
 }
 
-interface AssignmentItem {
+type AssignmentItem =
+  | SingleChoiceItem
+  | MultiSelectItem
+  | ShortAnswerItem
+  | FreeResponseItem
+  | MathItem
+  | CodeItem
+  | NumericalItem
+  | MatchingItem
+  | OrderingItem
+  | TwoTierItem;
+
+interface SingleChoiceItem {
+  kind: "single-choice";
   id: string;
-  kind: "multiple-choice" | "short-answer" | "free-response" | "math" | "code";
   prompt: string;
-  options?: string[];             // multiple-choice
-  rubric?: Rubric;                // free-response / exam-quality grading
+  options: string[];
+  correctOptionIndex: number;
+  requireReasoning?: boolean;
+  reasoningRubric?: Rubric;  // required when requireReasoning is true (Zod refine)
+  primaryWeight?: number;    // blends selection vs. reasoning scores; default 0.5
+  authoredBy?: "tutor" | "configurator";
 }
 
-> **Phase 17 (planned) — `AssignmentItem` rename + expansion**
->
-> `"multiple-choice"` renames to `"single-choice"` in Phase 17. A one-shot migration rewrites stored `items_json` blobs; the schema rejects the old string after migration (hard cut — no backward-compat alias). Four new kinds are added simultaneously, and a `requireReasoning` modifier lands on select choice kinds.
->
-> The expanded discriminated union after Phase 17:
->
-> ```typescript
-> type AssignmentItem =
->   | SingleChoiceItem
->   | MultiSelectItem
->   | ShortAnswerItem       // unchanged
->   | FreeResponseItem      // unchanged
->   | MathItem              // unchanged
->   | CodeItem              // unchanged
->   | NumericalItem         // new
->   | MatchingItem          // new
->   | OrderingItem          // new
->   | TwoTierItem;          // new
->
-> interface SingleChoiceItem {
->   kind: "single-choice";   // renamed from "multiple-choice"
->   id: string;
->   prompt: string;
->   options: string[];
->   correctOptionIndex: number;
->   requireReasoning?: boolean;
->   reasoningRubric?: Rubric;  // required when requireReasoning is true (Zod refine)
->   primaryWeight?: number;    // blends selection vs. reasoning scores; default 0.5
->   authoredBy?: "tutor" | "configurator";
-> }
->
-> interface MultiSelectItem {
->   kind: "multi-select";
->   id: string;
->   prompt: string;
->   options: string[];
->   correctOptionIndices: number[];  // ≥1, sorted ascending
->   requireReasoning?: boolean;
->   reasoningRubric?: Rubric;
->   primaryWeight?: number;
->   authoredBy?: "tutor" | "configurator";
-> }
->
-> interface NumericalItem {
->   kind: "numerical";
->   id: string;
->   prompt: string;
->   expectedValue: number;
->   tolerance?: number;          // absolute tolerance; |x − expected| ≤ tol; default 0
->   expectedUnits?: string;      // case-insensitive exact-string match when set
->   significantFigures?: number; // when set, student answer must round to this many sig figs
->   workRubric?: Rubric;
->   primaryWeight?: number;
->   authoredBy?: "tutor" | "configurator";
-> }
->
-> interface MatchingItem {
->   kind: "matching";
->   id: string;
->   prompt: string;
->   leftItems: Array<{ id: string; text: string }>;
->   rightItems: Array<{ id: string; text: string }>;
->   correctPairs: Array<{ leftId: string; rightId: string }>;  // 1:1 in v1
->   authoredBy?: "tutor" | "configurator";
-> }
->
-> interface OrderingItem {
->   kind: "ordering";
->   id: string;
->   prompt: string;
->   items: Array<{ id: string; text: string }>;  // shown shuffled to the student
->   correctOrder: string[];                       // array of item ids in correct sequence
->   authoredBy?: "tutor" | "configurator";
-> }
->
-> interface TwoTierItem {
->   kind: "two-tier";
->   id: string;
->   prompt: string;              // tier-1 question
->   options: string[];           // tier-1 options
->   correctOptionIndex: number;  // tier-1 correct
->   reasonPrompt: string;        // tier-2 question, e.g. "why did you pick that?"
->   reasonOptions: string[];     // tier-2 options (the "reasons")
->   correctReasonIndex: number;
->   // Maps each reason option index to a misconception id, or null when the option
->   // is correct or carries no clear misconception. Length must equal reasonOptions.length.
->   misconceptionByReasonIndex: Array<string | null>;
->   requireReasoning?: boolean;
->   reasoningRubric?: Rubric;
->   primaryWeight?: number;
->   authoredBy?: "tutor" | "configurator";
-> }
-> ```
->
-> **`requireReasoning` modifier**: applicable to `SingleChoiceItem`, `MultiSelectItem`, and `TwoTierItem` only. Short-answer and free-response are already textual; math and code use `workRubric`. When set, the student writes a free-text justification. The reasoning text travels in the existing `AssignmentResponse.work` field — the grader can distinguish it from `workRubric` work because `requireReasoning` lives on the item. The deterministic selection grade and the rubric-agent reasoning grade are blended via `primaryWeight` (default 0.5) using the existing `blendDeterministicAndWorkRubric` helper.
->
-> **Two-tier misconception evidence**: when a student picks a wrong tier-2 reason whose `misconceptionByReasonIndex` entry is non-null, the grader emits a misconception id in `GraderResult.misconceptionId`. The assignment service writes a misconception evidence event as a side effect, closing the loop with Phase 7's misconception memory.
->
-> **Phase 17 (planned) — `QuickCheckAnswer` + `QuickCheckEvent`**
->
-> These are ephemeral types that flow through the IPC stream `praxis.quickCheck.events.<streamId>` and are never persisted to the DB (they appear in the episodic transcript only as the bracketing `tool_call` / `tool_result` events).
->
-> ```typescript
-> type QuickCheckAnswer =
->   | { kind: "single-choice"; selectedIndex: number }
->   | { kind: "multi-select"; selectedIndices: number[] }
->   | { kind: "short-answer"; text: string }
->   | { kind: "matching"; pairs: Array<{ leftId: string; rightId: string }> }
->   | { kind: "confidence"; rating: number }
->   | { kind: "abandoned" };  // session ended or renderer never resolved
->
-> type QuickCheckEvent =
->   | { kind: "pending"; callId: string; sessionId: SessionId; item: AssignmentItem }
->   | { kind: "resolved"; callId: string; answer: QuickCheckAnswer };
-> ```
->
-> The `praxis.quickCheck.resolve` IPC handler accepts `{ callId: string; answer: QuickCheckAnswer }` from the renderer and resolves the pending `Promise` in `QuickCheckService`. See SPEC.md §"Human-in-the-loop tool dispatch (Phase 17)" for the full dispatch semantics.
+interface MultiSelectItem {
+  kind: "multi-select";
+  id: string;
+  prompt: string;
+  options: string[];
+  correctOptionIndices: number[];  // ≥1, sorted ascending
+  requireReasoning?: boolean;
+  reasoningRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+interface NumericalItem {
+  kind: "numerical";
+  id: string;
+  prompt: string;
+  expectedValue: number;
+  tolerance?: number;          // absolute tolerance; |x − expected| ≤ tol; default 0
+  expectedUnits?: string;      // case-insensitive exact-string match when set
+  significantFigures?: number; // when set, student answer must round to this many sig figs
+  workRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+interface MatchingItem {
+  kind: "matching";
+  id: string;
+  prompt: string;
+  leftItems: Array<{ id: string; text: string }>;
+  rightItems: Array<{ id: string; text: string }>;
+  correctPairs: Array<{ leftId: string; rightId: string }>;  // 1:1 in v1
+  authoredBy?: "tutor" | "configurator";
+}
+
+interface OrderingItem {
+  kind: "ordering";
+  id: string;
+  prompt: string;
+  items: Array<{ id: string; text: string }>;  // shown shuffled to the student
+  correctOrder: string[];                       // array of item ids in correct sequence
+  authoredBy?: "tutor" | "configurator";
+}
+
+interface TwoTierItem {
+  kind: "two-tier";
+  id: string;
+  prompt: string;              // tier-1 question
+  options: string[];           // tier-1 options
+  correctOptionIndex: number;  // tier-1 correct
+  reasonPrompt: string;        // tier-2 question, e.g. "why did you pick that?"
+  reasonOptions: string[];     // tier-2 options (the "reasons")
+  correctReasonIndex: number;
+  // Maps each reason option index to a misconception id, or null when the option
+  // is correct or carries no clear misconception. Length must equal reasonOptions.length.
+  misconceptionByReasonIndex: Array<string | null>;
+  requireReasoning?: boolean;
+  reasoningRubric?: Rubric;
+  primaryWeight?: number;
+  authoredBy?: "tutor" | "configurator";
+}
+
+// ShortAnswerItem, FreeResponseItem, MathItem, CodeItem retain the original
+// shape from before the Phase 17 expansion (kind discriminator + prompt +
+// per-kind validator/rubric fields).
+
+**`requireReasoning` modifier**: applicable to `SingleChoiceItem`, `MultiSelectItem`, and `TwoTierItem` only. Short-answer and free-response are already textual; math and code use `workRubric`. When set, the student writes a free-text justification. The reasoning text travels in the existing `AssignmentResponse.work` field — the grader can distinguish it from `workRubric` work because `requireReasoning` lives on the item. The deterministic selection grade and the rubric-agent reasoning grade are blended via `primaryWeight` (default 0.5) using the existing `blendDeterministicAndWorkRubric` helper.
+
+**Two-tier misconception evidence**: when a student picks a wrong tier-2 reason whose `misconceptionByReasonIndex` entry is non-null, the grader emits a misconception id in `GraderResult.misconceptionId`. The assignment service writes a misconception evidence event as a side effect, closing the loop with Phase 7's misconception memory.
+
+**`QuickCheckAnswer` + `QuickCheckEvent`** are ephemeral types that flow through the IPC stream `praxis.quickCheck.events.<streamId>` and are never persisted to the DB (they appear in the episodic transcript only as the bracketing `tool_call` / `tool_result` events).
+
+```typescript
+type QuickCheckAnswer =
+  | { kind: "single-choice"; selectedIndex: number }
+  | { kind: "multi-select"; selectedIndices: number[] }
+  | { kind: "short-answer"; text: string }
+  | { kind: "matching"; pairs: Array<{ leftId: string; rightId: string }> }
+  | { kind: "confidence"; rating: number }
+  | { kind: "abandoned" };  // session ended or renderer never resolved
+
+type QuickCheckEvent =
+  | { kind: "pending"; callId: string; sessionId: SessionId; item: AssignmentItem }
+  | { kind: "resolved"; callId: string; answer: QuickCheckAnswer };
+```
+
+The `praxis.quickCheck.resolve` IPC handler accepts `{ callId: string; answer: QuickCheckAnswer }` from the renderer and resolves the pending `Promise` in `QuickCheckService`. See SPEC.md §"Human-in-the-loop tool dispatch" for the full dispatch semantics.
 
 interface Grade {
   total: number;                  // 0..1
@@ -994,6 +1030,12 @@ interface AuthoringService {
   customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
   clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void>;
   setStyleSliders(input: { socratic: number; verbosity: number; formality: number }): Promise<void>;
+  // Prompt customization layers (user-authored fragments)
+  setGlobalPrompt(text: string): Promise<void>;
+  getGlobalPrompt(): Promise<string>;
+  setModeAppend(input: { modeId: string; text: string }): Promise<void>;
+  getModeAppend(modeId: string): Promise<string>;
+  previewPrompt(input: { modeId: string; draftGlobal?: string; draftAppend?: string }): Promise<string>;
   // Memory administration
   resetConcept(input: { conceptId: ConceptId; reason: string }): Promise<void>;
   clearMisconception(input: { misconceptionId: MisconceptionId; reason: string }): Promise<void>;
@@ -1003,6 +1045,15 @@ interface AuthoringService {
   listConfiguratorActions(input?: { fromTs?: Timestamp; limit?: number }): Promise<ConfiguratorActionRow[]>;
 }
 ```
+
+### `PromptCustomizationService` — prompt customization layers
+
+`PromptCustomizationServiceImpl` in `@praxis/core/services` reads and writes the two user-authored prompt slots that feed the `user-global` and `user-append` `PromptFragment` positions described under the Mode contract. Storage:
+
+- **Global fragment** — `config_kv` row at key `prompt.global_fragment`, value `{ text: string }`. Applied across every mode.
+- **Per-mode append** — row in the `mode_prompt_appends` table keyed by `mode_id`. Applied only to the named mode.
+
+`SessionServiceImpl.openActive` calls `promptCustomization.getEffectiveAdditionalFragments(modeId)` to produce `{ id, position, template, customizable: false }` records, then passes them to `composeSystemPrompt(...)` as `additionalFragments`. Writes go through `AuthoringServiceImpl.setGlobalPrompt` / `setModeAppend`, which append a `prompt.set_global` or `prompt.set_mode_append` `ConfiguratorAction` audit row carrying **only the character count** of the text — never the content itself — so secrets pasted into a prompt do not leak into the audit log.
 
 ### `LockService` — new client surface (Phase 11)
 
@@ -1036,6 +1087,8 @@ type ConfiguratorAction =
   | { kind: "prompt.override_fragment"; modeId: string; fragmentId: string }
   | { kind: "prompt.clear_fragment"; modeId: string; fragmentId: string }
   | { kind: "prompt.set_style"; level: { socratic: number; verbosity: number; formality: number } }
+  | { kind: "prompt.set_global"; charCount: number }                  // value stores only char count, never content
+  | { kind: "prompt.set_mode_append"; modeId: string; charCount: number }
   | { kind: "memory.reset_concept"; conceptId: ConceptId; reason: string }
   | { kind: "memory.clear_misconception"; misconceptionId: MisconceptionId; reason: string }
   | { kind: "memory.export" }
@@ -1591,6 +1644,62 @@ The server always delivers a `snapshot` event first on subscribe so a fresh subs
 ### Biology canonical pack (`packages/curriculum/packs/biology.json`)
 
 A second subject pack alongside `algebra-1.json` and `geometry.json`. Referenced by `course.use_canonical_pack` via subject id `"science.biology"`. The pack ships with the desktop bundle; its content version is tracked in the pack's top-level `version` field.
+
+## Sub-agent transparency
+
+When a tool handler spawns its own LLM agent (e.g. `course.start_exploration`'s bootstrap explorer), the framework surfaces that work as a first-class object in the chat thread so the student can see the steps it's taking. The contract lives in `@praxis/core/types/subagent.ts`.
+
+```typescript
+interface SubAgentItem {
+  id: string;
+  parentSessionId: SessionId;
+  parentCallId: string;             // the parent tool_call.callId
+  label: string;                    // human-readable agent name; e.g. "Bootstrap explorer"
+  phase: SubAgentPhase;             // "running" | "succeeded" | "failed" | "cancelled"
+  startedAt: Timestamp;
+  endedAt?: Timestamp;
+  steps: SubAgentStep[];            // append-only
+}
+
+interface SubAgentStep {
+  id: string;
+  kind: SubAgentStepKind;           // "tool_call" | "model_turn" | "narration"
+  status: "started" | "succeeded" | "failed";
+  toolName?: string;                // when kind === "tool_call"
+  message?: string;                 // brief one-line summary surfaced in the UI
+  startedAt: Timestamp;
+  endedAt?: Timestamp;
+}
+
+type SubAgentEvent =
+  | { kind: "snapshot"; items: readonly SubAgentItem[] }
+  | { kind: "started"; item: SubAgentItem }
+  | { kind: "step_started"; itemId: string; step: SubAgentStep }
+  | { kind: "step_settled"; itemId: string; step: SubAgentStep }
+  | { kind: "phase_changed"; itemId: string; phase: SubAgentPhase; endedAt?: Timestamp };
+
+interface SubAgentRegistry {
+  start(input: { parentSessionId: SessionId; parentCallId: string; label: string }): SubAgentHandle | null;
+  list(filter?: { parentSessionId?: SessionId; parentCallId?: string }): SubAgentItem[];
+  subscribe(listener: (event: SubAgentEvent) => void, filter?: { parentCallId?: string }): () => void;
+}
+
+interface SubAgentHandle {
+  itemId: string;
+  step(kind: SubAgentStepKind, input: { toolName?: string; message?: string }): SubAgentStepHandle;
+  finish(phase: "succeeded" | "failed" | "cancelled"): void;
+}
+```
+
+`SubAgentRegistry` is exposed both as a top-level `ServiceDeps.subAgent` (for IPC fanout) and inside `ToolContext.services.subAgent` (so tool handlers can publish steps). Tools key their items on `ctx.callId` — the parent `tool_call`'s callId threaded in via `ToolDispatchMeta` — so the UI can render the sub-agent block inline with the originating tool_call. When `ctx.callId` is absent (test mode, direct invocation), `start(...)` returns `null` and the handler simply skips publishing without aborting its work.
+
+**IPC channel family** (`packages/desktop/electron/main/subagent-channel.ts`):
+- `praxis.subAgent.events.start` (invoke with `{ streamId, filter? }`) — open a filtered subscription
+- `praxis.subAgent.events.events.<streamId>` (push) — `IpcStreamMessage<SubAgentEvent>`
+- `praxis.subAgent.events.cancel` (on) — unsubscribe
+- `praxis.subAgent.list` (invoke with optional filter) — snapshot read
+
+Exposed as `PraxisClient.subAgent`. `<SubAgentBlock>` and `<SubAgentPanel>` (in `@praxis/ui`) render the items inline within the chat thread.
 
 ## Versioning rules
 

@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-engine-session-send-signal
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,6 @@ All three adapters and the type definition use `send(userMessage: string, signal
 
 ## Required edit
 Update the `send` signature in the `EngineSession` interface to include `signal?: AbortSignal` and add a short doc comment about the cancellation contract pointing at the `interrupted` event.
+
+## Implementation notes
+Edits applied inline to `docs/CONTRACT.md` as part of the v0.1.1 autopilot doc-drift batch. The roll-forward replaces stale assertions in place per the rolling-foundation principle — no "previously" prose; git history is the audit trail.
