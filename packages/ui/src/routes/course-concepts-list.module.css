@@ -1,0 +1,178 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 1.5rem;
+  gap: 1.25rem;
+}
+
+.error {
+  color: var(--color-accent);
+  font-size: 0.9rem;
+}
+
+/* ── Back button ─────────────────────────────────────────────────────────── */
+
+.backBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  width: fit-content;
+  transition: color 0.15s;
+}
+
+.backBtn:hover {
+  color: var(--color-text);
+}
+
+/* ── Filter row ──────────────────────────────────────────────────────────── */
+
+.filterRow {
+  flex-shrink: 0;
+}
+
+.filterInputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 28rem;
+}
+
+.filterInput {
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  /* Remove the browser's default search-input cancel button — we render our own. */
+  appearance: none;
+}
+
+.filterInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.filterInput::placeholder {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.filterInput:focus {
+  border-color: var(--color-accent);
+}
+
+.clearBtn {
+  position: absolute;
+  right: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  transition: color 0.15s;
+}
+
+.clearBtn:hover {
+  color: var(--color-text);
+}
+
+/* ── Scrollable concept container ────────────────────────────────────────── */
+
+.scrollContainer {
+  overflow-y: auto;
+  flex: 1;
+  /* Leave a little breathing room at the bottom so the last group isn't flush */
+  padding-bottom: 1rem;
+}
+
+.noResults {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+/* ── Section groups ──────────────────────────────────────────────────────── */
+
+.group {
+  margin-bottom: 1.5rem;
+}
+
+.groupHeader {
+  position: sticky;
+  top: 0;
+  /* Sits above the scrolling list items */
+  z-index: 1;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.5rem 0 0.4rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ── Concept list ────────────────────────────────────────────────────────── */
+
+.conceptList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.conceptItem {
+  padding: 0.65rem 0.85rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.conceptItem:hover {
+  border-color: var(--color-accent);
+}
+
+.conceptName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.conceptDescription {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 0.2rem;
+  line-height: 1.4;
+}
+
+.conceptAliases {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.15rem;
+  font-style: italic;
+}

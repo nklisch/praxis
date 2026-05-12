@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass-concepts-navigation
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: feature-editorial-polish-pass
 depends_on: [feature-editorial-polish-pass-theme-tokens]
@@ -57,4 +57,78 @@ The implementer should locate the flat-list concepts route file (likely under
 - Design: `.work/active/features/feature-editorial-polish-pass.md` (Story 3)
 - Editorial primitives: `RouteHeader`, `LibrarySection`, `EmptyState` patterns.
 
-<!-- Implementation Notes accumulate here as work progresses. -->
+## Implementation notes
+
+### Discovery: no flat-list concepts route existed
+
+No `packages/ui/src/routes/concepts.tsx` or related file existed. The
+codebase had a concept-map graph editor (`concept-map-editor.tsx`, uses
+tldraw), a list of concept-maps (`concept-maps-list.tsx`), and a
+progress map graph (`course-map.tsx`, uses React Flow). None was a flat
+list of course concepts. Per the escape-hatch instruction in the
+implementation brief, option (a) was taken: a new flat-list route was
+created at `/courses/$courseId/concepts`.
+
+### Files touched
+
+| File | Action |
+|---|---|
+| `packages/ui/src/routes/course-concepts-list.tsx` | **new** — the flat-list route component |
+| `packages/ui/src/routes/course-concepts-list.module.css` | **new** — CSS module with scroll, sticky headers, filter styles |
+| `packages/ui/src/__tests__/course-concepts-list-route.test.tsx` | **new** — 10 test cases |
+| `packages/ui/src/router.tsx` | added `courseConceptsListRoute` at `/courses/$courseId/concepts` |
+| `packages/ui/src/components/route-meta.ts` | added `courseConcepts` meta entry |
+| `packages/ui/src/lib/copy.ts` | added `COPY.empty.concepts` string |
+
+### Grouping strategy
+
+The `concepts()` API returns a flat list with no `unitId` field. Units
+are a bootstrap-service concept not currently exposed through the
+artifacts client. The next-available curriculum hierarchy is the
+**lesson**: each lesson has an ordered `conceptIds` array. Groups are
+keyed by `lesson.title` and ordered by `lessons()` order. Concepts not
+in any lesson fall into an "Ungrouped" section at the end. This matches
+the story's intent (parent-unit title → lesson title is the available
+proxy; "Ungrouped" fallback preserved).
+
+### Filter UX
+
+- `<input type="search">` with `placeholder="filter concepts…"`.
+- Case-insensitive substring match against `name` and `description`.
+- Escape key clears value and blurs the input.
+- `×` clear button appears at right when value is non-empty; clicking
+  clears and re-focuses the input.
+- Browser's native search-cancel button suppressed via
+  `::-webkit-search-cancel-button { display: none }` to avoid double
+  clear controls.
+
+### Scroll + sticky headers
+
+- `.scrollContainer` has `overflow-y: auto; flex: 1` — fills remaining
+  height in the flex column without a fixed pixel max-height (adapts to
+  the viewport naturally).
+- `.groupHeader` uses `position: sticky; top: 0; z-index: 1;
+  background: var(--color-bg)` — stays pinned at the top of the scroll
+  container as the user scrolls through a long group.
+- No virtualization needed for sub-1000-concept counts.
+
+### Test cases (10)
+
+1. Empty state renders when no concepts exist.
+2. Concept names render grouped by lesson title.
+3. Concepts with no lesson appear in "Ungrouped".
+4. Filter input narrows the list (case-insensitive name match).
+5. Filter is case-insensitive (UPPER input matches mixed-case name).
+6. Filter matches against concept description.
+7. Escape key clears filter and restores full list.
+8. Clear button (×) appears when non-empty, clears on click.
+9. No results message shown when filter matches nothing.
+10. Back button navigates to `/courses/$courseId`.
+
+### Verification
+
+```
+pnpm --filter @praxis/ui typecheck  ✓  (no errors)
+pnpm --filter @praxis/ui test       ✓  (97 files, 822 tests all pass)
+pnpm typecheck                      ✓  (all packages clean)
+```

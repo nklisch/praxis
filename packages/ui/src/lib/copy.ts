@@ -36,6 +36,8 @@ export const COPY = {
     courseDocumentsEmpty:
       "No documents attached yet. Add one from your files, or reuse one from your library.",
     libraryPickerEmpty: "No documents in your library yet — add one to get started.",
+    /** Course concepts list — shown when the course has no concepts yet. */
+    concepts: "No concepts yet. Run a bootstrap session to populate the course with concepts.",
   },
   loading: {
     default: "loading…",

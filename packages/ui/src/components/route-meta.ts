@@ -59,6 +59,12 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
     title: "concept map",
     deck: "how concepts connect",
   },
+  courseConcepts: {
+    ornament: "§",
+    kicker: "CONCEPTS",
+    title: "concepts",
+    deck: "", // dynamic — caller fills in count
+  },
 };
 
 export function getRouteMeta(routeId: keyof typeof ROUTE_META): RouteMeta {
