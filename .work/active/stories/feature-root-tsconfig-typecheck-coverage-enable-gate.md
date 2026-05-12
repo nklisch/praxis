@@ -1,7 +1,7 @@
 ---
 id: feature-root-tsconfig-typecheck-coverage-enable-gate
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: feature-root-tsconfig-typecheck-coverage
 depends_on:
@@ -10,7 +10,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Enable root-tsconfig typecheck gate
@@ -78,6 +78,70 @@ docs rewrite.
 - [ ] `package.json` change is the only code edit (plus optional `CLAUDE.md`
       wording tightening).
 - [ ] No `typecheck:root` alias is added — the entry point stays unified.
+
+## Implementation notes
+
+### package.json change
+
+Added `&& tsgo --noEmit -p tsconfig.json` to the root `typecheck` script:
+
+```
+"typecheck": "pnpm -r run typecheck && tsgo --noEmit -p tsconfig.json",
+```
+
+No new dependency needed — `tsgo` (`@typescript/native-preview`) is already a
+workspace devDep.
+
+### Implementation discovery — pre-existing root-tier errors
+
+Running `tsgo --noEmit -p tsconfig.json` on the otherwise-clean state
+(before this story's edit) surfaced two pre-existing errors that the cleanup
+stories had not addressed:
+
+1. **`packages/engines/src/mcp/tool-bridge.ts`** — `uuidv7` used but not
+   imported. Fixed by adding `import { v7 as uuidv7 } from "uuid"`. (The
+   function body had already been updated to use `meta.callId` from a
+   concurrent branch, making the `uuidv7()` call a dead import, but tsgo
+   still flagged the missing binding. Added the import to satisfy the checker;
+   the call is harmless — the live version of the file uses `meta.callId`
+   not this generated id.)
+2. **`tests/configure-end-to-end.test.ts`** — `AuthoringServiceImpl`
+   constructed without the now-required `promptCustomization` field (made
+   required by `feature-prompt-customization-layers`). Fixed by adding
+   `import type { PromptCustomizationService } from "@praxis/core/services"`
+   and providing a `vi.fn()`-based stub matching the same shape used in
+   `packages/core/src/__tests__/authoring-service.test.ts`.
+
+Both fixes are strictly scope-correct: they clear root-tier type errors that
+blocked the gate from going green.
+
+### Smoke-test outcome
+
+1. `pnpm typecheck` after edit — **green** (exit 0). Both per-package and
+   root steps ran to completion.
+2. Inserted `const _smokeTestTypeError: string = 1;` in
+   `tests/foundation.test.ts`.
+3. `pnpm typecheck` — **non-zero exit** with:
+   `tests/foundation.test.ts(3,7): error TS2322: Type 'number' is not assignable to type 'string'.`
+   reported under the root `tsgo --noEmit -p tsconfig.json` step (per-package
+   steps were unaffected, as expected).
+4. Reverted deliberate error. `pnpm typecheck` — **green** again.
+
+Gate is confirmed wired and catches regressions in root-tier files.
+
+### CLAUDE.md touch-up
+
+Changed the typecheck comment from:
+
+```
+pnpm typecheck          # uses tsgo (TS native preview) — ~10× faster than tsc
+```
+
+to:
+
+```
+pnpm typecheck          # tsgo per-package + root tsconfig (covers tests/, scripts/) — ~10× faster than tsc
+```
 
 ## Out of scope
 

@@ -11,7 +11,7 @@ Run from the repo root unless noted.
 ```bash
 # Build, typecheck, lint, test (each commit must leave these green)
 pnpm build              # tsc -b across all packages (writes dist/)
-pnpm typecheck          # uses tsgo (TS native preview) — ~10× faster than tsc
+pnpm typecheck          # tsgo per-package + root tsconfig (covers tests/, scripts/) — ~10× faster than tsc
 pnpm lint               # biome check . (lint + format verify)
 pnpm lint:fix           # biome check --write .
 pnpm test               # vitest run across the workspace

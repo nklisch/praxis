@@ -20,6 +20,7 @@
 import { courses } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
 import { configuratorActions } from "@praxis/core/schema";
+import type { PromptCustomizationService } from "@praxis/core/services";
 import {
   ArtifactsServiceImpl,
   AuthoringServiceImpl,
@@ -183,6 +184,15 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
 
   const lockService = new LockServiceImpl({ db, log: noopLogger() });
 
+  const stubPromptCustomization: PromptCustomizationService = {
+    getGlobalFragment: vi.fn().mockReturnValue(null),
+    setGlobalFragment: vi.fn(),
+    getModeAppend: vi.fn().mockReturnValue(null),
+    setModeAppend: vi.fn(),
+    listFragmentOverrides: vi.fn().mockReturnValue([]),
+    previewPrompt: vi.fn().mockReturnValue("preview"),
+  };
+
   const authoringService = new AuthoringServiceImpl({
     db,
     log: noopLogger(),
@@ -190,6 +200,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
     memory: memoryService,
     configuratorId: () => "default" as ConfiguratorId,
     studentId: () => brandId<"StudentId">(getOrCreateDefaultStudentId(db)),
+    promptCustomization: stubPromptCustomization,
   });
 
   const modes = new Map([
