@@ -1,14 +1,14 @@
 ---
 id: feature-root-tsconfig-typecheck-coverage-scripts-cleanup
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: feature-root-tsconfig-typecheck-coverage
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Root-tsconfig cleanup: `scripts/`
@@ -84,3 +84,61 @@ grows a method, there's a single place to update.
 - Enabling the gate in `package.json` — that's Story 3.
 - Restoring the smoke-test functionality if you delete `run-session.ts`.
   Use the existing `idea-engine-cli-integration-smoke-test` backlog item.
+
+## Implementation notes
+
+### `scripts/db-gates.ts` and `scripts/db-packs.ts`
+
+Replaced each file's ad-hoc logger literal (missing the `child` method required
+by the `Logger` type) with `noopLogger()` imported from
+`../tests/helpers/mocks.js`. The root `tsconfig.json` includes both
+`scripts/**/*` and `tests/**/*` under a shared `rootDir: "."`, so the relative
+import resolves cleanly with no hoisting needed. No new files created — the
+canonical SSOT in `tests/helpers/mocks.ts` is used as-is.
+
+### `scripts/run-session.ts` — decision: **delete**
+
+Git evidence:
+
+```
+582fb13 2026-04-28  Phase 4: verification tools (grade_math + code_sandbox)
+13c73ee 2026-04-28  Phase 3: engine lifecycle (open/send/close) + SessionServiceImpl
+ee4449c 2026-04-28  Phase 2 adapters: Direct, Claude Code, Codex + scripts + conformance suite
+```
+
+The last touch was Phase 4 (April 28, 2026) which wired in `IsolatedVmHost` and
+`LocalCodeSandbox`. The `language-sandbox-registry` feature (shipped
+subsequently) replaced both symbols; the script has been broken since with no
+follow-up fix. No `idea-engine-cli-integration-smoke-test` item was found in
+`.work/backlog/` (only `idea-root-vitest-praxis-source-condition.md` exists),
+but the story body already references this intent and the `script:run-session`
+entry in `package.json` was the only consumer. File deleted, entry removed from
+`package.json`. Historical references in `docs/` (ROADMAP, design docs) left
+alone — they describe past phase work, not a current contract.
+
+### Helper hoist decision
+
+Kept `noopLogger` in `tests/helpers/mocks.ts`. The root `tsconfig.json`'s
+`include` covers both `scripts/` and `tests/` from the same `rootDir`, so no
+hoist was needed. One canonical source, no duplication.
+
+### Verification output
+
+```
+# scripts/ errors after fix:
+$ pnpm exec tsgo --noEmit -p tsconfig.json 2>&1 | grep "^scripts/"
+(empty — 0 errors)
+
+# Full workspace typecheck:
+$ pnpm -r run typecheck
+packages/artifacts typecheck: Done
+packages/claude-cli-sdk typecheck: Done
+packages/memory typecheck: Done
+packages/core typecheck: Done
+packages/curriculum typecheck: Done
+packages/engines typecheck: Done
+packages/client typecheck: Done
+packages/tools typecheck: Done
+packages/ui typecheck: Done
+packages/desktop typecheck: Done
+```

@@ -18,18 +18,14 @@ import {
 } from "@praxis/core/services";
 import { brandId } from "@praxis/core/types";
 import { eq } from "drizzle-orm";
+import { noopLogger } from "../tests/helpers/mocks.js";
 
 const args = process.argv.slice(2);
 const evaluateFlag = args.includes("--evaluate");
 
 const { db } = openDb({ readonly: !evaluateFlag });
 
-const log = {
-  debug: (_msg: string) => {},
-  info: (msg: string, meta?: object) => console.info("[praxis]", msg, meta ?? ""),
-  warn: (msg: string, meta?: object) => console.warn("[praxis]", msg, meta ?? ""),
-  error: (msg: string, meta?: object) => console.error("[praxis]", msg, meta ?? ""),
-};
+const log = noopLogger();
 
 if (evaluateFlag) {
   // Construct minimal services to call evaluateAndPersistGates per course.

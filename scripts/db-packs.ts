@@ -14,6 +14,7 @@ import { PackImportServiceImpl, SqliteConceptEmbeddingsStore } from "@praxis/cur
 import { conceptGraphs, packImports } from "@praxis/curriculum/schema";
 import { LocalEmbeddingService } from "@praxis/tools/runtime";
 import { eq } from "drizzle-orm";
+import { noopLogger } from "../tests/helpers/mocks.js";
 
 const args = process.argv.slice(2);
 const importFlagIdx = args.indexOf("--import");
@@ -26,12 +27,7 @@ if (importPackId !== null && !importPackId) {
 
 const { db, sqlite } = openDb({ readonly: importPackId === null });
 
-const log = {
-  debug: (msg: string, meta?: object) => console.debug("[packs]", msg, meta ?? ""),
-  info: (msg: string, meta?: object) => console.info("[packs]", msg, meta ?? ""),
-  warn: (msg: string, meta?: object) => console.warn("[packs]", msg, meta ?? ""),
-  error: (msg: string, meta?: object) => console.error("[packs]", msg, meta ?? ""),
-};
+const log = noopLogger();
 
 if (importPackId) {
   console.log(`\nImporting pack: ${importPackId} ...\n`);

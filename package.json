@@ -21,7 +21,6 @@
     "db:show": "tsx scripts/db-show.ts",
     "db:reset": "tsx scripts/reset-dev-state.ts --yes --keep-cache && pnpm db:migrate",
     "dev:reset": "tsx scripts/reset-dev-state.ts",
-    "script:run-session": "tsx scripts/run-session.ts",
     "db:episodic": "tsx scripts/db-episodic.ts",
     "db:mastery": "tsx scripts/db-mastery.ts",
     "db:grades": "tsx scripts/db-grades.ts",
