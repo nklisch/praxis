@@ -1,7 +1,7 @@
 ---
 id: feature-agent-transparency-ux-rename-course-design
 kind: story
-stage: review
+stage: done
 tags: [ui, content]
 parent: feature-agent-transparency-ux
 depends_on: []
@@ -88,3 +88,18 @@ flows through automatically.
 - `pnpm typecheck` — passed (all 10 packages clean).
 - `pnpm test` — 301 files passed, 2 skipped; 2651 tests passed, 21 skipped.
 - Lint pre-existing failures in `packages/claude-cli-sdk/` and `packages/client/` test files; none in touched files.
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `5b0ccdb`: clean string rename across 7 files. No internal identifier renamed (`modeId: "bootstrap"`, `course.start_exploration` tool name, `useBootstrapBudget`, `BootstrapTabBody`, `@praxis/curriculum/bootstrap` all untouched).
+- Tests-side: `new-tab-picker.test.tsx` updated to expect "course design" instead of "bootstrap". Verified no residual student-facing string assertions in other UI test files (remaining `Bootstrap`/`useBootstrap*` hits are internal identifiers, kept by design).
+- Tool label update for `course.start_exploration` includes the new `past: "Read your materials"`, matching the editorial voice for the past-tense interstitial line.
+
+Approved and advancing to done.
