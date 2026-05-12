@@ -1,7 +1,7 @@
 ---
 id: epic-v1-security-hardening-sign-update-feed
 kind: feature
-stage: review
+stage: done
 tags: [security]
 parent: epic-v1-security-hardening
 depends_on: []
@@ -718,3 +718,24 @@ pnpm test                             → 2817 passed | 21 skipped (311 files)
 - Wire-protocol verification of the binary itself beyond what Gatekeeper /
   smartscreen already do (out of scope; `docs/CODE-SIGNING.md` covers
   installer signing).
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `f9fe7ac`: 12 files, +802/-132 lines. Implementation faithful to the design.
+- Verification-before-parse order correct — the bytes that JSON.parse decodes are exactly the bytes whose signature was verified (no TOCTOU). Comment at line 134 explicitly calls this out.
+- Empty key short-circuit (lines 60-63) avoids network IO until the maintainer configures the key. Lets the feature ship in code form.
+- Strict mode is genuine: no `allow-unsigned` branch; configured key + unsigned feed → sig fetch fails → banner hidden.
+- Sig length pre-check (lines 109-115) rejects malformed signatures before calling `subtle.verify` — defensive depth.
+- Five distinct warn messages distinguish "maintainer hasn't signed yet" / "active attack" / "key rotation" / "malformed" / "transient fetch failure" — enough detail in main-process logs without leaking specifics to the user UX.
+- Foundation-doc alignment: UPDATE-CHANNEL.md trust-model section rolled forward from deferral to realized contract. v1-ship-checklist.md got a tamper-rejection smoke step. No drift.
+- Web Crypto Ed25519 on Node 24 had no API surprises.
+- 793 core + 800 UI tests green; coverage spans empty-key, valid-sig, tampered-feed, wrong-length-sig, wrong-key, and sig-404 paths.
+
+Approved and advancing to done. With this and encrypt-api-key both done, the parent epic `epic-v1-security-hardening` can now advance.
