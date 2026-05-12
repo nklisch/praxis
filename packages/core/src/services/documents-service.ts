@@ -1,6 +1,7 @@
 import { documents } from "@praxis/artifacts/schema";
 import { eq } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
+import type { EmbeddedImageStore } from "../ingestion/embedded-images.js";
 import type { PageImageStore } from "../ingestion/page-images.js";
 import type { DocumentSummary } from "../types/client.js";
 import type { FtsStore, VectorStore } from "../types/tool.js";
@@ -10,16 +11,18 @@ export interface DocumentsServiceDeps {
   vectorStore: VectorStore;
   ftsStore: FtsStore;
   pageImageStore: PageImageStore;
+  embeddedImageStore: EmbeddedImageStore;
 }
 
 /**
  * DocumentsServiceImpl — server-side service for listing and deleting documents.
  *
- * Delete cascades through all three stores:
- *   vectorStore.deleteByDocumentId → removes embeddings
- *   ftsStore.deleteByDocumentId    → removes FTS index rows
- *   pageImageStore.deleteByDocumentId → removes saved page PNGs
- *   db.delete(documents)           → removes document row + chunks (FK cascade)
+ * Delete cascades through all four stores:
+ *   vectorStore.deleteByDocumentId       → removes embeddings
+ *   ftsStore.deleteByDocumentId          → removes FTS index rows
+ *   pageImageStore.deleteByDocumentId    → removes saved page PNGs
+ *   embeddedImageStore.deleteByDocumentId → removes PPTX-embedded images
+ *   db.delete(documents)                 → removes document row + chunks (FK cascade)
  */
 export class DocumentsServiceImpl {
   constructor(private readonly deps: DocumentsServiceDeps) {}
@@ -64,6 +67,7 @@ export class DocumentsServiceImpl {
     await this.deps.vectorStore.deleteByDocumentId(documentId);
     await this.deps.ftsStore.deleteByDocumentId(documentId);
     await this.deps.pageImageStore.deleteByDocumentId(documentId);
+    await this.deps.embeddedImageStore.deleteByDocumentId(documentId);
     this.deps.db.delete(documents).where(eq(documents.id, documentId)).run();
   }
 

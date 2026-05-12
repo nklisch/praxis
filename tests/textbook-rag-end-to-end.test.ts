@@ -15,11 +15,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDb } from "@praxis/core/db";
-import {
-  FsEmbeddedImageStore,
-  FsPageImageStore,
-  IngestionService,
-} from "@praxis/core/ingestion";
+import { FsEmbeddedImageStore, FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import { DocumentsServiceImpl } from "@praxis/core/services";
 import type { ToolContext } from "@praxis/core/types";
 import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
@@ -208,6 +204,7 @@ describe("textbook RAG end-to-end", () => {
       vectorStore: vecStore,
       ftsStore,
       pageImageStore,
+      embeddedImageStore,
     });
 
     await docSvc.delete(documentId);
@@ -256,6 +253,7 @@ describe("textbook RAG end-to-end", () => {
       vectorStore: vecStore,
       ftsStore,
       pageImageStore,
+      embeddedImageStore,
     });
 
     const docs = await docSvc.list();

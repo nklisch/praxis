@@ -570,6 +570,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     vectorStore,
     ftsStore,
     pageImageStore,
+    embeddedImageStore,
   });
 
   const sessionService = new SessionServiceImpl(deps);

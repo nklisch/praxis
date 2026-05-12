@@ -1,14 +1,14 @@
 ---
 id: story-embedded-image-store-delete-cascade
 kind: story
-stage: implementing
+stage: review
 tags: [ingestion, bug]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Fix: cascade-delete embedded images
@@ -101,3 +101,19 @@ Discovered during review of `feature-powerpoint-ingestion`.
   until the relevant document IDs would have been re-used (which they
   won't since UUIDv7). A separate migration could sweep them; not in
   scope.
+
+## Implementation notes
+
+**Files changed:**
+- `packages/core/src/services/documents-service.ts` — added `EmbeddedImageStore` import, extended `DocumentsServiceDeps` with mandatory `embeddedImageStore`, updated class doc comment (4 → 5 cascade steps), added `embeddedImageStore.deleteByDocumentId` call in `delete()`.
+- `packages/core/src/__tests__/documents-service.test.ts` — added `FsEmbeddedImageStore` import + per-test instance setup; updated all 8 construction sites; added regression test `"calls embeddedImageStore.deleteByDocumentId — cascade regression"`.
+- `packages/desktop/electron/main/services.ts` — 1 construction site updated.
+- `tests/textbook-rag-end-to-end.test.ts` — 2 construction sites updated.
+
+**Construction sites updated:** 11 total (8 in documents-service.test.ts, 1 in services.ts, 2 in textbook-rag-end-to-end.test.ts).
+
+**services.ts reuse decision:** Reused the existing `FsEmbeddedImageStore` instance (`const embeddedImageStore = new FsEmbeddedImageStore()` at line 239), which was already constructed for `IngestionService`. No second instance created.
+
+**Regression test:** `vi.spyOn(embeddedImageStore, "deleteByDocumentId")` asserts the call is made with the correct `documentId`. Locks the cascade without testing store internals.
+
+**Verification:** `pnpm --filter @praxis/core typecheck` ✓, workspace `pnpm typecheck` ✓, `pnpm --filter @praxis/core test` 770/770 ✓, `tests/textbook-rag-end-to-end.test.ts` 3/3 ✓. Lint errors are pre-existing in unrelated files.
