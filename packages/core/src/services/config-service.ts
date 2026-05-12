@@ -37,22 +37,22 @@ export class ConfigServiceImpl implements ConfigService {
   }
 
   async selectedEngine(): Promise<string> {
-    return readEngineConfig(this.deps.db).engineId;
+    return readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log).engineId;
   }
 
   async setSelectedEngine(engineId: string): Promise<void> {
-    const current = readEngineConfig(this.deps.db);
+    const current = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log);
     const next = EngineConfigSchema.parse({ ...current, engineId });
-    writeEngineConfig(this.deps.db, next);
+    writeEngineConfig(this.deps.db, this.deps.secretStorage, next, this.deps.log);
   }
 
   async engineConfig(): Promise<EngineConfigSnapshot> {
-    return toSnapshot(readEngineConfig(this.deps.db));
+    return toSnapshot(readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log));
   }
 
   async setEngineConfig(snapshot: EngineConfigSnapshot): Promise<void> {
     const validated = EngineConfigSchema.parse(snapshot);
-    writeEngineConfig(this.deps.db, validated);
+    writeEngineConfig(this.deps.db, this.deps.secretStorage, validated, this.deps.log);
   }
 
   async bootstrapConfig(): Promise<BootstrapConfigSnapshot> {

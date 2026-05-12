@@ -3,6 +3,7 @@ import { readEngineConfig } from "../config/index.js";
 import type { PraxisDb } from "../db/index.js";
 import type {
   Logger,
+  SecretStorage,
   VisionDescribeRequest,
   VisionDescribeResponse,
   VisionService,
@@ -15,6 +16,7 @@ export type { VisionService };
 export interface VisionServiceDeps {
   readonly db: PraxisDb;
   readonly log: Logger;
+  readonly secretStorage: SecretStorage;
 }
 
 /**
@@ -31,7 +33,7 @@ export class VisionServiceImpl implements VisionService {
   constructor(private readonly deps: VisionServiceDeps) {}
 
   async describe(req: VisionDescribeRequest): Promise<VisionDescribeResponse> {
-    const config = readEngineConfig(this.deps.db);
+    const config = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log);
     const engine = createEngine({ config, deps: { log: this.deps.log } });
     if (!engine.vision) {
       throw new Error(

@@ -22,8 +22,15 @@ export const EngineConfigSchema = z
     engineId: EngineIdSchema,
     /** Model identifier. Optional — adapters apply sensible defaults. */
     model: z.string().optional(),
-    /** Provider API key. Read from env first; this is a fallback / explicit value. */
+    /** Provider API key (decrypted form, in-memory only). Read paths return this. */
     apiKey: z.string().optional(),
+    /**
+     * Encrypted apiKey blob (base64-encoded) — what is actually stored in
+     * `config_kv` once safeStorage is available. The read path decrypts this
+     * and surfaces the result as `apiKey`. Never present alongside a non-empty
+     * `apiKey` in the persisted row after migration.
+     */
+    apiKeyEncrypted: z.string().optional(),
     /** Override the provider base URL (Codex baseUrl, Ollama host, etc.). */
     baseUrl: z.string().url().optional(),
     /** Reasoning effort hint (Claude Code, Codex). */

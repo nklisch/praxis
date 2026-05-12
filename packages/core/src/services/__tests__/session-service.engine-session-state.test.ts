@@ -11,6 +11,7 @@ import { sessions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
+import { inMemorySecretStorage } from "../../../../../tests/helpers/mocks.js";
 import { writeEngineConfig } from "../../config/index.js";
 import { openDb } from "../../db/index.js";
 import type {
@@ -117,6 +118,7 @@ function makeService(db: ReturnType<typeof openDb>["db"], engine: Engine): Sessi
       clearLock: async () => {},
     },
     engineFactory: () => engine,
+    secretStorage: inMemorySecretStorage(),
   };
 
   return new SessionServiceImpl(deps);
@@ -200,7 +202,7 @@ describe("SessionServiceImpl engine session continuity", () => {
     // svc1 is abandoned (simulates process restart / engine swap).
 
     // Swap the stored engine config to "codex" so readEngineConfig returns it.
-    writeEngineConfig(db, { engineId: "codex" });
+    writeEngineConfig(db, inMemorySecretStorage(), { engineId: "codex" });
 
     // svc2 uses a fresh activeSessions map; it will call openActive with engineId="codex".
     const { engine: codexEngine, calls: codexCalls } = makeFakeEngine("codex", "codex-session-B");
@@ -229,7 +231,7 @@ describe("SessionServiceImpl engine session continuity", () => {
     // svc1 abandoned (simulates process restart).
 
     // Switch config to "codex" so the second open uses a different engine.
-    writeEngineConfig(db, { engineId: "codex" });
+    writeEngineConfig(db, inMemorySecretStorage(), { engineId: "codex" });
 
     const { engine: engine2 } = makeFakeEngine("codex", "codex-session-C");
     const svc2 = makeService(db, engine2);

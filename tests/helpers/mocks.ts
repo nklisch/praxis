@@ -1,3 +1,41 @@
+import type { SecretStorage } from "@praxis/core/types";
+import { SecretStorageError } from "@praxis/core/types";
+
+/**
+ * In-memory SecretStorage for tests. Uses a base64 roundtrip — not real
+ * crypto, but satisfies the port contract. Tests that need to exercise
+ * decryption failure can use `unavailableSecretStorage()` or construct
+ * a custom variant that returns null from decrypt.
+ */
+export function inMemorySecretStorage(): SecretStorage {
+  return {
+    isAvailable: () => true,
+    encrypt: (plaintext) => Buffer.from(plaintext, "utf8").toString("base64"),
+    decrypt: (b64) => {
+      try {
+        return Buffer.from(b64, "base64").toString("utf8");
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
+/**
+ * SecretStorage variant where `isAvailable()` returns false. All encrypt
+ * calls throw `SecretStorageError("unavailable")`; decrypt returns null.
+ * Use to test the "refuse to save when keyring is absent" path.
+ */
+export function unavailableSecretStorage(): SecretStorage {
+  return {
+    isAvailable: () => false,
+    encrypt: () => {
+      throw new SecretStorageError("test: safeStorage unavailable", "unavailable");
+    },
+    decrypt: () => null,
+  };
+}
+
 /**
  * Quiet Logger that drops every call. Use when testing components that
  * accept a Logger but the test doesn't assert on log output.

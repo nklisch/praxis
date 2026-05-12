@@ -1,7 +1,7 @@
 ---
 id: epic-v1-security-hardening-encrypt-api-key
 kind: feature
-stage: implementing
+stage: review
 tags: [security]
 parent: epic-v1-security-hardening
 depends_on: []
@@ -710,3 +710,89 @@ supported platform.
   Surfaced as the error from `writeEngineConfig`, sufficient for v1.
 - Auto-clearing stale ciphertext on decrypt failure (caller decides via
   re-entry).
+
+## Implementation notes
+
+All 6 units landed in one stride. Single commit.
+
+### Unit 1: `SecretStorage` port type
+Done. `packages/core/src/types/secret-storage.ts` created with `SecretStorage`
+interface and `SecretStorageError` class. Both exported from `types/index.ts`.
+No Electron imports in `@praxis/core`.
+
+### Unit 2: `ElectronSafeStorageAdapter`
+Done. `packages/desktop/electron/main/secret-storage.ts` created. Uses
+`safeStorage.encryptString` → base64 string, `safeStorage.decryptString` ←
+Buffer from base64. `decrypt` catches all errors and returns null. `encrypt`
+throws `SecretStorageError("unavailable")` when `isEncryptionAvailable()` is
+false. Desktop smoke test in `electron/main/__tests__/secret-storage.test.ts`
+(5 tests, mocked Electron).
+
+**Electron safeStorage API verified**: Electron 41 `safeStorage.encryptString`
+returns `Buffer`; `safeStorage.decryptString` takes `Buffer`. The adapter
+wraps both correctly. No API shape surprises.
+
+### Unit 3: Schema extension
+Done. `apiKeyEncrypted?: z.string().optional()` added to `EngineConfigSchema`
+in `packages/core/src/config/schema.ts`. Schema accepts rows with only
+`apiKeyEncrypted`, only `apiKey`, or both (read path normalizes).
+
+### Unit 4: `engine-config.ts` read/write
+Done. `readEngineConfig(db, secretStorage, log?)` and
+`writeEngineConfig(db, secretStorage, config, log?)` implemented with full
+migration logic:
+- Encrypted path: decrypt → return as `apiKey`
+- Legacy plaintext path: return as `apiKey` + migrate on first read (encrypt
+  + rewrite row, clear plaintext `apiKey`)
+- Decrypt failure: warn, return `apiKey: undefined`
+- Write with safeStorage unavailable + apiKey: throw with env-var hint
+- Write with no apiKey: succeeds regardless of availability
+
+### Unit 5: `ServiceDeps.secretStorage` + composition root
+Done. `ServiceDeps.secretStorage: SecretStorage` added as mandatory field.
+`ConfigServiceImpl` passes `this.deps.secretStorage` + `this.deps.log` to
+all 4 `readEngineConfig`/`writeEngineConfig` call sites.
+`SessionServiceImpl` updated (3 sites). `VisionServiceImpl` updated (1 site,
+also gained `secretStorage` in its own `VisionServiceDeps`).
+Desktop `buildServices` instantiates `new ElectronSafeStorageAdapter()` after
+`LockServiceImpl` and wires it into deps. The 3 bare `readEngineConfig(db)`
+calls in engine resolver closures (vision, bootstrap, assignment) also updated.
+
+**ServiceDeps construction sites updated**: 10 total across 10 files:
+- `packages/core/src/__tests__/session-service-cancel.test.ts`
+- `packages/core/src/__tests__/session-service-list.test.ts`
+- `packages/core/src/services/__tests__/session-service.engine-session-state.test.ts`
+- `packages/core/src/services/__tests__/session-service.notify.test.ts`
+- `packages/core/src/services/__tests__/session-service.prompt-customization.test.ts` (2 sites)
+- `tests/configure-end-to-end.test.ts`
+- `tests/full-turn-with-fake-engine.test.ts` (6 sites)
+- `tests/gates-end-to-end.test.ts`
+- `tests/mastery-end-to-end.test.ts`
+- `tests/quick-check-tool-context-wiring.test.ts`
+- `tests/quiz-end-to-end.test.ts`
+
+### Unit 6: Test helpers + coverage
+Done. `inMemorySecretStorage()` and `unavailableSecretStorage()` added to
+`tests/helpers/mocks.ts`. All listed test scenarios pass in
+`packages/core/src/__tests__/engine-config.test.ts`:
+- write + read round-trip
+- stored row inspection (apiKeyEncrypted present, apiKey absent)
+- migration of legacy plaintext row
+- migration idempotency
+- decryption failure (null return, warn logged, blob preserved)
+- unavailable safeStorage + apiKey → throws
+- unavailable safeStorage + no apiKey → succeeds
+- PRAXIS_API_KEY env override
+
+### Verification output
+```
+pnpm typecheck   → all packages pass (no errors)
+pnpm test        → 310 test files passed (2 skipped), 2802 tests passed
+pnpm lint        → 22 errors (all pre-existing; my files: 0 errors)
+```
+
+### No design surprises
+Electron 41's `safeStorage` API matches the assumed shape. The `VisionServiceImpl`
+had its own `VisionServiceDeps` (not `ServiceDeps`) that also needed
+`secretStorage` wired — discovered via typecheck, added cleanly. No escape
+hatch was needed.

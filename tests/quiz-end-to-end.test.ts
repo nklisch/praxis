@@ -31,7 +31,7 @@ import { sessions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLockService, noopLogger } from "./helpers/mocks.js";
+import { inMemorySecretStorage, noopLockService, noopLogger } from "./helpers/mocks.js";
 
 // ── FakeEngine — deterministic canned response ─────────────────────────────────
 
@@ -322,6 +322,7 @@ describe("quiz end-to-end", () => {
       } as any,
       engineFactory: () => new FakeEngine(),
       lockService: noopLockService(),
+      secretStorage: inMemorySecretStorage(),
     });
 
     const handle = await svc.start({

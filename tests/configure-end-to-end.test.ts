@@ -51,7 +51,7 @@ import {
 import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLogger } from "./helpers/mocks.js";
+import { inMemorySecretStorage, noopLogger } from "./helpers/mocks.js";
 
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 
@@ -244,6 +244,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
     },
     engineFactory: () => new FakeConfigureEngine(),
     lockService,
+    secretStorage: inMemorySecretStorage(),
   });
 
   return { lockService, authoringService, sessionService, db };

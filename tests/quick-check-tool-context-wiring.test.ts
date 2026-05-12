@@ -39,7 +39,7 @@ import { bootstrapMode } from "@praxis/curriculum/modes";
 import { askStudentQuestionTool } from "@praxis/tools/dialog";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLockService, noopLogger } from "./helpers/mocks.js";
+import { inMemorySecretStorage, noopLockService, noopLogger } from "./helpers/mocks.js";
 
 /**
  * Engine stub that captures the `ToolRegistry` handed to `open()` so the
@@ -123,6 +123,7 @@ describe("QuickCheckService wiring into ToolContext", () => {
       toolServices,
       lockService: noopLockService(),
       engineFactory: () => engine,
+      secretStorage: inMemorySecretStorage(),
     });
 
     // start() eagerly calls openActive(), which builds the ToolContext and

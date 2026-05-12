@@ -24,7 +24,7 @@ import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLockService, noopLogger } from "./helpers/mocks.js";
+import { inMemorySecretStorage, noopLockService, noopLogger } from "./helpers/mocks.js";
 
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 
@@ -147,6 +147,7 @@ describe("full turn with fake engine", () => {
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
       lockService: noopLockService(),
+      secretStorage: inMemorySecretStorage(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -193,6 +194,7 @@ describe("full turn with fake engine", () => {
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
       lockService: noopLockService(),
+      secretStorage: inMemorySecretStorage(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -226,6 +228,7 @@ describe("full turn with fake engine", () => {
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
       lockService: noopLockService(),
+      secretStorage: inMemorySecretStorage(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -261,6 +264,7 @@ describe("full turn with fake engine", () => {
       toolServices: mockToolServices,
       engineFactory: () => new CountingFakeEngine(),
       lockService: noopLockService(),
+      secretStorage: inMemorySecretStorage(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -290,6 +294,7 @@ describe("full turn with fake engine", () => {
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
       lockService: noopLockService(),
+      secretStorage: inMemorySecretStorage(),
     });
 
     const handle = await svc.start({ modeId: "teach" });
@@ -324,6 +329,7 @@ describe("full turn with fake engine", () => {
       toolServices: mockToolServices,
       engineFactory: () => new FakeEngine(),
       lockService: noopLockService(),
+      secretStorage: inMemorySecretStorage(),
     });
 
     expect(await svc.active()).toBeNull();

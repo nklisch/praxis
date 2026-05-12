@@ -86,6 +86,9 @@ export type {
 } from "./subagent.js";
 // Phase 14: Tab strip types.
 export type { TabId, TabSummary, TabsService } from "./tabs.js";
+// Security: at-rest secret storage port (Electron safeStorage adapter in @praxis/desktop).
+export { SecretStorageError } from "./secret-storage.js";
+export type { SecretStorage } from "./secret-storage.js";
 // tool.ts: MemoryService here is the server-side interface (with studentId params).
 export type * from "./tool.js";
 // ToolDispatchMeta is re-exported via engine.ts through the wildcard above.

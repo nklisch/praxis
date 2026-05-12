@@ -14,6 +14,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
+import { inMemorySecretStorage } from "../../../../../tests/helpers/mocks.js";
 import { openDb } from "../../db/index.js";
 import { promptOverrides } from "../../schema.js";
 import type {
@@ -140,6 +141,7 @@ function makeService(
     },
     engineFactory: () => engine,
     promptCustomization,
+    secretStorage: inMemorySecretStorage(),
   };
   return new SessionServiceImpl(deps);
 }
@@ -307,6 +309,7 @@ describe("session-service prompt-customization compose path", () => {
       },
       engineFactory: () => engine,
       promptCustomization,
+      secretStorage: inMemorySecretStorage(),
     };
     const svc = new SessionServiceImpl(deps);
 

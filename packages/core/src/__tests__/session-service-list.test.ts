@@ -9,6 +9,7 @@ import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { v7 as uuidv7 } from "uuid";
 import { describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
+import { inMemorySecretStorage } from "../../../../tests/helpers/mocks.js";
 import { openDb } from "../db/index.js";
 import { SessionServiceImpl } from "../services/session-service.js";
 import { getOrCreateDefaultStudentId } from "../services/student.js";
@@ -51,6 +52,7 @@ function makeListService(db: ReturnType<typeof makeDb>): SessionServiceImpl {
       lock: async () => {},
       clearLock: async () => {},
     },
+    secretStorage: inMemorySecretStorage(),
   };
   return new SessionServiceImpl(deps);
 }

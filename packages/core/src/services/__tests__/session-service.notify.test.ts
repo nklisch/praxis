@@ -15,6 +15,7 @@ import { asc, eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
+import { inMemorySecretStorage } from "../../../../../tests/helpers/mocks.js";
 import { openDb } from "../../db/index.js";
 import type {
   AssignmentId,
@@ -118,6 +119,7 @@ function makeService(
       clearLock: async () => {},
     },
     engineFactory: () => fakeEngine,
+    secretStorage: inMemorySecretStorage(),
   };
 
   return { svc: new SessionServiceImpl(deps), log };

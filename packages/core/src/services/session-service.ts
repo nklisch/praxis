@@ -85,7 +85,7 @@ export class SessionServiceImpl implements SessionService {
     }
 
     const studentId = getOrCreateDefaultStudentId(this.deps.db);
-    const engineConfig = readEngineConfig(this.deps.db);
+    const engineConfig = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log);
     const sessionId = uuidv7();
     const startedAt = new Date();
 
@@ -152,7 +152,7 @@ export class SessionServiceImpl implements SessionService {
 
     const mode = this.requireMode(sessionRow.modeId);
     const studentId = brandId<"StudentId">(sessionRow.studentId);
-    const currentEngineId = readEngineConfig(this.deps.db).engineId;
+    const currentEngineId = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log).engineId;
 
     // Engine swap detection + reopen.
     let entry = this.activeSessions.get(sessionId);
@@ -558,7 +558,7 @@ export class SessionServiceImpl implements SessionService {
     courseId?: CourseId;
     assignmentId?: AssignmentId;
   }): Promise<ActiveEntry> {
-    const engineConfig = readEngineConfig(this.deps.db);
+    const engineConfig = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log);
     const factory = this.deps.engineFactory ?? ((c, d) => createEngine({ config: c, deps: d }));
     const engine = factory(engineConfig, { log: this.deps.log });
 

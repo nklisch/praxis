@@ -30,7 +30,7 @@ import { teachMode } from "@praxis/curriculum/modes";
 import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
-import { noopLockService, noopLogger } from "./helpers/mocks.js";
+import { inMemorySecretStorage, noopLockService, noopLogger } from "./helpers/mocks.js";
 
 // ── FakeEngine ─────────────────────────────────────────────────────────────────
 
@@ -220,6 +220,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
     } as any,
     engineFactory: () => new FakeEngine(),
     lockService: noopLockService(),
+    secretStorage: inMemorySecretStorage(),
   });
 
   return { memoryService, artifactsService, sessionService };

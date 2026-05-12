@@ -26,6 +26,7 @@ import type {
   PackImportService,
   PedagogyPackService,
   QuickCheckService,
+  SecretStorage,
   SketchService,
   SubAgentRegistry,
   SymPyService,
@@ -145,4 +146,10 @@ export interface ServiceDeps {
    * proceeds with no user layers applied).
    */
   promptCustomization?: PromptCustomizationService;
+  /**
+   * At-rest secret storage. Reads decrypt; writes encrypt. The Electron
+   * adapter (`ElectronSafeStorageAdapter`) is wired in `@praxis/desktop`.
+   * Tests use `inMemorySecretStorage()` from `tests/helpers/mocks.ts`.
+   */
+  secretStorage: SecretStorage;
 }

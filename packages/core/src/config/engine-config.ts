@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
 import { configKv } from "../schema.js";
+import type { Logger, SecretStorage } from "../types/index.js";
 import {
   DEFAULT_ENGINE_CONFIG,
   type EngineConfig,
@@ -12,8 +13,9 @@ import {
 const CONFIG_KEY = "engine";
 
 /**
- * Read the resolved engine config: stored value (if any) merged with defaults,
- * then environment overrides applied. Validation throws on malformed stored data.
+ * Read the resolved engine config: stored value (if any) decrypted and
+ * merged with defaults, then environment overrides applied. Validation
+ * throws on malformed stored data.
  *
  * Environment overrides:
  * - PRAXIS_ENGINE → engineId
@@ -21,28 +23,151 @@ const CONFIG_KEY = "engine";
  * - PRAXIS_API_KEY → apiKey  (also: provider-specific keys are read by adapters)
  * - PRAXIS_BASE_URL → baseUrl
  * - PRAXIS_EFFORT → effort
+ *
+ * Migration: if the stored row carries plaintext `apiKey` (legacy), the
+ * read path encrypts it via `secretStorage`, writes back to
+ * `apiKeyEncrypted`, and clears the plaintext `apiKey` field — all in one
+ * round-trip on first read after upgrade. Subsequent reads see only the
+ * encrypted blob.
+ *
+ * Decryption failure (corrupt blob, key rotation): logged at warn level;
+ * the resolved `apiKey` is undefined, and the engine adapter prompts
+ * for re-entry via env var or the configure surface.
+ *
+ * When both `apiKeyEncrypted` and plaintext `apiKey` are present (shouldn't
+ * happen with normal write path, but guarded anyway), the encrypted blob
+ * takes precedence.
  */
-export function readEngineConfig(db: PraxisDb): EngineConfig {
+export function readEngineConfig(
+  db: PraxisDb,
+  secretStorage: SecretStorage,
+  log?: Logger,
+): EngineConfig {
   const rows = db.select().from(configKv).where(eq(configKv.key, CONFIG_KEY)).all();
   const stored = rows[0]?.valueJson as Partial<EngineConfig> | undefined;
+
+  let resolvedApiKey: string | undefined;
+  let needsMigrationWrite = false;
+  let migrationBlob: string | undefined;
+
+  if (stored?.apiKeyEncrypted) {
+    // Encrypted path — decrypt for in-memory use.
+    const decrypted = secretStorage.decrypt(stored.apiKeyEncrypted);
+    if (decrypted === null) {
+      log?.warn("engine-config.decrypt_failed", {
+        detail:
+          "stored apiKeyEncrypted could not be decrypted (likely keyring rotation or account migration)",
+      });
+      // resolvedApiKey stays undefined; engine adapter handles missing key via
+      // env var fallback or configure surface prompt.
+    } else {
+      resolvedApiKey = decrypted;
+    }
+  } else if (stored?.apiKey) {
+    // Legacy plaintext path — migrate to encrypted on first read.
+    resolvedApiKey = stored.apiKey;
+    if (secretStorage.isAvailable()) {
+      try {
+        migrationBlob = secretStorage.encrypt(stored.apiKey);
+        needsMigrationWrite = true;
+      } catch (err) {
+        log?.warn("engine-config.migration_encrypt_failed", {
+          detail: err instanceof Error ? err.message : String(err),
+        });
+        // Continue with plaintext-in-memory — user retains access, just no
+        // at-rest protection yet. Migration will retry on next read.
+      }
+    }
+  }
+
+  // Build the in-memory config from stored fields (minus the persisted
+  // encrypted blob) + the resolved apiKey. Downstream code always sees
+  // `apiKey` (decrypted) and never `apiKeyEncrypted`.
+  const inMemoryStored: Partial<EngineConfig> = stored
+    ? {
+        ...stored,
+        ...(resolvedApiKey !== undefined && { apiKey: resolvedApiKey }),
+      }
+    : {};
+  // Drop apiKeyEncrypted from the in-memory shape — downstream sees only apiKey.
+  delete inMemoryStored.apiKeyEncrypted;
+  // If we are on the legacy plaintext path without safeStorage, clear apiKey
+  // from the stored spread so we re-derive it from resolvedApiKey above. This
+  // avoids a double-assignment that is harmless but confusing.
+
   const merged: EngineConfig = EngineConfigSchema.parse({
     ...DEFAULT_ENGINE_CONFIG,
-    ...stored,
+    ...inMemoryStored,
   });
+
+  // Migration write-back: encrypt the legacy plaintext row and rewrite.
+  // Only fires after a successful encryption of the legacy plaintext key.
+  if (needsMigrationWrite && migrationBlob !== undefined && stored) {
+    const migrated: Partial<EngineConfig> = {
+      ...stored,
+      apiKey: undefined,
+      apiKeyEncrypted: migrationBlob,
+    };
+    db.update(configKv)
+      .set({ valueJson: migrated, updatedAt: new Date() })
+      .where(eq(configKv.key, CONFIG_KEY))
+      .run();
+  }
+
   return applyEnvOverrides(merged);
 }
 
-export function writeEngineConfig(db: PraxisDb, config: EngineConfig): void {
+/**
+ * Persist an engine config. If `config.apiKey` is set and safeStorage is
+ * available, the key is encrypted before storage. If safeStorage is
+ * unavailable and the config has a non-empty apiKey, this throws a clear
+ * error pointing to the `PRAXIS_API_KEY` env var workaround.
+ *
+ * The `apiKeyEncrypted` field (if present on the in-memory config) is
+ * always stripped before persisting — the write path re-derives the blob
+ * from the plaintext apiKey.
+ */
+export function writeEngineConfig(
+  db: PraxisDb,
+  secretStorage: SecretStorage,
+  config: EngineConfig,
+  log?: Logger,
+): void {
   const validated = EngineConfigSchema.parse(config);
+
+  // Strip both key fields and re-derive — never store both `apiKey` plaintext
+  // AND `apiKeyEncrypted` in the same row.
+  const { apiKey, apiKeyEncrypted: _ignored, ...rest } = validated;
+  let persisted: Partial<EngineConfig>;
+
+  if (apiKey === undefined || apiKey === "") {
+    // No apiKey to store; omit both key fields from persisted row.
+    persisted = { ...rest };
+  } else if (secretStorage.isAvailable()) {
+    try {
+      const blob = secretStorage.encrypt(apiKey);
+      persisted = { ...rest, apiKeyEncrypted: blob };
+    } catch (err) {
+      throw new Error(
+        `Cannot save apiKey: encryption failed (${err instanceof Error ? err.message : String(err)})`,
+      );
+    }
+  } else {
+    // safeStorage unavailable — refuse to persist plaintext.
+    log?.warn("engine-config.refuse_plaintext_save", {
+      detail: "safeStorage unavailable; apiKey not saved. Use PRAXIS_API_KEY env var instead.",
+    });
+    throw new Error(
+      "Cannot save apiKey: safeStorage is unavailable on this platform. " +
+        "Set the PRAXIS_API_KEY environment variable instead, or enable a system keyring.",
+    );
+  }
+
   db.insert(configKv)
-    .values({
-      key: CONFIG_KEY,
-      valueJson: validated,
-      updatedAt: new Date(),
-    })
+    .values({ key: CONFIG_KEY, valueJson: persisted, updatedAt: new Date() })
     .onConflictDoUpdate({
       target: configKv.key,
-      set: { valueJson: validated, updatedAt: new Date() },
+      set: { valueJson: persisted, updatedAt: new Date() },
     })
     .run();
 }

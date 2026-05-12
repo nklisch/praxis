@@ -92,6 +92,7 @@ import { eq } from "drizzle-orm";
 import { app } from "electron";
 import type { MainLogger } from "./logger.js";
 import { spawnNodeWorker } from "./runtime/spawn-node-worker.js";
+import { ElectronSafeStorageAdapter } from "./secret-storage.js";
 
 /**
  * Default model + dimension shared between the embeddings worker and its
@@ -256,7 +257,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // Vision resolver — looks up the active engine config at call time so swaps reflect immediately
   const visionResolver = () => {
     try {
-      const engineConfig = readEngineConfig(db);
+      const engineConfig = readEngineConfig(db, secretStorage, log);
       const engine = createEngine({ config: engineConfig, deps: { log } });
       return engine.vision;
     } catch {
@@ -267,7 +268,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // Phase 6: Bootstrap engine resolver — same pattern as visionResolver above.
   // Looks up the active engine at call time so engine swaps reflect immediately.
   const bootstrapEngineResolver = () => {
-    const engineConfig = readEngineConfig(db);
+    const engineConfig = readEngineConfig(db, secretStorage, log);
     return createEngine({ config: engineConfig, deps: { log } });
   };
 
@@ -311,7 +312,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // Phase 8: AssignmentServiceImpl.
   // Phase 9: Must be constructed BEFORE ArtifactsServiceImpl (GradeReader injection).
   const assignmentEngineResolver = () => {
-    const engineConfig = readEngineConfig(db);
+    const engineConfig = readEngineConfig(db, secretStorage, log);
     return createEngine({ config: engineConfig, deps: { log } });
   };
 
@@ -433,6 +434,10 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // Phase 11: LockServiceImpl — single instance, process-scoped unlock flag.
   const lockService = new LockServiceImpl({ db, log });
 
+  // Security: wrap apiKey at rest via Electron safeStorage.
+  // Must be constructed after app.whenReady() — guaranteed by buildServices call site.
+  const secretStorage = new ElectronSafeStorageAdapter();
+
   // Claude CLI auth service — stateless, no DB dependency.
   const claudeAuthService = new ClaudeAuthServiceImpl({ log });
 
@@ -446,7 +451,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
 
   // Phase 15a: Vision service — thin wrapper around the configured engine's VisionCapability.
   // Resolves the active engine at call time (same pattern as visionResolver above).
-  const visionService = new VisionServiceImpl({ db, log });
+  const visionService = new VisionServiceImpl({ db, log, secretStorage });
 
   // Phase 12: Notes + Flashcards services.
   // Notes service uses the bootstrap engine resolver for fromSessionSummary.
@@ -550,6 +555,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     activity: activityRegistry,
     subAgent: subAgentRegistry,
     promptCustomization: promptCustomizationService, // ← prompt-customization-layers
+    secretStorage, // ← encrypt-api-key: apiKey wrapped at rest via Electron safeStorage
   };
 
   const ingestion = new IngestionService({
