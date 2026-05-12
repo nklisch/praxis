@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ingestion-service-rename-embedded-image-dir
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -37,3 +37,16 @@ it("renames the embedded-image directory from synthetic id to real documentId af
 
 ## Test location (suggested)
 `packages/core/src/__tests__/ingestion-service.test.ts`
+
+## Implementation notes
+
+The rename logic already existed in `packages/core/src/ingestion/service.ts` (lines 154–164) — it mirrors the page-image rename at lines 141–151. The gap was purely a missing test.
+
+The new test `"embedded-image directory is renamed from synthetic id to real documentId after document persist"` was added to `packages/core/src/__tests__/ingestion-service.test.ts` following the exact pattern of the existing page-image rename test. It:
+- Seeds a PNG under the synthetic dir `_pending_test-xyz-embedded` via `embeddedImageStore.save(...)` before `ingest()` runs.
+- Calls `svc.ingest(...)` with a PPTX mime type and a stubbed ingestor that returns `pendingEmbeddedImageDocId`.
+- After the `done` event, asserts `embeddedImageStore.read({ documentId: synthId, imageName })` returns `null` (synthetic dir gone) and `embeddedImageStore.read({ documentId: doneEvent.documentId, imageName })` returns the original bytes (real dir present).
+
+The `makeIngestorResult` helper's `extra` partial type was also narrowly expanded to include `pendingEmbeddedImageDocId` so the stub could pass the field through without type widening.
+
+All 10 tests pass (`pnpm vitest run packages/core/src/__tests__/ingestion-service.test.ts`). Typecheck clean.

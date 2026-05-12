@@ -36,6 +36,7 @@ function makeIngestorResult(
   chunkCount = 2,
   extra: Partial<{
     pendingPageImageDocId: string;
+    pendingEmbeddedImageDocId: string;
     pageCount: number;
   }> = {},
 ) {
@@ -394,6 +395,51 @@ describe("IngestionService", () => {
       // synthetic dir is removed after rename; real dir has the file
       expect(readFromSynth).toBeNull();
       expect(readFromReal).not.toBeNull();
+    }
+  });
+
+  it("embedded-image directory is renamed from synthetic id to real documentId after document persist", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { vectorStore, ftsStore, embeddings } = makeStores();
+
+    const synthId = "_pending_test-xyz-embedded";
+    const imageName = "slide1.png";
+    const imageBytes = Buffer.from("fake-png-bytes");
+
+    const result = makeIngestorResult(1, { pendingEmbeddedImageDocId: synthId });
+    const ingestor = makeIngestor(result);
+
+    // Pre-seed an image under the synthetic dir so the rename has something to move
+    await embeddedImageStore.save({ documentId: synthId, imageName, bytes: imageBytes, mimeType: "image/png" });
+
+    const svc = new IngestionService({
+      db,
+      log: noopLogger(),
+      vectorStore,
+      ftsStore,
+      embeddings,
+      ingestorRegistry: makeRegistry(ingestor),
+      pageImageStore,
+      embeddedImageStore,
+    });
+
+    const events = await collectEvents(svc, {
+      filePath: "/fake/deck.pptx",
+      filename: "deck.pptx",
+      mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      studentId: "student-1",
+    });
+
+    const doneEvent = events.find((e) => e.type === "done");
+    expect(doneEvent).toBeDefined();
+
+    if (doneEvent?.type === "done") {
+      // After rename: real docId dir should have the image; synth dir should be gone
+      const readFromSynth = await embeddedImageStore.read({ documentId: synthId, imageName });
+      const readFromReal = await embeddedImageStore.read({ documentId: doneEvent.documentId, imageName });
+      expect(readFromSynth).toBeNull();
+      expect(readFromReal).not.toBeNull();
+      expect(readFromReal).toEqual(imageBytes);
     }
   });
 
