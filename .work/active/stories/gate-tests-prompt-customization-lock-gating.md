@@ -1,7 +1,7 @@
 ---
 id: gate-tests-prompt-customization-lock-gating
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -91,3 +91,16 @@ The original suggested-test snippet (calling `svc.setGlobalPrompt(...)` against 
 - Test location: `packages/desktop/electron/main/__tests__/ipc-server.author.lock.test.ts` (new file) — or extend an existing ipc-server test if a closer fit exists.
 - Pattern: build the ipc-server with a fake `lockService` whose `isUnlocked()` returns `false`. Invoke the registered `praxis.author.setGlobalPrompt` and `praxis.author.setModeAppend` handlers directly (via the `ipcMain.handle` registry or a small inspection helper). Assert each throws / rejects with the lock error from `requireUnlocked` (`"Locked: configure surface requires unlock..."`).
 - Don't refactor the service. The service stays lock-unaware per the comment at `authoring-service.ts:8`.
+
+## Implementation notes
+
+Tests written at the IPC layer per Option A. New file: `packages/desktop/electron/main/__tests__/ipc-server.author.lock.test.ts`.
+
+Approach mirrors `ipc-server.cancel.test.ts` / `ipc-server.first-run-update.test.ts`: `vi.mock("electron")` captures `ipcMain.handle` registrations into a `Map<string, Handler>`, then handlers are invoked directly. A minimal fake `Services` bag exposes a controllable `lock.isUnlocked` and spy stubs for `authoring.setGlobalPrompt` / `authoring.setModeAppend`.
+
+Six tests total — three per channel:
+1. Locked path rejects with `/Locked|configurator|unlock/i`
+2. Locked path never calls the underlying authoring method (guard fires before delegation)
+3. Unlocked path delegates to the authoring method with correct arguments (positive control — prevents "always-failing guard" false pass)
+
+Both `pnpm typecheck` and the scoped test run are green.
