@@ -1,14 +1,14 @@
 ---
 id: feature-prompt-customization-layers
 kind: feature
-stage: implementing
+stage: review
 tags: [content, ui]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Prompt customization layers
@@ -816,3 +816,17 @@ Mock the `PraxisClient` via `makeFakeClient({ author: { getGlobalPrompt, setGlob
    the next version; not a blocker.
 
 <!-- Implementation Notes accumulate here as work progresses. -->
+
+## Children complete (2026-05-12)
+
+All three child stories have landed and are at `stage: review` or `done`:
+
+- `feature-prompt-customization-layers-compose-wiring` — **done** (commit `341fa63`, reviewed and approved `f36549b`). Foundation: types, `mode_prompt_appends` table + migration `0013_chilly_zombie.sql`, `PromptCustomizationServiceImpl`, session-service compose path (fixes Phase 11 read gap), `previewPrompt` IPC + client.
+- `feature-prompt-customization-layers-settings-global` — **review** (commit `e93f7f0`). `<GlobalPromptEditor>` in Settings; extracted shared `<PromptPreviewPane>` primitive; 12 tests.
+- `feature-prompt-customization-layers-configure-mode-append` — **review** (commit `1f1fb28`). `<ModeAppendEditor>` in Configure → Prompt tab above style sliders; reframes `<PromptFragmentEditor>` as "Advanced"; consumes shared `<PromptPreviewPane>`; mode-switch unsaved-draft confirm; 14 + 7 tests.
+
+**Cross-cutting deviations**: `ServiceDeps.promptCustomization` made optional (`?:`) rather than mandatory so legacy tests that don't wire it stay compatible. Composition root in `services.ts:467,480,552` always wires `PromptCustomizationServiceImpl`, so production behavior is unaffected.
+
+**Verification (workspace-wide)**: `pnpm typecheck` green across all 10 packages (including the now-enabled root-tsconfig gate); `pnpm test` ~2700+ passing; `pnpm lint` shows only pre-existing claude-cli-sdk warnings unrelated to this feature's changes.
+
+Advancing feature `implementing → review`. The next autopilot review pass will evaluate the realized capability end-to-end.

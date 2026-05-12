@@ -1,14 +1,14 @@
 ---
 id: feature-root-tsconfig-typecheck-coverage
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Root-tsconfig typecheck coverage
@@ -301,3 +301,17 @@ This is tooling work; the "tests" are the gate itself:
   with `any` — preserve the intent while satisfying the checker.
 
 <!-- Implementation Notes accumulate here as work progresses. -->
+
+## Children complete (2026-05-12)
+
+All three child stories have landed and are at `stage: review` or `done`:
+
+- `feature-root-tsconfig-typecheck-coverage-scripts-cleanup` — **done** (commit `3693287`, reviewed and approved `11211d5`). `db-gates.ts`/`db-packs.ts` use canonical `noopLogger()`; `scripts/run-session.ts` deleted (broken since `language-sandbox-registry` shipped); `package.json` `script:run-session` entry removed.
+- `feature-root-tsconfig-typecheck-coverage-tests-cleanup` — **done** (commit `52327ff`, reviewed and approved `028f209`). 33 type errors across 11 root-tier test files repaired via patterns A–E; `noopLockService()` + `noopCourseDocuments()` added to `tests/helpers/mocks.ts`; `SqliteDatabase` re-exported from `@praxis/core/db`; root tsconfig gained path entries for `@praxis/engines`, `@praxis/tools`, `@praxis/claude-cli-sdk`.
+- `feature-root-tsconfig-typecheck-coverage-enable-gate` — **review** (commit `d58c66c`). `package.json` `typecheck` now runs `pnpm -r run typecheck && tsgo --noEmit -p tsconfig.json`. Smoke-test confirmed the gate catches root-tier regressions. CLAUDE.md "Common commands" line updated to note root coverage. Found and fixed one additional pre-existing error in `tests/configure-end-to-end.test.ts` (missing `promptCustomization` field on AuthoringServiceImpl, surfaced by the now-active gate).
+
+**Verification (workspace-wide)**: `pnpm typecheck` runs both steps and exits 0. The gate is wired and working — regressions in `tests/` or `scripts/` will now break CI.
+
+**Capability realized**: the root tier (`tests/`, `scripts/`, `drizzle.config.ts`) is now type-checked alongside the per-package code. Future type-level regressions in those files surface at `pnpm typecheck` instead of slipping past CI.
+
+Advancing feature `implementing → review`. The next autopilot review pass will evaluate the bundle.
