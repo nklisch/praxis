@@ -146,6 +146,22 @@
   color: var(--color-accent, #111111);
 }
 
+.signedInButton {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.6rem 1.4rem;
+  border: 1px solid var(--color-rule, #d0d0d0);
+  border-radius: 4px;
+  background: var(--color-bg, #ffffff);
+  color: var(--color-fg-muted, #5a5a5a);
+  cursor: pointer;
+  text-align: left;
+}
+
+.signedInButton:hover {
+  border-color: var(--color-fg-muted, #5a5a5a);
+}
+
 .error {
   color: var(--color-error, #b8332a);
   font-size: 0.95rem;

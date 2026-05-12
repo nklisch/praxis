@@ -4,6 +4,7 @@ import { type FormEvent, type JSX, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { COPY } from "../lib/copy.js";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
+import { ClaudeAuthModal } from "./claude-auth-modal.js";
 import styles from "./onboarding-flow.module.css";
 
 const ENGINE_OPTIONS = [
@@ -99,6 +100,8 @@ function EngineStep({
   const [config, setConfig] = useState<EngineConfigSnapshot | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [claudeLoggedIn, setClaudeLoggedIn] = useState<boolean | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +117,26 @@ function EngineStep({
       cancelled = true;
     };
   }, [client]);
+
+  // Fetch Claude CLI login status whenever the claude-code engine is selected.
+  useEffect(() => {
+    if (config?.engineId !== "claude-code") {
+      setClaudeLoggedIn(null);
+      return;
+    }
+    let cancelled = false;
+    client.claudeAuth
+      .status()
+      .then((s) => {
+        if (!cancelled) setClaudeLoggedIn(s.loggedIn);
+      })
+      .catch(() => {
+        if (!cancelled) setClaudeLoggedIn(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client, config?.engineId]);
 
   const handleContinue = async (e: FormEvent) => {
     e.preventDefault();
@@ -181,7 +204,30 @@ function EngineStep({
         </label>
       )}
 
+      {config.engineId === "claude-code" && (
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>Claude Code sign-in</span>
+          <button
+            type="button"
+            className={claudeLoggedIn ? styles.signedInButton : styles.primaryButton}
+            onClick={() => setShowAuthModal(true)}
+          >
+            {claudeLoggedIn ? "Signed in to Claude Code ✓" : "Sign in to Claude Code"}
+          </button>
+        </div>
+      )}
+
       {error && <p className={styles.error}>{error}</p>}
+
+      {showAuthModal && (
+        <ClaudeAuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSignedIn={() => {
+            setShowAuthModal(false);
+            setClaudeLoggedIn(true);
+          }}
+        />
+      )}
 
       <div className={styles.actions}>
         <button type="button" className={styles.ghostButton} onClick={onBack} disabled={saving}>

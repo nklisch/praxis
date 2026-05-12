@@ -1,7 +1,7 @@
 ---
 id: feature-onboarding-completion-claude-code-signin
 kind: story
-stage: implementing
+stage: review
 tags: [ui, onboarding]
 parent: feature-onboarding-completion
 depends_on: []
@@ -50,3 +50,29 @@ can run a session. After this story, they can sign in inline.
 - Origin idea: `.work/backlog/idea-onboarding-claude-code-signin.md`
 
 <!-- Implementation Notes accumulate here as work progresses. -->
+
+## Implementation notes
+
+**Hook/component names found:**
+
+- `ClaudeAuthModal` — exists at `packages/ui/src/components/claude-auth-modal.tsx`. Props: `onClose: () => void`, `onSignedIn: () => void`. Renders the full sign-in flow including the Claude CLI auth URL exchange.
+- Auth state: The `useAuthStatus()` hook in `packages/ui/src/context/auth-context.tsx` tracks `needsAuth` (a reactive flag set when an in-session auth error occurs), NOT the upfront "is logged in" boolean. That boolean lives in `ClaudeAuthStatus.loggedIn` returned by `client.claudeAuth.status()`.
+- The EngineStep therefore calls `client.claudeAuth.status()` directly (via `useEffect` gated on `config.engineId === "claude-code"`) to get `loggedIn`. `useAuthStatus()` is not used in this component.
+
+**Button styling decisions:**
+
+- Not-signed-in state: `styles.primaryButton` (accent-colored, matches the Continue button) — draws attention since action is needed.
+- Signed-in state: `styles.signedInButton` (new class, muted border/text, ghosted appearance) — still clickable for re-auth but visually de-emphasized.
+- Button is placed inside a `<div className={styles.field}>` with a `<span className={styles.fieldLabel}>` matching the API key field structure — same vertical rhythm as the key input.
+
+**Tests added** (`packages/ui/src/__tests__/onboarding-flow.test.tsx`):
+
+1. Shows "Sign in to Claude Code" when `engineId === "claude-code"` and `loggedIn: false`.
+2. Shows "Signed in to Claude Code ✓" when `engineId === "claude-code"` and `loggedIn: true`.
+3. Sign-in button is absent for non-claude-code engines.
+4. Clicking the button renders `<ClaudeAuthModal>` (mocked via `vi.mock`).
+5. After `onSignedIn()` fires, the button label flips to the signed-in state.
+
+`ClaudeAuthModal` is mocked in tests to avoid pulling in `client.claudeAuth.login()` stream infrastructure. The mock exposes `data-testid="claude-auth-modal"` and stub "Close" / "Signed In" buttons to simulate both close and success paths.
+
+**Verification:** `pnpm --filter @praxis/ui typecheck` ✓, `pnpm typecheck` ✓, `pnpm --filter @praxis/ui test` ✓ (827 tests pass). Lint: no new errors in changed files (pre-existing unrelated failures in root lint not introduced by this change).
