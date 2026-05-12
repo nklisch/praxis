@@ -1,7 +1,7 @@
 ---
 id: feature-prompt-customization-layers-configure-mode-append
 kind: story
-stage: review
+stage: done
 tags: [ui, content]
 parent: feature-prompt-customization-layers
 depends_on: [feature-prompt-customization-layers-compose-wiring]
@@ -119,3 +119,19 @@ pnpm typecheck                      → clean (all packages)
 pnpm --filter @praxis/ui test       → 777 tests, all pass
 pnpm lint                           → 9 pre-existing errors in claude-cli-sdk; 0 new errors in our files
 ```
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `1f1fb28`: clean implementation. Mode selector drives both textarea repopulation and live preview via `useEffect` keyed on `selectedMode`, with a cancellation-token pattern (`let cancelled = false`) that prevents stale state when the user switches modes faster than IPC resolves.
+- `window.confirm` guard for unsaved-draft mode-switch matches the design's "safer default".
+- Section order verified: Per-mode append → Teaching Style → Prompt Fragment Overrides (Advanced). Advanced intro copy added above `<PromptFragmentEditor>`.
+- 14 component tests + 7 prompt-tab integration tests cover all acceptance criteria including section ordering and "Advanced" copy.
+
+Approved and advancing to done. With this and settings-global both done, the parent feature `feature-prompt-customization-layers` is now fully complete (its 3 children all at done).
