@@ -1,7 +1,7 @@
 ---
 id: epic-v1-security-hardening
 kind: epic
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -171,3 +171,20 @@ Both child features have landed and are at `stage: done`:
 2. The update feed is cryptographically signed and verified before any update is surfaced to the user. Tampered feeds produce silent failures with detailed main-process logs.
 
 Advancing epic `implementing → review`. The next autopilot review pass will evaluate the bundle.
+
+## Review (2026-05-12, epic-level)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes (aggregate-only — per-line lenses exercised in each child's review)**:
+- Decomposition delivered exactly as designed. The "split by capability" choice played out — zero shared code between encrypt-api-key and sign-update-feed; both landed in any order without friction.
+- Foundation-doc alignment: `docs/UPDATE-CHANNEL.md` "Trust model" section rolled forward from deferral to the realized signed-feed contract. `docs/v1-ship-checklist.md` got a tamper-rejection smoke step. No drift in SPEC.md / VISION.md / ARCHITECTURE.md.
+- Cross-cutting public-API shifts (all contained to workspace-internal seams): `ServiceDeps.secretStorage` mandatory; `readEngineConfig`/`writeEngineConfig` signature changes; `VisionServiceDeps` gained `secretStorage` to mirror parent. All construction sites updated; the root tsconfig gate (recently enabled) caught every test site at typecheck time.
+- Capability check passes end-to-end: API keys encrypted at rest via platform keychain; update feed cryptographically verified before surfacing; both via existing configure / update-banner UX.
+- **Open operational item (not a review finding)**: the maintainer must generate the Ed25519 keypair and replace the `UPDATE_FEED_PUBLIC_KEY_BASE64` placeholder before shipping v0.2.x. This is noted in the feature body's JSDoc and in UPDATE-CHANNEL.md. Until then, `checkLatest` returns `status: "disabled"` — safe.
+
+Epic delivered as briefed. Advancing to done.
