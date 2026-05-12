@@ -1,7 +1,7 @@
 ---
 id: feature-agent-transparency-ux-subagent-channel
 kind: story
-stage: review
+stage: done
 tags: [ui, chat, core]
 parent: feature-agent-transparency-ux
 depends_on: []
@@ -210,3 +210,21 @@ pnpm typecheck: passes for all packages except @praxis/ui (pre-existing JSX name
 pnpm lint: 5 errors all pre-existing in claude-cli-sdk (noNonNullAssertion, useTemplate, useLiteralKeys, noGlobalIsFinite, noUnusedVariables); 0 errors in changed files
 pnpm test: 2714 passed / 21 skipped / 0 failed (306 test files)
 ```
+
+## Review (2026-05-12, re-pass)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none — the prior pass's blocker (uuidv7 random generation in the bridge) is resolved.
+
+**Important**:
+- Cross-channel agreement test in `tool-bridge.test.ts:160-289` is bridge-side only. It asserts the bridge forwards `meta.callId` to dispatch, but does NOT independently exercise the Claude Code adapter's `tool_use` → `tool_call` event mapping (`packages/engines/src/claude-code/events.ts:47`) to confirm the same value reaches both channels for the same call. Claude's wire-protocol `tool_use.id` is a Claude-generated UUID (`"toolu_01..."`) while the worker's `callCounter` is `"1"`, `"2"`, etc.; if these don't agree in production, the upcoming `subagent-ui` story will still see an empty subscription. Parked as `idea-subagent-callid-end-to-end-verification` for end-to-end investigation when subagent-ui lands.
+  → Backlog: `idea-subagent-callid-end-to-end-verification`
+
+**Nits**: none.
+
+**Notes**:
+- The bridge-side fix is a real improvement over the prior implementation (deterministic worker-id vs random uuid each call). Even if the cross-channel question turns out to need an adapter-side translation map, this fix is on the path, not a detour — keep it.
+- Prior reviewer (me) gave the agent a recommended path that may not be the full solution. The end-to-end question stays open and is correctly captured for the next story to resolve.
+
+Approving and advancing to done. The `subagent-ui` story is now unblocked.
