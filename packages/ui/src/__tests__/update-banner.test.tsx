@@ -110,4 +110,35 @@ describe("UpdateBanner", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(screen.queryByText(COPY.update.available("1.0.1"))).toBeNull();
   });
+
+  it("renders the SHA-256 hash details block when installerSha256 is present", async () => {
+    const sha256 = "a".repeat(64);
+    renderBanner({
+      status: "available",
+      current: "1.0.0",
+      latest: {
+        version: "1.0.1",
+        downloadUrl: "https://example.com/Praxis-1.0.1.dmg",
+        installerSha256: sha256,
+      },
+    });
+
+    await waitFor(() => expect(screen.getByText(COPY.update.available("1.0.1"))).toBeDefined());
+
+    // The <details> summary is present.
+    expect(screen.getByText("Verify download · SHA-256")).toBeDefined();
+    // The hash value is rendered in full (no truncation).
+    expect(screen.getByText(sha256)).toBeDefined();
+  });
+
+  it("does not render the SHA-256 block when installerSha256 is absent", async () => {
+    renderBanner({
+      status: "available",
+      current: "1.0.0",
+      latest: { version: "1.0.1", downloadUrl: "https://example.com/Praxis-1.0.1.dmg" },
+    });
+
+    await waitFor(() => expect(screen.getByText(COPY.update.available("1.0.1"))).toBeDefined());
+    expect(screen.queryByText("Verify download · SHA-256")).toBeNull();
+  });
 });

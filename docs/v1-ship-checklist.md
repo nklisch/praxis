@@ -95,7 +95,8 @@ platforms when their signing pipelines come online.
 | # | Step | Expected |
 |---|------|----------|
 | 7.1 | Launch with `PRAXIS_UPDATE_FEED_URL` unset. | No update banner; no spurious network request to a feed endpoint (verify in Console.app or via packet capture if curious). |
-| 7.2 | Set `PRAXIS_UPDATE_FEED_URL` to a synthetic feed advertising version `9.9.9` and a download URL. Relaunch. | Update banner appears with the version + download link. Click "Dismiss"; banner disappears. Relaunch — banner stays hidden (per-version dismissal). |
+| 7.2 | Set `PRAXIS_UPDATE_FEED_URL` to a signed synthetic feed (sign with `pnpm script:sign-update-feed`) advertising version `9.9.9`, a download URL, and an `installerSha256`. Relaunch. | Update banner appears with the version + download link. The "Verify download · SHA-256" details block is present and collapsed; expanding it shows the full hash. Click "Dismiss"; banner disappears. Relaunch — banner stays hidden (per-version dismissal). |
+| 7.3 | Serve the same feed but a tampered `.sig` file (change one byte). Relaunch. | No update banner; main-process log shows `update-service.sig_invalid`. |
 
 ## Failure-triage rubric
 
@@ -137,10 +138,18 @@ Before tagging v1.0.0, confirm each:
       not revoked. Apple Developer Portal shows it as valid.
 - [ ] `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID`
       are valid (last successful notary submission within ~30 days).
+- [x] Ed25519 update-feed signature verification landed
+      (`feature-sign-update-feed`). The public key constant is an empty
+      placeholder until the maintainer generates the keypair; the update
+      check returns `"disabled"` until then. Generate the keypair and
+      replace `UPDATE_FEED_PUBLIC_KEY_BASE64` in
+      `packages/core/src/services/update-feed-public-key.ts` before
+      shipping v0.2.x.
 - [ ] Decide whether to ship with `PRAXIS_UPDATE_FEED_URL` set:
-      recommended **yes**, pointing at a placeholder feed announcing
-      v1.0.0 itself, so the update-check infrastructure is exercised
-      in the wild from day one.
+      recommended **yes**, pointing at a signed placeholder feed
+      announcing v1.0.0 itself (see `pnpm script:sign-update-feed`),
+      so the update-check infrastructure is exercised in the wild from
+      day one.
 - [ ] Onboarding screencast recorded and hosted (GitHub release asset
       or YouTube unlisted link); README references the hosted URL.
 - [ ] CHANGELOG entry for v1.0.0 (if the project keeps one).

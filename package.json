@@ -30,7 +30,8 @@
     "db:cards-due": "tsx scripts/db-cards-due.ts",
     "dev": "pnpm build && pnpm --filter @praxis/desktop dev",
     "desktop:build": "pnpm --filter @praxis/desktop build",
-    "desktop:start": "pnpm --filter @praxis/desktop start"
+    "desktop:start": "pnpm --filter @praxis/desktop start",
+    "script:sign-update-feed": "tsx scripts/sign-update-feed.ts"
   },
   "dependencies": {
     "@praxis/artifacts": "workspace:*",

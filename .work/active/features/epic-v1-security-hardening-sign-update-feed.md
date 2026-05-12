@@ -1,7 +1,7 @@
 ---
 id: epic-v1-security-hardening-sign-update-feed
 kind: feature
-stage: implementing
+stage: review
 tags: [security]
 parent: epic-v1-security-hardening
 depends_on: []
@@ -650,6 +650,57 @@ Manual smoke (out of automated test scope):
    committed fixture.** Generating in `beforeAll` is the cleanest approach
    but adds setup time. **Mitigation**: keypair generation is fast (<10ms);
    `beforeAll` runs once per file. Acceptable.
+
+## Implementation notes
+
+### Unit status
+
+| Unit | Status | Notes |
+|------|--------|-------|
+| 1 — `update-feed-public-key.ts` | Done | New file; empty placeholder constant; `isPublicKeyConfigured()` + `importUpdateFeedPublicKey()` helpers as designed. |
+| 2 — Verification in `checkLatest` | Done | `_deps` → `deps` rename; `biome-ignore` removed (deps now used); fetch-bytes → fetch-sig → verify → parse order as spec'd. |
+| 3 — `installerSha256` schema field | Done | Optional lowercase-hex regex added to `UpdateFeedSchema`. |
+| 4 — Banner UX | Done | `<details>` block added; CSS module extended with `.hashDetails`, `.hashSummary`, `.hashValue`, `.hashHint` classes. |
+| 5 — `scripts/sign-update-feed.ts` | Done | Node `crypto.sign(null, bytes, privateKey)` as designed; `PRAXIS_UPDATE_FEED_PRIVATE_KEY_FILE` env-var gating; root `package.json` `script:sign-update-feed` added. |
+| 6 — Tests + docs | Done | See below. |
+
+### Web Crypto API — no surprises
+
+`crypto.subtle.verify("Ed25519", key, sig, data)` works exactly as documented on Node 24.
+`crypto.subtle.importKey("raw", rawBytes, { name: "Ed25519" }, false, ["verify"])` accepts a 32-byte raw public key directly — no DER prefix required (DER prefix stripping is only needed when exporting from an existing key via `publicKey.export({ type: "spki", format: "der" })`).
+
+`crypto.sign(null, data, privateKey)` for signing produces a 64-byte Ed25519 signature as expected; the `null` algorithm is the correct idiom when the key type encodes the algorithm.
+
+### Test approach
+
+Module-level `vi.mock("../update-feed-public-key.js", ...)` with a mutable `mockIsConfigured` / `mockCryptoKey` pair — the mock factory captures both by reference, allowing per-test control without re-importing the module. A real `generateKeyPairSync("ed25519")` keypair is generated in `beforeAll`; signing uses Node `crypto.sign(null, ...)` and verification goes through the real `crypto.subtle.verify` path under the mocked imported key.
+
+Test scenarios covered:
+- Empty/no public key → disabled, no fetch
+- Valid signature → available / up-to-date
+- Tampered feed bytes → sig_invalid
+- Wrong-length signature (60 bytes) → sig_malformed
+- Wrong key (signed with key B, configured with key A) → sig_invalid
+- Sig fetch 404 → signature fetch failed
+- Schema-invalid feed after valid signature → validation error
+- `installerSha256` present → surfaced in result
+- `installerSha256` uppercase → schema rejection
+
+### Docs rolled forward
+
+- `docs/UPDATE-CHANNEL.md` — "Trust model" section entirely rewritten. Removed the "Future" paragraph and the description of the unsigned-feed gap. Replaced with "Signed-feed contract", "Key rotation policy", "Release-signing procedure", and "Installer hash (manual verification)" subsections describing the realized contract. The `installerSha256` feed table row added. Operational steps updated with the `sign-update-feed` step.
+- `docs/v1-ship-checklist.md` — step 7.2 updated to include signing the synthetic feed and verifying the hash block; step 7.3 added for tamper-rejection test. Pre-ship checklist got a new `[x]` item documenting the landed feature and the keypair-generation TODO.
+
+### Verification output
+
+```
+pnpm --filter @praxis/core typecheck  → clean
+pnpm --filter @praxis/core test       → 793 passed (76 test files)
+pnpm --filter @praxis/ui typecheck    → clean
+pnpm --filter @praxis/ui test         → 800 passed (94 test files)
+pnpm typecheck                        → clean (root gate, covers scripts/)
+pnpm test                             → 2817 passed | 21 skipped (311 files)
+```
 
 ## Out of scope
 

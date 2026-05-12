@@ -40,3 +40,33 @@
 .dismissButton:hover {
   color: var(--color-fg, #111111);
 }
+
+.hashDetails {
+  font-size: 0.85rem;
+  color: var(--color-fg-muted, #5a5a5a);
+}
+
+.hashSummary {
+  cursor: pointer;
+  user-select: none;
+  color: var(--color-fg-muted, #5a5a5a);
+}
+
+.hashSummary:hover {
+  color: var(--color-fg, #111111);
+}
+
+.hashValue {
+  display: block;
+  font-family: monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+  margin: 0.25rem 0;
+  color: var(--color-fg, #111111);
+  user-select: all;
+}
+
+.hashHint {
+  margin: 0.25rem 0 0;
+  color: var(--color-fg-muted, #5a5a5a);
+}

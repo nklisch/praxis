@@ -16,17 +16,30 @@ export function UpdateBanner(): JSX.Element | null {
 
   if (!result || result.status !== "available" || dismissed) return null;
 
+  const { latest } = result;
+
   return (
     <div className={styles.banner} role="status">
-      <span className={styles.message}>{COPY.update.available(result.latest.version)}</span>
+      <span className={styles.message}>{COPY.update.available(latest.version)}</span>
       <a
         className={styles.downloadLink}
-        href={result.latest.downloadUrl}
+        href={latest.downloadUrl}
         target="_blank"
         rel="noreferrer noopener"
       >
         {COPY.update.downloadLabel}
       </a>
+      {latest.installerSha256 && (
+        <details className={styles.hashDetails}>
+          <summary className={styles.hashSummary}>Verify download · SHA-256</summary>
+          <code className={styles.hashValue}>{latest.installerSha256}</code>
+          <p className={styles.hashHint}>
+            After downloading, run <code>shasum -a 256 &lt;file&gt;</code> (macOS / Linux) or{" "}
+            <code>certutil -hashfile &lt;file&gt; SHA256</code> (Windows) and confirm the output
+            matches.
+          </p>
+        </details>
+      )}
       <button
         type="button"
         className={styles.dismissButton}
