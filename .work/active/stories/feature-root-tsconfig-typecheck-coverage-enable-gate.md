@@ -1,7 +1,7 @@
 ---
 id: feature-root-tsconfig-typecheck-coverage-enable-gate
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: feature-root-tsconfig-typecheck-coverage
 depends_on:
@@ -153,3 +153,18 @@ pnpm typecheck          # tsgo per-package + root tsconfig (covers tests/, scrip
   whoever runs `pnpm typecheck` (locally, in CI, in pre-commit, in
   `/agile-workflow:implement-orchestrator`'s verification) now gets the
   full coverage.
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff at commit `d58c66c`: one-line `package.json` change + tightened CLAUDE.md wording + one pre-existing rot fix in `tests/configure-end-to-end.test.ts` (missing `promptCustomization` field on `AuthoringServiceImpl`, surfaced by the new gate and fixed inline using the agreed `vi.fn()`-based stub pattern).
+- Smoke test documented in implementation notes (deliberate type error in `tests/foundation.test.ts` caused `pnpm typecheck` to exit non-zero; revert → green). Gate confirmed working.
+- The pre-existing rot fix is in scope — it surfaced under the gate the agent was enabling, so leaving it red would have left the workspace unable to land the change.
+
+Approved and advancing to done.
