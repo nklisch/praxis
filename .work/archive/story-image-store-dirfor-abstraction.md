@@ -1,7 +1,7 @@
 ---
 id: story-image-store-dirfor-abstraction
 kind: story
-stage: review
+stage: done
 tags: [ingestion, cleanup]
 parent: null
 depends_on: []
@@ -129,3 +129,18 @@ Discovered during review of `feature-powerpoint-ingestion`.
 - `pnpm exec biome check` on changed files — clean (1 warning for unused `join` import, fixed before commit)
 - `pnpm vitest run` on both store test files — 28 tests passed (11 page-images, 17 embedded-images)
 - Global typecheck failures in `@praxis/ui` are pre-existing, unrelated to this change
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: implementation-notes assertion about `@praxis/ui` typecheck staleness; after orchestrator integration fix `9518d60` (added `dirFor` to PageImageStore mock in `vision-pdf-ingestor.test.ts`), workspace-wide typecheck is clean.
+
+**Notes**:
+- Diff at commits `5dd52c9` (implement) + `9518d60` (integration fix): clean port-extension refactor. `pathFor` delegates to `dirFor` in both Fs impls; `service.ts` rename blocks now use `dirFor()` directly with no sentinel keys, no regex, no wrapping `join()`. Removed the now-unused `node:path` import.
+- Tests cover the new contract on both stores (2 per store). Integration fix added `dirFor` to the test mock the agent missed.
+- Within the workspace this is non-breaking — all PageImageStore/EmbeddedImageStore consumers are either internal Fs impls or test mocks, both updated. No external port consumers exist.
+
+Approved and advancing to done.
