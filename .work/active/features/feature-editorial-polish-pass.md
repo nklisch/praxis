@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: null
 depends_on: []
@@ -307,3 +307,20 @@ Manual visual smoke (out of automated test scope):
    every route is audited and either complies or has a documented
    exception, the story is done. Resist scope creep into refactors
    tangentially related to styling.
+
+## Children complete (2026-05-12)
+
+All four child stories landed and are at `stage: review`:
+
+- `feature-editorial-polish-pass-theme-tokens` — **review** (commit `0e9e763`). `@media (prefers-color-scheme: light)` block in `global.css` with light overrides for all 8 surface `--color-*` tokens + `--tint-route`. Nav fully tokenized (replaced 2 hex values in `.dueBadge` with new `--color-badge` / `--color-badge-text` tokens). WCAG AA contrast verified for every text-on-bg pairing.
+- `feature-editorial-polish-pass-notes-markdown` — **review** (commit `380297d`). Notes-list table cells render via `<MarkdownContent>` (same path as chat). Heading sizes flattened, 3-line `-webkit-line-clamp`, `overflow-wrap: anywhere`. 6 new test cases.
+- `feature-editorial-polish-pass-concepts-navigation` — **review** (commit `68ca55d`). New `/courses/$courseId/concepts` flat-list route (no flat-list existed previously). Scroll + sticky `<h3>` group headers (by lesson title — units aren't surfaced through artifacts client; documented as the available proxy) + case-insensitive substring filter with Escape/clear-button controls. 10 new test cases.
+- `feature-editorial-polish-pass-styling-sweep` — **review** (commit `52b05f7`). Audited every CSS file: 65 files tokenized or annotated; 0 unjustified bare hex colors remain. Audited every route: 9 documented as RouteHeader exceptions (tab panels, focused editors). New tokens added: `--color-error`, `--color-success`, `--color-warning` with dark + light values.
+
+**Cross-cutting discovery (concepts-navigation)**: no flat-list concepts route existed in the codebase. The implementer created one (per the escape-hatch path documented in the story brief). Routed at `/courses/$courseId/concepts`. This is a real new surface, not just a polish.
+
+**Verification (workspace-wide)**: `pnpm typecheck` green across all 10 packages (incl. root gate); `pnpm --filter @praxis/ui test` 822 passing. No regressions.
+
+**Capability realized**: app surfaces now theme-respond to OS-level light/dark preference; notes display with proper markdown formatting; concepts surface is scrollable and filterable; every CSS color comes from a token (or is justified). The editorial design system has full surface coverage.
+
+Advancing feature `implementing → review`.
