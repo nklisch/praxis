@@ -1,7 +1,7 @@
 ---
 id: feature-root-tsconfig-typecheck-coverage-tests-cleanup
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: feature-root-tsconfig-typecheck-coverage
 depends_on: []
@@ -216,3 +216,20 @@ root tsconfig.
 $ pnpm exec tsgo --noEmit -p tsconfig.json 2>&1 | grep '^tests/' | wc -l
 0
 ```
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: ES6-shorthand opportunities (`log: log` → `log`) in a few touched files; biome formatting will handle on next sweep.
+
+**Notes**:
+- Diff at commit `52327ff`: clean mechanical fixes across 5 documented patterns (A–E). New helpers `noopLockService()` / `noopCourseDocuments()` live in `tests/helpers/mocks.ts` as designed — single-place stubs, not ad-hoc per call site.
+- New `SqliteDatabase` re-export from `@praxis/core/db` (Pattern C resolution for `foundation.test.ts`) is reasonable — keeps `better-sqlite3` abstracted behind the core package.
+- New `tsconfig.json` path mappings for `@praxis/engines`, `@praxis/tools`, `@praxis/claude-cli-sdk` are required so root-tier test imports resolve. No security or breaking concern.
+- Test count rose 2625 → 2643 (+18). Agent confirmed no deletes / no `.skip`'d tests; the lift is from previously-uncompilable test files that now run. Accidental bonus, not a regression.
+- `brandId<"CourseId">(...)` (string literal type parameter) is the correct call shape — real type-system fix.
+
+Approved and advancing to done. With this and scripts-cleanup at done, `enable-gate` is now ready.
