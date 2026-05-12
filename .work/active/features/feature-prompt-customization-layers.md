@@ -1,7 +1,7 @@
 ---
 id: feature-prompt-customization-layers
 kind: feature
-stage: review
+stage: done
 tags: [content, ui]
 parent: null
 depends_on: []
@@ -830,3 +830,21 @@ All three child stories have landed and are at `stage: review` or `done`:
 **Verification (workspace-wide)**: `pnpm typecheck` green across all 10 packages (including the now-enabled root-tsconfig gate); `pnpm test` ~2700+ passing; `pnpm lint` shows only pre-existing claude-cli-sdk warnings unrelated to this feature's changes.
 
 Advancing feature `implementing → review`. The next autopilot review pass will evaluate the realized capability end-to-end.
+
+## Review (2026-05-12, feature-level)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Brief satisfied end-to-end: cross-mode global prompt (Settings) + per-mode append (Configure), both with live preview, both lock-gated, both auditable (char count only).
+- Decomposition matches design's "Implementation order" (compose-wiring → Settings + Configure in parallel).
+- Cross-cutting deviation: `ServiceDeps.promptCustomization?:` optional vs mandatory in design — already flagged in compose-wiring child review; composition root always wires it, production behavior is correct.
+- Foundation-doc alignment: ARCHITECTURE.md's `@praxis/ui` row already names "prompt customization" — still accurate post-change.
+- Capability check (end-to-end): a user can set a global prompt → see live preview against any mode → save → that text flows through `additionalFragments` at session-compose time. Same for per-mode append. Phase 11 bug fix (stored fragment overrides now read) folded in as a beneficial behavior change.
+- Breaking changes: migration `0013_chilly_zombie.sql` adds `mode_prompt_appends`; new ServiceDeps field is optional. No removals, no API breakage.
+
+Feature delivered as briefed. Advancing to done.
