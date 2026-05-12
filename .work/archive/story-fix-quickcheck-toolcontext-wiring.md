@@ -1,14 +1,14 @@
 ---
 id: story-fix-quickcheck-toolcontext-wiring
 kind: story
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-10
-updated: 2026-05-10
+updated: 2026-05-12
 ---
 
 # Fix: ask_student_question and quick_check.* tools auto-abandon (card never appears)
@@ -137,3 +137,34 @@ regression test can see it. The `praxis-source` export condition IS wired in
 `packages/ui/vitest.config.ts` but there's no root-level vitest config to
 declare it for the integration tests under `tests/`. Worth fixing separately
 so root tests track source automatically.
+
+## Review (2026-05-12)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Diff verified at commit `c10d9476`: 8-line conditional-spread addition to
+  `session-service.ts:700-707`, matching the established pattern used for
+  `activity`, `sketches`, `vision` directly above it. Root-cause fix, not a
+  symptom patch.
+- Regression test at `tests/quick-check-tool-context-wiring.test.ts` drives
+  `ask_student_question` through the exact `ToolRegistry` that
+  `SessionServiceImpl.openActive` constructs (via a `CapturingEngine` that
+  records the registry handed to `engine.open()`), then asserts both the
+  `pending` event reaches subscribers AND the handler returns the real
+  answer. This is the right shape — it would have caught the bug pre-fix.
+- Verified GREEN locally after `pnpm rebuild better-sqlite3 canvas`
+  (pre-existing Electron-ABI artifact, unrelated to this change).
+- Adjacent observation about root-level vitest missing the `praxis-source`
+  condition was correctly parked rather than bundled — captured as
+  `idea-root-vitest-praxis-source-condition` in backlog so it isn't lost.
+- The story body's "thinking/toolcalls fast" parking note correctly points
+  to `idea-chat-stream-pacing-thinking-toolcalls` — separate root cause,
+  separate fix. (That backlog item has since been promoted into the active
+  `feature-agent-transparency-ux` work, which is good.)
+
+Approved and advancing to done.
