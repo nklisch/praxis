@@ -171,13 +171,50 @@
 }
 
 .notePreview {
-  margin: 0;
   font-size: 0.84rem;
   color: var(--color-text-muted, #aaa);
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   max-width: 60ch;
+  /* Allow long words / URLs to wrap rather than overflow the cell */
+  overflow-wrap: anywhere;
+  /* Clamp the preview to 3 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Constrain markdown elements that would otherwise dominate the preview cell */
+.notePreview :global(p),
+.notePreview :global(ul),
+.notePreview :global(ol),
+.notePreview :global(blockquote) {
+  margin: 0;
+}
+
+.notePreview :global(h1),
+.notePreview :global(h2),
+.notePreview :global(h3),
+.notePreview :global(h4),
+.notePreview :global(h5),
+.notePreview :global(h6) {
+  font-size: 0.84rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.notePreview :global(img) {
+  max-width: 100%;
+  height: auto;
+}
+
+.notePreview :global(pre),
+.notePreview :global(code) {
+  font-size: 0.8rem;
+}
+
+.notePreviewEmpty {
+  font-style: italic;
+  opacity: 0.6;
 }
 
 .deleteBtn {

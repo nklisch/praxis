@@ -1,6 +1,8 @@
 import type { Note, NoteBody } from "@praxis/core/types";
+import { parseNoteBody } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { MarkdownContent } from "../../components/markdown-content.js";
 import { NoteFormatPicker } from "../../components/note-format-picker.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import { useNotes } from "../../hooks/use-notes.js";
@@ -129,6 +131,31 @@ export function NotesListTab() {
   );
 }
 
+// ── NoteListItem helpers ──────────────────────────────────────────────────────
+
+/**
+ * Extract the primary text from a parsed NoteBody for markdown preview.
+ * Free notes use `text` directly (already markdown).
+ * Cornell uses the first detail entry (the note content column).
+ * Feynman uses `explanation`.
+ * Outline uses the root node text.
+ * Sketch notes have no textual content.
+ */
+function noteBodyToMarkdown(body: NoteBody): string {
+  switch (body.kind) {
+    case "free":
+      return body.text;
+    case "cornell":
+      return body.details[0] ?? body.questions[0] ?? body.summary;
+    case "feynman":
+      return body.explanation;
+    case "outline":
+      return body.root.text;
+    case "sketch":
+      return "";
+  }
+}
+
 // ── NoteListItem ──────────────────────────────────────────────────────────────
 
 interface NoteListItemProps {
@@ -151,7 +178,15 @@ function NoteListItem({ note, onOpen, onDelete }: NoteListItemProps) {
     }
   };
 
-  const preview = note.body ? note.body.slice(0, 80) : "(empty)";
+  let previewContent = "";
+  if (note.body) {
+    try {
+      const parsed = parseNoteBody(note.format, note.body);
+      previewContent = noteBodyToMarkdown(parsed);
+    } catch {
+      previewContent = note.body.slice(0, 80);
+    }
+  }
 
   return (
     <li className={styles.noteItem}>
@@ -160,7 +195,13 @@ function NoteListItem({ note, onOpen, onDelete }: NoteListItemProps) {
           <span className={styles.formatBadge}>{note.format}</span>
           <time className={styles.noteDate}>{new Date(note.updatedAt).toLocaleDateString()}</time>
         </div>
-        <p className={styles.notePreview}>{preview}</p>
+        <div className={styles.notePreview}>
+          {previewContent ? (
+            <MarkdownContent content={previewContent} />
+          ) : (
+            <span className={styles.notePreviewEmpty}>(empty)</span>
+          )}
+        </div>
       </button>
       <button
         type="button"

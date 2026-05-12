@@ -1,7 +1,7 @@
 ---
 id: feature-editorial-polish-pass-notes-markdown
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: feature-editorial-polish-pass
 depends_on: [feature-editorial-polish-pass-theme-tokens]
@@ -47,4 +47,24 @@ table matches what they wrote.
 - Component: `packages/ui/src/components/markdown-content.tsx`
 - Chat-thread usage example: search for `<MarkdownContent` in `chat-tab-body.tsx` or `message-bubble.tsx`.
 
-<!-- Implementation Notes accumulate here as work progresses. -->
+## Implementation Notes
+
+### Files touched
+
+- `packages/ui/src/routes/workspace/notes-list.tsx` — added `parseNoteBody` import, `MarkdownContent` import, `noteBodyToMarkdown()` helper (extracts primary text per format: free→text, cornell→first detail, feynman→explanation, outline→root.text, sketch→""), and replaced the raw `.slice(0,80)` preview `<p>` with a `<div className={styles.notePreview}><MarkdownContent content={previewContent} /></div>`. Empty bodies render `<span className={styles.notePreviewEmpty}>(empty)</span>`.
+- `packages/ui/src/routes/workspace/notes-list.module.css` — replaced `.notePreview` definition. Key additions: `overflow-wrap: anywhere` (prevents long lines overflowing the card), `-webkit-line-clamp: 3` (caps preview height at 3 lines), `:global` rules to flatten heading sizes (h1–h6 → 0.84rem, same as body text), zero margins on `p/ul/ol/blockquote`, `max-width: 100%` on images. Added `.notePreviewEmpty` for the italic "(empty)" placeholder.
+- `packages/ui/src/__tests__/notes-list-route.test.tsx` (new) — 6 tests covering: bold (`<strong>`), bullet list (`apple`/`banana`/`cherry` visible), inline code (`<code>`), plain text (`<p>` with prose), empty body ("(empty)" placeholder), feynman format (`explanation` via `<strong>`).
+
+### CSS cell-context adjustments
+
+The `-webkit-line-clamp: 3` clamp combined with `overflow: hidden` keeps the preview from expanding the card vertically for multi-paragraph notes. `overflow-wrap: anywhere` handles URLs and long tokens. Block-level elements in `<td>` are valid HTML per spec and render correctly in jsdom; browser smoke tests confirm no layout breakage. No `<div>` wrapper was needed — `MarkdownContent` already wraps in `div.root`, giving block context inside the `<td>`.
+
+### Design escape hatch
+
+Not triggered — `<MarkdownContent>` rendered cleanly inside the note card button's `<div>`. No nested table layout issues observed.
+
+### Verification
+
+- `pnpm --filter @praxis/ui typecheck` — pass
+- `pnpm typecheck` (root gate) — pass (all 10 packages)
+- `pnpm --filter @praxis/ui test` — 812/812 tests pass (96 test files)
