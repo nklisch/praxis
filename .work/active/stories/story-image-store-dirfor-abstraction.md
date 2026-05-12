@@ -1,14 +1,14 @@
 ---
 id: story-image-store-dirfor-abstraction
 kind: story
-stage: implementing
+stage: review
 tags: [ingestion, cleanup]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 ---
 
 # Refactor: add `dirFor()` to image stores
@@ -110,3 +110,22 @@ Discovered during review of `feature-powerpoint-ingestion`.
 - Cleanup of the `join(...)` wrapper. After the regex is gone, the
   surrounding `join(...)` in `service.ts` becomes redundant — drop it as
   part of the change, but don't open a wider sweep of `join` usage.
+
+## Implementation notes
+
+**Files changed:**
+- `packages/core/src/ingestion/page-images.ts` — added `dirFor` to `PageImageStore` interface and `FsPageImageStore`; `pathFor` now delegates to `dirFor`
+- `packages/core/src/ingestion/embedded-images.ts` — same treatment for `EmbeddedImageStore` / `FsEmbeddedImageStore`
+- `packages/core/src/ingestion/service.ts` — both rename blocks updated to call `dirFor()` directly; removed sentinel keys, `.replace()` regexes, surrounding `join()` wrappers, and now-unused `node:path` import
+- `packages/core/src/__tests__/page-images.test.ts` — added 2 `dirFor` tests (layout assertion + delegates to dirFor)
+- `packages/core/src/ingestion/__tests__/embedded-images.test.ts` — added `FsEmbeddedImageStore — dirFor` describe block with 2 tests
+
+**pathFor delegation:** Yes — both implementations now delegate `pathFor` to `dirFor` (e.g. `return join(this.dirFor(input), \`${input.page}.png\`)`).
+
+**Additional call sites found:** `grep -rn "pathFor.*\.replace"` found only the two sites in `service.ts` (both cleaned up) plus the compiled `dist/` output (not source). No other consumers.
+
+**Verification:**
+- `pnpm --filter @praxis/core typecheck` — clean
+- `pnpm exec biome check` on changed files — clean (1 warning for unused `join` import, fixed before commit)
+- `pnpm vitest run` on both store test files — 28 tests passed (11 page-images, 17 embedded-images)
+- Global typecheck failures in `@praxis/ui` are pre-existing, unrelated to this change
