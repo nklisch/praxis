@@ -1,6 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
+import { assertSafeDocumentId } from "./document-id-guard.js";
 
 /**
  * Content-addressed storage for rendered PDF page images. Saved during
@@ -33,6 +34,7 @@ export class FsPageImageStore implements PageImageStore {
   }
 
   dirFor(input: { documentId: string }): string {
+    assertSafeDocumentId(input.documentId);
     return join(this.baseDir, input.documentId);
   }
 
@@ -48,6 +50,8 @@ export class FsPageImageStore implements PageImageStore {
   }
 
   async read(input: { documentId: string; page: number }): Promise<Buffer | null> {
+    // Validate before the try/catch so traversal errors are not swallowed.
+    assertSafeDocumentId(input.documentId);
     try {
       return await readFile(this.pathFor(input));
     } catch {
@@ -56,6 +60,7 @@ export class FsPageImageStore implements PageImageStore {
   }
 
   async deleteByDocumentId(documentId: string): Promise<void> {
+    assertSafeDocumentId(documentId);
     await rm(join(this.baseDir, documentId), { recursive: true, force: true });
   }
 }

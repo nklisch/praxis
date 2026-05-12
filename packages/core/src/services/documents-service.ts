@@ -2,6 +2,7 @@ import { documents } from "@praxis/artifacts/schema";
 import { eq } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
 import type { EmbeddedImageStore } from "../ingestion/embedded-images.js";
+import { assertSafeDocumentId } from "../ingestion/document-id-guard.js";
 import type { PageImageStore } from "../ingestion/page-images.js";
 import type { DocumentSummary } from "../types/client.js";
 import type { FtsStore, VectorStore } from "../types/tool.js";
@@ -63,6 +64,7 @@ export class DocumentsServiceImpl {
   }
 
   async delete(documentId: string): Promise<void> {
+    assertSafeDocumentId(documentId);
     // Clean up all external stores first, then remove the DB row + chunks (FK cascade)
     await this.deps.vectorStore.deleteByDocumentId(documentId);
     await this.deps.ftsStore.deleteByDocumentId(documentId);
@@ -72,6 +74,7 @@ export class DocumentsServiceImpl {
   }
 
   async pageImage(input: { documentId: string; page: number }): Promise<Buffer | null> {
+    assertSafeDocumentId(input.documentId);
     return this.deps.pageImageStore.read(input);
   }
 }

@@ -224,6 +224,39 @@ describe("DocumentsServiceImpl.delete()", () => {
   });
 });
 
+describe("DocumentsServiceImpl — path-traversal guard (via store boundary)", () => {
+  it("delete() rejects a traversal documentId before touching the DB or stores", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { vectorStore, ftsStore } = makeMockStores();
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
+
+    await expect(svc.delete("../../etc/passwd")).rejects.toThrow(/Invalid documentId/);
+    expect(vectorStore.deleteByDocumentId).not.toHaveBeenCalled();
+  });
+
+  it("pageImage() rejects a traversal documentId before reading from disk", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { vectorStore, ftsStore } = makeMockStores();
+    const svc = new DocumentsServiceImpl({
+      db,
+      vectorStore,
+      ftsStore,
+      pageImageStore,
+      embeddedImageStore,
+    });
+
+    await expect(svc.pageImage({ documentId: "../../etc/passwd", page: 1 })).rejects.toThrow(
+      /Invalid documentId/,
+    );
+  });
+});
+
 describe("DocumentsServiceImpl.pageImage()", () => {
   it("returns null when no image has been saved", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });

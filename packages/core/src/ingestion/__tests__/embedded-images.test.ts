@@ -97,6 +97,56 @@ describe("FsEmbeddedImageStore — dirFor", () => {
   });
 });
 
+describe("FsEmbeddedImageStore — documentId path-traversal guard", () => {
+  it("rejects documentId containing forward slash", () => {
+    const store = makeStore();
+    expect(() => store.dirFor({ documentId: "../../foo" })).toThrow(/Invalid documentId/);
+    expect(() => store.dirFor({ documentId: "a/b" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId containing backslash", () => {
+    const store = makeStore();
+    expect(() => store.dirFor({ documentId: "a\\b" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId containing parent-dir component (..)", () => {
+    const store = makeStore();
+    expect(() => store.dirFor({ documentId: "..evil" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId containing null byte", () => {
+    const store = makeStore();
+    expect(() => store.dirFor({ documentId: "abc\0def" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId starting with tilde", () => {
+    const store = makeStore();
+    expect(() => store.dirFor({ documentId: "~/secrets" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId starting with Windows drive letter", () => {
+    const store = makeStore();
+    expect(() => store.dirFor({ documentId: "C:evil" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects traversal in deleteByDocumentId", async () => {
+    const store = makeStore();
+    await expect(store.deleteByDocumentId("../../foo")).rejects.toThrow(/Invalid documentId/);
+  });
+
+  it("allows a standard UUIDv7-shaped documentId", () => {
+    const store = makeStore();
+    const uuid = "01932e3b-4c4a-7f1b-8f0c-1234567890ab";
+    expect(() => store.dirFor({ documentId: uuid })).not.toThrow();
+  });
+
+  it("allows a _pending_<uuid> documentId used by first-party ingestors", () => {
+    const store = makeStore();
+    const pending = "_pending_01932e3b-4c4a-7f1b-8f0c-1234567890ab";
+    expect(() => store.dirFor({ documentId: pending })).not.toThrow();
+  });
+});
+
 describe("FsEmbeddedImageStore — pathFor", () => {
   it("returns a path under <baseDir>/<documentId>/<sanitizedImageName>", () => {
     const store = makeStore();

@@ -112,3 +112,44 @@ describe("FsPageImageStore", () => {
     expect(path.startsWith(customDir)).toBe(true);
   });
 });
+
+describe("FsPageImageStore — documentId path-traversal guard", () => {
+  it("rejects documentId containing forward slash", () => {
+    expect(() => store.dirFor({ documentId: "../../foo" })).toThrow(/Invalid documentId/);
+    expect(() => store.dirFor({ documentId: "a/b" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId containing backslash", () => {
+    expect(() => store.dirFor({ documentId: "a\\b" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId containing parent-dir component (..)", () => {
+    expect(() => store.dirFor({ documentId: "..evil" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId containing null byte", () => {
+    expect(() => store.dirFor({ documentId: "abc\0def" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId starting with tilde", () => {
+    expect(() => store.dirFor({ documentId: "~/secrets" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId starting with Windows drive letter", () => {
+    expect(() => store.dirFor({ documentId: "C:evil" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects traversal in deleteByDocumentId", async () => {
+    await expect(store.deleteByDocumentId("../../foo")).rejects.toThrow(/Invalid documentId/);
+  });
+
+  it("allows a standard UUIDv7-shaped documentId", () => {
+    const uuid = "01932e3b-4c4a-7f1b-8f0c-1234567890ab";
+    expect(() => store.dirFor({ documentId: uuid })).not.toThrow();
+  });
+
+  it("allows a _pending_<uuid> documentId used by first-party ingestors", () => {
+    const pending = "_pending_01932e3b-4c4a-7f1b-8f0c-1234567890ab";
+    expect(() => store.dirFor({ documentId: pending })).not.toThrow();
+  });
+});
