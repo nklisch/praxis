@@ -39,6 +39,8 @@ const FRAGMENT_ORDER: ReadonlyArray<PromptFragment["position"]> = [
   "tools",
   "context",
   "constraints",
+  "user-global", // ← user-authored cross-mode fragment (Settings)
+  "user-append", // ← user-authored per-mode append (Configure)
   "postamble",
 ];
 

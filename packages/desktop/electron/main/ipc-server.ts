@@ -711,6 +711,42 @@ export function registerIpcHandlers(
     },
   );
 
+  // ── Prompt customization layers ───────────────────────────────────────────
+
+  handle("praxis.author.setGlobalPrompt", async (_event, input: { text: string | null }) => {
+    await requireUnlocked();
+    return services.authoring.setGlobalPrompt(input.text);
+  });
+
+  handle("praxis.author.getGlobalPrompt", async (_event) => {
+    await requireUnlocked();
+    return services.authoring.getGlobalPrompt();
+  });
+
+  handle(
+    "praxis.author.setModeAppend",
+    async (_event, input: { modeId: string; text: string | null }) => {
+      await requireUnlocked();
+      return services.authoring.setModeAppend(input);
+    },
+  );
+
+  handle("praxis.author.getModeAppend", async (_event, input: { modeId: string }) => {
+    await requireUnlocked();
+    return services.authoring.getModeAppend(input.modeId);
+  });
+
+  handle(
+    "praxis.author.previewPrompt",
+    async (
+      _event,
+      input: { modeId: string; draftGlobal?: string | null; draftAppend?: string | null },
+    ) => {
+      await requireUnlocked();
+      return services.authoring.previewPrompt(input);
+    },
+  );
+
   handle(
     "praxis.author.resetConcept",
     async (_event, input: { conceptId: string; reason: string }) => {

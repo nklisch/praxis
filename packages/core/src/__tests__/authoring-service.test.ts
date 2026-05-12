@@ -10,6 +10,8 @@ import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { configuratorActions } from "../schema.js";
 import { AuthoringServiceImpl } from "../services/authoring-service.js";
+import type { PromptCustomizationService } from "../services/prompt-customization-service.js";
+import { PromptCustomizationServiceImpl } from "../services/prompt-customization-service.js";
 import type {
   ArtifactsService,
   ConfiguratorId,
@@ -116,6 +118,17 @@ function makeStubMemory(overrides: Partial<MemoryService> = {}): MemoryService {
   } as unknown as MemoryService;
 }
 
+function makeStubPromptCustomization(): PromptCustomizationService {
+  return {
+    getGlobalFragment: vi.fn().mockReturnValue(null),
+    setGlobalFragment: vi.fn(),
+    getModeAppend: vi.fn().mockReturnValue(null),
+    setModeAppend: vi.fn(),
+    listFragmentOverrides: vi.fn().mockReturnValue([]),
+    previewPrompt: vi.fn().mockReturnValue("preview"),
+  };
+}
+
 function makeService(
   db: ReturnType<typeof openDb>["db"],
   artifactsOverrides: Partial<ArtifactsService> = {},
@@ -128,6 +141,7 @@ function makeService(
     memory: makeStubMemory(memoryOverrides),
     configuratorId: () => CONFIGURATOR_ID,
     studentId: () => STUDENT_ID,
+    promptCustomization: makeStubPromptCustomization(),
   });
 }
 
@@ -440,5 +454,152 @@ describe("AuthoringServiceImpl — getCourseSummary", () => {
     await svc.getCourseSummary(COURSE_ID);
     expect(getCourseSummaryFn).toHaveBeenCalledOnce();
     expect(countActions(db)).toBe(before); // no audit row for a pure read
+  });
+});
+
+// ─── Prompt customization layers ──────────────────────────────────────────────
+
+/** Build an AuthoringServiceImpl backed by a real PromptCustomizationServiceImpl. */
+function makeServiceWithRealPromptCustomization(db: ReturnType<typeof openDb>["db"]) {
+  const promptCustomization = new PromptCustomizationServiceImpl({ db });
+  return {
+    svc: new AuthoringServiceImpl({
+      db,
+      log: MOCK_LOG,
+      artifacts: makeStubArtifacts(),
+      memory: makeStubMemory(),
+      configuratorId: () => CONFIGURATOR_ID,
+      studentId: () => STUDENT_ID,
+      promptCustomization,
+    }),
+    promptCustomization,
+  };
+}
+
+describe("AuthoringServiceImpl — setGlobalPrompt / getGlobalPrompt", () => {
+  it("setGlobalPrompt writes the value and appends a prompt.set_global_fragment audit row", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+
+    const before = countActions(db);
+    await svc.setGlobalPrompt("Be encouraging and concise.");
+    expect(countActions(db)).toBe(before + 1);
+
+    const rows = db.select().from(configuratorActions).all();
+    // biome-ignore lint/style/noNonNullAssertion: test always writes before reading
+    const last = rows[rows.length - 1]!;
+    const action = last.actionJson as { kind: string; chars: number };
+    expect(action.kind).toBe("prompt.set_global_fragment");
+    expect(action.chars).toBe("Be encouraging and concise.".length);
+  });
+
+  it("setGlobalPrompt(null) writes a clear with chars === 0 in audit row", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+
+    await svc.setGlobalPrompt("first");
+    const before = countActions(db);
+    await svc.setGlobalPrompt(null);
+    expect(countActions(db)).toBe(before + 1);
+
+    const rows = db.select().from(configuratorActions).all();
+    // biome-ignore lint/style/noNonNullAssertion: test always writes before reading
+    const last = rows[rows.length - 1]!;
+    const action = last.actionJson as { kind: string; chars: number };
+    expect(action.kind).toBe("prompt.set_global_fragment");
+    expect(action.chars).toBe(0);
+  });
+
+  it("getGlobalPrompt returns the stored value", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+
+    await svc.setGlobalPrompt("hello world");
+    const result = await svc.getGlobalPrompt();
+    expect(result).toBe("hello world");
+  });
+
+  it("getGlobalPrompt returns null when none is set", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+    expect(await svc.getGlobalPrompt()).toBeNull();
+  });
+
+  it("getGlobalPrompt does NOT write an audit row", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+    const before = countActions(db);
+    await svc.getGlobalPrompt();
+    expect(countActions(db)).toBe(before);
+  });
+});
+
+describe("AuthoringServiceImpl — setModeAppend / getModeAppend", () => {
+  it("setModeAppend writes the value and appends a prompt.set_mode_append audit row", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+
+    const before = countActions(db);
+    await svc.setModeAppend({ modeId: "teach", text: "Use Socratic questions." });
+    expect(countActions(db)).toBe(before + 1);
+
+    const rows = db.select().from(configuratorActions).all();
+    // biome-ignore lint/style/noNonNullAssertion: test always writes before reading
+    const last = rows[rows.length - 1]!;
+    const action = last.actionJson as { kind: string; modeId: string; chars: number };
+    expect(action.kind).toBe("prompt.set_mode_append");
+    expect(action.modeId).toBe("teach");
+    expect(action.chars).toBe("Use Socratic questions.".length);
+  });
+
+  it("getModeAppend returns the stored value", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+
+    await svc.setModeAppend({ modeId: "quiz", text: "quiz instructions" });
+    expect(await svc.getModeAppend("quiz")).toBe("quiz instructions");
+  });
+
+  it("getModeAppend returns null for a different mode", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+
+    await svc.setModeAppend({ modeId: "quiz", text: "quiz instructions" });
+    expect(await svc.getModeAppend("teach")).toBeNull();
+  });
+
+  it("getModeAppend does NOT write an audit row", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+    const before = countActions(db);
+    await svc.getModeAppend("teach");
+    expect(countActions(db)).toBe(before);
+  });
+});
+
+describe("AuthoringServiceImpl — previewPrompt", () => {
+  it("returns a composed string for a known mode", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+    const result = await svc.previewPrompt({ modeId: "teach" });
+    expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it("does NOT write an audit row", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+    const before = countActions(db);
+    await svc.previewPrompt({ modeId: "teach" });
+    expect(countActions(db)).toBe(before);
+  });
+
+  it("draftGlobal substitutes the stored value", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const { svc } = makeServiceWithRealPromptCustomization(db);
+    await svc.setGlobalPrompt("STORED");
+    const result = await svc.previewPrompt({ modeId: "teach", draftGlobal: "DRAFT" });
+    expect(result).toContain("DRAFT");
+    expect(result).not.toContain("STORED");
   });
 });

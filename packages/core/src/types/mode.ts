@@ -22,6 +22,8 @@ export type PromptFragmentPosition =
   | "tools"
   | "context"
   | "constraints"
+  | "user-global" // ← user-authored cross-mode fragment (Settings)
+  | "user-append" // ← user-authored per-mode append (Configure)
   | "postamble";
 
 export interface PromptFragment {

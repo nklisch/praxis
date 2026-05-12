@@ -159,6 +159,32 @@ export class AuthoringClientImpl implements AuthoringClient {
     return this.transport.invoke<void>(`${C}.setStyleSliders`, input);
   }
 
+  // ── Prompt customization layers ───────────────────────────────────────────
+
+  setGlobalPrompt(text: string | null): Promise<void> {
+    return this.transport.invoke<void>(`${C}.setGlobalPrompt`, { text });
+  }
+
+  getGlobalPrompt(): Promise<string | null> {
+    return this.transport.invoke<string | null>(`${C}.getGlobalPrompt`);
+  }
+
+  setModeAppend(input: { modeId: string; text: string | null }): Promise<void> {
+    return this.transport.invoke<void>(`${C}.setModeAppend`, input);
+  }
+
+  getModeAppend(modeId: string): Promise<string | null> {
+    return this.transport.invoke<string | null>(`${C}.getModeAppend`, { modeId });
+  }
+
+  previewPrompt(input: {
+    modeId: string;
+    draftGlobal?: string | null;
+    draftAppend?: string | null;
+  }): Promise<string> {
+    return this.transport.invoke<string>(`${C}.previewPrompt`, input);
+  }
+
   // ── Phase 11: memory administration ──────────────────────────────────────
 
   resetConcept(input: { conceptId: ConceptId; reason: string }): Promise<void> {

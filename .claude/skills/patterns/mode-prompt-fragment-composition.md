@@ -43,8 +43,15 @@ export const teachMode: Mode = {
 ### Example 3: composeSystemPrompt — fixed-order sort + override application
 **File**: `packages/curriculum/src/brief/compose.ts:35`
 ```typescript
+// 9-entry FRAGMENT_ORDER as of prompt-customization-layers feature.
+// "user-global" and "user-append" slot in between "constraints" and "postamble":
+//   - user-global: cross-mode user instruction (Settings global prompt)
+//   - user-append: per-mode user instruction (Configure per-mode append)
+// Both are injected via `additionalFragments` at session open time by
+// SessionServiceImpl; they are never part of a mode's `promptFragments` array.
 const FRAGMENT_ORDER: ReadonlyArray<PromptFragment["position"]> = [
-  "preamble", "role", "principles", "tools", "context", "constraints", "postamble",
+  "preamble", "role", "principles", "tools", "context", "constraints",
+  "user-global", "user-append", "postamble",
 ];
 
 export function composeSystemPrompt(input: ComposeSystemPromptInput): string {
@@ -66,11 +73,21 @@ export function composeSystemPrompt(input: ComposeSystemPromptInput): string {
 
 20 fragment files exist under `packages/curriculum/src/modes/fragments/`; 7 modes (teach, quiz, homework, exam, study-skills, configure, bootstrap) compose them. Some fragments are factories (`metacognitivePromptsFragment(input)`) when they need parameterization at compose time.
 
+## user-global and user-append semantics
+
+These two positions are reserved for user-authored customization layers managed by `PromptCustomizationService`:
+
+- **`user-global`** (`id: "user.global"`): A single cross-mode fragment stored in `config_kv` at key `prompt.global_fragment`. Injected into every mode's prompt. Surfaced via the Settings global-prompt editor.
+- **`user-append`** (`id: "user.append.<modeId>"`): A per-mode fragment stored in `mode_prompt_appends`. Only injected when a session of that mode is opened. Surfaced via the Configure per-mode-append editor.
+
+Both are injected via `additionalFragments` in `SessionServiceImpl.openActive()` — they are **never** added to a `Mode.promptFragments` definition. Modes don't need to know about them. Composition is purely additive; the user layers cannot be non-customizable (they are always `customizable: true`) and are skipped entirely when the stored text is empty/null.
+
 ## When to Use
 
 - Adding a new mode: pick the relevant existing fragments, add a per-mode role + tools fragment if the mode's voice/capabilities are distinct
 - Adding cross-mode prompt content: write one fragment with the right `position` slot, include it in every mode that should carry it (don't inline into a role fragment — defeats reuse)
 - Per-session computed content (course context, lock indicator): pass via `additionalFragments` rather than mutating the mode
+- User-authored additions: use `PromptCustomizationService.setGlobalFragment` / `setModeAppend` — these feed into `additionalFragments` automatically
 
 ## When NOT to Use
 

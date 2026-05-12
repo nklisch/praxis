@@ -27,6 +27,12 @@ export type ConfiguratorAction =
       kind: "prompt.set_style";
       level: { socratic: number; verbosity: number; formality: number };
     }
+  /**
+   * Char count only — content NOT logged to avoid storing prompt text long-term
+   * in case it contains personal information. Zero chars means the row was cleared.
+   */
+  | { kind: "prompt.set_global_fragment"; chars: number }
+  | { kind: "prompt.set_mode_append"; modeId: string; chars: number }
   | { kind: "memory.reset_concept"; conceptId: ConceptId; reason: string }
   | { kind: "memory.clear_misconception"; misconceptionId: MisconceptionId; reason: string }
   | { kind: "memory.export" }

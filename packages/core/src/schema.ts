@@ -92,10 +92,24 @@ export const drafts = sqliteTable(
   }),
 );
 
+/**
+ * Per-mode prompt append rows. Stores user-authored text appended to a specific
+ * mode's prompt at the "user-append" position.
+ *
+ * Key is `modeId` alone — single-student v1. When multi-student lands, this
+ * table grows a `studentId` column.
+ */
+export const modePromptAppends = sqliteTable("mode_prompt_appends", {
+  modeId: text("mode_id").primaryKey(),
+  text: text("text").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const coreSchema = {
   configKv,
   lockState,
   promptOverrides,
   configuratorActions, // ← Phase 11
   drafts, // ← durable-drafts
+  modePromptAppends, // ← prompt-customization-layers
 };

@@ -41,6 +41,10 @@ import type {
   ThresholdConfig,
   Timestamp,
 } from "../types/index.js";
+import type {
+  PreviewPromptInput,
+  PromptCustomizationService,
+} from "./prompt-customization-service.js";
 
 export interface AuthoringServiceDeps {
   db: PraxisDb;
@@ -57,6 +61,8 @@ export interface AuthoringServiceDeps {
    * Provided by buildServices so AuthoringServiceImpl stays dependency-free.
    */
   studentId: () => StudentId;
+  /** Prompt customization service — handles global fragment + per-mode appends. */
+  promptCustomization: PromptCustomizationService;
 }
 
 /**
@@ -269,6 +275,38 @@ export class AuthoringServiceImpl implements AuthoringService {
     }
     // ONE audit row for the whole batch — not one per fragment.
     this.appendAction({ kind: "prompt.set_style", level: input });
+  }
+
+  // ─── Global prompt + per-mode append (prompt-customization-layers) ────────
+
+  async setGlobalPrompt(text: string | null): Promise<void> {
+    this.deps.promptCustomization.setGlobalFragment(text);
+    this.appendAction({
+      kind: "prompt.set_global_fragment",
+      chars: (text ?? "").trim().length,
+    });
+  }
+
+  async getGlobalPrompt(): Promise<string | null> {
+    return this.deps.promptCustomization.getGlobalFragment();
+  }
+
+  async setModeAppend(input: { modeId: string; text: string | null }): Promise<void> {
+    this.deps.promptCustomization.setModeAppend(input.modeId, input.text);
+    this.appendAction({
+      kind: "prompt.set_mode_append",
+      modeId: input.modeId,
+      chars: (input.text ?? "").trim().length,
+    });
+  }
+
+  async getModeAppend(modeId: string): Promise<string | null> {
+    return this.deps.promptCustomization.getModeAppend(modeId);
+  }
+
+  async previewPrompt(input: PreviewPromptInput): Promise<string> {
+    // No audit row — this is a pure read; content must not be logged.
+    return this.deps.promptCustomization.previewPrompt(input);
   }
 
   // ─── Memory administration ─────────────────────────────────────────────────

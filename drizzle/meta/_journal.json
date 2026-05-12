@@ -92,6 +92,13 @@
       "when": 1778455358919,
       "tag": "0012_odd_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1778546772986,
+      "tag": "0013_chilly_zombie",
+      "breakpoints": true
     }
   ]
 }

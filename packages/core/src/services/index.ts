@@ -25,6 +25,14 @@ export type { AuthoringServiceDeps } from "./authoring-service.js";
 export { AuthoringServiceImpl } from "./authoring-service.js";
 export type { LockServiceDeps } from "./lock-service.js";
 export { LockServiceImpl } from "./lock-service.js";
+// Prompt customization layers
+export type {
+  FragmentOverride,
+  PreviewPromptInput,
+  PromptCustomizationService,
+  PromptCustomizationServiceDeps,
+} from "./prompt-customization-service.js";
+export { PromptCustomizationServiceImpl } from "./prompt-customization-service.js";
 
 // Phase 8: Assignment service + graders
 

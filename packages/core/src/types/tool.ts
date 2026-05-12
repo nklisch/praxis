@@ -383,6 +383,23 @@ export interface AuthoringService {
   customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
   clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void>;
   setStyleSliders(input: { socratic: number; verbosity: number; formality: number }): Promise<void>;
+  /** Set the global cross-mode fragment. Pass null to clear. */
+  setGlobalPrompt(text: string | null): Promise<void>;
+  /** Get the current global fragment text, or null if none is set. */
+  getGlobalPrompt(): Promise<string | null>;
+  /** Set the per-mode append for a specific mode. Pass null to clear. */
+  setModeAppend(input: { modeId: string; text: string | null }): Promise<void>;
+  /** Get the per-mode append for a specific mode, or null if none is set. */
+  getModeAppend(modeId: string): Promise<string | null>;
+  /**
+   * Compose the full system prompt for modeId against current stored state.
+   * Draft overrides substitute the stored values without persisting.
+   */
+  previewPrompt(input: {
+    modeId: string;
+    draftGlobal?: string | null;
+    draftAppend?: string | null;
+  }): Promise<string>;
 
   // ── Memory administration ─────────────────────────────────────────────────
   resetConcept(input: {

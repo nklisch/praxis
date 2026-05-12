@@ -564,7 +564,19 @@ export class SessionServiceImpl implements SessionService {
 
     // Phase 6 + 7: inject course-context override when a courseId is set.
     // Phase 8: inject assignment-context override when an assignmentId is set.
+    //
+    // Prompt-customization-layers: seed the overrides map from stored fragment
+    // overrides FIRST so that the dynamic course-context / assignment-context
+    // blocks below can overwrite any stale user overrides for the same fragment
+    // ids. Dynamic state always wins — a stale user override of
+    // `context.course-state` must NOT mask the live course state.
     let overrides: Map<string, string> | undefined;
+    if (this.deps.promptCustomization) {
+      const storedOverrides = this.deps.promptCustomization.listFragmentOverrides(args.mode.id);
+      if (storedOverrides.length > 0) {
+        overrides = new Map(storedOverrides.map((o) => [o.fragmentId, o.override]));
+      }
+    }
 
     if (args.courseId && this.deps.toolServices.courseState) {
       const snapshot = await this.deps.toolServices.courseState.read({
@@ -633,9 +645,34 @@ export class SessionServiceImpl implements SessionService {
       }
     }
 
+    // Prompt-customization-layers: inject the two user-authored layers as
+    // additionalFragments so they sort into the user-global / user-append slots.
+    const additionalFragments: import("../types/index.js").PromptFragment[] = [];
+    if (this.deps.promptCustomization) {
+      const globalText = this.deps.promptCustomization.getGlobalFragment();
+      if (globalText !== null) {
+        additionalFragments.push({
+          id: "user.global",
+          position: "user-global",
+          customizable: true,
+          template: globalText,
+        });
+      }
+      const appendText = this.deps.promptCustomization.getModeAppend(args.mode.id);
+      if (appendText !== null) {
+        additionalFragments.push({
+          id: `user.append.${args.mode.id}`,
+          position: "user-append",
+          customizable: true,
+          template: appendText,
+        });
+      }
+    }
+
     const systemPrompt = composeSystemPrompt({
       mode: args.mode,
       ...(overrides !== undefined && { overrides }),
+      ...(additionalFragments.length > 0 && { additionalFragments }),
     });
 
     // Phase 16: pre-compute course-attached document ids for tool context.

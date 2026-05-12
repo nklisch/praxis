@@ -30,6 +30,7 @@ import {
   MisconceptionIndexer,
   NotesServiceImpl,
   ProceduralIndexer,
+  PromptCustomizationServiceImpl,
   QuickCheckServiceImpl,
   SessionServiceImpl,
   SketchServiceImpl,
@@ -462,6 +463,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     scheduler: fsrsScheduler,
   });
 
+  // Prompt customization service — global fragment + per-mode appends.
+  const promptCustomizationService = new PromptCustomizationServiceImpl({ db });
+
   // Phase 11: AuthoringServiceImpl — orchestration layer for configurator writes.
   // Constructed after memoryService and artifactsService (depends on both).
   const authoringService = new AuthoringServiceImpl({
@@ -473,6 +477,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     configuratorId: () => "default" as ConfiguratorId,
     // v1: resolve the default student at call time (lazy, so no DB read at construction).
     studentId: () => brandId<"StudentId">(getOrCreateDefaultStudentId(db)),
+    promptCustomization: promptCustomizationService,
   });
 
   const modes = new Map([
@@ -544,6 +549,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     lockService, // ← Phase 11 (session.start lock check for configure mode)
     activity: activityRegistry,
     subAgent: subAgentRegistry,
+    promptCustomization: promptCustomizationService, // ← prompt-customization-layers
   };
 
   const ingestion = new IngestionService({

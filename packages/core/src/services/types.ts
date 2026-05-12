@@ -33,6 +33,7 @@ import type {
   VectorStore,
   VisionService,
 } from "../types/index.js";
+import type { PromptCustomizationService } from "./prompt-customization-service.js";
 
 export interface ServiceDeps {
   db: PraxisDb;
@@ -137,4 +138,11 @@ export interface ServiceDeps {
    * sub-agent path stay unaffected.
    */
   subAgent?: SubAgentRegistry;
+  /**
+   * Prompt customization service — reads global fragment + per-mode appends
+   * + stored fragment overrides at session-compose time.
+   * Optional so legacy tests that don't wire it stay unaffected (composeSystemPrompt
+   * proceeds with no user layers applied).
+   */
+  promptCustomization?: PromptCustomizationService;
 }
