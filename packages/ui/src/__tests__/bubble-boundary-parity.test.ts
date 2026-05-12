@@ -76,8 +76,8 @@ function runReplay(events: EngineEvent[]): ChatStreamItem[] {
 }
 
 /**
- * Strip volatile fields (id, streaming) before equality comparison.
- * Normalizes ChatStreamItem[] to a stable shape.
+ * Strip volatile fields (id, streaming, firstSeenAt) before equality comparison.
+ * Normalizes ChatStreamItem[] to a stable shape for live-vs-replay parity checks.
  */
 function stripIds(items: ChatStreamItem[]): unknown[] {
   return items.map((item) => {
@@ -85,7 +85,13 @@ function stripIds(items: ChatStreamItem[]): unknown[] {
       const { id: _id, streaming: _streaming, ...rest } = item;
       return rest;
     }
-    // interstitial — id is callId which is stable
+    if (item.kind === "interstitial") {
+      // firstSeenAt is a wall-clock timestamp; replay sets it to 0; live sets it to Date.now().
+      // Strip it for parity comparison — the structural shape (kind, callId, toolName, status, errored) is what matters.
+      const { firstSeenAt: _firstSeenAt, ...rest } = item;
+      return rest;
+    }
+    // thinking, cancel-marker — no volatile fields
     return item;
   });
 }

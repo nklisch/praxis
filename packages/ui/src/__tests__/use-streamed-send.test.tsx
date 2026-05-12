@@ -987,4 +987,244 @@ describe("useStreamedSend", () => {
     const { result } = renderHook(() => useStreamedSend(client));
     expect(() => result.current.cancel()).not.toThrow();
   });
+
+  // ── Tool interstitial pacing (MIN_INTERSTITIAL_VISIBLE_MS) ───────────────────
+
+  it("fast tool: interstitial is settled by finally drain when stream ends normally", async () => {
+    // The stream completes immediately (simulates a fast tool). Even though
+    // tool_result arrives quickly (< 800ms), the finally drain fires settleNow
+    // synchronously so the interstitial is settled after send() resolves.
+    const client = makeClient([
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "done", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "go");
+    });
+
+    // Stream ended — finally drain fires settle immediately.
+    const interstitial = result.current.items.find((i) => i.kind === "interstitial");
+    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
+  });
+
+  it("fast tool with errored result: finally drain preserves errored flag", async () => {
+    // Even for a fast tool that completes with ok:false, the finally drain
+    // calls the closured settleNow which captures the errored flag.
+    const client = makeClient([
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: {
+          ok: false,
+          error: { code: "tool.error", message: "failed", recoverable: false },
+        },
+      },
+      { type: "model_message", content: "oops", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "go");
+    });
+
+    const interstitial = result.current.items.find((i) => i.kind === "interstitial");
+    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
+    expect(interstitial?.kind === "interstitial" && interstitial.errored).toBe(true);
+  });
+
+  it("cancel (interrupted) event: interstitial stays in_flight, cancel-marker appears", async () => {
+    // When a turn is cancelled via interrupted event, pending settle timers
+    // are cleared — interstitials that were in_flight remain in_flight
+    // (the timer is gone, but so is the turn). A cancel-marker is appended.
+    const client = makeClient([
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "interrupted", reason: "user_cancel" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "go");
+    });
+
+    // Cancel-marker was appended.
+    expect(result.current.items.some((i) => i.kind === "cancel-marker")).toBe(true);
+
+    // The interstitial remains in_flight — cancelled turn, timer was cleared.
+    const it = result.current.items.find((i) => i.kind === "interstitial");
+    expect(it?.kind === "interstitial" && it.status).toBe("in_flight");
+
+    // isStreaming is false (stream ended).
+    expect(result.current.isStreaming).toBe(false);
+  });
+
+  // ── Thinking event handler + ReasoningItem ───────────────────────────────────
+
+  it("thinking event creates a kind:thinking item", async () => {
+    const client = makeClient([
+      { type: "thinking", content: "Let me think about this carefully." },
+      { type: "model_message", content: "Here is my answer.", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const thinkingItems = result.current.items.filter((i) => i.kind === "thinking");
+    expect(thinkingItems).toHaveLength(1);
+    const thinking = thinkingItems[0];
+    expect(thinking?.kind === "thinking" && thinking.content).toBe(
+      "Let me think about this carefully.",
+    );
+  });
+
+  it("multiple thinking events accumulate in the same reasoning block", async () => {
+    const client = makeClient([
+      { type: "thinking", content: "First thought. " },
+      { type: "thinking", content: "Second thought." },
+      { type: "model_message", content: "Answer.", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const thinkingItems = result.current.items.filter((i) => i.kind === "thinking");
+    expect(thinkingItems).toHaveLength(1);
+    const thinking = thinkingItems[0];
+    expect(thinking?.kind === "thinking" && thinking.content).toBe(
+      "First thought. Second thought.",
+    );
+  });
+
+  it("thinking block is closed (streaming: false) when model_message arrives", async () => {
+    const client = makeClient([
+      { type: "thinking", content: "Reasoning..." },
+      { type: "model_message", content: "Done.", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const thinkingItem = result.current.items.find((i) => i.kind === "thinking");
+    expect(thinkingItem?.kind === "thinking" && thinkingItem.streaming).toBe(false);
+  });
+
+  it("thinking block is closed when tool_call arrives", async () => {
+    const client = makeClient([
+      { type: "thinking", content: "I should call a tool." },
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "model_message", content: "Done.", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const thinkingItem = result.current.items.find((i) => i.kind === "thinking");
+    expect(thinkingItem?.kind === "thinking" && thinkingItem.streaming).toBe(false);
+  });
+
+  it("two non-contiguous thinking events produce two separate reasoning blocks", async () => {
+    const client = makeClient([
+      { type: "thinking", content: "First reasoning." },
+      { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
+      {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, tier: "deterministic", value: {} },
+      },
+      { type: "thinking", content: "Second reasoning." },
+      { type: "model_message", content: "Done.", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const thinkingItems = result.current.items.filter((i) => i.kind === "thinking");
+    expect(thinkingItems).toHaveLength(2);
+    expect(thinkingItems[0]?.kind === "thinking" && thinkingItems[0].content).toBe(
+      "First reasoning.",
+    );
+    expect(thinkingItems[1]?.kind === "thinking" && thinkingItems[1].content).toBe(
+      "Second reasoning.",
+    );
+    // Both closed at stream end
+    expect(thinkingItems[0]?.kind === "thinking" && thinkingItems[0].streaming).toBe(false);
+    expect(thinkingItems[1]?.kind === "thinking" && thinkingItems[1].streaming).toBe(false);
+  });
+
+  it("no thinking events → no reasoning block appears", async () => {
+    const client = makeClient([
+      { type: "model_message", content: "Direct answer.", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const thinkingItems = result.current.items.filter((i) => i.kind === "thinking");
+    expect(thinkingItems).toHaveLength(0);
+  });
+
+  it("on turn cancel, in-progress reasoning block is closed (streaming → false), not deleted", async () => {
+    const client = makeClient([
+      { type: "thinking", content: "Mid-thought..." },
+      { type: "interrupted", reason: "user_cancel" },
+    ]);
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hi");
+    });
+
+    const thinkingItems = result.current.items.filter((i) => i.kind === "thinking");
+    // Block remains in the list (not deleted)
+    expect(thinkingItems).toHaveLength(1);
+    // But streaming is closed
+    expect(thinkingItems[0]?.kind === "thinking" && thinkingItems[0].streaming).toBe(false);
+  });
 });

@@ -95,6 +95,10 @@ export function SidekickPanel({
               />
             );
           }
+          if (item.kind === "thinking") {
+            // Reasoning blocks don't appear in the sidekick panel — render nothing.
+            return null;
+          }
           if (item.kind === "cancel-marker") {
             return null;
           }

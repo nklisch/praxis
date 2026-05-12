@@ -48,6 +48,19 @@ export interface ToolInterstitial {
   status: "in_flight" | "settled";
   /** True when the matched tool_result.ok === false. */
   errored?: boolean;
+  /** Wall-clock timestamp when this interstitial first appeared. Used to enforce MIN_INTERSTITIAL_VISIBLE_MS. */
+  firstSeenAt: number;
+}
+
+/** Minimum time (ms) an interstitial must remain visible before settling. */
+const MIN_INTERSTITIAL_VISIBLE_MS = 800;
+
+export interface ReasoningItem {
+  id: string;
+  /** Cumulative thinking content captured since this block opened. */
+  content: string;
+  /** True while thinking events for THIS block are still arriving. */
+  streaming: boolean;
 }
 
 /** Synthetic item appended when a turn is cancelled via the interrupted event. */
@@ -58,6 +71,7 @@ export interface CancelMarker {
 export type ChatStreamItem =
   | ({ kind: "message" } & ChatMessage)
   | ({ kind: "interstitial" } & ToolInterstitial)
+  | ({ kind: "thinking" } & ReasoningItem)
   | ({ kind: "cancel-marker" } & CancelMarker);
 
 export interface UseStreamedSendResult {
@@ -131,6 +145,17 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     // Track pending tool calls by callId → toolName (supports concurrent fan-out).
     const pendingByCallId = new Map<string, string>();
 
+    // Track when each visible interstitial was first pushed (callId → Date.now()).
+    // Mirrors the firstSeenAt field in ToolInterstitial but stored in JS (no React state read).
+    const interstitialFirstSeenAt = new Map<string, number>();
+
+    // Pending settle timers — cleared on interrupted / error / finally to avoid leaks.
+    // Value is { timer, settleNow } so the finally drain can invoke settleNow directly.
+    const pendingSettleTimers = new Map<string, { timer: ReturnType<typeof setTimeout>; settleNow: () => void }>();
+
+    // Active reasoning block id (null = no open block).
+    let currentReasoningId: string | null = null;
+
     // Pending renderable results — drained into the FIRST bubble that opens
     // after the tool resolves. If the stream ends with no subsequent bubble,
     // they drain into the most-recent assistant bubble.
@@ -183,6 +208,16 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
       );
     };
 
+    /** Close the active reasoning block (no-op if none open). Marks streaming: false; keeps item in list. */
+    const closeReasoningBlock = (): void => {
+      if (currentReasoningId === null) return;
+      const id = currentReasoningId;
+      currentReasoningId = null;
+      setItems((prev) =>
+        prev.map((it) => (it.kind === "thinking" && it.id === id ? { ...it, streaming: false } : it)),
+      );
+    };
+
     try {
       const stream = client.session.send(sessionId, message);
       const iter = stream[Symbol.asyncIterator]();
@@ -196,7 +231,32 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
         // Ignore user_message events — user bubble already in local state.
         if (event.type === "user_message") continue;
 
+        if (event.type === "thinking") {
+          if (currentReasoningId === null) {
+            // Open a new reasoning block.
+            const id = nextId();
+            currentReasoningId = id;
+            setItems((prev) => [
+              ...prev,
+              { kind: "thinking", id, content: event.content, streaming: true },
+            ]);
+          } else {
+            // Append to the active reasoning block.
+            const id = currentReasoningId;
+            setItems((prev) =>
+              prev.map((it) =>
+                it.kind === "thinking" && it.id === id
+                  ? { ...it, content: it.content + event.content }
+                  : it,
+              ),
+            );
+          }
+          continue;
+        }
+
         if (event.type === "model_message") {
+          // Close any open reasoning block — text begins.
+          closeReasoningBlock();
           // First model_message of this segment — we're no longer just thinking.
           setThinking(false);
 
@@ -230,6 +290,7 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
         } else if (event.type === "tool_call") {
           // tool_call is a bubble boundary — close whatever is open.
           closeAssistantBubble();
+          closeReasoningBlock();
 
           const { toolName, callId } = event;
           // Always track in pendingByCallId for result harvesting (even hidden tools).
@@ -238,9 +299,11 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           const label = getToolLabel(toolName);
           if (!label.hidden) {
             // Push a visible interstitial item for this tool call.
+            const firstSeenAt = Date.now();
+            interstitialFirstSeenAt.set(callId, firstSeenAt);
             setItems((prev) => [
               ...prev,
-              { kind: "interstitial", callId, toolName, status: "in_flight" },
+              { kind: "interstitial", callId, toolName, status: "in_flight", firstSeenAt },
             ]);
           }
         } else if (event.type === "tool_result") {
@@ -254,19 +317,36 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           } else {
             pendingByCallId.delete(callId);
 
-            // Settle any visible interstitial with this callId.
-            setItems((prev) =>
-              prev.map((it) => {
-                if (it.kind === "interstitial" && it.callId === callId) {
-                  return {
-                    ...it,
-                    status: "settled",
-                    ...(event.result.ok === false && { errored: true }),
-                  };
-                }
-                return it;
-              }),
-            );
+            // Settle any visible interstitial with this callId, pacing to MIN_INTERSTITIAL_VISIBLE_MS.
+            const seenAt = interstitialFirstSeenAt.get(callId);
+
+            const errored = event.result.ok === false;
+            const settleNow = (): void => {
+              setItems((prev) =>
+                prev.map((it) => {
+                  if (it.kind === "interstitial" && it.callId === callId) {
+                    return {
+                      ...it,
+                      status: "settled" as const,
+                      ...(errored && { errored: true }),
+                    };
+                  }
+                  return it;
+                }),
+              );
+              pendingSettleTimers.delete(callId);
+              interstitialFirstSeenAt.delete(callId);
+            };
+
+            if (seenAt !== undefined) {
+              const elapsed = Date.now() - seenAt;
+              if (elapsed >= MIN_INTERSTITIAL_VISIBLE_MS) {
+                settleNow();
+              } else {
+                const timer = setTimeout(settleNow, MIN_INTERSTITIAL_VISIBLE_MS - elapsed);
+                pendingSettleTimers.set(callId, { timer, settleNow });
+              }
+            }
 
             // Harvest renderable results into pending arrays (Unit 3).
             // They will drain into the FIRST bubble that opens after this result.
@@ -319,8 +399,12 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           // system_note acts as a bubble boundary; it is not rendered as an item.
           closeAssistantBubble();
         } else if (event.type === "interrupted") {
-          // Turn was cancelled — close the open bubble and append a cancel marker.
+          // Turn was cancelled — close the open bubble, close reasoning block,
+          // drain pending settle timers, and append a cancel marker.
           closeAssistantBubble();
+          closeReasoningBlock();
+          for (const { timer } of pendingSettleTimers.values()) clearTimeout(timer);
+          pendingSettleTimers.clear();
           setThinking(false);
           setItems((prev) => [...prev, { kind: "cancel-marker", id: nextId() }]);
           break;
@@ -336,8 +420,18 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
       setLastError(err instanceof Error ? err.message : String(err));
     } finally {
       iteratorRef.current = null;
-      // Ensure any open bubble is closed (marks streaming: false).
+      // Ensure any open bubble and reasoning block are closed (marks streaming: false).
       closeAssistantBubble();
+      closeReasoningBlock();
+      // Drain any remaining pending settle timers by firing them immediately.
+      // (The interrupted branch clears them on cancel; any remaining here are
+      // from normal completion where tool_result arrived but the pacing timer
+      // hasn't fired yet — settle them now so no dangling in_flight items remain.)
+      for (const { timer, settleNow } of pendingSettleTimers.values()) {
+        clearTimeout(timer);
+        settleNow();
+      }
+      pendingSettleTimers.clear();
 
       // Drain any remaining pending renderables into the most-recent assistant
       // bubble (fallback for the case where tool was the last thing in the stream).

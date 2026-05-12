@@ -27,6 +27,7 @@ import { ModeHeader } from "./mode-header.js";
 import { PageImagePanel } from "./page-image-panel.js";
 import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
+import { ReasoningBlock } from "./reasoning-block.js";
 import { StructuredQuestionCard } from "./structured-question-card.js";
 import { StudySkillsTabBody } from "./study-skills-tab-body.js";
 import { ThinkingIndicator } from "./thinking-indicator.js";
@@ -114,13 +115,22 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
   } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const composerTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Scroll to bottom when the item count changes.
+  // Scroll to bottom only when the user is near the bottom (within 80px).
+  // This prevents new items from yanking the view when the user has scrolled up.
   const messageCount = items.length;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on count change; ref is stable
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on count change; refs are stable
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const NEAR_BOTTOM_THRESHOLD = 80;
+    const distanceFromBottom =
+      container.scrollHeight - (container.scrollTop + container.clientHeight);
+    if (distanceFromBottom <= NEAR_BOTTOM_THRESHOLD) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messageCount]);
 
   // Surface auth errors from send attempts
@@ -188,7 +198,7 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
         />
       )}
 
-      <div className={styles.messages}>
+      <div ref={messagesContainerRef} className={styles.messages}>
         {items.length === 0 && (
           <p className={styles.emptyState}>Start a conversation with your tutor.</p>
         )}
@@ -200,6 +210,15 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
                 toolName={item.toolName}
                 status={item.status}
                 {...(item.errored !== undefined && { errored: item.errored })}
+              />
+            );
+          }
+          if (item.kind === "thinking") {
+            return (
+              <ReasoningBlock
+                key={item.id}
+                content={item.content}
+                streaming={item.streaming}
               />
             );
           }

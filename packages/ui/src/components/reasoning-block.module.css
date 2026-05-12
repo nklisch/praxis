@@ -1,0 +1,75 @@
+/* reasoning-block.module.css — faint editorial block for thinking content. */
+
+.block {
+  margin: 0.25rem 0 0.25rem 0.25rem;
+  align-self: flex-start;
+  max-width: 80%;
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+  line-height: 1.5;
+  font-family: inherit;
+  text-align: left;
+}
+
+.summary:hover {
+  opacity: 0.9;
+}
+
+.chevron {
+  font-size: 0.75em;
+  flex-shrink: 0;
+}
+
+.summaryText {
+  composes: editorial from global;
+}
+
+.live {
+  margin-left: 0.2em;
+  animation: praxis-reasoning-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes praxis-reasoning-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.body {
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-left: 2px solid var(--color-border, rgba(128, 128, 128, 0.25));
+}
+
+.bodyText {
+  composes: editorial from global;
+  font-size: 0.825rem;
+  color: var(--color-text-muted);
+  opacity: 0.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  line-height: 1.55;
+}

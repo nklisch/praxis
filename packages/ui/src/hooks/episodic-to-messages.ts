@@ -208,10 +208,12 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         const label = getToolLabel(toolName);
         if (!label.hidden) {
           // Push as in_flight; tool_result handler will settle it.
+          // firstSeenAt is set to 0 for historical items (no pacing needed).
           const interstitial: ToolInterstitial = {
             callId,
             toolName,
             status: "in_flight",
+            firstSeenAt: 0,
           };
           items.push({ kind: "interstitial", ...interstitial });
         }
