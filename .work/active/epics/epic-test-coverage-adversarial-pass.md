@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass
 kind: epic
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []
@@ -95,33 +95,51 @@ Bundling also gives us autopilot parallelism: most of these are 1–2 hour
 test additions with no shared state, so a single epic-design + 7 child
 stories in 2–3 waves is the cheapest path.
 
-## Decomposition direction (for epic-design)
+## Decomposition
 
-Likely splits into child features by area, not by item:
+Split by subsystem with adjacency-bundling — the items inside each
+feature share test scaffolding (fixture management, fake-timer
+patterns, or component render harness) and a shared spec-silent
+pinning decision. Three features over four was chosen because the
+ingestion items deserve their own slot (real-fixture provisioning is
+unique to them); the persistence/state items collapse cleanly because
+they all live in the per-package test files and share async ordering
+concerns; the UI assertion items pair naturally (one component + one
+registry, both small). The three features are fully independent —
+autopilot can run them in one wave.
 
-- **Ingestion test gaps** — image-cross-chunk-boundary + pptx-slide-fallback.
-- **Cancellation + draft-store edge cases** — cancel-idempotency +
-  draft-store-rapid-save.
-- **IPC / config edge cases** — engineId-rename-unavailable-storage.
-- **UI assertion gaps** — update-banner-hash + sub-agent-collision.
+### Child features
 
-Or possibly flatter — 7 child stories directly under the epic — given
-each item is already a self-contained story with evidence and a
-suggested test. Epic-design picks the shape.
+- `epic-test-coverage-adversarial-pass-ingestion-edges` — image cross-
+  chunk-boundary contract + PPTX slide-fallback real fixture — depends
+  on: `[]`
+- `epic-test-coverage-adversarial-pass-state-and-config-edges` —
+  `cancel()` idempotency across all hook states, draft-store rapid-save
+  ordering, engineId rename round-trip under unavailable safeStorage —
+  depends on: `[]`
+- `epic-test-coverage-adversarial-pass-ui-assertion-gaps` — update
+  banner installer-hash display contract + sub-agent collision
+  warn-log/silent-no-op decision — depends on: `[]`
 
-## Decomposition risks
+### Decomposition risks
 
-- **The cluster doesn't share a capability arc** — these items don't
-  thematically belong together except as "v0.1.1 gate-tests output."
-  Risk: design phase produces 7 disconnected stories with no shared
-  abstraction win. Mitigation: that's actually fine — the win is
-  scheduling parallelism + one decision on spec-silent pinning style,
-  not code reuse.
-- **`gate-tests-pptx-slide-fallback-real-fixture` may require a new
-  fixture file** — committing a non-officeparser-friendly PPTX into the
-  repo has a size + license check. Identify the fixture's source before
-  design, not at implement time.
-- **Some items may be "wontfix-by-documentation"** — the spec-silent
-  ones can land as a doc note + test name comment rather than a runtime
-  assertion. Epic-design needs to surface those calls explicitly so
-  they don't waste an implementation slot.
+- **Cluster lacks a code-area capability arc** — these items belong
+  together only as "v0.1.1 gate-tests output." Per-feature design
+  passes may produce three disconnected sets of tests with no shared
+  abstraction win. That's fine — the win is scheduling parallelism +
+  one shared decision per feature on spec-silent pinning style, not
+  code reuse.
+- **The ingestion feature may need a new PPTX fixture file** —
+  committing a non-officeparser-friendly PPTX has size + license
+  considerations. Feature-design must identify the fixture source
+  before implementing.
+- **Some items may resolve as "doc-note-only"** — spec-silent
+  contracts can land as a test-name comment + doc note rather than a
+  runtime assertion (the sub-agent collision item explicitly offers
+  this fork). Feature-design must surface those calls so they don't
+  waste an implementation slot.
+- **`state-and-config-edges` feature spans three different test
+  files** in three different packages (ui, core×2). Sub-agents may
+  serialize naturally even though the feature is logically one
+  design unit. Feature-design should consider whether to split into
+  separate stories at implement time.
