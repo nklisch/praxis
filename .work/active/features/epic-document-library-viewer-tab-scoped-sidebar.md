@@ -68,10 +68,18 @@ in the active scope.
 
 - Tab kind shape: `{ kind: 'document', documentId, scopeContext? }`.
   Persisted in the `tabs` table (Phase 14 — SPEC.md:20).
-- Per-format render: PDF via the page-raster fallback (Vision PDF
-  ingestor already produces these), plain-text/markdown rendered from
-  `documentChunks`, HTML rendered with sanitization. PPTX/DOCX: render
-  from embedded image stores + extracted text.
+- Per-format render (resolved — all four are first-class for v1):
+  - **PDF**: paginated render of the page rasters VisionPdfIngestor
+    already produced.
+  - **Plain text & Markdown**: render from `documentChunks` content.
+  - **HTML**: render with sanitization (likely DOMPurify; verify no
+    existing sanitizer in the workspace before adding the dep).
+  - **PPTX / DOCX**: structured render using `EmbeddedImageStore` for
+    the slide/figure visuals plus extracted text from
+    `documentChunks`. Outline-shaped rather than native-fidelity, but
+    full first-class — no plain-text-only fallback for these.
+  Format-detection routes to the right renderer from
+  `documents.mimeType`.
 - Sidebar scope inference (resolved): **derived from active route + active
   tab**. Course route → course scope; bootstrap tab → that bootstrap
   session's scope; library route → unscoped/all. Feature-design pass writes

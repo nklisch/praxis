@@ -73,8 +73,10 @@ complementing the scope-aware sidebar that ships in
 - Filters: file type (from `documents.mimeType`), ingestion source
   (`source` column on scope row), date range (`attached_at` or
   `documents.ingestedAt`?).
-- Bulk affordances: rescope / move / detach selected docs? Out-of-scope
-  for v1 of this feature or in-scope?
+- Bulk affordances (resolved): **out of scope** for v1. Library v1 =
+  tabs + filters + open-in-viewer. No multi-select rescope/move/detach.
+  When actual need surfaces, scope a follow-up story for whichever
+  bulk op users ask for first.
 - Interaction with the document viewer tab from
   `viewer-tab-scoped-sidebar` — clicking a row should `openDocumentInTab`
   using the same helper.
