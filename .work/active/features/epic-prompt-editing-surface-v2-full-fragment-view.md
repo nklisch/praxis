@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2-full-fragment-view
 kind: feature
-stage: review
+stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on: [epic-prompt-editing-surface-v2-unified-configure-surface]
@@ -451,3 +451,17 @@ Covered by Unit 6. Key invariants:
 - `pnpm typecheck` on UI: no errors in changed files (pre-existing errors from other story's `DocumentDetail` gap remain).
 - `pnpm lint:fix`: auto-formatted 7 files, no violations.
 - 48 new + updated tests all pass. Only pre-existing `pdf-renderer.test.tsx` failure remains (unrelated).
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The agent had to add `listFragmentOverrides` end-to-end (interface, service, IPC, client) because the design assumed it already existed on the client. Necessary plumbing — clean addition.
+- The agent substituted `customizePrompt` for the non-existent `saveFragmentOverride` named in the design. Correct substitution.
+
+**Notes**: The lock-button-no-op bug is fixed by mirroring `useLock` from the global/append editors — symmetry restored across all three editors. The hardcoded `CUSTOMIZABLE_FRAGMENTS` array is gone; visibility is now driven by `PromptFragment.customizable` (SSOT). 48 tests pass (22 FragmentBlock + 4 useFragmentOverrides + 6 new configure-prompt-tab assertions). `<PromptFragmentEditor>` deleted with no surviving references.
+
+What's now possible: every fragment in every mode renders as its own block. Users can see what's locked, what's been edited, and diff per-fragment against defaults. The configurator lock now uniformly disables all save/clear affordances.
