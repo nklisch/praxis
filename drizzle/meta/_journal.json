@@ -99,6 +99,13 @@
       "when": 1778546772986,
       "tag": "0013_chilly_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1778639734837,
+      "tag": "0014_document_scopes_migration",
+      "breakpoints": true
     }
   ]
 }

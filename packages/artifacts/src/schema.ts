@@ -237,29 +237,37 @@ export const documentChunks = sqliteTable(
   }),
 );
 
-// ─── Phase 16: Course ↔ Document attachment ──────────────────────────────────
+// ─── Document scoping (polymorphic) ───────────────────────────────────────
 
-export const courseDocuments = sqliteTable(
-  "course_documents",
+export const documentScopes = sqliteTable(
+  "document_scopes",
   {
-    courseId: text("course_id")
-      .notNull()
-      .references(() => courses.id, { onDelete: "cascade" }),
     documentId: text("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
-    attachedAt: integer("attached_at", { mode: "timestamp_ms" }).notNull(),
     /**
-     * Where the attachment came from. "bootstrap" = seed list passed to the
-     * explorer; "manual" = user attached via UI picker; "ingestion" = the
-     * document was uploaded while a course was in scope.
+     * Scope kind discriminator. Extensible without schema migration —
+     * adding a new kind only requires service-layer changes plus a UI
+     * surface. Current kinds: 'course' (attached to a course),
+     * 'session' (attached to a specific session, typically a
+     * bootstrap exploration that hasn't been confirmed into a course).
      */
-    source: text("source", { enum: ["bootstrap", "manual", "ingestion"] }).notNull(),
+    scopeKind: text("scope_kind", { enum: ["course", "session"] }).notNull(),
+    /**
+     * Polymorphic reference. No DB-level FK — service-layer validation
+     * checks existence on write. Deleted parents leave orphaned rows by
+     * design; surfaced under the Orphaned library tab.
+     */
+    scopeId: text("scope_id").notNull(),
+    attachedAt: integer("attached_at", { mode: "timestamp_ms" }).notNull(),
+    source: text("source", {
+      enum: ["bootstrap", "manual", "ingestion"],
+    }).notNull(),
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.courseId, t.documentId] }),
-    courseIdx: index("course_documents_course_idx").on(t.courseId),
-    documentIdx: index("course_documents_document_idx").on(t.documentId),
+    pk: primaryKey({ columns: [t.documentId, t.scopeKind, t.scopeId] }),
+    scopeIdx: index("document_scopes_scope_idx").on(t.scopeKind, t.scopeId),
+    documentIdx: index("document_scopes_document_idx").on(t.documentId),
   }),
 );
 
@@ -365,7 +373,7 @@ export const artifactsSchema = {
   conceptProgress, // ← Phase 6
   assignmentResponses, // ← Phase 8
   gateUnlockEvents, // ← Phase 9
-  courseDocuments, // ← Phase 16
+  documentScopes,
   courseUnits, // ← Phase 16
   lessonUnits, // ← Phase 16
   lessonAssessments, // ← Phase 16
