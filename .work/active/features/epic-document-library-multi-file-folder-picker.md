@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-multi-file-folder-picker
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui, ingestion, configure]
 parent: epic-document-library
 depends_on: []
@@ -51,22 +51,494 @@ naturally writes scope rows for whichever scope the UI hands in.
 ## Anchors
 
 - Electron picker handler — `packages/desktop/electron/main/ingest-channel.ts:33-47`
-  (current `properties: ["openFile"]`)
+  (current `pickFile` returns `string | null`)
 - Ingestion entry — `packages/core/src/ingestion/service.ts:65`
-  (`ingest(req, signal?)` — single-file)
+  (`ingest(req, signal?)` — single-file; **unchanged** by this feature)
 - Adapter registry — `packages/tools/src/runtime/ingestion/registry.ts`
+  (supported extensions / MIME types live here; folder filter consults it)
 - Per-format adapters — `packages/tools/src/runtime/ingestion/*.ts`
-- UI hook — `packages/ui/src/hooks/use-ingestion.ts`
-- Add button — `packages/ui/src/components/add-document-button.tsx:13-42`
+- UI hook — `packages/ui/src/hooks/use-ingestion.ts:1-100` (state machine
+  with `idle | picking | tier_selection | ingesting | done | error`)
+- Add button — `packages/ui/src/components/add-document-button.tsx`
+- Tier modal — `packages/ui/src/components/picker-tier-modal.tsx`
 - ActivityRegistry integration — `packages/core/src/ingestion/service.ts:7,35,68`
+  (each `ingest()` call publishes its own ActivityItem — confirmed
+  per-file progress is already wired)
 
-## Design notes for feature-design
+## Design decisions (resolved by epic + autopilot)
 
-- Folder walk: depth cap, symlink policy, hidden-file filter, MIME-type
-  filter against supported ingestors.
-- ActivityRail: one item per file, or one batch item with N children?
-  Today `ActivityRegistry` supports both shapes — pick one and stay
-  consistent.
-- Cancellation: cancel a single file vs. cancel the whole batch.
-- Failure: partial-success expected — one file fails, others succeed.
-  Report per-file outcome.
+From the epic-design resolution:
+- **ActivityRail shape**: one item per file (granular). Each
+  `IngestionService.ingest()` call already publishes its own ActivityItem
+  — no change needed. The user sees N rows in the rail for an N-file
+  batch, plus a top-level "Ingesting N documents" header item that ties
+  them together.
+- **Cancellation**: per-file cancel + cancel-all (drops remaining queue,
+  aborts current file).
+
+Resolved by autopilot:
+- **IPC channel shape**: a new `praxis.ingest.pickPaths(opts)` channel
+  returns `string[]`. Args: `{ mode: 'files' | 'folder' }`. The existing
+  `pickFile` channel stays for back-compat (returns `string | null`). New
+  callers use `pickPaths`.
+- **Folder walk**: recursive with **depth cap = 5**. **Skip symlinks**
+  (don't follow). **Skip hidden files** (names starting with `.`). MIME
+  filter uses `registry.supportedExtensions()` (add a helper that
+  returns the union of every registered adapter's extension set). Walk
+  is implemented synchronously in the main process using
+  `fs.readdirSync(path, { withFileTypes: true })` recursion. Symlinks
+  are not followed because `Dirent.isSymbolicLink()` returns true for
+  them and we skip those entries.
+- **One-at-a-time batch flow**: each file in the batch runs the existing
+  single-file ingestion path sequentially. The tier-selection modal (for
+  PDFs) still runs per file; for a 5-PDF folder the user sees the modal
+  5 times. Acceptable for v1; a "remember my choice for this batch"
+  affordance is a v2 nice-to-have. Sequential is simpler than parallel
+  and avoids overwhelming the ActivityRail.
+- **Per-file failure isolation**: if file 3 of 10 fails (ingestion error),
+  the batch records the error against that file, advances to file 4. The
+  done summary surfaces the failures. No file's failure aborts the
+  batch.
+- **UI shape**: existing `<AddDocumentButton>` becomes the multi-file
+  entry point (uses `pickPaths({ mode: 'files' })` instead of
+  `pickFile`). A new `<AddFolderButton>` sits alongside it in the
+  document library / configure area for folder selection. Both consume
+  the same `useIngestion` hook in batch mode.
+- **Hook state extension**: adds a `batch_pending` status carrying
+  `queue: PendingFile[]`, `currentIndex: number`, `results: BatchResult[]`.
+  States that were singular (`tier_selection`, `ingesting`, `error`,
+  `done`) gain optional `batch` metadata so the UI can render
+  "Ingesting file 3 of 7" overlays.
+
+## Architectural choice
+
+**Extend the existing hook + IPC; don't introduce a new orchestrator
+service.** The `useIngestion` hook becomes the batch orchestrator
+client-side, calling the existing single-file `client.ingest.start()`
+sequentially per file. Server-side `IngestionService.ingest()` stays
+unchanged. The ActivityRegistry is the only multiplexer needed.
+
+Two alternatives rejected:
+- *Add `IngestionService.ingestBatch(reqs)` to the server.* Server-side
+  orchestration would let us parallelize ingestion (CPU/IO permitting),
+  but it duplicates the existing per-file `ingest()` orchestration and
+  forces a parallel set of IPC events. Sequential client-side
+  orchestration is simpler and gives the user the same UX.
+- *Spawn N concurrent ingestion streams.* Risks overwhelming the
+  ActivityRail, contending for native modules (`canvas`, `better-sqlite3`
+  write locks), and producing surprise CPU spikes. Sequential preserves
+  predictable behavior. Worth revisiting in a future optimization story
+  if real workloads demand it.
+
+## Implementation Units
+
+### Unit 1: Multi-path picker IPC
+
+**File**: `packages/desktop/electron/main/ingest-channel.ts`
+
+Add a sibling handler to the existing `pickFile`:
+
+```typescript
+handle(
+  "praxis.ingest.pickPaths",
+  async (_event, opts: { mode: "files" | "folder" }) => {
+    const properties: ("openFile" | "multiSelections" | "openDirectory")[] =
+      opts.mode === "folder" ? ["openDirectory"] : ["openFile", "multiSelections"];
+
+    const filters = opts.mode === "files"
+      ? [
+          {
+            name: "Supported documents",
+            extensions: ingestorRegistry.supportedExtensions(),
+          },
+          { name: "All Files", extensions: ["*"] },
+        ]
+      : undefined; // folders don't take filters
+
+    const result = await dialog.showOpenDialog({
+      title: opts.mode === "folder" ? "Open folder" : "Open documents",
+      properties,
+      ...(filters !== undefined && { filters }),
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return [];
+
+    if (opts.mode === "folder") {
+      // Walk the first picked folder; ignore any extras (single-folder mode).
+      const root = result.filePaths[0];
+      if (root === undefined) return [];
+      return walkDirectoryForIngest(root, ingestorRegistry);
+    }
+
+    return result.filePaths;
+  },
+);
+```
+
+Helper: `walkDirectoryForIngest(root, registry)` (in the same file or
+a sibling util):
+
+```typescript
+function walkDirectoryForIngest(
+  root: string,
+  registry: IngestorRegistry,
+): string[] {
+  const supported = new Set(
+    registry.supportedExtensions().map((e) => e.toLowerCase()),
+  );
+  const out: string[] = [];
+  const DEPTH_CAP = 5;
+
+  function visit(dir: string, depth: number): void {
+    if (depth > DEPTH_CAP) return;
+    let entries: import("fs").Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return; // permission denied / not a dir — skip silently
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue; // skip hidden
+      if (entry.isSymbolicLink()) continue; // don't follow symlinks
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        visit(fullPath, depth + 1);
+      } else if (entry.isFile()) {
+        const ext = path.extname(entry.name).slice(1).toLowerCase();
+        if (supported.has(ext)) out.push(fullPath);
+      }
+    }
+  }
+
+  visit(root, 0);
+  return out;
+}
+```
+
+Add `supportedExtensions(): string[]` to `IngestorRegistry` in
+`packages/tools/src/runtime/ingestion/registry.ts` if it doesn't already
+exist (returns the union of every registered adapter's extension list).
+
+**Acceptance Criteria**:
+- [ ] `praxis.ingest.pickPaths({ mode: "files" })` returns `string[]` of
+      selected files (empty if cancelled, supports multi-selection).
+- [ ] `praxis.ingest.pickPaths({ mode: "folder" })` returns `string[]`
+      of files recursively walked from the picked folder, filtered to
+      supported extensions, with depth ≤ 5 and no symlinks/hidden files.
+- [ ] `praxis.ingest.pickFile` continues to work for any existing caller.
+
+---
+
+### Unit 2: Client method
+
+**File**: `packages/client/src/services/ingest-client.ts` (or wherever
+the ingest client lives)
+
+Add:
+```typescript
+pickPaths(opts: { mode: "files" | "folder" }): Promise<string[]> {
+  return this.transport.invoke<string[]>("praxis.ingest.pickPaths", opts);
+}
+```
+
+Update `IngestClientApi` interface in `@praxis/core/types/client.ts` to
+declare it.
+
+**Acceptance Criteria**:
+- [ ] Client method exists; old `pickFile` untouched.
+
+---
+
+### Unit 3: Hook state extension
+
+**File**: `packages/ui/src/hooks/use-ingestion.ts`
+
+Extend the state machine:
+
+```typescript
+interface PendingFile {
+  filePath: string;
+  filename: string;
+  mimeType: string;
+}
+
+interface BatchResult {
+  filePath: string;
+  filename: string;
+  outcome:
+    | { ok: true; documentId: string; chunkCount: number }
+    | { ok: false; message: string };
+}
+
+export type IngestionState =
+  | { status: "idle" }
+  | { status: "picking" }
+  | { status: "tier_selection";
+      filePath: string;
+      filename: string;
+      mimeType: string;
+      batch?: { current: number; total: number };  // optional batch metadata
+    }
+  | { status: "ingesting";
+      filename: string;
+      batch?: { current: number; total: number };
+    }
+  | { status: "batch_summary";
+      results: BatchResult[];
+    }
+  | { status: "done"; documentId: string; chunkCount: number }  // single-file done
+  | { status: "error"; message: string };
+```
+
+Add a new entry point:
+
+```typescript
+startPickBatch: (mode: "files" | "folder") => Promise<void>;
+```
+
+This calls `client.ingest.pickPaths({ mode })`, builds a `PendingFile[]`
+from the returned paths (using `mimeTypeFromPath` for each), then runs
+each file through the existing `runIngestion` flow sequentially. After
+all files complete, transitions to `batch_summary`.
+
+```typescript
+const startPickBatch = useCallback(async (mode: "files" | "folder") => {
+  setState({ status: "picking" });
+  try {
+    const paths = await client.ingest.pickPaths({ mode });
+    if (paths.length === 0) {
+      setState({ status: "idle" });
+      return;
+    }
+    const queue: PendingFile[] = paths.map((p) => {
+      const filename = p.split("/").pop() ?? p;
+      return { filePath: p, filename, mimeType: mimeTypeFromPath(p) };
+    });
+    const results: BatchResult[] = [];
+    for (let i = 0; i < queue.length; i++) {
+      const file = queue[i];
+      if (!file) continue;
+      const batch = { current: i + 1, total: queue.length };
+
+      // Tier selection for PDFs: same modal flow as today, with batch metadata.
+      if (file.mimeType === "application/pdf") {
+        setState({
+          status: "tier_selection",
+          filePath: file.filePath,
+          filename: file.filename,
+          mimeType: file.mimeType,
+          batch,
+        });
+        // Wait for the user to confirm or cancel via confirmTier.
+        // confirmTier kicks off ingestion and resolves a promise we await here.
+        // Implementation detail: hold a resolver in a ref so confirmTier can
+        // signal "tier selected, ingestion ran" back into this loop.
+        // …
+      } else {
+        setState({ status: "ingesting", filename: file.filename, batch });
+      }
+
+      // Run ingestion (this is the existing runIngestion path).
+      const outcome = await ingestOneWithResult(file);
+      results.push({ filePath: file.filePath, filename: file.filename, outcome });
+    }
+    setState({ status: "batch_summary", results });
+  } catch (err) {
+    setState({ status: "error", message: errString(err) });
+  }
+}, [client]);
+```
+
+The tier-selection wait inside the loop needs a small refactor: the
+existing `confirmTier` callback is a fire-and-forget entry; turn it into
+a promise-resolving form so the batch loop can `await` user confirmation
+before moving on. Implementation detail: use a `Deferred<void>` (or
+`Promise.withResolvers`) stored in a ref.
+
+Add to result:
+```typescript
+export interface UseIngestionResult {
+  state: IngestionState;
+  startPick: () => Promise<void>;            // existing — single file
+  startPickBatch: (mode: "files" | "folder") => Promise<void>;  // new
+  confirmTier: (filePath, filename, mimeType, preferIngestorId?) => Promise<void>;
+  dismiss: () => void;
+  cancelBatch: () => void;  // new — aborts current + drops remaining queue
+}
+```
+
+**Acceptance Criteria**:
+- [ ] `startPickBatch("files")` runs multiple files sequentially.
+- [ ] `startPickBatch("folder")` walks the picked folder and runs each
+      supported file.
+- [ ] Per-file errors don't abort the batch.
+- [ ] `cancelBatch()` aborts the current file (via existing
+      `client.ingest.cancel`) and discards remaining queue, transitioning
+      to `batch_summary` with the partial results.
+
+---
+
+### Unit 4: UI buttons + summary modal
+
+**File**: `packages/ui/src/components/add-document-button.tsx`
+
+Update the existing button to use `startPickBatch("files")` instead of
+the single-file `startPick`. Rename the label from "+ Add document" to
+"+ Add documents". The component otherwise behaves the same — the
+underlying state machine handles batches transparently.
+
+**File**: `packages/ui/src/components/add-folder-button.tsx` (new)
+
+New companion button:
+```typescript
+export function AddFolderButton({ ingestion }: { ingestion: UseIngestionResult }) {
+  const { state, startPickBatch } = ingestion;
+  const isActive = state.status !== "idle" && state.status !== "batch_summary";
+  return (
+    <button
+      type="button"
+      className={styles.button}
+      onClick={() => startPickBatch("folder")}
+      disabled={isActive}
+      title="Add a folder of documents"
+    >
+      + Add folder
+    </button>
+  );
+}
+```
+
+**File**: `packages/ui/src/components/batch-summary-modal.tsx` (new)
+
+A modal that renders when `state.status === "batch_summary"`. Shows
+N succeeded / M failed, lists each file with its outcome (filename +
+chunk count for successes, error message for failures), and a "Done"
+button that returns the hook to `idle`.
+
+**Anchor**: mount the new button + summary modal where
+`AddDocumentButton` is currently mounted (likely in the document library
+sidebar / configure area).
+
+**Acceptance Criteria**:
+- [ ] `+ Add documents` opens a multi-select dialog.
+- [ ] `+ Add folder` opens a folder dialog and ingests every supported
+      file inside.
+- [ ] After the batch finishes (or is cancelled), a summary modal lists
+      each file's outcome.
+- [ ] The existing single-file ingestion still works (any callers that
+      use `startPick` keep functioning).
+
+---
+
+### Unit 5: Tier modal batch awareness
+
+**File**: `packages/ui/src/components/picker-tier-modal.tsx`
+
+Add optional `batch` prop:
+```typescript
+interface PickerTierModalProps {
+  // … existing props …
+  batch?: { current: number; total: number };
+}
+```
+
+When `batch` is set, render a small header like `File 3 of 7` above the
+existing tier-selection content. Otherwise behave as today.
+
+Also add a "Skip this file" button to the modal (only visible in batch
+mode) that resolves the deferred with a skip outcome — the batch loop
+records the file as `{ ok: false, message: "Skipped by user" }` and
+advances.
+
+**Acceptance Criteria**:
+- [ ] Tier modal shows batch position when in batch mode.
+- [ ] "Skip this file" advances the batch without ingesting that file.
+
+---
+
+### Unit 6: ActivityRail batch grouping (light)
+
+**File**: ActivityRegistry usage in
+`packages/core/src/ingestion/service.ts` (around line 68).
+
+The current per-file ActivityItem already exists. For batch context, the
+client side optionally publishes a "batch header" ActivityItem before
+the loop starts — but this is borderline scope creep. Decision: skip
+the batch header for v1. Each file renders as its own rail row; the
+batch summary modal is the user-visible "you did 7 files" feedback.
+
+If a header is wanted later, the cleanest place to add it is the hook
+itself (publish via `client.activity` if such an API exists). Out of
+scope for this feature.
+
+**Acceptance Criteria**:
+- [ ] No regression: per-file rail items appear as before.
+
+---
+
+### Unit 7: Tests
+
+**File**: `packages/ui/src/__tests__/use-ingestion.test.tsx`
+
+Test cases:
+- `startPickBatch("files")` with 3 files runs them sequentially.
+- `startPickBatch("folder")` walks paths returned by the mocked
+  pickPaths and ingests each.
+- Empty pick (user cancelled) → returns to `idle`.
+- Mid-batch error → batch continues, error recorded in results.
+- `cancelBatch()` mid-flight → current aborts, remaining dropped,
+  summary shows partial results.
+- Tier modal batch metadata is set correctly.
+
+**File**: `packages/desktop/electron/main/__tests__/ingest-channel.test.ts`
+(if the harness exists; otherwise rely on integration smoke)
+
+Test cases for `walkDirectoryForIngest`:
+- Filters to supported extensions only.
+- Respects depth cap (synthetic temp dir with 6-level nesting).
+- Skips symlinks (synthetic temp dir with a symlink).
+- Skips hidden files.
+- Returns empty for permission-denied directories.
+
+**Acceptance Criteria**:
+- [ ] All new tests pass.
+- [ ] Existing `use-ingestion` tests still pass (single-file flow is
+      unchanged).
+
+---
+
+## Implementation Order
+
+Single-stride. Suggested intra-stride order:
+
+1. Unit 1 (IPC + folder walk).
+2. Unit 2 (client method).
+3. Unit 3 (hook state machine — biggest piece).
+4. Unit 4 (UI buttons + summary modal).
+5. Unit 5 (tier modal batch awareness).
+6. Unit 7 (tests).
+
+## Testing
+
+Covered by Unit 7. Key invariants:
+- Single-file flow unchanged.
+- Batch flow runs files sequentially.
+- Failures are isolated; batch always completes (or cancels cleanly).
+
+## Risks
+
+1. **Tier modal mid-batch UX fatigue** (medium). User has to click
+   through tier selection for every PDF in a folder. v1 acceptable;
+   a "remember choice for this batch" affordance is a v2 nice-to-have.
+2. **Folder walk performance** (low). Depth cap of 5 + supported-only
+   filter limits the walk; in practice user-pickable folders are
+   bounded. Worst case (homedir-level pick on a very deep tree) is
+   capped by the depth limit.
+3. **Symlink loops** (none with current policy). Skipping symlinks
+   avoids the classic recursion-on-symlink-loop bug.
+4. **Promise.withResolvers availability** (low). Not in older Node;
+   Praxis runs Node ≥ 24 where it's available. Confirm or use the
+   manual `let resolve; new Promise(r => resolve = r)` pattern.
+5. **ActivityRail saturation** (low). 50-file batches publish 50 rail
+   items. The rail is already designed to handle many concurrent
+   items (per the activity-rail-producer pattern); should be fine.
