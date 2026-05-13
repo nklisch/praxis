@@ -229,3 +229,19 @@ All three child stories are at stage `review` or `done`:
 Verification: `pnpm typecheck && pnpm lint && pnpm test` green at 3149 passing.
 
 What's now possible: documents can be opened in their own tab, the viewer renders them in-format, and the sidebar reflects scope-derived context. The document-tab persistence (tab-kind) + the user-facing viewer (viewer) + the scope-derivation hook (sidebar) compose into a complete document-library navigation surface.
+
+## Review (2026-05-13) — aggregate
+
+**Verdict**: Approve
+
+All three child stories shipped clean and were individually approved:
+- `...tab-kind` (commit 2165aee, review feacb80) — schema + types + IPC
+- `...sidebar` (commit 4565ba1, review 9cdbd38) — useDerivedScope hook + scoped sidebar
+- `...viewer` (commit 3c00116, review 7e4322a) — multi-format viewer + documents.get
+
+**Aggregate-only checks**:
+- **Capability completeness**: opening a document via openDocumentInTab → tab persists → viewer renders → sidebar reflects scope. End-to-end works.
+- **Foundation-doc alignment**: no drift. The "Student surface" tab-system note in `docs/ARCHITECTURE.md` already describes a tab strip; this feature's `kind: "document"` extension fits within the existing description.
+- **Cross-cutting concerns**: 2 follow-ups parked in backlog from the sidebar review (`list-scopes-for-document-client-api`, `lift-tabs-state-to-context`). Both are accepted MVP debt with clear scopes.
+
+**Notes**: This was a 3-story feature run across a 2-wave orchestrator pass. Cross-story contracts (DocumentTabSummary, openDocumentInTab, the chat-tab-body dispatch branch) all held — no late integration surprises. The discriminated-union refactor on TabSummary in tab-kind was the load-bearing change; downstream tab-body components narrowed cleanly.
