@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-bootstrap-session-scoped-attachment
 kind: feature
-stage: implementing
+stage: review
 tags: [bootstrap, documents, tutor-ux]
 parent: epic-document-library
 depends_on: [epic-document-library-scopes-primitive]
@@ -380,6 +380,36 @@ Covered by Unit 7. Key invariants:
 3. **Schema migration for `bootstrap_drafts.session_id`** (low). Verify whether drafts are persisted (durable) or in-memory only (per `bootstrap-readiness-durable-drafts` v0.1.1 feature). If persisted, the migration is real work. If in-memory, the type extension is sufficient.
 
 4. **`promoteScope` and audit-trail intent** (low). `promoteScope` was designed for this exact case (per `scopes-primitive`'s Unit 3). Its idempotency means re-confirming the same draft (shouldn't happen — confirmDraft is one-shot) doesn't duplicate rows.
+
+## Implementation Notes
+
+### Design flaw assessment: bootstrap_drafts schema
+Drafts ARE persisted via `SqliteDraftStore` with the full `DraftCourseState` stored as a JSON blob in the `stateJson` column (`packages/core/src/schema.ts:87`). Since `sessionId` is stored as part of the JSON blob (not a separate column), no SQL migration is needed — adding an optional field to the TypeScript type is sufficient. Legacy rows deserialize correctly (undefined `sessionId` field) and the fallback path in `confirmDraft` handles them.
+
+### Units delivered
+
+**Unit 1** — `DraftCourseState.sessionId?: SessionId` added to `packages/core/src/types/artifacts.ts`. `initDraft` in both the interface (`packages/core/src/types/tool.ts:719`) and implementation (`packages/core/src/services/bootstrap-service.ts`) updated to accept optional `sessionId`. Stored via the existing JSON blob path — no migration needed.
+
+**Unit 2** — `ToolContext.parentSessionId?: SessionId` added to `packages/core/src/types/tool.ts`. `makeToolContext` test helper updated to accept `parentSessionId`.
+
+**Unit 3** — `runConceptExplorer` in `packages/curriculum/src/bootstrap/explorer.ts` now sets `parentSessionId: input.baseContext.sessionId` on the explorer context before constructing the `InProcessToolRegistry`.
+
+**Unit 4** — `course.draft_init` handler reads `ctx.parentSessionId ?? ctx.sessionId` and passes as `sessionId` to `initDraft`.
+
+**Unit 5** — `course.start_exploration` handler in `packages/tools/src/course/start-exploration.ts` attaches `args.documentIds` to session scope via `ctx.services.documentScopes.attachMany({ scope: { kind:"session", id: ctx.sessionId }, ... })` BEFORE spawning the explorer.
+
+**Unit 6** — `BootstrapServiceImpl.confirmDraft` replaced the single `attachMany` call with a two-branch strategy: if `d.sessionId` is set, call `promoteScope({ from: {kind:"session", id:d.sessionId}, to: {kind:"course", id:courseId} })`; otherwise fall back to `attachMany(d.documentIds)` for legacy compatibility. Both paths are non-fatal (warnings logged, course persists).
+
+**Unit 7** — `list-library-documents.ts` extended with `attachedToCurrentSession: boolean` flag, derived from `documentScopes.listForScope({ kind:"session", id: ctx.parentSessionId ?? ctx.sessionId })`. Tool description updated.
+
+### Tests
+- `packages/core/src/services/__tests__/bootstrap-service.session-scope.test.ts` — 6 new tests covering `initDraft` sessionId storage, `confirmDraft` promotion path, legacy fallback, fatal non-propagation.
+- `packages/tools/src/course/__tests__/start-exploration.test.ts` — 2 new tests for session-scope attach side-effect.
+- `packages/tools/src/course/__tests__/list-library-documents.test.ts` — 4 new tests for `attachedToCurrentSession` flag, including `parentSessionId` fallback.
+- `packages/curriculum/src/bootstrap/__tests__/explorer.test.ts` — 1 new test verifying `parentSessionId` threading through to the draft's `sessionId`.
+
+### Build note
+The `@praxis/curriculum` and `@praxis/tools` packages resolve workspace dependencies via the built `dist/` (no `vitest.config.ts` with `praxis-source` conditions). After modifying `draft-init.ts`, `pnpm --filter @praxis/tools build` was required to update `dist/course/draft-init.js` before the explorer tests could pick up the change. All tests confirmed passing after the build.
 
 ## Notes for downstream
 

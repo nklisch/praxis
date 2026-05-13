@@ -137,9 +137,15 @@ export async function runConceptExplorer(
   // scope yet), which can leak chunks from unrelated documents the student
   // happens to have uploaded. The fence is enforced server-side; the model
   // doesn't need to remember to pass documentIds on every call.
+  //
+  // parentSessionId: thread the parent (tutor) session's id into the explorer's
+  // context so that sub-agent tools (draft_init, list_library_documents) can
+  // operate on the correct session scope. The explorer's own session id is
+  // irrelevant for scoping — S1 (tutor) is the scope owner.
   const explorerContext = {
     ...input.baseContext,
     courseDocumentIds: [...input.documentIds],
+    parentSessionId: input.baseContext.sessionId,
   } as unknown as ToolContext;
   if (input.draftId !== undefined) {
     (explorerContext as { draftId?: string }).draftId = input.draftId;

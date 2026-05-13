@@ -102,6 +102,19 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
   tier: "model-derived",
   effects: ["artifact.mutate", "external.code-exec"],
   async handler(args, ctx: ToolContext) {
+    // Session-scope attach (idempotent): record that this bootstrap session
+    // "owns" these documents for the duration of the exploration. The session-
+    // scope rows are promoted to course-scope by confirmDraft, and persist
+    // afterwards for audit. Re-running start_exploration with the same docs
+    // (e.g., budget continuation) is a no-op — attachMany skips existing rows.
+    if (args.documentIds.length > 0) {
+      await ctx.services.documentScopes.attachMany({
+        scope: { kind: "session", id: ctx.sessionId },
+        documentIds: args.documentIds.map((id) => brandId<"DocumentId">(id)),
+        source: "bootstrap",
+      });
+    }
+
     const explorerToolDefs = [
       // Read-only exploration tools.
       retrieveFromDocumentsTool,

@@ -1057,3 +1057,57 @@ describe("runConceptExplorer — signal propagation", () => {
     bootstrap.shutdown();
   });
 });
+
+// ─── parentSessionId threading ────────────────────────────────────────────────
+
+describe("runConceptExplorer — parentSessionId threading", () => {
+  const dbCtx = useTempDb();
+
+  it("sets parentSessionId on the explorer's ToolContext to the base context's sessionId", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const bootstrap = makeBootstrapService(db);
+
+    // We verify that the explorer's context has parentSessionId by checking
+    // the observable effect: draft_init (which reads ctx.parentSessionId) should
+    // store the parent session id on the draft.
+    const parentSessionId = brandId<"SessionId">("parent-session-s1");
+    const baseContext = {
+      ...makeBaseContext(bootstrap),
+      sessionId: parentSessionId,
+    };
+
+    const engine = new ScriptedEngine([
+      {
+        toolName: "course.draft_init",
+        args: {
+          courseTitle: "Algebra 1",
+          subject: "math.algebra-1",
+          gradeLevel: "9-12",
+          documentIds: ["doc-1"],
+        },
+      },
+    ]);
+
+    const result = await runConceptExplorer({
+      engine,
+      baseContext,
+      toolDefinitions: EXPLORER_TOOLS,
+      documentIds: DOC_IDS,
+      courseTitle: "Algebra 1",
+      subject: "math.algebra-1",
+      gradeLevel: "9-12",
+      log: MOCK_LOG,
+      maxSteps: 30,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(typeof result.draftId).toBe("string");
+
+    // The draft should carry the parent session id (set by draft_init via
+    // ctx.parentSessionId ?? ctx.sessionId in the handler).
+    const draft = await bootstrap.showDraft(result.draftId ?? "");
+    expect(draft?.sessionId).toBe(parentSessionId);
+
+    bootstrap.shutdown();
+  });
+});

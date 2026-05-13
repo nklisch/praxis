@@ -32,6 +32,7 @@ import type {
   ProposedCourse,
   ProposedUnit,
   Reference,
+  SessionId,
   StrategyId,
   StudentId,
   ThresholdConfig,
@@ -162,9 +163,15 @@ export class BootstrapServiceImpl implements BootstrapService {
   /**
    * Phase 16: create a new draft up-front (before the explorer has any concepts
    * to add). Used by the explorer's draft_init tool.
+   *
+   * `sessionId` is the PARENT bootstrap session id (S1 — the tutor session that
+   * invoked start_exploration). It is stored on the draft so that confirmDraft
+   * can promote session-scope document rows to course-scope. Pass
+   * `ctx.parentSessionId ?? ctx.sessionId` from the calling tool handler.
    */
   async initDraft(input: {
     studentId: StudentId;
+    sessionId?: SessionId;
     documentIds: DocumentId[];
     courseTitle: string;
     subject: string;
@@ -194,6 +201,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       createdAt: now,
       lastTouchedAt: now,
       expiresAt: (now + DRAFT_STALE_MS) as Timestamp,
+      ...(input.sessionId !== undefined && { sessionId: input.sessionId }),
     };
     this.store.save(draft);
     this.emit({ kind: "started", draft });
@@ -550,7 +558,28 @@ export class BootstrapServiceImpl implements BootstrapService {
     });
 
     // Phase 16: attach source documents to the new course.
-    if (d.documentIds.length > 0) {
+    // When the draft carries a sessionId (bootstrap-session-scoped-attachment
+    // feature), promote the session-scope rows to course-scope — both survive so
+    // the audit trail of "which docs this bootstrap session pulled in" is
+    // preserved. For legacy drafts without sessionId, fall back to the original
+    // attachMany path.
+    if (d.sessionId !== undefined) {
+      try {
+        await this.deps.documentScopes.promoteScope({
+          from: { kind: "session", id: d.sessionId },
+          to: { kind: "course", id: result.courseId },
+          source: "bootstrap",
+        });
+      } catch (err) {
+        this.deps.log.warn("confirmDraft.promoteScope_failed", {
+          courseId: result.courseId,
+          sessionId: d.sessionId,
+          err: String(err),
+        });
+        // Non-fatal — course is persisted; documents can be manually re-attached.
+      }
+    } else if (d.documentIds.length > 0) {
+      // Legacy path: draft predates session-scoped attachment; attach directly.
       try {
         await this.deps.documentScopes.attachMany({
           scope: { kind: "course", id: result.courseId },

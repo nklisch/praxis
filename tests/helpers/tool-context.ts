@@ -40,6 +40,12 @@ export interface MakeToolContextOptions {
   courseDocumentIds?: ToolContext["courseDocumentIds"];
   /** Phase 16: explorer-session draft id; usually only set inside isolated explorer tests. */
   draftId?: ToolContext["draftId"];
+  /**
+   * Phase 16 (bootstrap-session-scoped-attachment): parent session id for sub-agent
+   * contexts. Populated by the explorer harness to the tutor session's id so that
+   * draft_init and list_library_documents operate on the correct session scope.
+   */
+  parentSessionId?: ToolContext["parentSessionId"];
 }
 
 export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext {
@@ -58,6 +64,7 @@ export function makeToolContext(opts: MakeToolContextOptions = {}): ToolContext 
     ...(opts.assignmentId !== undefined && { assignmentId: opts.assignmentId }),
     ...(opts.courseDocumentIds !== undefined && { courseDocumentIds: opts.courseDocumentIds }),
     ...(opts.draftId !== undefined && { draftId: opts.draftId }),
+    ...(opts.parentSessionId !== undefined && { parentSessionId: opts.parentSessionId }),
     log:
       opts.log ??
       (() => {

@@ -144,6 +144,21 @@ export interface ToolContext {
    * signal.
    */
   signal?: AbortSignal;
+  /**
+   * Phase 16 (bootstrap-session-scoped-attachment): set by sub-agent harnesses
+   * to the PARENT session's id. For top-level sessions this is undefined.
+   *
+   * Threading chain:
+   *   tutor session S1 invokes start_exploration (ctx.sessionId === S1)
+   *   → runConceptExplorer sets explorerContext.parentSessionId = S1
+   *   → explorer sub-agent tools (draft_init, list_library_documents) read
+   *     ctx.parentSessionId to operate on the parent session's scope.
+   *
+   * Any new sub-agent harness should propagate this field from the parent ctx
+   * to preserve the session-scope chain. See the sub-agent-context-threading
+   * pattern for details.
+   */
+  parentSessionId?: SessionId;
   services: ToolServices;
   log: Logger;
 }
@@ -703,6 +718,13 @@ export interface BootstrapService {
   /** Create an empty draft and return its id. */
   initDraft(input: {
     studentId: StudentId;
+    /**
+     * Phase 16 (bootstrap-session-scoped-attachment): the parent bootstrap
+     * session id (S1). Pass `ctx.parentSessionId ?? ctx.sessionId` from the
+     * draft_init tool handler. Stored on the draft so confirmDraft can promote
+     * session-scope document rows to course-scope.
+     */
+    sessionId?: SessionId;
     documentIds: DocumentId[];
     courseTitle: string;
     subject: string;

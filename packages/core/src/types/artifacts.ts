@@ -696,6 +696,16 @@ export interface DraftCourseState {
   createdAt: Timestamp;
   lastTouchedAt: Timestamp;
   expiresAt: Timestamp;
+  /**
+   * Phase 16 (bootstrap-session-scoped-attachment): the parent bootstrap session
+   * id (S1 — the tutor session that invoked start_exploration, NOT the explorer
+   * sub-agent's own session). Stored here so confirmDraft can promote
+   * session-scope document rows to course-scope via documentScopes.promoteScope.
+   *
+   * Optional for backwards compatibility with drafts created before this feature.
+   * confirmDraft falls back to the old attachMany path when this is absent.
+   */
+  sessionId?: SessionId;
 }
 
 /** Compact summary returned by `course.start_exploration` to keep tool output small. */
