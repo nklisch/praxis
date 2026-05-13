@@ -191,6 +191,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
     setModeAppend: vi.fn(),
     listFragmentOverrides: vi.fn().mockReturnValue([]),
     previewPrompt: vi.fn().mockReturnValue("preview"),
+    previewPromptWithAttribution: vi.fn().mockReturnValue({ prompt: "preview", fragments: [] }),
   };
 
   const authoringService = new AuthoringServiceImpl({
@@ -231,7 +232,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
       lock: lockService,
       authoring: authoringService,
       // Phase 16: minimal stub for course-scoped session bootstrapping.
-      courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+      documentScopes: { listForScope: vi.fn().mockResolvedValue([]) },
       // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
     } as any,
     // Activity registry stub — tests don't assert on rail output.

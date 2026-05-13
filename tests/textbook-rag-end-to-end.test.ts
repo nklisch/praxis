@@ -18,7 +18,7 @@ import { openDb } from "@praxis/core/db";
 import { FsEmbeddedImageStore, FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import { DocumentsServiceImpl } from "@praxis/core/services";
 import type { ToolContext } from "@praxis/core/types";
-import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
+import { retrieveFromDocumentsTool } from "@praxis/tools/retrieval";
 import { SqliteFtsStore, SqliteVecStore } from "@praxis/tools/runtime";
 import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -146,10 +146,12 @@ describe("textbook RAG end-to-end", () => {
       },
     } as unknown as ToolContext;
 
-    const result = await retrieveFromTextbookTool.handler({ query: "ATP synthase", topK: 3 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "ATP synthase", topK: 3 }, ctx);
 
     expect(result.citations.length).toBeGreaterThan(0);
-    expect(result.citations.some((c) => c.chunkText.includes("ATP"))).toBe(true);
+    expect(result.citations.some((c: { chunkText: string }) => c.chunkText.includes("ATP"))).toBe(
+      true,
+    );
   });
 
   it("documents.delete removes all index entries for the document", async () => {

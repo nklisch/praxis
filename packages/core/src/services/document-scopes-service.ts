@@ -23,12 +23,7 @@ export class DocumentScopesServiceImpl implements DocumentScopesService {
     const rows = this.deps.db
       .select({ documentId: documentScopes.documentId })
       .from(documentScopes)
-      .where(
-        and(
-          eq(documentScopes.scopeKind, scope.kind),
-          eq(documentScopes.scopeId, scope.id),
-        ),
-      )
+      .where(and(eq(documentScopes.scopeKind, scope.kind), eq(documentScopes.scopeId, scope.id)))
       .orderBy(documentScopes.attachedAt)
       .all();
     return rows.map((r) => brandId<"DocumentId">(r.documentId));
@@ -47,12 +42,7 @@ export class DocumentScopesServiceImpl implements DocumentScopesService {
       })
       .from(documentScopes)
       .innerJoin(documents, eq(documentScopes.documentId, documents.id))
-      .where(
-        and(
-          eq(documentScopes.scopeKind, scope.kind),
-          eq(documentScopes.scopeId, scope.id),
-        ),
-      )
+      .where(and(eq(documentScopes.scopeKind, scope.kind), eq(documentScopes.scopeId, scope.id)))
       .orderBy(documentScopes.attachedAt)
       .all();
     return rows.map((r) => {
@@ -121,17 +111,12 @@ export class DocumentScopesServiceImpl implements DocumentScopesService {
           and(
             eq(documentScopes.scopeKind, input.scope.kind),
             eq(documentScopes.scopeId, input.scope.id),
-            inArray(
-              documentScopes.documentId,
-              input.documentIds as DocumentId[],
-            ),
+            inArray(documentScopes.documentId, input.documentIds as DocumentId[]),
           ),
         )
         .all();
       const existingSet = new Set(existing.map((r) => r.documentId));
-      const toInsert = (input.documentIds as DocumentId[]).filter(
-        (id) => !existingSet.has(id),
-      );
+      const toInsert = (input.documentIds as DocumentId[]).filter((id) => !existingSet.has(id));
       if (toInsert.length > 0) {
         const now = new Date();
         this.deps.db

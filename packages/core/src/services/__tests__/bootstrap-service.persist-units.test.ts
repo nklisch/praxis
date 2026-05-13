@@ -31,12 +31,14 @@ const MOCK_LOG = {
   child: vi.fn(() => MOCK_LOG),
 };
 
-const MOCK_COURSE_DOCUMENTS = {
-  listForCourse: vi.fn().mockResolvedValue([]),
-  listForCourseDetailed: vi.fn().mockResolvedValue([]),
+const MOCK_DOCUMENT_SCOPES = {
+  listForScope: vi.fn().mockResolvedValue([]),
+  listForScopeDetailed: vi.fn().mockResolvedValue([]),
   attach: vi.fn().mockResolvedValue({ attached: true }),
   detach: vi.fn().mockResolvedValue({ detached: true }),
   attachMany: vi.fn().mockResolvedValue({ newlyAttached: [] }),
+  listScopesForDocument: vi.fn().mockResolvedValue([]),
+  promoteScope: vi.fn().mockResolvedValue({ promoted: [] }),
 };
 
 function makeEngine(): Engine {
@@ -55,7 +57,7 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
       draftStore: store,
     });
@@ -194,7 +196,7 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
     });
 
@@ -238,7 +240,7 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
       draftStore: store,
     });

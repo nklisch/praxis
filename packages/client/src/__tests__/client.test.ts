@@ -264,39 +264,39 @@ describe("createPraxisClient", () => {
     });
   });
 
-  describe("courseDocuments (Phase 16)", () => {
-    it("courseDocuments.listForCourse() routes to praxis.courseDocuments.listForCourse with courseId", async () => {
+  describe("documentScopes (Phase 16)", () => {
+    it("documentScopes.listForScope() routes to praxis.documentScopes.listForScope with scope", async () => {
       const { transport, invokedChannels } = makeTransport();
       const client = createPraxisClient(transport);
       // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-      await client.courseDocuments.listForCourse("course-1" as any);
-      expect(invokedChannels[0]?.channel).toBe("praxis.courseDocuments.listForCourse");
-      expect(invokedChannels[0]?.args[0]).toBe("course-1");
+      await client.documentScopes.listForScope({ kind: "course", id: "course-1" as any });
+      expect(invokedChannels[0]?.channel).toBe("praxis.documentScopes.listForScope");
+      expect(invokedChannels[0]?.args[0]).toEqual({ kind: "course", id: "course-1" });
     });
 
-    it("courseDocuments.attach() routes to praxis.courseDocuments.attach with courseId + documentId", async () => {
+    it("documentScopes.attach() routes to praxis.documentScopes.attach with scope + documentId", async () => {
       const { transport, invokedChannels } = makeTransport();
       const client = createPraxisClient(transport);
-      await client.courseDocuments.attach({
+      await client.documentScopes.attach({
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-        courseId: "course-1" as any,
+        scope: { kind: "course", id: "course-1" as any },
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
         documentId: "doc-1" as any,
         source: "manual",
       });
-      expect(invokedChannels[0]?.channel).toBe("praxis.courseDocuments.attach");
+      expect(invokedChannels[0]?.channel).toBe("praxis.documentScopes.attach");
       const payload = invokedChannels[0]?.args[0] as Record<string, unknown>;
-      expect(payload.courseId).toBe("course-1");
+      expect(payload.scope).toEqual({ kind: "course", id: "course-1" });
       expect(payload.documentId).toBe("doc-1");
       expect(payload.source).toBe("manual");
     });
 
-    it("courseDocuments.attach() without source omits source from payload", async () => {
+    it("documentScopes.attach() without source omits source from payload", async () => {
       const { transport, invokedChannels } = makeTransport();
       const client = createPraxisClient(transport);
-      await client.courseDocuments.attach({
+      await client.documentScopes.attach({
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-        courseId: "course-1" as any,
+        scope: { kind: "course", id: "course-1" as any },
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
         documentId: "doc-1" as any,
       });
@@ -304,18 +304,18 @@ describe("createPraxisClient", () => {
       expect(payload.source).toBeUndefined();
     });
 
-    it("courseDocuments.detach() routes to praxis.courseDocuments.detach with courseId + documentId", async () => {
+    it("documentScopes.detach() routes to praxis.documentScopes.detach with scope + documentId", async () => {
       const { transport, invokedChannels } = makeTransport();
       const client = createPraxisClient(transport);
-      await client.courseDocuments.detach({
+      await client.documentScopes.detach({
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-        courseId: "course-1" as any,
+        scope: { kind: "course", id: "course-1" as any },
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
         documentId: "doc-1" as any,
       });
-      expect(invokedChannels[0]?.channel).toBe("praxis.courseDocuments.detach");
+      expect(invokedChannels[0]?.channel).toBe("praxis.documentScopes.detach");
       const payload = invokedChannels[0]?.args[0] as Record<string, unknown>;
-      expect(payload.courseId).toBe("course-1");
+      expect(payload.scope).toEqual({ kind: "course", id: "course-1" });
       expect(payload.documentId).toBe("doc-1");
     });
   });

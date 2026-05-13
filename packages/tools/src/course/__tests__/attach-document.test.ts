@@ -1,4 +1,4 @@
-import type { CourseDocumentsService } from "@praxis/core/types";
+import type { DocumentScopesService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
@@ -6,28 +6,28 @@ import { attachDocumentTool } from "../attach-document.js";
 
 describe("course.attach_document handler", () => {
   it("attaches a document and returns attached:true", async () => {
-    const courseDocuments: Partial<CourseDocumentsService> = {
+    const documentScopes: Partial<DocumentScopesService> = {
       attach: vi.fn().mockResolvedValue({ attached: true }),
     };
     const ctx = makeToolContext({
-      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+      services: { documentScopes: documentScopes as DocumentScopesService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
     const result = await attachDocumentTool.handler({ documentId: "doc-1" }, ctx);
     expect(result.attached).toBe(true);
     expect(result.message).toBe("Document attached.");
-    expect(courseDocuments.attach).toHaveBeenCalledWith(
+    expect(documentScopes.attach).toHaveBeenCalledWith(
       expect.objectContaining({ documentId: "doc-1", source: "manual" }),
     );
   });
 
   it("returns attached:false with message when already attached", async () => {
-    const courseDocuments: Partial<CourseDocumentsService> = {
+    const documentScopes: Partial<DocumentScopesService> = {
       attach: vi.fn().mockResolvedValue({ attached: false }),
     };
     const ctx = makeToolContext({
-      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+      services: { documentScopes: documentScopes as DocumentScopesService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
@@ -37,9 +37,9 @@ describe("course.attach_document handler", () => {
   });
 
   it("throws if no course in scope", async () => {
-    const courseDocuments: Partial<CourseDocumentsService> = { attach: vi.fn() };
+    const documentScopes: Partial<DocumentScopesService> = { attach: vi.fn() };
     const ctx = makeToolContext({
-      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+      services: { documentScopes: documentScopes as DocumentScopesService },
     });
 
     await expect(attachDocumentTool.handler({ documentId: "doc-1" }, ctx)).rejects.toThrow(

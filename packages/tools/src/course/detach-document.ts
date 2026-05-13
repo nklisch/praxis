@@ -23,8 +23,8 @@ export const detachDocumentTool: ToolDefinition<typeof InputSchema, typeof Outpu
     if (ctx.courseId === undefined) {
       throw new Error("course.detach_document requires a course-scoped session");
     }
-    const result = await ctx.services.courseDocuments.detach({
-      courseId: ctx.courseId,
+    const result = await ctx.services.documentScopes.detach({
+      scope: { kind: "course", id: ctx.courseId },
       documentId: brandId<"DocumentId">(args.documentId) as DocumentId,
     });
     return {

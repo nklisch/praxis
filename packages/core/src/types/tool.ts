@@ -24,6 +24,11 @@ import type {
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
 import type { ConfiguratorActionRow } from "./configurator.js";
+import type {
+  DocumentScope,
+  DocumentScopeAttachment,
+  DocumentScopeSource,
+} from "./document-scopes.js";
 import type { Engine, VisionDescribeRequest, VisionDescribeResponse } from "./engine.js";
 import type { FsrsScheduler, FsrsState, Rating } from "./flashcards.js";
 import type { GateView, GradeReader, MasteryReader } from "./gate.js";
@@ -65,11 +70,6 @@ import type { ComposedSystemPromptWithAttribution } from "./prompt-attribution.j
 import type { QuickCheckService } from "./quick-check.js";
 import type { SketchService } from "./sketches.js";
 import type { SubAgentRegistry } from "./subagent.js";
-import type {
-  DocumentScope,
-  DocumentScopeAttachment,
-  DocumentScopeSource,
-} from "./document-scopes.js";
 
 // Re-export VisionService shape inline here so tool handlers can type-check against it
 // without importing from @praxis/core/services (would violate dependency direction).
@@ -613,10 +613,7 @@ export interface DocumentScopesService {
   }): Promise<{ attached: boolean }>;
 
   /** Detach. Idempotent. */
-  detach(input: {
-    scope: DocumentScope;
-    documentId: DocumentId;
-  }): Promise<{ detached: boolean }>;
+  detach(input: { scope: DocumentScope; documentId: DocumentId }): Promise<{ detached: boolean }>;
 
   /**
    * Bulk attach (e.g., confirm-draft, multi-file ingest). Skips

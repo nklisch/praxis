@@ -23,8 +23,8 @@ export const attachDocumentTool: ToolDefinition<typeof InputSchema, typeof Outpu
     if (ctx.courseId === undefined) {
       throw new Error("course.attach_document requires a course-scoped session");
     }
-    const result = await ctx.services.courseDocuments.attach({
-      courseId: ctx.courseId,
+    const result = await ctx.services.documentScopes.attach({
+      scope: { kind: "course", id: ctx.courseId },
       documentId: brandId<"DocumentId">(args.documentId) as DocumentId,
       source: "manual",
     });

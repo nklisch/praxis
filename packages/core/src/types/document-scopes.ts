@@ -7,9 +7,7 @@ export type ScopeKind = "course" | "session";
  * scopes simultaneously — e.g., attached to a course AND remembered as
  * having been ingested during a specific bootstrap session.
  */
-export type DocumentScope =
-  | { kind: "course"; id: CourseId }
-  | { kind: "session"; id: SessionId };
+export type DocumentScope = { kind: "course"; id: CourseId } | { kind: "session"; id: SessionId };
 
 export type DocumentScopeSource = "bootstrap" | "manual" | "ingestion";
 

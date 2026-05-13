@@ -18,7 +18,7 @@ import {
   ConceptMapServiceImpl,
   ConceptMapSnapshotter,
   ConfigServiceImpl,
-  CourseDocumentsServiceImpl,
+  DocumentScopesServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
   FlashcardsServiceImpl,
@@ -152,8 +152,8 @@ export interface Services {
   sketches: SketchServiceImpl;
   /** Phase 15b: concept map service — exposed for IPC handlers. */
   conceptMaps: ConceptMapServiceImpl;
-  /** Phase 16: course ↔ document attachment service. */
-  courseDocuments: CourseDocumentsServiceImpl;
+  /** Phase 16: polymorphic scope ↔ document attachment service. */
+  documentScopes: DocumentScopesServiceImpl;
   /** Activity registry — exposed for the activity IPC channel and shutdown. */
   activity: ActivityRegistryImpl;
   /** Sub-agent transparency registry — exposed for the subagent IPC channel. */
@@ -272,14 +272,14 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     return createEngine({ config: engineConfig, deps: { log } });
   };
 
-  // Phase 16: CourseDocumentsServiceImpl — must be constructed before BootstrapServiceImpl.
-  const courseDocumentsService = new CourseDocumentsServiceImpl({ db, log });
+  // Phase 16: DocumentScopesServiceImpl — must be constructed before BootstrapServiceImpl.
+  const documentScopesService = new DocumentScopesServiceImpl({ db, log });
 
   const bootstrapService = new BootstrapServiceImpl({
     db,
     log,
     engineResolver: bootstrapEngineResolver,
-    courseDocuments: courseDocumentsService,
+    documentScopes: documentScopesService,
   });
 
   // Phase 7: helper to look up the courseId for a given session (used by indexers).
@@ -542,7 +542,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       sketches: sketchService, // ← Phase 15a
       vision: visionService, // ← Phase 15a
       conceptMaps: conceptMapService, // ← Phase 15b
-      courseDocuments: courseDocumentsService, // ← Phase 16
+      documentScopes: documentScopesService, // ← Phase 16
       engineResolver: bootstrapEngineResolver, // ← Phase 16
       // Lazy-read the user-set bootstrap budget so UI changes apply to the
       // next exploration without restarting the desktop app.
@@ -567,7 +567,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     ingestorRegistry,
     pageImageStore,
     embeddedImageStore,
-    courseDocuments: courseDocumentsService, // ← Phase 16
+    documentScopes: documentScopesService, // ← Phase 16
     activity: activityRegistry,
   });
 
@@ -611,7 +611,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     fsrsScheduler, // ← Phase 12
     sketches: sketchService, // ← Phase 15a
     conceptMaps: conceptMapService, // ← Phase 15b
-    courseDocuments: courseDocumentsService, // ← Phase 16
+    documentScopes: documentScopesService, // ← Phase 16
     activity: activityRegistry,
     subAgent: subAgentRegistry,
     quickCheck: quickCheckService, // ← Phase 17

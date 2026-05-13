@@ -687,7 +687,10 @@ export class SessionServiceImpl implements SessionService {
     // Tools consume this directly to avoid a per-dispatch DB call.
     const courseDocumentIds: DocumentId[] | undefined =
       args.courseId !== undefined
-        ? await this.deps.toolServices.courseDocuments.listForCourse(args.courseId)
+        ? await this.deps.toolServices.documentScopes.listForScope({
+            kind: "course",
+            id: args.courseId,
+          })
         : undefined;
 
     const toolContext: ToolContext = {
@@ -732,8 +735,8 @@ export class SessionServiceImpl implements SessionService {
         ...(this.deps.toolServices.vision !== undefined && {
           vision: this.deps.toolServices.vision,
         }),
-        // Phase 16: course documents service — always present.
-        courseDocuments: this.deps.toolServices.courseDocuments,
+        // Phase 16: polymorphic scope ↔ document attachment service — always present.
+        documentScopes: this.deps.toolServices.documentScopes,
         // Phase 16: engine resolver — used by tools that spawn isolated agent sessions.
         engineResolver: this.deps.toolServices.engineResolver,
         // Bootstrap budget resolver — read by course.start_exploration.

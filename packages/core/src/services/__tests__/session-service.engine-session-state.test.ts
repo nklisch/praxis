@@ -107,8 +107,8 @@ function makeService(db: ReturnType<typeof openDb>["db"], engine: Engine): Sessi
     modes: new Map([["teach", makeTeachMode()]]),
     toolDefinitions: [],
     toolServices: {
-      courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
-      // biome-ignore lint/suspicious/noExplicitAny: minimal test stub — only courseDocuments is exercised by these tests
+      documentScopes: { listForScope: vi.fn().mockResolvedValue([]) },
+      // biome-ignore lint/suspicious/noExplicitAny: minimal test stub — only documentScopes is exercised by these tests
     } as any,
     lockService: {
       isSet: async () => false,

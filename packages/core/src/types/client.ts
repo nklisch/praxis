@@ -24,6 +24,11 @@ import type {
 } from "./artifacts.js";
 import type { TimeRange, Timestamp, TldrawSnapshot } from "./common.js";
 import type { ConfiguratorActionRow } from "./configurator.js";
+import type {
+  DocumentScope,
+  DocumentScopeAttachment,
+  DocumentScopeSource,
+} from "./document-scopes.js";
 import type { DraftStreamClient } from "./draft-stream.js";
 import type { EngineEvent } from "./engine.js";
 import type { Rating } from "./flashcards.js";
@@ -58,7 +63,6 @@ import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
 import type { TabId, TabSummary } from "./tabs.js";
-import type { DocumentScopeAttachment, DocumentScope, DocumentScopeSource } from "./document-scopes.js";
 
 export interface PraxisClient {
   session: SessionService;

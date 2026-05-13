@@ -15,10 +15,10 @@ import type {
   AssessmentPlan,
   BootstrapService,
   ConceptGraphId,
-  CourseDocumentsService,
   CourseId,
   DanglingRefsReport,
   DocumentId,
+  DocumentScopesService,
   DraftCourseState,
   DraftEditOp,
   DraftStreamEvent,
@@ -54,8 +54,8 @@ export interface BootstrapServiceDeps {
   log: Logger;
   /** Resolves to the user's currently selected engine. Same pattern as visionResolver. */
   engineResolver: () => Engine;
-  /** Phase 16: course ↔ document attachment — used by confirmDraft to attach source docs. */
-  courseDocuments: CourseDocumentsService;
+  /** Phase 16: polymorphic scope ↔ document attachment — used by confirmDraft to attach source docs. */
+  documentScopes: DocumentScopesService;
   /** Sweep period for stale drafts. Defaults to 60 seconds. */
   sweepIntervalMs?: number;
   /** Test injection seam: supply a custom DraftStore instead of SqliteDraftStore. */
@@ -552,8 +552,8 @@ export class BootstrapServiceImpl implements BootstrapService {
     // Phase 16: attach source documents to the new course.
     if (d.documentIds.length > 0) {
       try {
-        await this.deps.courseDocuments.attachMany({
-          courseId: result.courseId,
+        await this.deps.documentScopes.attachMany({
+          scope: { kind: "course", id: result.courseId },
           documentIds: d.documentIds,
           source: "bootstrap",
         });

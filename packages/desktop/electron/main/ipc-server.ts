@@ -21,7 +21,7 @@ import { brandId, serializeError } from "@praxis/core/types";
 import { app, ipcMain } from "electron";
 import { registerActivityHandlers } from "./activity-channel.js";
 import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
-import { registerCourseDocumentsHandlers } from "./course-documents-channel.js";
+import { registerDocumentScopesHandlers } from "./document-scopes-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
@@ -1206,9 +1206,9 @@ export function registerIpcHandlers(
 
   registerQuickCheckHandlers(services, webContentsGetter, activeAbortControllers, log);
 
-  // ── Phase 16: Course ↔ Document attachments ──────────────────────────────────
+  // ── Phase 16: Polymorphic scope ↔ document attachments ───────────────────────
 
-  registerCourseDocumentsHandlers(services, log);
+  registerDocumentScopesHandlers(services, log);
 
   // ── Shell helpers ─────────────────────────────────────────────────────────────
 

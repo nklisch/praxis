@@ -36,8 +36,8 @@ export function AddDocumentButton({ ingestion }: AddDocumentButtonProps) {
           mimeType={state.mimeType}
           onConfirm={confirmTier}
           onCancel={cancelBatch}
-          batch={state.batch}
-          onSkip={state.batch !== undefined ? skipCurrentFile : undefined}
+          {...(state.batch !== undefined && { batch: state.batch })}
+          {...(state.batch !== undefined && { onSkip: skipCurrentFile })}
         />
       )}
 

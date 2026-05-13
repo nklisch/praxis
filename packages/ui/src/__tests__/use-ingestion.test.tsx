@@ -2,8 +2,8 @@
  * Tests for the useIngestion hook.
  *
  * Verifies:
- * - When opts.courseId is provided, client.ingest.start is called with req.courseId set.
- * - When opts.courseId is absent, client.ingest.start is called without courseId.
+ * - When opts.scope is provided, client.ingest.start is called with req.scope set.
+ * - When opts.scope is absent, client.ingest.start is called without scope.
  * - Initial state is idle.
  * - After startPick → pickFile returns a non-PDF path, ingestion starts immediately.
  * - After a "done" event, state is "done" and onDone fires.
@@ -79,16 +79,17 @@ describe("useIngestion — single-file (startPick)", () => {
     expect(result.current.state.status).toBe("idle");
   });
 
-  it("when opts.courseId is provided, client.ingest.start receives courseId on the request", async () => {
+  it("when opts.scope is provided, client.ingest.start receives scope on the request", async () => {
     const startFn = vi.fn().mockReturnValue(makeDoneStream());
     const client = makeClient({
       pickFilePath: "/documents/textbook.txt",
       startFn: startFn as unknown as PraxisClient["ingest"]["start"],
     });
 
-    const { result } = renderHook(() => useIngestion(undefined, { courseId: COURSE_ID }), {
-      wrapper: wrapper(client),
-    });
+    const { result } = renderHook(
+      () => useIngestion(undefined, { scope: { kind: "course", id: COURSE_ID } }),
+      { wrapper: wrapper(client) },
+    );
 
     await act(async () => {
       await result.current.startPick();
@@ -100,10 +101,10 @@ describe("useIngestion — single-file (startPick)", () => {
 
     expect(startFn).toHaveBeenCalledOnce();
     const req = startFn.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(req.courseId).toBe(COURSE_ID);
+    expect(req.scope).toEqual({ kind: "course", id: COURSE_ID });
   });
 
-  it("when opts.courseId is absent, client.ingest.start receives no courseId", async () => {
+  it("when opts.scope is absent, client.ingest.start receives no scope", async () => {
     const startFn = vi.fn().mockReturnValue(makeDoneStream());
     const client = makeClient({
       pickFilePath: "/documents/textbook.txt",
@@ -121,7 +122,7 @@ describe("useIngestion — single-file (startPick)", () => {
     });
 
     const req = startFn.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(req.courseId).toBeUndefined();
+    expect(req.scope).toBeUndefined();
   });
 
   it("state becomes 'done' with documentId after a done event", async () => {

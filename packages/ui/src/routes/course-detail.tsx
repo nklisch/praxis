@@ -1,4 +1,4 @@
-import type { ConceptMapSummary, CourseId, DocumentSummaryItem } from "@praxis/core/types";
+import type { ConceptMapSummary, CourseId, DocumentScopeAttachment } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
@@ -29,7 +29,7 @@ export function CourseDetailRoute() {
     () => {
       void courseDocsRefresh();
     },
-    courseId ? { courseId: courseId as CourseId } : undefined,
+    courseId ? { scope: { kind: "course" as const, id: courseId as CourseId } } : undefined,
   );
 
   // Phase 16: track whether the library picker is open.
@@ -39,12 +39,12 @@ export function CourseDetailRoute() {
   const courseDocsLoader = useCallback(
     () =>
       courseId
-        ? client.courseDocuments.listForCourse(courseId as CourseId)
-        : Promise.resolve([] as DocumentSummaryItem[]),
+        ? client.documentScopes.listForScope({ kind: "course", id: courseId as CourseId })
+        : Promise.resolve([] as DocumentScopeAttachment[]),
     [client, courseId],
   );
   const {
-    data: courseDocuments,
+    data: attachedDocs,
     loading: courseDocsLoading,
     refresh: courseDocsRefresh,
   } = useResource(courseDocsLoader);
@@ -188,12 +188,12 @@ export function CourseDetailRoute() {
       <section className={styles.documentsSection}>
         <h2 className={styles.sectionTitle}>Documents</h2>
         {courseDocsLoading && <p className={styles.status}>{COPY.loading.documents}</p>}
-        {!courseDocsLoading && (!courseDocuments || courseDocuments.length === 0) && (
-          <EmptyState message={COPY.empty.courseDocumentsEmpty} compact />
+        {!courseDocsLoading && (!attachedDocs || attachedDocs.length === 0) && (
+          <EmptyState message={COPY.empty.attachedDocsEmpty} compact />
         )}
-        {!courseDocsLoading && courseDocuments && courseDocuments.length > 0 && (
+        {!courseDocsLoading && attachedDocs && attachedDocs.length > 0 && (
           <ul className={styles.documentList}>
-            {courseDocuments.map((doc) => (
+            {attachedDocs.map((doc) => (
               <li key={doc.documentId} className={styles.documentItem}>
                 <span className={styles.documentName}>{doc.filename}</span>
                 <span className={styles.documentMeta}>

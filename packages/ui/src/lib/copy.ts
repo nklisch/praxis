@@ -32,8 +32,8 @@ export const COPY = {
     libraryDocumentsEmpty:
       "No documents ingested. Add a textbook, paper, or PDF and Praxis will teach from it.",
     librarySessionsEmpty: "No recent sessions. Open a course or pack to begin a session.",
-    /** Phase 16: course-scoped document states */
-    courseDocumentsEmpty:
+    /** Phase 16: scope-attached document states */
+    attachedDocsEmpty:
       "No documents attached yet. Add one from your files, or reuse one from your library.",
     libraryPickerEmpty: "No documents in your library yet — add one to get started.",
     /** Course concepts list — shown when the course has no concepts yet. */

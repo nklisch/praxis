@@ -19,7 +19,7 @@ export interface LibraryDocumentPickerProps {
 /**
  * Modal picker that lists the student's full document library, marking which
  * docs are already attached to the active course. Clicking "Attach" calls
- * client.courseDocuments.attach and optimistically updates the attached set.
+ * client.documentScopes.attach and optimistically updates the attached set.
  */
 export function LibraryDocumentPicker({
   courseId,
@@ -32,7 +32,7 @@ export function LibraryDocumentPicker({
   const loader = useCallback(async () => {
     const [library, attached] = await Promise.all([
       client.documents.list(),
-      client.courseDocuments.listForCourse(courseId),
+      client.documentScopes.listForScope({ kind: "course", id: courseId }),
     ]);
     const attachedIds = new Set(attached.map((d) => d.documentId));
     return { library, attachedIds };
@@ -54,7 +54,11 @@ export function LibraryDocumentPicker({
         return next;
       });
       try {
-        await client.courseDocuments.attach({ courseId, documentId, source: "manual" });
+        await client.documentScopes.attach({
+          scope: { kind: "course", id: courseId },
+          documentId,
+          source: "manual",
+        });
         // Optimistically add to attached set.
         setData((prev) => {
           if (!prev) return { library: [], attachedIds: new Set([documentId]) };

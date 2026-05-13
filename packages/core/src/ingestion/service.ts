@@ -5,9 +5,8 @@ import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
   ActivityRegistry,
-  CourseDocumentsService,
-  CourseId,
   DocumentId,
+  DocumentScopesService,
   EmbeddingService,
   FtsStore,
   IngestionEvent,
@@ -29,8 +28,8 @@ export interface IngestionServiceDeps {
   pageImageStore: PageImageStore;
   /** Store for embedded images extracted from PPTX (and future: DOCX) files. */
   embeddedImageStore: EmbeddedImageStore;
-  /** Phase 16: when provided, auto-attaches ingested documents to the course specified in IngestionRequest.courseId. */
-  courseDocuments?: CourseDocumentsService;
+  /** When provided, auto-attaches ingested documents to the scope specified in IngestionRequest.scope. */
+  documentScopes?: DocumentScopesService;
   /** Activity registry for ambient progress reporting via the activity rail. */
   activity?: ActivityRegistry;
 }
@@ -240,19 +239,18 @@ export class IngestionService {
       yield { type: "indexing", chunksProcessed: processed, totalChunks: result.chunks.length };
     }
 
-    // Phase 16: auto-attach to course when courseId is set (best-effort).
-    if (req.courseId !== undefined && this.deps.courseDocuments !== undefined) {
+    // Auto-attach to scope when scope is set (best-effort).
+    if (req.scope !== undefined && this.deps.documentScopes !== undefined) {
       try {
-        await this.deps.courseDocuments.attach({
-          courseId: req.courseId as CourseId,
+        await this.deps.documentScopes.attach({
+          scope: req.scope,
           documentId: brandId<"DocumentId">(documentId) as DocumentId,
           source: "ingestion",
         });
-      } catch (e) {
-        this.deps.log.warn("auto-attach to course failed; document still persisted", {
-          documentId,
-          courseId: req.courseId,
-          error: String(e),
+      } catch (err) {
+        this.deps.log.warn("auto-attach to scope failed; document still persisted", {
+          scope: req.scope,
+          error: String(err),
         });
       }
     }

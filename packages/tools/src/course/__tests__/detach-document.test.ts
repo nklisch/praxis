@@ -1,4 +1,4 @@
-import type { CourseDocumentsService } from "@praxis/core/types";
+import type { DocumentScopesService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
@@ -6,28 +6,28 @@ import { detachDocumentTool } from "../detach-document.js";
 
 describe("course.detach_document handler", () => {
   it("detaches a document and returns detached:true", async () => {
-    const courseDocuments: Partial<CourseDocumentsService> = {
+    const documentScopes: Partial<DocumentScopesService> = {
       detach: vi.fn().mockResolvedValue({ detached: true }),
     };
     const ctx = makeToolContext({
-      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+      services: { documentScopes: documentScopes as DocumentScopesService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
     const result = await detachDocumentTool.handler({ documentId: "doc-1" }, ctx);
     expect(result.detached).toBe(true);
     expect(result.message).toBe("Document detached.");
-    expect(courseDocuments.detach).toHaveBeenCalledWith(
+    expect(documentScopes.detach).toHaveBeenCalledWith(
       expect.objectContaining({ documentId: "doc-1" }),
     );
   });
 
   it("returns detached:false when document was not attached", async () => {
-    const courseDocuments: Partial<CourseDocumentsService> = {
+    const documentScopes: Partial<DocumentScopesService> = {
       detach: vi.fn().mockResolvedValue({ detached: false }),
     };
     const ctx = makeToolContext({
-      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+      services: { documentScopes: documentScopes as DocumentScopesService },
       courseId: brandId<"CourseId">("course-x"),
     });
 
@@ -37,9 +37,9 @@ describe("course.detach_document handler", () => {
   });
 
   it("throws if no course in scope", async () => {
-    const courseDocuments: Partial<CourseDocumentsService> = { detach: vi.fn() };
+    const documentScopes: Partial<DocumentScopesService> = { detach: vi.fn() };
     const ctx = makeToolContext({
-      services: { courseDocuments: courseDocuments as CourseDocumentsService },
+      services: { documentScopes: documentScopes as DocumentScopesService },
     });
 
     await expect(detachDocumentTool.handler({ documentId: "doc-1" }, ctx)).rejects.toThrow(

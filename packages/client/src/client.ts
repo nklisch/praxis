@@ -6,7 +6,7 @@ import { AuthoringClientImpl } from "./services/authoring-client.js";
 import { ClaudeAuthClient } from "./services/claude-auth-client.js";
 import { ConceptMapClient } from "./services/concept-map-client.js";
 import { ConfigClient } from "./services/config-client.js";
-import { CourseDocumentsClient } from "./services/course-documents-client.js";
+import { DocumentScopesClient } from "./services/document-scopes-client.js";
 import { DocumentsClient } from "./services/documents-client.js";
 import { DraftsClient } from "./services/drafts-client.js";
 import { FlashcardsClient } from "./services/flashcards-client.js";
@@ -48,7 +48,7 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     tabs: new TabsClient(transport), // ← Phase 14
     sketches: new SketchClient(transport), // ← Phase 15a
     conceptMaps: new ConceptMapClient(transport), // ← Phase 15b
-    courseDocuments: new CourseDocumentsClient(transport), // ← Phase 16
+    documentScopes: new DocumentScopesClient(transport), // ← Phase 16
     activity: new ActivityClient(transport),
     drafts: new DraftsClient(transport),
     quickCheck: new QuickCheckClient(transport), // ← Phase 17

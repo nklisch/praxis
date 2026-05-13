@@ -40,12 +40,14 @@ const MOCK_LOG: Logger = {
   child: vi.fn(() => MOCK_LOG),
 };
 
-const MOCK_COURSE_DOCUMENTS = {
-  listForCourse: vi.fn().mockResolvedValue([]),
-  listForCourseDetailed: vi.fn().mockResolvedValue([]),
+const MOCK_DOCUMENT_SCOPES = {
+  listForScope: vi.fn().mockResolvedValue([]),
+  listForScopeDetailed: vi.fn().mockResolvedValue([]),
   attach: vi.fn().mockResolvedValue({ attached: true }),
   detach: vi.fn().mockResolvedValue({ detached: true }),
   attachMany: vi.fn().mockResolvedValue({ newlyAttached: [] }),
+  listScopesForDocument: vi.fn().mockResolvedValue([]),
+  promoteScope: vi.fn().mockResolvedValue({ promoted: [] }),
 };
 
 function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
@@ -55,7 +57,7 @@ function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
     engineResolver: () => {
       throw new Error("engineResolver not used in handler unit tests");
     },
-    courseDocuments: MOCK_COURSE_DOCUMENTS,
+    documentScopes: MOCK_DOCUMENT_SCOPES,
     sweepIntervalMs: 9_999_999,
   });
 }
@@ -82,6 +84,7 @@ function makeSpySubAgentRegistry() {
     subscribe:
       (_listener: SubAgentListener): (() => void) =>
       () => {},
+    interruptAllForSession: vi.fn(),
   };
 
   return { registry, startSpy };
@@ -154,7 +157,7 @@ describe("course.start_exploration handler — sub-agent registration guard", ()
       services: {
         bootstrap,
         subAgent: registry,
-        courseDocuments: MOCK_COURSE_DOCUMENTS,
+        documentScopes: MOCK_DOCUMENT_SCOPES,
         pedagogyPack: makeEmptyPedagogyPackService(),
         engineResolver: () => engine,
         bootstrapConfigResolver: () => ({ maxSteps: 200 }),
@@ -200,7 +203,7 @@ describe("course.start_exploration handler — sub-agent registration guard", ()
         services: {
           bootstrap,
           subAgent: registry,
-          courseDocuments: MOCK_COURSE_DOCUMENTS,
+          documentScopes: MOCK_DOCUMENT_SCOPES,
           pedagogyPack: makeEmptyPedagogyPackService(),
           engineResolver: () => engine,
           bootstrapConfigResolver: () => ({ maxSteps: 200 }),

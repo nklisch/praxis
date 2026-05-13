@@ -317,7 +317,7 @@ describe("quiz end-to-end", () => {
         memory: null,
         assignments: assignmentService,
         // Phase 16: minimal stub for course-scoped session bootstrapping.
-        courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+        documentScopes: { listForScope: vi.fn().mockResolvedValue([]) },
         // biome-ignore lint/suspicious/noExplicitAny: partial test stub — only quiz assignment path is exercised
       } as any,
       engineFactory: () => new FakeEngine(),

@@ -48,12 +48,14 @@ const MOCK_LOG: Logger = {
   child: vi.fn(() => MOCK_LOG),
 };
 
-const MOCK_COURSE_DOCUMENTS = {
-  listForCourse: vi.fn().mockResolvedValue([]),
-  listForCourseDetailed: vi.fn().mockResolvedValue([]),
+const MOCK_DOCUMENT_SCOPES = {
+  listForScope: vi.fn().mockResolvedValue([]),
+  listForScopeDetailed: vi.fn().mockResolvedValue([]),
   attach: vi.fn().mockResolvedValue({ attached: true }),
   detach: vi.fn().mockResolvedValue({ detached: true }),
   attachMany: vi.fn().mockResolvedValue({ newlyAttached: [] }),
+  listScopesForDocument: vi.fn().mockResolvedValue([]),
+  promoteScope: vi.fn().mockResolvedValue({ promoted: [] }),
 };
 
 function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
@@ -63,7 +65,7 @@ function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
     engineResolver: () => {
       throw new Error("engineResolver not used in explorer tests");
     },
-    courseDocuments: MOCK_COURSE_DOCUMENTS,
+    documentScopes: MOCK_DOCUMENT_SCOPES,
     sweepIntervalMs: 9999999,
   });
 }
@@ -109,7 +111,7 @@ function makeBaseContext(
       flashcards: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: stub
       fsrsScheduler: null as any,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       // biome-ignore lint/suspicious/noExplicitAny: stub
       engineResolver: null as any,
     },

@@ -78,13 +78,15 @@ const MOCK_LOG = {
   child: vi.fn(() => MOCK_LOG),
 };
 
-/** Minimal no-op stub for CourseDocumentsService (tests that don't exercise confirmDraft). */
-const MOCK_COURSE_DOCUMENTS = {
-  listForCourse: vi.fn().mockResolvedValue([]),
-  listForCourseDetailed: vi.fn().mockResolvedValue([]),
+/** Minimal no-op stub for DocumentScopesService (tests that don't exercise confirmDraft). */
+const MOCK_DOCUMENT_SCOPES = {
+  listForScope: vi.fn().mockResolvedValue([]),
+  listForScopeDetailed: vi.fn().mockResolvedValue([]),
   attach: vi.fn().mockResolvedValue({ attached: true }),
   detach: vi.fn().mockResolvedValue({ detached: true }),
   attachMany: vi.fn().mockResolvedValue({ newlyAttached: [] }),
+  listScopesForDocument: vi.fn().mockResolvedValue([]),
+  promoteScope: vi.fn().mockResolvedValue({ promoted: [] }),
 };
 
 // ─── applyEdit pure function tests ──────────────────────────────────────────
@@ -104,7 +106,7 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
       draftStore: store,
     });
@@ -246,7 +248,7 @@ describe("BootstrapServiceImpl — draft not found", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
     });
 
@@ -261,7 +263,7 @@ describe("BootstrapServiceImpl — draft not found", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
     });
 
@@ -284,7 +286,7 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
     });
 
@@ -363,7 +365,7 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
     });
 
@@ -386,7 +388,7 @@ describe("BootstrapServiceImpl — new edit ops (relink-concept, add-edge, remov
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
-      courseDocuments: MOCK_COURSE_DOCUMENTS,
+      documentScopes: MOCK_DOCUMENT_SCOPES,
       sweepIntervalMs: 9999999,
       draftStore: store,
     });

@@ -1,4 +1,4 @@
-import type { CourseId } from "@praxis/core/types";
+import type { DocumentScope } from "@praxis/core/types";
 import { useCallback, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 
@@ -100,12 +100,12 @@ function errString(err: unknown): string {
  *
  * @param onDone - optional callback fired after each individual successful
  *   ingestion (fires N times for a batch of N).
- * @param opts.courseId - when set, each ingested document is auto-attached to
- *   this course (the backend ingestion service handles the attachment).
+ * @param opts.scope - when set, each ingested document is auto-attached to
+ *   this scope (the backend ingestion service handles the attachment).
  */
 export function useIngestion(
   onDone?: () => void,
-  opts?: { courseId?: CourseId },
+  opts?: { scope?: DocumentScope },
 ): UseIngestionResult {
   const client = usePraxisClient();
   const [state, setState] = useState<IngestionState>({ status: "idle" });
@@ -159,7 +159,7 @@ export function useIngestion(
           mimeType: file.mimeType,
           studentId: "default", // resolved server-side by main process
           ...(preferIngestorId !== undefined && { preferIngestorId }),
-          ...(opts?.courseId !== undefined && { courseId: opts.courseId }),
+          ...(opts?.scope !== undefined && { scope: opts.scope }),
         };
 
         for await (const event of client.ingest.start(req)) {
@@ -194,7 +194,7 @@ export function useIngestion(
         };
       }
     },
-    [client, onDone, opts?.courseId],
+    [client, onDone, opts?.scope],
   );
 
   // ── runIngestion (used by single-file startPick path) ───────────────────────
@@ -215,7 +215,7 @@ export function useIngestion(
           mimeType,
           studentId: "default",
           ...(preferIngestorId !== undefined && { preferIngestorId }),
-          ...(opts?.courseId !== undefined && { courseId: opts.courseId }),
+          ...(opts?.scope !== undefined && { scope: opts.scope }),
         };
 
         for await (const event of client.ingest.start(req)) {
@@ -237,7 +237,7 @@ export function useIngestion(
         setState({ status: "error", message: errString(err) });
       }
     },
-    [client, onDone, opts?.courseId],
+    [client, onDone, opts?.scope],
   );
 
   // ── Single-file startPick (unchanged public API) ─────────────────────────────

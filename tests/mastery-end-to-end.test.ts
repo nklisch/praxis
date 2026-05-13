@@ -269,7 +269,7 @@ describe("mastery end-to-end", () => {
         courseState: null,
         memory: memoryService,
         // Phase 16: minimal stub for course-scoped session bootstrapping.
-        courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+        documentScopes: { listForScope: vi.fn().mockResolvedValue([]) },
         // biome-ignore lint/suspicious/noExplicitAny: test stub — partial service deps
       } as any,
       indexerOrchestrator,

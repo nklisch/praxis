@@ -6,13 +6,18 @@
  * - Lists all library documents from client.documents.list().
  * - Marks already-attached docs with "attached" badge (no Attach button).
  * - Shows "Attach" button for unattached docs.
- * - Clicking "Attach" calls client.courseDocuments.attach() with correct args.
+ * - Clicking "Attach" calls client.documentScopes.attach() with correct args.
  * - After attach, the row shows "attached" badge (optimistic update).
  * - Empty state renders when library is empty.
  * - Close button calls onClose.
  * - ESC calls onClose.
  */
-import type { CourseId, DocumentId, DocumentSummaryItem, PraxisClient } from "@praxis/core/types";
+import type {
+  CourseId,
+  DocumentId,
+  DocumentScopeAttachment,
+  PraxisClient,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -43,20 +48,22 @@ function makeDocSummary(
   };
 }
 
-function makeCourseDocSummary(documentId: string, filename: string): DocumentSummaryItem {
+function makeScopeAttachment(documentId: string, filename: string): DocumentScopeAttachment {
   return {
     documentId: documentId as DocumentId,
     filename,
     mimeType: "application/pdf",
     chunkCount: 5,
     hasPageImages: false,
+    source: "manual",
+    attachedAt: new Date(),
   };
 }
 
 function makeClient(opts?: {
   library?: ReturnType<typeof makeDocSummary>[];
-  attached?: DocumentSummaryItem[];
-  attachFn?: PraxisClient["courseDocuments"]["attach"];
+  attached?: DocumentScopeAttachment[];
+  attachFn?: PraxisClient["documentScopes"]["attach"];
 }): PraxisClient {
   return makeFakeClient({
     documents: {
@@ -64,15 +71,13 @@ function makeClient(opts?: {
       delete: vi.fn().mockResolvedValue(undefined),
       pageImage: vi.fn().mockResolvedValue(null),
     } as PraxisClient["documents"],
-    courseDocuments: {
-      listForCourse: vi.fn().mockResolvedValue(opts?.attached ?? []),
+    documentScopes: {
+      listForScope: vi.fn().mockResolvedValue(opts?.attached ?? []),
       attach:
         opts?.attachFn ??
-        (vi
-          .fn()
-          .mockResolvedValue({ attached: true }) as PraxisClient["courseDocuments"]["attach"]),
+        (vi.fn().mockResolvedValue({ attached: true }) as PraxisClient["documentScopes"]["attach"]),
       detach: vi.fn().mockResolvedValue({ detached: true }),
-    } as PraxisClient["courseDocuments"],
+    } as PraxisClient["documentScopes"],
   });
 }
 
@@ -110,7 +115,7 @@ describe("LibraryDocumentPicker", () => {
   it("marks an already-attached doc with 'attached' badge and no Attach button", async () => {
     const client = makeClient({
       library: [makeDocSummary(DOC_A, "algebra.pdf"), makeDocSummary(DOC_B, "calculus.pdf")],
-      attached: [makeCourseDocSummary(DOC_A, "algebra.pdf")],
+      attached: [makeScopeAttachment(DOC_A, "algebra.pdf")],
     });
     renderPicker(client);
 
@@ -125,11 +130,11 @@ describe("LibraryDocumentPicker", () => {
     expect(attachBtns).toHaveLength(1);
   });
 
-  it("clicking Attach calls courseDocuments.attach with correct args", async () => {
+  it("clicking Attach calls documentScopes.attach with correct args", async () => {
     const attachFn = vi.fn().mockResolvedValue({ attached: true });
     const client = makeClient({
       library: [makeDocSummary(DOC_B, "calculus.pdf")],
-      attachFn: attachFn as PraxisClient["courseDocuments"]["attach"],
+      attachFn: attachFn as PraxisClient["documentScopes"]["attach"],
     });
     renderPicker(client);
 
@@ -141,7 +146,7 @@ describe("LibraryDocumentPicker", () => {
 
     await waitFor(() => {
       expect(attachFn).toHaveBeenCalledWith({
-        courseId: COURSE_ID,
+        scope: { kind: "course", id: COURSE_ID },
         documentId: DOC_B,
         source: "manual",
       });
@@ -212,24 +217,24 @@ describe("LibraryDocumentPicker", () => {
 
   it("loads both library docs and attached docs in parallel", async () => {
     const listFn = vi.fn().mockResolvedValue([]);
-    const listForCourseFn = vi.fn().mockResolvedValue([]);
+    const listForScopeFn = vi.fn().mockResolvedValue([]);
     const client = makeFakeClient({
       documents: {
         list: listFn,
         delete: vi.fn(),
         pageImage: vi.fn().mockResolvedValue(null),
       } as PraxisClient["documents"],
-      courseDocuments: {
-        listForCourse: listForCourseFn,
+      documentScopes: {
+        listForScope: listForScopeFn,
         attach: vi.fn().mockResolvedValue({ attached: true }),
         detach: vi.fn().mockResolvedValue({ detached: true }),
-      } as PraxisClient["courseDocuments"],
+      } as PraxisClient["documentScopes"],
     });
     renderPicker(client);
 
     await waitFor(() => {
       expect(listFn).toHaveBeenCalledOnce();
-      expect(listForCourseFn).toHaveBeenCalledWith(COURSE_ID);
+      expect(listForScopeFn).toHaveBeenCalledWith({ kind: "course", id: COURSE_ID });
     });
   });
 });

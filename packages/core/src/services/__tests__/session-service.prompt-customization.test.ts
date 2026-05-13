@@ -129,7 +129,7 @@ function makeService(
     modes: new Map([[teachMode.id, teachMode]]),
     toolDefinitions: [],
     toolServices: {
-      courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+      documentScopes: { listForScope: vi.fn().mockResolvedValue([]) },
       // biome-ignore lint/suspicious/noExplicitAny: minimal stub — only exercised by these tests
     } as any,
     lockService: {
@@ -278,7 +278,7 @@ describe("session-service prompt-customization compose path", () => {
       modes: new Map([[teachMode.id, teachMode]]),
       toolDefinitions: [],
       toolServices: {
-        courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+        documentScopes: { listForScope: vi.fn().mockResolvedValue([]) },
         artifacts: { newlyUnlockedCount: vi.fn().mockResolvedValue(0) },
         courseState: {
           // Return a minimal valid CourseStateSnapshot so composeCourseContextFragment works.

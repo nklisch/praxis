@@ -1,7 +1,6 @@
 export type * from "./activity.js";
 export type * from "./artifacts.js";
 export type * from "./citation.js";
-export type * from "./document-scopes.js";
 // client.ts: Note: MemoryService is intentionally NOT re-exported from here.
 // The client-side MemoryService (no studentId params) lives in ./client.ts and is
 // imported directly by client code and MemoryClient. The server-side MemoryService
@@ -15,8 +14,8 @@ export type {
   BootstrapOpts,
   ConceptMapClientApi,
   ConfigService,
-  DocumentScopesClientApi,
   CreateCourseInput,
+  DocumentScopesClientApi,
   DocumentSummary,
   DocumentsClient,
   EngineConfigSnapshot,
@@ -49,6 +48,7 @@ export type * from "./concept-graph.js";
 export type { ConceptMapService } from "./concept-map-service.js";
 export type * from "./configurator.js";
 export type * from "./conversation.js";
+export type * from "./document-scopes.js";
 // Bootstrap mode: live draft-stream events surfaced to the renderer.
 export type * from "./draft-stream.js";
 export type * from "./engine.js";

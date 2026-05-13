@@ -109,8 +109,8 @@ function makeService(
     ]),
     toolDefinitions: [],
     toolServices: {
-      courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
-      // biome-ignore lint/suspicious/noExplicitAny: test stub — spawnFromAssignment only calls courseDocuments.listForCourse
+      documentScopes: { listForScope: vi.fn().mockResolvedValue([]) },
+      // biome-ignore lint/suspicious/noExplicitAny: test stub — spawnFromAssignment only calls documentScopes.listForScope
     } as any,
     lockService: {
       isSet: async () => false,

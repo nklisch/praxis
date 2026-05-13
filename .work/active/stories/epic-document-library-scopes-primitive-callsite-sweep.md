@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-scopes-primitive-callsite-sweep
 kind: story
-stage: implementing
+stage: review
 tags: [core, tools, ingestion, ipc]
 parent: epic-document-library-scopes-primitive
 depends_on: [epic-document-library-scopes-primitive-service-and-types]
@@ -73,3 +73,28 @@ all tests pass, and zero references to `CourseDocuments*` remain.
 - New consumers of `document_scopes` (those land in wave-2 features:
   `bootstrap-session-scoped-attachment`, `viewer-tab-scoped-sidebar`,
   `library-view-tabs-filters`).
+
+## Implementation Notes
+
+All call sites swept in a single pass. Key decisions made during implementation:
+
+- `listCourseDocumentsTool` renamed to `listCourseDocsTool` to avoid the
+  `CourseDocuments` substring appearing in tool exports (the file remains
+  `list-course-documents.ts` since it names the operation, not the old service).
+- `course-documents-channel.ts` and `course-documents-client.ts` renamed via
+  `git mv` to preserve blame.
+- `BootstrapServiceDeps.courseDocuments` and `ServiceDeps.toolServices.courseDocuments`
+  both renamed to `documentScopes` in sync with the type changes from the
+  previous story.
+- Three pre-existing typecheck failures fixed as a cleanup bundle alongside the
+  sweep: (1) `Promise.withResolvers` requiring ES2024 lib in UI and desktop
+  electron tsconfigs; (2) `exactOptionalPropertyTypes` violations in
+  `add-document-button.tsx` / `add-folder-button.tsx`; (3) stale
+  `retrieveFromTextbookTool` import in `textbook-rag-end-to-end.test.ts` and a
+  missing `previewPromptWithAttribution` stub in `configure-end-to-end.test.ts`.
+- `SubAgentRegistry.interruptAllForSession` (added by the cancellation-propagation
+  story) was missing from the mock in `start-exploration.test.ts` — added a
+  `vi.fn()` stub to satisfy the interface.
+- After the sweep: zero `CourseDocuments*` or `courseDocuments` references remain
+  in `packages/` or `tests/`. `pnpm typecheck`, `pnpm lint`, and `pnpm test` all
+  pass (3013 tests, 20 skipped for slow-test gate).

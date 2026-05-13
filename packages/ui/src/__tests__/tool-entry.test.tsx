@@ -37,7 +37,12 @@ describe("ToolEntry", () => {
 
   it("settled: clicking the summary expands to show details", () => {
     const { container } = render(
-      <ToolEntry toolName="grade_math" status="settled" input={{ expr: "x^2" }} output={{ score: 1 }} />,
+      <ToolEntry
+        toolName="grade_math"
+        status="settled"
+        input={{ expr: "x^2" }}
+        output={{ score: 1 }}
+      />,
     );
     const button = container.querySelector("button[type='button']");
     expect(button).toBeDefined();

@@ -15,7 +15,7 @@ const OutputSchema = z.object({
   ),
 });
 
-export const listCourseDocumentsTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
+export const listCourseDocsTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.list_course_documents",
   description:
     "List documents attached to the active course. Use this in teach/configure modes when the user asks 'what materials does this course have?'. Errors if no course is in scope.",
@@ -27,7 +27,10 @@ export const listCourseDocumentsTool: ToolDefinition<typeof InputSchema, typeof 
     if (ctx.courseId === undefined) {
       throw new Error("course.list_course_documents requires a course-scoped session");
     }
-    const detailed = await ctx.services.courseDocuments.listForCourseDetailed(ctx.courseId);
+    const detailed = await ctx.services.documentScopes.listForScopeDetailed({
+      kind: "course",
+      id: ctx.courseId,
+    });
     return {
       documents: detailed.map((d) => ({
         documentId: d.documentId,

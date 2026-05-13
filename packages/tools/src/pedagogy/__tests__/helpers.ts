@@ -168,7 +168,7 @@ export function makeCtx(pedagogyPack: PedagogyPackService): ToolContext {
       // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in pedagogy tool tests
       assignments: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in pedagogy tool tests
-      courseDocuments: null as any,
+      documentScopes: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: test stub — not used in pedagogy tool tests
       engineResolver: null as any,
     },

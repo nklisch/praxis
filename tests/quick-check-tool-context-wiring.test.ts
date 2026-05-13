@@ -110,7 +110,7 @@ describe("QuickCheckService wiring into ToolContext", () => {
       ftsStore: {} as any,
       embeddings: {} as any,
       documents: {} as any,
-      courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) } as any,
+      documentScopes: { listForScope: vi.fn().mockResolvedValue([]) } as any,
       quickCheck,
     } as unknown as ServiceDeps["toolServices"];
     /* biome-ignore-end lint/suspicious/noExplicitAny: partial test stub — only `quickCheck` is exercised */

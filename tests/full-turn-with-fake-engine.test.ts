@@ -119,8 +119,8 @@ const mockToolServices: ServiceDeps["toolServices"] = {
   embeddings: mockEmbeddings,
   documents: mockDocuments,
   // Phase 16: minimum stub so SessionServiceImpl.openActive can resolve
-  // courseDocumentIds for course-scoped sessions.
-  courseDocuments: { listForCourse: vi.fn().mockResolvedValue([]) },
+  // document ids for course-scoped sessions.
+  documentScopes: { listForScope: vi.fn().mockResolvedValue([]) },
 } as any;
 
 beforeEach(() => {

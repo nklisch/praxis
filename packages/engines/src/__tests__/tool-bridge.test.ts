@@ -297,7 +297,7 @@ describe("startToolBridge", () => {
     let currentSignal: AbortSignal | undefined;
     const getSignal = (): AbortSignal | undefined => currentSignal;
 
-    let observedSignal: AbortSignal | undefined = undefined;
+    let observedSignal: AbortSignal | undefined;
     const dispatchMock = vi.fn(
       async (
         _name: string,

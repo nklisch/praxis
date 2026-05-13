@@ -25,7 +25,7 @@ import { draftSetMetadataTool } from "./draft-set-metadata.js";
 import { editDraftTool } from "./edit-draft.js";
 import { getLessonDetailTool } from "./get-lesson-detail.js";
 import { listCanonicalPacksTool } from "./list-canonical-packs.js";
-import { listCourseDocumentsTool } from "./list-course-documents.js";
+import { listCourseDocsTool } from "./list-course-documents.js";
 import { listDanglingRefsTool } from "./list-dangling-refs.js";
 import { listLessonsInUnitTool } from "./list-lessons-in-unit.js";
 import { listLibraryDocumentsTool } from "./list-library-documents.js";
@@ -55,7 +55,7 @@ export {
   editDraftTool,
   getLessonDetailTool,
   listCanonicalPacksTool,
-  listCourseDocumentsTool,
+  listCourseDocsTool,
   listDanglingRefsTool,
   listLessonsInUnitTool,
   listLibraryDocumentsTool,
@@ -75,7 +75,7 @@ export {
 export const COURSE_TOOLS = [
   // Library + course-doc tools.
   listLibraryDocumentsTool,
-  listCourseDocumentsTool,
+  listCourseDocsTool,
   attachDocumentTool,
   detachDocumentTool,
   // Navigation tools.
