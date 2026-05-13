@@ -421,7 +421,10 @@ describe("setEngineConfig round-trip — vision validation", () => {
 
   it("accepts valid vision config and reads it back", () => {
     const { db: client } = openDb({ path: db.dbPath });
-    writeEngineConfig(client, inMemorySecretStorage(), { engineId: "direct.openai", model: "gpt-4o" });
+    writeEngineConfig(client, inMemorySecretStorage(), {
+      engineId: "direct.openai",
+      model: "gpt-4o",
+    });
     const config = readEngineConfig(client, inMemorySecretStorage());
     expect(config.engineId).toBe("direct.openai");
     expect(config.model).toBe("gpt-4o");

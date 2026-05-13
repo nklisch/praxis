@@ -220,11 +220,7 @@ class ClaudeCodeEngineSession implements EngineSession {
       // adapter's mirror counter must persist for the same lifetime to keep
       // both channels aligned (see this.eventState declaration).
       for await (const event of turn) {
-        const mapped = mapClaudeCodeEvent(
-          event,
-          { serverName: this.serverName },
-          this.eventState,
-        );
+        const mapped = mapClaudeCodeEvent(event, { serverName: this.serverName }, this.eventState);
         if (mapped) yield mapped;
       }
 

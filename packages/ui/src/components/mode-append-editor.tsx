@@ -2,8 +2,8 @@ import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useLock } from "../hooks/use-lock.js";
-import styles from "./mode-append-editor.module.css";
 import { LoadingState } from "./loading-state.js";
+import styles from "./mode-append-editor.module.css";
 import { PromptPreviewPane } from "./prompt-preview-pane.js";
 
 const STUDENT_MODES = [
@@ -74,9 +74,7 @@ export function ModeAppendEditor(): JSX.Element {
     if (newMode === selectedMode) return;
 
     if (dirty) {
-      const discard = window.confirm(
-        "You have unsaved changes. Discard and switch mode?",
-      );
+      const discard = window.confirm("You have unsaved changes. Discard and switch mode?");
       if (!discard) return;
     }
 
@@ -173,10 +171,7 @@ export function ModeAppendEditor(): JSX.Element {
           )}
         </div>
 
-        <PromptPreviewPane
-          modeId={selectedMode}
-          draftAppend={draft}
-        />
+        <PromptPreviewPane modeId={selectedMode} draftAppend={draft} />
       </div>
     </div>
   );

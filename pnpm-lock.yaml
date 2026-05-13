@@ -473,6 +473,9 @@ importers:
       '@praxis/core':
         specifier: workspace:*
         version: link:../core
+      '@praxis/curriculum':
+        specifier: workspace:*
+        version: link:../curriculum
       '@praxis/tools':
         specifier: workspace:*
         version: link:../tools

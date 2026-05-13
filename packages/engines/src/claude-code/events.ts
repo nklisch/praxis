@@ -113,8 +113,7 @@ export function mapClaudeCodeEvent(
       // If the UUID is unknown (no state, or unexpected result without prior tool_use),
       // fall through to the raw toolId string as a safe fallback.
       const rawToolId = event.toolId ?? "";
-      const resolvedCallId =
-        state?.toolIdToCallId.get(rawToolId) ?? rawToolId;
+      const resolvedCallId = state?.toolIdToCallId.get(rawToolId) ?? rawToolId;
       return { type: "tool_result", callId: resolvedCallId, result };
     }
     case "result": {

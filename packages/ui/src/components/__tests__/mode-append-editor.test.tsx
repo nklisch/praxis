@@ -82,9 +82,7 @@ describe("ModeAppendEditor", () => {
 
     // After load, the textarea appears
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
   });
 
@@ -136,9 +134,7 @@ describe("ModeAppendEditor", () => {
     renderEditor(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     const select = screen.getByRole("combobox", { name: /select mode to edit/i });
@@ -169,9 +165,7 @@ describe("ModeAppendEditor", () => {
     renderEditor(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     const textarea = screen.getByRole("textbox", { name: /append text for teach mode/i });
@@ -187,9 +181,7 @@ describe("ModeAppendEditor", () => {
     renderEditor(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     const textarea = screen.getByRole("textbox", { name: /append text for teach mode/i });
@@ -212,9 +204,7 @@ describe("ModeAppendEditor", () => {
     renderEditor(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     const textarea = screen.getByRole("textbox", { name: /append text for teach mode/i });
@@ -233,9 +223,7 @@ describe("ModeAppendEditor", () => {
     renderEditor(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     const textarea = screen.getByRole("textbox", { name: /append text for teach mode/i });
@@ -257,9 +245,7 @@ describe("ModeAppendEditor", () => {
     renderEditor(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     const textarea = screen.getByRole("textbox", { name: /append text for teach mode/i });
@@ -319,9 +305,7 @@ describe("ModeAppendEditor", () => {
     renderEditor(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     // Make an unsaved edit
@@ -332,9 +316,7 @@ describe("ModeAppendEditor", () => {
     const select = screen.getByRole("combobox", { name: /select mode to edit/i });
     fireEvent.change(select, { target: { value: "quiz" } });
 
-    expect(confirmSpy).toHaveBeenCalledWith(
-      "You have unsaved changes. Discard and switch mode?",
-    );
+    expect(confirmSpy).toHaveBeenCalledWith("You have unsaved changes. Discard and switch mode?");
 
     // After confirming, the mode should switch
     await waitFor(() => {
@@ -350,9 +332,7 @@ describe("ModeAppendEditor", () => {
     renderEditor(client);
 
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     // Make an unsaved edit
@@ -365,9 +345,7 @@ describe("ModeAppendEditor", () => {
 
     // Mode should still be teach
     await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /append text for teach mode/i }),
-      ).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /append text for teach mode/i })).toBeDefined();
     });
 
     confirmSpy.mockRestore();

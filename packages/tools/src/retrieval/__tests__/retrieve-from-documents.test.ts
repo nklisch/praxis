@@ -114,7 +114,10 @@ describe("retrieve_from_documents handler", () => {
 
   it("propagates documentIds filter to both stores", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1")], [makeFtsHit("c1")]);
-    await retrieveFromDocumentsTool.handler({ query: "cell", topK: 5, documentIds: ["doc-1"] }, ctx);
+    await retrieveFromDocumentsTool.handler(
+      { query: "cell", topK: 5, documentIds: ["doc-1"] },
+      ctx,
+    );
 
     expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ documentIds: ["doc-1"] }),

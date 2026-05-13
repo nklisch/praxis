@@ -410,7 +410,12 @@ describe("IngestionService", () => {
     const ingestor = makeIngestor(result);
 
     // Pre-seed an image under the synthetic dir so the rename has something to move
-    await embeddedImageStore.save({ documentId: synthId, imageName, bytes: imageBytes, mimeType: "image/png" });
+    await embeddedImageStore.save({
+      documentId: synthId,
+      imageName,
+      bytes: imageBytes,
+      mimeType: "image/png",
+    });
 
     const svc = new IngestionService({
       db,
@@ -436,7 +441,10 @@ describe("IngestionService", () => {
     if (doneEvent?.type === "done") {
       // After rename: real docId dir should have the image; synth dir should be gone
       const readFromSynth = await embeddedImageStore.read({ documentId: synthId, imageName });
-      const readFromReal = await embeddedImageStore.read({ documentId: doneEvent.documentId, imageName });
+      const readFromReal = await embeddedImageStore.read({
+        documentId: doneEvent.documentId,
+        imageName,
+      });
       expect(readFromSynth).toBeNull();
       expect(readFromReal).not.toBeNull();
       expect(readFromReal).toEqual(imageBytes);

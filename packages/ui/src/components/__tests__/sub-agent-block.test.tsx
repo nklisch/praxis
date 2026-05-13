@@ -12,8 +12,8 @@
 import type { PraxisClient, SubAgentEvent, SubAgentItem } from "@praxis/core/types";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PraxisClientProvider } from "../../context/client-context.js";
 import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
+import { PraxisClientProvider } from "../../context/client-context.js";
 import { SubAgentBlock } from "../sub-agent-block.js";
 
 afterEach(() => cleanup());
@@ -33,9 +33,7 @@ function makeItem(overrides?: Partial<SubAgentItem>): SubAgentItem {
   };
 }
 
-async function* makeStream(
-  events: SubAgentEvent[],
-): AsyncGenerator<SubAgentEvent, void, unknown> {
+async function* makeStream(events: SubAgentEvent[]): AsyncGenerator<SubAgentEvent, void, unknown> {
   for (const event of events) {
     yield event;
     await new Promise((r) => setTimeout(r, 0));
@@ -51,13 +49,7 @@ function makeClient(events: SubAgentEvent[]): PraxisClient {
   });
 }
 
-function Wrapper({
-  client,
-  children,
-}: {
-  client: PraxisClient;
-  children: React.ReactNode;
-}) {
+function Wrapper({ client, children }: { client: PraxisClient; children: React.ReactNode }) {
   return <PraxisClientProvider client={client}>{children}</PraxisClientProvider>;
 }
 
@@ -93,13 +85,26 @@ describe("SubAgentBlock", () => {
   it("shows step count after steps arrive", async () => {
     const item = makeItem();
     const steps = [
-      { callId: "s1", toolName: "document.outline", label: "Reading outline", startedAt: Date.now() as SubAgentItem["startedAt"] },
-      { callId: "s2", toolName: "document.read_pages", label: "Reading pages", startedAt: Date.now() as SubAgentItem["startedAt"] },
-      { callId: "s3", toolName: "document.list_sections", label: "Scanning sections", startedAt: Date.now() as SubAgentItem["startedAt"] },
+      {
+        callId: "s1",
+        toolName: "document.outline",
+        label: "Reading outline",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+      },
+      {
+        callId: "s2",
+        toolName: "document.read_pages",
+        label: "Reading pages",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+      },
+      {
+        callId: "s3",
+        toolName: "document.list_sections",
+        label: "Scanning sections",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+      },
     ];
-    const events: SubAgentEvent[] = [
-      { kind: "snapshot", items: [{ ...item, steps }] },
-    ];
+    const events: SubAgentEvent[] = [{ kind: "snapshot", items: [{ ...item, steps }] }];
     const client = makeClient(events);
     const { container } = render(
       <Wrapper client={client}>
@@ -116,11 +121,14 @@ describe("SubAgentBlock", () => {
   it("click expands to show step list", async () => {
     const item = makeItem();
     const steps = [
-      { callId: "s1", toolName: "document.outline", label: "Reading the table of contents", startedAt: Date.now() as SubAgentItem["startedAt"] },
+      {
+        callId: "s1",
+        toolName: "document.outline",
+        label: "Reading the table of contents",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+      },
     ];
-    const events: SubAgentEvent[] = [
-      { kind: "snapshot", items: [{ ...item, steps }] },
-    ];
+    const events: SubAgentEvent[] = [{ kind: "snapshot", items: [{ ...item, steps }] }];
     const client = makeClient(events);
     const { getByRole, queryByText } = render(
       <Wrapper client={client}>
@@ -214,7 +222,12 @@ describe("SubAgentBlock", () => {
   it("aria-expanded toggles on click", async () => {
     const item = makeItem();
     const steps = [
-      { callId: "s1", toolName: "document.outline", label: "Reading outline", startedAt: Date.now() as SubAgentItem["startedAt"] },
+      {
+        callId: "s1",
+        toolName: "document.outline",
+        label: "Reading outline",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+      },
     ];
     const client = makeClient([{ kind: "snapshot", items: [{ ...item, steps }] }]);
     const { getByRole } = render(

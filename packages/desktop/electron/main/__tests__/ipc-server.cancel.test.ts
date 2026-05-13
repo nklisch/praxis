@@ -37,9 +37,9 @@ vi.mock("electron", () => ({
   },
 }));
 
+import type { EngineEvent } from "@praxis/core/types";
 // registerIpcHandlers is imported AFTER the mock is in place (Vitest hoisting).
 import { registerIpcHandlers } from "../ipc-server.js";
-import type { EngineEvent } from "@praxis/core/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -49,9 +49,7 @@ function makeFakeLogger() {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(function () {
-      return makeFakeLogger();
-    }),
+    child: vi.fn(() => makeFakeLogger()),
     ingestRendererRecord: vi.fn(),
     shutdown: vi.fn().mockResolvedValue(undefined),
   };
@@ -126,7 +124,11 @@ afterEach(() => {
 describe("praxis.session.send.cancel → AbortSignal propagation", () => {
   it("registers both praxis.session.send.start and praxis.session.send.cancel", () => {
     const log = makeFakeLogger();
-    registerIpcHandlers(makeServices(async function* () {}), () => null, log);
+    registerIpcHandlers(
+      makeServices(async function* () {}),
+      () => null,
+      log,
+    );
 
     expect(handlers.has("praxis.session.send.start")).toBe(true);
     expect(onListeners.has("praxis.session.send.cancel")).toBe(true);

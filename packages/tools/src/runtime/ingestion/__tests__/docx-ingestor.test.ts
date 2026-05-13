@@ -49,10 +49,10 @@ async function getMockConvertToMarkdown() {
  * Make a fake mammoth image object for use in imgElement callbacks.
  * `contentType` is a sync string in mammoth@1.12.0.
  */
-function makeFakeImage(opts: {
-  contentType?: string;
-  base64?: string;
-}): { contentType: string; readAsBase64String: () => Promise<string> } {
+function makeFakeImage(opts: { contentType?: string; base64?: string }): {
+  contentType: string;
+  readAsBase64String: () => Promise<string>;
+} {
   return {
     contentType: opts.contentType ?? "image/png",
     readAsBase64String: async () =>

@@ -47,9 +47,7 @@ function makeFakeLogger() {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(function () {
-      return makeFakeLogger();
-    }),
+    child: vi.fn(() => makeFakeLogger()),
     ingestRendererRecord: vi.fn(),
     shutdown: vi.fn().mockResolvedValue(undefined),
   };
@@ -193,9 +191,9 @@ describe("praxis.author.setModeAppend lock gate", () => {
     const handler = handlers.get("praxis.author.setModeAppend");
     expect(handler).toBeDefined();
 
-    await expect(
-      handler?.({}, { modeId: "teach", text: "injected append" }),
-    ).rejects.toThrow(/Locked|configurator|unlock/i);
+    await expect(handler?.({}, { modeId: "teach", text: "injected append" })).rejects.toThrow(
+      /Locked|configurator|unlock/i,
+    );
   });
 
   it("does NOT call authoring.setModeAppend when locked", async () => {

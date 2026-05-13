@@ -152,7 +152,11 @@ export class SessionServiceImpl implements SessionService {
 
     const mode = this.requireMode(sessionRow.modeId);
     const studentId = brandId<"StudentId">(sessionRow.studentId);
-    const currentEngineId = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log).engineId;
+    const currentEngineId = readEngineConfig(
+      this.deps.db,
+      this.deps.secretStorage,
+      this.deps.log,
+    ).engineId;
 
     // Engine swap detection + reopen.
     let entry = this.activeSessions.get(sessionId);

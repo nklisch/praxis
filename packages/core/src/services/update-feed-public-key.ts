@@ -37,9 +37,7 @@ export function isPublicKeyConfigured(): boolean {
  *
  * @param _keyBase64Override - test-only injection seam; production callers omit this.
  */
-export async function importUpdateFeedPublicKey(
-  _keyBase64Override?: string,
-): Promise<CryptoKey> {
+export async function importUpdateFeedPublicKey(_keyBase64Override?: string): Promise<CryptoKey> {
   const b64 = (_keyBase64Override ?? UPDATE_FEED_PUBLIC_KEY_BASE64).trim();
   if (b64.length === 0) {
     throw new Error("UPDATE_FEED_PUBLIC_KEY_BASE64 is not configured");

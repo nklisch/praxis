@@ -254,17 +254,32 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
     const ctx = { serverName: "praxis" };
 
     const event1 = mapClaudeCodeEvent(
-      { type: "tool_use", toolName: "praxis__document.outline", toolId: "toolu_01ABC", toolInput: {} },
+      {
+        type: "tool_use",
+        toolName: "praxis__document.outline",
+        toolId: "toolu_01ABC",
+        toolInput: {},
+      },
       ctx,
       state,
     );
     const event2 = mapClaudeCodeEvent(
-      { type: "tool_use", toolName: "praxis__document.read_pages", toolId: "toolu_02DEF", toolInput: {} },
+      {
+        type: "tool_use",
+        toolName: "praxis__document.read_pages",
+        toolId: "toolu_02DEF",
+        toolInput: {},
+      },
       ctx,
       state,
     );
     const event3 = mapClaudeCodeEvent(
-      { type: "tool_use", toolName: "praxis__course.start_exploration", toolId: "toolu_03GHI", toolInput: {} },
+      {
+        type: "tool_use",
+        toolName: "praxis__course.start_exploration",
+        toolId: "toolu_03GHI",
+        toolInput: {},
+      },
       ctx,
       state,
     );
@@ -280,7 +295,12 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
 
     // Simulate a tool_use that gets callId "1".
     mapClaudeCodeEvent(
-      { type: "tool_use", toolName: "praxis__course.start_exploration", toolId: "toolu_01ABC", toolInput: {} },
+      {
+        type: "tool_use",
+        toolName: "praxis__course.start_exploration",
+        toolId: "toolu_01ABC",
+        toolInput: {},
+      },
       ctx,
       state,
     );
@@ -306,12 +326,22 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
 
     // Two tool_use events.
     const tc1 = mapClaudeCodeEvent(
-      { type: "tool_use", toolName: "praxis__document.outline", toolId: "toolu_AAA", toolInput: {} },
+      {
+        type: "tool_use",
+        toolName: "praxis__document.outline",
+        toolId: "toolu_AAA",
+        toolInput: {},
+      },
       ctx,
       state,
     );
     const tc2 = mapClaudeCodeEvent(
-      { type: "tool_use", toolName: "praxis__document.read_pages", toolId: "toolu_BBB", toolInput: {} },
+      {
+        type: "tool_use",
+        toolName: "praxis__document.read_pages",
+        toolId: "toolu_BBB",
+        toolInput: {},
+      },
       ctx,
       state,
     );
@@ -337,7 +367,12 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
 
   it("without state, tool_use falls back to raw Claude UUID (backward-compat for tests)", () => {
     const result = mapClaudeCodeEvent(
-      { type: "tool_use", toolName: "praxis__course.start_exploration", toolId: "toolu_01ABC", toolInput: {} },
+      {
+        type: "tool_use",
+        toolName: "praxis__course.start_exploration",
+        toolId: "toolu_01ABC",
+        toolInput: {},
+      },
       { serverName: "praxis" },
       // no state
     );

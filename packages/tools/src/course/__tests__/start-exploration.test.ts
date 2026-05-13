@@ -66,20 +66,22 @@ function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
  * without errors).
  */
 function makeSpySubAgentRegistry() {
-  const startSpy = vi
-    .fn()
-    .mockImplementation((input: SubAgentStartInput): SubAgentHandle => ({
+  const startSpy = vi.fn().mockImplementation(
+    (input: SubAgentStartInput): SubAgentHandle => ({
       parentCallId: input.parentCallId,
       stepStarted: vi.fn(),
       stepSettled: vi.fn(),
       setLabel: vi.fn(),
       finish: vi.fn(),
-    })) as unknown as SubAgentRegistry["start"] & ReturnType<typeof vi.fn>;
+    }),
+  ) as unknown as SubAgentRegistry["start"] & ReturnType<typeof vi.fn>;
 
   const registry: SubAgentRegistry = {
     start: startSpy,
     list: (): readonly SubAgentItem[] => [],
-    subscribe: (_listener: SubAgentListener): (() => void) => () => {},
+    subscribe:
+      (_listener: SubAgentListener): (() => void) =>
+      () => {},
   };
 
   return { registry, startSpy };

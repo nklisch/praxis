@@ -41,17 +41,13 @@ describe("importUpdateFeedPublicKey", () => {
   it("rejects a key that decodes to 31 bytes (one short of required 32)", async () => {
     // 31 bytes — one short — exercises the length-guard branch in the real function.
     const shortKey = Buffer.alloc(31, 0x42).toString("base64");
-    await expect(importUpdateFeedPublicKey(shortKey)).rejects.toThrow(
-      /must decode to 32 bytes/,
-    );
+    await expect(importUpdateFeedPublicKey(shortKey)).rejects.toThrow(/must decode to 32 bytes/);
   });
 
   it("rejects a key that decodes to 33 bytes (one over required 32)", async () => {
     // 33 bytes — one too many — also exercises the length-guard branch.
     const longKey = Buffer.alloc(33, 0x42).toString("base64");
-    await expect(importUpdateFeedPublicKey(longKey)).rejects.toThrow(
-      /must decode to 32 bytes/,
-    );
+    await expect(importUpdateFeedPublicKey(longKey)).rejects.toThrow(/must decode to 32 bytes/);
   });
 
   it("rejects malformed base64 that produces zero decoded bytes", async () => {

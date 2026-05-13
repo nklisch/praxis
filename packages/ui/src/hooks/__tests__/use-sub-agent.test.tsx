@@ -13,9 +13,9 @@
 import type { PraxisClient, SubAgentEvent, SubAgentItem, SubAgentStep } from "@praxis/core/types";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
 import { PraxisClientProvider } from "../../context/client-context.js";
 import { useSubAgent } from "../use-sub-agent.js";
-import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
 
 afterEach(() => cleanup());
 

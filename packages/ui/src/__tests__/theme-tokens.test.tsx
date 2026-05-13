@@ -10,8 +10,8 @@
  *    evaluate the media query, but the render path is covered.
  */
 import { readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { join, resolve, dirname } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Nav } from "../components/nav.js";
@@ -34,7 +34,11 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
       className?: string;
       activeProps?: Record<string, string>;
       activeOptions?: Record<string, boolean>;
-    }) => <a href="#" className={className}>{children}</a>,
+    }) => (
+      <a href="#" className={className}>
+        {children}
+      </a>
+    ),
     useNavigate: () => vi.fn(),
   };
 });
@@ -74,7 +78,9 @@ describe("global.css theme tokens", () => {
     const css = readGlobalCss();
 
     // Grab the light-mode block
-    const lightMatch = css.match(/@media\s*\(\s*prefers-color-scheme\s*:\s*light\s*\)\s*\{[\s\S]*?:root\s*\{([^}]+)\}/);
+    const lightMatch = css.match(
+      /@media\s*\(\s*prefers-color-scheme\s*:\s*light\s*\)\s*\{[\s\S]*?:root\s*\{([^}]+)\}/,
+    );
     expect(lightMatch, "light-mode :root block must exist").not.toBeNull();
     const lightBlock = lightMatch![1];
     const lightVars = extractColorVarNames(lightBlock);
@@ -128,7 +134,9 @@ describe("global.css theme tokens", () => {
       "--color-user-bubble",
       "--color-assistant-bubble",
     ];
-    const lightMatch = css.match(/@media\s*\(\s*prefers-color-scheme\s*:\s*light\s*\)\s*\{[\s\S]*?:root\s*\{([^}]+)\}/);
+    const lightMatch = css.match(
+      /@media\s*\(\s*prefers-color-scheme\s*:\s*light\s*\)\s*\{[\s\S]*?:root\s*\{([^}]+)\}/,
+    );
     expect(lightMatch, "light-mode :root block must exist").not.toBeNull();
     const lightBlock = lightMatch![1];
     for (const token of required) {

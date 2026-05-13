@@ -61,9 +61,7 @@ export function SubAgentBlock({
             · live
           </span>
         )}
-        {errored === true && !isLive && (
-          <span className={styles.errored}> · couldn't finish</span>
-        )}
+        {errored === true && !isLive && <span className={styles.errored}> · couldn't finish</span>}
       </button>
       {expanded && stepCount > 0 && (
         <ul className={styles.steps} aria-label="Sub-agent steps">
