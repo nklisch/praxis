@@ -36,6 +36,11 @@ export const COPY = {
     attachedDocsEmpty:
       "No documents attached yet. Add one from your files, or reuse one from your library.",
     libraryPickerEmpty: "No documents in your library yet — add one to get started.",
+    /** Library documents tabs (scope-aware view) */
+    libraryDocumentsCourseEmpty: "No documents attached to this course yet.",
+    libraryDocumentsSessionEmpty: "This session hasn't attached any documents.",
+    libraryDocumentsOrphanedEmpty: "No orphaned documents — your library is tidy.",
+    libraryDocumentsFiltered: "No documents match these filters.",
     /** Course concepts list — shown when the course has no concepts yet. */
     concepts: "No concepts yet. Run a bootstrap session to populate the course with concepts.",
   },
@@ -77,6 +82,12 @@ export const COPY = {
     fragmentSectionDesc:
       "Fragments that make up this mode's system prompt. Customizable slots accept overrides; locked slots show the default text.",
     lockedFragmentLabel: "Locked",
+    fragmentBlockEditedBadge: "Edited",
+    fragmentBlockLockedBadge: "Locked",
+    fragmentBlockLockHint: "Configurator lock is on — unlock to edit.",
+    fragmentBlockReturnToDefault: "Return to default",
+    fragmentBlockDiffShow: "Diff",
+    fragmentBlockDiffHide: "Hide diff",
     previewSectionTitle: "Composed Preview",
     previewSectionDesc:
       "The fully composed system prompt for the selected mode, including your customizations.",

@@ -63,6 +63,7 @@ import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
 import type { DocumentTabSummary, TabId, TabSummary } from "./tabs.js";
+import type { FragmentOverride } from "./tool.js";
 
 export interface PraxisClient {
   session: SessionService;
@@ -213,6 +214,13 @@ export interface ConceptMapClientApi {
  * The studentId is resolved server-side from the single-student v1 install context.
  */
 export interface DocumentScopesClientApi {
+  /**
+   * Documents in the student's library that are effectively orphaned:
+   * either no scope rows at all, or all scope rows point at deleted parents.
+   * The studentId is resolved server-side from the v1 single-student context.
+   */
+  listOrphaned(): Promise<DocumentScopeAttachment[]>;
+
   /**
    * List all documents attached to a scope, as enriched summaries.
    * Returns an empty array when no documents are attached.
@@ -499,6 +507,7 @@ export interface AuthoringClient {
 
   // ── Prompt customization ──────────────────────────────────────────────────
   clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void>;
+  listFragmentOverrides(modeId: string): Promise<FragmentOverride[]>;
   setStyleSliders(input: { socratic: number; verbosity: number; formality: number }): Promise<void>;
   /** Set the global cross-mode fragment. Pass null to clear. */
   setGlobalPrompt(text: string | null): Promise<void>;
@@ -640,6 +649,29 @@ export interface DocumentSummary {
   hasPageImages: boolean;
 }
 
+/**
+ * Full document detail — a single-document look-up that includes fields
+ * not surfaced in the lightweight `DocumentSummary` list response.
+ *
+ * Returned by `documents.get(documentId)`. Null when the document does
+ * not exist (deleted or invalid id).
+ */
+export interface DocumentDetail extends DocumentSummary {
+  /** Title extracted by the ingestor (from manifest). Null when not set. */
+  title: string | null;
+  /**
+   * Total number of rasterised page images stored for this document.
+   * Null when the ingestor did not produce page images (e.g. plain text).
+   */
+  pageCount: number | null;
+  /**
+   * Full document text: chunks joined with `\n\n` in chunk-index order.
+   * Used by the markdown, HTML, and structured renderers.
+   * Empty string when the document has no chunks.
+   */
+  text: string;
+}
+
 export interface IngestionClient {
   /** Open a native file picker. Returns the selected file path, or null if cancelled. */
   pickFile(): Promise<string | null>;
@@ -658,6 +690,11 @@ export interface IngestionClient {
 
 export interface DocumentsClient {
   list(): Promise<DocumentSummary[]>;
+  /**
+   * Fetch full detail for a single document, including pageCount and full text.
+   * Returns null when the document does not exist.
+   */
+  get(documentId: string): Promise<DocumentDetail | null>;
   delete(documentId: string): Promise<void>;
   /**
    * Fetch the PNG bytes for a saved page render. Returns null if not available.

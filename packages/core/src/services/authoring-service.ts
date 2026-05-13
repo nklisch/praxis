@@ -26,6 +26,7 @@ import type {
   ConfiguratorId,
   Course,
   CourseId,
+  FragmentOverride,
   Gate,
   GateId,
   GateTarget,
@@ -218,6 +219,10 @@ export class AuthoringServiceImpl implements AuthoringService {
   }
 
   // ─── Prompt customization ──────────────────────────────────────────────────
+
+  async listFragmentOverrides(modeId: string): Promise<FragmentOverride[]> {
+    return this.deps.promptCustomization.listFragmentOverrides(modeId);
+  }
 
   async customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void> {
     const now = new Date();

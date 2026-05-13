@@ -344,6 +344,18 @@ export interface LockService {
 // ─── Phase 11: AuthoringService (server-side) ───────────────────────────────
 
 /**
+ * A stored fragment-level override for a mode. Returned by
+ * `AuthoringService.listFragmentOverrides` and the corresponding client
+ * surface. Mirrors the `FragmentOverride` type from
+ * `prompt-customization-service.ts` so callers don't reach into services/.
+ */
+export interface FragmentOverride {
+  modeId: string;
+  fragmentId: string;
+  override: string;
+}
+
+/**
  * Server-side AuthoringService — orchestrates configurator writes to
  * artifacts + memory + prompt overrides, and appends audit log rows.
  *
@@ -413,6 +425,7 @@ export interface AuthoringService {
   // ── Prompt customization ──────────────────────────────────────────────────
   customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
   clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void>;
+  listFragmentOverrides(modeId: string): Promise<FragmentOverride[]>;
   setStyleSliders(input: { socratic: number; verbosity: number; formality: number }): Promise<void>;
   /** Set the global cross-mode fragment. Pass null to clear. */
   setGlobalPrompt(text: string | null): Promise<void>;
@@ -611,6 +624,14 @@ export interface DocumentSummaryItem {
  * service only manages links.
  */
 export interface DocumentScopesService {
+  /**
+   * Documents owned by the student that are effectively orphaned:
+   * either no scope rows at all, or all scope rows point at parents that
+   * no longer exist (deleted course / session). Returns enriched rows
+   * suitable for direct library rendering.
+   */
+  listOrphaned(studentId: StudentId): Promise<DocumentScopeAttachment[]>;
+
   /** All document ids attached to a scope, in attach order. */
   listForScope(scope: DocumentScope): Promise<DocumentId[]>;
 

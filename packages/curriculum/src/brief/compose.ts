@@ -44,7 +44,7 @@ export interface ComposeSystemPromptInput {
   additionalFragments?: ReadonlyArray<PromptFragment>;
 }
 
-const FRAGMENT_ORDER: ReadonlyArray<PromptFragment["position"]> = [
+export const FRAGMENT_ORDER: ReadonlyArray<PromptFragment["position"]> = [
   "preamble",
   "role",
   "principles",

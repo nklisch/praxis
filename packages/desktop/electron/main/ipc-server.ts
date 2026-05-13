@@ -230,6 +230,10 @@ export function registerIpcHandlers(
     return services.documents.list();
   });
 
+  handle("praxis.documents.get", async (_event, documentId: string) => {
+    return services.documents.get(documentId);
+  });
+
   handle("praxis.documents.delete", async (_event, documentId: string) => {
     return services.documents.delete(documentId);
   });
@@ -695,6 +699,11 @@ export function registerIpcHandlers(
       return services.authoring.customizePrompt(input.modeId, input.fragmentId, input.override);
     },
   );
+
+  handle("praxis.author.listFragmentOverrides", async (_event, input: { modeId: string }) => {
+    await requireUnlocked();
+    return services.authoring.listFragmentOverrides(input.modeId);
+  });
 
   handle(
     "praxis.author.clearFragmentOverride",

@@ -1,12 +1,13 @@
-import type { PromptFragment } from "@praxis/core/types";
+import { FRAGMENT_ORDER } from "@praxis/curriculum/brief";
 import { listModes, requireMode } from "@praxis/curriculum/modes";
 import { type FormEvent, useState } from "react";
+import { FragmentBlock } from "../../components/fragment-block.js";
 import { GlobalPromptEditor } from "../../components/global-prompt-editor.js";
 import { ModeAppendEditor } from "../../components/mode-append-editor.js";
-import { PromptFragmentEditor } from "../../components/prompt-fragment-editor.js";
 import { PromptPreviewPane } from "../../components/prompt-preview-pane.js";
 import { StyleSlider } from "../../components/style-slider.js";
 import { usePraxisClient } from "../../context/client-context.js";
+import { useFragmentOverrides } from "../../hooks/use-fragment-overrides.js";
 import { COPY } from "../../lib/copy.js";
 import styles from "./prompt-tab.module.css";
 
@@ -14,55 +15,31 @@ import styles from "./prompt-tab.module.css";
 // FragmentStack
 // ---------------------------------------------------------------------------
 
-interface FragmentBlockProps {
-  modeId: string;
-  fragment: PromptFragment;
-}
-
-function FragmentBlock({ modeId, fragment }: FragmentBlockProps) {
-  if (fragment.customizable) {
-    return (
-      <div className={styles.fragmentBlock}>
-        <div className={styles.fragmentBlockHeader}>
-          <span className={styles.fragmentId}>{fragment.id}</span>
-          <span className={styles.fragmentPosition}>{fragment.position}</span>
-        </div>
-        <PromptFragmentEditor initialModeId={modeId} initialFragmentId={fragment.id} />
-      </div>
-    );
-  }
-
-  // Locked (non-customizable) — render read-only with the default template.
-  return (
-    <div className={`${styles.fragmentBlock} ${styles.fragmentBlockLocked}`}>
-      <div className={styles.fragmentBlockHeader}>
-        <span className={styles.fragmentId}>{fragment.id}</span>
-        <span className={styles.fragmentPosition}>{fragment.position}</span>
-        <span className={styles.lockedBadge}>{COPY.prompt.lockedFragmentLabel}</span>
-      </div>
-      <pre className={styles.fragmentTemplate}>{fragment.template}</pre>
-    </div>
-  );
-}
-
 interface FragmentStackProps {
   modeId: string;
 }
 
 function FragmentStack({ modeId }: FragmentStackProps) {
   const mode = requireMode(modeId);
+  const overrides = useFragmentOverrides(modeId);
 
-  // Filter out user-authored positions — user-global is handled by GlobalPromptEditor above
-  // the stack. user-append is always rendered as a dedicated block at the bottom of the stack,
-  // even if it isn't listed in the mode's static promptFragments (it's injected dynamically).
-  const staticFragments = mode.promptFragments.filter(
-    (f) => f.position !== "user-global" && f.position !== "user-append",
-  );
+  // Enumerate all fragments, excluding user-authored positions:
+  // - user-global is handled by GlobalPromptEditor above the stack.
+  // - user-append is always rendered as a dedicated slot at the bottom.
+  const sortedFragments = [...mode.promptFragments]
+    .filter((f) => f.position !== "user-global" && f.position !== "user-append")
+    .sort((a, b) => FRAGMENT_ORDER.indexOf(a.position) - FRAGMENT_ORDER.indexOf(b.position));
 
   return (
     <div className={styles.fragmentStack}>
-      {staticFragments.map((fragment) => (
-        <FragmentBlock key={fragment.id} modeId={modeId} fragment={fragment} />
+      {sortedFragments.map((fragment) => (
+        <FragmentBlock
+          key={fragment.id}
+          modeId={modeId}
+          fragment={fragment}
+          override={overrides.byId.get(fragment.id) ?? null}
+          onOverrideChange={overrides.refresh}
+        />
       ))}
 
       {/* user-append: per-mode append, always present as the final slot */}
@@ -208,7 +185,7 @@ const DEFAULT_MODE_ID = "teach";
  * Hosts all three customization layers in one coherent screen:
  *   1. Global Fragment — cross-mode, injected at `user-global` position
  *   2. Mode picker → Fragment Stack — per-mode fragments in FRAGMENT_ORDER,
- *      with customizable slots hosting PromptFragmentEditor and the
+ *      with each fragment rendered as a <FragmentBlock> and the
  *      user-append slot hosting ModeAppendEditor
  *   3. Composed Preview — live preview of the selected mode's system prompt,
  *      with a [Composed | Diff] toggle (Diff disabled until diff-aware-preview

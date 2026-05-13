@@ -29,6 +29,7 @@ function makeClient(lockClient: LockClient = makeLockClient()): PraxisClient {
       setGlobalPrompt: vi.fn().mockResolvedValue(undefined),
       customizePrompt: vi.fn().mockResolvedValue(undefined),
       clearFragmentOverride: vi.fn().mockResolvedValue(undefined),
+      listFragmentOverrides: vi.fn().mockResolvedValue([]),
       setStyleSliders: vi.fn().mockResolvedValue(undefined),
       createCourse: vi.fn(),
       updateCourse: vi.fn(),
@@ -245,5 +246,69 @@ describe("PromptTab — unified prompt customization surface", () => {
       const btn = screen.getByRole("button", { name: /save style/i });
       expect(btn).toBeDefined();
     });
+  });
+
+  // ── Fragment blocks: listFragmentOverrides IPC ─────────────────────────────
+
+  it("calls listFragmentOverrides for the default mode on mount", async () => {
+    const client = makeClient();
+    renderTab(client);
+    await waitFor(() => {
+      expect(client.author.listFragmentOverrides).toHaveBeenCalledWith("teach");
+    });
+  });
+
+  it("shows Edited badge when a fragment override is returned from the server", async () => {
+    const client = makeClient();
+    // Simulate one stored override for the "role.tutor" fragment.
+    (client.author.listFragmentOverrides as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { modeId: "teach", fragmentId: "role.tutor", override: "custom role text" },
+    ]);
+    renderTab(client);
+    await waitFor(() => {
+      expect(screen.getByText("Edited")).toBeDefined();
+    });
+  });
+
+  it("shows Locked badge on non-customizable fragments", async () => {
+    const client = makeClient();
+    renderTab(client);
+    await waitFor(() => {
+      // There should be at least one Locked badge (non-customizable fragments exist in teach mode).
+      const lockedBadges = screen.getAllByText("Locked");
+      expect(lockedBadges.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ── Configurator lock disables edit affordances ────────────────────────────
+
+  it("when lock is on, customizable fragment shows lock hint instead of textarea", async () => {
+    const lockedLock = makeLockClient({
+      isSet: vi.fn().mockResolvedValue(true),
+      isUnlocked: vi.fn().mockResolvedValue(false),
+    });
+    const client = makeClient(lockedLock);
+    renderTab(client);
+    await waitFor(() => {
+      // Lock hint text should be visible.
+      const hints = screen.getAllByText("Configurator lock is on — unlock to edit.");
+      expect(hints.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("when lock is on, no Save buttons are present for fragment blocks", async () => {
+    const lockedLock = makeLockClient({
+      isSet: vi.fn().mockResolvedValue(true),
+      isUnlocked: vi.fn().mockResolvedValue(false),
+    });
+    const client = makeClient(lockedLock);
+    renderTab(client);
+    await waitFor(() => {
+      // Wait for lock state to load — lock hint should appear.
+      screen.getAllByText("Configurator lock is on — unlock to edit.");
+    });
+    // No "Save" button should exist for the fragment blocks.
+    const saveBtns = screen.queryAllByRole("button", { name: "Save" });
+    expect(saveBtns.length).toBe(0);
   });
 });

@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2-full-fragment-view
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, configure, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on: [epic-prompt-editing-surface-v2-unified-configure-surface]
@@ -415,3 +415,39 @@ Covered by Unit 6. Key invariants:
 
 - After this feature lands, `<PromptFragmentEditor>` and its hardcoded `CUSTOMIZABLE_FRAGMENTS` list are gone — anywhere external code references either symbol is broken and should be removed (verify via Unit 4's sweep).
 - A future "per-fragment lock" (override-this-one-fragment but-keep-other-defaults-locked) would extend `useLock` to be per-fragment-key — out of scope here.
+
+## Implementation Notes
+
+### Files added
+- `packages/ui/src/components/fragment-block.tsx` — new `<FragmentBlock>` component
+- `packages/ui/src/components/fragment-block.module.css` — CSS module for fragment blocks
+- `packages/ui/src/hooks/use-fragment-overrides.ts` — `useFragmentOverrides(modeId)` hook
+- `packages/ui/src/components/__tests__/fragment-block.test.tsx` — 22 tests for `<FragmentBlock>`
+- `packages/ui/src/hooks/__tests__/use-fragment-overrides.test.tsx` — 4 tests for the hook
+
+### Files modified
+- `packages/core/src/types/tool.ts` — added `FragmentOverride` interface + `listFragmentOverrides` to `AuthoringService`
+- `packages/core/src/types/client.ts` — added `listFragmentOverrides` to `AuthoringClient`, imported `FragmentOverride`
+- `packages/core/src/services/authoring-service.ts` — implemented `listFragmentOverrides` (delegates to `promptCustomization`)
+- `packages/client/src/services/authoring-client.ts` — added `listFragmentOverrides` client method over IPC
+- `packages/desktop/electron/main/ipc-server.ts` — added `praxis.author.listFragmentOverrides` handler
+- `packages/curriculum/src/brief/compose.ts` — exported `FRAGMENT_ORDER` constant (was unexported)
+- `packages/ui/src/lib/copy.ts` — added 6 new `COPY.prompt.fragmentBlock*` entries
+- `packages/ui/src/routes/configure/prompt-tab.tsx` — rewired `<FragmentStack>` to use `<FragmentBlock>` + `useFragmentOverrides`; removed local `FragmentBlock` wrapper
+- `packages/ui/src/__tests__/configure-prompt-tab.test.tsx` — added `listFragmentOverrides` to mock + 6 new tests
+
+### Files deleted
+- `packages/ui/src/components/prompt-fragment-editor.tsx`
+- `packages/ui/src/components/prompt-fragment-editor.module.css`
+- `packages/ui/src/__tests__/prompt-fragment-editor.test.tsx`
+
+### Key substitutions from design
+- Design called `client.author.saveFragmentOverride({...})` — actual method is `client.author.customizePrompt(modeId, fragmentId, override)`. Used `customizePrompt` throughout.
+- `listFragmentOverrides` was not exposed on the client — added end-to-end: `AuthoringService` interface, `AuthoringServiceImpl`, IPC handler, `AuthoringClientImpl`.
+- `FRAGMENT_ORDER` was not exported from `@praxis/curriculum/brief` — exported it.
+
+### Verification
+- `pnpm build` on core and curriculum: clean.
+- `pnpm typecheck` on UI: no errors in changed files (pre-existing errors from other story's `DocumentDetail` gap remain).
+- `pnpm lint:fix`: auto-formatted 7 files, no violations.
+- 48 new + updated tests all pass. Only pre-existing `pdf-renderer.test.tsx` failure remains (unrelated).

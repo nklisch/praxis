@@ -5,6 +5,7 @@ import type {
   ConfiguratorActionRow,
   Course,
   CourseId,
+  FragmentOverride,
   Gate,
   GateId,
   GateTarget,
@@ -150,6 +151,10 @@ export class AuthoringClientImpl implements AuthoringClient {
 
   clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void> {
     return this.transport.invoke<void>(`${C}.clearFragmentOverride`, input);
+  }
+
+  listFragmentOverrides(modeId: string): Promise<FragmentOverride[]> {
+    return this.transport.invoke<FragmentOverride[]>(`${C}.listFragmentOverrides`, { modeId });
   }
 
   setStyleSliders(input: {
