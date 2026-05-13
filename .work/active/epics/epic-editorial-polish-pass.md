@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass
 kind: epic
-stage: drafting
+stage: implementing
 tags: [ui, editorial, configure]
 parent: null
 depends_on: []
@@ -88,45 +88,63 @@ which means they'll keep slipping unless bundled — and they're all
 small enough that one design pass + one orchestrated implement pass
 should clear them.
 
-## Decomposition direction (for epic-design)
+## Decomposition
 
-Likely splits into 3–4 child features:
+Split by surface. Each of the five absorbed ideas lives on a different
+surface (top nav, configurator prompt panel, configurator
+gates/course editor, panel layout) except for the two prompt-config
+ideas which co-locate and share design pressure — so those bundle.
+Four features over five was chosen because the
+teaching-style reorder and prompt-preview unification both touch the
+configurator and the prompt-editing primitives; designing them
+together avoids a second rework when the preview redesign forces a
+layout decision. All four are fully independent — runs in one wave.
 
-- **App chrome refresh** — top-menu-bar-styling. Single surface,
-  contained.
-- **Configurator ordering + preview unification** — teaching-style-top
-  + unified-prompt-preview-blocks. Both touch the configurator and the
-  prompt-editing surface; designing them together avoids a second
-  rework when the preview redesign forces a layout decision.
-- **Editor concept-name surfacing** — gates-editor-show-concept-names
-  applied across all concept-displaying UIs (gates editor + course
-  editor).
-- **Resizable side panels** — resizable-side-panels. Cross-cutting
-  layout primitive; standalone because it touches every panel host.
+Anchor verification update: **the gates editor and course editor use
+different concept-rendering paths** (`ConceptNode` React Flow custom
+node in `gates-tab.tsx` vs. comma-separated text input in
+`lesson-editor.tsx`), so the concept-name feature must touch both.
 
-The "v3" framing for the prompt-preview work is real — it follows
-`epic-prompt-editing-surface-v2` (done). Worth referencing that epic
-during design rather than starting from scratch.
+### Child features
 
-## Decomposition risks
+- `epic-editorial-polish-pass-app-chrome` — top nav rename
+  ("Chat" → "Tutor") + Praxis wordmark + editorial alignment —
+  depends on: `[]`
+- `epic-editorial-polish-pass-prompt-config-redesign` — configurator
+  section reorder (teaching style to top) + unified block-oriented
+  prompt preview replacing the four parallel preview shapes —
+  depends on: `[]`
+- `epic-editorial-polish-pass-concept-name-surfacing` — show concept
+  names (not IDs) across ConceptNode (gates editor) + LessonEditor
+  (course editor); reorganize gates layout + add expand affordance —
+  depends on: `[]`
+- `epic-editorial-polish-pass-resizable-panels` — drag handles +
+  persisted widths + min/max bounds on sidebar / documents pane /
+  workspace rail — depends on: `[]`
 
-- **Tab title rename "Chat → Tutor" interacts with prior tutor-tab
-  rename work** — `epic-tutor-session-feel-tutor-tab-rename` (done)
-  already moved tab titles to `Mode.displayName` SSOT. The top-menu
-  rename probably means a different thing (the route header / app
-  title, not the tab strip). Identify the exact surface during design.
-- **Concept name lookup may need a new resolver hook** — concepts live
-  in the curriculum knowledge graph; rendering names everywhere needs
-  efficient lookup. Avoid N+1 fetches; might warrant a
-  `useConceptNames(ids)` batched hook.
+### Decomposition risks
+
+- **Top nav rename interacts with prior tab-rename work** — the
+  tab-strip already moved to `Mode.displayName` SSOT in
+  `epic-tutor-session-feel-tutor-tab-rename`. This feature is the
+  route-link in `nav.tsx`, a different surface. Feature-design must
+  be clear about which one is being touched.
+- **Concept name lookup may need a new resolver hook** — concepts
+  live in the curriculum knowledge graph; rendering names everywhere
+  needs efficient batched lookup (`useConceptNames(ids)`-shaped).
+  Feature-design should land the lookup contract before component
+  changes.
 - **Side-panel resize persistence has a config-vs-local choice** —
-  config_kv syncs across machines (if/when we have sync); localStorage
-  is per-device. Design call.
+  `config_kv` syncs across machines if/when we have sync;
+  localStorage is per-device. Feature-design decides; document the
+  reasoning.
 - **Prompt-preview unification may not be additive** — replacing four
-  preview shapes with one block-oriented view is a breaking change to
-  the configurator's information architecture. Verify the unified view
-  can do everything each existing preview does (especially the append
-  highlight) before committing.
+  preview shapes with one block-oriented view is a breaking change
+  to the configurator's information architecture. Feature-design
+  must verify the unified view can do everything each existing
+  preview does (especially the append-highlight affordance) before
+  committing.
 - **Configurator section reorder may have hidden coupling** — if
-  section position is hardcoded vs. driven by a registry, the reorder
-  is either a one-line change or a per-section migration. Check first.
+  section position is hardcoded vs. driven by a registry, the
+  reorder is either a one-line change or a per-section migration.
+  Feature-design must check first.
