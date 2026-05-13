@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { getToolLabel, TOOL_LABELS } from "../index.js";
 
 describe("getToolLabel", () => {
-  it("returns present and past for retrieve_from_textbook", () => {
-    const label = getToolLabel("retrieve_from_textbook");
-    expect(label.present).toBe("Looking up textbook references");
-    expect(label.past).toBe("Cited textbook");
+  it("returns present and past for retrieve_from_documents", () => {
+    const label = getToolLabel("retrieve_from_documents");
+    expect(label.present).toBe("Looking up document references");
+    expect(label.past).toBe("Cited document");
   });
 
   it("returns hidden: true for flashcard.review_next", () => {

@@ -2,11 +2,11 @@ import type { ToolContext, ToolDefinition } from "@praxis/core/types";
 import { z } from "zod";
 import { reciprocalRankFusion } from "./rrf.js";
 
-export const retrieveFromTextbookInput = z.object({
+export const retrieveFromDocumentsInput = z.object({
   query: z
     .string()
     .min(1)
-    .describe("A natural-language question or topic to search the student's textbooks for."),
+    .describe("A natural-language question or topic to search the student's documents for."),
   topK: z
     .number()
     .int()
@@ -38,7 +38,7 @@ export const retrieveFromTextbookInput = z.object({
     ),
 });
 
-export const retrieveFromTextbookOutput = z.object({
+export const retrieveFromDocumentsOutput = z.object({
   query: z.string(),
   citations: z.array(
     z.object({
@@ -58,25 +58,25 @@ export const retrieveFromTextbookOutput = z.object({
 /** Overfetch multiplier: each index returns topK * 2 before RRF fusion. */
 const VECTOR_OVERFETCH = 2;
 
-export const retrieveFromTextbookTool: ToolDefinition<
-  typeof retrieveFromTextbookInput,
-  typeof retrieveFromTextbookOutput
+export const retrieveFromDocumentsTool: ToolDefinition<
+  typeof retrieveFromDocumentsInput,
+  typeof retrieveFromDocumentsOutput
 > = {
-  name: "retrieve_from_textbook",
-  description: `Search the student's uploaded textbooks for relevant passages and return ranked citations. Uses HYBRID retrieval (semantic + lexical) — vector embeddings for paraphrase matches plus BM25 for exact-term matches, combined via reciprocal rank fusion.
+  name: "retrieve_from_documents",
+  description: `Search the student's uploaded documents for relevant passages and return ranked citations. Uses HYBRID retrieval (semantic + lexical) — vector embeddings for paraphrase matches plus BM25 for exact-term matches, combined via reciprocal rank fusion.
 
 Use this for ANY claim that should be grounded in the student's course material — definitions, examples, derivations, formulas, historical facts, etc.
 
 Refer to citations as [1], [2], etc. matching the order they appear in the result. The student's UI renders these as clickable chips that show the source chunk.
 
 Filters (use when the student gives you a hint):
-- documentIds: limit to specific documents (e.g., only the biology textbook)
+- documentIds: limit to specific documents (e.g., only the biology document)
 - sectionPattern: restrict to a section by substring (e.g., "chapter 3" or "respiration")
 - pageRange: restrict to a page range (e.g., pages 40-50)
 
 If retrieval returns nothing useful, say so explicitly. Don't invent connections. Recommend the student upload more material if relevant.`,
-  input: retrieveFromTextbookInput,
-  output: retrieveFromTextbookOutput,
+  input: retrieveFromDocumentsInput,
+  output: retrieveFromDocumentsOutput,
   tier: "grounded",
   effects: ["external.code-exec"],
 

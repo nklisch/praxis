@@ -35,10 +35,10 @@ describe("mode registry", () => {
     expect(ids).toContain("sketch.awareness"); // Phase 15a
   });
 
-  it("teachMode toolNames includes grade_math, code_sandbox and retrieve_from_textbook", () => {
+  it("teachMode toolNames includes grade_math, code_sandbox and retrieve_from_documents", () => {
     expect(teachMode.toolNames).toContain("grade_math");
     expect(teachMode.toolNames).toContain("code_sandbox");
-    expect(teachMode.toolNames).toContain("retrieve_from_textbook");
+    expect(teachMode.toolNames).toContain("retrieve_from_documents");
   });
 
   it("teachMode toolNames includes Phase 7 active-path memory tools", () => {

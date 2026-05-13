@@ -150,7 +150,7 @@ const ERROR_MID_STREAM: EngineEvent[] = [
 /** Scenario 7: Citations attach to post-tool bubble (Unit 3). */
 const CITATIONS_ON_POST_TOOL_BUBBLE: EngineEvent[] = [
   { type: "model_message", content: "Let me look.", partial: false },
-  { type: "tool_call", toolName: "retrieve_from_textbook", args: {}, callId: "t1" },
+  { type: "tool_call", toolName: "retrieve_from_documents", args: {}, callId: "t1" },
   {
     type: "tool_result",
     callId: "t1",

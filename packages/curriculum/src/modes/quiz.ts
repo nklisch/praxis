@@ -35,7 +35,7 @@ export const quizMode: Mode = {
     "assignment.read_grade",
     "course.what_can_i_teach",
     "course.current_concept",
-    "retrieve_from_textbook",
+    "retrieve_from_documents",
     "grade_math",
     "code_sandbox",
     "update_mastery",

@@ -328,11 +328,11 @@ Tutor   ──┘
 
 **Authoring path** (configure mode, parent/teacher or self-directed): the agent has tools that mutate artifacts. The user "talks to the agent" to build a course; the agent calls `course.create()`, `course.add_lesson()`, etc.
 
-**Self-onboard path**: bootstrap mode is agentic — `course.start_exploration` runs a multi-turn exploration loop. The agent reads ingested documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_textbook` and writes drafts with `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
+**Self-onboard path**: bootstrap mode is agentic — `course.start_exploration` runs a multi-turn exploration loop. The agent reads ingested documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes drafts with `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
 
 **Student-facing**: artifacts are read-only to the student via the agent (tutor session) plus directly via the UI (progress map, workspace). The student never sees raw artifact JSON; the UI renders it.
 
-**Concept extraction** is an agentic task. Bootstrap mode runs `course.start_exploration`, which spawns a multi-turn exploration agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_textbook` and writes unit/lesson/concept drafts via `course.draft_*` tools. The draft is confirmed by the user; `persistDraft` materialises units + lessons + assessment shells in one transaction. Never auto-applied without confirmation in v1.
+**Concept extraction** is an agentic task. Bootstrap mode runs `course.start_exploration`, which spawns a multi-turn exploration agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes unit/lesson/concept drafts via `course.draft_*` tools. The draft is confirmed by the user; `persistDraft` materialises units + lessons + assessment shells in one transaction. Never auto-applied without confirmation in v1.
 
 ## UI architecture
 

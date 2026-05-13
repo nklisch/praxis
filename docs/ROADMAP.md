@@ -92,7 +92,7 @@ These landed alongside the numbered phases but don't carry a phase number of the
 - `VisionPdfIngestor` — pdfjs-dist renders pages → engine vision describes; selectable per-document for math-heavy or scanned PDFs
 - `VectorStore` port + `sqlite-vec` adapter (prebuilt binary; ABI-independent so no electron-rebuild)
 - Local embedding via `@huggingface/transformers` v4 (bge-small-en-v1.5, 384d, ~33MB on first use)
-- `retrieve_from_textbook` tool with citations; `[1]` `[2]` chip parsing in chat UI
+- `retrieve_from_documents` tool with citations; `[1]` `[2]` chip parsing in chat UI
 - File picker + ingestion progress streaming + document list sidebar
 
 **Research:** `sqlite-vec` integration with better-sqlite3; `@huggingface/transformers` v4 for local embedding; per-engine vision pass-through patterns (Claude Code SDK file reading, Codex SDK file inputs, Vercel AI SDK image content).
@@ -306,7 +306,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 **Build:**
 - `course.start_exploration` tool — entry point for the multi-turn bootstrap explorer. Spawns a fresh engine session scoped to the attached documents.
-- Explorer reads documents via `document.outline`, `document.list_sections`, `document.read_pages`, `retrieve_from_textbook`.
+- Explorer reads documents via `document.outline`, `document.list_sections`, `document.read_pages`, `retrieve_from_documents`.
 - Draft mutation tools: `course.draft_add_unit`, `course.draft_set_assessment_plan`, `course.draft_add_lesson_assessment` — the explorer builds the draft incrementally.
 - `persistDraft` materialises units + lessons + assessment shells in one transaction on `course.confirm_draft`.
 - `course_documents` join table + `CourseDocumentsServiceImpl` — links ingested documents to specific courses so the explorer's retrieval is scoped.

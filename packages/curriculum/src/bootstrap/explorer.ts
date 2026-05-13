@@ -110,10 +110,10 @@ export async function runConceptExplorer(
   // already knows which draft to mutate.
   //
   // We also pin `courseDocumentIds` to the explorer's `documentIds` so that
-  // retrieval tools (specifically `retrieve_from_textbook`) hard-scope to
+  // retrieval tools (specifically `retrieve_from_documents`) hard-scope to
   // exactly the documents the tutor passed in. Without this, retrieval falls
   // back to "search the whole student library" in bootstrap mode (no course in
-  // scope yet), which can leak chunks from unrelated textbooks the student
+  // scope yet), which can leak chunks from unrelated documents the student
   // happens to have uploaded. The fence is enforced server-side; the model
   // doesn't need to remember to pass documentIds on every call.
   const explorerContext = {

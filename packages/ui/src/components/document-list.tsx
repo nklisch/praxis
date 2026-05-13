@@ -17,7 +17,7 @@ export function DocumentList({ documents, loading, error, onDelete }: DocumentLi
     return <p className={styles.error}>{error}</p>;
   }
   if (documents.length === 0) {
-    return <p className={styles.empty}>No documents yet. Add a file to search your textbooks.</p>;
+    return <p className={styles.empty}>No documents yet. Add a file to search your documents.</p>;
   }
 
   return (

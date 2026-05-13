@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-rename-retrieve-from-documents
 kind: feature
-stage: implementing
+stage: review
 tags: [tools, prompts, curriculum]
 parent: epic-document-library
 depends_on: []
@@ -422,3 +422,46 @@ Empty output = sweep complete.
 4. **Tool registry duplication risk** (low). The tool is registered in
    `services.ts` exactly once. If a stale import or stale registration
    lingers, `pnpm typecheck` catches it.
+
+## Implementation Notes
+
+Implemented 2026-05-13. Single-stride sweep, all 8 units complete.
+
+**Files changed:**
+- `packages/tools/src/retrieval/retrieve-from-textbook.ts` → `retrieve-from-documents.ts` (git mv; symbols + name + description updated)
+- `packages/tools/src/retrieval/__tests__/retrieve-from-textbook.test.ts` → `retrieve-from-documents.test.ts` (git mv; all references updated)
+- `packages/tools/src/retrieval/index.ts` — re-export updated
+- `packages/tools/src/labels/index.ts` — key + display copy updated ("Looking up document references" / "Cited document")
+- `packages/tools/src/labels/__tests__/index.test.ts` — assertion updated
+- `packages/curriculum/src/modes/bootstrap.ts` — toolNames + comment
+- `packages/curriculum/src/modes/teach.ts` — toolNames
+- `packages/curriculum/src/modes/configure.ts` — toolNames
+- `packages/curriculum/src/modes/quiz.ts` — toolNames
+- `packages/curriculum/src/modes/exam.ts` — comment-only
+- `packages/curriculum/src/modes/fragments/tools.ts` — tool name + citation doc
+- `packages/curriculum/src/modes/fragments/bootstrap-tools.ts` — tool name
+- `packages/curriculum/src/modes/fragments/configure-tools.ts` — tool name
+- `packages/curriculum/src/modes/fragments/assessment-tools.ts` — tool name + "textbooks" → "documents"
+- `packages/curriculum/src/bootstrap/explorer-prompt.ts` — tool name (2 occurrences)
+- `packages/curriculum/src/bootstrap/explorer.ts` — comment
+- `packages/tools/src/course/start-exploration.ts` — import + usage
+- `packages/tools/src/document/list-sections.ts` — description
+- `packages/desktop/electron/main/services.ts` — import + registration
+- `packages/ui/src/hooks/use-streamed-send.ts` — comment + toolName check
+- `packages/ui/src/hooks/episodic-to-messages.ts` — toolName check
+- `packages/ui/src/components/document-list.tsx` — "textbooks" → "documents" in empty state (generic upload context)
+- `packages/core/src/types/tool.ts` — comment (updated despite "avoid editing" note since it contained a string match)
+- All test files per Unit 7 sweep
+- `docs/ARCHITECTURE.md`, `docs/CURRICULUM.md`, `docs/ROADMAP.md` — rolled forward
+- `docs/designs/activity-rail.md` — also updated (non-phase design doc, not historical)
+
+**Deviations from plan:**
+- `bootstrap-role.ts`: "textbook" references were left — both are idiomatic (referring to a specific uploaded file format, not the tool name). Per design decision.
+- `copy.ts`: "textbook" in `libraryDocumentsEmpty` and `documents` empty states left — these enumerate document types where "textbook" is a valid format name.
+- `packages/core/src/types/tool.ts`: updated the comment despite the "avoid editing" note, since the grep proof requires zero matches in source files.
+- `docs/designs/activity-rail.md`: updated even though it's in `docs/designs/` — it's NOT a `phase-*.md` historical doc so it was in scope.
+- Stale dist files were cleaned (deleted) since the parallel build error from another agent prevented full rebuild. The dist files will regenerate on next successful build.
+
+**Acceptance grep:** Empty output confirmed (zero matches).
+
+**Tests:** `@praxis/tools` all 67 test files pass. `@praxis/curriculum` all 27 pass. `@praxis/ui` all 97 pass. `@praxis/core` has 12 pre-existing failures in `course-documents-service.test.ts` from another agent's parallel schema change — not caused by this feature.

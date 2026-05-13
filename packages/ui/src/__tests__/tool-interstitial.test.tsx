@@ -57,7 +57,7 @@ describe("ToolInterstitial", () => {
 
   it("does not render any img, svg, or role=img elements", () => {
     const { container } = render(
-      <ToolInterstitial toolName="retrieve_from_textbook" status="in_flight" />,
+      <ToolInterstitial toolName="retrieve_from_documents" status="in_flight" />,
     );
     expect(container.querySelectorAll("img")).toHaveLength(0);
     expect(container.querySelectorAll("svg")).toHaveLength(0);
@@ -77,8 +77,8 @@ describe("ToolInterstitial", () => {
     expect(screen.getByText("Future unknown tool")).toBeDefined();
   });
 
-  it("retrieve_from_textbook settled shows 'Cited textbook' past copy", () => {
-    render(<ToolInterstitial toolName="retrieve_from_textbook" status="settled" />);
-    expect(screen.getByText("Cited textbook")).toBeDefined();
+  it("retrieve_from_documents settled shows 'Cited document' past copy", () => {
+    render(<ToolInterstitial toolName="retrieve_from_documents" status="settled" />);
+    expect(screen.getByText("Cited document")).toBeDefined();
   });
 });

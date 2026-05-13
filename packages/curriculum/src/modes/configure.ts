@@ -52,7 +52,7 @@ export const configureMode: Mode = {
     "course.list_lessons_in_unit",
     "course.get_lesson_detail",
     "course.list_dangling_refs",
-    "retrieve_from_textbook",
+    "retrieve_from_documents",
     // ── Authoring tools (Phase 11) ───────────────────────────────────────────
     "course.edit",
     "lesson.create",

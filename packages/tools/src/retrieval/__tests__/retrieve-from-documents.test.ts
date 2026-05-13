@@ -1,5 +1,5 @@
 /**
- * Unit tests for the retrieve_from_textbook tool handler.
+ * Unit tests for the retrieve_from_documents tool handler.
  *
  * Uses mocked vectorStore, ftsStore, embeddings, and documents — no real SQLite.
  * Asserts:
@@ -13,7 +13,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
-import { retrieveFromTextbookTool } from "../retrieve-from-textbook.js";
+import { retrieveFromDocumentsTool } from "../retrieve-from-documents.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ function makeCtxForRetrieval(
     deleteByDocumentId: vi.fn(),
   };
   const documents = {
-    titlesByIds: vi.fn().mockResolvedValue(new Map([["doc-1", "Biology Textbook"]])),
+    titlesByIds: vi.fn().mockResolvedValue(new Map([["doc-1", "Biology Document"]])),
     pageImage: vi.fn().mockResolvedValue(pageImageResult),
     chunksForDocument: vi.fn().mockResolvedValue([]),
   };
@@ -78,17 +78,17 @@ function makeCtxForRetrieval(
 
 // ── Tests ───────────────────────────────────────────────────────────────────────
 
-describe("retrieve_from_textbook handler", () => {
+describe("retrieve_from_documents handler", () => {
   it("returns empty citations when both stores return nothing", async () => {
     const ctx = makeCtxForRetrieval([], []);
-    const result = await retrieveFromTextbookTool.handler({ query: "ATP synthase", topK: 5 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "ATP synthase", topK: 5 }, ctx);
     expect(result.citations).toHaveLength(0);
     expect(result.query).toBe("ATP synthase");
   });
 
   it("uses embedQuery (not embed) for the query vector", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1")], []);
-    await retrieveFromTextbookTool.handler({ query: "enzyme kinetics", topK: 5 }, ctx);
+    await retrieveFromDocumentsTool.handler({ query: "enzyme kinetics", topK: 5 }, ctx);
 
     expect(ctx.services.embeddings.embedQuery).toHaveBeenCalledWith("enzyme kinetics");
     expect(ctx.services.embeddings.embed).not.toHaveBeenCalled();
@@ -96,7 +96,7 @@ describe("retrieve_from_textbook handler", () => {
 
   it("passes query vector to vectorStore.search", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1")], []);
-    await retrieveFromTextbookTool.handler({ query: "photosynthesis", topK: 3 }, ctx);
+    await retrieveFromDocumentsTool.handler({ query: "photosynthesis", topK: 3 }, ctx);
 
     expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ embedding: expect.any(Array), topK: expect.any(Number) }),
@@ -105,7 +105,7 @@ describe("retrieve_from_textbook handler", () => {
 
   it("passes query text to ftsStore.search", async () => {
     const ctx = makeCtxForRetrieval([], [makeFtsHit("c1")]);
-    await retrieveFromTextbookTool.handler({ query: "mitosis", topK: 3 }, ctx);
+    await retrieveFromDocumentsTool.handler({ query: "mitosis", topK: 3 }, ctx);
 
     expect(ctx.services.ftsStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ query: "mitosis", topK: expect.any(Number) }),
@@ -114,7 +114,7 @@ describe("retrieve_from_textbook handler", () => {
 
   it("propagates documentIds filter to both stores", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1")], [makeFtsHit("c1")]);
-    await retrieveFromTextbookTool.handler({ query: "cell", topK: 5, documentIds: ["doc-1"] }, ctx);
+    await retrieveFromDocumentsTool.handler({ query: "cell", topK: 5, documentIds: ["doc-1"] }, ctx);
 
     expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
       expect.objectContaining({ documentIds: ["doc-1"] }),
@@ -126,7 +126,7 @@ describe("retrieve_from_textbook handler", () => {
 
   it("propagates sectionPattern filter to both stores", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1")], [makeFtsHit("c1")]);
-    await retrieveFromTextbookTool.handler(
+    await retrieveFromDocumentsTool.handler(
       { query: "nucleus", topK: 5, sectionPattern: "Chapter 3" },
       ctx,
     );
@@ -141,7 +141,7 @@ describe("retrieve_from_textbook handler", () => {
 
   it("propagates pageRange filter to both stores", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1")], [makeFtsHit("c1")]);
-    await retrieveFromTextbookTool.handler(
+    await retrieveFromDocumentsTool.handler(
       { query: "respiration", topK: 5, pageRange: { from: 10, to: 20 } },
       ctx,
     );
@@ -159,7 +159,7 @@ describe("retrieve_from_textbook handler", () => {
       [makeVectorHit("c1"), makeVectorHit("c2"), makeVectorHit("c3")],
       [],
     );
-    const result = await retrieveFromTextbookTool.handler({ query: "energy", topK: 3 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "energy", topK: 3 }, ctx);
 
     expect(result.citations[0]?.index).toBe(1);
     if (result.citations.length > 1) {
@@ -173,7 +173,7 @@ describe("retrieve_from_textbook handler", () => {
       .fn()
       .mockResolvedValue(new Map([["doc-1", "Biology 101"]]));
 
-    const result = await retrieveFromTextbookTool.handler({ query: "cell", topK: 5 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "cell", topK: 5 }, ctx);
     expect(result.citations[0]?.documentTitle).toBe("Biology 101");
   });
 
@@ -181,7 +181,7 @@ describe("retrieve_from_textbook handler", () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1", "doc-unknown")], []);
     ctx.services.documents.titlesByIds = vi.fn().mockResolvedValue(new Map());
 
-    const result = await retrieveFromTextbookTool.handler({ query: "cell", topK: 5 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "cell", topK: 5 }, ctx);
     expect(result.citations[0]?.documentTitle).toBe("(unknown)");
   });
 
@@ -189,7 +189,7 @@ describe("retrieve_from_textbook handler", () => {
     const hit = makeVectorHit("c1", "doc-1", { page: 3 });
     const ctx = makeCtxForRetrieval([hit], [], Buffer.from("fake-png"));
 
-    const result = await retrieveFromTextbookTool.handler({ query: "diagram", topK: 5 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "diagram", topK: 5 }, ctx);
     expect(result.citations[0]?.hasPageImage).toBe(true);
   });
 
@@ -197,7 +197,7 @@ describe("retrieve_from_textbook handler", () => {
     const hit = makeVectorHit("c1", "doc-1", { page: 3 });
     const ctx = makeCtxForRetrieval([hit], [], null);
 
-    const result = await retrieveFromTextbookTool.handler({ query: "diagram", topK: 5 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "diagram", topK: 5 }, ctx);
     expect(result.citations[0]?.hasPageImage).toBeFalsy();
   });
 
@@ -205,7 +205,7 @@ describe("retrieve_from_textbook handler", () => {
     const hit = makeVectorHit("c1", "doc-1"); // no page field
     const ctx = makeCtxForRetrieval([hit], [], null);
 
-    const result = await retrieveFromTextbookTool.handler({ query: "intro", topK: 5 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "intro", topK: 5 }, ctx);
 
     expect(ctx.services.documents.pageImage).not.toHaveBeenCalled();
     expect(result.citations[0]?.hasPageImage).toBeFalsy();
@@ -215,20 +215,20 @@ describe("retrieve_from_textbook handler", () => {
     const hits = Array.from({ length: 10 }, (_, i) => makeVectorHit(`c${i}`));
     const ctx = makeCtxForRetrieval(hits, []);
 
-    const result = await retrieveFromTextbookTool.handler({ query: "all", topK: 3 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "all", topK: 3 }, ctx);
     expect(result.citations.length).toBeLessThanOrEqual(3);
   });
 
   it("tool has correct name, tier, and effects", () => {
-    expect(retrieveFromTextbookTool.name).toBe("retrieve_from_textbook");
-    expect(retrieveFromTextbookTool.tier).toBe("grounded");
-    expect(retrieveFromTextbookTool.effects).toContain("external.code-exec");
+    expect(retrieveFromDocumentsTool.name).toBe("retrieve_from_documents");
+    expect(retrieveFromDocumentsTool.tier).toBe("grounded");
+    expect(retrieveFromDocumentsTool.effects).toContain("external.code-exec");
   });
 });
 
 // ── Phase 16: Course scoping tests ─────────────────────────────────────────────
 
-describe("retrieve_from_textbook — Phase 16 course scoping", () => {
+describe("retrieve_from_documents — Phase 16 course scoping", () => {
   it("uses courseDocumentIds when no explicit documentIds and courseDocumentIds is set", async () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1", "doc-course")], []);
     // Inject courseDocumentIds
@@ -237,7 +237,7 @@ describe("retrieve_from_textbook — Phase 16 course scoping", () => {
       .fn()
       .mockResolvedValue(new Map([["doc-course", "Course Book"]]));
 
-    await retrieveFromTextbookTool.handler({ query: "algebra", topK: 5 }, ctx);
+    await retrieveFromDocumentsTool.handler({ query: "algebra", topK: 5 }, ctx);
 
     // Both stores should have received documentIds: ["doc-course"]
     expect(ctx.services.vectorStore.search).toHaveBeenCalledWith(
@@ -252,7 +252,7 @@ describe("retrieve_from_textbook — Phase 16 course scoping", () => {
     const ctx = makeCtxForRetrieval([makeVectorHit("c1")], []);
     (ctx as { courseDocumentIds?: string[] }).courseDocumentIds = [];
 
-    const result = await retrieveFromTextbookTool.handler({ query: "algebra", topK: 5 }, ctx);
+    const result = await retrieveFromDocumentsTool.handler({ query: "algebra", topK: 5 }, ctx);
     expect(result.citations).toHaveLength(0);
     // Should not even call the stores
     expect(ctx.services.vectorStore.search).not.toHaveBeenCalled();
@@ -266,7 +266,7 @@ describe("retrieve_from_textbook — Phase 16 course scoping", () => {
       .fn()
       .mockResolvedValue(new Map([["explicit-doc", "Explicit Book"]]));
 
-    await retrieveFromTextbookTool.handler(
+    await retrieveFromDocumentsTool.handler(
       { query: "algebra", topK: 5, documentIds: ["explicit-doc"] },
       ctx,
     );

@@ -33,8 +33,8 @@ export interface ToolLabel {
 }
 
 export const TOOL_LABELS: Readonly<Record<string, ToolLabel>> = {
-  // Textbook + retrieval
-  retrieve_from_textbook: { present: "Looking up textbook references", past: "Cited textbook" },
+  // Document retrieval
+  retrieve_from_documents: { present: "Looking up document references", past: "Cited document" },
   "document.outline": { present: "Reading the table of contents" },
   "document.list_sections": { present: "Scanning sections" },
   "document.read_pages": { present: "Reading pages" },

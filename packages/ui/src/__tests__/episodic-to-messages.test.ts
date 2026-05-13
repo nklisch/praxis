@@ -69,12 +69,12 @@ describe("episodicToItems", () => {
     ]);
   });
 
-  it("harvests retrieve_from_textbook citations onto the assistant message", () => {
+  it("harvests retrieve_from_documents citations onto the assistant message", () => {
     const out = episodicToItems([
       ep(0, 1, { type: "user_message", content: "what does the book say about derivatives" }),
       ep(0, 2, {
         type: "tool_call",
-        toolName: "retrieve_from_textbook",
+        toolName: "retrieve_from_documents",
         args: {},
         callId: "c1",
       }),
@@ -192,7 +192,7 @@ describe("episodicToItems", () => {
       ep(0, 2, { type: "tool_call", toolName: "grade_math", args: {}, callId: "cA" }),
       ep(0, 3, {
         type: "tool_call",
-        toolName: "retrieve_from_textbook",
+        toolName: "retrieve_from_documents",
         args: {},
         callId: "cB",
       }),
@@ -222,7 +222,7 @@ describe("episodicToItems", () => {
       (i) => i.kind === "interstitial" && i.toolName === "grade_math",
     );
     const retrieveInterstitial = interstitials.find(
-      (i) => i.kind === "interstitial" && i.toolName === "retrieve_from_textbook",
+      (i) => i.kind === "interstitial" && i.toolName === "retrieve_from_documents",
     );
 
     expect(gradeInterstitial?.kind === "interstitial" && gradeInterstitial.status).toBe("settled");
@@ -349,7 +349,7 @@ describe("episodicToItems", () => {
       ep(0, 2, { type: "model_message", content: "Let me look.", partial: false }),
       ep(0, 3, {
         type: "tool_call",
-        toolName: "retrieve_from_textbook",
+        toolName: "retrieve_from_documents",
         args: {},
         callId: "c1",
       }),
@@ -380,7 +380,7 @@ describe("episodicToItems", () => {
       ep(0, 2, { type: "model_message", content: "Let me look.", partial: false }),
       ep(0, 3, {
         type: "tool_call",
-        toolName: "retrieve_from_textbook",
+        toolName: "retrieve_from_documents",
         args: {},
         callId: "c1",
       }),

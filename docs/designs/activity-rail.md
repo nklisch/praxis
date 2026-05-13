@@ -1125,7 +1125,7 @@ async runExploration(input: RunExplorationInput): Promise<RunConceptExplorerResu
 
 `runConceptExplorer` (in `@praxis/curriculum/bootstrap/explorer.ts`) needs a new optional `onProgress` callback. The explorer's loop already tracks tool calls — fire the callback at coarse phases:
 
-- `"reading"` while `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_textbook` calls dominate
+- `"reading"` while `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` calls dominate
 - `"shaping"` once `course.draft_init` has been called (all subsequent draft mutations are the shape phase)
 - `"finalizing"` at `course.draft_finalize`
 

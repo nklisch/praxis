@@ -36,7 +36,7 @@ export const examMode: Mode = {
     "sketch.read", // ← Phase 15a: read student sketches from exam submissions
     "clarification", // ← Phase 16: rephrase a confusing prompt; no method or answer revealed
     "pedagogy.list_metacognitive_prompts", // ← Phase 18: session-end reflection; read-only metadata, safe in verification stance
-    // No retrieve_from_textbook, no mastery / misconception tools, no graders
+    // No retrieve_from_documents, no mastery / misconception tools, no graders
     // (server handles all grading). Deliberately minimal.
   ],
   uiSurface: "chat",

@@ -30,7 +30,7 @@ export interface ChatMessage {
    */
   rawContent: string;
   streaming?: boolean;
-  /** Citations from retrieve_from_textbook tool calls in this message. */
+  /** Citations from retrieve_from_documents tool calls in this message. */
   citations?: RetrievalCitation[];
   /** Draft courses from course.show_draft tool calls in this message. */
   drafts?: ProposedCourse[];
@@ -399,7 +399,7 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
             // Harvest renderable results into pending arrays (Unit 3).
             // They will drain into the FIRST bubble that opens after this result.
             if (event.result.ok) {
-              if (toolName === "retrieve_from_textbook") {
+              if (toolName === "retrieve_from_documents") {
                 const value = event.result.value as { citations?: RetrievalCitation[] } | undefined;
                 if (value?.citations && Array.isArray(value.citations)) {
                   pendingCitations.push(...(value.citations as RetrievalCitation[]));

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { documentListSectionsTool } from "../document/list-sections.js";
 import { documentOutlineTool } from "../document/outline.js";
 import { documentReadPagesTool } from "../document/read-pages.js";
-import { retrieveFromTextbookTool } from "../retrieval/retrieve-from-textbook.js";
+import { retrieveFromDocumentsTool } from "../retrieval/retrieve-from-documents.js";
 import { draftAddConceptsTool } from "./draft-add-concepts.js";
 import { draftAddEdgesTool } from "./draft-add-edges.js";
 import { draftAddLessonAssessmentsTool } from "./draft-add-lesson-assessments.js";
@@ -104,7 +104,7 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
   async handler(args, ctx: ToolContext) {
     const explorerToolDefs = [
       // Read-only exploration tools.
-      retrieveFromTextbookTool,
+      retrieveFromDocumentsTool,
       documentOutlineTool,
       documentListSectionsTool,
       documentReadPagesTool,

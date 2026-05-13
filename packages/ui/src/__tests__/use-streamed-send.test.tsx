@@ -422,7 +422,7 @@ describe("useStreamedSend", () => {
   it("two concurrent tool_calls with different callIds settle correctly", async () => {
     const client = makeClient([
       { type: "tool_call", toolName: "grade_math", args: {}, callId: "cA" },
-      { type: "tool_call", toolName: "retrieve_from_textbook", args: {}, callId: "cB" },
+      { type: "tool_call", toolName: "retrieve_from_documents", args: {}, callId: "cB" },
       // results out of order
       {
         type: "tool_result",
@@ -455,7 +455,7 @@ describe("useStreamedSend", () => {
       (i) => i.kind === "interstitial" && i.toolName === "grade_math",
     );
     const retrieveInterstitial = interstitials.find(
-      (i) => i.kind === "interstitial" && i.toolName === "retrieve_from_textbook",
+      (i) => i.kind === "interstitial" && i.toolName === "retrieve_from_documents",
     );
 
     expect(gradeInterstitial?.kind === "interstitial" && gradeInterstitial.status).toBe("settled");
@@ -721,7 +721,7 @@ describe("useStreamedSend", () => {
   it("citations attach to the bubble AFTER the tool, not the bubble before", async () => {
     const client = makeClient([
       { type: "model_message", content: "Let me look that up.", partial: false },
-      { type: "tool_call", toolName: "retrieve_from_textbook", args: {}, callId: "c1" },
+      { type: "tool_call", toolName: "retrieve_from_documents", args: {}, callId: "c1" },
       {
         type: "tool_result",
         callId: "c1",
@@ -755,7 +755,7 @@ describe("useStreamedSend", () => {
   it("citations fall back to the most-recent bubble when no subsequent bubble opens", async () => {
     const client = makeClient([
       { type: "model_message", content: "Let me look that up.", partial: false },
-      { type: "tool_call", toolName: "retrieve_from_textbook", args: {}, callId: "c1" },
+      { type: "tool_call", toolName: "retrieve_from_documents", args: {}, callId: "c1" },
       {
         type: "tool_result",
         callId: "c1",

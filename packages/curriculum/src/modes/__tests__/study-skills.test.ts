@@ -137,8 +137,8 @@ describe("study-skills mode toolNames — excluded tools (coaching, not teaching
     expect(studySkillsMode.toolNames).not.toContain("code_sandbox");
   });
 
-  it("does not include retrieve_from_textbook", () => {
-    expect(studySkillsMode.toolNames).not.toContain("retrieve_from_textbook");
+  it("does not include retrieve_from_documents", () => {
+    expect(studySkillsMode.toolNames).not.toContain("retrieve_from_documents");
   });
 
   it("does not include course.start_lesson", () => {

@@ -68,7 +68,7 @@ import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
 import { NOTE_TOOLS } from "@praxis/tools/notes";
 import { QUICK_CHECK_TOOLS } from "@praxis/tools/quick-check";
-import { retrieveFromTextbookTool } from "@praxis/tools/retrieval";
+import { retrieveFromDocumentsTool } from "@praxis/tools/retrieval";
 import {
   DocxIngestor,
   EpubIngestor,
@@ -497,7 +497,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   const toolDefinitions = [
     gradeMathTool,
     codeSandboxTool,
-    retrieveFromTextbookTool,
+    retrieveFromDocumentsTool,
     ...COURSE_TOOLS,
     startExplorationTool, // imported via its own subpath to avoid a course-barrel cycle
 

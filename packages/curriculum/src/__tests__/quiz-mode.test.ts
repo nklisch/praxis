@@ -27,8 +27,8 @@ describe("quizMode", () => {
     expect(quizMode.toolNames).toContain("assignment.read_grade");
   });
 
-  it("quizMode toolNames includes retrieve_from_textbook, update_mastery, record_misconception", () => {
-    expect(quizMode.toolNames).toContain("retrieve_from_textbook");
+  it("quizMode toolNames includes retrieve_from_documents, update_mastery, record_misconception", () => {
+    expect(quizMode.toolNames).toContain("retrieve_from_documents");
     expect(quizMode.toolNames).toContain("update_mastery");
     expect(quizMode.toolNames).toContain("record_misconception");
   });

@@ -106,7 +106,7 @@ export interface ToolContext {
   /**
    * Phase 16: pre-computed list of document ids attached to `courseId`.
    * Populated only when `courseId` is set; tools that scope to course
-   * documents (e.g., `retrieve_from_textbook`) consume this directly to
+   * documents (e.g., `retrieve_from_documents`) consume this directly to
    * avoid an extra DB call per dispatch. Empty array means "no documents
    * attached yet" — tools should return empty results, not fall back to
    * library scope.

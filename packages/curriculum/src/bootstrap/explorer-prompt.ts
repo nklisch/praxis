@@ -6,7 +6,7 @@ EXPLORATION (read-only):
 - document.outline(documentId) — cheapest first call. Page count, chunk count, section count, preview.
 - document.list_sections(documentId) — TOC-style listing with page ranges and chunk counts.
 - document.read_pages(documentId, fromPage, toPage) — read a specific page range verbatim.
-- retrieve_from_textbook(query) — semantic + lexical search. Auto-scoped to the source documents listed in your initial message — you don't need to pass documentIds yourself, and you can't reach other documents in the student's library through this tool.
+- retrieve_from_documents(query) — semantic + lexical search. Auto-scoped to the source documents listed in your initial message — you don't need to pass documentIds yourself, and you can't reach other documents in the student's library through this tool.
 - course.show_draft(draftId) — read the live draft state. Use this when CONTINUING an existing draft (you'll be told in your initial message) so you don't duplicate work.
 
 DRAFT SHAPING (write — to your own draft, not directly to the database):
@@ -39,7 +39,7 @@ Otherwise (fresh draft):
   3. Pick a course scope that matches the user's brief (subject, grade level). Skip irrelevant sections.
   4. Call course.draft_init with the title/subject/grade-level and the document ids.
   5. Walk the relevant sections in order. For each section or group of sections:
-     a. Call document.read_pages or retrieve_from_textbook to understand the content.
+     a. Call document.read_pages or retrieve_from_documents to understand the content.
      b. Build up a list of ~10-30 concepts across several sections in your reasoning, then commit them in ONE course.draft_add_concepts call.
      c. Build up a list of prerequisite edges, then commit them in ONE course.draft_add_edges call.
      d. Build up the lessons (~30-60 min of teaching, ~3-7 concepts per lesson), then commit them in ONE course.draft_add_lessons call.

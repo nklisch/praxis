@@ -164,7 +164,7 @@ describe("SubAgentRegistryImpl", () => {
       sessionId: "sess-1" as any,
       label: "reading",
     });
-    handle.stepStarted({ callId: "step-1", toolName: "retrieve_from_textbook" });
+    handle.stepStarted({ callId: "step-1", toolName: "retrieve_from_documents" });
     events.length = 0;
 
     handle.stepSettled({ callId: "step-1", ok: false });

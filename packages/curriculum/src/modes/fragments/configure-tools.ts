@@ -32,7 +32,7 @@ export const configureToolsFragment: PromptFragment = {
 - course.list_lessons_in_unit — list lessons within a specific unit (returns title + concept count + assessment count per lesson)
 - course.get_lesson_detail — full lesson detail including concept names, lesson assessments, and parent unit
 - course.list_dangling_refs — list orphan concepts, dangling unit memberships, dangling lesson assessments, and edges referencing unknown concepts (use before confirm_draft to inspect integrity)
-- retrieve_from_textbook — search ingested materials
+- retrieve_from_documents — search ingested materials
 
 ── Course editing ──
 - course.edit — update course title, subject, grade level, or thresholds

@@ -31,7 +31,7 @@ export const teachMode: Mode = {
   toolNames: [
     "grade_math",
     "code_sandbox",
-    "retrieve_from_textbook",
+    "retrieve_from_documents",
     "course.what_can_i_teach", // ← Phase 6 nav tools
     "course.start_lesson",
     "course.current_concept",

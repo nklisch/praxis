@@ -69,7 +69,7 @@ The framework defines six v1 modes. Each is a configuration: prompt fragments, t
 The interactive lecture. Concept introduction, scaffolding, worked examples, fading.
 
 - Prompt fragments emphasize: present a concept → ground in textbook → motivate with example → check understanding → fade scaffolding.
-- Tools: `grade_math`, `code_sandbox`, `retrieve_from_textbook`, course-navigation tools (`course.what_can_i_teach`, `course.start_lesson`, `course.current_concept`, `course.mark_studied`), `update_mastery`, `record_misconception`, `assignment.create`, 9 note/flashcard tools (`note.*`, `flashcard.*`), `sketch.read`, inline quick checks (`quick_check.single_choice`, `quick_check.multi_select`, `quick_check.short_answer`, `quick_check.matching`, `quick_check.confidence`), `pedagogy.list_metacognitive_prompts`. See `packages/curriculum/src/modes/teach.ts` for the canonical list.
+- Tools: `grade_math`, `code_sandbox`, `retrieve_from_documents`, course-navigation tools (`course.what_can_i_teach`, `course.start_lesson`, `course.current_concept`, `course.mark_studied`), `update_mastery`, `record_misconception`, `assignment.create`, 9 note/flashcard tools (`note.*`, `flashcard.*`), `sketch.read`, inline quick checks (`quick_check.single_choice`, `quick_check.multi_select`, `quick_check.short_answer`, `quick_check.matching`, `quick_check.confidence`), `pedagogy.list_metacognitive_prompts`. See `packages/curriculum/src/modes/teach.ts` for the canonical list.
 - No exam tools. No assessment-taking tools (those live in quiz/homework/exam modes).
 - Style: lecture-leaning *and* Socratic — adapts based on procedural memory (what works for *this* student).
 
@@ -77,7 +77,7 @@ The interactive lecture. Concept introduction, scaffolding, worked examples, fad
 
 Short-form retrieval practice during or between lessons. Items rendered as a structured `<AssignmentCard>` inline in the chat. Agent voice: lively scaffolding; offers hints sparingly during work; narrates per-item feedback warmly after submission.
 
-- Tools: `assignment.show`, `assignment.read_grade`, `course.what_can_i_teach`, `course.current_concept`, `retrieve_from_textbook`, `grade_math`, `code_sandbox`, `update_mastery`, `record_misconception`, `pedagogy.list_metacognitive_prompts`
+- Tools: `assignment.show`, `assignment.read_grade`, `course.what_can_i_teach`, `course.current_concept`, `retrieve_from_documents`, `grade_math`, `code_sandbox`, `update_mastery`, `record_misconception`, `pedagogy.list_metacognitive_prompts`
 - `workRubric`: rare. Reserve for the 1-2 multi-step items per quiz where partial credit adds value.
 - Approach feedback layer: ON for items without a rubric/workRubric (fallback enrichment)
 - Submission: chat composer remains active throughout
@@ -114,8 +114,8 @@ The metacognition coach's dedicated mode. Teaches and practices the principles-t
 A pre-curricular mode for authoring a new course from uploaded materials. Available without lock; intended for student self-onboard (UX path 2 in `UX.md`) and for the parent / teacher's first course before lock-gated `configure` is set up.
 
 - Prompt fragments: bootstrap-specific role + tools.
-- Tools: `course.list_library_documents`, `course.attach_document`, `course.list_canonical_packs`, `course.use_canonical_pack`, `course.start_exploration`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`, `retrieve_from_textbook`. The single-shot `course.propose_draft` is gone (Phase 16 replaced it with the agentic `course.start_exploration` entry point). See `packages/curriculum/src/modes/bootstrap.ts` for the canonical list.
-- `course.start_exploration` runs a multi-turn exploration agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_textbook` and writes unit/lesson/assessment drafts via `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
+- Tools: `course.list_library_documents`, `course.attach_document`, `course.list_canonical_packs`, `course.use_canonical_pack`, `course.start_exploration`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`, `retrieve_from_documents`. The single-shot `course.propose_draft` is gone (Phase 16 replaced it with the agentic `course.start_exploration` entry point). See `packages/curriculum/src/modes/bootstrap.ts` for the canonical list.
+- `course.start_exploration` runs a multi-turn exploration agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes unit/lesson/assessment drafts via `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
 - Phase 11's `configure` mode subsumes bootstrap (lock-gated, with full gate / prompt / memory editors layered on).
 
 ### `configure`

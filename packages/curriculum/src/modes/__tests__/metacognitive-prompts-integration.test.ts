@@ -218,7 +218,7 @@ describe("exam mode — metacognitive prompt opt-in (session-end only)", () => {
     // Exam mode must NOT include tools that reveal answer information.
     expect(examMode.toolNames).not.toContain("assignment.create");
     expect(examMode.toolNames).not.toContain("grade_math");
-    expect(examMode.toolNames).not.toContain("retrieve_from_textbook");
+    expect(examMode.toolNames).not.toContain("retrieve_from_documents");
     expect(examMode.toolNames).not.toContain("update_mastery");
     expect(examMode.toolNames).not.toContain("record_misconception");
   });

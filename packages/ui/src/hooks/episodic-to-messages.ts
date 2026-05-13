@@ -242,7 +242,7 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         const value = event.result.value as ToolResultValue;
 
         // Harvest into pending arrays (Unit 3) — drain on next bubble open.
-        if (toolName === "retrieve_from_textbook") {
+        if (toolName === "retrieve_from_documents") {
           const v = value as { citations?: RetrievalCitation[] } | undefined;
           if (v?.citations && Array.isArray(v.citations)) {
             pendingCitations.push(...v.citations);

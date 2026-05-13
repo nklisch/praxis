@@ -53,8 +53,8 @@ describe("bootstrapMode.toolNames — included tools", () => {
     expect(bootstrapMode.toolNames).toContain("course.use_canonical_pack");
   });
 
-  it("includes retrieve_from_textbook", () => {
-    expect(bootstrapMode.toolNames).toContain("retrieve_from_textbook");
+  it("includes retrieve_from_documents", () => {
+    expect(bootstrapMode.toolNames).toContain("retrieve_from_documents");
   });
 
   it("includes ask_student_question", () => {

@@ -1,6 +1,6 @@
 export {
-  retrieveFromTextbookInput,
-  retrieveFromTextbookOutput,
-  retrieveFromTextbookTool,
-} from "./retrieve-from-textbook.js";
+  retrieveFromDocumentsInput,
+  retrieveFromDocumentsOutput,
+  retrieveFromDocumentsTool,
+} from "./retrieve-from-documents.js";
 export { type FusedResult, reciprocalRankFusion } from "./rrf.js";

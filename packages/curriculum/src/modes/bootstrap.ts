@@ -15,7 +15,7 @@ import { principlesFragment } from "./fragments/principles.js";
  * This mode is available without lock; Phase 11's `configure` mode subsumes it
  * (lock-gated, with full gate / prompt / memory editors).
  *
- * Tool names: the 6 draft-authoring tools + retrieve_from_textbook for ad-hoc
+ * Tool names: the 6 draft-authoring tools + retrieve_from_documents for ad-hoc
  * lookup while authoring. Navigation tools (what_can_i_teach, etc.) are NOT
  * included — no confirmed course exists at bootstrap time.
  */
@@ -52,7 +52,7 @@ export const bootstrapMode: Mode = {
     "course.get_lesson_detail",
     "course.list_dangling_refs",
     // Retrieval — for ad-hoc lookup by the tutor (NOT the explorer; explorer has its own registry)
-    "retrieve_from_textbook",
+    "retrieve_from_documents",
     // Dialog — structured choice questions the model poses to the student
     "ask_student_question",
   ],

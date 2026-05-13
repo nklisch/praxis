@@ -21,8 +21,8 @@ describe("examMode", () => {
     expect(examMode.toolNames).toContain("pedagogy.list_metacognitive_prompts"); // Phase 18
   });
 
-  it("examMode does not include retrieve_from_textbook or mastery tools", () => {
-    expect(examMode.toolNames).not.toContain("retrieve_from_textbook");
+  it("examMode does not include retrieve_from_documents or mastery tools", () => {
+    expect(examMode.toolNames).not.toContain("retrieve_from_documents");
     expect(examMode.toolNames).not.toContain("update_mastery");
     expect(examMode.toolNames).not.toContain("record_misconception");
   });

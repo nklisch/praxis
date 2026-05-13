@@ -21,7 +21,7 @@ const OutputSchema = z.object({
 export const documentListSectionsTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "document.list_sections",
   description:
-    "List the sections (chapters, headings) of a document with page ranges and chunk counts. Use this to get a deterministic overview of a textbook's structure before deciding which sections to read in detail. Faster and more reliable than retrieve_from_textbook for 'what's in this book' questions.",
+    "List the sections (chapters, headings) of a document with page ranges and chunk counts. Use this to get a deterministic overview of a document's structure before deciding which sections to read in detail. Faster and more reliable than retrieve_from_documents for 'what's in this document' questions.",
   input: InputSchema,
   output: OutputSchema,
   tier: "deterministic",
