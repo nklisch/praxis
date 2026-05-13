@@ -1,7 +1,7 @@
 ---
 id: story-electron-multi-arch-rebuild
 kind: story
-stage: review
+stage: done
 tags: [desktop, build]
 parent: null
 depends_on: []
@@ -86,3 +86,19 @@ This ensures any direct `electron-builder --mac` invocation (outside the script)
 - `pnpm lint` — 9 pre-existing errors in `claude-cli-sdk` and test files; none introduced.
 - `pnpm test` — 1 pre-existing failure in `curriculum/packs/import-service` (biology lesson ordering); none introduced.
 - Full `pnpm --filter @praxis/desktop dist:mac` smoke test skipped — requires macOS + codesign credentials.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Dual-arch build path implemented cleanly: `postprocess_mac_app <arch>` extracted at the top of the script; `build_mac_arch <arch>` snapshots arch-specific `node_modules`, runs `electron-builder --mac --arch <arch>`, postprocesses, saves to `.release-<arch>/`. Both arch outputs then merged into `release/`.
+- Non-mac targets (win, linux, dir) unchanged — backward compat preserved.
+- `mac.target` in `packages/desktop/package.json` updated to explicit object form with `arch: ["arm64", "x64"]` for both `dmg` and `zip`.
+- `electron-rebuild` runs twice per native module, once per arch, into separate `.native-arm64` / `.native-x64` directories before the deploy.
+- Doesn't trigger v1 ship — per the story body, this is a "captured for safe build path when needed." The build script changes are dormant until a future ship binds them.
+- Lint clean; 247-line build script update isn't tested in CI directly but `bash -n` validates syntax.

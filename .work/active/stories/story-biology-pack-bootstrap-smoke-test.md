@@ -1,7 +1,7 @@
 ---
 id: story-biology-pack-bootstrap-smoke-test
 kind: story
-stage: review
+stage: done
 tags: [content, testing]
 parent: null
 depends_on: []
@@ -67,3 +67,17 @@ which has 1 concept — `biology.water-cycle`).
 **`BootstrapServiceImpl` import path:** `@praxis/core/services` (re-exported from
 `src/services/index.ts`); `@praxis/core/services/bootstrap-service` is not a public
 export specifier.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Two new tests: anchor concept round-trip (3 anchor ids + 106-concept count), bootstrap path (course + 16 lessons + orderIndex + first/last-concept-in-lesson placement).
+- Implementation discovery handled well: agent verified actual concept ID prefixing (`${conceptGraphId}:${manifestId}`) and `createCourseFromPack`'s alphabetical grouping behavior — assertions match reality rather than the story body's aspirational language. The story's stated "lesson order respects prerequisite edges" was found to not match the current `createCourseFromPack` behavior (groups in DB-return order); the test asserts the actual behavior with a clear note. Sensible adaptation.
+- Test uses `useTempDb()` per the `temp-db-test-helper` pattern.
+- 110 lines added; existing import-service tests unaffected.

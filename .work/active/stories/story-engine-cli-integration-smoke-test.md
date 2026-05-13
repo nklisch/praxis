@@ -1,7 +1,7 @@
 ---
 id: story-engine-cli-integration-smoke-test
 kind: story
-stage: review
+stage: done
 tags: [testing, engine]
 parent: null
 depends_on: []
@@ -62,3 +62,18 @@ Mirrors the `slow-test-gating` pattern exactly: `describe.skipIf(!runSlowTests)(
 **Lint**: The biome `noNonNullAssertion` rule flagged `session!.send(...)`. Replaced with an explicit guard: `if (!session) throw new Error(...)` followed by `session.send(...)`.
 
 **Pre-existing failures**: `pnpm test` shows one failing test in `@praxis/curriculum` (`import-service.test.ts` — missing `@praxis/core/services/bootstrap-service` specifier). This is unrelated to this story and was failing before these changes. All 108 tests in `@praxis/engines` pass.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Gated via `describe.skipIf(!runSlowTests)` with 60s timeout — matches `slow-test-gating` pattern at `.claude/skills/patterns/slow-test-gating.md`.
+- Test asserts the right tripwire: a `tool_call` event with `toolName === "test.echo"` proves MCP tools weren't stripped by the `--tools ""` flag, plus a `tool_result.ok === true` with the expected echo value proves the bridge dispatched the call.
+- Skipped by default (fast CI doesn't run it). `PRAXIS_RUN_SLOW_TESTS=1` enables it when the maintainer has the CLI + auth locally.
+- `pnpm vitest run` shows it skipping correctly; `pnpm typecheck` clean; engines test suite 107 passed + 1 skipped.
+- Bonus: agent fixed a `noNonNullAssertion` lint warning inline (`session!.send()` → explicit null guard).
