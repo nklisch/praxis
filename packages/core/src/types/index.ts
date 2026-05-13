@@ -1,6 +1,7 @@
 export type * from "./activity.js";
 export type * from "./artifacts.js";
 export type * from "./citation.js";
+export type * from "./document-scopes.js";
 // client.ts: Note: MemoryService is intentionally NOT re-exported from here.
 // The client-side MemoryService (no studentId params) lives in ./client.ts and is
 // imported directly by client code and MemoryClient. The server-side MemoryService
@@ -14,7 +15,7 @@ export type {
   BootstrapOpts,
   ConceptMapClientApi,
   ConfigService,
-  CourseDocumentsClientApi,
+  DocumentScopesClientApi,
   CreateCourseInput,
   DocumentSummary,
   DocumentsClient,

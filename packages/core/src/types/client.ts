@@ -58,7 +58,7 @@ import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
 import type { TabId, TabSummary } from "./tabs.js";
-import type { DocumentSummaryItem } from "./tool.js";
+import type { DocumentScopeAttachment, DocumentScope, DocumentScopeSource } from "./document-scopes.js";
 
 export interface PraxisClient {
   session: SessionService;
@@ -88,8 +88,8 @@ export interface PraxisClient {
   sketches: SketchClientApi;
   /** Phase 15b: concept map CRUD + versioning. */
   conceptMaps: ConceptMapClientApi;
-  /** Phase 16: course ↔ document attachment — attach, detach, list. */
-  courseDocuments: CourseDocumentsClientApi;
+  /** Phase 16: polymorphic scope ↔ document attachment — attach, detach, list. */
+  documentScopes: DocumentScopesClientApi;
   /** Activity rail — subscribe to ambient progress events from long-running work. */
   activity: ActivityClient;
   /**
@@ -198,31 +198,31 @@ export interface ConceptMapClientApi {
 }
 
 /**
- * Phase 16: Client-facing course ↔ document attachment API.
+ * Phase 16: Client-facing polymorphic scope ↔ document attachment API.
  * The studentId is resolved server-side from the single-student v1 install context.
  */
-export interface CourseDocumentsClientApi {
+export interface DocumentScopesClientApi {
   /**
-   * List all documents attached to a course, as compact summaries.
+   * List all documents attached to a scope, as enriched summaries.
    * Returns an empty array when no documents are attached.
    */
-  listForCourse(courseId: CourseId): Promise<DocumentSummaryItem[]>;
+  listForScope(scope: DocumentScope): Promise<DocumentScopeAttachment[]>;
 
   /**
-   * Attach a library document to a course. Idempotent — re-attaching an
+   * Attach a library document to a scope. Idempotent — re-attaching an
    * already-attached document returns `{ attached: false }`.
    */
   attach(input: {
-    courseId: CourseId;
+    scope: DocumentScope;
     documentId: DocumentId;
-    source?: "manual" | "bootstrap" | "ingestion";
+    source?: DocumentScopeSource;
   }): Promise<{ attached: boolean }>;
 
   /**
-   * Detach a document from a course. Idempotent — detaching an unlinked doc
+   * Detach a document from a scope. Idempotent — detaching an unlinked doc
    * returns `{ detached: false }`.
    */
-  detach(input: { courseId: CourseId; documentId: DocumentId }): Promise<{ detached: boolean }>;
+  detach(input: { scope: DocumentScope; documentId: DocumentId }): Promise<{ detached: boolean }>;
 }
 
 export interface SessionService {

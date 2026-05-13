@@ -56,9 +56,9 @@ export { ConceptMapServiceImpl } from "./concept-map-service.js";
 export type { ConceptMapSnapshotterDeps } from "./concept-map-snapshotter.js";
 export { ConceptMapSnapshotter } from "./concept-map-snapshotter.js";
 export { ConfigServiceImpl } from "./config-service.js";
-// Phase 16: Course documents service
-export type { CourseDocumentsServiceDeps } from "./course-documents-service.js";
-export { CourseDocumentsServiceImpl } from "./course-documents-service.js";
+// Phase 16: Document scopes service (polymorphic replacement for CourseDocumentsServiceImpl)
+export type { DocumentScopesServiceDeps } from "./document-scopes-service.js";
+export { DocumentScopesServiceImpl } from "./document-scopes-service.js";
 export { DrizzleDocumentsReader } from "./documents-reader-impl.js";
 export type { DocumentsServiceDeps } from "./documents-service.js";
 export { DocumentsServiceImpl } from "./documents-service.js";

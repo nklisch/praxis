@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-scopes-primitive-service-and-types
 kind: story
-stage: implementing
+stage: review
 tags: [core, documents]
 parent: epic-document-library-scopes-primitive
 depends_on: [epic-document-library-scopes-primitive-schema-and-migration]
@@ -63,3 +63,56 @@ gets cleaned up in the next story.
 
 - Call-site updates (story `…-callsite-sweep`).
 - IPC / client changes (story `…-callsite-sweep`).
+
+## Implementation Notes
+
+### Files created
+- `packages/core/src/types/document-scopes.ts` — new types: `ScopeKind`,
+  `DocumentScope`, `DocumentScopeSource`, `DocumentScopeAttachment`
+- `packages/core/src/services/document-scopes-service.ts` —
+  `DocumentScopesServiceImpl` implementing all 7 methods
+- `packages/core/src/services/__tests__/document-scopes-service.test.ts` —
+  23 tests covering all 7 methods (multi-scope, idempotency, promoteScope,
+  FK cascade)
+
+### Files modified
+- `packages/core/src/types/index.ts` — re-exports `document-scopes.ts`;
+  renamed `CourseDocumentsClientApi` → `DocumentScopesClientApi` in named
+  export from `client.ts`
+- `packages/core/src/types/tool.ts` — replaced `CourseDocumentsService`
+  interface with `DocumentScopesService` (7 methods); renamed
+  `ToolServices.courseDocuments` → `ToolServices.documentScopes`
+- `packages/core/src/types/client.ts` — renamed
+  `CourseDocumentsClientApi` → `DocumentScopesClientApi` with
+  scope-shaped API; renamed `PraxisClient.courseDocuments` →
+  `PraxisClient.documentScopes`
+- `packages/core/src/services/types.ts` — renamed
+  `ServiceDeps.toolServices.courseDocuments` →
+  `ServiceDeps.toolServices.documentScopes` (imported
+  `DocumentScopesService` instead of `CourseDocumentsService`)
+- `packages/core/src/services/index.ts` — replaced
+  `CourseDocumentsServiceDeps` / `CourseDocumentsServiceImpl` exports with
+  `DocumentScopesServiceDeps` / `DocumentScopesServiceImpl`
+- `tests/helpers/mocks.ts` — renamed `noopCourseDocuments()` →
+  `noopDocumentScopes()` with the 7-method interface
+
+### Files deleted
+- `packages/core/src/services/course-documents-service.ts` (via git rm)
+- `packages/core/src/services/__tests__/course-documents-service.test.ts`
+  (via git rm)
+
+### Test result
+`pnpm vitest run packages/core/src/services/__tests__/document-scopes-service.test.ts`
+— 23/23 tests pass. All 246 core service tests pass (no regression).
+
+### Expected outstanding typecheck failures
+`pnpm --filter @praxis/core typecheck` fails with 5 errors — all in
+call-site files that still reference `courseDocuments`:
+- `src/ingestion/service.ts` — `CourseDocumentsService` import + field
+- `src/services/bootstrap-service.ts` — `CourseDocumentsService` import + field
+- `src/services/session-service.ts` — `courseDocuments` references (×3)
+
+These are in scope for `epic-document-library-scopes-primitive-callsite-sweep`.
+Full-workspace `pnpm typecheck` will also fail for the same reason plus
+call sites in `@praxis/desktop`, `@praxis/tools`, and `@praxis/client`.
+All intentional per the story boundary.

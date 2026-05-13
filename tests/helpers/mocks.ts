@@ -68,19 +68,20 @@ export function noopLockService(): import("@praxis/core/types").LockService {
 }
 
 /**
- * No-op CourseDocumentsService. Returns empty lists for all read methods
+ * No-op DocumentScopesService. Returns empty lists for all read methods
  * and no-op results for mutations.
- * Use when testing BootstrapServiceImpl-accepting components that don't
- * exercise course-document attachment logic (the field became mandatory in
- * Phase 16).
+ * Use when testing components that accept ServiceDeps but don't exercise
+ * scope-document attachment logic (the field became mandatory in Phase 16).
  */
-export function noopCourseDocuments(): import("@praxis/core/types").CourseDocumentsService {
+export function noopDocumentScopes(): import("@praxis/core/types").DocumentScopesService {
   return {
-    listForCourse: async () => [],
-    listForCourseDetailed: async () => [],
+    listForScope: async () => [],
+    listForScopeDetailed: async () => [],
     attach: async () => ({ attached: false }),
     detach: async () => ({ detached: false }),
     attachMany: async () => ({ newlyAttached: [] }),
+    listScopesForDocument: async () => [],
+    promoteScope: async () => ({ promoted: [] }),
   };
 }
 

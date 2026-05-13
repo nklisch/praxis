@@ -9,8 +9,8 @@ import type {
   BootstrapService,
   CodeSandbox,
   ConceptMapService,
-  CourseDocumentsService,
   CourseStateReader,
+  DocumentScopesService,
   DocumentsReader,
   EmbeddingService,
   Engine,
@@ -82,8 +82,8 @@ export interface ServiceDeps {
     vision?: VisionService;
     /** Phase 15b: concept map CRUD + versioning. */
     conceptMaps: ConceptMapService;
-    /** Phase 16: course ↔ document attachment management. */
-    courseDocuments: CourseDocumentsService;
+    /** Phase 16: polymorphic scope ↔ document attachment management. */
+    documentScopes: DocumentScopesService;
     /**
      * Phase 16: lazy engine resolver — used by tools that spawn isolated sessions.
      * Same pattern as bootstrapEngineResolver; wired from the same source.

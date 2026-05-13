@@ -65,6 +65,11 @@ import type { ComposedSystemPromptWithAttribution } from "./prompt-attribution.j
 import type { QuickCheckService } from "./quick-check.js";
 import type { SketchService } from "./sketches.js";
 import type { SubAgentRegistry } from "./subagent.js";
+import type {
+  DocumentScope,
+  DocumentScopeAttachment,
+  DocumentScopeSource,
+} from "./document-scopes.js";
 
 // Re-export VisionService shape inline here so tool handlers can type-check against it
 // without importing from @praxis/core/services (would violate dependency direction).
@@ -183,8 +188,8 @@ export interface ToolServices {
   sketches?: SketchService;
   /** Phase 15a: vision capability wrapper — used by grade_math sketch case to OCR drawings. */
   vision?: VisionService;
-  /** Phase 16: course ↔ document attachment management. */
-  courseDocuments: CourseDocumentsService;
+  /** Phase 16: polymorphic scope ↔ document attachment management. */
+  documentScopes: DocumentScopesService;
   /**
    * Phase 16: resolves the user's currently configured engine at call time.
    * Used by tools that spawn isolated agent sessions (e.g., start_exploration,
@@ -582,42 +587,65 @@ export interface DocumentSummaryItem {
   hasPageImages: boolean;
 }
 
-// ─── Phase 16: CourseDocumentsService ─────────────────────────────────────────
+// ─── DocumentScopesService ───────────────────────────────────────────────────
 
 /**
- * Many-to-many between courses and the student's library documents. A document
- * can be attached to zero, one, or many courses. The student library
- * (`documents` table) is the SSOT — this service only manages links.
+ * Many-to-many between scopes (course, session, …) and the student's
+ * library documents. A document can be attached to zero, one, or many
+ * scopes. The student library (`documents` table) is the SSOT — this
+ * service only manages links.
  */
-export interface CourseDocumentsService {
-  /** All document ids attached to a course, in attach order. */
-  listForCourse(courseId: CourseId): Promise<DocumentId[]>;
+export interface DocumentScopesService {
+  /** All document ids attached to a scope, in attach order. */
+  listForScope(scope: DocumentScope): Promise<DocumentId[]>;
 
-  /** Compact summaries of documents attached to a course (for tool output). */
-  listForCourseDetailed(courseId: CourseId): Promise<DocumentSummaryItem[]>;
+  /** Enriched summaries for the scope's documents (tool / UI output). */
+  listForScopeDetailed(scope: DocumentScope): Promise<DocumentScopeAttachment[]>;
 
   /**
-   * Attach. Idempotent: re-attaching an already-attached document is a no-op
-   * (returns false). Returns true if a row was actually inserted.
+   * Attach. Idempotent on (documentId, scope.kind, scope.id).
+   * Returns true iff a row was inserted.
    */
   attach(input: {
-    courseId: CourseId;
+    scope: DocumentScope;
     documentId: DocumentId;
-    source: "bootstrap" | "manual" | "ingestion";
+    source: DocumentScopeSource;
   }): Promise<{ attached: boolean }>;
 
-  /** Detach. Idempotent: detaching an unlinked doc returns false. */
-  detach(input: { courseId: CourseId; documentId: DocumentId }): Promise<{ detached: boolean }>;
+  /** Detach. Idempotent. */
+  detach(input: {
+    scope: DocumentScope;
+    documentId: DocumentId;
+  }): Promise<{ detached: boolean }>;
 
   /**
-   * Bulk attach used at confirm-draft time. Skips already-attached documents.
-   * Returns the list of newly attached document ids.
+   * Bulk attach (e.g., confirm-draft, multi-file ingest). Skips
+   * already-attached documents. Returns the newly attached ids.
    */
   attachMany(input: {
-    courseId: CourseId;
+    scope: DocumentScope;
     documentIds: ReadonlyArray<DocumentId>;
-    source: "bootstrap" | "manual" | "ingestion";
+    source: DocumentScopeSource;
   }): Promise<{ newlyAttached: DocumentId[] }>;
+
+  /**
+   * All scopes a document is currently attached to.
+   * Used by Orphaned detection in the library view (a document with
+   * zero scope rows is orphaned).
+   */
+  listScopesForDocument(documentId: DocumentId): Promise<DocumentScope[]>;
+
+  /**
+   * Promote every document in `from` into `to` (idempotent per row).
+   * Used by bootstrap-session-scoped-attachment when a draft is
+   * confirmed — session-scope rows promote to course-scope while the
+   * session rows persist for audit. Source rows are NOT removed.
+   */
+  promoteScope(input: {
+    from: DocumentScope;
+    to: DocumentScope;
+    source: DocumentScopeSource;
+  }): Promise<{ promoted: DocumentId[] }>;
 }
 
 // ─── Phase 6: CourseStateReader ───────────────────────────────────────────────
