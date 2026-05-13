@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-library-view-tabs-filters
 kind: feature
-stage: review
+stage: done
 tags: [ui, documents]
 parent: epic-document-library
 depends_on: [epic-document-library-scopes-primitive]
@@ -388,3 +388,18 @@ Covered by Unit 7. Key invariants:
 - `pnpm test`: 3129 passed, 2 pre-existing failures in `pdf-renderer.test.tsx` (from parallel agent's work on `DocumentDetail`)
 - `pnpm typecheck`: clean for all packages except pre-existing failures in `document-tab-body.tsx`, `format-router.ts`, `pdf-renderer.tsx`, `use-fragment-overrides.ts`, `prompt-tab.tsx` (all from parallel agent work)
 - `pnpm lint`: 7 pre-existing errors in `claude-cli-sdk` and `client` tests; none in my files
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `listOrphaned` uses an N+1 query pattern (one query per doc to fetch scope rows, then per-scope-row queries to check parent existence). The implementation note acknowledges this is acceptable for bounded library sizes; if libraries grow into the thousands of docs, a single LEFT JOIN with NOT EXISTS would be faster.
+- The DocumentsSection now accepts a `courseId?: CourseId` prop instead of using `useParams` directly. Acceptable — keeps the component context-agnostic.
+- Click-to-open goes directly to `openDocumentInTab` (skipping the design's "v1 modal preview"). Pragmatic given the viewer story landed in the same wave.
+
+**Notes**: 7 listOrphaned tests cover all four edge cases (zero rows, all dangling, mixed live+dangling, per-student isolation). 6 useActiveBootstrapSession tests cover the discriminated-union narrowing properly. Tab strip + filter bar is a clean client-side projection — switching tabs triggers fresh loads via useResource, filters apply without re-fetching. Empty states use the EmptyState primitive with per-tab COPY entries — editorial consistency preserved.
+
+What's now possible: the library route exposes scope-aware navigation. Users can pivot by All / This course / This session / Orphaned and refine within each tab. The Orphaned tab is the surface that catches docs from abandoned bootstrap sessions per the bootstrap-session-scoped-attachment feature's design.
