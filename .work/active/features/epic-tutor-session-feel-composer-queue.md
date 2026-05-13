@@ -60,15 +60,19 @@ lockdown still locks the composer hard — that's a different concern.
 
 ## Design notes for feature-design
 
-- Queue state: lives in `useStreamedSend` or a sibling hook?
-- Rendering: queued messages appear inline in the thread as pending
-  bubbles. Visual treatment (faded, "pending" tag, animated dot)?
-- Flush semantics: send queued messages one-at-a-time after the turn
-  ends (each as its own turn), or combine into one super-message? Latter
-  loses temporal structure; former is more natural for tutoring.
-- Cancellation: can the user remove a pending message before it flushes?
-- Edit-while-pending: same question — allowed or not? Latter is simpler.
-- Exam-mode lockdown: continues to lock hard; the queue is a teach/quiz
-  affordance.
+- Queue state: lives in `useStreamedSend` or a sibling hook? — leave to
+  feature-design.
+- Rendering (resolved): pending messages render **inline in the thread**
+  at the position they'll occupy when sent, visually marked as pending
+  (faded / `▶ PENDING` tag). Not a separate zone above the composer.
+- Flush semantics (resolved): **flush as separate turns** — each queued
+  message becomes its own engine turn the tutor responds to
+  individually. Preserves temporal structure of the user's thoughts.
+- Cancellation (resolved): **allowed** — small × affordance on each
+  pending bubble removes it before flush.
+- Edit-while-pending (resolved): **not supported in v1**. State-machine
+  complexity for limited value; revisit if asked for.
+- Exam-mode lockdown: continues to lock hard; the queue is a
+  teach/quiz/homework affordance.
 - Server-side: nothing to change. Each flush is just a `session.send`
   call the queue triggers.

@@ -58,9 +58,15 @@ brings the tab label into the same SSOT.
 
 ## Design notes for feature-design
 
-- Final name choice. Does it vary by mode (different name for Quiz vs.
-  Homework vs. Bootstrap tabs)? `ModeMeta` already supports per-mode naming.
-- Backfill: existing rows in the `tabs` table have stale titles like "Chat".
-  Migration vs. lazy refresh? Migration is cleaner; lazy refresh is
-  Praxis's usual style.
+- Name choice (resolved): **use per-mode names from `ModeMeta`** as the
+  tab title — bootstrap → "Course design", teach → "Tutor", quiz →
+  "Quiz", homework → "Homework", exam → "Exam", study-skills →
+  "Study skills". Reuses an existing SSOT; aligns the tab title with the
+  in-session header; preserves mode distinction in the tab strip. If any
+  current `ModeMeta` entry doesn't have a teaching-shaped name yet,
+  update it in this feature.
+- Backfill: existing rows in the `tabs` table have stale titles like
+  "Chat". Pick at feature-design — migration that rewrites titles from
+  the corresponding mode-id, or lazy refresh (re-derive title on load
+  if it's stale). Migration is cleaner; lazy is Praxis's usual style.
 - Mode-id changes: NONE. Only the human-facing string moves.

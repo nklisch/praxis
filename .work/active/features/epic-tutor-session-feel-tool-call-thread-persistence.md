@@ -71,17 +71,21 @@ contract.
 
 ## Design notes for feature-design
 
-- "Persistent" doesn't mean "always-expanded" — settled tool calls render
-  collapsed with the tool name and one-line summary, expand on click to
-  show args and result.
+- Default state (resolved): settled tool calls render **collapsed** with
+  the tool name and a one-line summary; click to expand and see full
+  args and result. Keeps the thread scrollable; user opens what
+  interests them. Matches Claude Code's pattern.
 - Replay shape parity: a tool call read from episodic must produce the
-  same component as the live stream once it settles.
-- Sub-agent block: same treatment? After the parent tool settles, the
-  sub-agent transcript stays available (collapsed) for the user to revisit.
-- Auto-scroll: does scroll race past tool calls? Adjust scroll behavior so
-  newly-arrived tool entries don't get scrolled out before the user
-  notices.
+  same component as the live stream once it settles — same collapsed
+  default, same expand affordance.
+- Sub-agent block: same collapsed treatment — after the parent tool
+  settles, the sub-agent transcript stays available (collapsed) for the
+  user to revisit. Don't auto-collapse so aggressively that the live
+  step trail vanishes before the user notices it.
+- Auto-scroll: ensure newly-arrived tool entries don't get scrolled out
+  before the user notices.
 - Reproduce-first: the user's "too fast to read" complaint may have a
-  different root cause now that `MIN_INTERSTITIAL_VISIBLE_MS` exists.
-  Design pass should first reproduce the user's specific frustration and
-  confirm the persistence framing is the right fix before writing code.
+  different root cause now that `MIN_INTERSTITIAL_VISIBLE_MS = 800`
+  exists. Feature-design pass should reproduce the specific frustration
+  first and confirm the persistence framing addresses the actual gap
+  before writing code.
