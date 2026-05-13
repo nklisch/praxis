@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-viewer-tab-scoped-sidebar-viewer
 kind: story
-stage: review
+stage: done
 tags: [ui, documents]
 parent: epic-document-library-viewer-tab-scoped-sidebar
 depends_on: [epic-document-library-viewer-tab-scoped-sidebar-tab-kind]
@@ -89,3 +89,17 @@ The multi-format document viewer that mounts inside a `kind: "document"` tab. A 
 - `pnpm typecheck` — all packages Done, 0 errors
 - `pnpm lint` — 7 pre-existing errors in `claude-cli-sdk` only, 0 new errors
 - `pnpm test` — 330 passed | 3 skipped | 0 failed
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `documents.get` returns `text` by joining all chunks. For very large docs this could be memory-heavy on the renderer side. Acceptable v1 trade-off; if users hit memory pressure on large markdown/html files, a chunked-fetch API can replace it.
+- `format-router.ts` only handles a fixed mimeType set. The "Out of scope: per-mimeType plugin registry" note acknowledges this — a future story can replace the switch with a registry when the format set grows.
+
+**Notes**: `documents.get` end-to-end is the right call — the design's `pageImages.listForDocument` didn't match the existing PageImageStore (which has no list method). DocumentDetail extends DocumentSummary cleanly. PdfRenderer's IntersectionObserver + blob URL lifecycle is exactly right — lazy-load pages, revoke on unmount. HtmlRenderer's DOMPurify sanitization is correctly gated by the biome-ignore comment + XSS regression test. The 12+ listOrphaned mock fixes were necessary collateral — done cleanly.
+
+What's now possible: opening a document tab now renders the document. Five mimeType families work first-class. The viewer composes cleanly with the tab-kind persistence and the scope-aware sidebar.
