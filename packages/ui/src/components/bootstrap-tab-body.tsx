@@ -14,7 +14,7 @@
  * Edits persist via ConfigService and are read server-side at the
  * start of the next exploration — no restart required.
  */
-import type { TabSummary } from "@praxis/core/types";
+import type { SessionTabSummary } from "@praxis/core/types";
 import { type ChangeEvent, type JSX, useEffect, useState } from "react";
 import {
   BOOTSTRAP_BUDGET_MAX,
@@ -29,7 +29,7 @@ import { DraftCard } from "./draft-card.js";
 import { SubAgentPanel } from "./sub-agent-panel.js";
 
 export interface BootstrapTabBodyProps {
-  tab: TabSummary;
+  tab: SessionTabSummary;
 }
 
 /**

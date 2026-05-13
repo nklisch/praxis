@@ -28,6 +28,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 
 function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
   return {
+    kind: "session",
     id: brandId<"TabId">("tab-1"),
     sessionId: brandId<"SessionId">("session-1"),
     modeId: "teach",

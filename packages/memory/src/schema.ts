@@ -143,16 +143,32 @@ export const misconceptions = sqliteTable(
   }),
 );
 
-/** Phase 14: Tab strip persistence. One row per open/closed tab. */
+/** Phase 14: Tab strip persistence. One row per open/closed tab.
+ *
+ * Phase (document-library): Extended to support two tab kinds:
+ *   - kind = 'session': session-bound tab (original). session_id is set; document_id is null.
+ *   - kind = 'document': document viewer tab. document_id is set; session_id is null.
+ */
 export const tabs = sqliteTable(
   "tabs",
   {
     id: text("id").primaryKey(), // uuidv7
     studentId: text("student_id").notNull(),
-    /** The session this tab is bound to. Cascade-delete if the session is deleted. */
-    sessionId: text("session_id")
-      .notNull()
-      .references(() => sessions.id, { onDelete: "cascade" }),
+    /**
+     * Discriminator: 'session' (original, default) or 'document'.
+     * Determines which of session_id / document_id is set.
+     */
+    kind: text("kind").notNull().default("session"),
+    /**
+     * The session this tab is bound to. Nullable — null for kind='document' tabs.
+     * Cascade-deletes the tab when the session is deleted (for kind='session').
+     */
+    sessionId: text("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+    /**
+     * The document this tab is bound to. Null for kind='session' tabs.
+     * No FK — documents live in the artifacts package; cross-package FK not used here.
+     */
+    documentId: text("document_id"),
     /** Auto-generated display title, e.g. "algebra · teach" or "teach · new chat". */
     title: text("title").notNull(),
     /** Visual ordering — higher = further right in the strip. */
@@ -166,6 +182,7 @@ export const tabs = sqliteTable(
   (t) => ({
     studentOpenIdx: index("tabs_student_open_idx").on(t.studentId, t.closedAt, t.sortOrder),
     sessionIdx: index("tabs_session_idx").on(t.sessionId),
+    documentIdx: index("tabs_document_idx").on(t.documentId),
   }),
 );
 

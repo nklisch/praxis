@@ -41,7 +41,9 @@ export function RecentSessionsSection({
         <ol className={styles.list}>
           {items.map((session) => {
             const meta = getModeMeta(session.modeId);
-            const existingTab = openTabs.find((t) => t.sessionId === session.sessionId);
+            const existingTab = openTabs.find(
+              (t) => t.kind === "session" && t.sessionId === session.sessionId,
+            );
             const isOpen = existingTab !== undefined;
 
             return (

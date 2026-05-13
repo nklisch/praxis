@@ -10,7 +10,7 @@
  * as primary), sidekick panel, and the mode-aware composer chips. A
  * follow-up can add the card-stack navigation.
  */
-import type { SessionId, TabSummary } from "@praxis/core/types";
+import type { SessionId, SessionTabSummary } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import type { JSX } from "react";
 import { useState } from "react";
@@ -19,7 +19,7 @@ import styles from "./quiz-tab-body.module.css";
 import { SidekickPanel } from "./sidekick-panel.js";
 
 export interface QuizTabBodyProps {
-  tab: TabSummary;
+  tab: SessionTabSummary;
 }
 
 /**
@@ -29,7 +29,7 @@ export interface QuizTabBodyProps {
 export function QuizTabBody({ tab }: QuizTabBodyProps): JSX.Element {
   const [sidekickOpen, setSidekickOpen] = useState(false);
 
-  // Build a minimal SessionHandle from tab metadata
+  // SessionId is directly available; tab is already narrowed to SessionTabSummary.
   const sessionId = tab.sessionId as SessionId;
 
   return (

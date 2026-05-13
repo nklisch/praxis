@@ -3,7 +3,7 @@ import { sessions } from "@praxis/memory/schema";
 import { v7 as uuidv7 } from "uuid";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
-import type { SessionId, StudentId } from "../../types/index.js";
+import type { DocumentId, SessionId, StudentId } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { generateTitle, TabsServiceImpl } from "../tabs-service.js";
 
@@ -102,6 +102,7 @@ describe("TabsServiceImpl", () => {
       const sessionId = insertSession(drizzle, { studentId });
       const tab = await service.open({ studentId, sessionId });
 
+      expect(tab.kind).toBe("session");
       expect(tab.sessionId).toBe(sessionId);
       expect(tab.modeId).toBe("teach");
       expect(tab.title).toBe("teach · new chat");
@@ -124,6 +125,45 @@ describe("TabsServiceImpl", () => {
       expect(open[0]?.id).toBe(t1.id);
       expect(open[1]?.id).toBe(t2.id);
       expect(t2.sortOrder).toBeGreaterThan(t1.sortOrder);
+    });
+
+    it("openDocument creates a document tab and listOpen includes it", async () => {
+      const documentId = brandId<"DocumentId">("doc-abc-123") as DocumentId;
+      const tab = await service.openDocument({ studentId, documentId, title: "lecture-notes.pdf" });
+
+      expect(tab.kind).toBe("document");
+      expect(tab.documentId).toBe(documentId);
+      expect(tab.title).toBe("lecture-notes.pdf");
+      expect(tab.closedAt).toBeNull();
+      expect(tab.sortOrder).toBe(0);
+
+      const open = await service.listOpen(studentId);
+      expect(open).toHaveLength(1);
+      expect(open[0]?.id).toBe(tab.id);
+      expect(open[0]?.kind).toBe("document");
+    });
+
+    it("session tabs and document tabs coexist in listOpen", async () => {
+      const sessionId = insertSession(drizzle, { studentId });
+      const documentId = brandId<"DocumentId">("doc-xyz") as DocumentId;
+
+      const sessionTab = await service.open({ studentId, sessionId });
+      const docTab = await service.openDocument({ studentId, documentId, title: "slides.pdf" });
+
+      const open = await service.listOpen(studentId);
+      expect(open).toHaveLength(2);
+
+      const kinds = open.map((t) => t.kind);
+      expect(kinds).toContain("session");
+      expect(kinds).toContain("document");
+
+      // Session tab still has correct fields
+      expect(sessionTab.kind).toBe("session");
+      expect(sessionTab.modeId).toBe("teach");
+
+      // Document tab still has correct fields
+      expect(docTab.kind).toBe("document");
+      expect(docTab.documentId).toBe(documentId);
     });
 
     it("sortOrder increments monotonically — MAX(existing)+1", async () => {
@@ -205,6 +245,24 @@ describe("TabsServiceImpl", () => {
       expect(ids).toContain(t1.id);
       expect(ids).toContain(t2.id);
     });
+
+    it("reopen a document tab returns it with kind=document", async () => {
+      const documentId = brandId<"DocumentId">("doc-reopen") as DocumentId;
+      const tab = await service.openDocument({ studentId, documentId, title: "my-doc.pdf" });
+
+      await service.close(tab.id);
+      const open0 = await service.listOpen(studentId);
+      expect(open0).toHaveLength(0);
+
+      const reopened = await service.reopen(tab.id);
+      expect(reopened.kind).toBe("document");
+      expect(reopened.closedAt).toBeNull();
+      if (reopened.kind === "document") expect(reopened.documentId).toBe(documentId);
+
+      const open1 = await service.listOpen(studentId);
+      expect(open1).toHaveLength(1);
+      expect(open1[0]?.id).toBe(tab.id);
+    });
   });
 
   describe("touch", () => {
@@ -251,8 +309,34 @@ describe("TabsServiceImpl", () => {
 
       expect(openA).toHaveLength(1);
       expect(openB).toHaveLength(1);
-      expect(openA[0]?.sessionId).toBe(sA);
-      expect(openB[0]?.sessionId).toBe(sB);
+      // Narrow to session kind to access sessionId
+      const tabA = openA[0];
+      const tabB = openB[0];
+      expect(tabA?.kind).toBe("session");
+      expect(tabB?.kind).toBe("session");
+      if (tabA?.kind === "session") expect(tabA.sessionId).toBe(sA);
+      if (tabB?.kind === "session") expect(tabB.sessionId).toBe(sB);
+    });
+
+    it("two students' document tabs are isolated", async () => {
+      const studentA = makeStudentId("a");
+      const studentB = makeStudentId("b");
+
+      const docA = brandId<"DocumentId">("doc-a") as DocumentId;
+      const docB = brandId<"DocumentId">("doc-b") as DocumentId;
+
+      await service.openDocument({ studentId: studentA, documentId: docA, title: "doc-a.pdf" });
+      await service.openDocument({ studentId: studentB, documentId: docB, title: "doc-b.pdf" });
+
+      const openA = await service.listOpen(studentA);
+      const openB = await service.listOpen(studentB);
+
+      expect(openA).toHaveLength(1);
+      expect(openB).toHaveLength(1);
+      const tabA = openA[0];
+      const tabB = openB[0];
+      if (tabA?.kind === "document") expect(tabA.documentId).toBe(docA);
+      if (tabB?.kind === "document") expect(tabB.documentId).toBe(docB);
     });
   });
 

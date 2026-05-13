@@ -1,4 +1,11 @@
-import type { SessionId, TabId, TabSummary, TabsClientApi } from "@praxis/core/types";
+import type {
+  DocumentId,
+  DocumentTabSummary,
+  SessionId,
+  TabId,
+  TabSummary,
+  TabsClientApi,
+} from "@praxis/core/types";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = "praxis.tabs" as const;
@@ -29,6 +36,13 @@ export class TabsClient implements TabsClientApi {
     return this.transport.invoke<TabSummary>(`${C}.open`, {
       sessionId: input.sessionId,
       ...(input.courseTitle !== undefined && { courseTitle: input.courseTitle }),
+    });
+  }
+
+  openDocument(input: { documentId: DocumentId; title: string }): Promise<DocumentTabSummary> {
+    return this.transport.invoke<DocumentTabSummary>(`${C}.openDocument`, {
+      documentId: input.documentId,
+      title: input.title,
     });
   }
 

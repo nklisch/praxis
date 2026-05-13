@@ -1,4 +1,4 @@
-import type { SessionId, TabId, TabSummary } from "@praxis/core/types";
+import type { DocumentId, DocumentTabSummary, SessionId, TabId, TabSummary } from "@praxis/core/types";
 import { useCallback, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 
@@ -15,6 +15,13 @@ export interface UseTabsResult {
 
   /** Open a tab for an existing session and focus it. Returns the new tab. */
   openTab(input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary>;
+
+  /**
+   * Open a document viewer tab and focus it.
+   * The `title` should be the document filename, truncated to ~40 chars.
+   * Returns the new DocumentTabSummary.
+   */
+  openDocumentTab(input: { documentId: DocumentId; title: string }): Promise<DocumentTabSummary>;
 
   /** Reopen an archived tab and focus it. */
   reopenTab(tabId: TabId): Promise<TabSummary>;
@@ -76,6 +83,21 @@ export function useTabs(): UseTabsResult {
       const tab = await client.tabs.open(input);
       setOpenTabs((prev) => {
         // Insert in sortOrder position; remove any duplicate if it somehow existed
+        const without = prev.filter((t) => t.id !== tab.id);
+        const insertAt = without.findIndex((t) => t.sortOrder > tab.sortOrder);
+        if (insertAt === -1) return [...without, tab];
+        return [...without.slice(0, insertAt), tab, ...without.slice(insertAt)];
+      });
+      setActiveTabId(tab.id);
+      return tab;
+    },
+    [client],
+  );
+
+  const openDocumentTab = useCallback(
+    async (input: { documentId: DocumentId; title: string }): Promise<DocumentTabSummary> => {
+      const tab = await client.tabs.openDocument(input);
+      setOpenTabs((prev) => {
         const without = prev.filter((t) => t.id !== tab.id);
         const insertAt = without.findIndex((t) => t.sortOrder > tab.sortOrder);
         if (insertAt === -1) return [...without, tab];
@@ -171,6 +193,7 @@ export function useTabs(): UseTabsResult {
     error,
     refresh,
     openTab,
+    openDocumentTab,
     reopenTab,
     closeTab,
     switchTo,

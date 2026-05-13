@@ -9,7 +9,7 @@
  * The examLockdown logic that previously lived in ChatTabBody moves here:
  * the assignment is always locked (no chat) until submitted.
  */
-import type { SessionId, TabSummary } from "@praxis/core/types";
+import type { SessionId, SessionTabSummary } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import type { JSX } from "react";
 import { AssignmentCard } from "./assignment-card.js";
@@ -17,7 +17,7 @@ import { ClarificationPill } from "./clarification-pill.js";
 import styles from "./exam-tab-body.module.css";
 
 export interface ExamTabBodyProps {
-  tab: TabSummary;
+  tab: SessionTabSummary;
 }
 
 /**

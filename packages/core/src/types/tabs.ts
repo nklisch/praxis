@@ -1,10 +1,14 @@
 import type { Timestamp } from "./common.js";
-import type { SessionId, StudentId } from "./ids.js";
+import type { DocumentId, SessionId, StudentId } from "./ids.js";
 
 export type TabId = string & { readonly __brand: "TabId" };
 
-/** Returned by TabsService.list/listOpen — derived from the DB row plus session metadata. */
-export interface TabSummary {
+/**
+ * A session-bound tab — the original tab kind.
+ * Opened alongside a session via `tabs.open(...)`.
+ */
+export interface SessionTabSummary {
+  readonly kind: "session";
   readonly id: TabId;
   readonly sessionId: SessionId;
   readonly modeId: string;
@@ -23,6 +27,34 @@ export interface TabSummary {
   /** Null when the tab is open; set when archived. */
   readonly closedAt: Timestamp | null;
 }
+
+/**
+ * A document viewer tab — opened via `tabs.openDocument(...)`.
+ * Has no associated session; persists the document title at open time.
+ */
+export interface DocumentTabSummary {
+  readonly kind: "document";
+  readonly id: TabId;
+  readonly documentId: DocumentId;
+  /** Title stored at open time (filename truncated to ~40 chars). */
+  readonly title: string;
+  readonly sortOrder: number;
+  readonly openedAt: Timestamp;
+  readonly lastSeenAt: Timestamp;
+  /** Null when the tab is open; set when archived. */
+  readonly closedAt: Timestamp | null;
+}
+
+/**
+ * Discriminated union of all tab kinds.
+ * Discriminated on `kind`: 'session' | 'document'.
+ *
+ * Design escape hatch: consumers that only care about the shared fields
+ * (id, title, sortOrder, openedAt, lastSeenAt, closedAt) can read them
+ * from either variant without a type guard. Fields that differ by kind
+ * (sessionId, modeId, documentId) require narrowing on `tab.kind`.
+ */
+export type TabSummary = SessionTabSummary | DocumentTabSummary;
 
 export interface TabsService {
   /** All open tabs for the student, sorted by sortOrder ascending. */
@@ -52,7 +84,16 @@ export interface TabsService {
     sessionId: SessionId;
     /** Optional: caller passes the course title if known, used for the auto-generated tab title. */
     courseTitle?: string;
-  }): Promise<TabSummary>;
+  }): Promise<SessionTabSummary>;
+
+  /**
+   * Open a new tab bound to a document. The title is stored at open time (no join required).
+   */
+  openDocument(input: {
+    studentId: StudentId;
+    documentId: DocumentId;
+    title: string;
+  }): Promise<DocumentTabSummary>;
 
   /**
    * Reopen a previously-closed tab. Clears `closedAt`, re-assigns sortOrder to the end.

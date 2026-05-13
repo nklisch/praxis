@@ -1,10 +1,10 @@
-import type { TabSummary } from "@praxis/core/types";
+import type { SessionTabSummary } from "@praxis/core/types";
 import type { JSX } from "react";
 import { TeachChatTabBody } from "./chat-tab-body.js";
 import styles from "./study-skills-tab-body.module.css";
 
 export interface StudySkillsTabBodyProps {
-  tab: TabSummary;
+  tab: SessionTabSummary;
 }
 
 /**

@@ -1,6 +1,7 @@
 import type {
   AssignmentId,
   SessionHandle,
+  SessionTabSummary,
   SketchId,
   TabSummary,
   Timestamp,
@@ -40,6 +41,15 @@ export interface ChatTabBodyProps {
 }
 
 /**
+ * Props for session-mode-specific tab bodies (teach, quiz, homework, exam,
+ * bootstrap, study-skills). These bodies require a session-bound tab and
+ * access `tab.sessionId`, `tab.modeId`, etc. directly.
+ */
+export interface SessionChatTabBodyProps {
+  tab: SessionTabSummary;
+}
+
+/**
  * Inner component for exam lockdown detection.
  * Pulled out so the hook always runs (no conditional hook calls).
  */
@@ -74,7 +84,7 @@ function ExamLockdownGate({
  *
  * Exported so BootstrapTabBody can embed it in the left pane.
  */
-export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
+export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
   const { items, isStreaming, thinking, lastError, send, cancel, cancelPending, loadHistory } =
@@ -371,6 +381,19 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
  * dispatcher itself does not manage visibility — that remains in the parent.
  */
 export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
+  // Document tabs have no session; route to a placeholder until the viewer story lands.
+  if (tab.kind === "document") {
+    // The document viewer body (`<DocumentTabBody>`) is added in the sibling viewer story.
+    // For now, render a minimal placeholder that is never visible (the viewer story
+    // will replace this branch). The tab DOES persist correctly — only the render is deferred.
+    return (
+      <div style={{ padding: "2rem", opacity: 0.4, fontStyle: "italic" }}>
+        Document viewer coming soon.
+      </div>
+    );
+  }
+
+  // Session tabs — narrow to SessionTabSummary and dispatch on modeId.
   switch (tab.modeId) {
     case "quiz":
       return <QuizTabBody tab={tab} />;

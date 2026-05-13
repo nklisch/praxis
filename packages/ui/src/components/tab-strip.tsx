@@ -22,7 +22,8 @@ export function TabStrip({
   return (
     <div className={styles.strip} role="tablist" aria-label="Open sessions">
       {tabs.map((tab) => {
-        const meta = getModeMeta(tab.modeId);
+        // Document tabs have no modeId — getModeMeta handles undefined gracefully.
+        const meta = getModeMeta(tab.kind === "session" ? tab.modeId : undefined);
         const isActive = tab.id === activeTabId;
         return (
           <button

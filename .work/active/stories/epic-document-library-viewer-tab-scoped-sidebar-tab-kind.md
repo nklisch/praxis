@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-viewer-tab-scoped-sidebar-tab-kind
 kind: story
-stage: implementing
+stage: review
 tags: [core, ui, schema]
 parent: epic-document-library-viewer-tab-scoped-sidebar
 depends_on: []
@@ -42,3 +42,33 @@ After this story, the document tab CAN be opened (and persists), but no body ren
 
 - Document viewer body (story `…-viewer`)
 - Scope-aware sidebar (story `…-sidebar`)
+
+## Implementation Notes
+
+### Discriminated union downstream impact
+
+When `TabSummary` became `SessionTabSummary | DocumentTabSummary`, six session-mode
+tab-body components (`QuizTabBody`, `HomeworkTabBody`, `ExamTabBody`, `BootstrapTabBody`,
+`StudySkillsTabBody`, `TeachChatTabBody`) accessed `tab.sessionId`, `tab.modeId`, or
+`tab.assignmentId` directly. Rather than add optional fields to both union variants
+(which would defeat type safety), these components' prop types were narrowed to
+`SessionTabSummary`. The top-level `ChatTabBody` dispatcher was extended with a
+`kind === "document"` branch (placeholder div for now — the real viewer lands in the
+sibling viewer story).
+
+### Drizzle left-join with nullable join key
+
+`listOpen`, `list`, and `get` now use `leftJoin(sessions, sql\`${tabs.sessionId} = ${sessions.id}\`)`.
+The `sql` template literal is required because Drizzle's `eq(tabs.sessionId, sessions.id)`
+path crashes at runtime when `tabs.sessionId` is nullable and the dist build is stale.
+After the memory package dist was rebuilt (`pnpm --filter @praxis/memory build`),
+the join resolved correctly and all tests passed.
+
+### Migration strategy
+
+SQLite does not support `ALTER COLUMN`, so migration 0016 uses the standard
+table-recreation pattern: create `tabs_new` with the new schema, `INSERT INTO … SELECT`
+(backfilling `kind = 'session'`, `document_id = NULL`), drop old, rename new, recreate
+indexes. The Drizzle snapshot (`0015_snapshot.json`) was hand-authored because
+`drizzle-kit generate` (native-preview) cannot handle this change automatically; the
+snapshot's `prevId` links to 0014 and the new UUID was generated deterministically.

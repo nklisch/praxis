@@ -5,6 +5,7 @@ import type {
   ConceptLink,
   ConceptMapId,
   CourseId,
+  DocumentId,
   GateId,
   GateTarget,
   LessonId,
@@ -1081,6 +1082,18 @@ export function registerIpcHandlers(
       ...(opts.courseTitle !== undefined && { courseTitle: opts.courseTitle }),
     });
   });
+
+  handle(
+    "praxis.tabs.openDocument",
+    async (_event, opts: { documentId: string; title: string }) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.tabs.openDocument({
+        studentId,
+        documentId: opts.documentId as DocumentId,
+        title: opts.title,
+      });
+    },
+  );
 
   handle("praxis.tabs.reopen", async (_event, tabId: string) => {
     return services.tabs.reopen(tabId as TabId);

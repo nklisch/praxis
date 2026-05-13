@@ -19,6 +19,7 @@ import { makeFakeClient } from "./helpers/fake-client.js";
 
 function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
   return {
+    kind: "session",
     id: brandId<"TabId">("tab-99"),
     sessionId: brandId<"SessionId">("session-99"),
     modeId: "teach",

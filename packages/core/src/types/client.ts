@@ -62,7 +62,7 @@ import type { ComposedSystemPromptWithAttribution } from "./prompt-attribution.j
 import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
-import type { TabId, TabSummary } from "./tabs.js";
+import type { DocumentTabSummary, TabId, TabSummary } from "./tabs.js";
 
 export interface PraxisClient {
   session: SessionService;
@@ -140,7 +140,14 @@ export interface TabsClientApi {
   listOpen(): Promise<TabSummary[]>;
   list(opts?: { limit?: number; includeClosed?: boolean }): Promise<TabSummary[]>;
   get(tabId: TabId): Promise<TabSummary | null>;
+  /** Open a session-bound tab. Returns a SessionTabSummary (kind = "session"). */
   open(input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary>;
+  /**
+   * Open a document-bound tab. Returns a DocumentTabSummary (kind = "document").
+   * The `title` is stored on the tab row at open time (filename, truncated to ~40 chars)
+   * so re-opens don't need a document fetch.
+   */
+  openDocument(input: { documentId: DocumentId; title: string }): Promise<DocumentTabSummary>;
   reopen(tabId: TabId): Promise<TabSummary>;
   close(tabId: TabId): Promise<void>;
   touch(tabId: TabId): Promise<void>;

@@ -1,11 +1,14 @@
 import { requireMode } from "@praxis/curriculum/modes";
 import { sessions, tabs } from "@praxis/memory/schema";
-import { and, asc, desc, eq, isNull, max } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, max, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
+  DocumentId,
+  DocumentTabSummary,
   Logger,
   SessionId,
+  SessionTabSummary,
   StudentId,
   TabId,
   TabSummary,
@@ -37,10 +40,12 @@ function generateTitle(opts: { modeId: string; courseTitle?: string }): string {
   return `${displayName} · session`;
 }
 
-/** Shape of the joined select result for tab + session columns. */
-interface TabSelectRow {
+/** Shape of the joined select result for a session tab (inner join with sessions). */
+interface SessionTabSelectRow {
   id: string;
+  kind: string;
   sessionId: string;
+  documentId: string | null;
   title: string;
   sortOrder: number;
   openedAt: Date;
@@ -51,8 +56,38 @@ interface TabSelectRow {
   assignmentId: string | null;
 }
 
-function rowToSummary(row: TabSelectRow): TabSummary {
+/** Shape of the select result for a document tab (no join needed). */
+interface DocumentTabSelectRow {
+  id: string;
+  kind: string;
+  sessionId: string | null;
+  documentId: string;
+  title: string;
+  sortOrder: number;
+  openedAt: Date;
+  lastSeenAt: Date;
+  closedAt: Date | null;
+}
+
+/** Full row from a left-joined query — used by listOpen/list/get. */
+interface AnyTabSelectRow {
+  id: string;
+  kind: string;
+  sessionId: string | null;
+  documentId: string | null;
+  title: string;
+  sortOrder: number;
+  openedAt: Date;
+  lastSeenAt: Date;
+  closedAt: Date | null;
+  modeId: string | null;
+  courseId: string | null;
+  assignmentId: string | null;
+}
+
+function sessionRowToSummary(row: SessionTabSelectRow): SessionTabSummary {
   return {
+    kind: "session",
     id: brandId<"TabId">(row.id),
     sessionId: brandId<"SessionId">(row.sessionId),
     modeId: row.modeId,
@@ -67,6 +102,56 @@ function rowToSummary(row: TabSelectRow): TabSummary {
   };
 }
 
+function documentRowToSummary(row: DocumentTabSelectRow): DocumentTabSummary {
+  return {
+    kind: "document",
+    id: brandId<"TabId">(row.id),
+    documentId: brandId<"DocumentId">(row.documentId),
+    title: row.title,
+    sortOrder: row.sortOrder,
+    openedAt: row.openedAt.getTime() as Timestamp,
+    lastSeenAt: row.lastSeenAt.getTime() as Timestamp,
+    closedAt: row.closedAt ? (row.closedAt.getTime() as Timestamp) : null,
+  };
+}
+
+function anyRowToSummary(row: AnyTabSelectRow): TabSummary {
+  if (row.kind === "document") {
+    if (!row.documentId) {
+      throw new Error(`TabsService: document tab ${row.id} has no documentId`);
+    }
+    return documentRowToSummary({
+      id: row.id,
+      kind: row.kind,
+      sessionId: null,
+      documentId: row.documentId,
+      title: row.title,
+      sortOrder: row.sortOrder,
+      openedAt: row.openedAt,
+      lastSeenAt: row.lastSeenAt,
+      closedAt: row.closedAt,
+    });
+  }
+  // Default: "session" kind
+  if (!row.sessionId || row.modeId === null) {
+    throw new Error(`TabsService: session tab ${row.id} has no sessionId or modeId`);
+  }
+  return sessionRowToSummary({
+    id: row.id,
+    kind: row.kind,
+    sessionId: row.sessionId,
+    documentId: null,
+    title: row.title,
+    sortOrder: row.sortOrder,
+    openedAt: row.openedAt,
+    lastSeenAt: row.lastSeenAt,
+    closedAt: row.closedAt,
+    modeId: row.modeId,
+    courseId: row.courseId,
+    assignmentId: row.assignmentId,
+  });
+}
+
 export class TabsServiceImpl implements TabsService {
   constructor(private readonly deps: TabsServiceDeps) {}
 
@@ -74,7 +159,9 @@ export class TabsServiceImpl implements TabsService {
     const rows = this.deps.db
       .select({
         id: tabs.id,
+        kind: tabs.kind,
         sessionId: tabs.sessionId,
+        documentId: tabs.documentId,
         title: tabs.title,
         sortOrder: tabs.sortOrder,
         openedAt: tabs.openedAt,
@@ -85,11 +172,11 @@ export class TabsServiceImpl implements TabsService {
         assignmentId: sessions.assignmentId,
       })
       .from(tabs)
-      .innerJoin(sessions, eq(tabs.sessionId, sessions.id))
+      .leftJoin(sessions, sql`${tabs.sessionId} = ${sessions.id}`)
       .where(and(eq(tabs.studentId, studentId), isNull(tabs.closedAt)))
       .orderBy(asc(tabs.sortOrder))
       .all();
-    return rows.map(rowToSummary);
+    return rows.map(anyRowToSummary);
   }
 
   async list(
@@ -106,7 +193,9 @@ export class TabsServiceImpl implements TabsService {
     const rows = this.deps.db
       .select({
         id: tabs.id,
+        kind: tabs.kind,
         sessionId: tabs.sessionId,
+        documentId: tabs.documentId,
         title: tabs.title,
         sortOrder: tabs.sortOrder,
         openedAt: tabs.openedAt,
@@ -117,19 +206,21 @@ export class TabsServiceImpl implements TabsService {
         assignmentId: sessions.assignmentId,
       })
       .from(tabs)
-      .innerJoin(sessions, eq(tabs.sessionId, sessions.id))
+      .leftJoin(sessions, sql`${tabs.sessionId} = ${sessions.id}`)
       .where(where)
       .orderBy(desc(tabs.lastSeenAt))
       .limit(limit)
       .all();
-    return rows.map(rowToSummary);
+    return rows.map(anyRowToSummary);
   }
 
   async get(tabId: TabId): Promise<TabSummary | null> {
     const row = this.deps.db
       .select({
         id: tabs.id,
+        kind: tabs.kind,
         sessionId: tabs.sessionId,
+        documentId: tabs.documentId,
         title: tabs.title,
         sortOrder: tabs.sortOrder,
         openedAt: tabs.openedAt,
@@ -140,17 +231,17 @@ export class TabsServiceImpl implements TabsService {
         assignmentId: sessions.assignmentId,
       })
       .from(tabs)
-      .innerJoin(sessions, eq(tabs.sessionId, sessions.id))
+      .leftJoin(sessions, sql`${tabs.sessionId} = ${sessions.id}`)
       .where(eq(tabs.id, tabId))
       .get();
-    return row ? rowToSummary(row) : null;
+    return row ? anyRowToSummary(row) : null;
   }
 
   async open(input: {
     studentId: StudentId;
     sessionId: SessionId;
     courseTitle?: string;
-  }): Promise<TabSummary> {
+  }): Promise<SessionTabSummary> {
     // Look up the session to get modeId.
     const sessionRow = this.deps.db
       .select({ modeId: sessions.modeId, courseId: sessions.courseId })
@@ -183,7 +274,9 @@ export class TabsServiceImpl implements TabsService {
       .values({
         id,
         studentId: input.studentId,
+        kind: "session",
         sessionId: input.sessionId,
+        documentId: null,
         title,
         sortOrder: nextOrder,
         openedAt: now,
@@ -193,8 +286,47 @@ export class TabsServiceImpl implements TabsService {
       .run();
 
     const created = await this.get(brandId<"TabId">(id));
-    if (!created) {
+    if (!created || created.kind !== "session") {
       throw new Error(`TabsService.open: tab not found after insert: ${id}`);
+    }
+    return created;
+  }
+
+  async openDocument(input: {
+    studentId: StudentId;
+    documentId: DocumentId;
+    title: string;
+  }): Promise<DocumentTabSummary> {
+    // Compute next sortOrder (max existing + 1, or 0 if none).
+    const maxResult = this.deps.db
+      .select({ maxOrder: max(tabs.sortOrder) })
+      .from(tabs)
+      .where(eq(tabs.studentId, input.studentId))
+      .get();
+    const nextOrder = (maxResult?.maxOrder ?? -1) + 1;
+
+    const id = uuidv7();
+    const now = new Date();
+
+    this.deps.db
+      .insert(tabs)
+      .values({
+        id,
+        studentId: input.studentId,
+        kind: "document",
+        sessionId: null,
+        documentId: input.documentId,
+        title: input.title,
+        sortOrder: nextOrder,
+        openedAt: now,
+        lastSeenAt: now,
+        closedAt: null,
+      })
+      .run();
+
+    const created = await this.get(brandId<"TabId">(id));
+    if (!created || created.kind !== "document") {
+      throw new Error(`TabsService.openDocument: tab not found after insert: ${id}`);
     }
     return created;
   }
