@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel
 kind: epic
-stage: implementing
+stage: review
 tags: [ui, chat, tutor-ux]
 parent: null
 depends_on: []
@@ -139,3 +139,17 @@ Key map findings that shape the decomposition:
 - **Tab rename backfill** — existing rows in the `tabs` table have stale
   titles. Migration vs. lazy refresh is a small decision but easy to
   miss.
+
+## Implementation Notes (orchestrator)
+
+All 4 child features landed and are at `stage: review`:
+- `…-tutor-tab-rename` (commit `de359e7` — included with compose-attribution)
+- `…-composer-queue` (commit `c294aa3`)
+- `…-tool-call-thread-persistence` (commit `4be3944`)
+- `…-cancellation-propagation` (parent commit `43af72e`; children `95193e2` + `d77a751`)
+
+The chat tab now reads "course design" / "teach" / etc. by mode displayName;
+typing while streaming queues messages (auto-flush on turn end); tool calls
+persist as collapsible thread artifacts; clicking Stop actually stops
+sub-agents within ~1s. End-to-end the tutor session feels grounded rather
+than chatbot-shaped.
