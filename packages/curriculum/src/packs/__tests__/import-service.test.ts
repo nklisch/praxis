@@ -2,7 +2,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { courses, lessons } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
+import { BootstrapServiceImpl } from "@praxis/core/services";
+import { brandId } from "@praxis/core/types";
+import { concepts } from "@praxis/curriculum/schema";
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { SqliteConceptEmbeddingsStore } from "../concept-embeddings.js";
@@ -307,6 +312,111 @@ describe("PackImportServiceImpl", () => {
       const second = await svc.importPack("biology");
       expect(second.conceptGraphId).toBe(first.conceptGraphId);
       expect(second.importedAt).toBe(first.importedAt);
+    });
+
+    it("anchor concept ids exist in concepts table after import", async () => {
+      const svc = makeServiceForRealPacks();
+      const { conceptGraphId } = await svc.importPack("biology");
+
+      const { db } = openDb({ path: ctx.dbPath });
+      const rows = db
+        .select({ id: concepts.id })
+        .from(concepts)
+        .where(eq(concepts.graphId, conceptGraphId))
+        .all();
+
+      // Import prefixes concept ids: "<conceptGraphId>:<manifest-concept-id>"
+      const ids = new Set(rows.map((r) => r.id));
+      const anchor = (slug: string) => `${conceptGraphId}:${slug}`;
+      expect(ids.has(anchor("biology.cell-theory")), "biology.cell-theory must be present").toBe(
+        true,
+      );
+      expect(
+        ids.has(anchor("biology.photosynthesis")),
+        "biology.photosynthesis must be present",
+      ).toBe(true);
+      expect(
+        ids.has(anchor("biology.natural-selection")),
+        "biology.natural-selection must be present",
+      ).toBe(true);
+      // All 106 biology concepts must be in the graph.
+      expect(ids.size).toBe(106);
+    });
+
+    it("createCourseFromPack produces a course with correctly-ordered lessons", async () => {
+      const MOCK_DOCUMENT_SCOPES = {
+        listForScope: async () => [],
+        listForScopeDetailed: async () => [],
+        attach: async () => ({ attached: true }),
+        detach: async () => ({ detached: true }),
+        attachMany: async () => ({ newlyAttached: [] }),
+        listScopesForDocument: async () => [],
+        promoteScope: async () => ({ promoted: [] }),
+      };
+
+      const svc = makeServiceForRealPacks();
+      const { conceptGraphId } = await svc.importPack("biology");
+
+      const { db } = openDb({ path: ctx.dbPath });
+      const bootstrap = new BootstrapServiceImpl({
+        db,
+        log: noopLog,
+        engineResolver: () => {
+          throw new Error("engine not used in createCourseFromPack");
+        },
+        documentScopes: MOCK_DOCUMENT_SCOPES,
+        sweepIntervalMs: 9_999_999,
+      });
+
+      try {
+        const { courseId, conceptCount } = await bootstrap.createCourseFromPack({
+          studentId: brandId<"StudentId">("student-bio-test"),
+          packId: "biology",
+          conceptGraphId: brandId<"ConceptGraphId">(conceptGraphId),
+          courseTitle: "Biology",
+          gradeLevel: "9-12",
+        });
+
+        // Course row must exist.
+        const courseRows = db.select().from(courses).where(eq(courses.id, courseId)).all();
+        expect(courseRows).toHaveLength(1);
+        expect(courseRows[0]?.title).toBe("Biology");
+
+        // Concept count must match the full pack size.
+        expect(conceptCount).toBe(106);
+
+        // Lessons: ceil(106 / 7) = 16 lessons.
+        const lessonRows = db.select().from(lessons).where(eq(lessons.courseId, courseId)).all();
+        // Sort by orderIndex to verify ordering.
+        const ordered = [...lessonRows].sort((a, b) => a.orderIndex - b.orderIndex);
+        expect(ordered.length).toBe(16);
+
+        // Each lesson's orderIndex must be sequential (0..15).
+        for (let i = 0; i < ordered.length; i++) {
+          expect(ordered[i]?.orderIndex, `lesson ${i} orderIndex`).toBe(i);
+        }
+
+        // Import prefixes concept ids: "<conceptGraphId>:<manifest-concept-id>"
+        // Concepts are returned in DB order (alphabetical by prefixed id).
+        // Alphabetically-first biology concept: biology.abiotic-factors (lesson 0)
+        // Alphabetically-last biology concept: biology.water-cycle (lesson 15)
+        const prefixedId = (slug: string) => `${conceptGraphId}:${slug}`;
+        const firstLesson = ordered[0];
+        expect(
+          firstLesson?.conceptIdsJson,
+          "first lesson must contain biology.abiotic-factors (alphabetically first)",
+        ).toContain(prefixedId("biology.abiotic-factors"));
+
+        // The last lesson covers the tail group; biology.water-cycle is the
+        // alphabetically-last concept and belongs in lesson 15.
+        const lastLesson = ordered[15];
+        expect(
+          lastLesson?.conceptIdsJson,
+          "last lesson must contain biology.water-cycle (alphabetically last)",
+        ).toContain(prefixedId("biology.water-cycle"));
+      } finally {
+        bootstrap.shutdown();
+      }
     });
   });
 });

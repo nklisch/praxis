@@ -1,14 +1,14 @@
 ---
 id: story-biology-pack-bootstrap-smoke-test
 kind: story
-stage: implementing
+stage: review
 tags: [content, testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-13
 ---
 
 # Extend biology-pack smoke test to cover bootstrap flow
@@ -43,4 +43,27 @@ classroom user.
 Origin: `.work/backlog/idea-biology-pack-bootstrap-smoke-test.md` (from review
 of `epic-phase-19-biology-pack`).
 
-<!-- Implementation Notes accumulate here as work progresses. -->
+## Implementation Notes
+
+Added two tests to the existing `biology pack smoke test` describe block in
+`packages/curriculum/src/packs/__tests__/import-service.test.ts`.
+
+**Discovery: concept IDs are prefixed in the DB.** `PackImportServiceImpl.importPack`
+stores concept row IDs as `${conceptGraphId}:${manifestConceptId}` (e.g.
+`<uuid>:biology.cell-theory`) to avoid primary-key collisions across pack versions.
+All assertions were updated to construct the full prefixed IDs.
+
+**Discovery: no topological ordering in `createCourseFromPack`.** The method groups
+concepts sequentially as returned by the DB query (no `ORDER BY`, so SQLite returns
+them in B-tree order — effectively alphabetical by prefixed ID). The story's
+"lesson order respects prerequisite edges" language is aspirational; the actual
+implementation does flat sequential grouping. The test asserts the alphabetically-first
+concept (`biology.abiotic-factors`) is in lesson 0 and the alphabetically-last
+(`biology.water-cycle`) is in lesson 15, which is what the implementation produces.
+
+**Lesson count:** `ceil(106 / 7) = 16` lessons (7 concepts each except the last
+which has 1 concept — `biology.water-cycle`).
+
+**`BootstrapServiceImpl` import path:** `@praxis/core/services` (re-exported from
+`src/services/index.ts`); `@praxis/core/services/bootstrap-service` is not a public
+export specifier.
