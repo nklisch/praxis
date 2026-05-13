@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2
 kind: epic
-stage: drafting
+stage: implementing
 tags: [security]
 parent: null
 depends_on: []
@@ -80,35 +80,46 @@ forget once the team's attention moves on. Bundling them now while the
 context is still fresh costs less than triaging them individually six
 months from now when the surrounding code has drifted.
 
-## Decomposition direction (for epic-design)
+## Decomposition
 
-Likely splits into 3–4 child features:
+Split by trust-boundary substrate. The five IPC-boundary items share the
+`ipc-server.ts` / `ipc-helpers.ts` substrate and a common
+input-schema + output-shape + error-envelope design, so they collapse
+into one feature. The tool-bridge socket lives in
+`@praxis/claude-cli-sdk` with a different transport and threat model.
+The image-store guard is in the ingestion subsystem and shares nothing
+with the other two. The three features are fully independent — autopilot
+can run them as one wave.
 
-- **IPC trust-boundary hardening** — strict request schemas, sanitized
-  error responses, secret-scrubbed log fields. (Absorbs
-  `ipc-handler-error-leak`, `logger-pattern-secret-scrubber`,
-  `set-engine-config-strict-schema`, `engine-config-plaintext-api-key`,
-  `open-external-url-parse`.)
-- **Tool-bridge socket auth** — socket perms + per-session token.
-  (Absorbs `tool-socket-perms-and-token`.)
-- **Image-store path-traversal guard** — defensive validation in the
-  shared `dirFor` helper. (Absorbs `embedded-image-store-dirfor-guard`.)
+### Child features
 
-Epic-design will refine these boundaries — the IPC bundle is large enough
-that splitting it further (input validation vs. output sanitization) is
-worth considering during design.
+- `epic-security-hardening-round-2-ipc-boundary` — strict request
+  schemas, sanitized error envelopes, secret-scrubbed log fields, and
+  the apiKey-shape-leak fix on the renderer response — depends on: `[]`
+- `epic-security-hardening-round-2-tool-bridge-socket-auth` — 0600
+  socket perms + per-session auth token over the MCP tool-bridge —
+  depends on: `[]`
+- `epic-security-hardening-round-2-image-store-path-guard` —
+  defensive `dirFor` validation against path-traversal via tainted
+  doc ids — depends on: `[]`
 
-## Decomposition risks
+### Decomposition risks
 
-- **`engine-config-plaintext-api-key` is a renderer-side contract change** —
-  removing apiKey from the engineConfig response may break renderer code
-  that reads the field. Verify no UI surface needs the decrypted value
-  before changing the shape (configure screen probably only needs "is a
-  key set?").
+- **`engine-config-plaintext-api-key` is a renderer-side contract
+  change** — removing apiKey from the engineConfig response may break
+  renderer code that reads the field. Feature-design must verify no UI
+  surface needs the decrypted value (configure screen probably only
+  needs "is a key set?").
 - **Strict schemas at the IPC boundary may break in-flight clients** —
   every IPC handler that adds Zod validation needs paired client-side
-  changes. Roll out per-channel rather than as a sweeping refactor.
-- **Tool socket auth changes the SDK contract** — `@praxis/claude-cli-sdk`
-  is owned in-tree but every consumer (currently just Praxis) needs the
-  matching token-passing path. Land the SDK side first, then flip the
-  consumer.
+  changes. The IPC-boundary feature should roll out per-channel rather
+  than as a sweeping refactor.
+- **Tool socket auth changes the SDK contract** —
+  `@praxis/claude-cli-sdk` is owned in-tree but every consumer
+  (currently just Praxis) needs the matching token-passing path. Land
+  the SDK side first, then flip the consumer.
+- **The IPC-boundary feature is the largest** — five items, ~10
+  implementation units. Feature-design should consider whether it wants
+  to split into "input validation" and "output / error sanitization"
+  sub-tracks at that level. Keeping it as one feature here so the
+  shared design pass happens together.
