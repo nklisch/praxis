@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor
 kind: epic
-stage: drafting
+stage: implementing
 tags: [tutor-ux, curriculum, bootstrap, mode-prompts]
 parent: null
 depends_on: []
@@ -89,39 +89,60 @@ The bootstrap-progress fix is the smallest of the three but unlocks
 better UX during the very flow that ships every new user's first
 course. Worth doing alongside the structural work.
 
-## Decomposition direction (for epic-design)
+## Decomposition
 
-Likely splits into 3 child features matching the absorbed ideas:
+Split by capability arc. Draft resumption and buildout-progress signals
+both touch the bootstrap surface but cover distinct user journeys —
+"find your half-built course" (post-disconnect) vs. "watch your course
+get built" (during the run). Bundling them would conflate the resume-
+picker UI with the activity-rail integration, two different surfaces
+that just happen to share a route neighborhood. Course-aware mode
+prompts is its own arc — it touches the prompt composition pipeline
+and the active session's mode/course context, not the bootstrap
+surface at all. Three independent features, no shared types — runs in
+one wave.
 
-- **Bootstrap progress + draft resumption** — combine
-  `list-drafts-tool` + `course-buildout-time-estimate` into one
-  feature. They share the bootstrap surface, the draft store, and the
-  activity-rail integration.
-- **Course-aware mode prompts** — `mode-prompts-course-structure-aligned`
-  is its own arc; design needs to decide whether it's per-mode
-  fragments (one new fragment shared across teach/quiz/homework that
-  injects course context) or whole replacement variants of each mode.
-- **(Possibly) Resume-draft picker UI** — if the picker is more than a
-  thin wrapper around the list-drafts tool, it justifies its own
-  feature; otherwise it folds into the bootstrap feature above.
+Anchor verification update: **the bootstrap service does NOT currently
+inject `ActivityRegistry`** (per Phase-3 exploration), so the
+buildout-progress feature is a fresh wiring rather than an
+adjustment to an existing rail entry. The user-reported misleading
+ETA lives somewhere outside `bootstrap-tab-body.tsx` — feature-design
+must locate it.
 
-## Decomposition risks
+### Child features
 
-- **Course-aware mode prompts may need a course-context fragment, not a
-  whole new prompt** — duplicating teach / quiz / homework / exam /
-  study-skills into "no-course" and "in-course" variants doubles the
-  prompt-maintenance surface. Design should consider a single shared
-  fragment that's customizable=false and only inserted when
-  `session.courseId != null`.
-- **Draft listing tool surface needs identity discipline** — drafts
-  aren't currently first-class artifacts visible in the library;
-  surfacing them changes the mental model of "what's a course." Decide
-  whether drafts have their own list view or live inside the
-  course-creation flow only.
-- **Activity-rail integration for bootstrap may already be partial** —
-  `ServiceDeps.activity` exists; check whether the bootstrap service
-  already calls `ctx.activity?.start(...)` and just produces a bad
-  estimate, vs. doesn't integrate at all. Different design responses.
-- **The `course.list_drafts` tool is only useful in bootstrap mode** —
-  enforce via `mode.toolNames` so it doesn't leak into teach / quiz /
-  exam contexts.
+- `epic-course-structured-tutor-draft-resumption` —
+  `course.list_drafts` tool + UI resume affordance — depends on: `[]`
+- `epic-course-structured-tutor-buildout-progress` — replace
+  misleading ETA with structural progress signals on the activity
+  rail — depends on: `[]`
+- `epic-course-structured-tutor-course-aware-mode-prompts` — shared
+  customizable=false fragment that injects course context when
+  `session.courseId != null` — depends on: `[]`
+
+### Decomposition risks
+
+- **Course-aware mode prompts may overreach during feature-design** —
+  the "right" shape (one shared fragment vs. per-mode variants vs.
+  course-context as a tool the tutor calls on demand) is genuinely
+  uncertain. Feature-design should land the shape decision before
+  writing fragments. The brief proposes the shared-fragment shape;
+  feature-design may reject it.
+- **Draft listing tool needs identity discipline** — drafts aren't
+  currently first-class artifacts in the library. Surfacing them via
+  a resume picker may bleed into the library mental model. Feature-
+  design must decide whether drafts get their own list view or stay
+  scoped to the create-course flow only.
+- **Buildout-progress depends on locating the misleading ETA's
+  source** — anchor verification couldn't find it in
+  `bootstrap-tab-body.tsx`. Feature-design must reproduce the
+  user-reported ETA before designing its replacement.
+- **The `course.list_drafts` tool needs mode-tool-scoping enforcement**
+  — it's only useful in bootstrap mode; must be gated via
+  `mode.toolNames` so it doesn't leak into teach / quiz / exam
+  contexts.
+- **The course-context fragment depends on a stable course-lookup
+  contract** — fetching the active course's structure at prompt-
+  composition time needs an accessor that doesn't trigger N+1
+  queries. Feature-design must verify the right accessor exists or
+  add one.
