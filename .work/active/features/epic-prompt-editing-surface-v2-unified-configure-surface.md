@@ -58,3 +58,45 @@ diff-aware preview are separate child features that consume this container.
 - Editorial primitives — see `editorial-ui-primitives` pattern
 - Existing tests: `packages/ui/src/__tests__/configure-prompt-tab.test.tsx`,
   `packages/ui/src/components/__tests__/global-prompt-editor.test.tsx`
+
+## Layout (resolved at epic-design)
+
+The chosen surface shape:
+
+```
+┌───────────────────────────────────────────────┐
+│ Global Fragment (applies to all modes)        │
+│ [editor]                                      │
+└───────────────────────────────────────────────┘
+
+Mode: [Teach ▼]   ← single mode picker drives the rest
+
+┌─ preamble (locked) ──────────────────────────┐
+│ [default text rendered read-only]             │
+└───────────────────────────────────────────────┘
+┌─ role (locked) ──────────────────────────────┐
+│ [default text rendered read-only]             │
+└───────────────────────────────────────────────┘
+┌─ principles ─────── [return to default] [diff]┐
+│ [override editor inline; live-reflects in     │
+│  the composed view]                           │
+└───────────────────────────────────────────────┘
+… more fragment blocks in FRAGMENT_ORDER …
+┌─ user-append ──────[return to default] [diff]┐
+│ [per-mode append editor]                      │
+└───────────────────────────────────────────────┘
+
+[Composed | Diff] preview toggle ──────────────
+```
+
+- One mode picker at the top drives all mode-scoped blocks (append +
+  per-fragment overrides). The global fragment block sits outside the
+  picker since it applies cross-mode.
+- Every fragment in `FRAGMENT_ORDER` renders as a block — locked ones
+  are read-only with their default text visible (handled by
+  `full-fragment-view`).
+- Each customizable block has a per-block "return to default" button and
+  a per-block "diff" button (drill-down view; the global Composed | Diff
+  toggle is handled by `diff-aware-preview`).
+- Override edits live-update the composed preview without a save action;
+  Save persists.

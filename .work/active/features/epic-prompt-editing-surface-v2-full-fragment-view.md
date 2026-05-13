@@ -29,15 +29,24 @@ prompt surface.
 
 This feature redesigns the fragment view to:
 - Render **every** fragment in the active mode (driven by the mode's
-  `PromptFragment[]` and `FRAGMENT_ORDER`, not the hardcoded list).
-- Mark non-customizable fragments visibly locked (disabled with a tooltip
-  explaining why), so the user sees the full shape of the composed prompt
-  without being able to break invariants `composeSystemPrompt` already
-  protects (`compose.ts:54-60`).
-- Badge fragments that currently have a stored override (from
-  `PromptCustomizationServiceImpl.listFragmentOverrides`).
-- Honor the configurator lock — when locked, the fragment editor is
-  read-only, consistent with the global and append editors.
+  `PromptFragment[]` and `FRAGMENT_ORDER`, not the hardcoded list) as a
+  block in the unified surface.
+- Mark non-customizable fragments visibly locked (read-only with their
+  default text shown) so the user sees the full shape of the composed
+  prompt without being able to break invariants `composeSystemPrompt`
+  already protects (`compose.ts:54-60`).
+- Badge fragments that currently have a stored override.
+- Per-block "return to default" button that clears the override for that
+  fragment (calls `clearFragmentOverride`).
+- Per-block "diff view" button — drills down to show that single
+  fragment's default vs. override (the global Composed | Diff toggle is
+  handled by `diff-aware-preview`).
+- Honor the **configurator lock** — Praxis's parent/child safety
+  mechanism that restricts the configurator surface to a sub-set when
+  engaged. When the lock is on, the fragment editor goes read-only,
+  consistent with the global and append editors. Fixes the
+  lock-button-no-op bug by making the fragment editor honor the same
+  lock everything else honors.
 
 ## Epic context
 
