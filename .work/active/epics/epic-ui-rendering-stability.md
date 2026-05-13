@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability
 kind: epic
-stage: drafting
+stage: implementing
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -69,29 +69,52 @@ becomes unreadable during debugging. None of them is blocking, but they
 all live in the same hygiene category and any of them in isolation feels
 too small to justify an epic-design pass. Bundled, they justify one.
 
-## Decomposition direction (for epic-design)
+## Decomposition
 
-Likely flattens to 4 child stories (one per bug) under the epic, since
-each is a discrete component fix. But epic-design should look for shared
-infrastructure:
+Split by bug-shape pattern, not by code area. The four bugs cleanly
+split into "re-render loops where the data didn't actually change"
+(sidebar flicker, audit log flicker) and "the component reached the
+wrong final state" (question card stays visible after answer, sub-
+agents panel doesn't reclaim space). Each pair shares a diagnostic
+playbook: for loop flickers, profile and stabilize identity; for state
+transitions, identify the missing terminal-state event or layout-
+contract bug. Two features over four was chosen because each
+individual bug is 1–3 implementation units — four solo features would
+have spent more on scope overhead than on fixes. Independent — runs in
+one wave.
 
-- Is there an `audit-component-for-rerender-cycles` checklist worth
-  writing as a skill / pattern? (Subscription identity stability,
-  useEffect dep memoization, display:none vs unmount choice.)
-- Are any of these symptoms of a deeper pattern in our
-  `subscriber-fanout-stream` consumers? If so, the fix may need to
-  land in the shared hook rather than per-component.
+Important update from anchor verification: **the audit log surface is
+a one-shot fetch via `useConfiguratorActions`, NOT a `subscriber-
+fanout-stream` consumer** (contrary to the epic body's initial sketch).
+This refocuses that bug onto useEffect-dep stability rather than
+subscription churn.
 
-## Decomposition risks
+### Child features
 
-- **The audit-log flicker may NOT be a tight render loop** — could be
-  many real updates from a chatty stream, in which case the fix is
-  upstream throttling rather than identity stabilization. Reproduce
-  with React Profiler before committing to a framing.
-- **Sub-agents panel collapse might need a layout refactor** — if the
-  chat workspace uses CSS grid with named track heights, the fix may be
-  more invasive than expected. Surface the layout shape during design.
-- **Question card state machine may be entangled with grade events** —
-  the "answered" transition might depend on the grade tool's `ok: true`
-  result arriving via the engine stream, not on the answer-submit
-  event. Pin the trigger source first.
+- `epic-ui-rendering-stability-loop-flickers` — documents sidebar
+  flicker + audit log re-render loop — depends on: `[]`
+- `epic-ui-rendering-stability-state-transitions` — question card
+  persists after answer + sub-agents panel collapse — depends on: `[]`
+
+### Decomposition risks
+
+- **The epic may be on the small side for two features** — total
+  ~8 implementation units across the four bugs. If feature-design
+  finds the bugs collapse further (e.g., one shared `useResource`
+  pattern fix repairs both flickers), the second feature may shrink
+  to 2-3 units. That's acceptable — the win is parallel scheduling,
+  not unit count.
+- **The audit-log flicker may not be a `useEffect`-dep issue at all**
+  — could be the configurator-actions hook re-fetching on a parent
+  re-render, in which case the fix is in the hook, not the AuditTab.
+  Feature-design must profile with React Profiler before committing
+  to a framing.
+- **Sub-agents panel collapse may require a layout refactor** — if
+  the chat workspace uses CSS grid with named track heights, the fix
+  is more invasive than a visibility toggle. Feature-design needs to
+  surface the layout container's contract.
+- **Question card state machine may be entangled with the grade tool
+  event flow** — the "answered" transition probably triggers from a
+  grade tool result on the engine stream rather than from a local
+  submit handler. Feature-design must pin the trigger source before
+  designing the transition.
