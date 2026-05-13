@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2-diff-aware-preview
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, configure, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on:
@@ -479,3 +479,26 @@ Covered by Unit 5. The pure `reconstructBaseline` function is the highest-value 
 ## Notes for downstream
 
 - `full-fragment-view` (sibling wave-2 feature) renders per-fragment blocks with their own diff button. That diff is a per-block view of `{ defaultText, text }` on a single `ComposedSegment` — the same shape this feature consumes globally. The two features stay aligned by both reading from `ComposedSegment` without coordinating directly.
+
+## Implementation Notes
+
+### Files added
+- `packages/ui/src/components/attributed-preview-pane.tsx` — new `AttributedPreviewPane` component + exported `reconstructBaseline` pure function + `ComposedView` / `DiffView` sub-components
+- `packages/ui/src/components/attributed-preview-pane.module.css` — source-coded CSS with per-`SegmentSource` background colors; uses CSS custom property fallbacks (`--accent-amber-soft`, `--accent-green-soft`, `--accent-teal-soft`) with inline rgba values — tokens didn't exist in the theme, so rgba fallbacks are the live values
+- `packages/ui/src/components/__tests__/attributed-preview-pane.test.tsx` — 16 tests: 7 pure `reconstructBaseline` tests, composed-mode component tests, diff-mode column tests, view-prop no-re-fetch test, stale-effect protection test
+
+### Files modified
+- `packages/ui/src/routes/configure/prompt-tab.tsx` — replaced `PromptPreviewPane` with `AttributedPreviewPane`; removed `disabled` / `aria-disabled` / `title` from Diff button; renamed `activeTab` → `view`; removed `PromptPreviewPane` import
+- `packages/ui/src/lib/copy.ts` — removed `diffToggleDisabledTooltip` (no longer needed; the toggle is functional)
+- `packages/ui/src/__tests__/configure-prompt-tab.test.tsx` — updated `makeClient` to include `previewPromptWithAttribution` stub; flipped "Diff disabled" assertion to "Diff enabled"; removed "coming soon tooltip" assertion; added 4 new tests (enabled state, no tooltip, click-to-switch, default-to-composed)
+
+### Decisions
+- CSS theme tokens `--accent-amber-soft` / `--accent-green-soft` / `--accent-teal-soft` do not exist in `packages/ui/src/styles/global.css` — used inline rgba fallbacks per design guidance (acceptable for v1; can be promoted to tokens when the theme system expands)
+- `segmentClassFor` returns `styles.X ?? ""` to satisfy `noUncheckedIndexedAccess` / CSS module `string | undefined` return type
+- `reconstructBaseline` export is pure — no React, no effects — enabling straightforward unit testing without JSDOM
+
+### Verification
+- `pnpm typecheck` — clean
+- `pnpm lint` — 12 pre-existing errors (confirmed via `git stash` baseline); 0 new errors from this changeset
+- `pnpm test` — 331 passed, 3 skipped (all pre-existing skips); 0 failures
+- `pnpm build` — clean

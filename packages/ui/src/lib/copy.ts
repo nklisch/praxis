@@ -93,7 +93,6 @@ export const COPY = {
       "The fully composed system prompt for the selected mode, including your customizations.",
     previewToggleComposed: "Composed",
     previewToggleDiff: "Diff",
-    diffToggleDisabledTooltip: "Diff view is coming in the next release.",
     styleSectionTitle: "Teaching Style",
     styleSectionDesc: "Adjust how the tutor communicates. Changes apply globally across sessions.",
   },

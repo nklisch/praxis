@@ -25,6 +25,18 @@ function makeClient(lockClient: LockClient = makeLockClient()): PraxisClient {
       getModeAppend: vi.fn().mockResolvedValue(null),
       setModeAppend: vi.fn().mockResolvedValue(undefined),
       previewPrompt: vi.fn().mockResolvedValue("composed prompt"),
+      previewPromptWithAttribution: vi.fn().mockResolvedValue({
+        prompt: "composed prompt",
+        segments: [
+          {
+            fragmentId: "role.tutor",
+            position: "role",
+            source: "default",
+            text: "composed prompt",
+            customizable: true,
+          },
+        ],
+      }),
       getGlobalPrompt: vi.fn().mockResolvedValue(null),
       setGlobalPrompt: vi.fn().mockResolvedValue(undefined),
       customizePrompt: vi.fn().mockResolvedValue(undefined),
@@ -190,19 +202,45 @@ describe("PromptTab — unified prompt customization surface", () => {
     });
   });
 
-  it("renders the Diff toggle button as disabled", async () => {
+  it("renders the Diff toggle button as enabled", async () => {
     renderTab();
     await waitFor(() => {
       const diffBtn = screen.getByRole("tab", { name: "Diff" }) as HTMLButtonElement;
-      expect(diffBtn.disabled).toBe(true);
+      expect(diffBtn.disabled).toBe(false);
     });
   });
 
-  it("Diff toggle has a tooltip explaining it is coming soon", async () => {
+  it("Diff toggle has no disabled tooltip", async () => {
     renderTab();
     await waitFor(() => {
       const diffBtn = screen.getByRole("tab", { name: "Diff" });
-      expect(diffBtn.getAttribute("title")).toBeTruthy();
+      // No "coming in v2" tooltip — the toggle is now functional.
+      expect(diffBtn.getAttribute("title")).toBeNull();
+    });
+  });
+
+  it("clicking the Diff toggle switches to diff view", async () => {
+    renderTab();
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Composed" })).toBeDefined();
+    });
+
+    const diffBtn = screen.getByRole("tab", { name: "Diff" });
+    fireEvent.click(diffBtn);
+
+    await waitFor(() => {
+      const diffTab = screen.getByRole("tab", { name: "Diff" }) as HTMLButtonElement;
+      expect(diffTab.getAttribute("aria-selected")).toBe("true");
+    });
+  });
+
+  it("preview toggle defaults to Composed view", async () => {
+    renderTab();
+    await waitFor(() => {
+      const composedTab = screen.getByRole("tab", { name: "Composed" }) as HTMLButtonElement;
+      expect(composedTab.getAttribute("aria-selected")).toBe("true");
+      const diffTab = screen.getByRole("tab", { name: "Diff" }) as HTMLButtonElement;
+      expect(diffTab.getAttribute("aria-selected")).toBe("false");
     });
   });
 
@@ -228,11 +266,11 @@ describe("PromptTab — unified prompt customization surface", () => {
 
   // ── IPC: preview ─────────────────────────────────────────────────────────
 
-  it("calls previewPrompt for the default mode", async () => {
+  it("calls previewPromptWithAttribution for the default mode", async () => {
     const client = makeClient();
     renderTab(client);
     await waitFor(() => {
-      expect(client.author.previewPrompt).toHaveBeenCalledWith(
+      expect(client.author.previewPromptWithAttribution).toHaveBeenCalledWith(
         expect.objectContaining({ modeId: "teach" }),
       );
     });

@@ -1,10 +1,10 @@
 import { FRAGMENT_ORDER } from "@praxis/curriculum/brief";
 import { listModes, requireMode } from "@praxis/curriculum/modes";
 import { type FormEvent, useState } from "react";
+import { AttributedPreviewPane } from "../../components/attributed-preview-pane.js";
 import { FragmentBlock } from "../../components/fragment-block.js";
 import { GlobalPromptEditor } from "../../components/global-prompt-editor.js";
 import { ModeAppendEditor } from "../../components/mode-append-editor.js";
-import { PromptPreviewPane } from "../../components/prompt-preview-pane.js";
 import { StyleSlider } from "../../components/style-slider.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import { useFragmentOverrides } from "../../hooks/use-fragment-overrides.js";
@@ -65,7 +65,7 @@ interface PromptPreviewWithToggleProps {
 }
 
 function PromptPreviewWithToggle({ modeId }: PromptPreviewWithToggleProps) {
-  const [activeTab, setActiveTab] = useState<PreviewTab>("composed");
+  const [view, setView] = useState<PreviewTab>("composed");
 
   return (
     <div className={styles.previewContainer}>
@@ -73,26 +73,24 @@ function PromptPreviewWithToggle({ modeId }: PromptPreviewWithToggleProps) {
         <button
           type="button"
           role="tab"
-          aria-selected={activeTab === "composed"}
-          className={`${styles.toggleBtn} ${activeTab === "composed" ? styles.toggleBtnActive : ""}`}
-          onClick={() => setActiveTab("composed")}
+          aria-selected={view === "composed"}
+          className={`${styles.toggleBtn} ${view === "composed" ? styles.toggleBtnActive : ""}`}
+          onClick={() => setView("composed")}
         >
           {COPY.prompt.previewToggleComposed}
         </button>
         <button
           type="button"
           role="tab"
-          aria-selected={activeTab === "diff"}
-          aria-disabled="true"
-          disabled
-          className={styles.toggleBtn}
-          title={COPY.prompt.diffToggleDisabledTooltip}
+          aria-selected={view === "diff"}
+          className={`${styles.toggleBtn} ${view === "diff" ? styles.toggleBtnActive : ""}`}
+          onClick={() => setView("diff")}
         >
           {COPY.prompt.previewToggleDiff}
         </button>
       </div>
 
-      {activeTab === "composed" && <PromptPreviewPane modeId={modeId} />}
+      <AttributedPreviewPane modeId={modeId} view={view} />
     </div>
   );
 }
