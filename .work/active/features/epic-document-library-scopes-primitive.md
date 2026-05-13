@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-scopes-primitive
 kind: feature
-stage: implementing
+stage: review
 tags: [core, documents, ingestion, schema]
 parent: epic-document-library
 depends_on: []
@@ -853,3 +853,17 @@ populated dev DB + `pnpm db:show` confirms the row counts match.
 ### Migration
 - `pnpm db:reset` runs cleanly on a fresh DB.
 - Manual verification on a populated dev DB during story 1.
+
+## Implementation Notes (orchestrator)
+
+All 3 child stories landed and are at `stage: review`:
+- `…-schema-and-migration` (commit `eb0b3d1`)
+- `…-service-and-types` (commit `41a7a4e`)
+- `…-callsite-sweep` (commit `a36f72c`)
+
+Final verification gates passed: `pnpm typecheck` green, `pnpm test` green
+(3013 passed, 20 skipped), all `CourseDocuments*` references removed from
+source. The `course_documents` table is gone; the polymorphic
+`document_scopes` table is now the SSOT for document scoping. The three
+downstream features (`bootstrap-session-scoped-attachment`,
+`viewer-tab-scoped-sidebar`, `library-view-tabs-filters`) are unblocked.

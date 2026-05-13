@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-cancellation-propagation
 kind: feature
-stage: implementing
+stage: review
 tags: [core, engines, tools, chat]
 parent: epic-tutor-session-feel
 depends_on: []
@@ -539,3 +539,17 @@ Covered in Unit 8 across both stories. Key invariants:
 5. **Engine adapter API surface changes** (none expected). Adapters
    already accept `signal` at `send()`. The change is internal —
    threading it down to the tool dispatch site. No interface change.
+
+## Implementation Notes (orchestrator)
+
+Both child stories landed and are at `stage: review`:
+- `…-core-plumbing` (commit `95193e2`) — `signal?: AbortSignal` on
+  `DispatchMeta` and `ToolContext`; `dispatch()` threads it into the
+  per-call `callContext`.
+- `…-engine-and-subagent` (commit `d77a751`) — All three engine adapters
+  (Claude Code, Codex, Direct) supply the per-turn signal to
+  `registry.dispatch`. `runConceptExplorer` accepts and propagates signal
+  with `"interrupted"` reason. `SubAgentRegistry.interruptAllForSession`
+  added and wired into `SessionServiceImpl.send`'s abort short-circuit.
+
+End-to-end: clicking Stop now actually stops sub-agents within ~1s.
