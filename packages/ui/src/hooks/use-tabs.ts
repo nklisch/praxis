@@ -1,4 +1,10 @@
-import type { DocumentId, DocumentTabSummary, SessionId, TabId, TabSummary } from "@praxis/core/types";
+import type {
+  DocumentId,
+  DocumentTabSummary,
+  SessionId,
+  TabId,
+  TabSummary,
+} from "@praxis/core/types";
 import { useCallback, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 

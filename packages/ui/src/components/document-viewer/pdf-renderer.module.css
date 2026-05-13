@@ -1,0 +1,59 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+  padding: var(--space-4, 1rem);
+}
+
+.page {
+  position: relative;
+  background: var(--surface-elevated, #fff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 6px);
+  overflow: hidden;
+  /* Reserve height so IntersectionObserver fires correctly before the image loads */
+  min-height: 120px;
+}
+
+.pageLabel {
+  position: absolute;
+  top: var(--space-2, 0.5rem);
+  right: var(--space-2, 0.5rem);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--text-muted, #94a3b8);
+  background: var(--surface-overlay, rgba(255, 255, 255, 0.85));
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 4px);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pageImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.status {
+  padding: var(--space-4, 1rem);
+  color: var(--text-muted, #94a3b8);
+  font-style: italic;
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.pageError {
+  padding: var(--space-4, 1rem);
+  color: var(--text-error, #ef4444);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.noPages {
+  padding: var(--space-6, 1.5rem);
+  color: var(--text-muted, #94a3b8);
+}
+
+.hint {
+  font-size: var(--text-sm, 0.875rem);
+  margin-top: var(--space-2, 0.5rem);
+}

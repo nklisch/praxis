@@ -23,6 +23,7 @@ function makeDocumentScopes(sessionAttachedIds: DocumentId[] = []): DocumentScop
     attachMany: vi.fn().mockResolvedValue({ newlyAttached: [] }),
     listScopesForDocument: vi.fn().mockResolvedValue([]),
     promoteScope: vi.fn().mockResolvedValue({ promoted: [] }),
+    listOrphaned: vi.fn().mockResolvedValue([]),
   };
 }
 

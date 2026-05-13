@@ -15,7 +15,13 @@
  * - Closing the active tab shifts focus to the next most-recent tab
  * - Per-tab body mounts for each open tab (display:none for inactive)
  */
-import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
+import type {
+  DocumentDetail,
+  DocumentTabSummary,
+  PraxisClient,
+  TabSummary,
+  Timestamp,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -63,6 +69,37 @@ function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
     openedAt: (Date.now() - 10_000) as Timestamp,
     lastSeenAt: (Date.now() - 5_000) as Timestamp,
     closedAt: null,
+    ...overrides,
+  };
+}
+
+function makeDocumentTab(overrides: Partial<DocumentTabSummary> = {}): DocumentTabSummary {
+  return {
+    kind: "document",
+    id: brandId<"TabId">("tab-doc-1"),
+    documentId: brandId<"DocumentId">("doc-1"),
+    title: "biology-notes.md",
+    sortOrder: 0,
+    openedAt: (Date.now() - 5_000) as Timestamp,
+    lastSeenAt: (Date.now() - 1_000) as Timestamp,
+    closedAt: null,
+    ...overrides,
+  };
+}
+
+function makeDocumentDetail(overrides: Partial<DocumentDetail> = {}): DocumentDetail {
+  return {
+    documentId: "doc-1",
+    filename: "biology-notes.md",
+    mimeType: "text/markdown",
+    ingestorId: "markdown",
+    ingestorLabel: "Markdown",
+    chunkCount: 2,
+    createdAt: new Date().toISOString(),
+    hasPageImages: false,
+    title: "Biology Notes",
+    pageCount: null,
+    text: "# Biology\n\nCells are the basic unit of life.",
     ...overrides,
   };
 }
@@ -119,7 +156,9 @@ function makeTestClient(
     } as PraxisClient["artifacts"],
     documents: {
       list: vi.fn().mockResolvedValue([]),
+      get: vi.fn().mockResolvedValue(null),
       delete: vi.fn().mockResolvedValue(undefined),
+      pageImage: vi.fn().mockResolvedValue(null),
     } as unknown as PraxisClient["documents"],
   });
 }
@@ -307,5 +346,77 @@ describe("ChatRoute shell", () => {
       // The sketch toggle button is aria-labelled "Open sketch input".
       expect(screen.getByLabelText("Open sketch input")).toBeDefined();
     });
+  });
+
+  // ── Document tabs dispatch to DocumentTabBody ─────────────────────────────
+
+  it("renders document tab via DocumentTabBody (not the old placeholder)", async () => {
+    const docTab = makeDocumentTab({ title: "biology-notes.md" });
+    const detail = makeDocumentDetail();
+
+    // makeTestClient uses makeFakeClient but we override documents.get for this test.
+    const client = makeFakeClient({
+      session: {
+        active: vi.fn().mockResolvedValue(null),
+        start: vi.fn().mockResolvedValue({
+          sessionId: brandId<"SessionId">("session-1"),
+          modeId: "teach",
+          startedAt: Date.now() as Timestamp,
+        }),
+        end: vi.fn().mockResolvedValue({
+          sessionId: brandId<"SessionId">("session-1"),
+          endedAt: Date.now() as Timestamp,
+          unlockedGates: [],
+          newMisconceptions: 0,
+        }),
+        send: vi.fn(async function* () {}) as unknown as PraxisClient["session"]["send"],
+        list: vi.fn().mockResolvedValue([]),
+      },
+      tabs: {
+        listOpen: vi.fn().mockResolvedValue([docTab]),
+        list: vi.fn().mockResolvedValue([docTab]),
+        get: vi.fn().mockResolvedValue(null),
+        open: vi.fn().mockResolvedValue(docTab),
+        reopen: vi.fn().mockResolvedValue(docTab),
+        close: vi.fn().mockResolvedValue(undefined),
+        touch: vi.fn().mockResolvedValue(undefined),
+        rename: vi.fn().mockResolvedValue(docTab),
+      },
+      artifacts: {
+        courses: vi.fn().mockResolvedValue([]),
+        course: vi.fn(),
+        lessons: vi.fn(),
+        gates: vi.fn(),
+        progress: vi.fn(),
+        flashcards: vi.fn(),
+        notes: vi.fn(),
+        gateView: vi.fn().mockResolvedValue([]),
+        evaluateGates: vi.fn().mockResolvedValue({ unlockedGateIds: [] }),
+        markGatesViewed: vi.fn().mockResolvedValue(undefined),
+        newlyUnlockedCount: vi.fn().mockResolvedValue(0),
+        concepts: vi.fn().mockResolvedValue([]),
+      } as PraxisClient["artifacts"],
+      documents: {
+        list: vi.fn().mockResolvedValue([]),
+        get: vi.fn().mockResolvedValue(detail),
+        delete: vi.fn().mockResolvedValue(undefined),
+        pageImage: vi.fn().mockResolvedValue(null),
+      } as unknown as PraxisClient["documents"],
+    });
+
+    renderWithClient(client);
+
+    // The document tab title appears in the tab strip.
+    await waitFor(() => {
+      expect(screen.getByText("biology-notes.md")).toBeDefined();
+    });
+
+    // The document viewer renders the document title from DocumentTabBody.
+    await waitFor(() => {
+      expect(screen.getByText("Biology Notes")).toBeDefined();
+    });
+
+    // Confirm the old placeholder text does NOT appear.
+    expect(screen.queryByText(/Document viewer coming soon/i)).toBeNull();
   });
 });

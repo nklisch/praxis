@@ -1,10 +1,10 @@
-import { documents } from "@praxis/artifacts/schema";
-import { eq } from "drizzle-orm";
+import { documentChunks, documents } from "@praxis/artifacts/schema";
+import { asc, eq } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
 import { assertSafeDocumentId } from "../ingestion/document-id-guard.js";
 import type { EmbeddedImageStore } from "../ingestion/embedded-images.js";
 import type { PageImageStore } from "../ingestion/page-images.js";
-import type { DocumentSummary } from "../types/client.js";
+import type { DocumentDetail, DocumentSummary } from "../types/client.js";
 import type { FtsStore, VectorStore } from "../types/tool.js";
 
 export interface DocumentsServiceDeps {
@@ -61,6 +61,57 @@ export class DocumentsServiceImpl {
         hasPageImages: manifest?.hasPageImages ?? false,
       };
     });
+  }
+
+  async get(documentId: string): Promise<DocumentDetail | null> {
+    assertSafeDocumentId(documentId);
+
+    const row = this.deps.db
+      .select({
+        id: documents.id,
+        filename: documents.filename,
+        mimeType: documents.mimeType,
+        ingestedAt: documents.ingestedAt,
+        manifestJson: documents.manifestJson,
+        chunkCount: documents.chunkCount,
+      })
+      .from(documents)
+      .where(eq(documents.id, documentId))
+      .get();
+
+    if (!row) return null;
+
+    const manifest = row.manifestJson as {
+      title?: string | null;
+      ingestorId?: string | null;
+      ingestorLabel?: string | null;
+      pageCount?: number | null;
+      hasPageImages?: boolean | null;
+    } | null;
+
+    // Fetch all chunks ordered by index — join the text as the document's full text.
+    const chunkRows = this.deps.db
+      .select({ text: documentChunks.text })
+      .from(documentChunks)
+      .where(eq(documentChunks.documentId, documentId))
+      .orderBy(asc(documentChunks.chunkIndex))
+      .all();
+
+    const text = chunkRows.map((c) => c.text).join("\n\n");
+
+    return {
+      documentId: row.id,
+      filename: row.filename,
+      mimeType: row.mimeType,
+      ingestorId: manifest?.ingestorId ?? "unknown",
+      ingestorLabel: manifest?.ingestorLabel ?? manifest?.ingestorId ?? "Unknown",
+      chunkCount: row.chunkCount,
+      createdAt: row.ingestedAt.toISOString(),
+      hasPageImages: manifest?.hasPageImages ?? false,
+      title: manifest?.title ?? null,
+      pageCount: manifest?.pageCount ?? null,
+      text,
+    };
   }
 
   async delete(documentId: string): Promise<void> {

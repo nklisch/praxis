@@ -22,6 +22,7 @@ import { BootstrapTabBody } from "./bootstrap-tab-body.js";
 import styles from "./chat-tab-body.module.css";
 import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
+import { DocumentTabBody } from "./document-tab-body.js";
 import { ExamTabBody } from "./exam-tab-body.js";
 import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
@@ -381,16 +382,9 @@ export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element 
  * dispatcher itself does not manage visibility — that remains in the parent.
  */
 export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
-  // Document tabs have no session; route to a placeholder until the viewer story lands.
+  // Document tabs have no session; route to the document viewer.
   if (tab.kind === "document") {
-    // The document viewer body (`<DocumentTabBody>`) is added in the sibling viewer story.
-    // For now, render a minimal placeholder that is never visible (the viewer story
-    // will replace this branch). The tab DOES persist correctly — only the render is deferred.
-    return (
-      <div style={{ padding: "2rem", opacity: 0.4, fontStyle: "italic" }}>
-        Document viewer coming soon.
-      </div>
-    );
+    return <DocumentTabBody tab={tab} />;
   }
 
   // Session tabs — narrow to SessionTabSummary and dispatch on modeId.

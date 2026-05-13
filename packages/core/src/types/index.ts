@@ -15,6 +15,7 @@ export type {
   ConceptMapClientApi,
   ConfigService,
   CreateCourseInput,
+  DocumentDetail,
   DocumentScopesClientApi,
   DocumentSummary,
   DocumentsClient,
@@ -90,7 +91,13 @@ export type {
   SubAgentStep,
 } from "./subagent.js";
 // Phase 14: Tab strip types.
-export type { DocumentTabSummary, SessionTabSummary, TabId, TabSummary, TabsService } from "./tabs.js";
+export type {
+  DocumentTabSummary,
+  SessionTabSummary,
+  TabId,
+  TabSummary,
+  TabsService,
+} from "./tabs.js";
 // tool.ts: MemoryService here is the server-side interface (with studentId params).
 export type * from "./tool.js";
 // ToolDispatchMeta is re-exported via engine.ts through the wildcard above.

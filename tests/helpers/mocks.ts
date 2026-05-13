@@ -82,6 +82,7 @@ export function noopDocumentScopes(): import("@praxis/core/types").DocumentScope
     attachMany: async () => ({ newlyAttached: [] }),
     listScopesForDocument: async () => [],
     promoteScope: async () => ({ promoted: [] }),
+    listOrphaned: async () => [],
   };
 }
 

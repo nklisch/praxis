@@ -70,16 +70,18 @@ export function ChatRoute() {
   } = useResource(scopedLoader);
 
   const isScoped = scope.kind !== "all";
-  const documents = isScoped ? (scopedDocs ?? []).map((d) => ({
-    documentId: d.documentId,
-    filename: d.filename,
-    mimeType: d.mimeType,
-    ingestorId: "",
-    ingestorLabel: "",
-    chunkCount: d.chunkCount,
-    createdAt: d.attachedAt.toISOString(),
-    hasPageImages: d.hasPageImages,
-  })) : allDocuments;
+  const documents = isScoped
+    ? (scopedDocs ?? []).map((d) => ({
+        documentId: d.documentId,
+        filename: d.filename,
+        mimeType: d.mimeType,
+        ingestorId: "",
+        ingestorLabel: "",
+        chunkCount: d.chunkCount,
+        createdAt: d.attachedAt.toISOString(),
+        hasPageImages: d.hasPageImages,
+      }))
+    : allDocuments;
   const docsLoading = isScoped ? scopedLoading : allDocsLoading;
   const docsError = isScoped ? scopedError : allDocsError;
 

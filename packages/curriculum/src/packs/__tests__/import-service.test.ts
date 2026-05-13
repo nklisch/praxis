@@ -352,6 +352,7 @@ describe("PackImportServiceImpl", () => {
         attachMany: async () => ({ newlyAttached: [] }),
         listScopesForDocument: async () => [],
         promoteScope: async () => ({ promoted: [] }),
+        listOrphaned: async () => [],
       };
 
       const svc = makeServiceForRealPacks();

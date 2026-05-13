@@ -56,6 +56,7 @@ const MOCK_DOCUMENT_SCOPES = {
   attachMany: vi.fn().mockResolvedValue({ newlyAttached: [] }),
   listScopesForDocument: vi.fn().mockResolvedValue([]),
   promoteScope: vi.fn().mockResolvedValue({ promoted: [] }),
+  listOrphaned: vi.fn().mockResolvedValue([]),
 };
 
 function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {

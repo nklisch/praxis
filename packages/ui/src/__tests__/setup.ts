@@ -27,6 +27,18 @@ Object.defineProperty(window, "ResizeObserver", {
   value: fakeResizeObserver,
 });
 
+// IntersectionObserver is not available in JSDOM — polyfill with a stub that
+// never fires (lazy-load components render without fetching images in tests).
+const fakeIntersectionObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Object.defineProperty(window, "IntersectionObserver", {
+  writable: true,
+  value: fakeIntersectionObserver,
+});
+
 // jsdom 29 ships without localStorage; polyfill a minimal in-memory store.
 if (
   typeof window.localStorage === "undefined" ||
