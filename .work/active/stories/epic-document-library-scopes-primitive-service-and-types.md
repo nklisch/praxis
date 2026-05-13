@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-scopes-primitive-service-and-types
 kind: story
-stage: review
+stage: done
 tags: [core, documents]
 parent: epic-document-library-scopes-primitive
 depends_on: [epic-document-library-scopes-primitive-schema-and-migration]
@@ -116,3 +116,20 @@ These are in scope for `epic-document-library-scopes-primitive-callsite-sweep`.
 Full-workspace `pnpm typecheck` will also fail for the same reason plus
 call sites in `@praxis/desktop`, `@praxis/tools`, and `@praxis/client`.
 All intentional per the story boundary.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- All 7 methods of `DocumentScopesService` implemented per design: `listForScope`, `listForScopeDetailed`, `attach`, `detach`, `attachMany`, `listScopesForDocument`, `promoteScope`.
+- `attachMany` uses a transaction with pre-check (existing scope ids → set diff → bulk insert) — single round-trip, idempotent.
+- `listScopesForDocument` re-brands `scopeId` as the correct `CourseId | SessionId` based on `scopeKind` — discriminated union returned correctly.
+- `promoteScope` correctly preserves source rows (per design's "session rows persist for audit").
+- Test coverage: 23/23 tests; covers all methods including multi-scope, idempotency, promote-idempotency, and FK cascade on document delete.
+- Old service + interface + tests deleted cleanly via `git rm`.
+- Expected workspace typecheck failures (callsites still reference `courseDocuments`) are documented and resolved in the next story.
