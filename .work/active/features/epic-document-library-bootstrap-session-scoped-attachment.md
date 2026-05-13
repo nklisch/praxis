@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-bootstrap-session-scoped-attachment
 kind: feature
-stage: review
+stage: done
 tags: [bootstrap, documents, tutor-ux]
 parent: epic-document-library
 depends_on: [epic-document-library-scopes-primitive]
@@ -410,6 +410,19 @@ Drafts ARE persisted via `SqliteDraftStore` with the full `DraftCourseState` sto
 
 ### Build note
 The `@praxis/curriculum` and `@praxis/tools` packages resolve workspace dependencies via the built `dist/` (no `vitest.config.ts` with `praxis-source` conditions). After modifying `draft-init.ts`, `pnpm --filter @praxis/tools build` was required to update `dist/course/draft-init.js` before the explorer tests could pick up the change. All tests confirmed passing after the build.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `confirmDraft` swallows `promoteScope` errors with `log.warn`, just like the legacy `attachMany` fallback. The comment says "documents can be manually re-attached" — but in the session→course promotion case, the session-scope rows DO survive the failure (good), so the recovery path is "redo confirmDraft" (which is idempotent on the course-rows side via `promoteScope`). The current comment is slightly misleading; a follow-up could say "promoteScope is idempotent — re-confirming is safe" but it's not worth a code change.
+
+**Notes**: Threading-chain comments in `tool.ts:144-160` and `explorer.ts:140-146` are excellent — future sub-agent harnesses know exactly what to propagate. Backwards-compat is well-handled: `sessionId` on `DraftCourseState` is optional, `confirmDraft` falls back to the legacy `attachMany` path, and `list-library-documents` falls back to `ctx.sessionId` when `parentSessionId` is absent (so non-bootstrap callers get the same "always false" result without an explicit check). Foundation-doc `docs/ARCHITECTURE.md:386-390` already describes the session→course promotion; no doc drift.
+
+What's now possible: a bootstrap exploration carries the user's selected documents as session-owned for its lifetime, and `confirmDraft` preserves the audit trail by promoting (not replacing) those rows to course-scope. The Orphaned tab in `library-view-tabs-filters` (sibling feature, not yet shipped) can now query unconfirmed-bootstrap session scopes and surface the docs that didn't make it into a course.
 
 ## Notes for downstream
 
