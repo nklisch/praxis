@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel
 kind: epic
-stage: drafting
+stage: implementing
 tags: [ui, chat, tutor-ux]
 parent: null
 depends_on: []
@@ -66,19 +66,76 @@ tutor *feel right*. The harder polish (queueing, cancellation propagation)
 is also where v0.1.1 sessions feel most like a chatbot — addressing them now
 sets the tone for everything else that ships into the chat surface.
 
-## Design questions for epic-design
+## Decomposition
 
-- Naming: Tutor / Teacher / Lesson / Session — does the chosen name need to
-  vary by mode (Quiz / Homework / Bootstrap all live in this tab), or is one
-  name right across modes?
-- Message queue: do queued messages render inline as pending bubbles in the
-  thread, or in a separate queue zone above the composer? Editable while
-  pending? Flushed automatically when the turn ends, or held until the user
-  confirms?
-- Tool-call readability: persist as first-class thread entries, enforce a
-  minimum-visible-duration animation, or both? How does this interact with
-  the existing episodic log that already stores tool events?
-- Stop-cancellation: does cancellation propagate via `AbortController`
-  threaded through the sub-agent registry, or via a higher-level
-  "session-aborted" event that each adapter listens for? What's the
-  contract for tools currently mid-flight?
+Split by capability. All four children are independent — no critical path —
+which gives autopilot maximum parallelism in a single wave. The cancellation
+work is the largest (touching three engine adapters + tools + sub-agents)
+but doesn't share types with the UI features, so it parallelizes cleanly.
+
+Foundation roll-forward: none. `docs/ARCHITECTURE.md:310,343` already
+describe the chat surface and the sub-agent transparency contract; the
+cancellation work is a behavior fix to honor that contract, not a new
+boundary. The composer queue and tool-call persistence change interaction
+patterns within the existing surface. The tab rename is purely a string
+move.
+
+Key map findings that shape the decomposition:
+
+- The cancellation gap is concrete: `DispatchMeta` at
+  `packages/tools/src/registry.ts:17-20` carries only `callId`. There's no
+  `signal` in tool dispatch, and `runConceptExplorer` has no abort
+  parameter. The signal dies at the engine adapter and never reaches
+  tools or sub-agents.
+- The "tool calls too fast to read" complaint already has
+  `MIN_INTERSTITIAL_VISIBLE_MS = 800` in `use-streamed-send.ts:56`. The
+  remaining gap is persistence: `episodicToItems` replays interstitials
+  as instantly-settled with no pacing, and the live UI may move on from
+  settled interstitials too quickly. The fix is "tool calls as
+  first-class thread artifacts," not "more pacing."
+- The chat tab title is rendered from server-side `TabSummary.title` at
+  `tab-strip.tsx:48`; `ModeMeta` already has per-mode names that the
+  in-session header uses. Rename is mostly aligning the tab title with
+  the existing SSOT.
+
+### Child features
+
+- `epic-tutor-session-feel-tutor-tab-rename` — pick the teaching-shaped
+  term, update `ModeMeta` strings + the tab-title flow in
+  `open-session-in-tab.ts`; bring tab labels into the existing SSOT. —
+  depends on: `[]`
+- `epic-tutor-session-feel-cancellation-propagation` — add `signal` to
+  `DispatchMeta`/`ToolContext`, thread through all three engine adapters,
+  propagate into `runConceptExplorer` and other sub-agent entries, abort
+  in-flight sub-agent sessions on parent abort. — depends on: `[]`
+- `epic-tutor-session-feel-composer-queue` — decouple composer from
+  `isStreaming`; submitted messages enqueue as pending bubbles in the
+  thread; flush on turn-end. — depends on: `[]`
+- `epic-tutor-session-feel-tool-call-thread-persistence` — settled tool
+  calls remain as first-class thread artifacts (compact-but-readable,
+  expand/collapse); replay from episodic produces the same shape as live
+  stream; scroll behavior doesn't race past tool entries. — depends on:
+  `[]`
+
+### Decomposition risks
+
+- **Cancellation propagation is the largest and riskiest** — touching
+  three engine adapters, tool dispatch, and sub-agent flow at once.
+  Splitting into "tools-only" and "sub-agents-only" looks tempting but
+  the two share the abort tree and the split adds ceremony for no net
+  gain. Feature-design pass should consider whether sub-agent abort can
+  reuse the same `conv.abort()` path the parent engine already uses
+  (recursive walk for free).
+- **Tool-call persistence root cause is fuzzy** — `MIN_INTERSTITIAL_VISIBLE_MS`
+  already exists at 800ms, yet the user reports tool calls still flash by.
+  Feature-design pass must reproduce the specific frustration first
+  (auto-scroll racing past? settled-state collapses out of view?
+  sub-agent steps inside a tool?) before committing to the persistence
+  framing.
+- **Composer queue UX is the most novel** — pending bubbles inline vs.
+  separate zone, edit-while-pending, flush-as-one vs. flush-as-many. The
+  design pass should land a concrete shape before implementation, not
+  iterate at code time.
+- **Tab rename backfill** — existing rows in the `tabs` table have stale
+  titles. Migration vs. lazy refresh is a small decision but easy to
+  miss.
