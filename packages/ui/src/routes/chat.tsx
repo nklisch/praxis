@@ -1,15 +1,18 @@
 import type { TabId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
 import { ChatTabBody } from "../components/chat-tab-body.js";
 import { DocumentList } from "../components/document-list.js";
 import { EmptyState } from "../components/empty-state.js";
 import { NewTabPicker } from "../components/new-tab-picker.js";
 import { TabStrip } from "../components/tab-strip.js";
+import { usePraxisClient } from "../context/client-context.js";
 import { useAssignmentIssuedSpawn } from "../hooks/use-assignment-issued-spawn.js";
+import { useDerivedScope } from "../hooks/use-derived-scope.js";
 import { useDocuments } from "../hooks/use-documents.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
+import { useResource } from "../hooks/use-resource.js";
 import { useTabs } from "../hooks/use-tabs.js";
 import { COPY } from "../lib/copy.js";
 import styles from "./chat.module.css";
@@ -42,14 +45,44 @@ export function ChatRoute() {
   // hook mount that would fire a second tabs.listOpen call.
   useAssignmentIssuedSpawn(openTab);
 
-  // Documents sidebar — global to workspace, not per-tab
+  // Scope-aware sidebar: derive scope from active route + active tab.
+  const scope = useDerivedScope();
+
+  // Global (unscoped) document list — used when scope is "all".
   const {
-    documents,
-    loading: docsLoading,
-    error: docsError,
+    documents: allDocuments,
+    loading: allDocsLoading,
+    error: allDocsError,
     refresh: refreshDocs,
     deleteDocument,
   } = useDocuments();
+
+  // Scoped document list — used when scope is "course" or "session".
+  const client = usePraxisClient();
+  const scopedLoader = useCallback(async () => {
+    if (scope.kind === "all") return null;
+    return client.documentScopes.listForScope(scope);
+  }, [client, scope]);
+  const {
+    data: scopedDocs,
+    loading: scopedLoading,
+    error: scopedError,
+  } = useResource(scopedLoader);
+
+  const isScoped = scope.kind !== "all";
+  const documents = isScoped ? (scopedDocs ?? []).map((d) => ({
+    documentId: d.documentId,
+    filename: d.filename,
+    mimeType: d.mimeType,
+    ingestorId: "",
+    ingestorLabel: "",
+    chunkCount: d.chunkCount,
+    createdAt: d.attachedAt.toISOString(),
+    hasPageImages: d.hasPageImages,
+  })) : allDocuments;
+  const docsLoading = isScoped ? scopedLoading : allDocsLoading;
+  const docsError = isScoped ? scopedError : allDocsError;
+
   const ingestion = useIngestion(refreshDocs);
 
   // Sync route param → active tab: when the URL has a tabId, ensure the hook
@@ -80,19 +113,35 @@ export function ChatRoute() {
 
   return (
     <div className={styles.layout}>
-      {/* Documents sidebar — shared across all tabs */}
+      {/* Documents sidebar — scope-aware: shows docs for the active context */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <span className={styles.sidebarTitle}>Documents</span>
+          <span className={styles.sidebarTitle}>
+            {scope.kind === "course"
+              ? "Course Documents"
+              : scope.kind === "session"
+                ? "Session Documents"
+                : "Documents"}
+          </span>
         </div>
         <div className={styles.sidebarContent}>
-          <AddDocumentButton ingestion={ingestion} />
-          <DocumentList
-            documents={documents}
-            loading={docsLoading}
-            error={docsError}
-            onDelete={deleteDocument}
-          />
+          {/* Only show the add-document affordance in the global (all) view;
+              scoped views use the library picker or course doc-picker instead. */}
+          {!isScoped && <AddDocumentButton ingestion={ingestion} />}
+          {isScoped && !docsLoading && !docsError && documents.length === 0 ? (
+            <EmptyState
+              message={COPY.empty.attachedDocsEmpty}
+              compact
+              action={{ label: "Go to library", onClick: () => navigate({ to: "/library" }) }}
+            />
+          ) : (
+            <DocumentList
+              documents={documents}
+              loading={docsLoading}
+              error={docsError}
+              onDelete={deleteDocument}
+            />
+          )}
         </div>
       </aside>
 

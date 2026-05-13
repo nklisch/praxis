@@ -26,8 +26,9 @@ import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
-// Mock TanStack Router hooks. The shell uses useParams (strict: false) and
-// useNavigate. We expose tabId as undefined (bare /chat) by default.
+// Mock TanStack Router hooks. The shell uses useParams (strict: false),
+// useNavigate, and (via useDerivedScope) useMatches. We expose bare /chat
+// defaults: no tabId param, no route matches (→ "all" scope).
 vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-router")>();
   return {
@@ -35,6 +36,10 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
     useSearch: () => ({}),
     useNavigate: () => vi.fn(),
     useParams: () => ({ tabId: undefined }),
+    // useDerivedScope calls useMatches to detect the active route. Return an
+    // empty array so the hook falls through to the "all" default scope, which
+    // preserves the existing global documents list behavior in these tests.
+    useMatches: () => [],
   };
 });
 
@@ -49,6 +54,7 @@ vi.mock("tldraw/tldraw.css", () => ({}));
 
 function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
   return {
+    kind: "session",
     id: brandId<"TabId">("tab-1"),
     sessionId: brandId<"SessionId">("session-1"),
     modeId: "teach",
@@ -136,7 +142,9 @@ describe("ChatRoute shell", () => {
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(client.tabs.listOpen).toHaveBeenCalledOnce();
+      // useTabs() is called from both ChatRoute and useDerivedScope (the scope-aware
+      // sidebar hook), so listOpen is called at least once — possibly twice.
+      expect(client.tabs.listOpen).toHaveBeenCalled();
     });
   });
 
