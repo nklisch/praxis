@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-viewer-tab-scoped-sidebar
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, documents, tutor-ux]
 parent: epic-document-library
 depends_on: [epic-document-library-scopes-primitive]
@@ -217,3 +217,15 @@ Scope-aware sidebar. `useDerivedScope()` hook, sidebar component reading from de
 
 - `library-view-tabs-filters` (sibling) replaces `openDocumentSafe`'s body with `openDocumentInTab` once Story 1 lands. The sibling feature's helper signature stays the same — only the body changes.
 - A future "viewer plugin registry" (per-mimeType third-party renderer) is a v2 extension that drops into the format-router.
+
+## Implementation rollup
+
+All three child stories are at stage `review` or `done`:
+
+- **`...tab-kind`** (`stage: done`, commit `2165aee`, review `feacb80`) — TabSummary discriminated union, `tabs.openDocument` end-to-end, migration 0016 recreating the tabs table with `kind`/`document_id` columns, per-mode tab body components narrowed to SessionTabSummary, placeholder document branch in ChatTabBody.
+- **`...sidebar`** (`stage: done`, commit `4565ba1`, review `9cdbd38`) — `useDerivedScope` hook with 4-branch decision tree, scope-aware sidebar in ChatRoute that switches between global and scoped document lists, 12 hook tests + extended chat-route test. 2 follow-ups parked in backlog: `list-scopes-for-document-client-api` and `lift-tabs-state-to-context`.
+- **`...viewer`** (`stage: review`, commit `3c00116`) — Multi-format DocumentTabBody with format-router dispatching to PdfRenderer (paginated via PageImageStore), MarkdownRenderer, HtmlRenderer (DOMPurify-sanitized), StructuredRenderer (PPTX/DOCX outline), and FallbackRenderer. New `documents.get` end-to-end. Viewer wired into ChatTabBody's document branch.
+
+Verification: `pnpm typecheck && pnpm lint && pnpm test` green at 3149 passing.
+
+What's now possible: documents can be opened in their own tab, the viewer renders them in-format, and the sidebar reflects scope-derived context. The document-tab persistence (tab-kind) + the user-facing viewer (viewer) + the scope-derivation hook (sidebar) compose into a complete document-library navigation surface.
