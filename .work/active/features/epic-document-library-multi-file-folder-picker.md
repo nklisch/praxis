@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-multi-file-folder-picker
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, ingestion, configure]
 parent: epic-document-library
 depends_on: []
@@ -542,3 +542,66 @@ Covered by Unit 7. Key invariants:
 5. **ActivityRail saturation** (low). 50-file batches publish 50 rail
    items. The rail is already designed to handle many concurrent
    items (per the activity-rail-producer pattern); should be fine.
+
+## Implementation Notes
+
+Implemented as a single stride. All 7 units landed as designed.
+
+### Key decisions made during implementation
+
+- **`skipCurrentFile()` as a separate hook method**: The feature design described
+  a "Skip this file" button that resolves the deferred with a skip outcome. This
+  was cleanest as a dedicated `skipCurrentFile()` on `UseIngestionResult` (rather
+  than passing a skip callback through the modal). The hook reads the current
+  `tier_selection` state to write the skip `BatchResult` into `tierResultRef`,
+  then resolves the deferred. The `PickerTierModal` receives it as `onSkip` prop
+  (only present when `batch` prop is set).
+
+- **`Promise.withResolvers` confirmed available** (Node ≥ 24). Used for the
+  `tierDeferredRef` pattern. The batch loop does `await Promise.race([promise,
+  cancelPromise])` — clean and non-blocking.
+
+- **`ingestOneWithResult` as the batch-path runner**: The single-file `runIngestion`
+  is kept intact for the `startPick` path (returns void, sets state directly). A
+  separate `ingestOneWithResult` returns `BatchResult` and doesn't touch state,
+  used by the batch loop. This keeps the two flows cleanly separated.
+
+- **`candidatesFor` in `IngestorRegistry` is not async** (confirmed): The existing
+  method is synchronous — fine for the folder walker which only needs extensions.
+
+- **`supportedExtensions()` strips leading dot**: All registered ingestors store
+  extensions as `.pdf`, `.md`, etc. `supportedExtensions()` strips the leading
+  `.` so the walk test gets plain `"pdf"` strings.
+
+- **`AddDocumentButton` and `AddFolderButton` share CSS**: Both use
+  `add-document-button.module.css` so the dashed-button appearance is consistent.
+  No duplicate CSS.
+
+- **`documents-section.tsx` mount**: Both buttons are stacked in a
+  `.headerButtons` div alongside each other in the library `headerAction` slot.
+
+### Test coverage
+
+- 14 tests in `packages/ui/src/__tests__/use-ingestion.test.tsx` (9 new batch
+  tests + 5 existing single-file tests).
+- 9 tests in `packages/desktop/electron/main/__tests__/walk-directory-for-ingest.test.ts`
+  (new; exercises OS-level dir walking with real temp dirs).
+- All 23 tests pass. Full suite: 2978 pass, 13 pre-existing failures in
+  `course-documents-service.test.ts` and `textbook-rag-end-to-end.test.ts`
+  (both caused by the parallel `document-scopes-primitive` wave, not this feature).
+
+### Files changed
+
+- `packages/tools/src/runtime/ingestion/registry.ts` — added `supportedExtensions()`
+- `packages/desktop/electron/main/ingest-channel.ts` — added `walkDirectoryForIngest` helper + `praxis.ingest.pickPaths` handler
+- `packages/client/src/services/ingest-client.ts` — added `pickPaths(opts)`
+- `packages/core/src/types/client.ts` — added `pickPaths` to `IngestionClient` interface
+- `packages/ui/src/hooks/use-ingestion.ts` — full batch state machine extension
+- `packages/ui/src/components/add-document-button.tsx` — uses `startPickBatch("files")`; renders `BatchSummaryModal`
+- `packages/ui/src/components/add-folder-button.tsx` — new
+- `packages/ui/src/components/batch-summary-modal.tsx` — new
+- `packages/ui/src/components/batch-summary-modal.module.css` — new
+- `packages/ui/src/components/picker-tier-modal.tsx` — added `batch`, `onSkip` props; `batchPosition` header; "Skip this file" button
+- `packages/ui/src/components/picker-tier-modal.module.css` — added `.batchPosition`, `.skipBtn`
+- `packages/ui/src/components/library/documents-section.tsx` — mounts both buttons
+- `packages/ui/src/components/library/documents-section.module.css` — added `.headerButtons`

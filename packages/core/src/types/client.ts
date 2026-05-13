@@ -632,6 +632,13 @@ export interface DocumentSummary {
 export interface IngestionClient {
   /** Open a native file picker. Returns the selected file path, or null if cancelled. */
   pickFile(): Promise<string | null>;
+  /**
+   * Open a multi-file or folder picker.
+   * - mode="files": multi-selection file dialog; returns selected file paths (empty if cancelled).
+   * - mode="folder": folder dialog; returns all supported files recursively walked from the
+   *   picked folder (depth cap 5, no symlinks, no hidden files).
+   */
+  pickPaths(opts: { mode: "files" | "folder" }): Promise<string[]>;
   /** Begin ingestion. Yields progress events until done or error. */
   start(req: IngestionRequest): AsyncIterable<IngestionEvent>;
   /** Whether the ingestion IPC channel is available in this context. */

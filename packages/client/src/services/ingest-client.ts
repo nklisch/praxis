@@ -3,6 +3,7 @@ import type { ClientTransport } from "../transport/types.js";
 
 const C = {
   pickFile: "praxis.ingest.pickFile",
+  pickPaths: "praxis.ingest.pickPaths",
   isAvailable: "praxis.ingest.isAvailable",
   /**
    * Stream BASE channel — the transport's stream() expands this into the
@@ -26,6 +27,10 @@ export class IngestClient implements IngestionClient {
 
   pickFile(): Promise<string | null> {
     return this.transport.invoke<string | null>(C.pickFile);
+  }
+
+  pickPaths(opts: { mode: "files" | "folder" }): Promise<string[]> {
+    return this.transport.invoke<string[]>(C.pickPaths, opts);
   }
 
   isAvailable(): boolean {

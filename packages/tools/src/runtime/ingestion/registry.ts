@@ -61,4 +61,20 @@ export class IngestorRegistry {
   all(): Ingestor[] {
     return [...this.ingestors];
   }
+
+  /**
+   * Return the union of all registered ingestors' file extensions, without
+   * leading dots (e.g. ["pdf", "docx", "md"]). Used by the folder walker in
+   * the main process to filter files to ingestable types.
+   */
+  supportedExtensions(): string[] {
+    const seen = new Set<string>();
+    for (const ingestor of this.ingestors) {
+      for (const ext of ingestor.extensions) {
+        // Extensions are stored with a leading dot (".pdf"); strip it.
+        seen.add(ext.startsWith(".") ? ext.slice(1) : ext);
+      }
+    }
+    return [...seen];
+  }
 }

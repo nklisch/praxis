@@ -1,0 +1,94 @@
+.title {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.headline {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #aaa);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.itemOk,
+.itemFail {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border, rgba(255, 255, 255, 0.2)) 60%, transparent);
+  font-size: 0.85rem;
+}
+
+.itemOk:last-child,
+.itemFail:last-child {
+  border-bottom: none;
+}
+
+.filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.itemOk .filename {
+  color: var(--color-text);
+}
+
+.itemFail .filename {
+  color: var(--color-text-muted, #aaa);
+}
+
+.detail {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #aaa);
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemFail .detail {
+  color: var(--color-error, #e05c5c);
+}
+
+.failNote {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #aaa);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.doneBtn {
+  padding: 0.4rem 1.25rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  background: var(--color-accent, #6366f1);
+  border: 1px solid transparent;
+  color: #fff; /* intentional literal: button text always white regardless of theme */
+}
+
+.doneBtn:hover {
+  opacity: 0.85;
+}

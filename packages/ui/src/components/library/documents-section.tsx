@@ -1,6 +1,7 @@
 import type { DocumentSummary } from "@praxis/core/types";
 import { COPY } from "../../lib/copy.js";
 import { AddDocumentButton } from "../add-document-button.js";
+import { AddFolderButton } from "../add-folder-button.js";
 import styles from "./documents-section.module.css";
 import { LibrarySection } from "./library-section.js";
 
@@ -25,7 +26,14 @@ export function DocumentsSection({ documents, loading, ingestion }: DocumentsSec
     <LibrarySection<DocumentSummary>
       ornament="‡"
       kicker="DOCUMENTS"
-      headerAction={ingestion ? <AddDocumentButton ingestion={ingestion} /> : undefined}
+      headerAction={
+        ingestion ? (
+          <div className={styles.headerButtons}>
+            <AddDocumentButton ingestion={ingestion} />
+            <AddFolderButton ingestion={ingestion} />
+          </div>
+        ) : undefined
+      }
       loading={loading}
       items={documents}
       emptyMessage={COPY.empty.libraryDocumentsEmpty}

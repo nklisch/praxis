@@ -3,15 +3,18 @@ import styles from "./add-document-button.module.css";
 import { BatchSummaryModal } from "./batch-summary-modal.js";
 import { PickerTierModal } from "./picker-tier-modal.js";
 
-export interface AddDocumentButtonProps {
+export interface AddFolderButtonProps {
   ingestion: UseIngestionResult;
 }
 
 /**
- * Button that opens a multi-file picker and drives the batch ingestion flow.
- * Renders the tier modal (for PDFs) and batch summary modal as overlays.
+ * Button that opens a folder picker, recursively walks the selected folder for
+ * supported files, and ingests them sequentially via the batch flow.
+ *
+ * Reuses the same CSS class as AddDocumentButton (add-document-button.module.css)
+ * so both buttons have a consistent dashed appearance in the document library.
  */
-export function AddDocumentButton({ ingestion }: AddDocumentButtonProps) {
+export function AddFolderButton({ ingestion }: AddFolderButtonProps) {
   const { state, startPickBatch, confirmTier, skipCurrentFile, dismiss, cancelBatch } = ingestion;
 
   const isActive =
@@ -22,11 +25,11 @@ export function AddDocumentButton({ ingestion }: AddDocumentButtonProps) {
       <button
         type="button"
         className={styles.button}
-        onClick={() => startPickBatch("files")}
+        onClick={() => startPickBatch("folder")}
         disabled={isActive}
-        title="Add documents"
+        title="Add a folder of documents"
       >
-        + Add documents
+        + Add folder
       </button>
 
       {state.status === "tier_selection" && (

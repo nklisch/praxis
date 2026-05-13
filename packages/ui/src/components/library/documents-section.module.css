@@ -1,5 +1,11 @@
 /* ── Library: Documents Section ───────────────────────────────────────────── */
 
+.headerButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
 .list {
   list-style: none;
   display: flex;

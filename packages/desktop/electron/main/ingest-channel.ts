@@ -1,3 +1,5 @@
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import type { IpcStreamMessage } from "@praxis/client";
 import { getOrCreateDefaultStudentId } from "@praxis/core/services";
 import type { IngestionRequest, Logger } from "@praxis/core/types";
@@ -6,6 +8,46 @@ import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { dialog } from "electron";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+
+/**
+ * Recursively walk a directory and return all files whose extension is in
+ * the registry's supported set.
+ *
+ * Safety rules:
+ * - Depth cap of 5 levels below `root` (root itself is depth 0).
+ * - Symlinks are never followed (detected via `Dirent.isSymbolicLink()`).
+ * - Hidden files / directories (names starting with ".") are skipped.
+ * - Unreadable subdirectories are silently skipped.
+ */
+export function walkDirectoryForIngest(root: string, registry: IngestorRegistry): string[] {
+  const supported = new Set(registry.supportedExtensions().map((e) => e.toLowerCase()));
+  const out: string[] = [];
+  const DEPTH_CAP = 5;
+
+  function visit(dir: string, depth: number): void {
+    if (depth > DEPTH_CAP) return;
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return; // permission denied / not a directory — skip silently
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue; // skip hidden
+      if (entry.isSymbolicLink()) continue; // don't follow symlinks
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        visit(fullPath, depth + 1);
+      } else if (entry.isFile()) {
+        const ext = path.extname(entry.name).slice(1).toLowerCase();
+        if (supported.has(ext)) out.push(fullPath);
+      }
+    }
+  }
+
+  visit(root, 0);
+  return out;
+}
 
 /**
  * Register IPC handlers for the ingestion channel.
@@ -29,7 +71,7 @@ export function registerIngestHandlers(
 ): void {
   const { handle, on } = createIpcHelpers(log);
 
-  // File picker
+  // File picker (single-file, kept for back-compat with existing callers)
   handle("praxis.ingest.pickFile", async () => {
     const result = await dialog.showOpenDialog({
       title: "Open document",
@@ -44,6 +86,39 @@ export function registerIngestHandlers(
     });
     if (result.canceled || result.filePaths.length === 0) return null;
     return result.filePaths[0] ?? null;
+  });
+
+  // Multi-file / folder picker — returns string[] of absolute paths
+  handle("praxis.ingest.pickPaths", async (_event, opts: { mode: "files" | "folder" }) => {
+    const properties: Array<"openFile" | "multiSelections" | "openDirectory"> =
+      opts.mode === "folder" ? ["openDirectory"] : ["openFile", "multiSelections"];
+
+    const filters =
+      opts.mode === "files"
+        ? [
+            {
+              name: "Supported documents",
+              extensions: ingestorRegistry.supportedExtensions(),
+            },
+            { name: "All Files", extensions: ["*"] },
+          ]
+        : undefined; // folder dialogs don't use extension filters
+
+    const result = await dialog.showOpenDialog({
+      title: opts.mode === "folder" ? "Open folder" : "Open documents",
+      properties,
+      ...(filters !== undefined && { filters }),
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return [];
+
+    if (opts.mode === "folder") {
+      const root = result.filePaths[0];
+      if (root === undefined) return [];
+      return walkDirectoryForIngest(root, ingestorRegistry);
+    }
+
+    return result.filePaths;
   });
 
   // Availability check — all Phase 5 ingestors are pure-JS; always available
