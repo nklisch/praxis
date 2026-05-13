@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel
 kind: epic
-stage: review
+stage: done
 tags: [ui, chat, tutor-ux]
 parent: null
 depends_on: []
@@ -153,3 +153,26 @@ typing while streaming queues messages (auto-flush on turn end); tool calls
 persist as collapsible thread artifacts; clicking Stop actually stops
 sub-agents within ~1s. End-to-end the tutor session feels grounded rather
 than chatbot-shaped.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- All 4 child features reviewed individually and at `stage: done`:
+  - `…-tutor-tab-rename` (Approve) — `Mode.displayName` SSOT; `tabs-service.generateTitle` reads it; backfill migration.
+  - `…-composer-queue` (Approve) — composer typeable while streaming; pending bubbles inline; auto-flush; user-cancel preserves queue.
+  - `…-tool-call-thread-persistence` (Approve) — tool calls render as first-class thread artifacts; collapsed-by-default with expand-to-JSON; parity between live and replay.
+  - `…-cancellation-propagation` (Approve) — Stop button now propagates abort to sub-agents and tool dispatch end-to-end.
+- Capability completeness: ✓ The chat tab now reads as a tutoring session, not a chatbot.
+  - Tab label uses the teaching-shaped term ("course design" / "teach" / etc.) — no more raw modeId in the strip.
+  - Typing while the tutor is mid-turn no longer drops the message; pending bubbles render inline with a clear `▶ PENDING` chip.
+  - Tool calls stay readable; the student can scroll back and expand them.
+  - Stop actually stops. Sub-agents settle within ~1s of the click.
+- Foundation-doc alignment: `docs/ARCHITECTURE.md:310,343` (sub-agent transparency + chat surface) accurately reflect the realized behavior — no roll-forward needed (existing assertions held).
+- Decomposition realized as designed: 4 truly-independent children landed in waves of 3 + 1 (the tool-call-persistence and composer-queue had `use-streamed-send.ts`/`episodic-to-messages.ts` overlap that required serialization). No cross-feature dependency emerged that the design missed.
+- Breaking changes audit: the only public-API shape change is the `ChatStreamItem` union (`interstitial` → `tool-entry` kind, plus added `pending-message` kind). Both consumers exhaustively switched and updated. The deprecated `ToolInterstitial` alias eases any straggler migration but isn't strictly needed.
