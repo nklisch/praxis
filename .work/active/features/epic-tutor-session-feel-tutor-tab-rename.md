@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-tutor-tab-rename
 kind: feature
-stage: review
+stage: done
 tags: [ui, chat, tutor-ux]
 parent: epic-tutor-session-feel
 depends_on: []
@@ -403,3 +403,20 @@ warning.
 - `generateTitle({ modeId: "quiz" })` → `"quiz · session"` ✓
 - `pnpm db:reset` runs cleanly ✓
 - 0 new typecheck errors ✓
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- `Mode.displayName` added with JSDoc explaining the contrast with `Mode.label` (Title Case admin) — distinct intent.
+- All 7 modes set `displayName`: teach, course design, quiz, homework, exam, configure, study skills.
+- `generateTitle` now reads `requireMode(modeId).displayName` instead of substituting the raw modeId. Mode-specific suffix branches preserved (`new chat` vs `new course`).
+- Backfill migration `drizzle/0015_tab-title-backfill.sql` covers three patterns: bootstrap-only, courseTitle+bootstrap, hyphenated study-skills → space. Idempotent — no rows means no changes; `pnpm db:reset` runs cleanly.
+- Test sweep: 4 session-service test files updated to add `displayName` to inline mode stubs (now required by the interface). 21 tabs-service tests pass.
+- Added `conditions: ["praxis-source", ...]` to `packages/core/vitest.config.ts` — fix for a latent bug where cross-package imports in core tests resolved to stale `dist/` instead of source. Worth knowing for future test setup.
+- Commit bundled with compose-attribution (`de359e7`) due to parallel-agent commit interleaving — content of this feature lives in the same diff but is logically distinct.

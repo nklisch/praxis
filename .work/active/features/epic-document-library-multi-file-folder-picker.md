@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-multi-file-folder-picker
 kind: feature
-stage: review
+stage: done
 tags: [ui, ingestion, configure]
 parent: epic-document-library
 depends_on: []
@@ -605,3 +605,19 @@ Implemented as a single stride. All 7 units landed as designed.
 - `packages/ui/src/components/picker-tier-modal.module.css` — added `.batchPosition`, `.skipBtn`
 - `packages/ui/src/components/library/documents-section.tsx` — mounts both buttons
 - `packages/ui/src/components/library/documents-section.module.css` — added `.headerButtons`
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- `walkDirectoryForIngest` is exported for testability, with 9 OS-level tests covering extensions, depth cap, symlinks, hidden files, EACCES, case-insensitive extensions.
+- `pickPaths` IPC channel coexists with legacy `pickFile` (back-compat preserved).
+- Hook state machine extension uses `Promise.withResolvers` for the tier-modal deferred — a clean fit for the per-file batch loop. `skipCurrentFile()` and `cancelBatch()` resolve the deferred with appropriate outcome flags.
+- 23 use-ingestion tests across single-file + 9 new batch cases (sequential, error isolation, tier-batch metadata, skip, cancel-mid-flight, onDone fires N times).
+- ActivityRail batch header explicitly deferred per design decision — per-file rail items already exist via the indexer pattern.
+- Files: 16, +1237/-46 — net new code is mostly the new components (`add-folder-button`, `batch-summary-modal`) + the hook state extension.

@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-composer-queue
 kind: feature
-stage: review
+stage: done
 tags: [ui, chat, tutor-ux]
 parent: epic-tutor-session-feel
 depends_on: []
@@ -538,3 +538,19 @@ state would be stale without the ref.
 - 859/859 total UI tests pass.
 - Zero new typecheck errors in changed files.
 - Lint clean on all changed files.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- `pendingQueueRef` mirrors `pendingQueue` state so the `finally` block reads the latest queue without depending on closure capture timing — correct pattern for the auto-flush race.
+- `userCancelledRef` boolean set in `cancel()` BEFORE `iterator.return()`, cleared at start of next `send()` — covers the Stop-mid-stream + queued case (queue preserved, not flushed). Race-correct.
+- `setTimeout(0)` recursion for auto-flush schedules the next turn as a macrotask so React commits the just-finished turn before the next `send()` fires. Avoids deep stacks even with many queued messages.
+- Composer disabled now reflects only `examLockdown` (typeable during streaming). Pending bubbles render inline with 0.55 opacity + `▶ PENDING` chip + `×` dismiss button.
+- Bug-fix bundled in: tsgo narrowing issue on `event.result.error.message` (introduced by tool-call-thread-persistence) fixed via explicit `if/else` on `result.ok`. Out of strict scope but legitimate cross-wave integration fix.
+- 6 new tests cover queue-on-stream, auto-flush, cancelPending, no-flush-after-user-cancel, multi-flush sequential, pendingCount baseline. All 859 UI tests pass.

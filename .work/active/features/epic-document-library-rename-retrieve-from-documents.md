@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-rename-retrieve-from-documents
 kind: feature
-stage: review
+stage: done
 tags: [tools, prompts, curriculum]
 parent: epic-document-library
 depends_on: []
@@ -465,3 +465,18 @@ Implemented 2026-05-13. Single-stride sweep, all 8 units complete.
 **Acceptance grep:** Empty output confirmed (zero matches).
 
 **Tests:** `@praxis/tools` all 67 test files pass. `@praxis/curriculum` all 27 pass. `@praxis/ui` all 97 pass. `@praxis/core` has 12 pre-existing failures in `course-documents-service.test.ts` from another agent's parallel schema change — not caused by this feature.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Grep proof of completeness: `grep -rn "retrieve_from_textbook\|retrieveFromTextbook\|RetrieveFromTextbook" packages/ docs/ --include="*.ts" --include="*.tsx" --include="*.md" | grep -v "docs/designs/phase-"` returns empty.
+- Tool source + test renamed via `git mv` (blame preserved). Symbol exports renamed (`retrieveFromDocumentsInput/Output/Tool`). Tool `name` string `"retrieve_from_documents"`.
+- Foundation docs rolled forward: `ARCHITECTURE.md`, `CURRICULUM.md`, `ROADMAP.md`, plus `docs/designs/activity-rail.md`. Historical `docs/designs/phase-*.md` correctly preserved as-is.
+- "textbook" idiom kept where it's not a tool-name reference (e.g. "explore your textbook" in bootstrap-role.ts, "textbook" as a format enumeration in copy.ts). Good judgment.
+- 39 files, +151/-108 — mechanical sweep, no semantic change. Tools/Curriculum/UI test suites all pass (~1700 tests across them).

@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2-compose-attribution
 kind: feature
-stage: review
+stage: done
 tags: [core, curriculum, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on: []
@@ -547,3 +547,20 @@ compose — everything diff-aware-preview needs is in the segment shape.
 - typecheck: zero new errors (one pre-existing error in `course-documents-service.ts`
   from parallel agent work, not this feature)
 - lint: zero new errors on modified files
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Attribution types placed in `@praxis/core/types/prompt-attribution.ts` (not `compose.ts` per original design) to avoid a circular dependency. `@praxis/curriculum/brief` re-exports them so the public API surface is unchanged. Sensible deviation, documented in implementation notes.
+- `composeSystemPrompt(input): string` refactored to delegate to `composeSystemPromptWithAttribution(input).prompt` — byte-equivalent output verified by 27 equivalence tests.
+- DRY: `buildPreviewInput` private helper shared by `previewPrompt` and `previewPromptWithAttribution` in the service layer.
+- New IPC channel `praxis.author.previewPromptWithAttribution` registered cleanly alongside the existing `previewPrompt` channel. Client method added; interface updated.
+- All 5 source classifications (`default`, `override`, `append`, `global`, `additional`) tested.
+- Invariant `segments.map(s => s.text).join("\n\n") === prompt` covered by property-style tests.
+- 73 tests; zero new typecheck/lint errors.

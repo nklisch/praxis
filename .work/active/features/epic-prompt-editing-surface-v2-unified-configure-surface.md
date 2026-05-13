@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2-unified-configure-surface
 kind: feature
-stage: review
+stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on: []
@@ -494,3 +494,20 @@ confirming "Global prompt" heading is absent from Settings.
 - `pnpm --filter @praxis/ui typecheck`: zero errors (new errors for
   `displayName` resolved by adding curriculum project reference).
 - `pnpm biome check` on all owned files: clean.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Layout matches the design: Global section → Mode picker → FragmentStack → PromptPreviewWithToggle → StyleSliderForm. Full editorial-column width via `composes: editorial from global;`.
+- `listModes()` was already present in `packages/curriculum/src/modes/index.ts:30` — Unit 1 became a no-op. Documented.
+- Settings cleanup: GlobalPromptEditor import and JSX removed. Settings still hosts engine config + lock controls.
+- FragmentStack appends `ModeAppendEditor` unconditionally at the `user-append` slot (since `user-append` is a virtual position not in mode `promptFragments`). Implementation discovery noted in feature body — sensible adaptation.
+- Diff toggle rendered as disabled with "coming in v2" tooltip — placeholder for the wave-2 `diff-aware-preview` feature.
+- 17 tests in configure-prompt-tab.test.tsx; settings-route.test.tsx asserts GlobalPromptEditor absence. All 97 UI test files (844 tests) pass.
+- Added `@praxis/curriculum: workspace:*` to `packages/ui/package.json` + tsconfig references — necessary because UI now imports `listModes()` and `requireMode()`. Verified the new dep doesn't violate the architectural direction (UI → curriculum is fine; curriculum doesn't import UI).

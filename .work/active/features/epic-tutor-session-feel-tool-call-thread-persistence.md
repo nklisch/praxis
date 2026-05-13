@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-tool-call-thread-persistence
 kind: feature
-stage: review
+stage: done
 tags: [ui, chat, tutor-ux]
 parent: epic-tutor-session-feel
 depends_on: []
@@ -526,3 +526,19 @@ Unit 1 (Reproduce) was done via code-reading rather than runtime observation. Ke
 - 115 tests across the 5 target test files: all pass.
 - Full workspace test suite: 2954 passing, 13 failing (all in `course-documents-service.test.ts` — pre-existing parallel story failure, not related to this feature).
 - Parity test (`bubble-boundary-parity.test.ts`): 8/8 pass.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- `ChatStreamItem.kind: "interstitial"` renamed to `"tool-entry"` consistently across `use-streamed-send`, `episodic-to-messages`, `chat-tab-body`, `sidekick-panel`, `configure-chat-pane`. A deprecated `ToolInterstitial` type alias was kept to ease the cross-cutting rename.
+- `tool_call` event populates `input`; `tool_result` transitions to `settled` or `errored` and populates `output`/`errorMessage`. Episodic replay produces structurally identical items at `status: "settled"` immediately — parity test (`bubble-boundary-parity.test.ts`) passes.
+- New `ToolEntry` component (renamed from `tool-interstitial.tsx` via `git mv`) supports 3 states: in_flight (label + dots), settled (collapsed summary with disclosure toggle, expand to JSON), errored (warning-styled summary, expand to error details).
+- `getToolSummary(name, output)` extension on the label registry; wrapped in try/catch so a malformed output doesn't crash the entry. Summarizers added for `retrieve_from_documents` (citation count), `course.draft_init`, `grade_math`.
+- Unit 1 (reproduce) was honored: agent confirmed Unit 7 (sub-agent block) and Unit 8 (auto-scroll anchoring) were already implemented — no code change needed for either. Sensible adaptation logged in notes.
+- 115 tests across 5 target files pass.
