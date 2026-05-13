@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-cancellation-propagation-core-plumbing
 kind: story
-stage: review
+stage: done
 tags: [core, tools]
 parent: epic-tutor-session-feel-cancellation-propagation
 depends_on: []
@@ -75,3 +75,17 @@ story start supplying signals.
 ### Deviations
 
 None. The conditional spread pattern matches the design exactly. The `noUselessUndefinedInitialization` lint infos (3) in the new tests were fixed inline (`let capturedSignal: AbortSignal | undefined` without `= undefined`). Two pre-existing biome warnings on `lock` and `authoring` stubs in the existing test file were not touched (out of scope).
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- `DispatchMeta.signal` and `ToolContext.signal` both typed optional — backward-compatible with every existing test stub.
+- `dispatch()` uses the exact same conditional-spread pattern as the existing `callId` threading — consistent.
+- Three new tests cover the four meta combinations (none, callId-only, signal-only, both); pre-existing 8 tests still pass.
+- Story scope deliberately narrow — engine adapters supplying signal is the next story. That's the right shape (foundation lands first, propagators land on top).

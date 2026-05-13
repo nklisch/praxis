@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-cancellation-propagation-engine-and-subagent
 kind: story
-stage: review
+stage: done
 tags: [engines, tools, core]
 parent: epic-tutor-session-feel-cancellation-propagation
 depends_on: [epic-tutor-session-feel-cancellation-propagation-core-plumbing]
@@ -104,3 +104,20 @@ clicking Stop actually stops sub-agents end-to-end.
 - `pnpm typecheck`: zero new errors (3 pre-existing `courseDocuments` errors from parallel callsite-sweep story, confirmed in baseline).
 - `pnpm lint`: no errors in any changed file.
 - `pnpm test`: 7 pre-existing failures (same in baseline, from parallel scopes-primitive callsite-sweep work). All 12 new tests pass.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- All 3 engine adapters thread signal cleanly. Claude Code and Codex use the MCP bridge's `getSignal?: () => AbortSignal | undefined` lazy resolver (so the bridge reads the current send's signal at dispatch time, not registration time) — this is the right pattern because MCP server handlers are registered once at `open()` but signals are per-`send()`.
+- Direct adapter takes the simpler closure approach via `toVercelTools(registry, getSignal)` — appropriate since its tool callbacks are wired per-send.
+- `runConceptExplorer` early-abort + mid-loop break + finally-block check covers all three abort timing windows. Partial `draftId` is preserved on interrupt — useful for the bootstrap UI's "we got this far" feedback.
+- `SubAgentRegistry.interruptAllForSession` iterates `running` items, transitions to `"interrupted"`, emits terminal event, schedules linger cleanup — matches the design's lifecycle contract.
+- `SessionServiceImpl.send` calls `this.deps.subAgent?.interruptAllForSession(sessionId)` at the defensive `signal?.aborted` short-circuit — optional dep so existing tests that build minimal deps don't break.
+- 12 new tests across 5 files: MCP bridge `getSignal` threading, Direct's `toVercelTools`, explorer early-abort + draft preservation, SubAgentRegistry interrupt lifecycle, SessionServiceImpl abort → registry wiring.
+- Unit 6 (grade_with_rubric and other sub-agent tools): no other sub-agent-spawning tools found in `packages/tools/` — only `course.start_exploration` resolves an engine. Verified via grep. Sensible to confirm the negative finding in implementation notes.
