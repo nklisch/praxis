@@ -1,7 +1,7 @@
 ---
 id: story-biology-pack-bootstrap-smoke-test
 kind: story
-stage: drafting
+stage: implementing
 tags: [content, testing]
 parent: null
 depends_on: []

@@ -1,7 +1,7 @@
 ---
 id: story-engine-cli-integration-smoke-test
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, engine]
 parent: null
 depends_on: []

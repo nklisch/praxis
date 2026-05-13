@@ -1,7 +1,7 @@
 ---
 id: story-electron-multi-arch-rebuild
 kind: story
-stage: drafting
+stage: implementing
 tags: [desktop, build]
 parent: null
 depends_on: []
