@@ -18,6 +18,10 @@ const C = "praxis.documentScopes" as const;
 export class DocumentScopesClient implements DocumentScopesClientApi {
   constructor(private readonly transport: ClientTransport) {}
 
+  listOrphaned(): Promise<DocumentScopeAttachment[]> {
+    return this.transport.invoke<DocumentScopeAttachment[]>(`${C}.listOrphaned`);
+  }
+
   listForScope(scope: DocumentScope): Promise<DocumentScopeAttachment[]> {
     return this.transport.invoke<DocumentScopeAttachment[]>(`${C}.listForScope`, scope);
   }

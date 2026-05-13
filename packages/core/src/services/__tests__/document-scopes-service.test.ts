@@ -1,5 +1,6 @@
 import { courses, documents } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
+import { sessions } from "@praxis/memory/schema";
 import { describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import type { CourseId, DocumentId, SessionId, StudentId } from "../../types/index.js";
@@ -54,6 +55,23 @@ function insertCourse(drizzle: ReturnType<typeof openDb>["db"], courseId: Course
       } as unknown as Record<string, unknown>,
       createdAt: new Date(),
       updatedAt: new Date(),
+    })
+    .run();
+}
+
+function insertSession(
+  drizzle: ReturnType<typeof openDb>["db"],
+  sessionId: SessionId,
+  studentId: StudentId = STUDENT_A,
+) {
+  drizzle
+    .insert(sessions)
+    .values({
+      id: sessionId,
+      studentId,
+      modeId: "bootstrap",
+      engineId: "claude-code",
+      startedAt: new Date(),
     })
     .run();
 }
@@ -515,6 +533,132 @@ describe("DocumentScopesServiceImpl", () => {
         source: "bootstrap",
       });
       expect(result.promoted).toHaveLength(0);
+    });
+  });
+
+  describe("listOrphaned", () => {
+    it("returns a document with zero scope rows (truly orphaned)", async () => {
+      const { service, db: drizzle } = makeService();
+      insertDocument(drizzle, DOC_1);
+
+      const orphaned = await service.listOrphaned(STUDENT_A);
+      expect(orphaned).toHaveLength(1);
+      expect(orphaned[0]?.documentId).toBe(DOC_1);
+      expect(orphaned[0]?.source).toBe("ingestion");
+    });
+
+    it("returns a document whose only scope row points at a deleted course", async () => {
+      const { service, db: drizzle } = makeService();
+      insertDocument(drizzle, DOC_1);
+
+      // Attach to a course that doesn't exist (no FK constraint on scope_id)
+      await service.attach({
+        scope: { kind: "course", id: brandId<"CourseId">("ghost-course") as CourseId },
+        documentId: DOC_1,
+        source: "bootstrap",
+      });
+
+      const orphaned = await service.listOrphaned(STUDENT_A);
+      expect(orphaned).toHaveLength(1);
+      expect(orphaned[0]?.documentId).toBe(DOC_1);
+      // Source comes from the dangling scope row
+      expect(orphaned[0]?.source).toBe("bootstrap");
+    });
+
+    it("returns a document whose only scope row points at a deleted session", async () => {
+      const { service, db: drizzle } = makeService();
+      insertDocument(drizzle, DOC_1);
+
+      // Attach to a session that doesn't exist
+      await service.attach({
+        scope: { kind: "session", id: brandId<"SessionId">("ghost-session") as SessionId },
+        documentId: DOC_1,
+        source: "manual",
+      });
+
+      const orphaned = await service.listOrphaned(STUDENT_A);
+      expect(orphaned).toHaveLength(1);
+      expect(orphaned[0]?.documentId).toBe(DOC_1);
+      expect(orphaned[0]?.source).toBe("manual");
+    });
+
+    it("does NOT return a document attached to a live course", async () => {
+      const { service, db: drizzle } = makeService();
+      insertCourse(drizzle, COURSE_X);
+      insertDocument(drizzle, DOC_1);
+
+      await service.attach({
+        scope: { kind: "course", id: COURSE_X },
+        documentId: DOC_1,
+        source: "manual",
+      });
+
+      const orphaned = await service.listOrphaned(STUDENT_A);
+      expect(orphaned).toHaveLength(0);
+    });
+
+    it("does NOT return a document attached to a live session", async () => {
+      const { service, db: drizzle } = makeService();
+      insertSession(drizzle, SESSION_A);
+      insertDocument(drizzle, DOC_1);
+
+      await service.attach({
+        scope: { kind: "session", id: SESSION_A },
+        documentId: DOC_1,
+        source: "bootstrap",
+      });
+
+      const orphaned = await service.listOrphaned(STUDENT_A);
+      expect(orphaned).toHaveLength(0);
+    });
+
+    it("does NOT return a document with one dangling AND one live scope row (partial live)", async () => {
+      const { service, db: drizzle } = makeService();
+      insertCourse(drizzle, COURSE_X);
+      insertDocument(drizzle, DOC_1);
+
+      // One dangling scope row
+      await service.attach({
+        scope: { kind: "session", id: brandId<"SessionId">("ghost-session") as SessionId },
+        documentId: DOC_1,
+        source: "bootstrap",
+      });
+      // One live scope row
+      await service.attach({
+        scope: { kind: "course", id: COURSE_X },
+        documentId: DOC_1,
+        source: "manual",
+      });
+
+      const orphaned = await service.listOrphaned(STUDENT_A);
+      expect(orphaned).toHaveLength(0);
+    });
+
+    it("returns only docs owned by the given student", async () => {
+      const STUDENT_B = brandId<"StudentId">("student-b") as StudentId;
+      const { service, db: drizzle } = makeService();
+      insertDocument(drizzle, DOC_1, STUDENT_A);
+      insertDocument(drizzle, DOC_2, STUDENT_B);
+
+      const orphanedA = await service.listOrphaned(STUDENT_A);
+      const orphanedB = await service.listOrphaned(STUDENT_B);
+
+      expect(orphanedA.map((d) => d.documentId)).toEqual([DOC_1]);
+      expect(orphanedB.map((d) => d.documentId)).toEqual([DOC_2]);
+    });
+
+    it("returns all fields needed for library rendering", async () => {
+      const { service, db: drizzle } = makeService();
+      insertDocument(drizzle, DOC_1);
+
+      const orphaned = await service.listOrphaned(STUDENT_A);
+      const doc = orphaned[0];
+      expect(doc).toBeDefined();
+      expect(doc!.filename).toBe(`${DOC_1}.pdf`);
+      expect(doc!.mimeType).toBe("application/pdf");
+      expect(doc!.chunkCount).toBe(10);
+      expect(typeof doc!.hasPageImages).toBe("boolean");
+      expect(doc!.attachedAt).toBeInstanceOf(Date);
     });
   });
 

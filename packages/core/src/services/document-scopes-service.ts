@@ -1,4 +1,5 @@
-import { documentScopes, documents } from "@praxis/artifacts/schema";
+import { courses, documentScopes, documents } from "@praxis/artifacts/schema";
+import { sessions } from "@praxis/memory/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
 import type {
@@ -8,6 +9,7 @@ import type {
   DocumentScopeSource,
   DocumentScopesService,
   Logger,
+  StudentId,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
@@ -57,6 +59,97 @@ export class DocumentScopesServiceImpl implements DocumentScopesService {
         attachedAt: r.attachedAt,
       };
     });
+  }
+
+  async listOrphaned(studentId: StudentId): Promise<DocumentScopeAttachment[]> {
+    // Fetch all documents for this student.
+    const allDocs = this.deps.db
+      .select({
+        id: documents.id,
+        filename: documents.filename,
+        mimeType: documents.mimeType,
+        chunkCount: documents.chunkCount,
+        manifestJson: documents.manifestJson,
+        ingestedAt: documents.ingestedAt,
+      })
+      .from(documents)
+      .where(eq(documents.studentId, studentId))
+      .all();
+
+    const result: DocumentScopeAttachment[] = [];
+
+    for (const doc of allDocs) {
+      // Fetch all scope rows for this document.
+      const scopeRows = this.deps.db
+        .select({
+          scopeKind: documentScopes.scopeKind,
+          scopeId: documentScopes.scopeId,
+          source: documentScopes.source,
+          attachedAt: documentScopes.attachedAt,
+        })
+        .from(documentScopes)
+        .where(eq(documentScopes.documentId, doc.id))
+        .all();
+
+      if (scopeRows.length === 0) {
+        // Truly orphaned — no scope rows at all.
+        const manifest = doc.manifestJson as { hasPageImages?: boolean } | null;
+        result.push({
+          documentId: brandId<"DocumentId">(doc.id),
+          filename: doc.filename,
+          mimeType: doc.mimeType,
+          chunkCount: doc.chunkCount,
+          hasPageImages: manifest?.hasPageImages === true,
+          source: "ingestion",
+          attachedAt: doc.ingestedAt,
+        });
+        continue;
+      }
+
+      // Check whether ANY scope row has a live parent.
+      let hasLiveParent = false;
+      let mostRecent = scopeRows[0]!;
+      for (const r of scopeRows) {
+        if (r.attachedAt > mostRecent.attachedAt) mostRecent = r;
+        if (r.scopeKind === "course") {
+          const c = this.deps.db
+            .select({ id: courses.id })
+            .from(courses)
+            .where(eq(courses.id, r.scopeId))
+            .get();
+          if (c) {
+            hasLiveParent = true;
+            break;
+          }
+        } else if (r.scopeKind === "session") {
+          const s = this.deps.db
+            .select({ id: sessions.id })
+            .from(sessions)
+            .where(eq(sessions.id, r.scopeId))
+            .get();
+          if (s) {
+            hasLiveParent = true;
+            break;
+          }
+        }
+      }
+
+      if (!hasLiveParent) {
+        // All scope rows point at deleted parents — orphaned.
+        const manifest = doc.manifestJson as { hasPageImages?: boolean } | null;
+        result.push({
+          documentId: brandId<"DocumentId">(doc.id),
+          filename: doc.filename,
+          mimeType: doc.mimeType,
+          chunkCount: doc.chunkCount,
+          hasPageImages: manifest?.hasPageImages === true,
+          source: mostRecent.source as DocumentScopeSource,
+          attachedAt: mostRecent.attachedAt,
+        });
+      }
+    }
+
+    return result;
   }
 
   async attach(input: {

@@ -28,6 +28,7 @@ const MOCK_LOG = {
 };
 
 const MOCK_DOCUMENT_SCOPES = {
+  listOrphaned: vi.fn().mockResolvedValue([]),
   listForScope: vi.fn().mockResolvedValue([]),
   listForScopeDetailed: vi.fn().mockResolvedValue([]),
   attach: vi.fn().mockResolvedValue({ attached: true }),

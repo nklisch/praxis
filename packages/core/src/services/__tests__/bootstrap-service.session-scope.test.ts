@@ -28,6 +28,7 @@ const MOCK_LOG = {
 
 function makeMockDocumentScopes() {
   return {
+    listOrphaned: vi.fn().mockResolvedValue([]),
     listForScope: vi.fn().mockResolvedValue([]),
     listForScopeDetailed: vi.fn().mockResolvedValue([]),
     attach: vi.fn().mockResolvedValue({ attached: true }),
@@ -149,10 +150,7 @@ describe("confirmDraft — promoteScope path", () => {
     // Build a draft with document IDs but no sessionId (legacy shape).
     const { draftId } = await svc.initDraft({
       studentId: STUDENT_ID,
-      documentIds: [
-        brandId<"DocumentId">("doc-legacy-1"),
-        brandId<"DocumentId">("doc-legacy-2"),
-      ],
+      documentIds: [brandId<"DocumentId">("doc-legacy-1"), brandId<"DocumentId">("doc-legacy-2")],
       courseTitle: "Algebra 1",
       subject: "math",
       gradeLevel: "9",

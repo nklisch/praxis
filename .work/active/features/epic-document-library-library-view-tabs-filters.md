@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-library-view-tabs-filters
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, documents]
 parent: epic-document-library
 depends_on: [epic-document-library-scopes-primitive]
@@ -351,3 +351,40 @@ Covered by Unit 7. Key invariants:
 
 - `viewer-tab-scoped-sidebar` (sibling wave-2) replaces `openDocumentSafe`'s body with `openDocumentInTab`. No coordination needed beyond not modifying the helper's signature.
 - A future "promote to course" bulk action would be a follow-up story tagged with the parent epic; the library route is the natural host.
+
+## Implementation Notes
+
+**Land mode**: Fresh implementation — no pre-existing files.
+
+### Files added
+- `packages/ui/src/hooks/use-active-bootstrap-session.ts` — derives active bootstrap session from open tabs
+- `packages/ui/src/hooks/__tests__/use-active-bootstrap-session.test.tsx` — 6 tests
+
+### Files modified
+- `packages/core/src/services/document-scopes-service.ts` — added `listOrphaned(studentId)` implementation (N+1 loop over docs; acceptable for bounded library)
+- `packages/core/src/types/tool.ts` — added `listOrphaned` to `DocumentScopesService` interface
+- `packages/core/src/types/client.ts` — added `listOrphaned()` to `DocumentScopesClientApi` interface
+- `packages/client/src/services/document-scopes-client.ts` — client implementation of `listOrphaned()`
+- `packages/desktop/electron/main/document-scopes-channel.ts` — IPC handler for `praxis.documentScopes.listOrphaned`
+- `packages/ui/src/lib/copy.ts` — 4 new empty-state strings for scope tabs
+- `packages/ui/src/components/library/documents-section.tsx` — full rewrite: tab strip + filter bar + scope-aware data loading
+- `packages/ui/src/components/library/documents-section.module.css` — tab strip + filter bar + item button CSS
+- `packages/core/src/services/__tests__/document-scopes-service.test.ts` — 7 new `listOrphaned` test cases
+- Various `bootstrap-service.*test.ts` files — added `listOrphaned` to mock `MOCK_DOCUMENT_SCOPES` stubs
+
+### Deviations from design
+
+1. **Click-to-open uses `openDocumentInTab` directly** (not a modal preview). The design's Unit 6 said "v1 ships modal-preview; viewer story replaces with tab." Since `openDocumentInTab` already exists from the sibling `viewer-tab-scoped-sidebar` story, we go straight to tab-opening. No separate `open-document-safe.ts` wrapper was created — the `openDocumentInTab` helper is called inline in the component.
+
+2. **`useTabDocuments` loads all 3 scope sources unconditionally on mount** (not lazily per tab switch). All three `useResource` hooks fire immediately; tabs switch without re-loading. This avoids conditional hook calls at the cost of 2 additional no-op network calls on mount (empty loaders for missing courseId/sessionId). For v1 library sizes this is fine.
+
+3. **`DocumentsSection` keeps its original prop signature** (receives `documents: DocumentSummary[]` from parent via `useLibrary()`) for backward compatibility. The "All" tab uses this passed data instead of fetching independently. Other tabs (`course`, `session`, `orphaned`) fetch independently via `useResource`.
+
+4. **N+1 query in `listOrphaned`** — per-document loop rather than a single LEFT JOIN NOT EXISTS query. Drizzle's typed API makes the multi-join approach verbose and harder to read; the loop is correct and the library is bounded in size. A follow-up optimization can introduce a raw SQL subquery if performance becomes a concern.
+
+5. **`courseId` flows via props not `useParams`** — `DocumentsSection` receives an optional `courseId?: CourseId` prop. The library route (`library.tsx`) does not have a course route match, so `useParams` would always return null. The design's mention of "courseId in route context" is forward-looking for when `DocumentsSection` is embedded within course routes; for v1, the prop approach is simpler and keeps the component testable.
+
+### Verification
+- `pnpm test`: 3129 passed, 2 pre-existing failures in `pdf-renderer.test.tsx` (from parallel agent's work on `DocumentDetail`)
+- `pnpm typecheck`: clean for all packages except pre-existing failures in `document-tab-body.tsx`, `format-router.ts`, `pdf-renderer.tsx`, `use-fragment-overrides.ts`, `prompt-tab.tsx` (all from parallel agent work)
+- `pnpm lint`: 7 pre-existing errors in `claude-cli-sdk` and `client` tests; none in my files
