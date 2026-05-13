@@ -231,18 +231,20 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         for (let i = items.length - 1; i >= 0; i--) {
           const item = items[i];
           if (item?.kind === "tool-entry" && item.callId === callId) {
-            const isErrored = event.result.ok === false;
-            items[i] = {
-              ...item,
-              status: isErrored ? "errored" : "settled",
-              ...(event.result.ok &&
-                event.result.value !== undefined && {
-                  output: event.result.value,
-                }),
-              ...(isErrored && {
-                errorMessage: event.result.error.message,
-              }),
-            };
+            const result = event.result;
+            if (result.ok) {
+              items[i] = {
+                ...item,
+                status: "settled",
+                ...(result.value !== undefined && { output: result.value }),
+              };
+            } else {
+              items[i] = {
+                ...item,
+                status: "errored",
+                errorMessage: result.error.message,
+              };
+            }
             break;
           }
         }

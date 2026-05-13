@@ -74,6 +74,11 @@ export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChat
           if (item.kind === "cancel-marker") {
             return null;
           }
+          if (item.kind === "pending-message") {
+            // Pending messages don't appear in the configure pane — they are
+            // teach-mode UI state and the configure pane uses a separate session.
+            return null;
+          }
           return (
             <MessageBubble
               key={item.id}

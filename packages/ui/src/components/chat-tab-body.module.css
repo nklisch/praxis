@@ -80,3 +80,63 @@
   align-self: flex-start;
   opacity: 0.6;
 }
+
+/* ── Pending message bubble ────────────────────────────────────────────────── */
+/* Same overall shape as a sent user message but reduced opacity to signal
+   "not yet delivered". Aligns to the user side (right). */
+
+.pendingBubble {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  align-self: flex-end;
+  max-width: 70%;
+  background: var(--color-user-bubble, rgba(100, 100, 240, 0.12));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.75rem;
+  opacity: 0.55;
+  /* Transition so that if the bubble is removed (cancel) it fades out. */
+  transition: opacity 0.15s;
+}
+
+.pendingBubble:hover {
+  opacity: 0.75;
+}
+
+.pendingContent {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.pendingChip {
+  composes: editorial from global;
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.pendingDismiss {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  transition: color 0.15s;
+}
+
+.pendingDismiss:hover,
+.pendingDismiss:focus-visible {
+  color: var(--color-text);
+  outline: 2px solid var(--color-border);
+  outline-offset: 1px;
+}

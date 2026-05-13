@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-composer-queue
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, chat, tutor-ux]
 parent: epic-tutor-session-feel
 depends_on: []
@@ -478,3 +478,63 @@ in the tab-body / chat-stream tests.
    already persisted by the time `onSend(sketchId)` fires (see
    `ComposerSketch.onCaptured`). Pending sketches are valid — they
    re-flush by id. No race.
+
+## Implementation Notes
+
+Implemented 2026-05-13 in a single stride.
+
+### Files changed
+
+- `packages/ui/src/hooks/use-streamed-send.ts` — Units 1–4. Added `PendingMessageItem`
+  type and `PendingMessage` internal type. Added `pendingQueue` state + `pendingQueueRef`
+  mirror + `userCancelledRef`. Added `cancelPending` callback. Updated `send()` to enqueue
+  when `isStreaming` is true. Added auto-flush logic in `finally`: if `!userCancelledRef`
+  and queue non-empty, dequeues the first entry, removes its pending bubble, and fires
+  `void send(sessionId, next.content, next.sketchId)` via `setTimeout(0)`. `cancel()`
+  sets `userCancelledRef.current = true` before `.return()`. `send()` signature updated
+  to accept optional `sketchId`. Added `cancelPending` and `pendingCount` to the
+  result type.
+
+- `packages/ui/src/hooks/episodic-to-messages.ts` — Fixed a tsgo narrowing bug introduced
+  by the previous sub-wave: the `event.result.error.message` access in the tool_result
+  case was inside a conditional spread expression that tsgo couldn't narrow. Replaced with
+  an explicit `if (result.ok) / else` block.
+
+- `packages/ui/src/components/chat-tab-body.tsx` — Unit 5. Destructures `cancelPending`
+  from the hook. Renders a `pending-message` item as a faded bubble with `▶ PENDING`
+  chip and `×` dismiss button. Changed composer `disabled` from
+  `{isStreaming || examLockdown}` to `{examLockdown}`.
+
+- `packages/ui/src/components/chat-tab-body.module.css` — Unit 6. Added
+  `.pendingBubble`, `.pendingContent`, `.pendingChip`, `.pendingDismiss` styles.
+  Bubble right-aligns (user side), 0.55 opacity, hover raises to 0.75,
+  dismiss button has focus-visible outline.
+
+- `packages/ui/src/components/configure-chat-pane.tsx` — Added `pending-message`
+  early-return guard (null) in the item renderer to handle the new union variant.
+
+- `packages/ui/src/components/sidekick-panel.tsx` — Same guard as configure-chat-pane.
+
+- `packages/ui/src/__tests__/use-streamed-send.test.tsx` — Unit 7. Added 6 new tests:
+  queue-on-stream, auto-flush, cancelPending, no-flush-after-user-cancel,
+  multiple-queued-flush-sequentially, pendingCount-starts-at-zero.
+
+- `packages/ui/src/__tests__/chat-tab-body-dispatch.test.tsx` — Added test verifying
+  composer textarea is not disabled (streaming no longer locks input).
+
+### Design fidelity
+
+All 7 design units landed as specified. No design-flaw escape needed:
+the `userCancelledRef` pattern composted cleanly — `cancel()` sets it
+before `.return()`, `finally` reads it, `send()` clears it on next call.
+The ref mirror (`pendingQueueRef`) is essential: the finally closure
+captures `sessionId` from its outer `send()` call, but `pendingQueue`
+state would be stale without the ref.
+
+### Test results
+
+- 58/58 use-streamed-send tests pass (53 existing + 5 new queue tests).
+- 7/7 chat-tab-body-dispatch tests pass (6 existing + 1 new).
+- 859/859 total UI tests pass.
+- Zero new typecheck errors in changed files.
+- Lint clean on all changed files.

@@ -1334,4 +1334,310 @@ describe("useStreamedSend", () => {
     // But streaming is closed
     expect(thinkingItems[0]?.kind === "thinking" && thinkingItems[0].streaming).toBe(false);
   });
+
+  // ── Pending queue (composer-queue feature) ────────────────────────────────────
+
+  it("submitting while streaming enqueues the message as a pending-message item", async () => {
+    // A stream that holds open so we can submit a second message mid-stream.
+    let resolveStream: (() => void) | undefined;
+    const streamHold = new Promise<void>((r) => {
+      resolveStream = r;
+    });
+
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* () {
+          yield { type: "model_message", content: "thinking...", partial: true } as EngineEvent;
+          await streamHold;
+          yield { type: "model_message", content: "done", partial: false } as EngineEvent;
+          yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Start first send — do not await.
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "first");
+    });
+
+    // Wait for streaming to be true and the first message bubble to appear.
+    await waitFor(() => {
+      expect(result.current.isStreaming).toBe(true);
+      expect(
+        result.current.items.some((i) => i.kind === "message" && i.content === "thinking..."),
+      ).toBe(true);
+    });
+
+    // Submit a second message while streaming — should queue.
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "second");
+    });
+
+    // pendingCount should be 1.
+    expect(result.current.pendingCount).toBe(1);
+
+    // A pending-message item should appear in the thread.
+    const pendingItems = result.current.items.filter((i) => i.kind === "pending-message");
+    expect(pendingItems).toHaveLength(1);
+    expect(pendingItems[0]?.kind === "pending-message" && pendingItems[0].content).toBe("second");
+    expect(pendingItems[0]?.kind === "pending-message" && pendingItems[0].role).toBe("user");
+
+    // The original stream should be unaffected (still streaming).
+    expect(result.current.isStreaming).toBe(true);
+
+    // Drain the stream.
+    resolveStream?.();
+    await waitFor(() => expect(result.current.isStreaming).toBe(false));
+  });
+
+  it("auto-flush: pending message becomes its own turn after the current turn ends", async () => {
+    let resolveFirst: (() => void) | undefined;
+    const firstHold = new Promise<void>((r) => {
+      resolveFirst = r;
+    });
+
+    let sendCallCount = 0;
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* () {
+          sendCallCount++;
+          if (sendCallCount === 1) {
+            // First turn: hold open.
+            yield { type: "model_message", content: "first reply", partial: false } as EngineEvent;
+            await firstHold;
+            yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+          } else {
+            // Second turn (flush): complete immediately.
+            yield { type: "model_message", content: "second reply", partial: false } as EngineEvent;
+            yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+          }
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Start first turn.
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "first");
+    });
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    // Queue a second message while streaming.
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "second");
+    });
+
+    expect(result.current.pendingCount).toBe(1);
+
+    // Let the first turn finish.
+    resolveFirst?.();
+
+    // Wait for the pending queue to flush and both turns to complete.
+    await waitFor(() => {
+      expect(result.current.isStreaming).toBe(false);
+      expect(result.current.pendingCount).toBe(0);
+    });
+
+    // The session.send should have been called twice — one per turn.
+    expect(sendCallCount).toBe(2);
+
+    // Both assistant replies should be present.
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs.some((m) => m.kind === "message" && m.content === "first reply")).toBe(
+      true,
+    );
+    expect(assistantMsgs.some((m) => m.kind === "message" && m.content === "second reply")).toBe(
+      true,
+    );
+
+    // No pending bubbles remain.
+    expect(result.current.items.filter((i) => i.kind === "pending-message")).toHaveLength(0);
+  });
+
+  it("cancelPending removes the bubble and queue entry", async () => {
+    let resolveStream: (() => void) | undefined;
+    const streamHold = new Promise<void>((r) => {
+      resolveStream = r;
+    });
+
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* () {
+          yield { type: "model_message", content: "streaming", partial: true } as EngineEvent;
+          await streamHold;
+          yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "first");
+    });
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    // Queue a message.
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "pending message");
+    });
+
+    expect(result.current.pendingCount).toBe(1);
+    const pendingItem = result.current.items.find((i) => i.kind === "pending-message");
+    expect(pendingItem).toBeDefined();
+    const pendingId = pendingItem?.id ?? "";
+
+    // Cancel the pending message.
+    act(() => {
+      result.current.cancelPending(pendingId);
+    });
+
+    // Both queue and item list should be empty of pending entries.
+    expect(result.current.pendingCount).toBe(0);
+    expect(result.current.items.filter((i) => i.kind === "pending-message")).toHaveLength(0);
+
+    // Drain.
+    resolveStream?.();
+    await waitFor(() => expect(result.current.isStreaming).toBe(false));
+  });
+
+  it("no auto-flush after user cancel (Stop button): pending queue is preserved", async () => {
+    let resolveStream: (() => void) | undefined;
+    const streamHold = new Promise<void>((r) => {
+      resolveStream = r;
+    });
+
+    let sendCallCount = 0;
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* () {
+          sendCallCount++;
+          yield { type: "model_message", content: "live text", partial: true } as EngineEvent;
+          await streamHold;
+          // After resolveStream(), the iterator will proceed — but we call .return() before that.
+          yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "first");
+    });
+
+    await waitFor(() => {
+      expect(result.current.isStreaming).toBe(true);
+      expect(
+        result.current.items.some((i) => i.kind === "message" && i.content === "live text"),
+      ).toBe(true);
+    });
+
+    // Queue a pending message.
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "queued");
+    });
+    expect(result.current.pendingCount).toBe(1);
+
+    // Cancel the in-flight turn.
+    act(() => {
+      result.current.cancel();
+    });
+
+    // Unblock so the generator can exit cleanly.
+    resolveStream?.();
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(false));
+
+    // Queue should still be intact — no auto-flush after user cancel.
+    expect(result.current.pendingCount).toBe(1);
+    expect(result.current.items.filter((i) => i.kind === "pending-message")).toHaveLength(1);
+
+    // session.send was called exactly once (no flush).
+    expect(sendCallCount).toBe(1);
+  });
+
+  it("multiple queued messages flush sequentially (each is its own turn)", async () => {
+    let resolveFirst: (() => void) | undefined;
+    const firstHold = new Promise<void>((r) => {
+      resolveFirst = r;
+    });
+
+    let sendCallCount = 0;
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(async function* () {
+          const n = ++sendCallCount;
+          yield {
+            type: "model_message",
+            content: `reply-${n}`,
+            partial: false,
+          } as EngineEvent;
+          if (n === 1) await firstHold;
+          yield { type: "final", usage: { inputTokens: 0, outputTokens: 0 } } as EngineEvent;
+        }) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    // Start turn 1.
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "msg1");
+    });
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    // Queue three more messages while streaming.
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "msg2");
+      await result.current.send(brandId<"SessionId">("s1"), "msg3");
+      await result.current.send(brandId<"SessionId">("s1"), "msg4");
+    });
+
+    expect(result.current.pendingCount).toBe(3);
+
+    // Let turn 1 finish.
+    resolveFirst?.();
+
+    // Wait for all turns to complete (4 total).
+    await waitFor(
+      () => {
+        expect(result.current.isStreaming).toBe(false);
+        expect(result.current.pendingCount).toBe(0);
+        expect(sendCallCount).toBe(4);
+      },
+      { timeout: 3000 },
+    );
+
+    // All 4 user messages present.
+    const userMsgs = result.current.items.filter((i) => i.kind === "message" && i.role === "user");
+    expect(userMsgs).toHaveLength(4);
+
+    // All 4 assistant replies present.
+    const assistantMsgs = result.current.items.filter(
+      (i) => i.kind === "message" && i.role === "assistant",
+    );
+    expect(assistantMsgs).toHaveLength(4);
+    expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].content).toBe("reply-1");
+    expect(assistantMsgs[1]?.kind === "message" && assistantMsgs[1].content).toBe("reply-2");
+    expect(assistantMsgs[2]?.kind === "message" && assistantMsgs[2].content).toBe("reply-3");
+    expect(assistantMsgs[3]?.kind === "message" && assistantMsgs[3].content).toBe("reply-4");
+
+    // No pending items remain.
+    expect(result.current.items.filter((i) => i.kind === "pending-message")).toHaveLength(0);
+  });
+
+  it("pendingCount is 0 when nothing is queued", () => {
+    const client = makeClient([]);
+    const { result } = renderHook(() => useStreamedSend(client));
+    expect(result.current.pendingCount).toBe(0);
+  });
 });

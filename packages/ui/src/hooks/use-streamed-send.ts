@@ -9,7 +9,7 @@ import type {
   Timestamp,
 } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReviewCard } from "../components/flashcard-review.js";
 import { episodicToItems } from "./episodic-to-messages.js";
 
@@ -106,12 +106,26 @@ export interface SubAgentSpawn {
   errored?: boolean;
 }
 
+/**
+ * A message that has been submitted while the engine is streaming and is
+ * waiting in the queue. Renders inline as a faded "pending" bubble. Never
+ * persisted to episodic — pure UI state, dropped on app restart.
+ */
+export interface PendingMessageItem {
+  kind: "pending-message";
+  id: string;
+  role: "user";
+  content: string;
+  sketchId?: string;
+}
+
 export type ChatStreamItem =
   | ({ kind: "message" } & ChatMessage)
   | ({ kind: "tool-entry" } & ToolEntryItem)
   | ({ kind: "sub-agent" } & SubAgentSpawn)
   | ({ kind: "thinking" } & ReasoningItem)
-  | ({ kind: "cancel-marker" } & CancelMarker);
+  | ({ kind: "cancel-marker" } & CancelMarker)
+  | PendingMessageItem;
 
 export interface UseStreamedSendResult {
   items: ChatStreamItem[];
@@ -119,12 +133,22 @@ export interface UseStreamedSendResult {
   /** True when the engine is working but has not yet emitted assistant text in the current segment. */
   thinking: boolean;
   lastError: string | null;
-  send: (sessionId: SessionId, message: string) => Promise<void>;
+  send: (sessionId: SessionId, message: string, sketchId?: string) => Promise<void>;
   /**
    * Cancel the in-flight turn. No-op if not currently streaming.
    * Triggers iterator.return() which fires the praxis.session.send.cancel IPC channel.
+   * Per the queue design: cancel preserves pending messages rather than
+   * flushing them — the user signalled intent to stop this turn, so the
+   * pending queue stays visible until the user removes or flushes manually.
    */
   cancel: () => void;
+  /**
+   * Remove a specific pending message from the queue and from the item list.
+   * No-op if the id is not found.
+   */
+  cancelPending: (pendingId: string) => void;
+  /** Number of messages currently waiting in the queue (0 when nothing pending). */
+  pendingCount: number;
   clearMessages: () => void;
   /**
    * Load the persisted transcript for an existing session and replace the
@@ -142,21 +166,74 @@ function nextId(): string {
   return `msg-${++msgCounter}`;
 }
 
+/** A pending message waiting in the queue to be sent once the current turn ends. */
+interface PendingMessage {
+  id: string;
+  content: string;
+  sketchId?: string;
+}
+
 export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
   const [items, setItems] = useState<ChatStreamItem[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
+  // ── Pending queue ─────────────────────────────────────────────────────────────
+  // Messages submitted while isStreaming is true land here and flush after the
+  // current turn ends (unless the user clicked Stop).
+  const [pendingQueue, setPendingQueue] = useState<PendingMessage[]>([]);
+  // Ref mirror so the finally block always reads the latest value without
+  // depending on stale closure capture from the start of the send() call.
+  const pendingQueueRef = useRef<PendingMessage[]>([]);
+  useEffect(() => {
+    pendingQueueRef.current = pendingQueue;
+  }, [pendingQueue]);
+
+  // Tracks whether the current cancel was user-initiated. Set in cancel()
+  // before .return(), cleared at the start of send(). The finally block
+  // reads this to decide whether to auto-flush pending messages.
+  const userCancelledRef = useRef(false);
+
   // Ref to the active iterator so cancel() can call .return() from outside the send closure.
   const iteratorRef = useRef<AsyncIterator<EngineEvent> | null>(null);
 
   const cancel = useCallback((): void => {
+    // Mark user-initiated before .return() so the finally block can detect it.
+    userCancelledRef.current = true;
     iteratorRef.current?.return?.();
   }, []);
 
-  const send = async (sessionId: SessionId, message: string): Promise<void> => {
-    if (isStreaming) return;
+  const cancelPending = useCallback((pendingId: string): void => {
+    setPendingQueue((prev) => prev.filter((p) => p.id !== pendingId));
+    setItems((prev) =>
+      prev.filter((it) => !(it.kind === "pending-message" && it.id === pendingId)),
+    );
+  }, []);
+
+  const send = async (sessionId: SessionId, message: string, sketchId?: string): Promise<void> => {
+    if (isStreaming) {
+      // Queue instead of dropping. The pending bubble renders inline in the
+      // thread at the position it will occupy when the turn flushes.
+      const pendingId = nextId();
+      const entry: PendingMessage = { id: pendingId, content: message };
+      if (sketchId !== undefined) entry.sketchId = sketchId;
+      setPendingQueue((prev) => [...prev, entry]);
+      setItems((prev) => [
+        ...prev,
+        {
+          kind: "pending-message",
+          id: pendingId,
+          role: "user",
+          content: message,
+          ...(sketchId !== undefined && { sketchId }),
+        } satisfies PendingMessageItem,
+      ]);
+      return;
+    }
+
+    // Clear the user-cancelled flag at the start of a new turn so retry works.
+    userCancelledRef.current = false;
     setLastError(null);
 
     // Immediately add user bubble to local state.
@@ -541,6 +618,38 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
 
       setIsStreaming(false);
       setThinking(false);
+
+      // ── Auto-flush pending queue ──────────────────────────────────────────
+      // If the user explicitly cancelled (Stop button), preserve the pending
+      // queue — they signalled intent to stop this train of thought. If the
+      // turn ended naturally (or after an error), dequeue the next message
+      // and start a new turn via setTimeout(0) so React commits the just-
+      // finished turn's items before we kick off the next send.
+      if (!userCancelledRef.current) {
+        const queue = pendingQueueRef.current;
+        if (queue.length > 0) {
+          const [next, ...rest] = queue;
+          // Eagerly update both ref and state so cancelPending sees the new queue.
+          pendingQueueRef.current = rest;
+          setPendingQueue(rest);
+          // Remove the pending bubble for this message (it will become a real
+          // user bubble in the recursive send call).
+          setItems((prev) =>
+            prev.filter((it) => !(it.kind === "pending-message" && it.id === next?.id)),
+          );
+          // Fire-and-forget via macrotask so React has time to commit.
+          // Each queued message becomes a fully independent turn. If the user
+          // submits again during this new turn, the queue grows again.
+          if (next !== undefined) {
+            setTimeout(() => {
+              void send(sessionId, next.content, next.sketchId);
+            }, 0);
+          }
+        }
+      }
+      // Always reset the cancelled flag — the next send() clears it anyway,
+      // but clearing here too keeps the invariant tight.
+      userCancelledRef.current = false;
     }
   };
 
@@ -562,5 +671,16 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
     }
   };
 
-  return { items, isStreaming, thinking, lastError, send, cancel, clearMessages, loadHistory };
+  return {
+    items,
+    isStreaming,
+    thinking,
+    lastError,
+    send,
+    cancel,
+    cancelPending,
+    pendingCount: pendingQueue.length,
+    clearMessages,
+    loadHistory,
+  };
 }

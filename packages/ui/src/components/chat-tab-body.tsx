@@ -77,7 +77,7 @@ function ExamLockdownGate({
 export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
-  const { items, isStreaming, thinking, lastError, send, cancel, loadHistory } =
+  const { items, isStreaming, thinking, lastError, send, cancel, cancelPending, loadHistory } =
     useStreamedSend(client);
   const { flagAuthRequired } = useAuthStatus();
 
@@ -240,6 +240,22 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
               </p>
             );
           }
+          if (item.kind === "pending-message") {
+            return (
+              <div key={item.id} className={styles.pendingBubble}>
+                <span className={styles.pendingContent}>{item.content}</span>
+                <span className={styles.pendingChip}>▶ PENDING</span>
+                <button
+                  type="button"
+                  className={styles.pendingDismiss}
+                  onClick={() => cancelPending(item.id)}
+                  aria-label="Cancel pending message"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          }
           return (
             <MessageBubble
               key={item.id}
@@ -324,7 +340,7 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
             setComposerValue("");
             await handleSendWithSketch(msg, sketchId);
           }}
-          disabled={isStreaming || examLockdown}
+          disabled={examLockdown}
           sketchEnabled={true}
         />
       </AuthGate>

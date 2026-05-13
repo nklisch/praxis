@@ -108,6 +108,11 @@ export function SidekickPanel({
           if (item.kind === "cancel-marker") {
             return null;
           }
+          if (item.kind === "pending-message") {
+            // Pending messages don't appear in the sidekick panel — they are
+            // teach-mode UI state only.
+            return null;
+          }
           return (
             <MessageBubble
               key={item.id}

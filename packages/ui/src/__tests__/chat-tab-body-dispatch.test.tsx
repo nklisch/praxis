@@ -141,4 +141,14 @@ describe("ChatTabBody mode dispatcher", () => {
     // ExamTabBody has no chat composer (no textarea)
     expect(screen.queryByRole("textbox")).toBeNull();
   });
+
+  it("composer textarea is enabled (not disabled) for teach mode — streaming no longer locks input", () => {
+    // After the composer-queue feature, isStreaming no longer sets disabled on the
+    // composer — only examLockdown does. Verify the textarea is not disabled at
+    // rest (non-exam, no lockdown).
+    const tab = makeTab({ modeId: "teach" });
+    renderTab(tab);
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    expect(textarea.disabled).toBe(false);
+  });
 });
