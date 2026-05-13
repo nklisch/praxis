@@ -383,6 +383,12 @@ UI confirms with the user (especially for self-onboard) and persists
 
 Ingestion is offline batch work, not in the agent's hot path. Long-running ingestion (large textbooks) shows progress on the `<ActivityRail>` without blocking other use.
 
+## Document scoping
+
+Documents are linked to **scopes** via the `document_scopes` table — a polymorphic join with rows `(document_id, scope_kind, scope_id, source, attached_at)`. Scope kinds start with `course` and `session`; the primitive is extensible (lesson, unit, etc.) without schema migration. A document can belong to multiple scopes simultaneously, enabling patterns like "a document attached to a course is also remembered as having been ingested during a specific bootstrap session."
+
+The bootstrap explorer reads from session-scoped documents during a draft exploration and promotes them to course-scope when the user confirms the draft. Manual attachments from the configure surface go directly to course-scope. The `retrieve_from_documents` tool (and the `document.*` explorer tools) takes a scope argument and queries documents linked to that scope.
+
 ## Future seams
 
 - **Trigger.dev integration**: the engine adapter contract is designed so a `TriggerDevAdapter` could wrap any other adapter, persisting brief + tool registrations + event-stream cursor durably. Important for the hosted deployment when sessions span hours or days. Not built in v1.
