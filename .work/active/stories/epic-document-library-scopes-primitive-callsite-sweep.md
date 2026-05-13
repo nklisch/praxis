@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-scopes-primitive-callsite-sweep
 kind: story
-stage: review
+stage: done
 tags: [core, tools, ingestion, ipc]
 parent: epic-document-library-scopes-primitive
 depends_on: [epic-document-library-scopes-primitive-service-and-types]
@@ -98,3 +98,18 @@ All call sites swept in a single pass. Key decisions made during implementation:
 - After the sweep: zero `CourseDocuments*` or `courseDocuments` references remain
   in `packages/` or `tests/`. `pnpm typecheck`, `pnpm lint`, and `pnpm test` all
   pass (3013 tests, 20 skipped for slow-test gate).
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- All acceptance criteria met: grep for `CourseDocuments` / `courseDocuments` / `praxis.courseDocuments` returns zero matches in `packages/`; `pnpm typecheck`, `pnpm lint`, and `pnpm test` all pass (3013 tests pass, 20 slow-gated).
+- `git mv` used for file renames (`course-documents-channel.ts`, `course-documents-client.ts`) — blame preserved.
+- The `listCourseDocumentsTool` → `listCourseDocsTool` rename is a sensible compromise: keeps the file name (which describes the operation, not the old service) and avoids `CourseDocuments` appearing as a substring in tool exports.
+- Bundled integration fixes (ES2024 lib bump for `Promise.withResolvers`, `exactOptionalPropertyTypes` spread fixes in the multi-file picker buttons, stale `retrieveFromTextbookTool` import, missing `previewPromptWithAttribution` stub, missing `interruptAllForSession` stub) are legitimate cross-wave integration debt — surfaced only when all wave 1-3 stories landed in sequence. Fix-forward in the same commit beats splitting hairs into 5 follow-up stories. Acceptable scope.
+- 66 files changed; mechanical sweep, no semantic changes beyond the documented arg-shape transformations.
