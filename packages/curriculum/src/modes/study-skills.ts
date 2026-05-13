@@ -10,6 +10,7 @@ import { toolsFragment } from "./fragments/tools.js";
 export const studySkillsMode: Mode = {
   id: "study-skills",
   label: "Study Skills",
+  displayName: "study skills",
   description:
     "Metacognition coach mode: teach techniques (Cornell notes, Feynman, spaced repetition, concept mapping) and the cognitive principles behind them.",
   requiredRole: "student",

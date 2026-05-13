@@ -49,6 +49,7 @@ function makeQuizMode() {
   return {
     id: "quiz",
     label: "Quiz",
+    displayName: "quiz",
     description: "Take a short quiz to test understanding.",
     requiredRole: "student" as const,
     uiSurface: "chat" as const,
@@ -61,6 +62,7 @@ function makeTeachMode() {
   return {
     id: "teach",
     label: "Teach",
+    displayName: "teach",
     description: "Open tutoring session.",
     requiredRole: "student" as const,
     uiSurface: "chat" as const,

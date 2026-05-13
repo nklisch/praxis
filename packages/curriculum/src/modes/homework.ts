@@ -14,6 +14,7 @@ import { quizMode } from "./quiz.js";
 export const homeworkMode: Mode = {
   id: "homework",
   label: "Homework",
+  displayName: "homework",
   description:
     "Longer practice across multiple concepts. Agent clarifies items but doesn't give answers; feedback delayed until full submission.",
   requiredRole: "student",

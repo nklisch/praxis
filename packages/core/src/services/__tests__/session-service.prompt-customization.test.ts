@@ -107,6 +107,7 @@ function makeMinimalTeachMode() {
   return {
     id: "teach",
     label: "Teach",
+    displayName: "teach",
     description: "Tutoring session",
     requiredRole: "student" as const,
     uiSurface: "chat" as const,

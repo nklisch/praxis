@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-tutor-tab-rename
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, chat, tutor-ux]
 parent: epic-tutor-session-feel
 depends_on: []
@@ -349,3 +349,57 @@ update mechanically; new tests cover the renamed cases explicitly.
    sanctioned exception layer (CLAUDE.md). The `requireMode` import
    path needs to exist in `@praxis/curriculum`'s public exports — it
    does (used today by `prompt-customization-service.ts`).
+
+## Implementation Notes
+
+All 5 units landed in a single stride. Key findings:
+
+**Unit 1–2**: `Mode.displayName` added to interface; all 7 mode definitions
+updated. The `homeworkMode` doesn't inherit `displayName` from `quizMode`
+(it shares `toolNames` via spread, but the mode object literal is independent),
+so it needed its own `displayName: "homework"`.
+
+**Unit 3**: `generateTitle` now calls `requireMode(opts.modeId).displayName`.
+The existing mode-specific suffix branches ("new chat" / "new course") stay
+unchanged — they provide context phrasing around the display name.
+
+**Discovery — vitest resolve conditions**: The `@praxis/core` package had no
+`vitest.config.ts`, so cross-package imports in tests resolved to stale `dist/`
+files (missing `displayName`) rather than live source via the `praxis-source`
+custom condition. Added `packages/core/vitest.config.ts` with
+`conditions: ["praxis-source", "import", "module", "node", "default"]` —
+mirroring the UI package's vitest config. This is a latent bug that would have
+caused other cross-package test failures had anyone added a new field to any
+`@praxis/curriculum` type and tested from core. All 21 tabs-service tests pass
+with this fix.
+
+**Discovery — test stub Mode objects**: Four session-service test files
+(`session-service-cancel.test.ts`, `session-service.engine-session-state.test.ts`,
+`session-service.notify.test.ts`, `session-service.prompt-customization.test.ts`)
+contain inline `makeMode` / `makeTeachMode` / `makeQuizMode` helper functions
+that construct literal mode objects without `displayName`. Adding `displayName`
+as a required field caused typecheck errors in these stubs; all were fixed by
+adding the matching `displayName` value.
+
+**Unit 4**: Migration `0015_tab-title-backfill.sql` created with Drizzle's
+`--> statement-breakpoint` separator between the 3 UPDATE statements. Initial
+attempt without breakpoints caused Drizzle's SQLite runner to execute the entire
+file as one query, failing. The `_journal.json` entry uses epoch timestamp
+`1747180800000` (2026-05-13T12:00:00Z).
+
+**Unit 5**: Tests updated — the old "bootstrap · new course" assertion updated
+to "course design · new course"; 4 new test cases added (bootstrap with no
+course, homework with no course, bootstrap with courseTitle, study-skills with
+no course).
+
+**Pre-existing failures (not mine)**: `course-documents-service.test.ts` (13
+tests) and `textbook-rag-end-to-end.test.ts` (1 test) fail due to parallel
+work from the document-scopes migration story. Confirmed in feature spec
+warning.
+
+**Acceptance criteria**: All passing.
+- `generateTitle({ modeId: "bootstrap" })` → `"course design · new course"` ✓
+- `generateTitle({ modeId: "teach", courseTitle: "Algebra" })` → `"algebra · teach"` ✓
+- `generateTitle({ modeId: "quiz" })` → `"quiz · session"` ✓
+- `pnpm db:reset` runs cleanly ✓
+- 0 new typecheck errors ✓

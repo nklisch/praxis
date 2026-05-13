@@ -126,6 +126,7 @@ function makeStubPromptCustomization(): PromptCustomizationService {
     setModeAppend: vi.fn(),
     listFragmentOverrides: vi.fn().mockReturnValue([]),
     previewPrompt: vi.fn().mockReturnValue("preview"),
+    previewPromptWithAttribution: vi.fn().mockReturnValue({ prompt: "preview", segments: [] }),
   };
 }
 

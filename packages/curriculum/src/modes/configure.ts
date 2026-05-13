@@ -22,6 +22,7 @@ import { principlesFragment } from "./fragments/principles.js";
 export const configureMode: Mode = {
   id: "configure",
   label: "Configure",
+  displayName: "configure",
   description:
     "Configurator mode for authoring courses, editing gates, customizing prompts, and managing student memory. Gated by lock code when set.",
   requiredRole: "configurator",

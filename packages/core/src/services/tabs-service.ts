@@ -1,3 +1,4 @@
+import { requireMode } from "@praxis/curriculum/modes";
 import { sessions, tabs } from "@praxis/memory/schema";
 import { and, asc, desc, eq, isNull, max } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -23,16 +24,17 @@ export interface TabsServiceDeps {
  * Examples:
  *   - teach session, no course   → "teach · new chat"
  *   - teach session, course      → "algebra · teach"
- *   - bootstrap, no course       → "bootstrap · new course"
+ *   - bootstrap, no course       → "course design · new course"
  *   - quiz, course + assignment  → "algebra · quiz"
  */
 function generateTitle(opts: { modeId: string; courseTitle?: string }): string {
+  const displayName = requireMode(opts.modeId).displayName;
   if (opts.courseTitle) {
-    return `${opts.courseTitle.toLowerCase()} · ${opts.modeId}`;
+    return `${opts.courseTitle.toLowerCase()} · ${displayName}`;
   }
-  if (opts.modeId === "teach") return "teach · new chat";
-  if (opts.modeId === "bootstrap") return "bootstrap · new course";
-  return `${opts.modeId} · session`;
+  if (opts.modeId === "teach") return `${displayName} · new chat`;
+  if (opts.modeId === "bootstrap") return `${displayName} · new course`;
+  return `${displayName} · session`;
 }
 
 /** Shape of the joined select result for tab + session columns. */

@@ -13,6 +13,7 @@ import { sketchAwarenessFragment } from "./fragments/sketch-awareness.js";
 export const quizMode: Mode = {
   id: "quiz",
   label: "Quiz",
+  displayName: "quiz",
   description:
     "Short-form retrieval practice. Items shown via card; answers typed in card; immediate feedback after submission.",
   requiredRole: "student",

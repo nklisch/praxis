@@ -748,6 +748,17 @@ export function registerIpcHandlers(
   );
 
   handle(
+    "praxis.author.previewPromptWithAttribution",
+    async (
+      _event,
+      input: { modeId: string; draftGlobal?: string | null; draftAppend?: string | null },
+    ) => {
+      await requireUnlocked();
+      return services.authoring.previewPromptWithAttribution(input);
+    },
+  );
+
+  handle(
     "praxis.author.resetConcept",
     async (_event, input: { conceptId: string; reason: string }) => {
       await requireUnlocked();

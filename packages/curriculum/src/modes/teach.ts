@@ -12,6 +12,7 @@ import { toolsFragment } from "./fragments/tools.js";
 export const teachMode: Mode = {
   id: "teach",
   label: "Teach",
+  displayName: "teach",
   description:
     "Interactive lecture mode: introduce concepts, scaffold worked examples, fade to independent practice.",
   requiredRole: "student",

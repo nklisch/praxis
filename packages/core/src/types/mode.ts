@@ -36,6 +36,13 @@ export interface PromptFragment {
 export interface Mode {
   id: string;
   label: string;
+  /**
+   * Lowercase, italic-serif display name used in the in-session header
+   * and the tab strip — e.g. "teach", "course design". Distinct from
+   * `label` (Title Case admin context). Matches `ModeMeta.name` in
+   * the UI by convention.
+   */
+  displayName: string;
   description: string;
   requiredRole: "student" | "configurator";
   promptFragments: PromptFragment[];

@@ -13,6 +13,7 @@ import { sketchAwarenessFragment } from "./fragments/sketch-awareness.js";
 export const examMode: Mode = {
   id: "exam",
   label: "Exam",
+  displayName: "exam",
   description:
     "Gated assessment. Strict tool subset; no help during the exam; feedback only after full submission.",
   requiredRole: "student",

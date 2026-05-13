@@ -15,13 +15,18 @@
  * `text` column has no inherent size limit. Validated at write time via Zod.
  */
 
-import { composeSystemPrompt } from "@praxis/curriculum/brief";
+import {
+  type ComposeSystemPromptInput,
+  composeSystemPrompt,
+  composeSystemPromptWithAttribution,
+} from "@praxis/curriculum/brief";
 import { requireMode } from "@praxis/curriculum/modes";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { PraxisDb } from "../db/index.js";
 import { configKv, modePromptAppends, promptOverrides } from "../schema.js";
 import type { PromptFragment } from "../types/index.js";
+import type { ComposedSystemPromptWithAttribution } from "../types/prompt-attribution.js";
 
 const CONFIG_KEY = "prompt.global_fragment";
 
@@ -74,6 +79,16 @@ export interface PromptCustomizationService {
    * Throws when `modeId` is not found in the mode registry.
    */
   previewPrompt(input: PreviewPromptInput): string;
+
+  /**
+   * Structured preview returning the composed prompt plus per-segment source
+   * attribution. Used by the diff-aware preview pane to render overridden spans
+   * and diff against fragment defaults. Same draft/null/undefined semantics as
+   * `previewPrompt`.
+   *
+   * Throws when `modeId` is not found in the mode registry.
+   */
+  previewPromptWithAttribution(input: PreviewPromptInput): ComposedSystemPromptWithAttribution;
 }
 
 export interface PromptCustomizationServiceDeps {
@@ -151,6 +166,22 @@ export class PromptCustomizationServiceImpl implements PromptCustomizationServic
   }
 
   previewPrompt(input: PreviewPromptInput): string {
+    return composeSystemPrompt(this.buildPreviewInput(input));
+  }
+
+  previewPromptWithAttribution(input: PreviewPromptInput): ComposedSystemPromptWithAttribution {
+    return composeSystemPromptWithAttribution(this.buildPreviewInput(input));
+  }
+
+  /**
+   * Resolves the mode, stored overrides, and user-layer fragments for `input`,
+   * then returns a `ComposeSystemPromptInput` ready to pass to either compose
+   * function. Extracted to keep `previewPrompt` and `previewPromptWithAttribution`
+   * DRY — both methods share identical input-building logic.
+   *
+   * Throws when `modeId` is not found in the mode registry.
+   */
+  private buildPreviewInput(input: PreviewPromptInput): ComposeSystemPromptInput {
     const mode = requireMode(input.modeId);
 
     const storedOverrides = this.listFragmentOverrides(input.modeId);
@@ -186,10 +217,10 @@ export class PromptCustomizationServiceImpl implements PromptCustomizationServic
       });
     }
 
-    return composeSystemPrompt({
+    return {
       mode,
       ...(overrides.size > 0 && { overrides }),
       ...(additional.length > 0 && { additionalFragments: additional }),
-    });
+    };
   }
 }

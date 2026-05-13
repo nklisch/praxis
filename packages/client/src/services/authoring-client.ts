@@ -1,5 +1,6 @@
 import type {
   AuthoringClient,
+  ComposedSystemPromptWithAttribution,
   ConceptId,
   ConfiguratorActionRow,
   Course,
@@ -183,6 +184,17 @@ export class AuthoringClientImpl implements AuthoringClient {
     draftAppend?: string | null;
   }): Promise<string> {
     return this.transport.invoke<string>(`${C}.previewPrompt`, input);
+  }
+
+  previewPromptWithAttribution(input: {
+    modeId: string;
+    draftGlobal?: string | null;
+    draftAppend?: string | null;
+  }): Promise<ComposedSystemPromptWithAttribution> {
+    return this.transport.invoke<ComposedSystemPromptWithAttribution>(
+      `${C}.previewPromptWithAttribution`,
+      input,
+    );
   }
 
   // ── Phase 11: memory administration ──────────────────────────────────────

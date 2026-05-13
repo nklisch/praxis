@@ -6,6 +6,7 @@
  * - getModeAppend / setModeAppend round-trip, clear, per-mode isolation.
  * - listFragmentOverrides returns only rows for the requested mode.
  * - previewPrompt composes against stored state + draft overrides.
+ * - previewPromptWithAttribution returns structured segments with correct sources.
  */
 
 import { describe, expect, it } from "vitest";
@@ -242,5 +243,148 @@ describe("PromptCustomizationServiceImpl — previewPrompt", () => {
     expect(globalIdx).toBeGreaterThan(-1);
     expect(appendIdx).toBeGreaterThan(-1);
     expect(globalIdx).toBeLessThan(appendIdx);
+  });
+});
+
+// ── previewPromptWithAttribution ───────────────────────────────────────────────
+
+describe("PromptCustomizationServiceImpl — previewPromptWithAttribution", () => {
+  it("returns a non-empty prompt for a known modeId", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    const { prompt } = svc.previewPromptWithAttribution({ modeId: "teach" });
+    expect(typeof prompt).toBe("string");
+    expect(prompt.length).toBeGreaterThan(0);
+  });
+
+  it("throws for an unknown modeId", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    expect(() => svc.previewPromptWithAttribution({ modeId: "nonexistent" })).toThrow(
+      "Unknown mode: nonexistent",
+    );
+  });
+
+  it("prompt matches previewPrompt for the same modeId (equivalence)", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    const str = svc.previewPrompt({ modeId: "teach" });
+    const { prompt } = svc.previewPromptWithAttribution({ modeId: "teach" });
+    expect(prompt).toBe(str);
+  });
+
+  it("prompt matches previewPrompt with a stored global fragment (equivalence)", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    svc.setGlobalFragment("GLOBAL_TEXT");
+    const str = svc.previewPrompt({ modeId: "teach" });
+    const { prompt } = svc.previewPromptWithAttribution({ modeId: "teach" });
+    expect(prompt).toBe(str);
+  });
+
+  it("prompt matches previewPrompt with a draftGlobal and draftAppend (equivalence)", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    const str = svc.previewPrompt({
+      modeId: "teach",
+      draftGlobal: "DRAFT_GLOBAL",
+      draftAppend: "DRAFT_APPEND",
+    });
+    const { prompt } = svc.previewPromptWithAttribution({
+      modeId: "teach",
+      draftGlobal: "DRAFT_GLOBAL",
+      draftAppend: "DRAFT_APPEND",
+    });
+    expect(prompt).toBe(str);
+  });
+
+  it("segment join invariant holds", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    svc.setGlobalFragment("GLOBAL_TEXT");
+    svc.setModeAppend("teach", "APPEND_TEXT");
+    const { prompt, segments } = svc.previewPromptWithAttribution({ modeId: "teach" });
+    expect(segments.map((s) => s.text).join("\n\n")).toBe(prompt);
+  });
+
+  it("draftGlobal string appears as a 'global' segment", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    const { segments } = svc.previewPromptWithAttribution({
+      modeId: "teach",
+      draftGlobal: "DRAFT_GLOBAL",
+    });
+    const global = segments.find((s) => s.source === "global");
+    expect(global).toBeDefined();
+    expect(global?.text).toBe("DRAFT_GLOBAL");
+    expect(global?.defaultText).toBeUndefined();
+  });
+
+  it("draftAppend string appears as an 'append' segment", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    const { segments } = svc.previewPromptWithAttribution({
+      modeId: "teach",
+      draftAppend: "DRAFT_APPEND",
+    });
+    const append = segments.find((s) => s.source === "append");
+    expect(append).toBeDefined();
+    expect(append?.text).toBe("DRAFT_APPEND");
+    expect(append?.defaultText).toBeUndefined();
+  });
+
+  it("draftGlobal null omits the global segment", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    svc.setGlobalFragment("STORED_GLOBAL");
+    const { segments } = svc.previewPromptWithAttribution({
+      modeId: "teach",
+      draftGlobal: null,
+    });
+    expect(segments.find((s) => s.source === "global")).toBeUndefined();
+  });
+
+  it("stored fragment override appears as an 'override' segment with correct text and defaultText", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    db.insert(promptOverrides)
+      .values({
+        modeId: "teach",
+        fragmentId: "preamble.default",
+        override: "CUSTOM_PREAMBLE",
+        updatedAt: new Date(),
+      })
+      .run();
+    const svc = makeService(db);
+    const { segments } = svc.previewPromptWithAttribution({ modeId: "teach" });
+    const preamble = segments.find((s) => s.fragmentId === "preamble.default");
+    expect(preamble?.source).toBe("override");
+    expect(preamble?.text).toBe("CUSTOM_PREAMBLE");
+    expect(typeof preamble?.defaultText).toBe("string");
+    expect(preamble?.defaultText).not.toBe("CUSTOM_PREAMBLE");
+  });
+
+  it("non-override mode segments have source 'default'", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    const { segments } = svc.previewPromptWithAttribution({ modeId: "teach" });
+    const modeSegments = segments.filter((s) => s.source === "default");
+    expect(modeSegments.length).toBeGreaterThan(0);
+    for (const seg of modeSegments) {
+      expect(seg.text).toBe(seg.defaultText);
+    }
+  });
+
+  it("global segment sorts before append segment", () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const svc = makeService(db);
+    const { segments } = svc.previewPromptWithAttribution({
+      modeId: "teach",
+      draftGlobal: "GLOBAL_TEXT",
+      draftAppend: "APPEND_TEXT",
+    });
+    const globalIdx = segments.findIndex((s) => s.source === "global");
+    const appendIdx = segments.findIndex((s) => s.source === "append");
+    expect(globalIdx).toBeGreaterThanOrEqual(0);
+    expect(appendIdx).toBeGreaterThan(globalIdx);
   });
 });

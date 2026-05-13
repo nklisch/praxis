@@ -44,6 +44,7 @@ function makeTeachMode() {
   return {
     id: "teach",
     label: "Teach",
+    displayName: "teach",
     description: "Open tutoring session.",
     requiredRole: "student" as const,
     uiSurface: "chat" as const,

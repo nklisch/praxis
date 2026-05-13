@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2-compose-attribution
 kind: feature
-stage: implementing
+stage: review
 tags: [core, curriculum, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on: []
@@ -477,3 +477,73 @@ render diffs. Confirmed shape: per-segment `source` enum drives the
 color/tag UI; `defaultText` (when present) drives the diff against
 default. The renderer doesn't need additional information from
 compose — everything diff-aware-preview needs is in the segment shape.
+
+## Implementation Notes
+
+### Files changed
+
+- `packages/core/src/types/prompt-attribution.ts` — **NEW** — defines
+  `SegmentSource`, `ComposedSegment`, `ComposedSystemPromptWithAttribution`.
+  Placed here (not in `compose.ts`) so `AuthoringService`/`AuthoringClient`
+  interfaces in `@praxis/core/types` can reference them without creating a
+  circular dependency with `@praxis/curriculum`.
+
+- `packages/core/src/types/index.ts` — added `export type * from "./prompt-attribution.js"`.
+
+- `packages/core/src/types/tool.ts` — added `previewPromptWithAttribution` to
+  `AuthoringService` interface.
+
+- `packages/core/src/types/client.ts` — added `previewPromptWithAttribution` to
+  `AuthoringClient` interface.
+
+- `packages/curriculum/src/brief/compose.ts` — re-exports attribution types from
+  `@praxis/core/types`; adds `composeSystemPromptWithAttribution`; refactors
+  `composeSystemPrompt` to delegate to it (byte-equivalent output).
+
+- `packages/core/src/services/prompt-customization-service.ts` — adds
+  `previewPromptWithAttribution` to the `PromptCustomizationService` interface
+  and `PromptCustomizationServiceImpl`; extracts `buildPreviewInput` private
+  helper used by both `previewPrompt` and `previewPromptWithAttribution`.
+
+- `packages/core/src/services/authoring-service.ts` — adds
+  `previewPromptWithAttribution` to `AuthoringServiceImpl`.
+
+- `packages/desktop/electron/main/ipc-server.ts` — registers
+  `praxis.author.previewPromptWithAttribution` handler (sibling to existing
+  `praxis.author.previewPrompt`).
+
+- `packages/client/src/services/authoring-client.ts` — adds
+  `previewPromptWithAttribution` method to `AuthoringClientImpl`.
+
+- `packages/core/src/__tests__/authoring-service.test.ts` — added
+  `previewPromptWithAttribution` stub to `makeStubPromptCustomization` mock.
+
+- `packages/curriculum/src/brief/__tests__/compose-attribution.test.ts` — **NEW**
+  — 27 tests covering equivalence, invariant, all 5 source classifications,
+  edge cases (stale override, non-customizable override, ordering).
+
+- `packages/core/src/services/__tests__/prompt-customization-service.test.ts` —
+  added 14 tests for `previewPromptWithAttribution` mirroring the existing
+  `previewPrompt` suite.
+
+### Deviations from design
+
+- **Attribution types live in `@praxis/core/types/prompt-attribution.ts`** rather
+  than directly in `compose.ts`. The design assumed all types would originate in
+  `@praxis/curriculum/brief` but placing them there would have required
+  `@praxis/core/types` to import from `@praxis/curriculum` — a circular
+  dependency. The types are re-exported from `@praxis/curriculum/brief` so the
+  public surface is unchanged for callers of that path.
+
+- `ComposeSystemPromptInput` is already exported from `@praxis/curriculum/brief`
+  (it was there before this feature); the service imports it directly from that
+  path for the `buildPreviewInput` private helper return type.
+
+### Test results
+
+- 10 existing `compose.test.ts` tests: all pass (byte-equivalence confirmed)
+- 27 new `compose-attribution.test.ts` tests: all pass
+- 36 `prompt-customization-service.test.ts` tests (22 pre-existing + 14 new): all pass
+- typecheck: zero new errors (one pre-existing error in `course-documents-service.ts`
+  from parallel agent work, not this feature)
+- lint: zero new errors on modified files

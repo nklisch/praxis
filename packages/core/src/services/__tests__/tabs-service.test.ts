@@ -54,12 +54,16 @@ describe("generateTitle", () => {
     expect(generateTitle({ modeId: "teach" })).toBe("teach · new chat");
   });
 
-  it("bootstrap with no course → bootstrap · new course", () => {
-    expect(generateTitle({ modeId: "bootstrap" })).toBe("bootstrap · new course");
+  it("bootstrap with no course → course design · new course", () => {
+    expect(generateTitle({ modeId: "bootstrap" })).toBe("course design · new course");
   });
 
-  it("unknown mode with no course → <modeId> · session", () => {
+  it("quiz with no course → quiz · session", () => {
     expect(generateTitle({ modeId: "quiz" })).toBe("quiz · session");
+  });
+
+  it("homework with no course → homework · session", () => {
+    expect(generateTitle({ modeId: "homework" })).toBe("homework · session");
   });
 
   it("teach with courseTitle → courseTitle · teach (lowercase)", () => {
@@ -68,6 +72,16 @@ describe("generateTitle", () => {
 
   it("quiz with courseTitle → courseTitle · quiz", () => {
     expect(generateTitle({ modeId: "quiz", courseTitle: "Geometry" })).toBe("geometry · quiz");
+  });
+
+  it("bootstrap with courseTitle → courseTitle · course design", () => {
+    expect(generateTitle({ modeId: "bootstrap", courseTitle: "Biology" })).toBe(
+      "biology · course design",
+    );
+  });
+
+  it("study-skills with no course → study skills · session", () => {
+    expect(generateTitle({ modeId: "study-skills" })).toBe("study skills · session");
   });
 });
 

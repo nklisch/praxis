@@ -41,6 +41,7 @@ import type {
   ThresholdConfig,
   Timestamp,
 } from "../types/index.js";
+import type { ComposedSystemPromptWithAttribution } from "../types/prompt-attribution.js";
 import type {
   PreviewPromptInput,
   PromptCustomizationService,
@@ -307,6 +308,13 @@ export class AuthoringServiceImpl implements AuthoringService {
   async previewPrompt(input: PreviewPromptInput): Promise<string> {
     // No audit row — this is a pure read; content must not be logged.
     return this.deps.promptCustomization.previewPrompt(input);
+  }
+
+  async previewPromptWithAttribution(
+    input: PreviewPromptInput,
+  ): Promise<ComposedSystemPromptWithAttribution> {
+    // No audit row — pure read; content must not be logged.
+    return this.deps.promptCustomization.previewPromptWithAttribution(input);
   }
 
   // ─── Memory administration ─────────────────────────────────────────────────

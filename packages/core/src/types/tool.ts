@@ -61,6 +61,7 @@ import type {
   StudyTechnique,
   TeachingStrategy,
 } from "./pedagogy.js";
+import type { ComposedSystemPromptWithAttribution } from "./prompt-attribution.js";
 import type { QuickCheckService } from "./quick-check.js";
 import type { SketchService } from "./sketches.js";
 import type { SubAgentRegistry } from "./subagent.js";
@@ -410,6 +411,17 @@ export interface AuthoringService {
     draftGlobal?: string | null;
     draftAppend?: string | null;
   }): Promise<string>;
+
+  /**
+   * Structured preview returning the composed prompt plus per-segment source
+   * attribution. Used by the diff-aware preview pane. Same draft semantics as
+   * `previewPrompt`.
+   */
+  previewPromptWithAttribution(input: {
+    modeId: string;
+    draftGlobal?: string | null;
+    draftAppend?: string | null;
+  }): Promise<ComposedSystemPromptWithAttribution>;
 
   // ── Memory administration ─────────────────────────────────────────────────
   resetConcept(input: {

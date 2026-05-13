@@ -53,6 +53,7 @@ import type {
   StudentModel,
 } from "./memory.js";
 import type { NoteBody } from "./notes.js";
+import type { ComposedSystemPromptWithAttribution } from "./prompt-attribution.js";
 import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
@@ -505,6 +506,17 @@ export interface AuthoringClient {
     draftGlobal?: string | null;
     draftAppend?: string | null;
   }): Promise<string>;
+
+  /**
+   * Structured preview returning the composed prompt plus per-segment source
+   * attribution. Used by the diff-aware preview pane. Same draft semantics as
+   * `previewPrompt`.
+   */
+  previewPromptWithAttribution(input: {
+    modeId: string;
+    draftGlobal?: string | null;
+    draftAppend?: string | null;
+  }): Promise<ComposedSystemPromptWithAttribution>;
 
   // ── Memory administration ─────────────────────────────────────────────────
   resetConcept(input: { conceptId: ConceptId; reason: string }): Promise<void>;
