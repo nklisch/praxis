@@ -128,6 +128,16 @@ export interface ToolContext {
    * Absent when dispatched from test stubs that don't supply a callId.
    */
   callId?: string;
+  /**
+   * AbortSignal for the current engine turn. Populated by
+   * `InProcessToolRegistry.dispatch(name, args, { signal })` when the engine
+   * adapter passes the per-turn signal. Tools should check `signal?.aborted`
+   * at entry and periodically during long loops; sub-agent-spawning tools
+   * pass it into the sub-agent's engine session so cancellation propagates
+   * recursively. Absent when dispatched from test stubs that don't supply a
+   * signal.
+   */
+  signal?: AbortSignal;
   services: ToolServices;
   log: Logger;
 }

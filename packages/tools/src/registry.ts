@@ -12,11 +12,21 @@ import { z } from "zod";
 /**
  * Optional per-call metadata passed to `InProcessToolRegistry.dispatch`.
  * Engine adapters supply this to thread the engine-side correlation id
- * through to the tool handler's `ToolContext.callId`.
+ * through to the tool handler's `ToolContext.callId`, and to propagate
+ * the per-turn abort signal so tool handlers and sub-agents can bail
+ * when the user clicks Stop.
  */
 export interface DispatchMeta {
   /** Engine-side correlation id for this tool invocation. */
   callId?: string;
+  /**
+   * AbortSignal threaded from the engine's send-turn signal. When the
+   * user clicks Stop (or the session is otherwise interrupted), this
+   * signal aborts; tool handlers should bail and sub-agents should
+   * propagate it further. Optional — test stubs and direct invocations
+   * may omit it.
+   */
+  signal?: AbortSignal;
 }
 
 export interface InProcessToolRegistryOptions {
@@ -100,10 +110,18 @@ export class InProcessToolRegistry implements ToolRegistry {
         },
       };
     }
-    // Build a per-call context with callId injected when supplied by the engine adapter.
-    // We shallow-copy to avoid mutating the registry's stored context.
+    // Build a per-call context with callId and signal injected when supplied by the engine adapter.
+    // We shallow-copy to avoid mutating the registry's stored context. The conditional spread
+    // pattern lets us handle all combinations (callId only, signal only, both, neither) without
+    // allocating a new object on the common path where neither field is supplied.
     const callContext: ToolContext =
-      meta?.callId !== undefined ? { ...this.context, callId: meta.callId } : this.context;
+      meta?.callId !== undefined || meta?.signal !== undefined
+        ? {
+            ...this.context,
+            ...(meta.callId !== undefined && { callId: meta.callId }),
+            ...(meta.signal !== undefined && { signal: meta.signal }),
+          }
+        : this.context;
     try {
       const value = await tool.handler(parsed.data, callContext);
       this.log.debug("tool.dispatch.ok", { name, durationMs: Math.round(performance.now() - t0) });

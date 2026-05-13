@@ -193,4 +193,92 @@ describe("InProcessToolRegistry", () => {
     expect(ctx1CallId).toBe("first");
     expect(ctx2CallId).toBe("second");
   });
+
+  it("dispatch with meta.signal threads signal into ToolContext", async () => {
+    let capturedSignal: AbortSignal | undefined;
+
+    const signalCaptureTool = {
+      name: "test.capture_signal",
+      description: "Captures the AbortSignal from ToolContext",
+      input: z.object({}),
+      output: z.object({}),
+      tier: "deterministic" as const,
+      effects: [] as const,
+      async handler(_args: unknown, toolCtx: import("@praxis/core/types").ToolContext) {
+        capturedSignal = toolCtx.signal;
+        return {};
+      },
+    };
+
+    const registry = new InProcessToolRegistry({
+      tools: [signalCaptureTool],
+      context: ctx,
+      log: ctx.log,
+    });
+
+    const controller = new AbortController();
+    await registry.dispatch("test.capture_signal", {}, { signal: controller.signal });
+    expect(capturedSignal).toBe(controller.signal);
+  });
+
+  it("dispatch without meta results in ctx.signal === undefined", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    let signalWasCaptured = false;
+
+    const signalCaptureTool = {
+      name: "test.capture_signal_absent",
+      description: "Captures the AbortSignal (or lack thereof) from ToolContext",
+      input: z.object({}),
+      output: z.object({}),
+      tier: "deterministic" as const,
+      effects: [] as const,
+      async handler(_args: unknown, toolCtx: import("@praxis/core/types").ToolContext) {
+        capturedSignal = toolCtx.signal;
+        signalWasCaptured = true;
+        return {};
+      },
+    };
+
+    const registry = new InProcessToolRegistry({
+      tools: [signalCaptureTool],
+      context: ctx,
+      log: ctx.log,
+    });
+
+    await registry.dispatch("test.capture_signal_absent", {});
+    expect(signalWasCaptured).toBe(true);
+    expect(capturedSignal).toBeUndefined();
+  });
+
+  it("dispatch with meta.callId but no signal results in ctx.signal === undefined and correct callId", async () => {
+    let capturedCallId: string | undefined;
+    let capturedSignal: AbortSignal | undefined;
+    let signalWasCaptured = false;
+
+    const captureAllTool = {
+      name: "test.capture_all",
+      description: "Captures callId and signal from ToolContext",
+      input: z.object({}),
+      output: z.object({}),
+      tier: "deterministic" as const,
+      effects: [] as const,
+      async handler(_args: unknown, toolCtx: import("@praxis/core/types").ToolContext) {
+        capturedCallId = toolCtx.callId;
+        capturedSignal = toolCtx.signal;
+        signalWasCaptured = true;
+        return {};
+      },
+    };
+
+    const registry = new InProcessToolRegistry({
+      tools: [captureAllTool],
+      context: ctx,
+      log: ctx.log,
+    });
+
+    await registry.dispatch("test.capture_all", {}, { callId: "call-xyz" });
+    expect(capturedCallId).toBe("call-xyz");
+    expect(signalWasCaptured).toBe(true);
+    expect(capturedSignal).toBeUndefined();
+  });
 });
