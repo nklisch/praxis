@@ -6,35 +6,55 @@ export interface ToolLabel {
    */
   present: string;
   /**
-   * Past-tense copy shown after the tool resolves successfully. When omitted,
-   * the interstitial collapses (renderer returns null) once the result lands.
-   * Set this only when the past-tense line adds standing context next to a
-   * renderable surface (e.g. "Cited textbook" alongside SourceCards).
+   * Past-tense copy shown after the tool resolves successfully. Used as the
+   * collapsed summary line for settled tool entries when no `summarize`
+   * helper is provided.
    */
   past?: string;
   /**
-   * When true, the interstitial is suppressed entirely — the tool already
+   * When true, the tool entry is suppressed entirely — the tool already
    * has its own card surface (quick checks, draft preview, due-card review),
-   * so an interstitial would be a doubled signal. Hidden entries still
-   * participate in result harvesting; only the visual interstitial is
-   * skipped. Default false.
+   * so a tool entry would be a doubled signal. Hidden entries still
+   * participate in result harvesting; only the visual entry is skipped.
+   * Default false.
    */
   hidden?: boolean;
   /**
    * When true, the UI promotes this tool's `tool_call` to a `kind: "sub-agent"`
    * ChatStreamItem that subscribes to `client.subAgent.events({ parentCallId })`
-   * rather than rendering a standard `<ToolInterstitial>`. The block shows live
+   * rather than rendering a standard `<ToolEntry>`. The block shows live
    * step-by-step progress from the sub-agent session.
    *
    * Default false. Only set on tools that explicitly spawn a sub-agent session
    * (today: `course.start_exploration`).
    */
   spawnsSubAgent?: boolean;
+  /**
+   * Optional one-line summary derived from the tool's output. Returns a
+   * concise human-readable string for the collapsed settled state, e.g.
+   * "Searched documents — 3 results". When absent, the collapsed summary
+   * falls back to `past` (or `present` if `past` is also absent).
+   *
+   * Implementations must never throw — wrap risky casts in try/catch.
+   */
+  summarize?: (output: unknown) => string;
 }
 
 export const TOOL_LABELS: Readonly<Record<string, ToolLabel>> = {
   // Document retrieval
-  retrieve_from_documents: { present: "Looking up document references", past: "Cited document" },
+  retrieve_from_documents: {
+    present: "Looking up document references",
+    past: "Cited document",
+    summarize: (output) => {
+      try {
+        const o = output as { citations?: unknown[] } | null | undefined;
+        const n = Array.isArray(o?.citations) ? o.citations.length : 0;
+        return `Cited document — ${n} ${n === 1 ? "result" : "results"}`;
+      } catch {
+        return "Cited document";
+      }
+    },
+  },
   "document.outline": { present: "Reading the table of contents" },
   "document.list_sections": { present: "Scanning sections" },
   "document.read_pages": { present: "Reading pages" },
@@ -45,7 +65,11 @@ export const TOOL_LABELS: Readonly<Record<string, ToolLabel>> = {
     past: "Read your materials",
     spawnsSubAgent: true,
   },
-  "course.draft_init": { present: "Sketching a course outline" },
+  "course.draft_init": {
+    present: "Sketching a course outline",
+    past: "Draft started",
+    summarize: () => "Draft started",
+  },
   "course.draft_add_unit": { present: "Adding a unit" },
   "course.draft_add_lessons": { present: "Adding lessons" },
   "course.draft_add_concepts": { present: "Mapping concepts" },
@@ -77,7 +101,22 @@ export const TOOL_LABELS: Readonly<Record<string, ToolLabel>> = {
   "assignment.create": { present: "Building practice problems" },
   "assignment.show": { present: "Loading the assignment", hidden: true },
   "assignment.read_grade": { present: "Checking your grade" },
-  grade_math: { present: "Grading your work", past: "Graded" },
+  grade_math: {
+    present: "Grading your work",
+    past: "Graded",
+    summarize: (output) => {
+      try {
+        const o = output as { score?: number; total?: number; percent?: number } | null | undefined;
+        if (typeof o?.percent === "number") return `Graded — ${Math.round(o.percent)}%`;
+        if (typeof o?.score === "number" && typeof o?.total === "number") {
+          return `Graded — ${o.score}/${o.total}`;
+        }
+        return "Graded";
+      } catch {
+        return "Graded";
+      }
+    },
+  },
 
   // Pedagogy
   "pedagogy.get_strategy": { present: "Choosing a teaching approach" },
@@ -143,6 +182,21 @@ export function getToolLabel(name: string): ToolLabel {
   const entry = TOOL_LABELS[name];
   if (entry) return entry;
   return { present: humanizeToolName(name) };
+}
+
+/**
+ * Derive a one-line summary string from a tool's output, using the optional
+ * `summarize` helper registered for that tool name. Returns `undefined` when
+ * no summarizer is registered or when the summarizer fails (graceful fallback).
+ */
+export function getToolSummary(name: string, output: unknown): string | undefined {
+  const summarize = TOOL_LABELS[name]?.summarize;
+  if (!summarize) return undefined;
+  try {
+    return summarize(output);
+  } catch {
+    return undefined;
+  }
 }
 
 function humanizeToolName(name: string): string {

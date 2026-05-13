@@ -85,9 +85,10 @@ function stripIds(items: ChatStreamItem[]): unknown[] {
       const { id: _id, streaming: _streaming, ...rest } = item;
       return rest;
     }
-    if (item.kind === "interstitial") {
+    if (item.kind === "tool-entry") {
       // firstSeenAt is a wall-clock timestamp; replay sets it to 0; live sets it to Date.now().
-      // Strip it for parity comparison — the structural shape (kind, callId, toolName, status, errored) is what matters.
+      // Strip it for parity comparison — the structural shape (kind, callId, toolName, status,
+      // input, output, errorMessage) is what matters.
       const { firstSeenAt: _firstSeenAt, ...rest } = item;
       return rest;
     }
@@ -190,7 +191,7 @@ describe("bubble-boundary parity: live vs replay", () => {
     const replay = runReplay(TWO_BUBBLE_TOOL);
     expect(stripIds(live)).toEqual(stripIds(replay));
     expect(live.filter((i) => i.kind === "message" && i.role === "assistant")).toHaveLength(2);
-    expect(live.filter((i) => i.kind === "interstitial")).toHaveLength(1);
+    expect(live.filter((i) => i.kind === "tool-entry")).toHaveLength(1);
   });
 
   it("three-bubble-double-tool: 3 assistant bubbles + 2 interstitials", async () => {
@@ -198,7 +199,7 @@ describe("bubble-boundary parity: live vs replay", () => {
     const replay = runReplay(THREE_BUBBLE_DOUBLE_TOOL);
     expect(stripIds(live)).toEqual(stripIds(replay));
     expect(live.filter((i) => i.kind === "message" && i.role === "assistant")).toHaveLength(3);
-    expect(live.filter((i) => i.kind === "interstitial")).toHaveLength(2);
+    expect(live.filter((i) => i.kind === "tool-entry")).toHaveLength(2);
   });
 
   it("tool-only-no-second-bubble: one bubble, no trailing empty", async () => {

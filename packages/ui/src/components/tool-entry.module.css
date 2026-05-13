@@ -1,0 +1,146 @@
+/* tool-entry.module.css — editorial restraint, matches activity-rail. */
+
+/* In-flight: <p> element with animated dots. */
+.entry {
+  composes: editorial from global;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0.25rem 0 0.25rem 0.25rem;
+  padding: 0;
+  align-self: flex-start;
+  max-width: 80%;
+  line-height: 1.5;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+}
+
+.text {
+  /* inherits italic from .editorial */
+}
+
+.dots {
+  display: inline-flex;
+  gap: 0.18em;
+  align-items: baseline;
+}
+
+.dots > span {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.25;
+  animation: praxis-tool-entry-pulse 1.2s ease-in-out infinite;
+}
+
+.dots > span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dots > span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes praxis-tool-entry-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dots > span {
+    animation: none;
+    opacity: 0.45;
+  }
+}
+
+/* Settled / errored: <div> wrapper for collapsible content. */
+.collapsible {
+  display: block;
+}
+
+/* The collapsed summary button — resets browser button styles. */
+.summary {
+  all: unset;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 0;
+  margin: 0.25rem 0 0.25rem 0.25rem;
+  line-height: 1.5;
+  max-width: 80%;
+}
+
+.summary:disabled {
+  cursor: default;
+}
+
+.summary:not(:disabled):hover .text {
+  opacity: 0.8;
+}
+
+.disclosure {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: 0.75em;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+/* Settled state: slightly dimmed. */
+.settled .summary {
+  opacity: 0.6;
+}
+
+.settled .disclosure {
+  opacity: 0.5;
+}
+
+/* Errored state: warning color. */
+.errored .summary {
+  color: var(--color-warning, var(--color-text-muted));
+  opacity: 0.85;
+}
+
+/* Expanded detail panel. */
+.details {
+  margin: 0.25rem 0 0.25rem 1.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.details > details {
+  margin-bottom: 0.25rem;
+}
+
+.details > details > summary {
+  cursor: pointer;
+  font-style: italic;
+  opacity: 0.75;
+  user-select: none;
+}
+
+.detailPre {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  background: var(--color-surface-muted, rgba(0, 0, 0, 0.04));
+  border-radius: 4px;
+  padding: 0.4em 0.6em;
+  margin: 0.25rem 0 0;
+  max-height: 20rem;
+  overflow-y: auto;
+}

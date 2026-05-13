@@ -7,7 +7,7 @@ import type {
 } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
 import type { ReviewCard } from "../components/flashcard-review.js";
-import type { ChatStreamItem, ToolInterstitial } from "./use-streamed-send.js";
+import type { ChatStreamItem, ToolEntryItem } from "./use-streamed-send.js";
 
 /** Subset of the streamed `tool_result.value` shapes we render today. Mirrors `useStreamedSend`. */
 type ToolResultValue =
@@ -207,15 +207,17 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
 
         const label = getToolLabel(toolName);
         if (!label.hidden) {
-          // Push as in_flight; tool_result handler will settle it.
+          // Push as settled immediately — history is settled by definition.
           // firstSeenAt is set to 0 for historical items (no pacing needed).
-          const interstitial: ToolInterstitial = {
+          // input is populated at tool_call time; output is populated at tool_result.
+          const toolEntry: ToolEntryItem = {
             callId,
             toolName,
-            status: "in_flight",
+            status: "settled",
             firstSeenAt: 0,
+            input: event.args,
           };
-          items.push({ kind: "interstitial", ...interstitial });
+          items.push({ kind: "tool-entry", ...toolEntry });
         }
         break;
       }
@@ -225,14 +227,21 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         const toolName = pendingByCallId.get(callId);
         pendingByCallId.delete(callId);
 
-        // Settle the matching interstitial (walk from end for recency).
+        // Populate output/errorMessage on the matching tool entry (walk from end for recency).
         for (let i = items.length - 1; i >= 0; i--) {
           const item = items[i];
-          if (item?.kind === "interstitial" && item.callId === callId) {
+          if (item?.kind === "tool-entry" && item.callId === callId) {
+            const isErrored = event.result.ok === false;
             items[i] = {
               ...item,
-              status: "settled",
-              ...(event.result.ok === false && { errored: true }),
+              status: isErrored ? "errored" : "settled",
+              ...(event.result.ok &&
+                event.result.value !== undefined && {
+                  output: event.result.value,
+                }),
+              ...(isErrored && {
+                errorMessage: event.result.error.message,
+              }),
             };
             break;
           }

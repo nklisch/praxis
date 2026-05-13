@@ -16,7 +16,7 @@ import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
 import { MessageBubble } from "./message.js";
 import styles from "./sidekick-panel.module.css";
-import { ToolInterstitial } from "./tool-interstitial.js";
+import { ToolEntry } from "./tool-entry.js";
 
 export interface SidekickPanelProps {
   sessionId: SessionId;
@@ -85,13 +85,15 @@ export function SidekickPanel({
           </p>
         )}
         {items.map((item) => {
-          if (item.kind === "interstitial") {
+          if (item.kind === "tool-entry") {
             return (
-              <ToolInterstitial
+              <ToolEntry
                 key={`tc-${item.callId}`}
                 toolName={item.toolName}
                 status={item.status}
-                {...(item.errored !== undefined && { errored: item.errored })}
+                {...(item.input !== undefined && { input: item.input })}
+                {...(item.output !== undefined && { output: item.output })}
+                {...(item.errorMessage !== undefined && { errorMessage: item.errorMessage })}
               />
             );
           }

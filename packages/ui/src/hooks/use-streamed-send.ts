@@ -40,15 +40,33 @@ export interface ChatMessage {
   dueCards?: ReviewCard[];
 }
 
-export interface ToolInterstitial {
+/**
+ * @deprecated Use `ToolEntryItem` instead. Kept temporarily for type compatibility
+ * during the rename transition — will be removed once all consumers are updated.
+ */
+export type ToolInterstitial = ToolEntryItem;
+
+export interface ToolEntryItem {
   /** EngineEvent.callId — pairs tool_call with tool_result. */
   callId: string;
   toolName: string;
-  /** "in_flight" while awaiting tool_result; "settled" once the result lands. */
-  status: "in_flight" | "settled";
-  /** True when the matched tool_result.ok === false. */
-  errored?: boolean;
-  /** Wall-clock timestamp when this interstitial first appeared. Used to enforce MIN_INTERSTITIAL_VISIBLE_MS. */
+  /** "in_flight" while awaiting tool_result; "settled" once it lands; "errored" when ok===false. */
+  status: "in_flight" | "settled" | "errored";
+  /**
+   * Tool input (args) — populated at tool_call time.
+   * Available for both live stream and episodic replay.
+   */
+  input?: unknown;
+  /**
+   * Tool result value — populated at tool_result time.
+   * Only present when status === "settled".
+   */
+  output?: unknown;
+  /**
+   * Error message — populated when status === "errored".
+   */
+  errorMessage?: string;
+  /** Wall-clock timestamp when this entry first appeared. Used to enforce MIN_INTERSTITIAL_VISIBLE_MS. */
   firstSeenAt: number;
 }
 
@@ -90,7 +108,7 @@ export interface SubAgentSpawn {
 
 export type ChatStreamItem =
   | ({ kind: "message" } & ChatMessage)
-  | ({ kind: "interstitial" } & ToolInterstitial)
+  | ({ kind: "tool-entry" } & ToolEntryItem)
   | ({ kind: "sub-agent" } & SubAgentSpawn)
   | ({ kind: "thinking" } & ReasoningItem)
   | ({ kind: "cancel-marker" } & CancelMarker);
@@ -325,18 +343,25 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           const label = getToolLabel(toolName);
           if (label.spawnsSubAgent === true) {
             // Promote to a sub-agent block — subscribes to client.subAgent.events
-            // rather than showing a static interstitial. No pacing timer applied.
+            // rather than showing a static tool entry. No pacing timer applied.
             setItems((prev) => [
               ...prev,
               { kind: "sub-agent", callId, toolName, status: "in_flight" },
             ]);
           } else if (!label.hidden) {
-            // Push a visible interstitial item for this tool call.
+            // Push a visible tool entry item for this tool call.
             const firstSeenAt = Date.now();
             interstitialFirstSeenAt.set(callId, firstSeenAt);
             setItems((prev) => [
               ...prev,
-              { kind: "interstitial", callId, toolName, status: "in_flight", firstSeenAt },
+              {
+                kind: "tool-entry",
+                callId,
+                toolName,
+                status: "in_flight",
+                firstSeenAt,
+                input: event.args,
+              },
             ]);
           }
         } else if (event.type === "tool_result") {
@@ -350,7 +375,9 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
           } else {
             pendingByCallId.delete(callId);
 
-            const errored = event.result.ok === false;
+            const isErrored = event.result.ok === false;
+            const outputValue = event.result.ok ? event.result.value : undefined;
+            const errorMsg = event.result.ok === false ? event.result.error.message : undefined;
 
             // Settle sub-agent items immediately (no pacing — the sub-agent block
             // has its own live event stream; the settle just marks the parent call done).
@@ -360,23 +387,24 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
                   return {
                     ...it,
                     status: "settled" as const,
-                    ...(errored && { errored: true }),
+                    ...(isErrored && { errored: true }),
                   };
                 }
                 return it;
               }),
             );
 
-            // Settle any visible interstitial with this callId, pacing to MIN_INTERSTITIAL_VISIBLE_MS.
+            // Settle any visible tool entry with this callId, pacing to MIN_INTERSTITIAL_VISIBLE_MS.
             const seenAt = interstitialFirstSeenAt.get(callId);
             const settleNow = (): void => {
               setItems((prev) =>
                 prev.map((it) => {
-                  if (it.kind === "interstitial" && it.callId === callId) {
+                  if (it.kind === "tool-entry" && it.callId === callId) {
                     return {
                       ...it,
-                      status: "settled" as const,
-                      ...(errored && { errored: true }),
+                      status: (isErrored ? "errored" : "settled") as "errored" | "settled",
+                      ...(outputValue !== undefined && { output: outputValue }),
+                      ...(errorMsg !== undefined && { errorMessage: errorMsg }),
                     };
                   }
                   return it;

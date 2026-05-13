@@ -33,7 +33,7 @@ import { StructuredQuestionCard } from "./structured-question-card.js";
 import { StudySkillsTabBody } from "./study-skills-tab-body.js";
 import { SubAgentBlock } from "./sub-agent-block.js";
 import { ThinkingIndicator } from "./thinking-indicator.js";
-import { ToolInterstitial } from "./tool-interstitial.js";
+import { ToolEntry } from "./tool-entry.js";
 
 export interface ChatTabBodyProps {
   tab: TabSummary;
@@ -205,13 +205,15 @@ export function TeachChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
           <p className={styles.emptyState}>Start a conversation with your tutor.</p>
         )}
         {items.map((item) => {
-          if (item.kind === "interstitial") {
+          if (item.kind === "tool-entry") {
             return (
-              <ToolInterstitial
+              <ToolEntry
                 key={`tc-${item.callId}`}
                 toolName={item.toolName}
                 status={item.status}
-                {...(item.errored !== undefined && { errored: item.errored })}
+                {...(item.input !== undefined && { input: item.input })}
+                {...(item.output !== undefined && { output: item.output })}
+                {...(item.errorMessage !== undefined && { errorMessage: item.errorMessage })}
               />
             );
           }

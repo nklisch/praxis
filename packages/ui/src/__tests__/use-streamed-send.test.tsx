@@ -337,18 +337,18 @@ describe("useStreamedSend", () => {
 
   // ── Interstitial behaviour ────────────────────────────────────────────────────
 
-  it("tool_call → tool_result produces an interstitial that flips in_flight → settled", async () => {
+  it("tool_call → tool_result produces a tool-entry that flips in_flight → settled with input/output", async () => {
     const client = makeClient([
       {
         type: "tool_call",
         toolName: "grade_math",
-        args: {},
+        args: { expr: "x^2" },
         callId: "c1",
       },
       {
         type: "tool_result",
         callId: "c1",
-        result: { ok: true, tier: "deterministic", value: {} },
+        result: { ok: true, tier: "deterministic", value: { score: 10 } },
       },
       { type: "model_message", content: "done", partial: false },
       { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
@@ -360,15 +360,19 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "grade this");
     });
 
-    const interstitials = result.current.items.filter((i) => i.kind === "interstitial");
-    expect(interstitials).toHaveLength(1);
-    const interstitial = interstitials[0];
-    expect(interstitial?.kind === "interstitial" && interstitial.toolName).toBe("grade_math");
-    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
-    expect(interstitial?.kind === "interstitial" && interstitial.errored).toBeUndefined();
+    const toolEntries = result.current.items.filter((i) => i.kind === "tool-entry");
+    expect(toolEntries).toHaveLength(1);
+    const entry = toolEntries[0];
+    expect(entry?.kind === "tool-entry" && entry.toolName).toBe("grade_math");
+    expect(entry?.kind === "tool-entry" && entry.status).toBe("settled");
+    // input populated at tool_call time
+    expect(entry?.kind === "tool-entry" && entry.input).toEqual({ expr: "x^2" });
+    // output populated at tool_result time
+    expect(entry?.kind === "tool-entry" && entry.output).toEqual({ score: 10 });
+    expect(entry?.kind === "tool-entry" && entry.errorMessage).toBeUndefined();
   });
 
-  it("tool_result.ok === false sets errored: true on the matching interstitial", async () => {
+  it("tool_result.ok === false sets status:'errored' and errorMessage on the matching tool-entry", async () => {
     const client = makeClient([
       { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
       {
@@ -386,12 +390,13 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "grade this");
     });
 
-    const interstitial = result.current.items.find((i) => i.kind === "interstitial");
-    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
-    expect(interstitial?.kind === "interstitial" && interstitial.errored).toBe(true);
+    const entry = result.current.items.find((i) => i.kind === "tool-entry");
+    expect(entry?.kind === "tool-entry" && entry.status).toBe("errored");
+    expect(entry?.kind === "tool-entry" && entry.errorMessage).toBe("failed");
+    expect(entry?.kind === "tool-entry" && entry.output).toBeUndefined();
   });
 
-  it("hidden tool (flashcard.review_next) produces no interstitial but still populates dueCards", async () => {
+  it("hidden tool (flashcard.review_next) produces no tool-entry but still populates dueCards", async () => {
     const cards = [{ flashcardId: "f1", front: "Q" }];
     const client = makeClient([
       { type: "tool_call", toolName: "flashcard.review_next", args: {}, callId: "c1" },
@@ -410,8 +415,8 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "show me cards");
     });
 
-    const interstitials = result.current.items.filter((i) => i.kind === "interstitial");
-    expect(interstitials).toHaveLength(0);
+    const toolEntries = result.current.items.filter((i) => i.kind === "tool-entry");
+    expect(toolEntries).toHaveLength(0);
 
     const assistantMsg = result.current.items.find(
       (i) => i.kind === "message" && i.role === "assistant",
@@ -448,18 +453,18 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "do two things");
     });
 
-    const interstitials = result.current.items.filter((i) => i.kind === "interstitial");
+    const interstitials = result.current.items.filter((i) => i.kind === "tool-entry");
     expect(interstitials).toHaveLength(2);
 
     const gradeInterstitial = interstitials.find(
-      (i) => i.kind === "interstitial" && i.toolName === "grade_math",
+      (i) => i.kind === "tool-entry" && i.toolName === "grade_math",
     );
     const retrieveInterstitial = interstitials.find(
-      (i) => i.kind === "interstitial" && i.toolName === "retrieve_from_documents",
+      (i) => i.kind === "tool-entry" && i.toolName === "retrieve_from_documents",
     );
 
-    expect(gradeInterstitial?.kind === "interstitial" && gradeInterstitial.status).toBe("settled");
-    expect(retrieveInterstitial?.kind === "interstitial" && retrieveInterstitial.status).toBe(
+    expect(gradeInterstitial?.kind === "tool-entry" && gradeInterstitial.status).toBe("settled");
+    expect(retrieveInterstitial?.kind === "tool-entry" && retrieveInterstitial.status).toBe(
       "settled",
     );
 
@@ -489,7 +494,7 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "hi");
     });
 
-    const interstitials = result.current.items.filter((i) => i.kind === "interstitial");
+    const interstitials = result.current.items.filter((i) => i.kind === "tool-entry");
     expect(interstitials).toHaveLength(0);
     // Stream completed normally
     expect(result.current.lastError).toBeNull();
@@ -574,12 +579,12 @@ describe("useStreamedSend", () => {
     expect(assistantMsgs[1]?.kind === "message" && assistantMsgs[1].streaming).toBe(false);
 
     // Interstitial sits between the two bubbles
-    const interstitial = result.current.items.find((i) => i.kind === "interstitial");
+    const interstitial = result.current.items.find((i) => i.kind === "tool-entry");
     expect(interstitial).toBeDefined();
     const assistantIdx0 = result.current.items.findIndex(
       (i) => i.kind === "message" && i.role === "assistant",
     );
-    const interstitialIdx = result.current.items.findIndex((i) => i.kind === "interstitial");
+    const interstitialIdx = result.current.items.findIndex((i) => i.kind === "tool-entry");
     const assistantIdx1 = result.current.items.findLastIndex(
       (i) => i.kind === "message" && i.role === "assistant",
     );
@@ -1012,13 +1017,13 @@ describe("useStreamedSend", () => {
     });
 
     // Stream ended — finally drain fires settle immediately.
-    const interstitial = result.current.items.find((i) => i.kind === "interstitial");
-    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
+    const interstitial = result.current.items.find((i) => i.kind === "tool-entry");
+    expect(interstitial?.kind === "tool-entry" && interstitial.status).toBe("settled");
   });
 
-  it("fast tool with errored result: finally drain preserves errored flag", async () => {
+  it("fast tool with errored result: finally drain preserves errored status and errorMessage", async () => {
     // Even for a fast tool that completes with ok:false, the finally drain
-    // calls the closured settleNow which captures the errored flag.
+    // calls the closured settleNow which captures the errored status and errorMessage.
     const client = makeClient([
       { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" },
       {
@@ -1039,9 +1044,9 @@ describe("useStreamedSend", () => {
       await result.current.send(brandId<"SessionId">("s1"), "go");
     });
 
-    const interstitial = result.current.items.find((i) => i.kind === "interstitial");
-    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
-    expect(interstitial?.kind === "interstitial" && interstitial.errored).toBe(true);
+    const entry = result.current.items.find((i) => i.kind === "tool-entry");
+    expect(entry?.kind === "tool-entry" && entry.status).toBe("errored");
+    expect(entry?.kind === "tool-entry" && entry.errorMessage).toBe("failed");
   });
 
   it("cancel (interrupted) event: interstitial stays in_flight, cancel-marker appears", async () => {
@@ -1068,8 +1073,8 @@ describe("useStreamedSend", () => {
     expect(result.current.items.some((i) => i.kind === "cancel-marker")).toBe(true);
 
     // The interstitial remains in_flight — cancelled turn, timer was cleared.
-    const it = result.current.items.find((i) => i.kind === "interstitial");
-    expect(it?.kind === "interstitial" && it.status).toBe("in_flight");
+    const it = result.current.items.find((i) => i.kind === "tool-entry");
+    expect(it?.kind === "tool-entry" && it.status).toBe("in_flight");
 
     // isStreaming is false (stream ended).
     expect(result.current.isStreaming).toBe(false);
@@ -1304,8 +1309,8 @@ describe("useStreamedSend", () => {
     expect(result.current.items.some((i) => i.kind === "cancel-marker")).toBe(true);
 
     // The interstitial remains in_flight — cancelled turn, timer was cleared.
-    const it = result.current.items.find((i) => i.kind === "interstitial");
-    expect(it?.kind === "interstitial" && it.status).toBe("in_flight");
+    const it = result.current.items.find((i) => i.kind === "tool-entry");
+    expect(it?.kind === "tool-entry" && it.status).toBe("in_flight");
 
     // isStreaming is false (stream ended).
     expect(result.current.isStreaming).toBe(false);

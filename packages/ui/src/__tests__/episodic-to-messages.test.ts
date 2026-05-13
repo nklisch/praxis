@@ -115,8 +115,8 @@ describe("episodicToItems", () => {
     expect(messages[0]).toMatchObject({ role: "user", content: "x" });
   });
 
-  it("drops empty assistant turns (tool chatter that produced nothing renderable and no visible interstitial)", () => {
-    // internal.thing is not in the TOOL_LABELS registry, so it gets a visible interstitial
+  it("drops empty assistant turns (tool chatter that produced nothing renderable and no visible tool entry)", () => {
+    // internal.thing is not in the TOOL_LABELS registry, so it gets a visible tool entry
     // via the humanizer fallback. Use a hidden tool to produce a truly empty assistant turn.
     const out = episodicToItems([
       ep(0, 1, { type: "user_message", content: "do internal stuff" }),
@@ -134,39 +134,42 @@ describe("episodicToItems", () => {
       ep(0, 4, { type: "final", usage: { inputTokens: 0, outputTokens: 0 } }),
     ]);
 
-    // Only the user bubble — hidden tool produces no interstitial, and no model message.
+    // Only the user bubble — hidden tool produces no tool entry, and no model message.
     const messages = out.filter((i) => i.kind === "message");
     expect(messages).toHaveLength(1);
     expect(messages[0]?.role).toBe("user");
-    // No interstitials either (hidden tool).
-    const interstitials = out.filter((i) => i.kind === "interstitial");
-    expect(interstitials).toHaveLength(0);
+    // No tool entries either (hidden tool).
+    const toolEntries = out.filter((i) => i.kind === "tool-entry");
+    expect(toolEntries).toHaveLength(0);
   });
 
-  // ── Interstitial pairing ───────────────────────────────────────────────────
+  // ── Tool-entry pairing ────────────────────────────────────────────────────
 
-  it("emits a settled interstitial for a tool_call → tool_result pair", () => {
+  it("emits a settled tool-entry for a tool_call → tool_result pair", () => {
     const out = episodicToItems([
       ep(0, 1, { type: "user_message", content: "q" }),
-      ep(0, 2, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
+      ep(0, 2, { type: "tool_call", toolName: "grade_math", args: { expr: "x^2" }, callId: "c1" }),
       ep(0, 3, {
         type: "tool_result",
         callId: "c1",
-        result: { ok: true, tier: "deterministic", value: {} },
+        result: { ok: true, tier: "deterministic", value: { score: 10 } },
       }),
       ep(0, 4, { type: "model_message", content: "Graded!", partial: false }),
       ep(0, 5, { type: "final", usage: { inputTokens: 0, outputTokens: 0 } }),
     ]);
 
-    const interstitials = out.filter((i) => i.kind === "interstitial");
-    expect(interstitials).toHaveLength(1);
-    const interstitial = interstitials[0];
-    expect(interstitial?.kind === "interstitial" && interstitial.toolName).toBe("grade_math");
-    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
-    expect(interstitial?.kind === "interstitial" && interstitial.errored).toBeUndefined();
+    const toolEntries = out.filter((i) => i.kind === "tool-entry");
+    expect(toolEntries).toHaveLength(1);
+    const entry = toolEntries[0];
+    expect(entry?.kind === "tool-entry" && entry.toolName).toBe("grade_math");
+    expect(entry?.kind === "tool-entry" && entry.status).toBe("settled");
+    // input and output populated
+    expect(entry?.kind === "tool-entry" && entry.input).toEqual({ expr: "x^2" });
+    expect(entry?.kind === "tool-entry" && entry.output).toEqual({ score: 10 });
+    expect(entry?.kind === "tool-entry" && entry.errorMessage).toBeUndefined();
   });
 
-  it("marks interstitial errored when tool_result.ok === false", () => {
+  it("marks tool-entry errored when tool_result.ok === false", () => {
     const out = episodicToItems([
       ep(0, 1, { type: "user_message", content: "q" }),
       ep(0, 2, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
@@ -179,11 +182,12 @@ describe("episodicToItems", () => {
       ep(0, 5, { type: "final", usage: { inputTokens: 0, outputTokens: 0 } }),
     ]);
 
-    const interstitials = out.filter((i) => i.kind === "interstitial");
-    expect(interstitials).toHaveLength(1);
-    const interstitial = interstitials[0];
-    expect(interstitial?.kind === "interstitial" && interstitial.status).toBe("settled");
-    expect(interstitial?.kind === "interstitial" && interstitial.errored).toBe(true);
+    const toolEntries = out.filter((i) => i.kind === "tool-entry");
+    expect(toolEntries).toHaveLength(1);
+    const entry = toolEntries[0];
+    expect(entry?.kind === "tool-entry" && entry.status).toBe("errored");
+    expect(entry?.kind === "tool-entry" && entry.errorMessage).toBe("boom");
+    expect(entry?.kind === "tool-entry" && entry.output).toBeUndefined();
   });
 
   it("correctly pairs two concurrent tool calls by callId", () => {
@@ -215,27 +219,25 @@ describe("episodicToItems", () => {
       ep(0, 7, { type: "final", usage: { inputTokens: 0, outputTokens: 0 } }),
     ]);
 
-    const interstitials = out.filter((i) => i.kind === "interstitial");
-    expect(interstitials).toHaveLength(2);
+    const toolEntries = out.filter((i) => i.kind === "tool-entry");
+    expect(toolEntries).toHaveLength(2);
 
-    const gradeInterstitial = interstitials.find(
-      (i) => i.kind === "interstitial" && i.toolName === "grade_math",
+    const gradeEntry = toolEntries.find(
+      (i) => i.kind === "tool-entry" && i.toolName === "grade_math",
     );
-    const retrieveInterstitial = interstitials.find(
-      (i) => i.kind === "interstitial" && i.toolName === "retrieve_from_documents",
+    const retrieveEntry = toolEntries.find(
+      (i) => i.kind === "tool-entry" && i.toolName === "retrieve_from_documents",
     );
 
-    expect(gradeInterstitial?.kind === "interstitial" && gradeInterstitial.status).toBe("settled");
-    expect(retrieveInterstitial?.kind === "interstitial" && retrieveInterstitial.status).toBe(
-      "settled",
-    );
+    expect(gradeEntry?.kind === "tool-entry" && gradeEntry.status).toBe("settled");
+    expect(retrieveEntry?.kind === "tool-entry" && retrieveEntry.status).toBe("settled");
 
     // Citations should land on the assistant message
     const assistant = out.find((i) => i.kind === "message" && i.role === "assistant");
     expect(assistant?.kind === "message" && assistant.citations).toHaveLength(1);
   });
 
-  it("does not emit interstitial for hidden tools (flashcard.review_next) but still harvests dueCards", () => {
+  it("does not emit tool-entry for hidden tools (flashcard.review_next) but still harvests dueCards", () => {
     const cards = [{ flashcardId: "f1", front: "Q" }];
     const out = episodicToItems([
       ep(0, 1, { type: "user_message", content: "show cards" }),
@@ -249,9 +251,9 @@ describe("episodicToItems", () => {
       ep(0, 5, { type: "final", usage: { inputTokens: 0, outputTokens: 0 } }),
     ]);
 
-    // No interstitial for hidden tool
-    const interstitials = out.filter((i) => i.kind === "interstitial");
-    expect(interstitials).toHaveLength(0);
+    // No tool entry for hidden tool
+    const toolEntries = out.filter((i) => i.kind === "tool-entry");
+    expect(toolEntries).toHaveLength(0);
 
     // dueCards still harvested onto assistant message
     const assistant = out.find((i) => i.kind === "message" && i.role === "assistant");
@@ -281,12 +283,12 @@ describe("episodicToItems", () => {
     expect(assistantMsgs[0]?.kind === "message" && assistantMsgs[0].streaming).toBe(false);
     expect(assistantMsgs[1]?.kind === "message" && assistantMsgs[1].streaming).toBe(false);
 
-    // Interstitial sits between the two bubbles in item order.
+    // Tool entry sits between the two bubbles in item order.
     const assistantIdx0 = out.findIndex((i) => i.kind === "message" && i.role === "assistant");
-    const interstitialIdx = out.findIndex((i) => i.kind === "interstitial");
+    const toolEntryIdx = out.findIndex((i) => i.kind === "tool-entry");
     const assistantIdx1 = out.findLastIndex((i) => i.kind === "message" && i.role === "assistant");
-    expect(interstitialIdx).toBeGreaterThan(assistantIdx0);
-    expect(assistantIdx1).toBeGreaterThan(interstitialIdx);
+    expect(toolEntryIdx).toBeGreaterThan(assistantIdx0);
+    expect(assistantIdx1).toBeGreaterThan(toolEntryIdx);
   });
 
   it("tool_call with no following model_message produces one bubble and no trailing empty bubble", () => {

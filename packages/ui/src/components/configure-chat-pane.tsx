@@ -5,7 +5,7 @@ import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { Composer } from "./composer.js";
 import styles from "./configure-chat-pane.module.css";
 import { MessageBubble } from "./message.js";
-import { ToolInterstitial } from "./tool-interstitial.js";
+import { ToolEntry } from "./tool-entry.js";
 
 export interface ConfigureChatPaneProps {
   sessionId: SessionId | null;
@@ -51,13 +51,15 @@ export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChat
           </p>
         )}
         {items.map((item) => {
-          if (item.kind === "interstitial") {
+          if (item.kind === "tool-entry") {
             return (
-              <ToolInterstitial
+              <ToolEntry
                 key={`tc-${item.callId}`}
                 toolName={item.toolName}
                 status={item.status}
-                {...(item.errored !== undefined && { errored: item.errored })}
+                {...(item.input !== undefined && { input: item.input })}
+                {...(item.output !== undefined && { output: item.output })}
+                {...(item.errorMessage !== undefined && { errorMessage: item.errorMessage })}
               />
             );
           }

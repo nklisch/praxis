@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-tool-call-thread-persistence
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, chat, tutor-ux]
 parent: epic-tutor-session-feel
 depends_on: []
@@ -485,3 +485,44 @@ Covered by Unit 9. Critical invariants:
 4. **Errored state field naming** (low). Engine events for tool
    errors carry `error.message` (or similar — depends on the
    EngineEvent union). Verify the exact field during Unit 5.
+
+## Implementation Discovery
+
+Unit 1 (Reproduce) was done via code-reading rather than runtime observation. Key findings:
+
+- The 800ms pacing (`MIN_INTERSTITIAL_VISIBLE_MS`) was already implemented in `use-streamed-send.ts`. The design was correct that *persistence* was the gap, not pacing.
+- The auto-scroll logic in `chat-tab-body.tsx` (lines 126–136) already had the near-bottom threshold (80px) implemented — Unit 8 required no code changes; it was already done.
+- The `SubAgentBlock` (Unit 7) already had collapse/expand behavior and stayed in the thread — no changes needed. The design's "add collapsed-by-default" was already implemented.
+- The `tool_call` EngineEvent uses `args: unknown` (not `input`) for the tool arguments. Used `event.args` as the `input` field on `ToolEntryItem`.
+- The errored tool result uses `event.result.error.message` (confirmed from `EngineEvent` type in `engine.ts`).
+
+## Implementation Notes
+
+### Files changed
+
+- `packages/tools/src/labels/index.ts` — added `summarize?: (output: unknown) => string` to `ToolLabel`; added `getToolSummary()` export; added summarizers for `retrieve_from_documents`, `course.draft_init`, `grade_math`.
+- `packages/tools/src/labels/__tests__/index.test.ts` — added `getToolSummary` tests (13 new tests).
+- `packages/ui/src/hooks/use-streamed-send.ts` — renamed `ToolInterstitial` → `ToolEntryItem` (kept deprecated type alias for backward-compat); updated `ChatStreamItem` union: `kind: "interstitial"` → `kind: "tool-entry"`; on `tool_call` push now includes `input: event.args`; on `tool_result` settle now sets `status: "errored"` (vs old `errored: boolean`) and populates `output`/`errorMessage`.
+- `packages/ui/src/hooks/episodic-to-messages.ts` — updated `tool_call` case: push `tool-entry` with `status: "settled"` immediately (history is settled) and `input: event.args`; updated `tool_result` case: sets `status: "errored"` or `"settled"`, populates `output`/`errorMessage`.
+- `packages/ui/src/components/tool-entry.tsx` (git mv from `tool-interstitial.tsx`) — rewrote component as `ToolEntry` with three states: in_flight (dots, same as before), settled (collapsed summary with disclosure button, expandable to show input+output JSON), errored (red-ish summary, expandable to show error). `getToolSummary` used for settled summary line.
+- `packages/ui/src/components/tool-entry.module.css` (git mv from `tool-interstitial.module.css`) — extended CSS to support `.collapsible`, `.summary` (button reset), `.disclosure`, `.details`, `.detailPre` classes for the expandable settled/errored states.
+- `packages/ui/src/components/chat-tab-body.tsx` — updated import + render dispatch: `kind: "interstitial"` → `kind: "tool-entry"`, `<ToolInterstitial>` → `<ToolEntry>` with new props.
+- `packages/ui/src/components/sidekick-panel.tsx` — same consumer update.
+- `packages/ui/src/components/configure-chat-pane.tsx` — same consumer update.
+- `packages/ui/src/__tests__/tool-entry.test.tsx` (git mv from `tool-interstitial.test.tsx`) — rewrote tests for `ToolEntry` covering all three states + hidden tools + expand/collapse + citation count summary.
+- `packages/ui/src/__tests__/episodic-to-messages.test.ts` — updated all `"interstitial"` → `"tool-entry"` references; added `input`/`output` assertions on tool entries; updated `errored` boolean → `status: "errored"` + `errorMessage`.
+- `packages/ui/src/__tests__/use-streamed-send.test.tsx` — updated all `kind === "interstitial"` → `kind === "tool-entry"`; updated errored assertions.
+- `packages/ui/src/__tests__/bubble-boundary-parity.test.ts` — updated `kind === "interstitial"` → `kind === "tool-entry"` in `stripIds` and scenario assertions.
+
+### Deviations from design
+
+- **Unit 7 (SubAgentBlock)**: No changes needed — `SubAgentBlock` already had collapsed-by-default behavior. The design described adding it; it was already there.
+- **Unit 8 (auto-scroll)**: No changes needed — `chat-tab-body.tsx` already had an 80px near-bottom threshold. The design described adding it; it was already there.
+- **`errored` field**: Changed from `errored?: boolean` to `status: "errored"` (clean enum extension) and `errorMessage?: string`. More type-safe than the old boolean flag.
+- **`tool-entry.tsx` hook ordering**: Used `useState` before the `label.hidden` guard (moved state declaration unconditionally upward) to satisfy React hook ordering rules.
+
+### Test status
+
+- 115 tests across the 5 target test files: all pass.
+- Full workspace test suite: 2954 passing, 13 failing (all in `course-documents-service.test.ts` — pre-existing parallel story failure, not related to this feature).
+- Parity test (`bubble-boundary-parity.test.ts`): 8/8 pass.
