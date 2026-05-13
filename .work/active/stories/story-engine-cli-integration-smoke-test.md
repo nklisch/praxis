@@ -1,14 +1,14 @@
 ---
 id: story-engine-cli-integration-smoke-test
 kind: story
-stage: implementing
+stage: review
 tags: [testing, engine]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-13
 ---
 
 # Engine CLI integration smoke test (gated)
@@ -44,4 +44,21 @@ a turn — same tradeoff as the Pyodide-gated tests.
 
 Origin: `.work/backlog/idea-engine-cli-integration-smoke-test.md`.
 
-<!-- Implementation Notes accumulate here as work progresses. -->
+## Implementation Notes
+
+**File**: `packages/engines/src/__tests__/claude-code-cli-integration.test.ts`
+
+Mirrors the `slow-test-gating` pattern exactly: `describe.skipIf(!runSlowTests)(...)` with `{ timeout: 60_000 }`. The 60 s timeout is more conservative than the Pyodide gate (120 s) — one real model turn with a haiku model typically completes in <15 s.
+
+**Construction approach**: `ClaudeCodeEngine` is constructed directly with a minimal logger and a real `ToolRegistry` (not mocked). `engine.open()` → `session.send()` → assert events. `beforeAll`/`afterAll` open/close the shared session to pay the bridge startup cost once for the suite.
+
+**Echo tool registry**: One tool `test.echo` with a simple JSON Schema; dispatch echoes `input.message` verbatim as `{ echoed: message }`. The system prompt instructs haiku to call the tool without elaboration.
+
+**Assertions**:
+1. A `tool_call` event with `toolName === "test.echo"` was emitted — proves `--tools ""` did NOT strip MCP tools.
+2. A `tool_result` event with `result.ok === true` and `result.value.echoed === "hello from integration test"` was emitted — proves the MCP bridge routed the call correctly and returned the result.
+3. At least one `model_message` or `final` event exists — proves the turn completed normally.
+
+**Lint**: The biome `noNonNullAssertion` rule flagged `session!.send(...)`. Replaced with an explicit guard: `if (!session) throw new Error(...)` followed by `session.send(...)`.
+
+**Pre-existing failures**: `pnpm test` shows one failing test in `@praxis/curriculum` (`import-service.test.ts` — missing `@praxis/core/services/bootstrap-service` specifier). This is unrelated to this story and was failing before these changes. All 108 tests in `@praxis/engines` pass.
