@@ -1,6 +1,5 @@
 import type { EngineConfigSnapshot } from "@praxis/core/types";
 import { type FormEvent, useEffect, useState } from "react";
-import { GlobalPromptEditor } from "../components/global-prompt-editor.js";
 import { RouteHeader } from "../components/route-header.js";
 import { getRouteMeta } from "../components/route-meta.js";
 import { usePraxisClient } from "../context/client-context.js";
@@ -188,8 +187,6 @@ export function SettingsRoute() {
           )}
         </div>
       </form>
-
-      <GlobalPromptEditor />
     </div>
   );
 }

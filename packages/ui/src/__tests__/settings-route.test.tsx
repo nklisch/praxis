@@ -120,21 +120,17 @@ describe("SettingsRoute", () => {
     expect(screen.getByText("loading…")).toBeDefined();
   });
 
-  it("renders the Global prompt section after loading", async () => {
+  it("does not render the GlobalPromptEditor (moved to Configure prompt tab)", async () => {
     const client = makeSettingsClient();
     renderWithClient(client);
 
+    // Wait for the config to load so we're not racing the loading state.
     await waitFor(() => {
-      expect(screen.getByText("Global prompt")).toBeDefined();
+      expect(screen.getByText("SETTINGS")).toBeDefined();
     });
-  });
 
-  it("renders the GlobalPromptEditor textarea after loading", async () => {
-    const client = makeSettingsClient();
-    renderWithClient(client);
-
-    await waitFor(() => {
-      expect(screen.getByRole("textbox", { name: /global prompt text/i })).toBeDefined();
-    });
+    // The "Global prompt" heading and its textarea should NOT be present in Settings.
+    const globalHeading = screen.queryByText("Global prompt");
+    expect(globalHeading).toBeNull();
   });
 });

@@ -17,6 +17,9 @@
     },
     {
       "path": "../client"
+    },
+    {
+      "path": "../curriculum"
     }
   ],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test-d.ts", "src/**/__tests__/**"]

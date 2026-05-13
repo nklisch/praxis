@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2-unified-configure-surface
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, configure, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on: []
@@ -425,3 +425,72 @@ rewrite of the editor logic.
    with a clean per-block editor.
 5. **Settings route removal of imports** (low). Mechanical;
    typecheck flags any missed reference.
+
+## Implementation Notes
+
+Landed 2026-05-13 as a single-stride commit. All 6 Units complete.
+
+### Unit 1 — `listModes()` helper
+
+Already exported from `packages/curriculum/src/modes/index.ts` at line 30.
+No changes needed.
+
+### Unit 2 — Settings cleanup
+
+Removed `GlobalPromptEditor` import (was line 3) and the JSX render at the
+bottom of `SettingsRoute`. Settings now ends with the save-result row inside
+the engine form, as intended.
+
+### Unit 3 — New unified prompt tab
+
+`packages/ui/src/routes/configure/prompt-tab.tsx` replaced wholesale.
+Key implementation discoveries:
+
+- **`user-append` not in static `promptFragments`**: The teach mode (and others)
+  don't include a `user-append` fragment in their `promptFragments` array — it's
+  a virtual position injected at compose time. `FragmentStack` handles this by
+  always appending an `ModeAppendEditor` block at the bottom of the stack,
+  regardless of whether the fragment appears in the static list. Static fragments
+  that ARE `user-global` or `user-append` are filtered out (to avoid double-render
+  if a future mode ever lists them explicitly).
+
+- **`PromptFragmentEditor` internal selector**: The existing component shows its
+  own Mode/Fragment selector even when `initialModeId`/`initialFragmentId` are
+  passed. Acceptable per the design's "v1 risk #4" — `full-fragment-view` will
+  replace these inline.
+
+- **`displayName` on `Mode`**: The type has `displayName` in source but the dist
+  hadn't been rebuilt. Fixed by adding `@praxis/curriculum` to the UI tsconfig
+  `references` array (so tsgo resolves curriculum source rather than dist).
+  Also added `@praxis/curriculum: workspace:*` to `packages/ui/package.json`
+  dependencies — UI now directly imports `listModes` and `requireMode` from
+  curriculum source.
+
+### Unit 4 — CSS
+
+Full-width layout (`max-width` removed), editorial-consistent section spacing,
+fragment block chrome (header row with id/position/locked badge, read-only
+pre for template text), toggle button row for preview pane.
+
+### Unit 5 — COPY strings
+
+Added `COPY.prompt.*` block (13 new keys) to `packages/ui/src/lib/copy.ts`.
+All section titles, descriptions, picker label, toggle labels, and
+diff-disabled tooltip live there.
+
+### Unit 6 — Tests
+
+`configure-prompt-tab.test.tsx`: fully rewritten (17 tests). Covers structural
+rendering (all 5 sections in order), mode picker defaults + listing + change,
+preview toggle disabled state, and IPC calls for global/append/preview.
+
+`settings-route.test.tsx`: replaced the two GlobalPromptEditor assertions
+(one heading check, one textarea check) with a single negative assertion
+confirming "Global prompt" heading is absent from Settings.
+
+### Verification
+
+- `pnpm --filter @praxis/ui test`: 97 files, 844 tests, all pass.
+- `pnpm --filter @praxis/ui typecheck`: zero errors (new errors for
+  `displayName` resolved by adding curriculum project reference).
+- `pnpm biome check` on all owned files: clean.

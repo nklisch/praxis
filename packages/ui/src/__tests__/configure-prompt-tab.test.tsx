@@ -1,5 +1,5 @@
 import type { LockClient, PraxisClient } from "@praxis/core/types";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { PromptTab } from "../routes/configure/prompt-tab.js";
@@ -25,10 +25,10 @@ function makeClient(lockClient: LockClient = makeLockClient()): PraxisClient {
       getModeAppend: vi.fn().mockResolvedValue(null),
       setModeAppend: vi.fn().mockResolvedValue(undefined),
       previewPrompt: vi.fn().mockResolvedValue("composed prompt"),
-      getGlobalPrompt: vi.fn(),
-      setGlobalPrompt: vi.fn(),
-      customizePrompt: vi.fn(),
-      clearFragmentOverride: vi.fn(),
+      getGlobalPrompt: vi.fn().mockResolvedValue(null),
+      setGlobalPrompt: vi.fn().mockResolvedValue(undefined),
+      customizePrompt: vi.fn().mockResolvedValue(undefined),
+      clearFragmentOverride: vi.fn().mockResolvedValue(undefined),
       setStyleSliders: vi.fn().mockResolvedValue(undefined),
       createCourse: vi.fn(),
       updateCourse: vi.fn(),
@@ -60,68 +60,76 @@ function renderTab(client: PraxisClient = makeClient()) {
   );
 }
 
-describe("PromptTab", () => {
-  it("renders the Per-mode append section heading", async () => {
+describe("PromptTab — unified prompt customization surface", () => {
+  // ── Structural rendering ───────────────────────────────────────────────
+
+  it("renders the Global Fragment section heading", async () => {
     renderTab();
     await waitFor(() => {
-      expect(screen.getByText("Per-mode append")).toBeDefined();
+      expect(screen.getByText("Global Fragment")).toBeDefined();
     });
   });
 
-  it("renders the intro copy for the Per-mode append section", async () => {
+  it("renders the mode picker with label", async () => {
     renderTab();
     await waitFor(() => {
-      expect(
-        screen.getByText(/Add text to the end of a specific mode/i),
-      ).toBeDefined();
+      expect(screen.getByLabelText("Mode")).toBeDefined();
     });
   });
 
-  it("renders the Teaching Style section", async () => {
+  it("renders the Prompt Fragments section heading", async () => {
+    renderTab();
+    await waitFor(() => {
+      expect(screen.getByText("Prompt Fragments")).toBeDefined();
+    });
+  });
+
+  it("renders the Composed Preview section heading", async () => {
+    renderTab();
+    await waitFor(() => {
+      expect(screen.getByText("Composed Preview")).toBeDefined();
+    });
+  });
+
+  it("renders the Teaching Style section heading", async () => {
     renderTab();
     await waitFor(() => {
       expect(screen.getByText("Teaching Style")).toBeDefined();
     });
   });
 
-  it("renders the Advanced framing copy above the fragment editor", async () => {
-    renderTab();
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Advanced: replace specific framework fragments wholesale/i),
-      ).toBeDefined();
-    });
-  });
-
-  it("renders sections in correct order: Per-mode append → Teaching Style → Prompt Fragment Overrides", async () => {
+  it("renders sections in correct order: Global → mode picker → Fragments → Preview → Style", async () => {
     renderTab();
 
     await waitFor(() => {
-      expect(screen.getByText("Per-mode append")).toBeDefined();
+      expect(screen.getByText("Global Fragment")).toBeDefined();
+      expect(screen.getByText("Prompt Fragments")).toBeDefined();
+      expect(screen.getByText("Composed Preview")).toBeDefined();
       expect(screen.getByText("Teaching Style")).toBeDefined();
-      expect(screen.getByText("Prompt Fragment Overrides")).toBeDefined();
     });
 
-    // Use DOM order to verify Per-mode append comes before Teaching Style,
-    // and Teaching Style comes before Prompt Fragment Overrides.
-    const headings = screen
-      .getAllByRole("heading", { level: 2 })
-      .map((el) => el.textContent ?? "");
+    const headings = screen.getAllByRole("heading", { level: 2 }).map((el) => el.textContent ?? "");
 
-    const perModeIdx = headings.indexOf("Per-mode append");
+    const globalIdx = headings.indexOf("Global Fragment");
+    const fragmentIdx = headings.indexOf("Prompt Fragments");
+    const previewIdx = headings.indexOf("Composed Preview");
     const styleIdx = headings.indexOf("Teaching Style");
-    const fragmentIdx = headings.indexOf("Prompt Fragment Overrides");
 
-    expect(perModeIdx).toBeGreaterThanOrEqual(0);
-    expect(styleIdx).toBeGreaterThanOrEqual(0);
+    expect(globalIdx).toBeGreaterThanOrEqual(0);
     expect(fragmentIdx).toBeGreaterThanOrEqual(0);
-    expect(perModeIdx).toBeLessThan(styleIdx);
-    expect(styleIdx).toBeLessThan(fragmentIdx);
+    expect(previewIdx).toBeGreaterThanOrEqual(0);
+    expect(styleIdx).toBeGreaterThanOrEqual(0);
+
+    // Global comes first, then fragments, then preview, then style sliders.
+    expect(globalIdx).toBeLessThan(fragmentIdx);
+    expect(fragmentIdx).toBeLessThan(previewIdx);
+    expect(previewIdx).toBeLessThan(styleIdx);
   });
+
+  // ── Style sliders (no regression) ──────────────────────────────────────
 
   it("still renders the style sliders (no regression)", async () => {
     renderTab();
-
     await waitFor(() => {
       expect(screen.getByText("Guidance style")).toBeDefined();
       expect(screen.getByText("Verbosity")).toBeDefined();
@@ -129,13 +137,113 @@ describe("PromptTab", () => {
     });
   });
 
-  it("still renders the fragment editor (no regression)", async () => {
+  // ── Mode picker ─────────────────────────────────────────────────────────
+
+  it("mode picker defaults to teach", async () => {
     renderTab();
+    await waitFor(() => {
+      const picker = screen.getByRole("combobox", { name: "Mode" }) as HTMLSelectElement;
+      expect(picker.value).toBe("teach");
+    });
+  });
+
+  it("mode picker lists all registered modes", async () => {
+    renderTab();
+    await waitFor(() => {
+      const picker = screen.getByRole("combobox", { name: "Mode" }) as HTMLSelectElement;
+      const options = Array.from(picker.options).map((o) => o.value);
+      // All modes from curriculum registry should be present.
+      expect(options).toContain("teach");
+      expect(options).toContain("quiz");
+      expect(options).toContain("homework");
+      expect(options).toContain("exam");
+      expect(options).toContain("bootstrap");
+      expect(options).toContain("study-skills");
+    });
+  });
+
+  it("mode picker change updates the selected value", async () => {
+    renderTab();
+    await waitFor(() => {
+      const picker = screen.getByRole("combobox", { name: "Mode" }) as HTMLSelectElement;
+      expect(picker.value).toBe("teach");
+    });
+
+    const picker = screen.getByRole("combobox", { name: "Mode" }) as HTMLSelectElement;
+    fireEvent.change(picker, { target: { value: "quiz" } });
 
     await waitFor(() => {
-      // PromptFragmentEditor renders a combobox for fragment selection
-      const selects = screen.getAllByRole("combobox");
-      expect(selects.length).toBeGreaterThan(0);
+      expect((screen.getByRole("combobox", { name: "Mode" }) as HTMLSelectElement).value).toBe(
+        "quiz",
+      );
+    });
+  });
+
+  // ── Preview toggle ───────────────────────────────────────────────────────
+
+  it("renders the Composed toggle button", async () => {
+    renderTab();
+    await waitFor(() => {
+      const composedBtn = screen.getByRole("tab", { name: "Composed" });
+      expect(composedBtn).toBeDefined();
+    });
+  });
+
+  it("renders the Diff toggle button as disabled", async () => {
+    renderTab();
+    await waitFor(() => {
+      const diffBtn = screen.getByRole("tab", { name: "Diff" }) as HTMLButtonElement;
+      expect(diffBtn.disabled).toBe(true);
+    });
+  });
+
+  it("Diff toggle has a tooltip explaining it is coming soon", async () => {
+    renderTab();
+    await waitFor(() => {
+      const diffBtn = screen.getByRole("tab", { name: "Diff" });
+      expect(diffBtn.getAttribute("title")).toBeTruthy();
+    });
+  });
+
+  // ── IPC: global prompt ───────────────────────────────────────────────────
+
+  it("loads the global prompt on mount", async () => {
+    const client = makeClient();
+    renderTab(client);
+    await waitFor(() => {
+      expect(client.author.getGlobalPrompt).toHaveBeenCalled();
+    });
+  });
+
+  // ── IPC: mode append ─────────────────────────────────────────────────────
+
+  it("loads the mode append for the default mode on mount", async () => {
+    const client = makeClient();
+    renderTab(client);
+    await waitFor(() => {
+      expect(client.author.getModeAppend).toHaveBeenCalledWith("teach");
+    });
+  });
+
+  // ── IPC: preview ─────────────────────────────────────────────────────────
+
+  it("calls previewPrompt for the default mode", async () => {
+    const client = makeClient();
+    renderTab(client);
+    await waitFor(() => {
+      expect(client.author.previewPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ modeId: "teach" }),
+      );
+    });
+  });
+
+  // ── Style slider IPC ──────────────────────────────────────────────────────
+
+  it("renders the style save button", async () => {
+    renderTab();
+    await waitFor(() => {
+      const btn = screen.getByRole("button", { name: /save style/i });
+      expect(btn).toBeDefined();
     });
   });
 });
