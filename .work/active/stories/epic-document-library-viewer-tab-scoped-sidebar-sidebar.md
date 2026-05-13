@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-viewer-tab-scoped-sidebar-sidebar
 kind: story
-stage: review
+stage: done
 tags: [ui, documents]
 parent: epic-document-library-viewer-tab-scoped-sidebar
 depends_on: []
@@ -65,3 +65,19 @@ The "documents sidebar" is the `<aside>` inside `packages/ui/src/routes/chat.tsx
 - `packages/ui/src/hooks/__tests__/use-derived-scope.test.tsx` — 12 tests covering all 4 branches + empty-state
 - `packages/ui/src/routes/chat.tsx` — sidebar wired to derived scope
 - `packages/ui/src/__tests__/chat-route.test.tsx` — mock updated for `useMatches`; assertion loosened
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**:
+- Branch 3 returns `{ kind: "all" }` fallback because `listScopesForDocument` is not yet exposed on the client API. Acceptance criterion 3 ("document tab shows document's primary scope's documents") is explicitly unchecked in the story body — eyes were open. Parked as `list-scopes-for-document-client-api` in backlog.
+- `useTabs()` is called twice (ChatRoute + useDerivedScope), producing two state instances and two `listOpen` IPC calls. Acknowledged in impl notes. Parked as `lift-tabs-state-to-context` in backlog.
+
+**Nits**:
+- Scoped-path adaptation maps `DocumentScopeAttachment` → `DocumentSummary` with `ingestorId`/`ingestorLabel` as empty strings. Documented in impl notes. If `<DocumentList>` later renders the ingestor name, the scoped path will look bare — but that's a known shape gap to address when those fields actually surface.
+
+**Notes**: The 4-branch decision tree is clear, well-commented, and exhaustively tested (12 tests). Branch 1 correctly excludes document tabs (the route+tab interaction case). The scoped-vs-global switch in `ChatRoute` is conditional on `scope.kind !== "all"`, which keeps the global path unchanged for users not in a course/bootstrap context — backward-compatible. Empty-state with `Go to library` action is a nice touch.
+
+What's now possible: the sidebar reflects the active context — course pages show course docs, bootstrap explorers show session docs. The viewer story can build on this scope-derivation foundation when it ships document tab bodies.
