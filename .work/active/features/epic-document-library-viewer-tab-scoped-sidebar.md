@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-viewer-tab-scoped-sidebar
 kind: feature
-stage: review
+stage: done
 tags: [ui, documents, tutor-ux]
 parent: epic-document-library
 depends_on: [epic-document-library-scopes-primitive]
