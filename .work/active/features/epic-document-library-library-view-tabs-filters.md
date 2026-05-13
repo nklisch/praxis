@@ -60,8 +60,16 @@ complementing the scope-aware sidebar that ships in
 
 - Tab definition: which scope tabs are always visible, which are
   context-dependent ("This course" only when a course is active)?
-- "Orphaned" definition — docs with no `document_scopes` rows, or docs
-  whose only rows point at deleted parents? Decide which.
+- "Orphaned" definition (resolved): a document surfaces under Orphaned
+  if it has **no `document_scopes` rows at all**, OR all its scope rows
+  point at scopes that are inactive (e.g., a bootstrap session that was
+  never confirmed and has been abandoned). Feature-design pass picks the
+  detection mechanism — flag on `sessions` for abandoned/unconfirmed
+  state, or a derived check via a join against the parent. The literal
+  database-only definition ("no rows at all") is too strict because
+  abandoned-bootstrap docs would silently disappear from the library;
+  the user explicitly wants them findable under Orphaned (see
+  `bootstrap-session-scoped-attachment` for the matching GC decision).
 - Filters: file type (from `documents.mimeType`), ingestion source
   (`source` column on scope row), date range (`attached_at` or
   `documents.ingestedAt`?).

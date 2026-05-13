@@ -72,9 +72,11 @@ in the active scope.
   ingestor already produces these), plain-text/markdown rendered from
   `documentChunks`, HTML rendered with sanitization. PPTX/DOCX: render
   from embedded image stores + extracted text.
-- Sidebar scope inference: explicit scope picker, or derived from active
-  route + active tab? Latter is more "Praxis-feel" but rules need to be
-  crisp.
+- Sidebar scope inference (resolved): **derived from active route + active
+  tab**. Course route → course scope; bootstrap tab → that bootstrap
+  session's scope; library route → unscoped/all. Feature-design pass writes
+  the explicit decision tree (which route+tab combos map to which scope,
+  and what wins when they conflict).
 - Open-in-tab plumbing: reuse `openSessionInTab` pattern from
   `session-tab-open-flow`? Probably a new `openDocumentInTab` helper.
 - Empty-state UX for scope with zero attached docs.

@@ -64,9 +64,14 @@ these docs" is preserved.
 
 - Promotion semantics: write a `course` scope row at confirmation; keep
   the `session` scope row for audit. Both queries succeed afterward.
-- Cleanup: do session-scoped docs get garbage-collected when the session
-  is closed without confirming? Or stay as "orphaned"-ish records visible
-  in a library tab?
+- Cleanup (resolved): **keep** session-scoped rows when a bootstrap
+  session is abandoned without `confirmDraft`. Don't garbage-collect.
+  They surface under the library's Orphaned tab (see
+  `library-view-tabs-filters`). Mechanism for detecting "abandoned"
+  vs. "active" session is for feature-design — likely a flag on
+  `sessions` (e.g., `abandoned_at` timestamp, set when the user
+  explicitly discards or starts a fresh bootstrap run), or a derived
+  rule ("no events in N days + never confirmed").
 - Tool surface: do the explorer tools take the scope explicitly, or
   derive from `ctx.sessionId`? Latter is simpler if `ToolContext` carries
   it.

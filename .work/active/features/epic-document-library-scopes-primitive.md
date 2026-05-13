@@ -73,9 +73,10 @@ epic depends on it.
   validation checks the scope exists at write time.
 - `source` column carries `'manual' | 'bootstrap' | …` like the current
   `course_documents.source`.
-- Migration: copy every `course_documents` row to `document_scopes` with
-  `scope_kind='course'`. Drop `course_documents` only after the dust
-  settles — keep it around in the migration if rollback safety matters.
-- `CourseDocumentsServiceImpl` either becomes a thin facade over a new
-  `DocumentScopesServiceImpl`, or is fully replaced. Decide at design time
-  whether keeping the course-facing facade simplifies the call-site updates.
+- Migration (resolved): copy every `course_documents` row to
+  `document_scopes` with `scope_kind='course'`, then **drop**
+  `course_documents` in the same migration. One source of truth from the
+  moment migration runs.
+- `CourseDocumentsServiceImpl` is **fully replaced** by a new
+  `DocumentScopesServiceImpl` (no facade). The ~5 call sites are bounded;
+  a clean break is cheaper than two surfaces.
