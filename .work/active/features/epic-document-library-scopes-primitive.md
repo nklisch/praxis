@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-scopes-primitive
 kind: feature
-stage: review
+stage: done
 tags: [core, documents, ingestion, schema]
 parent: epic-document-library
 depends_on: []
@@ -867,3 +867,26 @@ source. The `course_documents` table is gone; the polymorphic
 `document_scopes` table is now the SSOT for document scoping. The three
 downstream features (`bootstrap-session-scoped-attachment`,
 `viewer-tab-scoped-sidebar`, `library-view-tabs-filters`) are unblocked.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- All 3 child stories reviewed individually and at `stage: done`:
+  - `…-schema-and-migration` (Approve) — schema + Drizzle migration
+  - `…-service-and-types` (Approve) — types + DocumentScopesServiceImpl + tests
+  - `…-callsite-sweep` (Approve) — every consumer flipped + integration debt cleaned
+- Capability completeness check: ✓ The full `document_scopes` primitive works end-to-end.
+  - `documentScopes` schema present with composite PK and indexes.
+  - `DocumentScopesService` interface + impl present; 7 methods (incl. `promoteScope` and `listScopesForDocument` for downstream features).
+  - All call sites updated (bootstrap-service, ingestion, attach-document tool, IPC channel, client, electron services bundle).
+  - `IngestionRequest.courseId` → `IngestionRequest.scope?: DocumentScope` rename complete.
+- Foundation-doc alignment: `docs/ARCHITECTURE.md:388-390` describes the polymorphic table — rolled forward at epic-design time and accurately reflects the realized implementation.
+- Aggregate verification: `pnpm typecheck && pnpm lint && pnpm test` all green at end of wave 3.
+- Decomposition realized as designed: 3 sequentially-dependent stories with each story's typecheck-failure state explicitly documented as expected. The strategy worked — each story shipped a coherent chunk that built on the previous.
+- Three downstream features now unblocked: `bootstrap-session-scoped-attachment`, `viewer-tab-scoped-sidebar`, `library-view-tabs-filters`.

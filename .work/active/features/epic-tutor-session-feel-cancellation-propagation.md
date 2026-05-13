@@ -1,7 +1,7 @@
 ---
 id: epic-tutor-session-feel-cancellation-propagation
 kind: feature
-stage: review
+stage: done
 tags: [core, engines, tools, chat]
 parent: epic-tutor-session-feel
 depends_on: []
@@ -553,3 +553,21 @@ Both child stories landed and are at `stage: review`:
   added and wired into `SessionServiceImpl.send`'s abort short-circuit.
 
 End-to-end: clicking Stop now actually stops sub-agents within ~1s.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Both child stories reviewed individually and at `stage: done`:
+  - `…-core-plumbing` (Approve) — `signal` field on `DispatchMeta` + `ToolContext`; `dispatch()` threading
+  - `…-engine-and-subagent` (Approve) — 3 engine adapters thread signal; `runConceptExplorer` propagates with `"interrupted"` reason; `SubAgentRegistry.interruptAllForSession`
+- Capability completeness check: ✓ Stop button propagates abort end-to-end. Signal path: UI Stop → IPC `cancel` → `SessionServiceImpl.send(signal)` → engine adapter (`send(signal)`) → MCP bridge / direct closure captures it → `registry.dispatch(name, args, { callId, signal })` → `ctx.signal` on the tool handler → sub-agent's engine `session.send(signal)` → recursive abort all the way down.
+- Sub-agent registry interrupt: in-flight items transition from `running` → `interrupted`, emit terminal event, schedule linger cleanup. UI is informed via existing subscriber-fanout pattern.
+- Foundation-doc alignment: `docs/ARCHITECTURE.md:310` sub-agent transparency contract honored — cancellation walks the same tree the registry already publishes.
+- No other sub-agent-spawning tools found in `packages/tools/` (only `course.start_exploration` resolves an engine). Story 2 documented this negative finding cleanly.
+- Aggregate verification: workspace typecheck/lint/test all green after the engine-and-subagent commit; 12 new tests across 5 files; pre-existing 1000+ tests still pass.
