@@ -1,7 +1,7 @@
 ---
 id: epic-document-library-scopes-primitive-schema-and-migration
 kind: story
-stage: review
+stage: done
 tags: [core, documents, schema]
 parent: epic-document-library-scopes-primitive
 depends_on: []
@@ -103,3 +103,18 @@ instead to create the journal entry and snapshot skeleton, then:
 other consumers still reference the now-deleted `courseDocuments` export.
 This is intentional per the story scope — fixed in
 `epic-document-library-scopes-primitive-service-and-types`.
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Schema shape matches design exactly: composite PK on `(document_id, scope_kind, scope_id)`, FK cascade on `document_id`, two indexes (scope-idx on `(scope_kind, scope_id)`, document-idx on `document_id`), `scope_kind` enum `["course","session"]`, `source` enum `["bootstrap","manual","ingestion"]`.
+- Migration is ordered correctly (CREATE → INSERT…SELECT → DROP), uses Drizzle's `--> statement-breakpoint` convention, and runs in better-sqlite3's default transaction so a mid-migration failure rolls back.
+- The `--custom` workaround for non-TTY `db:generate` is documented in implementation notes; the resulting SQL matches what an auto-diff would produce plus the data-copy step.
+- Foundation doc roll-forward: `docs/ARCHITECTURE.md:388-390` already references the `document_scopes` polymorphic table — drift-free.
+- Expected typecheck failure (call sites still reference removed `courseDocuments`) is documented and resolved in the next story.
