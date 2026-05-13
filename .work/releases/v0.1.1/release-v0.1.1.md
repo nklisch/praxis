@@ -1,7 +1,7 @@
 ---
 id: release-v0.1.1
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
@@ -106,3 +106,19 @@ coverage, and a handful of standalone bug fixes / cleanups.
   - 3 High → `.work/active/stories/` (SecretStorage unavailable encrypt, importUpdateFeedPublicKey length-guard tautology, prompt-customization lock-gating)
   - 10 Medium → `.work/active/stories/` (attach_document configureMode, ask_student_question toolnames, interrupted engine_abort, decryption-failure idempotency, empty apiKey write, ingestion-service embedded-image rename, IPC cancel e2e, authoring audit-log no-content, list_dangling_refs contract divergence, start_exploration without callId)
   - 7 Low → `.work/backlog/` (draft-store rapid save, image cross-chunk boundary, update-banner installer hash UI, pptx slide-fallback real fixture, engineId rename without key, sub-agent collision warn-log, cancel-idempotency states)
+
+## Ship summary
+
+- **Shipped**: 2026-05-13
+- **Mapping**: tag-based (annotated tag `v0.1.1`, not pushed)
+- **Items**: 100 total (48 originally bound + 52 gate-finding stories drained to done)
+  - 2 epics, 13 features, 85 stories
+- **Pre-ship verification**: `pnpm typecheck` clean across all 10 workspace packages; `pnpm test` 3149 passing / 21 skipped (0 failures)
+- **Gate finding totals across 5 gates**: 61 findings
+  - gate-security: 8 (0 Critical, 0 High, 1 Medium, 7 Low — 1 actionable + 7 deferred to backlog)
+  - gate-tests: 20 (0 Critical, 3 High, 10 Medium, 7 Low — 13 actionable + 7 deferred)
+  - gate-cruft: 11 (7 High, 4 Medium, 0 Low — all 11 actionable)
+  - gate-docs: 20 (rolling-foundation drifts — all actionable)
+  - gate-patterns: 2 patterns extracted + 3 inconsistencies flagged
+- **Pre-existing fix during ship**: cleared a missed `release_binding: v0.1.1` on the `gate-security-open-external-url-parse` backlog item (the file contains a null byte in an exploit example, which masked it from earlier grep-based scans)
+- **Publish**: run `git push origin main v0.1.1` to publish the tag
