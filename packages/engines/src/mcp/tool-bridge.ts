@@ -19,7 +19,7 @@ export async function startToolBridge(input: StartToolBridgeInput): Promise<Tool
   const serverName = input.serverName ?? "praxis";
   const summaries = input.registry.list();
   const sdkTools: CCToolDefinition[] = summaries.map((summary) =>
-    buildSdkTool(summary, input.registry),
+    buildSdkTool(summary, input.registry, input.getSignal),
   );
 
   const handle = await startToolServer(sdkTools);
@@ -33,7 +33,11 @@ export async function startToolBridge(input: StartToolBridgeInput): Promise<Tool
   };
 }
 
-function buildSdkTool(summary: ToolDefinitionSummary, registry: ToolRegistry): CCToolDefinition {
+function buildSdkTool(
+  summary: ToolDefinitionSummary,
+  registry: ToolRegistry,
+  getSignal?: () => AbortSignal | undefined,
+): CCToolDefinition {
   const inputSchema = resolveInputSchema(summary);
   return tool(
     summary.name,
@@ -45,7 +49,16 @@ function buildSdkTool(summary: ToolDefinitionSummary, registry: ToolRegistry): C
       // the Claude Code adapter's `tool_use` event (events.ts). We receive it here via
       // `meta.callId` so both channels (engine event + registry/ToolContext) agree on the
       // same id — no uuid generation needed.
-      const result = await registry.dispatch(summary.name, input, { callId: meta.callId });
+      //
+      // Thread the per-turn AbortSignal into dispatch so tool handlers and sub-agent
+      // spawners can bail early when the user clicks Stop. `getSignal` is called here
+      // (not at registration time) so we always read the CURRENT turn's signal, not
+      // a stale one from a prior send().
+      const signal = getSignal?.();
+      const result = await registry.dispatch(summary.name, input, {
+        callId: meta.callId,
+        ...(signal !== undefined && { signal }),
+      });
       if (result.ok) {
         // Pass the structured value directly — the SDK JSON-stringifies at the
         // MCP wire boundary and the receive-side parser inverts that, so

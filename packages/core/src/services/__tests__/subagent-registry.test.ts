@@ -322,3 +322,129 @@ describe("SubAgentRegistryImpl", () => {
     expect(events).toHaveLength(0);
   });
 });
+
+// ─── interruptAllForSession ──────────────────────────────────────────────────
+
+describe("SubAgentRegistryImpl — interruptAllForSession", () => {
+  let registry: SubAgentRegistryImpl;
+  let events: SubAgentEvent[];
+  let unsubscribe: () => void;
+
+  const fakeNow = { value: 2_000_000 };
+  const pendingTimers = new Map<number, { fn: () => void }>();
+  let nextTimerId = 100;
+
+  const fakeSetTimeout = vi.fn((fn: () => void, _delay: number): ReturnType<typeof setTimeout> => {
+    const id = nextTimerId++;
+    pendingTimers.set(id, { fn });
+    // biome-ignore lint/suspicious/noExplicitAny: fake timer id passthrough
+    return id as any;
+  });
+
+  beforeEach(() => {
+    fakeNow.value = 2_000_000;
+    pendingTimers.clear();
+    nextTimerId = 100;
+    fakeSetTimeout.mockClear();
+
+    registry = new SubAgentRegistryImpl({
+      log: noopLogger() as ReturnType<typeof noopLogger>,
+      now: () => fakeNow.value,
+      // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
+      setTimeout: fakeSetTimeout as any,
+    });
+
+    events = [];
+    unsubscribe = registry.subscribe((e) => events.push(e));
+    events.length = 0; // clear snapshot
+  });
+
+  afterEach(() => {
+    unsubscribe();
+  });
+
+  it("transitions running items for the session to interrupted and emits finished event", () => {
+    registry.start({ parentCallId: "call-A", sessionId: "sess-target" as any, label: "A" });
+    events.length = 0;
+
+    registry.interruptAllForSession("sess-target" as any);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      kind: "finished",
+      parentCallId: "call-A",
+      status: "interrupted",
+    });
+
+    const item = registry.list()[0];
+    expect(item?.status).toBe("interrupted");
+    expect(item?.endedAt).toBeDefined();
+  });
+
+  it("does not affect items from other sessions", () => {
+    registry.start({ parentCallId: "call-A", sessionId: "sess-target" as any, label: "A" });
+    registry.start({ parentCallId: "call-B", sessionId: "sess-other" as any, label: "B" });
+    events.length = 0;
+
+    registry.interruptAllForSession("sess-target" as any);
+
+    // Only one finished event — for call-A.
+    const finished = events.filter((e) => e.kind === "finished");
+    expect(finished).toHaveLength(1);
+    const finishedEvent = finished[0];
+    expect(finishedEvent?.kind === "finished" ? finishedEvent.parentCallId : null).toBe("call-A");
+
+    // call-B remains running.
+    const itemB = registry.list().find((i) => i.parentCallId === "call-B");
+    expect(itemB?.status).toBe("running");
+  });
+
+  it("is a no-op for items already in a terminal status", () => {
+    const handle = registry.start({
+      parentCallId: "call-A",
+      sessionId: "sess-target" as any,
+      label: "A",
+    });
+    handle.finish("done");
+    events.length = 0;
+
+    registry.interruptAllForSession("sess-target" as any);
+
+    // No new events — item is already done.
+    expect(events).toHaveLength(0);
+    const item = registry.list().find((i) => i.parentCallId === "call-A");
+    expect(item?.status).toBe("done");
+  });
+
+  it("interrupts multiple running items for the same session", () => {
+    registry.start({ parentCallId: "call-A", sessionId: "sess-multi" as any, label: "A" });
+    registry.start({ parentCallId: "call-B", sessionId: "sess-multi" as any, label: "B" });
+    events.length = 0;
+
+    registry.interruptAllForSession("sess-multi" as any);
+
+    const finished = events.filter((e) => e.kind === "finished");
+    expect(finished).toHaveLength(2);
+    const finishedCallIds = finished.map((e) => (e.kind === "finished" ? e.parentCallId : null));
+    expect(finishedCallIds).toContain("call-A");
+    expect(finishedCallIds).toContain("call-B");
+
+    for (const item of registry.list()) {
+      if (item.sessionId === ("sess-multi" as any)) {
+        expect(item.status).toBe("interrupted");
+      }
+    }
+  });
+
+  it("interrupted item lingers and is removed after the linger timer fires", () => {
+    registry.start({ parentCallId: "call-A", sessionId: "sess-target" as any, label: "A" });
+    registry.interruptAllForSession("sess-target" as any);
+
+    // Item still present during linger.
+    expect(registry.list()).toHaveLength(1);
+
+    // Fire linger timer.
+    for (const { fn } of pendingTimers.values()) fn();
+    expect(registry.list()).toHaveLength(0);
+  });
+});

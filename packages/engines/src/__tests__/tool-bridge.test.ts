@@ -287,4 +287,108 @@ describe("startToolBridge", () => {
       );
     }
   });
+
+  it("getSignal is called at dispatch time and threads signal into registry.dispatch", async () => {
+    const { startToolBridge } = await import("../mcp/tool-bridge.js");
+    const { startToolServer } = await import("@praxis/claude-cli-sdk");
+
+    const ac = new AbortController();
+    // Simulate the per-turn signal ref: starts undefined, set when send() starts.
+    let currentSignal: AbortSignal | undefined;
+    const getSignal = (): AbortSignal | undefined => currentSignal;
+
+    let observedSignal: AbortSignal | undefined = undefined;
+    const dispatchMock = vi.fn(
+      async (
+        _name: string,
+        _args: unknown,
+        meta: { callId?: string; signal?: AbortSignal },
+      ): Promise<ToolResult> => {
+        observedSignal = meta.signal;
+        return { ok: true, value: { ok: true }, tier: "deterministic" };
+      },
+    );
+
+    const echoSummary: ToolDefinitionSummary = {
+      name: "test.echo",
+      description: "Echo",
+      inputSchemaJson: { type: "object", properties: {}, required: [] },
+      inputSchemaNative: z.object({}),
+      tier: "deterministic",
+    };
+
+    const registry: ToolRegistry = {
+      list: () => [echoSummary],
+      dispatch: dispatchMock,
+    };
+
+    await startToolBridge({ registry, getSignal });
+
+    const calls = (startToolServer as ReturnType<typeof vi.fn>).mock.calls;
+    const registeredTools = calls[calls.length - 1]?.[0] as Array<{
+      name: string;
+      handler: (input: unknown, meta: { callId: string }) => Promise<unknown>;
+    }>;
+    const toolDef = registeredTools?.[0];
+    expect(toolDef).toBeDefined();
+    if (toolDef) {
+      // Before a send() turn starts: no signal.
+      await toolDef.handler({}, { callId: "1" });
+      expect(observedSignal).toBeUndefined();
+
+      // Simulate send() starting: set the current signal.
+      currentSignal = ac.signal;
+      await toolDef.handler({}, { callId: "2" });
+      expect(observedSignal).toBe(ac.signal);
+
+      // Simulate send() ending (finally): clear the signal.
+      currentSignal = undefined;
+      await toolDef.handler({}, { callId: "3" });
+      expect(observedSignal).toBeUndefined();
+    }
+  });
+
+  it("signal is not included in dispatch when getSignal is absent", async () => {
+    const { startToolBridge } = await import("../mcp/tool-bridge.js");
+    const { startToolServer } = await import("@praxis/claude-cli-sdk");
+
+    let observedMeta: { callId?: string; signal?: AbortSignal } | undefined;
+    const dispatchMock = vi.fn(
+      async (
+        _name: string,
+        _args: unknown,
+        meta: { callId?: string; signal?: AbortSignal },
+      ): Promise<ToolResult> => {
+        observedMeta = meta;
+        return { ok: true, value: { ok: true }, tier: "deterministic" };
+      },
+    );
+
+    const echoSummary: ToolDefinitionSummary = {
+      name: "test.echo",
+      description: "Echo",
+      inputSchemaJson: { type: "object", properties: {}, required: [] },
+      inputSchemaNative: z.object({}),
+      tier: "deterministic",
+    };
+
+    const registry: ToolRegistry = {
+      list: () => [echoSummary],
+      dispatch: dispatchMock,
+    };
+
+    // No getSignal passed — simulates adapters that don't supply a signal.
+    await startToolBridge({ registry });
+
+    const calls = (startToolServer as ReturnType<typeof vi.fn>).mock.calls;
+    const registeredTools = calls[calls.length - 1]?.[0] as Array<{
+      name: string;
+      handler: (input: unknown, meta: { callId: string }) => Promise<unknown>;
+    }>;
+    const toolDef = registeredTools?.[0];
+    if (toolDef) {
+      await toolDef.handler({}, { callId: "1" });
+      expect(observedMeta?.signal).toBeUndefined();
+    }
+  });
 });

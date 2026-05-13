@@ -235,6 +235,10 @@ export class SessionServiceImpl implements SessionService {
         // Defensive short-circuit: if the signal aborted but the engine didn't
         // honor it promptly, emit the interrupted event and return cleanly.
         if (signal?.aborted) {
+          // Interrupt any in-flight sub-agent items so the UI transitions them
+          // to "interrupted" without waiting for natural drain.
+          this.deps.subAgent?.interruptAllForSession(sessionId);
+
           const interrupted: EngineEvent = { type: "interrupted", reason: "user_cancel" };
           try {
             appendEpisodic({

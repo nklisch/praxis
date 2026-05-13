@@ -59,6 +59,19 @@ export interface RunConceptExplorerInput {
    * full engine), all emissions are no-ops — existing tests pass unchanged.
    */
   subAgentHandle?: SubAgentHandle;
+  /**
+   * Optional AbortSignal from the parent engine turn. When the user clicks Stop,
+   * the parent session aborts this signal; the explorer propagates it into its
+   * own engine session so tool calls stop as quickly as the engine allows.
+   *
+   * Threading chain:
+   *   parent send(signal) → ctx.signal → runConceptExplorer({ signal })
+   *     → session.send(initialMessage, signal) → sub-agent adapter abort
+   *
+   * If the signal is already aborted before the explorer opens a session, the
+   * function returns immediately with `{ ok: false, reason: "interrupted" }`.
+   */
+  signal?: AbortSignal;
 }
 
 export interface RunConceptExplorerResult {
@@ -75,7 +88,7 @@ export interface RunConceptExplorerResult {
    */
   exhaustedBudget?: boolean;
   /** Reason the explorer ended without producing a usable draft. */
-  reason?: "no_draft_init" | "engine_error";
+  reason?: "no_draft_init" | "engine_error" | "interrupted";
   stepsUsed: number;
 }
 
@@ -105,6 +118,14 @@ export interface RunConceptExplorerResult {
 export async function runConceptExplorer(
   input: RunConceptExplorerInput,
 ): Promise<RunConceptExplorerResult> {
+  // Early-abort: if the signal is already fired before we even open a session,
+  // return immediately without touching the engine. This avoids opening a
+  // subprocess / network connection that would be torn down immediately.
+  if (input.signal?.aborted) {
+    input.log.info("explorer.aborted_before_open", {});
+    return { ok: false, reason: "interrupted", stepsUsed: 0 };
+  }
+
   // Build initial context. If a draftId was passed for continuation, inject it
   // up front so the first draft-mutation tool call (which won't be draft_init)
   // already knows which draft to mutate.
@@ -172,7 +193,11 @@ export async function runConceptExplorer(
   });
 
   try {
-    for await (const ev of session.send(initialMessage)) {
+    for await (const ev of session.send(initialMessage, input.signal)) {
+      // Mid-loop abort: the engine may still yield a few events after abort fires
+      // (in-flight events already queued). Break out as soon as we detect it so
+      // we stop processing and let the finally close the session.
+      if (input.signal?.aborted) break;
       if (ev.type === "tool_call") {
         stepsUsed++;
         explorerLog.debug("explorer.tool_call", {
@@ -249,6 +274,19 @@ export async function runConceptExplorer(
     }
   } finally {
     await session.close();
+  }
+
+  // Abort path: signal fired (either before the loop started or mid-loop break).
+  // Return interrupted regardless of draft state — partial work is preserved
+  // (draftId is carried so the tutor can surface it as a continuation offer).
+  if (input.signal?.aborted) {
+    explorerLog.info("explorer.exit", { outcome: "interrupted", stepsUsed });
+    return {
+      ok: false,
+      reason: "interrupted",
+      stepsUsed,
+      ...(draftId !== undefined && { draftId }),
+    };
   }
 
   // No draft was ever created — nothing to continue from.

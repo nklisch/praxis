@@ -34,8 +34,17 @@ export class CodexEngine implements Engine {
   }
 
   async open(openOpts: EngineOpenOptions): Promise<EngineSession> {
+    // `currentSignal` is set at the start of each `send()` turn and cleared in
+    // the finally. The bridge's MCP handler reads it via this getter so every
+    // tool-call dispatch receives the live per-turn signal even though the
+    // handler was registered once at open() time.
+    let currentSignal: AbortSignal | undefined;
+    const getSignal = (): AbortSignal | undefined => currentSignal;
+
     const bridge: ToolBridgeHandle | null =
-      openOpts.tools.list().length > 0 ? await startToolBridge({ registry: openOpts.tools }) : null;
+      openOpts.tools.list().length > 0
+        ? await startToolBridge({ registry: openOpts.tools, getSignal })
+        : null;
     let thread: Thread;
     let codex: Codex;
     try {
@@ -87,6 +96,10 @@ export class CodexEngine implements Engine {
       seedPreface,
       serverName: bridge?.serverName ?? "praxis",
       log: this.opts.deps.log,
+      // Setter for the per-turn signal — mirrors the Claude Code adapter pattern.
+      setCurrentSignal: (s) => {
+        currentSignal = s;
+      },
     });
   }
 
@@ -105,6 +118,11 @@ interface CodexSessionInit {
   seedPreface: string;
   serverName: string;
   log: EngineDeps["log"];
+  /**
+   * Setter for the per-turn AbortSignal. Written at the start of `send()` and
+   * cleared in finally. The bridge's MCP handler reads it via the paired getter.
+   */
+  setCurrentSignal: (signal: AbortSignal | undefined) => void;
 }
 
 class CodexEngineSession implements EngineSession {
@@ -113,6 +131,7 @@ class CodexEngineSession implements EngineSession {
   private readonly bridge: ToolBridgeHandle | null;
   private readonly serverName: string;
   private readonly log: EngineDeps["log"];
+  private readonly setCurrentSignal: (signal: AbortSignal | undefined) => void;
   private seedPreface: string;
   private closed = false;
 
@@ -123,6 +142,7 @@ class CodexEngineSession implements EngineSession {
     this.serverName = init.serverName;
     this.log = init.log;
     this.seedPreface = init.seedPreface;
+    this.setCurrentSignal = init.setCurrentSignal;
   }
 
   async *send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEvent> {
@@ -134,17 +154,28 @@ class CodexEngineSession implements EngineSession {
     const message = this.seedPreface ? `${this.seedPreface}${userMessage}` : userMessage;
     this.seedPreface = "";
 
-    // Pass the AbortSignal to runStreamed — the Codex SDK's TurnOptions honors
-    // it to cancel the underlying network request. Best-effort: if the SDK
-    // version in use doesn't propagate the signal deep enough to abort a
-    // mid-stream turn, SessionServiceImpl's defensive signal?.aborted check
-    // still stops the generator on the next yielded event.
-    const { events } = await this.thread.runStreamed(message, { signal });
-    const state = newMapState();
-    const itemIndex = { value: 0 };
-    for await (const event of events) {
-      const mapped = mapCodexEvent(event, { serverName: this.serverName }, state, itemIndex);
-      for (const m of mapped) yield m;
+    // Publish the per-turn signal so the MCP bridge's tool-call handlers can
+    // thread it into registry.dispatch. Cleared in finally so no stale signal
+    // leaks into subsequent turns.
+    this.setCurrentSignal(signal);
+
+    try {
+      // Pass the AbortSignal to runStreamed — the Codex SDK's TurnOptions honors
+      // it to cancel the underlying network request. Best-effort: if the SDK
+      // version in use doesn't propagate the signal deep enough to abort a
+      // mid-stream turn, SessionServiceImpl's defensive signal?.aborted check
+      // still stops the generator on the next yielded event.
+      const { events } = await this.thread.runStreamed(message, { signal });
+      const state = newMapState();
+      const itemIndex = { value: 0 };
+      for await (const event of events) {
+        const mapped = mapCodexEvent(event, { serverName: this.serverName }, state, itemIndex);
+        for (const m of mapped) yield m;
+      }
+    } finally {
+      // Clear the per-turn signal so a stale aborted signal doesn't bleed into
+      // the next turn.
+      this.setCurrentSignal(undefined);
     }
   }
 

@@ -398,4 +398,56 @@ describe("DirectEngine — toVercelTools callId threading", () => {
       { callId: "vercel-call-xyz" },
     );
   });
+
+  it("execute threads the per-turn signal into registry.dispatch when getSignal is provided", async () => {
+    const { toVercelTools } = await import("../direct/tool-conversion.js");
+
+    const ac = new AbortController();
+    let currentSignal: AbortSignal | undefined = ac.signal;
+    const getSignal = (): AbortSignal | undefined => currentSignal;
+
+    let observedSignal: AbortSignal | undefined;
+    const dispatchMock = vi.fn(
+      async (
+        _name: string,
+        _args: unknown,
+        meta: { callId?: string; signal?: AbortSignal },
+      ): Promise<ToolResult> => {
+        observedSignal = meta.signal;
+        return { ok: true, value: { ok: true }, tier: "deterministic" };
+      },
+    );
+
+    const registry: ToolRegistry = {
+      list: () => [
+        {
+          name: "test.echo",
+          description: "Echo",
+          inputSchemaJson: { type: "object", properties: {}, additionalProperties: true },
+          tier: "deterministic",
+        },
+      ],
+      dispatch: dispatchMock,
+    };
+
+    const vercelTools = toVercelTools(registry, getSignal);
+    const echoTool = vercelTools["test.echo"];
+    expect(echoTool).toBeDefined();
+    if (!echoTool) return;
+
+    // biome-ignore lint/suspicious/noExplicitAny: accessing execute on Vercel tool type
+    const execute = (echoTool as any).execute as (
+      input: unknown,
+      opts: { toolCallId: string },
+    ) => Promise<unknown>;
+
+    // With a live signal in the getter: signal should be threaded in.
+    await execute({}, { toolCallId: "call-1" });
+    expect(observedSignal).toBe(ac.signal);
+
+    // When getter returns undefined (simulating send() finally clearing it):
+    currentSignal = undefined;
+    await execute({}, { toolCallId: "call-2" });
+    expect(observedSignal).toBeUndefined();
+  });
 });

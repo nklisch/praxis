@@ -95,11 +95,17 @@ class DirectEngineSession implements EngineSession {
     // underlying HTTP request mid-stream. Signal is threaded best-effort;
     // SessionServiceImpl's defensive signal?.aborted check backstops adapters
     // that can't cancel in-flight.
+    //
+    // Thread the per-turn signal into tool dispatch via a getter closure that
+    // captures the current send()'s signal. `toVercelTools` passes it into each
+    // tool's `execute` callback so handlers and sub-agent spawners can bail early
+    // when the user clicks Stop.
+    const getSignal = (): AbortSignal | undefined => signal;
     const result = streamText({
       model,
       system: this.systemPrompt,
       messages: this.messages,
-      tools: toVercelTools(this.tools),
+      tools: toVercelTools(this.tools, getSignal),
       stopWhen: stepCountIs(this.maxSteps),
       ...(signal !== undefined && { abortSignal: signal }),
       ...(this.generation?.temperature !== undefined && {

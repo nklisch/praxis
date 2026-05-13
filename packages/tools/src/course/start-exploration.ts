@@ -88,7 +88,7 @@ const OutputSchema = z.discriminatedUnion("ok", [
   }),
   z.object({
     ok: z.literal(false),
-    reason: z.enum(["no_draft_init", "engine_error"]),
+    reason: z.enum(["no_draft_init", "engine_error", "interrupted"]),
     stepsUsed: z.number(),
   }),
 ]);
@@ -162,6 +162,7 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
       maxSteps: effectiveMaxSteps,
       ...(args.draftId !== undefined && { draftId: args.draftId }),
       ...(args.instructions !== undefined && { instructions: args.instructions }),
+      ...(ctx.signal !== undefined && { signal: ctx.signal }),
       subAgentHandle: subHandle,
       onProgress: (phase) => {
         const detail =

@@ -1,5 +1,6 @@
 import type {
   Logger,
+  SessionId,
   SubAgentEvent,
   SubAgentHandle,
   SubAgentItem,
@@ -154,9 +155,17 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
     this.emit({ kind: "phase_changed", parentCallId, label });
   }
 
+  interruptAllForSession(parentSessionId: SessionId): void {
+    for (const [parentCallId, item] of this.items) {
+      if (item.sessionId === parentSessionId && item.status === "running") {
+        this.onFinish(parentCallId, "interrupted");
+      }
+    }
+  }
+
   private onFinish(
     parentCallId: string,
-    status: "done" | "failed",
+    status: "done" | "failed" | "interrupted",
     err?: { message: string },
   ): void {
     const item = this.items.get(parentCallId);

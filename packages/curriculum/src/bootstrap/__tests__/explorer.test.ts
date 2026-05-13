@@ -673,7 +673,7 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
     const stepStartedCalls: Array<{ callId: string; toolName: string }> = [];
     const stepSettledCalls: Array<{ callId: string; ok: boolean }> = [];
     const setLabelCalls: string[] = [];
-    const finishCalls: Array<{ status: "done" | "failed"; message?: string }> = [];
+    const finishCalls: Array<{ status: "done" | "failed" | "interrupted"; message?: string }> = [];
 
     const handle: import("@praxis/core/types").SubAgentHandle = {
       parentCallId: "test-parent-call",
@@ -913,5 +913,145 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
     expect(result.reason).toBe("engine_error");
     // The explorer does NOT call finish — the caller (start-exploration.ts) does.
     expect(finishCalls).toHaveLength(0);
+  });
+});
+
+// ─── abort / signal propagation ───────────────────────────────────────────────
+
+describe("runConceptExplorer — signal propagation", () => {
+  it("returns interrupted immediately when signal is already aborted before open", async () => {
+    // Track whether engine.open was called — it must NOT be.
+    let openCalled = false;
+
+    const earlyAbortEngine: import("@praxis/core/types").Engine = {
+      id: "early-abort-engine",
+      kind: "looped" as const,
+      open: async () => {
+        openCalled = true;
+        return {
+          id: "never-opened",
+          send: (_msg: string): AsyncIterable<import("@praxis/core/types").EngineEvent> => ({
+            [Symbol.asyncIterator]: async function* () {},
+          }),
+          close: async () => {},
+        };
+      },
+      health: async () => ({
+        ok: true,
+        capabilities: { vision: false, streaming: false, nativeMCP: false, contextWindow: 0 },
+      }),
+    };
+
+    const ac = new AbortController();
+    ac.abort(); // already aborted before the call
+
+    // biome-ignore lint/suspicious/noExplicitAny: stub context for abort test
+    const baseContext = makeBaseContext(null as any);
+
+    const result = await runConceptExplorer({
+      engine: earlyAbortEngine,
+      baseContext,
+      toolDefinitions: EXPLORER_TOOLS,
+      documentIds: DOC_IDS,
+      courseTitle: "Aborted Course",
+      subject: "test",
+      gradeLevel: "1",
+      log: MOCK_LOG,
+      maxSteps: 30,
+      signal: ac.signal,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("interrupted");
+    expect(result.stepsUsed).toBe(0);
+    // engine.open must never be called when the signal is already aborted.
+    expect(openCalled).toBe(false);
+  });
+
+  const midLoopDbCtx = useTempDb();
+
+  it("returns interrupted and carries partial draftId when aborted mid-loop (after draft_init)", async () => {
+    const { db } = openDb({ path: midLoopDbCtx.dbPath });
+    const bootstrap = makeBootstrapService(db);
+
+    const ac = new AbortController();
+
+    // Engine that aborts AFTER draft_init — so we have a draftId to carry.
+    // The engine yields draft_init tool call/result, then aborts the signal
+    // (simulating the user clicking Stop mid-exploration) and hangs until
+    // the abort propagates.
+    const abortMidLoopEngine: import("@praxis/core/types").Engine = {
+      id: "mid-abort-engine",
+      kind: "looped" as const,
+      open: async (opts: { tools: import("@praxis/core/types").ToolRegistry }) => {
+        return {
+          id: "mid-session",
+          send: (_msg: string): AsyncIterable<import("@praxis/core/types").EngineEvent> => ({
+            [Symbol.asyncIterator]: async function* () {
+              const callId = "call-draft-init";
+              yield {
+                type: "tool_call" as const,
+                toolName: "course.draft_init",
+                callId,
+                args: {
+                  courseTitle: "Aborted Mid",
+                  subject: "math",
+                  gradeLevel: "9",
+                  documentIds: ["doc-1"],
+                },
+              };
+              const result = await opts.tools.dispatch("course.draft_init", {
+                courseTitle: "Aborted Mid",
+                subject: "math",
+                gradeLevel: "9",
+                documentIds: ["doc-1"],
+              });
+              yield { type: "tool_result" as const, callId, result };
+
+              // Abort the signal now — simulating Stop button pressed here.
+              ac.abort();
+
+              // Yield a few more events that should be ignored after abort.
+              yield {
+                type: "model_message" as const,
+                content: "continuing...",
+                partial: false,
+              };
+              yield {
+                type: "final" as const,
+                usage: { inputTokens: 0, outputTokens: 0 },
+              };
+            },
+          }),
+          close: async () => {},
+        };
+      },
+      health: async () => ({
+        ok: true,
+        capabilities: { vision: false, streaming: false, nativeMCP: false, contextWindow: 0 },
+      }),
+    };
+
+    const result = await runConceptExplorer({
+      engine: abortMidLoopEngine,
+      baseContext: makeBaseContext(bootstrap),
+      toolDefinitions: EXPLORER_TOOLS,
+      documentIds: DOC_IDS,
+      courseTitle: "Aborted Mid",
+      subject: "math",
+      gradeLevel: "9",
+      log: MOCK_LOG,
+      maxSteps: 30,
+      signal: ac.signal,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("interrupted");
+    // 1 step (draft_init) executed before abort.
+    expect(result.stepsUsed).toBe(1);
+    // draftId is carried so the tutor can offer continuation.
+    expect(typeof result.draftId).toBe("string");
+
+    bootstrap.shutdown();
   });
 });

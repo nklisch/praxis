@@ -11,7 +11,7 @@ export interface SubAgentItem {
   sessionId: SessionId;
   /** Verb-in-italic phrase, e.g., "reading your materials". */
   label: string;
-  status: "running" | "done" | "failed";
+  status: "running" | "done" | "failed" | "interrupted";
   startedAt: Timestamp;
   endedAt?: Timestamp;
   errorMessage?: string;
@@ -47,7 +47,12 @@ export type SubAgentEvent =
   | { kind: "step_started"; parentCallId: string; step: SubAgentStep }
   | { kind: "step_settled"; parentCallId: string; callId: string; ok: boolean }
   | { kind: "phase_changed"; parentCallId: string; label: string }
-  | { kind: "finished"; parentCallId: string; status: "done" | "failed"; errorMessage?: string };
+  | {
+      kind: "finished";
+      parentCallId: string;
+      status: "done" | "failed" | "interrupted";
+      errorMessage?: string;
+    };
 
 export interface SubAgentStartInput {
   parentCallId: string;
@@ -69,7 +74,7 @@ export interface SubAgentHandle {
   /** Emit a phase_changed event when the sub-agent transitions to a new phase. */
   setLabel(label: string): void;
   /** Emit a finished event; item lingers ~30s before auto-removal. */
-  finish(status: "done" | "failed", err?: { message: string }): void;
+  finish(status: "done" | "failed" | "interrupted", err?: { message: string }): void;
 }
 
 export type SubAgentListener = (event: SubAgentEvent) => void;
@@ -90,4 +95,15 @@ export interface SubAgentRegistry {
    * Returns an unsubscribe function.
    */
   subscribe(listener: SubAgentListener, filter?: { parentCallId?: string }): () => void;
+  /**
+   * Mark all in-flight sub-agent items for the given parent session as
+   * `interrupted`. Called by `SessionServiceImpl.send` when the parent turn's
+   * AbortSignal fires so the UI transitions items immediately without waiting
+   * for the sub-agent to drain naturally.
+   *
+   * Items whose `sessionId` matches `parentSessionId` and whose `status` is
+   * `"running"` transition to `"interrupted"` and emit a `"finished"` terminal
+   * event to listeners. Items already in a terminal status are skipped (no-op).
+   */
+  interruptAllForSession(parentSessionId: SessionId): void;
 }
