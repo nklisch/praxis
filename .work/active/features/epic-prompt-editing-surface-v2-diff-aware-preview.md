@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2-diff-aware-preview
 kind: feature
-stage: review
+stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on:
@@ -502,3 +502,17 @@ Covered by Unit 5. The pure `reconstructBaseline` function is the highest-value 
 - `pnpm lint` — 12 pre-existing errors (confirmed via `git stash` baseline); 0 new errors from this changeset
 - `pnpm test` — 331 passed, 3 skipped (all pre-existing skips); 0 failures
 - `pnpm build` — clean
+
+## Review (2026-05-13)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The agent fell back to inline `rgba(...)` values for source-coded backgrounds because the theme tokens (`--accent-amber-soft` etc.) don't exist yet. Acceptable — the substrate body acknowledges this as a known trade-off. If theme tokens are added later, the CSS substitutes cleanly.
+- The pure `reconstructBaseline` function is the load-bearing piece; tested in isolation with 7 dedicated cases. Excellent separation.
+
+**Notes**: No new IPC channel — diff baseline is reconstructed client-side from segments. That's the cleanest possible split: service stays pure over stored config, client owns the projection. View-prop switching does NOT re-fetch (asserted by test) — segments stay stable while the user toggles between Composed and Diff. Stale-effect protection on rapid modeId changes is tested. 16 tests pass.
+
+What's now possible: the Diff toggle works. Users can see exactly which spans came from defaults vs. overrides vs. append vs. global, in both composed and side-by-side views. Pairs with the per-block diff buttons in full-fragment-view — same source-coded color vocabulary across both surfaces.
