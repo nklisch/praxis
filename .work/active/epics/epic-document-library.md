@@ -1,7 +1,7 @@
 ---
 id: epic-document-library
 kind: epic
-stage: implementing
+stage: done
 tags: [ui, documents, ingestion, configure, tutor-ux]
 parent: null
 depends_on: []
@@ -154,3 +154,22 @@ can ship even if the scoping work slips.
 - **Folder walk ergonomics**: depth limit, symlink policy, MIME filter
   consistency with the ingestor registry. Design pass on
   `multi-file-folder-picker` settles these.
+
+## Review (2026-05-13) — aggregate
+
+**Verdict**: Approve
+
+All six child features shipped clean and were individually approved:
+- `...scopes-primitive` (done) — polymorphic document_scopes table + service
+- `...rename-retrieve-from-documents` (done) — tool surface clarity
+- `...multi-file-folder-picker` (done) — bulk ingestion UX
+- `...bootstrap-session-scoped-attachment` (done, review c797f3a) — session→course promotion
+- `...viewer-tab-scoped-sidebar` (done, aggregate review f5090c7) — document tabs + scope-aware sidebar
+- `...library-view-tabs-filters` (done, review aeced50) — library route with scope tabs + filters
+
+**Aggregate-only checks**:
+- Capability completeness: documents flow ingestion → scope-aware attachment → multi-format viewing in dedicated tabs → library-route pivoting by scope. End-to-end works.
+- Foundation alignment: `docs/ARCHITECTURE.md` "Document scoping" section already describes session→course promotion; no drift. The "Student surface" tab system note accommodates `kind: "document"` cleanly.
+- 2 follow-ups parked in backlog from the sidebar story review: `list-scopes-for-document-client-api` (complete branch 3 of useDerivedScope), `lift-tabs-state-to-context` (de-duplicate useTabs calls).
+
+What's now possible: documents are first-class navigation citizens. Users can view them, scope them, surface orphaned ones, and the bootstrap explorer pulls from a session-owned set that promotes cleanly on course confirmation.

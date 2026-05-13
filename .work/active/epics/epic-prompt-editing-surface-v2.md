@@ -1,7 +1,7 @@
 ---
 id: epic-prompt-editing-surface-v2
 kind: epic
-stage: implementing
+stage: done
 tags: [ui, configure, prompt-customization]
 parent: null
 depends_on: []
@@ -122,3 +122,20 @@ unchanged — no SPEC.md update needed.
   the engine path (string) and the preview path (segments) stay coherent —
   same handler, different return shapes by request flag, or a separate
   channel.
+
+## Review (2026-05-13) — aggregate
+
+**Verdict**: Approve
+
+All four child features shipped clean and were individually approved:
+- `...compose-attribution` (done) — segment-level attribution shape
+- `...unified-configure-surface` (done) — single configure surface hosting all 3 layers
+- `...full-fragment-view` (done, review 3675c3d) — FragmentBlock with lock + badges + per-block diff
+- `...diff-aware-preview` (done, review bfe099d) — AttributedPreviewPane with global Composed/Diff toggle
+
+**Aggregate-only checks**:
+- Capability completeness: users can edit ALL fragments (not just a hardcoded list), see what's edited, see what's locked, and view both per-block and whole-prompt diffs against defaults. Lock-button-no-op bug is fixed across all three editors.
+- Foundation alignment: `docs/ARCHITECTURE.md:353` already references the prompt-customization config UI; no drift.
+- Cross-cutting: both wave-2 features use the same source-coded color vocabulary for diff highlighting (default = no decoration, override = amber, append = green, global = teal). Consistency preserved.
+
+What's now possible: prompt customization is honest, transparent, and respects the configurator lock. Users no longer wonder what they've changed vs. what's default — the UI shows them.
