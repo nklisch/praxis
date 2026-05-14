@@ -52,11 +52,17 @@ export class TabsClient implements TabsClientApi {
     return unwrapEnvelope(result);
   }
 
-  openDocument(input: { documentId: DocumentId; title: string }): Promise<DocumentTabSummary> {
-    return this.transport.invoke<DocumentTabSummary>(`${C}.openDocument`, {
+  async openDocument(input: {
+    documentId: DocumentId;
+    title: string;
+  }): Promise<DocumentTabSummary> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<DocumentTabSummary> | DocumentTabSummary
+    >(`${C}.openDocument`, {
       documentId: input.documentId,
       title: input.title,
     });
+    return unwrapEnvelope(result);
   }
 
   async reopen(tabId: TabId): Promise<TabSummary> {

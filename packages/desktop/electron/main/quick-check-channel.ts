@@ -1,6 +1,7 @@
 import type { IpcStreamMessage } from "@praxis/client";
 import type { Logger, QuickCheckAnswer, QuickCheckEvent } from "@praxis/core/types";
 import { redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
+import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
@@ -68,8 +69,12 @@ export function registerQuickCheckHandlers(
 
   handle(
     "praxis.quickCheck.resolve",
-    async (_event, input: { callId: string; answer: QuickCheckAnswer }) => {
-      quickCheck.resolve({ callId: input.callId, answer: input.answer });
-    },
+    wrapEnvelope(
+      "praxis.quickCheck.resolve",
+      log,
+      async (_event: unknown, input: { callId: string; answer: QuickCheckAnswer }) => {
+        quickCheck.resolve({ callId: input.callId, answer: input.answer });
+      },
+    ),
   );
 }

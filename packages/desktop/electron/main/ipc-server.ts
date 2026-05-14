@@ -1417,9 +1417,10 @@ export function registerIpcHandlers(
 
   // ── Claude auth ──────────────────────────────────────────────────────────────
 
-  handle("praxis.auth.claude.status", async () => {
-    return services.claudeAuth.status();
-  });
+  handle(
+    "praxis.auth.claude.status",
+    wrapEnvelope("praxis.auth.claude.status", log, async () => services.claudeAuth.status()),
+  );
 
   // Streaming login flow. Renderer subscribes to events.<streamId> first,
   // then invokes start. Cancel via .cancel with the streamId.
@@ -1537,14 +1538,22 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.tabs.openDocument",
-    async (_event, opts: { documentId: string; title: string }) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-      return services.tabs.openDocument({
-        studentId,
-        documentId: opts.documentId as DocumentId,
-        title: opts.title,
-      });
-    },
+    handleEnvelope(
+      "praxis.tabs.openDocument",
+      log,
+      z.object({
+        documentId: z.string().min(1, "documentId"),
+        title: z.string().min(1, "title"),
+      }),
+      async (opts) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.tabs.openDocument({
+          studentId,
+          documentId: opts.documentId as DocumentId,
+          title: opts.title,
+        });
+      },
+    ),
   );
 
   handle(

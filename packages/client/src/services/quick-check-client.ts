@@ -1,4 +1,5 @@
 import type { QuickCheckAnswer, QuickCheckEvent } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = {
@@ -22,7 +23,8 @@ export class QuickCheckClient {
     return this.transport.stream<QuickCheckEvent>(C.streamBase, undefined);
   }
 
-  resolve(input: { callId: string; answer: QuickCheckAnswer }): Promise<void> {
-    return this.transport.invoke<void>(C.resolve, input);
+  async resolve(input: { callId: string; answer: QuickCheckAnswer }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.resolve, input);
+    return unwrapEnvelope(result);
   }
 }

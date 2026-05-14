@@ -5,6 +5,7 @@ import type {
   DocumentScopeSource,
   DocumentScopesClientApi,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = "praxis.documentScopes" as const;
@@ -18,34 +19,53 @@ const C = "praxis.documentScopes" as const;
 export class DocumentScopesClient implements DocumentScopesClientApi {
   constructor(private readonly transport: ClientTransport) {}
 
-  listOrphaned(): Promise<DocumentScopeAttachment[]> {
-    return this.transport.invoke<DocumentScopeAttachment[]>(`${C}.listOrphaned`);
+  async listOrphaned(): Promise<DocumentScopeAttachment[]> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<DocumentScopeAttachment[]> | DocumentScopeAttachment[]
+    >(`${C}.listOrphaned`);
+    return unwrapEnvelope(result);
   }
 
-  listForScope(scope: DocumentScope): Promise<DocumentScopeAttachment[]> {
-    return this.transport.invoke<DocumentScopeAttachment[]>(`${C}.listForScope`, scope);
+  async listForScope(scope: DocumentScope): Promise<DocumentScopeAttachment[]> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<DocumentScopeAttachment[]> | DocumentScopeAttachment[]
+    >(`${C}.listForScope`, scope);
+    return unwrapEnvelope(result);
   }
 
-  attach(input: {
+  async attach(input: {
     scope: DocumentScope;
     documentId: DocumentId;
     source?: DocumentScopeSource;
   }): Promise<{ attached: boolean }> {
-    return this.transport.invoke<{ attached: boolean }>(`${C}.attach`, {
+    const result = await this.transport.invoke<
+      IpcEnvelope<{ attached: boolean }> | { attached: boolean }
+    >(`${C}.attach`, {
       scope: input.scope,
       documentId: input.documentId,
       ...(input.source !== undefined && { source: input.source }),
     });
+    return unwrapEnvelope(result);
   }
 
-  detach(input: { scope: DocumentScope; documentId: DocumentId }): Promise<{ detached: boolean }> {
-    return this.transport.invoke<{ detached: boolean }>(`${C}.detach`, {
+  async detach(input: {
+    scope: DocumentScope;
+    documentId: DocumentId;
+  }): Promise<{ detached: boolean }> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<{ detached: boolean }> | { detached: boolean }
+    >(`${C}.detach`, {
       scope: input.scope,
       documentId: input.documentId,
     });
+    return unwrapEnvelope(result);
   }
 
-  listScopesForDocument(documentId: DocumentId): Promise<DocumentScope[]> {
-    return this.transport.invoke<DocumentScope[]>(`${C}.listScopesForDocument`, documentId);
+  async listScopesForDocument(documentId: DocumentId): Promise<DocumentScope[]> {
+    const result = await this.transport.invoke<IpcEnvelope<DocumentScope[]> | DocumentScope[]>(
+      `${C}.listScopesForDocument`,
+      documentId,
+    );
+    return unwrapEnvelope(result);
   }
 }

@@ -1,4 +1,5 @@
 import type { ActivityClient as ActivityClientPort, ActivityEvent } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = {
@@ -19,7 +20,8 @@ export class ActivityClient implements ActivityClientPort {
     return this.transport.stream<ActivityEvent>(C.streamBase, undefined);
   }
 
-  dismiss(id: string): Promise<void> {
-    return this.transport.invoke<void>(C.dismiss, id);
+  async dismiss(id: string): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.dismiss, id);
+    return unwrapEnvelope(result);
   }
 }

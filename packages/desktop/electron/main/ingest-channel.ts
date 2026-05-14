@@ -6,6 +6,7 @@ import type { IngestionRequest, Logger } from "@praxis/core/types";
 import { redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
 import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { dialog } from "electron";
+import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
@@ -72,65 +73,82 @@ export function registerIngestHandlers(
   const { handle, on } = createIpcHelpers(log);
 
   // File picker (single-file, kept for back-compat with existing callers)
-  handle("praxis.ingest.pickFile", async () => {
-    const result = await dialog.showOpenDialog({
-      title: "Open document",
-      properties: ["openFile"],
-      filters: [
-        {
-          name: "Supported documents",
-          extensions: ["pdf", "docx", "epub", "html", "htm", "md", "markdown", "txt", "pptx"],
-        },
-        { name: "All Files", extensions: ["*"] },
-      ],
-    });
-    if (result.canceled || result.filePaths.length === 0) return null;
-    return result.filePaths[0] ?? null;
-  });
+  handle(
+    "praxis.ingest.pickFile",
+    wrapEnvelope("praxis.ingest.pickFile", log, async () => {
+      const result = await dialog.showOpenDialog({
+        title: "Open document",
+        properties: ["openFile"],
+        filters: [
+          {
+            name: "Supported documents",
+            extensions: ["pdf", "docx", "epub", "html", "htm", "md", "markdown", "txt", "pptx"],
+          },
+          { name: "All Files", extensions: ["*"] },
+        ],
+      });
+      if (result.canceled || result.filePaths.length === 0) return null;
+      return result.filePaths[0] ?? null;
+    }),
+  );
 
   // Multi-file / folder picker — returns string[] of absolute paths
-  handle("praxis.ingest.pickPaths", async (_event, opts: { mode: "files" | "folder" }) => {
-    const properties: Array<"openFile" | "multiSelections" | "openDirectory"> =
-      opts.mode === "folder" ? ["openDirectory"] : ["openFile", "multiSelections"];
+  handle(
+    "praxis.ingest.pickPaths",
+    wrapEnvelope(
+      "praxis.ingest.pickPaths",
+      log,
+      async (_event: unknown, opts: { mode: "files" | "folder" }) => {
+        const properties: Array<"openFile" | "multiSelections" | "openDirectory"> =
+          opts.mode === "folder" ? ["openDirectory"] : ["openFile", "multiSelections"];
 
-    const filters =
-      opts.mode === "files"
-        ? [
-            {
-              name: "Supported documents",
-              extensions: ingestorRegistry.supportedExtensions(),
-            },
-            { name: "All Files", extensions: ["*"] },
-          ]
-        : undefined; // folder dialogs don't use extension filters
+        const filters =
+          opts.mode === "files"
+            ? [
+                {
+                  name: "Supported documents",
+                  extensions: ingestorRegistry.supportedExtensions(),
+                },
+                { name: "All Files", extensions: ["*"] },
+              ]
+            : undefined; // folder dialogs don't use extension filters
 
-    const result = await dialog.showOpenDialog({
-      title: opts.mode === "folder" ? "Open folder" : "Open documents",
-      properties,
-      ...(filters !== undefined && { filters }),
-    });
+        const result = await dialog.showOpenDialog({
+          title: opts.mode === "folder" ? "Open folder" : "Open documents",
+          properties,
+          ...(filters !== undefined && { filters }),
+        });
 
-    if (result.canceled || result.filePaths.length === 0) return [];
+        if (result.canceled || result.filePaths.length === 0) return [];
 
-    if (opts.mode === "folder") {
-      const root = result.filePaths[0];
-      if (root === undefined) return [];
-      return walkDirectoryForIngest(root, ingestorRegistry);
-    }
+        if (opts.mode === "folder") {
+          const root = result.filePaths[0];
+          if (root === undefined) return [];
+          return walkDirectoryForIngest(root, ingestorRegistry);
+        }
 
-    return result.filePaths;
-  });
+        return result.filePaths;
+      },
+    ),
+  );
 
   // Availability check — all Phase 5 ingestors are pure-JS; always available
-  handle("praxis.ingest.isAvailable", async () => ({ available: true }));
+  handle(
+    "praxis.ingest.isAvailable",
+    wrapEnvelope("praxis.ingest.isAvailable", log, async () => ({ available: true })),
+  );
 
   // Candidates for a given file — returns { id, label }[] for UI tier selection modal
   handle(
     "praxis.ingest.candidatesFor",
-    async (_event, payload: { mimeType: string; filename: string }) => {
-      const candidates = await ingestorRegistry.candidatesFor(payload);
-      return candidates.map((c) => ({ id: c.id, label: c.label }));
-    },
+    wrapEnvelope(
+      "praxis.ingest.candidatesFor",
+      log,
+      async (_event: unknown, payload: { mimeType: string; filename: string }) => {
+        const candidates = await ingestorRegistry.candidatesFor(payload);
+        return candidates.map((c) => ({ id: c.id, label: c.label }));
+      },
+    ),
   );
 
   // Start ingestion stream
@@ -177,7 +195,10 @@ export function registerIngestHandlers(
           eventCount,
           err: serializeErrorRedacted(err),
         });
-        push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
+        push({
+          kind: "error",
+          error: redactSecrets(err instanceof Error ? err.message : String(err)),
+        });
       } finally {
         activeAbortControllers.delete(streamId);
       }

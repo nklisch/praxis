@@ -1,4 +1,5 @@
 import type { SubAgentEvent, SubAgentItem } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = {
@@ -22,7 +23,10 @@ export class SubAgentClient {
     return this.transport.stream<SubAgentEvent>(C.streamBase, input?.parentCallId);
   }
 
-  list(): Promise<readonly SubAgentItem[]> {
-    return this.transport.invoke<readonly SubAgentItem[]>(C.list, undefined);
+  async list(): Promise<readonly SubAgentItem[]> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<readonly SubAgentItem[]> | readonly SubAgentItem[]
+    >(C.list, undefined);
+    return unwrapEnvelope(result);
   }
 }

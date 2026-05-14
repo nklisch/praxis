@@ -4,6 +4,7 @@ import type {
   ClaudeAuthService,
   ClaudeAuthStatus,
 } from "@praxis/core/services";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const CHANNEL = "praxis.auth.claude" as const;
@@ -19,8 +20,11 @@ const CHANNEL = "praxis.auth.claude" as const;
 export class ClaudeAuthClient implements ClaudeAuthService {
   constructor(private readonly transport: ClientTransport) {}
 
-  status(): Promise<ClaudeAuthStatus> {
-    return this.transport.invoke<ClaudeAuthStatus>(`${CHANNEL}.status`);
+  async status(): Promise<ClaudeAuthStatus> {
+    const result = await this.transport.invoke<IpcEnvelope<ClaudeAuthStatus> | ClaudeAuthStatus>(
+      `${CHANNEL}.status`,
+    );
+    return unwrapEnvelope(result);
   }
 
   login(opts?: ClaudeAuthLoginOptions): AsyncIterable<ClaudeAuthLoginEvent> {

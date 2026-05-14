@@ -1,6 +1,7 @@
 import type { IpcStreamMessage } from "@praxis/client";
 import type { ActivityEvent, Logger } from "@praxis/core/types";
 import { redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
+import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
@@ -23,9 +24,12 @@ export function registerActivityHandlers(
 ): void {
   const { handle, on } = createIpcHelpers(log);
 
-  handle("praxis.activity.dismiss", async (_event, id: string) => {
-    services.activity.dismiss(id);
-  });
+  handle(
+    "praxis.activity.dismiss",
+    wrapEnvelope("praxis.activity.dismiss", log, async (_event: unknown, id: string) => {
+      services.activity.dismiss(id);
+    }),
+  );
 
   handle("praxis.activity.events.start", async (_event, streamId: string) => {
     const streamLog = log.child({ component: "activity.events", streamId });
@@ -56,7 +60,10 @@ export function registerActivityHandlers(
       streamLog.info("activity.unsubscribe");
     } catch (err) {
       streamLog.error("activity.error", { err: serializeErrorRedacted(err) });
-      push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
+      push({
+        kind: "error",
+        error: redactSecrets(err instanceof Error ? err.message : String(err)),
+      });
     } finally {
       unsubscribe?.();
       activeAbortControllers.delete(streamId);

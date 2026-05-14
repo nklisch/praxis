@@ -1,4 +1,5 @@
 import type { IngestionClient, IngestionEvent, IngestionRequest } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = {
@@ -25,12 +26,16 @@ const C = {
 export class IngestClient implements IngestionClient {
   constructor(private readonly transport: ClientTransport) {}
 
-  pickFile(): Promise<string | null> {
-    return this.transport.invoke<string | null>(C.pickFile);
+  async pickFile(): Promise<string | null> {
+    const result = await this.transport.invoke<IpcEnvelope<string | null> | string | null>(
+      C.pickFile,
+    );
+    return unwrapEnvelope(result);
   }
 
-  pickPaths(opts: { mode: "files" | "folder" }): Promise<string[]> {
-    return this.transport.invoke<string[]>(C.pickPaths, opts);
+  async pickPaths(opts: { mode: "files" | "folder" }): Promise<string[]> {
+    const result = await this.transport.invoke<IpcEnvelope<string[]> | string[]>(C.pickPaths, opts);
+    return unwrapEnvelope(result);
   }
 
   isAvailable(): boolean {
@@ -43,10 +48,13 @@ export class IngestClient implements IngestionClient {
     return this.transport.stream<IngestionEvent>(C.streamBase, req);
   }
 
-  candidatesFor(payload: {
+  async candidatesFor(payload: {
     mimeType: string;
     filename: string;
   }): Promise<Array<{ id: string; label: string }>> {
-    return this.transport.invoke<Array<{ id: string; label: string }>>(C.candidatesFor, payload);
+    const result = await this.transport.invoke<
+      IpcEnvelope<Array<{ id: string; label: string }>> | Array<{ id: string; label: string }>
+    >(C.candidatesFor, payload);
+    return unwrapEnvelope(result);
   }
 }

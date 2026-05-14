@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-12-misc-and-domain-modules
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-11-sketches-concept-maps]
@@ -58,3 +58,67 @@ After this step lands:
 After this step:
 1. Advance `gate-security-ipc-helpers-rethrow-redactor-gap` to `done` (verify-only — no remaining gap to close).
 2. Notify the parent feature; orchestrator advances feature `implementing → review`.
+
+## Implementation
+
+### Channels migrated
+
+**ipc-server.ts:**
+- `praxis.auth.claude.status` — wrapped with `wrapEnvelope` (no-payload getter)
+- `praxis.tabs.openDocument` — wrapped with `handleEnvelope` + Zod schema `{ documentId: z.string().min(1), title: z.string().min(1) }`
+
+**document-scopes-channel.ts** — 5 invoke handlers wrapped with `wrapEnvelope`:
+- `praxis.documentScopes.listOrphaned`
+- `praxis.documentScopes.listForScope`
+- `praxis.documentScopes.attach`
+- `praxis.documentScopes.detach`
+- `praxis.documentScopes.listScopesForDocument`
+
+**ingest-channel.ts** — 4 invoke handlers wrapped with `wrapEnvelope` (streaming `praxis.ingest.start` left as-is per subscriber-fanout-stream pattern):
+- `praxis.ingest.pickFile`
+- `praxis.ingest.pickPaths`
+- `praxis.ingest.isAvailable`
+- `praxis.ingest.candidatesFor`
+
+**quick-check-channel.ts** — 1 invoke handler wrapped:
+- `praxis.quickCheck.resolve`
+
+**subagent-channel.ts** — 1 invoke handler wrapped:
+- `praxis.subAgent.list`
+
+**activity-channel.ts** — 1 invoke handler wrapped:
+- `praxis.activity.dismiss`
+
+**bootstrap-drafts-channel.ts** — no invoke handlers (streaming only); log-channel.ts — uses `ipcMain.on` (fire-and-forget); both correctly skipped.
+
+### Client files updated (`unwrapEnvelope`):
+- `packages/client/src/services/claude-auth-client.ts` — `status()`
+- `packages/client/src/services/tabs-client.ts` — `openDocument()`
+- `packages/client/src/services/document-scopes-client.ts` — all 5 methods
+- `packages/client/src/services/ingest-client.ts` — `pickFile()`, `pickPaths()`, `candidatesFor()`
+- `packages/client/src/services/quick-check-client.ts` — `resolve()`
+- `packages/client/src/services/sub-agent-client.ts` — `list()`
+- `packages/client/src/services/activity-client.ts` — `dismiss()`
+
+### Test file
+`packages/desktop/electron/main/__tests__/misc-and-domain-channel-envelope.test.ts` — 21 tests covering a representative sample from each module: happy-path envelope returns, INTERNAL envelope on service throws, VALIDATION_FAILED for invalid payloads (tabs.openDocument), never-rejects contract.
+
+### Final verification grep result
+```
+grep -nE 'handle\("praxis\.[^"]+", async' packages/desktop/electron/main/*.ts | grep -v "handleEnvelope|wrapEnvelope"
+```
+Output (ONLY streaming handlers remain):
+- `activity-channel.ts:34: handle("praxis.activity.events.start", async ...`
+- `bootstrap-drafts-channel.ts:28: handle("praxis.bootstrap.drafts.events.start", async ...`
+- `quick-check-channel.ts:26: handle("praxis.quickCheck.events.start", async ...`
+- `ipc-server.ts:1427: handle("praxis.auth.claude.login.start", async ...`
+
+All 4 remaining raw handlers are streaming entry-points (`*.events.start` / `*.login.start`). Every invoke channel now returns an envelope.
+
+### Verification results
+- `pnpm --filter @praxis/desktop typecheck` — pass
+- `pnpm --filter @praxis/client typecheck` — pass
+- `pnpm --filter @praxis/ui typecheck` — pass
+- `pnpm --filter @praxis/desktop test` — 399 tests across 26 files pass (includes 21 new tests)
+- `pnpm --filter @praxis/client test` — 62 tests pass
+- `pnpm lint` on all modified files — clean (no errors in changed files)

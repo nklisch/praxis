@@ -1,6 +1,7 @@
 import type { IpcStreamMessage } from "@praxis/client";
 import type { Logger, SubAgentEvent } from "@praxis/core/types";
 import { redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
+import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
@@ -23,9 +24,10 @@ export function registerSubAgentHandlers(
 ): void {
   const { handle, on } = createIpcHelpers(log);
 
-  handle("praxis.subAgent.list", async (): Promise<ReturnType<Services["subAgent"]["list"]>> => {
-    return services.subAgent.list();
-  });
+  handle(
+    "praxis.subAgent.list",
+    wrapEnvelope("praxis.subAgent.list", log, async () => services.subAgent.list()),
+  );
 
   handle(
     "praxis.subAgent.events.start",
@@ -59,7 +61,10 @@ export function registerSubAgentHandlers(
         streamLog.info("subagent.unsubscribe");
       } catch (err) {
         streamLog.error("subagent.error", { err: serializeErrorRedacted(err) });
-        push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
+        push({
+          kind: "error",
+          error: redactSecrets(err instanceof Error ? err.message : String(err)),
+        });
       } finally {
         unsubscribe?.();
         activeAbortControllers.delete(streamId);
