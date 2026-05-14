@@ -41,9 +41,12 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [editorial-ui-primitives.md](editorial-ui-primitives.md) — RouteHeader, LibrarySection, EmptyState, LoadingState, ErrorMessage, COPY module, `composes: editorial from global;`
 - [tab-body-isolation.md](tab-body-isolation.md) — all `<ChatTabBody>` instances mounted; `display:none` for inactive — preserves per-tab state across switches
 - [session-tab-open-flow.md](session-tab-open-flow.md) — `openSessionInTab` helper chains `session.start` → `tabs.open` → `navigate`; always use the helper
+- [resizable-side-panel-hook.md](resizable-side-panel-hook.md) — drag-to-resize + per-device persisted width via `useResizableWidth({ storageKey, defaultWidth, minWidth, maxWidth, side })` paired with `<ResizeHandle>`; one storage key per panel
 
 ### Communication patterns
 - [ipc-channel-convention.md](ipc-channel-convention.md) — `praxis.{domain}.{action}`; streaming adds `.start/.events.<id>/.cancel`
+- [ipc-envelope-handler.md](ipc-envelope-handler.md) — mutating / validating / trust-boundary channels use `wrapEnvelope(channel, log, withSchema(zod, fn))`; clients peel with `unwrapEnvelope` and catch `IpcError` with `.code` + `.requestId`
+- [per-domain-channel-module.md](per-domain-channel-module.md) — cohesive IPC domains live in `<domain>-channel.ts` exporting `registerXxxHandlers(services, …, log)`; `createIpcHelpers(log)` is the single seam for timing + redacted error logging
 - [discriminated-union-dispatch.md](discriminated-union-dispatch.md) — `type` for events, `kind` for domain objects; `switch` for exhaustive dispatch
 - [subscriber-fanout-stream.md](subscriber-fanout-stream.md) — service `subscribe(listener)` (sends `snapshot` first) → `*-channel.ts` fanout with AbortController hold-open → client `events()` → UI hook iterating `for await` and folding `event.kind` into a Map
 
@@ -51,4 +54,5 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [ui-test-helper.md](ui-test-helper.md) — `makeFakeClient(overrides?)` from `__tests__/helpers/`; `<PraxisClientProvider>` render wrapper; TanStack Router mock
 - [temp-db-test-helper.md](temp-db-test-helper.md) — `useTempDb()` from `tests/helpers/db-setup.ts`; import via relative path
 - [slow-test-gating.md](slow-test-gating.md) — `describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)` for Pyodide integration tests
-- [shared-test-fake-factories.md](shared-test-fake-factories.md) — port test doubles live in `tests/helpers/mocks.ts` as factory fns (`inMemorySecretStorage`, `noopLockService`, `recordingLogger`); new ports added to `ServiceDeps` get a factory here when 3+ tests will need it
+- [shared-test-fake-factories.md](shared-test-fake-factories.md) — port test doubles live in `tests/helpers/mocks.ts` as factory fns (`inMemorySecretStorage`, `noopLockService`, `recordingLogger`, `noopDocumentScopes`); new ports added to `ServiceDeps` get a factory here when 3+ tests will need it
+- [electron-ipc-test-harness.md](electron-ipc-test-harness.md) — stub `electron` at the module boundary so `ipcMain.handle/on` capture handlers; import `registerIpcHandlers` *after* the mock; invoke `handlers.get("praxis.x.y")?.({}, ...args)` with a minimal fake `Services`

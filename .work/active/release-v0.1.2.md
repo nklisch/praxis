@@ -166,5 +166,7 @@ electron multi-arch rebuild, engine CLI integration smoke test).
   - 4 foundation-doc-assertion drift — ROADMAP Phase 16, UX prompt-customization v2 surface, UX "Tutor workspace" label (drafting), CURRICULUM bootstrap-mode `course.list_drafts`
   - 5 pattern-skill staleness — `mode-tool-scoping` (`retrieve_from_textbook` → `retrieve_from_documents`), `context-hook-pair` (tabs lifted), `shared-test-fake-factories` + index (`noopCourseDocuments` → `noopDocumentScopes`), `tab-body-isolation` (chat.tsx line anchor 106 → 175), `mode-prompt-fragment-composition` (`in-course-behavior` addendum — drafting)
   - CHANGELOG.md gap is handled in phase 5.5 of release-deploy, outside this gate.
-
-<populated as remaining gates execute>
+- **gate-patterns** (2026-05-14) — 4 patterns extracted, 2 inconsistencies flagged
+  - New patterns: `ipc-envelope-handler`, `per-domain-channel-module`, `resizable-side-panel-hook`, `electron-ipc-test-harness`
+  - Inconsistencies (→ `[refactor]` stories at drafting): `migrate-mutating-ipc-channels-to-envelope` (overlaps with `gate-security-ipc-helpers-rethrow-redactor-gap` finding), `share-vitest-spy-logger-factory`
+  - Pattern files at `.claude/skills/patterns/`; index updated in `.claude/rules/patterns.md`; SKILL.md updated with 4 new entries; tracking item `gate-patterns-v0-1-2` at stage:done
