@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor
 kind: epic
-stage: implementing
+stage: review
 tags: [tutor-ux, curriculum, bootstrap, mode-prompts]
 parent: null
 depends_on: []
