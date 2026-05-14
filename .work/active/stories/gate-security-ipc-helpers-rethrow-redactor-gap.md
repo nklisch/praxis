@@ -1,7 +1,7 @@
 ---
 id: gate-security-ipc-helpers-rethrow-redactor-gap
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-12-misc-and-domain-modules]
@@ -112,8 +112,36 @@ These channels remain as raw async handlers. If the underlying service
 throws (e.g., DB error, validation error), the raw error propagates to
 the renderer via IPC rejection, potentially leaking internal details.
 
-**Follow-up work**: Filed as `gate-security-ipc-server-raw-invoke-residuals`
-(backlog) to track wrapping these 13 channels.
+**Follow-up work**: Tracked and completed as `gate-security-ipc-server-raw-invoke-residuals`.
 
 **Tests**: `pnpm typecheck`, `pnpm --filter @praxis/desktop test`, and
 `pnpm --filter @praxis/client test` all pass clean (399 + 62 tests).
+
+## Verification (re-verified 2026-05-14 — FULLY CLOSED)
+
+**Date**: 2026-05-14
+
+**Method**: Re-grep of all `handle(...)` registrations across
+`packages/desktop/electron/main/*.ts` after `gate-security-ipc-server-raw-invoke-residuals`
+landed. Cross-referenced `handleEnvelope`/`wrapEnvelope` usage against the
+complete channel list.
+
+**Result: FULLY CLOSED — zero raw invoke channels remain.**
+
+`gate-security-ipc-server-raw-invoke-residuals` wrapped all 13 residual
+non-streaming channels in `ipc-server.ts` with `handleEnvelope`. The final
+grep of `ipc-server.ts` finds exactly 2 raw `async (_event, ...)` handler
+bodies:
+
+- `praxis.session.send.start` — streaming push channel (intentional)
+- `praxis.auth.claude.login.start` — streaming push channel (intentional)
+
+No bare `handle(...)` calls remain across any `packages/desktop/electron/main/*.ts`
+file outside these two streaming channels. The `throw err` re-throw path in
+`createIpcHelpers.handle` (ipc-helpers.ts line 84) is now unreachable for
+every registered channel — all channels are wrapped and return resolved
+envelopes, never rejections.
+
+**Tests**: `pnpm typecheck`, `pnpm vitest run --project @praxis/desktop`,
+and `pnpm vitest run --project @praxis/client` all pass clean
+(421 desktop tests, 62 client tests).
