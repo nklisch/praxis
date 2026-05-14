@@ -14,9 +14,12 @@ import { tool } from "../tools.js";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-/** Connect to the socket and write/read one JSON message. */
+/** Connect to the socket and write/read one JSON message.
+ *  Sends the auth frame as the first line — the server gates connections
+ *  on it now. The token is read from the handle's env. */
 async function callTool(
   socketPath: string,
+  token: string,
   name: string,
   input: unknown,
 ): Promise<{ success: boolean; value?: unknown; error?: string }> {
@@ -26,6 +29,8 @@ async function callTool(
 
     client.on("connect", () => {
       const id = "test-1";
+      // Auth frame first, then the tool call. Both on the same connection.
+      client.write(`${JSON.stringify({ type: "auth", token })}\n`);
       client.write(`${JSON.stringify({ id, name, input })}\n`);
     });
 
@@ -78,7 +83,7 @@ describe("tool() outputSchema", () => {
     );
 
     handle = await startToolServer([myTool]);
-    const result = await callTool(socketPath(handle), "count_words", {
+    const result = await callTool(socketPath(handle), handle.env.CLAUDE_SDK_TOOL_TOKEN!, "count_words", {
       text: "hello world foo",
     });
 
@@ -99,7 +104,7 @@ describe("tool() outputSchema", () => {
     );
 
     handle = await startToolServer([badTool]);
-    const result = await callTool(socketPath(handle), "bad_counter", {
+    const result = await callTool(socketPath(handle), handle.env.CLAUDE_SDK_TOOL_TOKEN!, "bad_counter", {
       text: "hello",
     });
 
@@ -121,7 +126,7 @@ describe("tool() outputSchema", () => {
     );
 
     handle = await startToolServer([coerceTool]);
-    const result = await callTool(socketPath(handle), "coerce_tool", {
+    const result = await callTool(socketPath(handle), handle.env.CLAUDE_SDK_TOOL_TOKEN!, "coerce_tool", {
       input: "x",
     });
 
@@ -140,7 +145,7 @@ describe("tool() outputSchema", () => {
     );
 
     handle = await startToolServer([noSchemaT]);
-    const result = await callTool(socketPath(handle), "pass_through", {
+    const result = await callTool(socketPath(handle), handle.env.CLAUDE_SDK_TOOL_TOKEN!, "pass_through", {
       data: { arbitrary: true, nested: [1, 2, 3] },
     });
 

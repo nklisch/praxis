@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import * as net from "node:net";
@@ -6,6 +7,26 @@ import * as path from "node:path";
 import { z } from "zod";
 import type { ToolDefinition, ToolResult } from "./types/index.js";
 import { createLogger } from "./utils.js";
+
+/** Environment variable name carrying the per-session auth token. */
+const TOKEN_ENV = "CLAUDE_SDK_TOOL_TOKEN";
+
+/** Auth-frame inactivity timeout — how long a connection has to present
+ *  the auth frame before the server closes it. Generous (sub-millisecond
+ *  is the real latency on a local socket) but big enough to absorb slow
+ *  CI boxes. */
+const AUTH_TIMEOUT_MS = 5000;
+
+/** Constant-time comparison of two equal-length hex strings. Returns false
+ *  on length mismatch or malformed input (never throws). */
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
+  } catch {
+    return false;
+  }
+}
 
 /** Resolve the ESM entry points of @modelcontextprotocol/sdk absolutely. */
 function resolveMcpSdkPaths(): {
@@ -46,7 +67,9 @@ export interface ToolServerHandle {
   command: string;
   /** Worker script path — use as `args` in MCP stdio config. */
   args: string[];
-  /** Environment variables including `CLAUDE_SDK_TOOL_SOCKET` path. */
+  /** Environment variables: `CLAUDE_SDK_TOOL_SOCKET` (socket path) and
+   *  `CLAUDE_SDK_TOOL_TOKEN` (per-session auth token, 64-char hex). The
+   *  worker script reads both and presents the token on its first frame. */
   env: Record<string, string>;
   /** Temp directory containing socket and worker script (cleaned up by `close()`). */
   tempDir: string;
@@ -61,11 +84,14 @@ export interface ToolServerHandle {
  * `createConversation()` and the SDK manages the server lifecycle.
  *
  * **Architecture:**
- * 1. Creates a Unix domain socket for tool call dispatch.
- * 2. Writes a temp MCP worker script that the CLI spawns as a stdio MCP server.
- * 3. When the CLI calls a custom tool, the worker sends `{ id, name, input }`
- *    over the socket → this server dispatches to the matching handler →
- *    result is sent back → worker returns it to the CLI.
+ * 1. Generates a per-session 256-bit auth token.
+ * 2. Creates a 0600 Unix domain socket for tool call dispatch.
+ * 3. Writes a temp MCP worker script that the CLI spawns as a stdio MCP server.
+ * 4. Worker presents the auth token on its first frame; server validates
+ *    constant-time and closes any connection that fails.
+ * 5. When the CLI calls a custom tool, the worker sends `{ id, name, input }`
+ *    over the (now-authenticated) socket → this server dispatches to the
+ *    matching handler → result is sent back → worker returns it to the CLI.
  *
  * **Requires**: `@modelcontextprotocol/sdk` peer dependency installed.
  *
@@ -107,38 +133,100 @@ export async function startToolServer(tools: ToolDefinition[]): Promise<ToolServ
     "utf8",
   );
 
-  // Start Unix domain socket server for handler dispatch
+  // Per-session auth token. 256 bits, hex-encoded to 64 chars. Generated
+  // before the server starts so it's available to the connection handler
+  // closure below and to the spawn env on the handle.
+  const authToken = crypto.randomBytes(32).toString("hex");
+
+  // Start Unix domain socket server for handler dispatch.
+  // Each connection runs through an auth-frame gate before any tool call
+  // is dispatched — see Unit 3 in feature
+  // epic-security-hardening-round-2-tool-bridge-socket-auth.
   const server = net.createServer((conn) => {
     let buffer = "";
+    let authenticated = false;
+    const authTimeout = setTimeout(() => {
+      if (!authenticated) {
+        logger.debug("Tool server auth timeout — closing connection");
+        conn.destroy();
+      }
+    }, AUTH_TIMEOUT_MS);
+
     conn.on("data", (chunk) => {
       buffer += chunk.toString();
-      // Protocol: newline-delimited JSON
       let newlineIdx: number;
       // biome-ignore lint/suspicious/noAssignInExpressions: standard readline pattern
       while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
         const line = buffer.slice(0, newlineIdx);
         buffer = buffer.slice(newlineIdx + 1);
-        if (line.trim()) {
-          handleToolCall(conn, handlers, outputSchemas, line);
+        if (!line.trim()) continue;
+
+        if (!authenticated) {
+          // First non-empty frame MUST be the auth frame.
+          let accepted = false;
+          try {
+            const frame = JSON.parse(line) as { type?: string; token?: string };
+            if (
+              frame.type === "auth" &&
+              typeof frame.token === "string" &&
+              timingSafeEqualHex(frame.token, authToken)
+            ) {
+              authenticated = true;
+              clearTimeout(authTimeout);
+              accepted = true;
+            }
+          } catch {
+            // fall through to deny
+          }
+          if (!accepted) {
+            logger.debug("Tool server auth rejected — closing connection");
+            conn.destroy();
+            return;
+          }
+          continue;
         }
+
+        handleToolCall(conn, handlers, outputSchemas, line);
       }
     });
+    conn.on("close", () => clearTimeout(authTimeout));
     conn.on("error", (err) => {
       logger.debug("Tool server connection error", { err: err.message });
     });
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server.listen(socketPath, () => resolve());
-    server.on("error", reject);
-  });
+  // Socket permission tightening: apply restrictive umask around the listen
+  // call so the socket inode is created 0600 regardless of inherited
+  // process umask. Belt-and-suspenders with explicit chmod afterwards to
+  // handle platforms where umask doesn't apply to AF_UNIX inodes (some BSDs).
+  // Skip on Windows where AF_UNIX permission semantics don't apply.
+  const prevUmask = process.umask(0o077);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.listen(socketPath, () => resolve());
+      server.on("error", reject);
+    });
+  } finally {
+    process.umask(prevUmask);
+  }
+  if (os.platform() !== "win32") {
+    await fs.chmod(socketPath, 0o600).catch((err) => {
+      logger.debug("Tool server chmod 0600 failed (non-fatal)", {
+        socketPath,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }
 
   logger.debug("Tool server listening", { socketPath, tools: schemas.map((s) => s.name) });
 
   return {
     command: process.execPath,
     args: [workerPath],
-    env: { CLAUDE_SDK_TOOL_SOCKET: socketPath },
+    env: {
+      CLAUDE_SDK_TOOL_SOCKET: socketPath,
+      [TOKEN_ENV]: authToken,
+    },
     tempDir,
     close: async () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -224,12 +312,23 @@ if (!SOCKET_PATH) {
   process.exit(1);
 }
 
+const TOKEN = process.env.CLAUDE_SDK_TOOL_TOKEN;
+if (!TOKEN) {
+  process.stderr.write('CLAUDE_SDK_TOOL_TOKEN not set\\n');
+  process.exit(1);
+}
+
 // Connect to SDK handler dispatch socket
 const conn = net.createConnection(SOCKET_PATH);
 await new Promise((resolve, reject) => {
   conn.on('connect', resolve);
   conn.on('error', reject);
 });
+
+// Auth handshake — server gates the connection on a valid auth frame as
+// the first non-empty line. The server doesn't acknowledge; subsequent
+// tool calls flow normally once authenticated.
+conn.write(JSON.stringify({ type: 'auth', token: TOKEN }) + '\\n');
 
 let callCounter = 0;
 const pending = new Map();

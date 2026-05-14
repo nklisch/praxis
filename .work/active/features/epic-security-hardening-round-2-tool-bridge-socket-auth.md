@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-tool-bridge-socket-auth
 kind: feature
-stage: implementing
+stage: review
 tags: [security]
 parent: epic-security-hardening-round-2
 depends_on: []
