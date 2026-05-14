@@ -158,5 +158,8 @@ electron multi-arch rebuild, engine CLI integration smoke test).
   - 3 Medium → `.work/active/stories/` (`gate-tests-tool-server-auth-timeout-window`, `gate-tests-tool-server-auth-frame-boundaries`, `gate-tests-composer-queue-exam-lockdown-regression`)
   - 8 Low → `.work/backlog/` (`gate-tests-redact-secrets-production-key-shapes`, `gate-tests-stored-schema-strict-inheritance`, `gate-tests-document-id-guard-drive-letter-cases`, `gate-tests-serialize-error-redacted-circular`, `gate-tests-interrupt-all-event-fanout-count`, `gate-tests-rate-limit-unknown-status-guard`, `gate-tests-interrupt-fanout-ui-observability`, `gate-tests-unwrap-envelope-shape-collision`)
   - Verified-clean: `epic-test-coverage-adversarial-pass` and all child stories (the adversarial-pass IS tests; spec-faithful coverage). `epic-tutor-session-feel-cancellation-propagation-core-plumbing`, `epic-tutor-session-feel-tool-call-thread-persistence`, all `epic-ui-rendering-stability-*` children, `epic-editorial-polish-pass-resizable-panels`, archived stories (`course-aware-mode-prompts-missing-tests`, `lift-tabs-state-to-context`, `list-scopes-for-document-client-api`, `resume-draft-picker-test-and-keyboard-nav`), and `story-biology-pack-bootstrap-smoke-test`.
+- **gate-cruft** (2026-05-14) — 6 findings (5 High, 1 Medium, 0 Low). All actionable; no Low/backlog.
+  - 5 High → `.work/active/stories/` (`gate-cruft-query-unused-cleanupfn`, `gate-cruft-theme-tokens-test-unused-join`, `gate-cruft-session-service-stale-phase-11-12-null-shims`, `gate-cruft-quick-check-channel-dead-optional-guard`, `gate-cruft-claude-code-vision-empty-maxtokens-spread`)
+  - 1 Medium → `.work/active/stories/` (`gate-cruft-stream-prefer-number-isfinite`)
 
 <populated as remaining gates execute>
