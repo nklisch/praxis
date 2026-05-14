@@ -1,7 +1,7 @@
 ---
 id: gate-docs-context-hook-pair-tabs-now-shared
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -71,3 +71,15 @@ Changes to `.claude/skills/patterns/context-hook-pair.md`:
 4. **Old Example 3 → Example 4**: The "Adding to tests" section was renumbered to Example 4.
 
 Per-tab state bullet ("Per-tab state (message logs, composer value)...") is unchanged.
+
+## Review (2026-05-14)
+
+**Verdict: Approve**
+
+All lenses pass.
+
+Correctness: `tabs` is removed from the "When NOT to Use" exclusion list; `courses, sessions` remain. The per-tab state bullet is preserved unchanged. Example 3 matches `packages/ui/src/context/tabs-context.tsx` exactly — `createContext<UseTabsResult | null>(null)`, `TabsProvider` delegates to `useTabsState()`, `useTabs()` guard-throws on null, and the prose correctly identifies the manual `useEffect` + `refresh()` loading pattern (not `useResource`). Provider nesting in the `app.tsx` snippet matches the actual file (`PraxisClientProvider` > `AuthProvider` > `TabsProvider` > `RouterProvider`).
+
+Pattern-skill quality: Example 3 is illustrative with appropriate `// ...` abbreviation for less-critical interface methods, consistent with Examples 1 and 2. The note that `useTabsState` is internal and unexported is accurate.
+
+Design alignment: Changes exactly match the "Required edit" in the story body. The implementer's decision to note manual refresh vs `useResource` is correct and valuable — the code does not use `useResource`, and calling this out prevents future readers from applying the wrong mental model.
