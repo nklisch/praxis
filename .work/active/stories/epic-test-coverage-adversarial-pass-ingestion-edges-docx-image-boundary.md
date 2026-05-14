@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-ingestion-edges-docx-image-boundary
 kind: story
-stage: review
+stage: done
 tags: [testing, ingestion]
 parent: epic-test-coverage-adversarial-pass-ingestion-edges
 depends_on: []
@@ -60,3 +60,13 @@ for the full design (Unit 1, including the test code, the source-side
 - Use `maxChars: 100` to force per-paragraph flush. Don't tune to
   byte counts — flaky.
 - Run fast lane (no `PRAXIS_RUN_SLOW_TESTS` gating).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 26 tests pass. Source comment correctly pins the contract. Fast-lane test, no slow gating needed.

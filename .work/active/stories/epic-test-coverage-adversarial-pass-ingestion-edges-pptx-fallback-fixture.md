@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-ingestion-edges-pptx-fallback-fixture
 kind: story
-stage: review
+stage: done
 tags: [testing, ingestion]
 parent: epic-test-coverage-adversarial-pass-ingestion-edges
 depends_on: []
@@ -102,3 +102,13 @@ for the full design (Unit 2).
 - Existing `pptx-ingestor.test.ts` already covers the fallback path
   with mocked AST. This story adds the missing real-fixture sanity
   check that would catch an upstream `officeparser` regression.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Build script + binary fixture + README all committed. Source comment pins the contract back. Both tests are correctly gated on `PRAXIS_RUN_SLOW_TESTS` per `slow-test-gating` pattern. Default test run skips them. (Slow tests not invoked here — gated by env.)

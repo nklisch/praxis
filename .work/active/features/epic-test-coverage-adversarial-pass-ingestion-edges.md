@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-ingestion-edges
 kind: feature
-stage: review
+stage: done
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass
 depends_on: []
@@ -597,3 +597,13 @@ The two stories are fully independent — `depends_on: []` on both, so
   valid PPTX. Mitigation: copy the scaffolding from the existing
   `sample.pptx` (unzip → extract layout / master / theme / rels)
   rather than hand-rolling.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Both children at done. DOCX boundary test runs on fast lane; PPTX fallback fixture correctly gated on `PRAXIS_RUN_SLOW_TESTS`. Children-complete.

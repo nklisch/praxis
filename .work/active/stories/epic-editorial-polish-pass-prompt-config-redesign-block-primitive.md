@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-prompt-config-redesign-block-primitive
 kind: story
-stage: review
+stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-editorial-polish-pass-prompt-config-redesign
 depends_on: []
@@ -89,3 +89,13 @@ See the parent feature for the full design. This story implements
 - `packages/ui/src/components/prompt-block.tsx` (new)
 - `packages/ui/src/components/prompt-block.module.css` (new)
 - `packages/ui/src/components/__tests__/prompt-block.test.tsx` (new)
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 8 tests pass. Pure presentational primitive — no IPC, no service deps. Lifecycle (view → edit → save/cancel), `onDraftChange(null)` exit signaling, locked/customizable gating all wired. Diff toggle correctly gated on `defaultText !== undefined && customizable`. Ready for Unit 3 (the consumer adoption story) to replace the three near-duplicate lifecycles.

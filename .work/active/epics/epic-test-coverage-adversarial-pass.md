@@ -1,14 +1,14 @@
 ---
 id: epic-test-coverage-adversarial-pass
 kind: epic
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Adversarial test-coverage pass — close the gate-tests findings from v0.1.1
@@ -143,3 +143,9 @@ autopilot can run them in one wave.
   serialize naturally even though the feature is logically one
   design unit. Feature-design should consider whether to split into
   separate stories at implement time.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Notes**: Epic delivered as briefed. All 3 child features at done; aggregate 7 new test cases pin previously-unverified adversarial paths (cancel-state machine, draft race window, engine-config rename, sub-agent collision, update-banner hash, DOCX image boundary, PPTX fallback fixture). No foundation-doc drift — the tests' own names ARE the spec pins per the feature design's intent. Children-complete, advancing to done.

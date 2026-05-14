@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-draft-resumption
 kind: feature
-stage: review
+stage: done
 tags: [tutor-ux, bootstrap]
 parent: epic-course-structured-tutor
 depends_on: []
@@ -349,3 +349,15 @@ The resume path is end-to-end smoke-testable by: start a bootstrap session → r
 - **Seed-message reliability**: the synthesized user message is the only mechanism telling the bootstrap model to resume. If model behavior drifts and it ignores the seed, resume silently breaks. Mitigation: the message names the tool by exact symbol (`course.start_exploration`) and the bootstrap-role fragment already documents the resume protocol; if it drifts, harden by adding an explicit `session.start({ resumeDraftId })` contract in a follow-up.
 - **Picker overflow at scale**: a student with many drafts will hit the inline-panel ceiling. Acceptance allows scroll fallback initially; document a follow-up backlog item if smoke testing shows >8 drafts is common.
 - **listActiveForStudent cost**: the accessor deserializes full `stateJson` blobs for every active draft. Acceptable now (drafts-per-student is small); flag for SQL-projection refactor if measured to be slow.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **UI picker test + arrow-key navigation gap** — captured in `resume-draft-picker-test-and-keyboard-nav` backlog item.
+
+**Nits**: Tool + mode-wiring are solid; UI integration is functional but under-tested.
+
+**Notes**: All 3 children at done. `course.list_drafts` tool + bootstrap wiring + `<ResumeDraftPicker>` shipped. Children-complete.

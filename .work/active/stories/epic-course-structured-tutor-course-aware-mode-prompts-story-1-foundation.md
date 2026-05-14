@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-course-aware-mode-prompts-story-1-foundation
 kind: story
-stage: review
+stage: done
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor-course-aware-mode-prompts
 depends_on: []
@@ -121,3 +121,15 @@ override-by-default convention.
 - The actual per-mode prose inside `composeInCourseBehaviorFragment`.
   This story uses placeholder one-line templates; each addendum
   story replaces one mode's branch with the real prose.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Missing tests** — three test files specified in acceptance criteria were not delivered (`in-course-behavior.test.ts`, extended `course-context.test.ts` documents cases, `session-service.in-course-overrides.test.ts`). Existing mode-shape tests cover registration but not the new code paths. → Item: `course-aware-mode-prompts-missing-tests`
+
+**Nits**: SessionServiceImpl correctly handles `listForScopeDetailed` not being on test fakes via the `typeof === "function"` guard plus `.catch(() => undefined)` — graceful fallback.
+
+**Notes**: Foundation plumbing is solid. 686 tests pass. The five addendum stories landed with the per-mode prose in the same commit. Missing tests parked as a separate item.

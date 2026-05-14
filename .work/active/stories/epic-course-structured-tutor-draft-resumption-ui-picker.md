@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-draft-resumption-ui-picker
 kind: story
-stage: review
+stage: done
 tags: [tutor-ux, bootstrap, ui]
 parent: epic-course-structured-tutor-draft-resumption
 depends_on: []
@@ -70,3 +70,16 @@ message template.
   "Untitled draft" if empty.
 - Relative-time formatting: use any existing project date helper if one
   exists; otherwise simple inline "N min/hr/days ago".
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Missing test file** — `__tests__/resume-draft-picker.test.tsx` was not created. Tests called out by acceptance criteria. → Item: `resume-draft-picker-test-and-keyboard-nav`
+- **Missing arrow-key navigation** — picker has Esc + click-outside but no arrow-key row navigation. → Same item.
+
+**Nits**: Seed-message-and-drain pattern in `routes/courses.tsx` is a one-off; if reused, factor into `openSessionInTab`-like helper.
+
+**Notes**: Component itself is well-structured. Uses `useDrafts()` (no new IPC), editorial primitive on `.rowTitle`, proper a11y on toggle (`aria-haspopup`, `aria-expanded`, `aria-controls`). Session-tab-open flow correct.

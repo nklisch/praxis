@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-draft-resumption-tool
 kind: story
-stage: review
+stage: done
 tags: [tutor-ux, bootstrap, tools]
 parent: epic-course-structured-tutor-draft-resumption
 depends_on: []
@@ -51,3 +51,13 @@ completionPercent heuristic.
 - Match the sibling `show-draft.ts` style (tier, effects, description shape).
 - Do NOT add a `studentId` param to the input schema — `ctx.studentId` is the
   trust boundary.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `computeCompletion` uses `any` for the `proposed` shape via biome-ignore; documented and bounded — fine for internal projection.
+
+**Notes**: 6 tests pass. Tool correctly tiered grounded/no-effects. Projection co-located for direct test access. `ctx.studentId` used as trust boundary. Tool registered in `COURSE_TOOLS`.

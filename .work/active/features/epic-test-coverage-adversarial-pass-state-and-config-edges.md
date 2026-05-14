@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-state-and-config-edges
 kind: feature
-stage: review
+stage: done
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass
 depends_on: []
@@ -349,3 +349,13 @@ lint && pnpm test` from the repo root must pass.
   which this test pins. If we ever need cross-process contention
   coverage, that's a separate feature (likely involving worker
   threads or subprocesses).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All 3 child stories at done. Aggregate: 3 new test cases pin previously-unverified state-machine + config-persistence edges. Children-complete.

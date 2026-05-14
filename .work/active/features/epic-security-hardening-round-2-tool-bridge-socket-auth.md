@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-tool-bridge-socket-auth
 kind: feature
-stage: review
+stage: done
 tags: [security]
 parent: epic-security-hardening-round-2
 depends_on: []
@@ -483,3 +483,13 @@ feature.
 The next agent should run `/agile-workflow:implement
 epic-security-hardening-round-2-tool-bridge-socket-auth` for inline
 implementation.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 7 tests pass in `tool-server-auth.test.ts`. All 5 units delivered: per-session 256-bit token via env var, 0600 socket perm with umask + chmod belt-and-suspenders, constant-time hex compare via `crypto.timingSafeEqual`, 5s auth-frame timeout. Worker generator updated to send auth frame as first line. No `resolvePermissionMode` semantics touched (CLAUDE.md contract preserved). Defense-in-depth properly layered.

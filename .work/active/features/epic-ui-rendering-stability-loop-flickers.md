@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-loop-flickers
 kind: feature
-stage: review
+stage: done
 tags: [ui, bug]
 parent: epic-ui-rendering-stability
 depends_on: []
@@ -403,3 +403,13 @@ Use the `ui-test-helper` pattern (`makeFakeClient` for `client.author`).
   visually observable and the code path is mechanically certain
   (object-literal-in-deps), so we trust the diagnosis without
   instrumentation.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Both children at done. Sidebar memoisation (`useMemo` on `kind, id` primitives) + configurator-actions destructure landed. Children-complete.

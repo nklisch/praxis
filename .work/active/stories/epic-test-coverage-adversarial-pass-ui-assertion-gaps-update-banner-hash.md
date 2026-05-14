@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-ui-assertion-gaps-update-banner-hash
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass-ui-assertion-gaps
 depends_on: []
@@ -78,3 +78,13 @@ No new files. No new runtime code paths.
   the click handler.
 - Editing `docs/ARCHITECTURE.md` or any spec doc. Once the test names
   assert the contract, the test names ARE the pin.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Test uses `0123456789abcdef.repeat(4)` instead of `"a".repeat(64)` — a small improvement that pins the "hex char" property too.
+
+**Notes**: 8 tests pass. Both `<details>` invariants pinned: collapsed-by-default + full-hash-in-code element. Runtime change is comment-only.

@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-state-transitions-sub-agent-panel-unmount
 kind: story
-stage: review
+stage: done
 tags: [ui, bug]
 parent: epic-ui-rendering-stability-state-transitions
 depends_on: []
@@ -83,3 +83,13 @@ Pattern reference: `subscriber-fanout-stream` — the
 that can mount/unmount freely without state loss. The pre-design
 already locked the decision to unmount rather than `display:none`
 because there's no local state worth preserving.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 4 tests pass. Two-branch split is correct: collapsed = just the button (no outer div); expanded = full `.panel` chrome. CSS `.toggleCollapsed` strips top spacing as designed.

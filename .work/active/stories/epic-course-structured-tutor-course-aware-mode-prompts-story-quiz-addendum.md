@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-course-aware-mode-prompts-story-quiz-addendum
 kind: story
-stage: review
+stage: done
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor-course-aware-mode-prompts
 depends_on: [epic-course-structured-tutor-course-aware-mode-prompts-story-1-foundation]
@@ -64,3 +64,15 @@ immediately after `courseContextFragmentDefault`.
 
 - Extend `in-course-prompt-shape.test.ts` with a quiz-specific case
   asserting on the prose markers.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Missing test coverage** — covered by `course-aware-mode-prompts-missing-tests` backlog item.
+
+**Nits**: Template doesn't explicitly call out "no hints during answering" (point 5) or "anchor feedback on specific concepts" (point 4), but the acceptance criteria don't strictly require those.
+
+**Notes**: 686 tests pass. Lesson title, scope-locking, lesson assessment plan all present. Fragment correctly registered in `quiz.ts`.

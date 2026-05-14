@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-state-transitions
 kind: feature
-stage: review
+stage: done
 tags: [ui, bug]
 parent: epic-ui-rendering-stability
 depends_on: []
@@ -471,3 +471,13 @@ auto-advances to `stage: review`.
 - **Pyodide / native tests unaffected** — both units are pure
   React component changes; no DB, no engine, no Pyodide. Skip
   `PRAXIS_RUN_SLOW_TESTS` gating concerns.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Both children at done. Quick-check-card collapses to summary row with correct/incorrect badge; sub-agent panel unmounts chrome when hidden. Children-complete.

@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-course-aware-mode-prompts-story-exam-addendum
 kind: story
-stage: review
+stage: done
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor-course-aware-mode-prompts
 depends_on: [epic-course-structured-tutor-course-aware-mode-prompts-story-1-foundation]
@@ -66,3 +66,16 @@ Insert `behaviorInCourseFragmentDefault.exam` into
 
 - Extend `in-course-prompt-shape.test.ts` with an exam-specific case
   asserting the scope-locking language is present.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Template omits lesson title and `clarification` keyword** — two acceptance-criteria points not met. The design intent is defensible ("exam binds to an assignment, not a lesson") but the spec was explicit. Defer: the broader scope-locking sentence covers the critical safety property. Filed under `course-aware-mode-prompts-missing-tests` along with test coverage.
+- **Missing test coverage** — covered by the same backlog item.
+
+**Nits**: Exam prose is conservative as designed.
+
+**Notes**: Scope-locking language ("assignment-bound items only", "closed surface") is the load-bearing part and is present. Fragment correctly registered.

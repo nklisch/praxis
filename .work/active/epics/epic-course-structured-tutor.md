@@ -1,14 +1,14 @@
 ---
 id: epic-course-structured-tutor
 kind: epic
-stage: review
+stage: done
 tags: [tutor-ux, curriculum, bootstrap, mode-prompts]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Course-structured tutor — let the curriculum drive the tutor, not the other way around
@@ -146,3 +146,12 @@ must locate it.
   composition time needs an accessor that doesn't trigger N+1
   queries. Feature-design must verify the right accessor exists or
   add one.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Important**:
+- **Aggregate test debt** — child features delivered prose + tool + plumbing but skipped several explicit test files. Captured in `course-aware-mode-prompts-missing-tests` and `resume-draft-picker-test-and-keyboard-nav` backlog items.
+
+**Notes**: Epic delivered the three feature arcs: buildout-progress (no-ETA prompt fix), course-aware-mode-prompts (per-mode context + behavior addendums via override map), and draft-resumption (tool + ui-picker + mode-wiring). Override-by-default pattern preserved across all surfaces. No foundation drift. Children-complete, advancing to done.

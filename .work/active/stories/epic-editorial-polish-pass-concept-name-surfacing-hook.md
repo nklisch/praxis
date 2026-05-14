@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-concept-name-surfacing-hook
 kind: story
-stage: review
+stage: done
 tags: [ui, configure, editorial]
 parent: epic-editorial-polish-pass-concept-name-surfacing
 depends_on: []
@@ -62,3 +62,13 @@ of the design.
 
 - `packages/ui/src/hooks/use-concept-names.ts` (new)
 - `packages/ui/src/hooks/__tests__/use-concept-names.test.ts` (new)
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `ConceptLookup` projection drops `graphId`/`standardsTags` as designed. Test file is `.tsx` not `.ts` as specified — fine, hook tests render hooks which is `.tsx`-compatible.
+
+**Notes**: 4 tests pass. Follows `use-resource-hook` pattern. Map memoisation correct. Empty-state and undefined-courseId paths correctly bypass IPC.

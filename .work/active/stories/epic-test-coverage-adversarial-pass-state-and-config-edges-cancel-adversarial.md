@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-state-and-config-edges-cancel-adversarial
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass-state-and-config-edges
 depends_on: []
@@ -67,3 +67,13 @@ Each test:
   `pnpm --filter @praxis/ui vitest run src/__tests__/use-streamed-send.test.tsx`.
 - [ ] `pnpm typecheck && pnpm lint` are green from the repo root.
 - [ ] No changes to `use-streamed-send.ts` (no runtime assertions).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Two test assertions are well-commented `Spec:` lines; double-cancel test correctly tolerates 1 or 2 `return()` calls per spec.
+
+**Notes**: All 61 tests in `use-streamed-send.test.tsx` pass. The three new `it(...)` blocks match the acceptance-criteria names exactly. No runtime code touched. No foundation drift.

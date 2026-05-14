@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-ui-assertion-gaps
 kind: feature
-stage: review
+stage: done
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass
 depends_on: []
@@ -382,3 +382,13 @@ are unchanged.
   exact string, those references go stale. Mitigated by `grep`-ing
   for the old names before committing and updating any references
   found (none expected; quick check during implementation).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Both child stories at done. Source-comment back-references to the test names landed in both runtime files, strengthening the pin in both directions. Children-complete.

@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-resizable-panels
 kind: feature
-stage: review
+stage: done
 tags: [ui, editorial]
 parent: epic-editorial-polish-pass
 depends_on: []
@@ -512,3 +512,16 @@ Verification: `pnpm typecheck && pnpm test` clean. Manual smoke: chat
 documents sidebar drags between 160–480px, persists across reload via
 `localStorage[praxis.panel.chat-documents.width]`, double-click reset
 via Home key.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **No tests landed** — acceptance criteria specified ~13 unit/component/integration test cases. None were delivered. → Item: `resizable-panels-tests-and-sidekick-adoption`
+- **Unit 3 deferred but not tracked** — sidekick-panel adoption was deferred per the implementation notes but no follow-up item existed. → Same item.
+
+**Nits**: Hook implementation looks sound (pointer capture + clamp + debounced persist + keyboard + ARIA), but the verification surface is manual smoke only.
+
+**Notes**: Hook + `<ResizeHandle>` primitive + chat-documents sidebar adoption all landed. Manual smoke confirmed working. Test debt + Unit 3 captured in backlog as one feature.

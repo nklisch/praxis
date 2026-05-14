@@ -1,14 +1,14 @@
 ---
 id: epic-ui-rendering-stability
 kind: epic
-stage: review
+stage: done
 tags: [ui, bug]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # UI rendering stability — kill the flickers, ghosts, and broken layouts
@@ -118,3 +118,9 @@ subscription churn.
   grade tool result on the engine stream rather than from a local
   submit handler. Feature-design must pin the trigger source before
   designing the transition.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Notes**: Epic delivered as briefed. Both child features at done. Loop flickers: identity-stable derived scope + configurator-actions deps destructure. State transitions: question card collapses to summary with grade badge + sub-agent panel unmounts chrome when hidden. No foundation drift. Children-complete, advancing to done.

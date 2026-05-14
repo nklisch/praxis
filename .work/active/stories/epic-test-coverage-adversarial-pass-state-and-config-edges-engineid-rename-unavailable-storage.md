@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-state-and-config-edges-engineid-rename-unavailable-storage
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass-state-and-config-edges
 depends_on: []
@@ -66,3 +66,13 @@ Key points:
   `pnpm --filter @praxis/core vitest run src/__tests__/engine-config.test.ts`.
 - [ ] `pnpm typecheck && pnpm lint` green from repo root.
 - [ ] No changes to `config/engine-config.ts`.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Stored-row inspection asserts both `apiKey` and `apiKeyEncrypted` are absent — load-bearing for the security property.
+
+**Notes**: All 34 tests pass. Implementation matches the spec exactly.

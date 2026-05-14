@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-app-chrome
 kind: feature
-stage: review
+stage: done
 tags: [ui, editorial]
 parent: epic-editorial-polish-pass
 depends_on: []
@@ -432,3 +432,13 @@ snapshot update.
 
 No spike unit needed. No fallback plan beyond the standard "revert
 the PR" if the visual outcome doesn't match design intent.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 7 tests pass. All three units landed (rename Chat→Tutor, CSS editorial alignment, wordmark ornament+title). Test extended with wordmark structural assertion. No new IPC. Visual change only — manual verification will be done at release time.

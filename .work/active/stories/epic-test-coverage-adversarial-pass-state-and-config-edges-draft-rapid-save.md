@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-state-and-config-edges-draft-rapid-save
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass-state-and-config-edges
 depends_on: []
@@ -57,3 +57,13 @@ Key points:
   `pnpm --filter @praxis/core vitest run src/__tests__/draft-store.test.ts`.
 - [ ] `pnpm typecheck && pnpm lint` green from repo root.
 - [ ] No changes to `services/draft-store.ts`.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Test correctly asserts the `createdAt` preservation invariant — that's the load-bearing one for last-writer-wins safety.
+
+**Notes**: Test passes. No runtime code touched. Cleanly verifies the same-tick race window.

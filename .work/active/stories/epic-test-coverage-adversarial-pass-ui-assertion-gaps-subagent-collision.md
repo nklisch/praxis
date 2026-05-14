@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-ui-assertion-gaps-subagent-collision
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass-ui-assertion-gaps
 depends_on: []
@@ -65,3 +65,13 @@ No new files. No new runtime code paths.
   is a separate item.
 - Editing `docs/ARCHITECTURE.md` or any spec doc. Once the test name
   asserts the contract, the test name IS the pin.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Source-comment back-reference in `subagent-registry.ts` strengthens the pin in both directions.
+
+**Notes**: 20 tests pass. Test pins all four invariants (no event, no duplicate, label preserved, debug log emitted). Runtime comment-only change.

@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-course-aware-mode-prompts-story-study-skills-addendum
 kind: story
-stage: review
+stage: done
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor-course-aware-mode-prompts
 depends_on: [epic-course-structured-tutor-course-aware-mode-prompts-story-1-foundation]
@@ -64,3 +64,15 @@ Insert `behaviorInCourseFragmentDefault["study-skills"]` into
 
 - Extend `in-course-prompt-shape.test.ts` with a study-skills-specific
   case.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Missing test coverage** — covered by `course-aware-mode-prompts-missing-tests` backlog item.
+
+**Nits**: Template doesn't explicitly preserve "one technique per session" pacing (criteria 3); that's already in the study-skills role fragment, so not a real loss.
+
+**Notes**: 686 tests pass. Lesson title, demos-on-concepts, documents reference all present. Fragment correctly registered.

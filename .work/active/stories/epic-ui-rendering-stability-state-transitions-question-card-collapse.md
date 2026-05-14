@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-state-transitions-question-card-collapse
 kind: story
-stage: review
+stage: done
 tags: [ui, bug]
 parent: epic-ui-rendering-stability-state-transitions
 depends_on: []
@@ -83,3 +83,13 @@ IPC, no engine-event subscription, no bridge changes.
 For the visual vocabulary, read `tool-entry.tsx` and
 `tool-entry.module.css` and mimic the `.settled` branch's button +
 disclosure-triangle + summary text pattern.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `gradeAnswer` duplicates server-side grading logic — flagged in source comment as intentional, deferred. A future drift between client/server grading is possible but acceptable.
+
+**Notes**: 11 tests pass. Collapse + grade-badge + toggle behaviour all pinned with explicit tests. CSS module additions clean.

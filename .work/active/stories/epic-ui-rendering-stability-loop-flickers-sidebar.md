@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-loop-flickers-sidebar
 kind: story
-stage: review
+stage: done
 tags: [ui, bug]
 parent: epic-ui-rendering-stability-loop-flickers
 depends_on: []
@@ -64,3 +64,13 @@ the design under "Unit 1".
   identity, not branching.
 - Don't merge anything new into `useResource` — the fix belongs in the
   caller of `useResource`, not in the helper itself.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Tab indentation in `use-derived-scope.ts` differs from rest of file's prior spaces; auto-formatter likely normalised on save. Not blocking.
+
+**Notes**: 15 tests pass (against the committed state). `useMemo` keyed on primitives correctly stabilises returned reference. Branch logic preserved.

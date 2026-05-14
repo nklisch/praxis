@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-buildout-progress
 kind: feature
-stage: review
+stage: done
 tags: [tutor-ux, bootstrap]
 parent: epic-course-structured-tutor
 depends_on: []
@@ -353,3 +353,13 @@ New test file: `packages/curriculum/src/modes/fragments/__tests__/bootstrap-no-t
 Verification: `pnpm --filter @praxis/curriculum test` → 415 tests, all green (28 existing test files + 1 new).
 
 Note: the negative-substring guard for "30 seconds" forced one small wording tweak to the role-fragment example ("a few seconds" instead of "30 seconds") — the principle is preserved, the literal substring is no longer present anywhere.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 14 tests pass in the new `bootstrap-no-time-estimate.test.ts`. No children spawned (correct per the single-stride/tight-cohesion rubric). Three fragments edited; ETA wording removed; structural-progress guidance added; negative + positive substring guards landed. No foundation drift.

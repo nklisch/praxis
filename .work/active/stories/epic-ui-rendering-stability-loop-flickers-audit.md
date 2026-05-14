@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-loop-flickers-audit
 kind: story
-stage: review
+stage: done
 tags: [ui, bug]
 parent: epic-ui-rendering-stability-loop-flickers
 depends_on: []
@@ -70,3 +70,13 @@ design under "Unit 2".
 - Do NOT change the consumer call site in `memory-inspector-tabs.tsx`
   — the contract is that the hook tolerates a literal at the call
   site. That's the fix.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 4 tests pass. Primitive destructure + conditional-spread matches the `use-notes.ts` idiom. `exactOptionalPropertyTypes` respected.

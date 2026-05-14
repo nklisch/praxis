@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-course-aware-mode-prompts
 kind: feature
-stage: review
+stage: done
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor
 depends_on: []
@@ -492,4 +492,16 @@ The existing `composeCourseContextFragment` tests already use a small `CourseSta
 - **Prose churn**: each mode-addendum story decides the actual prose. Without strict review, two stories might use overlapping language and dilute the per-mode behavioral signal. Mitigation: foundation story documents a "prose checklist" (must mention current lesson title; must reference one mode-specific capability — assessment plan / concept dependencies / etc.) and each addendum story's review verifies against it.
 - **`additionalFragments` foot-gun re-emergence**: a future mode might re-introduce an `additionalFragments` injection for course context and double-render. Mitigation: comment block on the override site explains the override-by-default convention and links to this feature's id.
 - **Configure / bootstrap accidentally gain `courseId`**: the activation guard is `inCourseModes.has(args.mode.id)`; if those modes start being opened with a courseId for unrelated reasons (e.g. configure-by-course), they skip the override automatically. No accidental prompt mutation.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Aggregate test gap** — none of the 6 child stories' explicit test files (`in-course-behavior.test.ts`, `session-service.in-course-overrides.test.ts`, extended `course-context.test.ts` documents cases, `in-course-prompt-shape.test.ts`) were created. Tracked in `course-aware-mode-prompts-missing-tests` backlog item.
+
+**Nits**: All 6 child stories landed; aggregate Cross-cutting concern: test coverage thin on the new paths but existing mode-shape tests verify structural integration. Two stories (exam-addendum) had minor template-spec drift documented in their reviews.
+
+**Notes**: Foundation + 5 mode addendums delivered. Override-by-default contract preserved. Children-complete.
 

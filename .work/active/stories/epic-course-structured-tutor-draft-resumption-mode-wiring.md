@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-draft-resumption-mode-wiring
 kind: story
-stage: review
+stage: done
 tags: [tutor-ux, bootstrap, mode-prompts]
 parent: epic-course-structured-tutor-draft-resumption
 depends_on: [epic-course-structured-tutor-draft-resumption-tool]
@@ -48,3 +48,13 @@ Pattern reference: `mode-tool-scoping` (`.claude/skills/patterns/mode-tool-scopi
   tool registry filter.
 - Keep the `toolNames` and the fragment in sync. The pattern's "common
   violations" section calls out drift between these as the #1 trap.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: A specific assertion for `course.list_drafts` could be added to `bootstrap-toolnames.test.ts`; the existing exhaustive shape tests cover this implicitly.
+
+**Notes**: Tool wired correctly: in `bootstrapMode.toolNames` AND in `bootstrap-tools.ts` fragment. Verified only bootstrap mode references it. Pattern `mode-tool-scoping` satisfied — `toolNames` and prompt fragment in sync.

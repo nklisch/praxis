@@ -1,7 +1,7 @@
 ---
 id: resume-draft-picker-test-and-keyboard-nav
 kind: story
-stage: review
+stage: done
 tags: [ui, testing, a11y]
 parent: null
 depends_on: []
@@ -59,3 +59,17 @@ Use `makeFakeClient` per `ui-test-helper`. Pattern: see existing `<Modal>` or `<
 **Lint** — the picker has 3 pre-existing a11y errors (`ul role="listbox"` / `li role="option"` / option-not-focusable) that biome flags as wanting `div role="listbox"` instead. These are the canonical ARIA listbox pattern and were present before this story landed; I did not change them. My changes removed one format error (auto-format) and added no new lint issues.
 
 Verification: `pnpm vitest run packages/ui/src/__tests__/resume-draft-picker.test.tsx` → 8/8 pass. Full `pnpm test` green (3293 pass, 23 slow skipped); `pnpm typecheck` clean.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: pre-existing biome a11y warnings on `<ul role="listbox">` / `<li role="option">` remain unchanged (3 errors before, 3 after); canonical ARIA listbox pattern, separate concern if revisited.
+
+**Notes**:
+- All 3 acceptance criteria met. Test file lands with 8 cases (4 behavior + 4 keyboard) — covers renders-null, one-row-per-draft, click chain, session.start({modeId:"bootstrap"}) + send-with-draftId, ArrowDown/Up wrap, Home/End jump, Escape close.
+- Runtime change: arrow-key navigation via `activeIndex` state + per-row button refs + focus-via-effect; Enter handled implicitly via Enter-on-focused-button browser default (documented in code comment). `aria-activedescendant` + `aria-selected` + per-row id added.
+- The reformatted tabs-to-spaces churn in the component is biome-conformant (`indentStyle: space, indentWidth: 2`); the previous tabs were stylistic non-conformance.
+- `pnpm vitest run packages/ui/src/__tests__/resume-draft-picker.test.tsx` → 8/8 green.

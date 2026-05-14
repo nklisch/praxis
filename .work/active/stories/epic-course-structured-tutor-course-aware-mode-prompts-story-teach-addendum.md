@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-course-aware-mode-prompts-story-teach-addendum
 kind: story
-stage: review
+stage: done
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor-course-aware-mode-prompts
 depends_on: [epic-course-structured-tutor-course-aware-mode-prompts-story-1-foundation]
@@ -68,3 +68,15 @@ immediately after `courseContextFragmentDefault`.
 - Extend `packages/curriculum/src/modes/__tests__/in-course-prompt-shape.test.ts`
   (created in story-1-foundation) with a teach-specific case
   asserting on the prose markers.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Missing test coverage** — `in-course-prompt-shape.test.ts` was never created (foundation skipped it). Test coverage gap covered by `course-aware-mode-prompts-missing-tests` backlog item.
+
+**Nits**: Template says "Author quick checks from the lesson's concept set" — original spec said "Author assignments (`assignment.create`)". Functionally close; not blocking. "Up next" drift handling is not in the prose but is also not strictly required by the acceptance criteria as written.
+
+**Notes**: 686 curriculum/core tests pass. Template names lesson title, mentions `retrieve_from_documents`, mentions concept dependencies. Fragment correctly registered in `teach.ts` after `courseContextFragmentDefault`.
