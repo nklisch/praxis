@@ -8,7 +8,7 @@
 import { stat } from "node:fs/promises";
 import * as net from "node:net";
 import * as os from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { ToolServerHandle } from "../tool-server.js";
 import { startToolServer } from "../tool-server.js";
@@ -142,6 +142,72 @@ describe("startToolServer — auth gate", () => {
 			conn.on("error", () => resolve(!gotData));
 		});
 		expect(closed).toBe(true);
+	});
+
+	it("no frame within auth timeout window → connection closed", async () => {
+		handle = await startToolServer([echoTool]);
+
+		// Spy on setTimeout so we can capture the auth-timeout callback that
+		// the server-side connection handler arms (AUTH_TIMEOUT_MS = 5_000ms).
+		// The spy must be active when the client connects (the server calls
+		// setTimeout inside the 'connection' event handler, not at listen time).
+		// We hold a reference to the real setTimeout so the spy can pass all
+		// non-auth timers through unmodified.
+		const realSetTimeout = setTimeout.bind(globalThis);
+		const capturedAuthCallbacks: Array<() => void> = [];
+
+		const spy = vi
+			.spyOn(global, "setTimeout")
+			.mockImplementation((fn: (...args: unknown[]) => void, delay?: number) => {
+				if (delay === 5000) {
+					// Intercept AUTH_TIMEOUT_MS timer — record callback; return a
+					// dummy Timeout so clearTimeout on the happy path still works.
+					capturedAuthCallbacks.push(() => fn());
+					return {
+						ref: () => {},
+						unref: () => {},
+						hasRef: () => false,
+						[Symbol.toPrimitive]: () => 0,
+					} as unknown as ReturnType<typeof setTimeout>;
+				}
+				// biome-ignore lint/suspicious/noExplicitAny: delegating to preserved real impl
+				return (realSetTimeout as (...args: any[]) => ReturnType<typeof setTimeout>)(fn, delay);
+			});
+
+		try {
+			// Connect but write no frames — the server arms the auth timeout.
+			const conn = await new Promise<net.Socket>((resolve, reject) => {
+				const s = net.createConnection(socketPath(handle!));
+				s.on("connect", () => resolve(s));
+				s.on("error", reject);
+			});
+
+			// Restore real timers before firing the callback so any internal
+			// Node.js I/O timers used by the socket teardown work normally.
+			spy.mockRestore();
+
+			// Sanity: the spy must have captured exactly one 5_000ms timer.
+			expect(capturedAuthCallbacks.length).toBe(1);
+
+			// Simulate AUTH_TIMEOUT_MS elapsing — fires conn.destroy() server-side.
+			for (const cb of capturedAuthCallbacks) {
+				cb();
+			}
+
+			// The server must close the connection without sending any data.
+			const closedWithoutData = await new Promise<boolean>((resolve) => {
+				let gotData = false;
+				conn.on("data", () => {
+					gotData = true;
+				});
+				conn.on("close", () => resolve(!gotData));
+				conn.on("error", () => resolve(!gotData));
+			});
+
+			expect(closedWithoutData).toBe(true);
+		} finally {
+			spy.mockRestore();
+		}
 	});
 });
 

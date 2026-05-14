@@ -1,7 +1,7 @@
 ---
 id: gate-tests-tool-server-auth-timeout-window
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -37,3 +37,11 @@ it("no frame within auth timeout window → connection closed", async () => {
   // expect the socket to have been closed by the server
 });
 ```
+
+## Implementation
+
+Added to `packages/claude-cli-sdk/src/__tests__/tool-server-auth.test.ts` (lines 147–207), inside the `"startToolServer — auth gate"` describe block after the `"malformed auth frame"` test.
+
+Implementation approach: `vi.spyOn(global, "setTimeout")` intercepts the single `5_000ms` auth-timeout timer that the server-side connection handler arms when a client connects. The callback is captured by reference; all other timers are passed through to the real `setTimeout`. After connecting (writing no frames), `spy.mockRestore()` is called so real I/O can proceed, the captured callback is fired to simulate the timeout expiring, and the test asserts the socket closes without data.
+
+Added `vi` to the vitest import at line 11. All 8 tests pass; typecheck clean.
