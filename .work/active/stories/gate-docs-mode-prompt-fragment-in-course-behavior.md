@@ -1,7 +1,7 @@
 ---
 id: gate-docs-mode-prompt-fragment-in-course-behavior
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -71,3 +71,13 @@ Two edits to `.claude/skills/patterns/mode-prompt-fragment-composition.md`:
 1. **Example addition**: Added `behaviorInCourseFragmentDefault.teach,` to the `teachMode.promptFragments` array in Example 2, between `courseContextFragmentDefault` and `constraintsFragment`, matching the actual code at `packages/curriculum/src/modes/teach.ts:30`.
 
 2. **Prose addition**: Extended the "Per-session computed content" bullet in the "When to Use" section to note that the same defaults-plus-runtime-override shape produces the `in-course-behavior` fragment in teach/quiz/homework/exam/study-skills modes via `composeInCourseBehaviorFragment(modeId, courseCtx)`, with the override delivered through the `overrides` map at session open time (not `additionalFragments` — the code at `session-service.ts:662` uses `overrides.set(behavior.id, behavior.template)`).
+
+## Review
+
+Approved. All cross-checks pass.
+
+**Example addition** (`teach.ts:30`): `behaviorInCourseFragmentDefault.teach` is confirmed present between `courseContextFragmentDefault` and `constraintsFragment` in the live source. The pattern doc Example 2 now matches exactly.
+
+**Prose correction** (`session-service.ts:662`): The implementer correctly caught that the story's claim ("passed in through `additionalFragments`") was wrong. The runtime path is `overrides.set(behavior.id, behavior.template)` — the override goes into the `overrides` map, not `additionalFragments`. The updated prose in the "Per-session computed content" bullet states this accurately and distinguishes the two mechanisms. This is the right call: `additionalFragments` adds new fragments; `overrides` replaces a placeholder fragment's template in-place. They are separate code paths and the distinction matters for anyone extending the pattern.
+
+**Scope and completeness**: Both required edits from the story are present and accurate. No regressions introduced — the change is purely additive doc text. The implementer's escape-hatch note (correcting the story's own incorrect claim) is appropriate and improves the pattern's correctness.
