@@ -1,5 +1,6 @@
 import type { LogRecord } from "@praxis/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // Capture the listener registered with ipcMain.on so the test can invoke it directly.
 type Listener = (event: unknown, payload: unknown) => void;
@@ -13,35 +14,10 @@ vi.mock("electron", () => ({
   },
 }));
 
-type Captured = { level: string; message: string; record: LogRecord };
-let captured: Captured[];
-let debugCalls: Array<{ message: string; fields?: Record<string, unknown> }>;
-
 import { LOG_CHANNEL, registerLogChannel } from "../log-channel.js";
-import type { MainLogger } from "../logger.js";
-
-function makeFakeLogger(): MainLogger {
-  return {
-    debug: (message, fields) => {
-      debugCalls.push({ message, ...(fields !== undefined && { fields }) });
-    },
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-    child: function (this: MainLogger) {
-      return this;
-    },
-    ingestRendererRecord: (record) => {
-      captured.push({ level: record.level, message: record.message, record });
-    },
-    shutdown: async () => {},
-  };
-}
 
 beforeEach(() => {
   listeners.clear();
-  captured = [];
-  debugCalls = [];
 });
 
 afterEach(() => {
@@ -56,12 +32,13 @@ describe("LOG_CHANNEL", () => {
 
 describe("registerLogChannel", () => {
   it("subscribes to LOG_CHANNEL on ipcMain", () => {
-    registerLogChannel(makeFakeLogger());
+    registerLogChannel(makeSpyLogger());
     expect(listeners.has(LOG_CHANNEL)).toBe(true);
   });
 
   it("forwards a valid LogRecord to ingestRendererRecord", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     const listener = listeners.get(LOG_CHANNEL);
     const record: LogRecord = {
       level: "info",
@@ -71,66 +48,76 @@ describe("registerLogChannel", () => {
       bindings: { component: "renderer" },
     };
     listener?.({}, record);
-    expect(captured).toHaveLength(1);
-    expect(captured[0]?.level).toBe("info");
-    expect(captured[0]?.message).toBe("renderer.hello");
-    expect(captured[0]?.record.fields).toEqual({ foo: "bar" });
-    expect(captured[0]?.record.bindings).toEqual({ component: "renderer" });
+    expect(log._spies.ingestRendererRecord).toHaveBeenCalledOnce();
+    const call = log._spies.ingestRendererRecord.mock.calls[0]?.[0] as LogRecord;
+    expect(call.level).toBe("info");
+    expect(call.message).toBe("renderer.hello");
+    expect(call.fields).toEqual({ foo: "bar" });
+    expect(call.bindings).toEqual({ component: "renderer" });
   });
 
   it("accepts a record without optional fields/bindings", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     listeners.get(LOG_CHANNEL)?.({}, {
       level: "warn",
       time: 1,
       message: "minimal",
     } satisfies LogRecord);
-    expect(captured).toHaveLength(1);
-    expect(captured[0]?.level).toBe("warn");
+    expect(log._spies.ingestRendererRecord).toHaveBeenCalledOnce();
+    const call = log._spies.ingestRendererRecord.mock.calls[0]?.[0] as LogRecord;
+    expect(call.level).toBe("warn");
   });
 
   it("drops a payload missing 'level' and emits a debug note instead", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     listeners.get(LOG_CHANNEL)?.({}, { time: 1, message: "x" });
-    expect(captured).toHaveLength(0);
-    expect(debugCalls).toHaveLength(1);
-    expect(debugCalls[0]?.message).toBe("log.record.malformed");
+    expect(log._spies.ingestRendererRecord).not.toHaveBeenCalled();
+    expect(log._spies.debug).toHaveBeenCalledOnce();
+    expect(log._spies.debug.mock.calls[0]?.[0]).toBe("log.record.malformed");
   });
 
   it("drops a payload with an unknown level", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     listeners.get(LOG_CHANNEL)?.({}, { level: "verbose", time: 1, message: "x" });
-    expect(captured).toHaveLength(0);
-    expect(debugCalls).toHaveLength(1);
+    expect(log._spies.ingestRendererRecord).not.toHaveBeenCalled();
+    expect(log._spies.debug).toHaveBeenCalledOnce();
   });
 
   it("drops a payload where time is not a number", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     listeners.get(LOG_CHANNEL)?.({}, { level: "info", time: "now", message: "x" });
-    expect(captured).toHaveLength(0);
-    expect(debugCalls).toHaveLength(1);
+    expect(log._spies.ingestRendererRecord).not.toHaveBeenCalled();
+    expect(log._spies.debug).toHaveBeenCalledOnce();
   });
 
   it("drops a payload where message is not a string", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     listeners.get(LOG_CHANNEL)?.({}, { level: "info", time: 1, message: 42 });
-    expect(captured).toHaveLength(0);
+    expect(log._spies.ingestRendererRecord).not.toHaveBeenCalled();
   });
 
   it("drops null payload", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     listeners.get(LOG_CHANNEL)?.({}, null);
-    expect(captured).toHaveLength(0);
+    expect(log._spies.ingestRendererRecord).not.toHaveBeenCalled();
   });
 
   it("drops a string payload", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     listeners.get(LOG_CHANNEL)?.({}, "just a string");
-    expect(captured).toHaveLength(0);
+    expect(log._spies.ingestRendererRecord).not.toHaveBeenCalled();
   });
 
   it("drops a record with non-object fields", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     listeners.get(LOG_CHANNEL)?.(
       {},
       {
@@ -140,11 +127,12 @@ describe("registerLogChannel", () => {
         fields: "not-an-object",
       },
     );
-    expect(captured).toHaveLength(0);
+    expect(log._spies.ingestRendererRecord).not.toHaveBeenCalled();
   });
 
   it("does not throw on any malformed payload", () => {
-    registerLogChannel(makeFakeLogger());
+    const log = makeSpyLogger();
+    registerLogChannel(log);
     const listener = listeners.get(LOG_CHANNEL);
     expect(() => listener?.({}, undefined)).not.toThrow();
     expect(() => listener?.({}, [])).not.toThrow();

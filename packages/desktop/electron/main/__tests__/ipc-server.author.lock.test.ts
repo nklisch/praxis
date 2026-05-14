@@ -16,6 +16,7 @@
  *         → true  → delegates to services.authoring.*
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // Capture handlers registered via ipcMain.handle so the test can invoke them.
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
@@ -40,18 +41,6 @@ vi.mock("electron", () => ({
 import { registerIpcHandlers } from "../ipc-server.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(() => makeFakeLogger()),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 /**
  * Build a minimal fake Services bag sufficient for `registerIpcHandlers` to
@@ -144,7 +133,7 @@ afterEach(() => {
 
 describe("praxis.author.setGlobalPrompt lock gate", () => {
   it("rejects with lock error when isUnlocked() returns false", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => false });
     registerIpcHandlers(services, () => null, log);
 
@@ -157,7 +146,7 @@ describe("praxis.author.setGlobalPrompt lock gate", () => {
   });
 
   it("does NOT call authoring.setGlobalPrompt when locked", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => false });
     registerIpcHandlers(services, () => null, log);
 
@@ -168,7 +157,7 @@ describe("praxis.author.setGlobalPrompt lock gate", () => {
   });
 
   it("delegates to authoring.setGlobalPrompt when unlocked (positive control)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => true });
     registerIpcHandlers(services, () => null, log);
 
@@ -184,7 +173,7 @@ describe("praxis.author.setGlobalPrompt lock gate", () => {
 
 describe("praxis.author.setModeAppend lock gate", () => {
   it("rejects with lock error when isUnlocked() returns false", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => false });
     registerIpcHandlers(services, () => null, log);
 
@@ -197,7 +186,7 @@ describe("praxis.author.setModeAppend lock gate", () => {
   });
 
   it("does NOT call authoring.setModeAppend when locked", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => false });
     registerIpcHandlers(services, () => null, log);
 
@@ -210,7 +199,7 @@ describe("praxis.author.setModeAppend lock gate", () => {
   });
 
   it("delegates to authoring.setModeAppend when unlocked (positive control)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => true });
     registerIpcHandlers(services, () => null, log);
 

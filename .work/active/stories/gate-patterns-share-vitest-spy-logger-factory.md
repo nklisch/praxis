@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-share-vitest-spy-logger-factory
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, testing]
 parent: null
 depends_on: []
@@ -56,3 +56,15 @@ neither exposes `vi.fn()` spies these tests want for assertions like
 - `makeSpyLogger` exported from `tests/helpers/mocks.ts`.
 - The four IPC channel test files use it instead of inlined literals.
 - Test assertions on spy calls pass unchanged.
+
+## Implementation
+
+Added `makeSpyLogger()` to `tests/helpers/mocks.ts` as a factory that returns a `Logger & { ingestRendererRecord; shutdown; _spies: { debug, info, warn, error, ingestRendererRecord, shutdown } }`. The extra methods (`ingestRendererRecord`, `shutdown`) are exposed directly on the returned object (not only under `_spies`) so the spy logger satisfies the `MainLogger` superset used in desktop package code like `registerLogChannel`. Spies are aliased from `_spies` to the top-level methods so both `log.debug` and `log._spies.debug` reference the same `vi.fn()` instance.
+
+Updated 4 call sites:
+- `packages/desktop/electron/main/__tests__/ipc-server.first-run-update.test.ts` — replaced inlined `makeFakeLogger` + 6 `makeFakeLogger()` calls with `makeSpyLogger()`
+- `packages/desktop/electron/main/__tests__/ipc-server.cancel.test.ts` — replaced inlined `makeFakeLogger` + 3 `makeSpyLogger()` calls
+- `packages/desktop/electron/main/__tests__/ipc-server.author.lock.test.ts` — replaced inlined `makeFakeLogger` + 6 `makeSpyLogger()` calls
+- `packages/desktop/electron/main/__tests__/log-channel.test.ts` — replaced custom capturing `makeFakeLogger` with `makeSpyLogger()`; assertions updated from manual `captured[]`/`debugCalls[]` arrays to `log._spies.ingestRendererRecord.mock.calls` / `log._spies.debug.mock.calls` and `toHaveBeenCalled*` matchers; module-level state removed
+
+All 27 tests pass; `pnpm --filter @praxis/desktop typecheck` passes clean.

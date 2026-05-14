@@ -14,6 +14,7 @@
  * with a fake services bag.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // Capture handlers registered with ipcMain.handle and listeners from ipcMain.on.
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
@@ -42,18 +43,6 @@ import type { EngineEvent } from "@praxis/core/types";
 import { registerIpcHandlers } from "../ipc-server.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(() => makeFakeLogger()),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 /**
  * Build a minimal fake Services bag that only populates `session.send` and
@@ -123,7 +112,7 @@ afterEach(() => {
 
 describe("praxis.session.send.cancel → AbortSignal propagation", () => {
   it("registers both praxis.session.send.start and praxis.session.send.cancel", () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     registerIpcHandlers(
       makeServices(async function* () {}),
       () => null,
@@ -168,7 +157,7 @@ describe("praxis.session.send.cancel → AbortSignal propagation", () => {
       // so we simply stop yielding here.
     }
 
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(fakeSend);
 
     // A fake WebContents that collects pushed events (needed so push() doesn't
@@ -268,7 +257,7 @@ describe("praxis.session.send.cancel → AbortSignal propagation", () => {
       });
     }
 
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(trackingSend);
     const fakeWc = { isDestroyed: () => false, send: vi.fn() };
 

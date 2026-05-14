@@ -11,6 +11,7 @@
  * wiring (createIpcHelpers wrapping + registerIpcHandlers dispatch) is exercised.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // Capture handlers registered with ipcMain.handle so the test can invoke them.
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
@@ -33,22 +34,6 @@ vi.mock("electron", () => ({
 
 // registerIpcHandlers is imported AFTER the mock is in place (hoisting handled by Vitest).
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Minimal fake logger ──────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function (this: unknown) {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 // ── Minimal fake Services ────────────────────────────────────────────────────
 // Only populate the service methods exercised by the three channels under test.
@@ -93,14 +78,14 @@ afterEach(() => {
 
 describe("praxis.config.firstRunCompleted handler", () => {
   it("is registered by registerIpcHandlers", () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     registerIpcHandlers(makeServices({}), () => null, log);
     expect(handlers.has("praxis.config.firstRunCompleted")).toBe(true);
   });
 
   it("delegates to services.config.firstRunCompleted and returns its value", async () => {
     const firstRunCompleted = vi.fn().mockResolvedValue(true);
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     registerIpcHandlers(makeServices({ firstRunCompleted }), () => null, log);
 
     const handler = handlers.get("praxis.config.firstRunCompleted");
@@ -115,14 +100,14 @@ describe("praxis.config.firstRunCompleted handler", () => {
 
 describe("praxis.config.markFirstRunComplete handler", () => {
   it("is registered by registerIpcHandlers", () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     registerIpcHandlers(makeServices({}), () => null, log);
     expect(handlers.has("praxis.config.markFirstRunComplete")).toBe(true);
   });
 
   it("delegates to services.config.markFirstRunComplete", async () => {
     const markFirstRunComplete = vi.fn().mockResolvedValue(undefined);
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     registerIpcHandlers(makeServices({ markFirstRunComplete }), () => null, log);
 
     const handler = handlers.get("praxis.config.markFirstRunComplete");
@@ -136,14 +121,14 @@ describe("praxis.config.markFirstRunComplete handler", () => {
 
 describe("praxis.update.checkLatest handler", () => {
   it("is registered by registerIpcHandlers", () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     registerIpcHandlers(makeServices({}), () => null, log);
     expect(handlers.has("praxis.update.checkLatest")).toBe(true);
   });
 
   it("forwards app.getVersion() to services.update.checkLatest (envelope-wrapped)", async () => {
     const checkLatest = vi.fn().mockResolvedValue({ status: "up-to-date", current: "1.2.3" });
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     registerIpcHandlers(makeServices({ checkLatest }), () => null, log);
 
     const handler = handlers.get("praxis.update.checkLatest");

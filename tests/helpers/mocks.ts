@@ -1,5 +1,6 @@
-import type { SecretStorage } from "@praxis/core/types";
+import type { Logger, SecretStorage } from "@praxis/core/types";
 import { SecretStorageError } from "@praxis/core/types";
+import { vi } from "vitest";
 
 /**
  * In-memory SecretStorage for tests. Uses a base64 roundtrip — not real
@@ -49,6 +50,53 @@ export function noopLogger(): import("@praxis/core/types").Logger {
     child: () => instance,
   };
   return instance;
+}
+
+/**
+ * Vitest spy Logger for tests that assert on log output via vi.fn() spies.
+ * The spies live under `_spies` so they don't pollute the `Logger` interface.
+ * Also includes `ingestRendererRecord` and `shutdown` spies for desktop
+ * main-process contexts (MainLogger superset).
+ *
+ * Use when tests need `expect(logger._spies.warn).toHaveBeenCalledWith(...)`.
+ * For tests that only need a quiet logger with no assertions, use `noopLogger`.
+ */
+export function makeSpyLogger(): Logger & {
+  /** Spies on each Logger method plus the MainLogger extras. Access these in assertions. */
+  _spies: {
+    debug: ReturnType<typeof vi.fn>;
+    info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    ingestRendererRecord: ReturnType<typeof vi.fn>;
+    shutdown: ReturnType<typeof vi.fn>;
+  };
+  /**
+   * MainLogger superset methods — exposed on the object so the spy logger
+   * can be passed directly to desktop main-process code that accepts MainLogger.
+   */
+  ingestRendererRecord: ReturnType<typeof vi.fn>;
+  shutdown: ReturnType<typeof vi.fn>;
+} {
+  const spies = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    ingestRendererRecord: vi.fn(),
+    shutdown: vi.fn().mockResolvedValue(undefined),
+  };
+  const logger = {
+    debug: spies.debug,
+    info: spies.info,
+    warn: spies.warn,
+    error: spies.error,
+    child: vi.fn(() => makeSpyLogger()),
+    ingestRendererRecord: spies.ingestRendererRecord,
+    shutdown: spies.shutdown,
+    _spies: spies,
+  };
+  return logger;
 }
 
 /**
