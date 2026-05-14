@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-10-tabs
 kind: story
-stage: review
+stage: done
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-9-notes-flashcards]
@@ -40,3 +40,20 @@ Apply the parent feature's per-step recipe. Tabs surface is hot — every UI rou
 ## Risk + rollback
 - **Risk**: Medium — tabs hot path; an envelope shape mismatch breaks every chat UI.
 - **Rollback**: revert the commit.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- File header comment says "Test count: 18" but 25 tests are present — stale after additions.
+
+**Notes**:
+- All 8 in-scope channels wrapped correctly. `listOpen` uses `wrapEnvelope` (no-payload, correct); the 7 others use `handleEnvelope` with explicit Zod schemas.
+- `praxis.tabs.list` optional-object schema handles `{}` correctly — parses as `{}` (not `undefined`) and the guard `opts !== undefined` passes an empty spread which is functionally equivalent to no opts.
+- `openDocument` confirmed unwrapped and NOT in step-12 scope as written. Added `praxis.tabs.openDocument` to step-12's channel list so the final acceptance grep passes.
+- `tabs-context.tsx` not modified in this commit; the pre-existing formatter error (tabs vs spaces) is not introduced by this story.
+- TabsContext error handling verified: all mutations `try/catch` and `setError(err instanceof Error ? err.message : String(err))` — catches `IpcError` transparently since it extends `Error`.
+- 25 tests pass. Typecheck clean. Lint clean for touched files.

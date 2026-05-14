@@ -18,6 +18,7 @@ Cleanup step: misc invoke channels and the per-domain channel modules' invoke ha
 
 ### In `ipc-server.ts`
 - `praxis.auth.claude.status` (no-payload getter)
+- `praxis.tabs.openDocument` (`{ documentId: string; title: string }`) — found via grep in step-10 review; was not on the step-10 channel list; must be picked up here
 - (skip `praxis.auth.claude.login.start` — that's streaming, deferred per parent feature)
 
 ### In per-domain modules
