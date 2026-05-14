@@ -667,17 +667,24 @@ export function registerIpcHandlers(
 
   // ── Phase 10: Packs ──────────────────────────────────────────────────────────
 
-  handle("praxis.packs.listAvailable", async () => {
-    return services.packs.listAvailablePacks();
-  });
+  handle(
+    "praxis.packs.listAvailable",
+    wrapEnvelope("praxis.packs.listAvailable", log, async () =>
+      services.packs.listAvailablePacks(),
+    ),
+  );
 
-  handle("praxis.packs.listImported", async () => {
-    return services.packs.listImportedPacks();
-  });
+  handle(
+    "praxis.packs.listImported",
+    wrapEnvelope("praxis.packs.listImported", log, async () => services.packs.listImportedPacks()),
+  );
 
-  handle("praxis.packs.import", async (_event, packId: string) => {
-    return services.packs.importPack(packId);
-  });
+  handle(
+    "praxis.packs.import",
+    handleEnvelope("praxis.packs.import", log, z.string().min(1, "packId"), async (packId) =>
+      services.packs.importPack(packId),
+    ),
+  );
 
   // ── Phase 11: Lock ───────────────────────────────────────────────────────────
   // Lock handlers are NOT guarded by requireUnlocked — they control the lock.
