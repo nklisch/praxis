@@ -209,6 +209,103 @@ describe("startToolServer — auth gate", () => {
 			spy.mockRestore();
 		}
 	});
+
+	it("auth frame split across two write chunks authenticates correctly", async () => {
+		handle = await startToolServer([echoTool]);
+
+		const result = await new Promise<{ success?: boolean; value?: unknown }>(
+			(resolve, reject) => {
+				const conn = net.createConnection(socketPath(handle!));
+				let buf = "";
+
+				conn.on("connect", () => {
+					// Split the auth JSON across two writes to simulate TCP fragmentation.
+					// The server's newline-delimited buffer must accumulate both chunks
+					// before processing the auth frame.
+					const authJson = JSON.stringify({ type: "auth", token: token(handle!) });
+					const splitAt = Math.floor(authJson.length / 2);
+					const firstHalf = authJson.slice(0, splitAt);
+					const secondHalfAndNewline = authJson.slice(splitAt) + "\n";
+
+					conn.write(firstHalf);
+					// Small delay so the two writes arrive as separate TCP chunks.
+					setTimeout(() => {
+						conn.write(secondHalfAndNewline);
+						// Tool call follows after auth is complete.
+						conn.write(
+							`${JSON.stringify({ id: "split1", name: "echo", input: { s: "split" } })}\n`,
+						);
+					}, 10);
+				});
+
+				conn.on("data", (chunk) => {
+					buf += chunk.toString();
+					const nl = buf.indexOf("\n");
+					if (nl !== -1) {
+						const line = buf.slice(0, nl);
+						conn.destroy();
+						try {
+							const msg = JSON.parse(line) as {
+								result: { success?: boolean; value?: unknown };
+							};
+							resolve(msg.result);
+						} catch (err) {
+							reject(err);
+						}
+					}
+				});
+				conn.on("error", reject);
+			},
+		);
+
+		expect(result.success).toBe(true);
+		expect(result.value).toEqual({ echoed: "split" });
+	});
+
+	it("auth frame coalesced with tool call in one chunk → both processed (auth then call)", async () => {
+		handle = await startToolServer([echoTool]);
+
+		const result = await new Promise<{ success?: boolean; value?: unknown }>(
+			(resolve, reject) => {
+				const conn = net.createConnection(socketPath(handle!));
+				let buf = "";
+
+				conn.on("connect", () => {
+					// Write auth frame and tool call frame together in a single write call.
+					// The server must split on "\n" and process auth before dispatching
+					// the tool call — both frames arrive in one chunk.
+					const authFrame = JSON.stringify({ type: "auth", token: token(handle!) });
+					const callFrame = JSON.stringify({
+						id: "coalesced1",
+						name: "echo",
+						input: { s: "coalesced" },
+					});
+					conn.write(`${authFrame}\n${callFrame}\n`);
+				});
+
+				conn.on("data", (chunk) => {
+					buf += chunk.toString();
+					const nl = buf.indexOf("\n");
+					if (nl !== -1) {
+						const line = buf.slice(0, nl);
+						conn.destroy();
+						try {
+							const msg = JSON.parse(line) as {
+								result: { success?: boolean; value?: unknown };
+							};
+							resolve(msg.result);
+						} catch (err) {
+							reject(err);
+						}
+					}
+				});
+				conn.on("error", reject);
+			},
+		);
+
+		expect(result.success).toBe(true);
+		expect(result.value).toEqual({ echoed: "coalesced" });
+	});
 });
 
 describe("startToolServer — socket permissions", () => {
