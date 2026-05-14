@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Course-aware mode prompts — anchor the tutor on the active course
@@ -76,3 +76,35 @@ context, not a replacement.
 - Mode tool scoping precedent — pattern `mode-tool-scoping` shows
   how `session.modeId` drives runtime selection; a similar
   `session.courseId != null` check drives fragment inclusion
+
+## Pre-design decisions (2026-05-14)
+
+- **Prompt composition shape**: HYBRID. One shared
+  customizable=false fragment names the factual course context
+  (Course / Unit / Lesson / Concepts / Available documents). Each
+  in-course mode declares an optional per-mode behavior addendum
+  that references those facts — e.g., quiz mode's addendum says
+  "when quizzing, draw from this lesson's assessment plan"; teach
+  mode's addendum says "anchor on the concept dependencies in this
+  lesson"; study-skills says "tie technique suggestions to the
+  lesson's concepts and resources". Facts are SSOT; behaviors vary
+  per mode.
+- **Modes that get course-aware behavior**: teach, quiz, homework,
+  exam, study-skills. Bootstrap and configure are excluded — they
+  have their own contracts and no notion of "active course
+  context".
+- **Activation**: shared fragment and per-mode addenda are composed
+  only when `session.courseId != null`. No-course sessions stay on
+  the existing free-form path with no shape change.
+- **SSOT location**: shared fragment as a new file in
+  `packages/curriculum/src/modes/fragments/`. Per-mode addenda
+  added as additional entries in each mode's existing
+  `promptFragments` array (or a parallel `inCoursePromptFragments`
+  array — feature-design picks the exact composition primitive
+  based on how `composeSystemPrompt` reads sequence vs.
+  conditional inclusion).
+- **Course-lookup contract**: feature-design must verify that
+  `@praxis/artifacts` (or `@praxis/curriculum`) exposes an
+  accessor that reads a course's structure (unit / lesson /
+  concepts / documents) in one round-trip — N+1 lookups at
+  prompt-composition time would slow every session-open.

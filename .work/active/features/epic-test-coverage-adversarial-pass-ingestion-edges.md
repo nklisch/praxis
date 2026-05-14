@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Ingestion adversarial test coverage — image boundaries and slide fallback
@@ -69,3 +69,19 @@ decision that applies to both.
 - Existing PPTX fixture(s) —
   `packages/tools/test-fixtures/` (need to identify whether a
   no-clean-slide-signal fixture is available or must be authored)
+
+## Pre-design decisions (2026-05-14)
+
+- **Spec-silent pinning style**: tests with explicit names + one-line
+  source comments. No runtime assertions. Test name should read like
+  the contract — e.g., `it("handles an image whose markdown straddles
+  a chunk boundary — at most one chunk picks it up OR neither (rare
+  but acceptable)", ...)`. The source-side comment points back to the
+  test and names the contract.
+- **PPTX fallback fixture**: source or craft a real PPTX without a
+  clean slide signal — preferred order: (1) export from
+  LibreOffice/Keynote which often produce officeparser-edge AST
+  shapes; (2) export from another tool we have on hand; (3) only as
+  last resort, construct programmatically with a zip + minimal XML.
+  Commit the fixture under `packages/tools/test-fixtures/` with a
+  short README naming its origin and the AST shape it exercises.

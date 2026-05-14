@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Resizable side panels — drag handles + persisted widths
@@ -64,3 +64,18 @@ this kind of preference.
   Consider whether it lives in `packages/ui/src/components/editorial/`
   to be reused across panels, or as a hook that any panel host can
   adopt
+
+## Pre-design decisions (2026-05-14)
+
+- **Width persistence**: `localStorage`. Per-device preference; UI
+  density is inherently device-specific (laptop vs. external
+  monitor). Survives reloads. Doesn't sync across machines —
+  acceptable because there's no cross-machine sync system in
+  Praxis today. Zero IPC round-trip on read, so no flash-of-
+  default-width on mount.
+- **Min/max bounds**: feature-design picks numeric bounds per
+  panel based on minimum-readable content width and the dimensions
+  of fixed-position elements that share the layout (composer,
+  thread, etc.). Hard constraint: a panel must never be
+  draggable to zero (which would orphan the toggle UI) or to
+  fullscreen (which would orphan the rest of the workspace).

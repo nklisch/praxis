@@ -8,31 +8,30 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
-# Buildout progress signals — replace misleading ETA with structural progress
+# Buildout progress claims — stop the bootstrap explorer from promising bad ETAs
 
 ## Brief
 
-The course-buildout flow shows a time estimate that's consistently
-shorter than reality, leaving the user staring at a UI that appears
-stalled well past the quoted ETA. A misleading low estimate erodes
-trust more than no estimate; it tells the user "this should have
-finished by now," which makes the still-running build feel broken even
-when it's healthy.
+The "misleading ETA" the user reported is not a UI element. It's the
+**bootstrap explorer agent itself**, in its response text, saying
+things like "this should take about 30 seconds" while the actual run
+takes minutes. Anchor verification confirmed there is no ETA component
+in `bootstrap-tab-body.tsx` or adjacent UI. The agent is freelancing
+a time estimate based on no real signal, the user reads it as a
+commitment, and when the run blows past the quoted time the UI looks
+stalled.
 
-This feature replaces the fixed ETA with **structural progress signals
-that update as the explorer works**: units processed (e.g., "3 of 8"),
-lessons drafted, current step ("draft_add_unit for Unit 3 — Cellular
-Respiration"), and elapsed time. The numerator changes as the work
-progresses, so a slow run looks slow but not stalled. The activity-rail
-surface (`<ActivityRail />`) is the natural host — the bootstrap
-service injects `ActivityRegistry` via `ServiceDeps.activity` and
-updates the rail entry per step. The current ETA shown elsewhere (the
-explorer didn't surface one in `bootstrap-tab-body.tsx`; feature-design
-must locate the exact source — possibly a separate panel or toast)
-gets retired in favor of "elapsed: X" and the structural counters.
+This feature is a **prompt fix to the bootstrap explorer's mode
+fragments**. The fragment(s) that drive the explorer's response style
+get instructions that explicitly **forbid time-estimate claims**
+("don't promise specific durations") and **direct the model to
+describe progress in structural terms only** if it talks about
+progress at all ("Unit 3 of 8 drafted" rather than "30 seconds left").
+Bounded to the curriculum modes/fragments package — no UI changes, no
+activity-rail integration, no service wiring.
 
 ## Epic context
 
@@ -47,27 +46,37 @@ gets retired in favor of "elapsed: X" and the structural counters.
 
 ## Foundation references
 
-- `docs/ARCHITECTURE.md` — activity rail (ambient progress surface),
-  bootstrap explorer pipeline
-- `docs/designs/activity-rail.md` — design rationale for the rail
-- `CLAUDE.md` — pattern `activity-rail-producer`,
-  `service-deps-injection`
+- `CLAUDE.md` — pattern `mode-prompt-fragment-composition`
+- `docs/ARCHITECTURE.md` — bootstrap explorer pipeline; mode + pedagogy
+  pack composition
 
 ## Anchors (current implementation)
 
-- Activity rail — `packages/ui/src/components/ActivityRail.tsx` mounted
-  in `packages/ui/src/router.tsx`
-- Activity registry — `packages/core/src/services/activity-registry.ts`
-  (or wherever the producer interface lives); `ServiceDeps.activity`
-- Bootstrap service —
-  `packages/core/src/services/bootstrap-service.ts` (today does NOT
-  inject `ActivityRegistry` per anchor verification; feature must add
-  it)
-- Bootstrap UI — `packages/ui/src/components/bootstrap-tab-body.tsx`
-  (no ETA found here per anchor verification — search elsewhere for
-  the misleading ETA the user is reporting; likely a separate
-  progress component, toast, or activity-rail entry that already
-  exists with an estimate-too-low contract)
-- Course-design tool calls that mark progress milestones —
-  `packages/tools/src/course/` (each `draft_add_*` could emit a
-  rail update)
+- Bootstrap mode definition —
+  `packages/curriculum/src/modes/bootstrap.ts` (mode declares the
+  `promptFragments` array that drives the explorer's response style)
+- Shared fragment directory —
+  `packages/curriculum/src/modes/fragments/` (the specific fragment
+  responsible for response-style guidance lives here; feature-design
+  locates the exact file by reading the bootstrap mode's fragment
+  imports and the fragment text that today permits ETA claims)
+- Prompt composition pipeline —
+  `packages/curriculum/src/compose-system-prompt.ts` (or wherever
+  `composeSystemPrompt` lives — for context, no changes expected
+  here)
+
+## Pre-design decisions (2026-05-14)
+
+- **Source of the bad ETA**: agent prompt output, NOT a UI element.
+  The original brief was based on a misread; corrected here. No
+  `<ActivityRail>` integration, no service wiring, no UI work in this
+  feature.
+- **Fix shape**: update the bootstrap explorer's mode prompt fragment
+  to (a) explicitly forbid time-estimate claims like "this should take
+  X seconds/minutes", and (b) instruct the model to describe progress
+  in structural terms only ("Unit 3 of 8 drafted", "current step:
+  drafting assessment plan for Lesson 5") if it talks about progress
+  at all.
+- **Scope**: bounded to `packages/curriculum/src/modes/` — the
+  bootstrap mode definition and the fragment file that drives response
+  style. No other packages touched.

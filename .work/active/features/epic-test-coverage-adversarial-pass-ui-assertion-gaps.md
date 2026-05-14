@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # UI assertion gaps — banner hash display and sub-agent collision
@@ -68,3 +68,18 @@ feature also faces. One design pass, one shared answer.
   silent-no-op test lives here)
 - Sub-agent registry consumer in UI —
   `packages/ui/src/components/sub-agent-block.tsx` (or equivalent)
+
+## Pre-design decisions (2026-05-14)
+
+- **Spec-silent pinning style**: tests with explicit names + one-line
+  source comments. No runtime warn-log added.
+- **Sub-agent collision contract**: silent-no-op stays as the
+  documented behavior. The existing test gets renamed to assert the
+  intent (`it("start() with same parentCallId is a silent no-op (by
+  design — collision is a registry guarantee, not an error)", ...)`)
+  and a comment at the early-return site in the registry points back
+  to the test.
+- **Update-banner hash display**: two tests — one for `installerSha256`
+  set (renders the `<details>` block, collapsed by default, full hash
+  visible when expanded — no truncation), one for `installerSha256`
+  absent (no block renders).

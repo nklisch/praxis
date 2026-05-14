@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # State-machine and config persistence adversarial coverage
@@ -68,3 +68,13 @@ deterministically order these awaits" debates.
   `packages/core/src/draft-store/sqlite-draft-store.ts` (or equivalent)
 - Engine config encryption path —
   `packages/core/src/config/engine-config.ts`
+
+## Pre-design decisions (2026-05-14)
+
+- **Spec-silent pinning style**: tests with explicit names + one-line
+  source comments. No runtime assertions for the no-op contracts.
+  Test names assert intent — e.g., `it("cancel() after the stream
+  finalized is a no-op (idempotent)", ...)`, `it("rapid back-to-back
+  save() calls preserve the last-written state (single-process race
+  window)", ...)`, `it("engineId update with no apiKey + unavailable
+  storage round-trips correctly (no fields lost)", ...)`.

@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Image-store path-traversal guard — defensive `dirFor` validation
@@ -61,3 +61,10 @@ traversal.
   `packages/tools/src/runtime/ingestion/docx-ingestor.ts:94`
 - Existing image-store tests —
   `packages/core/src/__tests__/embedded-images.test.ts` (or equivalent)
+
+## Pre-design decisions (2026-05-14)
+
+- **None surfaced at scope-ambiguity sweep.** This feature is small
+  and bounded; feature-design picks the failure mode (throw vs.
+  Result<unknown, "invalid-doc-id"> vs. assert-then-fallback) at
+  design time based on which call-sites already handle errors.

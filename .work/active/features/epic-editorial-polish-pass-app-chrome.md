@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # App chrome refresh — top nav rename, wordmark, editorial alignment
@@ -63,3 +63,11 @@ it should compose with.
   introduced in `epic-tutor-session-feel-tutor-tab-rename`. Top nav
   rename is a separate surface from the tab strip; this feature only
   changes the route-link label, not the tab title flow.
+
+## Pre-design decisions (2026-05-14)
+
+- **None surfaced at scope-ambiguity sweep.** The rename target is
+  "Tutor" per the original idea body. The wordmark treatment and
+  editorial alignment are visual decisions that feature-design picks
+  alongside the editorial-primitives reference. No design forks that
+  require pre-decision now.

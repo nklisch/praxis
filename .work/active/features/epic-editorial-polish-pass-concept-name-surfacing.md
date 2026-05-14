@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Concept name surfacing — show names everywhere a concept appears in editing UIs
@@ -72,3 +72,24 @@ concepts are involved.
   accessors; feature-design should consider a batched lookup hook
   (`useConceptNames(ids)`) to avoid N+1 fetches when rendering
   many concepts
+
+## Pre-design decisions (2026-05-14)
+
+- **LessonEditor concept input**: replace the comma-separated text
+  input with a multi-select picker. Authors search and see by
+  concept name; the underlying field still stores IDs. Requires a
+  batched name-lookup hook (sketch: `useConceptNames(ids)`) so
+  rendering N selected concepts is one round-trip, not N. Picker
+  search is over name + alias if the concept artifact has one.
+- **ConceptNode (gates editor)**: swap to name-prominent + ID as
+  secondary text (small / muted). Same `useConceptNames` hook
+  powers the lookup. Hover or expand affordance shows the full ID
+  for debugging.
+- **Gates layout reorganization**: feature-design picks the exact
+  shape (wrap, stack, group-by-unit/lesson) based on the visual
+  density needed once names replace IDs. The hard requirement is
+  that all concepts in a gate are readable without horizontal
+  scrolling at the default panel width.
+- **Zoom / expand affordance**: a single button on each gate to
+  expand into a larger reading view (modal or inline pop-out —
+  feature-design picks based on editorial primitives).

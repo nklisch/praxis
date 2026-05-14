@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Prompt config redesign — section reorder + unified block-oriented preview
@@ -72,3 +72,21 @@ variation being "blocks vs composed."
 - Editorial primitives — `packages/ui/src/components/editorial/`
 - Block-oriented UI reference patterns — look at how the existing
   fragment-list renders for shape inspiration
+
+## Pre-design decisions (2026-05-14)
+
+- **Block edit shape**: per-block edit with local save. Each block
+  has an Edit button — clicking opens an inline editor for THAT
+  block only; Save / Cancel scoped to that block. Other blocks stay
+  in view-mode while one is being edited. Matches the
+  block-oriented mental model the unified preview introduces.
+- **Section ordering driver**: feature-design picks the right
+  approach (manual reorder vs. frequency-of-use driven). The brief
+  proposes manual ordering with teaching style at the top; the only
+  hard requirement is that teaching style ends up above the
+  lower-frequency knobs.
+- **Preview unification scope**: replace the four parallel preview
+  shapes (global / append / composed / full-fragment) with one
+  block-oriented view + a single "composed" toggle. The global
+  prompt becomes a block in the stack. The append-preview path
+  reuses the composed view with the appended block highlighted.

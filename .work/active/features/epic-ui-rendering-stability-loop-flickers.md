@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Loop flickers — kill the re-render storms in the documents sidebar and audit log
@@ -71,3 +71,11 @@ helper or pattern-skill that surfaces should apply to both.
   hook lives) — note this is one-shot fetch, NOT a fanout-stream
 - `useResource` hook — for reference; the audit hook may need a
   similar single-fetch-on-mount shape
+
+## Pre-design decisions (2026-05-14)
+
+- **None surfaced at scope-ambiguity sweep.** This is a diagnostic
+  feature — feature-design starts by reproducing each flicker with
+  React DevTools Profiler, identifies the unstable dependency or
+  re-fetching path, then picks the fix. Decisions land at feature-
+  design time, not now.

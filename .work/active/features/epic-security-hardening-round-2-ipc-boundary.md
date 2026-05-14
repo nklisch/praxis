@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # IPC trust-boundary hardening
@@ -85,3 +85,21 @@ Five items in `.work/backlog/`:
   scrubber that isn't currently applied to the err field)
 - Client-side IPC consumer — `packages/client/src/services/` (will need
   matching changes if response shapes tighten)
+
+## Pre-design decisions (2026-05-14)
+
+- **`engineConfig` response shape**: presence boolean only.
+  `praxis.config.engineConfig` returns `{ hasApiKey: boolean, engineId,
+  ... }` after this feature. Renderer never sees the secret. The
+  decrypted value stays main-process-only. Implementation must audit
+  existing renderer code that reads `apiKey` and migrate to
+  `hasApiKey` semantics.
+- **Sanitized error envelope**: `{ code: 'VALIDATION_FAILED' |
+  'INTERNAL' | ..., message: 'user-safe text', requestId: '...' }`.
+  Categories are an enum we own; the IPC-helpers wrapper maps thrown
+  errors to envelopes. Renderer drives structured UX off `code`; logs
+  cross-reference via `requestId`. Internal stacks/messages are
+  scrubbed by the logger redactor on the main side and never cross.
+- **Roll-out**: per-channel migration, not a sweeping wrapper change.
+  Each handler tightens its request schema and adopts the envelope
+  shape one at a time; paired client-side changes ship together.

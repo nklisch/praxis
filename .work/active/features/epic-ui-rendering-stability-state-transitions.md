@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # State transitions — question-card retirement and sub-agents panel collapse
@@ -74,3 +74,19 @@ units each) but worth one consolidated design pass on "what does
   workspace
 - Tab-body-isolation pattern reference for the display:none vs.
   unmount design call
+
+## Pre-design decisions (2026-05-14)
+
+- **Question card final state**: collapse to compact summary row.
+  After answer submit, the card shrinks to a one-line summary —
+  question stem + answer + correct/incorrect badge. Matches the
+  `epic-tutor-session-feel-tool-call-thread-persistence` shape so
+  card retirement looks consistent with tool-call entries. Still
+  readable when the student scrolls back.
+- **Sub-agents panel hide mechanism**: unmount, not `display:none`.
+  When the panel is toggled hidden, it removes from the tree
+  entirely so parent flex/grid layout collapses naturally. Live
+  `SubAgentRegistry` data re-renders fresh on re-show because the
+  registry is the SSOT (subscriber-fanout-stream); no local React
+  state to preserve. Diverges from the `tab-body-isolation` pattern
+  intentionally — tabs need state preserved, this panel does not.

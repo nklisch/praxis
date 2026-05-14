@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Draft resumption — list-drafts tool + resume picker
@@ -70,3 +70,20 @@ resume one").
   `packages/curriculum/src/modes/bootstrap.ts` (or equivalent)
 - Create-course entry point — wherever the "new course" flow starts in
   `packages/ui/src/routes/` — feature-design needs to locate this
+
+## Pre-design decisions (2026-05-14)
+
+- **Draft surfacing scope**: create-course flow ONLY. A "Resume
+  in-progress draft" picker appears at the top of "New course"
+  (or wherever the bootstrap flow begins). Library shows only
+  finished courses — drafts are NOT first-class artifacts there.
+  Cleaner mental model; avoids the "what is a draft when it has no
+  course id yet" question bleeding into the library UI.
+- **Tool scoping**: `course.list_drafts` is `bootstrap`-mode-only,
+  enforced via `mode.toolNames`. Don't leak into teach / quiz /
+  homework / exam contexts.
+- **Resume picker shape**: dropdown-style picker at the entry point;
+  list shows draft title (or working name), last-modified, and
+  structural progress (unit / lesson counts). Feature-design picks
+  the visual primitive (combobox vs. inline list) based on the
+  editorial system.

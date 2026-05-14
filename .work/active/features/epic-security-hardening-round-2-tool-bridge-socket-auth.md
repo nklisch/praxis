@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Tool-bridge socket auth — permissions and per-session token
@@ -70,3 +70,17 @@ adapters.
 - Claude Code adapter — `packages/engines/src/claude-code/adapter.ts`
   (high-level orchestration; should not need changes if SDK contract
   stays the same)
+
+## Pre-design decisions (2026-05-14)
+
+- **Token transport**: env var on subprocess spawn. The tool server
+  generates a random per-session token, passes it to the spawned
+  Claude CLI via env var (e.g., `PRAXIS_TOOL_BRIDGE_TOKEN`), and
+  verifies it on the first frame received over the socket. Connection
+  closed if missing/wrong. Bounded to `@praxis/claude-cli-sdk`.
+- **Socket permissions**: set explicit `0600` on socket creation
+  before the listen call (paired with the token check as
+  defense-in-depth — either alone is sufficient against the threat,
+  both together cost almost nothing).
+- **Scope**: SDK-only change. Praxis is the sole consumer; no
+  external SDK clients to coordinate with.
