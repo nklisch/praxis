@@ -1,7 +1,7 @@
 ---
 id: gate-docs-roadmap-phase16-document-scopes
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -37,3 +37,16 @@ sessions read from session-scope and promote to course-scope on confirm.
 
 ## Implementation
 Updated `docs/ROADMAP.md` line 312: replaced the stale `course_documents` / `CourseDocumentsServiceImpl` bullet with the accurate `document_scopes` polymorphic join table + `DocumentScopesServiceImpl` description, including scope kinds (`course`, `session`) and the session-to-course promotion semantics. Code verified at `packages/artifacts/src/schema.ts:242-272` and `packages/core/src/services/document-scopes-service.ts:21`. Required edit matched code exactly — no divergence found.
+
+## Review (2026-05-14)
+
+**Verdict: Approve**
+
+Correctness: The ROADMAP.md diff exactly matches the required edit. Cross-checked against code:
+- `packages/artifacts/src/schema.ts:242-272` — `document_scopes` table confirmed with `scope_kind` enum `'course' | 'session'` and composite primary key `(documentId, scopeKind, scopeId)`.
+- `packages/core/src/services/document-scopes-service.ts:21` — `DocumentScopesServiceImpl` confirmed at that line.
+- The bullet includes scope kinds (`course`, `session`) and promotion semantics (session-scope to course-scope on confirm) — all accurate.
+
+Foundation-doc alignment: Bullet is present-tense. No legacy language ("previously", "in v0.x", etc.). Describes the system as it is now.
+
+Design alignment: The replacement bullet matches the story's "Required edit" verbatim.
