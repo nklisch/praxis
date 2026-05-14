@@ -4,7 +4,7 @@ kind: story
 stage: implementing
 tags: [testing, security]
 parent: null
-depends_on: []
+depends_on: [gate-tests-tool-server-auth-timeout-window]
 release_binding: v0.1.2
 gate_origin: tests
 created: 2026-05-14
