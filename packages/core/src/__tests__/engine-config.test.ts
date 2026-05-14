@@ -311,6 +311,29 @@ describe("encrypt/decrypt round-trip — apiKey at rest", () => {
     const config = readEngineConfig(client, ss);
     expect(config.apiKey).toBe("sk-env-override");
   });
+
+  it("engineId update with no apiKey + unavailable storage round-trips correctly (no fields lost)", () => {
+    // Spec: writeEngineConfig with no apiKey succeeds under unavailable
+    // safeStorage. The rename round-trip on that path was unverified —
+    // a regression that strips engineId on the unavailable+no-key path
+    // would not be caught by any existing test.
+    const { db: client } = openDb({ path: db.dbPath });
+    const ss = unavailableSecretStorage();
+
+    writeEngineConfig(client, ss, { engineId: "claude-code" });
+    writeEngineConfig(client, ss, { engineId: "codex" });
+
+    const config = readEngineConfig(client, ss);
+    expect(config.engineId).toBe("codex");
+    expect(config.apiKey).toBeUndefined();
+
+    // Stored row has neither key field — confirms no stray plaintext or
+    // encrypted blob slipped through on the unavailable-storage path.
+    const rows = client.select().from(configKv).where(eq(configKv.key, "engine")).all();
+    const stored = rows[0]?.valueJson as Record<string, unknown> | undefined;
+    expect(stored?.apiKey).toBeUndefined();
+    expect(stored?.apiKeyEncrypted).toBeUndefined();
+  });
 });
 
 describe("EngineConfigSchema — vision validation", () => {

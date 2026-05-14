@@ -289,4 +289,30 @@ describe("SqliteDraftStore", () => {
     // Touch time must be >= the initial lastTouchedAt at save.
     expect(touchTime).toBeGreaterThanOrEqual(now - 5000);
   });
+
+  it("rapid back-to-back save() calls preserve the last-written state (single-process race window)", () => {
+    // Spec: save() is documented as last-writer-wins under rapid same-tick
+    // contention. better-sqlite3 is synchronous, so two calls with no await
+    // between them must result in load() returning the second state.
+    const { db: client } = openDb({ path: db.dbPath });
+    const store = new SqliteDraftStore(client);
+    const now = Date.now();
+
+    const stateA: DraftCourseState = makeDraft("draft-rapid", STUDENT_A, now);
+    const stateB: DraftCourseState = {
+      ...stateA,
+      proposed: { ...BASE_PROPOSED, title: "Second Write" },
+      lastTouchedAt: (now + 1) as Timestamp,
+    };
+
+    // Two calls in the same tick, no await — exercises the upsert race window.
+    store.save(stateA);
+    store.save(stateB);
+
+    const loaded = store.load("draft-rapid");
+    expect(loaded?.proposed.title).toBe("Second Write");
+    expect(loaded?.lastTouchedAt).toBe(stateB.lastTouchedAt);
+    // createdAt preserved from the FIRST save — upsert never overwrites it.
+    expect(loaded?.createdAt).toBe(stateA.createdAt);
+  });
 });

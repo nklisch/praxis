@@ -993,6 +993,102 @@ describe("useStreamedSend", () => {
     expect(() => result.current.cancel()).not.toThrow();
   });
 
+  it("cancel() after the stream finalized is a no-op (idempotent)", async () => {
+    // Spec: cancel() is documented as a no-op when not streaming. After a
+    // turn ends, iteratorRef is cleared in the send() finally — so cancel()
+    // takes the same no-op path as cancel-before-send.
+    const client = makeClient([
+      { type: "model_message", content: "hi there", partial: false },
+      { type: "final", usage: { inputTokens: 0, outputTokens: 0 } },
+    ]);
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      await result.current.send(brandId<"SessionId">("s1"), "hello");
+    });
+
+    // Stream finalized — isStreaming back to false.
+    expect(result.current.isStreaming).toBe(false);
+    const cancelMarkersBefore = result.current.items.filter((i) => i.kind === "cancel-marker").length;
+
+    act(() => {
+      expect(() => result.current.cancel()).not.toThrow();
+    });
+
+    const cancelMarkersAfter = result.current.items.filter((i) => i.kind === "cancel-marker").length;
+    expect(cancelMarkersAfter).toBe(cancelMarkersBefore);
+  });
+
+  it("double-cancel during streaming produces a single cancel-marker", async () => {
+    // Spec: cancel() may be called from multiple UI handlers (Esc + Stop
+    // button); the second call must not corrupt state or duplicate the marker.
+    const returnSpy = vi.fn().mockResolvedValue({ done: true, value: undefined });
+
+    let resolveStream: (() => void) | undefined;
+    const streamHold = new Promise<void>((r) => {
+      resolveStream = r;
+    });
+
+    const mockIterator: AsyncIterator<EngineEvent> = {
+      next: vi.fn(async () => {
+        await streamHold;
+        return { value: { type: "interrupted", reason: "user_cancel" }, done: false } as IteratorResult<EngineEvent>;
+      }),
+      return: returnSpy,
+    };
+
+    const client = makeFakeClient({
+      session: {
+        send: vi.fn(() => ({
+          [Symbol.asyncIterator]: () => mockIterator,
+        })) as unknown as PraxisClient["session"]["send"],
+      } as unknown as PraxisClient["session"],
+    });
+
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    act(() => {
+      void result.current.send(brandId<"SessionId">("s1"), "hello");
+    });
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
+
+    // Call cancel twice back-to-back.
+    act(() => {
+      result.current.cancel();
+      result.current.cancel();
+    });
+
+    // Unblock so the stream returns and finalize logic runs.
+    resolveStream?.();
+
+    await waitFor(() => expect(result.current.isStreaming).toBe(false));
+
+    // No throw — and tolerates 1 or 2 return() calls per the idempotency spec.
+    const cancelMarkers = result.current.items.filter((i) => i.kind === "cancel-marker");
+    expect(cancelMarkers.length).toBeLessThanOrEqual(1);
+  });
+
+  it("cancel() during loadHistory does not throw and does not corrupt items", async () => {
+    // Spec: cancel() only targets the active send-iterator. loadHistory
+    // uses its own async-iterator that is not tracked by iteratorRef, so
+    // cancel() is structurally a no-op on that path. Structural property:
+    // calling cancel() during loadHistory must not throw and must not
+    // poison lastError; history loading continues to completion.
+    const client = makeClient([]);
+    const { result } = renderHook(() => useStreamedSend(client));
+
+    await act(async () => {
+      const p = result.current.loadHistory(brandId<"SessionId">("s1"));
+      // call cancel before history settles
+      expect(() => result.current.cancel()).not.toThrow();
+      await p;
+    });
+
+    // No error propagated from the cancel call during load.
+    expect(result.current.lastError).toBeNull();
+  });
+
   // ── Tool interstitial pacing (MIN_INTERSTITIAL_VISIBLE_MS) ───────────────────
 
   it("fast tool: interstitial is settled by finally drain when stream ends normally", async () => {

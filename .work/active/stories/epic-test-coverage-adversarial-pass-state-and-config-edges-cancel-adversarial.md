@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-state-and-config-edges-cancel-adversarial
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass-state-and-config-edges
 depends_on: []
