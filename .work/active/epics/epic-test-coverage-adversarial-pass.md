@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass
 kind: epic
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
