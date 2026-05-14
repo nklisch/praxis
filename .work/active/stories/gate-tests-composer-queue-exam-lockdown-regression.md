@@ -1,7 +1,7 @@
 ---
 id: gate-tests-composer-queue-exam-lockdown-regression
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -47,3 +47,15 @@ The test renders `TeachChatTabBody` directly (bypassing the `ChatTabBody` dispat
 2. Fires a `keyDown` Enter event and asserts `client.session.send` was NOT called.
 
 During implementation, a production bug was found and fixed: `TeachChatTabBody` was building `session` from `tab` but omitting `tab.assignmentId`, so `ExamLockdownGate` never rendered (it gates on `session.assignmentId`). Fixed by propagating `tab.assignmentId` into the `session` object (`packages/ui/src/components/chat-tab-body.tsx`, same spread pattern as `courseId`).
+
+## Review
+
+**Verdict: Approved.**
+
+**Production fix — correct and minimal.** The diff for `chat-tab-body.tsx` is a clean 3-line conditional spread, exactly mirroring the existing `courseId` pattern. No logic was restructured; only the missing field was added. Without it `ExamLockdownGate` would never activate for teach-mode sessions that have an `assignmentId` — the gate was dead code at runtime.
+
+**Sibling components checked.** `ExamTabBody`, `HomeworkTabBody`, and `QuizTabBody` do not construct a `SessionHandle` from the tab object — they pass `tab.assignmentId` directly as a prop, so they don't share this class of bug. `TeachChatTabBody` is the only site that builds a `SessionHandle` in this file, and it is now complete.
+
+**Test quality — sound.** The new `describe("TeachChatTabBody exam lockdown")` block renders `TeachChatTabBody` directly (correctly bypassing the `ChatTabBody` dispatcher that would route `modeId: "exam"` to `ExamTabBody`), mocks `client.assignments.get` to return an assignment without `submittedAt`, waits for the textarea to become `disabled`, then fires an Enter keydown and asserts `session.send` was not called. All three assertions are load-bearing: disabled state, and queue-bypass prevention. The test suite runs at 8/8 passing.
+
+**Bundled fix with test — positive.** The agent went one level deeper than the story asked, identified the root cause that would have made the test permanently fail, fixed it, and pinned the fix with the test. This is the ideal outcome for this class of gate-origin story.
