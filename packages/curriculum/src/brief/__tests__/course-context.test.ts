@@ -2,9 +2,13 @@
  * Unit tests for composeCourseContextFragment — Phase 6.
  *
  * Verifies that the produced PromptFragment contains the expected content
- * about the course title, current lesson, and concept tags.
+ * about the course title, current lesson, and concept tags. The
+ * course-aware mode-prompts foundation extended this composer with a third
+ * `documents?` parameter — additional cases below verify that the documents
+ * listing is byte-equivalent without docs, renders all 12 within the cap,
+ * and tails with "…and N more documents" beyond.
  */
-import type { CourseStateSnapshot, Timestamp } from "@praxis/core/types";
+import type { CourseStateSnapshot, DocumentScopeAttachment, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it } from "vitest";
 import { composeCourseContextFragment, formatMasteryTag } from "../course-context.js";
@@ -197,5 +201,67 @@ describe("composeCourseContextFragment", () => {
     const fragment = composeCourseContextFragment(snapshot, masteryByConceptId);
     expect(fragment.template).toContain("Variables — mastered (0.90)");
     expect(fragment.template).toContain("Equations — not yet studied");
+  });
+});
+
+// ── Documents listing (course-aware mode-prompts foundation extension) ───────
+
+function makeDocAttachment(i: number, chunkCount = 5): DocumentScopeAttachment {
+  return {
+    documentId: brandId<"DocumentId">(`doc-${i}`),
+    filename: `material-${i}.pdf`,
+    mimeType: "application/pdf",
+    chunkCount,
+    hasPageImages: false,
+    source: "manual",
+    attachedAt: new Date(0),
+  };
+}
+
+describe("composeCourseContextFragment — documents parameter", () => {
+  it("byte-equivalent to the previous signature when documents is undefined", () => {
+    const snapshot = makeSnapshot();
+    const withoutDocsArg = composeCourseContextFragment(snapshot, undefined);
+    const withExplicitUndefined = composeCourseContextFragment(snapshot, undefined, undefined);
+    expect(withExplicitUndefined.template).toBe(withoutDocsArg.template);
+    // Sanity check: no documents header appears.
+    expect(withExplicitUndefined.template).not.toContain("Available documents");
+  });
+
+  it("renders nothing when documents is an empty array", () => {
+    const snapshot = makeSnapshot();
+    const fragment = composeCourseContextFragment(snapshot, undefined, []);
+    expect(fragment.template).not.toContain("Available documents");
+  });
+
+  it("lists all 12 documents inline when count == cap", () => {
+    const snapshot = makeSnapshot();
+    const docs = Array.from({ length: 12 }, (_, i) => makeDocAttachment(i + 1));
+    const fragment = composeCourseContextFragment(snapshot, undefined, docs);
+    expect(fragment.template).toContain("Available documents");
+    for (const d of docs) {
+      expect(fragment.template).toContain(d.filename);
+    }
+    expect(fragment.template).not.toContain("…and");
+  });
+
+  it("renders 12 + tail when count exceeds the 12-doc cap", () => {
+    const snapshot = makeSnapshot();
+    const docs = Array.from({ length: 13 }, (_, i) => makeDocAttachment(i + 1));
+    const fragment = composeCourseContextFragment(snapshot, undefined, docs);
+    // First 12 visible.
+    for (let i = 1; i <= 12; i++) {
+      expect(fragment.template).toContain(`material-${i}.pdf`);
+    }
+    // 13th replaced with the tail.
+    expect(fragment.template).not.toContain("material-13.pdf");
+    expect(fragment.template).toContain("…and 1 more documents");
+  });
+
+  it("includes per-document chunk counts in the listing", () => {
+    const snapshot = makeSnapshot();
+    const docs = [makeDocAttachment(1, 7)];
+    const fragment = composeCourseContextFragment(snapshot, undefined, docs);
+    expect(fragment.template).toContain("material-1.pdf (7 chunks)");
   });
 });
