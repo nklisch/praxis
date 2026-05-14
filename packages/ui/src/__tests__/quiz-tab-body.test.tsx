@@ -120,4 +120,26 @@ describe("QuizTabBody", () => {
     renderQuizTab(makeTab({ assignmentId: undefined }));
     expect(screen.getByText(/no assignment is linked/i)).toBeDefined();
   });
+
+  it("mounts the sidekick resize handle when the panel is open and applies persisted width", async () => {
+    // Pre-seed the persisted width key — the sidekick adoption uses
+    // praxis.panel.sidekick.width (resizable-panels-tests-and-sidekick-adoption).
+    window.localStorage.setItem("praxis.panel.sidekick.width", "420");
+    try {
+      renderQuizTab();
+      // No handle while closed — only mounts when open.
+      expect(screen.queryByRole("separator")).toBeNull();
+      const toggle = screen.getByRole("button", { name: /ask tutor/i });
+      fireEvent.click(toggle);
+      await waitFor(() => {
+        const sep = screen.getByRole("separator");
+        expect(sep.getAttribute("aria-valuenow")).toBe("420");
+      });
+      // The sidekick aside should have the inline width applied.
+      const panel = document.querySelector("aside[aria-label='Tutor sidekick']");
+      expect((panel as HTMLElement).style.width).toBe("420px");
+    } finally {
+      window.localStorage.removeItem("praxis.panel.sidekick.width");
+    }
+  });
 });

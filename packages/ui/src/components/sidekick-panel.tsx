@@ -23,17 +23,26 @@ export interface SidekickPanelProps {
   modeId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Inline width override (px) when open. Supplied by the parent's
+   * `useResizableWidth` hook so the panel honours per-device persisted
+   * widths. When undefined or when `open` is false, the CSS rules apply
+   * (`width: 0` closed; the previous fixed `width: 380px` rule was removed
+   * — callers always pass `width` when adopting the resizable hook).
+   */
+  width?: number;
 }
 
 /**
  * A slide-in tutor chat panel used by quiz and homework tab bodies.
- * The panel resizes the layout grid column rather than overlaying content.
+ * The panel resizes the layout flex column rather than overlaying content.
  */
 export function SidekickPanel({
   sessionId,
   modeId,
   open,
   onOpenChange,
+  width,
 }: SidekickPanelProps): JSX.Element {
   const client = usePraxisClient();
   const { items, isStreaming, lastError, send } = useStreamedSend(client);
@@ -65,6 +74,7 @@ export function SidekickPanel({
       aria-label="Tutor sidekick"
       aria-hidden={!open}
       onKeyDown={handleKeyDown}
+      style={open && width !== undefined ? { width: `${width}px` } : undefined}
     >
       <div className={styles.header}>
         <span className={styles.title}>ask your tutor</span>

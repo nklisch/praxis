@@ -12,7 +12,10 @@
 }
 
 .panel.open {
-  width: 380px;
+  /* Width is supplied as an inline style by the parent's
+   * useResizableWidth hook (resizable-panels feature, Unit 3). The CSS
+   * transition from `.panel`'s `width: 0` still animates the open/close
+   * because the property exists with a transition rule. */
   border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
 }
 

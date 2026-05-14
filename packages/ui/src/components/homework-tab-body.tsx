@@ -14,8 +14,10 @@ import type { SessionId, SessionTabSummary } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import type { JSX } from "react";
 import { useState } from "react";
+import { useResizableWidth } from "../hooks/use-resizable-width.js";
 import { AssignmentCard } from "./assignment-card.js";
 import styles from "./homework-tab-body.module.css";
+import { ResizeHandle } from "./resize-handle.js";
 import { SidekickPanel } from "./sidekick-panel.js";
 
 export interface HomeworkTabBodyProps {
@@ -30,6 +32,17 @@ export function HomeworkTabBody({ tab }: HomeworkTabBodyProps): JSX.Element {
   const [sidekickOpen, setSidekickOpen] = useState(false);
 
   const sessionId = tab.sessionId as SessionId;
+
+  // Persisted user-resizable width for the sidekick. Per-device
+  // (localStorage); shared key with quiz mode. See feature
+  // resizable-panels-tests-and-sidekick-adoption.
+  const { width: sidekickWidth, handleProps: sidekickHandleProps } = useResizableWidth({
+    storageKey: "praxis.panel.sidekick.width",
+    defaultWidth: 380,
+    minWidth: 280,
+    maxWidth: 640,
+    side: "left",
+  });
 
   return (
     <div
@@ -71,11 +84,13 @@ export function HomeworkTabBody({ tab }: HomeworkTabBodyProps): JSX.Element {
           )}
         </div>
 
+        {sidekickOpen && <ResizeHandle side="left" {...sidekickHandleProps} />}
         <SidekickPanel
           sessionId={sessionId}
           modeId="homework"
           open={sidekickOpen}
           onOpenChange={setSidekickOpen}
+          width={sidekickWidth}
         />
       </div>
     </div>
