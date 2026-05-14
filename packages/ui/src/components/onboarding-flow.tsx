@@ -97,6 +97,10 @@ function EngineStep({
 }): JSX.Element {
   const client = usePraxisClient();
   const [config, setConfig] = useState<EngineConfigSnapshot | null>(null);
+  // Local apiKey edit state for the engine step. Decoupled from the
+  // snapshot because the snapshot no longer carries the secret —
+  // `hasApiKey` drives the placeholder/empty-state UX.
+  const [apiKey, setApiKey] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claudeLoggedIn, setClaudeLoggedIn] = useState<boolean | null>(null);
@@ -104,14 +108,26 @@ function EngineStep({
 
   useEffect(() => {
     let cancelled = false;
-    client.config
-      .engineConfig()
-      .then((snap) => {
-        if (!cancelled) setConfig(snap);
-      })
-      .catch(() => {
-        if (!cancelled) setConfig({ engineId: "direct.anthropic" });
-      });
+    (async () => {
+      try {
+        const snap = await client.config.engineConfig();
+        if (cancelled) return;
+        setConfig(snap);
+        // First-run onboarding edits the apiKey in-place. If a key is already
+        // stored (re-entering onboarding after first complete), pre-fill the
+        // input by revealing the decrypted value.
+        if (snap.hasApiKey) {
+          try {
+            const { apiKey } = await client.config.revealApiKey();
+            if (!cancelled && apiKey !== null) setApiKey(apiKey);
+          } catch {
+            // non-fatal: reveal may fail before unlock — user can re-enter
+          }
+        }
+      } catch {
+        if (!cancelled) setConfig({ engineId: "direct.anthropic", hasApiKey: false });
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -143,7 +159,13 @@ function EngineStep({
     setSaving(true);
     setError(null);
     try {
-      await client.config.setEngineConfig(config);
+      await client.config.setEngineConfig({
+        ...config,
+        // `apiKey === ""` clears; non-empty replaces; undefined preserves.
+        // The onboarding form intentionally writes whatever's in the input,
+        // so the empty string is a deliberate user action (no key).
+        apiKey,
+      });
       onNext();
     } catch (err) {
       setError(err instanceof Error ? err.message : COPY.error.unknown);
@@ -188,17 +210,9 @@ function EngineStep({
           <input
             type="password"
             className={styles.input}
-            value={config.apiKey ?? ""}
+            value={apiKey}
             placeholder="sk-…"
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val) {
-                setConfig({ ...config, apiKey: val });
-              } else {
-                const { apiKey: _k, ...rest } = config;
-                setConfig(rest);
-              }
-            }}
+            onChange={(e) => setApiKey(e.target.value)}
           />
         </label>
       )}

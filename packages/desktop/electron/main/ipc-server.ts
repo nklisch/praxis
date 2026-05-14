@@ -19,11 +19,13 @@ import type {
   TldrawSnapshot,
 } from "@praxis/core/types";
 import { brandId, serializeError } from "@praxis/core/types";
+import { EngineConfigSchema } from "@praxis/core/config";
 import { app, ipcMain } from "electron";
 import { registerActivityHandlers } from "./activity-channel.js";
 import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
 import { registerDocumentScopesHandlers } from "./document-scopes-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
+import { wrapEnvelope, withSchema } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
 import type { Services } from "./services.js";
@@ -191,16 +193,46 @@ export function registerIpcHandlers(
     return services.config.setSelectedEngine(engineId);
   });
 
-  handle("praxis.config.engineConfig", async () => {
-    await requireUnlocked();
-    return services.config.engineConfig();
-  });
+  handle(
+    "praxis.config.engineConfig",
+    wrapEnvelope("praxis.config.engineConfig", log, async () => {
+      await requireUnlocked();
+      return services.config.engineConfig();
+    }),
+  );
 
-  handle("praxis.config.setEngineConfig", async (_event, config: unknown) => {
-    await requireUnlocked();
-    // biome-ignore lint/suspicious/noExplicitAny: config shape validated inside service
-    return services.config.setEngineConfig(config as any);
-  });
+  // Phase: IPC trust-boundary hardening — separate "reveal" channel so the
+  // steady-state `engineConfig()` read never sees the decrypted apiKey.
+  handle(
+    "praxis.config.engineConfig.reveal",
+    wrapEnvelope("praxis.config.engineConfig.reveal", log, async () => {
+      await requireUnlocked();
+      return services.config.revealApiKey();
+    }),
+  );
+
+  handle(
+    "praxis.config.setEngineConfig",
+    wrapEnvelope(
+      "praxis.config.setEngineConfig",
+      log,
+      withSchema(EngineConfigSchema, async (cfg) => {
+        await requireUnlocked();
+        // The service writes to disk; `hasApiKey` is a derived display flag
+        // — set it from the validated public input so the snapshot shape
+        // matches even though the service strips it before persistence.
+        const hasApiKey = cfg.apiKey !== undefined && cfg.apiKey.length > 0;
+        return services.config.setEngineConfig({
+          engineId: cfg.engineId,
+          hasApiKey,
+          ...(cfg.model !== undefined && { model: cfg.model }),
+          ...(cfg.baseUrl !== undefined && { baseUrl: cfg.baseUrl }),
+          ...(cfg.effort !== undefined && { effort: cfg.effort }),
+          ...(cfg.apiKey !== undefined && { apiKey: cfg.apiKey }),
+        });
+      }),
+    ),
+  );
 
   handle("praxis.config.bootstrapConfig", async () => {
     return services.config.bootstrapConfig();

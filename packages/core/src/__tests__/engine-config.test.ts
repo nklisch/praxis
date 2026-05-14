@@ -407,18 +407,30 @@ describe("EngineConfigSchema — vision validation", () => {
     }
   });
 
-  it("schema accepts row with apiKeyEncrypted set and apiKey absent", () => {
+  it("public schema rejects apiKeyEncrypted (renderer can't inject ciphertext)", () => {
+    // Phase: IPC trust-boundary hardening — the public EngineConfigSchema is
+    // .strict() and no longer declares apiKeyEncrypted. Only the
+    // persistence-layer EngineConfigStoredSchema carries the encrypted blob.
     const result = EngineConfigSchema.safeParse({
       engineId: "claude-code",
       apiKeyEncrypted: "c29tZWJsb2I=",
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
-  it("schema accepts legacy row with apiKey set and apiKeyEncrypted absent", () => {
+  it("public schema accepts plaintext apiKey (in-memory only)", () => {
     const result = EngineConfigSchema.safeParse({
       engineId: "claude-code",
       apiKey: "sk-plaintext",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("stored schema accepts the encrypted blob field", async () => {
+    const { EngineConfigStoredSchema } = await import("../config/schema.js");
+    const result = EngineConfigStoredSchema.safeParse({
+      engineId: "claude-code",
+      apiKeyEncrypted: "c29tZWJsb2I=",
     });
     expect(result.success).toBe(true);
   });

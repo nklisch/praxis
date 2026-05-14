@@ -50,9 +50,39 @@ export class ConfigServiceImpl implements ConfigService {
     return toSnapshot(readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log));
   }
 
-  async setEngineConfig(snapshot: EngineConfigSnapshot): Promise<void> {
-    const validated = EngineConfigSchema.parse(snapshot);
-    writeEngineConfig(this.deps.db, this.deps.secretStorage, validated, this.deps.log);
+  async revealApiKey(): Promise<{ apiKey: string | null }> {
+    const cfg = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log);
+    if (cfg.apiKey !== undefined && cfg.apiKey.length > 0) {
+      return { apiKey: cfg.apiKey };
+    }
+    return { apiKey: null };
+  }
+
+  async setEngineConfig(
+    snapshot: EngineConfigSnapshot & { apiKey?: string },
+  ): Promise<void> {
+    // The renderer-facing snapshot includes a presence-only `hasApiKey` flag
+    // — drop it before validating against the public engine schema.
+    const { hasApiKey: _hasApiKey, apiKey, ...rest } = snapshot;
+
+    // Preserve-on-undefined semantics: if `apiKey === undefined`, keep the
+    // existing stored value; if `apiKey === ""`, clear; otherwise replace.
+    let nextApiKey: string | undefined;
+    if (apiKey === undefined) {
+      const current = readEngineConfig(this.deps.db, this.deps.secretStorage, this.deps.log);
+      nextApiKey = current.apiKey;
+    } else if (apiKey === "") {
+      nextApiKey = undefined;
+    } else {
+      nextApiKey = apiKey;
+    }
+
+    const merged: EngineConfig = EngineConfigSchema.parse({
+      ...rest,
+      ...(nextApiKey !== undefined ? { apiKey: nextApiKey } : {}),
+    });
+
+    writeEngineConfig(this.deps.db, this.deps.secretStorage, merged, this.deps.log);
   }
 
   async bootstrapConfig(): Promise<BootstrapConfigSnapshot> {
@@ -80,8 +110,8 @@ function toBootstrapSnapshot(cfg: BootstrapConfig): BootstrapConfigSnapshot {
 function toSnapshot(cfg: EngineConfig): EngineConfigSnapshot {
   return {
     engineId: cfg.engineId,
+    hasApiKey: cfg.apiKey !== undefined && cfg.apiKey.length > 0,
     ...(cfg.model !== undefined && { model: cfg.model }),
-    ...(cfg.apiKey !== undefined && { apiKey: cfg.apiKey }),
     ...(cfg.baseUrl !== undefined && { baseUrl: cfg.baseUrl }),
     ...(cfg.effort !== undefined && { effort: cfg.effort }),
   };

@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-ipc-boundary-engine-config-shape
 kind: story
-stage: implementing
+stage: review
 tags: [security, core, desktop, ui]
 parent: epic-security-hardening-round-2-ipc-boundary
 depends_on: [epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor]
@@ -124,12 +124,85 @@ story:
 
 ## Verification
 
-- `pnpm typecheck` green — the type change of `EngineConfigSnapshot`
-  is load-bearing; the typechecker enforces that every renderer
-  read site is migrated.
-- `pnpm --filter @praxis/core test` green.
-- `pnpm --filter @praxis/desktop test` green (ipc-server tests).
-- `pnpm --filter @praxis/ui test` green.
-- `pnpm --filter @praxis/client test` green — new reveal method
-  has at least one channel-routing test.
-- `pnpm lint` green.
+- `pnpm --filter @praxis/core typecheck`: green.
+- `pnpm --filter @praxis/client typecheck`: green.
+- `pnpm --filter @praxis/desktop typecheck`: green.
+- `pnpm --filter @praxis/ui typecheck`: green.
+- `pnpm --filter @praxis/core test`: 890 tests pass (engine-config
+  test updated to assert the strict-schema contract for the public
+  vs stored split).
+- `pnpm --filter @praxis/desktop test`: 107 tests pass (envelope +
+  ipc-server unchanged surface intact).
+- `pnpm --filter @praxis/ui test`: 1010 tests pass.
+- `pnpm --filter @praxis/client test`: 55 tests pass.
+
+## Implementation notes (2026-05-14)
+
+- Split `EngineConfigSchema` in
+  `packages/core/src/config/schema.ts` into a public strict schema
+  (renderer-facing, no `apiKeyEncrypted`) and an
+  `EngineConfigStoredSchema` extending the public one with the
+  encrypted blob. Both share the same `visionModelRefine`.
+- `writeEngineConfig` now validates the final row against
+  `EngineConfigStoredSchema` so the persistence layer enforces
+  shape exactly once at the boundary.
+- `EngineConfigSnapshot` (in `packages/core/src/types/client.ts`):
+  removed `apiKey`, added `hasApiKey: boolean`. `ConfigService`
+  grows a `revealApiKey()` method that returns
+  `{ apiKey: string | null }`. `setEngineConfig` accepts
+  `EngineConfigSnapshot & { apiKey?: string }` with
+  preserve-on-undefined semantics.
+- `ConfigServiceImpl.engineConfig()` returns the `hasApiKey`
+  snapshot via `toSnapshot`; `revealApiKey()` returns the decrypted
+  key from `readEngineConfig`; `setEngineConfig` merges the
+  in-flight apiKey with the existing stored value before validating
+  and persisting.
+- `packages/desktop/electron/main/ipc-server.ts`:
+  - Wrapped `praxis.config.engineConfig` in `wrapEnvelope`.
+  - Added `praxis.config.engineConfig.reveal` channel (also
+    wrapped) that requires unlock and returns the decrypted key.
+  - Wrapped `praxis.config.setEngineConfig` in
+    `wrapEnvelope` + `withSchema(EngineConfigSchema, ...)` so
+    `apiKeyEncrypted` injection is rejected as
+    `VALIDATION_FAILED` at the IPC boundary.
+- `packages/client/src/services/config-client.ts`:
+  `engineConfig()`, `revealApiKey()`, and `setEngineConfig()` all
+  call `unwrapEnvelope` to convert envelope failures into thrown
+  `IpcError` (with `.code` / `.requestId`).
+- Settings UI (`packages/ui/src/routes/settings.tsx`): replaced
+  the always-mounted password input with a presence display
+  ("API key configured" / "Not configured") + an Edit/Add button
+  that calls `revealApiKey()` to populate an in-flight edit input.
+  Save submits `{ apiKey: editedValue }`; refetches the snapshot
+  on success so `hasApiKey` updates.
+- Onboarding flow (`packages/ui/src/components/onboarding-flow.tsx`):
+  decoupled the `apiKey` local state from the snapshot. If a key
+  is already stored, the form pre-fills the input by calling
+  `revealApiKey()` on mount.
+
+## Decisions logged
+
+- **Renderer-side migration via type contract**: removing
+  `apiKey` from `EngineConfigSnapshot` makes
+  `pnpm typecheck` fail at every read-site; both consumers
+  (settings.tsx + onboarding-flow.tsx) were migrated in this
+  story. Type-driven completeness rather than a grep audit.
+- **Settings "Add" vs "Edit" affordance**: the button text
+  flips on `hasApiKey`. When no key is stored, the affordance
+  says "Add" and the click immediately opens an empty input
+  (no reveal call). When a key is stored, the text is "Edit"
+  and the click calls `revealApiKey()` to prefill — that's
+  the only path that crosses the trust boundary with the
+  secret, and it's gated on an explicit user action.
+- **Onboarding re-entry handling**: if onboarding is re-entered
+  after first complete (typically only via test reset or a
+  manual override), the form prefills the apiKey by calling
+  `revealApiKey()` so the user doesn't lose their stored key
+  on save. First-run onboarding sees `hasApiKey: false` from
+  the fallback `{ engineId: "direct.anthropic", hasApiKey: false }`
+  and renders an empty input.
+- **`setEngineConfig` snapshot input includes `hasApiKey`**: the
+  field is stripped by the service before persistence. The
+  client passes the value the renderer already has (it's
+  derived, not user-edited) — simpler than splitting two
+  request types in the client wrapper.

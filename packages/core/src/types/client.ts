@@ -602,11 +602,23 @@ export interface MemoryService {
  * in @praxis/core/config without forcing client.ts to reach into other core
  * subfolders for a Zod-derived type. SessionServiceImpl validates against
  * EngineConfigSchema before persisting.
+ *
+ * Note: the plaintext `apiKey` field is intentionally NOT exposed on the
+ * snapshot — the renderer reads `hasApiKey` for display and calls
+ * `revealApiKey()` only when the user clicks "edit". The IPC layer
+ * never crosses the trust boundary with the decrypted secret unless the
+ * renderer explicitly requests it.
  */
 export interface EngineConfigSnapshot {
   engineId: string;
   model?: string;
-  apiKey?: string;
+  /**
+   * True iff a non-empty apiKey is stored (decrypted from `apiKeyEncrypted`)
+   * OR set via the `PRAXIS_API_KEY` env override. Renderer drives
+   * "configured / not configured" UI off this flag without ever seeing
+   * the secret on a steady-state read.
+   */
+  hasApiKey: boolean;
   baseUrl?: string;
   effort?: "minimal" | "low" | "medium" | "high" | "xhigh";
 }
@@ -632,7 +644,16 @@ export interface ConfigService {
   setSelectedEngine(engineId: string): Promise<void>;
   // Phase 3 additions:
   engineConfig(): Promise<EngineConfigSnapshot>;
-  setEngineConfig(config: EngineConfigSnapshot): Promise<void>;
+  /**
+   * Fetch the decrypted apiKey for the edit flow. The renderer calls this
+   * only when the user explicitly clicks "edit" on the API key field;
+   * steady-state reads use `engineConfig()` which returns presence only.
+   * Returns `null` when nothing is stored.
+   */
+  revealApiKey(): Promise<{ apiKey: string | null }>;
+  setEngineConfig(
+    config: EngineConfigSnapshot & { apiKey?: string },
+  ): Promise<void>;
   // Bootstrap-mode budget knob.
   bootstrapConfig(): Promise<BootstrapConfigSnapshot>;
   setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void>;

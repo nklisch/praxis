@@ -17,6 +17,10 @@ const ENGINE_OPTIONS = [
 export function SettingsRoute() {
   const client = usePraxisClient();
   const [config, setConfig] = useState<EngineConfigSnapshot | null>(null);
+  // Local in-flight edits to the API key. `null` means "no edit in
+  // progress — preserve whatever is stored". A string (empty or non-empty)
+  // means the user has opened the edit affordance and is typing.
+  const [apiKeyEdit, setApiKeyEdit] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<"ok" | "error" | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -31,14 +35,33 @@ export function SettingsRoute() {
       });
   }, [client]);
 
+  const handleEditApiKey = async () => {
+    // Pull the decrypted value into the edit input on demand.
+    try {
+      const { apiKey } = await client.config.revealApiKey();
+      setApiKeyEdit(apiKey ?? "");
+    } catch {
+      setApiKeyEdit("");
+    }
+  };
+
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!config) return;
     setSaving(true);
     setSaveResult(null);
     try {
-      await client.config.setEngineConfig(config);
+      await client.config.setEngineConfig({
+        ...config,
+        // Pass through the in-flight edit (string | undefined).
+        // `undefined` preserves the stored key; `""` clears it.
+        ...(apiKeyEdit !== null && { apiKey: apiKeyEdit }),
+      });
       setSaveResult("ok");
+      setApiKeyEdit(null);
+      // Refetch the snapshot so hasApiKey reflects the new value.
+      const next = await client.config.engineConfig();
+      setConfig(next);
     } catch {
       setSaveResult("error");
     } finally {
@@ -117,24 +140,33 @@ export function SettingsRoute() {
             />
           </label>
 
-          <label className={styles.field}>
+          <div className={styles.field}>
             <span className={styles.label}>API Key (optional)</span>
-            <input
-              type="password"
-              className={styles.input}
-              value={config.apiKey ?? ""}
-              placeholder="sk-…"
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val) {
-                  setConfig({ ...config, apiKey: val });
-                } else {
-                  const { apiKey: _k, ...rest } = config;
-                  setConfig(rest);
-                }
-              }}
-            />
-          </label>
+            {apiKeyEdit === null ? (
+              <div className={styles.apiKeyDisplay}>
+                <span className={styles.apiKeyStatus}>
+                  {config.hasApiKey ? "API key configured" : "Not configured"}
+                </span>
+                <button
+                  type="button"
+                  className={styles.apiKeyEditButton}
+                  onClick={handleEditApiKey}
+                >
+                  {config.hasApiKey ? "Edit" : "Add"}
+                </button>
+              </div>
+            ) : (
+              <input
+                type="password"
+                className={styles.input}
+                value={apiKeyEdit}
+                placeholder="sk-…"
+                onChange={(e) => setApiKeyEdit(e.target.value)}
+                // biome-ignore lint/a11y/noAutofocus: focusing on edit affordance
+                autoFocus
+              />
+            )}
+          </div>
 
           <label className={styles.field}>
             <span className={styles.label}>Base URL (optional)</span>

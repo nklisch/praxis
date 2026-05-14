@@ -3,6 +3,7 @@ import type {
   ConfigService,
   EngineConfigSnapshot,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const CHANNEL = "praxis.config";
@@ -30,12 +31,35 @@ export class ConfigClient implements ConfigService {
     return this.transport.invoke<void>(`${CHANNEL}.setSelectedEngine`, engineId);
   }
 
-  engineConfig(): Promise<EngineConfigSnapshot> {
-    return this.transport.invoke<EngineConfigSnapshot>(`${CHANNEL}.engineConfig`);
+  async engineConfig(): Promise<EngineConfigSnapshot> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<EngineConfigSnapshot> | EngineConfigSnapshot
+    >(`${CHANNEL}.engineConfig`);
+    return unwrapEnvelope(result);
   }
 
-  setEngineConfig(config: EngineConfigSnapshot): Promise<void> {
-    return this.transport.invoke<void>(`${CHANNEL}.setEngineConfig`, config);
+  /**
+   * Fetch the decrypted apiKey for the edit flow. Renderer calls this only
+   * when the user explicitly clicks "edit" — steady-state reads use
+   * `engineConfig()` which returns `hasApiKey: boolean`. Returns
+   * `{ apiKey: null }` when nothing is stored.
+   */
+  async revealApiKey(): Promise<{ apiKey: string | null }> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<{ apiKey: string | null }> | { apiKey: string | null }
+    >(`${CHANNEL}.engineConfig.reveal`);
+    return unwrapEnvelope(result);
+  }
+
+  async setEngineConfig(
+    config: EngineConfigSnapshot & { apiKey?: string },
+  ): Promise<void> {
+    const { hasApiKey: _hasApiKey, ...wire } = config;
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${CHANNEL}.setEngineConfig`,
+      wire,
+    );
+    unwrapEnvelope(result);
   }
 
   bootstrapConfig(): Promise<BootstrapConfigSnapshot> {

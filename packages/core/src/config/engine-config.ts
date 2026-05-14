@@ -6,6 +6,8 @@ import {
   DEFAULT_ENGINE_CONFIG,
   type EngineConfig,
   EngineConfigSchema,
+  type EngineConfigStored,
+  EngineConfigStoredSchema,
   type EngineId,
   EngineIdSchema,
 } from "./schema.js";
@@ -44,7 +46,7 @@ export function readEngineConfig(
   log?: Logger,
 ): EngineConfig {
   const rows = db.select().from(configKv).where(eq(configKv.key, CONFIG_KEY)).all();
-  const stored = rows[0]?.valueJson as Partial<EngineConfig> | undefined;
+  const stored = rows[0]?.valueJson as Partial<EngineConfigStored> | undefined;
 
   let resolvedApiKey: string | undefined;
   let needsMigrationWrite = false;
@@ -80,17 +82,17 @@ export function readEngineConfig(
     }
   }
 
-  // Build the in-memory config from stored fields (minus the persisted
-  // encrypted blob) + the resolved apiKey. Downstream code always sees
-  // `apiKey` (decrypted) and never `apiKeyEncrypted`.
-  const inMemoryStored: Partial<EngineConfig> = stored
-    ? {
-        ...stored,
-        ...(resolvedApiKey !== undefined && { apiKey: resolvedApiKey }),
-      }
-    : {};
-  // Drop apiKeyEncrypted from the in-memory shape — downstream sees only apiKey.
-  delete inMemoryStored.apiKeyEncrypted;
+  // Build the in-memory public config from stored fields (minus the
+  // persisted encrypted blob) + the resolved apiKey. Downstream code always
+  // sees `apiKey` (decrypted) and never `apiKeyEncrypted`.
+  const inMemoryStored: Partial<EngineConfig> = {};
+  if (stored) {
+    if (stored.engineId !== undefined) inMemoryStored.engineId = stored.engineId;
+    if (stored.model !== undefined) inMemoryStored.model = stored.model;
+    if (stored.baseUrl !== undefined) inMemoryStored.baseUrl = stored.baseUrl;
+    if (stored.effort !== undefined) inMemoryStored.effort = stored.effort;
+    if (resolvedApiKey !== undefined) inMemoryStored.apiKey = resolvedApiKey;
+  }
 
   const merged: EngineConfig = EngineConfigSchema.parse({
     ...DEFAULT_ENGINE_CONFIG,
@@ -100,7 +102,7 @@ export function readEngineConfig(
   // Migration write-back: encrypt the legacy plaintext row and rewrite.
   // Only fires after a successful encryption of the legacy plaintext key.
   if (needsMigrationWrite && migrationBlob !== undefined && stored) {
-    const migrated: Partial<EngineConfig> = {
+    const migrated: Partial<EngineConfigStored> = {
       ...stored,
       apiKey: undefined,
       apiKeyEncrypted: migrationBlob,
@@ -132,10 +134,8 @@ export function writeEngineConfig(
 ): void {
   const validated = EngineConfigSchema.parse(config);
 
-  // Strip both key fields and re-derive — never store both `apiKey` plaintext
-  // AND `apiKeyEncrypted` in the same row.
-  const { apiKey, apiKeyEncrypted: _ignored, ...rest } = validated;
-  let persisted: Partial<EngineConfig>;
+  const { apiKey, ...rest } = validated;
+  let persisted: Partial<EngineConfigStored>;
 
   if (apiKey === undefined || apiKey === "") {
     // No apiKey to store; omit both key fields from persisted row.
@@ -160,11 +160,14 @@ export function writeEngineConfig(
     );
   }
 
+  // Final validation against the stored schema before persisting.
+  const finalRow = EngineConfigStoredSchema.parse(persisted);
+
   db.insert(configKv)
-    .values({ key: CONFIG_KEY, valueJson: persisted, updatedAt: new Date() })
+    .values({ key: CONFIG_KEY, valueJson: finalRow, updatedAt: new Date() })
     .onConflictDoUpdate({
       target: configKv.key,
-      set: { valueJson: persisted, updatedAt: new Date() },
+      set: { valueJson: finalRow, updatedAt: new Date() },
     })
     .run();
 }
