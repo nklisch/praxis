@@ -1,7 +1,7 @@
 ---
 id: gate-security-ipc-helpers-rethrow-redactor-gap
 kind: story
-stage: drafting
+stage: implementing
 tags: [security]
 parent: null
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-12-misc-and-domain-modules]
