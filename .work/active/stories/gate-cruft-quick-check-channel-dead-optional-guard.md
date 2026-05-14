@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-quick-check-channel-dead-optional-guard
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -60,3 +60,20 @@ Verification:
 - `pnpm --filter @praxis/desktop test`: 122 tests passed
 - `pnpm biome check packages/desktop/electron/main/quick-check-channel.ts`: clean
 - `grep -r "if (!services.quickCheck)"`: zero results in desktop package
+
+## Review (2026-05-14)
+
+Verdict: Approved.
+
+**Correctness**
+
+- `Services.quickCheck` is declared non-optional (`quickCheck: QuickCheckServiceImpl;`) at `services.ts:162` and is unconditionally wired at lines 550 and 617. The "optional during transition" comment was stale; removal is correct.
+- The dead 5-line guard block (`if (!services.quickCheck) return;` plus stale comment) is fully deleted. `grep` confirms zero remaining occurrences in the desktop package.
+- Form B was used: `const quickCheck = services.quickCheck;` is unconditional and replaces the guard cleanly. All downstream `quickCheck.` call-sites are unchanged.
+- The biome line-split on the adjacent `push({ kind: "error", ... })` line preserves the `redactSecrets(...)` call added by the sibling security commit (a93b181). The call appears intact at line 56.
+
+**Tests**: 122 desktop tests passed per implementer verification. No tests were added or removed (appropriate — this is pure dead-branch removal with no behavioral change).
+
+**Design alignment**: Matches the story's "Removal" section exactly (Form B variant).
+
+**Incidental fix**: Formatter compliance on the adjacent error-push line was also corrected. This kept the build green without widening scope — noted positively.
