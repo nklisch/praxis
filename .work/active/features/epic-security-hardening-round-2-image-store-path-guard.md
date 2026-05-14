@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-image-store-path-guard
 kind: feature
-stage: review
+stage: done
 tags: [security]
 parent: epic-security-hardening-round-2
 depends_on: []
@@ -242,3 +242,34 @@ already-done work… just land it under the feature; stories are pure
 overhead"), this feature documents the realized design above and skips
 straight to `stage: review` — no implement pass needed. The review
 skill will verify acceptance criteria against the shipped code.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Verified shipped code at `packages/core/src/ingestion/document-id-guard.ts`
+  matches the documented design exactly — all six rejection rules
+  (`/`, `\`, `..`, `\0`, `~` prefix, `[A-Z]:` prefix) present with
+  `Error("Invalid documentId: ...")` throw.
+- Verified guard wired into both `FsEmbeddedImageStore` and
+  `FsPageImageStore` at `dirFor`, `read` (before try/catch — the
+  load-bearing placement), and `deleteByDocumentId`. `pathFor`
+  inherits the guard via `dirFor` delegation as designed.
+- Test files exercise the guard: 9 traversal-guard cases each in
+  `page-images.test.ts` and `embedded-images.test.ts` covering all
+  six rejection rules + traversal-through-delete + UUIDv7 allow +
+  `_pending_<uuid>` allow. Total: 46 tests pass (18 guard + 28
+  pre-existing save/read/delete) in 157ms.
+- Defense-in-depth posture is correctly scoped: today's id sources
+  (`randomUUID()`, DB-issued UUIDv7) cannot produce traversal strings,
+  but the guard now sits at the FS trust boundary for any future
+  caller. Risks section's note on canonicalize-vs-blocklist trade-off
+  is reasonable given current symlink-free baseDir layout.
+- Parent epic `epic-security-hardening-round-2` has two sibling
+  features still at `stage: implementing`, so no parent advancement
+  triggered by this review.
