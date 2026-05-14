@@ -1,0 +1,42 @@
+---
+id: gate-tests-interrupt-fanout-ui-observability
+kind: story
+stage: backlog
+tags: [testing, refactor]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: tests
+created: 2026-05-14
+updated: 2026-05-14
+---
+
+# Interrupt fanout tests are tautological at the registry layer — UI observability is untested
+
+## Priority
+Low
+
+## Spec reference
+Bound item: `epic-tutor-session-feel-cancellation-propagation-engine-and-subagent`
+
+Cancellation propagation contract: items transition `running →
+interrupted`; UI fanout observes terminal event.
+
+## Gap type
+Tautological-rework. The existing tests assert internal registry state
+transitions but skip the end-to-end "UI receives a terminal event from
+the subscriber-fanout-stream" property — the spec's "UI is informed via
+existing subscriber-fanout pattern" claim from the review.
+
+## Suggested test
+
+```typescript
+// packages/desktop/electron/main/__tests__/subagent-channel.test.ts (if exists,
+// otherwise wire into session-service abort test)
+
+it("after interruptAllForSession, a UI subscriber receives a finished event for every previously-running item", async () => {
+  // Set up: registry with two running items in session-A; subscribe via the channel
+  // abort sess-A; await terminal events
+  // Assert events.length === 2 and all kind === 'finished' with status 'interrupted'
+});
+```
