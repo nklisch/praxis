@@ -1,6 +1,6 @@
 ---
-id: gate-patterns-migrate-mutating-ipc-channels-to-envelope
-kind: story
+id: feature-mutating-ipc-channels-envelope-migration
+kind: feature
 stage: drafting
 tags: [refactor, security]
 parent: null
