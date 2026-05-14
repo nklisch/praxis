@@ -1,7 +1,7 @@
 ---
 id: gate-docs-curriculum-bootstrap-tools-list-drafts
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -37,3 +37,6 @@ v0.1.2; only `course.list_drafts` is the v0.1.2 addition flagged here.)
 Add `course.list_drafts` to the tools enumeration in line 117. Keep
 the "See packages/curriculum/src/modes/bootstrap.ts for the canonical
 list" pointer so the SSOT remains the code.
+
+## Implementation
+Added `course.list_drafts` to the bootstrap-mode tools enumeration in `docs/CURRICULUM.md:117`, positioned after `course.discard_draft` (grouping it with the other draft-management tools: show, edit, confirm, discard, list_drafts). The "See packages/curriculum/src/modes/bootstrap.ts for the canonical list" pointer is preserved. No other changes were made — the predates-v0.1.2 tools remain intentionally omitted per the story's design-flaw escape hatch.
