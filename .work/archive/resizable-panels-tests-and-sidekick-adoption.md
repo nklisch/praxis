@@ -1,7 +1,7 @@
 ---
 id: resizable-panels-tests-and-sidekick-adoption
 kind: feature
-stage: review
+stage: done
 tags: [ui, testing, editorial, a11y]
 parent: null
 depends_on: []
@@ -143,3 +143,22 @@ Single-feature, no child stories — surface is ~3 new test files + 4 small file
 **Lint**: pre-existing a11y errors on `<ul role="listbox">` / `<li role="option">` in the picker and `noStaticElementInteractions` on the tab bodies are unchanged by this work. The picker's format-error was fixed (biome auto-format).
 
 Verification: `pnpm test` clean (3293 pass, 23 slow tests skipped); `pnpm typecheck` clean.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `sidekick-panel.tsx` file-level JSDoc lines 5-6 still say "fixed column (~380px) in the parent CSS grid" — parent is flex (not grid) and width is now dynamic. Stale comment, not load-bearing.
+- Implicit contract change: `<SidekickPanel open width=undefined>` now produces a flex-default-sized aside (could be 0/intrinsic). Both production call sites adopt the hook so no live regression, but the JSDoc note "callers always pass `width` when adopting the resizable hook" understates this — a non-adopter caller would see a visual regression. Worth noting if a third call site appears.
+
+**Notes**:
+- All 4 acceptance criteria met. 25 hook+handle tests + 1 adoption case land and pass (33/33 in the 3 test files).
+- `use-resizable-width.test.tsx` (19 cases): synchronous-init paths well covered (empty / valid / out-of-range / garbage / null storageKey / throwing getItem), `reset()`, keyboard nav (ArrowLeft/Right with Shift, side:"left" inversion, clamp at bounds, Home reset, ignore-other-keys), ARIA shape + per-side aria-label distinction, narrative integration with `<ResizeHandle>` round-tripping a pre-seeded localStorage value.
+- `resize-handle.test.tsx` (6 cases): role/orientation/valuenow/tabIndex/side-class/className-forwarding — clean ARIA-contract assertions.
+- `quiz-tab-body.test.tsx` extension (1 case): handle-only-when-open + persisted-width-applies-to-aside. Verifies the full integration through localStorage seed → hook → handle aria-valuenow → inline aside style.
+- Pointer-drag path is honestly noted as not exercised end-to-end (JSDOM limitation around `setPointerCapture` + `e.currentTarget` listeners). The keyboard path shares the same `widthRef + clamp + persist` code, so logic coverage is equivalent — documented in the test file's header.
+- Sidekick adoption: hook hosted in `QuizTabBody`/`HomeworkTabBody` with shared `praxis.panel.sidekick.width` storage key — reasonable architectural choice that keeps SidekickPanel's contract focused on session/mode props. Both modes share the width.
+- CSS change: `width: 380px` removed from `.panel.open`; the `transition: width 0.2s ease` still animates because the property exists with a transition rule (verified in implementation notes).
