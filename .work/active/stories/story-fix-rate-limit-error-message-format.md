@@ -1,7 +1,7 @@
 ---
 id: story-fix-rate-limit-error-message-format
 kind: story
-stage: review
+stage: done
 tags: [bug, ui, engines]
 parent: null
 depends_on: []
@@ -83,3 +83,17 @@ branches on the message text; the existing test in
     they would surface as errors. Worth tightening the discriminator.
 
   Both parked for separate consideration if the user wants to scope them.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Correctness — epoch→ISO conversion (`info.resetsAt * 1000` into `new Date(...).toISOString()`) is correct; `rateLimitType` and `isUsingOverage` are both required on the SDK's `RateLimitInfo` (`packages/claude-cli-sdk/src/types/events.ts:210`), so accessing them without optional chaining is safe.
+- Tests — two cases (`five_hour` without overage, `seven_day` with overage) cover both message variants. Existing `does not throw when no logger is provided` back-compat case unchanged.
+- Single-source change — `grep "engine.rate_limited\|Rate limited"` across `packages/`, `apps/`, `tests/` shows only the formatter and its test consume the message text; no downstream branches on it.
+- Out-of-scope follow-ups (structured `details: { rateLimitType, resetsAt, isUsingOverage }` on the error, tightening the `info.status === "allowed"` discriminator) already parked as `idea-rate-limit-error-structured-fields`.
