@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-ipc-boundary
 kind: feature
-stage: implementing
+stage: review
 tags: [security]
 parent: epic-security-hardening-round-2
 depends_on: []

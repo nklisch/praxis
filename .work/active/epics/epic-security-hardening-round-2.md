@@ -1,14 +1,14 @@
 ---
 id: epic-security-hardening-round-2
 kind: epic
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Security hardening round 2 — close the gate findings from v0.1.1
