@@ -45,11 +45,14 @@ class DocumentsClientImpl implements DocumentsClient {
     return unwrapEnvelope(result);
   }
 
-  pageImage(input: { documentId: string; page: number }): Promise<Uint8Array | null> {
+  async pageImage(input: { documentId: string; page: number }): Promise<Uint8Array | null> {
     // Main process sends base64 string; we decode here for the consumer.
-    return this.transport
-      .invoke<string | null>(C.pageImage, input)
-      .then((b64) => (b64 ? base64ToBytes(b64) : null));
+    const raw = await this.transport.invoke<IpcEnvelope<string | null> | string | null>(
+      C.pageImage,
+      input,
+    );
+    const b64 = unwrapEnvelope(raw);
+    return b64 ? base64ToBytes(b64) : null;
   }
 }
 

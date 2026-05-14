@@ -28,12 +28,13 @@ const C = {
 class NotesClientImpl implements NotesClient {
   constructor(private readonly transport: ClientTransport) {}
 
-  create(input: {
+  async create(input: {
     format: "cornell" | "feynman" | "outline" | "free";
     body: NoteBody;
     context?: NoteContext;
   }): Promise<Note> {
-    return this.transport.invoke<Note>(C.create, input);
+    const result = await this.transport.invoke<IpcEnvelope<Note> | Note>(C.create, input);
+    return unwrapEnvelope(result);
   }
 
   async update(input: { noteId: NoteId; body: NoteBody }): Promise<Note> {
@@ -49,13 +50,14 @@ class NotesClientImpl implements NotesClient {
     return unwrapEnvelope(result);
   }
 
-  list(input?: {
+  async list(input?: {
     courseId?: CourseId;
     lessonId?: LessonId;
     format?: "cornell" | "feynman" | "outline" | "free";
     limit?: number;
   }): Promise<Note[]> {
-    return this.transport.invoke<Note[]>(C.list, input);
+    const result = await this.transport.invoke<IpcEnvelope<Note[]> | Note[]>(C.list, input);
+    return unwrapEnvelope(result);
   }
 
   async delete(noteId: NoteId): Promise<void> {

@@ -16,12 +16,16 @@ const CHANNEL = "praxis.session";
 export class SessionClient implements SessionService {
   constructor(private readonly transport: ClientTransport) {}
 
-  start(opts: {
+  async start(opts: {
     courseId?: CourseId;
     assignmentId?: AssignmentId;
     modeId: string;
   }): Promise<SessionHandle> {
-    return this.transport.invoke<SessionHandle>(`${CHANNEL}.start`, opts);
+    const result = await this.transport.invoke<IpcEnvelope<SessionHandle> | SessionHandle>(
+      `${CHANNEL}.start`,
+      opts,
+    );
+    return unwrapEnvelope(result);
   }
 
   send(sessionId: SessionId, message: string): AsyncIterable<EngineEvent> {
@@ -43,8 +47,12 @@ export class SessionClient implements SessionService {
     return unwrapEnvelope(result);
   }
 
-  list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]> {
-    return this.transport.invoke<SessionSummary[]>(`${CHANNEL}.list`, opts ?? {});
+  async list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]> {
+    const result = await this.transport.invoke<IpcEnvelope<SessionSummary[]> | SessionSummary[]>(
+      `${CHANNEL}.list`,
+      opts,
+    );
+    return unwrapEnvelope(result);
   }
 
   /** Phase 16: open a child quiz/homework/exam session from a tutor-authored assignment. */

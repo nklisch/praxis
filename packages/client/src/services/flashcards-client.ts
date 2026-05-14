@@ -29,20 +29,22 @@ const C = {
 class FlashcardsClientImpl implements FlashcardsClient {
   constructor(private readonly transport: ClientTransport) {}
 
-  create(input: {
+  async create(input: {
     front: string;
     back: string;
     conceptId?: ConceptId;
     source?: { kind: "authored" | "extracted" | "user-created"; ref?: string };
   }): Promise<Flashcard> {
-    return this.transport.invoke<Flashcard>(C.create, input);
+    const result = await this.transport.invoke<IpcEnvelope<Flashcard> | Flashcard>(C.create, input);
+    return unwrapEnvelope(result);
   }
 
-  update(input: {
+  async update(input: {
     flashcardId: FlashcardId;
     patch: Partial<Pick<Flashcard, "front" | "back" | "conceptId">>;
   }): Promise<Flashcard> {
-    return this.transport.invoke<Flashcard>(C.update, input);
+    const result = await this.transport.invoke<IpcEnvelope<Flashcard> | Flashcard>(C.update, input);
+    return unwrapEnvelope(result);
   }
 
   async get(flashcardId: FlashcardId): Promise<Flashcard | null> {
@@ -53,8 +55,16 @@ class FlashcardsClientImpl implements FlashcardsClient {
     return unwrapEnvelope(result);
   }
 
-  list(input?: { conceptId?: ConceptId; due?: boolean; limit?: number }): Promise<Flashcard[]> {
-    return this.transport.invoke<Flashcard[]>(C.list, input);
+  async list(input?: {
+    conceptId?: ConceptId;
+    due?: boolean;
+    limit?: number;
+  }): Promise<Flashcard[]> {
+    const result = await this.transport.invoke<IpcEnvelope<Flashcard[]> | Flashcard[]>(
+      C.list,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
   async delete(flashcardId: FlashcardId): Promise<void> {
@@ -62,14 +72,18 @@ class FlashcardsClientImpl implements FlashcardsClient {
     return unwrapEnvelope(result);
   }
 
-  review(input: {
+  async review(input: {
     flashcardId: FlashcardId;
     rating: Rating;
   }): Promise<{ flashcard: Flashcard; nextReviewAt: Timestamp }> {
-    return this.transport.invoke<{ flashcard: Flashcard; nextReviewAt: Timestamp }>(
-      C.review,
-      input,
-    );
+    const result = await this.transport.invoke<
+      | IpcEnvelope<{ flashcard: Flashcard; nextReviewAt: Timestamp }>
+      | {
+          flashcard: Flashcard;
+          nextReviewAt: Timestamp;
+        }
+    >(C.review, input);
+    return unwrapEnvelope(result);
   }
 
   async dueCount(): Promise<number> {

@@ -196,7 +196,7 @@ describe("createPraxisClient", () => {
       const client = createPraxisClient(transport);
       await client.session.list();
       expect(invokedChannels[0]?.channel).toBe("praxis.session.list");
-      expect(invokedChannels[0]?.args[0]).toEqual({});
+      expect(invokedChannels[0]?.args[0]).toBeUndefined();
     });
 
     it("session.list(opts) passes opts to channel", async () => {

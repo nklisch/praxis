@@ -35,11 +35,18 @@ class AssignmentsClientImpl implements AssignmentsClient {
     return unwrapEnvelope(result);
   }
 
-  list(input: { courseId: CourseId; kind?: "quiz" | "homework" | "exam" }): Promise<Assignment[]> {
-    return this.transport.invoke<Assignment[]>(C.list, input);
+  async list(input: {
+    courseId: CourseId;
+    kind?: "quiz" | "homework" | "exam";
+  }): Promise<Assignment[]> {
+    const result = await this.transport.invoke<IpcEnvelope<Assignment[]> | Assignment[]>(
+      C.list,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
-  recordResponse(input: {
+  async recordResponse(input: {
     assignmentId: AssignmentId;
     itemId: string;
     response: string;
@@ -47,7 +54,8 @@ class AssignmentsClientImpl implements AssignmentsClient {
     /** Phase 15a: optional sketch attached to this response. */
     sketchId?: string;
   }): Promise<void> {
-    return this.transport.invoke<void>(C.recordResponse, input);
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.recordResponse, input);
+    return unwrapEnvelope(result);
   }
 
   async getResponses(input: { assignmentId: AssignmentId }): Promise<AssignmentResponse[]> {

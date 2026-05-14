@@ -1,7 +1,7 @@
 ---
 id: gate-security-ipc-server-raw-invoke-residuals
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -96,3 +96,37 @@ Check each channel's client counterpart before wrapping.
 - `praxis.documents.pageImage` returns `string | null` (base64); wrapping
   it means the client receives `IpcEnvelope<string | null>` — update
   `documents-client.ts` accordingly.
+
+## Implementation
+
+All 13 residual channels wrapped in one batch (2026-05-14):
+
+**Server-side** (`packages/desktop/electron/main/ipc-server.ts`):
+- `praxis.session.start` — `handleEnvelope` + `sessionStartSchema` (`{ modeId, courseId?, assignmentId? }`)
+- `praxis.documents.pageImage` — `handleEnvelope` + `pageImageSchema` (`{ documentId, page }`)
+- `praxis.assignments.list` — `handleEnvelope` + `assignmentListSchema` (`{ courseId, kind? }`)
+- `praxis.assignments.recordResponse` — `handleEnvelope` + `recordResponseSchema`
+- `praxis.notes.create` — `handleEnvelope` + `noteCreateSchema` (format + body + optional context)
+- `praxis.notes.list` — `handleEnvelope` + `noteListSchema` (optional filter object)
+- `praxis.flashcards.create` — `handleEnvelope` + `flashcardCreateSchema`
+- `praxis.flashcards.update` — `handleEnvelope` + `flashcardUpdateSchema`
+- `praxis.flashcards.list` — `handleEnvelope` + `flashcardListSchema` (optional filter)
+- `praxis.flashcards.review` — `handleEnvelope` + `flashcardReviewSchema` (`{ flashcardId, rating }`)
+- `praxis.session.list` — `handleEnvelope` + `sessionListSchema` (optional `{ includeEnded, limit }`)
+- `praxis.sketches.put` — `handleEnvelope` + `sketchPutSchema` (snapshot opaque, imageBase64 string)
+- `praxis.conceptMaps.updateScene` — `handleEnvelope` + `conceptMapUpdateSceneSchema` (scene + links opaque)
+
+**Client-side** (each updated to `unwrapEnvelope`):
+- `packages/client/src/services/session-client.ts` — `start()`, `list()`
+- `packages/client/src/services/documents-client.ts` — `pageImage()`
+- `packages/client/src/services/assignments-client.ts` — `list()`, `recordResponse()`
+- `packages/client/src/services/notes-client.ts` — `create()`, `list()`
+- `packages/client/src/services/flashcards-client.ts` — `create()`, `update()`, `list()`, `review()`
+- `packages/client/src/services/sketch-client.ts` — `put()`
+- `packages/client/src/services/concept-map-client.ts` — `updateScene()`
+
+**Tests**: 22 new tests in `packages/desktop/electron/main/__tests__/residual-channel-envelope.test.ts` covering 5 representative channels (session.start, session.list, assignments.list, flashcards.create, conceptMaps.updateScene) — success + validation-failure + INTERNAL paths.
+
+**Final grep**: zero raw `async (_event, ...) => {}` invoke handlers remain. The only remaining raw handlers are the 2 streaming `.start` channels (`praxis.session.send.start`, `praxis.auth.claude.login.start`) which push events via separate channels — intentionally raw by design.
+
+**Verification**: `pnpm typecheck && pnpm lint && pnpm test` all green (421 desktop tests, 62 client tests).

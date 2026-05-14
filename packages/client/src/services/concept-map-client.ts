@@ -58,12 +58,16 @@ export class ConceptMapClient implements ConceptMapClientApi {
     return unwrapEnvelope(result);
   }
 
-  updateScene(input: {
+  async updateScene(input: {
     id: ConceptMapId;
     scene: TldrawSnapshot;
     conceptLinks: ConceptLink[];
   }): Promise<ConceptMapDrawing> {
-    return this.transport.invoke<ConceptMapDrawing>(`${C}.updateScene`, input);
+    const result = await this.transport.invoke<IpcEnvelope<ConceptMapDrawing> | ConceptMapDrawing>(
+      `${C}.updateScene`,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
   async listVersions(id: ConceptMapId): Promise<ConceptMapVersion[]> {

@@ -42,12 +42,16 @@ export class SketchClient implements SketchClientApi {
   }): Promise<SketchSummary> {
     const buf = await input.image.arrayBuffer();
     const imageBase64 = arrayBufferToBase64(buf);
-    return this.transport.invoke<SketchSummary>(`${C}.put`, {
-      snapshot: input.snapshot,
-      imageBase64,
-      width: input.width,
-      height: input.height,
-    });
+    const raw = await this.transport.invoke<IpcEnvelope<SketchSummary> | SketchSummary>(
+      `${C}.put`,
+      {
+        snapshot: input.snapshot,
+        imageBase64,
+        width: input.width,
+        height: input.height,
+      },
+    );
+    return unwrapEnvelope(raw);
   }
 
   async get(
