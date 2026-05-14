@@ -33,6 +33,7 @@ export const teachMode: Mode = {
     toolsFragment,
     sketchAwarenessFragment,
     courseContextFragmentDefault,
+    behaviorInCourseFragmentDefault.teach,
     constraintsFragment,
     postambleFragment,
   ],
@@ -86,7 +87,7 @@ Both are injected via `additionalFragments` in `SessionServiceImpl.openActive()`
 
 - Adding a new mode: pick the relevant existing fragments, add a per-mode role + tools fragment if the mode's voice/capabilities are distinct
 - Adding cross-mode prompt content: write one fragment with the right `position` slot, include it in every mode that should carry it (don't inline into a role fragment — defeats reuse)
-- Per-session computed content (course context, lock indicator): pass via `additionalFragments` rather than mutating the mode
+- Per-session computed content (course context, lock indicator): pass via `additionalFragments` rather than mutating the mode. The same defaults-plus-runtime-override shape also produces the `in-course-behavior` fragment in teach/quiz/homework/exam/study-skills modes: each mode carries `behaviorInCourseFragmentDefault.<modeId>` as a placeholder, and `composeInCourseBehaviorFragment(modeId, courseCtx)` supplies the override via the `overrides` map at session open time.
 - User-authored additions: use `PromptCustomizationService.setGlobalFragment` / `setModeAppend` — these feed into `additionalFragments` automatically
 
 ## When NOT to Use

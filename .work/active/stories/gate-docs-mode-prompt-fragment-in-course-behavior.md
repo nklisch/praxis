@@ -1,7 +1,7 @@
 ---
 id: gate-docs-mode-prompt-fragment-in-course-behavior
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -63,3 +63,11 @@ Add `behaviorInCourseFragmentDefault.teach,` to the teach-mode
 shape now also produces the `in-course-behavior` fragment in five modes
 via `composeInCourseBehaviorFragment`. No structural change to the
 pattern itself — both are vanilla `additionalFragments` use cases.
+
+## Implementation
+
+Two edits to `.claude/skills/patterns/mode-prompt-fragment-composition.md`:
+
+1. **Example addition**: Added `behaviorInCourseFragmentDefault.teach,` to the `teachMode.promptFragments` array in Example 2, between `courseContextFragmentDefault` and `constraintsFragment`, matching the actual code at `packages/curriculum/src/modes/teach.ts:30`.
+
+2. **Prose addition**: Extended the "Per-session computed content" bullet in the "When to Use" section to note that the same defaults-plus-runtime-override shape produces the `in-course-behavior` fragment in teach/quiz/homework/exam/study-skills modes via `composeInCourseBehaviorFragment(modeId, courseCtx)`, with the override delivered through the `overrides` map at session open time (not `additionalFragments` — the code at `session-service.ts:662` uses `overrides.set(behavior.id, behavior.template)`).
