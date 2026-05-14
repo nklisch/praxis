@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration
 kind: feature
-stage: review
+stage: done
 tags: [refactor, security]
 parent: null
 depends_on: [fix-wrapenvelope-withschema-arg-routing-and-client-unwrap]
@@ -165,6 +165,46 @@ After all 12 steps land:
 - One integration test per channel family asserts envelope shape on success + validation-failure paths.
 - No regressions in renderer error handling — UI hooks catching `Error` continue to catch the new `IpcError` (subclass of `Error`).
 - `pnpm typecheck && pnpm lint && pnpm test` pass.
+
+## Review (2026-05-14)
+
+**Verdict: Approved — advancing to done.**
+
+### Child story completeness
+
+All 12 child stories confirmed at `stage: done` via `work-view --stage done --paths`. Each step is represented by a clean `implement:` + `review:` commit pair in the git log.
+
+### Capability completeness
+
+**Envelope coverage** — final grep of `packages/desktop/electron/main/*.ts` for bare `handle("praxis.*", async` calls returns exactly 4 results, all streaming handlers:
+- `praxis.activity.events.start`
+- `praxis.bootstrap.drafts.events.start`
+- `praxis.quickCheck.events.start`
+- `praxis.auth.claude.login.start`
+
+These are legitimately out of scope per the feature design (streaming channels use the subscriber-fanout-stream pattern). Every invoke channel is wrapped.
+
+**Client unwrap coverage** — 127 `unwrapEnvelope` call-sites found across `packages/client/src/services/`. All service methods updated.
+
+**Test coverage** — 26 desktop test files, 399 tests, all passing. 7 client test files, 62 tests, all passing. Envelope integration tests (success + validation-failure paths) confirmed present.
+
+**Typecheck** — `pnpm typecheck` passes clean across all packages including `@praxis/desktop` and `@praxis/client`.
+
+### Foundation-doc alignment
+
+`docs/ARCHITECTURE.md` describes the IPC transport in terms of channel naming and the renderer/main-process split — no assertions about the wire envelope shape that would be invalidated. No doc updates needed.
+
+### Cross-cutting concerns
+
+The 12-step sequential decomposition via `depends_on` chains was the right call — `ipc-server.ts` is a single file that all steps touch, and no merge conflicts arose. Commit history is clean and isolated.
+
+### Security finding closure
+
+`gate-security-ipc-helpers-rethrow-redactor-gap` is fully closed. The `throw err` at `ipc-helpers.ts:84` is now unreachable for all invoke channels because `wrapEnvelope`/`handleEnvelope` catches errors and returns a resolved `{ ok: false, ... }` envelope — the `createIpcHelpers.handle` catch block only fires for raw bare `handle(...)` calls, of which none remain for invoke channels. The story has been advanced to `stage: done`.
+
+### No regressions
+
+`IpcError` is a subclass of `Error`. UI hooks that catch `Error` continue to catch the new `IpcError`. The wire shape change (envelope vs rejection) is transparent to renderer hooks because the client-side `unwrapEnvelope` re-throws as `IpcError` on the same call path where the old raw rejection would have surfaced.
 
 ## Overlap with adjacent items
 
