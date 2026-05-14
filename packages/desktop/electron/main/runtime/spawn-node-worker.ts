@@ -1,7 +1,7 @@
 import { type ChildProcess, fork } from "node:child_process";
 import type { NodeWorker, WorkerMessage } from "@praxis/core/runtime";
 import type { Logger } from "@praxis/core/types";
-import { serializeError } from "@praxis/core/types";
+import { serializeErrorRedacted } from "@praxis/core/types";
 
 export interface SpawnNodeWorkerOptions {
   /**
@@ -114,7 +114,7 @@ export function spawnNodeWorker(opts: SpawnNodeWorkerOptions): NodeWorker {
   });
 
   child.on("error", (err) => {
-    log.error("worker.error", { err: serializeError(err) });
+    log.error("worker.error", { err: serializeErrorRedacted(err) });
     readyReject(err);
     failPending(err);
   });

@@ -1,5 +1,5 @@
 import type { Logger } from "@praxis/core/types";
-import { serializeError } from "@praxis/core/types";
+import { serializeErrorRedacted } from "@praxis/core/types";
 import type { IpcMainInvokeEvent } from "electron";
 import { ipcMain } from "electron";
 
@@ -46,7 +46,7 @@ export function createIpcHelpers(log: Logger): IpcHandlerHelpers {
           return result;
         } catch (err) {
           const durationMs = Math.round(performance.now() - t0);
-          channelLog.error("ipc.handle.error", { durationMs, err: serializeError(err) });
+          channelLog.error("ipc.handle.error", { durationMs, err: serializeErrorRedacted(err) });
           throw err;
         }
       });
@@ -57,7 +57,7 @@ export function createIpcHelpers(log: Logger): IpcHandlerHelpers {
         try {
           await fn(event, ...args);
         } catch (err) {
-          channelLog.error("ipc.on.error", { err: serializeError(err) });
+          channelLog.error("ipc.on.error", { err: serializeErrorRedacted(err) });
         }
       });
     },

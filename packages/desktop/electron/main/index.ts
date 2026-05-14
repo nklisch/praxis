@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { readLoggingConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
-import { serializeError } from "@praxis/core/types";
+import { serializeErrorRedacted } from "@praxis/core/types";
 import { app } from "electron";
 import { registerIpcHandlers } from "./ipc-server.js";
 import { registerLogChannel } from "./log-channel.js";
@@ -59,7 +59,7 @@ async function bootstrap(): Promise<void> {
       pyodideHandle.finish("failed", {
         message: err instanceof Error ? err.message : String(err),
       });
-      bootLog.warn("bootstrap.pyodide_preload_failed", { err: serializeError(err) });
+      bootLog.warn("bootstrap.pyodide_preload_failed", { err: serializeErrorRedacted(err) });
     });
 
   const embedHandle = services.activity.start({ label: "preparing search" });
@@ -70,7 +70,7 @@ async function bootstrap(): Promise<void> {
       embedHandle.finish("failed", {
         message: err instanceof Error ? err.message : String(err),
       });
-      bootLog.warn("bootstrap.embeddings_preload_failed", { err: serializeError(err) });
+      bootLog.warn("bootstrap.embeddings_preload_failed", { err: serializeErrorRedacted(err) });
     });
 
   mainWindow = createMainWindow();
@@ -88,7 +88,7 @@ app.whenReady().then(async () => {
   await bootstrap().catch((err: unknown) => {
     // log may not be initialized; fall back to console for this one error
     if (log) {
-      log.error("bootstrap.failed", { err: serializeError(err) });
+      log.error("bootstrap.failed", { err: serializeErrorRedacted(err) });
     } else {
       // pre-logger fallback — intentional console use before logger is initialized
       console.error("Praxis bootstrap failed:", err);
@@ -131,7 +131,7 @@ app.on("before-quit", async (event) => {
     //    don't get orphaned. Shutdown is idempotent and best-effort.
     for (const [name, worker] of Object.entries(services.workers)) {
       await worker.shutdown().catch((err: unknown) => {
-        log?.warn("worker.shutdown_failed", { name, err: serializeError(err) });
+        log?.warn("worker.shutdown_failed", { name, err: serializeErrorRedacted(err) });
       });
     }
   } finally {

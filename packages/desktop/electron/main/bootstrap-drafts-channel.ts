@@ -1,6 +1,6 @@
 import type { IpcStreamMessage } from "@praxis/client";
 import type { DraftStreamEvent, Logger } from "@praxis/core/types";
-import { serializeError } from "@praxis/core/types";
+import { serializeErrorRedacted } from "@praxis/core/types";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
@@ -79,7 +79,7 @@ export function registerBootstrapDraftsHandlers(
       push({ kind: "done" });
       streamLog.info("bootstrap.drafts.unsubscribe");
     } catch (err) {
-      streamLog.error("bootstrap.drafts.error", { err: serializeError(err) });
+      streamLog.error("bootstrap.drafts.error", { err: serializeErrorRedacted(err) });
       push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
     } finally {
       unsubscribe?.();

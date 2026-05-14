@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isAllowedExternalUrl } from "../types/url-allowlist.js";
 import type { ServiceDeps } from "./types.js";
 import { importUpdateFeedPublicKey, isPublicKeyConfigured } from "./update-feed-public-key.js";
 
@@ -9,12 +10,12 @@ export const UpdateFeedSchema = z.object({
   releaseDate: z.string().datetime().optional(),
   // Defensive URL allowlist: only http/https. Refuse javascript:, data:, file:,
   // etc. to prevent a compromised feed from delivering a click-targeted injection
-  // into the renderer. Mirrors the same allowlist that praxis.shell.openExternal
-  // enforces in ipc-server.ts.
-  downloadUrl: z.url().refine((u) => /^https?:\/\//i.test(u), "downloadUrl must be http(s)"),
+  // into the renderer. Shares `isAllowedExternalUrl` with
+  // praxis.shell.openExternal in ipc-server.ts so the two surfaces can't drift.
+  downloadUrl: z.url().refine(isAllowedExternalUrl, "downloadUrl must be http(s)"),
   releaseNotesUrl: z
     .url()
-    .refine((u) => /^https?:\/\//i.test(u), "releaseNotesUrl must be http(s)")
+    .refine(isAllowedExternalUrl, "releaseNotesUrl must be http(s)")
     .optional(),
   /**
    * SHA-256 of the installer file at `downloadUrl`, in lowercase hex (64 chars).

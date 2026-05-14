@@ -141,7 +141,7 @@ describe("praxis.update.checkLatest handler", () => {
     expect(handlers.has("praxis.update.checkLatest")).toBe(true);
   });
 
-  it("forwards app.getVersion() to services.update.checkLatest", async () => {
+  it("forwards app.getVersion() to services.update.checkLatest (envelope-wrapped)", async () => {
     const checkLatest = vi.fn().mockResolvedValue({ status: "up-to-date", current: "1.2.3" });
     const log = makeFakeLogger();
     registerIpcHandlers(makeServices({ checkLatest }), () => null, log);
@@ -151,6 +151,11 @@ describe("praxis.update.checkLatest handler", () => {
 
     // app.getVersion() returns "1.2.3" per the electron mock above.
     expect(checkLatest).toHaveBeenCalledWith("1.2.3");
-    expect(result).toMatchObject({ status: "up-to-date", current: "1.2.3" });
+    // After IPC trust-boundary hardening: praxis.update.checkLatest returns an
+    // IpcEnvelope, so the value sits under `.value`.
+    expect(result).toMatchObject({
+      ok: true,
+      value: { status: "up-to-date", current: "1.2.3" },
+    });
   });
 });

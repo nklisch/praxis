@@ -18,8 +18,9 @@ import type {
   TabId,
   TldrawSnapshot,
 } from "@praxis/core/types";
-import { brandId, serializeError } from "@praxis/core/types";
-import { EngineConfigSchema } from "@praxis/core/config";
+import { brandId, isAllowedExternalUrl, serializeErrorRedacted } from "@praxis/core/types";
+import { EngineConfigSchema, EngineIdSchema } from "@praxis/core/config";
+import { z } from "zod";
 import { app, ipcMain } from "electron";
 import { registerActivityHandlers } from "./activity-channel.js";
 import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
@@ -157,7 +158,7 @@ export function registerIpcHandlers(
         streamLog.error("session.send.error", {
           durationMs: Math.round(performance.now() - t0),
           eventCount,
-          err: serializeError(err),
+          err: serializeErrorRedacted(err),
         });
         push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
       } finally {
@@ -177,9 +178,14 @@ export function registerIpcHandlers(
     return services.config.isLocked();
   });
 
-  handle("praxis.config.setLockCode", async (_event, code: string) => {
-    return services.config.setLockCode(code);
-  });
+  handle(
+    "praxis.config.setLockCode",
+    wrapEnvelope(
+      "praxis.config.setLockCode",
+      log,
+      withSchema(z.string().min(1, "code"), async (code) => services.config.setLockCode(code)),
+    ),
+  );
 
   handle("praxis.config.unlock", async (_event, code: string) => {
     return services.config.unlock(code);
@@ -189,9 +195,16 @@ export function registerIpcHandlers(
     return services.config.selectedEngine();
   });
 
-  handle("praxis.config.setSelectedEngine", async (_event, engineId: string) => {
-    return services.config.setSelectedEngine(engineId);
-  });
+  handle(
+    "praxis.config.setSelectedEngine",
+    wrapEnvelope(
+      "praxis.config.setSelectedEngine",
+      log,
+      withSchema(EngineIdSchema, async (engineId) =>
+        services.config.setSelectedEngine(engineId),
+      ),
+    ),
+  );
 
   handle(
     "praxis.config.engineConfig",
@@ -238,9 +251,16 @@ export function registerIpcHandlers(
     return services.config.bootstrapConfig();
   });
 
-  handle("praxis.config.setBootstrapConfig", async (_event, config: { maxSteps: number }) => {
-    return services.config.setBootstrapConfig(config);
-  });
+  handle(
+    "praxis.config.setBootstrapConfig",
+    wrapEnvelope(
+      "praxis.config.setBootstrapConfig",
+      log,
+      withSchema(z.object({ maxSteps: z.number().int().positive() }), async (cfg) =>
+        services.config.setBootstrapConfig(cfg),
+      ),
+    ),
+  );
 
   handle("praxis.config.firstRunCompleted", async () => {
     return services.config.firstRunCompleted();
@@ -252,9 +272,12 @@ export function registerIpcHandlers(
 
   // ── Update check (manual-download flow) ──────────────────────────────────
 
-  handle("praxis.update.checkLatest", async () => {
-    return services.update.checkLatest(app.getVersion());
-  });
+  handle(
+    "praxis.update.checkLatest",
+    wrapEnvelope("praxis.update.checkLatest", log, async () => {
+      return services.update.checkLatest(app.getVersion());
+    }),
+  );
 
   // ── Documents ────────────────────────────────────────────────────────────
 
@@ -447,7 +470,7 @@ export function registerIpcHandlers(
         streamLog.error("memory.episodic.error", {
           durationMs: Math.round(performance.now() - t0),
           eventCount,
-          err: serializeError(err),
+          err: serializeErrorRedacted(err),
         });
         push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
       } finally {
@@ -546,21 +569,40 @@ export function registerIpcHandlers(
     return services.lock.isUnlocked();
   });
 
-  handle("praxis.lock.setLockCode", async (_event, code: string) => {
-    return services.lock.setLockCode({ code });
-  });
+  handle(
+    "praxis.lock.setLockCode",
+    wrapEnvelope(
+      "praxis.lock.setLockCode",
+      log,
+      withSchema(z.string().min(1, "code"), async (code) =>
+        services.lock.setLockCode({ code }),
+      ),
+    ),
+  );
 
-  handle("praxis.lock.unlock", async (_event, code: string) => {
-    return services.lock.unlock({ code });
-  });
+  handle(
+    "praxis.lock.unlock",
+    wrapEnvelope(
+      "praxis.lock.unlock",
+      log,
+      withSchema(z.string().min(1, "code"), async (code) => services.lock.unlock({ code })),
+    ),
+  );
 
   handle("praxis.lock.lock", async () => {
     return services.lock.lock();
   });
 
-  handle("praxis.lock.clearLock", async (_event, currentCode: string) => {
-    return services.lock.clearLock({ currentCode });
-  });
+  handle(
+    "praxis.lock.clearLock",
+    wrapEnvelope(
+      "praxis.lock.clearLock",
+      log,
+      withSchema(z.string().min(1, "code"), async (currentCode) =>
+        services.lock.clearLock({ currentCode }),
+      ),
+    ),
+  );
 
   // ── Phase 11: Author ─────────────────────────────────────────────────────────
   // Every author handler calls requireUnlocked() first — IPC safety layer.
@@ -1086,7 +1128,7 @@ export function registerIpcHandlers(
       streamLog.error("auth.claude.login.error", {
         durationMs: Math.round(performance.now() - t0),
         eventCount,
-        err: serializeError(err),
+        err: serializeErrorRedacted(err),
       });
       push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -1266,16 +1308,23 @@ export function registerIpcHandlers(
 
   // ── Shell helpers ─────────────────────────────────────────────────────────────
 
-  handle("praxis.shell.openExternal", async (_event, url: string) => {
-    // Defensive URL allowlist: only http/https. Refuse file://, mailto:, etc.
-    // to prevent the renderer from coaxing the main process into opening
-    // arbitrary local handlers.
-    if (!/^https?:\/\//i.test(url)) {
-      throw new Error("openExternal: only http(s) URLs are allowed");
-    }
-    const { shell } = await import("electron");
-    await shell.openExternal(url);
-  });
+  handle(
+    "praxis.shell.openExternal",
+    wrapEnvelope(
+      "praxis.shell.openExternal",
+      log,
+      withSchema(
+        z
+          .string()
+          .min(1, "url")
+          .refine(isAllowedExternalUrl, "url must be http(s)"),
+        async (url) => {
+          const { shell } = await import("electron");
+          await shell.openExternal(url);
+        },
+      ),
+    ),
+  );
 
   const cleanup = () => {
     for (const channel of registeredChannels) {

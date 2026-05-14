@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-ipc-boundary-url-and-redactor-rollout
 kind: story
-stage: implementing
+stage: review
 tags: [security, desktop, core]
 parent: epic-security-hardening-round-2-ipc-boundary
 depends_on: [epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor]
@@ -132,3 +132,70 @@ with the parallel story.
 `depends_on:` only the envelope/redactor foundation story. Runs in
 parallel with the engineConfig-shape story (no file overlap). When
 both finish, the parent feature can advance to `review`.
+
+## Implementation notes (2026-05-14)
+
+- Created `packages/core/src/types/url-allowlist.ts` with
+  `isAllowedExternalUrl(input)`. Combines a control-char pre-check
+  with WHATWG `new URL(...)` parsing — the parser alone is
+  insufficient because it silently strips embedded `\n`/`\r`/`\t`
+  and raw spaces during normalisation. We reject before parsing.
+- Re-exported from `@praxis/core/types` for desktop + service use.
+- Wired both call-sites:
+  - `praxis.shell.openExternal` in
+    `packages/desktop/electron/main/ipc-server.ts` — now
+    `wrapEnvelope` + `withSchema(z.string().refine(isAllowedExternalUrl), ...)`.
+  - `UpdateFeedSchema.downloadUrl` + `releaseNotesUrl` refines in
+    `packages/core/src/services/update-service.ts` — regex replaced
+    with `isAllowedExternalUrl`.
+- Per-channel envelope migration in
+  `packages/desktop/electron/main/ipc-server.ts`:
+  - `praxis.config.setLockCode` (+ withSchema z.string().min(1))
+  - `praxis.config.setSelectedEngine` (+ withSchema EngineIdSchema)
+  - `praxis.config.setBootstrapConfig` (+ withSchema for maxSteps)
+  - `praxis.shell.openExternal` (above)
+  - `praxis.lock.setLockCode` / `praxis.lock.unlock` /
+    `praxis.lock.clearLock` (each + withSchema z.string().min(1))
+  - `praxis.update.checkLatest` (envelope only; no schema)
+- Redactor sweep: every `serializeError(err)` in the desktop main
+  process replaced with `serializeErrorRedacted(err)` —
+  `ipc-helpers.ts`, `ipc-server.ts` (3 streaming/error sites),
+  `activity-channel.ts`, `bootstrap-drafts-channel.ts`,
+  `ingest-channel.ts`, `quick-check-channel.ts`,
+  `subagent-channel.ts`, plus `index.ts` and
+  `runtime/spawn-node-worker.ts`. `grep -rn "serializeError("
+  packages/desktop/electron/main` now only matches the redacted
+  variant.
+
+## Decisions logged
+
+- **Control-char pre-check**: the design implied WHATWG `URL`
+  would reject `https://example.com\nfile:///etc`. It does not —
+  the parser silently normalises whitespace + control chars away,
+  leaving `https://example.comfile:///etc`. We pre-reject any
+  C0 control char, raw space, or DEL before parsing. Documented
+  in `url-allowlist.ts`'s JSDoc.
+- **`praxis.config.unlock` left as-is**: per the design,
+  `unlock` is reachable when locked (lock controls), so wrapping
+  in `wrapEnvelope` would mean unlock's failure goes through the
+  envelope log path — that's noisy for a path expected to
+  legitimately fail on wrong codes. The wider sweep here covers
+  the lock SET / CLEAR / new-code-creation channels.
+- **Update tests amended**: the existing test
+  `ipc-server.first-run-update.test.ts > forwards app.getVersion()
+  to services.update.checkLatest` was updated to expect the
+  envelope shape `{ ok: true, value: ... }` instead of the raw
+  status object — the channel now resolves with the wrapper.
+
+## Verification
+
+- `pnpm --filter @praxis/core typecheck`: green.
+- `pnpm --filter @praxis/desktop typecheck`: green.
+- `pnpm --filter @praxis/ui typecheck`: green.
+- `pnpm --filter @praxis/client typecheck`: green.
+- `pnpm --filter @praxis/core test`: 905 tests pass (incl. 15 new
+  `url-allowlist.test.ts` cases + 29 redactor cases).
+- `pnpm --filter @praxis/desktop test`: 107 tests pass (incl. the
+  updated `praxis.update.checkLatest` envelope-shape assertion).
+- `pnpm --filter @praxis/ui test`: 1010 tests pass.
+- `pnpm --filter @praxis/client test`: 55 tests pass.
