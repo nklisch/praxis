@@ -181,9 +181,31 @@ describe("Nav render smoke", () => {
     );
 
     expect(screen.getByText("Library")).toBeDefined();
-    expect(screen.getByText("Chat")).toBeDefined();
+    expect(screen.getByText("Tutor")).toBeDefined();
     expect(screen.getByText("Workspace")).toBeDefined();
     expect(screen.getByText("Configure")).toBeDefined();
     expect(screen.getByText("Settings")).toBeDefined();
+  });
+
+  it("renders the wordmark with editorial ornament + italic title", () => {
+    const client = makeFakeClient({
+      flashcards: {
+        dueCount: async () => 0,
+      } as typeof client.flashcards,
+    });
+
+    const { container } = render(
+      <PraxisClientProvider client={client}>
+        <Nav />
+      </PraxisClientProvider>,
+    );
+
+    // The wordmark text "Praxis" must remain the accessible name.
+    expect(screen.getByText("Praxis")).toBeDefined();
+    // The ornament glyph must be aria-hidden so screen readers don't
+    // announce it as a character.
+    const ornament = container.querySelector('[aria-hidden="true"]');
+    expect(ornament).not.toBeNull();
+    expect(ornament?.textContent).toBe("§");
   });
 });

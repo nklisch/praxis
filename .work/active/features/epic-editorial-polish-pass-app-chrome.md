@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-app-chrome
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, editorial]
 parent: epic-editorial-polish-pass
 depends_on: []

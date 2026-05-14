@@ -31,16 +31,24 @@ function DueBadge() {
 }
 
 /**
- * Phase 14 nav — updated IA:
- * Library (/) · Chat (/chat) · Workspace · Configure · Settings
+ * Top-nav IA:
+ * Library (/) · Tutor (/chat) · Workspace · Configure · Settings
  *
- * Courses and Packs links dropped — they redirect to /library and are now
- * represented as sections within the Library route.
+ * App-chrome refresh: the "Chat" label was renamed to "Tutor" to reflect
+ * the mode-aware tutoring surface (route path stays `/chat` so deep-links
+ * keep working). The Praxis wordmark uses an editorial typographic
+ * treatment — an ornament + italic display-serif title — to rhyme with
+ * RouteHeader's masthead vocabulary. The bar itself adopts the editorial
+ * token vocabulary (mono uppercase links + hairline-underline active state)
+ * to align with the rest of the editorial design system.
  */
 export function Nav() {
   return (
     <nav className={styles.nav}>
-      <div className={styles.logo}>Praxis</div>
+      <div className={styles.wordmark}>
+        <span className={styles.wordmarkOrnament} aria-hidden="true">§</span>
+        <span className={styles.wordmarkTitle}>Praxis</span>
+      </div>
       <ul className={styles.links}>
         <li>
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: styles.active }}>
@@ -53,7 +61,7 @@ export function Nav() {
             activeOptions={{ exact: false }}
             activeProps={{ className: styles.active }}
           >
-            Chat
+            Tutor
           </Link>
         </li>
         <li>
