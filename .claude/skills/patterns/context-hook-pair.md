@@ -9,8 +9,8 @@ returning undefined.
 React Context without a typed hook leaves consumers dealing with `T | null` and forgetting
 to handle the null case. The guard-throwing pattern converts "this is accidentally null"
 from a runtime mystery into an immediate, descriptive error at the call site. Praxis uses
-this for the global IPC client (PraxisClientProvider) and the shared auth status
-(AuthProvider).
+this for the global IPC client (PraxisClientProvider), the shared auth status (AuthProvider),
+and the shared open-tabs list (TabsProvider).
 
 ## Examples
 
@@ -93,7 +93,58 @@ useEffect(() => {
 const { needsAuth, clearAuthRequired } = useAuthStatus();
 ```
 
-### Example 3: Adding to tests
+### Example 3: TabsProvider / useTabs
+
+**File**: `packages/ui/src/context/tabs-context.tsx`
+
+```typescript
+interface UseTabsResult {
+  openTabs: ReadonlyArray<TabSummary>;
+  activeTabId: TabId | null;
+  loading: boolean;
+  error: string | null;
+  refresh(): Promise<void>;
+  openTab(input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary>;
+  closeTab(tabId: TabId): Promise<void>;
+  switchTo(tabId: TabId): Promise<void>;
+  // ... plus openDocumentTab, reopenTab, renameTab
+}
+
+const TabsContext = createContext<UseTabsResult | null>(null);
+
+export function TabsProvider({ children }: { children: ReactNode }) {
+  const value = useTabsState(); // internal hook that owns the state
+  return <TabsContext.Provider value={value}>{children}</TabsContext.Provider>;
+}
+
+export function useTabs(): UseTabsResult {
+  const ctx = useContext(TabsContext);
+  if (!ctx) throw new Error("useTabs must be used within a TabsProvider");
+  return ctx;
+}
+```
+
+`useTabsState()` (internal, never called by consumers) loads `client.tabs.listOpen()` on
+mount via a manual `refresh()` callback wired into `useEffect`, then exposes optimistic-update
+mutations. The provider is mounted once in `app.tsx` between `<AuthProvider>` and
+`<RouterProvider>`, so every consumer — the chat workspace and `useDerivedScope` — reads from
+one shared fetch per route navigation.
+
+```tsx
+// app.tsx — provider nesting
+<PraxisClientProvider client={client}>
+  <AuthProvider>
+    <TabsProvider>
+      <RouterProvider router={router} />
+    </TabsProvider>
+  </AuthProvider>
+</PraxisClientProvider>
+
+// any component or hook:
+const { openTabs, activeTabId, openTab } = useTabs();
+```
+
+### Example 4: Adding to tests
 
 When a component uses `usePraxisClient()` or `useAuthStatus()`, tests must wrap with the
 provider:
@@ -118,8 +169,9 @@ render(
 ## When NOT to Use
 
 - State that stays within a single component or hook — `useState` is simpler
-- Server data (courses, sessions, tabs) that lives in the database — use `useResource`
-  + `client.*` calls; don't put server data in context
+- Server data (courses, sessions) that lives in the database and is consumed by only one
+  component — use `useResource` + `client.*` calls directly; don't put it in context
+  unless multiple sibling consumers would otherwise issue duplicate fetches
 - Per-tab state (message logs, composer value) — those belong inside `<ChatTabBody>`;
   context here would break tab isolation
 

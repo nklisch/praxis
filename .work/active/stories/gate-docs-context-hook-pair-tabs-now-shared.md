@@ -1,7 +1,7 @@
 ---
 id: gate-docs-context-hook-pair-tabs-now-shared
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -45,3 +45,29 @@ snapshot-loading provider and the in-context state that lets sibling
 consumers share one `client.tabs.listOpen()` fetch. Keep the
 "Per-tab state" bullet as-is — the open-tab *list* is shared, but each
 tab's message log and composer remain inside `<ChatTabBody>`.
+
+## Implementation
+
+Changes to `.claude/skills/patterns/context-hook-pair.md`:
+
+1. **Rationale** (line ~13): Added `TabsProvider` to the list of Praxis examples alongside
+   `PraxisClientProvider` and `AuthProvider`.
+
+2. **"When NOT to Use" bullet** (was line 122): Removed `tabs` from the "server data"
+   exclusion list. Rewrote the bullet to make the actual rule clearer — the heuristic is
+   "consumed by only one component"; when sibling consumers would issue duplicate fetches,
+   lifting to context is the correct call. `courses` and `sessions` remain as examples of
+   data that stays in `useResource`.
+
+3. **Example 3** (new, inserted before old "Adding to tests" example): Added a full
+   `TabsProvider`/`useTabs` example drawn from
+   `packages/ui/src/context/tabs-context.tsx`. Shows the `UseTabsResult` interface shape,
+   the provider delegating to an internal `useTabsState()` hook, the guard-throwing
+   `useTabs()` consumer, and the mounting location in `app.tsx`. Commentary calls out that
+   the internal hook loads via `client.tabs.listOpen()` on mount (manual `refresh()`
+   wired into `useEffect`, not `useResource`), and that one shared fetch serves all
+   consumers per route navigation.
+
+4. **Old Example 3 → Example 4**: The "Adding to tests" section was renumbered to Example 4.
+
+Per-tab state bullet ("Per-tab state (message logs, composer value)...") is unchanged.
