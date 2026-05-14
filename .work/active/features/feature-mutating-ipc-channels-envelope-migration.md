@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, security]
 parent: null
 depends_on: [fix-wrapenvelope-withschema-arg-routing-and-client-unwrap]
@@ -134,6 +134,25 @@ The arg-routing bug in `wrapEnvelope + withSchema` was fixed in `fix-wrapenvelop
 10. Step 10 (tabs)
 11. Step 11 (sketches + concept-maps)
 12. Step 12 (auth + per-domain cleanup)
+
+## Children Complete
+
+All 12 child stories are at stage: done.
+
+- step-1: `feature-mutating-ipc-channels-envelope-migration-step-1-session`
+- step-2: `feature-mutating-ipc-channels-envelope-migration-step-2-documents`
+- step-3: `feature-mutating-ipc-channels-envelope-migration-step-3-artifacts`
+- step-4: `feature-mutating-ipc-channels-envelope-migration-step-4-memory`
+- step-5: `feature-mutating-ipc-channels-envelope-migration-step-5-assignments`
+- step-6: `feature-mutating-ipc-channels-envelope-migration-step-6-packs`
+- step-7: `feature-mutating-ipc-channels-envelope-migration-step-7-lock-and-config`
+- step-8: `feature-mutating-ipc-channels-envelope-migration-step-8-author`
+- step-9: `feature-mutating-ipc-channels-envelope-migration-step-9-notes-flashcards`
+- step-10: `feature-mutating-ipc-channels-envelope-migration-step-10-tabs`
+- step-11: `feature-mutating-ipc-channels-envelope-migration-step-11-sketches-concept-maps`
+- step-12: `feature-mutating-ipc-channels-envelope-migration-step-12-misc-and-domain-modules`
+
+Final acceptance grep (run at step-12 approval) confirms only streaming handlers remain unwrapped — `praxis.activity.events.start`, `praxis.bootstrap.drafts.events.start`, `praxis.quickCheck.events.start`, `praxis.auth.claude.login.start`. Every invoke channel across `ipc-server.ts` and all 7 per-domain modules now returns an envelope. The `gate-security-ipc-helpers-rethrow-redactor-gap` security finding is effectively closed.
 
 After all 12 steps land:
 - Run `grep -nE "handle\(\"praxis\.[^\"]+\", async" packages/desktop/electron/main/ipc-server.ts` — only streaming `*.events.start` / `.cancel` handlers should remain unwrapped.
