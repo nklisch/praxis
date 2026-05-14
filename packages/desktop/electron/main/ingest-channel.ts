@@ -3,7 +3,7 @@ import path from "node:path";
 import type { IpcStreamMessage } from "@praxis/client";
 import { getOrCreateDefaultStudentId } from "@praxis/core/services";
 import type { IngestionRequest, Logger } from "@praxis/core/types";
-import { serializeErrorRedacted } from "@praxis/core/types";
+import { redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
 import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { dialog } from "electron";
 import { createIpcHelpers } from "./ipc-helpers.js";
@@ -177,7 +177,7 @@ export function registerIngestHandlers(
           eventCount,
           err: serializeErrorRedacted(err),
         });
-        push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
+        push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
       } finally {
         activeAbortControllers.delete(streamId);
       }

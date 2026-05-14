@@ -1,7 +1,7 @@
 ---
 id: gate-security-streaming-channel-error-push-redactor-gap
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -54,3 +54,28 @@ exported from `@praxis/core/types`) before each
 envelope-like `{ ok: false, error: { code, message } }` shape that maps
 unknown errors to a generic message the same way `wrapEnvelope` already
 does for invoke-style handlers.
+
+## Implementation
+
+All 8 `push({ kind: "error", error: ... })` call sites across the 6 channel files are now wrapped with `redactSecrets(...)`. The import `redactSecrets` was added alongside the existing `serializeErrorRedacted` import in each file.
+
+### Sites modified
+
+- `packages/desktop/electron/main/ipc-server.ts:163` — session.send stream
+- `packages/desktop/electron/main/ipc-server.ts:475` — memory.episodic stream
+- `packages/desktop/electron/main/ipc-server.ts:1133` — auth.claude.login stream
+- `packages/desktop/electron/main/activity-channel.ts:59` — activity.events stream
+- `packages/desktop/electron/main/bootstrap-drafts-channel.ts:83` — bootstrap.drafts stream
+- `packages/desktop/electron/main/ingest-channel.ts:180` — ingest stream
+- `packages/desktop/electron/main/quick-check-channel.ts:59` — quickCheck.events stream
+- `packages/desktop/electron/main/subagent-channel.ts:62` — subAgent.events stream
+
+### Import added (per file)
+
+`redactSecrets` added to the existing `@praxis/core/types` import in all six files. `ipc-server.ts` already had the value import line; the other five each had `serializeErrorRedacted` already and gained `redactSecrets` alongside it.
+
+### Verification
+
+- `pnpm --filter @praxis/desktop typecheck` — passed
+- `pnpm typecheck` — passed (all 10 packages)
+- `pnpm --filter @praxis/desktop test` — 122 tests passed, 0 failed

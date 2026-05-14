@@ -18,7 +18,7 @@ import type {
   TabId,
   TldrawSnapshot,
 } from "@praxis/core/types";
-import { brandId, isAllowedExternalUrl, serializeErrorRedacted } from "@praxis/core/types";
+import { brandId, isAllowedExternalUrl, redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
 import { EngineConfigSchema, EngineIdSchema } from "@praxis/core/config";
 import { z } from "zod";
 import { app, ipcMain } from "electron";
@@ -160,7 +160,7 @@ export function registerIpcHandlers(
           eventCount,
           err: serializeErrorRedacted(err),
         });
-        push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
+        push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
       } finally {
         activeAbortControllers.delete(streamId);
       }
@@ -472,7 +472,7 @@ export function registerIpcHandlers(
           eventCount,
           err: serializeErrorRedacted(err),
         });
-        push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
+        push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
       } finally {
         activeAbortControllers.delete(streamId);
       }
@@ -1130,7 +1130,7 @@ export function registerIpcHandlers(
         eventCount,
         err: serializeErrorRedacted(err),
       });
-      push({ kind: "error", error: err instanceof Error ? err.message : String(err) });
+      push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
     } finally {
       activeAbortControllers.delete(streamId);
     }
