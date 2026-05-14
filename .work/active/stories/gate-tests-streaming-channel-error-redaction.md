@@ -1,7 +1,7 @@
 ---
 id: gate-tests-streaming-channel-error-redaction
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: [gate-security-streaming-channel-error-push-redactor-gap]
@@ -65,3 +65,24 @@ it("subagent-channel error push redacts secrets", async () => {});
 `gate-security-streaming-channel-error-push-redactor-gap` — the redactor
 must land first so the assertions can verify the contract rather than
 pin the gap.
+
+## Implementation
+
+New file: `packages/desktop/electron/main/__tests__/streaming-channel-error-redaction.test.ts`
+
+Six tests, one per channel, all in a single `describe("streaming channel error redaction")` block:
+
+| Test | Channel handler | Secret shape | Mock approach |
+|---|---|---|---|
+| `praxis.session.send.start` | `registerIpcHandlers` | `sk-ant-leak-value` | `session.send` async generator throws immediately |
+| `activity-channel` | `registerActivityHandlers` | `Bearer eyJ...` | `activity.subscribe` throws synchronously |
+| `bootstrap-drafts-channel` | `registerBootstrapDraftsHandlers` | `?key=topsecret` | `bootstrap.subscribe` throws synchronously |
+| `ingest-channel` | `registerIngestHandlers` | `sk-ant-api03-leak-value` | `ingestion.ingest` async generator throws; `getOrCreateDefaultStudentId` mocked at module level via `vi.mock("@praxis/core/services")` to avoid needing a Drizzle DB |
+| `quick-check-channel` | `registerQuickCheckHandlers` | `Bearer eyJ...` | `quickCheck.subscribe` throws synchronously |
+| `subagent-channel` | `registerSubAgentHandlers` | `?key=super-secret-key` | `subAgent.subscribe` throws synchronously |
+
+The four subscribe-based channels (activity, bootstrap-drafts, quick-check, subagent) use a tighter-scope approach: each registers its channel module directly rather than going through the full `registerIpcHandlers` — this keeps each test independent of the full Services bag.
+
+The ingest test uses a module-level `vi.mock("@praxis/core/services")` to stub `getOrCreateDefaultStudentId` because the real implementation uses Drizzle ORM chained query builders that are impractical to stub without a real DB.
+
+Assertions check that the *raw secret body* (e.g. `"sk-ant-leak-value"`) is absent from the pushed `error` string, and that the redacted placeholder (e.g. `"sk-ant-[REDACTED]"`) is present. Note: `redactSecrets` preserves the provider-key prefix (`sk-ant-`) so the assertion is on the specific raw value, not the prefix alone.
