@@ -157,6 +157,35 @@ describe("ClaudeCodeEngine — lifecycle", () => {
     await session.close();
   });
 
+  // Regression: the SDK has a per-turn wall-clock timeout (10 min default)
+  // that kills the subprocess with SIGTERM when a turn takes too long. The
+  // bootstrap explorer reads large textbook bundles and regularly exceeds this.
+  // Praxis disables the wall-clock timer by passing timeout:0 and instead bounds
+  // turns via maxSteps + AbortSignal. If this assertion fails, long-running
+  // turns (especially bootstrap) will produce opaque CLITimeoutErrors.
+  it("open() passes timeout:0 to createConversation to disable the SDK wall-clock kill", async () => {
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    expect(vi.mocked(createConversation)).toHaveBeenCalledTimes(1);
+    const sdkOpts = vi.mocked(createConversation).mock.calls[0]?.[0];
+    expect(sdkOpts?.timeout).toBe(0);
+
+    await session.close();
+  });
+
   it("two sends on the same session call conv.send twice (createConversation called once)", async () => {
     const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");

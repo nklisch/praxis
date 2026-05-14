@@ -67,6 +67,31 @@ describe("ClaudeCodeVision", () => {
     expect(result.text).toBe("The image shows a test pattern");
   });
 
+  // Regression: query() defaults to a 5-minute wall-clock timeout. Vision
+  // calls that read large images can exceed this and produce a CLITimeoutError.
+  // Praxis disables the timer by passing timeout:0; maxTurns is the real bound.
+  it("passes timeout:0 to query() to disable the SDK wall-clock kill", async () => {
+    const { query, collectResult } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeVision } = await import("../claude-code/vision.js");
+
+    let capturedOptions: unknown = null;
+    vi.mocked(query).mockImplementation((_prompt, opts) => {
+      capturedOptions = opts;
+      return Symbol("query") as unknown as ReturnType<typeof query>;
+    });
+    vi.mocked(collectResult).mockResolvedValue({
+      type: "result" as const,
+      subtype: "success" as const,
+      sessionId: "s",
+      result: "ok",
+    });
+
+    const vision = new ClaudeCodeVision();
+    await vision.describe(makeRequest());
+
+    expect((capturedOptions as { timeout?: number }).timeout).toBe(0);
+  });
+
   it("passes noSessionPersistence: true to query()", async () => {
     const { query, collectResult } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeVision } = await import("../claude-code/vision.js");
