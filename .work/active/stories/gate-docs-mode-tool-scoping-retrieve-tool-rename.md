@@ -1,7 +1,7 @@
 ---
 id: gate-docs-mode-tool-scoping-retrieve-tool-rename
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -52,3 +52,13 @@ Verified against source of truth:
 - `packages/curriculum/src/modes/exam.ts:42` — comment already read `// No retrieve_from_documents` (code was already correct; only the pattern doc was stale)
 
 No fifth occurrence found; the four cited positions were the complete set.
+
+## Review (2026-05-14)
+
+**Verdict: Approve**
+
+- Commit `b641fe4` touches exactly the two expected files: `.claude/skills/patterns/mode-tool-scoping.md` (four occurrences) and the story file (stage bump + implementation notes).
+- All four replacements are correct: `retrieve_from_textbook` → `retrieve_from_documents` (lines 17, 57, 63) and `retrieveFromTextbookTool` → `retrieveFromDocumentsTool` (line 42 / buildServices snippet).
+- `grep -rn "retrieve_from_textbook\|retrieveFromTextbookTool" .claude/` returns nothing — no stale occurrences remain.
+- Source of truth confirmed: `packages/tools/src/retrieval/retrieve-from-documents.ts:65` exports `name: "retrieve_from_documents"` and `retrieveFromDocumentsTool`. Pattern doc now matches reality exactly.
+- No blockers, no important findings, no nits.
