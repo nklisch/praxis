@@ -1,7 +1,7 @@
 ---
 id: gate-tests-tool-server-auth-frame-boundaries
 kind: story
-stage: review
+stage: done
 tags: [testing, security]
 parent: null
 depends_on: [gate-tests-tool-server-auth-timeout-window]
@@ -51,3 +51,17 @@ it("auth frame coalesced with tool call in one chunk → both processed (auth th
   // Write `<auth_json>\n<call_json>\n` in one socket.write; assert response
 });
 ```
+
+## Review
+
+Approved. Verdict: **done**.
+
+Both tests pass (10/10) and correctly pin the two distinct line-buffer behaviors.
+
+**Split test**: Splits the auth JSON at its midpoint via two `socket.write()` calls separated by a 10ms delay, then sends the tool call in the same timer callback. Directly exercises the line-accumulator — a parser that cleared the buffer on each `data` event without waiting for a newline would break this.
+
+**Coalesced test**: Sends `authFrame\ncallFrame\n` in a single `socket.write()`. Directly pins the `while (newlineIdx !== -1)` loop — dropping the loop to a single-line-per-event model would silently discard the tool call frame, failing this assertion.
+
+Both acceptance criteria from the design (items 7 and 8) are covered. The assertions (`result.success === true`, `result.value === { echoed: "..." }`) are tight: they verify the full round-trip, not just the absence of an error.
+
+**Nit (non-blocking)**: In the split test, the tool-call write is queued immediately after the second auth-half write in the same `setTimeout` callback. On loopback these may land in a single TCP segment, so what is actually tested is the auth-line accumulation half of the split; the tool-call frame arriving as a separate chunk is not forced. The comment overstate this slightly. This is fine — the accumulation behavior is what needs pinning, and the test does pin it.
