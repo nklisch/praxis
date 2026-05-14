@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-prompt-config-redesign-tab-integration
 kind: story
-stage: review
+stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-editorial-polish-pass-prompt-config-redesign
 depends_on: [epic-editorial-polish-pass-prompt-config-redesign-stack-and-preview]
@@ -198,3 +198,22 @@ See the parent feature for the full design. This story implements
   Net of: -3 deleted test files (fragment-block, global-prompt-editor,
   mode-append-editor) and -1 reduced (configure-prompt-tab 13 → 4),
   +1 new test file (prompt-block-stack), +sundry baseline.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Massive net-deletion stride — ~2700 lines removed across
+11 retired files (4 components × {.tsx, .module.css, .test.tsx} less
+the missing preview-pane test). Tab layout is exactly two ordered
+sections (Teaching Style → Prompt blocks) per the design. The only
+remaining grep hit for the retired component names is a harmless
+negative-assertion description in `settings-route.test.tsx`. COPY
+table trimmed cleanly. `StyleSliderForm` is left inline — reasonable
+given file size after deletion. `prompt-tab.module.css` shrunk
+from 213 → ~70 lines. Tests stay green at 1006. Single-pass deletion
+gate done right. Ready to advance.

@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-prompt-config-redesign-stack-and-preview
 kind: story
-stage: review
+stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-editorial-polish-pass-prompt-config-redesign
 depends_on: [epic-editorial-polish-pass-prompt-config-redesign-block-primitive]
@@ -182,3 +182,26 @@ See the parent feature for the full design. This story implements
   src/components/__tests__/prompt-block-stack.test.tsx`: 11 tests
   pass (5 assembleBlocks pure-function cases + 6 component
   integration cases).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The `hasOverride` flag for global/append blocks reads
+  `text !== null && text !== ""` — consistent with the dispatch
+  logic that maps empty strings to `null`. Fine, but worth a one-line
+  comment so a future reader doesn't think "blank vs unset" is being
+  treated separately.
+
+**Notes**: `assembleBlocks` as a pure function with its own tests is
+the right testable seam — keeps the component thin. Edit-mode
+exclusivity via `editingBlockId` + `editEnabled` flag is clean
+(disabled-not-hidden as designed). Draft pipe to composed pane is
+gated on the editing block's `saveAction` so only global/append drafts
+flow into `draftGlobal` / `draftAppend`, never a fragment override.
+Mode-change refetches append but preserves global. 11 tests cover
+assembly order, IPC routing per action, exclusivity, and the draft
+plumbing. Ready to advance.

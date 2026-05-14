@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2
 kind: epic
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -123,3 +123,35 @@ can run them as one wave.
   to split into "input validation" and "output / error sanitization"
   sub-tracks at that level. Keeping it as one feature here so the
   shared design pass happens together.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+All three child features landed cleanly:
+- `epic-security-hardening-round-2-ipc-boundary` — done (5 of 7 gate
+  items absorbed; 3 child stories all reviewed and merged)
+- `epic-security-hardening-round-2-tool-bridge-socket-auth` — done
+- `epic-security-hardening-round-2-image-store-path-guard` — done
+
+Epic delivered as briefed. All seven `gate-security-*` backlog
+items from the v0.1.1 quality-gate run are now either implemented
+or archived as absorbed: `ipc-handler-error-leak`,
+`logger-pattern-secret-scrubber`, `engine-config-plaintext-api-key`,
+`set-engine-config-strict-schema`, `open-external-url-parse`
+(absorbed by the ipc-boundary feature in this drain),
+`tool-socket-perms-and-token`, and
+`embedded-image-store-dirfor-guard` (absorbed by their respective
+features in earlier drains).
+
+The trust boundary is now consistently typed: renderer-bound
+envelopes carry only user-safe codes; the renderer never sees
+plaintext API keys at steady state; URL allowlists use WHATWG
+parsing; log payloads run through pattern-based secret redaction.
+
+Two test-gap items filed during the IPC-boundary feature review
+(`test-gap-engine-config-shape-service-and-ui`,
+`test-gap-ipc-envelope-migration-integration`) are coverage-
+completeness items, not invariant failures.
+
+Children: 3/3 done. Ready to advance.

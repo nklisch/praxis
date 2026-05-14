@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-ipc-boundary
 kind: feature
-stage: review
+stage: done
 tags: [security]
 parent: epic-security-hardening-round-2
 depends_on: []
@@ -726,3 +726,48 @@ key is thrown).
   shape check requires both `ok` AND either `value` or `error` keys
   to be present and the right type — vanishingly small collision
   surface, but worth a comment in the source.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+All three child stories landed cleanly through per-story review on
+2026-05-14:
+- envelope-and-redactor — Approve (clean foundation; 51 tests across
+  three packages)
+- engine-config-shape — Approve with comments (test gap filed as
+  `test-gap-engine-config-shape-service-and-ui`; implementation
+  correct)
+- url-and-redactor-rollout — Approve with comments (integration
+  test gap filed as `test-gap-ipc-envelope-migration-integration`;
+  rollout otherwise complete)
+
+**Aggregate lenses (epic-style)**:
+
+- **Decomposition realised**: matches the brief. Three stories,
+  three independent rollouts: foundation (envelope+redactor),
+  contract change (engineConfig shape), parallel surface migration
+  (URL allowlist + per-channel envelopes + redactor sweep).
+- **End-to-end capability**: the feature's promise was "renderer
+  never sees plaintext secrets, IPC errors carry user-safe codes,
+  URLs are WHATWG-parsed not regex-matched, log payloads scrubbed."
+  All four hold end-to-end. The renderer-visible `EngineConfigSnapshot`
+  has no `apiKey`. Migrated channels resolve with envelopes carrying
+  `code` + `requestId`. `isAllowedExternalUrl` is the single
+  call-site shared by `praxis.shell.openExternal` and
+  `UpdateFeedSchema`. `grep -rn 'serializeError(' main` returns
+  zero unredacted matches.
+- **Cross-cutting concerns**: no foundation-doc drift. The IPC
+  contract shape is now a discriminated union for migrated
+  channels; legacy channels keep working through
+  `unwrapEnvelope`'s passthrough. The two test-gap items filed
+  during story review are about coverage completeness, not the
+  invariant — the invariant is upheld.
+- **Five absorbed backlog items** (gate-security-{set-engine-config
+  -strict-schema, engine-config-plaintext-api-key, ipc-handler-
+  error-leak, logger-pattern-secret-scrubber, open-external-url-parse})
+  archived as part of this advance.
+
+**Children**: 3/3 done. Filed test-gap items:
+`test-gap-engine-config-shape-service-and-ui`,
+`test-gap-ipc-envelope-migration-integration`. Ready to advance.

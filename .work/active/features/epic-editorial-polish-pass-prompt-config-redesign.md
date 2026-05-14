@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-prompt-config-redesign
 kind: feature
-stage: review
+stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-editorial-polish-pass
 depends_on: []
@@ -498,3 +498,36 @@ Each unit is one story. Total: 3 child stories.
 - **COPY key removal**: dropping keys from `COPY.prompt.*` will break any
   string reference outside the prompt tab. Mitigation: Story 3 audits
   consumers with grep before deletion.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+All three child stories landed cleanly through per-story review on
+2026-05-14:
+- block-primitive (already done before this drain)
+- stack-and-preview — Approve (11 tests; pure `assembleBlocks` is
+  the right testable seam)
+- tab-integration — Approve (net deletion of ~2700 lines across 11
+  retired files; single-pass migration, no flag)
+
+**Aggregate lenses (epic-style)**:
+
+- **Decomposition realised**: matches the brief. Three-story arc:
+  generic `<PromptBlock>` primitive (read/edit/save shape),
+  `<PromptBlockStack>` (assembly + dispatch + Blocks/Composed
+  toggle), tab integration (two-section v3 layout + retirements).
+- **End-to-end capability**: the brief's promise was "consolidate
+  the four parallel preview shapes (global / append / composed /
+  full-fragment) into a single Blocks-then-Composed surface."
+  That holds end-to-end. The four retired components
+  (`GlobalPromptEditor`, `ModeAppendEditor`, `FragmentBlock`,
+  `PromptPreviewPane`) are gone; the new stack mounts inside a
+  two-section prompt tab (Teaching Style → Prompt blocks).
+  Composed toggle wires in-flight drafts from the active editing
+  block.
+- **No foundation-doc drift**. The prompt-fragment-composition
+  pattern still drives the assembly order (via `FRAGMENT_ORDER`);
+  the editorial-ui-primitives pattern was honoured.
+
+**Children**: 3/3 done. Ready to advance.

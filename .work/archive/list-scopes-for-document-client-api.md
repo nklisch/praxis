@@ -1,7 +1,7 @@
 ---
 id: list-scopes-for-document-client-api
 kind: story
-stage: review
+stage: done
 tags: [ui, documents, ipc]
 parent: null
 depends_on: []
@@ -69,3 +69,20 @@ The acceptance criterion `[ ] Sidebar in document tab shows that document's prim
 - `pnpm --filter @praxis/client typecheck`: green.
 - `pnpm --filter @praxis/ui test`: 1010 tests pass (including 18 in
   `use-derived-scope.test.tsx` and 12 in `chat-route.test.tsx`).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean four-layer wire: type contract → IPC handler → client
+wrapper → UI hook. `pickPrimaryScope` is exported as a separate
+testable helper. The "course preferred over session, else null" rule
+is documented in the JSDoc and exercised by three new test cases.
+Branch 3 falls back to `{ kind: "all" }` while the resource is
+pending or when the document is orphan — graceful degradation. 18
+tests pass; the previously-unchecked AC from the sidebar story is
+now satisfied. Ready to advance.

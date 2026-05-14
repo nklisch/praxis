@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass
 kind: epic
-stage: review
+stage: done
 tags: [ui, editorial, configure]
 parent: null
 depends_on: []
@@ -148,3 +148,32 @@ node in `gates-tab.tsx` vs. comma-separated text input in
   section position is hardcoded vs. driven by a registry, the
   reorder is either a one-line change or a per-section migration.
   Feature-design must check first.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+All four child features landed:
+- `epic-editorial-polish-pass-app-chrome` — done
+- `epic-editorial-polish-pass-concept-name-surfacing` — done
+- `epic-editorial-polish-pass-prompt-config-redesign` — done
+- `epic-editorial-polish-pass-resizable-panels` — done
+
+Epic delivered as briefed. All five absorbed backlog ideas
+(`idea-top-menu-bar-styling`, `idea-teaching-style-top-of-prompt-config`,
+`idea-unified-prompt-preview-blocks`, `idea-resizable-side-panels`,
+`idea-gates-editor-show-concept-names-not-ids`) archived.
+
+The chrome and editors now match the editorial design system:
+- Top nav uses the editorial spacing/typography; "Chat" renamed
+  to "Tutor"; wordmark stylised.
+- Prompt config rearranged with teaching style at top; the four
+  parallel preview shapes consolidated into a single
+  `<PromptBlockStack>` with a Blocks/Composed toggle.
+- Concept names appear everywhere a concept surfaces in editing
+  UIs (gates editor ConceptNode, gates reading view, lesson
+  editor multi-select picker), with raw ids available as
+  muted secondary text + `title=` tooltip.
+- Side panels resize with persisted widths and min/max bounds.
+
+Children: 4/4 done. Ready to advance.

@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-concept-name-surfacing-concept-node
 kind: story
-stage: review
+stage: done
 tags: [ui, configure, editorial]
 parent: epic-editorial-polish-pass-concept-name-surfacing
 depends_on: [epic-editorial-polish-pass-concept-name-surfacing-hook]
@@ -104,3 +104,18 @@ of the design.
 - `pnpm --filter @praxis/ui typecheck`: green.
 - `pnpm --filter @praxis/ui exec vitest run src/__tests__/concept-node.test.tsx`:
   16 tests pass (13 existing + 3 new).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean swap. `ConceptNodeData.conceptId` is required (not
+optional), so the type-system caught both call-sites (`gates-tab.tsx`
+and `course-map.tsx`). `title=` tooltip on the secondary id span is
+the right escape hatch for truncation. The id-as-fallback case (when
+`getName` hasn't loaded) is exercised by an explicit test rather than
+left implicit. 16 tests, all green. Ready to advance.

@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-ipc-boundary-url-and-redactor-rollout
 kind: story
-stage: review
+stage: done
 tags: [security, desktop, core]
 parent: epic-security-hardening-round-2-ipc-boundary
 depends_on: [epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor]
@@ -199,3 +199,38 @@ both finish, the parent feature can advance to `review`.
   updated `praxis.update.checkLatest` envelope-shape assertion).
 - `pnpm --filter @praxis/ui test`: 1010 tests pass.
 - `pnpm --filter @praxis/client test`: 55 tests pass.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- Missing integration test → `test-gap-ipc-envelope-migration-integration`.
+  The story declared `ipc-server.envelope-migration.test.ts` but the file
+  was not created. The wrapper logic IS thoroughly covered by
+  `ipc-error-envelope.test.ts` so this is not a coverage void —
+  rather a thin integration test that drives the actual migrated
+  channels (`praxis.shell.openExternal` with a `file://` input,
+  one config channel with a bad shape, one with an internal throw,
+  one non-migrated control channel) would catch wiring regressions
+  the unit tests on the helper can't see.
+
+**Nits**:
+- `praxis.session.send.error` push at `ipc-server.ts:163` still uses
+  raw `err.message` for the user-facing payload (`push({ kind: "error",
+  error: ... })`). The corresponding LOG line is redacted via
+  `serializeErrorRedacted`, but the wire-bound `error` string is not.
+  Streaming channels weren't in this story's scope (the migration
+  list called out request/response channels, not streams), so this is
+  a follow-up for a future stride.
+
+**Notes**: Clean rollout. URL allowlist is well-designed: pre-rejects
+control chars and whitespace before parsing because WHATWG `URL`
+silently strips them — that's a sharp insight and the JSDoc captures
+why. One helper, two call-sites, no drift. `serializeError` sweep is
+complete in main process (grep returns zero unredacted matches).
+Per-channel migration uses `withSchema` for input validation on every
+non-trivial input, which gives the renderer structured
+`VALIDATION_FAILED` envelopes for shape attacks. 16 url-allowlist tests,
+107 desktop tests, 905 core tests — all green. Ready to advance.

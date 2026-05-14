@@ -1,7 +1,7 @@
 ---
 id: lift-tabs-state-to-context
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor]
 parent: null
 depends_on: []
@@ -73,3 +73,19 @@ Discovered during /agile-workflow:review (2026-05-13). The implementation note i
   46 tests covering the lifted-state surface plus its callers.
 - The acceptance criterion `chat-route.test.tsx can assert listOpen
   is called once` is met (line 187 of that file).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Textbook `context-hook-pair` refactor. The old `useTabs` is
+a thin re-export shim from `hooks/use-tabs.ts` → `context/tabs-context.ts`,
+so no caller had to be touched. Provider mounted between AuthProvider
+and RouterProvider in `app.tsx`. The previously-loosened
+`toHaveBeenCalled()` assertion is now `toHaveBeenCalledTimes(1)` —
+that's the cleanest possible confirmation that the duplicate fetch is
+gone. 1010 ui tests stay green. Ready to advance.

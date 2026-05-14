@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-ipc-boundary-engine-config-shape
 kind: story
-stage: review
+stage: done
 tags: [security, core, desktop, ui]
 parent: epic-security-hardening-round-2-ipc-boundary
 depends_on: [epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor]
@@ -206,3 +206,39 @@ story:
   client passes the value the renderer already has (it's
   derived, not user-edited) — simpler than splitting two
   request types in the client wrapper.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- Service-layer + UI test gap → `test-gap-engine-config-shape-service-and-ui`.
+  The story declared a new `config-service.engine-shape.test.ts` in its
+  acceptance list but the implementation extended the existing
+  `engine-config.test.ts` instead. Schema-level coverage of the strict
+  rejection IS present and good, but the service-layer business logic
+  for `revealApiKey()`, the `hasApiKey` snapshot, and the `setEngineConfig`
+  preserve/clear/replace merge semantics is uncovered. UI also has no
+  coverage of the new "Add" vs "Edit" affordance or the `revealApiKey()`
+  call path. Filed as a backlog item rather than blocking — the
+  implementation itself is correct and round-trips through the existing
+  engine-config persistence tests.
+
+**Nits**:
+- `defaultConfig: EngineConfigSnapshot = { engineId }` in
+  `packages/ui/src/__tests__/settings-route.test.tsx` is missing the
+  now-required `hasApiKey` field. Passes only because the per-package
+  tsconfig excludes test files from typecheck. Captured in the
+  test-gap item above.
+
+**Notes**: Schema split is clean — public strict, stored extends with
+`apiKeyEncrypted`. IPC layer correctly wraps the three engineConfig
+channels with `wrapEnvelope` + `withSchema` and adds the
+unlock-gated `engineConfig.reveal` channel. Settings UI flips its
+affordance text on `hasApiKey` and gates the reveal call on explicit
+user action — that's the right shape for the trust boundary. Type-driven
+migration (removing `apiKey` from the snapshot) caught all read sites
+through typecheck; both consumers (settings + onboarding) updated in
+this story. All tests green: core 905, desktop 107, client 55, ui 972.
+Typecheck green across all four packages. Ready to advance.

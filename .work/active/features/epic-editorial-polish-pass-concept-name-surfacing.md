@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-concept-name-surfacing
 kind: feature
-stage: review
+stage: done
 tags: [ui, configure, editorial]
 parent: epic-editorial-polish-pass
 depends_on: []
@@ -551,3 +551,39 @@ the graph, the fallback is to make the graph collapsible (a
 `<details>` element wrapper) so authors can hide it entirely and
 work in the reading view alone. This is a one-CSS-rule change in a
 follow-up if it surfaces in review.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+All four child stories landed cleanly through per-story review on
+2026-05-14:
+- hook (already done before this drain)
+- concept-node — Approve
+- picker — Approve
+- gates-reading-view — Approve (one nit on unused `gates` prop;
+  doesn't affect correctness)
+
+**Aggregate lenses (epic-style)**:
+
+- **Decomposition realised**: matches the brief. Four-story arc:
+  shared `useConceptNames` hook (foundation), `ConceptNode` swap
+  (name primary, id muted), `<ConceptPicker>` multi-select
+  replacing the CSV textarea, `<GatesReadingView>` reorganising
+  the gates tab into graph-above / reading-view-below.
+- **End-to-end capability**: the brief's promise was "concept names
+  appear everywhere a concept surfaces in editing UIs, with raw id
+  available on hover or as secondary text." That holds end-to-end:
+  the graph node renders the name primary, the picker chips show
+  names with id-on-hover, and the reading view's lesson chips wrap
+  with name + muted id. The gates layout problem (horizontal-scroll
+  cramming) is fixed by `flex-wrap` in the reading view.
+- **Absorbed backlog item** (`idea-gates-editor-show-concept-names
+  -not-ids`) — capability fully delivered. The original idea is
+  archived if not already.
+- **No foundation-doc drift**. `CURRICULUM.md` doesn't make
+  rendering assertions; `CLAUDE.md` pattern references already
+  link to `editorial-ui-primitives` and `use-resource-hook` which
+  the implementation honoured.
+
+**Children**: 4/4 done. Ready to advance.

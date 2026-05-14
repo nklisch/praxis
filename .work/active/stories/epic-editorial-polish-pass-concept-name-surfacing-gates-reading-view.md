@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-concept-name-surfacing-gates-reading-view
 kind: story
-stage: review
+stage: done
 tags: [ui, configure, editorial]
 parent: epic-editorial-polish-pass-concept-name-surfacing
 depends_on:
@@ -169,3 +169,29 @@ of the design.
 - `pnpm --filter @praxis/ui typecheck`: green.
 - `pnpm --filter @praxis/ui test`: 1032 tests pass (1023 baseline
   + 9 new in `gates-reading-view.test.tsx`).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `GatesReadingViewProps.gates` is destructured as `_gates` in the
+  implementation — it's accepted from the call-site but never used
+  because the prereq fix landed in `GateInspector` (which gets its
+  own `allGates`), not in the reading view. Either drop the prop
+  entirely or actually consume it. Cosmetic; doesn't affect correctness.
+- `gate-inspector.test.tsx` was not created — the implementation note
+  argues this is invented coverage given the inspector previously had
+  no tests, and the fallback (id-only when `allGates` omitted) means
+  the legacy path is preserved. Reasonable trade-off, but a 1-test
+  smoke for the `allGates`-present prereq rendering would be cheap.
+
+**Notes**: Clean layered layout (graph above, reading view below,
+inspector overlays right pane). Chip wrap with `flex-wrap` instead
+of horizontal scroll matches the design's "no horizontal scrollbar"
+constraint. The `firstSentence` helper for the expanded view is a
+reasonable heuristic. The decision to reuse `formatCriteria` for
+prereq summary (instead of plumbing `GateView` deeper) is the right
+call. 9 reading-view tests, all green. Ready to advance.

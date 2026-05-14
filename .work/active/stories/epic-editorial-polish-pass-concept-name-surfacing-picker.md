@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-concept-name-surfacing-picker
 kind: story
-stage: review
+stage: done
 tags: [ui, configure, editorial]
 parent: epic-editorial-polish-pass-concept-name-surfacing
 depends_on: [epic-editorial-polish-pass-concept-name-surfacing-hook]
@@ -142,3 +142,29 @@ of the design.
 - `pnpm --filter @praxis/ui test`: 1023 tests pass (1010 baseline
   + 10 new in `concept-picker.test.tsx` + 3 new in
   `concept-node.test.tsx` from the sibling story).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `select()` doesn't close the dropdown after picking — that's
+  intentional for multi-select, and consistent with the keyboard
+  workflow (type more, hit Enter again). Worth noting in the JSDoc
+  if it surprises future authors.
+- `selectedOptions` rebuilds with `options.find(o => o.id === id)`
+  which is O(n) per chip; for typical lesson sizes (<30 concepts)
+  this is fine, but if the picker ever sits over a course-wide
+  list it could become noticeable. Build a Map up front then.
+
+**Notes**: Clean ~80-line in-house picker. ARIA shape is correct
+(combobox + listbox + option, `aria-activedescendant` pointing to
+the currently highlighted option, `aria-disabled` on already-selected
+options). Keyboard nav covers ↑/↓/Enter/Esc and clamps activeIndex
+when the filter shrinks. Click-outside via `mousedown` on document.
+Storage-shape decision (ids only, names looked up from `options`)
+is the right separation — the picker doesn't need to know about
+server state. Skipping the legacy CSS cleanup is documented in
+the implementation notes; safe deferral. Ready to advance.

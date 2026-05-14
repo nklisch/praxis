@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor
 kind: story
-stage: review
+stage: done
 tags: [security, desktop, core]
 parent: epic-security-hardening-round-2-ipc-boundary
 depends_on: []
@@ -140,3 +140,22 @@ notes (`.work/active/features/epic-security-hardening-round-2-ipc-boundary.md`).
   "a.b.c". The chosen replacement string is `[REDACTED_JWT]` (not
   just `[REDACTED]`) so log triage can still tell it was a JWT-shaped
   redaction vs a Bearer / provider-key redaction.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `isEnvelope` in `packages/client/src/transport/envelope.ts` could
+  collapse the two branches using a single `ok ∈ {true, false}` guard,
+  but the explicit form is more readable. Keep as-is.
+
+**Notes**: Clean foundation. 51 tests across three packages all green
+(15 envelope + 29 errors + 7 client envelope), typecheck green, no
+production behavior change (pure addition; rollout lands in the
+URL/redactor-rollout story). ZodError duck-typing is the right call —
+avoids binding the envelope module to a Zod major version. Provider-key
+prefix preservation in `redactSecrets` is good for log triage. Ready
+to advance.
