@@ -198,9 +198,10 @@ export function registerIpcHandlers(
 
   // ── Config ───────────────────────────────────────────────────────────────
 
-  handle("praxis.config.isLocked", async () => {
-    return services.config.isLocked();
-  });
+  handle(
+    "praxis.config.isLocked",
+    wrapEnvelope("praxis.config.isLocked", log, async () => services.config.isLocked()),
+  );
 
   handle(
     "praxis.config.setLockCode",
@@ -209,13 +210,17 @@ export function registerIpcHandlers(
     ),
   );
 
-  handle("praxis.config.unlock", async (_event, code: string) => {
-    return services.config.unlock(code);
-  });
+  handle(
+    "praxis.config.unlock",
+    handleEnvelope("praxis.config.unlock", log, z.string().min(1, "code"), async (code) =>
+      services.config.unlock(code),
+    ),
+  );
 
-  handle("praxis.config.selectedEngine", async () => {
-    return services.config.selectedEngine();
-  });
+  handle(
+    "praxis.config.selectedEngine",
+    wrapEnvelope("praxis.config.selectedEngine", log, async () => services.config.selectedEngine()),
+  );
 
   handle(
     "praxis.config.setSelectedEngine",
@@ -261,9 +266,12 @@ export function registerIpcHandlers(
     }),
   );
 
-  handle("praxis.config.bootstrapConfig", async () => {
-    return services.config.bootstrapConfig();
-  });
+  handle(
+    "praxis.config.bootstrapConfig",
+    wrapEnvelope("praxis.config.bootstrapConfig", log, async () =>
+      services.config.bootstrapConfig(),
+    ),
+  );
 
   handle(
     "praxis.config.setBootstrapConfig",
@@ -275,13 +283,19 @@ export function registerIpcHandlers(
     ),
   );
 
-  handle("praxis.config.firstRunCompleted", async () => {
-    return services.config.firstRunCompleted();
-  });
+  handle(
+    "praxis.config.firstRunCompleted",
+    wrapEnvelope("praxis.config.firstRunCompleted", log, async () =>
+      services.config.firstRunCompleted(),
+    ),
+  );
 
-  handle("praxis.config.markFirstRunComplete", async () => {
-    return services.config.markFirstRunComplete();
-  });
+  handle(
+    "praxis.config.markFirstRunComplete",
+    wrapEnvelope("praxis.config.markFirstRunComplete", log, async () =>
+      services.config.markFirstRunComplete(),
+    ),
+  );
 
   // ── Update check (manual-download flow) ──────────────────────────────────
 
@@ -689,13 +703,15 @@ export function registerIpcHandlers(
   // ── Phase 11: Lock ───────────────────────────────────────────────────────────
   // Lock handlers are NOT guarded by requireUnlocked — they control the lock.
 
-  handle("praxis.lock.isSet", async () => {
-    return services.lock.isSet();
-  });
+  handle(
+    "praxis.lock.isSet",
+    wrapEnvelope("praxis.lock.isSet", log, async () => services.lock.isSet()),
+  );
 
-  handle("praxis.lock.isUnlocked", async () => {
-    return services.lock.isUnlocked();
-  });
+  handle(
+    "praxis.lock.isUnlocked",
+    wrapEnvelope("praxis.lock.isUnlocked", log, async () => services.lock.isUnlocked()),
+  );
 
   handle(
     "praxis.lock.setLockCode",
@@ -711,9 +727,10 @@ export function registerIpcHandlers(
     ),
   );
 
-  handle("praxis.lock.lock", async () => {
-    return services.lock.lock();
-  });
+  handle(
+    "praxis.lock.lock",
+    wrapEnvelope("praxis.lock.lock", log, async () => services.lock.lock()),
+  );
 
   handle(
     "praxis.lock.clearLock",

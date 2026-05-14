@@ -83,7 +83,7 @@ describe("praxis.config.firstRunCompleted handler", () => {
     expect(handlers.has("praxis.config.firstRunCompleted")).toBe(true);
   });
 
-  it("delegates to services.config.firstRunCompleted and returns its value", async () => {
+  it("delegates to services.config.firstRunCompleted and returns envelope-wrapped value", async () => {
     const firstRunCompleted = vi.fn().mockResolvedValue(true);
     const log = makeSpyLogger();
     registerIpcHandlers(makeServices({ firstRunCompleted }), () => null, log);
@@ -92,7 +92,9 @@ describe("praxis.config.firstRunCompleted handler", () => {
     const result = await handler?.({});
 
     expect(firstRunCompleted).toHaveBeenCalledOnce();
-    expect(result).toBe(true);
+    // After IPC trust-boundary hardening: praxis.config.firstRunCompleted returns an
+    // IpcEnvelope, so the value sits under `.value`.
+    expect(result).toMatchObject({ ok: true, value: true });
   });
 });
 

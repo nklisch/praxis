@@ -15,12 +15,14 @@ const C = "praxis.lock" as const;
 export class LockClientImpl implements LockClient {
   constructor(private readonly transport: ClientTransport) {}
 
-  isSet(): Promise<boolean> {
-    return this.transport.invoke<boolean>(`${C}.isSet`);
+  async isSet(): Promise<boolean> {
+    const result = await this.transport.invoke<IpcEnvelope<boolean> | boolean>(`${C}.isSet`);
+    return unwrapEnvelope(result);
   }
 
-  isUnlocked(): Promise<boolean> {
-    return this.transport.invoke<boolean>(`${C}.isUnlocked`);
+  async isUnlocked(): Promise<boolean> {
+    const result = await this.transport.invoke<IpcEnvelope<boolean> | boolean>(`${C}.isUnlocked`);
+    return unwrapEnvelope(result);
   }
 
   async setLockCode(code: string): Promise<void> {
@@ -36,8 +38,9 @@ export class LockClientImpl implements LockClient {
     return unwrapEnvelope(result);
   }
 
-  lock(): Promise<void> {
-    return this.transport.invoke<void>(`${C}.lock`);
+  async lock(): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(`${C}.lock`);
+    unwrapEnvelope(result);
   }
 
   async clearLock(currentCode: string): Promise<void> {

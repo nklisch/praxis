@@ -11,8 +11,11 @@ const CHANNEL = "praxis.config";
 export class ConfigClient implements ConfigService {
   constructor(private readonly transport: ClientTransport) {}
 
-  isLocked(): Promise<boolean> {
-    return this.transport.invoke<boolean>(`${CHANNEL}.isLocked`);
+  async isLocked(): Promise<boolean> {
+    const result = await this.transport.invoke<IpcEnvelope<boolean> | boolean>(
+      `${CHANNEL}.isLocked`,
+    );
+    return unwrapEnvelope(result);
   }
 
   async setLockCode(code: string): Promise<void> {
@@ -23,12 +26,19 @@ export class ConfigClient implements ConfigService {
     unwrapEnvelope(result);
   }
 
-  unlock(code: string): Promise<{ ok: boolean }> {
-    return this.transport.invoke<{ ok: boolean }>(`${CHANNEL}.unlock`, code);
+  async unlock(code: string): Promise<{ ok: boolean }> {
+    const result = await this.transport.invoke<IpcEnvelope<{ ok: boolean }> | { ok: boolean }>(
+      `${CHANNEL}.unlock`,
+      code,
+    );
+    return unwrapEnvelope(result);
   }
 
-  selectedEngine(): Promise<string> {
-    return this.transport.invoke<string>(`${CHANNEL}.selectedEngine`);
+  async selectedEngine(): Promise<string> {
+    const result = await this.transport.invoke<IpcEnvelope<string> | string>(
+      `${CHANNEL}.selectedEngine`,
+    );
+    return unwrapEnvelope(result);
   }
 
   async setSelectedEngine(engineId: string): Promise<void> {
@@ -68,8 +78,11 @@ export class ConfigClient implements ConfigService {
     unwrapEnvelope(result);
   }
 
-  bootstrapConfig(): Promise<BootstrapConfigSnapshot> {
-    return this.transport.invoke<BootstrapConfigSnapshot>(`${CHANNEL}.bootstrapConfig`);
+  async bootstrapConfig(): Promise<BootstrapConfigSnapshot> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<BootstrapConfigSnapshot> | BootstrapConfigSnapshot
+    >(`${CHANNEL}.bootstrapConfig`);
+    return unwrapEnvelope(result);
   }
 
   async setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void> {
@@ -80,11 +93,17 @@ export class ConfigClient implements ConfigService {
     unwrapEnvelope(result);
   }
 
-  firstRunCompleted(): Promise<boolean> {
-    return this.transport.invoke<boolean>(`${CHANNEL}.firstRunCompleted`);
+  async firstRunCompleted(): Promise<boolean> {
+    const result = await this.transport.invoke<IpcEnvelope<boolean> | boolean>(
+      `${CHANNEL}.firstRunCompleted`,
+    );
+    return unwrapEnvelope(result);
   }
 
-  markFirstRunComplete(): Promise<void> {
-    return this.transport.invoke<void>(`${CHANNEL}.markFirstRunComplete`);
+  async markFirstRunComplete(): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${CHANNEL}.markFirstRunComplete`,
+    );
+    unwrapEnvelope(result);
   }
 }
