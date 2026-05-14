@@ -1,7 +1,7 @@
 ---
 id: fix-wrapenvelope-withschema-arg-routing-and-client-unwrap
 kind: story
-stage: review
+stage: done
 tags: [bug, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: []
@@ -178,3 +178,39 @@ No-schema channels (`praxis.config.engineConfig`, `praxis.config.engineConfig.re
 - `pnpm --filter @praxis/desktop test`: 136/136 pass
 - `pnpm --filter @praxis/client test`: 62/62 pass
 - `pnpm biome check` on all 6 changed files: clean
+
+## Review (2026-05-14)
+
+**Verdict: Approve**
+
+### Correctness — load bearing
+
+**`handleEnvelope` signature is correct.** The helper is declared as `(_event: IpcMainInvokeEvent, payload: unknown) => Promise<IpcEnvelope<TOut>>`, which matches the `(event, ...args) => fn(event, ...args)` calling convention of `createIpcHelpers.handle`. Inside, it captures `wrapEnvelope(channel, log, withSchema(schema, fn))` and returns a closure that calls `wrapped(payload)` — stripping the event before `withSchema` ever sees it. The types flow cleanly: `z.ZodType<TIn>` → `TIn` → `Promise<TOut>` → `IpcEnvelope<TOut>`.
+
+**All 8 server channels migrated.** Confirmed via grep: `setLockCode`, `setSelectedEngine`, `setEngineConfig`, `setBootstrapConfig` (config domain) and `setLockCode`, `unlock`, `clearLock` (lock domain) plus `openExternal` (shell domain) all call `handleEnvelope`. The three bare `wrapEnvelope` channels (`engineConfig`, `engineConfig.reveal`, `update.checkLatest`) are zero-arg getters — event-stripping is irrelevant for them and they are correctly untouched. `withSchema` is no longer imported in `ipc-server.ts`.
+
+**All 7 client methods updated.** `ConfigClient`: `setLockCode`, `setSelectedEngine`, `setEngineConfig` (pre-existing), `setBootstrapConfig`. `LockClientImpl`: `setLockCode`, `unlock`, `clearLock`. `ShellClientImpl`: `openExternal`. Every one calls `unwrapEnvelope(result)` or `return unwrapEnvelope(result)`. The count in the implementation notes says 6 but the list names 7 (it lists `setEngineConfig` which had its unwrap from a prior migration). Either way, all affected methods are correctly updated.
+
+**`lock.unlock` double-envelope correctness.** The service returns `{ ok: boolean }`. The server wraps this as `IpcEnvelope<{ ok: boolean }>` — i.e., on success the wire value is `{ ok: true, value: { ok: boolean } }`. The client type is `IpcEnvelope<{ ok: boolean }> | { ok: boolean }`. `isEnvelope` detection checks for `ok === true && "value" in candidate`, which distinguishes the envelope from a raw `{ ok: boolean }` (no `value` key). `unwrapEnvelope` correctly returns `{ ok: boolean }` to `useLock`, which branches on `result.ok`. Correct end-to-end.
+
+**No double-logging.** `handleEnvelope` uses `wrapEnvelope` which catches and returns an envelope — the outer `createIpcHelpers.handle` timing wrapper sees a successful resolution and does not log an error. The `wrapEnvelope` layer does the error logging with `requestId`. No duplicate log rows.
+
+### Behavior end-to-end
+
+All tests pass: 23/23 integration tests, 136/136 desktop tests, 62/62 client tests, both typechecks clean (verified above).
+
+### Security
+
+All 8 previously-broken channels now perform real validation. Each call site that previously silently failed now executes real mutations (setLockCode, setSelectedEngine, etc.). UI call sites (`useLock`, `useBootstrapBudget`, `onboarding-flow`, `settings`) all wrap mutations in `try/catch` and surface `err.message` (or a generic string) to the user — `IpcError` is an `Error` subclass, so `err instanceof Error` is true and `err.message` carries only the user-safe envelope message. No stack traces or path-shaped strings cross the boundary: `toEnvelopeError` runs `serializeErrorRedacted` on the main side and only a short user-safe string reaches the renderer.
+
+### UX regression check
+
+Before this fix, all 8 channels always returned `VALIDATION_FAILED`, so mutations were no-ops. The UI hooks were written expecting these to sometimes succeed: `useLock.setLockCode` calls `refresh()` after `await setLockCode(code)` — after the fix, the code now actually sets and the refresh reflects real state. `useBootstrapBudget.setMaxSteps` is optimistic with revert-on-error — after the fix, success leaves the optimistic state in place (correct). `onboarding-flow` and `settings.tsx` both have `catch` blocks that show error UI. In each case the hook/component handles the now-real success path correctly. No UX regressions identified.
+
+### Minor observation (not a blocker)
+
+`praxis.config.setEngineConfig` and `praxis.config.setBootstrapConfig` are migrated server-side but do not have dedicated describe blocks in the migration test. The `handleEnvelope` mechanism is proven by the other six channels and the structural wiring is identical, so this is low risk. Worth filing as a low-priority test gap if test completeness matters to the team, but not a reason to block this story.
+
+### Pattern doc
+
+The updated `ipc-envelope-handler.md` is accurate. Example 1 uses `handleEnvelope` as the canonical form. The three new Common Violations entries are precise: the `wrapEnvelope + withSchema` anti-pattern, the missing `handleEnvelope` on structured payloads, and the missing `unwrapEnvelope` on the client side. All three directly correspond to the defects this story fixed.
