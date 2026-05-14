@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-claude-code-vision-empty-maxtokens-spread
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
