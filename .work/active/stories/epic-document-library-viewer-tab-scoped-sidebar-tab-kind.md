@@ -5,10 +5,10 @@ stage: done
 tags: [core, ui, schema]
 parent: epic-document-library-viewer-tab-scoped-sidebar
 depends_on: []
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Tab-kind foundation: `'document'` tabs

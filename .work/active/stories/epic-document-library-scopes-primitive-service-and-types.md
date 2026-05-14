@@ -5,10 +5,10 @@ stage: done
 tags: [core, documents]
 parent: epic-document-library-scopes-primitive
 depends_on: [epic-document-library-scopes-primitive-schema-and-migration]
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Service + types: `DocumentScopesServiceImpl`

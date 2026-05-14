@@ -5,7 +5,7 @@ stage: done
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor
 depends_on: []
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-13
 updated: 2026-05-14

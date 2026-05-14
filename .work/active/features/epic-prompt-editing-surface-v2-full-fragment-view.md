@@ -5,10 +5,10 @@ stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-prompt-editing-surface-v2
 depends_on: [epic-prompt-editing-surface-v2-unified-configure-surface]
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Full fragment view with locks, badges, and configurator lock fix

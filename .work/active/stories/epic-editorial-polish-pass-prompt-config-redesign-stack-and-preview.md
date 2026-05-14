@@ -5,7 +5,7 @@ stage: done
 tags: [ui, configure, prompt-customization]
 parent: epic-editorial-polish-pass-prompt-config-redesign
 depends_on: [epic-editorial-polish-pass-prompt-config-redesign-block-primitive]
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-14
 updated: 2026-05-14

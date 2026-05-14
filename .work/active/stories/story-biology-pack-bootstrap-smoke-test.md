@@ -5,10 +5,10 @@ stage: done
 tags: [content, testing]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-11
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Extend biology-pack smoke test to cover bootstrap flow

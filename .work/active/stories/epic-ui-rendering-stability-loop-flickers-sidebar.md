@@ -5,7 +5,7 @@ stage: done
 tags: [ui, bug]
 parent: epic-ui-rendering-stability-loop-flickers
 depends_on: []
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-14
 updated: 2026-05-14

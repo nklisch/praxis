@@ -7,7 +7,7 @@ parent: epic-editorial-polish-pass-concept-name-surfacing
 depends_on:
   - epic-editorial-polish-pass-concept-name-surfacing-hook
   - epic-editorial-polish-pass-concept-name-surfacing-concept-node
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-14
 updated: 2026-05-14

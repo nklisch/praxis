@@ -1,0 +1,151 @@
+---
+id: release-v0.1.2
+kind: release
+stage: quality-gate
+tags: []
+parent: null
+depends_on: []
+release_binding: v0.1.2
+gate_origin: null
+created: 2026-05-14
+updated: 2026-05-14
+---
+
+# Release v0.1.2
+
+Third versioned release after v0.1.0 / v0.1.1. Captures everything that
+landed between 2026-05-13 (v0.1.1 ship date) and 2026-05-14: eight epics
+clustered out of the v0.1.1 backlog plus a handful of standalone fixes and
+tooling stories. Headline themes: structured-tutor and document-library
+buildout (course-aware mode prompts, draft resumption, scopes primitive,
+viewer tab sidebar), unified prompt-editing surface (compose attribution +
+diff-aware preview + full-fragment view + unified configure), editorial
+polish (app chrome, concept-name surfacing, prompt-config redesign,
+resizable panels), tutor session feel (cancellation, composer queue,
+tool-call thread persistence, tab rename), UI rendering stability (loop
+flickers + state transitions), security hardening round 2 (image-store
+path guard, IPC boundary redactor, tool-bridge socket auth), test-coverage
+adversarial pass (ingestion edges, state-and-config edges, UI assertion
+gaps), and a small number of standalone fixes (rate-limit error message
+format, SDK per-turn wall-clock timeout disable, biology pack smoke test,
+electron multi-arch rebuild, engine CLI integration smoke test).
+
+## Bound items
+
+85 items bound across 8 epics, 30 features, and 47 stories.
+
+### epic-course-structured-tutor — tutor-ux, bootstrap, curriculum
+
+- `epic-course-structured-tutor` (epic)
+  - `epic-course-structured-tutor-buildout-progress` (feature) — tutor-ux, bootstrap
+  - `epic-course-structured-tutor-course-aware-mode-prompts` (feature) — tutor-ux, mode-prompts, curriculum
+    - `epic-course-structured-tutor-course-aware-mode-prompts-story-1-foundation` (story)
+    - `epic-course-structured-tutor-course-aware-mode-prompts-story-exam-addendum` (story)
+    - `epic-course-structured-tutor-course-aware-mode-prompts-story-homework-addendum` (story)
+    - `epic-course-structured-tutor-course-aware-mode-prompts-story-quiz-addendum` (story)
+    - `epic-course-structured-tutor-course-aware-mode-prompts-story-study-skills-addendum` (story)
+    - `epic-course-structured-tutor-course-aware-mode-prompts-story-teach-addendum` (story)
+  - `epic-course-structured-tutor-draft-resumption` (feature) — tutor-ux, bootstrap
+    - `epic-course-structured-tutor-draft-resumption-mode-wiring` (story)
+    - `epic-course-structured-tutor-draft-resumption-tool` (story)
+    - `epic-course-structured-tutor-draft-resumption-ui-picker` (story)
+  - `course-aware-mode-prompts-missing-tests` (story, archive) — testing, curriculum
+  - `resume-draft-picker-test-and-keyboard-nav` (story, archive) — ui, testing, a11y
+
+### epic-document-library — documents, ui, ingestion
+
+- `epic-document-library` (epic)
+  - `epic-document-library-bootstrap-session-scoped-attachment` (feature) — bootstrap, documents, tutor-ux
+  - `epic-document-library-library-view-tabs-filters` (feature) — ui, documents
+  - `epic-document-library-multi-file-folder-picker` (feature) — ui, ingestion, configure
+  - `epic-document-library-rename-retrieve-from-documents` (feature) — tools, prompts, curriculum
+  - `epic-document-library-scopes-primitive` (feature) — core, documents, ingestion, schema
+    - `epic-document-library-scopes-primitive-callsite-sweep` (story)
+    - `epic-document-library-scopes-primitive-schema-and-migration` (story)
+    - `epic-document-library-scopes-primitive-service-and-types` (story)
+  - `epic-document-library-viewer-tab-scoped-sidebar` (feature) — ui, documents, tutor-ux
+    - `epic-document-library-viewer-tab-scoped-sidebar-sidebar` (story)
+    - `epic-document-library-viewer-tab-scoped-sidebar-tab-kind` (story)
+    - `epic-document-library-viewer-tab-scoped-sidebar-viewer` (story)
+  - `list-scopes-for-document-client-api` (story, archive) — ui, documents, ipc
+
+### epic-editorial-polish-pass — ui, editorial, configure
+
+- `epic-editorial-polish-pass` (epic)
+  - `epic-editorial-polish-pass-app-chrome` (feature) — ui, editorial
+  - `epic-editorial-polish-pass-concept-name-surfacing` (feature) — ui, configure, editorial
+    - `epic-editorial-polish-pass-concept-name-surfacing-concept-node` (story)
+    - `epic-editorial-polish-pass-concept-name-surfacing-gates-reading-view` (story)
+    - `epic-editorial-polish-pass-concept-name-surfacing-hook` (story)
+    - `epic-editorial-polish-pass-concept-name-surfacing-picker` (story)
+  - `epic-editorial-polish-pass-prompt-config-redesign` (feature) — ui, configure, prompt-customization
+    - `epic-editorial-polish-pass-prompt-config-redesign-block-primitive` (story)
+    - `epic-editorial-polish-pass-prompt-config-redesign-stack-and-preview` (story)
+    - `epic-editorial-polish-pass-prompt-config-redesign-tab-integration` (story)
+  - `epic-editorial-polish-pass-resizable-panels` (feature) — ui, editorial
+  - `lift-tabs-state-to-context` (story, archive) — ui, refactor
+  - `resizable-panels-tests-and-sidekick-adoption` (feature, archive) — ui, testing, editorial, a11y
+
+### epic-prompt-editing-surface-v2 — ui, configure, prompt-customization, core
+
+- `epic-prompt-editing-surface-v2` (epic)
+  - `epic-prompt-editing-surface-v2-compose-attribution` (feature) — core, curriculum, prompt-customization
+  - `epic-prompt-editing-surface-v2-diff-aware-preview` (feature) — ui, configure, prompt-customization
+  - `epic-prompt-editing-surface-v2-full-fragment-view` (feature) — ui, configure, prompt-customization
+  - `epic-prompt-editing-surface-v2-unified-configure-surface` (feature) — ui, configure, prompt-customization
+
+### epic-security-hardening-round-2 — security
+
+- `epic-security-hardening-round-2` (epic)
+  - `epic-security-hardening-round-2-image-store-path-guard` (feature) — security
+  - `epic-security-hardening-round-2-ipc-boundary` (feature) — security
+    - `epic-security-hardening-round-2-ipc-boundary-engine-config-shape` (story)
+    - `epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor` (story)
+    - `epic-security-hardening-round-2-ipc-boundary-url-and-redactor-rollout` (story)
+  - `epic-security-hardening-round-2-tool-bridge-socket-auth` (feature) — security
+
+### epic-test-coverage-adversarial-pass — testing
+
+- `epic-test-coverage-adversarial-pass` (epic)
+  - `epic-test-coverage-adversarial-pass-ingestion-edges` (feature) — testing
+    - `epic-test-coverage-adversarial-pass-ingestion-edges-docx-image-boundary` (story)
+    - `epic-test-coverage-adversarial-pass-ingestion-edges-pptx-fallback-fixture` (story)
+  - `epic-test-coverage-adversarial-pass-state-and-config-edges` (feature) — testing
+    - `epic-test-coverage-adversarial-pass-state-and-config-edges-cancel-adversarial` (story)
+    - `epic-test-coverage-adversarial-pass-state-and-config-edges-draft-rapid-save` (story)
+    - `epic-test-coverage-adversarial-pass-state-and-config-edges-engineid-rename-unavailable-storage` (story)
+  - `epic-test-coverage-adversarial-pass-ui-assertion-gaps` (feature) — testing
+    - `epic-test-coverage-adversarial-pass-ui-assertion-gaps-subagent-collision` (story)
+    - `epic-test-coverage-adversarial-pass-ui-assertion-gaps-update-banner-hash` (story)
+
+### epic-tutor-session-feel — chat, tutor-ux, ui, core, engines
+
+- `epic-tutor-session-feel` (epic)
+  - `epic-tutor-session-feel-cancellation-propagation` (feature) — core, engines, tools, chat
+    - `epic-tutor-session-feel-cancellation-propagation-core-plumbing` (story)
+    - `epic-tutor-session-feel-cancellation-propagation-engine-and-subagent` (story)
+  - `epic-tutor-session-feel-composer-queue` (feature) — ui, chat, tutor-ux
+  - `epic-tutor-session-feel-tool-call-thread-persistence` (feature) — ui, chat, tutor-ux
+  - `epic-tutor-session-feel-tutor-tab-rename` (feature) — ui, chat, tutor-ux
+
+### epic-ui-rendering-stability — ui, bug
+
+- `epic-ui-rendering-stability` (epic)
+  - `epic-ui-rendering-stability-loop-flickers` (feature) — ui, bug
+    - `epic-ui-rendering-stability-loop-flickers-audit` (story)
+    - `epic-ui-rendering-stability-loop-flickers-sidebar` (story)
+  - `epic-ui-rendering-stability-state-transitions` (feature) — ui, bug
+    - `epic-ui-rendering-stability-state-transitions-question-card-collapse` (story)
+    - `epic-ui-rendering-stability-state-transitions-sub-agent-panel-unmount` (story)
+
+### Standalone stories
+
+- `story-biology-pack-bootstrap-smoke-test` (story) — content, testing
+- `story-electron-multi-arch-rebuild` (story) — desktop, build
+- `story-engine-cli-integration-smoke-test` (story) — testing, engine
+- `story-fix-disable-sdk-wall-clock-timeout` (story) — bug, engines
+- `story-fix-rate-limit-error-message-format` (story) — bug, ui, engines
+
+## Gate runs
+
+<populated as gates execute>

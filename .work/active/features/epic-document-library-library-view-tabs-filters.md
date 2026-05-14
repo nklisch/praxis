@@ -5,10 +5,10 @@ stage: done
 tags: [ui, documents]
 parent: epic-document-library
 depends_on: [epic-document-library-scopes-primitive]
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Library route with scope tabs and filters

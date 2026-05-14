@@ -5,7 +5,7 @@ stage: done
 tags: [security, desktop, core]
 parent: epic-security-hardening-round-2-ipc-boundary
 depends_on: [epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor]
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-14
 updated: 2026-05-14

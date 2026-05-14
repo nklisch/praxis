@@ -5,7 +5,7 @@ stage: done
 tags: [tutor-ux, bootstrap, mode-prompts]
 parent: epic-course-structured-tutor-draft-resumption
 depends_on: [epic-course-structured-tutor-draft-resumption-tool]
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-14
 updated: 2026-05-14

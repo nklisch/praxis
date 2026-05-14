@@ -5,10 +5,10 @@ stage: done
 tags: [engines, tools, core]
 parent: epic-tutor-session-feel-cancellation-propagation
 depends_on: [epic-tutor-session-feel-cancellation-propagation-core-plumbing]
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Story 2: Engine + sub-agent propagation

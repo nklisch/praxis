@@ -5,10 +5,10 @@ stage: done
 tags: [ui, chat, tutor-ux]
 parent: epic-tutor-session-feel
 depends_on: []
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Composer queue while streaming — keep typing, send when it's your turn

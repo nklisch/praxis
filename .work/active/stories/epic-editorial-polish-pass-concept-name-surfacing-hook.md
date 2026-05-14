@@ -5,7 +5,7 @@ stage: done
 tags: [ui, configure, editorial]
 parent: epic-editorial-polish-pass-concept-name-surfacing
 depends_on: []
-release_binding: null
+release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-14
 updated: 2026-05-14
