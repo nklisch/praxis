@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-resizable-panels
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, editorial]
 parent: epic-editorial-polish-pass
 depends_on: []
@@ -496,3 +496,19 @@ the implementation review.
   a second hook (`useResizableRatio`) or extend this one with a discr-
   iminated `mode: "pixels" | "ratio"` — defer the decision until the
   ratio use-case is on a real critical path.
+
+## Implementation notes (2026-05-14)
+
+Landed Unit 1 (`useResizableWidth` hook + `<ResizeHandle>` primitive) and
+Unit 2 (chat documents sidebar adoption) in a single stride.
+
+**Deferred to follow-up**: Unit 3 (sidekick-panel adoption). The sidekick
+mounts in a CSS-grid layout owned by `QuizTabBody`/`HomeworkTabBody` that
+needs a one-line grid template tweak; bundling that risk with the primitive
+landing wasn't worth it. The primitive's API works for either adoption — a
+sidekick adoption story can be filed in backlog when QA finds it useful.
+
+Verification: `pnpm typecheck && pnpm test` clean. Manual smoke: chat
+documents sidebar drags between 160–480px, persists across reload via
+`localStorage[praxis.panel.chat-documents.width]`, double-click reset
+via Home key.

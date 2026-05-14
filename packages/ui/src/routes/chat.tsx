@@ -6,7 +6,9 @@ import { ChatTabBody } from "../components/chat-tab-body.js";
 import { DocumentList } from "../components/document-list.js";
 import { EmptyState } from "../components/empty-state.js";
 import { NewTabPicker } from "../components/new-tab-picker.js";
+import { ResizeHandle } from "../components/resize-handle.js";
 import { TabStrip } from "../components/tab-strip.js";
+import { useResizableWidth } from "../hooks/use-resizable-width.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useAssignmentIssuedSpawn } from "../hooks/use-assignment-issued-spawn.js";
 import { useDerivedScope } from "../hooks/use-derived-scope.js";
@@ -113,10 +115,21 @@ export function ChatRoute() {
     }
   }, [activeTabId, loading]);
 
+  // Persisted user-resizable width for the documents sidebar. Per-device
+  // (localStorage); zero IPC round-trip on read = no flash-of-default-width.
+  // See feature epic-editorial-polish-pass-resizable-panels.
+  const { width: sidebarWidth, handleProps: sidebarHandleProps } = useResizableWidth({
+    storageKey: "praxis.panel.chat-documents.width",
+    defaultWidth: 220,
+    minWidth: 160,
+    maxWidth: 480,
+    side: "right",
+  });
+
   return (
     <div className={styles.layout}>
       {/* Documents sidebar — scope-aware: shows docs for the active context */}
-      <aside className={styles.sidebar}>
+      <aside className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
         <div className={styles.sidebarHeader}>
           <span className={styles.sidebarTitle}>
             {scope.kind === "course"
@@ -146,6 +159,8 @@ export function ChatRoute() {
           )}
         </div>
       </aside>
+
+      <ResizeHandle side="right" {...sidebarHandleProps} />
 
       {/* Main workspace area */}
       <div className={styles.workspace}>

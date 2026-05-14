@@ -1,0 +1,42 @@
+/*
+ * Hairline drag handle. 6px hit-target around a 1px visual line.
+ * Resting: --color-border. Hover/drag: --color-accent.
+ */
+
+.handle {
+  flex-shrink: 0;
+  width: 6px;
+  cursor: col-resize;
+  position: relative;
+  background: transparent;
+  transition: background 0.15s ease;
+  z-index: 1;
+}
+
+.handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border);
+  transition: background 0.15s ease;
+}
+
+.handle:hover::before,
+.handle:focus-visible::before,
+.handle:active::before {
+  background: var(--color-accent, var(--color-text));
+}
+
+.handle:focus-visible {
+  outline: none;
+}
+
+.left::before {
+  left: 0;
+}
+
+.right::before {
+  right: 0;
+}

@@ -9,6 +9,8 @@
 /* ── Sidebar ──────────────────────────────────────────────────────────── */
 
 .sidebar {
+  /* Default width is provided by useResizableWidth's defaultWidth; the
+     consumer applies an inline style. Persisted width survives reloads. */
   width: 220px;
   flex-shrink: 0;
   display: flex;
