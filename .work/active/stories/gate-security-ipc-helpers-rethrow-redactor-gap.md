@@ -1,7 +1,7 @@
 ---
 id: gate-security-ipc-helpers-rethrow-redactor-gap
 kind: story
-stage: done
+stage: review
 tags: [security]
 parent: null
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-12-misc-and-domain-modules]
@@ -9,15 +9,6 @@ release_binding: v0.1.2
 gate_origin: security
 created: 2026-05-14
 updated: 2026-05-14
-
-## Closure (2026-05-14)
-
-Risk fully closed by `feature-mutating-ipc-channels-envelope-migration`. The envelope migration wrapped all invoke channels in `wrapEnvelope`/`handleEnvelope`, which catches errors internally and returns `{ ok: false, error: {...} }` — a resolved promise, never a rejection. The `throw err` in `createIpcHelpers.handle` (line 84) is now unreachable for all migrated channels. Verification:
-
-- Final grep confirms only 4 streaming handlers (`praxis.activity.events.start`, `praxis.bootstrap.drafts.events.start`, `praxis.quickCheck.events.start`, `praxis.auth.claude.login.start`) remain as bare `handle(...)` calls — all are streaming, legitimately out of scope.
-- 98 of 113 `handle(...)` calls in `ipc-server.ts` use `handleEnvelope` or `wrapEnvelope`.
-- All per-domain modules' invoke channels are wrapped.
-- `pnpm typecheck`, `pnpm --filter @praxis/desktop test`, `pnpm --filter @praxis/client test` all pass clean.
 ---
 
 # `ipc-helpers.handle` re-throws raw errors, bypassing envelope redactor on ~117 channels
@@ -61,3 +52,68 @@ Either wrap the rethrow in a redactor that surfaces a generic message
 plus a UUIDv7 request id (mirror `wrapEnvelope`'s INTERNAL mapping), or
 roll out `wrapEnvelope` to every remaining `handle()` so renderers always
 go through the envelope.
+
+## Verification (subsumed by feature-mutating-ipc-channels-envelope-migration — partial)
+
+**Date**: 2026-05-14
+
+**Method**: Systematic grep of all `handle(...)` registrations in
+`packages/desktop/electron/main/*.ts`, cross-referenced with
+`handleEnvelope`/`wrapEnvelope` usage per file.
+
+**Result: PARTIALLY CLOSED — residual gap remains.**
+
+The envelope migration (`feature-mutating-ipc-channels-envelope-migration`)
+wrapped the majority of invoke channels. The `throw err` in
+`createIpcHelpers.handle` (line 84 of `ipc-helpers.ts`) is now unreachable
+for all wrapped channels, because `wrapEnvelope`/`handleEnvelope` catch
+internally and return `{ ok: false, error: {...} }` — a resolved promise,
+never a rejection.
+
+**Channels confirmed wrapped (safe):**
+
+The final grep confirms only 4 bare `handle(...)` calls remain across all
+`packages/desktop/electron/main/*.ts` files — and all 4 are legitimate
+streaming handlers (subscriber-fanout-stream pattern, handled separately by
+`gate-security-streaming-channel-error-push-redactor-gap`):
+
+- `praxis.activity.events.start`
+- `praxis.bootstrap.drafts.events.start`
+- `praxis.quickCheck.events.start`
+- `praxis.auth.claude.login.start`
+
+All per-domain channel modules (`document-scopes-channel.ts`,
+`ingest-channel.ts`, `subagent-channel.ts`, `activity-channel.ts`,
+`quick-check-channel.ts`) use envelope wrappers on their invoke channels.
+
+**Residual raw invoke channels in `ipc-server.ts` (13 channels):**
+
+The following non-streaming `handle(...)` calls in `ipc-server.ts` were
+NOT migrated to `handleEnvelope`/`wrapEnvelope` and still expose raw errors
+to the renderer:
+
+| Line | Channel |
+|------|---------|
+| 101 | `praxis.session.start` |
+| 339 | `praxis.documents.pageImage` |
+| 610 | `praxis.assignments.list` |
+| 619 | `praxis.assignments.recordResponse` |
+| 1207 | `praxis.notes.create` |
+| 1277 | `praxis.notes.list` |
+| 1313 | `praxis.flashcards.create` |
+| 1337 | `praxis.flashcards.update` |
+| 1372 | `praxis.flashcards.list` |
+| 1398 | `praxis.flashcards.review` |
+| 1597 | `praxis.session.list` |
+| 1606 | `praxis.sketches.put` |
+| 1718 | `praxis.conceptMaps.updateScene` |
+
+These channels remain as raw async handlers. If the underlying service
+throws (e.g., DB error, validation error), the raw error propagates to
+the renderer via IPC rejection, potentially leaking internal details.
+
+**Follow-up work**: Filed as `gate-security-ipc-server-raw-invoke-residuals`
+(backlog) to track wrapping these 13 channels.
+
+**Tests**: `pnpm typecheck`, `pnpm --filter @praxis/desktop test`, and
+`pnpm --filter @praxis/client test` all pass clean (399 + 62 tests).
