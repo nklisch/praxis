@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-share-vitest-spy-logger-factory
 kind: story
-stage: review
+stage: done
 tags: [refactor, testing]
 parent: null
 depends_on: []
@@ -68,3 +68,30 @@ Updated 4 call sites:
 - `packages/desktop/electron/main/__tests__/log-channel.test.ts` — replaced custom capturing `makeFakeLogger` with `makeSpyLogger()`; assertions updated from manual `captured[]`/`debugCalls[]` arrays to `log._spies.ingestRendererRecord.mock.calls` / `log._spies.debug.mock.calls` and `toHaveBeenCalled*` matchers; module-level state removed
 
 All 27 tests pass; `pnpm --filter @praxis/desktop typecheck` passes clean.
+
+## Review
+
+**Verdict: Approved — advance to done.**
+
+### Typecheck (flagged concern resolved)
+
+The step-4 reviewer's concern about a pre-existing typecheck failure in `log-channel.test.ts` does not apply. `pnpm --filter @praxis/desktop typecheck` exits cleanly with zero errors or warnings. The typecheck failure was not introduced by this story and does not exist in the current tree.
+
+### Correctness
+
+- `makeSpyLogger()` in `tests/helpers/mocks.ts` correctly constructs a single `spies` object and aliases each entry to the top-level logger fields — `log.debug` and `log._spies.debug` are the same `vi.fn()` instance.
+- The return type properly extends `Logger` and adds `ingestRendererRecord`, `shutdown`, and `_spies` so the result is assignable to `MainLogger` (the desktop superset). `registerLogChannel(makeSpyLogger())` compiles without a cast.
+- `child` returns a fresh `makeSpyLogger()`, which is the same contract the inlined factories had.
+- `shutdown` is `vi.fn().mockResolvedValue(undefined)` — consistent with the original inlined factories.
+
+### Migration completeness
+
+All four call sites are fully migrated: no residual `makeFakeLogger` function definitions remain in any of the four files. Import paths use the `.js` extension as required by the ESM convention.
+
+### Test results (verified independently)
+
+4 test files, 27 tests — all passed.
+
+### Nits
+
+None.
