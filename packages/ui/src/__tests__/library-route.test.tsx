@@ -22,6 +22,7 @@ import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { TabsProvider } from "../context/tabs-context.js";
 import { LibraryRoute } from "../routes/library.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
@@ -193,7 +194,9 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
 function renderRoute(client: PraxisClient) {
   return render(
     <PraxisClientProvider client={client}>
-      <LibraryRoute />
+      <TabsProvider>
+        <LibraryRoute />
+      </TabsProvider>
     </PraxisClientProvider>,
   );
 }

@@ -15,6 +15,7 @@ import { brandId } from "@praxis/core/types";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { TabsProvider } from "../context/tabs-context.js";
 import { useTabs } from "../hooks/use-tabs.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
@@ -58,7 +59,9 @@ function makeClient(
 
 function wrapper(client: PraxisClient) {
   return ({ children }: { children: React.ReactNode }) => (
-    <PraxisClientProvider client={client}>{children}</PraxisClientProvider>
+    <PraxisClientProvider client={client}>
+      <TabsProvider>{children}</TabsProvider>
+    </PraxisClientProvider>
   );
 }
 

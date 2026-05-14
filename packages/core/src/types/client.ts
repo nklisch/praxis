@@ -242,6 +242,13 @@ export interface DocumentScopesClientApi {
    * returns `{ detached: false }`.
    */
   detach(input: { scope: DocumentScope; documentId: DocumentId }): Promise<{ detached: boolean }>;
+
+  /**
+   * List every scope a document is currently attached to. Used by
+   * `useDerivedScope` to resolve the primary scope when a document tab is
+   * active. Order matches insertion order in the scopes table.
+   */
+  listScopesForDocument(documentId: DocumentId): Promise<DocumentScope[]>;
 }
 
 export interface SessionService {

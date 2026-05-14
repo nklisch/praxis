@@ -27,6 +27,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../context/auth-context.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { TabsProvider } from "../context/tabs-context.js";
 import { ChatRoute } from "../routes/chat.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
@@ -167,7 +168,9 @@ function renderWithClient(client: PraxisClient) {
   return render(
     <PraxisClientProvider client={client}>
       <AuthProvider>
-        <ChatRoute />
+        <TabsProvider>
+          <ChatRoute />
+        </TabsProvider>
       </AuthProvider>
     </PraxisClientProvider>,
   );
@@ -176,14 +179,15 @@ function renderWithClient(client: PraxisClient) {
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe("ChatRoute shell", () => {
-  it("calls tabs.listOpen on mount", async () => {
+  it("calls tabs.listOpen exactly once on mount", async () => {
     const client = makeTestClient();
     renderWithClient(client);
 
     await waitFor(() => {
-      // useTabs() is called from both ChatRoute and useDerivedScope (the scope-aware
-      // sidebar hook), so listOpen is called at least once — possibly twice.
-      expect(client.tabs.listOpen).toHaveBeenCalled();
+      // After lift-tabs-state-to-context: tabs state lives in <TabsProvider>;
+      // all consumers (ChatRoute, useDerivedScope, sidebar) share one instance,
+      // so listOpen fires exactly once per route navigation.
+      expect(client.tabs.listOpen).toHaveBeenCalledTimes(1);
     });
   });
 

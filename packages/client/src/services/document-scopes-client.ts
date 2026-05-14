@@ -44,4 +44,8 @@ export class DocumentScopesClient implements DocumentScopesClientApi {
       documentId: input.documentId,
     });
   }
+
+  listScopesForDocument(documentId: DocumentId): Promise<DocumentScope[]> {
+    return this.transport.invoke<DocumentScope[]>(`${C}.listScopesForDocument`, documentId);
+  }
 }

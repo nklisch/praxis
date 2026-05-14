@@ -1,14 +1,14 @@
 ---
 id: lift-tabs-state-to-context
 kind: story
-stage: implementing
+stage: review
 tags: [ui, refactor]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Lift tabs state into a React context
@@ -35,3 +35,41 @@ Discovered during /agile-workflow:review (2026-05-13). The implementation note i
 ## Out of scope
 
 - Migrating other shared state (documents, sessions, etc.) to the same context pattern.
+
+## Implementation notes (2026-05-14)
+
+- Created `packages/ui/src/context/tabs-context.tsx` containing
+  `TabsProvider`, `useTabs`, and the `UseTabsResult` interface. The
+  provider owns the state and memoises the result value; the consumer
+  hook reads from the context and throws if no provider is mounted
+  (matches the `context-hook-pair` pattern).
+- Rewrote `packages/ui/src/hooks/use-tabs.ts` as a thin re-export
+  shim — `useTabs`, `TabsProvider`, and `UseTabsResult` all forward
+  from the new context module. Every existing caller (`useTabs`,
+  `UseTabsResult` typed imports) keeps working without changes.
+- Mounted `<TabsProvider>` in `packages/ui/src/app.tsx` between
+  `<AuthProvider>` and `<RouterProvider>` so every route renders
+  beneath the same shared instance.
+- Updated tests that rendered hooks/routes which call `useTabs`:
+  - `packages/ui/src/__tests__/use-tabs.test.tsx` — wrapper wraps with
+    `<PraxisClientProvider><TabsProvider>…</TabsProvider></PraxisClientProvider>`.
+  - `packages/ui/src/hooks/__tests__/use-tabs.test.tsx` — same.
+  - `packages/ui/src/__tests__/chat-route.test.tsx` — wrapper now
+    includes `<TabsProvider>`; the previously-loosened
+    `toHaveBeenCalled()` assertion tightened to
+    `toHaveBeenCalledTimes(1)` — the acceptance criterion.
+  - `packages/ui/src/__tests__/library-route.test.tsx` — wrapper now
+    includes `<TabsProvider>` because `LibraryRoute` uses `useTabs` via
+    the recent-sessions handler.
+- `useDerivedScope` test still mocks `useTabs` at module level, so the
+  refactor is invisible to it.
+
+## Verification
+
+- `pnpm --filter @praxis/ui typecheck`: green.
+- `pnpm --filter @praxis/ui test`: 1010 tests across 111 files pass.
+  Key cluster: `use-tabs.test.tsx` (11), `chat-route.test.tsx` (12),
+  `use-derived-scope.test.tsx` (18), `library-route.test.tsx` (16) —
+  46 tests covering the lifted-state surface plus its callers.
+- The acceptance criterion `chat-route.test.tsx can assert listOpen
+  is called once` is met (line 187 of that file).

@@ -18,15 +18,20 @@
  *   5. No tabs open on library route → { kind: "all" } (sidebar shows full library)
  */
 import type {
+  DocumentScope,
   DocumentTabSummary,
+  PraxisClient,
   SessionTabSummary,
   TabId,
   TabSummary,
   Timestamp,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PraxisClientProvider } from "../../context/client-context.js";
+import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
 import type { UseTabsResult } from "../use-tabs.js";
 
 // ── Stable mock for useTabs ────────────────────────────────────────────────────
@@ -108,6 +113,32 @@ function clearRoute(): void {
   mockMatches = [];
 }
 
+// ── PraxisClient wrapper for the hook ─────────────────────────────────────────
+// useDerivedScope reads `client.documentScopes.listScopesForDocument` to resolve
+// branch 3. Most tests don't exercise branch 3 (no active document tab), so the
+// default stub returns an empty array; branch-3 tests override via
+// `setListScopesForDocument`.
+
+let fakeClient: PraxisClient = makeFakeClient({
+  documentScopes: {
+    listScopesForDocument: vi.fn(async () => [] as DocumentScope[]),
+  } as PraxisClient["documentScopes"],
+});
+
+function setListScopesForDocument(
+  fn: (documentId: string) => Promise<DocumentScope[]>,
+): void {
+  fakeClient = makeFakeClient({
+    documentScopes: {
+      listScopesForDocument: vi.fn(fn),
+    } as PraxisClient["documentScopes"],
+  });
+}
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <PraxisClientProvider client={fakeClient}>{children}</PraxisClientProvider>;
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe("useDerivedScope", () => {
@@ -116,6 +147,11 @@ describe("useDerivedScope", () => {
     mockMatches = [];
     mockUseTabsReturn.openTabs = [];
     mockUseTabsReturn.activeTabId = null;
+    fakeClient = makeFakeClient({
+      documentScopes: {
+        listScopesForDocument: vi.fn(async () => [] as DocumentScope[]),
+      } as PraxisClient["documentScopes"],
+    });
   });
 
   // ── Branch 1: course route ───────────────────────────────────────────────────
@@ -124,7 +160,7 @@ describe("useDerivedScope", () => {
     setCourseRoute("course-abc");
     setTabs([], null);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "course", id: "course-abc" });
   });
@@ -134,7 +170,7 @@ describe("useDerivedScope", () => {
     const tab = makeSessionTab({ modeId: "teach" });
     setTabs([tab], tab.id);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "course", id: "course-xyz" });
   });
@@ -143,23 +179,26 @@ describe("useDerivedScope", () => {
     mockMatches = [{ routeId: "/courses/$courseId/map", params: { courseId: "course-map" } }];
     setTabs([], null);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "course", id: "course-map" });
   });
 
-  it("branch 1: course route with active document tab falls through (document tab excludes branch 1)", () => {
+  it("branch 1: course route with active document tab falls through (document tab excludes branch 1)", async () => {
     // When a document tab is active on a course route, branch 1 is skipped
     // (the document tab takes priority for what's "in view"). Branch 3 fires
-    // and returns "all" (pending listScopesForDocument).
+    // and resolves to the document's primary scope.
     setCourseRoute("course-with-doc-tab");
     const tab = makeDocumentTab();
     setTabs([tab], tab.id);
+    setListScopesForDocument(async () => []); // orphan document
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
-    // Branch 1 is skipped (document tab); branch 3 fires → "all".
-    expect(result.current).toEqual({ kind: "all" });
+    // Branch 1 is skipped (document tab); branch 3 fires with no scopes → "all".
+    await waitFor(() => {
+      expect(result.current).toEqual({ kind: "all" });
+    });
   });
 
   // ── Branch 2: bootstrap tab ──────────────────────────────────────────────────
@@ -173,7 +212,7 @@ describe("useDerivedScope", () => {
     });
     setTabs([tab], tab.id);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "session", id: "session-boot" });
   });
@@ -188,7 +227,7 @@ describe("useDerivedScope", () => {
     });
     setTabs([tab], tab.id);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "session", id: "session-boot2" });
   });
@@ -204,26 +243,85 @@ describe("useDerivedScope", () => {
     });
     setTabs([tab], tab.id);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     // Branch 1 wins: course route + session tab (not document tab).
     expect(result.current).toEqual({ kind: "course", id: "course-priority" });
   });
 
-  // ── Branch 3: document tab (current fallback → "all") ────────────────────────
+  // ── Branch 3: document tab — resolves to the document's primary scope ───────
 
-  it("branch 3: active document tab returns all (pending listScopesForDocument)", () => {
+  it("branch 3: active document tab resolves to its primary (course) scope", async () => {
     clearRoute();
     const tab = makeDocumentTab({
       id: brandId<"TabId">("tab-doc2"),
       documentId: brandId<"DocumentId">("doc-999"),
     });
     setTabs([tab], tab.id);
+    setListScopesForDocument(async () => [
+      { kind: "course", id: brandId<"CourseId">("course-from-doc") },
+    ]);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
-    // Branch 3 detected the document tab; no listScopesForDocument yet → "all".
+    await waitFor(() => {
+      expect(result.current).toEqual({ kind: "course", id: "course-from-doc" });
+    });
+  });
+
+  it("branch 3: course scope is preferred over session scope when both exist", async () => {
+    clearRoute();
+    const tab = makeDocumentTab({
+      id: brandId<"TabId">("tab-doc-multi"),
+      documentId: brandId<"DocumentId">("doc-multi"),
+    });
+    setTabs([tab], tab.id);
+    setListScopesForDocument(async () => [
+      { kind: "session", id: brandId<"SessionId">("session-multi") },
+      { kind: "course", id: brandId<"CourseId">("course-multi") },
+    ]);
+
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current).toEqual({ kind: "course", id: "course-multi" });
+    });
+  });
+
+  it("branch 3: session scope is returned when no course scope exists", async () => {
+    clearRoute();
+    const tab = makeDocumentTab({
+      id: brandId<"TabId">("tab-doc-sess"),
+      documentId: brandId<"DocumentId">("doc-sess"),
+    });
+    setTabs([tab], tab.id);
+    setListScopesForDocument(async () => [
+      { kind: "session", id: brandId<"SessionId">("session-only") },
+    ]);
+
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current).toEqual({ kind: "session", id: "session-only" });
+    });
+  });
+
+  it("branch 3: orphan document (no scopes attached) falls back to all", async () => {
+    clearRoute();
+    const tab = makeDocumentTab({
+      id: brandId<"TabId">("tab-doc-orph"),
+      documentId: brandId<"DocumentId">("doc-orphan"),
+    });
+    setTabs([tab], tab.id);
+    setListScopesForDocument(async () => []);
+
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
+
+    // While fetching → "all"; after resolution with [] → still "all".
     expect(result.current).toEqual({ kind: "all" });
+    await waitFor(() => {
+      expect(result.current).toEqual({ kind: "all" });
+    });
   });
 
   // ── Branch 4: default ────────────────────────────────────────────────────────
@@ -233,7 +331,7 @@ describe("useDerivedScope", () => {
     const tab = makeSessionTab({ modeId: "teach" });
     setTabs([tab], tab.id);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "all" });
   });
@@ -242,7 +340,7 @@ describe("useDerivedScope", () => {
     clearRoute();
     setTabs([], null);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "all" });
   });
@@ -252,7 +350,7 @@ describe("useDerivedScope", () => {
     const tab = makeSessionTab({ modeId: "teach" });
     setTabs([tab], tab.id);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "all" });
   });
@@ -263,7 +361,7 @@ describe("useDerivedScope", () => {
     mockMatches = [{ routeId: "/", params: {} }];
     setTabs([], null);
 
-    const { result } = renderHook(() => useDerivedScope());
+    const { result } = renderHook(() => useDerivedScope(), { wrapper });
 
     expect(result.current).toEqual({ kind: "all" });
   });
@@ -278,7 +376,7 @@ describe("useDerivedScope", () => {
     setCourseRoute("course-stable");
     setTabs([], null);
 
-    const { result, rerender } = renderHook(() => useDerivedScope());
+    const { result, rerender } = renderHook(() => useDerivedScope(), { wrapper });
     const first = result.current;
     rerender();
     const second = result.current;
@@ -290,7 +388,7 @@ describe("useDerivedScope", () => {
     setCourseRoute("course-a");
     setTabs([], null);
 
-    const { result, rerender } = renderHook(() => useDerivedScope());
+    const { result, rerender } = renderHook(() => useDerivedScope(), { wrapper });
     const first = result.current;
 
     setCourseRoute("course-b");
@@ -310,7 +408,7 @@ describe("useDerivedScope", () => {
     });
     setTabs([tab], tab.id);
 
-    const { result, rerender } = renderHook(() => useDerivedScope());
+    const { result, rerender } = renderHook(() => useDerivedScope(), { wrapper });
     const first = result.current;
     rerender();
     const second = result.current;

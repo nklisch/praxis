@@ -13,10 +13,11 @@ import type { Services } from "./services.js";
  * Register IPC handlers for the polymorphic scope ↔ document attachment service.
  *
  * All channels are invoke-only (non-streaming):
- *   praxis.documentScopes.listOrphaned   → DocumentScopeAttachment[]
- *   praxis.documentScopes.listForScope   → DocumentScopeAttachment[]
- *   praxis.documentScopes.attach         → { attached: boolean }
- *   praxis.documentScopes.detach         → { detached: boolean }
+ *   praxis.documentScopes.listOrphaned          → DocumentScopeAttachment[]
+ *   praxis.documentScopes.listForScope          → DocumentScopeAttachment[]
+ *   praxis.documentScopes.attach                → { attached: boolean }
+ *   praxis.documentScopes.detach                → { detached: boolean }
+ *   praxis.documentScopes.listScopesForDocument → DocumentScope[]
  */
 export function registerDocumentScopesHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
@@ -55,6 +56,15 @@ export function registerDocumentScopesHandlers(services: Services, log: Logger):
         scope: input.scope,
         documentId: brandId<"DocumentId">(input.documentId) as DocumentId,
       });
+    },
+  );
+
+  handle(
+    "praxis.documentScopes.listScopesForDocument",
+    async (_event, documentId: string) => {
+      return services.documentScopes.listScopesForDocument(
+        brandId<"DocumentId">(documentId) as DocumentId,
+      );
     },
   );
 }

@@ -20,6 +20,7 @@ import type React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
 import { PraxisClientProvider } from "../../context/client-context.js";
+import { TabsProvider } from "../../context/tabs-context.js";
 import { useTabs } from "../use-tabs.js";
 
 afterEach(() => cleanup());
@@ -73,7 +74,9 @@ function makeClient(overrides: Partial<PraxisClient["tabs"]> = {}): PraxisClient
 
 function wrapper(client: PraxisClient) {
   return ({ children }: { children: React.ReactNode }) => (
-    <PraxisClientProvider client={client}>{children}</PraxisClientProvider>
+    <PraxisClientProvider client={client}>
+      <TabsProvider>{children}</TabsProvider>
+    </PraxisClientProvider>
   );
 }
 
