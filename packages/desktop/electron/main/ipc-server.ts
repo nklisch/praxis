@@ -1245,20 +1245,34 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.notes.update", async (_event, input: { noteId: string; body: unknown }) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
-    return services.notes.update({
-      studentId,
-      noteId: brandId<"NoteId">(input.noteId),
-      // biome-ignore lint/suspicious/noExplicitAny: NoteBody validated inside service
-      body: input.body as any,
-    });
-  });
+  const noteIdSchema = z.string().min(1, "noteId");
+  const flashcardIdSchema = z.string().min(1, "flashcardId");
 
-  handle("praxis.notes.get", async (_event, noteId: string) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
-    return services.notes.get({ studentId, noteId: brandId<"NoteId">(noteId) });
-  });
+  handle(
+    "praxis.notes.update",
+    handleEnvelope(
+      "praxis.notes.update",
+      log,
+      z.object({ noteId: z.string().min(1, "noteId"), body: z.unknown() }),
+      async (input) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+        return services.notes.update({
+          studentId,
+          noteId: brandId<"NoteId">(input.noteId),
+          // biome-ignore lint/suspicious/noExplicitAny: NoteBody validated inside service
+          body: input.body as any,
+        });
+      },
+    ),
+  );
+
+  handle(
+    "praxis.notes.get",
+    handleEnvelope("praxis.notes.get", log, noteIdSchema, async (noteId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.notes.get({ studentId, noteId: brandId<"NoteId">(noteId) });
+    }),
+  );
 
   handle(
     "praxis.notes.list",
@@ -1286,10 +1300,13 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.notes.delete", async (_event, noteId: string) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
-    return services.notes.delete({ studentId, noteId: brandId<"NoteId">(noteId) });
-  });
+  handle(
+    "praxis.notes.delete",
+    handleEnvelope("praxis.notes.delete", log, noteIdSchema, async (noteId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.notes.delete({ studentId, noteId: brandId<"NoteId">(noteId) });
+    }),
+  );
 
   // ── Phase 12: Flashcards ─────────────────────────────────────────────────────
 
@@ -1341,13 +1358,16 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.flashcards.get", async (_event, flashcardId: string) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
-    return services.flashcards.get({
-      studentId,
-      flashcardId: brandId<"FlashcardId">(flashcardId),
-    });
-  });
+  handle(
+    "praxis.flashcards.get",
+    handleEnvelope("praxis.flashcards.get", log, flashcardIdSchema, async (flashcardId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.flashcards.get({
+        studentId,
+        flashcardId: brandId<"FlashcardId">(flashcardId),
+      });
+    }),
+  );
 
   handle(
     "praxis.flashcards.list",
@@ -1364,13 +1384,16 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.flashcards.delete", async (_event, flashcardId: string) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
-    return services.flashcards.delete({
-      studentId,
-      flashcardId: brandId<"FlashcardId">(flashcardId),
-    });
-  });
+  handle(
+    "praxis.flashcards.delete",
+    handleEnvelope("praxis.flashcards.delete", log, flashcardIdSchema, async (flashcardId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.flashcards.delete({
+        studentId,
+        flashcardId: brandId<"FlashcardId">(flashcardId),
+      });
+    }),
+  );
 
   handle(
     "praxis.flashcards.review",
@@ -1384,10 +1407,13 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.flashcards.dueCount", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId());
-    return services.flashcards.dueCount({ studentId });
-  });
+  handle(
+    "praxis.flashcards.dueCount",
+    wrapEnvelope("praxis.flashcards.dueCount", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.flashcards.dueCount({ studentId });
+    }),
+  );
 
   // ── Claude auth ──────────────────────────────────────────────────────────────
 

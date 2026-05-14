@@ -6,6 +6,7 @@ import type {
   Rating,
   Timestamp,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 /** Canonical channel names for the flashcards IPC surface. */
@@ -44,16 +45,20 @@ class FlashcardsClientImpl implements FlashcardsClient {
     return this.transport.invoke<Flashcard>(C.update, input);
   }
 
-  get(flashcardId: FlashcardId): Promise<Flashcard | null> {
-    return this.transport.invoke<Flashcard | null>(C.get, flashcardId);
+  async get(flashcardId: FlashcardId): Promise<Flashcard | null> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<Flashcard | null> | Flashcard | null
+    >(C.get, flashcardId);
+    return unwrapEnvelope(result);
   }
 
   list(input?: { conceptId?: ConceptId; due?: boolean; limit?: number }): Promise<Flashcard[]> {
     return this.transport.invoke<Flashcard[]>(C.list, input);
   }
 
-  delete(flashcardId: FlashcardId): Promise<void> {
-    return this.transport.invoke<void>(C.delete, flashcardId);
+  async delete(flashcardId: FlashcardId): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.delete, flashcardId);
+    return unwrapEnvelope(result);
   }
 
   review(input: {
@@ -66,8 +71,9 @@ class FlashcardsClientImpl implements FlashcardsClient {
     );
   }
 
-  dueCount(): Promise<number> {
-    return this.transport.invoke<number>(C.dueCount);
+  async dueCount(): Promise<number> {
+    const result = await this.transport.invoke<IpcEnvelope<number> | number>(C.dueCount);
+    return unwrapEnvelope(result);
   }
 }
 

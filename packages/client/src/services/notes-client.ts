@@ -7,6 +7,7 @@ import type {
   NoteId,
   NotesClient,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 /** Canonical channel names for the notes IPC surface. */
@@ -35,12 +36,17 @@ class NotesClientImpl implements NotesClient {
     return this.transport.invoke<Note>(C.create, input);
   }
 
-  update(input: { noteId: NoteId; body: NoteBody }): Promise<Note> {
-    return this.transport.invoke<Note>(C.update, input);
+  async update(input: { noteId: NoteId; body: NoteBody }): Promise<Note> {
+    const result = await this.transport.invoke<IpcEnvelope<Note> | Note>(C.update, input);
+    return unwrapEnvelope(result);
   }
 
-  get(noteId: NoteId): Promise<Note | null> {
-    return this.transport.invoke<Note | null>(C.get, noteId);
+  async get(noteId: NoteId): Promise<Note | null> {
+    const result = await this.transport.invoke<IpcEnvelope<Note | null> | Note | null>(
+      C.get,
+      noteId,
+    );
+    return unwrapEnvelope(result);
   }
 
   list(input?: {
@@ -52,8 +58,9 @@ class NotesClientImpl implements NotesClient {
     return this.transport.invoke<Note[]>(C.list, input);
   }
 
-  delete(noteId: NoteId): Promise<void> {
-    return this.transport.invoke<void>(C.delete, noteId);
+  async delete(noteId: NoteId): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.delete, noteId);
+    return unwrapEnvelope(result);
   }
 }
 
