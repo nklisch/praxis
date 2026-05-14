@@ -1,7 +1,7 @@
 ---
 id: gate-docs-claude-md-document-scopes-primitive
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -42,3 +42,13 @@ and promote to course-scope on confirmation.
 
 ## Implementation
 `CLAUDE.md:114` — replaced the `**Course documents join**` bullet with a `**Document scopes**` bullet referencing `DocumentScopesServiceImpl` and the `document_scopes` polymorphic table with `scope_kind: 'course' | 'session'`; describes bootstrap sessions as session-scoped and promotion to course-scope on draft confirmation. Verified against `packages/artifacts/src/schema.ts:242-272` (`documentScopes` table definition with `scope_kind` enum `["course", "session"]`) and `packages/core/src/services/document-scopes-service.ts:21` (`DocumentScopesServiceImpl` class) and `packages/core/src/services/index.ts:61` (export). Story description was accurate; no divergence found.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Single-bullet doc edit. Replacement bullet accurately names the current primitive (`DocumentScopesServiceImpl` + `document_scopes`), the discriminator (`scope_kind`), and the bootstrap-explorer promotion semantics. Matches schema and service file exactly. Bullet length matches surrounding navigation entries.
