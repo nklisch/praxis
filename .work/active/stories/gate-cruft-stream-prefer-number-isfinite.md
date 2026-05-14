@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-stream-prefer-number-isfinite
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -47,3 +47,6 @@ Changed `isFinite(timeout)` to `Number.isFinite(timeout)` on line 43 of
 `packages/claude-cli-sdk/src/cli/stream.ts`. Single-character change.
 Typecheck, tests (51 passing), and biome check on the file all pass; the
 `noGlobalIsFinite` warning is no longer emitted for this line.
+
+## Review
+Approved. Commit `4a32dfb` touches exactly two files: `stream.ts` (one line) and the story file. `grep -n "isFinite" stream.ts` returns only the `Number.isFinite` form — no global call remains. Stream-timeout tests (3/3) pass. Change is correct and complete.
