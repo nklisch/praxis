@@ -19,11 +19,6 @@ export function registerQuickCheckHandlers(
   activeAbortControllers: Map<string, AbortController>,
   log: Logger,
 ): void {
-  if (!services.quickCheck) {
-    // QuickCheckService is optional in the Services interface during transition.
-    // If it's not wired, skip registering the handlers.
-    return;
-  }
   const quickCheck = services.quickCheck;
   const { handle, on } = createIpcHelpers(log);
 
@@ -56,7 +51,10 @@ export function registerQuickCheckHandlers(
       streamLog.info("quickCheck.events.unsubscribe");
     } catch (err) {
       streamLog.error("quickCheck.events.error", { err: serializeErrorRedacted(err) });
-      push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
+      push({
+        kind: "error",
+        error: redactSecrets(err instanceof Error ? err.message : String(err)),
+      });
     } finally {
       unsubscribe?.();
       activeAbortControllers.delete(streamId);

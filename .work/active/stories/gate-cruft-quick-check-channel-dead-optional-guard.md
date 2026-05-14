@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-quick-check-channel-dead-optional-guard
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -44,3 +44,19 @@ the local `const quickCheck = services.quickCheck;` line). Replace
 remaining `quickCheck.` references in this file with
 `services.quickCheck.` (lines 45, 74) — or keep the local for brevity
 but make it an unconditional `const quickCheck = services.quickCheck;`.
+
+## Implementation
+
+Chose Form B: deleted the 5-line dead guard block (the `if (!services.quickCheck) return;` block
+with its stale comment), and replaced it with an unconditional
+`const quickCheck = services.quickCheck;`. All existing `quickCheck.` call-sites in the file
+remain unchanged.
+
+Also fixed a pre-existing formatter violation on the adjacent `push({ kind: "error", ... })` line
+(added by the sibling security fix) — biome required it to be split across multiple lines.
+
+Verification:
+- `pnpm --filter @praxis/desktop typecheck`: passed
+- `pnpm --filter @praxis/desktop test`: 122 tests passed
+- `pnpm biome check packages/desktop/electron/main/quick-check-channel.ts`: clean
+- `grep -r "if (!services.quickCheck)"`: zero results in desktop package
