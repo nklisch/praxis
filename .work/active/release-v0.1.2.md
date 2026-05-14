@@ -161,5 +161,10 @@ electron multi-arch rebuild, engine CLI integration smoke test).
 - **gate-cruft** (2026-05-14) — 6 findings (5 High, 1 Medium, 0 Low). All actionable; no Low/backlog.
   - 5 High → `.work/active/stories/` (`gate-cruft-query-unused-cleanupfn`, `gate-cruft-theme-tokens-test-unused-join`, `gate-cruft-session-service-stale-phase-11-12-null-shims`, `gate-cruft-quick-check-channel-dead-optional-guard`, `gate-cruft-claude-code-vision-empty-maxtokens-spread`)
   - 1 Medium → `.work/active/stories/` (`gate-cruft-stream-prefer-number-isfinite`)
+- **gate-docs** (2026-05-14) — 10 rolling-foundation findings (8 High implementing, 2 Medium drafting)
+  - 1 CLAUDE.md staleness — `gate-docs-claude-md-document-scopes-primitive` (course_documents → document_scopes polymorphic primitive)
+  - 4 foundation-doc-assertion drift — ROADMAP Phase 16, UX prompt-customization v2 surface, UX "Tutor workspace" label (drafting), CURRICULUM bootstrap-mode `course.list_drafts`
+  - 5 pattern-skill staleness — `mode-tool-scoping` (`retrieve_from_textbook` → `retrieve_from_documents`), `context-hook-pair` (tabs lifted), `shared-test-fake-factories` + index (`noopCourseDocuments` → `noopDocumentScopes`), `tab-body-isolation` (chat.tsx line anchor 106 → 175), `mode-prompt-fragment-composition` (`in-course-behavior` addendum — drafting)
+  - CHANGELOG.md gap is handled in phase 5.5 of release-deploy, outside this gate.
 
 <populated as remaining gates execute>
