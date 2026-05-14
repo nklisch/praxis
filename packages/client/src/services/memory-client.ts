@@ -14,6 +14,7 @@ import type {
   TimeRange,
   Timestamp,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 // Local brand helper. `@praxis/client` is a type-only dependent of
@@ -44,11 +45,9 @@ export class MemoryClient implements MemoryClientService {
   constructor(private readonly transport: ClientTransport) {}
 
   async studentModel(): Promise<StudentModel> {
-    const raw = await this.transport.invoke<{
-      studentId: string;
-      conceptMastery: [string, ConceptMastery][];
-      lastUpdated: number;
-    }>(C.studentModel);
+    type Raw = { studentId: string; conceptMastery: [string, ConceptMastery][]; lastUpdated: number };
+    const result = await this.transport.invoke<IpcEnvelope<Raw> | Raw>(C.studentModel);
+    const raw = unwrapEnvelope(result);
     return {
       studentId: asId<"StudentId">(raw.studentId),
       conceptMastery: new Map(
@@ -58,15 +57,17 @@ export class MemoryClient implements MemoryClientService {
     };
   }
 
-  misconceptions(): Promise<Misconception[]> {
-    return this.transport.invoke<Misconception[]>(C.misconceptions);
+  async misconceptions(): Promise<Misconception[]> {
+    const result = await this.transport.invoke<IpcEnvelope<Misconception[]> | Misconception[]>(
+      C.misconceptions,
+    );
+    return unwrapEnvelope(result);
   }
 
   async procedural(): Promise<ProceduralModel> {
-    const raw = await this.transport.invoke<{
-      studentId: string;
-      strategies: [string, StrategyPreference][];
-    }>(C.procedural);
+    type Raw = { studentId: string; strategies: [string, StrategyPreference][] };
+    const result = await this.transport.invoke<IpcEnvelope<Raw> | Raw>(C.procedural);
+    const raw = unwrapEnvelope(result);
     return {
       studentId: asId<"StudentId">(raw.studentId),
       strategies: new Map(
@@ -75,8 +76,11 @@ export class MemoryClient implements MemoryClientService {
     };
   }
 
-  affective(): Promise<AffectiveModel> {
-    return this.transport.invoke<AffectiveModel>(C.affective);
+  async affective(): Promise<AffectiveModel> {
+    const result = await this.transport.invoke<IpcEnvelope<AffectiveModel> | AffectiveModel>(
+      C.affective,
+    );
+    return unwrapEnvelope(result);
   }
 
   episodic(opts: { sessionId?: SessionId; range?: TimeRange }): AsyncIterable<EpisodicEvent> {
@@ -84,7 +88,7 @@ export class MemoryClient implements MemoryClientService {
   }
 
   async export(): Promise<MemoryExport> {
-    const raw = await this.transport.invoke<{
+    type RawExport = {
       studentId: string;
       episodic: EpisodicEvent[];
       studentModel: {
@@ -100,7 +104,9 @@ export class MemoryClient implements MemoryClientService {
       misconceptions: Misconception[];
       exportedAt: number;
       formatVersion: string;
-    }>(C.export);
+    };
+    const result = await this.transport.invoke<IpcEnvelope<RawExport> | RawExport>(C.export);
+    const raw = unwrapEnvelope(result);
     return {
       studentId: asId<"StudentId">(raw.studentId),
       episodic: raw.episodic,
@@ -124,7 +130,8 @@ export class MemoryClient implements MemoryClientService {
     };
   }
 
-  delete(opts: { confirm: true }): Promise<void> {
-    return this.transport.invoke<void>(C.delete, opts);
+  async delete(opts: { confirm: true }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.delete, opts);
+    return unwrapEnvelope(result);
   }
 }

@@ -466,56 +466,74 @@ export function registerIpcHandlers(
 
   // ── Memory ───────────────────────────────────────────────────────────────────
 
-  handle("praxis.memory.studentModel", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    const model = await services.memory.studentModel(studentId);
-    // Maps don't survive JSON.stringify — serialize conceptMastery as entries array.
-    return {
-      ...model,
-      conceptMastery: [...model.conceptMastery.entries()],
-    };
-  });
+  handle(
+    "praxis.memory.studentModel",
+    wrapEnvelope("praxis.memory.studentModel", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const model = await services.memory.studentModel(studentId);
+      // Maps don't survive JSON.stringify — serialize conceptMastery as entries array.
+      return {
+        ...model,
+        conceptMastery: [...model.conceptMastery.entries()],
+      };
+    }),
+  );
 
-  handle("praxis.memory.misconceptions", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.memory.misconceptions(studentId);
-  });
+  handle(
+    "praxis.memory.misconceptions",
+    wrapEnvelope("praxis.memory.misconceptions", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.memory.misconceptions(studentId);
+    }),
+  );
 
-  handle("praxis.memory.procedural", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    const model = await services.memory.procedural(studentId);
-    return {
-      ...model,
-      strategies: [...model.strategies.entries()],
-    };
-  });
+  handle(
+    "praxis.memory.procedural",
+    wrapEnvelope("praxis.memory.procedural", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const model = await services.memory.procedural(studentId);
+      return {
+        ...model,
+        strategies: [...model.strategies.entries()],
+      };
+    }),
+  );
 
-  handle("praxis.memory.affective", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.memory.affective(studentId);
-  });
+  handle(
+    "praxis.memory.affective",
+    wrapEnvelope("praxis.memory.affective", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.memory.affective(studentId);
+    }),
+  );
 
-  handle("praxis.memory.export", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    const exported = await services.memory.export(studentId);
-    // Serialize Maps as entries arrays for IPC transport.
-    return {
-      ...exported,
-      studentModel: {
-        ...exported.studentModel,
-        conceptMastery: [...exported.studentModel.conceptMastery.entries()],
-      },
-      procedural: {
-        ...exported.procedural,
-        strategies: [...exported.procedural.strategies.entries()],
-      },
-    };
-  });
+  handle(
+    "praxis.memory.export",
+    wrapEnvelope("praxis.memory.export", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const exported = await services.memory.export(studentId);
+      // Serialize Maps as entries arrays for IPC transport.
+      return {
+        ...exported,
+        studentModel: {
+          ...exported.studentModel,
+          conceptMastery: [...exported.studentModel.conceptMastery.entries()],
+        },
+        procedural: {
+          ...exported.procedural,
+          strategies: [...exported.procedural.strategies.entries()],
+        },
+      };
+    }),
+  );
 
-  handle("praxis.memory.delete", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.memory.delete({ studentId, confirm: true });
-  });
+  handle(
+    "praxis.memory.delete",
+    wrapEnvelope("praxis.memory.delete", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.memory.delete({ studentId, confirm: true });
+    }),
+  );
 
   // Streaming: praxis.memory.episodic.start(streamId, opts) invokes the handler.
   // Events are pushed on praxis.memory.episodic.events.<streamId>.

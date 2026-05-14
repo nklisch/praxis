@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-4-memory
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-3-artifacts]
