@@ -1,26 +1,28 @@
 # Pattern: IPC Envelope-Wrapped Handler
 
-Main-process handlers that mutate state, validate input, or cross the renderer trust boundary are wrapped with `wrapEnvelope(channel, log, withSchema(zod, fn))` so the wire format is `{ ok: true, value } | { ok: false, error: { code, message, requestId } }` rather than a thrown `Error`. The client peels the envelope with `unwrapEnvelope`, which throws `IpcError` carrying `.code` and `.requestId`. The same `requestId` (UUIDv7) appears in the main-side log row so support can join the renderer-visible failure to the server stack trace.
+Main-process handlers that mutate state, validate input, or cross the renderer trust boundary use `handleEnvelope(channel, log, schema, fn)` (for channels that take a payload) or bare `wrapEnvelope(channel, log, fn)` (for zero-argument channels) so the wire format is `{ ok: true, value } | { ok: false, error: { code, message, requestId } }` rather than a thrown `Error`. The client peels the envelope with `unwrapEnvelope`, which throws `IpcError` carrying `.code` and `.requestId`. The same `requestId` (UUIDv7) appears in the main-side log row so support can join the renderer-visible failure to the server stack trace.
 
 ## Rationale
 
-Electron's structured-clone serialization strips custom `Error` subclasses to bare `{ message, stack }`, losing `code` and any stable failure category. The renderer needs `code` to branch UX (validation vs unauthorized vs not-found vs internal) and `requestId` to link a user-reported failure to a log row. A discriminated-union envelope preserves both, never leaks raw stack traces or secret-shaped strings across the trust boundary (the redactor in `serializeErrorRedacted` runs on the log side, the user-safe message on the envelope side), and a single `wrapEnvelope` wrapper enforces the contract uniformly. `withSchema(zod, fn)` composes underneath so input validation surfaces as `VALIDATION_FAILED` with a joined path string instead of a raw Zod message.
+Electron's structured-clone serialization strips custom `Error` subclasses to bare `{ message, stack }`, losing `code` and any stable failure category. The renderer needs `code` to branch UX (validation vs unauthorized vs not-found vs internal) and `requestId` to link a user-reported failure to a log row. A discriminated-union envelope preserves both, never leaks raw stack traces or secret-shaped strings across the trust boundary (the redactor in `serializeErrorRedacted` runs on the log side, the user-safe message on the envelope side), and a single wrapper enforces the contract uniformly.
+
+`handleEnvelope` (in `ipc-helpers.ts`) is the canonical helper for channels that take a payload. It strips the IPC event object that `createIpcHelpers.handle` prepends, validates only the payload against a Zod schema, and wraps the call in `wrapEnvelope`. This avoids the `wrapEnvelope(channel, log, withSchema(schema, fn))` anti-pattern, which would validate the event object instead of the payload because `createIpcHelpers.handle` calls `fn(event, ...args)`.
 
 ## Examples
 
 ### Example 1: Envelope wrapper + Zod input validation in main
 
-**File**: `packages/desktop/electron/main/ipc-server.ts:198`
+**File**: `packages/desktop/electron/main/ipc-server.ts`
 
 ```typescript
+// For channels that take a payload — use handleEnvelope (validates payload, not event):
 handle(
   "praxis.config.setSelectedEngine",
-  wrapEnvelope(
+  handleEnvelope(
     "praxis.config.setSelectedEngine",
     log,
-    withSchema(EngineIdSchema, async (engineId) =>
-      services.config.setSelectedEngine(engineId),
-    ),
+    EngineIdSchema,
+    async (engineId) => services.config.setSelectedEngine(engineId),
   ),
 );
 ```
@@ -79,7 +81,9 @@ export function wrapEnvelope<TArgs extends unknown[], TResult>(
 
 ## Common Violations
 
+- Using `wrapEnvelope(channel, log, withSchema(schema, fn))` directly for a channel that takes a payload — `createIpcHelpers.handle` calls the registered function as `fn(event, ...args)`, so `withSchema` receives the event object as `raw` and always returns `VALIDATION_FAILED`. Use `handleEnvelope` instead.
 - Wrapping a streaming channel with `wrapEnvelope` — the stream's events go on a separate channel; the start invoke just kicks subscription off
-- Forgetting `withSchema` on a channel that takes a structured payload — `cfg.maxSteps` arriving as a string crashes the service with a cryptic TypeError instead of returning `VALIDATION_FAILED`
+- Forgetting `withSchema` (or `handleEnvelope`) on a channel that takes a structured payload — `cfg.maxSteps` arriving as a string crashes the service with a cryptic TypeError instead of returning `VALIDATION_FAILED`
 - Adding a new failure `code` outside the allowlist in `extractAllowlistedCode` — silently folded into the generic `INTERNAL` message instead of surfacing the code to the renderer
 - Throwing inside `wrapEnvelope`'s `fn` and *also* logging — the wrapper already logs at `error` level with `requestId`; duplicating the log loses the `requestId` linkage
+- Calling `transport.invoke<void>(...)` on a `handleEnvelope`-wrapped channel without `unwrapEnvelope` — the `{ ok: false, error }` envelope is silently discarded and validation failures are invisible to the renderer

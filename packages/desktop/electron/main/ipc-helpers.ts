@@ -2,6 +2,9 @@ import type { Logger } from "@praxis/core/types";
 import { serializeErrorRedacted } from "@praxis/core/types";
 import type { IpcMainInvokeEvent } from "electron";
 import { ipcMain } from "electron";
+import type { z } from "zod";
+import type { IpcEnvelope } from "./ipc-error-envelope.js";
+import { withSchema, wrapEnvelope } from "./ipc-error-envelope.js";
 
 export interface IpcHandlerHelpers {
   /**
@@ -28,6 +31,37 @@ export interface IpcHandlerHelpers {
 }
 
 const SLOW_CALL_THRESHOLD_MS = 200;
+
+/**
+ * Compose `wrapEnvelope + withSchema` into a single handler function whose
+ * signature matches `ipcMain.handle`'s `(event, payload)` calling convention.
+ *
+ * The IPC timing wrapper in `createIpcHelpers.handle` always calls
+ * `fn(event, ...args)`, so the first argument the registered function receives
+ * is the Electron IpcMainInvokeEvent — not the payload. `handleEnvelope`
+ * strips the event, forwards only `payload` to `withSchema`, and wraps the
+ * whole call in `wrapEnvelope` so failures are returned as a discriminated
+ * envelope rather than a rejected promise.
+ *
+ * Usage in ipc-server.ts:
+ *   handle(
+ *     "praxis.lock.setLockCode",
+ *     handleEnvelope("praxis.lock.setLockCode", log, z.string().min(1), async (code) =>
+ *       services.lock.setLockCode({ code }),
+ *     ),
+ *   );
+ */
+export function handleEnvelope<TIn, TOut>(
+  channel: string,
+  log: Logger,
+  schema: z.ZodType<TIn>,
+  fn: (input: TIn) => Promise<TOut> | TOut,
+): (_event: IpcMainInvokeEvent, payload: unknown) => Promise<IpcEnvelope<TOut>> {
+  const inner = withSchema(schema, fn);
+  const wrapped = wrapEnvelope(channel, log, inner);
+  return (_event: IpcMainInvokeEvent, payload: unknown): Promise<IpcEnvelope<TOut>> =>
+    wrapped(payload);
+}
 
 export function createIpcHelpers(log: Logger): IpcHandlerHelpers {
   return {

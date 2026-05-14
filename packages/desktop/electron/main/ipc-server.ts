@@ -1,4 +1,5 @@
 import type { IpcStreamMessage } from "@praxis/client";
+import { EngineConfigSchema, EngineIdSchema } from "@praxis/core/config";
 import type {
   AssignmentId,
   ConceptId,
@@ -18,16 +19,20 @@ import type {
   TabId,
   TldrawSnapshot,
 } from "@praxis/core/types";
-import { brandId, isAllowedExternalUrl, redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
-import { EngineConfigSchema, EngineIdSchema } from "@praxis/core/config";
-import { z } from "zod";
+import {
+  brandId,
+  isAllowedExternalUrl,
+  redactSecrets,
+  serializeErrorRedacted,
+} from "@praxis/core/types";
 import { app, ipcMain } from "electron";
+import { z } from "zod";
 import { registerActivityHandlers } from "./activity-channel.js";
 import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
 import { registerDocumentScopesHandlers } from "./document-scopes-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
-import { wrapEnvelope, withSchema } from "./ipc-error-envelope.js";
-import { createIpcHelpers } from "./ipc-helpers.js";
+import { wrapEnvelope } from "./ipc-error-envelope.js";
+import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
 import type { Services } from "./services.js";
 import { registerSubAgentHandlers } from "./subagent-channel.js";
@@ -160,7 +165,10 @@ export function registerIpcHandlers(
           eventCount,
           err: serializeErrorRedacted(err),
         });
-        push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
+        push({
+          kind: "error",
+          error: redactSecrets(err instanceof Error ? err.message : String(err)),
+        });
       } finally {
         activeAbortControllers.delete(streamId);
       }
@@ -180,10 +188,8 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.config.setLockCode",
-    wrapEnvelope(
-      "praxis.config.setLockCode",
-      log,
-      withSchema(z.string().min(1, "code"), async (code) => services.config.setLockCode(code)),
+    handleEnvelope("praxis.config.setLockCode", log, z.string().min(1, "code"), async (code) =>
+      services.config.setLockCode(code),
     ),
   );
 
@@ -197,12 +203,8 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.config.setSelectedEngine",
-    wrapEnvelope(
-      "praxis.config.setSelectedEngine",
-      log,
-      withSchema(EngineIdSchema, async (engineId) =>
-        services.config.setSelectedEngine(engineId),
-      ),
+    handleEnvelope("praxis.config.setSelectedEngine", log, EngineIdSchema, async (engineId) =>
+      services.config.setSelectedEngine(engineId),
     ),
   );
 
@@ -226,25 +228,21 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.config.setEngineConfig",
-    wrapEnvelope(
-      "praxis.config.setEngineConfig",
-      log,
-      withSchema(EngineConfigSchema, async (cfg) => {
-        await requireUnlocked();
-        // The service writes to disk; `hasApiKey` is a derived display flag
-        // — set it from the validated public input so the snapshot shape
-        // matches even though the service strips it before persistence.
-        const hasApiKey = cfg.apiKey !== undefined && cfg.apiKey.length > 0;
-        return services.config.setEngineConfig({
-          engineId: cfg.engineId,
-          hasApiKey,
-          ...(cfg.model !== undefined && { model: cfg.model }),
-          ...(cfg.baseUrl !== undefined && { baseUrl: cfg.baseUrl }),
-          ...(cfg.effort !== undefined && { effort: cfg.effort }),
-          ...(cfg.apiKey !== undefined && { apiKey: cfg.apiKey }),
-        });
-      }),
-    ),
+    handleEnvelope("praxis.config.setEngineConfig", log, EngineConfigSchema, async (cfg) => {
+      await requireUnlocked();
+      // The service writes to disk; `hasApiKey` is a derived display flag
+      // — set it from the validated public input so the snapshot shape
+      // matches even though the service strips it before persistence.
+      const hasApiKey = cfg.apiKey !== undefined && cfg.apiKey.length > 0;
+      return services.config.setEngineConfig({
+        engineId: cfg.engineId,
+        hasApiKey,
+        ...(cfg.model !== undefined && { model: cfg.model }),
+        ...(cfg.baseUrl !== undefined && { baseUrl: cfg.baseUrl }),
+        ...(cfg.effort !== undefined && { effort: cfg.effort }),
+        ...(cfg.apiKey !== undefined && { apiKey: cfg.apiKey }),
+      });
+    }),
   );
 
   handle("praxis.config.bootstrapConfig", async () => {
@@ -253,12 +251,11 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.config.setBootstrapConfig",
-    wrapEnvelope(
+    handleEnvelope(
       "praxis.config.setBootstrapConfig",
       log,
-      withSchema(z.object({ maxSteps: z.number().int().positive() }), async (cfg) =>
-        services.config.setBootstrapConfig(cfg),
-      ),
+      z.object({ maxSteps: z.number().int().positive() }),
+      async (cfg) => services.config.setBootstrapConfig(cfg),
     ),
   );
 
@@ -472,7 +469,10 @@ export function registerIpcHandlers(
           eventCount,
           err: serializeErrorRedacted(err),
         });
-        push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
+        push({
+          kind: "error",
+          error: redactSecrets(err instanceof Error ? err.message : String(err)),
+        });
       } finally {
         activeAbortControllers.delete(streamId);
       }
@@ -571,21 +571,15 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.lock.setLockCode",
-    wrapEnvelope(
-      "praxis.lock.setLockCode",
-      log,
-      withSchema(z.string().min(1, "code"), async (code) =>
-        services.lock.setLockCode({ code }),
-      ),
+    handleEnvelope("praxis.lock.setLockCode", log, z.string().min(1, "code"), async (code) =>
+      services.lock.setLockCode({ code }),
     ),
   );
 
   handle(
     "praxis.lock.unlock",
-    wrapEnvelope(
-      "praxis.lock.unlock",
-      log,
-      withSchema(z.string().min(1, "code"), async (code) => services.lock.unlock({ code })),
+    handleEnvelope("praxis.lock.unlock", log, z.string().min(1, "code"), async (code) =>
+      services.lock.unlock({ code }),
     ),
   );
 
@@ -595,12 +589,8 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.lock.clearLock",
-    wrapEnvelope(
-      "praxis.lock.clearLock",
-      log,
-      withSchema(z.string().min(1, "code"), async (currentCode) =>
-        services.lock.clearLock({ currentCode }),
-      ),
+    handleEnvelope("praxis.lock.clearLock", log, z.string().min(1, "code"), async (currentCode) =>
+      services.lock.clearLock({ currentCode }),
     ),
   );
 
@@ -1130,7 +1120,10 @@ export function registerIpcHandlers(
         eventCount,
         err: serializeErrorRedacted(err),
       });
-      push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
+      push({
+        kind: "error",
+        error: redactSecrets(err instanceof Error ? err.message : String(err)),
+      });
     } finally {
       activeAbortControllers.delete(streamId);
     }
@@ -1310,19 +1303,14 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.shell.openExternal",
-    wrapEnvelope(
+    handleEnvelope(
       "praxis.shell.openExternal",
       log,
-      withSchema(
-        z
-          .string()
-          .min(1, "url")
-          .refine(isAllowedExternalUrl, "url must be http(s)"),
-        async (url) => {
-          const { shell } = await import("electron");
-          await shell.openExternal(url);
-        },
-      ),
+      z.string().min(1, "url").refine(isAllowedExternalUrl, "url must be http(s)"),
+      async (url) => {
+        const { shell } = await import("electron");
+        await shell.openExternal(url);
+      },
     ),
   );
 

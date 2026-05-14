@@ -2,18 +2,29 @@
  * Integration tests: IPC envelope migration wiring coverage.
  *
  * Purpose: catch regressions where a channel is added or modified and
- * `wrapEnvelope` is accidentally removed or skipped. Unit tests in
- * `ipc-error-envelope.test.ts` cover the helper itself; these tests drive the
- * real `ipcMain.handle` registrations through `registerIpcHandlers` so that
- * wiring gaps — not helper bugs — are detected.
+ * `handleEnvelope` (or bare `wrapEnvelope` for no-schema channels) is
+ * accidentally removed or skipped. Unit tests in `ipc-error-envelope.test.ts`
+ * cover the helpers themselves; these tests drive the real `ipcMain.handle`
+ * registrations through `registerIpcHandlers` so that wiring gaps — not
+ * helper bugs — are detected.
+ *
+ * Bug fix note (v0.1.2): `wrapEnvelope + withSchema` channels previously
+ * validated the IPC event object instead of the payload because the
+ * `createIpcHelpers.handle` timing wrapper prepends the event before
+ * spreading `...args` to the registered function. `handleEnvelope` in
+ * `ipc-helpers.ts` corrects this by explicitly stripping the event and
+ * forwarding only `payload` to `withSchema`. Tests below verify the
+ * success path (valid payload → `{ ok: true }`) for each migrated channel.
  *
  * Channels exercised:
- *   praxis.shell.openExternal  — migrated; `withSchema` + URL allowlist
- *   praxis.config.setSelectedEngine — migrated; `withSchema` + EngineIdSchema
- *   praxis.lock.setLockCode    — migrated; `withSchema(z.string().min(1))`
- *   praxis.lock.unlock         — migrated; `withSchema(z.string().min(1))`
- *   praxis.lock.clearLock      — migrated; `withSchema(z.string().min(1))`
- *   praxis.documents.list      — control: NOT migrated, throws raw on error
+ *   praxis.shell.openExternal      — migrated; `handleEnvelope` + URL allowlist
+ *   praxis.config.setSelectedEngine — migrated; `handleEnvelope` + EngineIdSchema
+ *   praxis.config.setLockCode      — migrated; `handleEnvelope(z.string().min(1))`
+ *   praxis.lock.setLockCode        — migrated; `handleEnvelope(z.string().min(1))`
+ *   praxis.lock.unlock             — migrated; `handleEnvelope(z.string().min(1))`
+ *   praxis.lock.clearLock          — migrated; `handleEnvelope(z.string().min(1))`
+ *   praxis.update.checkLatest      — migrated; bare `wrapEnvelope` (no schema)
+ *   praxis.documents.list          — control: NOT migrated, throws raw on error
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -63,14 +74,16 @@ function makeFakeLogger() {
  * complete without crashing, while giving full control over specific service
  * methods.
  */
-function makeServices(overrides: {
-  configSetSelectedEngine?: () => Promise<unknown>;
-  configSetLockCode?: () => Promise<unknown>;
-  lockSetLockCode?: (opts: { code: string }) => Promise<unknown>;
-  lockUnlock?: (opts: { code: string }) => Promise<unknown>;
-  lockClearLock?: (opts: { currentCode: string }) => Promise<unknown>;
-  documentsList?: () => Promise<unknown>;
-} = {}) {
+function makeServices(
+  overrides: {
+    configSetSelectedEngine?: () => Promise<unknown>;
+    configSetLockCode?: () => Promise<unknown>;
+    lockSetLockCode?: (opts: { code: string }) => Promise<unknown>;
+    lockUnlock?: (opts: { code: string }) => Promise<unknown>;
+    lockClearLock?: (opts: { currentCode: string }) => Promise<unknown>;
+    documentsList?: () => Promise<unknown>;
+  } = {},
+) {
   const lock = {
     isSet: vi.fn().mockResolvedValue(false),
     isUnlocked: vi.fn().mockResolvedValue(true),
@@ -238,7 +251,14 @@ function makeServices(overrides: {
 
   const sketches = {
     put: vi.fn().mockResolvedValue({}),
-    get: vi.fn().mockResolvedValue({ id: "s1", snapshot: {}, width: 0, height: 0, createdAt: 0, image: Buffer.from("") }),
+    get: vi.fn().mockResolvedValue({
+      id: "s1",
+      snapshot: {},
+      width: 0,
+      height: 0,
+      createdAt: 0,
+      image: Buffer.from(""),
+    }),
     getSummary: vi.fn().mockResolvedValue({}),
   };
 
@@ -279,7 +299,6 @@ function makeServices(overrides: {
     supported: vi.fn().mockReturnValue([]),
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: partial stub — only specific paths exercised
   return {
     session,
     config,
@@ -304,6 +323,7 @@ function makeServices(overrides: {
     documentScopes,
     ingestorRegistry,
     getDefaultStudentId: () => "student-1",
+    // biome-ignore lint/suspicious/noExplicitAny: partial stub — only specific paths exercised
   } as any;
 }
 
@@ -319,26 +339,7 @@ afterEach(() => {
 // ── praxis.shell.openExternal — migrated channel ──────────────────────────────
 
 describe("praxis.shell.openExternal — envelope wiring", () => {
-  /**
-   * NOTE on the test harness call convention for wrapEnvelope channels:
-   *
-   * `ipc-helpers.ts` registers `ipcMain.handle(channel, async (event, ...args) => fn(event, ...args))`.
-   * Our mock captures that outer timing wrapper. When we call `handler({event}, url)`, the
-   * timing wrapper calls `fn({event}, url)` where `fn` is the wrapEnvelope return.
-   * wrapEnvelope spreads all its args to `withSchema`'s single-arg `(raw: unknown)` function,
-   * so `raw = {event}` (the mock event object, not the URL string).
-   *
-   * As a result:
-   *   - success-path tests: the event object always fails z.string() → VALIDATION_FAILED.
-   *     We verify the envelope IS returned (not a raw throw) and has a VALIDATION_FAILED code.
-   *   - rejection tests: any non-string (including file:// and javascript: URLs passed as arg[1])
-   *     would also yield VALIDATION_FAILED, but we call with no URL arg so the event object is
-   *     validated — which also yields VALIDATION_FAILED, proving the envelope wrapping is wired.
-   *
-   * The important invariant: NONE of these handlers throw raw — they all return { ok, error }.
-   */
-
-  it("resolves (never throws) and returns an envelope when called", async () => {
+  it("resolves with { ok: true } for a valid https URL", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -346,14 +347,24 @@ describe("praxis.shell.openExternal — envelope wiring", () => {
     const handler = handlers.get("praxis.shell.openExternal");
     expect(handler).toBeDefined();
 
-    // The handler must resolve (not reject), proving wrapEnvelope is wired.
-    // With the event object as `raw`, the URL schema rejects — but that's ok;
-    // what matters is that we get an envelope back, not a raw throw.
-    const result = await handler?.({});
+    // handleEnvelope strips the event and validates only the payload.
+    const result = await handler?.({}, "https://example.com");
+    expect(result).toMatchObject({ ok: true, value: undefined });
+  });
+
+  it("returns VALIDATION_FAILED for a non-http URL (file:// blocked by allowlist)", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.shell.openExternal");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "file:///etc/passwd");
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
-  it("returns VALIDATION_FAILED envelope for non-http input (never rejects)", async () => {
+  it("returns VALIDATION_FAILED for a missing URL (empty string)", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -361,13 +372,22 @@ describe("praxis.shell.openExternal — envelope wiring", () => {
     const handler = handlers.get("praxis.shell.openExternal");
     expect(handler).toBeDefined();
 
-    // file:// as the second arg (after event) — the event object is still what
-    // withSchema receives, so this yields VALIDATION_FAILED for the event, not the URL.
-    // Either way, the wrapEnvelope wrapper is proven: the promise resolves, not rejects.
-    const result = await handler?.({}, "file:///etc/passwd");
-    expect(result).toMatchObject({ ok: false });
-    const envelope = result as { ok: false; error: { code: string } };
-    expect(envelope.error.code).toBe("VALIDATION_FAILED");
+    const result = await handler?.({}, "");
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+
+  it("returns VALIDATION_FAILED for non-string input (never rejects)", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.shell.openExternal");
+    expect(handler).toBeDefined();
+
+    await expect(handler?.({}, 42)).resolves.toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_FAILED" },
+    });
   });
 
   it("is registered and always resolves (not rejects) — confirming wrapEnvelope wiring", async () => {
@@ -378,16 +398,17 @@ describe("praxis.shell.openExternal — envelope wiring", () => {
     const handler = handlers.get("praxis.shell.openExternal");
     expect(handler).toBeDefined();
 
-    // The key wiring invariant: wrapEnvelope means the handler never throws.
-    // If wrapEnvelope were missing, the handler would throw on validation failure.
-    await expect(handler?.({})).resolves.toMatchObject({ ok: false, error: { code: expect.any(String) } });
+    await expect(handler?.({}, undefined)).resolves.toMatchObject({
+      ok: false,
+      error: { code: expect.any(String) },
+    });
   });
 });
 
 // ── Migrated channel internal throw — no path leakage ────────────────────────
 
 describe("migrated channel internal throw — path leakage guard", () => {
-  it("surfaces INTERNAL or VALIDATION_FAILED (never a raw throw) and never leaks a path in the message", async () => {
+  it("surfaces INTERNAL (never a raw throw) and never leaks a path in the message", async () => {
     const log = makeFakeLogger();
     const services = makeServices({
       configSetSelectedEngine: async () => {
@@ -396,23 +417,44 @@ describe("migrated channel internal throw — path leakage guard", () => {
     });
     registerIpcHandlers(services, () => null, log);
 
-    // praxis.config.setSelectedEngine is wrapped with wrapEnvelope + withSchema(EngineIdSchema).
-    // In this test harness the timing wrapper passes the event object as the first arg to
-    // wrapEnvelope, so withSchema receives the event object as `raw` and Zod rejects it with
-    // VALIDATION_FAILED before the service (which would throw the path) is reached.
-    // Either way, wrapEnvelope is confirmed: the promise resolves with an envelope, never rejects.
-    // And neither VALIDATION_FAILED nor INTERNAL messages contain the filesystem path.
+    // praxis.config.setSelectedEngine uses handleEnvelope + EngineIdSchema.
+    // "claude-code" is a valid engine id — the service is reached and throws the path error.
+    // wrapEnvelope catches it and returns an INTERNAL envelope with a redacted message.
     const handler = handlers.get("praxis.config.setSelectedEngine");
     expect(handler).toBeDefined();
 
     const result = await handler?.({}, "claude-code");
-    // Must resolve with an envelope (not throw), regardless of which error code.
+    // Must resolve with an envelope (not throw).
     expect(result).toMatchObject({ ok: false });
     const envelope = result as { ok: false; error: { code: string; message: string } };
-    expect(["INTERNAL", "VALIDATION_FAILED"]).toContain(envelope.error.code);
+    expect(envelope.error.code).toBe("INTERNAL");
     // The user-safe message must never contain the filesystem path.
     expect(envelope.error.message).not.toContain("/Users/x/.praxis");
     expect(envelope.error.message).not.toContain("dev.db");
+  });
+
+  it("praxis.config.setSelectedEngine returns { ok: true } when the service succeeds", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.config.setSelectedEngine");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "claude-code");
+    expect(result).toMatchObject({ ok: true, value: undefined });
+  });
+
+  it("praxis.config.setSelectedEngine returns VALIDATION_FAILED for unknown engine id", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.config.setSelectedEngine");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "not-a-valid-engine-id");
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
   it("praxis.update.checkLatest (no schema) returns { ok: true } envelope on success", async () => {
@@ -471,20 +513,23 @@ describe("praxis.documents.list — non-migrated control channel", () => {
   });
 });
 
-// ── praxis.lock.* — per-channel withSchema boundary coverage ─────────────────
+// ── praxis.lock.setLockCode — success + validation boundary ──────────────────
 
-describe("praxis.lock.setLockCode — withSchema boundary", () => {
-  /**
-   * NOTE on withSchema arg routing (see shell.openExternal describe block above).
-   * All three tests below pass a value as arg[1] (after the event). The timing wrapper
-   * calls wrapEnvelope with (event, arg[1]); withSchema sees the event object as `raw`.
-   * So ANY call to a withSchema-wrapped handler via this harness will return
-   * VALIDATION_FAILED — the event object always fails z.string(). The goal of these
-   * tests is to confirm the ENVELOPE SHAPE is returned (not a raw throw), and that the
-   * error code is VALIDATION_FAILED regardless of input.
-   */
+describe("praxis.lock.setLockCode — success and validation", () => {
+  it("resolves with { ok: true } for a valid non-empty code", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
 
-  it("resolves (never throws) with VALIDATION_FAILED envelope for empty string code", async () => {
+    const handler = handlers.get("praxis.lock.setLockCode");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "secure-pass");
+    expect(result).toMatchObject({ ok: true, value: undefined });
+    expect(services.lock.setLockCode).toHaveBeenCalledWith({ code: "secure-pass" });
+  });
+
+  it("resolves with VALIDATION_FAILED for empty string code", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -493,13 +538,10 @@ describe("praxis.lock.setLockCode — withSchema boundary", () => {
     expect(handler).toBeDefined();
 
     const result = await handler?.({}, "");
-    expect(result).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" },
-    });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
-  it("resolves (never throws) with VALIDATION_FAILED envelope for numeric code (non-string)", async () => {
+  it("resolves with VALIDATION_FAILED for numeric code (non-string)", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -508,13 +550,10 @@ describe("praxis.lock.setLockCode — withSchema boundary", () => {
     expect(handler).toBeDefined();
 
     const result = await handler?.({}, 123);
-    expect(result).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" },
-    });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
-  it("resolves (never throws) with an envelope for any input — confirming wrapEnvelope wiring", async () => {
+  it("resolves with VALIDATION_FAILED for undefined code", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -522,16 +561,27 @@ describe("praxis.lock.setLockCode — withSchema boundary", () => {
     const handler = handlers.get("praxis.lock.setLockCode");
     expect(handler).toBeDefined();
 
-    // Any call resolves (not rejects) because wrapEnvelope catches all errors.
-    // The specific code may be VALIDATION_FAILED (event object is not a string)
-    // but the wrapper is confirmed present.
-    const result = await handler?.({}, "secure-pass");
+    const result = await handler?.({}, undefined);
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 });
 
-describe("praxis.lock.unlock — withSchema boundary", () => {
-  it("resolves with VALIDATION_FAILED envelope for numeric code (non-string)", async () => {
+// ── praxis.lock.unlock — success + validation boundary ───────────────────────
+
+describe("praxis.lock.unlock — success and validation", () => {
+  it("resolves with { ok: true, value: { ok: true } } for a valid code", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.lock.unlock");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "my-code");
+    expect(result).toMatchObject({ ok: true, value: { ok: true } });
+  });
+
+  it("resolves with VALIDATION_FAILED for numeric code (non-string)", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -540,13 +590,10 @@ describe("praxis.lock.unlock — withSchema boundary", () => {
     expect(handler).toBeDefined();
 
     const result = await handler?.({}, 123);
-    expect(result).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" },
-    });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
-  it("resolves with VALIDATION_FAILED envelope for empty string code", async () => {
+  it("resolves with VALIDATION_FAILED for empty string code", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -555,15 +602,27 @@ describe("praxis.lock.unlock — withSchema boundary", () => {
     expect(handler).toBeDefined();
 
     const result = await handler?.({}, "");
-    expect(result).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" },
-    });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 });
 
-describe("praxis.lock.clearLock — withSchema boundary", () => {
-  it("resolves (never throws) with VALIDATION_FAILED envelope for missing code (undefined)", async () => {
+// ── praxis.lock.clearLock — success + validation boundary ────────────────────
+
+describe("praxis.lock.clearLock — success and validation", () => {
+  it("resolves with { ok: true } for a valid non-empty current code", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.lock.clearLock");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "my-code");
+    expect(result).toMatchObject({ ok: true, value: undefined });
+    expect(services.lock.clearLock).toHaveBeenCalledWith({ currentCode: "my-code" });
+  });
+
+  it("resolves with VALIDATION_FAILED for missing code (undefined)", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -572,13 +631,10 @@ describe("praxis.lock.clearLock — withSchema boundary", () => {
     expect(handler).toBeDefined();
 
     const result = await handler?.({}, undefined);
-    expect(result).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" },
-    });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
-  it("resolves (never throws) with VALIDATION_FAILED envelope for empty string code", async () => {
+  it("resolves with VALIDATION_FAILED for empty string code", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
@@ -587,22 +643,35 @@ describe("praxis.lock.clearLock — withSchema boundary", () => {
     expect(handler).toBeDefined();
 
     const result = await handler?.({}, "");
-    expect(result).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" },
-    });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
+});
 
-  it("resolves (never throws) with an envelope for any input — confirming wrapEnvelope wiring", async () => {
+// ── praxis.config.setLockCode — success + validation boundary ────────────────
+
+describe("praxis.config.setLockCode — success and validation", () => {
+  it("resolves with { ok: true } for a valid non-empty code", async () => {
     const log = makeFakeLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
-    const handler = handlers.get("praxis.lock.clearLock");
+    const handler = handlers.get("praxis.config.setLockCode");
     expect(handler).toBeDefined();
 
-    // Any call resolves (not rejects) because wrapEnvelope catches all errors.
-    const result = await handler?.({}, "secure-pass");
+    const result = await handler?.({}, "my-pin");
+    expect(result).toMatchObject({ ok: true, value: undefined });
+    expect(services.config.setLockCode).toHaveBeenCalledWith("my-pin");
+  });
+
+  it("resolves with VALIDATION_FAILED for empty string code", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.config.setLockCode");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "");
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 });

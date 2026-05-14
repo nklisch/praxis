@@ -1,4 +1,5 @@
 import type { ShellClient } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 /**
@@ -10,7 +11,11 @@ import type { ClientTransport } from "../transport/types.js";
 export class ShellClientImpl implements ShellClient {
   constructor(private readonly transport: ClientTransport) {}
 
-  openExternal(url: string): Promise<void> {
-    return this.transport.invoke<void>("praxis.shell.openExternal", url);
+  async openExternal(url: string): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      "praxis.shell.openExternal",
+      url,
+    );
+    unwrapEnvelope(result);
   }
 }

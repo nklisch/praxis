@@ -15,8 +15,12 @@ export class ConfigClient implements ConfigService {
     return this.transport.invoke<boolean>(`${CHANNEL}.isLocked`);
   }
 
-  setLockCode(code: string): Promise<void> {
-    return this.transport.invoke<void>(`${CHANNEL}.setLockCode`, code);
+  async setLockCode(code: string): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${CHANNEL}.setLockCode`,
+      code,
+    );
+    unwrapEnvelope(result);
   }
 
   unlock(code: string): Promise<{ ok: boolean }> {
@@ -27,8 +31,12 @@ export class ConfigClient implements ConfigService {
     return this.transport.invoke<string>(`${CHANNEL}.selectedEngine`);
   }
 
-  setSelectedEngine(engineId: string): Promise<void> {
-    return this.transport.invoke<void>(`${CHANNEL}.setSelectedEngine`, engineId);
+  async setSelectedEngine(engineId: string): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${CHANNEL}.setSelectedEngine`,
+      engineId,
+    );
+    unwrapEnvelope(result);
   }
 
   async engineConfig(): Promise<EngineConfigSnapshot> {
@@ -51,9 +59,7 @@ export class ConfigClient implements ConfigService {
     return unwrapEnvelope(result);
   }
 
-  async setEngineConfig(
-    config: EngineConfigSnapshot & { apiKey?: string },
-  ): Promise<void> {
+  async setEngineConfig(config: EngineConfigSnapshot & { apiKey?: string }): Promise<void> {
     const { hasApiKey: _hasApiKey, ...wire } = config;
     const result = await this.transport.invoke<IpcEnvelope<void> | void>(
       `${CHANNEL}.setEngineConfig`,
@@ -66,8 +72,12 @@ export class ConfigClient implements ConfigService {
     return this.transport.invoke<BootstrapConfigSnapshot>(`${CHANNEL}.bootstrapConfig`);
   }
 
-  setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void> {
-    return this.transport.invoke<void>(`${CHANNEL}.setBootstrapConfig`, config);
+  async setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${CHANNEL}.setBootstrapConfig`,
+      config,
+    );
+    unwrapEnvelope(result);
   }
 
   firstRunCompleted(): Promise<boolean> {

@@ -1,4 +1,5 @@
 import type { LockClient } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = "praxis.lock" as const;
@@ -22,19 +23,28 @@ export class LockClientImpl implements LockClient {
     return this.transport.invoke<boolean>(`${C}.isUnlocked`);
   }
 
-  setLockCode(code: string): Promise<void> {
-    return this.transport.invoke<void>(`${C}.setLockCode`, code);
+  async setLockCode(code: string): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(`${C}.setLockCode`, code);
+    unwrapEnvelope(result);
   }
 
-  unlock(code: string): Promise<{ ok: boolean }> {
-    return this.transport.invoke<{ ok: boolean }>(`${C}.unlock`, code);
+  async unlock(code: string): Promise<{ ok: boolean }> {
+    const result = await this.transport.invoke<IpcEnvelope<{ ok: boolean }> | { ok: boolean }>(
+      `${C}.unlock`,
+      code,
+    );
+    return unwrapEnvelope(result);
   }
 
   lock(): Promise<void> {
     return this.transport.invoke<void>(`${C}.lock`);
   }
 
-  clearLock(currentCode: string): Promise<void> {
-    return this.transport.invoke<void>(`${C}.clearLock`, currentCode);
+  async clearLock(currentCode: string): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${C}.clearLock`,
+      currentCode,
+    );
+    unwrapEnvelope(result);
   }
 }

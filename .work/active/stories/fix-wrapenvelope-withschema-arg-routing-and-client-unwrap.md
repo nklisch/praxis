@@ -1,7 +1,7 @@
 ---
 id: fix-wrapenvelope-withschema-arg-routing-and-client-unwrap
 kind: story
-stage: implementing
+stage: review
 tags: [bug, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: []
@@ -119,7 +119,62 @@ After the fix, the integration tests in `ipc-server.envelope-migration.test.ts` 
 
 ## Acceptance criteria
 
-- [ ] All `wrapEnvelope + withSchema` channels in `ipc-server.ts` correctly receive the payload (not the event) as the validated argument.
-- [ ] All migrated channels on the client side call `unwrapEnvelope` and surface `IpcError` to the caller.
-- [ ] `ipc-server.envelope-migration.test.ts` success-path tests for `withSchema` channels verify `{ ok: true }` on valid input.
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` pass.
+- [x] All `wrapEnvelope + withSchema` channels in `ipc-server.ts` correctly receive the payload (not the event) as the validated argument.
+- [x] All migrated channels on the client side call `unwrapEnvelope` and surface `IpcError` to the caller.
+- [x] `ipc-server.envelope-migration.test.ts` success-path tests for `withSchema` channels verify `{ ok: true }` on valid input.
+- [x] `pnpm typecheck && pnpm lint && pnpm test` pass.
+
+## Implementation
+
+### Helper added
+
+`handleEnvelope<TIn, TOut>(channel, log, schema, fn)` added to `packages/desktop/electron/main/ipc-helpers.ts`. It composes event-stripping + `wrapEnvelope` + `withSchema` in one call. The key fix: it strips the Electron IPC event that `createIpcHelpers.handle` prepends, forwarding only `payload` to `withSchema`. Without this, `withSchema` received the event object as `raw` and always returned `VALIDATION_FAILED`.
+
+### Channels migrated server-side (8 total)
+
+All migrated from `wrapEnvelope(..., withSchema(...))` to `handleEnvelope(...)`:
+
+- `praxis.config.setLockCode`
+- `praxis.config.setSelectedEngine`
+- `praxis.config.setEngineConfig`
+- `praxis.config.setBootstrapConfig`
+- `praxis.lock.setLockCode`
+- `praxis.lock.unlock`
+- `praxis.lock.clearLock`
+- `praxis.shell.openExternal`
+
+No-schema channels (`praxis.config.engineConfig`, `praxis.config.engineConfig.reveal`, `praxis.update.checkLatest`) remain as bare `wrapEnvelope` — they take no payload so there is no event/payload mismatch.
+
+### Client methods updated with `unwrapEnvelope` (6 total)
+
+- `ConfigClient.setLockCode` (`config-client.ts`)
+- `ConfigClient.setSelectedEngine` (`config-client.ts`)
+- `ConfigClient.setBootstrapConfig` (`config-client.ts`) — also missing unwrap; fixed
+- `LockClientImpl.setLockCode` (`lock-client.ts`)
+- `LockClientImpl.unlock` (`lock-client.ts`)
+- `LockClientImpl.clearLock` (`lock-client.ts`)
+- `ShellClientImpl.openExternal` (`shell-client.ts`)
+
+### Test updates
+
+`ipc-server.envelope-migration.test.ts`: complete rewrite — 23 tests total. Previous tests documented the bug ("always VALIDATION_FAILED due to event routing"). Updated to verify correct behavior:
+
+- Success-path tests: valid payload → `{ ok: true, value }` for every `handleEnvelope` channel
+- Validation-failure tests: invalid/empty/wrong-type payload → `{ ok: false, error: { code: "VALIDATION_FAILED" } }`
+- Security test: internal throw with path → `INTERNAL` with no path leakage
+- Control channel test: non-envelope channel still rejects raw
+
+### Pattern doc update
+
+`.claude/skills/patterns/ipc-envelope-handler.md` updated:
+
+- Example 1 now shows `handleEnvelope` as canonical form for payload-taking channels
+- New "Common Violations" entry documents the `wrapEnvelope + withSchema` anti-pattern and the missing `unwrapEnvelope` client-side anti-pattern
+
+### Verification
+
+- `pnpm --filter @praxis/desktop typecheck`: pass
+- `pnpm --filter @praxis/client typecheck`: pass
+- `pnpm --filter @praxis/desktop test`: 136/136 pass
+- `pnpm --filter @praxis/client test`: 62/62 pass
+- `pnpm biome check` on all 6 changed files: clean
