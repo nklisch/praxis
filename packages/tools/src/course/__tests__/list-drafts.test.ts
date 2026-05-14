@@ -75,8 +75,10 @@ describe("toDraftListing — projection", () => {
 			proposed: {
 				...makeDraft().proposed,
 				title: "",
-				subject: undefined,
-				gradeLevel: undefined,
+				// biome-ignore lint/suspicious/noExplicitAny: test fixture clearing optional props
+				subject: undefined as any,
+				// biome-ignore lint/suspicious/noExplicitAny: test fixture clearing optional props
+				gradeLevel: undefined as any,
 			},
 		});
 		const partial = makeDraft();
