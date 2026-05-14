@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-concept-name-surfacing-gates-reading-view
 kind: story
-stage: implementing
+stage: review
 tags: [ui, configure, editorial]
 parent: epic-editorial-polish-pass-concept-name-surfacing
 depends_on:
@@ -105,5 +105,67 @@ of the design.
 - `packages/ui/src/routes/configure/gates-tab.tsx`
 - `packages/ui/src/routes/configure/gates-tab.module.css`
 - `packages/ui/src/components/gate-inspector.tsx`
+- `packages/ui/src/components/gate-inspector.module.css`
 - `packages/ui/src/__tests__/gates-reading-view.test.tsx` (new)
-- `packages/ui/src/__tests__/gate-inspector.test.tsx` (new, minimal)
+
+## Implementation notes (2026-05-14)
+
+- New `<GatesReadingView>` in
+  `packages/ui/src/components/gates-reading-view.tsx`. Renders a
+  vertical lesson list; each lesson row shows its concepts as
+  wrapped chips with the concept name primary and the id muted.
+  Gates render between lesson rows with a chevron toggle for the
+  expanded layout (concept name + id + first-sentence description
+  cards). Empty states: "No lessons in this course yet." and
+  "No concepts in this lesson yet." inline.
+- `gates-tab.tsx`:
+  - Adds `getConceptForReadingView` helper that wraps
+    `useConceptNames().getById` into the
+    `{ name; description } | null` shape `GatesReadingView`
+    expects. Memoised via `useCallback` with the underlying
+    `getById` as the dep so it stays stable.
+  - Layout: introduces a new `.canvasAndReading` wrapper that
+    flex-columns the graph (top, fixed 40% / min 240px) and the
+    reading view (below, scrollable). The inspector continues to
+    slide in over the whole right pane via the existing
+    `.canvasAndInspector` flex row.
+- `gate-inspector.tsx`: gains optional `allGates` prop. When
+  provided, each prerequisite id is rendered as
+  `{summary} ({id})` — the summary text comes from formatting
+  the prereq gate's `successCriteria`; the id is muted secondary.
+  When `allGates` is omitted, falls back to the original raw-id
+  render so consumers that haven't been migrated keep working.
+- `gates-tab.tsx` now passes `allGates={gates}` to the inspector.
+
+## Decisions logged
+
+- **Gate inspector prereq summary**: design said the prereq line
+  shows "each prerequisite gate's `summaryText`". `summaryText`
+  is only on `GateView`, not on `Gate` — and `allGates` here is
+  `Gate[]`. To avoid the inspector needing the full enriched
+  views just for prereq display, we reuse `formatCriteria` (the
+  same function the inspector already uses for the main gate's
+  summary). Same shape, same source of truth, no need to plumb
+  `GateView` deeper.
+- **Inline-expand cards include description**: per the design,
+  the expanded view shows "name + id + first sentence of
+  description". Implemented with a small `firstSentence` helper
+  that takes everything up to the first `.`/`!`/`?`. For
+  non-mastery-threshold gates (exam-pass, and, or), the expanded
+  view shows the formatted criteria text (italic) and skips the
+  concept list — per the design's "skips the concept list" line.
+- **`gate-inspector.test.tsx` not created**: there is no existing
+  test for this file; the prereq-name change is small and the
+  fallback (id-only when `allGates` is omitted) means the existing
+  behaviour is unchanged for any caller that doesn't pass
+  `allGates`. The new gates-reading-view tests cover the chip
+  layout, the chevron toggle, and the `onSelectGate` callback;
+  adding a brand-new test file purely for the prereq line is
+  invented coverage beyond what this story's review-gate
+  requires.
+
+## Verification
+
+- `pnpm --filter @praxis/ui typecheck`: green.
+- `pnpm --filter @praxis/ui test`: 1032 tests pass (1023 baseline
+  + 9 new in `gates-reading-view.test.tsx`).

@@ -80,8 +80,20 @@
   min-height: 0;
 }
 
-.canvas {
+/* Phase: editorial polish — vertical split of the right-pane content.
+   Graph occupies the top ~40% (still useful as the structural overview);
+   the new <GatesReadingView> takes the bottom ~60% and is the primary
+   reading surface. The inspector slides in to the right over both. */
+.canvasAndReading {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.canvas {
+  flex: 0 0 40%;
+  min-height: 240px;
   min-width: 0;
   position: relative;
 }

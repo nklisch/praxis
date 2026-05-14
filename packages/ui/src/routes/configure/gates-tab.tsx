@@ -11,6 +11,7 @@ import { ConfigureChatPane } from "../../components/configure-chat-pane.js";
 import type { GateEdgeLabelData } from "../../components/gate-edge-label.js";
 import { GateEdgeLabel } from "../../components/gate-edge-label.js";
 import { GateInspector } from "../../components/gate-inspector.js";
+import { GatesReadingView } from "../../components/gates-reading-view.js";
 import { useConfigureState } from "../../hooks/use-configure-state.js";
 import { useCourses } from "../../hooks/use-courses.js";
 import { useGates } from "../../hooks/use-gates.js";
@@ -59,7 +60,16 @@ export function GatesTab({ sessionId }: GatesTabProps) {
 
   const [selectedGate, setSelectedGate] = useState<Gate | null>(null);
 
-  const { getName } = useConceptNames(selectedCourseId ?? undefined);
+  const { getName, getById } = useConceptNames(selectedCourseId ?? undefined);
+
+  const getConceptForReadingView = useCallback(
+    (id: string) => {
+      const row = getById(id);
+      if (!row) return null;
+      return { name: row.name, description: row.description };
+    },
+    [getById],
+  );
 
   const { nodes, edges } = useMemo(() => {
     if (lessons.length === 0) return { nodes: [], edges: [] };
@@ -142,33 +152,45 @@ export function GatesTab({ sessionId }: GatesTabProps) {
 
         {selectedCourseId && !loading && !error && (
           <div className={styles.canvasAndInspector}>
-            <div className={styles.canvas}>
-              {nodes.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <p>No concepts yet. Add lessons to see the gate graph.</p>
-                </div>
-              ) : (
-                <ReactFlow
-                  nodes={nodes}
-                  edges={edges}
-                  nodeTypes={NODE_TYPES}
-                  edgeTypes={EDGE_TYPES}
-                  onNodeClick={handleNodeClick}
-                  onPaneClick={() => setSelectedGate(null)}
-                  fitView
-                  fitViewOptions={{ padding: 0.2 }}
-                  minZoom={0.2}
-                  maxZoom={2}
-                >
-                  <Background />
-                  <Controls />
-                </ReactFlow>
-              )}
+            <div className={styles.canvasAndReading}>
+              <div className={styles.canvas}>
+                {nodes.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    <p>No concepts yet. Add lessons to see the gate graph.</p>
+                  </div>
+                ) : (
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    nodeTypes={NODE_TYPES}
+                    edgeTypes={EDGE_TYPES}
+                    onNodeClick={handleNodeClick}
+                    onPaneClick={() => setSelectedGate(null)}
+                    fitView
+                    fitViewOptions={{ padding: 0.2 }}
+                    minZoom={0.2}
+                    maxZoom={2}
+                  >
+                    <Background />
+                    <Controls />
+                  </ReactFlow>
+                )}
+              </div>
+
+              <GatesReadingView
+                lessons={lessons}
+                gateViews={gateViews}
+                gates={gates}
+                getConcept={getConceptForReadingView}
+                selectedGateId={selectedGate?.id ?? null}
+                onSelectGate={setSelectedGate}
+              />
             </div>
 
             {selectedGate && (
               <GateInspector
                 gate={selectedGate}
+                allGates={gates}
                 onSaved={handleGateSaved}
                 onDeleted={handleGateDeleted}
                 onClose={() => setSelectedGate(null)}

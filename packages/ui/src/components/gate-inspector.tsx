@@ -6,6 +6,13 @@ import styles from "./gate-inspector.module.css";
 
 export interface GateInspectorProps {
   gate: Gate;
+  /**
+   * Full gates list (for prerequisite lookup). When present, each prereq id
+   * in the rendered list is resolved to its gate's `summaryText`; the id
+   * itself becomes muted secondary text. Falls back to raw id rendering
+   * when omitted.
+   */
+  allGates?: ReadonlyArray<Gate>;
   onSaved: (gate: Gate) => void;
   onDeleted: (gateId: GateId) => void;
   onClose: () => void;
@@ -41,8 +48,20 @@ function formatState(gate: Gate): string {
  * Shows: gate state, success criteria, prerequisites.
  * Actions: Save (update criteria), Override (with reason), Delete.
  */
-export function GateInspector({ gate, onSaved, onDeleted, onClose }: GateInspectorProps) {
+export function GateInspector({
+  gate,
+  allGates,
+  onSaved,
+  onDeleted,
+  onClose,
+}: GateInspectorProps) {
   const client = usePraxisClient();
+
+  const prereqLookup = (pid: string): { summary: string; id: string } => {
+    const found = allGates?.find((g) => g.id === pid);
+    if (!found) return { summary: pid, id: pid };
+    return { summary: formatCriteria(found.successCriteria), id: pid };
+  };
 
   // Editable: minScore for mastery-threshold criteria (simple v1 — more complex editing via agent)
   const [minScore, setMinScore] = useState<string>(
@@ -152,11 +171,17 @@ export function GateInspector({ gate, onSaved, onDeleted, onClose }: GateInspect
           <section className={styles.section}>
             <h4 className={styles.sectionTitle}>Prerequisites</h4>
             <ul className={styles.prereqList}>
-              {gate.prerequisites.map((pid) => (
-                <li key={pid} className={styles.prereqItem}>
-                  {pid}
-                </li>
-              ))}
+              {gate.prerequisites.map((pid) => {
+                const { summary, id } = prereqLookup(pid);
+                return (
+                  <li key={pid} className={styles.prereqItem}>
+                    <span className={styles.prereqSummary}>{summary}</span>
+                    <span className={styles.prereqId} title={id}>
+                      {id}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}

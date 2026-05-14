@@ -112,11 +112,26 @@
 }
 
 .prereqItem {
-  font-size: 0.8rem;
-  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
   background: var(--color-border, #f0f0f0);
-  padding: 0.2rem 0.4rem;
+  padding: 0.3rem 0.5rem;
   border-radius: 3px;
+}
+
+.prereqSummary {
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.prereqId {
+  font-size: 0.65rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dangerSection {
