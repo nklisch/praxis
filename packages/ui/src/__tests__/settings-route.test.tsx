@@ -1,5 +1,5 @@
 import type { EngineConfigSnapshot, LockClient, PraxisClient } from "@praxis/core/types";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { SettingsRoute } from "../routes/settings.js";
@@ -22,6 +22,7 @@ function makeLockClient(overrides?: Partial<LockClient>): LockClient {
 function makeSettingsClient(configOverride?: Partial<EngineConfigSnapshot>): PraxisClient {
   const defaultConfig: EngineConfigSnapshot = {
     engineId: "direct.anthropic",
+    hasApiKey: false,
     ...configOverride,
   };
 
@@ -33,6 +34,7 @@ function makeSettingsClient(configOverride?: Partial<EngineConfigSnapshot>): Pra
       selectedEngine: vi.fn().mockResolvedValue("direct.anthropic"),
       setSelectedEngine: vi.fn(),
       engineConfig: vi.fn().mockResolvedValue(defaultConfig),
+      revealApiKey: vi.fn().mockResolvedValue({ apiKey: null }),
       setEngineConfig: vi.fn().mockResolvedValue(undefined),
     },
     author: {
@@ -132,5 +134,163 @@ describe("SettingsRoute", () => {
     // The "Global prompt" heading and its textarea should NOT be present in Settings.
     const globalHeading = screen.queryByText("Global prompt");
     expect(globalHeading).toBeNull();
+  });
+});
+
+// ─── API key affordance ───────────────────────────────────────────────────────
+
+describe("SettingsRoute — API key affordance", () => {
+  it("renders 'Not configured' status and 'Add' button when hasApiKey=false", async () => {
+    const client = makeSettingsClient({ hasApiKey: false });
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByText("Not configured")).toBeDefined();
+    });
+
+    const addBtn = screen.getByRole("button", { name: "Add" });
+    expect(addBtn).toBeDefined();
+  });
+
+  it("clicking 'Add' opens an empty password input (revealApiKey returns null → no prefill)", async () => {
+    // revealApiKey returns { apiKey: null } for the "not configured" case;
+    // the UI correctly shows an empty input regardless of whether it calls
+    // revealApiKey — what matters is the input has no prefilled secret.
+    const client = makeSettingsClient({ hasApiKey: false });
+    // revealApiKey is already mocked to return { apiKey: null } via makeSettingsClient.
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add" })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    // The password input must appear with an empty value — no secret leaked.
+    await waitFor(() => {
+      const input = screen.getByPlaceholderText("sk-…") as HTMLInputElement;
+      expect(input).toBeDefined();
+      expect(input.value).toBe("");
+    });
+  });
+
+  it("renders 'API key configured' status and 'Edit' button when hasApiKey=true", async () => {
+    const client = makeSettingsClient({ hasApiKey: true });
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByText("API key configured")).toBeDefined();
+    });
+
+    const editBtn = screen.getByRole("button", { name: "Edit" });
+    expect(editBtn).toBeDefined();
+    // 'Add' must not appear when a key is already configured.
+    expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
+  });
+
+  it("clicking 'Edit' calls revealApiKey() and prefills the input with the returned key", async () => {
+    const client = makeFakeClient({
+      config: {
+        isLocked: vi.fn().mockResolvedValue(false),
+        setLockCode: vi.fn(),
+        unlock: vi.fn(),
+        selectedEngine: vi.fn().mockResolvedValue("direct.anthropic"),
+        setSelectedEngine: vi.fn(),
+        engineConfig: vi.fn().mockResolvedValue({
+          engineId: "direct.anthropic",
+          hasApiKey: true,
+        } satisfies EngineConfigSnapshot),
+        revealApiKey: vi.fn().mockResolvedValue({ apiKey: "sk-existing" }),
+        setEngineConfig: vi.fn().mockResolvedValue(undefined),
+      } as PraxisClient["config"],
+    });
+
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Edit" })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    await waitFor(() => {
+      expect(client.config.revealApiKey).toHaveBeenCalledOnce();
+    });
+
+    // Input prefilled with the decrypted value.
+    await waitFor(() => {
+      const input = screen.getByPlaceholderText("sk-…") as HTMLInputElement;
+      expect(input.value).toBe("sk-existing");
+    });
+  });
+
+  it("Save submits updated apiKey and refetches snapshot (hasApiKey updates)", async () => {
+    // After save, engineConfig() is called a second time and returns hasApiKey:true.
+    const engineConfigFn = vi
+      .fn()
+      .mockResolvedValueOnce({
+        engineId: "direct.anthropic",
+        hasApiKey: false,
+      } satisfies EngineConfigSnapshot)
+      .mockResolvedValueOnce({
+        engineId: "direct.anthropic",
+        hasApiKey: true,
+      } satisfies EngineConfigSnapshot);
+
+    const setEngineConfigFn = vi.fn().mockResolvedValue(undefined);
+
+    const client = makeFakeClient({
+      config: {
+        isLocked: vi.fn().mockResolvedValue(false),
+        setLockCode: vi.fn(),
+        unlock: vi.fn(),
+        selectedEngine: vi.fn().mockResolvedValue("direct.anthropic"),
+        setSelectedEngine: vi.fn(),
+        engineConfig: engineConfigFn,
+        revealApiKey: vi.fn().mockResolvedValue({ apiKey: null }),
+        setEngineConfig: setEngineConfigFn,
+      } as PraxisClient["config"],
+    });
+
+    renderWithClient(client);
+
+    // Wait for first load.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add" })).toBeDefined();
+    });
+
+    // Open the edit affordance.
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("sk-…")).toBeDefined();
+    });
+
+    // Type a new key.
+    fireEvent.change(screen.getByPlaceholderText("sk-…"), {
+      target: { value: "sk-brand-new" },
+    });
+
+    // Submit the form.
+    const saveBtn = screen.getByRole("button", { name: "Save" });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(setEngineConfigFn).toHaveBeenCalledOnce();
+    });
+
+    // setEngineConfig called with the edited apiKey.
+    const callArg = setEngineConfigFn.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(callArg.apiKey).toBe("sk-brand-new");
+
+    // engineConfig() called a second time to refetch.
+    await waitFor(() => {
+      expect(engineConfigFn).toHaveBeenCalledTimes(2);
+    });
+
+    // UI now shows "API key configured".
+    await waitFor(() => {
+      expect(screen.getByText("API key configured")).toBeDefined();
+    });
   });
 });
