@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-course-aware-mode-prompts
 kind: feature
-stage: implementing
+stage: review
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor
 depends_on: []

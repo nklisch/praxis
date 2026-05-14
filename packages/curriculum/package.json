@@ -38,6 +38,13 @@
       "node": "./dist/brief/course-context.js",
       "default": "./dist/brief/course-context.js"
     },
+    "./brief/in-course-behavior": {
+      "praxis-source": "./src/brief/in-course-behavior.ts",
+      "types": "./dist/brief/in-course-behavior.d.ts",
+      "import": "./dist/brief/in-course-behavior.js",
+      "node": "./dist/brief/in-course-behavior.js",
+      "default": "./dist/brief/in-course-behavior.js"
+    },
     "./brief/assignment-context": {
       "praxis-source": "./src/brief/assignment-context.ts",
       "types": "./dist/brief/assignment-context.d.ts",

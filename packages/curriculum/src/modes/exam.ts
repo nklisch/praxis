@@ -2,6 +2,7 @@ import type { Mode } from "@praxis/core/types";
 import { assignmentContextFragmentDefault } from "./fragments/assignment-context.js";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
+import { behaviorInCourseFragmentDefault } from "./fragments/in-course-behavior.js";
 import { examRoleFragment } from "./fragments/exam-role.js";
 import { examToolsFragment } from "./fragments/exam-tools.js";
 import { metacognitivePromptsFragment } from "./fragments/metacognitive-prompts.js";
@@ -27,6 +28,7 @@ export const examMode: Mode = {
     examToolsFragment,
     sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault,
+    behaviorInCourseFragmentDefault.exam, // ← course-aware behavior addendum
     assignmentContextFragmentDefault,
     constraintsFragment,
     postambleFragment,

@@ -3,6 +3,7 @@ import { assessmentToolsFragment } from "./fragments/assessment-tools.js";
 import { assignmentContextFragmentDefault } from "./fragments/assignment-context.js";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
+import { behaviorInCourseFragmentDefault } from "./fragments/in-course-behavior.js";
 import { metacognitivePromptsFragment } from "./fragments/metacognitive-prompts.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
@@ -27,6 +28,7 @@ export const quizMode: Mode = {
     assessmentToolsFragment,
     sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault,
+    behaviorInCourseFragmentDefault.quiz, // ← course-aware behavior addendum
     assignmentContextFragmentDefault,
     constraintsFragment,
     postambleFragment,

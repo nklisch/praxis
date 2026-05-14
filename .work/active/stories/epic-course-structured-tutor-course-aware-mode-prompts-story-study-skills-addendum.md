@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-course-aware-mode-prompts-story-study-skills-addendum
 kind: story
-stage: implementing
+stage: review
 tags: [tutor-ux, mode-prompts, curriculum]
 parent: epic-course-structured-tutor-course-aware-mode-prompts
 depends_on: [epic-course-structured-tutor-course-aware-mode-prompts-story-1-foundation]

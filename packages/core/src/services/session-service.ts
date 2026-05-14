@@ -2,6 +2,10 @@ import { assignments } from "@praxis/artifacts/schema";
 import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { composeAssignmentContextFragment } from "@praxis/curriculum/brief/assignment-context";
 import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
+import {
+	composeInCourseBehaviorFragment,
+	type InCourseBehaviorModeId,
+} from "@praxis/curriculum/brief/in-course-behavior";
 import { createEngine } from "@praxis/engines";
 import { type EngineSessionStateJson, episodicEvents, sessions } from "@praxis/memory/schema";
 import { InProcessToolRegistry } from "@praxis/tools";
@@ -614,10 +618,49 @@ export class SessionServiceImpl implements SessionService {
           }
         }
 
-        const fragment = composeCourseContextFragment(snapshot, masteryByConceptId);
+        // Coalesce the course-documents read with the existing
+        // `courseDocumentIds` computation below — the document attachments
+        // feed both the prompt's "Available documents" section and the
+        // `toolContext.courseDocumentIds`.
+        // `listForScopeDetailed` is a newer accessor; fall back gracefully
+        // if a test fake doesn't implement it.
+        const courseDocuments = typeof this.deps.toolServices.documentScopes
+          .listForScopeDetailed === "function"
+          ? await this.deps.toolServices.documentScopes
+              .listForScopeDetailed({
+                kind: "course",
+                id: args.courseId,
+              })
+              .catch(() => undefined)
+          : undefined;
+
+        const fragment = composeCourseContextFragment(
+          snapshot,
+          masteryByConceptId,
+          courseDocuments,
+        );
         // Use the overrides map so the existing "context.course-state" fragment
         // (which is customizable: true) is replaced by the dynamic course content.
         overrides = new Map([[fragment.id, fragment.template]]);
+
+        // Course-aware mode-prompts: inject the per-mode behavior addendum
+        // when the active mode is in the in-course set. Bootstrap / configure
+        // are excluded — they have their own contracts and no notion of an
+        // active course.
+        const inCourseModes: ReadonlySet<string> = new Set<string>([
+          "teach",
+          "quiz",
+          "homework",
+          "exam",
+          "study-skills",
+        ]);
+        if (inCourseModes.has(args.mode.id)) {
+          const behavior = composeInCourseBehaviorFragment(
+            args.mode.id as InCourseBehaviorModeId,
+            snapshot,
+          );
+          overrides.set(behavior.id, behavior.template);
+        }
 
         // Phase 9: If there are newly-unlocked gates the student hasn't viewed yet,
         // inject a small "Newly unlocked" fragment to the pre-session brief.

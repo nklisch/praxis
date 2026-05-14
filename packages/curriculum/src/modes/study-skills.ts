@@ -1,6 +1,7 @@
 import type { Mode } from "@praxis/core/types";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
+import { behaviorInCourseFragmentDefault } from "./fragments/in-course-behavior.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
@@ -20,6 +21,7 @@ export const studySkillsMode: Mode = {
     principlesFragment,
     toolsFragment,
     courseContextFragmentDefault,
+    behaviorInCourseFragmentDefault["study-skills"], // ← course-aware behavior addendum
     constraintsFragment,
     postambleFragment,
   ],

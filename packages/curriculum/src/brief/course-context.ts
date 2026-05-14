@@ -1,4 +1,8 @@
-import type { CourseStateSnapshot, PromptFragment } from "@praxis/core/types";
+import type {
+	CourseStateSnapshot,
+	DocumentScopeAttachment,
+	PromptFragment,
+} from "@praxis/core/types";
 
 /**
  * Format a mastery tag for a concept given its effectivePKnown score.
@@ -43,6 +47,7 @@ export function formatMasteryTag(effectivePKnown: number | undefined, studied: b
 export function composeCourseContextFragment(
   snapshot: CourseStateSnapshot,
   masteryByConceptId?: ReadonlyMap<string, number>,
+  documents?: ReadonlyArray<DocumentScopeAttachment>,
 ): PromptFragment {
   const lines: string[] = [];
 
@@ -121,6 +126,23 @@ export function composeCourseContextFragment(
     lines.push(`Working toward: unlock — ${snapshot.activeGate.summaryText}`);
     if (snapshot.activeGate.lockReason) {
       lines.push(`  Current status: ${snapshot.activeGate.lockReason}`);
+    }
+  }
+
+  // Course-aware: list documents attached to this course so the tutor knows
+  // what's available via retrieve_from_documents before generalising. Cap at
+  // 12 filenames to keep prompts bounded; beyond that, append "…and N more".
+  if (documents && documents.length > 0) {
+    const MAX_LIST = 12;
+    lines.push(
+      `Available documents (course-scope, retrievable via retrieve_from_documents):`,
+    );
+    const visible = documents.slice(0, MAX_LIST);
+    for (const d of visible) {
+      lines.push(`  • ${d.filename} (${d.chunkCount} chunks)`);
+    }
+    if (documents.length > MAX_LIST) {
+      lines.push(`  …and ${documents.length - MAX_LIST} more documents.`);
     }
   }
 

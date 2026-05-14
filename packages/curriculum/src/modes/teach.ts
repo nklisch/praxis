@@ -1,6 +1,7 @@
 import type { Mode } from "@praxis/core/types";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
+import { behaviorInCourseFragmentDefault } from "./fragments/in-course-behavior.js";
 import { metacognitivePromptsFragment } from "./fragments/metacognitive-prompts.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
@@ -26,6 +27,7 @@ export const teachMode: Mode = {
     toolsFragment,
     sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault, // ← Phase 6: replaced at session start when courseId is set
+    behaviorInCourseFragmentDefault.teach, // ← course-aware behavior addendum (replaced when courseId is set)
     constraintsFragment,
     postambleFragment,
   ],
