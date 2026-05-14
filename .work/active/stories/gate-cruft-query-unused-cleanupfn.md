@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-query-unused-cleanupfn
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -43,3 +43,12 @@ async function* generate(): AsyncGenerator<StreamEvent, ResultEvent, unknown> {
 Delete the `let cleanupFn: ... | undefined;` declaration on line 63 and
 the `cleanupFn = cleanup;` assignment on line 75. The `finally` block
 already calls `cleanup()` from the inner scope. No other changes needed.
+
+## Implementation
+Deleted two lines from `packages/claude-cli-sdk/src/query.ts`:
+- Line 63 (outer scope): `let cleanupFn: (() => Promise<void>) | undefined;`
+- Line 75 (inside generator): `cleanupFn = cleanup;`
+
+Confirmed no other references to `cleanupFn` existed in the file. The `finally` block at line 117 already calls `await cleanup()` from the inner scope. No behaviour change.
+
+Verification: `pnpm --filter @praxis/claude-cli-sdk typecheck` passes, `pnpm --filter @praxis/claude-cli-sdk test` passes (48 tests), `pnpm lint` no longer flags the unused variable.

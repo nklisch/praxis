@@ -60,8 +60,6 @@ export function query(prompt: string, options: Options = {}): Query {
   const ac = options.abortController ?? new AbortController();
   let procKilled = false;
 
-  let cleanupFn: (() => Promise<void>) | undefined;
-
   async function* generate(): AsyncGenerator<StreamEvent, ResultEvent, unknown> {
     const { args, tempFiles } = await buildCliArgs(prompt, options);
 
@@ -72,7 +70,6 @@ export function query(prompt: string, options: Options = {}): Query {
       { workDir: options.workDir, env: options.env },
       tempFiles,
     );
-    cleanupFn = cleanup;
 
     // Wire abort signal to process kill
     const onAbort = () => {
