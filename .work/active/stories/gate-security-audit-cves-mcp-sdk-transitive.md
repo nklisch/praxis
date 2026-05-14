@@ -1,7 +1,7 @@
 ---
 id: gate-security-audit-cves-mcp-sdk-transitive
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -45,3 +45,22 @@ Bump `@modelcontextprotocol/sdk` to a version whose transitive lockfile
 resolves `fast-uri ≥ 3.1.2`, `hono ≥ 4.12.18`, `ip-address ≥ 10.1.1`. If
 no SDK release covers them yet, pin the patched versions via
 `pnpm.overrides` in the root `package.json` and document the override.
+
+## Implementation
+
+**Approach**: `pnpm.overrides` in root `package.json` (SDK bump not viable).
+
+`@modelcontextprotocol/sdk` was already at the latest version (`^1.29.0`). Checked `1.29.0` transitive deps: it still declares `hono: ^4.11.4` and `ajv: ^8.17.1` (with `fast-uri: ^3.0.1`), so no SDK release resolves the chain yet.
+
+Added three overrides to `pnpm.overrides` in `/package.json`:
+- `"fast-uri": ">=3.1.2"` — resolves GHSA-q3j6-qgpj-74h6 + GHSA-v39h-62p7-jpjc (high)
+- `"hono": ">=4.12.18"` — resolves GHSA-qp7p-654g-cw7p + GHSA-p77w-8qqv-26rm + GHSA-hm8q-7f3q-5f36 (moderate + low)
+- `"ip-address": ">=10.1.1"` — resolves GHSA-v2v4-37r5-5v8g (moderate)
+
+Lockfile resolved to: `fast-uri@3.1.2`, `hono@4.12.18`, `ip-address@10.2.0`.
+
+**Verification**:
+- `pnpm audit` after: 1 remaining advisory (`esbuild` via `drizzle-kit`, unrelated to this story — out of scope).
+- `pnpm typecheck`: passes (no API breakage from bumped transitive deps).
+- `pnpm --filter @praxis/claude-cli-sdk test`: 51 tests pass; 1 pre-existing WIP failure (`tool-server-auth.test.ts` "no frame within auth timeout window") from an in-progress envelope-migration feature's new test case — not caused by these changes.
+- `pnpm install`: succeeded.
