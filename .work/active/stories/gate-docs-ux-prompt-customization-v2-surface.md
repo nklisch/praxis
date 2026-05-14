@@ -1,7 +1,7 @@
 ---
 id: gate-docs-ux-prompt-customization-v2-surface
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -65,3 +65,23 @@ Replaced `docs/UX.md` lines 546-579 (the stale v0.1.1 mode-fragment-list sketch)
 - The `AttributedPreviewPane` (previously called `PromptPreviewPane` in the story) only exposes a `view: "composed" | "diff"` prop, but at the stack level the toggle is Blocks vs. Composed. The "diff" in `AttributedPreviewPane` is available via its prop but is used by reconstructing the baseline client-side, not via a top-level UI toggle.
 
 Files changed: `docs/UX.md` (section rewrite).
+
+## Review (2026-05-14)
+
+**Verdict: Approved.**
+
+All implementer claims verified against code:
+
+1. **StyleSliderForm exists** — `packages/ui/src/routes/configure/prompt-tab.tsx` defines `StyleSliderForm` using three `StyleSlider` instances with labels exactly matching the doc: `label="Guidance style"` (Lecture↔Socratic), `label="Verbosity"` (Terse↔Verbose), `label="Tone"` (Casual↔Formal). The v0.1.1 story body's claim that sliders were removed was wrong; the implementer correctly ignored it.
+
+2. **`[Blocks | Composed]` toggle** — `packages/ui/src/components/prompt-block-stack.tsx` renders two tab-role buttons whose text comes from `COPY.prompt.stackToggleBlocks` ("Blocks") and `COPY.prompt.stackToggleComposed` ("Composed"). The doc says `[Blocks | Composed]`; this is accurate. The story's "Required edit" section specifying `[Composed | Diff]` was wrong on both the order and the second label.
+
+3. **Per-block diff affordance** — `packages/ui/src/components/prompt-block.tsx` shows a "diff" toggle button (line 124) when `canShowDiff = defaultText !== undefined && customizable`. Clicking it expands an inline side-by-side pane (default left, current right). Matches doc bullet "Per-block diff".
+
+4. **Lock indicator** — non-customizable fragments produce `editable = false` (via `customizable && !locked`), which renders a "locked" badge and suppresses the edit button. Matches doc bullet "Lock indicator".
+
+5. **`composeSystemPromptWithAttribution`** — present at `packages/curriculum/src/brief/compose.ts:89`. The `AttributedPreviewPane` uses it for the composed view. Correct.
+
+6. **Foundation-doc alignment** — the new section describes the current UI with no historical asides; heading style and ASCII sketch format match surrounding sections.
+
+Design-flaw escape hatch application was correct: the implementer deferred to code over the story body's "Reality" and "Required edit" sections, producing an accurate doc. No follow-up findings required.
