@@ -148,4 +148,10 @@ electron multi-arch rebuild, engine CLI integration smoke test).
 
 ## Gate runs
 
-<populated as gates execute>
+- **gate-security** (2026-05-14) — 4 findings (0 Critical, 1 High, 2 Medium, 1 Low)
+  - 1 High → `.work/active/stories/` (`gate-security-streaming-channel-error-push-redactor-gap`)
+  - 2 Medium → `.work/active/stories/` (`gate-security-ipc-helpers-rethrow-redactor-gap`, `gate-security-audit-cves-mcp-sdk-transitive`)
+  - 1 Low → `.work/backlog/` (`gate-security-sdk-timeout-disabled-defense-in-depth`)
+  - Verified-clean: tool-bridge socket auth (token compare via `crypto.timingSafeEqual`, 0600 perms, 5s auth timeout), URL allowlist (pre-WHATWG C0 + whitespace check), engine-config encryption shape (renderer sees only `hasApiKey: boolean`; decrypted key only via separate `reveal` channel that demands `requireUnlocked()`), envelope redactor mapping to generic INTERNAL + UUIDv7 requestId.
+
+<populated as remaining gates execute>
