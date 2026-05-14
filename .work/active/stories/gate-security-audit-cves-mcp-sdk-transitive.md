@@ -1,7 +1,7 @@
 ---
 id: gate-security-audit-cves-mcp-sdk-transitive
 kind: story
-stage: drafting
+stage: implementing
 tags: [security]
 parent: null
 depends_on: []

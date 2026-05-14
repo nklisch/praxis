@@ -1,7 +1,7 @@
 ---
 id: gate-docs-ux-tutor-workspace-nav-label
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []

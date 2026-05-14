@@ -1,7 +1,7 @@
 ---
 id: gate-tests-tool-server-auth-frame-boundaries
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, security]
 parent: null
 depends_on: []
