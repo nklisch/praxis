@@ -11,8 +11,14 @@ export type ConceptTone = "mastered" | "in-progress" | "not-started" | "locked";
  * Extends Record<string, unknown> per React Flow v12's Node data constraint.
  */
 export interface ConceptNodeData extends Record<string, unknown> {
-  /** Concept display name. */
+  /** Concept display name. Falls back to id if unknown (caller-supplied). */
   name: string;
+  /**
+   * Raw concept id. Rendered below the name as muted secondary text and
+   * surfaced in a `title=` tooltip so authors scanning the graph for a
+   * specific id don't need to hover every node.
+   */
+  conceptId: string;
   /** Decay-aware mastery fraction 0..1. */
   mastery: number;
   /** Whether any study has been recorded for this concept. */
@@ -41,6 +47,9 @@ export function ConceptNodeDisplay({ data }: { data: ConceptNodeData }) {
   return (
     <div className={`${styles.node} ${styles[tone]}`} data-tone={tone}>
       <span className={styles.name}>{data.name}</span>
+      <span className={styles.conceptId} title={data.conceptId}>
+        {data.conceptId}
+      </span>
 
       {tone === "locked" ? (
         <span className={styles.lockIcon} aria-label="locked" role="img">

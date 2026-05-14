@@ -86,6 +86,7 @@ function buildGraph({ lessons, masteryByConceptId, gates, conceptsById }: BuildG
 
       const data: ConceptNodeData = {
         name: displayName,
+        conceptId,
         mastery,
         studied: mastery > 0,
         locked: lessonLocked,

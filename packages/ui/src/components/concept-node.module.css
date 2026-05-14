@@ -65,6 +65,16 @@
   color: var(--color-text-muted, #aaa);
 }
 
+.conceptId {
+  font-size: 0.6rem;
+  font-family: var(--font-mono, ui-monospace, "SF Mono", monospace);
+  color: var(--color-text-muted, #aaa);
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .score {
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;

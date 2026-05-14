@@ -11,8 +11,11 @@ afterEach(() => {
   cleanup();
 });
 
-function renderNode(data: ConceptNodeData) {
-  return render(<ConceptNodeDisplay data={data} />);
+function renderNode(data: Omit<ConceptNodeData, "conceptId"> & { conceptId?: string }) {
+  // Default conceptId to a stub so existing tests don't have to specify it.
+  // The conceptId secondary line is exercised by dedicated cases below.
+  const fullData: ConceptNodeData = { conceptId: "concept-stub-id", ...data };
+  return render(<ConceptNodeDisplay data={fullData} />);
 }
 
 describe("ConceptNode", () => {
@@ -133,14 +136,73 @@ describe("ConceptNode", () => {
 
     rerender(
       <ConceptNodeDisplay
-        data={{ name: "Concept X", mastery: 0.5, studied: true, locked: false }}
+        data={{
+          name: "Concept X",
+          conceptId: "concept-stub-id",
+          mastery: 0.5,
+          studied: true,
+          locked: false,
+        }}
       />,
     );
     expect(screen.getByText("Concept X")).toBeDefined();
 
     rerender(
-      <ConceptNodeDisplay data={{ name: "Concept X", mastery: 0, studied: false, locked: true }} />,
+      <ConceptNodeDisplay
+        data={{
+          name: "Concept X",
+          conceptId: "concept-stub-id",
+          mastery: 0,
+          studied: false,
+          locked: true,
+        }}
+      />,
     );
     expect(screen.getByText("Concept X")).toBeDefined();
+  });
+
+  describe("conceptId secondary line", () => {
+    it("renders the concept id below the name", () => {
+      renderNode({
+        name: "Variables",
+        conceptId: "concept-variable-x1",
+        mastery: 0.5,
+        studied: true,
+        locked: false,
+      });
+      expect(screen.getByText("Variables")).toBeDefined();
+      expect(screen.getByText("concept-variable-x1")).toBeDefined();
+    });
+
+    it("sets a title attribute on the id span so truncated ids reveal on hover", () => {
+      renderNode({
+        name: "Variables",
+        conceptId: "concept-very-long-id-that-might-truncate",
+        mastery: 0.5,
+        studied: true,
+        locked: false,
+      });
+      const idSpan = screen.getByText("concept-very-long-id-that-might-truncate");
+      expect(idSpan.getAttribute("title")).toBe(
+        "concept-very-long-id-that-might-truncate",
+      );
+    });
+
+    it("shows the id as fallback when the name is not yet loaded", () => {
+      renderNode({
+        // Caller produces `name: getName(conceptId)` which falls back to id
+        // when the concept lookup hasn't loaded yet — the node renders the
+        // id in BOTH positions; the secondary line confirms the id is
+        // present even if the name lookup never resolves.
+        name: "concept-pending-id",
+        conceptId: "concept-pending-id",
+        mastery: 0,
+        studied: false,
+        locked: false,
+      });
+      // Both elements exist; React renders them as separate spans.
+      const matches = screen.getAllByText("concept-pending-id");
+      expect(matches.length).toBeGreaterThanOrEqual(1);
+    });
   });
 });

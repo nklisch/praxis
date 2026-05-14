@@ -6,6 +6,7 @@ import dagre from "dagre";
 import { useCallback, useMemo, useState } from "react";
 import type { ConceptFlowNode, ConceptNodeData } from "../../components/concept-node.js";
 import { ConceptNode } from "../../components/concept-node.js";
+import { useConceptNames } from "../../hooks/use-concept-names.js";
 import { ConfigureChatPane } from "../../components/configure-chat-pane.js";
 import type { GateEdgeLabelData } from "../../components/gate-edge-label.js";
 import { GateEdgeLabel } from "../../components/gate-edge-label.js";
@@ -58,10 +59,12 @@ export function GatesTab({ sessionId }: GatesTabProps) {
 
   const [selectedGate, setSelectedGate] = useState<Gate | null>(null);
 
+  const { getName } = useConceptNames(selectedCourseId ?? undefined);
+
   const { nodes, edges } = useMemo(() => {
     if (lessons.length === 0) return { nodes: [], edges: [] };
-    return buildGraph(lessons, gateViews);
-  }, [lessons, gateViews]);
+    return buildGraph(lessons, gateViews, getName);
+  }, [lessons, gateViews, getName]);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -183,6 +186,7 @@ export function GatesTab({ sessionId }: GatesTabProps) {
 function buildGraph(
   lessons: Lesson[],
   gates: GateView[],
+  getName: (id: string) => string,
 ): { nodes: ConceptFlowNode[]; edges: import("@xyflow/react").Edge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
@@ -212,7 +216,8 @@ function buildGraph(
       last = nodeId;
 
       const data: ConceptNodeData = {
-        name: conceptId,
+        name: getName(conceptId),
+        conceptId,
         mastery: 0,
         studied: false,
         locked,

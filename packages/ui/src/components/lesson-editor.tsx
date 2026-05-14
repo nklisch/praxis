@@ -1,12 +1,17 @@
 import type { ConceptId, Lesson, LessonId } from "@praxis/core/types";
 import { type FormEvent, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { ConceptPicker } from "./concept-picker.js";
 import { ConfirmReasonModal } from "./confirm-reason-modal.js";
 import styles from "./lesson-editor.module.css";
 
 export interface LessonEditorProps {
   lesson: Lesson;
-  availableConcepts: Array<{ id: string; name: string }>;
+  availableConcepts: ReadonlyArray<{
+    id: string;
+    name: string;
+    aliases?: ReadonlyArray<string>;
+  }>;
   onSaved: (lesson: Lesson) => void;
   onDeleted: (lessonId: LessonId) => void;
 }
@@ -25,7 +30,9 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
   const client = usePraxisClient();
   const [title, setTitle] = useState(lesson.title);
   const [estimatedMinutes, setEstimatedMinutes] = useState(String(lesson.estimatedMinutes ?? ""));
-  const [conceptIdsText, setConceptIdsText] = useState(lesson.conceptIds.join(", "));
+  const [selectedConceptIds, setSelectedConceptIds] = useState<string[]>(
+    lesson.conceptIds.slice(),
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -35,16 +42,11 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
     setSaving(true);
     setSaveError(null);
     try {
-      const parsedConceptIds = conceptIdsText
-        .split(/[,\n]+/)
-        .map((s) => s.trim())
-        .filter(Boolean) as ConceptId[];
-
       const updated = await client.author.updateLesson({
         lessonId: lesson.id,
         patch: {
           title: title.trim() || lesson.title,
-          conceptIds: parsedConceptIds,
+          conceptIds: selectedConceptIds as ConceptId[],
           ...(estimatedMinutes.trim() !== "" && {
             estimatedMinutes: Number(estimatedMinutes),
           }),
@@ -70,7 +72,8 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
   const isDirty =
     title !== lesson.title ||
     estimatedMinutes !== String(lesson.estimatedMinutes ?? "") ||
-    conceptIdsText !== lesson.conceptIds.join(", ");
+    selectedConceptIds.length !== lesson.conceptIds.length ||
+    selectedConceptIds.some((id, idx) => id !== lesson.conceptIds[idx]);
 
   return (
     <div className={styles.editor}>
@@ -105,40 +108,14 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label}>
-            Concept IDs (comma-separated)
-            <textarea
-              className={styles.textarea}
-              value={conceptIdsText}
-              onChange={(e) => setConceptIdsText(e.target.value)}
-              rows={3}
-              disabled={saving}
-              placeholder="concept-id-1, concept-id-2"
-            />
-          </label>
-          {availableConcepts.length > 0 && (
-            <div className={styles.conceptHints}>
-              {availableConcepts.slice(0, 8).map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={styles.conceptChip}
-                  onClick={() => {
-                    const current = conceptIdsText
-                      .split(/[,\n]+/)
-                      .map((s) => s.trim())
-                      .filter(Boolean);
-                    if (!current.includes(c.id)) {
-                      setConceptIdsText([...current, c.id].join(", "));
-                    }
-                  }}
-                  title={`Add ${c.name}`}
-                >
-                  + {c.name}
-                </button>
-              ))}
-            </div>
-          )}
+          <span className={styles.label}>Concepts</span>
+          <ConceptPicker
+            selectedIds={selectedConceptIds}
+            options={availableConcepts}
+            onChange={setSelectedConceptIds}
+            disabled={saving}
+            placeholder="Search concepts by name…"
+          />
         </div>
 
         {saveError && (

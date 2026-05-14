@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-concept-name-surfacing-concept-node
 kind: story
-stage: implementing
+stage: review
 tags: [ui, configure, editorial]
 parent: epic-editorial-polish-pass-concept-name-surfacing
 depends_on: [epic-editorial-polish-pass-concept-name-surfacing-hook]
@@ -67,4 +67,40 @@ of the design.
 - `packages/ui/src/components/concept-node.tsx`
 - `packages/ui/src/components/concept-node.module.css`
 - `packages/ui/src/routes/configure/gates-tab.tsx`
+- `packages/ui/src/routes/course-map.tsx` (also populates `conceptId`
+  — the same node component is used by the course map; the
+  required field was missing there too)
 - `packages/ui/src/__tests__/concept-node.test.tsx`
+
+## Implementation notes (2026-05-14)
+
+- Added required `conceptId: string` field to `ConceptNodeData`.
+- `ConceptNodeDisplay` renders a `<span className={styles.conceptId}
+  title={data.conceptId}>` below the name; the `title` exposes the
+  full id when CSS truncates the secondary line.
+- New `.conceptId` CSS rule: 0.6rem, mono font, muted color, single-line
+  with ellipsis. No change to the node card width — the design called
+  for letting the id truncate before resizing.
+- `gates-tab.tsx`:
+  - Calls `useConceptNames(selectedCourseId ?? undefined)` at the top
+    of `GatesTab`.
+  - `buildGraph(lessons, gates, getName)` signature gains the third
+    parameter; the `useMemo` deps include `getName`.
+  - Inside the loop: `name: getName(conceptId)` (drops the id-as-name
+    fallback) and `conceptId: conceptId` (new required field).
+- `course-map.tsx`: same `conceptId` field added (the course map
+  builds its own graph with its own conceptsById lookup; `getName`
+  isn't needed here since names already come from `conceptRow.name`,
+  but the new required field had to be populated).
+- Test file: existing `renderNode` helper now defaults `conceptId` so
+  the existing tone tests don't have to specify it. Three new tests
+  in a "conceptId secondary line" describe block assert:
+  - the id renders below the name
+  - the `title` attribute carries the full id
+  - the id-as-fallback case (when `name === conceptId`)
+
+## Verification
+
+- `pnpm --filter @praxis/ui typecheck`: green.
+- `pnpm --filter @praxis/ui exec vitest run src/__tests__/concept-node.test.tsx`:
+  16 tests pass (13 existing + 3 new).

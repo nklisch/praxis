@@ -29,7 +29,9 @@ export function CourseTab({ sessionId }: CourseTabProps) {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [concepts, setConcepts] = useState<Array<{ id: string; name: string }>>([]);
+  const [concepts, setConcepts] = useState<
+    Array<{ id: string; name: string; aliases: string[] }>
+  >([]);
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [addingLesson, setAddingLesson] = useState(false);
@@ -47,7 +49,13 @@ export function CourseTab({ sessionId }: CourseTabProps) {
       const summary = await client.author.getCourseSummary(selectedCourseId);
       setCourse(summary.course);
       setLessons(summary.lessons);
-      setConcepts(summary.concepts.map((c) => ({ id: c.id, name: c.name })));
+      setConcepts(
+        summary.concepts.map((c) => ({
+          id: c.id,
+          name: c.name,
+          aliases: c.aliases,
+        })),
+      );
     } catch (err) {
       setEditorError(err instanceof Error ? err.message : String(err));
     } finally {
