@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-draft-resumption-ui-picker
 kind: story
-stage: implementing
+stage: review
 tags: [tutor-ux, bootstrap, ui]
 parent: epic-course-structured-tutor-draft-resumption
 depends_on: []

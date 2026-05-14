@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-draft-resumption-mode-wiring
 kind: story
-stage: implementing
+stage: review
 tags: [tutor-ux, bootstrap, mode-prompts]
 parent: epic-course-structured-tutor-draft-resumption
 depends_on: [epic-course-structured-tutor-draft-resumption-tool]

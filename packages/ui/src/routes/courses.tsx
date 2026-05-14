@@ -1,5 +1,7 @@
+import type { DraftCourseState } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
 import { CourseListItem } from "../components/course-list-item.js";
+import { displayTitle, ResumeDraftPicker } from "../components/resume-draft-picker.js";
 import { RouteHeader } from "../components/route-header.js";
 import { getRouteMeta } from "../components/route-meta.js";
 import { usePraxisClient } from "../context/client-context.js";
@@ -23,6 +25,35 @@ export function CoursesRoute() {
     }
   };
 
+  const handleResumeDraft = async (draft: DraftCourseState) => {
+    try {
+      const handle = await client.session.start({ modeId: "bootstrap" });
+      await navigate({ to: "/", search: { sessionId: handle.sessionId } });
+      // Seed the bootstrap conversation so the model picks up the draftId.
+      // The model already knows the resume-via-course.start_exploration(draftId)
+      // protocol per the bootstrap-role fragment. We send a one-shot seed
+      // message and drop the response stream — chat UI subscribes via the
+      // streaming hook once the tab mounts.
+      const message =
+        `Please resume draft ${draft.draftId} (\"${displayTitle(draft)}\"). ` +
+        `Call course.start_exploration with this draftId to continue building it.`;
+      const stream = client.session.send(handle.sessionId, message);
+      // Drain in the background — we don't need the events here; the chat
+      // tab body will independently subscribe.
+      (async () => {
+        try {
+          for await (const _ of stream) {
+            // discard
+          }
+        } catch {
+          // ignore — chat UI surfaces errors
+        }
+      })();
+    } catch (_err) {
+      await navigate({ to: "/" });
+    }
+  };
+
   return (
     <div className={styles.layout}>
       <RouteHeader
@@ -31,9 +62,12 @@ export function CoursesRoute() {
         title={meta.title}
         deck={meta.deck}
         actions={
-          <button type="button" className={styles.newCourseBtn} onClick={handleNewCourse}>
-            + New course
-          </button>
+          <>
+            <ResumeDraftPicker onResume={handleResumeDraft} />
+            <button type="button" className={styles.newCourseBtn} onClick={handleNewCourse}>
+              + New course
+            </button>
+          </>
         }
       />
 

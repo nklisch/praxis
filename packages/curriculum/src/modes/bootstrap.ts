@@ -47,6 +47,8 @@ export const bootstrapMode: Mode = {
     "course.edit_draft",
     "course.confirm_draft",
     "course.discard_draft",
+    // Draft enumeration — student-facing resume affordance.
+    "course.list_drafts",
     // Chunked-query tools (expressive-draft-api)
     "course.list_units",
     "course.list_lessons_in_unit",

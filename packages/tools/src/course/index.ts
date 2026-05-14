@@ -27,6 +27,7 @@ import { getLessonDetailTool } from "./get-lesson-detail.js";
 import { listCanonicalPacksTool } from "./list-canonical-packs.js";
 import { listCourseDocsTool } from "./list-course-documents.js";
 import { listDanglingRefsTool } from "./list-dangling-refs.js";
+import { listDraftsTool } from "./list-drafts.js";
 import { listLessonsInUnitTool } from "./list-lessons-in-unit.js";
 import { listLibraryDocumentsTool } from "./list-library-documents.js";
 import { listUnitsTool } from "./list-units.js";
@@ -57,6 +58,7 @@ export {
   listCanonicalPacksTool,
   listCourseDocsTool,
   listDanglingRefsTool,
+  listDraftsTool,
   listLessonsInUnitTool,
   listLibraryDocumentsTool,
   listUnitsTool,
@@ -103,6 +105,7 @@ export const COURSE_TOOLS = [
   editDraftTool,
   confirmDraftTool,
   discardDraftTool,
+  listDraftsTool,
   listCanonicalPacksTool,
   useCanonicalPackTool,
   // Chunked-query tools (expressive-draft-api).

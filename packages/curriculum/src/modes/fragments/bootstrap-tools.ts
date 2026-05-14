@@ -11,6 +11,7 @@ export const bootstrapToolsFragment: PromptFragment = {
 - course.edit_draft — apply a single edit to the draft (rename, reorder, add, remove)
 - course.confirm_draft — persist the draft as a real course; attached documents are recorded automatically
 - course.discard_draft — drop a draft and start over
+- course.list_drafts — enumerate the student's active drafts when they ask to resume something they started. Pass the chosen draftId back into course.start_exploration to continue building.
 - course.list_units — list draft units with lesson counts and whether each has a summative
 - course.list_lessons_in_unit — list lessons within a specific unit (returns title + concept count + assessment count per lesson)
 - course.get_lesson_detail — full lesson detail including concept names, lesson assessments, and parent unit
