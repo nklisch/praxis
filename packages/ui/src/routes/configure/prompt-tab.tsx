@@ -1,99 +1,10 @@
-import { FRAGMENT_ORDER } from "@praxis/curriculum/brief";
-import { listModes, requireMode } from "@praxis/curriculum/modes";
+import { listModes } from "@praxis/curriculum/modes";
 import { type FormEvent, useState } from "react";
-import { AttributedPreviewPane } from "../../components/attributed-preview-pane.js";
-import { FragmentBlock } from "../../components/fragment-block.js";
-import { GlobalPromptEditor } from "../../components/global-prompt-editor.js";
-import { ModeAppendEditor } from "../../components/mode-append-editor.js";
+import { PromptBlockStack } from "../../components/prompt-block-stack.js";
 import { StyleSlider } from "../../components/style-slider.js";
 import { usePraxisClient } from "../../context/client-context.js";
-import { useFragmentOverrides } from "../../hooks/use-fragment-overrides.js";
 import { COPY } from "../../lib/copy.js";
 import styles from "./prompt-tab.module.css";
-
-// ---------------------------------------------------------------------------
-// FragmentStack
-// ---------------------------------------------------------------------------
-
-interface FragmentStackProps {
-  modeId: string;
-}
-
-function FragmentStack({ modeId }: FragmentStackProps) {
-  const mode = requireMode(modeId);
-  const overrides = useFragmentOverrides(modeId);
-
-  // Enumerate all fragments, excluding user-authored positions:
-  // - user-global is handled by GlobalPromptEditor above the stack.
-  // - user-append is always rendered as a dedicated slot at the bottom.
-  const sortedFragments = [...mode.promptFragments]
-    .filter((f) => f.position !== "user-global" && f.position !== "user-append")
-    .sort((a, b) => FRAGMENT_ORDER.indexOf(a.position) - FRAGMENT_ORDER.indexOf(b.position));
-
-  return (
-    <div className={styles.fragmentStack}>
-      {sortedFragments.map((fragment) => (
-        <FragmentBlock
-          key={fragment.id}
-          modeId={modeId}
-          fragment={fragment}
-          override={overrides.byId.get(fragment.id) ?? null}
-          onOverrideChange={overrides.refresh}
-        />
-      ))}
-
-      {/* user-append: per-mode append, always present as the final slot */}
-      <div className={styles.fragmentBlock}>
-        <div className={styles.fragmentBlockHeader}>
-          <span className={styles.fragmentId}>user-append</span>
-          <span className={styles.fragmentPosition}>user-append</span>
-        </div>
-        <ModeAppendEditor />
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// PromptPreviewWithToggle
-// ---------------------------------------------------------------------------
-
-type PreviewTab = "composed" | "diff";
-
-interface PromptPreviewWithToggleProps {
-  modeId: string;
-}
-
-function PromptPreviewWithToggle({ modeId }: PromptPreviewWithToggleProps) {
-  const [view, setView] = useState<PreviewTab>("composed");
-
-  return (
-    <div className={styles.previewContainer}>
-      <div className={styles.previewToggleRow} role="tablist" aria-label="Preview mode">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === "composed"}
-          className={`${styles.toggleBtn} ${view === "composed" ? styles.toggleBtnActive : ""}`}
-          onClick={() => setView("composed")}
-        >
-          {COPY.prompt.previewToggleComposed}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === "diff"}
-          className={`${styles.toggleBtn} ${view === "diff" ? styles.toggleBtnActive : ""}`}
-          onClick={() => setView("diff")}
-        >
-          {COPY.prompt.previewToggleDiff}
-        </button>
-      </div>
-
-      <AttributedPreviewPane modeId={modeId} view={view} />
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // StyleSliderForm (extracted from old PromptTab — keeps behavior identical)
@@ -171,77 +82,42 @@ function StyleSliderForm() {
 }
 
 // ---------------------------------------------------------------------------
-// PromptTab — the unified surface
+// PromptTab — v3 two-section surface
 // ---------------------------------------------------------------------------
 
 const ALL_MODES = listModes();
 const DEFAULT_MODE_ID = "teach";
 
 /**
- * Unified prompt-customization surface in Configure.
+ * Configure → Prompt tab (v3 layout).
  *
- * Hosts all three customization layers in one coherent screen:
- *   1. Global Fragment — cross-mode, injected at `user-global` position
- *   2. Mode picker → Fragment Stack — per-mode fragments in FRAGMENT_ORDER,
- *      with each fragment rendered as a <FragmentBlock> and the
- *      user-append slot hosting ModeAppendEditor
- *   3. Composed Preview — live preview of the selected mode's system prompt,
- *      with a [Composed | Diff] toggle (Diff disabled until diff-aware-preview
- *      lands)
- *   4. Teaching Style sliders — separate concern, kept as its own section
+ * Two ordered sections:
+ *   1. Teaching style — highest-frequency knob, lives at the top.
+ *   2. Prompt blocks — unified block-list / composed-toggle surface
+ *      that replaces the four parallel preview shapes from v2
+ *      (global / append / composed / full-fragment).
  *
  * No RouteHeader: this is a tab panel inside <ConfigureRoute>.
  */
 export function PromptTab() {
-  const [modeId, setModeId] = useState<string>(DEFAULT_MODE_ID);
+  const [modeId, setModeId] = useState<string>(
+    ALL_MODES[0]?.id ?? DEFAULT_MODE_ID,
+  );
 
   return (
     <div className={styles.layout}>
-      {/* ── 1. Global fragment ─────────────────────────────────────── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{COPY.prompt.globalSectionTitle}</h2>
-        <p className={styles.sectionDesc}>{COPY.prompt.globalSectionDesc}</p>
-        <GlobalPromptEditor />
-      </section>
-
-      {/* ── 2. Mode picker ─────────────────────────────────────────── */}
-      <section className={styles.modePicker}>
-        <label htmlFor="prompt-mode-picker" className={styles.modePickerLabel}>
-          {COPY.prompt.modePickerLabel}
-        </label>
-        <select
-          id="prompt-mode-picker"
-          className={styles.modeSelect}
-          value={modeId}
-          onChange={(e) => setModeId(e.target.value)}
-        >
-          {ALL_MODES.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.displayName}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      {/* ── 3. Fragment stack ──────────────────────────────────────── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{COPY.prompt.fragmentSectionTitle}</h2>
-        <p className={styles.sectionDesc}>{COPY.prompt.fragmentSectionDesc}</p>
-        <FragmentStack modeId={modeId} />
-      </section>
-
-      {/* ── 4. Composed preview with Diff toggle ──────────────────── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{COPY.prompt.previewSectionTitle}</h2>
-        <p className={styles.sectionDesc}>{COPY.prompt.previewSectionDesc}</p>
-        <PromptPreviewWithToggle modeId={modeId} />
-      </section>
-
-      {/* ── 5. Teaching style sliders ─────────────────────────────── */}
+      {/* ── 1. Teaching style ─────────────────────────────────────── */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>{COPY.prompt.styleSectionTitle}</h2>
         <p className={styles.sectionDesc}>{COPY.prompt.styleSectionDesc}</p>
         <StyleSliderForm />
+      </section>
+
+      {/* ── 2. Prompt blocks (unified) ────────────────────────────── */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>{COPY.prompt.blocksSectionTitle}</h2>
+        <p className={styles.sectionDesc}>{COPY.prompt.blocksSectionDesc}</p>
+        <PromptBlockStack modeId={modeId} onModeChange={setModeId} />
       </section>
     </div>
   );

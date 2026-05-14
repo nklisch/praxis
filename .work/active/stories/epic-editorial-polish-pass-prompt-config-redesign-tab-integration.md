@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-prompt-config-redesign-tab-integration
 kind: story
-stage: implementing
+stage: review
 tags: [ui, configure, prompt-customization]
 parent: epic-editorial-polish-pass-prompt-config-redesign
 depends_on: [epic-editorial-polish-pass-prompt-config-redesign-stack-and-preview]
@@ -131,8 +131,70 @@ See the parent feature for the full design. This story implements
 
 ## Files touched
 
-- `packages/ui/src/routes/configure/prompt-tab.tsx` (modified)
+- `packages/ui/src/routes/configure/prompt-tab.tsx` (rewritten)
 - `packages/ui/src/routes/configure/prompt-tab.module.css` (trimmed)
-- `packages/ui/src/lib/copy.ts` (modified)
-- 12 files deleted (3 retired component files × 4 each: .tsx, .module.css,
-  test.tsx — see Deletions section above)
+- `packages/ui/src/lib/copy.ts` (dropped retired keys)
+- `packages/ui/src/__tests__/configure-prompt-tab.test.tsx`
+  (rewritten — old layout tests removed; new tests assert the
+  two-section v3 layout)
+- `packages/ui/src/__tests__/configure-route.test.tsx` (added
+  fakes for `getGlobalPrompt` / `getModeAppend` /
+  `listFragmentOverrides` / `previewPromptWithAttribution` /
+  `setGlobalPrompt` / `setModeAppend` because the tab now mounts
+  `<PromptBlockStack>` which calls those methods)
+- 11 files deleted (the 4 retired components + their CSS + their
+  test files):
+  - `global-prompt-editor.{tsx,module.css}` + test
+  - `mode-append-editor.{tsx,module.css}` + test
+  - `fragment-block.{tsx,module.css}` + test
+  - `prompt-preview-pane.{tsx,module.css}` (no test file
+    existed for the preview pane)
+
+## Implementation notes (2026-05-14)
+
+- `prompt-tab.tsx` rewritten as the v3 two-section layout. Order is
+  Teaching Style → Prompt blocks, matching the design's
+  highest-frequency-first decision.
+- All four retired components and their tests removed. Per the design's
+  Deletions section, I verified with grep that the only remaining
+  reference to the retired component *names* is a description string in
+  `settings-route.test.tsx` ("does not render the GlobalPromptEditor
+  ..."), which is harmless — it asserts the component is NOT present.
+- COPY keys dropped: `globalSectionTitle`, `globalSectionDesc`,
+  `fragmentSectionTitle`, `fragmentSectionDesc`, `previewSectionTitle`,
+  `previewSectionDesc`, `previewToggleComposed`, `previewToggleDiff`.
+- `prompt-tab.module.css` trimmed from ~213 lines to ~70: kept
+  `.layout`, `.section`, `.sectionTitle`, `.sectionDesc`,
+  `.sliderForm`, `.error`, `.success`, `.saveBtn` (and its hover /
+  disabled). Removed all `.fragment*`, `.modePicker*`,
+  `.previewContainer`, `.previewToggleRow`, `.toggleBtn*` rules.
+- `configure-prompt-tab.test.tsx` retired the 13-test old-layout
+  suite. The new test asserts:
+  - exactly two `<section>` elements after the stack loads
+  - DOM order: Teaching Style before Prompt blocks
+  - retired headings (Global Fragment / Composed Preview / Prompt
+    Fragments) are NOT present
+  - the prompt block stack's mode picker is mounted
+
+## Decisions logged
+
+- **No fallback / migration banner**: the design said "Single-pass
+  migration: do not keep the old editors behind a flag." I followed
+  that — there's no transitional state, just the new layout. The
+  retired components are gone in this commit.
+- **`prompt-preview-pane` had no test file**: only the .tsx and
+  .module.css were deleted for it. Not surprising — it was a
+  wrapper around `AttributedPreviewPane` introduced in v2 and
+  superseded before its dedicated test landed.
+- **`StyleSliderForm` extracted-inline**: kept the inline definition
+  in `prompt-tab.tsx` rather than promoting to its own file. It's
+  tiny, only used here, and the file is now short enough that
+  splitting would add navigation cost without payoff.
+
+## Verification
+
+- `pnpm --filter @praxis/ui typecheck`: green.
+- `pnpm --filter @praxis/ui test`: 972 tests pass across 111 files.
+  Net of: -3 deleted test files (fragment-block, global-prompt-editor,
+  mode-append-editor) and -1 reduced (configure-prompt-tab 13 → 4),
+  +1 new test file (prompt-block-stack), +sundry baseline.

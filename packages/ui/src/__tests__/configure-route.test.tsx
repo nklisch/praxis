@@ -102,7 +102,15 @@ function makeClient(
       createCourse: vi.fn(),
       editGate: vi.fn(),
       bootstrap: vi.fn(),
-    } as PraxisClient["author"],
+      getGlobalPrompt: vi.fn().mockResolvedValue(null),
+      setGlobalPrompt: vi.fn().mockResolvedValue(undefined),
+      getModeAppend: vi.fn().mockResolvedValue(null),
+      setModeAppend: vi.fn().mockResolvedValue(undefined),
+      listFragmentOverrides: vi.fn().mockResolvedValue([]),
+      previewPromptWithAttribution: vi
+        .fn()
+        .mockResolvedValue({ segments: [], fullText: "" }),
+    } as unknown as PraxisClient["author"],
     memory: {
       studentModel: vi
         .fn()

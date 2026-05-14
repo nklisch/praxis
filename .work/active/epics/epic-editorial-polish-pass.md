@@ -1,14 +1,14 @@
 ---
 id: epic-editorial-polish-pass
 kind: epic
-stage: implementing
+stage: review
 tags: [ui, editorial, configure]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # Editorial polish pass — bring the chrome and the editors in line with the design system

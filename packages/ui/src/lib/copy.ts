@@ -74,13 +74,7 @@ export const COPY = {
     dismissLabel: "Dismiss this update",
   },
   prompt: {
-    globalSectionTitle: "Global Fragment",
-    globalSectionDesc:
-      "Injected into every mode's system prompt. Use it for cross-cutting teaching style or persona guidance.",
     modePickerLabel: "Mode",
-    fragmentSectionTitle: "Prompt Fragments",
-    fragmentSectionDesc:
-      "Fragments that make up this mode's system prompt. Customizable slots accept overrides; locked slots show the default text.",
     lockedFragmentLabel: "Locked",
     fragmentBlockEditedBadge: "Edited",
     fragmentBlockLockedBadge: "Locked",
@@ -88,11 +82,6 @@ export const COPY = {
     fragmentBlockReturnToDefault: "Return to default",
     fragmentBlockDiffShow: "Diff",
     fragmentBlockDiffHide: "Hide diff",
-    previewSectionTitle: "Composed Preview",
-    previewSectionDesc:
-      "The fully composed system prompt for the selected mode, including your customizations.",
-    previewToggleComposed: "Composed",
-    previewToggleDiff: "Diff",
     styleSectionTitle: "Teaching Style",
     styleSectionDesc: "Adjust how the tutor communicates. Changes apply globally across sessions.",
     // Prompt blocks (v3 unified surface)

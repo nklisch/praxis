@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-prompt-config-redesign
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, configure, prompt-customization]
 parent: epic-editorial-polish-pass
 depends_on: []
