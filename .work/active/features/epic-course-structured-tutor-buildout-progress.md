@@ -1,7 +1,7 @@
 ---
 id: epic-course-structured-tutor-buildout-progress
 kind: feature
-stage: implementing
+stage: review
 tags: [tutor-ux, bootstrap]
 parent: epic-course-structured-tutor
 depends_on: []
@@ -339,3 +339,17 @@ with how every other prompt-fragment edit in the codebase is tested.
   the same package directory. Treating it as out of scope would leave
   a known regression site, and reviewer cost is zero (identical
   parenthetical edit). Including it.
+
+## Implementation notes (2026-05-14)
+
+Landed inline as a single stride. All three template edits applied:
+
+- `bootstrap-role.ts`: replaced step-4 ETA sentence with structural-progress instruction; added "Never quote durations or ETAs" bullet to chat-discipline block.
+- `bootstrap-tools.ts`: removed "(30–90 seconds)" parenthetical from `course.start_exploration` entry; replaced with "do not quote ETAs" guidance.
+- `configure-tools.ts`: same change for the Phase-11 configure-mode tool catalogue.
+
+New test file: `packages/curriculum/src/modes/fragments/__tests__/bootstrap-no-time-estimate.test.ts` — 12 substring assertions (negative + positive) across all three fragments.
+
+Verification: `pnpm --filter @praxis/curriculum test` → 415 tests, all green (28 existing test files + 1 new).
+
+Note: the negative-substring guard for "30 seconds" forced one small wording tweak to the role-fragment example ("a few seconds" instead of "30 seconds") — the principle is preserved, the literal substring is no longer present anywhere.

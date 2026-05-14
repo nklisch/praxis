@@ -21,7 +21,7 @@ export const configureToolsFragment: PromptFragment = {
 - course.list_course_documents — see documents attached to the active course
 - course.attach_document — attach a library document to the active course
 - course.detach_document — detach a document from the active course
-- course.start_exploration — run the concept-explorer on selected documents (30–90 seconds)
+- course.start_exploration — run the concept-explorer on selected documents (runs as a background agent; duration varies — do not quote ETAs to the student)
 - course.show_draft — render the current draft
 - course.edit_draft — apply a single edit to the draft
 - course.confirm_draft — persist the draft as a course; documents auto-attached
