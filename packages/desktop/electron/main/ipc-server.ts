@@ -342,61 +342,127 @@ export function registerIpcHandlers(
 
   // ── Artifacts (read-only) ────────────────────────────────────────────────
 
-  handle("praxis.artifacts.courses", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.artifacts.courses(studentId);
-  });
+  // Shared schema for all single-courseId artifact channels.
+  const courseIdSchema = z.string().min(1, "courseId");
 
-  handle("praxis.artifacts.course", async (_event, courseId: string) => {
-    return services.artifacts.course(brandId<"CourseId">(courseId) as CourseId);
-  });
+  handle(
+    "praxis.artifacts.courses",
+    wrapEnvelope("praxis.artifacts.courses", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.artifacts.courses(studentId);
+    }),
+  );
 
-  handle("praxis.artifacts.lessons", async (_event, courseId: string) => {
-    return services.artifacts.lessons(brandId<"CourseId">(courseId) as CourseId);
-  });
+  handle(
+    "praxis.artifacts.course",
+    handleEnvelope(
+      "praxis.artifacts.course",
+      log,
+      courseIdSchema,
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (courseId) => services.artifacts.course(brandId<"CourseId">(courseId) as any),
+    ),
+  );
 
-  handle("praxis.artifacts.gates", async (_event, courseId: string) => {
-    return services.artifacts.gates(brandId<"CourseId">(courseId) as CourseId);
-  });
+  handle(
+    "praxis.artifacts.lessons",
+    handleEnvelope(
+      "praxis.artifacts.lessons",
+      log,
+      courseIdSchema,
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (courseId) => services.artifacts.lessons(brandId<"CourseId">(courseId) as any),
+    ),
+  );
 
-  handle("praxis.artifacts.progress", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.artifacts.progress(studentId);
-  });
+  handle(
+    "praxis.artifacts.gates",
+    handleEnvelope(
+      "praxis.artifacts.gates",
+      log,
+      courseIdSchema,
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (courseId) => services.artifacts.gates(brandId<"CourseId">(courseId) as any),
+    ),
+  );
+
+  handle(
+    "praxis.artifacts.progress",
+    wrapEnvelope("praxis.artifacts.progress", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.artifacts.progress(studentId);
+    }),
+  );
 
   // ── Phase 9: Gate view + evaluation ──────────────────────────────────────────
 
-  handle("praxis.artifacts.gateView", async (_event, courseId: string) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.artifacts.gateView({
-      studentId,
-      courseId: brandId<"CourseId">(courseId) as CourseId,
-    });
-  });
+  handle(
+    "praxis.artifacts.gateView",
+    handleEnvelope(
+      "praxis.artifacts.gateView",
+      log,
+      courseIdSchema,
+      async (courseId) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.artifacts.gateView({
+          studentId,
+          // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+          courseId: brandId<"CourseId">(courseId) as any,
+        });
+      },
+    ),
+  );
 
-  handle("praxis.artifacts.evaluateGates", async (_event, courseId: string) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.artifacts.evaluateAndPersistGates({
-      studentId,
-      courseId: brandId<"CourseId">(courseId) as CourseId,
-    });
-  });
+  handle(
+    "praxis.artifacts.evaluateGates",
+    handleEnvelope(
+      "praxis.artifacts.evaluateGates",
+      log,
+      courseIdSchema,
+      async (courseId) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.artifacts.evaluateAndPersistGates({
+          studentId,
+          // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+          courseId: brandId<"CourseId">(courseId) as any,
+        });
+      },
+    ),
+  );
 
-  handle("praxis.artifacts.markGatesViewed", async (_event, courseId: string) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.artifacts.markGatesViewed({
-      studentId,
-      courseId: brandId<"CourseId">(courseId) as CourseId,
-    });
-  });
+  handle(
+    "praxis.artifacts.markGatesViewed",
+    handleEnvelope(
+      "praxis.artifacts.markGatesViewed",
+      log,
+      courseIdSchema,
+      async (courseId) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.artifacts.markGatesViewed({
+          studentId,
+          // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+          courseId: brandId<"CourseId">(courseId) as any,
+        });
+      },
+    ),
+  );
 
-  handle("praxis.artifacts.newlyUnlockedCount", async (_event, courseId: string) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.artifacts.newlyUnlockedCount({
-      studentId,
-      courseId: brandId<"CourseId">(courseId) as CourseId,
-    });
-  });
+  handle(
+    "praxis.artifacts.newlyUnlockedCount",
+    handleEnvelope(
+      "praxis.artifacts.newlyUnlockedCount",
+      log,
+      courseIdSchema,
+      async (courseId) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.artifacts.newlyUnlockedCount({
+          studentId,
+          // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+          courseId: brandId<"CourseId">(courseId) as any,
+        });
+      },
+    ),
+  );
 
   // ── Memory ───────────────────────────────────────────────────────────────────
 
@@ -569,11 +635,18 @@ export function registerIpcHandlers(
 
   // ── Phase 10: Concepts (read-only) ──────────────────────────────────────────
 
-  handle("praxis.artifacts.concepts", async (_event, courseId: string) => {
-    // Concept ids returned here are prefixed for canonical packs
-    // (e.g., "<graphId>:algebra-1.real-numbers") — consumers must treat as opaque strings.
-    return services.artifacts.concepts(brandId<"CourseId">(courseId));
-  });
+  handle(
+    "praxis.artifacts.concepts",
+    handleEnvelope(
+      "praxis.artifacts.concepts",
+      log,
+      courseIdSchema,
+      // Concept ids returned here are prefixed for canonical packs
+      // (e.g., "<graphId>:algebra-1.real-numbers") — consumers must treat as opaque strings.
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (courseId) => services.artifacts.concepts(brandId<"CourseId">(courseId) as any),
+    ),
+  );
 
   // ── Phase 10: Packs ──────────────────────────────────────────────────────────
 

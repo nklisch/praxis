@@ -12,6 +12,7 @@ import type {
   Note,
   ProgressSnapshot,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 /** Shape returned by praxis.artifacts.concepts. */
@@ -46,25 +47,40 @@ export class ArtifactsClient implements ArtifactsClientSurface {
   constructor(private readonly transport: ClientTransport) {}
 
   async course(id: CourseId): Promise<Course | null> {
-    return this.transport.invoke<Course | null>(C.course, id);
+    const result = await this.transport.invoke<IpcEnvelope<Course | null> | Course | null>(
+      C.course,
+      id,
+    );
+    return unwrapEnvelope(result);
   }
 
-  courses(): Promise<CourseSummary[]> {
+  async courses(): Promise<CourseSummary[]> {
     // Server resolves student from getDefaultStudentId (single-student v1).
-    return this.transport.invoke<CourseSummary[]>(C.courses);
+    const result = await this.transport.invoke<IpcEnvelope<CourseSummary[]> | CourseSummary[]>(
+      C.courses,
+    );
+    return unwrapEnvelope(result);
   }
 
-  lessons(courseId: CourseId): Promise<Lesson[]> {
-    return this.transport.invoke<Lesson[]>(C.lessons, courseId);
+  async lessons(courseId: CourseId): Promise<Lesson[]> {
+    const result = await this.transport.invoke<IpcEnvelope<Lesson[]> | Lesson[]>(
+      C.lessons,
+      courseId,
+    );
+    return unwrapEnvelope(result);
   }
 
-  gates(courseId: CourseId): Promise<Gate[]> {
-    return this.transport.invoke<Gate[]>(C.gates, courseId);
+  async gates(courseId: CourseId): Promise<Gate[]> {
+    const result = await this.transport.invoke<IpcEnvelope<Gate[]> | Gate[]>(C.gates, courseId);
+    return unwrapEnvelope(result);
   }
 
-  progress(): Promise<ProgressSnapshot> {
+  async progress(): Promise<ProgressSnapshot> {
     // Server resolves student from getDefaultStudentId (single-student v1).
-    return this.transport.invoke<ProgressSnapshot>(C.progress);
+    const result = await this.transport.invoke<IpcEnvelope<ProgressSnapshot> | ProgressSnapshot>(
+      C.progress,
+    );
+    return unwrapEnvelope(result);
   }
 
   // Phase 12 territory — return empty stubs for now.
@@ -78,23 +94,35 @@ export class ArtifactsClient implements ArtifactsClientSurface {
 
   // ── Phase 9: Gate view + evaluation ─────────────────────────────────────────
 
-  gateView(courseId: CourseId): Promise<GateView[]> {
-    return this.transport.invoke<GateView[]>("praxis.artifacts.gateView", courseId);
-  }
-
-  evaluateGates(courseId: CourseId): Promise<{ unlockedGateIds: GateId[] }> {
-    return this.transport.invoke<{ unlockedGateIds: GateId[] }>(
-      "praxis.artifacts.evaluateGates",
+  async gateView(courseId: CourseId): Promise<GateView[]> {
+    const result = await this.transport.invoke<IpcEnvelope<GateView[]> | GateView[]>(
+      "praxis.artifacts.gateView",
       courseId,
     );
+    return unwrapEnvelope(result);
   }
 
-  markGatesViewed(courseId: CourseId): Promise<void> {
-    return this.transport.invoke<void>("praxis.artifacts.markGatesViewed", courseId);
+  async evaluateGates(courseId: CourseId): Promise<{ unlockedGateIds: GateId[] }> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<{ unlockedGateIds: GateId[] }> | { unlockedGateIds: GateId[] }
+    >("praxis.artifacts.evaluateGates", courseId);
+    return unwrapEnvelope(result);
   }
 
-  newlyUnlockedCount(courseId: CourseId): Promise<number> {
-    return this.transport.invoke<number>("praxis.artifacts.newlyUnlockedCount", courseId);
+  async markGatesViewed(courseId: CourseId): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      "praxis.artifacts.markGatesViewed",
+      courseId,
+    );
+    return unwrapEnvelope(result);
+  }
+
+  async newlyUnlockedCount(courseId: CourseId): Promise<number> {
+    const result = await this.transport.invoke<IpcEnvelope<number> | number>(
+      "praxis.artifacts.newlyUnlockedCount",
+      courseId,
+    );
+    return unwrapEnvelope(result);
   }
 
   // ── Phase 10: Concept list ────────────────────────────────────────────────
@@ -104,7 +132,11 @@ export class ArtifactsClient implements ArtifactsClientSurface {
    * Concept ids are prefixed for canonical packs ("<graphId>:pack-id.concept-id")
    * and are plain UUIDs for extracted courses.
    */
-  concepts(courseId: CourseId): Promise<ConceptRow[]> {
-    return this.transport.invoke<ConceptRow[]>("praxis.artifacts.concepts", courseId);
+  async concepts(courseId: CourseId): Promise<ConceptRow[]> {
+    const result = await this.transport.invoke<IpcEnvelope<ConceptRow[]> | ConceptRow[]>(
+      "praxis.artifacts.concepts",
+      courseId,
+    );
+    return unwrapEnvelope(result);
   }
 }

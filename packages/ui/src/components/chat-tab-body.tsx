@@ -110,6 +110,9 @@ export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element 
     ...(tab.courseId !== undefined && {
       courseId: brandId<"CourseId">(tab.courseId),
     }),
+    ...(tab.assignmentId !== undefined && {
+      assignmentId: brandId<"AssignmentId">(tab.assignmentId),
+    }),
   };
 
   // Phase 17: subscribe to quick-check events for this session. The bridge

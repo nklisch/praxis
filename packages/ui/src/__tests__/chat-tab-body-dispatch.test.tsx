@@ -6,11 +6,18 @@
  * display:none) is owned by the parent ChatRoute and is tested in chat-route.
  * Here we just assert the right body renders for each modeId.
  */
-import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
+import type {
+  Assignment,
+  AssignmentId,
+  PraxisClient,
+  SessionTabSummary,
+  TabSummary,
+  Timestamp,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ChatTabBody } from "../components/chat-tab-body.js";
+import { ChatTabBody, TeachChatTabBody } from "../components/chat-tab-body.js";
 import { AuthProvider } from "../context/auth-context.js";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
@@ -151,5 +158,82 @@ describe("ChatTabBody mode dispatcher", () => {
     renderTab(tab);
     const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
     expect(textarea.disabled).toBe(false);
+  });
+});
+
+describe("TeachChatTabBody exam lockdown", () => {
+  // Regression: the composer-queue feature must not bypass examLockdown.
+  // When examLockdown is true the Composer renders a disabled textarea, and
+  // handleSubmit short-circuits before calling onSend — so pressing Enter
+  // never reaches client.session.send and no queue entry is created.
+  it("composer textarea IS disabled when examLockdown is true (regression — queue must not bypass exam lock)", async () => {
+    const sendMock = vi.fn(async function* () {}) as unknown as PraxisClient["session"]["send"];
+
+    // Fake assignment without submittedAt — keeps lockdown active.
+    const fakeAssignment: Assignment = {
+      id: brandId<"AssignmentId">("asgn-1"),
+      courseId: brandId<"CourseId">("course-1"),
+      kind: "exam",
+      title: "Midterm",
+      items: [],
+      conceptIds: [],
+      assignedAt: Date.now() as Timestamp,
+      // No submittedAt — exam is still in progress → lockdown = true
+    };
+
+    const client = makeFakeClient({
+      session: {
+        active: vi.fn().mockResolvedValue(null),
+        send: sendMock,
+        list: vi.fn().mockResolvedValue([]),
+      } as unknown as PraxisClient["session"],
+      memory: {
+        episodic: vi.fn(async function* () {}),
+      } as unknown as PraxisClient["memory"],
+      assignments: {
+        get: vi.fn().mockResolvedValue(fakeAssignment),
+        getResponses: vi.fn().mockResolvedValue([]),
+      } as unknown as PraxisClient["assignments"],
+      quickCheck: {
+        events: vi.fn(async function* () {}),
+      } as unknown as PraxisClient["quickCheck"],
+    });
+
+    // A session tab with modeId "exam" and an assignmentId set.
+    // TeachChatTabBody is rendered directly (bypassing ChatTabBody's dispatcher
+    // that would route modeId "exam" to ExamTabBody) so we can test the
+    // examLockdown path inside TeachChatTabBody itself.
+    const examTab: SessionTabSummary = {
+      kind: "session",
+      id: brandId<"TabId">("tab-exam"),
+      sessionId: brandId<"SessionId">("session-exam"),
+      modeId: "exam",
+      title: "exam · midterm",
+      sortOrder: 0,
+      openedAt: (Date.now() - 10_000) as Timestamp,
+      lastSeenAt: (Date.now() - 5_000) as Timestamp,
+      closedAt: null,
+      assignmentId: "asgn-1",
+    };
+
+    render(
+      <PraxisClientProvider client={client}>
+        <AuthProvider>
+          <TeachChatTabBody tab={examTab} />
+        </AuthProvider>
+      </PraxisClientProvider>,
+    );
+
+    // Wait for ExamLockdownGate to resolve: useAssignment fetches the
+    // assignment, finds no submittedAt, and sets examLockdown=true.
+    await waitFor(() => {
+      const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+      expect(textarea.disabled).toBe(true);
+    });
+
+    // Verify the no-op: pressing Enter while disabled must NOT call session.send.
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    fireEvent.keyDown(textarea, { key: "Enter", code: "Enter" });
+    expect(sendMock).not.toHaveBeenCalled();
   });
 });

@@ -25,6 +25,8 @@
  *   praxis.lock.clearLock          — migrated; `handleEnvelope(z.string().min(1))`
  *   praxis.update.checkLatest      — migrated; bare `wrapEnvelope` (no schema)
  *   praxis.documents.list          — migrated (step-2); bare `wrapEnvelope` (no schema)
+ *   praxis.artifacts.courses       — migrated (step-3); bare `wrapEnvelope` (no schema)
+ *   praxis.artifacts.progress      — migrated (step-3); bare `wrapEnvelope` (no schema)
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -675,5 +677,55 @@ describe("praxis.config.setLockCode — success and validation", () => {
 
     const result = await handler?.({}, "");
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+});
+
+// ── praxis.artifacts.courses — migrated (step-3) no-payload ──────────────────
+
+describe("praxis.artifacts.courses — migrated channel (step-3)", () => {
+  it("resolves with { ok: true, value: [] } when no courses exist", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.artifacts.courses");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({});
+    expect(result).toMatchObject({ ok: true, value: [] });
+  });
+
+  it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    services.artifacts = {
+      ...services.artifacts,
+      courses: vi.fn().mockRejectedValue(new Error("DB gone")),
+    };
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.artifacts.courses");
+    expect(handler).toBeDefined();
+
+    await expect(handler?.({})).resolves.toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL" },
+    });
+  });
+});
+
+// ── praxis.artifacts.progress — migrated (step-3) no-payload ─────────────────
+
+describe("praxis.artifacts.progress — migrated channel (step-3)", () => {
+  it("resolves with { ok: true, value: <snapshot> } on success", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.artifacts.progress");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({});
+    expect(result).toMatchObject({ ok: true });
   });
 });

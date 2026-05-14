@@ -1,7 +1,7 @@
 ---
 id: gate-tests-composer-queue-exam-lockdown-regression
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -37,3 +37,13 @@ it("composer textarea IS disabled when examLockdown is true (regression check â€
   // Submitting via Enter when disabled is a no-op (no queue entry created)
 });
 ```
+
+## Implementation
+
+Added test in `packages/ui/src/__tests__/chat-tab-body-dispatch.test.tsx` (lines 164â€“239), in a new `describe("TeachChatTabBody exam lockdown")` block.
+
+The test renders `TeachChatTabBody` directly (bypassing the `ChatTabBody` dispatcher that routes `modeId: "exam"` to `ExamTabBody`) with a tab that has `assignmentId` set and `modeId: "exam"`. It mocks `client.assignments.get` to return an assignment without `submittedAt`, which causes `ExamLockdownGate` to set `examLockdown=true`. The test then:
+1. Waits for `examLockdown` to propagate (the textarea gains `disabled`).
+2. Fires a `keyDown` Enter event and asserts `client.session.send` was NOT called.
+
+During implementation, a production bug was found and fixed: `TeachChatTabBody` was building `session` from `tab` but omitting `tab.assignmentId`, so `ExamLockdownGate` never rendered (it gates on `session.assignmentId`). Fixed by propagating `tab.assignmentId` into the `session` object (`packages/ui/src/components/chat-tab-body.tsx`, same spread pattern as `courseId`).

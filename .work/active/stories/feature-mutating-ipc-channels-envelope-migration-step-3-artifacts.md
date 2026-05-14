@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-3-artifacts
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-2-documents]
@@ -40,3 +40,20 @@ Apply the parent feature's per-step recipe. Largest of the read-only families.
 ## Risk + rollback
 - **Risk**: Low — artifacts API is read-only; only renderer-display impact.
 - **Rollback**: revert the commit.
+
+## Implementation
+
+### Files modified
+
+- `packages/desktop/electron/main/ipc-server.ts` — all 10 channels wrapped: 2 no-payload with `wrapEnvelope` (courses, progress); 8 string-payload with `handleEnvelope + courseIdSchema`. A single `courseIdSchema = z.string().min(1, "courseId")` is defined at the top of the section and shared across all 8 string-payload channels.
+- `packages/client/src/services/artifacts-client.ts` — added `IpcEnvelope` + `unwrapEnvelope` import; all 10 methods converted to `async` with `unwrapEnvelope` call; return type unions extended (`IpcEnvelope<T> | T`) for backward compat during rollout.
+- `packages/desktop/electron/main/__tests__/artifacts-channel-envelope.test.ts` — new test file with 32 tests covering all 10 channels: success paths, VALIDATION_FAILED on empty/undefined/non-string courseId, INTERNAL on service throw, path-leakage guard (courses, course, concepts).
+- `packages/desktop/electron/main/__tests__/ipc-server.envelope-migration.test.ts` — added 3 control tests for step-3 no-payload channels (courses success, courses INTERNAL, progress success); updated channel list in file header.
+
+### Results
+
+- `pnpm --filter @praxis/desktop typecheck` — pass
+- `pnpm --filter @praxis/client typecheck` — pass
+- `pnpm --filter @praxis/desktop test` — 206/206 pass (17 files)
+- `pnpm --filter @praxis/client test` — 62/62 pass (7 files)
+- New test file: 32 tests, all pass
