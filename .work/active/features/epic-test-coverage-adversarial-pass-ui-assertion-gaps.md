@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-ui-assertion-gaps
 kind: feature
-stage: implementing
+stage: review
 tags: [testing]
 parent: epic-test-coverage-adversarial-pass
 depends_on: []

@@ -94,12 +94,39 @@ describe("SubAgentRegistryImpl", () => {
     });
   });
 
-  it("start() with same parentCallId is a no-op (collision)", () => {
-    registry.start({ parentCallId: "call-1", sessionId: "sess-1" as any, label: "first" });
-    events.length = 0;
-    registry.start({ parentCallId: "call-1", sessionId: "sess-1" as any, label: "second" });
-    expect(events).toHaveLength(0);
-    expect(registry.list()).toHaveLength(1);
+  it("start() with same parentCallId is a silent no-op (by design — collision is a registry guarantee, not an error)", () => {
+    // Spec-silent contract pin: the registry treats collision as idempotent.
+    // Pinned in source: subagent-registry.ts start() early-return.
+    // Capture the logger so we can pin the debug-log diagnostic seam.
+    const logger = noopLogger();
+    const r = new SubAgentRegistryImpl({
+      log: logger as ReturnType<typeof noopLogger>,
+      now: () => fakeNow.value,
+      // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
+      setTimeout: fakeSetTimeout as any,
+      resolveLabel: (toolName) => `[${toolName}]`,
+    });
+    const localEvents: SubAgentEvent[] = [];
+    const unsub = r.subscribe((e) => localEvents.push(e));
+    localEvents.length = 0; // drop snapshot
+    // biome-ignore lint/suspicious/noExplicitAny: Timestamp brand cast for tests
+    r.start({ parentCallId: "call-1", sessionId: "sess-1" as any, label: "first" });
+    localEvents.length = 0; // drop first "started"
+    // biome-ignore lint/suspicious/noExplicitAny: Timestamp brand cast for tests
+    r.start({ parentCallId: "call-1", sessionId: "sess-1" as any, label: "second" });
+    // No event is emitted for the collision.
+    expect(localEvents).toHaveLength(0);
+    // No duplicate item is created.
+    expect(r.list()).toHaveLength(1);
+    // The original label is preserved (the second start is fully ignored —
+    // it does NOT update the existing item's label).
+    expect(r.list()[0]?.label).toBe("first");
+    // The collision is logged at debug for diagnosability without alarm.
+    expect(logger.debug).toHaveBeenCalledWith(
+      "subagent-registry.start.collision",
+      { parentCallId: "call-1" },
+    );
+    unsub();
   });
 
   it("list() returns current items", () => {

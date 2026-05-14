@@ -66,7 +66,11 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
   start(input: SubAgentStartInput): SubAgentHandle {
     const { parentCallId, sessionId, label } = input;
     if (this.items.has(parentCallId)) {
-      // Collision — log and return a handle that operates on the existing item.
+      // Collision is a registry guarantee, not an error: the caller may
+      // re-invoke start() for the same parentCallId (e.g. a session resumes
+      // a sub-agent stream). Silent-no-op by design — pinned by
+      // "start() with same parentCallId is a silent no-op (by design — collision is a registry guarantee, not an error)"
+      // in subagent-registry.test.ts.
       this.deps.log.debug("subagent-registry.start.collision", { parentCallId });
       return this.makeHandle(parentCallId);
     }

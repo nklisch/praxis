@@ -29,6 +29,11 @@ export function UpdateBanner(): JSX.Element | null {
       >
         {COPY.update.downloadLabel}
       </a>
+      {/* Hash block: collapsed by default (no `open` attr), renders the
+          full SHA-256 verbatim in <code> (no truncation). Absent entirely
+          when `installerSha256` is unset. Pinned by the two
+          "renders the SHA-256 hash <details> block ..." tests in
+          update-banner.test.tsx. */}
       {latest.installerSha256 && (
         <details className={styles.hashDetails}>
           <summary className={styles.hashSummary}>Verify download · SHA-256</summary>

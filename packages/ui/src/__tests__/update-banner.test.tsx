@@ -111,8 +111,12 @@ describe("UpdateBanner", () => {
     expect(screen.queryByText(COPY.update.available("1.0.1"))).toBeNull();
   });
 
-  it("renders the SHA-256 hash details block when installerSha256 is present", async () => {
-    const sha256 = "a".repeat(64);
+  it("renders the SHA-256 hash <details> block collapsed by default with the full hash visible when expanded (installerSha256 set)", async () => {
+    // Pinned spec: when installerSha256 is set the block renders collapsed
+    // by default (<details> without `open`), with the full 64-char hash
+    // verbatim in a <code> element. Pinned in source: update-banner.tsx
+    // hash-block conditional.
+    const sha256 = "0123456789abcdef".repeat(4); // exactly 64 hex chars
     renderBanner({
       status: "available",
       current: "1.0.0",
@@ -125,13 +129,33 @@ describe("UpdateBanner", () => {
 
     await waitFor(() => expect(screen.getByText(COPY.update.available("1.0.1"))).toBeDefined());
 
-    // The <details> summary is present.
-    expect(screen.getByText("Verify download · SHA-256")).toBeDefined();
-    // The hash value is rendered in full (no truncation).
-    expect(screen.getByText(sha256)).toBeDefined();
+    // The summary is rendered; we use it to locate the parent <details>.
+    const summary = screen.getByText("Verify download · SHA-256");
+    const details = summary.closest("details");
+    expect(details).not.toBeNull();
+    // Pinned contract: collapsed by default — no `open` attribute on
+    // initial render.
+    expect(details?.hasAttribute("open")).toBe(false);
+
+    // Pinned contract: the full hash is in the DOM, in a single element,
+    // and is the COMPLETE 64-char string (no truncation, no ellipsis).
+    const hashEl = screen.getByText(sha256);
+    expect(hashEl.tagName.toLowerCase()).toBe("code");
+    expect(hashEl.textContent).toBe(sha256);
+    expect(hashEl.textContent?.length).toBe(64);
+    expect(hashEl.textContent).not.toMatch(/…|\.\.\./);
+
+    // Expand the <details> and confirm the hash remains fully visible.
+    // (jsdom doesn't auto-toggle <details> on summary click — set the
+    // `open` attribute directly to simulate user expansion, which mirrors
+    // the browser-level effect of clicking summary.)
+    details?.setAttribute("open", "");
+    expect(screen.getByText(sha256).textContent).toBe(sha256);
   });
 
-  it("does not render the SHA-256 block when installerSha256 is absent", async () => {
+  it("does not render the SHA-256 <details> block when installerSha256 is absent", async () => {
+    // Pinned spec: when installerSha256 is absent, the entire hash block
+    // is gated — no summary, no <details>, no shasum hint.
     renderBanner({
       status: "available",
       current: "1.0.0",
@@ -139,6 +163,9 @@ describe("UpdateBanner", () => {
     });
 
     await waitFor(() => expect(screen.getByText(COPY.update.available("1.0.1"))).toBeDefined());
+
     expect(screen.queryByText("Verify download · SHA-256")).toBeNull();
+    expect(document.querySelector("details")).toBeNull();
+    expect(screen.queryByText(/shasum -a 256/)).toBeNull();
   });
 });
