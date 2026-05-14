@@ -741,300 +741,465 @@ export function registerIpcHandlers(
 
   // ── Phase 11: Author ─────────────────────────────────────────────────────────
   // Every author handler calls requireUnlocked() first — IPC safety layer.
+  // Shared Zod schemas for groups of channels with the same payload shape.
+
+  const modeIdSchema = z.object({ modeId: z.string().min(1, "modeId") });
+
+  const previewPromptSchema = z.object({
+    modeId: z.string().min(1, "modeId"),
+    draftGlobal: z.string().nullable().optional(),
+    draftAppend: z.string().nullable().optional(),
+  });
 
   handle(
     "praxis.author.updateCourse",
-    async (
-      _event,
-      input: {
-        courseId: string;
-        patch: { title?: string; subject?: string; gradeLevel?: string };
-        reason?: string;
+    handleEnvelope(
+      "praxis.author.updateCourse",
+      log,
+      z.object({
+        courseId: z.string().min(1, "courseId"),
+        patch: z.object({
+          title: z.string().optional(),
+          subject: z.string().optional(),
+          gradeLevel: z.string().optional(),
+        }),
+        reason: z.string().optional(),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.updateCourse({
+          courseId: brandId<"CourseId">(input.courseId),
+          patch: input.patch as Parameters<typeof services.authoring.updateCourse>[0]["patch"],
+          ...(input.reason !== undefined && { reason: input.reason }),
+        });
       },
-    ) => {
-      await requireUnlocked();
-      return services.authoring.updateCourse({
-        courseId: brandId<"CourseId">(input.courseId),
-        patch: input.patch,
-        ...(input.reason !== undefined && { reason: input.reason }),
-      });
-    },
+    ),
   );
 
   handle(
     "praxis.author.createLesson",
-    async (
-      _event,
-      input: {
-        courseId: string;
-        title: string;
-        conceptIds: string[];
-        orderIndex?: number;
-        estimatedMinutes?: number;
+    handleEnvelope(
+      "praxis.author.createLesson",
+      log,
+      z.object({
+        courseId: z.string().min(1, "courseId"),
+        title: z.string().min(1, "title"),
+        conceptIds: z.array(z.string().min(1)),
+        orderIndex: z.number().int().optional(),
+        estimatedMinutes: z.number().int().positive().optional(),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.createLesson({
+          courseId: brandId<"CourseId">(input.courseId),
+          title: input.title,
+          conceptIds: input.conceptIds.map((id) => brandId<"ConceptId">(id) as ConceptId),
+          ...(input.orderIndex !== undefined && { orderIndex: input.orderIndex }),
+          ...(input.estimatedMinutes !== undefined && { estimatedMinutes: input.estimatedMinutes }),
+        });
       },
-    ) => {
-      await requireUnlocked();
-      return services.authoring.createLesson({
-        courseId: brandId<"CourseId">(input.courseId),
-        title: input.title,
-        conceptIds: input.conceptIds.map((id) => brandId<"ConceptId">(id) as ConceptId),
-        ...(input.orderIndex !== undefined && { orderIndex: input.orderIndex }),
-        ...(input.estimatedMinutes !== undefined && { estimatedMinutes: input.estimatedMinutes }),
-      });
-    },
+    ),
   );
 
   handle(
     "praxis.author.updateLesson",
-    async (
-      _event,
-      input: {
-        lessonId: string;
-        patch: { title?: string; conceptIds?: string[]; estimatedMinutes?: number };
+    handleEnvelope(
+      "praxis.author.updateLesson",
+      log,
+      z.object({
+        lessonId: z.string().min(1, "lessonId"),
+        patch: z.object({
+          title: z.string().optional(),
+          conceptIds: z.array(z.string().min(1)).optional(),
+          estimatedMinutes: z.number().int().positive().optional(),
+        }),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        const patch: {
+          title?: string;
+          conceptIds?: ConceptId[];
+          estimatedMinutes?: number;
+        } = {};
+        if (input.patch.title !== undefined) patch.title = input.patch.title;
+        if (input.patch.conceptIds !== undefined) {
+          patch.conceptIds = input.patch.conceptIds.map(
+            (id) => brandId<"ConceptId">(id) as ConceptId,
+          );
+        }
+        if (input.patch.estimatedMinutes !== undefined)
+          patch.estimatedMinutes = input.patch.estimatedMinutes;
+        return services.authoring.updateLesson({
+          lessonId: brandId<"LessonId">(input.lessonId) as LessonId,
+          patch,
+        });
       },
-    ) => {
-      await requireUnlocked();
-      const patch: {
-        title?: string;
-        conceptIds?: ConceptId[];
-        estimatedMinutes?: number;
-      } = {};
-      if (input.patch.title !== undefined) patch.title = input.patch.title;
-      if (input.patch.conceptIds !== undefined) {
-        patch.conceptIds = input.patch.conceptIds.map(
-          (id) => brandId<"ConceptId">(id) as ConceptId,
-        );
-      }
-      if (input.patch.estimatedMinutes !== undefined)
-        patch.estimatedMinutes = input.patch.estimatedMinutes;
-      return services.authoring.updateLesson({
-        lessonId: brandId<"LessonId">(input.lessonId) as LessonId,
-        patch,
-      });
-    },
+    ),
   );
 
   handle(
     "praxis.author.deleteLesson",
-    async (_event, input: { lessonId: string; reason?: string }) => {
-      await requireUnlocked();
-      return services.authoring.deleteLesson({
-        lessonId: brandId<"LessonId">(input.lessonId) as LessonId,
-        ...(input.reason !== undefined && { reason: input.reason }),
-      });
-    },
+    handleEnvelope(
+      "praxis.author.deleteLesson",
+      log,
+      z.object({
+        lessonId: z.string().min(1, "lessonId"),
+        reason: z.string().optional(),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.deleteLesson({
+          lessonId: brandId<"LessonId">(input.lessonId) as LessonId,
+          ...(input.reason !== undefined && { reason: input.reason }),
+        });
+      },
+    ),
   );
 
   handle(
     "praxis.author.createGate",
-    async (
-      _event,
-      input: {
-        courseId: string;
-        guards: GateTarget;
-        prerequisites: string[];
-        successCriteria: SuccessCriteria;
+    handleEnvelope(
+      "praxis.author.createGate",
+      log,
+      z.object({
+        courseId: z.string().min(1, "courseId"),
+        guards: z.unknown(),
+        prerequisites: z.array(z.string().min(1)),
+        successCriteria: z.unknown(),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.createGate({
+          courseId: brandId<"CourseId">(input.courseId) as CourseId,
+          guards: input.guards as GateTarget,
+          prerequisites: input.prerequisites.map((id) => brandId<"GateId">(id) as GateId),
+          successCriteria: input.successCriteria as SuccessCriteria,
+        });
       },
-    ) => {
-      await requireUnlocked();
-      return services.authoring.createGate({
-        courseId: brandId<"CourseId">(input.courseId) as CourseId,
-        guards: input.guards,
-        prerequisites: input.prerequisites.map((id) => brandId<"GateId">(id) as GateId),
-        successCriteria: input.successCriteria,
-      });
-    },
+    ),
   );
 
   handle(
     "praxis.author.updateGate",
-    async (
-      _event,
-      input: {
-        gateId: string;
-        patch: { prerequisites?: string[]; successCriteria?: SuccessCriteria };
-        reason?: string;
+    handleEnvelope(
+      "praxis.author.updateGate",
+      log,
+      z.object({
+        gateId: z.string().min(1, "gateId"),
+        patch: z.object({
+          prerequisites: z.array(z.string().min(1)).optional(),
+          successCriteria: z.unknown().optional(),
+        }),
+        reason: z.string().optional(),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        const patch: {
+          prerequisites?: GateId[];
+          successCriteria?: SuccessCriteria;
+        } = {};
+        if (input.patch.prerequisites !== undefined) {
+          patch.prerequisites = input.patch.prerequisites.map(
+            (id) => brandId<"GateId">(id) as GateId,
+          );
+        }
+        if (input.patch.successCriteria !== undefined) {
+          patch.successCriteria = input.patch.successCriteria as SuccessCriteria;
+        }
+        return services.authoring.updateGate({
+          gateId: brandId<"GateId">(input.gateId) as GateId,
+          patch,
+          ...(input.reason !== undefined && { reason: input.reason }),
+        });
       },
-    ) => {
-      await requireUnlocked();
-      const patch: {
-        prerequisites?: GateId[];
-        successCriteria?: SuccessCriteria;
-      } = {};
-      if (input.patch.prerequisites !== undefined) {
-        patch.prerequisites = input.patch.prerequisites.map(
-          (id) => brandId<"GateId">(id) as GateId,
-        );
-      }
-      if (input.patch.successCriteria !== undefined) {
-        patch.successCriteria = input.patch.successCriteria;
-      }
-      return services.authoring.updateGate({
-        gateId: brandId<"GateId">(input.gateId) as GateId,
-        patch,
-        ...(input.reason !== undefined && { reason: input.reason }),
-      });
-    },
+    ),
   );
 
-  handle("praxis.author.deleteGate", async (_event, input: { gateId: string; reason?: string }) => {
-    await requireUnlocked();
-    return services.authoring.deleteGate({
-      gateId: brandId<"GateId">(input.gateId) as GateId,
-      ...(input.reason !== undefined && { reason: input.reason }),
-    });
-  });
+  handle(
+    "praxis.author.deleteGate",
+    handleEnvelope(
+      "praxis.author.deleteGate",
+      log,
+      z.object({
+        gateId: z.string().min(1, "gateId"),
+        reason: z.string().optional(),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.deleteGate({
+          gateId: brandId<"GateId">(input.gateId) as GateId,
+          ...(input.reason !== undefined && { reason: input.reason }),
+        });
+      },
+    ),
+  );
 
   handle(
     "praxis.author.overrideGate",
-    async (_event, input: { gateId: string; reason: string }) => {
-      await requireUnlocked();
-      return services.authoring.overrideGate({
-        gateId: brandId<"GateId">(input.gateId) as GateId,
-        reason: input.reason,
-      });
-    },
+    handleEnvelope(
+      "praxis.author.overrideGate",
+      log,
+      z.object({
+        gateId: z.string().min(1, "gateId"),
+        reason: z.string().min(1, "reason"),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.overrideGate({
+          gateId: brandId<"GateId">(input.gateId) as GateId,
+          reason: input.reason,
+        });
+      },
+    ),
   );
 
-  handle("praxis.author.getCourseSummary", async (_event, courseId: string) => {
-    await requireUnlocked();
-    return services.authoring.getCourseSummary(brandId<"CourseId">(courseId) as CourseId);
-  });
+  handle(
+    "praxis.author.getCourseSummary",
+    handleEnvelope(
+      "praxis.author.getCourseSummary",
+      log,
+      z.string().min(1, "courseId"),
+      async (courseId) => {
+        await requireUnlocked();
+        return services.authoring.getCourseSummary(brandId<"CourseId">(courseId) as CourseId);
+      },
+    ),
+  );
 
   handle(
     "praxis.author.customizePrompt",
-    async (_event, input: { modeId: string; fragmentId: string; override: string }) => {
-      await requireUnlocked();
-      return services.authoring.customizePrompt(input.modeId, input.fragmentId, input.override);
-    },
+    handleEnvelope(
+      "praxis.author.customizePrompt",
+      log,
+      z.object({
+        modeId: z.string().min(1, "modeId"),
+        fragmentId: z.string().min(1, "fragmentId"),
+        override: z.string(),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.customizePrompt(input.modeId, input.fragmentId, input.override);
+      },
+    ),
   );
 
-  handle("praxis.author.listFragmentOverrides", async (_event, input: { modeId: string }) => {
-    await requireUnlocked();
-    return services.authoring.listFragmentOverrides(input.modeId);
-  });
+  handle(
+    "praxis.author.listFragmentOverrides",
+    handleEnvelope("praxis.author.listFragmentOverrides", log, modeIdSchema, async (input) => {
+      await requireUnlocked();
+      return services.authoring.listFragmentOverrides(input.modeId);
+    }),
+  );
 
   handle(
     "praxis.author.clearFragmentOverride",
-    async (_event, input: { modeId: string; fragmentId: string }) => {
-      await requireUnlocked();
-      return services.authoring.clearFragmentOverride(input);
-    },
+    handleEnvelope(
+      "praxis.author.clearFragmentOverride",
+      log,
+      z.object({
+        modeId: z.string().min(1, "modeId"),
+        fragmentId: z.string().min(1, "fragmentId"),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.clearFragmentOverride(input);
+      },
+    ),
   );
 
   handle(
     "praxis.author.setStyleSliders",
-    async (_event, input: { socratic: number; verbosity: number; formality: number }) => {
-      await requireUnlocked();
-      return services.authoring.setStyleSliders(input);
-    },
+    handleEnvelope(
+      "praxis.author.setStyleSliders",
+      log,
+      z.object({
+        socratic: z.number().min(0).max(10),
+        verbosity: z.number().min(0).max(10),
+        formality: z.number().min(0).max(10),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.setStyleSliders(input);
+      },
+    ),
   );
 
   // ── Prompt customization layers ───────────────────────────────────────────
 
-  handle("praxis.author.setGlobalPrompt", async (_event, input: { text: string | null }) => {
-    await requireUnlocked();
-    return services.authoring.setGlobalPrompt(input.text);
-  });
+  handle(
+    "praxis.author.setGlobalPrompt",
+    handleEnvelope(
+      "praxis.author.setGlobalPrompt",
+      log,
+      z.object({ text: z.string().nullable() }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.setGlobalPrompt(input.text);
+      },
+    ),
+  );
 
-  handle("praxis.author.getGlobalPrompt", async (_event) => {
-    await requireUnlocked();
-    return services.authoring.getGlobalPrompt();
-  });
+  handle(
+    "praxis.author.getGlobalPrompt",
+    wrapEnvelope("praxis.author.getGlobalPrompt", log, async () => {
+      await requireUnlocked();
+      return services.authoring.getGlobalPrompt();
+    }),
+  );
 
   handle(
     "praxis.author.setModeAppend",
-    async (_event, input: { modeId: string; text: string | null }) => {
-      await requireUnlocked();
-      return services.authoring.setModeAppend(input);
-    },
+    handleEnvelope(
+      "praxis.author.setModeAppend",
+      log,
+      z.object({
+        modeId: z.string().min(1, "modeId"),
+        text: z.string().nullable(),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.setModeAppend(input);
+      },
+    ),
   );
 
-  handle("praxis.author.getModeAppend", async (_event, input: { modeId: string }) => {
-    await requireUnlocked();
-    return services.authoring.getModeAppend(input.modeId);
-  });
+  handle(
+    "praxis.author.getModeAppend",
+    handleEnvelope("praxis.author.getModeAppend", log, modeIdSchema, async (input) => {
+      await requireUnlocked();
+      return services.authoring.getModeAppend(input.modeId);
+    }),
+  );
 
   handle(
     "praxis.author.previewPrompt",
-    async (
-      _event,
-      input: { modeId: string; draftGlobal?: string | null; draftAppend?: string | null },
-    ) => {
+    handleEnvelope("praxis.author.previewPrompt", log, previewPromptSchema, async (input) => {
       await requireUnlocked();
-      return services.authoring.previewPrompt(input);
-    },
+      return services.authoring.previewPrompt({
+        modeId: input.modeId,
+        ...(input.draftGlobal !== undefined && { draftGlobal: input.draftGlobal }),
+        ...(input.draftAppend !== undefined && { draftAppend: input.draftAppend }),
+      });
+    }),
   );
 
   handle(
     "praxis.author.previewPromptWithAttribution",
-    async (
-      _event,
-      input: { modeId: string; draftGlobal?: string | null; draftAppend?: string | null },
-    ) => {
-      await requireUnlocked();
-      return services.authoring.previewPromptWithAttribution(input);
-    },
+    handleEnvelope(
+      "praxis.author.previewPromptWithAttribution",
+      log,
+      previewPromptSchema,
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.previewPromptWithAttribution({
+          modeId: input.modeId,
+          ...(input.draftGlobal !== undefined && { draftGlobal: input.draftGlobal }),
+          ...(input.draftAppend !== undefined && { draftAppend: input.draftAppend }),
+        });
+      },
+    ),
   );
 
   handle(
     "praxis.author.resetConcept",
-    async (_event, input: { conceptId: string; reason: string }) => {
-      await requireUnlocked();
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-      return services.authoring.resetConcept({
-        studentId,
-        conceptId: brandId<"ConceptId">(input.conceptId) as ConceptId,
-        reason: input.reason,
-      });
-    },
+    handleEnvelope(
+      "praxis.author.resetConcept",
+      log,
+      z.object({
+        conceptId: z.string().min(1, "conceptId"),
+        reason: z.string().min(1, "reason"),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.authoring.resetConcept({
+          studentId,
+          conceptId: brandId<"ConceptId">(input.conceptId) as ConceptId,
+          reason: input.reason,
+        });
+      },
+    ),
   );
 
   handle(
     "praxis.author.clearMisconception",
-    async (_event, input: { misconceptionId: string; reason: string }) => {
-      await requireUnlocked();
-      return services.authoring.clearMisconception({
-        misconceptionId: brandId<"MisconceptionId">(input.misconceptionId) as MisconceptionId,
-        reason: input.reason,
-      });
-    },
+    handleEnvelope(
+      "praxis.author.clearMisconception",
+      log,
+      z.object({
+        misconceptionId: z.string().min(1, "misconceptionId"),
+        reason: z.string().min(1, "reason"),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.clearMisconception({
+          misconceptionId: brandId<"MisconceptionId">(input.misconceptionId) as MisconceptionId,
+          reason: input.reason,
+        });
+      },
+    ),
   );
 
-  handle("praxis.author.exportMemory", async (_event, input: { targetPath: string }) => {
-    await requireUnlocked();
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.authoring.exportMemory({ studentId, targetPath: input.targetPath });
-  });
+  handle(
+    "praxis.author.exportMemory",
+    handleEnvelope(
+      "praxis.author.exportMemory",
+      log,
+      z.object({ targetPath: z.string().min(1, "targetPath") }),
+      async (input) => {
+        await requireUnlocked();
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.authoring.exportMemory({ studentId, targetPath: input.targetPath });
+      },
+    ),
+  );
 
   handle(
     "praxis.author.deleteAllMemory",
-    async (_event, input: { reason: string; confirm: true }) => {
-      await requireUnlocked();
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-      return services.authoring.deleteAllMemory({
-        studentId,
-        reason: input.reason,
-        confirm: input.confirm,
-      });
-    },
+    handleEnvelope(
+      "praxis.author.deleteAllMemory",
+      log,
+      z.object({
+        reason: z.string().min(1, "reason"),
+        confirm: z.literal(true),
+      }),
+      async (input) => {
+        await requireUnlocked();
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.authoring.deleteAllMemory({
+          studentId,
+          reason: input.reason,
+          confirm: input.confirm,
+        });
+      },
+    ),
   );
 
   handle(
     "praxis.author.listConfiguratorActions",
-    async (_event, input?: { fromTs?: number; limit?: number }) => {
-      await requireUnlocked();
-      return services.authoring.listConfiguratorActions(
-        input !== undefined
-          ? {
-              ...(input.fromTs !== undefined && {
-                fromTs: input.fromTs as import("@praxis/core/types").Timestamp,
-              }),
-              ...(input.limit !== undefined && { limit: input.limit }),
-            }
-          : undefined,
-      );
-    },
+    handleEnvelope(
+      "praxis.author.listConfiguratorActions",
+      log,
+      z
+        .object({
+          fromTs: z.number().optional(),
+          limit: z.number().int().positive().optional(),
+        })
+        .optional(),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.listConfiguratorActions(
+          input !== undefined
+            ? {
+                ...(input.fromTs !== undefined && {
+                  fromTs: input.fromTs as import("@praxis/core/types").Timestamp,
+                }),
+                ...(input.limit !== undefined && { limit: input.limit }),
+              }
+            : undefined,
+        );
+      },
+    ),
   );
 
   // ── Phase 12: Notes ──────────────────────────────────────────────────────────

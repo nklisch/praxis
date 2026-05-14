@@ -132,7 +132,7 @@ afterEach(() => {
 // ── praxis.author.setGlobalPrompt — lock gate ─────────────────────────────────
 
 describe("praxis.author.setGlobalPrompt lock gate", () => {
-  it("rejects with lock error when isUnlocked() returns false", async () => {
+  it("returns INTERNAL envelope when isUnlocked() returns false", async () => {
     const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => false });
     registerIpcHandlers(services, () => null, log);
@@ -140,9 +140,11 @@ describe("praxis.author.setGlobalPrompt lock gate", () => {
     const handler = handlers.get("praxis.author.setGlobalPrompt");
     expect(handler).toBeDefined();
 
-    await expect(handler?.({}, { text: "injected prompt" })).rejects.toThrow(
-      /Locked|configurator|unlock/i,
-    );
+    // Envelope wrapping: handler resolves (never rejects) with { ok: false, error }
+    await expect(handler?.({}, { text: "injected prompt" })).resolves.toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL" },
+    });
   });
 
   it("does NOT call authoring.setGlobalPrompt when locked", async () => {
@@ -151,7 +153,7 @@ describe("praxis.author.setGlobalPrompt lock gate", () => {
     registerIpcHandlers(services, () => null, log);
 
     const handler = handlers.get("praxis.author.setGlobalPrompt");
-    await (handler?.({}, { text: "injected prompt" }) as Promise<unknown>).catch(() => {});
+    await handler?.({}, { text: "injected prompt" });
 
     expect(services.authoring.setGlobalPrompt).not.toHaveBeenCalled();
   });
@@ -172,7 +174,7 @@ describe("praxis.author.setGlobalPrompt lock gate", () => {
 // ── praxis.author.setModeAppend — lock gate ───────────────────────────────────
 
 describe("praxis.author.setModeAppend lock gate", () => {
-  it("rejects with lock error when isUnlocked() returns false", async () => {
+  it("returns INTERNAL envelope when isUnlocked() returns false", async () => {
     const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => false });
     registerIpcHandlers(services, () => null, log);
@@ -180,9 +182,13 @@ describe("praxis.author.setModeAppend lock gate", () => {
     const handler = handlers.get("praxis.author.setModeAppend");
     expect(handler).toBeDefined();
 
-    await expect(handler?.({}, { modeId: "teach", text: "injected append" })).rejects.toThrow(
-      /Locked|configurator|unlock/i,
-    );
+    // Envelope wrapping: handler resolves (never rejects) with { ok: false, error }
+    await expect(
+      handler?.({}, { modeId: "teach", text: "injected append" }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL" },
+    });
   });
 
   it("does NOT call authoring.setModeAppend when locked", async () => {
@@ -191,9 +197,7 @@ describe("praxis.author.setModeAppend lock gate", () => {
     registerIpcHandlers(services, () => null, log);
 
     const handler = handlers.get("praxis.author.setModeAppend");
-    await (handler?.({}, { modeId: "teach", text: "injected append" }) as Promise<unknown>).catch(
-      () => {},
-    );
+    await handler?.({}, { modeId: "teach", text: "injected append" });
 
     expect(services.authoring.setModeAppend).not.toHaveBeenCalled();
   });

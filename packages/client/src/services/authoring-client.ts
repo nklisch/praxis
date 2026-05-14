@@ -18,6 +18,7 @@ import type {
   ThresholdConfig,
   Timestamp,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = "praxis.author" as const;
@@ -65,23 +66,32 @@ export class AuthoringClientImpl implements AuthoringClient {
     );
   }
 
-  customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void> {
-    return this.transport.invoke<void>(`${C}.customizePrompt`, { modeId, fragmentId, override });
+  async customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(`${C}.customizePrompt`, {
+      modeId,
+      fragmentId,
+      override,
+    });
+    unwrapEnvelope(result);
   }
 
   // ── Phase 11: course / lesson / gate edits ────────────────────────────────
 
-  updateCourse(input: {
+  async updateCourse(input: {
     courseId: CourseId;
     patch: Partial<
       Pick<Course, "title"> & { subject: string; gradeLevel: string; thresholds: ThresholdConfig }
     >;
     reason?: string;
   }): Promise<Course> {
-    return this.transport.invoke<Course>(`${C}.updateCourse`, input);
+    const result = await this.transport.invoke<IpcEnvelope<Course> | Course>(
+      `${C}.updateCourse`,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
-  createLesson(input: {
+  async createLesson(input: {
     courseId: CourseId;
     title: string;
     conceptIds: ConceptId[];
@@ -90,48 +100,67 @@ export class AuthoringClientImpl implements AuthoringClient {
     estimatedMinutes?: number;
     references?: Reference[];
   }): Promise<Lesson> {
-    return this.transport.invoke<Lesson>(`${C}.createLesson`, input);
+    const result = await this.transport.invoke<IpcEnvelope<Lesson> | Lesson>(
+      `${C}.createLesson`,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
-  updateLesson(input: {
+  async updateLesson(input: {
     lessonId: LessonId;
     patch: Partial<
       Pick<Lesson, "title" | "conceptIds" | "references" | "suggestedStrategy" | "estimatedMinutes">
     >;
   }): Promise<Lesson> {
-    return this.transport.invoke<Lesson>(`${C}.updateLesson`, input);
+    const result = await this.transport.invoke<IpcEnvelope<Lesson> | Lesson>(
+      `${C}.updateLesson`,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
-  deleteLesson(input: { lessonId: LessonId; reason?: string }): Promise<void> {
-    return this.transport.invoke<void>(`${C}.deleteLesson`, input);
+  async deleteLesson(input: { lessonId: LessonId; reason?: string }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${C}.deleteLesson`,
+      input,
+    );
+    unwrapEnvelope(result);
   }
 
-  createGate(input: {
+  async createGate(input: {
     courseId: CourseId;
     guards: GateTarget;
     prerequisites: GateId[];
     successCriteria: SuccessCriteria;
   }): Promise<Gate> {
-    return this.transport.invoke<Gate>(`${C}.createGate`, input);
+    const result = await this.transport.invoke<IpcEnvelope<Gate> | Gate>(`${C}.createGate`, input);
+    return unwrapEnvelope(result);
   }
 
-  updateGate(input: {
+  async updateGate(input: {
     gateId: GateId;
     patch: Partial<Pick<Gate, "guards" | "prerequisites" | "successCriteria">>;
     reason?: string;
   }): Promise<Gate> {
-    return this.transport.invoke<Gate>(`${C}.updateGate`, input);
+    const result = await this.transport.invoke<IpcEnvelope<Gate> | Gate>(`${C}.updateGate`, input);
+    return unwrapEnvelope(result);
   }
 
-  deleteGate(input: { gateId: GateId; reason?: string }): Promise<void> {
-    return this.transport.invoke<void>(`${C}.deleteGate`, input);
+  async deleteGate(input: { gateId: GateId; reason?: string }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(`${C}.deleteGate`, input);
+    unwrapEnvelope(result);
   }
 
-  overrideGate(input: { gateId: GateId; reason: string }): Promise<Gate> {
-    return this.transport.invoke<Gate>(`${C}.overrideGate`, input);
+  async overrideGate(input: { gateId: GateId; reason: string }): Promise<Gate> {
+    const result = await this.transport.invoke<IpcEnvelope<Gate> | Gate>(
+      `${C}.overrideGate`,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
-  getCourseSummary(courseId: CourseId): Promise<{
+  async getCourseSummary(courseId: CourseId): Promise<{
     course: Course;
     lessons: Lesson[];
     gates: Gate[];
@@ -144,88 +173,166 @@ export class AuthoringClientImpl implements AuthoringClient {
       standardsTags: string[];
     }>;
   }> {
-    return this.transport.invoke(`${C}.getCourseSummary`, courseId);
+    const result = await this.transport.invoke<
+      | IpcEnvelope<{
+          course: Course;
+          lessons: Lesson[];
+          gates: Gate[];
+          concepts: Array<{
+            id: string;
+            graphId: string;
+            name: string;
+            description: string;
+            aliases: string[];
+            standardsTags: string[];
+          }>;
+        }>
+      | {
+          course: Course;
+          lessons: Lesson[];
+          gates: Gate[];
+          concepts: Array<{
+            id: string;
+            graphId: string;
+            name: string;
+            description: string;
+            aliases: string[];
+            standardsTags: string[];
+          }>;
+        }
+    >(`${C}.getCourseSummary`, courseId);
+    return unwrapEnvelope(result);
   }
 
   // ── Phase 11: prompt customization ───────────────────────────────────────
 
-  clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void> {
-    return this.transport.invoke<void>(`${C}.clearFragmentOverride`, input);
+  async clearFragmentOverride(input: { modeId: string; fragmentId: string }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${C}.clearFragmentOverride`,
+      input,
+    );
+    unwrapEnvelope(result);
   }
 
-  listFragmentOverrides(modeId: string): Promise<FragmentOverride[]> {
-    return this.transport.invoke<FragmentOverride[]>(`${C}.listFragmentOverrides`, { modeId });
+  async listFragmentOverrides(modeId: string): Promise<FragmentOverride[]> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<FragmentOverride[]> | FragmentOverride[]
+    >(`${C}.listFragmentOverrides`, { modeId });
+    return unwrapEnvelope(result);
   }
 
-  setStyleSliders(input: {
+  async setStyleSliders(input: {
     socratic: number;
     verbosity: number;
     formality: number;
   }): Promise<void> {
-    return this.transport.invoke<void>(`${C}.setStyleSliders`, input);
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${C}.setStyleSliders`,
+      input,
+    );
+    unwrapEnvelope(result);
   }
 
   // ── Prompt customization layers ───────────────────────────────────────────
 
-  setGlobalPrompt(text: string | null): Promise<void> {
-    return this.transport.invoke<void>(`${C}.setGlobalPrompt`, { text });
+  async setGlobalPrompt(text: string | null): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(`${C}.setGlobalPrompt`, {
+      text,
+    });
+    unwrapEnvelope(result);
   }
 
-  getGlobalPrompt(): Promise<string | null> {
-    return this.transport.invoke<string | null>(`${C}.getGlobalPrompt`);
+  async getGlobalPrompt(): Promise<string | null> {
+    const result = await this.transport.invoke<IpcEnvelope<string | null> | string | null>(
+      `${C}.getGlobalPrompt`,
+    );
+    return unwrapEnvelope(result);
   }
 
-  setModeAppend(input: { modeId: string; text: string | null }): Promise<void> {
-    return this.transport.invoke<void>(`${C}.setModeAppend`, input);
+  async setModeAppend(input: { modeId: string; text: string | null }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${C}.setModeAppend`,
+      input,
+    );
+    unwrapEnvelope(result);
   }
 
-  getModeAppend(modeId: string): Promise<string | null> {
-    return this.transport.invoke<string | null>(`${C}.getModeAppend`, { modeId });
+  async getModeAppend(modeId: string): Promise<string | null> {
+    const result = await this.transport.invoke<IpcEnvelope<string | null> | string | null>(
+      `${C}.getModeAppend`,
+      { modeId },
+    );
+    return unwrapEnvelope(result);
   }
 
-  previewPrompt(input: {
+  async previewPrompt(input: {
     modeId: string;
     draftGlobal?: string | null;
     draftAppend?: string | null;
   }): Promise<string> {
-    return this.transport.invoke<string>(`${C}.previewPrompt`, input);
+    const result = await this.transport.invoke<IpcEnvelope<string> | string>(
+      `${C}.previewPrompt`,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
-  previewPromptWithAttribution(input: {
+  async previewPromptWithAttribution(input: {
     modeId: string;
     draftGlobal?: string | null;
     draftAppend?: string | null;
   }): Promise<ComposedSystemPromptWithAttribution> {
-    return this.transport.invoke<ComposedSystemPromptWithAttribution>(
-      `${C}.previewPromptWithAttribution`,
-      input,
-    );
+    const result = await this.transport.invoke<
+      IpcEnvelope<ComposedSystemPromptWithAttribution> | ComposedSystemPromptWithAttribution
+    >(`${C}.previewPromptWithAttribution`, input);
+    return unwrapEnvelope(result);
   }
 
   // ── Phase 11: memory administration ──────────────────────────────────────
 
-  resetConcept(input: { conceptId: ConceptId; reason: string }): Promise<void> {
-    return this.transport.invoke<void>(`${C}.resetConcept`, input);
+  async resetConcept(input: { conceptId: ConceptId; reason: string }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${C}.resetConcept`,
+      input,
+    );
+    unwrapEnvelope(result);
   }
 
-  clearMisconception(input: { misconceptionId: MisconceptionId; reason: string }): Promise<void> {
-    return this.transport.invoke<void>(`${C}.clearMisconception`, input);
+  async clearMisconception(input: {
+    misconceptionId: MisconceptionId;
+    reason: string;
+  }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${C}.clearMisconception`,
+      input,
+    );
+    unwrapEnvelope(result);
   }
 
-  exportMemory(input: { targetPath: string }): Promise<{ ok: true; bytesWritten: number }> {
-    return this.transport.invoke<{ ok: true; bytesWritten: number }>(`${C}.exportMemory`, input);
+  async exportMemory(input: { targetPath: string }): Promise<{ ok: true; bytesWritten: number }> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<{ ok: true; bytesWritten: number }> | { ok: true; bytesWritten: number }
+    >(`${C}.exportMemory`, input);
+    return unwrapEnvelope(result);
   }
 
-  deleteAllMemory(input: { reason: string; confirm: true }): Promise<void> {
-    return this.transport.invoke<void>(`${C}.deleteAllMemory`, input);
+  async deleteAllMemory(input: { reason: string; confirm: true }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      `${C}.deleteAllMemory`,
+      input,
+    );
+    unwrapEnvelope(result);
   }
 
   // ── Phase 11: audit log ───────────────────────────────────────────────────
 
-  listConfiguratorActions(input?: {
+  async listConfiguratorActions(input?: {
     fromTs?: Timestamp;
     limit?: number;
   }): Promise<ConfiguratorActionRow[]> {
-    return this.transport.invoke<ConfiguratorActionRow[]>(`${C}.listConfiguratorActions`, input);
+    const result = await this.transport.invoke<
+      IpcEnvelope<ConfiguratorActionRow[]> | ConfiguratorActionRow[]
+    >(`${C}.listConfiguratorActions`, input);
+    return unwrapEnvelope(result);
   }
 }
