@@ -19,7 +19,7 @@ The UI has two top-level surfaces: **student** (the learning experience) and **c
         ▸ Library (front door)             ▸ Course authoring
             packs · courses · sessions     ▸ Gate editor (React Flow)
             documents · archive            ▸ Prompt customization
-        ▸ Chat workspace (tabs)            ▸ Memory inspector
+        ▸ Tutor workspace (tabs)            ▸ Memory inspector
             tab body shape per mode:       ▸ Engine / config settings
               teach       → chat
               bootstrap   → canvas + outline
@@ -173,9 +173,9 @@ The front door. Replaces what used to be `/courses` and `/packs` (and the implic
 - **Recent sessions are browsable.** Reopening a closed session reopens its tab. Archived sessions show their auto-generated summary as a deck under the title — past arcs visible like a reading list.
 - **Add a document opens ingestion.** The Phase 5 ingestion flow runs in the background; the student can navigate or open new tabs while it works.
 
-## Student surface — Chat workspace
+## Student surface — Tutor workspace
 
-Every session lives inside the chat workspace. It has a tab strip at the top and a body whose shape is determined by the active tab's mode. Tabs land in Phase 14; per-modality bodies in Phase 16.
+Every session lives inside the Tutor workspace (nav label "Tutor", route `/chat`). It has a tab strip at the top and a body whose shape is determined by the active tab's mode. Each tab's title is generated from `Mode.displayName` — e.g. "teach · algebra fractions" or "course design · new course". Tabs land in Phase 14; per-modality bodies in Phase 16.
 
 ### Tab strip
 

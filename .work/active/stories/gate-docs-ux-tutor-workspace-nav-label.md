@@ -1,7 +1,7 @@
 ---
 id: gate-docs-ux-tutor-workspace-nav-label
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -39,3 +39,12 @@ section, name the route (`/chat`) and clarify that the nav label is
 "Tutor" and each tab's title comes from `Mode.displayName`. Keep
 "chat tab body" / "chat thread" usage internally consistent — those
 phrases describe the *thread surface*, not the menu label.
+
+## Implementation
+
+Updated `docs/UX.md` in three places:
+- Line 22 menu tree: `▸ Chat workspace (tabs)` → `▸ Tutor workspace (tabs)`
+- Line 176 section header: `## Student surface — Chat workspace` → `## Student surface — Tutor workspace`
+- Line 178 opening sentence: expanded to name the `/chat` route, the "Tutor" nav label, and that tab titles derive from `Mode.displayName`
+
+"chat tab body" and "chat thread" references within the section were left untouched — those describe the thread surface inside a tab, not the top-level nav label.
