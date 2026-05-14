@@ -1,7 +1,7 @@
 ---
 id: gate-docs-ux-prompt-customization-v2-surface
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -53,3 +53,15 @@ override + revert), the per-mode user-append block, and a
 `composeSystemPromptWithAttribution`. Drop the style-slider sketch —
 it's not what shipped. Keep the "not all fragments are customizable"
 rule.
+
+## Implementation
+
+Replaced `docs/UX.md` lines 546-579 (the stale v0.1.1 mode-fragment-list sketch) with an accurate description of the shipped two-section surface.
+
+**Design-flaw escape hatch exercised**: the story's "Reality" section incorrectly claimed style sliders were removed in v0.1.2. Reading `packages/ui/src/routes/configure/prompt-tab.tsx` confirmed that `StyleSliderForm` (Guidance style/Verbosity/Tone sliders) ships as Section 1 of the prompt tab — with different labels than the v0.1.1 sketch (no "Socratic / Terse / Formal" labels; renamed to "Guidance style", "Verbosity", "Tone"). The new doc accurately includes them.
+
+**Other corrections vs. story's "Required edit"**:
+- The stack-level toggle is `[Blocks | Composed]`, not `[Composed | Diff]`. Diff is a per-block affordance on individual `PromptBlock` components.
+- The `AttributedPreviewPane` (previously called `PromptPreviewPane` in the story) only exposes a `view: "composed" | "diff"` prop, but at the stack level the toggle is Blocks vs. Composed. The "diff" in `AttributedPreviewPane` is available via its prop but is used by reconstructing the baseline client-side, not via a top-level UI toggle.
+
+Files changed: `docs/UX.md` (section rewrite).

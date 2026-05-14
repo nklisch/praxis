@@ -545,38 +545,59 @@ Visual editor for the gate graph. Powered by **React Flow** with custom React no
 
 ## Configure surface — Prompt customization
 
-Surfaces the prompt-composition system as a config UI.
+Surfaces the prompt-composition system as a two-section config tab.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│   Prompt customization                                      │
+│   Teaching Style                                            │
+│   Adjust how the tutor communicates. Changes apply          │
+│   globally across sessions.                                 │
+│   ─────────────────────────────────────────────────────     │
+│   Guidance style   Lecture ◀────●──────────────▶ Socratic   │
+│   Verbosity        Terse   ◀──────────●──────▶ Verbose      │
+│   Tone             Casual  ◀────────────●────▶ Formal       │
+│                    [ Save style ]                           │
 ├─────────────────────────────────────────────────────────────┤
-│   Mode: teach                                               │
-│   ─────────                                                 │
+│   Prompt blocks                                             │
+│   Every slot in the composed prompt, listed in render       │
+│   order. Toggle between editable blocks and assembled       │
+│   output.                                                   │
+│   ─────────────────────────────────────────────────────     │
+│   Mode: [ teach ▾ ]          [ Blocks ] [ Composed ]        │
 │                                                             │
-│   ▸ preamble (default, customizable)                        │
-│   ▸ role: tutor identity (overridable)                      │
-│      Default: "You are a patient, curious tutor..."         │
-│      Override: ▌ (empty)                                    │
-│   ▸ principles: graded grounding (NOT customizable)         │
-│   ▸ tools: per mode (auto-generated)                        │
-│   ▸ context: course state (auto-generated)                  │
-│   ▸ constraints: productive struggle (customizable)         │
-│      Default: "Wait at least 90 seconds before scaffolding" │
-│      Override: [Wait at least  60  seconds...]              │
-│   ▸ postamble (customizable)                                │
+│   ┌──────────────────────────────────────────────────────┐  │
+│   │ global prompt          user-global      [ edit ]     │  │
+│   ├──────────────────────────────────────────────────────┤  │
+│   │ preamble               preamble  edited [ edit ]     │  │
+│   │   "You are a patient…"                  [ diff ]     │  │
+│   ├──────────────────────────────────────────────────────┤  │
+│   │ graded grounding  principles  locked                  │  │
+│   │   (read-only — non-customizable fragment)            │  │
+│   ├──────────────────────────────────────────────────────┤  │
+│   │  …one block per fragment in FRAGMENT_ORDER…          │  │
+│   ├──────────────────────────────────────────────────────┤  │
+│   │ teach append           user-append      [ edit ]     │  │
+│   └──────────────────────────────────────────────────────┘  │
 │                                                             │
-│   Style sliders                                             │
-│   ─────────                                                 │
-│   Socratic ◀────●─────────────▶ Lecture                     │
-│   Terse    ◀──────────●─────▶ Verbose                       │
-│   Formal   ◀──●─────────────▶ Casual                        │
-│                                                             │
-│   [Live preview of a sample exchange]                       │
+│   — Composed view shows the assembled prompt with each      │
+│     segment colour-coded by source (default / override /    │
+│     global / append / additional).                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Some fragments are **NOT customizable** — the verification principle and graded-grounding hierarchy are non-negotiable. Sliders adjust style; freeform fields override specific fragments.
+**Section 1 — Teaching Style**: Three global sliders (Guidance style Lecture↔Socratic, Verbosity Terse↔Verbose, Tone Casual↔Formal) saved via `author.setStyleSliders`. Apply across all modes and sessions.
+
+**Section 2 — Prompt blocks**: A unified block-stack (`PromptBlockStack`) that shows every fragment slot in `FRAGMENT_ORDER` for the selected mode.
+
+- **Mode picker** — dropdown driven by `Mode.displayName`; changing it reloads the per-mode user-append block while the global block persists.
+- **Block list** — one `PromptBlock` per slot, ordered by `FRAGMENT_ORDER`. Synthetic singleton blocks for the cross-mode global layer (`user-global`) and the per-mode append layer (`user-append`) are inserted at their correct positions in the order.
+- **Lock indicator** — non-customizable fragments (`PromptFragment.customizable === false`) render as locked; they show their text read-only with a "locked" badge. The edit button is absent.
+- **Edit affordance** — customizable blocks show an "edit" button that opens an inline textarea. Only one block may be in edit-mode at a time. "save" / "cancel" controls commit or discard.
+- **Override badge** — blocks carrying a user-supplied value show an "edited" badge. A "return to default" button appears alongside "edit" when an override is active.
+- **Per-block diff** — customizable mode fragments expose a "diff" toggle that expands an inline side-by-side view: the fragment's unmodified default on the left, the current value on the right.
+- **\[Blocks | Composed\] stack toggle** — switches the entire block area between the editable block list and the `AttributedPreviewPane` composed view. The composed view renders the fully assembled prompt as colour-coded segments via `composeSystemPromptWithAttribution` (per-segment source attribution: default / override / global / append / additional). While a block is in edit-mode, the composed view updates live as the draft changes.
+
+Some fragments are **NOT customizable** — the verification principle and graded-grounding hierarchy are non-negotiable. These slots are visible in the block list but locked against edits.
 
 ## Configure surface — Memory inspector
 
