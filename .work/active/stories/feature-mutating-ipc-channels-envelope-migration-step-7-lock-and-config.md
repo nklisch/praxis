@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-7-lock-and-config
 kind: story
-stage: review
+stage: done
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-6-packs]
@@ -40,3 +40,21 @@ Apply the parent feature's per-step recipe. Some `lock` / `config` channels were
 ## Risk + rollback
 - **Risk**: Medium — lock state is security-sensitive; UI hooks (`useLock`) consume these directly.
 - **Rollback**: revert the commit.
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `lock-config-channel-envelope.test.ts` top-level comment says "~18" tests but the suite delivers 25. Minor; delete or update the count.
+
+**Notes**:
+All 9 channels correctly wrapped. `wrapEnvelope` used for no-payload getters and void mutations; `handleEnvelope` with `z.string().min(1)` used for `praxis.config.unlock` — the only channel with a payload. Client-side, each method is now `async` and threads through `unwrapEnvelope`. The `IpcEnvelope<T> | T` union type on the `transport.invoke` call is the standard compatibility shim used in all prior steps.
+
+`ipc-server.first-run-update.test.ts`: the updated assertion (`toMatchObject({ ok: true, value: true })`) is correct and justified — the channel was migrated in this step and the old raw-value assertion would have become a false positive.
+
+Test coverage is thorough: every channel gets a happy-path success case and a service-throws → `INTERNAL` case. `praxis.config.unlock` additionally gets a VALIDATION_FAILED case for empty string and wrong type, which is the security-critical path for this step.
+
+Typecheck and all 31 tests pass (25 new + 6 pre-existing).
