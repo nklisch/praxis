@@ -1,7 +1,7 @@
 ---
 id: epic-test-coverage-adversarial-pass-ingestion-edges-pptx-fallback-fixture
 kind: story
-stage: implementing
+stage: review
 tags: [testing, ingestion]
 parent: epic-test-coverage-adversarial-pass-ingestion-edges
 depends_on: []

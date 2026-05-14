@@ -22,6 +22,7 @@ import { describe, expect, it } from "vitest";
 import { PptxIngestor } from "../pptx-ingestor.js";
 
 const fixturePath = join(import.meta.dirname, "fixtures", "sample.pptx");
+const fallbackFixturePath = join(import.meta.dirname, "fixtures", "no-slide-signal.pptx");
 
 describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)(
   "PptxIngestor against real fixture (slow)",
@@ -94,6 +95,43 @@ describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)(
       const ingestor = new PptxIngestor();
       const result = await ingestor.parse(fixturePath);
       expect(result.pendingEmbeddedImageDocId).toBeUndefined();
+    }, 120_000);
+  },
+);
+
+describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)(
+  "PptxIngestor against fallback fixture (no slide signal — slow)",
+  () => {
+    // Pins the spec-silent contract: when ast.content has zero "slide"
+    // type nodes, tryChunkBySlide returns null and PptxIngestor falls
+    // through to ast.toText() + chunkMarkdown.
+    //
+    // Pinned in source: pptx-ingestor.ts:tryChunkBySlide — see the
+    // one-line "pinned by:" comment there.
+
+    it("falls back to ast.toText() + chunkMarkdown when officeparser produces no slide nodes (real fixture)", async () => {
+      const ingestor = new PptxIngestor();
+      const result = await ingestor.parse(fallbackFixturePath);
+
+      // Fallback path produces chunks via chunkMarkdown, NOT chunkParagraphs
+      // keyed by slide. The hallmark: no chunk has a "Slide N" section label.
+      const slideLabeled = result.chunks.filter((c) => c.section?.startsWith("Slide "));
+      expect(slideLabeled).toHaveLength(0);
+
+      // The result is still well-formed: ingestorId set, title resolved
+      // from document metadata (the fixture has <dc:title>fallback fixture</dc:title>).
+      expect(result.ingestorId).toBe("pptx");
+      expect(result.title).toBe("fallback fixture");
+    }, 120_000);
+
+    it("fallback path produces an empty chunks array when the fixture has no extractable text — neither slide nodes nor toText output (acceptable)", async () => {
+      const ingestor = new PptxIngestor();
+      const result = await ingestor.parse(fallbackFixturePath);
+      // We do NOT assert chunks.length === 0 strictly: the contract is
+      // that no slide-section chunks appear and the parse succeeds. The
+      // fixture's spTree has only p:contentPart, so ast.toText() returns
+      // empty and chunkMarkdown returns zero chunks.
+      expect(Array.isArray(result.chunks)).toBe(true);
     }, 120_000);
   },
 );

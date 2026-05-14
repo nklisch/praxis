@@ -66,6 +66,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       ollama-ai-provider-v2:
         specifier: ^3.5.0
         version: 3.5.0(ai@6.0.172(zod@4.3.6))(zod@4.3.6)

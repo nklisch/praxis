@@ -228,6 +228,10 @@ function collectImageNames(nodes: OfficeNodeLike[]): string[] {
  *
  * Returns `null` if no `"slide"` nodes are found — the caller falls back to
  * `ast.toText()` + `chunkMarkdown` in that case.
+ *
+ * Spec-silent contract pinned by: pptx-ingestor-integration.test.ts —
+ * "falls back to ast.toText() + chunkMarkdown when officeparser produces
+ *  no slide nodes (real fixture)".
  */
 function tryChunkBySlide(
   nodes: OfficeNodeLike[],
