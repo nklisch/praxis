@@ -1612,53 +1612,99 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.sketches.get", async (_event, sketchId: string) => {
-    const sketch = await services.sketches.get(sketchId as SketchId);
-    // Encode image as base64 for IPC transport — Electron IPC can't send raw Buffers reliably.
-    return {
-      id: sketch.id,
-      snapshot: sketch.snapshot,
-      width: sketch.width,
-      height: sketch.height,
-      createdAt: sketch.createdAt,
-      imageBase64: sketch.image.toString("base64"),
-    };
-  });
+  const sketchIdSchema = z.string().min(1, "sketchId");
 
-  handle("praxis.sketches.getSummary", async (_event, sketchId: string) => {
-    return services.sketches.getSummary(sketchId as SketchId);
-  });
+  handle(
+    "praxis.sketches.get",
+    handleEnvelope("praxis.sketches.get", log, sketchIdSchema, async (sketchId) => {
+      const sketch = await services.sketches.get(sketchId as SketchId);
+      // Encode image as base64 for IPC transport — Electron IPC can't send raw Buffers reliably.
+      return {
+        id: sketch.id,
+        snapshot: sketch.snapshot,
+        width: sketch.width,
+        height: sketch.height,
+        createdAt: sketch.createdAt,
+        imageBase64: sketch.image.toString("base64"),
+      };
+    }),
+  );
+
+  handle(
+    "praxis.sketches.getSummary",
+    handleEnvelope("praxis.sketches.getSummary", log, sketchIdSchema, async (sketchId) => {
+      return services.sketches.getSummary(sketchId as SketchId);
+    }),
+  );
 
   // ── Phase 15b: Concept maps ──────────────────────────────────────────────────
 
-  handle("praxis.conceptMaps.create", async (_event, opts: { courseId: string; title: string }) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.conceptMaps.create({
-      studentId,
-      courseId: opts.courseId as CourseId,
-      title: opts.title,
-    });
-  });
+  handle(
+    "praxis.conceptMaps.create",
+    handleEnvelope(
+      "praxis.conceptMaps.create",
+      log,
+      z.object({
+        courseId: z.string().min(1, "courseId"),
+        title: z.string().min(1, "title"),
+      }),
+      async (opts) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.conceptMaps.create({
+          studentId,
+          courseId: opts.courseId as CourseId,
+          title: opts.title,
+        });
+      },
+    ),
+  );
 
-  handle("praxis.conceptMaps.get", async (_event, id: string) => {
-    return services.conceptMaps.get(id as ConceptMapId);
-  });
+  const conceptMapIdSchema = z.string().min(1, "id");
 
-  handle("praxis.conceptMaps.list", async (_event, opts: { courseId: string }) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.conceptMaps.list({
-      studentId,
-      courseId: opts.courseId as CourseId,
-    });
-  });
+  handle(
+    "praxis.conceptMaps.get",
+    handleEnvelope("praxis.conceptMaps.get", log, conceptMapIdSchema, async (id) => {
+      return services.conceptMaps.get(id as ConceptMapId);
+    }),
+  );
 
-  handle("praxis.conceptMaps.rename", async (_event, opts: { id: string; title: string }) => {
-    return services.conceptMaps.rename(opts.id as ConceptMapId, opts.title);
-  });
+  handle(
+    "praxis.conceptMaps.list",
+    handleEnvelope(
+      "praxis.conceptMaps.list",
+      log,
+      z.object({ courseId: z.string().min(1, "courseId") }),
+      async (opts) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.conceptMaps.list({
+          studentId,
+          courseId: opts.courseId as CourseId,
+        });
+      },
+    ),
+  );
 
-  handle("praxis.conceptMaps.delete", async (_event, id: string) => {
-    return services.conceptMaps.delete(id as ConceptMapId);
-  });
+  handle(
+    "praxis.conceptMaps.rename",
+    handleEnvelope(
+      "praxis.conceptMaps.rename",
+      log,
+      z.object({
+        id: z.string().min(1, "id"),
+        title: z.string().min(1, "title"),
+      }),
+      async (opts) => {
+        return services.conceptMaps.rename(opts.id as ConceptMapId, opts.title);
+      },
+    ),
+  );
+
+  handle(
+    "praxis.conceptMaps.delete",
+    handleEnvelope("praxis.conceptMaps.delete", log, conceptMapIdSchema, async (id) => {
+      return services.conceptMaps.delete(id as ConceptMapId);
+    }),
+  );
 
   handle(
     "praxis.conceptMaps.updateScene",
@@ -1671,9 +1717,12 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.conceptMaps.listVersions", async (_event, id: string) => {
-    return services.conceptMaps.listVersions(id as ConceptMapId);
-  });
+  handle(
+    "praxis.conceptMaps.listVersions",
+    handleEnvelope("praxis.conceptMaps.listVersions", log, conceptMapIdSchema, async (id) => {
+      return services.conceptMaps.listVersions(id as ConceptMapId);
+    }),
+  );
 
   // ── Activity rail ─────────────────────────────────────────────────────────────
 

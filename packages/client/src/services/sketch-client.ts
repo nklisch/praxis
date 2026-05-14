@@ -1,4 +1,5 @@
 import type { SketchClientApi, SketchId, SketchSummary } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = "praxis.sketches" as const;
@@ -52,13 +53,18 @@ export class SketchClient implements SketchClientApi {
   async get(
     sketchId: SketchId,
   ): Promise<{ snapshot: unknown; image: Blob; width: number; height: number }> {
-    const result = await this.transport.invoke<{
+    type GetResult = {
       id: SketchId;
       snapshot: unknown;
       imageBase64: string;
       width: number;
       height: number;
-    }>(`${C}.get`, sketchId);
+    };
+    const raw = await this.transport.invoke<IpcEnvelope<GetResult> | GetResult>(
+      `${C}.get`,
+      sketchId,
+    );
+    const result = unwrapEnvelope(raw);
     return {
       snapshot: result.snapshot,
       image: new Blob([base64ToArrayBuffer(result.imageBase64)], { type: "image/png" }),
@@ -67,7 +73,10 @@ export class SketchClient implements SketchClientApi {
     };
   }
 
-  getSummary(sketchId: SketchId): Promise<SketchSummary | null> {
-    return this.transport.invoke<SketchSummary | null>(`${C}.getSummary`, sketchId);
+  async getSummary(sketchId: SketchId): Promise<SketchSummary | null> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<SketchSummary | null> | SketchSummary | null
+    >(`${C}.getSummary`, sketchId);
+    return unwrapEnvelope(result);
   }
 }

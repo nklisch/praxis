@@ -8,6 +8,7 @@ import type {
   CourseId,
   TldrawSnapshot,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = "praxis.conceptMaps" as const;
@@ -22,24 +23,39 @@ const C = "praxis.conceptMaps" as const;
 export class ConceptMapClient implements ConceptMapClientApi {
   constructor(private readonly transport: ClientTransport) {}
 
-  create(input: { courseId: CourseId; title: string }): Promise<ConceptMapDrawing> {
-    return this.transport.invoke<ConceptMapDrawing>(`${C}.create`, input);
+  async create(input: { courseId: CourseId; title: string }): Promise<ConceptMapDrawing> {
+    const result = await this.transport.invoke<IpcEnvelope<ConceptMapDrawing> | ConceptMapDrawing>(
+      `${C}.create`,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
-  get(id: ConceptMapId): Promise<ConceptMapDrawing | null> {
-    return this.transport.invoke<ConceptMapDrawing | null>(`${C}.get`, id);
+  async get(id: ConceptMapId): Promise<ConceptMapDrawing | null> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<ConceptMapDrawing | null> | ConceptMapDrawing | null
+    >(`${C}.get`, id);
+    return unwrapEnvelope(result);
   }
 
-  list(input: { courseId: CourseId }): Promise<ConceptMapSummary[]> {
-    return this.transport.invoke<ConceptMapSummary[]>(`${C}.list`, input);
+  async list(input: { courseId: CourseId }): Promise<ConceptMapSummary[]> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<ConceptMapSummary[]> | ConceptMapSummary[]
+    >(`${C}.list`, input);
+    return unwrapEnvelope(result);
   }
 
-  rename(id: ConceptMapId, title: string): Promise<ConceptMapDrawing> {
-    return this.transport.invoke<ConceptMapDrawing>(`${C}.rename`, { id, title });
+  async rename(id: ConceptMapId, title: string): Promise<ConceptMapDrawing> {
+    const result = await this.transport.invoke<IpcEnvelope<ConceptMapDrawing> | ConceptMapDrawing>(
+      `${C}.rename`,
+      { id, title },
+    );
+    return unwrapEnvelope(result);
   }
 
-  delete(id: ConceptMapId): Promise<void> {
-    return this.transport.invoke<void>(`${C}.delete`, id);
+  async delete(id: ConceptMapId): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(`${C}.delete`, id);
+    return unwrapEnvelope(result);
   }
 
   updateScene(input: {
@@ -50,7 +66,10 @@ export class ConceptMapClient implements ConceptMapClientApi {
     return this.transport.invoke<ConceptMapDrawing>(`${C}.updateScene`, input);
   }
 
-  listVersions(id: ConceptMapId): Promise<ConceptMapVersion[]> {
-    return this.transport.invoke<ConceptMapVersion[]>(`${C}.listVersions`, id);
+  async listVersions(id: ConceptMapId): Promise<ConceptMapVersion[]> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<ConceptMapVersion[]> | ConceptMapVersion[]
+    >(`${C}.listVersions`, id);
+    return unwrapEnvelope(result);
   }
 }
