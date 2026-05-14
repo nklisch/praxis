@@ -294,17 +294,32 @@ export function registerIpcHandlers(
 
   // ── Documents ────────────────────────────────────────────────────────────
 
-  handle("praxis.documents.list", async () => {
-    return services.documents.list();
-  });
+  handle(
+    "praxis.documents.list",
+    wrapEnvelope("praxis.documents.list", log, async () => services.documents.list()),
+  );
 
-  handle("praxis.documents.get", async (_event, documentId: string) => {
-    return services.documents.get(documentId);
-  });
+  handle(
+    "praxis.documents.get",
+    handleEnvelope(
+      "praxis.documents.get",
+      log,
+      z.string().min(1, "documentId"),
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (documentId) => services.documents.get(documentId as any),
+    ),
+  );
 
-  handle("praxis.documents.delete", async (_event, documentId: string) => {
-    return services.documents.delete(documentId);
-  });
+  handle(
+    "praxis.documents.delete",
+    handleEnvelope(
+      "praxis.documents.delete",
+      log,
+      z.string().min(1, "documentId"),
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (documentId) => services.documents.delete(documentId as any),
+    ),
+  );
 
   handle(
     "praxis.documents.pageImage",

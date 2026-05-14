@@ -24,7 +24,7 @@
  *   praxis.lock.unlock             — migrated; `handleEnvelope(z.string().min(1))`
  *   praxis.lock.clearLock          — migrated; `handleEnvelope(z.string().min(1))`
  *   praxis.update.checkLatest      — migrated; bare `wrapEnvelope` (no schema)
- *   praxis.documents.list          — control: NOT migrated, throws raw on error
+ *   praxis.documents.list          — migrated (step-2); bare `wrapEnvelope` (no schema)
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -492,10 +492,10 @@ describe("migrated channel internal throw — path leakage guard", () => {
   });
 });
 
-// ── Non-migrated control channel — throws raw ─────────────────────────────────
+// ── praxis.documents.list — now migrated (step-2) ────────────────────────────
 
-describe("praxis.documents.list — non-migrated control channel", () => {
-  it("throws raw (no envelope) when the underlying service throws", async () => {
+describe("praxis.documents.list — migrated channel (step-2)", () => {
+  it("resolves with INTERNAL envelope (never rejects) when the underlying service throws", async () => {
     const log = makeFakeLogger();
     const services = makeServices({
       documentsList: async () => {
@@ -507,9 +507,11 @@ describe("praxis.documents.list — non-migrated control channel", () => {
     const handler = handlers.get("praxis.documents.list");
     expect(handler).toBeDefined();
 
-    // Non-migrated channel: ipcMain.handle wrapper in ipc-helpers re-throws,
-    // so the returned promise rejects rather than resolving with an envelope.
-    await expect(handler?.({})).rejects.toThrow("DB connection lost");
+    // Migrated channel: wrapEnvelope catches the throw and returns { ok: false, error }.
+    await expect(handler?.({})).resolves.toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL" },
+    });
   });
 });
 

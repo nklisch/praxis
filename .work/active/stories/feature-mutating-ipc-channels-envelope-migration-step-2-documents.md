@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-2-documents
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-1-session]
@@ -33,3 +33,23 @@ Apply the parent feature's per-step recipe.
 ## Risk + rollback
 - **Risk**: Low — documents API is read-mostly; only `delete` mutates and is called rarely.
 - **Rollback**: revert the commit.
+
+## Implementation
+
+Channels migrated (3):
+- `praxis.documents.list` — `wrapEnvelope` (no-payload getter)
+- `praxis.documents.get` — `handleEnvelope` + `z.string().min(1, "documentId")`
+- `praxis.documents.delete` — `handleEnvelope` + `z.string().min(1, "documentId")`
+
+Client methods updated (3): `list`, `get`, `delete` in `DocumentsClientImpl` all call `unwrapEnvelope(result)`.
+
+Tests: 17 new tests in `documents-channel-envelope.test.ts` covering success, null/empty validation, type-mismatch validation, INTERNAL error, and path-leakage redaction for all 3 channels.
+
+Also updated `ipc-server.envelope-migration.test.ts`: converted the stale "non-migrated control" test for `praxis.documents.list` to a migrated-channel confirmation.
+
+Verification:
+- `pnpm --filter @praxis/desktop typecheck` — pass
+- `pnpm --filter @praxis/client typecheck` — pass
+- New test file: 17/17 pass
+- `pnpm --filter @praxis/desktop test` — 171/171 pass (16 files)
+- `pnpm --filter @praxis/client test` — 62/62 pass (7 files)

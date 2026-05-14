@@ -1,4 +1,5 @@
 import type { DocumentDetail, DocumentSummary, DocumentsClient } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 /** Decode a base64 string to bytes — browser-native (atob) so this code runs in the renderer. */
@@ -25,16 +26,23 @@ const C = {
 class DocumentsClientImpl implements DocumentsClient {
   constructor(private readonly transport: ClientTransport) {}
 
-  list(): Promise<DocumentSummary[]> {
-    return this.transport.invoke<DocumentSummary[]>(C.list);
+  async list(): Promise<DocumentSummary[]> {
+    const result = await this.transport.invoke<IpcEnvelope<DocumentSummary[]> | DocumentSummary[]>(
+      C.list,
+    );
+    return unwrapEnvelope(result);
   }
 
-  get(documentId: string): Promise<DocumentDetail | null> {
-    return this.transport.invoke<DocumentDetail | null>(C.get, documentId);
+  async get(documentId: string): Promise<DocumentDetail | null> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<DocumentDetail | null> | DocumentDetail | null
+    >(C.get, documentId);
+    return unwrapEnvelope(result);
   }
 
-  delete(documentId: string): Promise<void> {
-    return this.transport.invoke<void>(C.delete, documentId);
+  async delete(documentId: string): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.delete, documentId);
+    return unwrapEnvelope(result);
   }
 
   pageImage(input: { documentId: string; page: number }): Promise<Uint8Array | null> {
