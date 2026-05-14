@@ -398,70 +398,50 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.artifacts.gateView",
-    handleEnvelope(
-      "praxis.artifacts.gateView",
-      log,
-      courseIdSchema,
-      async (courseId) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-        return services.artifacts.gateView({
-          studentId,
-          // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-          courseId: brandId<"CourseId">(courseId) as any,
-        });
-      },
-    ),
+    handleEnvelope("praxis.artifacts.gateView", log, courseIdSchema, async (courseId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.artifacts.gateView({
+        studentId,
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+        courseId: brandId<"CourseId">(courseId) as any,
+      });
+    }),
   );
 
   handle(
     "praxis.artifacts.evaluateGates",
-    handleEnvelope(
-      "praxis.artifacts.evaluateGates",
-      log,
-      courseIdSchema,
-      async (courseId) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-        return services.artifacts.evaluateAndPersistGates({
-          studentId,
-          // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-          courseId: brandId<"CourseId">(courseId) as any,
-        });
-      },
-    ),
+    handleEnvelope("praxis.artifacts.evaluateGates", log, courseIdSchema, async (courseId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.artifacts.evaluateAndPersistGates({
+        studentId,
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+        courseId: brandId<"CourseId">(courseId) as any,
+      });
+    }),
   );
 
   handle(
     "praxis.artifacts.markGatesViewed",
-    handleEnvelope(
-      "praxis.artifacts.markGatesViewed",
-      log,
-      courseIdSchema,
-      async (courseId) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-        return services.artifacts.markGatesViewed({
-          studentId,
-          // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-          courseId: brandId<"CourseId">(courseId) as any,
-        });
-      },
-    ),
+    handleEnvelope("praxis.artifacts.markGatesViewed", log, courseIdSchema, async (courseId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.artifacts.markGatesViewed({
+        studentId,
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+        courseId: brandId<"CourseId">(courseId) as any,
+      });
+    }),
   );
 
   handle(
     "praxis.artifacts.newlyUnlockedCount",
-    handleEnvelope(
-      "praxis.artifacts.newlyUnlockedCount",
-      log,
-      courseIdSchema,
-      async (courseId) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-        return services.artifacts.newlyUnlockedCount({
-          studentId,
-          // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-          courseId: brandId<"CourseId">(courseId) as any,
-        });
-      },
-    ),
+    handleEnvelope("praxis.artifacts.newlyUnlockedCount", log, courseIdSchema, async (courseId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.artifacts.newlyUnlockedCount({
+        studentId,
+        // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+        courseId: brandId<"CourseId">(courseId) as any,
+      });
+    }),
   );
 
   // ── Memory ───────────────────────────────────────────────────────────────────
@@ -601,11 +581,16 @@ export function registerIpcHandlers(
 
   // ── Assignments ──────────────────────────────────────────────────────────────
 
-  handle("praxis.assignments.get", async (_event, input: { assignmentId: string }) => {
-    return services.assignments.get({
-      assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
-    });
-  });
+  const assignmentInputSchema = z.object({ assignmentId: z.string().min(1, "assignmentId") });
+
+  handle(
+    "praxis.assignments.get",
+    handleEnvelope("praxis.assignments.get", log, assignmentInputSchema, async ({ assignmentId }) =>
+      services.assignments.get({
+        assignmentId: brandId<"AssignmentId">(assignmentId) as AssignmentId,
+      }),
+    ),
+  );
 
   handle(
     "praxis.assignments.list",
@@ -639,17 +624,31 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.assignments.getResponses", async (_event, input: { assignmentId: string }) => {
-    return services.assignments.getResponses({
-      assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
-    });
-  });
+  handle(
+    "praxis.assignments.getResponses",
+    handleEnvelope(
+      "praxis.assignments.getResponses",
+      log,
+      assignmentInputSchema,
+      async ({ assignmentId }) =>
+        services.assignments.getResponses({
+          assignmentId: brandId<"AssignmentId">(assignmentId) as AssignmentId,
+        }),
+    ),
+  );
 
-  handle("praxis.assignments.submit", async (_event, input: { assignmentId: string }) => {
-    return services.assignments.submit({
-      assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
-    });
-  });
+  handle(
+    "praxis.assignments.submit",
+    handleEnvelope(
+      "praxis.assignments.submit",
+      log,
+      assignmentInputSchema,
+      async ({ assignmentId }) =>
+        services.assignments.submit({
+          assignmentId: brandId<"AssignmentId">(assignmentId) as AssignmentId,
+        }),
+    ),
+  );
 
   // ── Phase 10: Concepts (read-only) ──────────────────────────────────────────
 

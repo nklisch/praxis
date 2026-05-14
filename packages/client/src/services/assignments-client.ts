@@ -6,6 +6,7 @@ import type {
   AssignmentsClient,
   CourseId,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 /** Canonical channel names for the assignments IPC surface. */
@@ -26,8 +27,12 @@ const C = {
 class AssignmentsClientImpl implements AssignmentsClient {
   constructor(private readonly transport: ClientTransport) {}
 
-  get(input: { assignmentId: AssignmentId }): Promise<Assignment | null> {
-    return this.transport.invoke<Assignment | null>(C.get, input);
+  async get(input: { assignmentId: AssignmentId }): Promise<Assignment | null> {
+    const result = await this.transport.invoke<IpcEnvelope<Assignment | null> | Assignment | null>(
+      C.get,
+      input,
+    );
+    return unwrapEnvelope(result);
   }
 
   list(input: { courseId: CourseId; kind?: "quiz" | "homework" | "exam" }): Promise<Assignment[]> {
@@ -45,12 +50,18 @@ class AssignmentsClientImpl implements AssignmentsClient {
     return this.transport.invoke<void>(C.recordResponse, input);
   }
 
-  getResponses(input: { assignmentId: AssignmentId }): Promise<AssignmentResponse[]> {
-    return this.transport.invoke<AssignmentResponse[]>(C.getResponses, input);
+  async getResponses(input: { assignmentId: AssignmentId }): Promise<AssignmentResponse[]> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<AssignmentResponse[]> | AssignmentResponse[]
+    >(C.getResponses, input);
+    return unwrapEnvelope(result);
   }
 
-  submit(input: { assignmentId: AssignmentId }): Promise<AssignmentSubmissionResult> {
-    return this.transport.invoke<AssignmentSubmissionResult>(C.submit, input);
+  async submit(input: { assignmentId: AssignmentId }): Promise<AssignmentSubmissionResult> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<AssignmentSubmissionResult> | AssignmentSubmissionResult
+    >(C.submit, input);
+    return unwrapEnvelope(result);
   }
 }
 
