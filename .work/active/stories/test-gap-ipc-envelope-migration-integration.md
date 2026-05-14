@@ -1,7 +1,7 @@
 ---
 id: test-gap-ipc-envelope-migration-integration
 kind: story
-stage: review
+stage: done
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -92,3 +92,42 @@ Consequence: the "success path" for `withSchema` channels (`praxis.shell.openExt
 3. For the "internal throw / no path leakage" test, `praxis.update.checkLatest` (no `withSchema`) is used instead of `praxis.config.setSelectedEngine` (which has `withSchema` and would return VALIDATION_FAILED before reaching the service).
 
 The `praxis.documents.list` control test correctly confirms that non-migrated channels reject rather than resolve with an envelope.
+
+## Review (2026-05-14)
+
+**Verdict: Approved — advance to done. File production-bug story (see below).**
+
+### Tests pass
+
+All 15 tests pass: `pnpm vitest run packages/desktop/electron/main/__tests__/ipc-server.envelope-migration.test.ts` — 15/15 green.
+
+### Test quality
+
+The tests are structurally sound. Each `expect` is tight:
+
+- Wiring invariant tests: `expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } })` — resolves-not-rejects, envelope shape present.
+- Path leakage guard: `.not.toContain("/Users/x/.praxis")` and `.not.toContain("dev.db")` applied to both INTERNAL and VALIDATION_FAILED paths.
+- Success path (`praxis.update.checkLatest`): `expect(result).toMatchObject({ ok: true, value: { status: "disabled" } })` — tight value assertion.
+- Control (non-migrated): `await expect(handler?.({})).rejects.toThrow("DB connection lost")` — confirms raw throw, not envelope.
+
+The documentation of the harness constraint is clear and accurate. The pivot to `praxis.update.checkLatest` (no `withSchema`) for the path-leakage test is correct.
+
+### Channels covered vs. story spec
+
+All channels from the story's implementation table are present in the file: `praxis.shell.openExternal`, `praxis.config.setSelectedEngine`, `praxis.update.checkLatest`, `praxis.lock.setLockCode`, `praxis.lock.unlock`, `praxis.lock.clearLock`, `praxis.documents.list` (control). Matches exactly.
+
+### The harness constraint is a production bug
+
+Investigation of `createIpcHelpers.handle` (`packages/desktop/electron/main/ipc-helpers.ts:36`) confirms the constraint is not test-only. The timing wrapper registers:
+
+```
+ipcMain.handle(channel, async (event, ...args) => fn(event, ...args))
+```
+
+When `fn = wrapEnvelope(channel, log, withSchema(schema, inner))`, the timing wrapper calls `fn(event, payload)`. `wrapEnvelope` spreads `(event, payload)` to `withSchema`'s returned function `(raw: unknown) => ...`, so `raw = event` and the actual payload is dropped. Every `wrapEnvelope + withSchema` channel in production validates the Electron IPC event object, not the payload — meaning all these channels always return `VALIDATION_FAILED` in production regardless of what the renderer sends.
+
+Additionally, on the client side, `ConfigClient.setLockCode`, `ConfigClient.setSelectedEngine`, `LockClientImpl.setLockCode`, `LockClientImpl.unlock`, `LockClientImpl.clearLock`, and `ShellClientImpl.openExternal` all call `transport.invoke<void>` without `unwrapEnvelope`, so the returned envelope is silently discarded and validation failures are invisible to the renderer.
+
+**Filing as a new blocking story: `fix-wrapenvelope-withschema-arg-routing-and-client-unwrap`.**
+
+The integration tests in this story correctly document and verify what they can verify given the harness constraint — they are not at fault for the production bug. The tests will need updating once the bug is fixed, but that belongs in the bug-fix story.
