@@ -309,7 +309,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 - Explorer reads documents via `document.outline`, `document.list_sections`, `document.read_pages`, `retrieve_from_documents`.
 - Draft mutation tools: `course.draft_add_unit`, `course.draft_set_assessment_plan`, `course.draft_add_lesson_assessment` — the explorer builds the draft incrementally.
 - `persistDraft` materialises units + lessons + assessment shells in one transaction on `course.confirm_draft`.
-- `course_documents` join table + `CourseDocumentsServiceImpl` — links ingested documents to specific courses so the explorer's retrieval is scoped.
+- `document_scopes` polymorphic join table + `DocumentScopesServiceImpl` — links ingested documents to scopes (`course`, `session`) so the explorer's retrieval is scoped; bootstrap sessions read from session-scope and promote to course-scope on confirm.
 - `Unit`, `LessonAssessment`, `AssessmentPlan` types added to `@praxis/artifacts`.
 - Bootstrap mode toolNames updated: `course.start_exploration` replaces `course.propose_draft`.
 
