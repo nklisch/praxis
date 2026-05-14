@@ -1,7 +1,7 @@
 ---
 id: gate-docs-curriculum-bootstrap-tools-list-drafts
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -40,3 +40,17 @@ list" pointer so the SSOT remains the code.
 
 ## Implementation
 Added `course.list_drafts` to the bootstrap-mode tools enumeration in `docs/CURRICULUM.md:117`, positioned after `course.discard_draft` (grouping it with the other draft-management tools: show, edit, confirm, discard, list_drafts). The "See packages/curriculum/src/modes/bootstrap.ts for the canonical list" pointer is preserved. No other changes were made — the predates-v0.1.2 tools remain intentionally omitted per the story's design-flaw escape hatch.
+
+## Review (2026-05-14)
+
+Approve.
+
+Verified all three lenses:
+
+1. **Placement** — `course.list_drafts` inserted after `course.discard_draft` at `docs/CURRICULUM.md:117`, within the draft-management group (show, edit, confirm, discard, list_drafts) and before `retrieve_from_documents`. Grouping is correct.
+
+2. **Code cross-check** — `packages/curriculum/src/modes/bootstrap.ts:51` confirms `"course.list_drafts"` is in `toolNames`, annotated `// Draft enumeration — student-facing resume affordance.` `packages/tools/src/course/list-drafts.ts:27` confirms `name: "course.list_drafts"`.
+
+3. **Pointer preserved** — "See `packages/curriculum/src/modes/bootstrap.ts` for the canonical list" remains verbatim at the end of the tools sentence.
+
+4. **Scope discipline** — no predates-v0.1.2 tools (list_units, list_lessons_in_unit, get_lesson_detail, list_dangling_refs, ask_student_question) were added; only the one v0.1.2 addition is documented.
