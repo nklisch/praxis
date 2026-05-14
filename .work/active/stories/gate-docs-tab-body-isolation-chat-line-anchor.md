@@ -1,7 +1,7 @@
 ---
 id: gate-docs-tab-body-isolation-chat-line-anchor
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -32,3 +32,7 @@ the doc.
 ## Required edit
 Update the file:line anchor to
 `packages/ui/src/routes/chat.tsx:175-182`.
+
+## Implementation
+
+Updated the file:line anchor only. The story cited 175-182, but verification showed the actual block spans lines 176-184 (`{openTabs.map((t) => (` at 176 through the closing `</div>` at 184). The anchor was updated to `chat.tsx:176-184`. The snippet content in the pattern doc (JSX structure, `display: contents | none`, `className={styles.tabBodyMount}`, `<ChatTabBody tab={t} />`) matches the code exactly — no snippet update needed.

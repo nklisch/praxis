@@ -16,7 +16,7 @@ is small (~few MB) for realistic tab counts.
 
 ### Example 1: The mounting pattern — chat.tsx
 
-**File**: `packages/ui/src/routes/chat.tsx:106-110`
+**File**: `packages/ui/src/routes/chat.tsx:176-184`
 
 ```tsx
 {openTabs.map((t) => (
