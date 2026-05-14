@@ -1,6 +1,6 @@
 # Pattern: Shared test-fake factories
 
-`tests/helpers/mocks.ts` holds factory functions — `inMemorySecretStorage()`, `noopLogger()`, `noopLockService()`, `noopCourseDocuments()`, `recordingLogger()` — each returning a port interface satisfied with no-op or in-memory behavior. Tests import these instead of constructing literal mock objects inline. Negative-path variants (e.g. `unavailableSecretStorage()`) live alongside the default so the fakes are the single source of truth for the contract.
+`tests/helpers/mocks.ts` holds factory functions — `inMemorySecretStorage()`, `noopLogger()`, `noopLockService()`, `noopDocumentScopes()`, `recordingLogger()` — each returning a port interface satisfied with no-op or in-memory behavior. Tests import these instead of constructing literal mock objects inline. Negative-path variants (e.g. `unavailableSecretStorage()`) live alongside the default so the fakes are the single source of truth for the contract.
 
 ## Rationale
 
@@ -47,7 +47,7 @@ export function noopLockService(): LockService {
   };
 }
 
-export function noopCourseDocuments(): CourseDocumentsService { /* … */ }
+export function noopDocumentScopes(): DocumentScopesService { /* … */ }
 ```
 
 ### Example 3: Recording variant for assertion-style tests

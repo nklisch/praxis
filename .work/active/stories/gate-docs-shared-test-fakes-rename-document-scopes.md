@@ -1,7 +1,7 @@
 ---
 id: gate-docs-shared-test-fakes-rename-document-scopes
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -35,3 +35,10 @@ no longer exists as a port.
 In both files, replace `noopCourseDocuments` → `noopDocumentScopes`
 and update the example signature to
 `noopDocumentScopes(): DocumentScopesService`.
+
+## Implementation
+
+- `.claude/rules/patterns.md` line 47: already read `noopDocumentScopes` — no edit needed.
+- `.claude/skills/patterns/shared-test-fake-factories.md` line 3: replaced `noopCourseDocuments()` with `noopDocumentScopes()` in the factory enumeration.
+- `.claude/skills/patterns/shared-test-fake-factories.md` line 50: replaced `export function noopCourseDocuments(): CourseDocumentsService` with `export function noopDocumentScopes(): DocumentScopesService` in the example snippet.
+- Verified against `tests/helpers/mocks.ts:76`: export is `noopDocumentScopes(): import("@praxis/core/types").DocumentScopesService`.
