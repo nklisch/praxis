@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-12-misc-and-domain-modules
 kind: story
-stage: review
+stage: done
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-11-sketches-concept-maps]
@@ -122,3 +122,37 @@ All 4 remaining raw handlers are streaming entry-points (`*.events.start` / `*.l
 - `pnpm --filter @praxis/desktop test` — 399 tests across 26 files pass (includes 21 new tests)
 - `pnpm --filter @praxis/client test` — 62 tests pass
 - `pnpm lint` on all modified files — clean (no errors in changed files)
+
+## Review
+
+**Verdict: Approve**
+
+**Final acceptance grep** — load-bearing check passed. Only 4 raw `handle(...)` calls remain, all streaming entry-points:
+- `activity-channel.ts:34` — `praxis.activity.events.start`
+- `bootstrap-drafts-channel.ts:28` — `praxis.bootstrap.drafts.events.start`
+- `quick-check-channel.ts:26` — `praxis.quickCheck.events.start`
+- `ipc-server.ts:1427` — `praxis.auth.claude.login.start`
+
+Every invoke channel in `ipc-server.ts` and all 7 per-domain modules is now wrapped. The entire refactor's success criterion is met.
+
+**Module-by-module verification:**
+- `ipc-server.ts`: `praxis.auth.claude.status` uses `wrapEnvelope`; `praxis.tabs.openDocument` uses `handleEnvelope` + Zod (`min(1)` on both fields) — correct.
+- `document-scopes-channel.ts`: all 5 invoke handlers wrapped with `wrapEnvelope`.
+- `ingest-channel.ts`: 4 invoke handlers wrapped; streaming `praxis.ingest.start` correctly untouched.
+- `quick-check-channel.ts`: `praxis.quickCheck.resolve` wrapped; streaming `events.start` untouched.
+- `subagent-channel.ts`: `praxis.subAgent.list` wrapped; streaming `events.start` untouched.
+- `activity-channel.ts`: `praxis.activity.dismiss` wrapped; streaming `events.start` untouched.
+- `bootstrap-drafts-channel.ts`: correctly skipped — streaming-only module.
+- `log-channel.ts`: correctly skipped — `ipcMain.on` fire-and-forget, not an invoke channel.
+
+**Client services:** All 7 updated files (`claude-auth-client.ts`, `tabs-client.ts`, `document-scopes-client.ts`, `ingest-client.ts`, `quick-check-client.ts`, `sub-agent-client.ts`, `activity-client.ts`) call `unwrapEnvelope`. Each uses the `IpcEnvelope<T> | T` union type correctly for backward compatibility. `ingest-client.ts` preserves the synchronous `isAvailable()` boolean correctly (it was not an async invoke and was not touched).
+
+**Tests:** 21 tests across all touched channel families. Coverage includes: happy-path envelope shape, INTERNAL on service throw (never-rejects contract), VALIDATION_FAILED for missing/empty payloads (`tabs.openDocument`). The `electron-ipc-test-harness` pattern is applied correctly — mock registered before import, handlers captured in Map, invoked directly.
+
+**Typechecks:** `@praxis/desktop`, `@praxis/client`, `@praxis/ui` all pass cleanly with `tsgo`.
+
+**Tests:** 399/399 `@praxis/desktop` (26 files), 62/62 `@praxis/client` (7 files).
+
+No blockers. No nits beyond the minor discrepancy between the file header comment ("Test count: 20") and the actual 21 `it()` calls — harmless.
+
+The `gate-security-ipc-helpers-rethrow-redactor-gap` security finding is now effectively closed: every invoke channel returns an envelope, so the raw re-throw in `ipc-helpers.handle` never reaches renderer wire in production.
