@@ -48,10 +48,6 @@ export class ClaudeCodeVision implements VisionCapability {
         // maxTurns + the caller's AbortSignal; a wall-clock timeout just turns
         // legitimate slow image-reads into opaque CLITimeoutErrors.
         timeout: 0,
-        ...(req.maxTokens !== undefined &&
-          {
-            // Claude Code CLI doesn't have a direct maxTokens option, but we pass it for future compat
-          }),
       });
 
       const result = await collectResult(q);
