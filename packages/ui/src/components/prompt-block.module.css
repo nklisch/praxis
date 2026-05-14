@@ -1,0 +1,131 @@
+.block {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--color-surface);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.title {
+  composes: editorial from global;
+  font-family: var(--font-display);
+  text-transform: none;
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  color: var(--color-text);
+}
+
+.position {
+  color: var(--color-text-muted);
+}
+
+.edited {
+  color: var(--color-accent, var(--color-text));
+}
+
+.locked {
+  color: var(--color-text-muted);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.smallBtn,
+.smallBtnPrimary {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding: 0.25rem 0.6rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.smallBtnPrimary {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.smallBtn:hover,
+.smallBtnPrimary:hover {
+  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+}
+
+.smallBtn:disabled,
+.smallBtnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.view {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.editor {
+  width: 100%;
+  min-height: 5rem;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.4rem 0.6rem;
+  box-sizing: border-box;
+}
+
+.diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+}
+
+.diffSide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.diffLabel {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.diffPre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+  padding: 0.4rem 0.5rem;
+  border-radius: 3px;
+}
