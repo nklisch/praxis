@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-query-unused-cleanupfn
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -52,3 +52,9 @@ Deleted two lines from `packages/claude-cli-sdk/src/query.ts`:
 Confirmed no other references to `cleanupFn` existed in the file. The `finally` block at line 117 already calls `await cleanup()` from the inner scope. No behaviour change.
 
 Verification: `pnpm --filter @praxis/claude-cli-sdk typecheck` passes, `pnpm --filter @praxis/claude-cli-sdk test` passes (48 tests), `pnpm lint` no longer flags the unused variable.
+
+## Review (2026-05-14)
+
+Verdict: Approve.
+
+Checked: diff touches exactly the two lines specified (`let cleanupFn` declaration and `cleanupFn = cleanup` assignment); grep confirms zero remaining references to `cleanupFn` in the package. The `finally` block correctly calls the locally-scoped `cleanup()` directly, so no behaviour change. No new tests needed. Ship it.
