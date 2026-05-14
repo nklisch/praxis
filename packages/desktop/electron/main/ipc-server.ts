@@ -88,9 +88,15 @@ export function registerIpcHandlers(
 
   // ── Session ──────────────────────────────────────────────────────────────
 
-  handle("praxis.session.active", async () => {
-    return services.session.active();
+  const SpawnFromAssignmentSchema = z.object({
+    assignmentId: z.string().min(1, "assignmentId"),
+    parentSessionId: z.string().min(1, "parentSessionId"),
   });
+
+  handle(
+    "praxis.session.active",
+    wrapEnvelope("praxis.session.active", log, async () => services.session.active()),
+  );
 
   handle(
     "praxis.session.start",
@@ -107,20 +113,30 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.session.end", async (_event, sessionId: string) => {
-    // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-    return services.session.end(sessionId as any);
-  });
+  handle(
+    "praxis.session.end",
+    handleEnvelope(
+      "praxis.session.end",
+      log,
+      z.string().min(1, "sessionId"),
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (sessionId) => services.session.end(sessionId as any),
+    ),
+  );
 
   // Phase 16: spawn a quiz/homework/exam child session from an assignment.
   handle(
     "praxis.session.spawnFromAssignment",
-    async (_event, opts: { assignmentId: string; parentSessionId: string }) => {
-      return services.session.spawnFromAssignment({
-        assignmentId: brandId<"AssignmentId">(opts.assignmentId) as AssignmentId,
-        parentSessionId: brandId<"SessionId">(opts.parentSessionId) as SessionId,
-      });
-    },
+    handleEnvelope(
+      "praxis.session.spawnFromAssignment",
+      log,
+      SpawnFromAssignmentSchema,
+      async (opts) =>
+        services.session.spawnFromAssignment({
+          assignmentId: brandId<"AssignmentId">(opts.assignmentId) as AssignmentId,
+          parentSessionId: brandId<"SessionId">(opts.parentSessionId) as SessionId,
+        }),
+    ),
   );
 
   // Streaming: client invokes `praxis.session.send.start` with streamId + args.

@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-1-session
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: []
@@ -40,3 +40,29 @@ Apply the parent feature's per-step recipe to the session invoke channels.
 ## Risk + rollback
 - **Risk**: Medium — `praxis.session.active` is polled frequently by the UI; an envelope-shape mismatch breaks the chat shell.
 - **Rollback**: revert the commit; the previous raw-throw form is structurally simpler and the renderer's catch handlers were already lenient.
+
+## Implementation
+
+### Channels migrated
+- `praxis.session.active` — `wrapEnvelope` (no payload); `SessionClient.active()` now calls `unwrapEnvelope`.
+- `praxis.session.end` — `handleEnvelope` + `z.string().min(1, "sessionId")`; `SessionClient.end()` now calls `unwrapEnvelope`.
+- `praxis.session.spawnFromAssignment` — `handleEnvelope` + `SpawnFromAssignmentSchema` (object with `assignmentId` and `parentSessionId`, both `z.string().min(1)`); `SessionClient.spawnFromAssignment()` now calls `unwrapEnvelope`.
+
+`SpawnFromAssignmentSchema` is defined inline at the top of the Session section in `ipc-server.ts` — local to its use site, not hoisted to module scope, matching the style of the existing `EngineConfigSchema` import pattern.
+
+### Files modified
+- `packages/desktop/electron/main/ipc-server.ts` — 3 channels wrapped
+- `packages/client/src/services/session-client.ts` — 3 methods updated to `unwrapEnvelope`
+- `packages/desktop/electron/main/__tests__/session-channel-envelope.test.ts` — new file, 18 tests
+
+### Test coverage (18 tests across 3 describe blocks)
+- `praxis.session.active` (4 tests): success-null, success-with-handle, INTERNAL on service throw, INTERNAL with path leakage guard.
+- `praxis.session.end` (6 tests): success, VALIDATION_FAILED on empty string, VALIDATION_FAILED on number, VALIDATION_FAILED on undefined, INTERNAL on service throw, INTERNAL with path leakage guard.
+- `praxis.session.spawnFromAssignment` (8 tests): success, VALIDATION_FAILED on missing assignmentId, VALIDATION_FAILED on missing parentSessionId, VALIDATION_FAILED on empty assignmentId, VALIDATION_FAILED on non-object, VALIDATION_FAILED on undefined, INTERNAL on service throw, INTERNAL with path leakage guard.
+
+### Verification
+- `pnpm --filter @praxis/desktop typecheck` — pass
+- `pnpm --filter @praxis/client typecheck` — pass
+- `pnpm --filter @praxis/desktop test` — 154 tests pass (15 files)
+- `pnpm --filter @praxis/client test` — 62 tests pass (7 files)
+- `pnpm biome check` on modified files — pass (pre-existing workspace lint errors unaffected)
