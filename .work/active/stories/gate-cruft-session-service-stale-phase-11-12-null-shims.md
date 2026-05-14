@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-session-service-stale-phase-11-12-null-shims
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -72,3 +72,27 @@ Confirmed all five fields are declared non-optional concrete service types in bo
 - `pnpm --filter @praxis/core typecheck` — passed (no errors).
 - `pnpm --filter @praxis/core test` — 52 failed / 28 passed, identical count before and after the change; failures are pre-existing environment issues in `sketch-service.test.ts` and unrelated DB path tests.
 - `pnpm biome check packages/core/src/services/session-service.ts` — one pre-existing formatter warning (tabs vs spaces, unrelated to this change); no orphaned biome-ignore lines.
+
+## Review (2026-05-14)
+
+Verdict: Approve.
+
+**Correctness**
+
+All five fields (`lock`, `authoring`, `notes`, `flashcards`, `fsrsScheduler`) are declared as required, non-optional concrete service types in both `ServiceDeps.toolServices` (`packages/core/src/services/types.ts:48-78`) and `ToolContext` (`packages/core/src/types/tool.ts:192-201`). No `| null` or `?` modifier on any of them. The plain assignments in the diff are type-correct and the implementer confirmed typecheck passes.
+
+**Nullable-assumption scan**
+
+- `grep` for `this.lock`, `this.authoring`, `this.notes`, `this.flashcards`, `this.fsrsScheduler` in `packages/core/src/` — no hits.
+- Optional-chaining scan (`?.lock` etc.) across all source packages — no hits on these fields in source files.
+- Tool handlers in `packages/tools/src/` access these fields directly via `ctx.services.{field}` with no null guards, consistent with the required-field contract.
+- `packages/ui/src/hooks/use-lock.ts` guards `client.lock` — that is the IPC client interface, a separate layer unrelated to `ToolContext`.
+- `packages/tools/src/pedagogy/__tests__/helpers.ts` stubs these fields with `null as any` with explanatory comments — this is a pre-existing test helper for pedagogy-only tests that never invoke the stubbed services. Out of scope for this story but noted; covered by existing biome-ignore justification comments.
+
+**Design alignment**
+
+The diff removes exactly the 12-line block specified in the story (5 assignments with `as any ?? null`, 5 `biome-ignore` lines, 2 stale phase comments), and replaces it with 5 plain assignments. No unrelated changes. Scope is correctly limited to `session-service.ts` and the story file.
+
+**Foundation-doc alignment**
+
+The stale "wired by Agent 2" / "null-safe until wired" comments described a future state that shipped in Phases 11 and 12. Removing them is correct; the standing contract is now expressed cleanly by the type declarations alone.
