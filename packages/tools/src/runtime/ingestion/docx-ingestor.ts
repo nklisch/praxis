@@ -134,6 +134,10 @@ export class DocxIngestor implements Ingestor {
  * Tag chunks whose text contains `![alt](praxis://embedded/<name>)` references
  * with the corresponding `imageNames`. Chunks without image references are
  * returned unchanged.
+ *
+ * Spec-silent contract pinned by: docx-ingestor.test.ts —
+ * "handles an image whose markdown straddles a chunk boundary — at most
+ *  one chunk picks it up OR neither (rare but acceptable)".
  */
 function tagChunksWithImages(
   chunks: IngestedChunk[],

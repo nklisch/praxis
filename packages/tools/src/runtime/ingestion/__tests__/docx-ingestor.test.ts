@@ -444,3 +444,64 @@ describe("DocxIngestor — mimeToExt coverage", () => {
     });
   }
 });
+
+describe("DocxIngestor — image markdown at chunk boundaries (spec-silent contract)", () => {
+  // Pinned in source: docx-ingestor.ts:tagChunksWithImages — see the
+  // one-line "pinned by:" comment there.
+  it("handles an image whose markdown straddles a chunk boundary — at most one chunk picks it up OR neither (rare but acceptable)", async () => {
+    const mock = await getMockConvertToMarkdown();
+    const long = "lorem ipsum ".repeat(50).trim();
+    mock.mockImplementation(
+      async (_input: unknown, options: unknown) =>
+        await simulateConvertToMarkdownWithImages(
+          options,
+          [{ contentType: "image/png" }],
+          `${long}\n\n${long}`,
+        ),
+    );
+
+    const filePath = join(tmpDir, "boundary.docx");
+    await writeFile(filePath, "fake docx bytes");
+    const store = new FsEmbeddedImageStore(join(tmpDir, "boundary-store"));
+
+    const result = await new DocxIngestor({ embeddedImageStore: store }).parse(filePath, {
+      maxChars: 100,
+    });
+
+    const chunksWithImage = result.chunks.filter((c) =>
+      c.imageNames?.includes("image-1.png"),
+    );
+    expect(chunksWithImage.length).toBeLessThanOrEqual(1);
+    const markerCount = result.chunks.reduce(
+      (n, c) => n + (c.text.match(/praxis:\/\/embedded\/image-1\.png/g)?.length ?? 0),
+      0,
+    );
+    expect(markerCount).toBeLessThanOrEqual(1);
+  });
+
+  it("image paragraph at the exact maxChars boundary — image survives into the next chunk", async () => {
+    const mock = await getMockConvertToMarkdown();
+    const pre = "x".repeat(95);
+    mock.mockImplementation(
+      async (_input: unknown, options: unknown) =>
+        await simulateConvertToMarkdownWithImages(
+          options,
+          [{ contentType: "image/png" }],
+          pre,
+        ),
+    );
+
+    const filePath = join(tmpDir, "edge.docx");
+    await writeFile(filePath, "fake docx bytes");
+    const store = new FsEmbeddedImageStore(join(tmpDir, "edge-store"));
+
+    const result = await new DocxIngestor({ embeddedImageStore: store }).parse(filePath, {
+      maxChars: 100,
+    });
+
+    const found = result.chunks.find((c) =>
+      c.text.includes("praxis://embedded/image-1.png"),
+    );
+    expect(found?.imageNames).toContain("image-1.png");
+  });
+});
