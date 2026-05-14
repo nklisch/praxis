@@ -1,7 +1,7 @@
 ---
 id: course-aware-mode-prompts-missing-tests
 kind: story
-stage: review
+stage: done
 tags: [testing, curriculum]
 parent: null
 depends_on: []
@@ -74,3 +74,18 @@ Findings from review (2026-05-14) of foundation story.
 The integration test mirrors the fake-engine pattern from `session-service.prompt-customization.test.ts`, capturing `engine.open(opts).systemPrompt` and asserting on the rendered string.
 
 Verification: `pnpm vitest run packages/curriculum/src/brief/__tests__/in-course-behavior.test.ts packages/curriculum/src/brief/__tests__/course-context.test.ts packages/core/src/services/__tests__/session-service.in-course-overrides.test.ts` → 42 tests pass (21 + 18 + 3). Full `pnpm test` green (3293 pass).
+
+## Review (2026-05-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: exam branch uses a weaker substring assertion (`"course"`) than the other four modes — explicitly justified in implementation notes (exam template intentionally uses closed-surface formulation that doesn't quote lesson title).
+
+**Notes**:
+- All three test files exist and pass; all acceptance criteria met.
+- `in-course-behavior.test.ts`: 21 cases via `it.each(MODES)` covering canonical-id, well-formed-fragment, mode-template-content, null-current-lesson fallback, and fallback-fragment-set well-formedness. Clean and tabular.
+- `course-context.test.ts`: +5 cases in a "documents parameter" describe block covering undefined byte-equivalence, empty array, 12-doc cap, 13-doc tail, and per-doc chunk-count. Pre-existing 13 cases preserved.
+- `session-service.in-course-overrides.test.ts`: 3 integration cases via `useTempDb` + fake engine that captures `engine.open(opts).systemPrompt`. Asserts on sentinel-replacement (FALLBACK_* sentinels absent when dynamic blocks run, present when courseId absent) — a cleaner contract than literal-string equality. Mirrors the established `session-service.prompt-customization.test.ts` pattern.
+- Tests verify behavioral contract (what the composer produces), not implementation details. Good edge-case coverage at the cap boundary.
