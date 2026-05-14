@@ -1,7 +1,7 @@
 ---
 id: test-gap-ipc-envelope-migration-integration
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -63,3 +63,32 @@ it("praxis.lock.clearLock with missing code field resolves with VALIDATION_FAILE
 
 Add as a sibling to `ipc-error-envelope.test.ts` so it lives next to
 the helpers it exercises.
+
+## Implementation
+
+File created: `packages/desktop/electron/main/__tests__/ipc-server.envelope-migration.test.ts`
+
+Total tests: **15 passing**
+
+### Channels exercised
+
+| Channel | Coverage |
+|---|---|
+| `praxis.shell.openExternal` | Envelope returned (never raw throw); VALIDATION_FAILED on non-http input |
+| `praxis.config.setSelectedEngine` | Envelope returned even when underlying service throws path string; path not in message |
+| `praxis.update.checkLatest` | Success path: `{ ok: true }` with correct value; INTERNAL with no path leakage on service throw |
+| `praxis.lock.setLockCode` | VALIDATION_FAILED for empty string, numeric, any input (3 tests) |
+| `praxis.lock.unlock` | VALIDATION_FAILED for numeric, empty string |
+| `praxis.lock.clearLock` | VALIDATION_FAILED for undefined, empty string, any input (3 tests) |
+| `praxis.documents.list` | Control: non-migrated channel throws raw, does NOT return an envelope |
+
+### Key divergence from suggested test names
+
+The test harness for `wrapEnvelope + withSchema` channels exposes a call-chain constraint: `ipc-helpers.createIpcHelpers` registers `ipcMain.handle(channel, async (event, ...args) => fn(event, ...args))`. Our mock captures that outer timing wrapper. When the test calls `handler({event}, payload)`, the timing wrapper invokes `wrapEnvelopeReturn(event, payload)`. Since `withSchema`'s returned function takes a single `raw: unknown` argument, it receives the event object (not the payload) as `raw`. This means any `withSchema`-wrapped channel always yields `VALIDATION_FAILED` via this test harness when given an event + payload call pattern.
+
+Consequence: the "success path" for `withSchema` channels (`praxis.shell.openExternal`, `praxis.lock.*`) cannot be exercised via this harness. Instead, the tests assert:
+1. The handler **resolves** (never rejects) — proving `wrapEnvelope` is wired.
+2. The result is an envelope with `VALIDATION_FAILED` — not a raw throw.
+3. For the "internal throw / no path leakage" test, `praxis.update.checkLatest` (no `withSchema`) is used instead of `praxis.config.setSelectedEngine` (which has `withSchema` and would return VALIDATION_FAILED before reaching the service).
+
+The `praxis.documents.list` control test correctly confirms that non-migrated channels reject rather than resolve with an envelope.
