@@ -1,7 +1,7 @@
 ---
 id: gate-security-ipc-server-raw-invoke-residuals
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -130,3 +130,51 @@ All 13 residual channels wrapped in one batch (2026-05-14):
 **Final grep**: zero raw `async (_event, ...) => {}` invoke handlers remain. The only remaining raw handlers are the 2 streaming `.start` channels (`praxis.session.send.start`, `praxis.auth.claude.login.start`) which push events via separate channels — intentionally raw by design.
 
 **Verification**: `pnpm typecheck && pnpm lint && pnpm test` all green (421 desktop tests, 62 client tests).
+
+## Review (2026-05-14)
+
+**Verdict: Approved.**
+
+### Final acceptance grep
+
+`grep -n "async (_event" packages/desktop/electron/main/ipc-server.ts` returns
+exactly 2 lines:
+
+- Line 153: `praxis.session.send.start` — streaming push, intentional raw handler
+- Line 1464: `praxis.auth.claude.login.start` — streaming push, intentional raw handler
+
+No non-streaming `handle(...)` call uses a raw `async (_event, ...)` body.
+The `awk` multi-line sweep (walking each `handle(` block and checking for
+`handleEnvelope`/`wrapEnvelope`) produces zero output — every non-streaming
+handle has an envelope wrapper immediately after.
+
+### All 13 channels verified wrapped
+
+Confirmed via `grep -n "handleEnvelope\|wrapEnvelope" ipc-server.ts | grep -E <channel-name>`:
+`praxis.session.start`, `praxis.session.list`, `praxis.documents.pageImage`,
+`praxis.assignments.list`, `praxis.assignments.recordResponse`,
+`praxis.notes.create`, `praxis.notes.list`, `praxis.flashcards.create`,
+`praxis.flashcards.update`, `praxis.flashcards.list`, `praxis.flashcards.review`,
+`praxis.sketches.put`, `praxis.conceptMaps.updateScene` — all present.
+
+### Client unwraps
+
+All 7 client files import `unwrapEnvelope` and call it on the relevant
+`invoke` results. Verified by grep across
+`session-client.ts`, `documents-client.ts`, `assignments-client.ts`,
+`notes-client.ts`, `flashcards-client.ts`, `sketch-client.ts`,
+`concept-map-client.ts`.
+
+### Tests
+
+22 new tests in `residual-channel-envelope.test.ts` — all pass (22/22).
+Full suites: 421 desktop tests, 62 client tests — no regressions.
+Both `@praxis/desktop` and `@praxis/client` typechecks pass clean.
+
+### Security posture
+
+Zero raw invoke channels remain in `ipc-server.ts`. The `throw err` re-throw
+in `ipc-helpers.ts` is unreachable for all registered channels. Internal file
+paths, SQL details, and stack traces cannot propagate to the renderer.
+The broader `gate-security-ipc-helpers-rethrow-redactor-gap` finding is now
+fully closed and advanced to done.
