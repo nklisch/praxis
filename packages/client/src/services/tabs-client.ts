@@ -6,6 +6,7 @@ import type {
   TabSummary,
   TabsClientApi,
 } from "@praxis/core/types";
+import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
 const C = "praxis.tabs" as const;
@@ -20,23 +21,35 @@ const C = "praxis.tabs" as const;
 export class TabsClient implements TabsClientApi {
   constructor(private readonly transport: ClientTransport) {}
 
-  listOpen(): Promise<TabSummary[]> {
-    return this.transport.invoke<TabSummary[]>(`${C}.listOpen`);
+  async listOpen(): Promise<TabSummary[]> {
+    const result = await this.transport.invoke<IpcEnvelope<TabSummary[]> | TabSummary[]>(
+      `${C}.listOpen`,
+    );
+    return unwrapEnvelope(result);
   }
 
-  list(opts?: { limit?: number; includeClosed?: boolean }): Promise<TabSummary[]> {
-    return this.transport.invoke<TabSummary[]>(`${C}.list`, opts ?? {});
+  async list(opts?: { limit?: number; includeClosed?: boolean }): Promise<TabSummary[]> {
+    const result = await this.transport.invoke<IpcEnvelope<TabSummary[]> | TabSummary[]>(
+      `${C}.list`,
+      opts ?? {},
+    );
+    return unwrapEnvelope(result);
   }
 
-  get(tabId: TabId): Promise<TabSummary | null> {
-    return this.transport.invoke<TabSummary | null>(`${C}.get`, tabId);
+  async get(tabId: TabId): Promise<TabSummary | null> {
+    const result = await this.transport.invoke<IpcEnvelope<TabSummary | null> | TabSummary | null>(
+      `${C}.get`,
+      tabId,
+    );
+    return unwrapEnvelope(result);
   }
 
-  open(input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary> {
-    return this.transport.invoke<TabSummary>(`${C}.open`, {
+  async open(input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary> {
+    const result = await this.transport.invoke<IpcEnvelope<TabSummary> | TabSummary>(`${C}.open`, {
       sessionId: input.sessionId,
       ...(input.courseTitle !== undefined && { courseTitle: input.courseTitle }),
     });
+    return unwrapEnvelope(result);
   }
 
   openDocument(input: { documentId: DocumentId; title: string }): Promise<DocumentTabSummary> {
@@ -46,19 +59,29 @@ export class TabsClient implements TabsClientApi {
     });
   }
 
-  reopen(tabId: TabId): Promise<TabSummary> {
-    return this.transport.invoke<TabSummary>(`${C}.reopen`, tabId);
+  async reopen(tabId: TabId): Promise<TabSummary> {
+    const result = await this.transport.invoke<IpcEnvelope<TabSummary> | TabSummary>(
+      `${C}.reopen`,
+      tabId,
+    );
+    return unwrapEnvelope(result);
   }
 
-  close(tabId: TabId): Promise<void> {
-    return this.transport.invoke<void>(`${C}.close`, tabId);
+  async close(tabId: TabId): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(`${C}.close`, tabId);
+    return unwrapEnvelope(result);
   }
 
-  touch(tabId: TabId): Promise<void> {
-    return this.transport.invoke<void>(`${C}.touch`, tabId);
+  async touch(tabId: TabId): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(`${C}.touch`, tabId);
+    return unwrapEnvelope(result);
   }
 
-  rename(tabId: TabId, title: string): Promise<TabSummary> {
-    return this.transport.invoke<TabSummary>(`${C}.rename`, { tabId, title });
+  async rename(tabId: TabId, title: string): Promise<TabSummary> {
+    const result = await this.transport.invoke<IpcEnvelope<TabSummary> | TabSummary>(
+      `${C}.rename`,
+      { tabId, title },
+    );
+    return unwrapEnvelope(result);
   }
 }

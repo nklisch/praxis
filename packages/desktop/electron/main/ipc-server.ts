@@ -1472,28 +1472,68 @@ export function registerIpcHandlers(
 
   // ── Phase 14: Tabs ───────────────────────────────────────────────────────────
 
-  handle("praxis.tabs.listOpen", async () => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.tabs.listOpen(studentId);
-  });
+  const tabIdSchema = z.string().min(1, "tabId");
 
-  handle("praxis.tabs.list", async (_event, opts: { limit?: number; includeClosed?: boolean }) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.tabs.list(studentId, opts);
-  });
+  handle(
+    "praxis.tabs.listOpen",
+    wrapEnvelope("praxis.tabs.listOpen", log, async () => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.tabs.listOpen(studentId);
+    }),
+  );
 
-  handle("praxis.tabs.get", async (_event, tabId: string) => {
-    return services.tabs.get(tabId as TabId);
-  });
+  handle(
+    "praxis.tabs.list",
+    handleEnvelope(
+      "praxis.tabs.list",
+      log,
+      z
+        .object({
+          limit: z.number().int().positive().optional(),
+          includeClosed: z.boolean().optional(),
+        })
+        .optional(),
+      async (opts) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.tabs.list(
+          studentId,
+          opts !== undefined
+            ? {
+                ...(opts.limit !== undefined && { limit: opts.limit }),
+                ...(opts.includeClosed !== undefined && { includeClosed: opts.includeClosed }),
+              }
+            : undefined,
+        );
+      },
+    ),
+  );
 
-  handle("praxis.tabs.open", async (_event, opts: { sessionId: string; courseTitle?: string }) => {
-    const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
-    return services.tabs.open({
-      studentId,
-      sessionId: opts.sessionId as SessionId,
-      ...(opts.courseTitle !== undefined && { courseTitle: opts.courseTitle }),
-    });
-  });
+  handle(
+    "praxis.tabs.get",
+    handleEnvelope("praxis.tabs.get", log, tabIdSchema, async (tabId) => {
+      return services.tabs.get(tabId as TabId);
+    }),
+  );
+
+  handle(
+    "praxis.tabs.open",
+    handleEnvelope(
+      "praxis.tabs.open",
+      log,
+      z.object({
+        sessionId: z.string().min(1, "sessionId"),
+        courseTitle: z.string().optional(),
+      }),
+      async (opts) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.tabs.open({
+          studentId,
+          sessionId: opts.sessionId as SessionId,
+          ...(opts.courseTitle !== undefined && { courseTitle: opts.courseTitle }),
+        });
+      },
+    ),
+  );
 
   handle(
     "praxis.tabs.openDocument",
@@ -1507,21 +1547,41 @@ export function registerIpcHandlers(
     },
   );
 
-  handle("praxis.tabs.reopen", async (_event, tabId: string) => {
-    return services.tabs.reopen(tabId as TabId);
-  });
+  handle(
+    "praxis.tabs.reopen",
+    handleEnvelope("praxis.tabs.reopen", log, tabIdSchema, async (tabId) => {
+      return services.tabs.reopen(tabId as TabId);
+    }),
+  );
 
-  handle("praxis.tabs.close", async (_event, tabId: string) => {
-    return services.tabs.close(tabId as TabId);
-  });
+  handle(
+    "praxis.tabs.close",
+    handleEnvelope("praxis.tabs.close", log, tabIdSchema, async (tabId) => {
+      return services.tabs.close(tabId as TabId);
+    }),
+  );
 
-  handle("praxis.tabs.touch", async (_event, tabId: string) => {
-    return services.tabs.touch(tabId as TabId);
-  });
+  handle(
+    "praxis.tabs.touch",
+    handleEnvelope("praxis.tabs.touch", log, tabIdSchema, async (tabId) => {
+      return services.tabs.touch(tabId as TabId);
+    }),
+  );
 
-  handle("praxis.tabs.rename", async (_event, opts: { tabId: string; title: string }) => {
-    return services.tabs.rename(opts.tabId as TabId, opts.title);
-  });
+  handle(
+    "praxis.tabs.rename",
+    handleEnvelope(
+      "praxis.tabs.rename",
+      log,
+      z.object({
+        tabId: z.string().min(1, "tabId"),
+        title: z.string().min(1, "title"),
+      }),
+      async (opts) => {
+        return services.tabs.rename(opts.tabId as TabId, opts.title);
+      },
+    ),
+  );
 
   // ── Phase 14: Session list (archive) ─────────────────────────────────────────
 
