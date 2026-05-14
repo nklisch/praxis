@@ -1,7 +1,7 @@
 ---
 id: epic-editorial-polish-pass-prompt-config-redesign-stack-and-preview
 kind: story
-stage: implementing
+stage: review
 tags: [ui, configure, prompt-customization]
 parent: epic-editorial-polish-pass-prompt-config-redesign
 depends_on: [epic-editorial-polish-pass-prompt-config-redesign-block-primitive]
@@ -117,3 +117,68 @@ See the parent feature for the full design. This story implements
 - `packages/ui/src/components/prompt-block-stack.module.css` (new)
 - `packages/ui/src/components/__tests__/prompt-block-stack.test.tsx`
   (new)
+- `packages/ui/src/lib/copy.ts` (added stack-related COPY keys
+  ahead of Story 3 so the stack can reference them in isolation)
+
+## Implementation notes (2026-05-14)
+
+- Exports `PromptBlockStack` and the pure-function `assembleBlocks`
+  helper (the latter is the unit-testable core of the assembly
+  logic; the parent feature design called for this as a separate
+  testable seam).
+- `assembleBlocks(modeId, globalText, appendText, overridesById)`
+  produces the ordered `AssembledBlock[]`:
+  - mode fragments → `saveAction: "fragment"`, with overrides
+    applied; `defaultText` set to the unmodified `fragment.template`
+  - synthetic global block at `user-global` → `saveAction: "global"`
+  - synthetic per-mode append block at `user-append` →
+    `saveAction: "append"`
+  - sorted via `FRAGMENT_ORDER.indexOf(positionLabel)` so the
+    block list aligns 1:1 with `composeSystemPromptWithAttribution`.
+- `dispatchSave(block, text)` routes to the correct IPC:
+  - `"fragment"` → `client.author.customizePrompt(modeId, blockId,
+    text)` + `overrides.refresh()`
+  - `"global"` → `client.author.setGlobalPrompt(text || null)` + local
+    `setGlobalText`
+  - `"append"` → `client.author.setModeAppend({ modeId, text || null
+    })` + local `setAppendText`
+- Edit-mode exclusivity: stack tracks `editingBlockId: string | null`.
+  Each `<PromptBlock>` receives `editEnabled = editingBlockId === null
+  || editingBlockId === block.blockId`. When another block is in
+  edit-mode, this block's Edit button is rendered disabled (visible
+  affordance with reduced opacity per PromptBlock's existing pattern).
+- In-flight draft piping: stack stores `editingDraft: string | null`
+  from the active block via `onDraftChange`. When the editing block is
+  the global or append block, the stack passes
+  `draftGlobal` / `draftAppend` to the composed `AttributedPreviewPane`
+  so toggling to Composed mid-edit shows the in-flight text with
+  amber attribution.
+- Mode picker uses the same `<select>` shape as the legacy
+  `prompt-tab.tsx`, with COPY string `modePickerLabel`. Re-uses the
+  existing label.
+- Append block re-fetches on `modeId` change (effect deps:
+  `[client, modeId]`). Global is loaded once on mount.
+
+## Decisions logged
+
+- **Initial-load gating**: `LoadingState` renders until `globalLoaded
+  && appendLoaded && !overrides.loading`. This is a small flash but
+  avoids showing half-assembled blocks for one render cycle.
+- **`editEnabled` is the disable mechanism**: per the parent feature's
+  design decision, other blocks' Edit buttons stay visible-but-
+  disabled when one is open. `PromptBlock` already supports
+  `editEnabled?: boolean`; the stack just passes the flag.
+- **No new IPC**: the design said "reuse `AttributedPreviewPane`'s
+  draftAppend plumbing". I did so — the only new wire-format is
+  the local `editingDraft` snapshot. No new IPC channel.
+- **COPY strings landed in this story, not Story 3**: the stack
+  is the consumer; landing the keys here keeps Story 3's deletions
+  cleaner. Story 3 only needs to drop the now-unused keys.
+
+## Verification
+
+- `pnpm --filter @praxis/ui typecheck`: green.
+- `pnpm --filter @praxis/ui exec vitest run
+  src/components/__tests__/prompt-block-stack.test.tsx`: 11 tests
+  pass (5 assembleBlocks pure-function cases + 6 component
+  integration cases).

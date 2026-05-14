@@ -95,6 +95,14 @@ export const COPY = {
     previewToggleDiff: "Diff",
     styleSectionTitle: "Teaching Style",
     styleSectionDesc: "Adjust how the tutor communicates. Changes apply globally across sessions.",
+    // Prompt blocks (v3 unified surface)
+    blocksSectionTitle: "Prompt blocks",
+    blocksSectionDesc:
+      "Every slot in the composed prompt — fragments, your global, this mode's append — listed in render order. Toggle between editable blocks and the assembled output.",
+    blockGlobalTitle: "Global prompt",
+    blockAppendTitleFor: (modeId: string) => `${modeId} append`,
+    stackToggleBlocks: "Blocks",
+    stackToggleComposed: "Composed",
   },
   onboarding: {
     welcomeTitle: "Welcome to Praxis",
