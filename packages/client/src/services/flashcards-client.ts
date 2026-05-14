@@ -46,9 +46,10 @@ class FlashcardsClientImpl implements FlashcardsClient {
   }
 
   async get(flashcardId: FlashcardId): Promise<Flashcard | null> {
-    const result = await this.transport.invoke<
-      IpcEnvelope<Flashcard | null> | Flashcard | null
-    >(C.get, flashcardId);
+    const result = await this.transport.invoke<IpcEnvelope<Flashcard | null> | Flashcard | null>(
+      C.get,
+      flashcardId,
+    );
     return unwrapEnvelope(result);
   }
 

@@ -1,7 +1,7 @@
 ---
 id: feature-mutating-ipc-channels-envelope-migration-step-9-notes-flashcards
 kind: story
-stage: review
+stage: done
 tags: [refactor, security]
 parent: feature-mutating-ipc-channels-envelope-migration
 depends_on: [feature-mutating-ipc-channels-envelope-migration-step-8-author]

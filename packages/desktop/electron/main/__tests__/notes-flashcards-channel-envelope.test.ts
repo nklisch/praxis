@@ -380,9 +380,10 @@ describe("praxis.notes.update — envelope wiring", () => {
     const handler = handlers.get("praxis.notes.update");
     expect(handler).toBeDefined();
 
-    await expect(
-      handler?.({}, { noteId: "n-1", body: { text: "x" } }),
-    ).resolves.toMatchObject({ ok: false, error: { code: "INTERNAL" } });
+    await expect(handler?.({}, { noteId: "n-1", body: { text: "x" } })).resolves.toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL" },
+    });
   });
 });
 
