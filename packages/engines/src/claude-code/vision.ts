@@ -44,6 +44,10 @@ export class ClaudeCodeVision implements VisionCapability {
         workDir: tempDir,
         noSessionPersistence: true,
         maxTurns: req.images.length + 1,
+        // Disable the SDK's 5-minute default timeout. Vision is bounded by
+        // maxTurns + the caller's AbortSignal; a wall-clock timeout just turns
+        // legitimate slow image-reads into opaque CLITimeoutErrors.
+        timeout: 0,
         ...(req.maxTokens !== undefined &&
           {
             // Claude Code CLI doesn't have a direct maxTokens option, but we pass it for future compat

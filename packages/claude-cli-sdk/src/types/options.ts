@@ -296,7 +296,7 @@ export interface OptionsBase {
   replayUserMessages?: boolean;
 
   // --- Runtime ---
-  /** Timeout in ms (default: 300000) */
+  /** Timeout in ms. Default: 300000 for `query()`, 600000 per turn for `createConversation()`. Pass 0 or Infinity to disable. */
   timeout?: number;
   /** Abort signal */
   abortController?: AbortController;

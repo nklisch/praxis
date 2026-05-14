@@ -60,6 +60,14 @@ export class ClaudeCodeEngine implements Engine {
       conv = createConversation({
         ...(modelHint !== undefined && { model: modelHint }),
         ...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps }),
+        // Disable the SDK's per-turn wall-clock timeout. Praxis already bounds
+        // agent turns via `maxSteps` (the real safety against runaway loops),
+        // and explicit cancellation flows through `signal` → `conv.abort()` in
+        // `ClaudeCodeEngineSession.send`. The SDK's 10-minute default would
+        // kill legitimate long-running turns — notably the bootstrap explorer
+        // reading large textbook bundles — producing a CLITimeoutError that
+        // the student sees as an opaque failure mid-course-build.
+        timeout: 0,
         systemPrompt: openOpts.systemPrompt,
         // Native resume — preferred over priorTurns text-splice when available.
         ...(openOpts.resumeEngineSessionId !== undefined && {

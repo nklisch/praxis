@@ -17,6 +17,7 @@ const logger = createLogger("query");
  * - `query.abort()` — Sends SIGTERM to the CLI process.
  *
  * **Default timeout**: 300,000 ms (5 minutes). Override with `options.timeout`.
+ * Pass `0` or `Infinity` to disable the timeout entirely.
  *
  * @param prompt - The user message to send to Claude.
  * @param options - Query options (model, tools, timeout, etc.). See {@link Options}.

@@ -37,13 +37,18 @@ export async function* streamEvents(
     stderrChunks.push(Buffer.isBuffer(chunk) ? chunk.toString() : String(chunk));
   });
 
-  timeoutId = setTimeout(() => {
-    timedOut = true;
-    proc.kill("SIGTERM");
-    done = true;
-    resolveNext?.();
-    resolveNext = null;
-  }, timeout);
+  // 0 or Infinity = unlimited (matches the contract documented on createConversation
+  // and query). Skipping setTimeout means clearTimeout(undefined) in the finally
+  // block is a harmless no-op.
+  if (timeout > 0 && isFinite(timeout)) {
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      proc.kill("SIGTERM");
+      done = true;
+      resolveNext?.();
+      resolveNext = null;
+    }, timeout);
+  }
 
   let gotResult = false;
 
