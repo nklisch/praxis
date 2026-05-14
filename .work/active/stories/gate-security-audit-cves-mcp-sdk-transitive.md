@@ -1,7 +1,7 @@
 ---
 id: gate-security-audit-cves-mcp-sdk-transitive
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -64,3 +64,17 @@ Lockfile resolved to: `fast-uri@3.1.2`, `hono@4.12.18`, `ip-address@10.2.0`.
 - `pnpm typecheck`: passes (no API breakage from bumped transitive deps).
 - `pnpm --filter @praxis/claude-cli-sdk test`: 51 tests pass; 1 pre-existing WIP failure (`tool-server-auth.test.ts` "no frame within auth timeout window") from an in-progress envelope-migration feature's new test case — not caused by these changes.
 - `pnpm install`: succeeded.
+
+## Review
+
+**Verdict: approved.**
+
+Reviewed commit `950c02f`.
+
+**Correctness**: `pnpm audit` now reports exactly 1 advisory (`esbuild` via `drizzle-kit`), which is explicitly out of scope per the story. All three target chains are resolved. Lockfile confirms single resolutions: `fast-uri@3.1.2`, `hono@4.12.18`, `ip-address@10.2.0` — matching the pinned ranges. The `pnpm.overrides` block in `package.json` uses `>=` semver ranges (not exact pins), which is the right posture — future SDK releases that naturally satisfy the ranges will inherit them without friction.
+
+**Behavior preservation**: `pnpm --filter @praxis/claude-cli-sdk typecheck` passes clean. All 52 tests pass (the previously-noted WIP failure for `tool-server-auth.test.ts` has since resolved — no regressions from the bumped transitive deps). The bumped packages are deep transitive consumers of `@modelcontextprotocol/sdk` internals; none surface APIs to Praxis first-party code.
+
+**Foundation**: `pnpm.overrides` is the correct mechanism for this pattern. The story notes that when `@modelcontextprotocol/sdk` next bumps these deps, the overrides become a no-op and can be removed — that is a follow-up, not a concern here.
+
+No blockers. Stage advanced to done.
