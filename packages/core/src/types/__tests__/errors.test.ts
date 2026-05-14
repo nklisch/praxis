@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serializeError } from "../errors.js";
+import { redactSecrets, serializeError, serializeErrorRedacted } from "../errors.js";
 
 describe("serializeError", () => {
   it("extracts message + stack + name from an Error", () => {
@@ -89,5 +89,125 @@ describe("serializeError", () => {
     const a: Circ = {};
     a.self = a;
     expect(() => serializeError(a)).not.toThrow();
+  });
+});
+
+describe("redactSecrets", () => {
+  it("redacts an Anthropic sk-ant key while keeping the prefix", () => {
+    expect(redactSecrets("apiKey=sk-ant-abc123-def456")).toBe(
+      "apiKey=sk-ant-[REDACTED]",
+    );
+  });
+
+  it("redacts a generic OpenAI-style sk- key", () => {
+    expect(redactSecrets("Authorization: sk-1234567890abcdef")).toBe(
+      "Authorization: sk-[REDACTED]",
+    );
+  });
+
+  it("redacts an xAI key while keeping the prefix", () => {
+    expect(redactSecrets("token=xai-abcdef123")).toBe("token=xai-[REDACTED]");
+  });
+
+  it("redacts a Groq gsk_ key while keeping the prefix", () => {
+    expect(redactSecrets("key=gsk_abcdef123")).toBe("key=gsk_[REDACTED]");
+  });
+
+  it("redacts a Bearer token (case-insensitive)", () => {
+    expect(redactSecrets("Authorization: Bearer eyJ.aaa.bbb")).toBe(
+      "Authorization: Bearer [REDACTED]",
+    );
+    expect(redactSecrets("authorization: bearer abc123def456")).toBe(
+      "authorization: Bearer [REDACTED]",
+    );
+  });
+
+  it("redacts JWT-shaped strings (three base64url segments)", () => {
+    expect(
+      redactSecrets("token=abcdefgh.ijklmnop.qrstuvwx and friends"),
+    ).toBe("token=[REDACTED_JWT] and friends");
+  });
+
+  it("redacts URL-embedded ?key= and &authorization= values", () => {
+    expect(
+      redactSecrets("GET https://api.example.com/v1?key=secret123&user=alice"),
+    ).toContain("key=[REDACTED]");
+    expect(
+      redactSecrets("https://api.example.com/?api_key=xyz&format=json"),
+    ).toContain("api_key=[REDACTED]");
+    expect(
+      redactSecrets("/v1/foo?authorization=eyJabc&q=1"),
+    ).toContain("authorization=[REDACTED]");
+  });
+
+  it("redacts the value but preserves the param name", () => {
+    const out = redactSecrets("?password=hunter2");
+    expect(out).toBe("?password=[REDACTED]");
+  });
+
+  it("is a no-op on plain text", () => {
+    expect(redactSecrets("no secrets here")).toBe("no secrets here");
+  });
+
+  it("is a no-op on empty string", () => {
+    expect(redactSecrets("")).toBe("");
+  });
+
+  it("handles a mix of patterns in one string", () => {
+    const out = redactSecrets(
+      "first sk-ant-aaa then Bearer bbbccc and ?token=ddd done",
+    );
+    expect(out).toContain("sk-ant-[REDACTED]");
+    expect(out).toContain("Bearer [REDACTED]");
+    expect(out).toContain("token=[REDACTED]");
+    expect(out).not.toContain("sk-ant-aaa");
+    expect(out).not.toContain("bbbccc");
+    expect(out).not.toContain("ddd");
+  });
+});
+
+describe("serializeErrorRedacted", () => {
+  it("redacts secrets in the message", () => {
+    const out = serializeErrorRedacted(
+      new Error("connect failed with apiKey=sk-ant-leaked-key"),
+    );
+    expect(out.message).toContain("sk-ant-[REDACTED]");
+    expect(out.message).not.toContain("sk-ant-leaked-key");
+  });
+
+  it("redacts secrets in the stack trace", () => {
+    const err = new Error("inner");
+    err.stack = "Error: inner\n  at foo with sk-ant-stack-leak\n  at bar";
+    const out = serializeErrorRedacted(err);
+    expect(out.stack).toBeDefined();
+    expect(out.stack).toContain("sk-ant-[REDACTED]");
+    expect(out.stack).not.toContain("sk-ant-stack-leak");
+  });
+
+  it("preserves name and code on a custom error", () => {
+    class CustomError extends Error {
+      readonly code: string;
+      constructor(msg: string) {
+        super(msg);
+        this.name = "CustomError";
+        this.code = "DECRYPTION_FAILED";
+      }
+    }
+    const out = serializeErrorRedacted(new CustomError("plain"));
+    expect(out.name).toBe("CustomError");
+    expect(out.code).toBe("DECRYPTION_FAILED");
+  });
+
+  it("is identity-equivalent to serializeError on a clean message", () => {
+    const out = serializeErrorRedacted(new Error("nothing sensitive"));
+    expect(out.message).toBe("nothing sensitive");
+  });
+
+  it("handles non-Error inputs (string, number, null)", () => {
+    expect(serializeErrorRedacted("apiKey=sk-ant-x123").message).toBe(
+      "apiKey=sk-ant-[REDACTED]",
+    );
+    expect(serializeErrorRedacted(42).message).toBe("42");
+    expect(serializeErrorRedacted(null).message).toBe("null");
   });
 });

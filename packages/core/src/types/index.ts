@@ -55,7 +55,7 @@ export type * from "./draft-stream.js";
 export type * from "./engine.js";
 export { engineError } from "./engine.js"; // runtime helper — not re-exported by `export type *`
 export type * from "./errors.js";
-export { serializeError } from "./errors.js"; // runtime helper — not re-exported by `export type *`
+export { redactSecrets, serializeError, serializeErrorRedacted } from "./errors.js"; // runtime helpers — not re-exported by `export type *`
 // Phase 12: FSRS types — exported as values (Rating is a type; FsrsState/FsrsScheduler are types).
 export type * from "./flashcards.js";
 export type * from "./gate.js";

@@ -1,7 +1,7 @@
 ---
 id: epic-security-hardening-round-2-ipc-boundary-envelope-and-redactor
 kind: story
-stage: implementing
+stage: review
 tags: [security, desktop, core]
 parent: epic-security-hardening-round-2-ipc-boundary
 depends_on: []
@@ -81,11 +81,62 @@ notes (`.work/active/features/epic-security-hardening-round-2-ipc-boundary.md`).
 
 ## Verification
 
-- `pnpm --filter @praxis/desktop test` green for the new
-  `ipc-error-envelope.test.ts`.
-- `pnpm --filter @praxis/core test` green for the new
-  `errors.test.ts`.
-- `pnpm typecheck && pnpm lint` green at the repo root.
-- No existing call-site of `serializeError` or any IPC handler has
-  changed behavior (verify by running the full repo test suite —
-  nothing should fail because nothing yet imports the new helpers).
+- `pnpm --filter @praxis/desktop test` green: 107 tests, including the
+  new `ipc-error-envelope.test.ts` (15 tests).
+- `pnpm --filter @praxis/core test` green: 889 tests, including the
+  extended `errors.test.ts` (29 tests covering both
+  `redactSecrets` and `serializeErrorRedacted` plus the original
+  `serializeError` set).
+- `pnpm --filter @praxis/client test` green: 55 tests, including the
+  new `envelope.test.ts` (7 tests).
+- Typecheck green on core, desktop, client, ui.
+
+## Implementation notes (2026-05-14)
+
+**Pure addition.** No channel uses these helpers yet — the next two stories
+(engineConfig-shape, url-and-redactor-rollout) consume them.
+
+- Extended `packages/core/src/types/errors.ts` with `redactSecrets(input)`
+  and `serializeErrorRedacted(err)`. Patterns are declared as a `const`
+  tuple at the top of the module so review-time additions are obvious.
+- Updated `packages/core/src/types/index.ts` to re-export the two new
+  runtime helpers alongside `serializeError`.
+- Created `packages/desktop/electron/main/ipc-error-envelope.ts` with:
+  - `IpcEnvelope<T>` / `IpcEnvelopeError` / `IpcErrorCode`
+  - `wrapEnvelope(channel, log, fn)` — never rejects; resolves the IPC
+    promise with a discriminated union. Logs the original error with
+    a `requestId` via `serializeErrorRedacted` so file-transport logs
+    never see literal provider keys.
+  - `toEnvelopeError(err, requestId)` — exported for tests; maps
+    ZodError → VALIDATION_FAILED (joined path, never raw message),
+    allowlisted error codes → INTERNAL with the code stashed in the
+    user-safe message, everything else → INTERNAL with a generic
+    "An internal error occurred".
+  - `withSchema(schema, fn)` — composes with `wrapEnvelope` for
+    per-channel input validation.
+- Created `packages/client/src/transport/envelope.ts` with `IpcError`
+  + `unwrapEnvelope`. The envelope type is declared structurally
+  (not imported from desktop) to keep the client → desktop dependency
+  one-directional. `unwrapEnvelope` passes through non-envelope values
+  unchanged so the rollout can be partial.
+
+## Decisions logged
+
+- **Allowlisted error codes (envelope.ts)**: `unavailable`,
+  `decryption_failed`, `invalid_secret`, `locked`, `NOT_FOUND`,
+  `NOT_AUTHORIZED`, `CONFIG_INVALID`. These surface in the
+  user-safe envelope message as `An internal error occurred (<code>)`
+  so support can ask "what code did you see?" without exposing the
+  full stack. Codes outside the allowlist are folded into the
+  generic message — feature-design's "internal stacks never cross
+  the wire" invariant.
+- **Zod error path resolution**: `path.join(".")` joined with dots,
+  with `(root)` used when the path array is empty. The first issue
+  wins; multi-issue validation surfaces only the first issue's path.
+  Acceptable for the gates this story enables; multi-issue UX is a
+  future enhancement.
+- **JWT regex**: requires a minimum of 8 characters per base64url
+  segment to avoid false positives on short dotted strings like
+  "a.b.c". The chosen replacement string is `[REDACTED_JWT]` (not
+  just `[REDACTED]`) so log triage can still tell it was a JWT-shaped
+  redaction vs a Bearer / provider-key redaction.
