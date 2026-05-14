@@ -4,7 +4,7 @@ kind: story
 stage: drafting
 tags: [security]
 parent: null
-depends_on: []
+depends_on: [feature-mutating-ipc-channels-envelope-migration-step-12-misc-and-domain-modules]
 release_binding: v0.1.2
 gate_origin: security
 created: 2026-05-14
