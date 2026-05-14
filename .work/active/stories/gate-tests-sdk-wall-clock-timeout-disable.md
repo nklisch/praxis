@@ -1,7 +1,7 @@
 ---
 id: gate-tests-sdk-wall-clock-timeout-disable
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -85,3 +85,21 @@ Uses real `PassThrough` streams (not EventEmitter fakes) so `readline.createInte
 - **Gate predicate**: the story suggested the predicate would be `timeout <= 0 || !isFinite(timeout)`. The actual predicate in `stream.ts` is the logically equivalent `timeout > 0 && isFinite(timeout)` (positive guard style — schedule the timer only when it makes sense, rather than skip it). Tests match the actual behavior, not the story's phrasing.
 - **Test names**: lightly adjusted for clarity; meaning is the same.
 - **Vision method name**: story said `ClaudeCodeVision.read`; the actual method is `describe`. Test targets `describe` correctly.
+
+## Review (2026-05-14)
+
+**Verdict: Approved.**
+
+All 5 tests pass (`pnpm --filter @praxis/claude-cli-sdk test` → 51 passed; `pnpm --filter @praxis/engines test` → 110 passed / 1 skipped).
+
+**Test quality assessment:**
+
+- `stream-timeout.test.ts` — Three tests cover the gate predicate correctly. Uses real `PassThrough` streams so `readline.createInterface` works without errors (no over-mocking). Fake timers with `vi.useFakeTimers` / `vi.advanceTimersByTimeAsync` are used as required for the positive-timeout case. The `setTimeout` spy filters for `delay > 0` to avoid false positives from the `clearTimeout(undefined)` no-op in the `finally` block — that's precise and correct. All three assertions would definitively fail if someone removed the `timeout > 0 && isFinite(timeout)` guard.
+
+- `claude-code.test.ts` addition — Reads `vi.mocked(createConversation).mock.calls[0]?.[0]` and asserts `timeout === 0`. Direct inspection of the SDK call argument; would fail on any regression that removes or changes the timeout field.
+
+- `claude-code-vision.test.ts` addition — Captures the options object via `mockImplementation` and asserts `timeout === 0` after calling `vision.describe(...)`. Correct method name (`describe`, not `read` as the story misstated). Structurally identical approach to the adapter test.
+
+**Divergences from story:** Both are correct calls — the predicate form is logically equivalent and the method name matches actual code. No action required.
+
+**No blockers.** Advancing to done.
