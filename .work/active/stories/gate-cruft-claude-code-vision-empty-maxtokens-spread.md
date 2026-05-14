@@ -39,3 +39,6 @@ Delete the entire spread (lines 51-54). If the intent is documentation,
 keep a single one-line comment outside the call options object
 explaining that the CLI doesn't expose `maxTokens`. No surrounding
 imports affected.
+
+## Implementation
+Deleted the four-line conditional spread (lines 51-54) from the `query()` options object in `ClaudeCodeVision.describe`. The spread evaluated to `false || {}` at runtime — a no-op regardless of `req.maxTokens`. No replacement comment added; the absence of a maxTokens option in the call is self-evident.
