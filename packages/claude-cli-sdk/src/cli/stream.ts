@@ -40,7 +40,7 @@ export async function* streamEvents(
   // 0 or Infinity = unlimited (matches the contract documented on createConversation
   // and query). Skipping setTimeout means clearTimeout(undefined) in the finally
   // block is a harmless no-op.
-  if (timeout > 0 && isFinite(timeout)) {
+  if (timeout > 0 && Number.isFinite(timeout)) {
     timeoutId = setTimeout(() => {
       timedOut = true;
       proc.kill("SIGTERM");
