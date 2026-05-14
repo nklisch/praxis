@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-session-service-stale-phase-11-12-null-shims
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -54,3 +54,21 @@ Replace lines 762-773 with the five plain field assignments
 `// Phase 11 …` / `// Phase 12 …` "until wired" comments, and remove
 all five `biome-ignore lint/suspicious/noExplicitAny` lines. No other
 surrounding cleanup needed.
+
+## Implementation
+
+Replaced lines 762-773 of `packages/core/src/services/session-service.ts` — the 12-line block (5 assignments × 2 lines of `as any`/`?? null` + 2 stale comments + 5 `biome-ignore` suppression lines) — with 5 plain assignments:
+
+```typescript
+lock: this.deps.toolServices.lock,
+authoring: this.deps.toolServices.authoring,
+notes: this.deps.toolServices.notes,
+flashcards: this.deps.toolServices.flashcards,
+fsrsScheduler: this.deps.toolServices.fsrsScheduler,
+```
+
+Confirmed all five fields are declared non-optional concrete service types in both `packages/core/src/services/types.ts:48-78` and `packages/core/src/types/tool.ts:192-201`. No `| null` or `?` modifier on any of them.
+
+- `pnpm --filter @praxis/core typecheck` — passed (no errors).
+- `pnpm --filter @praxis/core test` — 52 failed / 28 passed, identical count before and after the change; failures are pre-existing environment issues in `sketch-service.test.ts` and unrelated DB path tests.
+- `pnpm biome check packages/core/src/services/session-service.ts` — one pre-existing formatter warning (tabs vs spaces, unrelated to this change); no orphaned biome-ignore lines.

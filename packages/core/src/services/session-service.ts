@@ -759,18 +759,11 @@ export class SessionServiceImpl implements SessionService {
           indexerOrchestrator: this.deps.indexerOrchestrator,
         }), // ← Phase 7 (optional)
         pedagogyPack: this.deps.toolServices.pedagogyPack, // ← Phase 18
-        // Phase 11: lock + authoring — propagated from toolServices when wired by Agent 2.
-        // biome-ignore lint/suspicious/noExplicitAny: AuthoringService wired by Agent 2; null is safe until then
-        lock: (this.deps.toolServices.lock as any) ?? null,
-        // biome-ignore lint/suspicious/noExplicitAny: AuthoringService wired by Agent 2; null is safe until then
-        authoring: (this.deps.toolServices.authoring as any) ?? null,
-        // Phase 12: notes + flashcards + fsrsScheduler.
-        // biome-ignore lint/suspicious/noExplicitAny: Phase 12 services; null-safe until wired
-        notes: (this.deps.toolServices.notes as any) ?? null,
-        // biome-ignore lint/suspicious/noExplicitAny: Phase 12 services; null-safe until wired
-        flashcards: (this.deps.toolServices.flashcards as any) ?? null,
-        // biome-ignore lint/suspicious/noExplicitAny: Phase 12 services; null-safe until wired
-        fsrsScheduler: (this.deps.toolServices.fsrsScheduler as any) ?? null,
+        lock: this.deps.toolServices.lock,
+        authoring: this.deps.toolServices.authoring,
+        notes: this.deps.toolServices.notes,
+        flashcards: this.deps.toolServices.flashcards,
+        fsrsScheduler: this.deps.toolServices.fsrsScheduler,
         // Phase 15a: sketch + vision — undefined when not wired (tool handlers guard).
         ...(this.deps.toolServices.sketches !== undefined && {
           sketches: this.deps.toolServices.sketches,
