@@ -148,11 +148,13 @@ export function mapClaudeCodeEvent(
         });
         return null;
       }
+      const resetIso = new Date(info.resetsAt * 1000).toISOString();
+      const overage = info.isUsingOverage ? ", overage billing active" : "";
       return {
         type: "error",
         error: {
           code: "engine.rate_limited",
-          message: `Rate limited; resets at ${info.resetsAt}`,
+          message: `Rate limited (${info.rateLimitType} window${overage}); resets at ${resetIso}`,
           recoverable: true,
         },
       };

@@ -24,7 +24,7 @@ describe("mapClaudeCodeEvent — rate_limit_event", () => {
     );
   });
 
-  it("surfaces an error event when the request was actually rate-limited", () => {
+  it("surfaces an error event when the request was actually rate-limited (five-hour window, no overage)", () => {
     const log = { warn: vi.fn() };
     const result = mapClaudeCodeEvent(
       {
@@ -43,11 +43,38 @@ describe("mapClaudeCodeEvent — rate_limit_event", () => {
       type: "error",
       error: {
         code: "engine.rate_limited",
-        message: "Rate limited; resets at 1777790400",
+        // Message includes rate-limit type + ISO reset timestamp so the user
+        // can read it without decoding raw epoch seconds.
+        message: "Rate limited (five_hour window); resets at 2026-05-03T06:40:00.000Z",
         recoverable: true,
       },
     });
     expect(log.warn).not.toHaveBeenCalled();
+  });
+
+  it("formats seven_day window with overage-billing note when isUsingOverage is true", () => {
+    const result = mapClaudeCodeEvent(
+      {
+        type: "rate_limit_event",
+        rateLimitInfo: {
+          status: "rate_limited",
+          resetsAt: 1_778_842_800,
+          rateLimitType: "seven_day",
+          isUsingOverage: true,
+        },
+      },
+      { serverName: "praxis" },
+    );
+
+    expect(result).toEqual({
+      type: "error",
+      error: {
+        code: "engine.rate_limited",
+        message:
+          "Rate limited (seven_day window, overage billing active); resets at 2026-05-15T11:00:00.000Z",
+        recoverable: true,
+      },
+    });
   });
 
   it("does not throw when no logger is provided (back-compat)", () => {
