@@ -1,7 +1,7 @@
 ---
 id: gate-docs-shared-test-fakes-rename-document-scopes
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -42,3 +42,9 @@ and update the example signature to
 - `.claude/skills/patterns/shared-test-fake-factories.md` line 3: replaced `noopCourseDocuments()` with `noopDocumentScopes()` in the factory enumeration.
 - `.claude/skills/patterns/shared-test-fake-factories.md` line 50: replaced `export function noopCourseDocuments(): CourseDocumentsService` with `export function noopDocumentScopes(): DocumentScopesService` in the example snippet.
 - Verified against `tests/helpers/mocks.ts:76`: export is `noopDocumentScopes(): import("@praxis/core/types").DocumentScopesService`.
+
+## Review (2026-05-14)
+
+Verdict: Approve.
+
+Both required edits landed correctly in `.claude/skills/patterns/shared-test-fake-factories.md` — the factory enumeration on line 3 and the example snippet on line 50. The `.claude/rules/patterns.md` index was already correct (`noopDocumentScopes`) and required no change, consistent with the implementation note. `grep -rn "noopCourseDocuments\|CourseDocumentsService" .claude/` returns nothing — no stale references remain. Cross-check against `tests/helpers/mocks.ts:76` confirms the doc now matches the actual export exactly.
