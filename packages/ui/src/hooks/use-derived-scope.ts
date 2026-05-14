@@ -1,5 +1,6 @@
-import type { CourseId, DocumentScope } from "@praxis/core/types";
+import type { CourseId, DocumentScope, SessionId } from "@praxis/core/types";
 import { useMatches } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { useTabs } from "./use-tabs.js";
 
 /**
@@ -37,51 +38,48 @@ export type DerivedScope = DocumentScope | { kind: "all" };
  * The hook is intentionally side-effect-free beyond reading tabs state; the
  * caller decides what to do with the scope (e.g. which `documents.*` method
  * to call, which empty-state copy to render, etc.).
+ *
+ * Reference-stability note: the returned object is memoised on the primitives
+ * `(kind, id)` so two consecutive renders with identical route + tabs state
+ * return the same reference. This stabilises downstream loader identity in
+ * consumers like `<chat.tsx>` where the scope feeds into `useResource`'s deps.
  */
 export function useDerivedScope(): DerivedScope {
-  const matches = useMatches();
-  const { openTabs, activeTabId } = useTabs();
+	const matches = useMatches();
+	const { openTabs, activeTabId } = useTabs();
 
-  const activeTab = openTabs.find((t) => t.id === activeTabId);
+	const activeTab = openTabs.find((t) => t.id === activeTabId);
 
-  // ── Branch 1: course route ─────────────────────────────────────────────────
-  // Any match whose routeId is /courses/$courseId or a sub-route of it
-  // (e.g., /courses/$courseId/map, /courses/$courseId/concepts) fires this branch.
-  // Exclude when the active tab is a document tab — in that case branch 3 applies.
-  const courseMatch = matches.find((m) => {
-    const id = m.routeId as string;
-    return id === "/courses/$courseId" || id.startsWith("/courses/$courseId/");
-  });
+	// Compute (kind, id) tuple from route + active tab, then memoise the
+	// returned object on those primitives. The branch logic is identical to
+	// the prior decision tree — only the identity contract changes.
 
-  if (courseMatch && (activeTab === undefined || activeTab.kind !== "document")) {
-    const params = courseMatch.params as Record<string, string | undefined>;
-    const rawId = params.courseId;
-    if (rawId) {
-      return { kind: "course", id: rawId as CourseId };
-    }
-  }
+	const courseMatch = matches.find((m) => {
+		const id = m.routeId as string;
+		return id === "/courses/$courseId" || id.startsWith("/courses/$courseId/");
+	});
 
-  // ── Branch 2: bootstrap tab is active ──────────────────────────────────────
-  if (activeTab && activeTab.kind === "session" && activeTab.modeId === "bootstrap") {
-    return { kind: "session", id: activeTab.sessionId };
-  }
+	let kind: DerivedScope["kind"] = "all";
+	let id: string | null = null;
 
-  // ── Branch 3: active document tab ─────────────────────────────────────────
-  // The tab-kind story has landed: `activeTab.kind === "document"` now fires.
-  // Full implementation requires `client.documentScopes.listScopesForDocument(documentId)`.
-  // That method is not yet on `DocumentScopesClientApi`, so we return "all" as
-  // a safe default until it's added and wired here.
-  //
-  // To complete this branch in a future stride:
-  //   1. Add `listScopesForDocument(documentId: DocumentId): Promise<DocumentScope[]>`
-  //      to `DocumentScopesClientApi` and implement the IPC handler.
-  //   2. Replace the `{ kind: "all" }` return below with a `useResource` fetch
-  //      keyed on `activeTab.documentId` that picks the first course scope
-  //      (else first session scope, else "all").
-  if (activeTab && activeTab.kind === "document") {
-    return { kind: "all" };
-  }
+	if (courseMatch && (activeTab === undefined || activeTab.kind !== "document")) {
+		const params = courseMatch.params as Record<string, string | undefined>;
+		const rawId = params.courseId;
+		if (rawId) {
+			kind = "course";
+			id = rawId;
+		}
+	} else if (activeTab && activeTab.kind === "session" && activeTab.modeId === "bootstrap") {
+		kind = "session";
+		id = activeTab.sessionId;
+	}
+	// Document-tab branch + default fall through to { kind: "all" } per the
+	// decision-tree comment above. The branch is preserved for future work
+	// (listScopesForDocument wiring).
 
-  // ── Branch 4: default ─────────────────────────────────────────────────────
-  return { kind: "all" };
+	return useMemo<DerivedScope>(() => {
+		if (kind === "course" && id) return { kind: "course", id: id as CourseId };
+		if (kind === "session" && id) return { kind: "session", id: id as SessionId };
+		return { kind: "all" };
+	}, [kind, id]);
 }

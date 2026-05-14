@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability
 kind: epic
-stage: implementing
+stage: review
 tags: [ui, bug]
 parent: null
 depends_on: []

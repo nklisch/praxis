@@ -59,27 +59,82 @@ describe("QuickCheckCard", () => {
     });
   });
 
-  it("locks inputs after submission", async () => {
+  it("retires to a collapsed summary row after submission", async () => {
     const onResolve = vi.fn().mockResolvedValue(undefined);
     render(<QuickCheckCard callId="c1" item={singleChoiceItem} onResolve={onResolve} />);
 
     const radios = screen.getAllByRole("radio");
-    fireEvent.click(radios[0]!);
+    fireEvent.click(radios[0]!); // select "3" (incorrect — correct is index 1)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
       expect(onResolve).toHaveBeenCalled();
     });
 
-    // After submit, shows "submitted" label instead of submit button
+    // After submit, the form controls are gone — the submit button and the
+    // input radios are no longer in the document.
     expect(screen.queryByRole("button", { name: /submit/i })).toBeNull();
-    expect(screen.getByText(/submitted/i)).toBeDefined();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
 
-    // Radios are disabled
-    const radiosAfter = screen.getAllByRole("radio") as HTMLInputElement[];
-    for (const r of radiosAfter) {
-      expect(r.disabled).toBe(true);
-    }
+    // The collapsed summary <button> with aria-expanded is rendered.
+    const summary = screen.getByRole("button", { expanded: false });
+    expect(summary).toBeDefined();
+    // The stem (prompt) is still visible.
+    expect(summary.textContent).toContain("Quick: what is 2+2?");
+  });
+
+  it("shows ✓ badge for correct single-choice answer", async () => {
+    const onResolve = vi.fn().mockResolvedValue(undefined);
+    render(<QuickCheckCard callId="c1" item={singleChoiceItem} onResolve={onResolve} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[1]!); // correct
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+    await waitFor(() => expect(onResolve).toHaveBeenCalled());
+    expect(screen.queryByLabelText("correct")).not.toBeNull();
+    expect(screen.queryByLabelText("incorrect")).toBeNull();
+  });
+
+  it("shows ✗ badge for incorrect single-choice answer", async () => {
+    const onResolve = vi.fn().mockResolvedValue(undefined);
+    render(<QuickCheckCard callId="c1" item={singleChoiceItem} onResolve={onResolve} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[0]!); // incorrect
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+    await waitFor(() => expect(onResolve).toHaveBeenCalled());
+    expect(screen.queryByLabelText("incorrect")).not.toBeNull();
+    expect(screen.queryByLabelText("correct")).toBeNull();
+  });
+
+  it("renders no badge for ungraded item (correctOptionIndex < 0)", async () => {
+    const formative: AssignmentItem = {
+      kind: "single-choice",
+      id: "qc-form",
+      prompt: "How are you?",
+      options: ["fine", "great"],
+      correctOptionIndex: -1,
+    };
+    const onResolve = vi.fn().mockResolvedValue(undefined);
+    render(<QuickCheckCard callId="c1" item={formative} onResolve={onResolve} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[0]!);
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+    await waitFor(() => expect(onResolve).toHaveBeenCalled());
+    expect(screen.queryByLabelText("correct")).toBeNull();
+    expect(screen.queryByLabelText("incorrect")).toBeNull();
+  });
+
+  it("clicking the collapsed summary toggles the read-only details", async () => {
+    const onResolve = vi.fn().mockResolvedValue(undefined);
+    render(<QuickCheckCard callId="c1" item={singleChoiceItem} onResolve={onResolve} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[1]!);
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+    await waitFor(() => expect(onResolve).toHaveBeenCalled());
+
+    const summary = screen.getByRole("button", { expanded: false });
+    fireEvent.click(summary);
+    // After expanding, the button reports aria-expanded=true.
+    expect(screen.getByRole("button", { expanded: true })).toBeDefined();
   });
 
   it("does not call onResolve if no option selected", () => {

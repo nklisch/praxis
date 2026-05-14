@@ -27,17 +27,35 @@ export function SubAgentPanel({ parentCallId }: SubAgentPanelProps): JSX.Element
 
   if (parentCallId === null) return null;
 
+  // Collapsed: render only the toggle button. No outer `.panel` div, no top
+  // margin, no border-top, no padding — so the parent flex/grid layout
+  // collapses the vertical footprint to one button-line. See feature
+  // epic-ui-rendering-stability-state-transitions.
+  if (!visible) {
+    return (
+      <button
+        type="button"
+        className={styles.toggleCollapsed}
+        onClick={() => setVisible(true)}
+        aria-expanded={false}
+      >
+        show sub-agent transcript
+      </button>
+    );
+  }
+
+  // Expanded: full panel chrome + transcript.
   return (
     <div className={styles.panel}>
       <button
         type="button"
         className={styles.toggle}
-        onClick={() => setVisible((v) => !v)}
-        aria-expanded={visible}
+        onClick={() => setVisible(false)}
+        aria-expanded={true}
       >
-        {visible ? "hide sub-agent transcript" : "show sub-agent transcript"}
+        hide sub-agent transcript
       </button>
-      {visible && <SubAgentTranscript parentCallId={parentCallId} />}
+      <SubAgentTranscript parentCallId={parentCallId} />
     </div>
   );
 }

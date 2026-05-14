@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-loop-flickers
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, bug]
 parent: epic-ui-rendering-stability
 depends_on: []

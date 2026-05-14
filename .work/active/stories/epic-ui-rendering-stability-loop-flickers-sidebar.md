@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-loop-flickers-sidebar
 kind: story
-stage: implementing
+stage: review
 tags: [ui, bug]
 parent: epic-ui-rendering-stability-loop-flickers
 depends_on: []

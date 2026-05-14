@@ -267,4 +267,54 @@ describe("useDerivedScope", () => {
 
     expect(result.current).toEqual({ kind: "all" });
   });
+
+  // ── Reference-stability scenarios (loop-flickers fix) ────────────────────────
+
+  it("reference-stability: two renders with identical course-route state return the SAME reference", () => {
+    // Anchor for loop-flickers-sidebar fix: the chat documents sidebar was
+    // flashing because useDerivedScope returned a fresh object literal each
+    // render. The hook now memoises on (kind, id) primitives so equal scopes
+    // yield equal references.
+    setCourseRoute("course-stable");
+    setTabs([], null);
+
+    const { result, rerender } = renderHook(() => useDerivedScope());
+    const first = result.current;
+    rerender();
+    const second = result.current;
+
+    expect(Object.is(first, second)).toBe(true);
+  });
+
+  it("reference-stability: changing courseId produces a NEW reference with the new id", () => {
+    setCourseRoute("course-a");
+    setTabs([], null);
+
+    const { result, rerender } = renderHook(() => useDerivedScope());
+    const first = result.current;
+
+    setCourseRoute("course-b");
+    rerender();
+    const second = result.current;
+
+    expect(Object.is(first, second)).toBe(false);
+    expect(second).toEqual({ kind: "course", id: "course-b" });
+  });
+
+  it("reference-stability: bootstrap session branch returns a stable reference across re-renders", () => {
+    clearRoute();
+    const tab = makeSessionTab({
+      id: brandId<"TabId">("tab-boot-stable"),
+      sessionId: brandId<"SessionId">("session-boot-stable"),
+      modeId: "bootstrap",
+    });
+    setTabs([tab], tab.id);
+
+    const { result, rerender } = renderHook(() => useDerivedScope());
+    const first = result.current;
+    rerender();
+    const second = result.current;
+
+    expect(Object.is(first, second)).toBe(true);
+  });
 });

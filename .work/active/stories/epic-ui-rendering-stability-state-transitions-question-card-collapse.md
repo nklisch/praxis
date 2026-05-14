@@ -1,7 +1,7 @@
 ---
 id: epic-ui-rendering-stability-state-transitions-question-card-collapse
 kind: story
-stage: implementing
+stage: review
 tags: [ui, bug]
 parent: epic-ui-rendering-stability-state-transitions
 depends_on: []
