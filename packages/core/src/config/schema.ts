@@ -66,7 +66,9 @@ export type EngineConfig = z.infer<typeof EngineConfigSchema>;
  * by `readEngineConfig` / `writeEngineConfig` to validate stored rows.
  * Renderer code never sees this schema — `setEngineConfig` validates via
  * `EngineConfigSchema` (strict, no ciphertext field) so callers can't
- * inject a forged blob.
+ * inject a forged blob. Like the public schema this is `.strict()` so
+ * unknown top-level keys are rejected rather than silently stripped —
+ * pins the persistence-boundary contract.
  */
 export const EngineConfigStoredSchema = z
   .object({
@@ -77,6 +79,7 @@ export const EngineConfigStoredSchema = z
     baseUrl: z.string().url().optional(),
     effort: z.enum(["minimal", "low", "medium", "high", "xhigh"]).optional(),
   })
+  .strict()
   .superRefine(visionModelRefine);
 
 export type EngineConfigStored = z.infer<typeof EngineConfigStoredSchema>;

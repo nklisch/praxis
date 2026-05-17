@@ -434,6 +434,15 @@ describe("EngineConfigSchema — vision validation", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("EngineConfigStoredSchema rejects unknown top-level keys (inherits .strict from public schema)", async () => {
+    const { EngineConfigStoredSchema } = await import("../config/schema.js");
+    const result = EngineConfigStoredSchema.safeParse({
+      engineId: "claude-code",
+      attackerKey: "x",
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("setEngineConfig round-trip — vision validation", () => {
