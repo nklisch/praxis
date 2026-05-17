@@ -1,7 +1,7 @@
 ---
 id: gate-security-sdk-timeout-disabled-defense-in-depth
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -50,3 +50,37 @@ can't be called without a turn cap, or (b) set an explicit default
 `maxTurns` floor in the adapter when `openOpts.maxSteps === undefined`.
 Add a turn-count or per-turn dispatch-watchdog log so a stuck CLI is
 observable without a wall-clock kill.
+
+## Implementation notes
+
+Chose option (b) — default floor in the adapter — to stay backward-compatible
+and avoid a churn wave across all call sites.
+
+### Changes
+
+**`packages/engines/src/claude-code/adapter.ts`** (lines ~20-30, ~68-77):
+
+- Added `DEFAULT_MAX_TURNS = 100` constant before `ClaudeCodeEngineOptions`
+  with a docstring explaining the pairing with `timeout: 0`.
+- Replaced the conditional spread `...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps })`
+  with the always-set form `maxTurns: openOpts.maxSteps ?? DEFAULT_MAX_TURNS`.
+- Updated the `timeout: 0` comment block to reflect that `maxTurns` is now
+  always set (caller value or floor), making the wall-clock disablement safe
+  regardless of caller discipline.
+
+**`packages/engines/src/__tests__/claude-code.test.ts`**:
+
+- Added two tests at the end of the describe block:
+  1. `open() without maxSteps passes maxTurns: DEFAULT_MAX_TURNS (100)` — verifies
+     the floor is applied when the caller omits `maxSteps`.
+  2. `open() with maxSteps passes that value as maxTurns` — verifies the caller
+     value is honored and the floor is not wrongly imposed.
+
+### Default value rationale
+
+`DEFAULT_MAX_TURNS = 100` was chosen by surveying actual call-site values:
+indexers and graders pass `maxSteps: 1`; the bootstrap explorer uses `maxSteps: 30`
+(or up to `200` from user config); normal tutor sessions do not cap turns at all
+(the parent `SessionService` drives the conversation, not a turn budget). 100 is
+generous for any normal tutor session while being far below a runaway-loop
+threshold. The floor is a last-resort backstop, not a target operating point.

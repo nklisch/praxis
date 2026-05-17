@@ -714,4 +714,58 @@ describe("ClaudeCodeEngine — lifecycle", () => {
     // conv.abort() must have been called synchronously during send().
     expect(abortMock).toHaveBeenCalledTimes(1);
   });
+
+  // Defense-in-depth: open() without maxSteps must still pass a finite maxTurns
+  // to createConversation so that timeout:0 (wall-clock disabled) does not produce
+  // an unbounded conversation — see gate-security-sdk-timeout-disabled-defense-in-depth.
+  it("open() without maxSteps passes maxTurns: DEFAULT_MAX_TURNS (100) to createConversation", async () => {
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    // Deliberately omit maxSteps — the adapter must supply the default floor.
+    const session = await engine.open({ systemPrompt: "You are a tutor.", tools: emptyRegistry });
+
+    expect(vi.mocked(createConversation)).toHaveBeenCalledTimes(1);
+    const sdkOpts = vi.mocked(createConversation).mock.calls[0]?.[0];
+    expect(sdkOpts?.maxTurns).toBe(100);
+
+    await session.close();
+  });
+
+  it("open() with maxSteps passes that value as maxTurns to createConversation", async () => {
+    const { createConversation } = await import("@praxis/claude-cli-sdk");
+    const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");
+
+    const resultEventObj = {
+      type: "result",
+      subtype: "success",
+      sessionId: "test-session-id",
+      result: "done",
+      usage: { inputTokens: 0, outputTokens: 0 },
+    };
+    vi.mocked(createConversation).mockReturnValue(makeConvMock([resultEventObj], resultEventObj));
+
+    const engine = new ClaudeCodeEngine({ config: { engineId: "claude-code" }, deps });
+    const session = await engine.open({
+      systemPrompt: "You are a tutor.",
+      tools: emptyRegistry,
+      maxSteps: 30,
+    });
+
+    expect(vi.mocked(createConversation)).toHaveBeenCalledTimes(1);
+    const sdkOpts = vi.mocked(createConversation).mock.calls[0]?.[0];
+    expect(sdkOpts?.maxTurns).toBe(30);
+
+    await session.close();
+  });
 });

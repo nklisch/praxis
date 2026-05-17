@@ -17,6 +17,14 @@ import { buildTranscriptPreface } from "../util/transcript.js";
 import { createEventState, mapClaudeCodeEvent } from "./events.js";
 import { ClaudeCodeVision } from "./vision.js";
 
+/**
+ * Default turn cap applied when the caller omits `maxSteps` on EngineOpenOptions.
+ * Generous enough for any normal session, well below a runaway-loop threshold.
+ * Defense-in-depth: pairs with `timeout: 0` so an unbounded caller still cannot
+ * trigger an infinite agent loop — see gate-security-sdk-timeout-disabled-defense-in-depth.
+ */
+const DEFAULT_MAX_TURNS = 100;
+
 export interface ClaudeCodeEngineOptions {
   config: EngineConfig;
   deps: EngineDeps;
@@ -59,10 +67,13 @@ export class ClaudeCodeEngine implements Engine {
       const modelHint = this.modelHint();
       conv = createConversation({
         ...(modelHint !== undefined && { model: modelHint }),
-        ...(openOpts.maxSteps !== undefined && { maxTurns: openOpts.maxSteps }),
-        // Disable the SDK's per-turn wall-clock timeout. Praxis already bounds
-        // agent turns via `maxSteps` (the real safety against runaway loops),
-        // and explicit cancellation flows through `signal` → `conv.abort()` in
+        // Always set maxTurns: caller value if provided, else DEFAULT_MAX_TURNS.
+        // This pairs with timeout: 0 below as defense-in-depth — no caller
+        // omitting maxSteps can produce an unbounded conversation.
+        maxTurns: openOpts.maxSteps ?? DEFAULT_MAX_TURNS,
+        // Disable the SDK's per-turn wall-clock timeout. The adapter ensures a
+        // turn cap is always set via maxTurns (see above), and explicit
+        // cancellation flows through `signal` → `conv.abort()` in
         // `ClaudeCodeEngineSession.send`. The SDK's 10-minute default would
         // kill legitimate long-running turns — notably the bootstrap explorer
         // reading large textbook bundles — producing a CLITimeoutError that
