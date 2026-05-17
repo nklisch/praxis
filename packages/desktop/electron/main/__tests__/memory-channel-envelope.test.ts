@@ -161,7 +161,9 @@ function makeServices(memoryOverrides: MemoryOverrides = {}) {
   const memory = {
     studentModel: memoryOverrides.studentModel
       ? vi.fn().mockImplementation(memoryOverrides.studentModel)
-      : vi.fn().mockResolvedValue({ studentId: "student-1", conceptMastery: new Map(), lastUpdated: 0 }),
+      : vi
+          .fn()
+          .mockResolvedValue({ studentId: "student-1", conceptMastery: new Map(), lastUpdated: 0 }),
     misconceptions: memoryOverrides.misconceptions
       ? vi.fn().mockImplementation(memoryOverrides.misconceptions)
       : vi.fn().mockResolvedValue([]),

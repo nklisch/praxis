@@ -3,8 +3,8 @@ import type { UseResizableWidthResult } from "../hooks/use-resizable-width.js";
 import styles from "./resize-handle.module.css";
 
 export type ResizeHandleProps = UseResizableWidthResult["handleProps"] & {
-	side: "left" | "right";
-	className?: string;
+  side: "left" | "right";
+  className?: string;
 };
 
 /**
@@ -16,8 +16,8 @@ export type ResizeHandleProps = UseResizableWidthResult["handleProps"] & {
  * sits in the parent layout (sibling to the panel, not child).
  */
 export function ResizeHandle({ side, className, ...handleProps }: ResizeHandleProps): JSX.Element {
-	const cls = [styles.handle, side === "left" ? styles.left : styles.right, className]
-		.filter(Boolean)
-		.join(" ");
-	return <div className={cls} {...handleProps} />;
+  const cls = [styles.handle, side === "left" ? styles.left : styles.right, className]
+    .filter(Boolean)
+    .join(" ");
+  return <div className={cls} {...handleProps} />;
 }

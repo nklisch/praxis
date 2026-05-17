@@ -19,8 +19,8 @@ import {
   noopLogger,
   unavailableSecretStorage,
 } from "../../../../../tests/helpers/mocks.js";
-import { openDb } from "../../db/index.js";
 import { writeEngineConfig } from "../../config/engine-config.js";
+import { openDb } from "../../db/index.js";
 import { ConfigServiceImpl } from "../config-service.js";
 import type { ServiceDeps } from "../types.js";
 
@@ -31,9 +31,10 @@ afterEach(() => {
   delete process.env.PRAXIS_API_KEY;
 });
 
-function makeService(
-  overrides: { secretStorage?: ServiceDeps["secretStorage"] } = {},
-): { svc: ConfigServiceImpl; db: ReturnType<typeof openDb>["db"] } {
+function makeService(overrides: { secretStorage?: ServiceDeps["secretStorage"] } = {}): {
+  svc: ConfigServiceImpl;
+  db: ReturnType<typeof openDb>["db"];
+} {
   const { db } = openDb({ path: dbCtx.dbPath });
   // ConfigServiceImpl only reads: deps.db, deps.secretStorage, deps.log.
   // Cast the partial to ServiceDeps so we don't have to wire unused fields.

@@ -80,7 +80,10 @@ export function registerBootstrapDraftsHandlers(
       streamLog.info("bootstrap.drafts.unsubscribe");
     } catch (err) {
       streamLog.error("bootstrap.drafts.error", { err: serializeErrorRedacted(err) });
-      push({ kind: "error", error: redactSecrets(err instanceof Error ? err.message : String(err)) });
+      push({
+        kind: "error",
+        error: redactSecrets(err instanceof Error ? err.message : String(err)),
+      });
     } finally {
       unsubscribe?.();
       activeAbortControllers.delete(streamId);

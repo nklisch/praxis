@@ -100,9 +100,7 @@ const DEFAULT_MODE_ID = "teach";
  * No RouteHeader: this is a tab panel inside <ConfigureRoute>.
  */
 export function PromptTab() {
-  const [modeId, setModeId] = useState<string>(
-    ALL_MODES[0]?.id ?? DEFAULT_MODE_ID,
-  );
+  const [modeId, setModeId] = useState<string>(ALL_MODES[0]?.id ?? DEFAULT_MODE_ID);
 
   return (
     <div className={styles.layout}>

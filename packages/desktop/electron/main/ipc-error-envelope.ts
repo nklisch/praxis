@@ -13,24 +13,22 @@ import type { z } from "zod";
  * `@praxis/client/transport/envelope`), converting failure back into a
  * thrown `IpcError` tagged with `.code` and `.requestId`.
  */
-export type IpcEnvelope<T> =
-	| { ok: true; value: T }
-	| { ok: false; error: IpcEnvelopeError };
+export type IpcEnvelope<T> = { ok: true; value: T } | { ok: false; error: IpcEnvelopeError };
 
 /** Stable enum of user-safe failure categories. Renderer drives UX off `code`. */
 export type IpcErrorCode =
-	| "VALIDATION_FAILED"
-	| "UNAUTHORIZED"
-	| "NOT_FOUND"
-	| "CONFLICT"
-	| "INTERNAL";
+  | "VALIDATION_FAILED"
+  | "UNAUTHORIZED"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "INTERNAL";
 
 export interface IpcEnvelopeError {
-	code: IpcErrorCode;
-	/** User-safe text. Never contains a stack trace or filesystem path. */
-	message: string;
-	/** UUIDv7. Same id appears in the main-side log row, so support can join. */
-	requestId: string;
+  code: IpcErrorCode;
+  /** User-safe text. Never contains a stack trace or filesystem path. */
+  message: string;
+  /** UUIDv7. Same id appears in the main-side log row, so support can join. */
+  requestId: string;
 }
 
 const GENERIC_INTERNAL_MESSAGE = "An internal error occurred";
@@ -52,26 +50,26 @@ const GENERIC_INTERNAL_MESSAGE = "An internal error occurred";
  *     withSchema(MyInputSchema, async (parsed) => { ... })));
  */
 export function wrapEnvelope<TArgs extends unknown[], TResult>(
-	channel: string,
-	log: Logger,
-	fn: (...args: TArgs) => Promise<TResult> | TResult,
+  channel: string,
+  log: Logger,
+  fn: (...args: TArgs) => Promise<TResult> | TResult,
 ): (...args: TArgs) => Promise<IpcEnvelope<TResult>> {
-	const channelLog = log.child({ component: "ipc-envelope", channel });
-	return async (...args: TArgs): Promise<IpcEnvelope<TResult>> => {
-		const requestId = uuidv7();
-		try {
-			const value = await fn(...args);
-			return { ok: true, value };
-		} catch (err) {
-			const envelopeError = toEnvelopeError(err, requestId);
-			channelLog.error("ipc.envelope.error", {
-				requestId,
-				code: envelopeError.code,
-				err: serializeErrorRedacted(err),
-			});
-			return { ok: false, error: envelopeError };
-		}
-	};
+  const channelLog = log.child({ component: "ipc-envelope", channel });
+  return async (...args: TArgs): Promise<IpcEnvelope<TResult>> => {
+    const requestId = uuidv7();
+    try {
+      const value = await fn(...args);
+      return { ok: true, value };
+    } catch (err) {
+      const envelopeError = toEnvelopeError(err, requestId);
+      channelLog.error("ipc.envelope.error", {
+        requestId,
+        code: envelopeError.code,
+        err: serializeErrorRedacted(err),
+      });
+      return { ok: false, error: envelopeError };
+    }
+  };
 }
 
 /**
@@ -85,41 +83,38 @@ export function wrapEnvelope<TArgs extends unknown[], TResult>(
  * The full original message + stack are logged with the same `requestId`
  * on the main side; only the user-safe envelope crosses the wire.
  */
-export function toEnvelopeError(
-	err: unknown,
-	requestId: string,
-): IpcEnvelopeError {
-	// ZodError → VALIDATION_FAILED. The `issues` field is duck-typed because
-	// importing zod's type into the public envelope module would bind the
-	// envelope to a Zod major version; we only need the issues array shape.
-	if (isZodError(err)) {
-		const first = err.issues[0];
-		const path =
-			first && Array.isArray(first.path) && first.path.length > 0
-				? first.path.map((p) => String(p)).join(".")
-				: "(root)";
-		return {
-			code: "VALIDATION_FAILED",
-			message: `Validation failed at ${path}`,
-			requestId,
-		};
-	}
+export function toEnvelopeError(err: unknown, requestId: string): IpcEnvelopeError {
+  // ZodError → VALIDATION_FAILED. The `issues` field is duck-typed because
+  // importing zod's type into the public envelope module would bind the
+  // envelope to a Zod major version; we only need the issues array shape.
+  if (isZodError(err)) {
+    const first = err.issues[0];
+    const path =
+      first && Array.isArray(first.path) && first.path.length > 0
+        ? first.path.map((p) => String(p)).join(".")
+        : "(root)";
+    return {
+      code: "VALIDATION_FAILED",
+      message: `Validation failed at ${path}`,
+      requestId,
+    };
+  }
 
-	// SecretStorage / EngineError style: a stable `.code` string we can map.
-	const knownCode = extractAllowlistedCode(err);
-	if (knownCode !== null) {
-		return {
-			code: "INTERNAL",
-			message: `An internal error occurred (${knownCode})`,
-			requestId,
-		};
-	}
+  // SecretStorage / EngineError style: a stable `.code` string we can map.
+  const knownCode = extractAllowlistedCode(err);
+  if (knownCode !== null) {
+    return {
+      code: "INTERNAL",
+      message: `An internal error occurred (${knownCode})`,
+      requestId,
+    };
+  }
 
-	return {
-		code: "INTERNAL",
-		message: GENERIC_INTERNAL_MESSAGE,
-		requestId,
-	};
+  return {
+    code: "INTERNAL",
+    message: GENERIC_INTERNAL_MESSAGE,
+    requestId,
+  };
 }
 
 /**
@@ -128,26 +123,26 @@ export function toEnvelopeError(
  * `VALIDATION_FAILED`.
  */
 export function withSchema<TIn, TOut>(
-	schema: z.ZodType<TIn>,
-	fn: (parsed: TIn) => Promise<TOut> | TOut,
+  schema: z.ZodType<TIn>,
+  fn: (parsed: TIn) => Promise<TOut> | TOut,
 ): (raw: unknown) => Promise<TOut> {
-	return async (raw: unknown): Promise<TOut> => {
-		const parsed = schema.parse(raw);
-		return fn(parsed);
-	};
+  return async (raw: unknown): Promise<TOut> => {
+    const parsed = schema.parse(raw);
+    return fn(parsed);
+  };
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 interface ZodLikeError {
-	name: string;
-	issues: ReadonlyArray<{ path?: ReadonlyArray<string | number>; message: string }>;
+  name: string;
+  issues: ReadonlyArray<{ path?: ReadonlyArray<string | number>; message: string }>;
 }
 
 function isZodError(err: unknown): err is ZodLikeError {
-	if (!err || typeof err !== "object") return false;
-	const candidate = err as { name?: unknown; issues?: unknown };
-	return candidate.name === "ZodError" && Array.isArray(candidate.issues);
+  if (!err || typeof err !== "object") return false;
+  const candidate = err as { name?: unknown; issues?: unknown };
+  return candidate.name === "ZodError" && Array.isArray(candidate.issues);
 }
 
 /**
@@ -156,18 +151,18 @@ function isZodError(err: unknown): err is ZodLikeError {
  * so untyped error codes never leak across the trust boundary.
  */
 const ALLOWLISTED_CODES = new Set<string>([
-	"unavailable",
-	"decryption_failed",
-	"invalid_secret",
-	"locked",
-	"NOT_FOUND",
-	"NOT_AUTHORIZED",
-	"CONFIG_INVALID",
+  "unavailable",
+  "decryption_failed",
+  "invalid_secret",
+  "locked",
+  "NOT_FOUND",
+  "NOT_AUTHORIZED",
+  "CONFIG_INVALID",
 ]);
 
 function extractAllowlistedCode(err: unknown): string | null {
-	if (!err || typeof err !== "object") return null;
-	const candidate = err as { code?: unknown };
-	if (typeof candidate.code !== "string") return null;
-	return ALLOWLISTED_CODES.has(candidate.code) ? candidate.code : null;
+  if (!err || typeof err !== "object") return null;
+  const candidate = err as { code?: unknown };
+  if (typeof candidate.code !== "string") return null;
+  return ALLOWLISTED_CODES.has(candidate.code) ? candidate.code : null;
 }

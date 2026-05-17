@@ -1,12 +1,13 @@
-import type { ComposedSegment, ComposedSystemPromptWithAttribution, PraxisClient } from "@praxis/core/types";
+import type {
+  ComposedSegment,
+  ComposedSystemPromptWithAttribution,
+  PraxisClient,
+} from "@praxis/core/types";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
 import { PraxisClientProvider } from "../../context/client-context.js";
-import {
-  AttributedPreviewPane,
-  reconstructBaseline,
-} from "../attributed-preview-pane.js";
+import { AttributedPreviewPane, reconstructBaseline } from "../attributed-preview-pane.js";
 
 afterEach(() => cleanup());
 
@@ -23,9 +24,7 @@ function makeSegment(overrides?: Partial<ComposedSegment>): ComposedSegment {
   };
 }
 
-function makeAttribution(
-  segments: ComposedSegment[],
-): ComposedSystemPromptWithAttribution {
+function makeAttribution(segments: ComposedSegment[]): ComposedSystemPromptWithAttribution {
   return {
     prompt: segments.map((s) => s.text).join("\n\n"),
     segments,
@@ -33,9 +32,7 @@ function makeAttribution(
 }
 
 function makeClient(
-  previewFn: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue(
-    makeAttribution([makeSegment()]),
-  ),
+  previewFn: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue(makeAttribution([makeSegment()])),
 ): PraxisClient {
   return makeFakeClient({
     author: {

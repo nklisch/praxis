@@ -25,11 +25,11 @@ export type DerivedScope = DocumentScope | { kind: "all" };
  * Exposed for unit-test reuse; not part of the hook's external API.
  */
 export function pickPrimaryScope(scopes: ReadonlyArray<DocumentScope>): DocumentScope | null {
-	const course = scopes.find((s) => s.kind === "course");
-	if (course) return course;
-	const session = scopes.find((s) => s.kind === "session");
-	if (session) return session;
-	return null;
+  const course = scopes.find((s) => s.kind === "course");
+  if (course) return course;
+  const session = scopes.find((s) => s.kind === "session");
+  if (session) return session;
+  return null;
 }
 
 /**
@@ -63,57 +63,57 @@ export function pickPrimaryScope(scopes: ReadonlyArray<DocumentScope>): Document
  * consumers like `<chat.tsx>` where the scope feeds into `useResource`'s deps.
  */
 export function useDerivedScope(): DerivedScope {
-	const client = usePraxisClient();
-	const matches = useMatches();
-	const { openTabs, activeTabId } = useTabs();
+  const client = usePraxisClient();
+  const matches = useMatches();
+  const { openTabs, activeTabId } = useTabs();
 
-	const activeTab = openTabs.find((t) => t.id === activeTabId);
+  const activeTab = openTabs.find((t) => t.id === activeTabId);
 
-	const courseMatch = matches.find((m) => {
-		const id = m.routeId as string;
-		return id === "/courses/$courseId" || id.startsWith("/courses/$courseId/");
-	});
+  const courseMatch = matches.find((m) => {
+    const id = m.routeId as string;
+    return id === "/courses/$courseId" || id.startsWith("/courses/$courseId/");
+  });
 
-	// Branch 1 / Branch 2 / Branch 4 are computed synchronously below.
-	let kind: DerivedScope["kind"] = "all";
-	let id: string | null = null;
-	let documentIdForBranch3: DocumentId | null = null;
+  // Branch 1 / Branch 2 / Branch 4 are computed synchronously below.
+  let kind: DerivedScope["kind"] = "all";
+  let id: string | null = null;
+  let documentIdForBranch3: DocumentId | null = null;
 
-	if (courseMatch && (activeTab === undefined || activeTab.kind !== "document")) {
-		const params = courseMatch.params as Record<string, string | undefined>;
-		const rawId = params.courseId;
-		if (rawId) {
-			kind = "course";
-			id = rawId;
-		}
-	} else if (activeTab && activeTab.kind === "session" && activeTab.modeId === "bootstrap") {
-		kind = "session";
-		id = activeTab.sessionId;
-	} else if (activeTab && activeTab.kind === "document") {
-		documentIdForBranch3 = activeTab.documentId;
-	}
+  if (courseMatch && (activeTab === undefined || activeTab.kind !== "document")) {
+    const params = courseMatch.params as Record<string, string | undefined>;
+    const rawId = params.courseId;
+    if (rawId) {
+      kind = "course";
+      id = rawId;
+    }
+  } else if (activeTab && activeTab.kind === "session" && activeTab.modeId === "bootstrap") {
+    kind = "session";
+    id = activeTab.sessionId;
+  } else if (activeTab && activeTab.kind === "document") {
+    documentIdForBranch3 = activeTab.documentId;
+  }
 
-	// Branch 3: fetch scopes for the active document, then derive the primary
-	// scope. While the fetch is pending or if the document has no scopes,
-	// return `{ kind: "all" }` as a graceful default.
-	const loader = useCallback(async () => {
-		if (!documentIdForBranch3) return null;
-		return client.documentScopes.listScopesForDocument(documentIdForBranch3);
-	}, [client, documentIdForBranch3]);
+  // Branch 3: fetch scopes for the active document, then derive the primary
+  // scope. While the fetch is pending or if the document has no scopes,
+  // return `{ kind: "all" }` as a graceful default.
+  const loader = useCallback(async () => {
+    if (!documentIdForBranch3) return null;
+    return client.documentScopes.listScopesForDocument(documentIdForBranch3);
+  }, [client, documentIdForBranch3]);
 
-	const { data: scopes } = useResource(loader);
+  const { data: scopes } = useResource(loader);
 
-	if (documentIdForBranch3) {
-		const primary = scopes ? pickPrimaryScope(scopes) : null;
-		if (primary) {
-			kind = primary.kind;
-			id = primary.id;
-		}
-	}
+  if (documentIdForBranch3) {
+    const primary = scopes ? pickPrimaryScope(scopes) : null;
+    if (primary) {
+      kind = primary.kind;
+      id = primary.id;
+    }
+  }
 
-	return useMemo<DerivedScope>(() => {
-		if (kind === "course" && id) return { kind: "course", id: id as CourseId };
-		if (kind === "session" && id) return { kind: "session", id: id as SessionId };
-		return { kind: "all" };
-	}, [kind, id]);
+  return useMemo<DerivedScope>(() => {
+    if (kind === "course" && id) return { kind: "course", id: id as CourseId };
+    if (kind === "session" && id) return { kind: "session", id: id as SessionId };
+    return { kind: "all" };
+  }, [kind, id]);
 }

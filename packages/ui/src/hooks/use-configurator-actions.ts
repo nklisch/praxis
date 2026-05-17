@@ -3,10 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 
 export interface UseConfiguratorActionsResult {
-	actions: ConfiguratorActionRow[];
-	loading: boolean;
-	error: string | null;
-	refresh: () => Promise<void>;
+  actions: ConfiguratorActionRow[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -20,35 +20,35 @@ export interface UseConfiguratorActionsResult {
  * in the audit-log surface. See loop-flickers-audit story.
  */
 export function useConfiguratorActions(opts?: {
-	fromTs?: Timestamp;
-	limit?: number;
+  fromTs?: Timestamp;
+  limit?: number;
 }): UseConfiguratorActionsResult {
-	const client = usePraxisClient();
-	const fromTs = opts?.fromTs;
-	const limit = opts?.limit;
-	const [actions, setActions] = useState<ConfiguratorActionRow[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+  const client = usePraxisClient();
+  const fromTs = opts?.fromTs;
+  const limit = opts?.limit;
+  const [actions, setActions] = useState<ConfiguratorActionRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-	const refresh = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		try {
-			const rows = await client.author.listConfiguratorActions({
-				...(fromTs !== undefined && { fromTs }),
-				...(limit !== undefined && { limit }),
-			});
-			setActions(rows);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : String(err));
-		} finally {
-			setLoading(false);
-		}
-	}, [client, fromTs, limit]);
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const rows = await client.author.listConfiguratorActions({
+        ...(fromTs !== undefined && { fromTs }),
+        ...(limit !== undefined && { limit }),
+      });
+      setActions(rows);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [client, fromTs, limit]);
 
-	useEffect(() => {
-		refresh();
-	}, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-	return { actions, loading, error, refresh };
+  return { actions, loading, error, refresh };
 }

@@ -30,9 +30,7 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
   const client = usePraxisClient();
   const [title, setTitle] = useState(lesson.title);
   const [estimatedMinutes, setEstimatedMinutes] = useState(String(lesson.estimatedMinutes ?? ""));
-  const [selectedConceptIds, setSelectedConceptIds] = useState<string[]>(
-    lesson.conceptIds.slice(),
-  );
+  const [selectedConceptIds, setSelectedConceptIds] = useState<string[]>(lesson.conceptIds.slice());
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);

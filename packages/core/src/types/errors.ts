@@ -57,10 +57,7 @@ const REDACTION_PATTERNS = [
   [/Bearer\s+[A-Za-z0-9._~+/-]+=*/gi, "Bearer [REDACTED]"],
   // JWT-shaped: three non-empty base64url segments joined by dots, with a
   // minimum length to avoid false positives on things like "a.b.c".
-  [
-    /\b[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
-    "[REDACTED_JWT]",
-  ],
+  [/\b[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]"],
   // URL-embedded `?key=…` / `&authorization=…` style query params. Matches
   // the value up to the next `&` or whitespace. Captures the param-name
   // group so we keep the key visible in the log; only the value redacts.

@@ -3,8 +3,8 @@ import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { composeAssignmentContextFragment } from "@praxis/curriculum/brief/assignment-context";
 import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
 import {
-	composeInCourseBehaviorFragment,
-	type InCourseBehaviorModeId,
+  composeInCourseBehaviorFragment,
+  type InCourseBehaviorModeId,
 } from "@praxis/curriculum/brief/in-course-behavior";
 import { createEngine } from "@praxis/engines";
 import { type EngineSessionStateJson, episodicEvents, sessions } from "@praxis/memory/schema";
@@ -624,15 +624,15 @@ export class SessionServiceImpl implements SessionService {
         // `toolContext.courseDocumentIds`.
         // `listForScopeDetailed` is a newer accessor; fall back gracefully
         // if a test fake doesn't implement it.
-        const courseDocuments = typeof this.deps.toolServices.documentScopes
-          .listForScopeDetailed === "function"
-          ? await this.deps.toolServices.documentScopes
-              .listForScopeDetailed({
-                kind: "course",
-                id: args.courseId,
-              })
-              .catch(() => undefined)
-          : undefined;
+        const courseDocuments =
+          typeof this.deps.toolServices.documentScopes.listForScopeDetailed === "function"
+            ? await this.deps.toolServices.documentScopes
+                .listForScopeDetailed({
+                  kind: "course",
+                  id: args.courseId,
+                })
+                .catch(() => undefined)
+            : undefined;
 
         const fragment = composeCourseContextFragment(
           snapshot,

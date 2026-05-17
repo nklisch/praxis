@@ -651,9 +651,7 @@ export interface ConfigService {
    * Returns `null` when nothing is stored.
    */
   revealApiKey(): Promise<{ apiKey: string | null }>;
-  setEngineConfig(
-    config: EngineConfigSnapshot & { apiKey?: string },
-  ): Promise<void>;
+  setEngineConfig(config: EngineConfigSnapshot & { apiKey?: string }): Promise<void>;
   // Bootstrap-mode budget knob.
   bootstrapConfig(): Promise<BootstrapConfigSnapshot>;
   setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void>;

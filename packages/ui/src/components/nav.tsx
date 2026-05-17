@@ -46,7 +46,9 @@ export function Nav() {
   return (
     <nav className={styles.nav}>
       <div className={styles.wordmark}>
-        <span className={styles.wordmarkOrnament} aria-hidden="true">§</span>
+        <span className={styles.wordmarkOrnament} aria-hidden="true">
+          §
+        </span>
         <span className={styles.wordmarkTitle}>Praxis</span>
       </div>
       <ul className={styles.links}>

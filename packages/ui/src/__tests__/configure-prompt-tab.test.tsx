@@ -68,8 +68,7 @@ describe("PromptTab — v3 two-section surface", () => {
     const blocksHeading = screen.getByText("Prompt blocks");
     // Heading order in the DOM matches the section order.
     expect(
-      styleHeading.compareDocumentPosition(blocksHeading) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      styleHeading.compareDocumentPosition(blocksHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

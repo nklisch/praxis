@@ -1,7 +1,7 @@
 import type {
-	CourseStateSnapshot,
-	DocumentScopeAttachment,
-	PromptFragment,
+  CourseStateSnapshot,
+  DocumentScopeAttachment,
+  PromptFragment,
 } from "@praxis/core/types";
 
 /**
@@ -134,9 +134,7 @@ export function composeCourseContextFragment(
   // 12 filenames to keep prompts bounded; beyond that, append "…and N more".
   if (documents && documents.length > 0) {
     const MAX_LIST = 12;
-    lines.push(
-      `Available documents (course-scope, retrievable via retrieve_from_documents):`,
-    );
+    lines.push(`Available documents (course-scope, retrievable via retrieve_from_documents):`);
     const visible = documents.slice(0, MAX_LIST);
     for (const d of visible) {
       lines.push(`  • ${d.filename} (${d.chunkCount} chunks)`);

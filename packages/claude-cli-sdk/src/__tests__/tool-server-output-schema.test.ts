@@ -83,9 +83,14 @@ describe("tool() outputSchema", () => {
     );
 
     handle = await startToolServer([myTool]);
-    const result = await callTool(socketPath(handle), handle.env.CLAUDE_SDK_TOOL_TOKEN!, "count_words", {
-      text: "hello world foo",
-    });
+    const result = await callTool(
+      socketPath(handle),
+      handle.env.CLAUDE_SDK_TOOL_TOKEN!,
+      "count_words",
+      {
+        text: "hello world foo",
+      },
+    );
 
     expect(result.success).toBe(true);
     expect(result.value).toEqual({ count: 3 });
@@ -104,9 +109,14 @@ describe("tool() outputSchema", () => {
     );
 
     handle = await startToolServer([badTool]);
-    const result = await callTool(socketPath(handle), handle.env.CLAUDE_SDK_TOOL_TOKEN!, "bad_counter", {
-      text: "hello",
-    });
+    const result = await callTool(
+      socketPath(handle),
+      handle.env.CLAUDE_SDK_TOOL_TOKEN!,
+      "bad_counter",
+      {
+        text: "hello",
+      },
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("failed its outputSchema");
@@ -126,9 +136,14 @@ describe("tool() outputSchema", () => {
     );
 
     handle = await startToolServer([coerceTool]);
-    const result = await callTool(socketPath(handle), handle.env.CLAUDE_SDK_TOOL_TOKEN!, "coerce_tool", {
-      input: "x",
-    });
+    const result = await callTool(
+      socketPath(handle),
+      handle.env.CLAUDE_SDK_TOOL_TOKEN!,
+      "coerce_tool",
+      {
+        input: "x",
+      },
+    );
 
     // Zod-parsed value is the coerced number 42, not the original string "42"
     expect(result.success).toBe(true);
@@ -145,9 +160,14 @@ describe("tool() outputSchema", () => {
     );
 
     handle = await startToolServer([noSchemaT]);
-    const result = await callTool(socketPath(handle), handle.env.CLAUDE_SDK_TOOL_TOKEN!, "pass_through", {
-      data: { arbitrary: true, nested: [1, 2, 3] },
-    });
+    const result = await callTool(
+      socketPath(handle),
+      handle.env.CLAUDE_SDK_TOOL_TOKEN!,
+      "pass_through",
+      {
+        data: { arbitrary: true, nested: [1, 2, 3] },
+      },
+    );
 
     expect(result.success).toBe(true);
     expect(result.value).toEqual({ arbitrary: true, nested: [1, 2, 3] });

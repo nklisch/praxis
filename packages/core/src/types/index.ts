@@ -56,7 +56,6 @@ export type * from "./engine.js";
 export { engineError } from "./engine.js"; // runtime helper — not re-exported by `export type *`
 export type * from "./errors.js";
 export { redactSecrets, serializeError, serializeErrorRedacted } from "./errors.js"; // runtime helpers — not re-exported by `export type *`
-export { isAllowedExternalUrl } from "./url-allowlist.js"; // runtime helper — not re-exported by `export type *`
 // Phase 12: FSRS types — exported as values (Rating is a type; FsrsState/FsrsScheduler are types).
 export type * from "./flashcards.js";
 export type * from "./gate.js";
@@ -101,4 +100,5 @@ export type {
 } from "./tabs.js";
 // tool.ts: MemoryService here is the server-side interface (with studentId params).
 export type * from "./tool.js";
+export { isAllowedExternalUrl } from "./url-allowlist.js"; // runtime helper — not re-exported by `export type *`
 // ToolDispatchMeta is re-exported via engine.ts through the wildcard above.

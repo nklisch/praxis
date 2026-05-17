@@ -58,9 +58,7 @@ export class ConfigServiceImpl implements ConfigService {
     return { apiKey: null };
   }
 
-  async setEngineConfig(
-    snapshot: EngineConfigSnapshot & { apiKey?: string },
-  ): Promise<void> {
+  async setEngineConfig(snapshot: EngineConfigSnapshot & { apiKey?: string }): Promise<void> {
     // The renderer-facing snapshot includes a presence-only `hasApiKey` flag
     // — drop it before validating against the public engine schema.
     const { hasApiKey: _hasApiKey, apiKey, ...rest } = snapshot;

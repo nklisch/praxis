@@ -14,7 +14,9 @@ import { ConfigClient } from "../services/config-client.js";
 import { IpcError } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 
-function makeTransport(invokeImpl: (channel: string, ...args: unknown[]) => unknown): ClientTransport {
+function makeTransport(
+  invokeImpl: (channel: string, ...args: unknown[]) => unknown,
+): ClientTransport {
   return {
     invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
       return Promise.resolve(invokeImpl(channel, ...args) as T);
@@ -46,7 +48,11 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
 
     await expect(
       // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
-      client.setEngineConfig({ engineId: "claude-code", hasApiKey: false, apiKeyEncrypted: "c29tZWJsb2I=" } as any),
+      client.setEngineConfig({
+        engineId: "claude-code",
+        hasApiKey: false,
+        apiKeyEncrypted: "c29tZWJsb2I=",
+      } as any),
     ).rejects.toThrow(IpcError);
   });
 
@@ -65,7 +71,11 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
     let thrown: unknown;
     try {
       // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
-      await client.setEngineConfig({ engineId: "claude-code", hasApiKey: false, apiKeyEncrypted: "c29tZWJsb2I=" } as any);
+      await client.setEngineConfig({
+        engineId: "claude-code",
+        hasApiKey: false,
+        apiKeyEncrypted: "c29tZWJsb2I=",
+      } as any);
     } catch (err) {
       thrown = err;
     }

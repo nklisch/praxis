@@ -116,7 +116,9 @@ function makeFakeWebContents() {
  * Find the first pushed message whose `kind` is "error" across all captured
  * sends, regardless of channel name.
  */
-function firstErrorMsg(sent: Array<{ channel: string; msg: unknown }>): { kind: "error"; error: string } | undefined {
+function firstErrorMsg(
+  sent: Array<{ channel: string; msg: unknown }>,
+): { kind: "error"; error: string } | undefined {
   for (const { msg } of sent) {
     if (
       msg !== null &&
@@ -294,7 +296,14 @@ function makeFullServices(overrides: Record<string, any> = {}): any {
 
   const sketches = {
     put: vi.fn().mockResolvedValue({}),
-    get: vi.fn().mockResolvedValue({ id: "s1", snapshot: {}, width: 0, height: 0, createdAt: 0, image: Buffer.from("") }),
+    get: vi.fn().mockResolvedValue({
+      id: "s1",
+      snapshot: {},
+      width: 0,
+      height: 0,
+      createdAt: 0,
+      image: Buffer.from(""),
+    }),
     getSummary: vi.fn().mockResolvedValue({}),
   };
 
@@ -314,10 +323,22 @@ function makeFullServices(overrides: Record<string, any> = {}): any {
     detach: vi.fn().mockResolvedValue(undefined),
   };
 
-  const activity = overrides.activity ?? { subscribe: vi.fn().mockReturnValue(() => {}), dismiss: vi.fn() };
-  const subAgent = overrides.subAgent ?? { subscribe: vi.fn().mockReturnValue(() => {}), list: vi.fn().mockResolvedValue([]) };
-  const bootstrap = overrides.bootstrap ?? { subscribe: vi.fn().mockReturnValue(() => {}), startExploration: vi.fn(async function* () {}) };
-  const quickCheck = overrides.quickCheck ?? { subscribe: vi.fn().mockReturnValue(() => {}), resolve: vi.fn() };
+  const activity = overrides.activity ?? {
+    subscribe: vi.fn().mockReturnValue(() => {}),
+    dismiss: vi.fn(),
+  };
+  const subAgent = overrides.subAgent ?? {
+    subscribe: vi.fn().mockReturnValue(() => {}),
+    list: vi.fn().mockResolvedValue([]),
+  };
+  const bootstrap = overrides.bootstrap ?? {
+    subscribe: vi.fn().mockReturnValue(() => {}),
+    startExploration: vi.fn(async function* () {}),
+  };
+  const quickCheck = overrides.quickCheck ?? {
+    subscribe: vi.fn().mockReturnValue(() => {}),
+    resolve: vi.fn(),
+  };
   const ingestion = overrides.ingestion ?? { ingest: vi.fn(async function* () {}) };
 
   const ingestorRegistry = {

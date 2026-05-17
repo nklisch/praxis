@@ -183,9 +183,7 @@ describe("ConceptNode", () => {
         locked: false,
       });
       const idSpan = screen.getByText("concept-very-long-id-that-might-truncate");
-      expect(idSpan.getAttribute("title")).toBe(
-        "concept-very-long-id-that-might-truncate",
-      );
+      expect(idSpan.getAttribute("title")).toBe("concept-very-long-id-that-might-truncate");
     });
 
     it("shows the id as fallback when the name is not yet loaded", () => {

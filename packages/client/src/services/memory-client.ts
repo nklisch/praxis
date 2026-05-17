@@ -45,7 +45,11 @@ export class MemoryClient implements MemoryClientService {
   constructor(private readonly transport: ClientTransport) {}
 
   async studentModel(): Promise<StudentModel> {
-    type Raw = { studentId: string; conceptMastery: [string, ConceptMastery][]; lastUpdated: number };
+    type Raw = {
+      studentId: string;
+      conceptMastery: [string, ConceptMastery][];
+      lastUpdated: number;
+    };
     const result = await this.transport.invoke<IpcEnvelope<Raw> | Raw>(C.studentModel);
     const raw = unwrapEnvelope(result);
     return {

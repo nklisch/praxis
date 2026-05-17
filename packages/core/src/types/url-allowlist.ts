@@ -26,16 +26,16 @@
 const CONTROL_OR_WHITESPACE = /[\x00-\x20\x7F]/;
 
 export function isAllowedExternalUrl(input: string): boolean {
-	if (typeof input !== "string" || input.length === 0) return false;
-	// Reject any C0 control char (0x00–0x1F including \t, \n, \r), the
-	// space (0x20), and DEL (0x7F). The WHATWG URL parser would silently
-	// strip these; we want to reject.
-	if (CONTROL_OR_WHITESPACE.test(input)) return false;
-	let url: URL;
-	try {
-		url = new URL(input);
-	} catch {
-		return false;
-	}
-	return url.protocol === "http:" || url.protocol === "https:";
+  if (typeof input !== "string" || input.length === 0) return false;
+  // Reject any C0 control char (0x00–0x1F including \t, \n, \r), the
+  // space (0x20), and DEL (0x7F). The WHATWG URL parser would silently
+  // strip these; we want to reject.
+  if (CONTROL_OR_WHITESPACE.test(input)) return false;
+  let url: URL;
+  try {
+    url = new URL(input);
+  } catch {
+    return false;
+  }
+  return url.protocol === "http:" || url.protocol === "https:";
 }

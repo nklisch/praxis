@@ -1,10 +1,10 @@
-import type { JSX } from "react";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type {
   ComposedSegment,
   ComposedSystemPromptWithAttribution,
   SegmentSource,
 } from "@praxis/core/types";
+import type { JSX } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import styles from "./attributed-preview-pane.module.css";
 

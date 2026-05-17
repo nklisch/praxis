@@ -1,220 +1,220 @@
 .reading {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	padding: 1rem;
-	overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  overflow-y: auto;
 }
 
 .empty {
-	padding: 2rem;
-	text-align: center;
-	color: var(--color-text-muted);
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-muted);
 }
 
 .lessonBlock {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .lessonRow {
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius);
-	padding: 0.75rem 1rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .lessonTitle {
-	font-size: 1rem;
-	font-weight: 600;
-	margin: 0;
-	color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
 }
 
 .emptyConcepts {
-	font-size: 0.85rem;
-	color: var(--color-text-muted);
-	margin: 0;
-	font-style: italic;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  font-style: italic;
 }
 
 .chips {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .chip {
-	display: inline-flex;
-	flex-direction: column;
-	gap: 0.05rem;
-	padding: 0.3rem 0.6rem;
-	background: var(--color-surface-alt, rgba(0, 0, 0, 0.04));
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius);
-	max-width: 14rem;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--color-surface-alt, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  max-width: 14rem;
 }
 
 .chipName {
-	font-size: 0.85rem;
-	font-weight: 500;
-	color: var(--color-text);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chipId {
-	font-size: 0.6rem;
-	font-family: var(--font-mono, ui-monospace, "SF Mono", monospace);
-	color: var(--color-text-muted);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+  font-size: 0.6rem;
+  font-family: var(--font-mono, ui-monospace, "SF Mono", monospace);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gateRow {
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius);
-	margin-left: 1rem;
-	margin-right: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-left: 1rem;
+  margin-right: 1rem;
 }
 
 .gateRowSelected {
-	border-color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .gateHeader {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .chevron {
-	background: transparent;
-	border: none;
-	color: var(--color-text-muted);
-	cursor: pointer;
-	font-size: 0.9rem;
-	padding: 0;
-	width: 1rem;
-	flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0;
+  width: 1rem;
+  flex-shrink: 0;
 }
 
 .chevron:hover {
-	color: var(--color-text);
+  color: var(--color-text);
 }
 
 .gateBody {
-	background: transparent;
-	border: none;
-	flex: 1;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.5rem;
-	padding: 0;
-	cursor: pointer;
-	color: var(--color-text);
-	text-align: left;
-	font: inherit;
+  background: transparent;
+  border: none;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text);
+  text-align: left;
+  font: inherit;
 }
 
 .gateBody:hover .gateSummary {
-	color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .gateSummary {
-	font-size: 0.9rem;
+  font-size: 0.9rem;
 }
 
 .gateBadge {
-	font-size: 0.7rem;
-	padding: 0.15rem 0.5rem;
-	border-radius: var(--radius);
-	background: var(--color-surface-alt, rgba(0, 0, 0, 0.05));
-	color: var(--color-text-muted);
-	white-space: nowrap;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius);
+  background: var(--color-surface-alt, rgba(0, 0, 0, 0.05));
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .gateBadge[data-state="unlocked"] {
-	color: var(--color-success);
+  color: var(--color-success);
 }
 
 .gateBadge[data-state="locked"] {
-	color: var(--color-warning);
+  color: var(--color-warning);
 }
 
 .gateBadge[data-state="overridden"] {
-	color: var(--color-text-muted);
-	font-style: italic;
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .gateExpanded {
-	padding: 0 0.75rem 0.75rem 2.25rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+  padding: 0 0.75rem 0.75rem 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .gateExpandedLabel {
-	font-size: 0.75rem;
-	color: var(--color-text-muted);
-	margin: 0;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .gateCriteriaText {
-	font-size: 0.85rem;
-	color: var(--color-text);
-	margin: 0;
-	font-style: italic;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  margin: 0;
+  font-style: italic;
 }
 
 .conceptCards {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-	gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.5rem;
 }
 
 .conceptCard {
-	display: flex;
-	flex-direction: column;
-	gap: 0.15rem;
-	padding: 0.5rem 0.75rem;
-	background: var(--color-surface-alt, rgba(0, 0, 0, 0.04));
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-alt, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
 }
 
 .conceptCardName {
-	font-size: 0.9rem;
-	font-weight: 500;
-	color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .conceptCardId {
-	font-size: 0.6rem;
-	font-family: var(--font-mono, ui-monospace, "SF Mono", monospace);
-	color: var(--color-text-muted);
+  font-size: 0.6rem;
+  font-family: var(--font-mono, ui-monospace, "SF Mono", monospace);
+  color: var(--color-text-muted);
 }
 
 .conceptCardDesc {
-	font-size: 0.8rem;
-	color: var(--color-text-muted);
-	line-height: 1.3;
-	margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+  margin-top: 0.15rem;
 }

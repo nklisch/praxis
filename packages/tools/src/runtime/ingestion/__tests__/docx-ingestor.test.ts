@@ -468,9 +468,7 @@ describe("DocxIngestor — image markdown at chunk boundaries (spec-silent contr
       maxChars: 100,
     });
 
-    const chunksWithImage = result.chunks.filter((c) =>
-      c.imageNames?.includes("image-1.png"),
-    );
+    const chunksWithImage = result.chunks.filter((c) => c.imageNames?.includes("image-1.png"));
     expect(chunksWithImage.length).toBeLessThanOrEqual(1);
     const markerCount = result.chunks.reduce(
       (n, c) => n + (c.text.match(/praxis:\/\/embedded\/image-1\.png/g)?.length ?? 0),
@@ -484,11 +482,7 @@ describe("DocxIngestor — image markdown at chunk boundaries (spec-silent contr
     const pre = "x".repeat(95);
     mock.mockImplementation(
       async (_input: unknown, options: unknown) =>
-        await simulateConvertToMarkdownWithImages(
-          options,
-          [{ contentType: "image/png" }],
-          pre,
-        ),
+        await simulateConvertToMarkdownWithImages(options, [{ contentType: "image/png" }], pre),
     );
 
     const filePath = join(tmpDir, "edge.docx");
@@ -499,9 +493,7 @@ describe("DocxIngestor — image markdown at chunk boundaries (spec-silent contr
       maxChars: 100,
     });
 
-    const found = result.chunks.find((c) =>
-      c.text.includes("praxis://embedded/image-1.png"),
-    );
+    const found = result.chunks.find((c) => c.text.includes("praxis://embedded/image-1.png"));
     expect(found?.imageNames).toContain("image-1.png");
   });
 });

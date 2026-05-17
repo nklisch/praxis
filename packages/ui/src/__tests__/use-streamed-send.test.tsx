@@ -1009,13 +1009,17 @@ describe("useStreamedSend", () => {
 
     // Stream finalized — isStreaming back to false.
     expect(result.current.isStreaming).toBe(false);
-    const cancelMarkersBefore = result.current.items.filter((i) => i.kind === "cancel-marker").length;
+    const cancelMarkersBefore = result.current.items.filter(
+      (i) => i.kind === "cancel-marker",
+    ).length;
 
     act(() => {
       expect(() => result.current.cancel()).not.toThrow();
     });
 
-    const cancelMarkersAfter = result.current.items.filter((i) => i.kind === "cancel-marker").length;
+    const cancelMarkersAfter = result.current.items.filter(
+      (i) => i.kind === "cancel-marker",
+    ).length;
     expect(cancelMarkersAfter).toBe(cancelMarkersBefore);
   });
 
@@ -1032,7 +1036,10 @@ describe("useStreamedSend", () => {
     const mockIterator: AsyncIterator<EngineEvent> = {
       next: vi.fn(async () => {
         await streamHold;
-        return { value: { type: "interrupted", reason: "user_cancel" }, done: false } as IteratorResult<EngineEvent>;
+        return {
+          value: { type: "interrupted", reason: "user_cancel" },
+          done: false,
+        } as IteratorResult<EngineEvent>;
       }),
       return: returnSpy,
     };

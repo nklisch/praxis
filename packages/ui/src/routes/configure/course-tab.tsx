@@ -29,9 +29,9 @@ export function CourseTab({ sessionId }: CourseTabProps) {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [concepts, setConcepts] = useState<
-    Array<{ id: string; name: string; aliases: string[] }>
-  >([]);
+  const [concepts, setConcepts] = useState<Array<{ id: string; name: string; aliases: string[] }>>(
+    [],
+  );
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [addingLesson, setAddingLesson] = useState(false);

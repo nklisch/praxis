@@ -6,5 +6,6 @@
  * duplicate `client.tabs.listOpen()` fetches that two parallel
  * `useTabs()` callers used to fire per route navigation.
  */
-export { TabsProvider, useTabs } from "../context/tabs-context.js";
+
 export type { UseTabsResult } from "../context/tabs-context.js";
+export { TabsProvider, useTabs } from "../context/tabs-context.js";

@@ -30,8 +30,8 @@ import { brandId } from "@praxis/core/types";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PraxisClientProvider } from "../../context/client-context.js";
 import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
+import { PraxisClientProvider } from "../../context/client-context.js";
 import type { UseTabsResult } from "../use-tabs.js";
 
 // ── Stable mock for useTabs ────────────────────────────────────────────────────
@@ -125,9 +125,7 @@ let fakeClient: PraxisClient = makeFakeClient({
   } as PraxisClient["documentScopes"],
 });
 
-function setListScopesForDocument(
-  fn: (documentId: string) => Promise<DocumentScope[]>,
-): void {
+function setListScopesForDocument(fn: (documentId: string) => Promise<DocumentScope[]>): void {
   fakeClient = makeFakeClient({
     documentScopes: {
       listScopesForDocument: vi.fn(fn),

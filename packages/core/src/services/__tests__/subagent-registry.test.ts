@@ -122,10 +122,9 @@ describe("SubAgentRegistryImpl", () => {
     // it does NOT update the existing item's label).
     expect(r.list()[0]?.label).toBe("first");
     // The collision is logged at debug for diagnosability without alarm.
-    expect(logger.debug).toHaveBeenCalledWith(
-      "subagent-registry.start.collision",
-      { parentCallId: "call-1" },
-    );
+    expect(logger.debug).toHaveBeenCalledWith("subagent-registry.start.collision", {
+      parentCallId: "call-1",
+    });
     unsub();
   });
 

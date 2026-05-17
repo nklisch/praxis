@@ -107,9 +107,7 @@ function makeClient(
       getModeAppend: vi.fn().mockResolvedValue(null),
       setModeAppend: vi.fn().mockResolvedValue(undefined),
       listFragmentOverrides: vi.fn().mockResolvedValue([]),
-      previewPromptWithAttribution: vi
-        .fn()
-        .mockResolvedValue({ segments: [], fullText: "" }),
+      previewPromptWithAttribution: vi.fn().mockResolvedValue({ segments: [], fullText: "" }),
     } as unknown as PraxisClient["author"],
     memory: {
       studentModel: vi

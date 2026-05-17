@@ -48,13 +48,7 @@ function formatState(gate: Gate): string {
  * Shows: gate state, success criteria, prerequisites.
  * Actions: Save (update criteria), Override (with reason), Delete.
  */
-export function GateInspector({
-  gate,
-  allGates,
-  onSaved,
-  onDeleted,
-  onClose,
-}: GateInspectorProps) {
+export function GateInspector({ gate, allGates, onSaved, onDeleted, onClose }: GateInspectorProps) {
   const client = usePraxisClient();
 
   const prereqLookup = (pid: string): { summary: string; id: string } => {

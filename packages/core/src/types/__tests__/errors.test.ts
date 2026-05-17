@@ -94,9 +94,7 @@ describe("serializeError", () => {
 
 describe("redactSecrets", () => {
   it("redacts an Anthropic sk-ant key while keeping the prefix", () => {
-    expect(redactSecrets("apiKey=sk-ant-abc123-def456")).toBe(
-      "apiKey=sk-ant-[REDACTED]",
-    );
+    expect(redactSecrets("apiKey=sk-ant-abc123-def456")).toBe("apiKey=sk-ant-[REDACTED]");
   });
 
   it("redacts a generic OpenAI-style sk- key", () => {
@@ -123,21 +121,19 @@ describe("redactSecrets", () => {
   });
 
   it("redacts JWT-shaped strings (three base64url segments)", () => {
-    expect(
-      redactSecrets("token=abcdefgh.ijklmnop.qrstuvwx and friends"),
-    ).toBe("token=[REDACTED_JWT] and friends");
+    expect(redactSecrets("token=abcdefgh.ijklmnop.qrstuvwx and friends")).toBe(
+      "token=[REDACTED_JWT] and friends",
+    );
   });
 
   it("redacts URL-embedded ?key= and &authorization= values", () => {
-    expect(
-      redactSecrets("GET https://api.example.com/v1?key=secret123&user=alice"),
-    ).toContain("key=[REDACTED]");
-    expect(
-      redactSecrets("https://api.example.com/?api_key=xyz&format=json"),
-    ).toContain("api_key=[REDACTED]");
-    expect(
-      redactSecrets("/v1/foo?authorization=eyJabc&q=1"),
-    ).toContain("authorization=[REDACTED]");
+    expect(redactSecrets("GET https://api.example.com/v1?key=secret123&user=alice")).toContain(
+      "key=[REDACTED]",
+    );
+    expect(redactSecrets("https://api.example.com/?api_key=xyz&format=json")).toContain(
+      "api_key=[REDACTED]",
+    );
+    expect(redactSecrets("/v1/foo?authorization=eyJabc&q=1")).toContain("authorization=[REDACTED]");
   });
 
   it("redacts the value but preserves the param name", () => {
@@ -154,9 +150,7 @@ describe("redactSecrets", () => {
   });
 
   it("handles a mix of patterns in one string", () => {
-    const out = redactSecrets(
-      "first sk-ant-aaa then Bearer bbbccc and ?token=ddd done",
-    );
+    const out = redactSecrets("first sk-ant-aaa then Bearer bbbccc and ?token=ddd done");
     expect(out).toContain("sk-ant-[REDACTED]");
     expect(out).toContain("Bearer [REDACTED]");
     expect(out).toContain("token=[REDACTED]");
@@ -168,9 +162,7 @@ describe("redactSecrets", () => {
 
 describe("serializeErrorRedacted", () => {
   it("redacts secrets in the message", () => {
-    const out = serializeErrorRedacted(
-      new Error("connect failed with apiKey=sk-ant-leaked-key"),
-    );
+    const out = serializeErrorRedacted(new Error("connect failed with apiKey=sk-ant-leaked-key"));
     expect(out.message).toContain("sk-ant-[REDACTED]");
     expect(out.message).not.toContain("sk-ant-leaked-key");
   });
@@ -204,9 +196,7 @@ describe("serializeErrorRedacted", () => {
   });
 
   it("handles non-Error inputs (string, number, null)", () => {
-    expect(serializeErrorRedacted("apiKey=sk-ant-x123").message).toBe(
-      "apiKey=sk-ant-[REDACTED]",
-    );
+    expect(serializeErrorRedacted("apiKey=sk-ant-x123").message).toBe("apiKey=sk-ant-[REDACTED]");
     expect(serializeErrorRedacted(42).message).toBe("42");
     expect(serializeErrorRedacted(null).message).toBe("null");
   });
