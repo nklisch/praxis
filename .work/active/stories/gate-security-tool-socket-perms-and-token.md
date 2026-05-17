@@ -1,14 +1,14 @@
 ---
 id: gate-security-tool-socket-perms-and-token
 kind: story
-stage: backlog
+stage: implementing
 tags: [security]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: security
 created: 2026-05-12
-updated: 2026-05-12
+updated: 2026-05-17
 ---
 
 # MCP tool-bridge Unix-domain-socket has no explicit permission set or auth token

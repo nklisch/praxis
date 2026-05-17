@@ -1,14 +1,14 @@
 ---
 id: gate-tests-sub-agent-collision-warn-log
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-12
-updated: 2026-05-12
+updated: 2026-05-17
 ---
 
 # Sub-agent `parentCallId` collision — silent no-op vs. warn-log contract is unpinned

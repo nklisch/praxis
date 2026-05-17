@@ -1,14 +1,14 @@
 ---
 id: gate-tests-draft-store-rapid-save-ordering
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-12
-updated: 2026-05-12
+updated: 2026-05-17
 ---
 
 # SqliteDraftStore rapid back-to-back save() ordering not adversarially tested

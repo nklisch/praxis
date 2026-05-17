@@ -1,14 +1,14 @@
 ---
 id: gate-tests-document-id-guard-drive-letter-cases
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing, security]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-17
 ---
 
 # `assertSafeDocumentId` lacks tests for lowercase / mixed-case Windows drive prefixes

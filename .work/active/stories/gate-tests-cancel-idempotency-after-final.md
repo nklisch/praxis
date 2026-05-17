@@ -1,14 +1,14 @@
 ---
 id: gate-tests-cancel-idempotency-after-final
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-12
-updated: 2026-05-12
+updated: 2026-05-17
 ---
 
 # `cancel()` idempotency not exercised across all hook states (after-final, double-cancel, during-loadHistory)

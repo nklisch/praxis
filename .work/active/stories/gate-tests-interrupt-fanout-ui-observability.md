@@ -1,14 +1,14 @@
 ---
 id: gate-tests-interrupt-fanout-ui-observability
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing, refactor]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-17
 ---
 
 # Interrupt fanout tests are tautological at the registry layer — UI observability is untested

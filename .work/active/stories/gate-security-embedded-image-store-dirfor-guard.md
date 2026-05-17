@@ -1,14 +1,14 @@
 ---
 id: gate-security-embedded-image-store-dirfor-guard
 kind: story
-stage: backlog
+stage: implementing
 tags: [security]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: security
 created: 2026-05-12
-updated: 2026-05-12
+updated: 2026-05-17
 ---
 
 # Add a defensive guard inside `FsEmbeddedImageStore.dirFor` / `FsPageImageStore.dirFor`

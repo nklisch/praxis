@@ -1,14 +1,14 @@
 ---
 id: gate-tests-redact-secrets-production-key-shapes
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing, security]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-17
 ---
 
 # `redactSecrets` lacks assertion for production-shape Anthropic keys

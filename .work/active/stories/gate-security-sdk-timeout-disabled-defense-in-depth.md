@@ -1,14 +1,14 @@
 ---
 id: gate-security-sdk-timeout-disabled-defense-in-depth
 kind: story
-stage: backlog
+stage: implementing
 tags: [security]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: security
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-17
 ---
 
 # SDK wall-clock timeout disabled without compensating watchdog when `maxSteps` is also unbounded

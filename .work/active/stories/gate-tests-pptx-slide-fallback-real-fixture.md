@@ -1,14 +1,14 @@
 ---
 id: gate-tests-pptx-slide-fallback-real-fixture
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-12
-updated: 2026-05-12
+updated: 2026-05-17
 ---
 
 # `tryChunkBySlide` fallback to `ast.toText()` is mock-only — no real-fixture coverage

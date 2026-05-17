@@ -1,14 +1,14 @@
 ---
 id: gate-tests-rate-limit-unknown-status-guard
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing]
 parent: null
-depends_on: []
+depends_on: [feature-rate-limit-error-structured-fields]
 release_binding: null
 gate_origin: tests
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-17
 ---
 
 # Rate-limit error format for unknown `rateLimitType` (future SDK addition) is unguarded by test
