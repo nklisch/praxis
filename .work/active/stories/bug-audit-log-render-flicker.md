@@ -1,7 +1,7 @@
 ---
 id: bug-audit-log-render-flicker
 kind: story
-stage: drafting
+stage: review
 tags: [bug, ui]
 parent: null
 depends_on: []
@@ -26,3 +26,31 @@ The audit log surface in `packages/ui/src/` — check for unstable dep arrays in
 - The audit log view paints once per real audit-event change (no continuous re-render).
 - Subscription identity is stable across renders.
 - A regression test or render-count assertion pins the stable-paint behavior.
+
+## Implementation notes
+
+**Land mode: already fixed in commit `df9f1f2` (2026-05-14).**
+
+### Root cause
+
+`useConfiguratorActions` listed the entire `opts` object in its `useCallback` deps for `refresh`. The consumer in `memory-inspector-tabs.tsx:65` passes a fresh `{ limit: 100 }` literal every render — a new object identity each time. This caused:
+
+1. `opts` object identity changes every render
+2. `refresh` callback identity changes every render
+3. `useEffect(() => refresh(), [refresh])` re-fires every render
+4. `setLoading(true)` + `setActions(...)` flip React state
+5. Another render — back to step 1 (tight loop)
+
+### Fix (already shipped)
+
+In `packages/ui/src/hooks/use-configurator-actions.ts`: destructure `opts?.fromTs` and `opts?.limit` into local primitive variables, then list those primitives — not the `opts` reference — in the `useCallback` dep array. Primitives are compared by value, so a re-render passing a structurally identical `{ limit: 100 }` literal no longer triggers a re-fetch.
+
+### Regression test
+
+`packages/ui/src/hooks/__tests__/use-configurator-actions.test.tsx` — 4 tests:
+- "single fetch on mount; identical opts literal across renders does NOT re-fetch (loop-flickers-audit fix)" — asserts `listConfiguratorActions` called exactly once after 3 additional rerenders
+- "re-fetches when limit changes" — confirms changing primitive `limit` does trigger a new fetch
+- "no-arg call invokes the IPC with an empty payload"
+- "error path: spy rejects → error set, loading false, actions unchanged"
+
+All 4 pass (`pnpm vitest run packages/ui/src/hooks/__tests__/use-configurator-actions.test.tsx`).
