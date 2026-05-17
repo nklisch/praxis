@@ -1,7 +1,7 @@
 ---
 id: story-course-buildout-progress-signals
 kind: story
-stage: review
+stage: done
 tags: [ux, bootstrap]
 parent: null
 depends_on: []
@@ -63,3 +63,13 @@ Two new tests added in `packages/curriculum/src/bootstrap/__tests__/explorer.tes
 - `"increments label counter across multiple draft_add_unit calls"` — verifies the counter increments and labels are in order ("unit 1 drafted", "unit 2 drafted").
 
 Both tests pre-populate a draft via the bootstrap service directly, then run the explorer in continuation mode with a `ScriptedEngine` that calls `draft_add_unit`. All 20 explorer tests pass.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `5b77d35`. Option (A) chosen — the bootstrap explorer now emits `setLabel('unit N drafted')` to the sub-agent panel after each successful `course.draft_add_unit` tool result. Two new tests pin the single-unit and counter-increment cases. The model-side fragment already forbids quoting time estimates; this commit closes the UI gap. Honest progress signal sourced from real explorer events — matches the story's acceptance criteria exactly.

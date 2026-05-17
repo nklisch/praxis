@@ -1,7 +1,7 @@
 ---
 id: bug-chat-documents-sidebar-flicker
 kind: story
-stage: review
+stage: done
 tags: [bug, ui]
 parent: null
 depends_on: []
@@ -69,3 +69,13 @@ block). The test:
 
 Verified: the test fails when the `useMemo` is removed from `useDerivedScope` and passes
 with it in place.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode + regression-test addition. Underlying fix (the `useMemo([kind, id])` in `useDerivedScope`) shipped in `df9f1f2` as part of the loop-flickers epic. Today's commit `ae4e3e0` adds the regression test at `chat-route.test.tsx` that fails when the `useMemo` is removed and passes with it — the property is now pinned against future regressions.

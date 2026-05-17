@@ -1,7 +1,7 @@
 ---
 id: bug-question-card-persists-after-answer
 kind: story
-stage: review
+stage: done
 tags: [bug, ui]
 parent: null
 depends_on: []
@@ -40,3 +40,13 @@ The question card (inline quick-check / assessment card in the chat) remains vis
 **Event path**: No engine event subscription needed — retirement is driven purely by the `onResolve` promise resolving (the IPC `praxis.quickCheck.resolve` call completing). No bridge changes were required.
 
 **Test coverage**: `packages/ui/src/__tests__/quick-check-card.test.tsx` — 11 tests pass, including "retires to a collapsed summary row after submission", correct/incorrect badge tests, toggle behaviour, and validation guards. Test file: `packages/ui/src/__tests__/quick-check-card.test.tsx` line 62.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode confirmation. Underlying fix (collapsed summary row + `gradeAnswer` helper + `lastAnswer`/`correct`/`expanded` state) shipped in `df9f1f2`. Today's commit `4c67b31` verifies the 11 existing tests including "retires to a collapsed summary row after submission" at `quick-check-card.test.tsx:62`. No new code change required.

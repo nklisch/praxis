@@ -1,7 +1,7 @@
 ---
 id: bug-audit-log-render-flicker
 kind: story
-stage: review
+stage: done
 tags: [bug, ui]
 parent: null
 depends_on: []
@@ -54,3 +54,13 @@ In `packages/ui/src/hooks/use-configurator-actions.ts`: destructure `opts?.fromT
 - "error path: spy rejects → error set, loading false, actions unchanged"
 
 All 4 pass (`pnpm vitest run packages/ui/src/hooks/__tests__/use-configurator-actions.test.tsx`).
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode + regression-test addition. Underlying fix (primitive destructuring of `opts.fromTs` / `opts.limit` in `useConfiguratorActions`) shipped in `df9f1f2`. Today's commit `dd7884b` adds 4 regression tests including the explicit anti-loop assertion ("3 rerenders produce zero additional fetches"). The property is now pinned against future regressions.

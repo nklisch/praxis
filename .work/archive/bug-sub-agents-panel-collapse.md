@@ -1,7 +1,7 @@
 ---
 id: bug-sub-agents-panel-collapse
 kind: story
-stage: review
+stage: done
 tags: [bug, ui]
 parent: null
 depends_on: []
@@ -65,3 +65,13 @@ Files changed:
 
 Layout test added at:
 `packages/ui/src/__tests__/bootstrap-tab-body-layout.test.tsx`
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `7ffa8f7`. Genuine layout work — the root cause was the bootstrap tab's outline pane having no `flex: 1` on the draft area, so reclaimed panel space wasn't flowing anywhere. Fix introduces two structural wrappers (`.draftScroll` and `.subAgentRow`) that make the collapse/expand behavior align with intent. Layout test at `bootstrap-tab-body-layout.test.tsx:72` pins the property.
