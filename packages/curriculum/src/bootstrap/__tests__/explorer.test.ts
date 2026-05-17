@@ -27,6 +27,7 @@ import {
   draftAddConceptsTool,
   draftAddEdgesTool,
   draftAddLessonsTool,
+  draftAddUnitTool,
   draftInitTool,
   showDraftTool,
 } from "@praxis/tools/course";
@@ -916,6 +917,151 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
     expect(result.reason).toBe("engine_error");
     // The explorer does NOT call finish — the caller (start-exploration.ts) does.
     expect(finishCalls).toHaveLength(0);
+  });
+
+  it("emits setLabel('unit N drafted') after each successful draft_add_unit", async () => {
+    // Verifies the per-unit progress signal introduced to replace the static
+    // "drafting an outline" label for the full build-out. Each successful
+    // draft_add_unit call must update the sub-agent label to "unit N drafted"
+    // so the bootstrap tab shows live structural progress.
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const bootstrap = makeBootstrapService(db);
+    const { handle, setLabelCalls } = makeFakeHandle();
+
+    // Pre-populate a draft with one concept and one lesson via the service
+    // so the scripted engine can call draft_add_unit with a real draftLessonId.
+    const { draftId } = await bootstrap.initDraft({
+      studentId: STUDENT_ID,
+      documentIds: [],
+      courseTitle: "Physics 101",
+      subject: "physics",
+      gradeLevel: "11",
+    });
+    await bootstrap.addConcept({ draftId, name: "Motion", description: "Study of movement" });
+    const lessonResult = await bootstrap.addLesson({
+      draftId,
+      title: "Introduction to Motion",
+      conceptNames: ["Motion"],
+      references: [],
+    });
+    if (!lessonResult.ok) throw new Error("test setup: addLesson failed");
+    // Retrieve the draftLessonId by reading the draft directly.
+    const draft = await bootstrap.showDraft(draftId);
+    const draftLessonId = draft?.proposed.proposedLessons[0]?.draftLessonId;
+    if (!draftLessonId) throw new Error("test setup: no lesson in draft");
+
+    // Run the explorer in continuation mode (draftId pre-set) so draft_init
+    // is skipped and we go straight to unit grouping.
+    const TOOLS_WITH_UNIT = [
+      draftInitTool,
+      draftAddConceptsTool,
+      draftAddEdgesTool,
+      draftAddLessonsTool,
+      draftAddUnitTool,
+      showDraftTool,
+    ];
+
+    const engine = new ScriptedEngine([
+      {
+        toolName: "course.draft_add_unit",
+        args: { name: "Unit 1: Foundations", draftLessonIds: [draftLessonId] },
+      },
+    ]);
+
+    await runConceptExplorer({
+      engine,
+      baseContext: makeBaseContext(bootstrap),
+      toolDefinitions: TOOLS_WITH_UNIT,
+      documentIds: DOC_IDS,
+      courseTitle: "Physics 101",
+      subject: "physics",
+      gradeLevel: "11",
+      log: MOCK_LOG,
+      maxSteps: 30,
+      draftId,
+      onProgress: vi.fn(),
+      subAgentHandle: handle,
+    });
+
+    // The per-unit label must have fired once.
+    expect(setLabelCalls).toContain("unit 1 drafted");
+
+    bootstrap.shutdown();
+  });
+
+  it("increments label counter across multiple draft_add_unit calls", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    const bootstrap = makeBootstrapService(db);
+    const { handle, setLabelCalls } = makeFakeHandle();
+
+    // Set up a draft with two concepts and two lessons so we can add two units.
+    const { draftId } = await bootstrap.initDraft({
+      studentId: STUDENT_ID,
+      documentIds: [],
+      courseTitle: "Chemistry",
+      subject: "chemistry",
+      gradeLevel: "10",
+    });
+    await bootstrap.addConcept({ draftId, name: "Atoms", description: "Basic units of matter" });
+    await bootstrap.addConcept({ draftId, name: "Molecules", description: "Groups of atoms" });
+    const r1 = await bootstrap.addLesson({
+      draftId,
+      title: "Lesson: Atoms",
+      conceptNames: ["Atoms"],
+      references: [],
+    });
+    const r2 = await bootstrap.addLesson({
+      draftId,
+      title: "Lesson: Molecules",
+      conceptNames: ["Molecules"],
+      references: [],
+    });
+    if (!r1.ok || !r2.ok) throw new Error("test setup: addLesson failed");
+    const draft2 = await bootstrap.showDraft(draftId);
+    const id1 = draft2?.proposed.proposedLessons[0]?.draftLessonId;
+    const id2 = draft2?.proposed.proposedLessons[1]?.draftLessonId;
+    if (!id1 || !id2) throw new Error("test setup: missing lesson ids");
+
+    const TOOLS_WITH_UNIT = [
+      draftInitTool,
+      draftAddConceptsTool,
+      draftAddEdgesTool,
+      draftAddLessonsTool,
+      draftAddUnitTool,
+      showDraftTool,
+    ];
+
+    const engine = new ScriptedEngine([
+      {
+        toolName: "course.draft_add_unit",
+        args: { name: "Unit 1: Atomic Structure", draftLessonIds: [id1] },
+      },
+      {
+        toolName: "course.draft_add_unit",
+        args: { name: "Unit 2: Molecular Bonds", draftLessonIds: [id2] },
+      },
+    ]);
+
+    await runConceptExplorer({
+      engine,
+      baseContext: makeBaseContext(bootstrap),
+      toolDefinitions: TOOLS_WITH_UNIT,
+      documentIds: DOC_IDS,
+      courseTitle: "Chemistry",
+      subject: "chemistry",
+      gradeLevel: "10",
+      log: MOCK_LOG,
+      maxSteps: 30,
+      draftId,
+      onProgress: vi.fn(),
+      subAgentHandle: handle,
+    });
+
+    // Labels must reflect the cumulative unit count in order.
+    const unitLabels = setLabelCalls.filter((l) => l.startsWith("unit "));
+    expect(unitLabels).toEqual(["unit 1 drafted", "unit 2 drafted"]);
+
+    bootstrap.shutdown();
   });
 });
 

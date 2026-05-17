@@ -167,6 +167,10 @@ export async function runConceptExplorer(
   // Already past the "reading" phase if we're continuing an existing draft.
   let currentPhase: "reading" | "shaping" | "finalizing" =
     input.draftId !== undefined ? "shaping" : "reading";
+  /** Track tool name by callId so tool_result events can inspect it. */
+  const pendingCallTool = new Map<string, string>();
+  /** Units successfully added in this run — drives the per-unit label. */
+  let unitsAdded = 0;
   /**
    * Captured from the engine's terminal `final` event when the underlying
    * SDK reports a non-success exit (e.g. the Claude Code CLI hit its own
@@ -214,6 +218,9 @@ export async function runConceptExplorer(
         });
         // Emit sub-agent step_started event for transparency UI.
         input.subAgentHandle?.stepStarted({ callId: ev.callId, toolName: ev.toolName });
+        // Record tool name by callId so the tool_result handler can update
+        // the sub-agent label on per-tool events (e.g. per-unit progress).
+        pendingCallTool.set(ev.callId, ev.toolName);
         // Track coarse phase transitions for the activity rail and sub-agent label.
         if (input.onProgress) {
           if (currentPhase === "reading" && ev.toolName === "course.draft_init") {
@@ -239,6 +246,8 @@ export async function runConceptExplorer(
         });
         // Emit sub-agent step_settled event for transparency UI.
         input.subAgentHandle?.stepSettled({ callId: ev.callId, ok: ev.result.ok });
+        const settledToolName = pendingCallTool.get(ev.callId);
+        pendingCallTool.delete(ev.callId);
         if (ev.result.ok) {
           const value = ev.result.value as Record<string, unknown>;
           // Capture draftId from draft_init result and inject into context so
@@ -247,6 +256,13 @@ export async function runConceptExplorer(
             draftId = value.draftId;
             registry.setContextField("draftId", draftId);
             explorerLog.info("explorer.draft_init_captured", { draftId });
+          }
+          // Per-unit progress label: each successful draft_add_unit call updates
+          // the sub-agent label so the bootstrap tab shows "unit N drafted"
+          // instead of a static "drafting an outline" for the full run.
+          if (settledToolName === "course.draft_add_unit") {
+            unitsAdded++;
+            input.subAgentHandle?.setLabel(`unit ${unitsAdded} drafted`);
           }
         }
       }
