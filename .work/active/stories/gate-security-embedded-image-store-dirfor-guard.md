@@ -1,7 +1,7 @@
 ---
 id: gate-security-embedded-image-store-dirfor-guard
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -46,3 +46,14 @@ fixture) passing a hostile string would be honored by the store.
 Add a single guard inside `FsEmbeddedImageStore.dirFor` /
 `FsPageImageStore.dirFor` that rejects ids containing `/`, `\\`, `..`, or null
 bytes. One line; makes both stores correct-by-construction regardless of caller.
+
+## Implementation notes — Land mode
+
+Work already shipped; orchestrator audit confirmed both stores have the guard:
+
+- `packages/core/src/ingestion/embedded-images.ts:42` — `FsEmbeddedImageStore.dirFor` calls `assertSafeDocumentId(input.documentId)` before joining.
+- `packages/core/src/ingestion/page-images.ts:37` — `FsPageImageStore.dirFor` mirrors the same call.
+- `packages/core/src/ingestion/document-id-guard.ts` — `assertSafeDocumentId` rejects `/`, `\\`, `..`, null bytes, `~/` prefix, and `^[A-Za-z]:` (Windows drive prefix). Broader than the gate's minimal rule set, which is correct given the parallel path-traversal feature that shipped.
+- Tests in `packages/core/src/ingestion/__tests__/embedded-images.test.ts:85+` cover the throw cases (lines 103-129) and the success cases (lines 140-146).
+
+Gate is fully closed — no code change required. Advance to review.

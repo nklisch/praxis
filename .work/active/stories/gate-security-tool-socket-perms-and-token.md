@@ -1,7 +1,7 @@
 ---
 id: gate-security-tool-socket-perms-and-token
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -47,3 +47,15 @@ explicitly after `server.listen` resolves; add a one-line authentication
 token in `CLAUDE_SDK_TOOL_SOCKET_TOKEN` env var that the worker echoes on
 connect, so even if the socket is reachable, a stray local process can't
 invoke tools.
+
+## Implementation notes — Land mode
+
+Work already shipped; orchestrator audit confirmed:
+
+- `packages/claude-cli-sdk/src/tool-server.ts:139` — `crypto.randomBytes(32).toString("hex")` generates a 32-byte auth token per server.
+- `packages/claude-cli-sdk/src/tool-server.ts:172` — every connection's first frame must include a `token` field that `timingSafeEqualHex` matches against the generated token.
+- `packages/claude-cli-sdk/src/tool-server.ts:213` — explicit `fs.chmod(socketPath, 0o600)` runs after `server.listen` resolves (non-fatal-on-error with debug log).
+- `packages/claude-cli-sdk/src/tool-server.ts:228` — token plumbed to the child worker via `TOKEN_ENV` (`CLAUDE_SDK_TOOL_SOCKET_TOKEN`) in the process env.
+- Test coverage at `packages/claude-cli-sdk/src/__tests__/tool-server-auth.test.ts` exercises the auth-token frame contract.
+
+Gate is fully closed — no code change required. Advance to review.

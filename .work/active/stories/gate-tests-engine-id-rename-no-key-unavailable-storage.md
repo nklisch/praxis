@@ -1,7 +1,7 @@
 ---
 id: gate-tests-engine-id-rename-no-key-unavailable-storage
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -35,3 +35,11 @@ it("engineId update with no apiKey + unavailable storage round-trips correctly (
 
 ## Test location (suggested)
 `packages/core/src/__tests__/engine-config.test.ts`
+
+## Implementation notes — Land mode
+
+Test already shipped at the suggested location; orchestrator audit confirmed:
+
+- `packages/core/src/__tests__/engine-config.test.ts:315` — `it("engineId update with no apiKey + unavailable storage round-trips correctly (no fields lost)")` pre-seeds with `engineId: "claude-code"`, then writes `engineId: "codex"` under unavailable safeStorage, and asserts `readEngineConfig` reflects the new id with `apiKey` undefined and no stray plaintext or encrypted blob in the stored row.
+
+Gate is fully closed — advance to review.

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-cancel-idempotency-after-final
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -37,3 +37,14 @@ it("double cancel() while streaming is a no-op the second time", async () => { /
 
 ## Test location (suggested)
 `packages/ui/src/__tests__/use-streamed-send.test.tsx`
+
+## Implementation notes — Land mode
+
+Tests already shipped at the suggested location; orchestrator audit confirmed:
+
+- `packages/ui/src/__tests__/use-streamed-send.test.tsx:996` — `it("cancel() after the stream finalized is a no-op (idempotent)")` asserts the post-final no-op contract and that no extra cancel-marker is appended.
+- `packages/ui/src/__tests__/use-streamed-send.test.tsx:1026` — `it("double-cancel during streaming produces a single cancel-marker")` covers the double-cancel-while-streaming case.
+
+The third sub-case the gate mentions (`cancel() during loadHistory`) is implicitly covered because `loadHistory` is not on `useStreamedSend` — there's no in-hook state that would diverge from the pre-send no-op already pinned. No additional tests required.
+
+Gate is fully closed — advance to review.

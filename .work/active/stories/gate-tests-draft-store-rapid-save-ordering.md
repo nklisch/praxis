@@ -1,7 +1,7 @@
 ---
 id: gate-tests-draft-store-rapid-save-ordering
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -34,3 +34,11 @@ it("rapid back-to-back save() calls preserve the last-written state", () => {
 
 ## Test location (suggested)
 `packages/core/src/__tests__/draft-store.test.ts`
+
+## Implementation notes — Land mode
+
+Test already shipped at the suggested location; orchestrator audit confirmed:
+
+- `packages/core/src/__tests__/draft-store.test.ts:293` — `it("rapid back-to-back save() calls preserve the last-written state (single-process race window)")` covers exactly the scenario the gate suggested: two `save()` calls in the same tick with no await, asserts `load()` returns the second state, asserts `lastTouchedAt` reflects the second save, and additionally pins that `createdAt` is preserved from the first save (upsert never overwrites it).
+
+Gate is fully closed — advance to review.

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-sub-agent-collision-warn-log
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -36,3 +36,13 @@ it("start() with duplicate parentCallId warn-logs the collision so it's diagnosa
 
 ## Test location (suggested)
 `packages/core/src/services/__tests__/subagent-registry.test.ts`
+
+## Implementation notes — Land mode
+
+The gate offered two resolutions: (A) document silent-no-op as intentional in the test name, or (B) add a warn-log assertion. Resolution (A) shipped:
+
+- `packages/core/src/services/__tests__/subagent-registry.test.ts:97` — `it("start() with same parentCallId is a silent no-op (by design — collision is a registry guarantee, not an error)")` makes the silent-by-design contract explicit in the test name, with an inline comment pinning the rationale ("Spec-silent contract pin: the registry treats collision as idempotent") and a follow-up assertion that no event is emitted on the second start.
+
+The silent-by-design choice is correct given collision is a structural guarantee from the registry, not a caller error condition — warn-logging would create noise on legitimate idempotent retries.
+
+Gate is fully closed — advance to review.

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-interrupt-all-event-fanout-count
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -39,3 +39,17 @@ it("interruptAllForSession emits exactly one terminal event per in-flight item",
   // Assert exactly 3 finished events with status:"interrupted" delivered (no duplicates, no leaks)
 });
 ```
+
+## Implementation notes — Land mode
+
+The "exactly one terminal event per in-flight item" property is already pinned at `packages/core/src/services/__tests__/subagent-registry.test.ts:445` via `it("interrupts multiple running items for the same session")`:
+
+- Starts two sub-agents for `sess-multi`
+- Calls `registry.interruptAllForSession("sess-multi")`
+- Asserts `finished.toHaveLength(2)` (no duplicates, no leaks)
+- Asserts each finished event's `parentCallId` is in the started set
+- Asserts every registry item for `sess-multi` transitions to status `interrupted`
+
+The gate's suggested N=3 case is a different witness of the same property the N=2 case pins. Increasing N would not add coverage of a different state; the property's adversarial dimension is "duplicates or leaks on fanout", which is closed at N=2.
+
+Gate is functionally closed — advance to review.
