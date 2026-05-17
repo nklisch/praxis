@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>App shell — Option 2: The Reading Room</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta {
+      padding: 8px 16px; background: #0d1117; color: #c9d1d9;
+      display: flex; gap: 16px; align-items: baseline;
+      font: 13px/1.4 system-ui, sans-serif;
+      border-bottom: 1px solid #30363d;
+    }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+
+    /* ─ Reading Room shell: persistent left rail with glyphs + mono labels; bottom-strip ambient ─ */
+    .shell { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 1fr 32px; min-height: calc(100vh - 36px); }
+
+    nav.rail {
+      grid-column: 1; grid-row: 1 / -1;
+      border-right: 1px solid var(--color-border);
+      padding: 24px 0 16px;
+      display: flex; flex-direction: column; gap: 4px;
+      background: var(--color-bg-primary);
+    }
+    nav.rail .wordmark { font: 500 italic 24px/1 var(--font-display); padding: 0 24px 8px; }
+    nav.rail .deck { padding: 0 24px 32px; font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); }
+    nav.rail .section-label { padding: 16px 24px 8px; font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); }
+    nav.rail a {
+      display: flex; align-items: baseline; gap: 12px;
+      padding: 8px 24px; text-decoration: none;
+      font: 600 12px/1.2 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-text-secondary);
+      border-left: 2px solid transparent;
+    }
+    nav.rail a .glyph { font-family: var(--font-serif); font-style: italic; font-weight: 500; font-size: 16px; color: var(--color-text-tertiary); text-transform: none; letter-spacing: 0; }
+    nav.rail a:hover { color: var(--color-text-primary); background: var(--color-bg-tertiary); }
+    nav.rail a.active { color: var(--color-text-primary); border-left-color: var(--color-accent); background: var(--color-accent-muted); }
+    nav.rail a.active .glyph { color: var(--color-accent); }
+    nav.rail a.locked { opacity: 0.5; }
+    nav.rail .lock-line { padding: 12px 24px; border-top: 1px solid var(--color-border); font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); }
+
+    /* ─ Theme toggle (placed at bottom of rail above lock-line) ─ */
+    .theme-toggle { padding: 12px 24px 8px; margin-top: auto; border-top: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .theme-toggle .label { color: var(--color-text-tertiary); margin-right: 4px; }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button:hover { color: var(--color-text-primary); }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    main.surface { grid-column: 2; grid-row: 1; overflow-y: auto; padding: 24px 40px 64px; max-width: 1200px; }
+
+    /* Bottom ambient strip — full-width ticker */
+    .ambient-strip {
+      grid-column: 1 / -1; grid-row: 2;
+      border-top: 1px solid var(--color-border);
+      background: var(--color-bg-secondary);
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 24px;
+      font: 11px/1 var(--font-mono); color: var(--color-text-secondary); letter-spacing: 0.04em;
+    }
+    .ambient-strip .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--tint-bootstrap); animation: pulse 2s ease-in-out infinite; }
+    .ambient-strip .item { display: flex; align-items: center; gap: 8px; }
+    .ambient-strip .item .label { text-transform: uppercase; letter-spacing: var(--letter-spacing-kicker); font-weight: 600; }
+    .ambient-strip .item .detail { color: var(--color-text-tertiary); font-style: italic; font-family: var(--font-serif); text-transform: none; letter-spacing: 0; }
+    .ambient-strip .sep { color: var(--color-text-tertiary); }
+    .ambient-strip .spacer { flex: 1; }
+    .ambient-strip .version { font-style: italic; font-family: var(--font-serif); color: var(--color-text-tertiary); font-size: 12px; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    /* Library content (same pattern across all options for visual consistency) */
+    .route-header { margin-bottom: 32px; }
+    .route-header .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 6px; }
+    .route-header h1 { font: 500 italic 36px/1.1 var(--font-display); margin: 0; }
+    .route-header .deck { margin-top: 6px; font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+
+    .lib-section { margin-bottom: 48px; }
+    .lib-section h2 {
+      font: 600 11px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase;
+      color: var(--color-text-secondary); margin: 0 0 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .lib-section h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .lib-section h2 .count { color: var(--color-text-tertiary); font-weight: 400; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .card:hover { border-color: var(--color-border-strong); cursor: pointer; }
+    .card .meta { font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+    .card .meta .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .card .title { font: 500 italic 18px/1.25 var(--font-display); }
+    .card .title em { font-weight: 600; font-style: italic; }
+    .card .subtitle { font: 14px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .card .progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .card .progress .bar { flex: 1; height: 2px; background: var(--color-bg-tertiary); }
+    .card .progress .bar .fill { height: 100%; background: var(--color-accent); }
+
+    .item-line { display: flex; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--color-border); gap: 16px; }
+    .item-line:last-child { border-bottom: none; }
+    .item-line .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); min-width: 14ch; display: flex; align-items: center; gap: 6px; }
+    .item-line .kicker .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .item-line .title { flex: 1; font: var(--font-size-base)/1.4 var(--font-serif); }
+    .item-line .title em { font-style: italic; }
+    .item-line .when { font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 2 — The Reading Room</strong>
+    <span>Persistent left rail with editorial glyphs + uppercase mono labels. Ambient work moves to a slim bottom-strip ticker. The familiar shape, refined.</span>
+  </header>
+
+  <div class="shell">
+    <nav class="rail">
+      <div class="wordmark"><em>Praxis</em></div>
+      <div class="deck">an open<br/>framework for<br/>AI tutors</div>
+
+      <div class="section-label">Surfaces</div>
+      <a href="#" class="active"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+
+      <div class="section-label">Open sessions <span style="color: var(--color-text-secondary); font-weight: 400;">· 2</span></div>
+      <a href="#"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">‡</span>Quiz · derivatives</a>
+
+      <div class="section-label">Authoring</div>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+
+      <div class="theme-toggle" role="group" aria-label="Theme">
+        <span class="label">Theme</span>
+        <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+        <button data-theme="light">light</button><span class="sep">·</span>
+        <button data-theme="dark">dark</button>
+      </div>
+      <div class="lock-line"><em>Configure is locked.<br/>Unlock with a code.</em></div>
+    </nav>
+
+    <main class="surface">
+      <div class="route-header">
+        <div class="kicker">§ Library · all</div>
+        <h1>Front <em>door</em></h1>
+        <div class="deck">Where you start. Where you come back to.</div>
+      </div>
+
+      <div class="lib-section">
+        <h2><span class="glyph">§</span> In progress <span class="count">· 1</span></h2>
+        <div class="card-grid">
+          <div class="card">
+            <div class="meta"><span class="dot" style="background: var(--tint-teach);"></span>Teach · Calculus I</div>
+            <div class="title">Why the chain rule <em>actually works</em></div>
+            <div class="subtitle">Lesson 3 of 12 · last opened yesterday afternoon</div>
+            <div class="progress"><span>25%</span><div class="bar"><div class="fill" style="width: 25%;"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-section">
+        <h2><span class="glyph">¶</span> Available packs <span class="count">· 2</span></h2>
+        <div class="card-grid">
+          <div class="card">
+            <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>Canonical · Biology</div>
+            <div class="title">Cell <em>Biology</em></div>
+            <div class="subtitle">14 units · 87 lessons · adapted from OpenStax</div>
+          </div>
+          <div class="card">
+            <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>Canonical · Mathematics</div>
+            <div class="title">Linear <em>Algebra</em></div>
+            <div class="subtitle">9 units · 52 lessons · adapted from Strang</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-section">
+        <h2><span class="glyph">‖</span> Recent sessions <span class="count">· 4</span></h2>
+        <div class="item-line">
+          <div class="kicker"><span class="dot" style="background: var(--tint-teach);"></span>§ Teach</div>
+          <div class="title">Calculus · Chain rule, <em>first encounter</em></div>
+          <div class="when">2h ago</div>
+        </div>
+        <div class="item-line">
+          <div class="kicker"><span class="dot" style="background: var(--tint-bootstrap);"></span>¶ Bootstrap</div>
+          <div class="title">Stewart Calc 8e · <em>course shape draft</em></div>
+          <div class="when">yesterday</div>
+        </div>
+        <div class="item-line">
+          <div class="kicker"><span class="dot" style="background: var(--tint-quiz);"></span>‡ Quiz</div>
+          <div class="title">Derivatives review · <em>8 of 12 correct</em></div>
+          <div class="when">2 days ago</div>
+        </div>
+        <div class="item-line">
+          <div class="kicker"><span class="dot" style="background: var(--tint-study-skills);"></span>‖ Study skills</div>
+          <div class="title">Spaced review · <em>15 cards</em></div>
+          <div class="when">4 days ago</div>
+        </div>
+      </div>
+
+      <div class="lib-section">
+        <h2><span class="glyph">†</span> Documents <span class="count">· 2 · 1 indexing</span></h2>
+        <div class="item-line">
+          <div class="kicker">PDF</div>
+          <div class="title">Stewart Calculus 8e · <em>indexing 312 / 847 pages</em></div>
+          <div class="when">started 2h ago</div>
+        </div>
+        <div class="item-line">
+          <div class="kicker">PDF</div>
+          <div class="title">AP Bio class notes</div>
+          <div class="when">23 pages · ready</div>
+        </div>
+      </div>
+    </main>
+
+    <div class="ambient-strip">
+      <span class="pulse"></span>
+      <div class="item"><span class="label">Indexing</span><span class="detail">Stewart Calc 8e · 312/847 pages</span></div>
+      <span class="sep">·</span>
+      <div class="item"><span class="label">Queue</span><span class="detail">2 indexers pending</span></div>
+      <span class="spacer"></span>
+      <span class="version">Praxis v1.2 · update available</span>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.theme;
+        if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', mode);
+        document.querySelectorAll('.theme-toggle button').forEach(el =>
+          el.classList.toggle('active', el.dataset.theme === mode));
+      });
+    });
+  </script>
+</body>
+</html>

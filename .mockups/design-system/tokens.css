@@ -135,13 +135,20 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────
- * Dark mode — system-follows OS preference.
+ * Dark-mode values (DRY block — applied by both system-follow path
+ * and explicit data-theme="dark" path below).
+ *
  * Token names invariant; values shift. Mode-tint dots brighten so
  * they remain visible on the dark surface.
+ *
+ * Resolution order:
+ *   1. No data-theme attribute  → system-follows via @media query
+ *   2. data-theme="light"       → forced light (always wins)
+ *   3. data-theme="dark"        → forced dark (always wins)
  * ─────────────────────────────────────────────────────────────────── */
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --color-bg-primary:   #18181a;
     --color-bg-secondary: #21221f;
     --color-bg-tertiary:  #2c2c28;
@@ -157,7 +164,7 @@
     --color-border:        #2c2c28;
     --color-border-strong: #494940;
 
-    --color-accent:       #e8967d;   /* brick-light for dark surface readability */
+    --color-accent:       #e8967d;
     --color-accent-hover: #f0a892;
     --color-accent-muted: #2f201c;
 
@@ -175,3 +182,42 @@
     --tint-study-skills: #82bab3;
   }
 }
+
+/* Explicit toggle: data-theme="dark" — wins over any system preference. */
+:root[data-theme="dark"] {
+  --color-bg-primary:   #18181a;
+  --color-bg-secondary: #21221f;
+  --color-bg-tertiary:  #2c2c28;
+  --color-bg-inverse:   #f5f4f0;
+
+  --color-text-primary:    #ebebe6;
+  --color-text-secondary:  #8d8b82;
+  --color-text-tertiary:   #5f5d57;
+  --color-text-inverse:    #18181a;
+  --color-text-link:       #e8967d;
+  --color-text-link-hover: #f0a892;
+
+  --color-border:        #2c2c28;
+  --color-border-strong: #494940;
+
+  --color-accent:       #e8967d;
+  --color-accent-hover: #f0a892;
+  --color-accent-muted: #2f201c;
+
+  --color-success: #93b878;
+  --color-warning: #ddae5e;
+  --color-danger:  #e08b87;
+  --color-info:    #82a8c4;
+
+  --tint-teach:        #e0a060;
+  --tint-bootstrap:    #93b878;
+  --tint-quiz:         #8aa0b0;
+  --tint-homework:     #8a8eb8;
+  --tint-exam:         #e8967d;
+  --tint-configure:    #8d8b82;
+  --tint-study-skills: #82bab3;
+}
+
+/* data-theme="light" is implicit on :root defaults — listed in the
+ * media-query selector above as the "do not override" sentinel. No
+ * additional rules needed here. */

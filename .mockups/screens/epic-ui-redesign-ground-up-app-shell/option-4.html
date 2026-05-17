@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>App shell — Option 4: The Wing Chair</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta {
+      padding: 8px 16px; background: #0d1117; color: #c9d1d9;
+      display: flex; gap: 16px; align-items: baseline;
+      font: 13px/1.4 system-ui, sans-serif;
+      border-bottom: 1px solid #30363d;
+    }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+
+    /* ─ Wing Chair shell: large editorial wordmark + right-side nav rail with integrated ambient ─ */
+    .shell { display: grid; grid-template-columns: 1fr 240px; min-height: calc(100vh - 36px); }
+
+    main.surface { grid-column: 1; padding: 0 32px 64px 64px; overflow-y: auto; }
+
+    /* Expressive masthead inside main surface */
+    .masthead {
+      padding: 48px 0 32px;
+      border-bottom: 2px solid var(--color-text-primary);
+      margin-bottom: 32px;
+      display: flex; align-items: baseline; gap: 40px;
+    }
+    .masthead .wordmark { font: 500 italic 64px/0.9 var(--font-display); letter-spacing: -0.02em; margin: 0; }
+    .masthead .deck-block { flex: 1; padding-bottom: 8px; }
+    .masthead .deck-block .deck { font: italic 18px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 6px; max-width: 36ch; }
+    .masthead .deck-block .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); }
+    .masthead .vol { font: italic 14px/1.4 var(--font-serif); color: var(--color-text-tertiary); text-align: right; align-self: flex-end; padding-bottom: 8px; }
+    .masthead .vol .num { display: block; font: italic 28px/1 var(--font-display); color: var(--color-text-secondary); }
+
+    /* Right rail nav — reversed direction, intimate */
+    nav.rail {
+      grid-column: 2; grid-row: 1 / -1;
+      border-left: 1px solid var(--color-border);
+      padding: 48px 0 16px;
+      display: flex; flex-direction: column;
+      background: var(--color-bg-primary);
+      position: sticky; top: 0; align-self: flex-start; height: 100vh;
+    }
+    nav.rail .section-label { padding: 0 24px 8px; font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); text-align: right; }
+    nav.rail .section-label:first-of-type { padding-top: 0; }
+    nav.rail .section-label:not(:first-of-type) { padding-top: 24px; }
+    nav.rail a {
+      display: flex; align-items: baseline; gap: 14px; justify-content: flex-end;
+      padding: 8px 24px; text-decoration: none;
+      font: 500 italic 15px/1.2 var(--font-display);
+      color: var(--color-text-secondary);
+      border-right: 2px solid transparent;
+    }
+    nav.rail a .glyph { font-family: var(--font-serif); font-style: italic; font-weight: 500; color: var(--color-text-tertiary); }
+    nav.rail a:hover { color: var(--color-text-primary); background: var(--color-bg-tertiary); }
+    nav.rail a.active { color: var(--color-text-primary); border-right-color: var(--color-accent); background: var(--color-accent-muted); }
+    nav.rail a.active .glyph { color: var(--color-accent); }
+    nav.rail a.locked { opacity: 0.45; font-style: italic; }
+    nav.rail a.locked::after { content: '†'; color: var(--color-text-tertiary); margin-left: 4px; font-size: 12px; }
+
+    /* Open sessions in rail with dots */
+    nav.rail .sessions { padding: 4px 0; }
+    nav.rail .session { display: flex; align-items: baseline; gap: 8px; justify-content: flex-end; padding: 6px 24px; font: 12px/1.3 var(--font-serif); color: var(--color-text-secondary); cursor: pointer; }
+    nav.rail .session:hover { color: var(--color-text-primary); }
+    nav.rail .session .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    /* Ambient pulse integrated at bottom of rail */
+    nav.rail .ambient {
+      margin-top: auto; padding: 16px 24px;
+      border-top: 1px solid var(--color-border);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    nav.rail .ambient .head { display: flex; align-items: center; gap: 8px; justify-content: flex-end; font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); }
+    nav.rail .ambient .head .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--tint-bootstrap); animation: pulse 2s ease-in-out infinite; }
+    nav.rail .ambient .item { text-align: right; font: italic 12px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    nav.rail .ambient .progress { display: flex; align-items: center; gap: 6px; justify-content: flex-end; font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    nav.rail .ambient .progress .bar { width: 64px; height: 2px; background: var(--color-bg-tertiary); }
+    nav.rail .ambient .progress .bar .fill { height: 100%; background: var(--tint-bootstrap); width: 37%; }
+    nav.rail .ambient .version { margin-top: 12px; font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); text-align: right; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    /* ─ Theme toggle (in rail, after Surfaces, before Open) ─ */
+    .theme-toggle { padding: 12px 24px 0; display: flex; align-items: baseline; gap: 4px; justify-content: flex-end; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button:hover { color: var(--color-text-primary); }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* Library content */
+    .lib-section { margin-bottom: 48px; }
+    .lib-section h2 {
+      font: 600 11px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase;
+      color: var(--color-text-secondary); margin: 0 0 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .lib-section h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .lib-section h2 .count { color: var(--color-text-tertiary); font-weight: 400; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .card:hover { border-color: var(--color-border-strong); cursor: pointer; }
+    .card .meta { font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+    .card .meta .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .card .title { font: 500 italic 18px/1.25 var(--font-display); }
+    .card .title em { font-weight: 600; font-style: italic; }
+    .card .subtitle { font: 14px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .card .progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .card .progress .bar { flex: 1; height: 2px; background: var(--color-bg-tertiary); }
+    .card .progress .bar .fill { height: 100%; background: var(--color-accent); }
+
+    .item-line { display: flex; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--color-border); gap: 16px; }
+    .item-line:last-child { border-bottom: none; }
+    .item-line .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); min-width: 14ch; display: flex; align-items: center; gap: 6px; }
+    .item-line .kicker .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .item-line .title { flex: 1; font: var(--font-size-base)/1.4 var(--font-serif); }
+    .item-line .title em { font-style: italic; }
+    .item-line .when { font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 4 — The Wing Chair</strong>
+    <span>Right-side rail (reversed direction reads as intimate). Large editorial wordmark + deck claim the masthead. Ambient work tucked into the bottom of the rail; tabs/sessions surface as italic deck lines.</span>
+  </header>
+
+  <div class="shell">
+    <main class="surface">
+      <div class="masthead">
+        <h1 class="wordmark"><em>Praxis</em></h1>
+        <div class="deck-block">
+          <div class="deck">an open framework for AI tutors that prioritise learning over answers.</div>
+          <div class="kicker">§ Library · the front door</div>
+        </div>
+        <div class="vol">
+          <span>2026</span>
+          <span class="num">v.1·2</span>
+        </div>
+      </div>
+
+      <div class="lib-section">
+        <h2><span class="glyph">§</span> In progress <span class="count">· 1</span></h2>
+        <div class="card-grid">
+          <div class="card">
+            <div class="meta"><span class="dot" style="background: var(--tint-teach);"></span>Teach · Calculus I</div>
+            <div class="title">Why the chain rule <em>actually works</em></div>
+            <div class="subtitle">Lesson 3 of 12 · last opened yesterday afternoon</div>
+            <div class="progress"><span>25%</span><div class="bar"><div class="fill" style="width: 25%;"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-section">
+        <h2><span class="glyph">¶</span> Available packs <span class="count">· 2</span></h2>
+        <div class="card-grid">
+          <div class="card">
+            <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>Canonical · Biology</div>
+            <div class="title">Cell <em>Biology</em></div>
+            <div class="subtitle">14 units · 87 lessons · adapted from OpenStax</div>
+          </div>
+          <div class="card">
+            <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>Canonical · Mathematics</div>
+            <div class="title">Linear <em>Algebra</em></div>
+            <div class="subtitle">9 units · 52 lessons · adapted from Strang</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lib-section">
+        <h2><span class="glyph">‖</span> Recent sessions <span class="count">· 4</span></h2>
+        <div class="item-line">
+          <div class="kicker"><span class="dot" style="background: var(--tint-teach);"></span>§ Teach</div>
+          <div class="title">Calculus · Chain rule, <em>first encounter</em></div>
+          <div class="when">2h ago</div>
+        </div>
+        <div class="item-line">
+          <div class="kicker"><span class="dot" style="background: var(--tint-bootstrap);"></span>¶ Bootstrap</div>
+          <div class="title">Stewart Calc 8e · <em>course shape draft</em></div>
+          <div class="when">yesterday</div>
+        </div>
+        <div class="item-line">
+          <div class="kicker"><span class="dot" style="background: var(--tint-quiz);"></span>‡ Quiz</div>
+          <div class="title">Derivatives review · <em>8 of 12 correct</em></div>
+          <div class="when">2 days ago</div>
+        </div>
+        <div class="item-line">
+          <div class="kicker"><span class="dot" style="background: var(--tint-study-skills);"></span>‖ Study skills</div>
+          <div class="title">Spaced review · <em>15 cards</em></div>
+          <div class="when">4 days ago</div>
+        </div>
+      </div>
+
+      <div class="lib-section">
+        <h2><span class="glyph">†</span> Documents <span class="count">· 2 · 1 indexing</span></h2>
+        <div class="item-line">
+          <div class="kicker">PDF</div>
+          <div class="title">Stewart Calculus 8e · <em>indexing 312 / 847 pages</em></div>
+          <div class="when">started 2h ago</div>
+        </div>
+        <div class="item-line">
+          <div class="kicker">PDF</div>
+          <div class="title">AP Bio class notes</div>
+          <div class="when">23 pages · ready</div>
+        </div>
+      </div>
+    </main>
+
+    <nav class="rail">
+      <div class="section-label">Surfaces</div>
+      <a href="#" class="active">Library <span class="glyph">§</span></a>
+      <a href="#">Workspace <span class="glyph">¶</span></a>
+      <a href="#">Concept maps <span class="glyph">‡</span></a>
+      <a href="#">Progress <span class="glyph">‖</span></a>
+      <a href="#" class="locked">Configure <span class="glyph">⁂</span></a>
+
+      <div class="section-label">Theme</div>
+      <div class="theme-toggle" role="group" aria-label="Theme">
+        <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+        <button data-theme="light">light</button><span class="sep">·</span>
+        <button data-theme="dark">dark</button>
+      </div>
+
+      <div class="section-label">Open</div>
+      <div class="sessions">
+        <div class="session">Calculus · <em>L3</em><span class="dot" style="background: var(--tint-teach);"></span></div>
+        <div class="session">Quiz · <em>derivatives</em><span class="dot" style="background: var(--tint-quiz);"></span></div>
+      </div>
+
+      <div class="ambient">
+        <div class="head"><span class="pulse"></span>Ambient</div>
+        <div class="item"><em>Indexing</em> Stewart Calc 8e</div>
+        <div class="progress"><span>312/847</span><div class="bar"><div class="fill"></div></div></div>
+        <div class="version">v1·2 — <em style="color: var(--color-accent);">update available</em></div>
+      </div>
+    </nav>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.theme;
+        if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', mode);
+        document.querySelectorAll('.theme-toggle button').forEach(el =>
+          el.classList.toggle('active', el.dataset.theme === mode));
+      });
+    });
+  </script>
+</body>
+</html>

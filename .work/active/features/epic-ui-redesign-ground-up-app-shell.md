@@ -57,7 +57,24 @@ What lands:
   student-class / self-directed)
 - `docs/designs/activity-rail.md` — current ambient-progress design
 
-<!-- The design pass will produce screen mocks for the root layout +
-options, and a flow mock for first-run. Implementation child stories will
-swap out the existing RootLayout/nav/ActivityRail once mocks are
-signed off. -->
+## Mockups
+
+- Screens: `.mockups/screens/epic-ui-redesign-ground-up-app-shell/index.html`
+- **Selected: Option 3 — The Index** (2026-05-17)
+  - Top horizontal nav reads as a journal's running head — wordmark,
+    five surface links (Library / Workspace / Concept maps / Progress /
+    Configure), and open session tabs as italic deck lines on the right
+  - Near-invisible status strip directly under nav surfaces ambient
+    work (indexing progress, version updates) — appears when there's
+    work, fades when there isn't
+  - No left sidebar — full-width content
+  - Theme toggle (auto · light · dark) lives at the right edge of the
+    running head; drives `data-theme` attribute on `<html>`
+- Considered: Atelier (no nav, cmd-K palette), Reading Room (left rail),
+  Wing Chair (right rail, large editorial wordmark) — all available
+  in `.mockups/screens/.../option-{1,2,4}.html`
+
+The first-run / onboarding flow will spawn as a child story in this
+feature's implementation pass and produce a `.mockups/flows/first-run/`
+deliverable then. Top-nav choice doesn't constrain the first-run flow,
+so flow design is deferred to implementation time.

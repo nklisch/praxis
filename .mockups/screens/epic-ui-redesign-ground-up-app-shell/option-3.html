@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>App shell — Option 3: The Index</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta {
+      padding: 8px 16px; background: #0d1117; color: #c9d1d9;
+      display: flex; gap: 16px; align-items: baseline;
+      font: 13px/1.4 system-ui, sans-serif;
+      border-bottom: 1px solid #30363d;
+    }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+
+    /* ─ Index shell: top horizontal nav as a journal's running head + a near-invisible status strip ─ */
+    .running-head {
+      padding: 18px 32px 12px;
+      display: flex; align-items: baseline; gap: 32px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); letter-spacing: -0.005em; }
+    .running-head nav { display: flex; align-items: baseline; gap: 28px; flex: 1; }
+    .running-head nav a {
+      text-decoration: none;
+      font: 500 14px/1 var(--font-serif);
+      color: var(--color-text-secondary);
+      padding: 4px 0;
+      border-bottom: 1px solid transparent;
+      display: flex; align-items: baseline; gap: 6px;
+    }
+    .running-head nav a:hover { color: var(--color-text-primary); }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.active .glyph { color: var(--color-accent); }
+    .running-head nav a.locked { opacity: 0.5; }
+    .running-head nav a.locked::after { content: ' †'; color: var(--color-text-tertiary); font-style: italic; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 12px; padding-left: 28px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); color: var(--color-text-secondary); display: flex; align-items: baseline; gap: 4px; }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+
+    /* ─ Theme toggle (right side of running-head) ─ */
+    .theme-toggle { display: flex; align-items: baseline; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button:hover { color: var(--color-text-primary); }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* Near-invisible status strip under nav — visible only when there's activity */
+    .status-strip {
+      padding: 6px 32px;
+      background: transparent;
+      border-bottom: 1px solid var(--color-border);
+      display: flex; align-items: center; gap: 12px;
+      font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em;
+      min-height: 24px;
+    }
+    .status-strip.has-work { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
+    .status-strip .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--tint-bootstrap); animation: pulse 2s ease-in-out infinite; display: inline-block; }
+    .status-strip .label { text-transform: uppercase; letter-spacing: var(--letter-spacing-kicker); font-weight: 600; }
+    .status-strip .detail { font-style: italic; font-family: var(--font-serif); font-size: 12px; }
+    .status-strip .progress-bar { width: 80px; height: 2px; background: var(--color-bg-secondary); }
+    .status-strip .progress-bar .fill { height: 100%; background: var(--tint-bootstrap); width: 37%; }
+    .status-strip .spacer { flex: 1; }
+    .status-strip .version { font-style: italic; font-family: var(--font-serif); font-size: 12px; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    main.surface { padding: 32px 32px 64px; max-width: 1200px; margin: 0 auto; }
+
+    /* Library content */
+    .route-header { margin-bottom: 32px; }
+    .route-header .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 6px; }
+    .route-header h1 { font: 500 italic 40px/1.1 var(--font-display); margin: 0; }
+    .route-header .deck { margin-top: 6px; font: italic 15px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+
+    .lib-section { margin-bottom: 48px; }
+    .lib-section h2 {
+      font: 600 11px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase;
+      color: var(--color-text-secondary); margin: 0 0 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .lib-section h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .lib-section h2 .count { color: var(--color-text-tertiary); font-weight: 400; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .card:hover { border-color: var(--color-border-strong); cursor: pointer; }
+    .card .meta { font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+    .card .meta .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .card .title { font: 500 italic 18px/1.25 var(--font-display); }
+    .card .title em { font-weight: 600; font-style: italic; }
+    .card .subtitle { font: 14px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .card .progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .card .progress .bar { flex: 1; height: 2px; background: var(--color-bg-tertiary); }
+    .card .progress .bar .fill { height: 100%; background: var(--color-accent); }
+
+    .item-line { display: flex; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--color-border); gap: 16px; }
+    .item-line:last-child { border-bottom: none; }
+    .item-line .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); min-width: 14ch; display: flex; align-items: center; gap: 6px; }
+    .item-line .kicker .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .item-line .title { flex: 1; font: var(--font-size-base)/1.4 var(--font-serif); }
+    .item-line .title em { font-style: italic; }
+    .item-line .when { font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 3 — The Index</strong>
+    <span>Top nav as a journal's running head. No left sidebar. The horizontal table-of-contents reads as a print-magazine masthead; ambient work sits in a near-invisible status strip directly beneath.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#" class="active"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab"><span class="dot" style="background: var(--tint-teach);"></span>Calculus · L3</span>
+      <span class="tab"><span class="dot" style="background: var(--tint-quiz);"></span>Quiz · deriv.</span>
+    </div>
+    <div class="theme-toggle" role="group" aria-label="Theme">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="status-strip has-work">
+    <span class="pulse"></span>
+    <span class="label">Indexing</span>
+    <span class="detail">Stewart Calculus 8e · 312 of 847 pages</span>
+    <div class="progress-bar"><div class="fill"></div></div>
+    <span class="spacer"></span>
+    <span class="version">v1.2 · <a href="#" style="color: var(--color-accent);">update available</a></span>
+  </div>
+
+  <main class="surface">
+    <div class="route-header">
+      <div class="kicker">§ Library · all</div>
+      <h1>Front <em>door</em></h1>
+      <div class="deck">Where you start. Where you come back to.</div>
+    </div>
+
+    <div class="lib-section">
+      <h2><span class="glyph">§</span> In progress <span class="count">· 1</span></h2>
+      <div class="card-grid">
+        <div class="card">
+          <div class="meta"><span class="dot" style="background: var(--tint-teach);"></span>Teach · Calculus I</div>
+          <div class="title">Why the chain rule <em>actually works</em></div>
+          <div class="subtitle">Lesson 3 of 12 · last opened yesterday afternoon</div>
+          <div class="progress"><span>25%</span><div class="bar"><div class="fill" style="width: 25%;"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-section">
+      <h2><span class="glyph">¶</span> Available packs <span class="count">· 2</span></h2>
+      <div class="card-grid">
+        <div class="card">
+          <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>Canonical · Biology</div>
+          <div class="title">Cell <em>Biology</em></div>
+          <div class="subtitle">14 units · 87 lessons · adapted from OpenStax</div>
+        </div>
+        <div class="card">
+          <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>Canonical · Mathematics</div>
+          <div class="title">Linear <em>Algebra</em></div>
+          <div class="subtitle">9 units · 52 lessons · adapted from Strang</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-section">
+      <h2><span class="glyph">‖</span> Recent sessions <span class="count">· 4</span></h2>
+      <div class="item-line">
+        <div class="kicker"><span class="dot" style="background: var(--tint-teach);"></span>§ Teach</div>
+        <div class="title">Calculus · Chain rule, <em>first encounter</em></div>
+        <div class="when">2h ago</div>
+      </div>
+      <div class="item-line">
+        <div class="kicker"><span class="dot" style="background: var(--tint-bootstrap);"></span>¶ Bootstrap</div>
+        <div class="title">Stewart Calc 8e · <em>course shape draft</em></div>
+        <div class="when">yesterday</div>
+      </div>
+      <div class="item-line">
+        <div class="kicker"><span class="dot" style="background: var(--tint-quiz);"></span>‡ Quiz</div>
+        <div class="title">Derivatives review · <em>8 of 12 correct</em></div>
+        <div class="when">2 days ago</div>
+      </div>
+      <div class="item-line">
+        <div class="kicker"><span class="dot" style="background: var(--tint-study-skills);"></span>‖ Study skills</div>
+        <div class="title">Spaced review · <em>15 cards</em></div>
+        <div class="when">4 days ago</div>
+      </div>
+    </div>
+
+    <div class="lib-section">
+      <h2><span class="glyph">†</span> Documents <span class="count">· 2 · 1 indexing</span></h2>
+      <div class="item-line">
+        <div class="kicker">PDF</div>
+        <div class="title">Stewart Calculus 8e · <em>indexing 312 / 847 pages</em></div>
+        <div class="when">started 2h ago</div>
+      </div>
+      <div class="item-line">
+        <div class="kicker">PDF</div>
+        <div class="title">AP Bio class notes</div>
+        <div class="when">23 pages · ready</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.theme;
+        if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', mode);
+        document.querySelectorAll('.theme-toggle button').forEach(el =>
+          el.classList.toggle('active', el.dataset.theme === mode));
+      });
+    });
+  </script>
+</body>
+</html>

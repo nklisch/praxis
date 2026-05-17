@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>App shell — pick a direction</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    h1 { padding: 14px 24px 0; margin: 0; font-weight: 500; font-size: 18px; }
+    h1 .meta { color: #8b949e; font-weight: 400; font-size: 13px; margin-left: 10px; }
+    .lede { padding: 0 24px 12px; margin: 4px 0 0; color: #8b949e; font-size: 13px; max-width: 80ch; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 8px;
+      padding: 8px;
+      height: calc(100vh - 80px);
+      box-sizing: border-box;
+    }
+    .cell {
+      background: #fff; border-radius: 4px; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .cell h2 {
+      margin: 0; padding: 8px 12px;
+      font-size: 13px; font-weight: 600;
+      background: #222; color: #eee;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .cell h2 .desc { color: #8b949e; font-weight: 400; font-size: 11px; }
+    .cell h2 a { color: #6cf; text-decoration: none; font-size: 11px; }
+    .cell iframe { border: 0; flex: 1; width: 100%; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1>App shell <span class="meta">— pick a direction · epic-ui-redesign-ground-up-app-shell</span></h1>
+  <p class="lede">Four structural takes on the Praxis root chrome. Tokens (Studio Quiet + System Editorial) are constant across all four; what varies is where nav sits, how ambient work surfaces, and how much weight the chrome claims.</p>
+  <div class="grid">
+    <div class="cell">
+      <h2>Option 1 — <span class="desc">The Atelier · no nav · cmd-K palette · slim right ambient rail</span><a href="option-1.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-1.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 2 — <span class="desc">The Reading Room · left rail · glyph + mono labels · bottom ticker</span><a href="option-2.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-2.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 3 — <span class="desc">The Index · top horizontal nav · status strip under nav</span><a href="option-3.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-3.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 4 — <span class="desc">The Wing Chair · right rail · large wordmark + deck · ambient in rail</span><a href="option-4.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-4.html"></iframe>
+    </div>
+  </div>
+</body>
+</html>
