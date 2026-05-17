@@ -1,7 +1,7 @@
 ---
 id: feature-rate-limit-error-structured-fields
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, engines, errors]
 parent: null
 depends_on: []
@@ -203,3 +203,23 @@ If the project uses `.test-d.ts` for type-level assertions, add one:
 ## Follow-up backlog
 
 A separate backlog item should be parked for the UI banner work (mount surface, dismiss policy, countdown UX, accessibility). That's UX design territory, not a backend gate-closure task. Park as `idea-rate-limit-banner-ux` if not already present.
+
+## Implementation notes
+
+### Unit 1 — type extension
+
+- `packages/core/src/types/engine.ts:237–278`: Added `RateLimitErrorDetails` interface immediately before `EngineError`, then added `details?: RateLimitErrorDetails` as the last field on `EngineError`.
+- Re-export travels via the existing `export type * from "./engine.js"` star-export in `packages/core/src/types/index.ts` — no change needed to `index.ts`.
+- Required `pnpm --filter @praxis/core build` before the `tsgo` typecheck of `@praxis/engines` would see the updated declarations (project references resolve via `dist/` declarations, not source, even with the `praxis-source` condition).
+
+### Unit 2 — adapter mapper
+
+- `packages/engines/src/claude-code/events.ts:137–180`: Replaced the old permissive `rate_limit_event` case (which fell through to the error path for any non-`"allowed"` status) with a strict three-branch guard:
+  1. `status === "allowed"` → warn + drop (unchanged).
+  2. `status !== "rate_limited"` → warn with key `engine.claude-code.rate_limit_unknown_status` + drop (new — closes the paired gate).
+  3. `status === "rate_limited"` → return error event with `details` populated from `RateLimitInfo` using conditional spreads for the two optional overage fields (`exactOptionalPropertyTypes`-compatible).
+- Message text preserved verbatim from the prior implementation.
+
+### Tests
+
+- `packages/engines/src/__tests__/claude-code-events.test.ts`: Extended both existing `rate_limited` test expected objects to include `details`; added two new tests — one pinning the unknown-status drop (`"warned"` → `null` + warn log), one pinning the full `details` shape when both optional overage fields are present. Total: 19 tests (was 15), all passing.

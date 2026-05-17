@@ -148,6 +148,17 @@ export function mapClaudeCodeEvent(
         });
         return null;
       }
+      // Any status other than "rate_limited" is forward-compatible noise from
+      // a future SDK release — log a warning and drop. Do NOT surface as a
+      // user-facing error; we don't know what these new statuses mean.
+      if (info.status !== "rate_limited") {
+        ctx.log?.warn("engine.claude-code.rate_limit_unknown_status", {
+          status: info.status,
+          rateLimitType: info.rateLimitType,
+          resetsAt: info.resetsAt,
+        });
+        return null;
+      }
       const resetIso = new Date(info.resetsAt * 1000).toISOString();
       const overage = info.isUsingOverage ? ", overage billing active" : "";
       return {
@@ -156,6 +167,14 @@ export function mapClaudeCodeEvent(
           code: "engine.rate_limited",
           message: `Rate limited (${info.rateLimitType} window${overage}); resets at ${resetIso}`,
           recoverable: true,
+          details: {
+            kind: "rate_limit",
+            rateLimitType: info.rateLimitType,
+            resetsAt: info.resetsAt,
+            isUsingOverage: info.isUsingOverage,
+            ...(info.overageStatus !== undefined && { overageStatus: info.overageStatus }),
+            ...(info.overageResetsAt !== undefined && { overageResetsAt: info.overageResetsAt }),
+          },
         },
       };
     }

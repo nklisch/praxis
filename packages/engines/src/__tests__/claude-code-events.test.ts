@@ -47,6 +47,12 @@ describe("mapClaudeCodeEvent — rate_limit_event", () => {
         // can read it without decoding raw epoch seconds.
         message: "Rate limited (five_hour window); resets at 2026-05-03T06:40:00.000Z",
         recoverable: true,
+        details: {
+          kind: "rate_limit",
+          rateLimitType: "five_hour",
+          resetsAt: 1_777_790_400,
+          isUsingOverage: false,
+        },
       },
     });
     expect(log.warn).not.toHaveBeenCalled();
@@ -73,8 +79,64 @@ describe("mapClaudeCodeEvent — rate_limit_event", () => {
         message:
           "Rate limited (seven_day window, overage billing active); resets at 2026-05-15T11:00:00.000Z",
         recoverable: true,
+        details: {
+          kind: "rate_limit",
+          rateLimitType: "seven_day",
+          resetsAt: 1_778_842_800,
+          isUsingOverage: true,
+        },
       },
     });
+  });
+
+  it("drops rate_limit_event with unknown status (forward-compat with future SDK additions)", () => {
+    const log = { warn: vi.fn() };
+    const result = mapClaudeCodeEvent(
+      {
+        type: "rate_limit_event",
+        rateLimitInfo: {
+          status: "warned",
+          resetsAt: 1_777_790_400,
+          rateLimitType: "monthly",
+          isUsingOverage: false,
+        },
+      },
+      { serverName: "praxis", log },
+    );
+    expect(result).toBeNull();
+    expect(log.warn).toHaveBeenCalledWith(
+      "engine.claude-code.rate_limit_unknown_status",
+      expect.any(Object),
+    );
+  });
+
+  it("populates optional overage fields on details when overageStatus and overageResetsAt are present", () => {
+    const result = mapClaudeCodeEvent(
+      {
+        type: "rate_limit_event",
+        rateLimitInfo: {
+          status: "rate_limited",
+          resetsAt: 1_778_842_800,
+          rateLimitType: "five_hour",
+          isUsingOverage: true,
+          overageStatus: "active",
+          overageResetsAt: 1_778_929_200,
+        },
+      },
+      { serverName: "praxis" },
+    );
+
+    expect(result?.type).toBe("error");
+    if (result?.type === "error") {
+      expect(result.error.details).toEqual({
+        kind: "rate_limit",
+        rateLimitType: "five_hour",
+        resetsAt: 1_778_842_800,
+        isUsingOverage: true,
+        overageStatus: "active",
+        overageResetsAt: 1_778_929_200,
+      });
+    }
   });
 
   it("does not throw when no logger is provided (back-compat)", () => {

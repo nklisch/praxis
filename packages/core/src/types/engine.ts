@@ -234,11 +234,38 @@ export type EngineEvent =
    */
   | { type: "interrupted"; reason: "user_cancel" | "engine_abort" };
 
+/**
+ * Structured payload for `engine.rate_limited` errors. Mirrors the SDK's
+ * RateLimitInfo so a renderer can build a banner (with countdown driven by
+ * `resetsAt`) without regex-parsing the message string.
+ *
+ * `kind: "rate_limit"` discriminates this from any future error-detail
+ * variants we add (subscriber-fanout, quota, etc.).
+ */
+export interface RateLimitErrorDetails {
+  kind: "rate_limit";
+  /** Window scope. Free-form to tolerate future SDK additions. */
+  rateLimitType: "five_hour" | "seven_day" | string;
+  /** Epoch seconds when the rate-limit window resets. */
+  resetsAt: number;
+  /** Whether the request is using overage billing. */
+  isUsingOverage: boolean;
+  overageStatus?: string;
+  /** Epoch seconds when overage window resets. */
+  overageResetsAt?: number;
+}
+
 export interface EngineError {
   code: string;
   message: string;
   recoverable: boolean;
   cause?: unknown;
+  /**
+   * Optional structured payload. Present for errors whose code has a
+   * declared `*ErrorDetails` shape. Renderers should switch on
+   * `details?.kind` and fall back to `message` when absent.
+   */
+  details?: RateLimitErrorDetails;
 }
 
 export interface HealthStatus {
