@@ -63,4 +63,18 @@ describe("unwrapEnvelope", () => {
     const value = { ok: false };
     expect(unwrapEnvelope(value as unknown as typeof value)).toEqual(value);
   });
+
+  // Collision-shape regression: a legacy channel that happens to return an
+  // object with an `ok` key (but not a real envelope) must pass through
+  // unchanged. The shape-check requires `ok === true` (strict boolean) AND
+  // a `value` key in the same object (see isEnvelope in envelope.ts).
+  it("passes through { ok: 'truthy-non-bool' } as a legacy value (shape-check is strict)", () => {
+    expect(unwrapEnvelope({ ok: "truthy-but-not-bool" } as never)).toEqual({
+      ok: "truthy-but-not-bool",
+    });
+  });
+
+  it("passes through { ok: true } without a 'value' key as a legacy value", () => {
+    expect(unwrapEnvelope({ ok: true } as never)).toEqual({ ok: true });
+  });
 });

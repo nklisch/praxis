@@ -1,7 +1,7 @@
 ---
 id: gate-tests-unwrap-envelope-shape-collision
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -42,3 +42,11 @@ it("unwrapEnvelope passes through { ok: true } without a 'value' key as a legacy
   expect(unwrapEnvelope({ ok: true } as never)).toEqual({ ok: true });
 });
 ```
+
+## Implementation notes
+
+- Two collision-shape regression tests added to `packages/client/src/__tests__/envelope.test.ts` (lines 68–79):
+  - "passes through { ok: 'truthy-non-bool' } as a legacy value (shape-check is strict)" — pins that a non-boolean `ok` value is not treated as an envelope
+  - "passes through { ok: true } without a 'value' key as a legacy value" — pins that `ok: true` alone (missing the required `value` key) passes through unchanged
+- Source comment added in `packages/client/src/transport/envelope.ts` above `isEnvelope` (before line 61 in original; lines 61–70 after edit) explaining the two-key shape requirement and citing the test names as pin points.
+- All 9 tests pass; `pnpm typecheck` clean.

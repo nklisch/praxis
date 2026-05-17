@@ -58,6 +58,16 @@ export function unwrapEnvelope<T>(result: IpcEnvelope<T> | T): T {
   return result;
 }
 
+/**
+ * Two-key shape check: `ok` must be a strict boolean AND the matching payload
+ * key (`value` for success, `error` for failure) must be present. This means
+ * a legacy channel that accidentally returns `{ ok: <truthy-non-bool> }` or
+ * `{ ok: true }` without a `value` key will pass through unchanged rather
+ * than being misidentified as an envelope.
+ * Pinned by: packages/client/src/__tests__/envelope.test.ts
+ *   "passes through { ok: 'truthy-non-bool' } as a legacy value (shape-check is strict)"
+ *   "passes through { ok: true } without a 'value' key as a legacy value"
+ */
 function isEnvelope<T>(value: unknown): value is IpcEnvelope<T> {
   if (!value || typeof value !== "object") return false;
   const candidate = value as { ok?: unknown; value?: unknown; error?: unknown };
