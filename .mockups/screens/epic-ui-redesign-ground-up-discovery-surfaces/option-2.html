@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discovery — Option 2: Card Grid</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    /* App-shell chrome */
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    main { max-width: 1280px; margin: 0 auto; padding: 32px 32px 64px; }
+
+    .route-header { margin-bottom: 32px; display: flex; align-items: baseline; gap: 16px; }
+    .route-header .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .route-header h1 { font: 500 italic 40px/1.1 var(--font-display); margin: 0; flex: 1; }
+    .route-header .actions { display: flex; gap: 12px; }
+    .route-header .actions button { font: 500 13px/1 var(--font-sans); padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .route-header .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    .section { margin-bottom: 48px; }
+    .section h2 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
+    .section h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .section h2 .count { color: var(--color-text-tertiary); font-weight: 400; }
+
+    /* The grid */
+    .grid { display: grid; gap: 12px; }
+    .grid.three { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .grid.two { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+
+    .card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 20px 22px; cursor: pointer; transition: border-color 120ms; display: flex; flex-direction: column; gap: 10px; }
+    .card:hover { border-color: var(--color-border-strong); }
+    .card.featured { padding: 28px 32px; background: var(--color-bg-secondary); border-color: var(--color-accent); }
+    .card .meta { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; align-items: center; gap: 8px; }
+    .card .meta .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .card .meta .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); text-transform: none; letter-spacing: 0; }
+    .card .title { font: 500 italic 22px/1.2 var(--font-display); }
+    .card.featured .title { font-size: 28px; }
+    .card .title em { font-weight: 600; font-style: italic; }
+    .card .subtitle { font: 14px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .card .progress { display: flex; align-items: center; gap: 10px; margin-top: 4px; font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .card .progress .bar { flex: 1; height: 3px; background: var(--color-bg-tertiary); }
+    .card .progress .bar .fill { height: 100%; background: var(--color-accent); }
+    .card .actions { display: flex; gap: 8px; margin-top: 8px; }
+    .card .actions button { font: 500 12px/1 var(--font-sans); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .card .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    /* Progress map tile */
+    .map-tile { display: flex; gap: 16px; padding: 24px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+    .map-tile .info { flex: 1; }
+    .map-tile .info .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; }
+    .map-tile .info h3 { font: 500 italic 22px/1.2 var(--font-display); margin: 0 0 6px; }
+    .map-tile .info .stat { font: 14px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 4px; }
+    .map-tile .info .open { font: italic 13px/1 var(--font-serif); color: var(--color-accent); cursor: pointer; }
+    .map-tile .preview { width: 220px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); position: relative; display: flex; align-items: center; justify-content: center; }
+    .map-tile .preview svg { width: 100%; height: 100%; }
+
+    /* Document / session list mini */
+    .list { display: flex; flex-direction: column; }
+    .item { display: grid; grid-template-columns: 14ch 1fr auto; gap: 16px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--color-border); cursor: pointer; }
+    .item .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+    .item .kicker .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .item .title { font: 14px/1.4 var(--font-serif); }
+    .item .title em { font-style: italic; }
+    .item .when { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 2 — Card Grid</strong>
+    <span>Refined card grid (closest to current). Featured in-progress card claims top weight; packs / sessions / docs follow in their own grids. Progress map gets a dedicated tile.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#" class="active"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <main>
+    <header class="route-header">
+      <span class="kicker">§ Library</span>
+      <h1>Front <em>door</em></h1>
+      <div class="actions">
+        <button>+ attach document</button>
+        <button class="primary">+ bootstrap a course</button>
+      </div>
+    </header>
+
+    <section class="section">
+      <h2><span class="glyph">§</span> Resume</h2>
+      <div class="card featured">
+        <div class="meta"><span class="dot" style="background: var(--tint-teach);"></span>Teach · Calculus I · Lesson 3 of 12</div>
+        <div class="title">Why the chain rule <em>actually works</em></div>
+        <div class="subtitle">An unfinished thread; resumes at the worked example of volume from radius. Last opened yesterday afternoon.</div>
+        <div class="progress"><span>25%</span><div class="bar"><div class="fill" style="width:25%;"></div></div></div>
+        <div class="actions">
+          <button class="primary">Continue ↵</button>
+          <button>Open workspace</button>
+          <button>See progress</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2><span class="glyph">‖</span> Progress map · Calculus I</h2>
+      <div class="map-tile">
+        <div class="info">
+          <div class="kicker">12 lessons · 3 done · 1 active · 8 ahead</div>
+          <h3>Calculus I</h3>
+          <div class="stat"><em>You've finished</em> Limits and most of Differentiation.</div>
+          <div class="stat"><em>You're at</em> the Chain Rule — gating Implicit Differentiation.</div>
+          <div class="stat"><em>Ahead</em>: integrals, Fundamental Theorem, applications.</div>
+          <a href="#" class="open">open the full map ↗</a>
+        </div>
+        <div class="preview">
+          <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="var(--color-border-strong)" stroke-width="1" fill="none">
+              <line x1="30" y1="40" x2="70" y2="40"/>
+              <line x1="70" y1="40" x2="110" y2="80"/>
+              <line x1="110" y1="80" x2="150" y2="80"/>
+              <line x1="150" y1="80" x2="190" y2="40"/>
+              <line x1="150" y1="80" x2="190" y2="120"/>
+            </g>
+            <g>
+              <circle cx="30" cy="40" r="8" fill="var(--color-success)"/>
+              <circle cx="70" cy="40" r="8" fill="var(--color-success)"/>
+              <circle cx="110" cy="80" r="10" fill="var(--color-accent)"/>
+              <circle cx="150" cy="80" r="8" fill="var(--color-bg-secondary)" stroke="var(--color-border-strong)" stroke-width="1"/>
+              <circle cx="190" cy="40" r="8" fill="var(--color-bg-secondary)" stroke="var(--color-border-strong)" stroke-width="1"/>
+              <circle cx="190" cy="120" r="8" fill="var(--color-bg-secondary)" stroke="var(--color-border-strong)" stroke-width="1"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2><span class="glyph">¶</span> Available packs <span class="count">· 2</span></h2>
+      <div class="grid three">
+        <div class="card">
+          <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>Canonical · Biology</div>
+          <div class="title">Cell <em>Biology</em></div>
+          <div class="subtitle">14 units · 87 lessons · adapted from OpenStax</div>
+          <div class="actions"><button class="primary">+ start</button><button>Preview</button></div>
+        </div>
+        <div class="card">
+          <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>Canonical · Mathematics</div>
+          <div class="title">Linear <em>Algebra</em></div>
+          <div class="subtitle">9 units · 52 lessons · adapted from Strang</div>
+          <div class="actions"><button class="primary">+ start</button><button>Preview</button></div>
+        </div>
+        <div class="card" style="background: transparent; border-style: dashed; align-items: center; justify-content: center; text-align: center; color: var(--color-text-tertiary);">
+          <div style="font: italic 16px/1.4 var(--font-serif);">Bootstrap a custom course<br/>from your materials</div>
+          <div class="actions"><button class="primary">+ start a bootstrap session</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2><span class="glyph">‡</span> Recent sessions <span class="count">· 4</span></h2>
+      <div class="list">
+        <div class="item"><span class="kicker"><span class="dot" style="background: var(--tint-bootstrap);"></span>¶ Bootstrap</span><span class="title">Stewart Calc 8e · <em>course shape draft</em></span><span class="when">yesterday</span></div>
+        <div class="item"><span class="kicker"><span class="dot" style="background: var(--tint-quiz);"></span>‡ Quiz</span><span class="title">Derivatives review · <em>8 of 12 correct</em></span><span class="when">2 days ago</span></div>
+        <div class="item"><span class="kicker"><span class="dot" style="background: var(--tint-study-skills);"></span>‖ Study skills</span><span class="title">Spaced review · <em>15 cards</em></span><span class="when">4 days ago</span></div>
+        <div class="item"><span class="kicker"><span class="dot" style="background: var(--tint-teach);"></span>§ Teach</span><span class="title">Limits · final summary</span><span class="when">a week ago</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2><span class="glyph">†</span> Documents <span class="count">· 2 · 1 indexing</span></h2>
+      <div class="list">
+        <div class="item"><span class="kicker">PDF</span><span class="title">Stewart Calculus 8e · <em>indexing 312 / 847 pages</em></span><span class="when">started 2h ago</span></div>
+        <div class="item"><span class="kicker">PDF</span><span class="title">AP Bio class notes</span><span class="when">23 pages · ready</span></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

@@ -74,6 +74,25 @@ What lands:
 - Pattern `use-resource-hook`
 - Pattern `editorial-ui-primitives` (RouteHeader, LibrarySection, EmptyState)
 
-<!-- The design pass will produce option mocks for each surface and flow
-mocks for session-open and bootstrap-entry. Implementation child stories
-land once mocks are captured. -->
+## Mockups
+
+- Screens: `.mockups/screens/epic-ui-redesign-ground-up-discovery-surfaces/index.html`
+- **Selected: Option 4 — Workbench** (2026-05-17)
+  - Two-column shop: left is the **what's-next queue** (priority-ordered
+    actions — resume lesson, due reviews, suggested checks, bootstrap
+    follow-ups), right is the **lately timeline** (chronological recent
+    sessions and significant events)
+  - Greeting line at top names the count of ready things ("Good
+    morning. There's three things ready for you.")
+  - Footer row of three small cards for packs / concept maps / documents
+    — "everything else is a click away"
+  - Replaces the library-as-catalogue posture with **library-as-workbench** — the front door is "where do I pick up" rather than "what
+    exists." Progress map and concept-maps index become reachable surfaces
+    rather than primary front-door content
+- Considered: Table of Contents (magazine TOC), Card Grid (refined
+  cards), Single Map (library is the spatial graph) — in
+  `.mockups/screens/.../option-{1,2,3}.html`
+
+The session-open and bootstrap-entry flows spawn as child stories
+during implementation; the workbench's "Resume" / "Review draft" CTA
+patterns set the visual entry to those flows.

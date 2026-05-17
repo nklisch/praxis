@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discovery — Option 3: Single Map</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); overflow: hidden; }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* The library IS the map. Full-bleed canvas with a side rail for context. */
+    .surface { display: grid; grid-template-columns: 1fr 320px; height: calc(100vh - 50px); }
+
+    .canvas { position: relative; background: var(--color-bg-primary); overflow: hidden; }
+    .canvas svg { width: 100%; height: 100%; display: block; }
+
+    .canvas .node-label { position: absolute; font: 500 italic 14px/1.2 var(--font-display); color: var(--color-text-primary); text-align: center; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; }
+    .canvas .node-label .meta { display: block; font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-top: 2px; font-style: normal; }
+
+    .canvas .controls { position: absolute; top: 16px; left: 16px; display: flex; gap: 6px; }
+    .canvas .controls button { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 6px 10px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-secondary); cursor: pointer; }
+    .canvas .controls button.active { color: var(--color-accent); border-color: var(--color-accent); }
+
+    .canvas .legend { position: absolute; bottom: 16px; left: 16px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 14px; font: 11px/1.4 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); display: flex; gap: 16px; align-items: center; }
+    .canvas .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; }
+
+    /* Side rail with context for what's highlighted */
+    aside.rail { border-left: 1px solid var(--color-border); padding: 28px 24px; overflow-y: auto; background: var(--color-bg-primary); }
+    aside.rail .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
+    aside.rail h2 { font: 500 italic 28px/1.15 var(--font-display); margin: 0 0 6px; }
+    aside.rail h2 em { font-weight: 600; }
+    aside.rail .deck { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 24px; }
+    aside.rail .section { margin-bottom: 28px; }
+    aside.rail .section h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    aside.rail .stat { display: flex; justify-content: space-between; padding: 4px 0; font: 13px/1.4 var(--font-serif); }
+    aside.rail .stat .label { color: var(--color-text-secondary); }
+    aside.rail .stat .val { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-primary); letter-spacing: 0.04em; }
+    aside.rail .primary-action { display: block; width: 100%; background: var(--color-accent); color: var(--color-text-inverse); border: 0; padding: 12px 16px; border-radius: var(--radius-md); font: 500 14px/1 var(--font-sans); cursor: pointer; margin-bottom: 8px; }
+    aside.rail .secondary-action { display: block; width: 100%; background: transparent; color: var(--color-text-primary); border: 1px solid var(--color-border-strong); padding: 10px 16px; border-radius: var(--radius-md); font: 500 13px/1 var(--font-sans); cursor: pointer; margin-bottom: 8px; }
+    aside.rail .recent { padding: 8px 0; font: italic 13px/1.4 var(--font-serif); color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 8px; }
+    aside.rail .recent .dot { width: 5px; height: 5px; border-radius: 50%; }
+    aside.rail .recent .when { margin-left: auto; font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; font-style: normal; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 3 — Single Map</strong>
+    <span>The library IS the spatial map. Courses become central nodes; lessons orbit; gates draw edges; the active lesson glows. Side rail carries context for whatever's selected.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#" class="active"><span class="glyph">§</span>Library / Map</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="surface">
+    <div class="canvas">
+      <div class="controls">
+        <button class="active">Courses</button>
+        <button>Concepts</button>
+        <button>Sessions</button>
+        <button>Documents</button>
+      </div>
+
+      <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.5" fill="var(--color-text-tertiary)" opacity="0.3"/>
+          </pattern>
+        </defs>
+        <rect width="800" height="600" fill="url(#dots)"/>
+
+        <!-- Calculus course cluster: central + 5 lessons -->
+        <g stroke="var(--color-border-strong)" stroke-width="1.5" fill="none" opacity="0.6">
+          <line x1="280" y1="240" x2="180" y2="160"/>
+          <line x1="280" y1="240" x2="180" y2="320"/>
+          <line x1="280" y1="240" x2="360" y2="140"/>
+          <line x1="280" y1="240" x2="400" y2="240"/>
+          <line x1="400" y1="240" x2="500" y2="200"/>
+          <line x1="400" y1="240" x2="500" y2="280"/>
+        </g>
+        <g stroke="var(--color-border-strong)" stroke-width="1.5" stroke-dasharray="3 3" fill="none" opacity="0.4">
+          <line x1="500" y1="200" x2="620" y2="180"/>
+          <line x1="500" y1="280" x2="620" y2="300"/>
+        </g>
+
+        <!-- Lesson nodes -->
+        <circle cx="180" cy="160" r="14" fill="var(--color-success)" opacity="0.85"/>
+        <circle cx="180" cy="320" r="14" fill="var(--color-success)" opacity="0.85"/>
+        <circle cx="360" cy="140" r="14" fill="var(--color-success)" opacity="0.85"/>
+        <circle cx="400" cy="240" r="22" fill="var(--color-accent)"/>
+        <circle cx="400" cy="240" r="32" fill="none" stroke="var(--color-accent)" stroke-width="1" opacity="0.4"/>
+        <circle cx="500" cy="200" r="14" fill="var(--color-bg-secondary)" stroke="var(--color-border-strong)" stroke-width="1.5"/>
+        <circle cx="500" cy="280" r="14" fill="var(--color-bg-secondary)" stroke="var(--color-border-strong)" stroke-width="1.5"/>
+        <circle cx="620" cy="180" r="14" fill="var(--color-bg-secondary)" stroke="var(--color-border-strong)" stroke-width="1.5" opacity="0.5"/>
+        <circle cx="620" cy="300" r="14" fill="var(--color-bg-secondary)" stroke="var(--color-border-strong)" stroke-width="1.5" opacity="0.5"/>
+
+        <!-- Course centroid -->
+        <circle cx="280" cy="240" r="48" fill="var(--color-bg-secondary)" stroke="var(--color-accent)" stroke-width="2"/>
+        <text x="280" y="234" font-family="serif" font-style="italic" font-weight="500" font-size="22" fill="var(--color-text-primary)" text-anchor="middle">Calculus</text>
+        <text x="280" y="254" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.4" fill="var(--color-text-secondary)" text-anchor="middle">12 LESSONS</text>
+
+        <!-- A second course cluster (Cell Biology pack — available, dimmed) -->
+        <g opacity="0.4">
+          <circle cx="640" cy="460" r="48" fill="var(--color-bg-secondary)" stroke="var(--color-border-strong)" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <text x="640" y="454" font-family="serif" font-style="italic" font-weight="500" font-size="18" fill="var(--color-text-secondary)" text-anchor="middle">Cell Biology</text>
+          <text x="640" y="472" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.4" fill="var(--color-text-tertiary)" text-anchor="middle">PACK · 87 L</text>
+        </g>
+
+        <!-- Concept maps as small constellations off the calc course -->
+        <g opacity="0.55">
+          <line x1="280" y1="240" x2="120" y2="430" stroke="var(--color-text-tertiary)" stroke-width="1" stroke-dasharray="2 4" fill="none"/>
+          <circle cx="120" cy="430" r="10" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1"/>
+          <circle cx="100" cy="450" r="4" fill="var(--color-text-tertiary)"/>
+          <circle cx="140" cy="440" r="4" fill="var(--color-text-tertiary)"/>
+          <circle cx="105" cy="420" r="4" fill="var(--color-text-tertiary)"/>
+          <text x="120" y="478" font-family="serif" font-style="italic" font-size="11" fill="var(--color-text-secondary)" text-anchor="middle">my derivatives map</text>
+        </g>
+      </svg>
+
+      <div class="node-label" style="top: 26.5%; left: 50%;">Chain rule<span class="meta">L3 · active</span></div>
+
+      <div class="legend">
+        <span><span class="swatch" style="background: var(--color-success);"></span>complete</span>
+        <span><span class="swatch" style="background: var(--color-accent);"></span>active</span>
+        <span><span class="swatch" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong);"></span>unlocked</span>
+        <span><span class="swatch" style="background: transparent; border: 1px dashed var(--color-text-tertiary);"></span>locked</span>
+      </div>
+    </div>
+
+    <aside class="rail">
+      <div class="kicker">§ Selected · L3 · Calculus I</div>
+      <h2>Why the chain rule <em>actually works</em></h2>
+      <div class="deck">An unfinished thread; resumes at the worked example of volume from radius.</div>
+
+      <button class="primary-action">Continue lesson ↵</button>
+      <button class="secondary-action">Open in workspace</button>
+
+      <div class="section">
+        <h3>Lesson stats</h3>
+        <div class="stat"><span class="label">Position</span><span class="val">L3 of 12 · 25%</span></div>
+        <div class="stat"><span class="label">Last opened</span><span class="val">yesterday, 16:42</span></div>
+        <div class="stat"><span class="label">Concepts active</span><span class="val">4</span></div>
+        <div class="stat"><span class="label">Mastery (chain rule)</span><span class="val">0.31 · low</span></div>
+        <div class="stat"><span class="label">Gates ahead</span><span class="val">implicit diff (L5)</span></div>
+      </div>
+
+      <div class="section">
+        <h3>Recent sessions on this lesson</h3>
+        <div class="recent"><span class="dot" style="background: var(--tint-teach);"></span><span>Teach · <em>chain rule, first encounter</em></span><span class="when">2h ago</span></div>
+        <div class="recent"><span class="dot" style="background: var(--tint-quiz);"></span><span>Quiz · <em>derivatives review</em></span><span class="when">2 days ago</span></div>
+      </div>
+
+      <div class="section">
+        <h3>Cited documents</h3>
+        <div class="recent"><span>Stewart 8e · §3.5</span><span class="when">p.197</span></div>
+        <div class="recent"><span>Stewart 8e · §3.6</span><span class="when">p.204</span></div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

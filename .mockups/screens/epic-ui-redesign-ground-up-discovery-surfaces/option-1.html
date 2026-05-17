@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discovery — Option 1: Table of Contents</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    /* App-shell chrome (locked) */
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* TOC layout — magazine table of contents */
+    main { max-width: 920px; margin: 0 auto; padding: 56px 64px 96px; }
+
+    .masthead { text-align: center; padding-bottom: 32px; border-bottom: 2px solid var(--color-text-primary); margin-bottom: 48px; }
+    .masthead .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 12px; }
+    .masthead h1 { font: 500 italic 56px/1 var(--font-display); margin: 0; letter-spacing: -0.01em; }
+    .masthead .deck { margin-top: 12px; font: italic 17px/1.5 var(--font-serif); color: var(--color-text-secondary); max-width: 50ch; margin-left: auto; margin-right: auto; }
+
+    .toc-section { margin-bottom: 40px; }
+    .toc-section h2 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--color-text-secondary); display: flex; gap: 10px; align-items: baseline; }
+    .toc-section h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .toc-section h2 .count { margin-left: auto; color: var(--color-text-tertiary); font-weight: 400; }
+
+    .toc-entry { display: grid; grid-template-columns: 3ch 1fr auto; gap: 16px; align-items: baseline; padding: 14px 0; border-bottom: 1px dotted var(--color-border); cursor: pointer; }
+    .toc-entry:hover { color: var(--color-accent); }
+    .toc-entry .num { font: italic 18px/1 var(--font-display); color: var(--color-text-tertiary); text-align: right; }
+    .toc-entry .title { font: 500 italic 18px/1.3 var(--font-display); }
+    .toc-entry .title em { font-weight: 600; font-style: italic; }
+    .toc-entry .meta { font: 12px/1.4 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+    .toc-entry .subtitle { grid-column: 2; font: italic 13px/1.4 var(--font-serif); color: var(--color-text-secondary); margin-top: 2px; }
+    .toc-entry .leader { display: none; }
+    .toc-entry .progress { grid-column: 3; font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; display: flex; gap: 8px; align-items: center; }
+    .toc-entry .progress .bar { width: 50px; height: 2px; background: var(--color-bg-tertiary); }
+    .toc-entry .progress .bar .fill { height: 100%; background: var(--color-accent); }
+
+    /* Hairline progress strip */
+    .where-you-are { padding: 24px 32px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+    .where-you-are h3 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 14px; }
+    .where-you-are .summary { font: italic 16px/1.6 var(--font-serif); color: var(--color-text-primary); margin-bottom: 16px; }
+    .where-you-are .summary em { color: var(--color-accent); font-weight: 600; }
+    .graph-line { display: flex; align-items: center; gap: 6px; padding: 8px 0; font: 11px/1 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-tertiary); }
+    .graph-line .node { width: 8px; height: 8px; border-radius: 50%; background: var(--color-bg-tertiary); border: 1px solid var(--color-border-strong); }
+    .graph-line .node.done { background: var(--color-success); border-color: var(--color-success); }
+    .graph-line .node.now { background: var(--color-accent); border-color: var(--color-accent); width: 12px; height: 12px; }
+    .graph-line .edge { width: 24px; height: 1px; background: var(--color-border-strong); }
+    .graph-line .label { font-style: italic; font-family: var(--font-serif); font-size: 12px; color: var(--color-text-secondary); margin-left: 4px; }
+    .graph-link { font: italic 12px/1 var(--font-serif); color: var(--color-accent); margin-top: 12px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 1 — Table of Contents</strong>
+    <span>The library reads as a magazine TOC: numbered, ruled, italic display titles, mono metadata. Progress map embedded as a hairline graph. Reading-paper feel.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#" class="active"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <main>
+    <header class="masthead">
+      <div class="kicker">§ Library · Vol. 1 · 2026</div>
+      <h1>Contents</h1>
+      <div class="deck">Where you start. Where you come back to. A table of contents to the work in progress and the work yet to begin.</div>
+    </header>
+
+    <section class="toc-section">
+      <h2><span class="glyph">§</span> In progress <span class="count">· 1</span></h2>
+      <div class="toc-entry">
+        <span class="num">01.</span>
+        <span class="title">Calculus · <em>chain rule, first encounter</em></span>
+        <span class="meta">teach · L3/12</span>
+        <span class="subtitle">An unfinished thread; resumes at the worked example of volume from radius.</span>
+        <span class="progress"><span>25%</span><div class="bar"><div class="fill" style="width:25%;"></div></div></span>
+      </div>
+    </section>
+
+    <section class="toc-section">
+      <h2><span class="glyph">‖</span> Where you are <span class="count">· 4 of 12 lessons</span></h2>
+      <div class="where-you-are">
+        <div class="summary">You've completed <em>Limits</em> and the first half of <em>Differentiation</em>. The <em>Chain Rule</em> is your active edge; <em>Implicit Differentiation</em> opens once the rule lands.</div>
+        <div class="graph-line">
+          <div class="node done"></div><div class="edge"></div><div class="node done"></div><div class="edge"></div><div class="node done"></div><div class="edge"></div><div class="node now"></div><div class="edge"></div><div class="node"></div><div class="edge"></div><div class="node"></div><div class="edge"></div><div class="node"></div>
+          <span class="label">L1 Limits · L2 Deriv · L3 <em style="color: var(--color-accent);">Chain</em> · L4 Implicit · L5 Higher · L6 …</span>
+        </div>
+        <a href="#" class="graph-link">open the full progress map ↗</a>
+      </div>
+    </section>
+
+    <section class="toc-section">
+      <h2><span class="glyph">¶</span> Available packs <span class="count">· 2</span></h2>
+      <div class="toc-entry">
+        <span class="num">02.</span>
+        <span class="title">Cell <em>Biology</em></span>
+        <span class="meta">canonical · 14 units</span>
+        <span class="subtitle">Adapted from OpenStax. 87 lessons, lesson assessments, knowledge graph.</span>
+        <span class="progress">+ start</span>
+      </div>
+      <div class="toc-entry">
+        <span class="num">03.</span>
+        <span class="title">Linear <em>Algebra</em></span>
+        <span class="meta">canonical · 9 units</span>
+        <span class="subtitle">Adapted from Strang's MIT lectures. 52 lessons.</span>
+        <span class="progress">+ start</span>
+      </div>
+    </section>
+
+    <section class="toc-section">
+      <h2><span class="glyph">‡</span> Your concept maps <span class="count">· 2</span></h2>
+      <div class="toc-entry">
+        <span class="num">04.</span>
+        <span class="title">Derivatives <em>· my own mapping</em></span>
+        <span class="meta">sketch · 12 nodes</span>
+        <span class="subtitle">First-pass concept map drawn after Lesson 2.</span>
+        <span class="progress">2 days ago</span>
+      </div>
+      <div class="toc-entry">
+        <span class="num">05.</span>
+        <span class="title">Why calculus matters · <em>my reasons</em></span>
+        <span class="meta">sketch · 5 nodes</span>
+        <span class="subtitle">A free-form map of why I'm doing this at all.</span>
+        <span class="progress">a week ago</span>
+      </div>
+    </section>
+
+    <section class="toc-section">
+      <h2><span class="glyph">†</span> Documents <span class="count">· 2 · 1 indexing</span></h2>
+      <div class="toc-entry">
+        <span class="num">06.</span>
+        <span class="title">Stewart Calculus 8e</span>
+        <span class="meta">pdf · 847p · indexing 312/847</span>
+      </div>
+      <div class="toc-entry">
+        <span class="num">07.</span>
+        <span class="title">AP Bio class notes</span>
+        <span class="meta">pdf · 23p · ready</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>
