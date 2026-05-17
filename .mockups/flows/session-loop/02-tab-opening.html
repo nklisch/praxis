@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>session-loop · 2/5 · tab opening</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta a:hover { background: #161b22; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 12px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 2px 6px; border-radius: 3px; }
+    .running-head .open-tabs .tab.active { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+    .running-head .open-tabs .tab.new { background: var(--color-accent); color: var(--color-text-inverse); animation: tab-slide-in 600ms ease-out; }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+    .running-head .open-tabs .arrow { font-size: 12px; color: var(--color-accent); }
+
+    @keyframes tab-slide-in {
+      0% { opacity: 0; transform: translateX(-20px) scale(0.85); }
+      40% { opacity: 1; transform: translateX(0) scale(1.08); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    /* Loading session surface */
+    .loading-surface { padding: 64px 32px; max-width: 1200px; margin: 0 auto; text-align: center; }
+    .loading-surface .ornament { font: 500 italic 64px/1 var(--font-display); color: var(--color-accent); margin-bottom: 16px; animation: pulse 1.4s ease-in-out infinite; }
+    .loading-surface .text { font: italic 18px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 8px; }
+    .loading-surface .text em { color: var(--color-text-primary); font-weight: 600; }
+    .loading-surface .detail { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    /* Skeleton chat body underneath */
+    .skeleton-session { max-width: 800px; margin: 32px auto 0; padding: 0 32px; }
+    .skeleton-head { padding: 20px 32px 12px; border-bottom: 1px solid var(--color-border); margin-bottom: 24px; opacity: 0.45; }
+    .skeleton-head .k { width: 120px; height: 10px; background: var(--color-bg-tertiary); border-radius: 2px; margin-bottom: 8px; }
+    .skeleton-head .t { width: 280px; height: 24px; background: var(--color-bg-tertiary); border-radius: 4px; }
+    .sk-msg { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 16px; opacity: 0.4; }
+    .sk-msg .l { width: 80px; height: 9px; background: var(--color-bg-tertiary); border-radius: 2px; margin-bottom: 8px; }
+    .sk-msg .b { height: 12px; background: var(--color-bg-tertiary); border-radius: 2px; margin-bottom: 6px; }
+    .sk-msg .b:nth-child(2) { width: 92%; }
+    .sk-msg .b:nth-child(3) { width: 76%; }
+    .sk-msg .b:nth-child(4) { width: 84%; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="01-workbench.html">← prev</a>
+    <span class="center">session-loop · step 2/5 · tab slides in &amp; session loads</span>
+    <a href="03-mid-session.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 2</span><span>Resume clicked. A <em>new tab slides into the strip</em> (top nav), the route navigates to <code style="font-family: var(--font-mono); font-size: 12px;">/chat/$tabId</code>, and the session surface loads. Episodic context resumes <em>at the last turn</em>; scroll position is restored when ready.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="arrow">→</span>
+      <span class="tab new active"><span class="dot" style="background: var(--tint-teach);"></span>Calculus · L3</span>
+    </div>
+  </header>
+
+  <div class="loading-surface">
+    <div class="ornament">§</div>
+    <div class="text">Resuming <em>Calculus · Lesson 3 · the chain rule</em></div>
+    <div class="detail">restoring episodic context · ~18 prior turns · last activity 2h ago</div>
+  </div>
+
+  <div class="skeleton-session">
+    <div class="skeleton-head">
+      <div class="k"></div>
+      <div class="t"></div>
+    </div>
+    <div class="sk-msg"><div class="l"></div><div class="b"></div><div class="b"></div><div class="b"></div></div>
+    <div class="sk-msg"><div class="l"></div><div class="b"></div><div class="b"></div></div>
+  </div>
+</body>
+</html>

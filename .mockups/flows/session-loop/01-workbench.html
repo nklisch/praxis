@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>session-loop · 1/5 · workbench</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta a:hover { background: #161b22; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    main { padding: 32px 32px 64px; max-width: 1320px; margin: 0 auto; }
+    .greeting { margin-bottom: 32px; }
+    .greeting .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; }
+    .greeting h1 { font: 500 italic 32px/1.2 var(--font-display); margin: 0; }
+    .greeting h1 em { font-weight: 600; }
+    .greeting .deck { font: italic 15px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 6px; max-width: 70ch; }
+
+    .workbench { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .column { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 24px; }
+    .column h2 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); display: flex; gap: 10px; align-items: baseline; }
+    .column h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+
+    .queue-item { padding: 14px 0; border-bottom: 1px solid var(--color-border); display: flex; gap: 14px; align-items: baseline; cursor: pointer; }
+    .queue-item .marker { width: 36px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .queue-item .marker .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .queue-item .marker .priority { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .queue-item .body { flex: 1; }
+    .queue-item .body .title { font: 500 italic 18px/1.25 var(--font-display); margin-bottom: 4px; }
+    .queue-item .body .title em { font-weight: 600; font-style: italic; }
+    .queue-item .body .meta { font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .queue-item .body .meta .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-right: 8px; }
+    .queue-item .body .reason { font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-top: 6px; }
+    .queue-item .action { font: 500 12px/1 var(--font-sans); padding: 8px 12px; background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); cursor: pointer; flex-shrink: 0; align-self: center; }
+    .queue-item.featured { background: var(--color-accent-muted); margin: -6px -16px 0; padding: 20px 16px; border-radius: var(--radius-md); border: 2px solid var(--color-accent); position: relative; box-shadow: 0 6px 24px rgba(155,58,44,0.15); }
+    .queue-item.featured::before { content: '↓ press to begin'; position: absolute; top: -10px; right: 12px; background: var(--color-accent); color: var(--color-text-inverse); padding: 3px 10px; border-radius: var(--radius-full); font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .queue-item.featured .action { padding: 12px 20px; font-size: 14px; transform: scale(1.05); box-shadow: 0 3px 12px rgba(155,58,44,0.3); }
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before { content: ''; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 1px; background: var(--color-border); }
+    .timeline-entry { padding: 6px 0 18px; position: relative; }
+    .timeline-entry::before { content: ''; position: absolute; left: -23px; top: 10px; width: 11px; height: 11px; border-radius: 50%; background: var(--color-bg-secondary); border: 2px solid var(--color-border-strong); }
+    .timeline-entry.session::before { background: var(--color-accent); border-color: var(--color-accent); }
+    .timeline-entry .when { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .timeline-entry .title { font: italic 15px/1.4 var(--font-serif); color: var(--color-text-primary); }
+    .timeline-entry .title em { font-weight: 600; }
+    .timeline-entry .meta { font: 12px/1.4 var(--font-mono); color: var(--color-text-tertiary); margin-top: 2px; letter-spacing: 0.04em; }
+    .timeline-entry .meta .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
+    .timeline-section { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin: 16px 0 8px -24px; padding-bottom: 6px; border-bottom: 1px dashed var(--color-border); }
+    .timeline-section:first-child { margin-top: 0; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="index.html">← overview</a>
+    <span class="center">session-loop · step 1/5 · workbench landing</span>
+    <a href="02-tab-opening.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 1</span><span>The daily landing. <em>"There's three things ready for you."</em> Resume card is highlighted, glowing — the work the student should pick up <em>right now</em>. Click "Resume" to begin.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#" class="active"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="greeting">
+      <div class="kicker">§ Library · workbench · this afternoon</div>
+      <h1>Good afternoon. There's <em>three things</em> ready for you.</h1>
+      <div class="deck">A workbench rather than a catalogue. Pick up where you left off, or work down the queue.</div>
+    </div>
+
+    <div class="workbench">
+      <div class="column">
+        <h2><span class="glyph">‖</span> What's next</h2>
+
+        <div class="queue-item featured">
+          <div class="marker">
+            <span class="dot" style="background: var(--color-accent);"></span>
+            <span class="priority">1</span>
+          </div>
+          <div class="body">
+            <div class="title">Resume <em>chain rule</em> · L3 of Calculus I</div>
+            <div class="meta"><span class="kicker">teach</span>You stopped after the volume-from-radius worked example.</div>
+            <div class="reason">Continuing now keeps the chain — coming back tomorrow loses the thread.</div>
+          </div>
+          <button class="action">Resume ↵</button>
+        </div>
+
+        <div class="queue-item">
+          <div class="marker">
+            <span class="dot" style="background: var(--tint-study-skills);"></span>
+            <span class="priority">2</span>
+          </div>
+          <div class="body">
+            <div class="title">Spaced review · <em>15 cards due</em></div>
+            <div class="meta"><span class="kicker">study skills</span>10 derivatives · 3 limits · 2 algebra</div>
+            <div class="reason">5 cards are due today; ~12 minutes.</div>
+          </div>
+          <button class="action" style="background: transparent; color: var(--color-text-primary); border: 1px solid var(--color-border-strong);">Start</button>
+        </div>
+
+        <div class="queue-item">
+          <div class="marker">
+            <span class="dot" style="background: var(--tint-quiz);"></span>
+            <span class="priority">3</span>
+          </div>
+          <div class="body">
+            <div class="title">Quick check · <em>derivatives basics</em></div>
+            <div class="meta"><span class="kicker">quiz · suggested</span>4 items · ~5 min</div>
+          </div>
+          <button class="action" style="background: transparent; color: var(--color-text-primary); border: 1px solid var(--color-border-strong);">Maybe later</button>
+        </div>
+      </div>
+
+      <div class="column">
+        <h2><span class="glyph">§</span> Lately</h2>
+        <div class="timeline">
+          <div class="timeline-section">Today</div>
+          <div class="timeline-entry session">
+            <div class="when">14:22 · 2h ago</div>
+            <div class="title">Calculus · <em>chain rule, first encounter</em></div>
+            <div class="meta"><span class="dot" style="background: var(--tint-teach);"></span>teach · L3 · 18 min · <em style="color: var(--color-warning); font-style: italic;">paused mid-lesson</em></div>
+          </div>
+
+          <div class="timeline-section">Yesterday</div>
+          <div class="timeline-entry session">
+            <div class="when">17:40</div>
+            <div class="title">Stewart Calc 8e · <em>course shape draft</em></div>
+            <div class="meta"><span class="dot" style="background: var(--tint-bootstrap);"></span>bootstrap · 24 min</div>
+          </div>
+          <div class="timeline-entry session">
+            <div class="when">09:11</div>
+            <div class="title">Derivatives review · <em>8 of 12</em></div>
+            <div class="meta"><span class="dot" style="background: var(--tint-quiz);"></span>quiz · 11 min</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

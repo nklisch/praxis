@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>concept-map-link · 2/4 · best-guess surfaces</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .running-head { padding: 12px 32px 8px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .editor-strip { padding: 10px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .editor-strip .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .editor-strip h1 { font: 500 italic 18px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .editor-strip h1 em { font-weight: 600; }
+    .editor-strip .stat { font: italic 12px/1 var(--font-serif); color: var(--color-text-secondary); }
+
+    .surface { display: grid; grid-template-columns: 48px 1fr 320px; flex: 1; overflow: hidden; }
+    .tools { border-right: 1px solid var(--color-border); padding: 8px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .tool { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-secondary); font: italic 16px/1 var(--font-display); }
+    .tool.active { background: var(--color-accent-muted); color: var(--color-accent); }
+    .tool-sep { height: 1px; width: 24px; background: var(--color-border); margin: 4px 0; }
+
+    .canvas { position: relative; background: var(--color-bg-primary); overflow: hidden; }
+    .canvas svg { width: 100%; height: 100%; display: block; }
+
+    .draw-node { position: absolute; padding: 7px 12px; background: var(--color-bg-secondary); border: 1.5px solid var(--color-text-primary); border-radius: var(--radius-sm); font: 500 italic 14px/1.2 var(--font-display); color: var(--color-text-primary); transform: translate(-50%, -50%); white-space: nowrap; }
+    .draw-node.linked { border-color: var(--color-success); }
+    .draw-node.linked::after { content: '✓'; position: absolute; right: -6px; top: -6px; background: var(--color-success); color: var(--color-text-inverse); width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 11px/1 var(--font-mono); font-style: normal; }
+    .draw-node.linked .canonical-name { display: block; font: 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-success); margin-top: 4px; font-style: normal; font-weight: 600; }
+
+    .draw-node.suggested { border: 1.5px dashed var(--color-warning); background: linear-gradient(to right, var(--color-bg-secondary), color-mix(in oklab, var(--color-warning) 8%, var(--color-bg-secondary))); }
+    .draw-node.suggested::after { content: '?'; position: absolute; right: -8px; top: -8px; background: var(--color-warning); color: var(--color-text-inverse); width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 12px/1 var(--font-mono); font-style: normal; box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-warning) 18%, transparent); animation: subtle-pulse 1.6s ease-in-out infinite; }
+    @keyframes subtle-pulse { 0%, 100% { box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-warning) 18%, transparent); } 50% { box-shadow: 0 0 0 10px transparent; } }
+    .draw-node.suggested .canonical-name { display: block; font: 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-warning); margin-top: 4px; font-style: normal; font-weight: 600; }
+
+    .canvas-meta { position: absolute; top: 10px; left: 10px; display: flex; gap: 5px; }
+    .canvas-meta .pill { background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: 3px 7px; border-radius: var(--radius-sm); font: 10px/1 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); display: flex; align-items: center; gap: 5px; }
+    .canvas-meta .pill .dot { width: 5px; height: 5px; border-radius: 50%; }
+
+    aside.hints { border-left: 1px solid var(--color-border); padding: 16px 18px; overflow-y: auto; }
+    aside.hints h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+
+    .nudge { padding: 12px 14px; background: color-mix(in oklab, var(--color-warning) 16%, var(--color-bg-secondary)); border: 1px solid var(--color-warning); border-radius: var(--radius-md); margin-bottom: 16px; font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 10px; align-items: baseline; }
+    .nudge .glyph { font: italic 14px/1 var(--font-display); color: var(--color-warning); font-style: normal; font-weight: 600; }
+    .nudge em { font-weight: 500; }
+    .nudge .arrow { font-family: var(--font-mono); font-style: normal; color: var(--color-warning); }
+
+    .selection-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px; }
+    .selection-card .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .selection-card .title { font: 500 italic 15px/1.2 var(--font-display); }
+
+    .candidate { padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: 6px; cursor: pointer; background: var(--color-bg-primary); }
+    .candidate.top { border-color: var(--color-warning); background: color-mix(in oklab, var(--color-warning) 8%, var(--color-bg-primary)); position: relative; }
+    .candidate.top::before { content: 'best guess'; position: absolute; top: -8px; right: 8px; background: var(--color-warning); color: var(--color-text-inverse); padding: 2px 6px; border-radius: var(--radius-full); font: 600 8px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .candidate .head-line { display: flex; align-items: baseline; gap: 8px; }
+    .candidate .name { font: 500 italic 14px/1.2 var(--font-display); flex: 1; }
+    .candidate .confidence { font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .candidate.top .confidence { color: var(--color-warning); }
+    .candidate .definition { font: 12px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; }
+    .candidate .source { font: 10px/1.4 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="01-new-node.html">← prev</a>
+    <span class="center">concept-map-link · step 2/4 · best-guess link surfaces</span>
+    <a href="03-hover-candidates.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 2</span><span>~1s later. Praxis lands a suggestion: <em>"chain rule"</em> (confidence 0.91). The node's outline shifts to a <em>dashed amber</em> with a ? badge — the visual for "best guess, please confirm." The right panel shows the top candidate plus the next two.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <div class="editor-strip">
+    <span class="kicker">‡ Concept map</span>
+    <h1>My derivatives <em>mapping</em></h1>
+    <span class="stat">linked to <em>Calculus · L3</em> · 4 of 5 nodes canonical-linked · 1 awaiting confirmation</span>
+  </div>
+
+  <div class="surface">
+    <div class="tools">
+      <div class="tool active">↘</div>
+      <div class="tool">○</div>
+      <div class="tool">⟶</div>
+      <div class="tool">¶</div>
+      <div class="tool-sep"></div>
+      <div class="tool">✎</div>
+    </div>
+
+    <div class="canvas">
+      <svg viewBox="0 0 700 540" xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="var(--color-text-tertiary)" opacity="0.35"/></pattern></defs>
+        <rect width="700" height="540" fill="url(#dots)"/>
+        <g stroke="var(--color-text-primary)" stroke-width="1.5" fill="none">
+          <line x1="140" y1="120" x2="260" y2="200"/>
+          <line x1="140" y1="120" x2="260" y2="360"/>
+          <line x1="300" y1="220" x2="440" y2="280"/>
+        </g>
+        <text x="200" y="160" font-family="serif" font-style="italic" font-size="11" fill="var(--color-text-secondary)" text-anchor="middle">leads to</text>
+        <text x="200" y="260" font-family="serif" font-style="italic" font-size="11" fill="var(--color-text-secondary)" text-anchor="middle">is a kind of</text>
+        <text x="370" y="240" font-family="serif" font-style="italic" font-size="11" fill="var(--color-text-secondary)" text-anchor="middle">used by</text>
+      </svg>
+
+      <div class="draw-node linked" style="top: 22%; left: 20%;">rate of change<span class="canonical-name">→ derivative</span></div>
+      <div class="draw-node linked" style="top: 40%; left: 38%;">the slope thing<span class="canonical-name">→ derivative (geometric)</span></div>
+      <div class="draw-node linked" style="top: 67%; left: 38%;">limits<span class="canonical-name">→ limit</span></div>
+      <div class="draw-node suggested" style="top: 52%; left: 62%;">
+        nested rates<span class="canonical-name">→ chain rule?</span>
+      </div>
+
+      <div class="canvas-meta">
+        <span class="pill"><span class="dot" style="background: var(--color-success);"></span>linked · 3</span>
+        <span class="pill"><span class="dot" style="background: var(--color-warning);"></span>best-guess · 1</span>
+      </div>
+    </div>
+
+    <aside class="hints">
+      <h3>Best-guess surfaced</h3>
+      <div class="nudge">
+        <span class="glyph">?</span>
+        <span>Praxis thinks <em>"nested rates"</em> means <em>chain rule</em> <span class="arrow">→</span> click to confirm, or pick a different match below.</span>
+      </div>
+
+      <div class="selection-card">
+        <div class="kicker">your node</div>
+        <div class="title"><em>nested rates</em></div>
+      </div>
+
+      <h3>Match candidates</h3>
+      <div class="candidate top">
+        <div class="head-line">
+          <span class="name">chain rule</span>
+          <span class="confidence">★★★ · 0.91</span>
+        </div>
+        <div class="definition">The derivative of a composite function: when one quantity depends on another which depends on a third, the rate of the composition is the product of the inner rates.</div>
+        <div class="source">canonical · Calc.deriv.chain · used in L3, L4</div>
+      </div>
+      <div class="candidate">
+        <div class="head-line">
+          <span class="name">related rates</span>
+          <span class="confidence">★★ · 0.62</span>
+        </div>
+        <div class="definition">Problems where two variables change with respect to a third (usually time).</div>
+        <div class="source">canonical · Calc.app.related</div>
+      </div>
+      <div class="candidate">
+        <div class="head-line">
+          <span class="name">composite function</span>
+          <span class="confidence">★ · 0.41</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

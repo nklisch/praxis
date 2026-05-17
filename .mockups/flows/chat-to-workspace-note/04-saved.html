@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>chat→note · 4/5 · panel dismissed, note saved</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .workspace { display: grid; grid-template-columns: 240px 1fr 280px; min-height: calc(100vh - 100px); position: relative; }
+    aside.docs { border-right: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.docs h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    aside.docs .doc { padding: 6px 0; font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+
+    main.session { display: flex; flex-direction: column; }
+    .session-head { padding: 16px 28px 10px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: baseline; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 20px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .session-head h1 em { font-weight: 600; }
+
+    .messages { flex: 1; padding: 20px 28px; max-width: 800px; margin: 0 auto; width: 100%; }
+    .turn { margin-bottom: 18px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .turn.tutor .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 18px; font: 15px/1.65 var(--font-serif); }
+    .turn.tutor .bubble em { font-style: italic; }
+    .turn.student { display: flex; justify-content: flex-end; }
+    .turn.student .wrap { max-width: 75%; }
+    .turn.student .speaker { text-align: right; }
+    .turn.student .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 12px 16px; font: italic 15px/1.6 var(--font-serif); }
+
+    .composer { padding: 14px 28px 20px; border-top: 1px solid var(--color-border); }
+    .composer-inner { max-width: 800px; margin: 0 auto; }
+    .composer-field { display: flex; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 10px 12px; align-items: flex-end; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 15px/1.5 var(--font-serif); resize: none; outline: none; min-height: 22px; color: var(--color-text-primary); font-style: italic; }
+    .composer-field .actions-rail { display: flex; gap: 4px; align-items: center; padding-right: 6px; border-right: 1px solid var(--color-border); margin-right: 4px; }
+    .composer-field .actions-rail button { background: transparent; border: 0; padding: 4px 6px; cursor: pointer; color: var(--color-text-tertiary); font: italic 14px/1 var(--font-display); border-radius: var(--radius-sm); }
+    .composer-field .actions-rail button.has-note { color: var(--color-accent); background: var(--color-accent-muted); }
+    .composer-field .actions-rail button.has-note::after { content: '·'; position: absolute; }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 12px; font: 500 13px/1 var(--font-sans); cursor: pointer; }
+
+    aside.concepts { border-left: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.concepts h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    aside.concepts .concept { padding: 6px 0; font: 13px/1.4 var(--font-serif); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; }
+    aside.concepts .concept .name { font-style: italic; }
+    aside.concepts .concept .mastery { font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+
+    /* Saved toast — bottom right, drift in */
+    .saved-toast { position: fixed; bottom: 24px; right: 24px; background: var(--color-bg-inverse); color: var(--color-text-inverse); padding: 12px 16px; border-radius: var(--radius-md); box-shadow: 0 12px 40px rgba(0,0,0,0.16); display: flex; gap: 12px; align-items: center; max-width: 340px; animation: toast-in 320ms ease-out; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .saved-toast .glyph { font: italic 18px/1 var(--font-display); color: var(--color-accent); }
+    .saved-toast .text { font: italic 13px/1.45 var(--font-serif); flex: 1; }
+    .saved-toast .text em { font-weight: 600; color: var(--color-accent); font-style: italic; }
+    .saved-toast .text strong { font-weight: 600; font-style: normal; }
+    .saved-toast .actions { display: flex; gap: 6px; }
+    .saved-toast .actions a { color: var(--color-accent); text-decoration: none; font: italic 12px/1 var(--font-serif); padding: 4px 8px; }
+    .saved-toast .actions a:hover { background: var(--color-bg-secondary); border-radius: var(--radius-sm); }
+
+    /* Composer "has-note" indicator with hover preview */
+    .has-note-tooltip { position: absolute; bottom: 80px; left: 220px; background: var(--color-bg-inverse); color: var(--color-text-inverse); padding: 10px 14px; border-radius: var(--radius-md); font: italic 12px/1.5 var(--font-serif); max-width: 240px; box-shadow: 0 8px 32px rgba(0,0,0,0.16); }
+    .has-note-tooltip::after { content: ''; position: absolute; bottom: -6px; left: 14px; width: 10px; height: 10px; background: var(--color-bg-inverse); transform: rotate(45deg); }
+    .has-note-tooltip strong { font-weight: 600; font-style: normal; }
+    .has-note-tooltip a { color: var(--color-accent); font-style: italic; text-decoration: none; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="03-inline-cornell.html">← prev</a>
+    <span class="center">chat→note · step 4/5 · note panel dismissed · session uninterrupted</span>
+    <a href="05-workspace-catalogue.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 4</span><span>Esc dismisses the panel. Toast confirms <em>"saved to workspace · linked to L3"</em>. The composer's <em>+ note</em> button now shows a small dot indicating a note exists for this session — hover reopens it. The conversation continues.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <div class="workspace">
+    <aside class="docs">
+      <h3>Cited</h3>
+      <div class="doc">Stewart 8e · §3.5</div>
+      <div class="doc">Stewart 8e · §3.6</div>
+      <h3 style="margin-top: 24px;">This session</h3>
+      <div class="doc" style="background: var(--color-accent-muted); padding: 8px 10px; border-radius: var(--radius-sm); display: flex; gap: 8px; align-items: baseline;">
+        <span style="font-style: italic; color: var(--color-accent);">¶</span>
+        <span><em style="font-weight: 600;">Chain rule — nested rates</em><br><span style="font: italic 11px/1.2 var(--font-serif); color: var(--color-text-tertiary);">cornell · 2 min ago</span></span>
+      </div>
+    </aside>
+
+    <main class="session">
+      <header class="session-head">
+        <div class="kicker"><span class="dot"></span>§ Teach · L3</div>
+        <h1>Why the chain rule <em>actually works</em></h1>
+      </header>
+
+      <div class="messages">
+        <div class="turn tutor">
+          <div class="speaker">Tutor · just now</div>
+          <div class="bubble">
+            <p>Notice: <em>the rate of the whole is the product of the rates</em>. The chain rule is just this, stated generally.</p>
+          </div>
+        </div>
+
+        <div class="turn student">
+          <div class="wrap">
+            <div class="speaker">You · just now</div>
+            <div class="bubble">OK — so for sin(x²), the outer rate is cos(x²) and the inner rate is 2x, and we multiply them. That makes sense now.</div>
+          </div>
+        </div>
+
+        <div class="turn tutor">
+          <div class="speaker">Tutor · just now</div>
+          <div class="bubble">
+            <p>Exactly. Try one without the answer in front of you. <em>d/dx of (3x + 1)⁵</em> — what are the two rates, and what's their product?</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <div class="composer-field">
+            <div class="actions-rail">
+              <button class="has-note" title="1 note for this session">¶</button>
+              <button title="Open the sketch surface">✎</button>
+              <button title="Draft a flashcard">‖</button>
+            </div>
+            <textarea rows="1" placeholder="answer or ask"></textarea>
+            <button class="submit">Send ↵</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="concepts">
+      <h3>Concepts active</h3>
+      <div class="concept"><span class="name">chain rule</span><span class="mastery">0.31 → 0.36</span></div>
+      <div class="concept"><span class="name">composite fn</span><span class="mastery">0.62 → 0.68</span></div>
+      <div class="concept"><span class="name">derivative</span><span class="mastery">0.71</span></div>
+    </aside>
+  </div>
+
+  <div class="has-note-tooltip">
+    <strong>1 note for this session</strong> · cornell · "chain rule — nested rates" · <a href="#">↗ reopen</a>
+  </div>
+
+  <div class="saved-toast">
+    <span class="glyph">¶</span>
+    <div class="text">
+      <strong>Saved.</strong> "Chain rule — nested rates" · <em>cornell</em> · linked to L3. Find it in the workspace catalogue.
+    </div>
+    <div class="actions">
+      <a href="#">↗ workspace</a>
+    </div>
+  </div>
+</body>
+</html>

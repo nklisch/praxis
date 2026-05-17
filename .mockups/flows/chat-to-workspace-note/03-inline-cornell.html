@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>chat→note · 3/5 · inline Cornell panel</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    /* The right concepts panel is replaced by the note panel; chat stays running on the left */
+    .workspace { display: grid; grid-template-columns: 200px 1fr 460px; min-height: calc(100vh - 100px); }
+    aside.docs { border-right: 1px solid var(--color-border); padding: 20px 14px; }
+    aside.docs h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    aside.docs .doc { padding: 6px 0; font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+
+    main.session { display: flex; flex-direction: column; min-width: 0; }
+    .session-head { padding: 14px 24px 8px; border-bottom: 1px solid var(--color-border); display: flex; gap: 14px; align-items: baseline; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 18px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .session-head h1 em { font-weight: 600; }
+
+    .messages { flex: 1; padding: 16px 24px; max-width: 620px; margin: 0 auto; width: 100%; opacity: 0.85; }
+    .turn { margin-bottom: 14px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .turn.tutor .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 12px 16px; font: 14px/1.6 var(--font-serif); }
+    .turn.tutor .bubble em { font-style: italic; }
+    .turn.student { display: flex; justify-content: flex-end; }
+    .turn.student .wrap { max-width: 80%; }
+    .turn.student .speaker { text-align: right; }
+    .turn.student .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 10px 14px; font: italic 14px/1.55 var(--font-serif); }
+
+    .composer { padding: 12px 24px 16px; border-top: 1px solid var(--color-border); }
+    .composer-field { display: flex; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 8px 12px; max-width: 620px; margin: 0 auto; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 14px/1.5 var(--font-serif); resize: none; outline: none; min-height: 20px; color: var(--color-text-primary); font-style: italic; }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 4px 10px; font: 500 12px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
+
+    /* The note panel — slides in from the right, replaces concepts panel */
+    aside.note-panel { border-left: 2px solid var(--color-accent); background: var(--color-bg-secondary); display: flex; flex-direction: column; animation: slide-in 280ms ease-out; }
+    @keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+    .note-panel-head { padding: 14px 20px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 10px; background: var(--color-accent-muted); }
+    .note-panel-head .glyph { font: italic 16px/1 var(--font-display); color: var(--color-accent); }
+    .note-panel-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    .note-panel-head .spacer { flex: 1; }
+    .note-panel-head .action { background: transparent; border: 0; color: var(--color-text-secondary); cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .note-panel-head .action:hover { background: var(--color-bg-primary); }
+    .note-panel-head .esc { font: 600 9px/1 var(--font-mono); padding: 3px 6px; background: var(--color-bg-primary); border-radius: 3px; color: var(--color-text-tertiary); letter-spacing: 0.08em; }
+
+    .note-panel-body { flex: 1; padding: 20px; overflow-y: auto; }
+    .note-title-input { width: 100%; border: 0; background: transparent; font: 500 italic 22px/1.2 var(--font-display); color: var(--color-text-primary); outline: none; margin-bottom: 8px; padding: 0; }
+    .note-link-line { font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-bottom: 18px; }
+    .note-link-line strong { color: var(--color-text-secondary); font-weight: 600; }
+
+    /* Cornell mini-layout */
+    .cornell-mini { border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); overflow: hidden; }
+    .cornell-mini .grid { display: grid; grid-template-columns: 96px 1fr; }
+    .cornell-mini .cue-col { background: var(--color-bg-primary); padding: 12px; border-right: 1px solid var(--color-border-strong); }
+    .cornell-mini .col-label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; }
+    .cornell-mini .cue-item { padding: 8px 0; border-bottom: 1px dashed var(--color-border); font: italic 12px/1.5 var(--font-serif); cursor: text; }
+    .cornell-mini .cue-item:last-child { border-bottom: none; }
+    .cornell-mini .cue-item.placeholder { color: var(--color-text-tertiary); font-style: italic; }
+
+    .cornell-mini .notes-col { padding: 14px 16px; background: var(--color-bg-secondary); }
+    .cornell-mini .notes-col p { font: 14px/1.65 var(--font-serif); margin: 0 0 10px; }
+    .cornell-mini .notes-col p em { font-style: italic; font-weight: 500; color: var(--color-accent); }
+    .cornell-mini .notes-col p.quoted { background: var(--color-accent-muted); padding: 8px 12px; border-radius: var(--radius-sm); border-left: 2px solid var(--color-accent); font-style: italic; color: var(--color-text-secondary); }
+    .cornell-mini .notes-col p.quoted::before { content: '"'; font-size: 22px; font-style: italic; color: var(--color-accent); line-height: 0.5; vertical-align: -8px; }
+    .cornell-mini .notes-col .write-here { font: italic 12px/1 var(--font-serif); color: var(--color-text-tertiary); padding: 6px 0; cursor: text; }
+
+    .cornell-mini .summary { padding: 12px 16px; border-top: 1px solid var(--color-border-strong); background: var(--color-bg-primary); }
+    .cornell-mini .summary .col-label { margin-bottom: 6px; }
+    .cornell-mini .summary .text { font: italic 13px/1.6 var(--font-serif); color: var(--color-text-tertiary); }
+
+    .note-foot { padding: 12px 20px; border-top: 1px solid var(--color-border); display: flex; gap: 8px; align-items: center; background: var(--color-bg-primary); }
+    .note-foot .saved { font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-success); display: flex; align-items: center; gap: 6px; }
+    .note-foot .saved .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); }
+    .note-foot .spacer { flex: 1; }
+    .note-foot button { font: 500 11px/1 var(--font-sans); padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .note-foot .keep-going { font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="02-note-affordance.html">← prev</a>
+    <span class="center">chat→note · step 3/5 · inline panel · chat still running on the left</span>
+    <a href="04-saved.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 3</span><span>Cornell note panel slides in from the right (replacing the concepts panel temporarily). Title pre-filled from the lesson; the tutor's quoted phrase appears in the notes column already; cues pre-seeded as prompts. The chat stays running on the left — the student can keep responding to the tutor without leaving the session.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <div class="workspace">
+    <aside class="docs">
+      <h3>Cited</h3>
+      <div class="doc">Stewart 8e · §3.5</div>
+      <div class="doc">Stewart 8e · §3.6</div>
+    </aside>
+
+    <main class="session">
+      <header class="session-head">
+        <div class="kicker"><span class="dot"></span>§ Teach · L3</div>
+        <h1>Why the chain rule <em>actually works</em></h1>
+      </header>
+      <div class="messages">
+        <div class="turn student"><div class="wrap"><div class="speaker">You</div><div class="bubble">I've seen <em>(f ∘ g)' = f'(g) · g'</em> but I don't really feel why it's the product.</div></div></div>
+        <div class="turn tutor"><div class="speaker">Tutor</div><div class="bubble">Suppose a balloon is being inflated and you track its radius over time…</div></div>
+        <div class="turn tutor"><div class="speaker">Tutor · just now</div><div class="bubble">Notice: <em>the rate of the whole is the product of the rates</em>. The chain rule is just this, stated generally.</div></div>
+      </div>
+      <div class="composer">
+        <div class="composer-field">
+          <textarea rows="1" placeholder="answer or ask · keep going"></textarea>
+          <button class="submit">Send ↵</button>
+        </div>
+      </div>
+    </main>
+
+    <aside class="note-panel">
+      <div class="note-panel-head">
+        <span class="glyph">¶</span>
+        <span class="kicker">cornell note · linked to L3</span>
+        <span class="spacer"></span>
+        <button class="action">↗ pop out</button>
+        <span class="esc">esc</span>
+      </div>
+
+      <div class="note-panel-body">
+        <input class="note-title-input" value="Chain rule — nested rates" />
+        <div class="note-link-line">linked to <strong>Calculus · L3 · chain rule</strong> · started just now</div>
+
+        <div class="cornell-mini">
+          <div class="grid">
+            <div class="cue-col">
+              <div class="col-label">◆ Cues</div>
+              <div class="cue-item">Chain rule in one sentence?</div>
+              <div class="cue-item">Why <em>multiply</em> not <em>cancel</em>?</div>
+              <div class="cue-item">The two rates?</div>
+              <div class="cue-item placeholder">+ add a cue</div>
+            </div>
+            <div class="notes-col">
+              <div class="col-label">◆ Notes</div>
+              <p class="quoted">the rate of the whole is the <em>product</em> of the rates</p>
+              <p>The tutor's phrase — keep this. The chain rule isn't about cancellation; it's about <em>nested rates that multiply</em>.</p>
+              <p>For the balloon: volume responds to radius; radius responds to time. <em>Two rates, one nesting</em>.</p>
+              <div class="write-here">+ keep writing · ⌘↵ to save</div>
+            </div>
+          </div>
+          <div class="summary">
+            <div class="col-label">¶ Summary</div>
+            <div class="text">+ summarise in one sentence when you're done</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-foot">
+        <span class="saved"><span class="dot"></span>saving as you type</span>
+        <span class="keep-going">— or <em>esc</em> to dismiss; reopen any time from the workspace catalogue</span>
+        <span class="spacer"></span>
+        <button>Open in full editor ↗</button>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

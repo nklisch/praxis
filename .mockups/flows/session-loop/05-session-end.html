@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>session-loop · 5/5 · session end + return</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta a:hover { background: #161b22; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .empty { font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); padding: 2px 6px; }
+
+    /* Split: session summary card + workbench beneath */
+    .summary-section { padding: 40px 32px 24px; max-width: 800px; margin: 0 auto; }
+    .summary-section .closing-kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
+    .summary-section .closing-kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); }
+
+    .summary-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 32px 36px; }
+    .summary-card h2 { font: 500 italic 28px/1.2 var(--font-display); margin: 0 0 6px; }
+    .summary-card h2 em { font-weight: 600; }
+    .summary-card .deck { font: italic 15px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 24px; }
+
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .summary-block h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    .summary-block .line { font: 14px/1.6 var(--font-serif); color: var(--color-text-primary); padding: 4px 0; display: flex; justify-content: space-between; align-items: baseline; }
+    .summary-block .line em { font-style: italic; font-weight: 600; }
+    .summary-block .line .delta { font: 11px/1 var(--font-mono); padding: 3px 6px; border-radius: var(--radius-full); letter-spacing: 0.04em; }
+    .summary-block .line .delta.up { background: var(--color-success); color: var(--color-text-inverse); }
+    .summary-block .line .delta.held { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
+
+    .summary-actions { display: flex; gap: 8px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+    .summary-actions button { font: 500 13px/1 var(--font-sans); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .summary-actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+    .summary-actions .spacer { flex: 1; }
+    .summary-actions .timing { font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); align-self: center; }
+
+    /* Workbench teaser underneath */
+    .workbench-after { max-width: 1080px; margin: 32px auto 64px; padding: 0 32px; opacity: 0.95; }
+    .workbench-after .returned-label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px dashed var(--color-border); display: flex; align-items: baseline; gap: 10px; }
+    .workbench-after .returned-label em { font-family: var(--font-serif); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--color-text-secondary); }
+
+    .wb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .wb-col { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 20px; }
+    .wb-col h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+
+    .queue-mini { padding: 8px 0; border-bottom: 1px dashed var(--color-border); font: 13px/1.5 var(--font-serif); display: flex; align-items: baseline; gap: 10px; }
+    .queue-mini .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .queue-mini.completed { opacity: 0.5; }
+    .queue-mini.completed .text { text-decoration: line-through; color: var(--color-text-tertiary); }
+    .queue-mini .text { flex: 1; }
+    .queue-mini .text em { font-weight: 600; }
+    .queue-mini .meta { font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+
+    .timeline-new { background: var(--color-accent-muted); padding: 10px 14px; margin: 6px -6px; border-radius: var(--radius-sm); border-left: 3px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); display: flex; align-items: baseline; gap: 10px; }
+    .timeline-new .badge { font: 600 9px/1 var(--font-mono); padding: 3px 6px; background: var(--color-accent); color: var(--color-text-inverse); border-radius: var(--radius-full); letter-spacing: 0.08em; text-transform: uppercase; font-style: normal; }
+    .timeline-new em { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="04-switch-tabs.html">← prev</a>
+    <span class="center">session-loop · step 5/5 · lesson finished, returns to workbench</span>
+    <a href="index.html">done ↗</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 5</span><span>Lesson lands. Session-end summary surfaces with mastery delta, concepts touched, and what's next. Closing the session removes its tab from the strip and returns the student to the workbench — the queue rearranges: #1 is checked, #2 promotes.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#" class="active"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="empty">no sessions open</span>
+    </div>
+  </header>
+
+  <div class="summary-section">
+    <div class="closing-kicker"><span class="dot"></span>§ Lesson ended · just now · Calculus L3</div>
+    <div class="summary-card">
+      <h2>That landed. The <em>chain rule</em> is now <em>nested rates</em>.</h2>
+      <div class="deck">A short summary of the session you just finished. Mastery moved on the concepts the work touched.</div>
+
+      <div class="summary-grid">
+        <div class="summary-block">
+          <h3>Mastery moved</h3>
+          <div class="line"><span><em>chain rule</em></span><span>0.31 → 0.62 <span class="delta up">+0.31</span></span></div>
+          <div class="line"><span>composite function</span><span>0.62 → 0.74 <span class="delta up">+0.12</span></span></div>
+          <div class="line"><span>derivative as rate</span><span>0.71 → 0.78 <span class="delta up">+0.07</span></span></div>
+          <div class="line"><span>related rates</span><span>0.48 → 0.48 <span class="delta held">held</span></span></div>
+        </div>
+        <div class="summary-block">
+          <h3>What we did</h3>
+          <div class="line"><span>Turns exchanged</span><span><em>14</em></span></div>
+          <div class="line"><span>Worked examples</span><span><em>2</em> · balloon, shadow</span></div>
+          <div class="line"><span>Tool calls verified</span><span><em>3</em> · sympy</span></div>
+          <div class="line"><span>Total time</span><span><em>32 min</em></span></div>
+        </div>
+      </div>
+
+      <div class="summary-block" style="margin-bottom: 24px;">
+        <h3>Misconception cleared</h3>
+        <div style="font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); padding: 8px 0;">
+          <em>M.051 — "derivatives cancel."</em> The student stopped reaching for cancellation language and described the chain rule as nested rates multiplying. Marked as cleared.
+        </div>
+      </div>
+
+      <div class="summary-actions">
+        <button class="primary">Close session ✓</button>
+        <button>Take notes on this</button>
+        <button>Open the workspace</button>
+        <span class="spacer"></span>
+        <span class="timing">a quick check on chain rule will unlock <em>implicit differentiation (L4)</em></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="workbench-after">
+    <div class="returned-label">⁂ workbench · queue rearranged<em>— #1 checked off, the rest promote up</em></div>
+    <div class="wb-grid">
+      <div class="wb-col">
+        <h3>What's next · refreshed</h3>
+        <div class="queue-mini completed"><span class="dot" style="background: var(--color-success);"></span><span class="text">✓ Resume <em>chain rule</em> · L3</span><span class="meta">done</span></div>
+        <div class="queue-mini"><span class="dot" style="background: var(--tint-quiz);"></span><span class="text">Quick check · <em>chain rule</em> · 3 items</span><span class="meta">new · unlocks L4</span></div>
+        <div class="queue-mini"><span class="dot" style="background: var(--tint-study-skills);"></span><span class="text">Spaced review · <em>15 cards due</em></span><span class="meta">~12 min</span></div>
+        <div class="queue-mini"><span class="dot" style="background: var(--tint-quiz);"></span><span class="text">Quick check · derivatives basics</span><span class="meta">~5 min</span></div>
+      </div>
+      <div class="wb-col">
+        <h3>Lately</h3>
+        <div class="timeline-new"><span class="badge">just now</span><span><em>Calculus · chain rule landed</em> · L3 finished · 32 min</span></div>
+        <div class="queue-mini"><span class="dot" style="background: var(--tint-teach);"></span><span class="text">Calculus · chain rule, first encounter (resumed)</span><span class="meta">3h ago</span></div>
+        <div class="queue-mini"><span class="dot" style="background: var(--tint-bootstrap);"></span><span class="text">Stewart Calc 8e · course shape draft</span><span class="meta">yesterday</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

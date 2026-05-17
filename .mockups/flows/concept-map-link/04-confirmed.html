@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>concept-map-link · 4/4 · linked + integrated</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .running-head { padding: 12px 32px 8px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .editor-strip { padding: 10px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .editor-strip .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .editor-strip h1 { font: 500 italic 18px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .editor-strip h1 em { font-weight: 600; }
+    .editor-strip .stat { font: italic 12px/1 var(--font-serif); color: var(--color-success); }
+
+    .surface { display: grid; grid-template-columns: 48px 1fr 320px; flex: 1; overflow: hidden; }
+    .tools { border-right: 1px solid var(--color-border); padding: 8px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .tool { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-secondary); font: italic 16px/1 var(--font-display); }
+    .tool.active { background: var(--color-accent-muted); color: var(--color-accent); }
+
+    .canvas { position: relative; background: var(--color-bg-primary); overflow: hidden; }
+    .canvas svg { width: 100%; height: 100%; display: block; }
+
+    .draw-node { position: absolute; padding: 7px 12px; background: var(--color-bg-secondary); border: 1.5px solid var(--color-text-primary); border-radius: var(--radius-sm); font: 500 italic 14px/1.2 var(--font-display); color: var(--color-text-primary); transform: translate(-50%, -50%); white-space: nowrap; }
+    .draw-node.linked { border-color: var(--color-success); }
+    .draw-node.linked::after { content: '✓'; position: absolute; right: -6px; top: -6px; background: var(--color-success); color: var(--color-text-inverse); width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 11px/1 var(--font-mono); font-style: normal; }
+    .draw-node.linked .canonical-name { display: block; font: 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-success); margin-top: 4px; font-style: normal; font-weight: 600; }
+
+    /* Just-confirmed: brief flash */
+    .draw-node.just-confirmed { box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-success) 25%, transparent); animation: confirm-flash 1.4s ease-out; }
+    @keyframes confirm-flash {
+      0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-success) 55%, transparent); }
+      100% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-success) 12%, transparent); }
+    }
+
+    .canvas-meta { position: absolute; top: 10px; left: 10px; display: flex; gap: 5px; }
+    .canvas-meta .pill { background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: 3px 7px; border-radius: var(--radius-sm); font: 10px/1 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); display: flex; align-items: center; gap: 5px; }
+    .canvas-meta .pill .dot { width: 5px; height: 5px; border-radius: 50%; }
+
+    .confirm-toast { position: absolute; top: 16px; right: 16px; background: var(--color-bg-inverse); color: var(--color-text-inverse); padding: 12px 16px; border-radius: var(--radius-md); display: flex; gap: 12px; align-items: center; box-shadow: 0 12px 40px rgba(0,0,0,0.16); max-width: 280px; }
+    .confirm-toast .glyph { color: var(--color-success); font: 600 16px/1 var(--font-mono); }
+    .confirm-toast .text { font: italic 13px/1.45 var(--font-serif); flex: 1; }
+    .confirm-toast .text em { font-weight: 600; color: var(--color-success); font-style: italic; }
+    .confirm-toast .undo { font: italic 12px/1 var(--font-serif); color: var(--color-warning); cursor: pointer; padding: 2px 6px; }
+
+    aside.hints { border-left: 1px solid var(--color-border); padding: 16px 18px; overflow-y: auto; }
+    aside.hints h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+
+    .linked-card { background: color-mix(in oklab, var(--color-success) 8%, var(--color-bg-secondary)); border: 1px solid var(--color-success); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 16px; }
+    .linked-card .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-success); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .linked-card .kicker .glyph { color: var(--color-success); font-weight: 600; }
+    .linked-card .your-phrase { font: italic 16px/1.3 var(--font-display); color: var(--color-text-primary); }
+    .linked-card .arrow { color: var(--color-success); font-family: var(--font-mono); font-size: 14px; padding: 4px 0; display: block; }
+    .linked-card .canonical-name { font: 500 italic 16px/1.3 var(--font-display); color: var(--color-text-primary); }
+    .linked-card .canonical-meta { font: 10px/1.4 var(--font-mono); color: var(--color-success); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+    .linked-card .actions { display: flex; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid color-mix(in oklab, var(--color-success) 20%, var(--color-border)); }
+    .linked-card .actions button { font: 500 11px/1 var(--font-sans); padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .linked-card .actions .change { color: var(--color-warning); border-color: var(--color-warning); }
+
+    .ripple { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; }
+    .ripple h4 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 8px; }
+    .ripple .row { padding: 6px 0; font: 13px/1.5 var(--font-serif); color: var(--color-text-secondary); display: flex; gap: 10px; align-items: baseline; border-bottom: 1px dashed var(--color-border); }
+    .ripple .row:last-child { border-bottom: none; }
+    .ripple .row .ornament { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 13px; min-width: 14px; }
+    .ripple .row em { font-weight: 500; color: var(--color-text-primary); font-style: italic; }
+    .ripple .row .badge { margin-left: auto; font: 9px/1 var(--font-mono); color: var(--color-success); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="03-hover-candidates.html">← prev</a>
+    <span class="center">concept-map-link · step 4/4 · linked · canonical neighbours filled in · ripples surface</span>
+    <a href="index.html">done ↗</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 4</span><span>Confirmed. Node animates to <em>linked</em> state (green ✓, brief flash). The ghost edges become real — <em>"nested rates"</em> is now connected to <em>implicit diff</em> and <em>related rates</em> via the canonical graph. Right panel shows the link summary + ripples (mastery touched, lessons unlocked, where else "chain rule" now refers).</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <div class="editor-strip">
+    <span class="kicker">‡ Concept map</span>
+    <h1>My derivatives <em>mapping</em></h1>
+    <span class="stat">✓ all 5 nodes canonical-linked · last edit just now</span>
+  </div>
+
+  <div class="surface">
+    <div class="tools">
+      <div class="tool active">↘</div>
+      <div class="tool">○</div>
+      <div class="tool">⟶</div>
+      <div class="tool">¶</div>
+    </div>
+
+    <div class="canvas">
+      <svg viewBox="0 0 700 540" xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="var(--color-text-tertiary)" opacity="0.35"/></pattern></defs>
+        <rect width="700" height="540" fill="url(#dots)"/>
+        <g stroke="var(--color-text-primary)" stroke-width="1.5" fill="none">
+          <line x1="140" y1="120" x2="260" y2="200"/>
+          <line x1="140" y1="120" x2="260" y2="360"/>
+          <line x1="300" y1="220" x2="440" y2="280"/>
+        </g>
+        <text x="200" y="160" font-family="serif" font-style="italic" font-size="11" fill="var(--color-text-secondary)" text-anchor="middle">leads to</text>
+        <text x="200" y="260" font-family="serif" font-style="italic" font-size="11" fill="var(--color-text-secondary)" text-anchor="middle">is a kind of</text>
+        <text x="370" y="240" font-family="serif" font-style="italic" font-size="11" fill="var(--color-text-secondary)" text-anchor="middle">used by</text>
+
+        <!-- Now-real edges -->
+        <g stroke="var(--color-success)" stroke-width="1.5" fill="none">
+          <line x1="440" y1="280" x2="600" y2="180"/>
+          <line x1="440" y1="280" x2="600" y2="400"/>
+        </g>
+        <text x="520" y="218" font-family="serif" font-style="italic" font-size="11" fill="var(--color-success)" text-anchor="middle">implies</text>
+        <text x="520" y="360" font-family="serif" font-style="italic" font-size="11" fill="var(--color-success)" text-anchor="middle">applies to</text>
+      </svg>
+
+      <div class="draw-node linked" style="top: 22%; left: 20%;">rate of change<span class="canonical-name">→ derivative</span></div>
+      <div class="draw-node linked" style="top: 40%; left: 38%;">the slope thing<span class="canonical-name">→ derivative (geometric)</span></div>
+      <div class="draw-node linked" style="top: 67%; left: 38%;">limits<span class="canonical-name">→ limit</span></div>
+      <div class="draw-node linked just-confirmed" style="top: 52%; left: 62%;">
+        nested rates<span class="canonical-name">→ chain rule</span>
+      </div>
+
+      <!-- Newly-real canonical neighbours -->
+      <div class="draw-node linked" style="top: 33%; left: 86%; background: color-mix(in oklab, var(--color-success) 5%, var(--color-bg-secondary));">
+        implicit diff<span class="canonical-name">canonical · L4</span>
+      </div>
+      <div class="draw-node linked" style="top: 74%; left: 86%; background: color-mix(in oklab, var(--color-success) 5%, var(--color-bg-secondary));">
+        related rates<span class="canonical-name">canonical · L5</span>
+      </div>
+
+      <div class="canvas-meta">
+        <span class="pill"><span class="dot" style="background: var(--color-success);"></span>linked · 5</span>
+        <span class="pill"><span class="dot" style="background: var(--color-success);"></span>+ 2 canonical neighbours surfaced</span>
+      </div>
+
+      <div class="confirm-toast">
+        <span class="glyph">✓</span>
+        <span class="text"><em>"nested rates"</em> linked to <em>chain rule</em></span>
+        <span class="undo">undo</span>
+      </div>
+    </div>
+
+    <aside class="hints">
+      <h3>Linked</h3>
+      <div class="linked-card">
+        <div class="kicker"><span class="glyph">✓</span> confirmed just now</div>
+        <div class="your-phrase">"nested rates"</div>
+        <span class="arrow">→ canonical:</span>
+        <div class="canonical-name">chain rule</div>
+        <div class="canonical-meta">calc.deriv.chain · ★★★ 0.91</div>
+        <div class="actions">
+          <button>Edit your phrase</button>
+          <button class="change">Change canonical</button>
+        </div>
+      </div>
+
+      <div class="ripple">
+        <h4>Ripples · what this changes</h4>
+        <div class="row">
+          <span class="ornament">‡</span>
+          <span>2 canonical neighbours surfaced in the map: <em>implicit diff</em>, <em>related rates</em></span>
+          <span class="badge">+2</span>
+        </div>
+        <div class="row">
+          <span class="ornament">‖</span>
+          <span>Concept count for L3 progress map: <em>4 → 5</em></span>
+          <span class="badge">+1</span>
+        </div>
+        <div class="row">
+          <span class="ornament">§</span>
+          <span>Tutor knows your phrase. Next teach session, "chain rule" will be referenced as <em>"the nested-rates idea"</em>.</span>
+        </div>
+        <div class="row">
+          <span class="ornament">¶</span>
+          <span>3 of your notes mentioning <em>"nested rates"</em> are now concept-tagged.</span>
+          <span class="badge">+3 tags</span>
+        </div>
+      </div>
+
+      <h3>Other nodes</h3>
+      <div style="font: italic 13px/1.5 var(--font-serif); color: var(--color-text-tertiary); padding: 8px 0;">click any node to inspect or relink</div>
+    </aside>
+  </div>
+</body>
+</html>

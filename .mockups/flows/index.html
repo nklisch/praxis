@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Praxis · flows</title>
+  <style>
+    body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #f6f8fa; color: #24292f; }
+    header { background: #0d1117; color: #fff; padding: 32px; }
+    header h1 { margin: 0 0 6px; font-weight: 600; font-size: 24px; }
+    header p { margin: 0; color: #8b949e; max-width: 80ch; }
+    .flows { display: grid; gap: 16px; grid-template-columns: 1fr 1fr 1fr; padding: 24px 32px; }
+    .flow { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+    .flow h2 { margin: 0; padding: 16px 20px 8px; font-size: 16px; font-weight: 600; }
+    .flow .lede { padding: 0 20px 16px; color: #57606a; font-size: 13px; }
+    .flow .meta { padding: 8px 20px; background: #f6f8fa; border-top: 1px solid #d0d7de; font-size: 12px; color: #57606a; display: flex; justify-content: space-between; align-items: center; }
+    .flow .meta a { color: #0969da; text-decoration: none; font-weight: 600; padding: 6px 10px; border-radius: 6px; }
+    .flow .meta a:hover { background: #eaeef2; }
+    .flow iframe { border: 0; width: 100%; height: 260px; background: #f6f8fa; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Flows · feel + navigation between locked surfaces</h1>
+    <p>Three sequences focused on the critical connecting moments: the daily walked path (tab switching, state preservation), inter-tab integration (chat ↔ workspace), and a finer-component interaction (concept-map link confirmation). Each flow walks step-by-step; open any flow's index for the navigator.</p>
+  </header>
+  <div class="flows">
+    <div class="flow">
+      <h2>session-loop</h2>
+      <div class="lede">5 steps · workbench → resume → mid-session → switch tabs (state held) → session end → return.<br><strong>Shows:</strong> daily walked path, tab-body isolation, queue refresh after a lesson lands.</div>
+      <iframe src="session-loop/index.html"></iframe>
+      <div class="meta"><span>5 steps · session-loop</span><a href="session-loop/index.html">open flow ↗</a></div>
+    </div>
+    <div class="flow">
+      <h2>chat-to-workspace-note</h2>
+      <div class="lede">5 steps · mid-session insight → format picker → inline Cornell panel → saved + chat continues → note appears in workspace catalogue.<br><strong>Shows:</strong> inter-tab integration; capturing without leaving the session; the bridge between chat and workspace.</div>
+      <iframe src="chat-to-workspace-note/index.html"></iframe>
+      <div class="meta"><span>5 steps · chat-to-workspace-note</span><a href="chat-to-workspace-note/index.html">open flow ↗</a></div>
+    </div>
+    <div class="flow">
+      <h2>concept-map-link</h2>
+      <div class="lede">4 steps · draw node → best-guess surfaces → hover preview ghosts on canvas → confirm → ripples surface what changed.<br><strong>Shows:</strong> finer component interaction; the three-state node model (unlinked / best-guess / linked); the visual contract between agent suggestion and student confirmation.</div>
+      <iframe src="concept-map-link/index.html"></iframe>
+      <div class="meta"><span>4 steps · concept-map-link</span><a href="concept-map-link/index.html">open flow ↗</a></div>
+    </div>
+  </div>
+</body>
+</html>

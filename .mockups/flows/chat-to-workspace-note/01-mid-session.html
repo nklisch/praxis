@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>chat→note · 1/5 · mid-session</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .workspace { display: grid; grid-template-columns: 240px 1fr 280px; min-height: calc(100vh - 100px); }
+    aside.docs { border-right: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.docs h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    aside.docs .doc { padding: 6px 0; font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+
+    main.session { display: flex; flex-direction: column; }
+    .session-head { padding: 16px 28px 10px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: baseline; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 20px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .session-head h1 em { font-weight: 600; }
+
+    .messages { flex: 1; padding: 20px 28px; max-width: 800px; margin: 0 auto; width: 100%; }
+    .turn { margin-bottom: 18px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .turn.tutor .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 18px; font: 15px/1.65 var(--font-serif); }
+    .turn.tutor .bubble em { font-style: italic; }
+    .turn.tutor .bubble p:not(:last-child) { margin: 0 0 10px; }
+    .turn.tutor .bubble.fresh { border: 1px solid var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-muted); }
+    .turn.tutor .bubble.fresh em { background: var(--color-accent-muted); padding: 0 4px; border-radius: 2px; }
+    .turn.student { display: flex; justify-content: flex-end; }
+    .turn.student .wrap { max-width: 75%; }
+    .turn.student .speaker { text-align: right; }
+    .turn.student .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 12px 16px; font: italic 15px/1.6 var(--font-serif); }
+
+    .composer { padding: 14px 28px 20px; border-top: 1px solid var(--color-border); }
+    .composer-inner { max-width: 800px; margin: 0 auto; }
+    .composer-field { display: flex; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 10px 12px; align-items: flex-end; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 15px/1.5 var(--font-serif); resize: none; outline: none; min-height: 22px; font-style: italic; color: var(--color-text-primary); padding: 4px 0; }
+    .composer-field .actions-rail { display: flex; gap: 4px; align-items: center; padding-right: 6px; border-right: 1px solid var(--color-border); margin-right: 4px; }
+    .composer-field .actions-rail button { background: transparent; border: 0; padding: 4px 6px; cursor: pointer; color: var(--color-text-tertiary); font: italic 14px/1 var(--font-display); border-radius: var(--radius-sm); position: relative; }
+    .composer-field .actions-rail button:hover { color: var(--color-accent); background: var(--color-bg-tertiary); }
+    .composer-field .actions-rail button .tip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 6px; background: var(--color-bg-inverse); color: var(--color-text-inverse); padding: 4px 8px; border-radius: 3px; font: 10px/1 var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+    .composer-field .actions-rail button:hover .tip { display: block; }
+    .composer-field .actions-rail button.highlight { color: var(--color-accent); background: var(--color-accent-muted); animation: nudge 1.6s ease-in-out infinite; }
+    @keyframes nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 12px; font: 500 13px/1 var(--font-sans); cursor: pointer; }
+    .composer-hints { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; padding-top: 8px; display: flex; gap: 14px; }
+
+    aside.concepts { border-left: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.concepts h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    aside.concepts .concept { padding: 6px 0; font: 13px/1.4 var(--font-serif); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; }
+    aside.concepts .concept .name { font-style: italic; }
+    aside.concepts .concept .mastery { font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="index.html">← overview</a>
+    <span class="center">chat→note · step 1/5 · key insight just landed</span>
+    <a href="02-note-affordance.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 1</span><span>Mid-session. The tutor just said something the student wants to <em>keep</em> — the phrase "the rate of the whole is the product of the rates" deserves a note. The <em>+ note</em> affordance in the composer's left rail is the pull.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <div class="workspace">
+    <aside class="docs">
+      <h3>Cited</h3>
+      <div class="doc">Stewart 8e · §3.5</div>
+      <div class="doc">Stewart 8e · §3.6</div>
+    </aside>
+
+    <main class="session">
+      <header class="session-head">
+        <div class="kicker"><span class="dot"></span>§ Teach · L3</div>
+        <h1>Why the chain rule <em>actually works</em></h1>
+      </header>
+
+      <div class="messages">
+        <div class="turn student"><div class="wrap"><div class="speaker">You · 2 min ago</div><div class="bubble">I've seen <em>(f ∘ g)' = f'(g) · g'</em> but I don't really feel why it's the product.</div></div></div>
+
+        <div class="turn tutor">
+          <div class="speaker">Tutor · 1 min ago</div>
+          <div class="bubble">
+            <p>That's the most common starting point. Suppose a balloon is being inflated and you track its <em>radius</em> over time. The radius grows at some rate. But what you care about is the <em>volume</em>.</p>
+          </div>
+        </div>
+
+        <div class="turn tutor">
+          <div class="speaker">Tutor · just now</div>
+          <div class="bubble fresh">
+            <p>Notice what just happened. <em>The rate of the whole is the product of the rates.</em> Volume changed at 200π cm³/s — and that number came from two rates multiplied: the rate at which volume changes <em>with respect to radius</em>, times the rate at which radius changes <em>with respect to time</em>.</p>
+            <p>The chain rule is just this, stated generally.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <div class="composer-field">
+            <div class="actions-rail">
+              <button class="highlight" title="Take a note about this lesson">¶<span class="tip">+ note</span></button>
+              <button title="Open the sketch surface">✎<span class="tip">+ sketch</span></button>
+              <button title="Draft a flashcard">‖<span class="tip">+ card</span></button>
+            </div>
+            <textarea rows="1" placeholder="answer · or ask the tutor a question"></textarea>
+            <button class="submit">Send ↵</button>
+          </div>
+          <div class="composer-hints">
+            <span>⌘↵ send</span>
+            <span>⌘N note</span>
+            <span>⌘⇧K sketch</span>
+            <span>⌘/ tools</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="concepts">
+      <h3>Concepts active</h3>
+      <div class="concept"><span class="name">chain rule</span><span class="mastery">0.31</span></div>
+      <div class="concept"><span class="name">composite fn</span><span class="mastery">0.62</span></div>
+      <div class="concept"><span class="name">derivative</span><span class="mastery">0.71</span></div>
+    </aside>
+  </div>
+</body>
+</html>

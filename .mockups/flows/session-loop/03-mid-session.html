@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>session-loop · 3/5 · mid-session</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta a:hover { background: #161b22; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 12px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 2px 6px; border-radius: 3px; cursor: pointer; }
+    .running-head .open-tabs .tab.active { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+
+    /* Refined Bubbles chat workspace */
+    .workspace { display: grid; grid-template-columns: 240px 1fr 280px; min-height: calc(100vh - 90px); }
+    aside.docs { border-right: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.docs h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    aside.docs .doc { padding: 6px 0; font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); cursor: pointer; }
+
+    main.session { display: flex; flex-direction: column; }
+    .session-head { padding: 16px 28px 10px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: baseline; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 20px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .session-head h1 em { font-weight: 600; }
+    .session-head .progress { font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); display: flex; gap: 6px; align-items: center; }
+    .session-head .progress .bar { width: 50px; height: 2px; background: var(--color-bg-tertiary); }
+    .session-head .progress .bar .fill { height: 100%; background: var(--color-accent); width: 25%; }
+
+    .messages { flex: 1; padding: 20px 28px; max-width: 800px; margin: 0 auto; width: 100%; }
+    .resumed-banner { padding: 8px 14px; background: var(--color-accent-muted); border-radius: var(--radius-sm); margin-bottom: 16px; font: 600 10px/1.4 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); display: flex; gap: 8px; align-items: center; }
+    .resumed-banner em { font-family: var(--font-serif); font-style: italic; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--color-text-secondary); font-size: 12px; }
+
+    .turn { margin-bottom: 18px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .turn.tutor .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 18px; font: 15px/1.65 var(--font-serif); }
+    .turn.tutor .bubble em { font-style: italic; }
+    .turn.tutor .bubble p:not(:last-child) { margin: 0 0 10px; }
+    .turn.student { display: flex; justify-content: flex-end; }
+    .turn.student .wrap { max-width: 75%; }
+    .turn.student .speaker { text-align: right; }
+    .turn.student .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 12px 16px; font: italic 15px/1.6 var(--font-serif); }
+
+    .composer { padding: 14px 28px 20px; border-top: 1px solid var(--color-border); }
+    .composer-inner { max-width: 800px; margin: 0 auto; }
+    .composer-field { display: flex; gap: 10px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 12px 14px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 15px/1.5 var(--font-serif); resize: none; outline: none; min-height: 22px; font-style: italic; color: var(--color-text-primary); }
+    .composer-field textarea::placeholder { color: var(--color-text-tertiary); font-style: italic; }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 12px; font: 500 13px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
+
+    aside.concepts { border-left: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.concepts h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    aside.concepts .concept { padding: 6px 0; font: 13px/1.4 var(--font-serif); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; }
+    aside.concepts .concept .name { font-style: italic; }
+    aside.concepts .concept .mastery { font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    aside.concepts .concept .mastery.low { color: var(--color-danger); }
+    aside.concepts .concept .mastery.mid { color: var(--color-warning); }
+    aside.concepts .concept .mastery.high { color: var(--color-success); }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="02-tab-opening.html">← prev</a>
+    <span class="center">session-loop · step 3/5 · mid-session, scroll restored</span>
+    <a href="04-switch-tabs.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 3</span><span>Session resumed at the <em>last turn</em>. A small "resumed from 2h ago" banner sits at the top of the message log; scroll position is restored just below it so the student lands where they left off. Composer gets focus.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab active"><span class="dot" style="background: var(--tint-teach);"></span>Calculus · L3</span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="docs">
+      <h3>Cited</h3>
+      <div class="doc">Stewart 8e · §3.5</div>
+      <div class="doc">Stewart 8e · §3.6</div>
+    </aside>
+
+    <main class="session">
+      <header class="session-head">
+        <div class="kicker"><span class="dot"></span>§ Teach · L3 · resumed</div>
+        <h1>Why the chain rule <em>actually works</em></h1>
+        <div class="progress"><span>25%</span><div class="bar"><div class="fill"></div></div></div>
+      </header>
+
+      <div class="messages">
+        <div class="resumed-banner">↺ resumed · paused 2h ago<em>— last turn was the worked example of volume from radius</em></div>
+
+        <div class="turn tutor">
+          <div class="speaker">Tutor · 2h ago</div>
+          <div class="bubble">
+            <p>When two changes compose, the <em>rate of the whole</em> is the product of the rates. That sentence is the chain rule in one breath; everything else is unpacking it.</p>
+          </div>
+        </div>
+
+        <div class="turn student">
+          <div class="wrap">
+            <div class="speaker">You · 2h ago</div>
+            <div class="bubble">I've seen <em>(f ∘ g)' = f'(g) · g'</em> but I don't really feel why it's the product.</div>
+          </div>
+        </div>
+
+        <div class="turn tutor">
+          <div class="speaker">Tutor · 2h ago</div>
+          <div class="bubble">
+            <p>That's the most common starting point. Suppose a balloon is being inflated and you track its <em>radius</em> over time. The radius grows at some rate. But what you care about is the <em>volume</em>. If the radius is growing at 2 cm/s when the balloon is 5 cm across, how fast is the volume changing right then?</p>
+          </div>
+        </div>
+
+        <div class="turn tutor">
+          <div class="speaker">Tutor · resumed · just now</div>
+          <div class="bubble">
+            <p>Welcome back. We were on the worked example — the balloon, radius at 5 cm, growing 2 cm/s. Are you ready to <em>finish the calculation</em>, or shall I re-walk the setup first?</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <div class="composer-field">
+            <textarea rows="2" placeholder="answer · or ask the tutor a question" autofocus></textarea>
+            <button class="submit">Send ↵</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="concepts">
+      <h3>Concepts active</h3>
+      <div class="concept"><span class="name">chain rule</span><span class="mastery low">0.31</span></div>
+      <div class="concept"><span class="name">composite fn</span><span class="mastery mid">0.62</span></div>
+      <div class="concept"><span class="name">derivative</span><span class="mastery high">0.71</span></div>
+    </aside>
+  </div>
+</body>
+</html>

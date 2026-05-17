@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>chat→note · 2/5 · format picker</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); position: relative; }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .workspace { display: grid; grid-template-columns: 240px 1fr 280px; min-height: calc(100vh - 100px); filter: blur(1.5px) brightness(0.85); pointer-events: none; }
+    aside.docs { border-right: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.docs h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    main.session { padding: 20px 28px; }
+    .turn { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px; height: 60px; }
+    aside.concepts { border-left: 1px solid var(--color-border); padding: 20px 16px; }
+
+    /* The format picker — popover anchored to the + note button */
+    .picker { position: absolute; bottom: 120px; left: 280px; width: 380px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); box-shadow: 0 20px 60px rgba(0,0,0,0.2); padding: 18px 20px; z-index: 50; }
+    .picker::after { content: ''; position: absolute; left: 24px; bottom: -7px; width: 12px; height: 12px; background: var(--color-bg-secondary); border-right: 1px solid var(--color-border-strong); border-bottom: 1px solid var(--color-border-strong); transform: rotate(45deg); }
+
+    .picker .head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); }
+    .picker .head .glyph { font: italic 16px/1 var(--font-display); color: var(--color-accent); }
+    .picker .head .title { font: 500 italic 18px/1.2 var(--font-display); flex: 1; }
+    .picker .head .esc { font: 600 9px/1 var(--font-mono); padding: 3px 6px; background: var(--color-bg-tertiary); border-radius: 3px; color: var(--color-text-tertiary); letter-spacing: 0.08em; }
+
+    .picker .context { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 14px; padding: 8px 10px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); }
+    .picker .context strong { font-weight: 600; color: var(--color-text-primary); }
+
+    .picker .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
+
+    .picker .formats { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+    .picker .format { padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: baseline; gap: 12px; border: 1px solid transparent; }
+    .picker .format:hover { border-color: var(--color-border-strong); background: var(--color-bg-primary); }
+    .picker .format.suggested { border-color: var(--color-accent); background: var(--color-accent-muted); }
+    .picker .format .num { font: 600 9px/1 var(--font-mono); padding: 3px 6px; background: var(--color-bg-tertiary); border-radius: 3px; color: var(--color-text-tertiary); letter-spacing: 0.08em; }
+    .picker .format.suggested .num { background: var(--color-accent); color: var(--color-text-inverse); }
+    .picker .format .name { font: 500 italic 14px/1.2 var(--font-display); }
+    .picker .format .desc { font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); flex: 1; }
+    .picker .format .badge { font: 600 9px/1 var(--font-mono); padding: 3px 6px; border-radius: var(--radius-full); letter-spacing: 0.06em; text-transform: uppercase; }
+    .picker .format.suggested .badge { background: var(--color-accent); color: var(--color-text-inverse); }
+
+    .picker .or { text-align: center; padding: 8px 0; font: italic 12px/1 var(--font-serif); color: var(--color-text-tertiary); }
+    .picker .alt { width: 100%; padding: 10px 12px; background: transparent; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-sm); font: italic 13px/1.4 var(--font-serif); color: var(--color-text-secondary); cursor: pointer; text-align: left; }
+    .picker .alt:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="01-mid-session.html">← prev</a>
+    <span class="center">chat→note · step 2/5 · format picker popover</span>
+    <a href="03-inline-cornell.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 2</span><span>Clicked <em>+ note</em>. A small popover anchors to the button. Praxis suggests <em>Cornell</em> for this lesson (based on prior pattern + concept density). Numbered format pills let the student pick with a single keypress (1–5).</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <div class="workspace">
+    <aside class="docs"><h3>Cited</h3></aside>
+    <main class="session">
+      <div class="turn"></div>
+      <div class="turn"></div>
+      <div class="turn"></div>
+    </main>
+    <aside class="concepts"></aside>
+  </div>
+
+  <div class="picker">
+    <div class="head">
+      <span class="glyph">¶</span>
+      <span class="title">New note</span>
+      <span class="esc">esc</span>
+    </div>
+    <div class="context">
+      Will link to <strong>Calculus · L3 · chain rule</strong> · and reference the tutor's last turn about <em>"rate of the whole is the product of the rates"</em>
+    </div>
+    <div class="label">Pick a format</div>
+    <div class="formats">
+      <div class="format suggested">
+        <span class="num">1</span>
+        <span class="name">Cornell</span>
+        <span class="desc">cue · notes · summary — for active reading + review</span>
+        <span class="badge">suggested</span>
+      </div>
+      <div class="format">
+        <span class="num">2</span>
+        <span class="name">Feynman</span>
+        <span class="desc">explain it to a 12-year-old; note the gaps</span>
+      </div>
+      <div class="format">
+        <span class="num">3</span>
+        <span class="name">Outline</span>
+        <span class="desc">hierarchical bullets</span>
+      </div>
+      <div class="format">
+        <span class="num">4</span>
+        <span class="name">Free</span>
+        <span class="desc">just write</span>
+      </div>
+      <div class="format">
+        <span class="num">5</span>
+        <span class="name">Sketch</span>
+        <span class="desc">draw it out</span>
+      </div>
+    </div>
+    <div class="or">— or —</div>
+    <button class="alt">↗ open a new note in the workspace tab (full editor, separate tab)</button>
+  </div>
+</body>
+</html>
