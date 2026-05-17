@@ -1,7 +1,7 @@
 ---
 id: bug-sub-agents-panel-collapse
 kind: story
-stage: drafting
+stage: review
 tags: [bug, ui]
 parent: null
 depends_on: []
@@ -26,3 +26,42 @@ Toggling the sub-agents panel via show/hide doesn't restore the layout — when 
 - Hiding the sub-agents panel returns its vertical space to the chat area immediately.
 - Re-showing the panel restores the previous height without layout shift.
 - A snapshot or layout test asserts the collapse-on-hide behavior.
+
+## Implementation notes
+
+### Root cause
+
+The right outline pane (`outlinePane`) in `bootstrap-tab-body.tsx` is a
+`flex-direction: column` container. Before this fix its children were simply
+stacked top-to-bottom with no explicit flex-grow assignments:
+
+- `outlineHeader` — correctly `flex-shrink: 0`
+- `DraftCard` (or `outlinePlaceholder`) — no `flex` property (`flex: 0 1 auto` default)
+- `SubAgentPanel` — rendered directly as a sibling
+
+Because `DraftCard` had no `flex: 1`, it took only its natural content height.
+When `SubAgentPanel` expanded, it pushed content down and the parent's
+`overflow: hidden` clipped it. When it collapsed, the space above the toggle
+button was simply blank — `DraftCard` was not told to grow into it. The visual
+effect was that the draft area appeared to "stay at its old height" whether the
+panel was open or closed, giving the impression the panel's space was reserved.
+
+### Fix
+
+Introduced two structural wrappers in `bootstrap-tab-body.tsx`:
+
+1. **`.draftScroll`** (`flex: 1; overflow-y: auto; min-height: 0`) — wraps the
+   DraftCard / placeholder. Takes all available height between the header and the
+   panel row; scrolls internally when the draft content is tall.
+
+2. **`.subAgentRow`** (`flex-shrink: 0; padding: 0 1rem 0.75rem`) — wraps
+   `<SubAgentPanel>`. Anchored at the bottom of the column. Expanding or
+   collapsing the panel only changes the height of this row; the `.draftScroll`
+   area absorbs the reclaimed space via its `flex: 1`.
+
+Files changed:
+- `packages/ui/src/components/bootstrap-tab-body.tsx` — added wrappers
+- `packages/ui/src/components/bootstrap-tab-body.module.css` — added `.subAgentRow` and `.draftScroll` rules; updated `.outlinePlaceholder` to `height: 100%` so it fills the new scroll wrapper
+
+Layout test added at:
+`packages/ui/src/__tests__/bootstrap-tab-body-layout.test.tsx`

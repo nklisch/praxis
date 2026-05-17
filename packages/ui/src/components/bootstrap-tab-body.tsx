@@ -54,16 +54,24 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
           <span className={styles.outlineTitle}>course outline</span>
           <BudgetField />
         </div>
-        {current ? (
-          <DraftCard proposed={current.proposed} />
-        ) : (
-          <div className={styles.outlinePlaceholder}>
-            <p>the outline will appear here as the tutor builds the course.</p>
-          </div>
-        )}
-        {/* Sub-agent transcript panel — visible only when an exploration is running.
-            Default-hidden; the user toggles via the button inside SubAgentPanel. */}
-        <SubAgentPanel parentCallId={currentSubAgent} />
+        {/* Scrollable draft area — flex:1 so it fills all space between the
+            header and the sub-agent panel. SubAgentPanel sits below as a
+            flex-shrink:0 row so hiding/showing it only affects its own row. */}
+        <div className={styles.draftScroll}>
+          {current ? (
+            <DraftCard proposed={current.proposed} />
+          ) : (
+            <div className={styles.outlinePlaceholder}>
+              <p>the outline will appear here as the tutor builds the course.</p>
+            </div>
+          )}
+        </div>
+        {/* Sub-agent transcript panel wrapper — flex-shrink:0 anchors the panel
+            row at the bottom of the outline pane so expanding/collapsing it
+            only affects this row, not the draft scroll area above. */}
+        <div className={styles.subAgentRow}>
+          <SubAgentPanel parentCallId={currentSubAgent} />
+        </div>
       </aside>
     </div>
   );
