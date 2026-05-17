@@ -47,6 +47,19 @@ references via `<link rel="stylesheet" href="../../design-system/tokens.css">`.
 - `docs/UX.md` § "Editorial language" — current typographic motif, mode tints, ornaments
 - `packages/ui/src/styles/global.css` — current token surface (color, radius, font, mode tints)
 
-<!-- The design pass on this feature (`/ux-ui-design:palette` followed by
-`/agile-workflow:feature-design`) will lock the chosen palette + type scale
-and capture the chosen mockup direction in a `## Mockups` section. -->
+## Mockups
+
+- Design system: `.mockups/design-system/`
+  - Palette: **Option 3 — Studio Quiet** (warm off-white + true near-black
+    + muted brick accent; mode tints as 7px color dots, not washes)
+  - Typography: **Option A — System Editorial** (system serif chain:
+    Iowan / Sitka / Charter / Source Serif / Georgia; system mono for
+    kickers; zero remote font fetch, satisfies Electron CSP)
+  - Tokens locked: 2026-05-17 → `.mockups/design-system/tokens.css`
+  - Considered: Options 1 (Editorial Refined), 2 (Library Twilight),
+    4 (Cream & Indigo remix), 5 (Field Guide) all available in git
+    history at the prior commit
+
+Downstream surface mocks (`app-shell`, `chat-workspace`,
+`discovery-surfaces`, `workspace`, `configure`) inherit these tokens by
+linking `<link rel="stylesheet" href="../../design-system/tokens.css">`.

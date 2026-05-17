@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Praxis — palette (locked: Studio Quiet)</title>
+  <link rel="stylesheet" href="./tokens.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.5 var(--font-sans); background: var(--color-bg-primary); color: var(--color-text-primary); }
+    nav.toc {
+      position: sticky; top: 0; z-index: 10;
+      padding: 14px 32px; background: var(--color-bg-inverse); color: var(--color-text-inverse);
+      display: flex; gap: 24px; align-items: center;
+      border-bottom: 1px solid var(--color-border-strong);
+    }
+    nav.toc strong { font: 600 13px/1 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; }
+    nav.toc .spacer { flex: 1; }
+    nav.toc .meta { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.03em; text-transform: uppercase; }
+    main { padding: 48px 32px; max-width: 1200px; margin: 0 auto; }
+    header.intro { margin-bottom: 48px; }
+    header.intro h1 { font: 500 italic 36px/1.15 var(--font-display); margin: 0 0 8px; }
+    header.intro h1 em { font-style: italic; }
+    header.intro p.rationale { color: var(--color-text-secondary); font: 16px/1.65 var(--font-serif); max-width: 70ch; margin: 0; }
+    .chosen-tag { display: inline-block; background: var(--color-accent); color: var(--color-text-inverse); padding: 4px 12px; border-radius: var(--radius-full); font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+    .considered { background: var(--color-bg-tertiary); padding: 20px 24px; border-radius: var(--radius-md); margin: 32px 0; }
+    .considered h3 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 12px; }
+    .considered ul { margin: 0; padding-left: 18px; }
+    .considered li { font: 14px/1.6 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 4px; }
+    .considered li strong { color: var(--color-text-primary); font-weight: 600; }
+    h2.label { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 48px 0 16px; }
+    .swatches {
+      display: grid; gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    .swatch { border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; background: var(--color-bg-secondary); }
+    .swatch .color { height: 64px; }
+    .swatch .meta { padding: 8px 12px; font: 11px/1.4 var(--font-mono); }
+    .swatch .meta .name { display: block; color: var(--color-text-primary); font-weight: 600; }
+    .swatch .meta .hex { color: var(--color-text-tertiary); }
+    .demo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .demo .pane { padding: 28px; border-radius: var(--radius-md); }
+    .demo .pane.light { background: #f5f4f0; color: #1a1a18; border: 1px solid #e3e1d8; }
+    .demo .pane.dark { background: #18181a; color: #ebebe6; border: 1px solid #2c2c28; }
+    .demo .mode-label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; margin-bottom: 16px; }
+    .demo .kicker { font: 600 11px/1.4 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .demo .kicker .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+    .demo .article-title { font: 500 italic 24px/1.2 var(--font-display); margin: 0 0 12px; }
+    .demo .article-body { font: 15px/1.7 var(--font-serif); margin: 12px 0; }
+    .demo .article-body em { font-style: italic; }
+    .demo .ornament { font-size: 18px; opacity: 0.7; margin-right: 6px; }
+    .demo .btn-row { display: flex; gap: 8px; margin: 20px 0 12px; }
+    .demo button { padding: 8px 14px; border: 0; border-radius: var(--radius-sm); font: 500 13px/1 var(--font-sans); cursor: pointer; }
+    .demo button.secondary { background: transparent; }
+    .demo .link-row { font: 13px/1.5 var(--font-serif); }
+    .demo a { font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+    .tint-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding: 16px; background: var(--color-bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--color-border); }
+    .tint-strip .tint { display: flex; align-items: center; gap: 8px; font: 600 11px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-primary); }
+    .tint-strip .tint .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .tint-strip .tint .glyph { font-family: var(--font-serif); font-style: italic; font-size: 14px; color: var(--color-text-secondary); }
+    .contrast { margin-top: 20px; font: 12px/1.5 var(--font-mono); background: var(--color-bg-secondary); padding: 16px 20px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); }
+    .contrast .row { display: flex; gap: 24px; align-items: baseline; padding: 4px 0; border-bottom: 1px dashed var(--color-border); }
+    .contrast .row:last-child { border-bottom: none; }
+    .contrast .pair { color: var(--color-text-secondary); min-width: 38ch; }
+    .contrast .pass { color: var(--color-success); font-weight: 600; }
+    .contrast .mode { font: 600 10px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-tertiary); min-width: 6ch; }
+  </style>
+</head>
+<body>
+  <nav class="toc">
+    <strong>Praxis · Palette</strong>
+    <span style="font: 500 13px/1 var(--font-sans);">Studio Quiet — locked 2026-05-17</span>
+    <span class="spacer"></span>
+    <span class="meta">Reference for downstream mocks</span>
+  </nav>
+
+  <main>
+    <header class="intro">
+      <span class="chosen-tag">Locked palette · Option 3</span>
+      <h1>Studio <em>Quiet</em></h1>
+      <p class="rationale">Brutally minimal and architectural. Warm off-white surface with a true near-black, a single muted brick accent used sparingly, and mode markers reduced to a 7px color dot in the kicker rather than washes of color. The product almost disappears into its content — which is exactly the point for a tutor that refuses to compete with the student's focus.</p>
+      <div class="considered">
+        <h3>Considered and rejected</h3>
+        <ul>
+          <li><strong>Option 1 — Editorial Refined</strong>: warmer parchment + terracotta, refinement of the current direction. Rejected for being too close to where Praxis already is — the redesign earns its keep by moving farther.</li>
+          <li><strong>Option 2 — Library Twilight</strong>: deep midnight indigo + burnished gold nocturne. Beautiful but committed to dark-first; the chosen Studio Quiet works equally well in either mode and reads as more architectural than nostalgic.</li>
+          <li><strong>Option 4 — Cream &amp; Indigo (remix)</strong>: indigo nocturne + cream paper + copper accent. Visually striking; rejected because the indigo carries warmth and personality Studio Quiet deliberately strips out.</li>
+          <li><strong>Option 5 — Field Guide</strong>: vintage botanical / Peterson's-guide. Wildly distinctive; rejected as the wrong genre — naturalist observation isn't the posture Praxis claims; quiet architectural restraint is.</li>
+        </ul>
+        <p style="margin-top: 12px; font: 13px/1.5 var(--font-serif); color: var(--color-text-tertiary);">Full alternative options visible in git history at commit prior to lock-in.</p>
+      </div>
+    </header>
+
+    <h2 class="label">Surfaces · Light</h2>
+    <div class="swatches">
+      <div class="swatch"><div class="color" style="background:#f5f4f0"></div><div class="meta"><span class="name">--color-bg-primary</span><span class="hex">#f5f4f0 stone</span></div></div>
+      <div class="swatch"><div class="color" style="background:#ffffff"></div><div class="meta"><span class="name">--color-bg-secondary</span><span class="hex">#ffffff page</span></div></div>
+      <div class="swatch"><div class="color" style="background:#ebe9e2"></div><div class="meta"><span class="name">--color-bg-tertiary</span><span class="hex">#ebe9e2 plaster</span></div></div>
+      <div class="swatch"><div class="color" style="background:#1a1a18"></div><div class="meta"><span class="name">--color-bg-inverse</span><span class="hex">#1a1a18 graphite</span></div></div>
+    </div>
+
+    <h2 class="label">Text · Accent · Status (Light)</h2>
+    <div class="swatches">
+      <div class="swatch"><div class="color" style="background:#1a1a18"></div><div class="meta"><span class="name">--color-text-primary</span><span class="hex">#1a1a18</span></div></div>
+      <div class="swatch"><div class="color" style="background:#5f5d57"></div><div class="meta"><span class="name">--color-text-secondary</span><span class="hex">#5f5d57</span></div></div>
+      <div class="swatch"><div class="color" style="background:#a09e96"></div><div class="meta"><span class="name">--color-text-tertiary</span><span class="hex">#a09e96</span></div></div>
+      <div class="swatch"><div class="color" style="background:#9b3a2c"></div><div class="meta"><span class="name">--color-accent</span><span class="hex">#9b3a2c brick</span></div></div>
+      <div class="swatch"><div class="color" style="background:#f0e3df"></div><div class="meta"><span class="name">--color-accent-muted</span><span class="hex">#f0e3df</span></div></div>
+      <div class="swatch"><div class="color" style="background:#4f6e3a"></div><div class="meta"><span class="name">--color-success</span><span class="hex">#4f6e3a</span></div></div>
+      <div class="swatch"><div class="color" style="background:#a86a0a"></div><div class="meta"><span class="name">--color-warning</span><span class="hex">#a86a0a</span></div></div>
+      <div class="swatch"><div class="color" style="background:#a32721"></div><div class="meta"><span class="name">--color-danger</span><span class="hex">#a32721</span></div></div>
+    </div>
+
+    <h2 class="label">Surfaces · Dark</h2>
+    <div class="swatches">
+      <div class="swatch"><div class="color" style="background:#18181a"></div><div class="meta"><span class="name">--color-bg-primary</span><span class="hex">#18181a</span></div></div>
+      <div class="swatch"><div class="color" style="background:#21221f"></div><div class="meta"><span class="name">--color-bg-secondary</span><span class="hex">#21221f</span></div></div>
+      <div class="swatch"><div class="color" style="background:#2c2c28"></div><div class="meta"><span class="name">--color-bg-tertiary</span><span class="hex">#2c2c28</span></div></div>
+      <div class="swatch"><div class="color" style="background:#ebebe6"></div><div class="meta"><span class="name">--color-text-primary</span><span class="hex">#ebebe6</span></div></div>
+      <div class="swatch"><div class="color" style="background:#8d8b82"></div><div class="meta"><span class="name">--color-text-secondary</span><span class="hex">#8d8b82</span></div></div>
+      <div class="swatch"><div class="color" style="background:#e8967d"></div><div class="meta"><span class="name">--color-accent (dark)</span><span class="hex">#e8967d brick-light</span></div></div>
+    </div>
+
+    <h2 class="label">Mode tints — dot markers, not color washes</h2>
+    <div class="tint-strip">
+      <span class="tint"><span class="dot" style="background:#c97a1a;"></span><span class="glyph">§</span> teach</span>
+      <span class="tint"><span class="dot" style="background:#5f7e3a;"></span><span class="glyph">¶</span> bootstrap</span>
+      <span class="tint"><span class="dot" style="background:#4a5e6e;"></span><span class="glyph">‡</span> quiz</span>
+      <span class="tint"><span class="dot" style="background:#3a3e75;"></span><span class="glyph">❦</span> homework</span>
+      <span class="tint"><span class="dot" style="background:#9b3a2c;"></span><span class="glyph">†</span> exam</span>
+      <span class="tint"><span class="dot" style="background:#5f5d57;"></span><span class="glyph">⁂</span> configure</span>
+      <span class="tint"><span class="dot" style="background:#264f47;"></span><span class="glyph">‖</span> study-skills</span>
+    </div>
+
+    <h2 class="label">Composition</h2>
+    <div class="demo">
+      <div class="pane light">
+        <div class="mode-label">Light</div>
+        <div class="kicker" style="color:#5f5d57;"><span class="dot" style="background:#c97a1a;"></span><span style="font-family:var(--font-serif); font-style:italic; color:#5f5d57;">§</span> Teach · Lesson 3</div>
+        <div class="article-title">Why the chain rule <em>actually works</em></div>
+        <div class="article-body"><span class="ornament">¶</span> When two changes compose, the rate of the whole is the <em>product</em> of the rates. We'll trace that idea through three examples before reaching for any notation.</div>
+        <div class="btn-row">
+          <button style="background:#1a1a18; color:#f5f4f0;">Continue lesson</button>
+          <button class="secondary" style="color:#5f5d57; border:1px solid #c4c1b5;">Workspace notes</button>
+        </div>
+        <div class="link-row" style="color:#5f5d57;">See also <a style="color:#9b3a2c;">the cited section in your textbook</a>.</div>
+      </div>
+      <div class="pane dark">
+        <div class="mode-label">Dark</div>
+        <div class="kicker" style="color:#8d8b82;"><span class="dot" style="background:#e0a060;"></span><span style="font-family:var(--font-serif); font-style:italic; color:#8d8b82;">§</span> Teach · Lesson 3</div>
+        <div class="article-title">Why the chain rule <em>actually works</em></div>
+        <div class="article-body"><span class="ornament">¶</span> When two changes compose, the rate of the whole is the <em>product</em> of the rates. We'll trace that idea through three examples before reaching for any notation.</div>
+        <div class="btn-row">
+          <button style="background:#ebebe6; color:#18181a;">Continue lesson</button>
+          <button class="secondary" style="color:#8d8b82; border:1px solid #494940;">Workspace notes</button>
+        </div>
+        <div class="link-row" style="color:#8d8b82;">See also <a style="color:#e8967d;">the cited section in your textbook</a>.</div>
+      </div>
+    </div>
+
+    <h2 class="label">Contrast (WCAG AA · both modes)</h2>
+    <div class="contrast">
+      <div class="row"><span class="mode">Light</span><span class="pair">text-primary #1a1a18 on bg #f5f4f0</span><span class="pass">16.4:1 AAA pass</span></div>
+      <div class="row"><span class="mode">Light</span><span class="pair">text-secondary #5f5d57 on bg #f5f4f0</span><span class="pass">6.4:1 AA pass</span></div>
+      <div class="row"><span class="mode">Light</span><span class="pair">accent #9b3a2c on bg #f5f4f0 (as text)</span><span class="pass">5.6:1 AA pass</span></div>
+      <div class="row"><span class="mode">Light</span><span class="pair">text-inverse #f5f4f0 on accent #9b3a2c</span><span class="pass">5.6:1 AA pass</span></div>
+      <div class="row"><span class="mode">Dark</span><span class="pair">text-primary #ebebe6 on bg #18181a</span><span class="pass">14.5:1 AAA pass</span></div>
+      <div class="row"><span class="mode">Dark</span><span class="pair">text-secondary #8d8b82 on bg #18181a</span><span class="pass">5.4:1 AA pass</span></div>
+      <div class="row"><span class="mode">Dark</span><span class="pair">accent #e8967d on bg #18181a (as text)</span><span class="pass">7.1:1 AAA pass</span></div>
+      <div class="row"><span class="mode">Dark</span><span class="pair">text-inverse #18181a on accent #e8967d</span><span class="pass">7.1:1 AAA pass</span></div>
+    </div>
+  </main>
+</body>
+</html>

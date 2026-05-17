@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Praxis — typography (locked: System Editorial)</title>
+  <link rel="stylesheet" href="./tokens.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.5 var(--font-sans); background: var(--color-bg-primary); color: var(--color-text-primary); }
+    nav.toc {
+      position: sticky; top: 0; z-index: 10;
+      padding: 14px 32px; background: var(--color-bg-inverse); color: var(--color-text-inverse);
+      display: flex; gap: 24px; align-items: center;
+      border-bottom: 1px solid var(--color-border-strong);
+    }
+    nav.toc strong { font: 600 13px/1 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; }
+    nav.toc .spacer { flex: 1; }
+    nav.toc .meta { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.03em; text-transform: uppercase; }
+    main { padding: 48px 32px; max-width: 980px; margin: 0 auto; }
+    header.intro { margin-bottom: 48px; }
+    header.intro h1 { font: 500 italic 36px/1.15 var(--font-display); margin: 0 0 8px; }
+    header.intro p.rationale { color: var(--color-text-secondary); font: 16px/1.65 var(--font-serif); max-width: 70ch; margin: 0; }
+    .chosen-tag { display: inline-block; background: var(--color-accent); color: var(--color-text-inverse); padding: 4px 12px; border-radius: var(--radius-full); font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+    .considered { background: var(--color-bg-tertiary); padding: 20px 24px; border-radius: var(--radius-md); margin: 32px 0; }
+    .considered h3 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 12px; }
+    .considered p { margin: 0; font: 14px/1.6 var(--font-serif); color: var(--color-text-secondary); }
+    .considered strong { color: var(--color-text-primary); font-weight: 600; }
+    h2.label { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 48px 0 16px; }
+    pre.stack { background: var(--color-bg-inverse); color: var(--color-text-inverse); padding: 20px 24px; border-radius: var(--radius-sm); font: 12px/1.5 var(--font-mono); overflow-x: auto; }
+    pre.stack .var { color: #e8967d; }
+    pre.stack .com { color: #8d8b82; }
+    .scale-grid { display: grid; grid-template-columns: 10ch 1fr; gap: 4px 24px; align-items: baseline; }
+    .scale-grid .meta { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; padding-top: 10px; }
+    .scale-grid .sample { padding: 8px 0; border-bottom: 1px dashed var(--color-border); }
+    .scale-grid .sample:last-child { border-bottom: none; }
+    .weights { display: grid; gap: 4px; margin: 12px 0; }
+    .weight-row { display: grid; grid-template-columns: 20ch 1fr; gap: 16px; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--color-border); }
+    .weight-row .meta { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; }
+    .sample-block { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 40px 44px; margin: 16px 0; }
+    .kicker { font: 600 11px/1.4 var(--font-mono); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .kicker .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .drop-cap { float: left; font-size: 4.8em; line-height: 0.85; padding: 8px 14px 0 0; font-style: italic; font-weight: 500; color: var(--color-accent); font-family: var(--font-display); }
+    .display { font-family: var(--font-display); font-style: italic; font-weight: 500; }
+    .body-serif { font-family: var(--font-serif); }
+  </style>
+</head>
+<body>
+  <nav class="toc">
+    <strong>Praxis · Typography</strong>
+    <span style="font: 500 13px/1 var(--font-sans);">System Editorial — locked 2026-05-17</span>
+    <span class="spacer"></span>
+    <span class="meta">Reference for downstream mocks</span>
+  </nav>
+
+  <main>
+    <header class="intro">
+      <span class="chosen-tag">Locked typography · Option A</span>
+      <h1>System <em>Editorial</em></h1>
+      <p class="rationale">Serif-led editorial typography using only system-installed faces. Iowan Old Style on macOS, Sitka Text on Windows, Charter or Source Serif on Linux — all warm humanist serifs with strong italics. Zero remote font fetch: satisfies the Electron CSP without exception, renders correctly the moment the app opens, no .woff2 assets to ship. Cross-OS face variation is accepted as a deliberate trade for the offline guarantee.</p>
+      <div class="considered">
+        <h3>Considered and rejected</h3>
+        <p><strong>Option B — Fraunces + Newsreader + JetBrains Mono</strong>. Distinctive hosted faces with extraordinarily expressive italics and a SOFT axis on Fraunces. Visually stronger than the system stack, but would require self-hosting .woff2 assets for the Electron CSP and shipping bundled fonts adds startup weight without a clear win for an editorial app whose system-serif baseline is already strong. Revisit if the project ships hosted-only.</p>
+      </div>
+    </header>
+
+    <h2 class="label">Stack</h2>
+    <pre class="stack"><span class="var">--font-serif</span>: "Iowan Old Style", "Sitka Text", Charter,
+               "Source Serif Pro", "Source Serif 4",
+               Georgia, "Times New Roman", serif;
+<span class="var">--font-body</span>:    <span class="com">var(--font-serif)</span>
+<span class="var">--font-display</span>: <span class="com">var(--font-serif)</span>
+<span class="var">--font-sans</span>:    <span class="com">-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, …</span>
+<span class="var">--font-mono</span>:    "JetBrains Mono", "SF Mono", "Fira Code",
+               ui-monospace, Consolas, monospace;</pre>
+
+    <h2 class="label">Scale</h2>
+    <div class="scale-grid">
+      <div class="meta">3xl / 32</div><div class="sample display" style="font-size: 32px; line-height: 1.15;"><em>Why the chain rule actually works</em></div>
+      <div class="meta">2xl / 24</div><div class="sample display" style="font-size: 24px; line-height: 1.2;"><em>Today's lesson</em></div>
+      <div class="meta">xl / 20</div><div class="sample body-serif" style="font-size: 20px; line-height: 1.3; font-weight: 600;">A worked example</div>
+      <div class="meta">lg / 18</div><div class="sample body-serif" style="font-size: 18px; line-height: 1.55;">Comfortable reading body for prose-heavy surfaces.</div>
+      <div class="meta">base / 16</div><div class="sample body-serif" style="font-size: 16px; line-height: 1.55;">Standard body — chat messages, lesson text, configure forms.</div>
+      <div class="meta">sm / 14</div><div class="sample body-serif" style="font-size: 14px; line-height: 1.5;">Secondary copy — captions, footnotes, list metadata.</div>
+      <div class="meta">xs / 12</div><div class="sample" style="font-size: 12px; line-height: 1.4; font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-secondary);">Kickers · timestamps · IDs · metadata</div>
+    </div>
+
+    <h2 class="label">Weights</h2>
+    <div class="weights">
+      <div class="weight-row"><div class="meta">400 regular</div><div class="body-serif" style="font-size: 16px;">The tutor's job is to create productive struggle and surface misconceptions.</div></div>
+      <div class="weight-row"><div class="meta">400 italic</div><div class="body-serif" style="font-size: 16px; font-style: italic;">The tutor's job is to create productive struggle and surface misconceptions.</div></div>
+      <div class="weight-row"><div class="meta">500 medium</div><div class="body-serif" style="font-size: 16px; font-weight: 500;">The tutor's job is to create productive struggle and surface misconceptions.</div></div>
+      <div class="weight-row"><div class="meta">600 semibold</div><div class="body-serif" style="font-size: 16px; font-weight: 600;">The tutor's job is to create productive struggle and surface misconceptions.</div></div>
+    </div>
+
+    <h2 class="label">In situ — Studio Quiet palette + System Editorial type</h2>
+    <div class="sample-block">
+      <div class="kicker"><span class="dot"></span><span style="font-family: var(--font-serif); font-style: italic; color: var(--color-text-secondary);">§</span> Teach · Lesson 3 · Calculus, derivatives</div>
+      <div class="display" style="font-size: 30px; line-height: 1.2; margin-bottom: 8px;">Why the chain rule <em style="text-decoration: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: 6px;">actually works</em></div>
+      <div style="color: var(--color-text-secondary); font: 14px/1.5 var(--font-serif); letter-spacing: 0.02em; margin-bottom: 24px;">A short discussion before the worked examples.</div>
+      <p class="body-serif" style="font-size: 17px; line-height: 1.7; margin-bottom: 16px;"><span class="drop-cap">W</span>hen two changes compose &mdash; when the position depends on time but the velocity also varies, when the price depends on supply but supply depends on weather &mdash; the <em>rate of the whole</em> is the product of the rates. That sentence is the chain rule in one breath; everything else is unpacking it.</p>
+      <p class="body-serif" style="font-size: 17px; line-height: 1.7; margin-bottom: 16px;">Notice what the rule does <em>not</em> say. It does not say to multiply the variables. It does not say derivatives "cancel." It says: <em>when changes nest, their rates multiply</em>. We'll trace that idea through three small examples before we let any formal notation through the door.</p>
+      <div class="kicker" style="color: var(--color-accent); margin-top: 24px;"><span style="font-family: var(--font-serif); font-style: italic;">¶</span> Worked example · 1 of 3</div>
+    </div>
+  </main>
+</body>
+</html>
