@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workspace — Option 4: Course Companion</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* Course Companion: workspace pivoted around the active course. Course switcher → companion page per course. */
+    .course-switcher { padding: 16px 32px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: baseline; max-width: 1280px; margin: 0 auto; }
+    .course-switcher .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .course-switcher .course { font: 500 italic 18px/1.2 var(--font-display); color: var(--color-text-secondary); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: baseline; gap: 8px; }
+    .course-switcher .course.active { color: var(--color-text-primary); background: var(--color-accent-muted); }
+    .course-switcher .course .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .course-switcher .course.active .glyph { color: var(--color-accent); }
+    .course-switcher .course .count { font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; font-style: normal; }
+
+    main { max-width: 1280px; margin: 0 auto; padding: 32px; }
+
+    .companion-head { margin-bottom: 32px; }
+    .companion-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+    .companion-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .companion-head h1 { font: 500 italic 36px/1.1 var(--font-display); margin: 0; }
+    .companion-head h1 em { font-weight: 600; }
+    .companion-head .deck { font: italic 15px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 6px; max-width: 70ch; }
+
+    /* Three-row layout: review · notes for this lesson · sketches and cards bound to this course */
+    .row { margin-bottom: 40px; }
+    .row h2 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); display: flex; gap: 10px; align-items: baseline; }
+    .row h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .row h2 .meta { margin-left: auto; color: var(--color-text-tertiary); font-weight: 400; font-style: italic; font-family: var(--font-serif); text-transform: none; letter-spacing: 0; font-size: 13px; }
+
+    /* Featured review card */
+    .review-feature { background: var(--color-accent-muted); border: 1px solid var(--color-accent); border-radius: var(--radius-md); padding: 28px 32px; display: flex; gap: 24px; align-items: center; }
+    .review-feature .text { flex: 1; }
+    .review-feature .label { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 8px; }
+    .review-feature .title { font: 500 italic 26px/1.15 var(--font-display); margin-bottom: 6px; }
+    .review-feature .detail { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .review-feature button { background: var(--color-accent); color: var(--color-text-inverse); border: 0; padding: 14px 24px; border-radius: var(--radius-md); font: 500 15px/1 var(--font-sans); cursor: pointer; }
+
+    /* Notes for this lesson — featured note + recent list */
+    .notes-row { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+    .featured-note { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 24px 28px; cursor: pointer; }
+    .featured-note .meta { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; }
+    .featured-note h3 { font: 500 italic 22px/1.2 var(--font-display); margin: 0 0 14px; }
+    .featured-note h3 em { font-weight: 600; }
+    .featured-note .excerpt { font: 15px/1.7 var(--font-serif); color: var(--color-text-primary); }
+    .featured-note .excerpt em { font-style: italic; }
+
+    .recent-notes h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    .recent-notes .item { padding: 10px 0; border-bottom: 1px solid var(--color-border); cursor: pointer; }
+    .recent-notes .item:last-child { border-bottom: none; }
+    .recent-notes .item .meta { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .recent-notes .item .title { font: italic 14px/1.4 var(--font-serif); }
+    .recent-notes .item .title em { font-weight: 600; }
+    .recent-notes .add { padding: 10px 0; font: italic 13px/1 var(--font-serif); color: var(--color-accent); cursor: pointer; }
+
+    /* Mixed artifacts row */
+    .mixed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .mixed-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; min-height: 140px; }
+    .mixed-card .head { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; align-items: baseline; gap: 6px; }
+    .mixed-card .head .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 13px; text-transform: none; letter-spacing: 0; }
+    .mixed-card .title { font: 500 italic 14px/1.3 var(--font-display); flex: 1; }
+    .mixed-card .title em { font-weight: 600; }
+    .mixed-card .small { font: 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .mixed-card .preview { background: var(--color-bg-tertiary); border-radius: var(--radius-sm); height: 60px; display: flex; align-items: center; justify-content: center; }
+    .mixed-card .preview svg { max-width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 4 — Course Companion</strong>
+    <span>Workspace pivoted around the active course. Course switcher at top; the page below shows the course's review queue, the lesson's notes (with one featured), and bound sketches / cards. Less general; more contextual.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="course-switcher">
+    <span class="label">Companion for</span>
+    <span class="course active"><span class="glyph">§</span><em>Calculus I</em><span class="count">· 38</span></span>
+    <span class="course"><span class="glyph">§</span><em>Cell Biology</em><span class="count">· 15</span></span>
+    <span class="course" style="opacity: 0.5;"><span class="glyph">¶</span><em>All artifacts</em><span class="count">· 53</span></span>
+  </div>
+
+  <main>
+    <header class="companion-head">
+      <div class="kicker"><span class="dot"></span>§ Calculus I · companion · pinned to lesson 3</div>
+      <h1><em>Calculus</em> companion</h1>
+      <div class="deck">Everything you've made for this course, with the active lesson in the lead. Switch courses up top; this page shifts with you.</div>
+    </header>
+
+    <div class="row">
+      <h2><span class="glyph">‖</span>Review · for this course <span class="meta">· 5 cards due now, 15 within 48 hours</span></h2>
+      <div class="review-feature">
+        <div class="text">
+          <div class="label">Spaced review · 5 cards due now</div>
+          <div class="title">Pick up the <em>chain rule</em> cards before tomorrow</div>
+          <div class="detail">3 chain-rule cards and 2 derivative cards are due. ~5 minutes; the chain-rule lesson is open and these will land well now.</div>
+        </div>
+        <button>Start review →</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <h2><span class="glyph">¶</span>Notes · L3, chain rule <span class="meta">· 3 here, 8 in course</span></h2>
+      <div class="notes-row">
+        <div class="featured-note">
+          <div class="meta">cornell · 2h ago · most recent</div>
+          <h3>Chain rule — <em>nested rates</em></h3>
+          <div class="excerpt">The rate of the whole is the <em>product</em> of the rates when changes nest. Don't say "cancel" — say "multiply." The notation hides a story about rates compounding.<br><br>For the balloon: dV/dt = (dV/dr) · (dr/dt). The geometry rate (4πr²) times the physics rate (2 cm/s) gives 200π cm³/s. Two separate rates, one product.</div>
+        </div>
+        <div class="recent-notes">
+          <h3>Older for this lesson</h3>
+          <div class="item">
+            <div class="meta">feynman · today, 12:11</div>
+            <div class="title">Explain the chain rule to <em>a 12-year-old</em></div>
+          </div>
+          <div class="item">
+            <div class="meta">outline · 3 days ago</div>
+            <div class="title">Lesson 2 → 3 — <em>where we left off</em></div>
+          </div>
+          <div class="add">+ new note for this lesson</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <h2><span class="glyph">‡</span>Sketches &amp; cards drafted from this course <span class="meta">· 3 sketches · 42 cards</span></h2>
+      <div class="mixed-grid">
+        <div class="mixed-card">
+          <div class="head"><span class="glyph">‡</span>sketch</div>
+          <div class="title">Volume from radius</div>
+          <div class="preview">
+            <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="40" cy="30" r="22" stroke="var(--color-text-secondary)" stroke-width="1.5" fill="none" stroke-dasharray="3 3"/>
+              <circle cx="40" cy="30" r="14" stroke="var(--color-text-primary)" stroke-width="1.5" fill="none"/>
+              <path d="M 90 30 L 180 30" stroke="var(--color-text-secondary)" stroke-width="1" stroke-dasharray="2 2"/>
+              <path d="M 100 20 Q 130 5 160 20 L 175 30" stroke="var(--color-text-primary)" stroke-width="1.5" fill="none"/>
+            </svg>
+          </div>
+          <div class="small">L3 · 3h ago</div>
+        </div>
+        <div class="mixed-card">
+          <div class="head"><span class="glyph">‡</span>sketch</div>
+          <div class="title">Limits — <em>ε-δ diagram</em></div>
+          <div class="preview"><span style="font: italic 12px/1 var(--font-serif); color: var(--color-text-tertiary);">ε-δ picture</span></div>
+          <div class="small">L1 · 4 days ago</div>
+        </div>
+        <div class="mixed-card">
+          <div class="head"><span class="glyph">‖</span>flashcard · due</div>
+          <div class="title">In one sentence: <em>what does the chain rule say?</em></div>
+          <div class="small">L3 · due today</div>
+        </div>
+        <div class="mixed-card">
+          <div class="head"><span class="glyph">‖</span>flashcard · due</div>
+          <div class="title">d/dx of <em>sin(x²)</em>?</div>
+          <div class="small">L3 · due today</div>
+        </div>
+        <div class="mixed-card">
+          <div class="head"><span class="glyph">‖</span>flashcard</div>
+          <div class="title">Define a <em>derivative</em> in one sentence.</div>
+          <div class="small">L1 · review in 3d</div>
+        </div>
+        <div class="mixed-card" style="background: transparent; border-style: dashed; align-items: center; justify-content: center; color: var(--color-text-tertiary);">
+          <div style="font: italic 13px/1.4 var(--font-serif); text-align: center;">+ new sketch<br>+ new card<br>(both bind to Calculus)</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

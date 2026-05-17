@@ -66,6 +66,29 @@ What lands:
   focus-preserving posture (especially relevant for sketch + review
   surfaces)
 
-<!-- The design pass will produce option mocks for each workspace surface
-and a flow mock for the review session. Implementation child stories land
-once mocks are captured. -->
+## Mockups
+
+- Screens: `.mockups/screens/epic-ui-redesign-ground-up-workspace/index.html`
+- **Selected: Option 3 — Catalogue** (2026-05-17)
+  - **Search-first flat index** of every artifact the student has made
+    — notes (all formats), flashcards, sketches all surface together
+    with the same card primitive, distinguished by mono kicker
+  - Big italic search box at the top (`search notes, sketches, cards
+    · or a concept, a lesson, a phrase…`)
+  - Left rail of filters: by format (notes / cards / sketches),
+    by course, by concept, plus saved filters (due for review,
+    recent, orphan/unlinked)
+  - Result grid: artifact-typed cards with format kicker, italic
+    title, excerpt, tag chips for course / concept / status
+  - Sketches render mini-SVG previews; flashcards show Q + A snippet;
+    notes show first-3-lines excerpt
+  - "Recent today" and "due for review" are saved filters in the rail,
+    not separate surfaces — the index IS the surface, filters carve
+    views
+- Considered: Continuous Notebook (chronological stream),
+  Studio (tabbed rooms by format), Course Companion (pivots around
+  active course) — in `.mockups/screens/.../option-{1,2,4}.html`
+
+The review session flow spawns as a child story during implementation
+— launched from the "due for review" filter view via a "Start review
+session →" CTA at the top of filtered results.

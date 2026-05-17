@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workspace — Option 3: Catalogue</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* Catalogue: search-first index of all artifacts */
+    .catalogue-head { padding: 32px 32px 24px; max-width: 1280px; margin: 0 auto; }
+    .catalogue-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 10px; }
+    .catalogue-head h1 { font: 500 italic 36px/1.1 var(--font-display); margin: 0 0 16px; }
+
+    .search-row { background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 14px 18px; display: flex; align-items: center; gap: 16px; }
+    .search-row .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 20px; }
+    .search-row input { flex: 1; border: 0; background: transparent; font: italic 18px/1.4 var(--font-display); color: var(--color-text-primary); outline: none; }
+    .search-row input::placeholder { color: var(--color-text-tertiary); }
+    .search-row .count { font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; }
+
+    .layout { display: grid; grid-template-columns: 220px 1fr; max-width: 1280px; margin: 0 auto; padding: 24px 32px; gap: 32px; }
+
+    aside.filters .group { margin-bottom: 24px; }
+    aside.filters h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    aside.filters .pill-row { display: flex; flex-direction: column; gap: 2px; }
+    aside.filters .pill { padding: 6px 0; font: 14px/1.4 var(--font-serif); display: flex; gap: 8px; align-items: baseline; cursor: pointer; color: var(--color-text-secondary); }
+    aside.filters .pill .count { margin-left: auto; font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    aside.filters .pill.active { color: var(--color-accent); }
+    aside.filters .pill:hover { color: var(--color-text-primary); }
+    aside.filters .pill .glyph { font-style: italic; color: var(--color-text-tertiary); }
+
+    main.results { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; align-content: start; }
+
+    .card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; min-height: 140px; cursor: pointer; }
+    .card:hover { border-color: var(--color-border-strong); }
+    .card .head-row { display: flex; align-items: baseline; gap: 8px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .card .head-row .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 13px; text-transform: none; letter-spacing: 0; }
+    .card .head-row .when { margin-left: auto; color: var(--color-text-tertiary); }
+    .card .title { font: 500 italic 16px/1.25 var(--font-display); }
+    .card .title em { font-weight: 600; }
+    .card .excerpt { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+    .card .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .card .tag { font: 10px/1 var(--font-mono); letter-spacing: 0.06em; padding: 3px 7px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); color: var(--color-text-secondary); text-transform: uppercase; }
+
+    /* Sketch card preview */
+    .card .sketch { background: var(--color-bg-tertiary); height: 60px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 12px; }
+    .card .sketch svg { max-width: 100%; max-height: 100%; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 3 — Catalogue</strong>
+    <span>Workspace as a flat index of everything you've made. Notes, sketches, cards all surface together. Search-first; filters refine. Form-led rather than chronology-led.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <header class="catalogue-head">
+    <div class="kicker">¶ Workspace · the catalogue · 53 artifacts</div>
+    <h1>Everything you've <em>made</em></h1>
+    <div class="search-row">
+      <span class="glyph">⌕</span>
+      <input placeholder="search notes, sketches, cards · or a concept, a lesson, a phrase…" />
+      <span class="count">53 results</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="filters">
+      <div class="group">
+        <h3>By format</h3>
+        <div class="pill-row">
+          <span class="pill active"><span class="glyph">¶</span>All<span class="count">53</span></span>
+          <span class="pill"><span class="glyph">¶</span>Notes<span class="count">8</span></span>
+          <span class="pill"><span class="glyph">‖</span>Flashcards<span class="count">42</span></span>
+          <span class="pill"><span class="glyph">‡</span>Sketches<span class="count">3</span></span>
+        </div>
+      </div>
+      <div class="group">
+        <h3>By course</h3>
+        <div class="pill-row">
+          <span class="pill"><span class="glyph">§</span>Calculus<span class="count">38</span></span>
+          <span class="pill"><span class="glyph">§</span>Biology<span class="count">15</span></span>
+        </div>
+      </div>
+      <div class="group">
+        <h3>By concept</h3>
+        <div class="pill-row">
+          <span class="pill"><span>chain rule</span><span class="count">7</span></span>
+          <span class="pill"><span>derivatives</span><span class="count">12</span></span>
+          <span class="pill"><span>limits</span><span class="count">6</span></span>
+          <span class="pill"><span>cell membrane</span><span class="count">3</span></span>
+        </div>
+      </div>
+      <div class="group">
+        <h3>Other</h3>
+        <div class="pill-row">
+          <span class="pill"><span>due for review</span><span class="count">5</span></span>
+          <span class="pill"><span>recent (today)</span><span class="count">4</span></span>
+          <span class="pill"><span>orphan (unlinked)</span><span class="count">2</span></span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="results">
+      <div class="card">
+        <div class="head-row"><span class="glyph">¶</span>cornell note<span class="when">2h ago</span></div>
+        <div class="title">Chain rule — <em>nested rates</em></div>
+        <div class="excerpt">The rate of the whole is the product of the rates when changes nest. Don't say "cancel" — say "multiply." The notation hides a story about rates compounding.</div>
+        <div class="tags"><span class="tag">calc · L3</span><span class="tag">chain rule</span></div>
+      </div>
+
+      <div class="card">
+        <div class="head-row"><span class="glyph">‡</span>sketch<span class="when">3h ago</span></div>
+        <div class="title">Volume from radius — <em>a picture</em></div>
+        <div class="sketch">
+          <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="30" r="22" stroke="var(--color-text-secondary)" stroke-width="1.5" fill="none" stroke-dasharray="3 3"/>
+            <circle cx="40" cy="30" r="14" stroke="var(--color-text-primary)" stroke-width="1.5" fill="none"/>
+            <path d="M 90 30 L 180 30" stroke="var(--color-text-secondary)" stroke-width="1" stroke-dasharray="2 2"/>
+            <path d="M 100 20 Q 130 5 160 20 L 175 30" stroke="var(--color-text-primary)" stroke-width="1.5" fill="none"/>
+          </svg>
+        </div>
+        <div class="tags"><span class="tag">calc · L3</span><span class="tag">geometry</span></div>
+      </div>
+
+      <div class="card">
+        <div class="head-row"><span class="glyph">‖</span>flashcard<span class="when">today</span></div>
+        <div class="title">In one sentence, what does the chain rule actually say?</div>
+        <div class="excerpt">A. When two changes compose, the rate of the whole is the product of the rates.</div>
+        <div class="tags"><span class="tag">calc · L3</span><span class="tag">due today</span></div>
+      </div>
+
+      <div class="card">
+        <div class="head-row"><span class="glyph">¶</span>feynman note<span class="when">today</span></div>
+        <div class="title">Explain the chain rule to <em>a 12-year-old</em></div>
+        <div class="excerpt">Imagine a balloon being inflated. As I blow air in, the radius grows at some speed. But what I really care about is how fast the balloon's volume is growing. There are two rates here…</div>
+        <div class="tags"><span class="tag">calc · L3</span><span class="tag">chain rule</span></div>
+      </div>
+
+      <div class="card">
+        <div class="head-row"><span class="glyph">¶</span>free note<span class="when">yesterday</span></div>
+        <div class="title">Why <em>I'm</em> here at all</div>
+        <div class="excerpt">I came back to calculus because the actuarial exam needs it and I've been faking it for two years. The goal isn't passing — it's actually understanding…</div>
+        <div class="tags"><span class="tag">calc</span><span class="tag">orphan</span></div>
+      </div>
+
+      <div class="card">
+        <div class="head-row"><span class="glyph">¶</span>outline<span class="when">yesterday</span></div>
+        <div class="title">Lesson 2 — <em>summary</em></div>
+        <div class="excerpt">· Derivative as a rate, not a slope (despite the picture) · Sum rule, product rule, quotient rule as compositions of small rules · The chain rule was hinted at but not stated…</div>
+        <div class="tags"><span class="tag">calc · L2</span></div>
+      </div>
+
+      <div class="card">
+        <div class="head-row"><span class="glyph">‖</span>flashcard<span class="when">2d ago</span></div>
+        <div class="title">d/dx of sin(x²)?</div>
+        <div class="excerpt">A. cos(x²) · 2x — apply chain rule with u = x².</div>
+        <div class="tags"><span class="tag">calc · L3</span><span class="tag">due today</span></div>
+      </div>
+
+      <div class="card">
+        <div class="head-row"><span class="glyph">¶</span>cornell<span class="when">a week ago</span></div>
+        <div class="title">Cell membrane — <em>fluid mosaic</em></div>
+        <div class="excerpt">Phospholipid bilayer with embedded proteins. "Fluid" because lipids can move laterally; "mosaic" because the protein pattern is irregular and dynamic.</div>
+        <div class="tags"><span class="tag">bio · L4</span><span class="tag">membrane</span></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

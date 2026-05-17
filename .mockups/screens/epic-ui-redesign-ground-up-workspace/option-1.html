@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workspace — Option 1: Continuous Notebook</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    main { max-width: 760px; margin: 0 auto; padding: 48px 64px 200px; }
+
+    .masthead { padding-bottom: 24px; border-bottom: 1px solid var(--color-border); margin-bottom: 32px; }
+    .masthead .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 10px; }
+    .masthead h1 { font: 500 italic 38px/1.1 var(--font-display); margin: 0; }
+    .masthead .deck { font: italic 15px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 6px; }
+
+    /* Continuous chronological entries: notes, cards, sketches, all in one stream */
+    .day-marker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); }
+
+    .entry { margin-bottom: 32px; padding-left: 24px; border-left: 2px solid transparent; }
+    .entry.note { border-left-color: var(--color-border); }
+    .entry.sketch { border-left-color: var(--tint-bootstrap); }
+    .entry.card { border-left-color: var(--tint-quiz); }
+    .entry .meta { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); display: flex; gap: 8px; align-items: baseline; margin-bottom: 8px; }
+    .entry .meta .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-secondary); text-transform: none; letter-spacing: 0; font-size: 13px; }
+    .entry .meta .when { margin-left: auto; }
+    .entry .meta .link { font-family: var(--font-serif); font-style: italic; color: var(--color-text-secondary); text-transform: none; letter-spacing: 0; font-size: 12px; }
+
+    .entry h2 { font: 500 italic 22px/1.25 var(--font-display); margin: 0 0 8px; }
+    .entry h2 em { font-weight: 600; }
+    .entry .body { font: 16px/1.7 var(--font-serif); }
+    .entry .body em { font-style: italic; }
+    .entry .body p { margin: 0 0 12px; }
+    .entry .body p:last-child { margin: 0; }
+
+    .entry.note .body .feynman-prompt { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-tertiary); padding: 8px 14px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); margin: 8px 0; }
+
+    .sketch-preview { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
+    .sketch-preview svg { max-width: 100%; height: 220px; }
+
+    .card-block { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 20px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card-block .side { padding: 8px; }
+    .card-block .side h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 6px; }
+    .card-block .side .content { font: italic 15px/1.5 var(--font-serif); color: var(--color-text-primary); }
+
+    /* Review callout — inline interruption when cards are due */
+    .review-callout { padding: 24px 28px; background: var(--color-accent-muted); border-left: 3px solid var(--color-accent); border-radius: 0 var(--radius-md) var(--radius-md) 0; margin: 24px 0; display: flex; gap: 20px; align-items: center; }
+    .review-callout .text { flex: 1; }
+    .review-callout .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 6px; }
+    .review-callout .title { font: 500 italic 20px/1.2 var(--font-display); }
+    .review-callout .meta { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; }
+    .review-callout button { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-md); padding: 12px 20px; font: 500 14px/1 var(--font-sans); cursor: pointer; }
+
+    /* Floating new-entry composer */
+    .new-entry { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--color-bg-inverse); color: var(--color-text-inverse); padding: 12px 20px; border-radius: var(--radius-full); display: flex; gap: 14px; align-items: center; font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; box-shadow: 0 12px 40px rgba(0,0,0,0.16); }
+    .new-entry button { background: transparent; border: 0; padding: 6px 10px; color: var(--color-text-inverse); cursor: pointer; font: inherit; opacity: 0.7; }
+    .new-entry button:hover { opacity: 1; }
+    .new-entry .glyph { color: var(--color-accent); font-family: var(--font-serif); font-style: italic; font-size: 14px; letter-spacing: 0; }
+    .new-entry .sep { opacity: 0.4; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 1 — Continuous Notebook</strong>
+    <span>One chronological notebook for everything. Notes, sketches, and flashcards live in one stream day by day. Review surfaces as an inline callout when cards come due.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <main>
+    <header class="masthead">
+      <div class="kicker">¶ Workspace · the notebook</div>
+      <h1>Your <em>notebook</em></h1>
+      <div class="deck">Notes, sketches, flashcards — all of it, day by day, in one stream. Add anything from the floating composer at the bottom.</div>
+    </header>
+
+    <div class="day-marker">Today · 17 May</div>
+
+    <div class="entry note">
+      <div class="meta"><span class="glyph">¶</span> Cornell note <span class="link">· linked to Calc L3</span> <span class="when">14:38</span></div>
+      <h2>Chain rule — <em>nested rates</em></h2>
+      <div class="body">
+        <p>The rate of the whole is the <em>product</em> of the rates when changes nest. Don't say "cancel" — say "multiply." The notation hides a story about rates compounding.</p>
+        <p>For the balloon: dV/dt = (dV/dr) · (dr/dt). The geometry rate (4πr²) times the physics rate (2 cm/s) gives 200π cm³/s. Two separate rates, one product.</p>
+        <div class="feynman-prompt">Q for myself: <em>Why can't I just multiply the variables instead of the rates?</em> — write a one-paragraph answer tonight.</div>
+      </div>
+    </div>
+
+    <div class="review-callout">
+      <div class="text">
+        <div class="kicker">‖ Spaced review · 5 cards due now</div>
+        <div class="title">15 cards waiting · ~12 min</div>
+        <div class="meta">10 derivatives · 3 limits · 2 algebra · interleave on?</div>
+      </div>
+      <button>Start review →</button>
+    </div>
+
+    <div class="entry sketch">
+      <div class="meta"><span class="glyph">‡</span> Sketch <span class="link">· concept · derivatives</span> <span class="when">13:20</span></div>
+      <h2>Volume from radius — <em>a picture of the chain</em></h2>
+      <div class="body">
+        <div class="sketch-preview">
+          <svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="var(--color-text-primary)" stroke-width="1.5" fill="none">
+              <circle cx="120" cy="110" r="50" stroke-dasharray="3 3"/>
+              <circle cx="120" cy="110" r="35"/>
+              <path d="M 120 110 L 170 110" stroke-width="1" stroke-dasharray="2 2"/>
+              <path d="M 220 80 Q 240 60 260 80" />
+              <path d="M 260 80 L 280 90 Q 320 110 360 90" />
+              <text x="172" y="106" font-family="serif" font-style="italic" font-size="14" fill="var(--color-text-primary)" stroke="none">r</text>
+              <text x="64" y="60" font-family="serif" font-style="italic" font-size="14" fill="var(--color-text-secondary)" stroke="none">growing</text>
+              <text x="220" y="50" font-family="serif" font-style="italic" font-size="14" fill="var(--color-text-secondary)" stroke="none">V(r) responds</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="entry card">
+      <div class="meta"><span class="glyph">‖</span> Flashcard drafted <span class="link">· from Calc L3</span> <span class="when">12:11</span></div>
+      <h2>Chain rule, plain English</h2>
+      <div class="body">
+        <div class="card-block">
+          <div class="side">
+            <h3>Front</h3>
+            <div class="content">In one sentence, what does the chain rule actually say?</div>
+          </div>
+          <div class="side">
+            <h3>Back</h3>
+            <div class="content">When two changes compose, the rate of the whole is the product of the rates.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-marker">Yesterday · 16 May</div>
+
+    <div class="entry note">
+      <div class="meta"><span class="glyph">¶</span> Free note <span class="link">· Calc L2</span> <span class="when">17:42</span></div>
+      <h2>Why <em>I'm</em> here at all</h2>
+      <div class="body">
+        <p>I came back to calculus because the actuarial exam needs it and I've been faking it for two years. The goal isn't passing — it's actually understanding the rates story so I stop guessing on problems with mixed variables.</p>
+      </div>
+    </div>
+
+    <div class="entry note">
+      <div class="meta"><span class="glyph">¶</span> Outline <span class="link">· Calc L2</span> <span class="when">11:08</span></div>
+      <h2>Lesson 2 — <em>summary</em></h2>
+      <div class="body">
+        <p>· Derivative as a rate, not a slope (despite the picture)<br>· Sum rule, product rule, quotient rule as <em>compositions of small rules</em><br>· The chain rule was hinted at but not stated — coming in L3</p>
+      </div>
+    </div>
+  </main>
+
+  <div class="new-entry">
+    <span class="glyph">¶</span>
+    <button>+ note</button><span class="sep">·</span>
+    <button>+ sketch</button><span class="sep">·</span>
+    <button>+ card</button><span class="sep">·</span>
+    <button>· cornell</button>
+    <button>· feynman</button>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>
