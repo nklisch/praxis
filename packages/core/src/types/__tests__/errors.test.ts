@@ -141,6 +141,22 @@ describe("redactSecrets", () => {
     expect(out).toBe("?password=[REDACTED]");
   });
 
+  it("redacts a production-shaped Anthropic key with dashes and underscores in body", () => {
+    expect(
+      redactSecrets(
+        "API_KEY=sk-ant-api03-AbCdEfG_HiJkL-MnOpQ_RsTuV-WxYz1234567890_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890AAAAAAAA",
+      ),
+    ).toContain("sk-ant-[REDACTED]");
+  });
+
+  it("redacts a key embedded inside a stack trace line", () => {
+    expect(
+      redactSecrets(
+        "    at fetch (file:///x.js:42:1) [Authorization: Bearer sk-ant-api03-abc...]",
+      ),
+    ).toContain("[REDACTED]");
+  });
+
   it("is a no-op on plain text", () => {
     expect(redactSecrets("no secrets here")).toBe("no secrets here");
   });

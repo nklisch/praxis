@@ -1,7 +1,7 @@
 ---
 id: gate-tests-redact-secrets-production-key-shapes
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -27,6 +27,15 @@ existing regex pattern could miss if it's anchored to specific characters.
 
 ## Gap type
 Adversarial-spec-silent (boundary on a security-critical regex).
+
+## Implementation notes
+
+Two tests added at `packages/core/src/types/__tests__/errors.test.ts`, lines 144–161:
+
+1. `"redacts a production-shaped Anthropic key with dashes and underscores in body"` — exercises the full `sk-ant-api03-...` shape (~108 chars with dashes and underscores throughout).
+2. `"redacts a key embedded inside a stack trace line"` — exercises the Bearer-token path with a production-shaped `sk-ant-api03-abc...` key inside a simulated stack trace context.
+
+**No regex change was needed.** The existing pattern `/sk-ant-[A-Za-z0-9_-]+/g` (line 52 of `errors.ts`) already handles dashes and underscores in the key body, so both tests passed on the first run (31/31 green). The gap was purely in test coverage — the adversarial input shape was unasserted, not actually broken.
 
 ## Suggested tests
 
