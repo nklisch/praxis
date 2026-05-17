@@ -26,6 +26,7 @@ import { useDrafts } from "../hooks/use-drafts.js";
 import styles from "./bootstrap-tab-body.module.css";
 import { TeachChatTabBody } from "./chat-tab-body.js";
 import { DraftCard } from "./draft-card.js";
+import { LibraryDocumentPicker } from "./library-document-picker.js";
 import { SubAgentPanel } from "./sub-agent-panel.js";
 
 export interface BootstrapTabBodyProps {
@@ -40,6 +41,7 @@ export interface BootstrapTabBodyProps {
 export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
   const { current } = useDrafts();
   const currentSubAgent = useCurrentSubAgent();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
     <div className={styles.container}>
@@ -48,10 +50,26 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
         <TeachChatTabBody tab={tab} />
       </div>
 
+      {/* Session-scope library picker: opened from the outline header button. */}
+      {pickerOpen && (
+        <LibraryDocumentPicker
+          scope={{ kind: "session", id: tab.sessionId }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+
       {/* Right: live draft outline — driven by the bootstrap-drafts stream. */}
       <aside className={styles.outlinePane} aria-label="Course outline">
         <div className={styles.outlineHeader}>
           <span className={styles.outlineTitle}>course outline</span>
+          <button
+            type="button"
+            className={styles.addDocsBtn}
+            onClick={() => setPickerOpen(true)}
+            title="Add documents to this session"
+          >
+            Add documents
+          </button>
           <BudgetField />
         </div>
         {/* Scrollable draft area — flex:1 so it fills all space between the

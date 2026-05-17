@@ -178,7 +178,7 @@ export function CourseDetailRoute() {
       {/* Phase 16: Library picker modal */}
       {pickerOpen && courseId && (
         <LibraryDocumentPicker
-          courseId={courseId as CourseId}
+          scope={{ kind: "course", id: courseId as CourseId }}
           onClose={() => setPickerOpen(false)}
           onAttached={() => void courseDocsRefresh()}
         />

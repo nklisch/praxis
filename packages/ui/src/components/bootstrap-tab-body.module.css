@@ -43,6 +43,35 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-text-muted, #aaa);
+  /* Allow the title to shrink if the header row gets crowded. */
+  flex-shrink: 0;
+}
+
+/* "Add documents" ghost button — sits in the outline header between the title
+   and the budget field. Grows to fill available space so the header stays
+   balanced without pushing the budget field off-screen. */
+.addDocsBtn {
+  flex: 1;
+  min-width: 0;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, #aaa);
+  background: transparent;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.addDocsBtn:hover {
+  color: var(--color-text, #ddd);
+  border-color: var(--color-accent, #7aa2f7);
 }
 
 .budgetField {

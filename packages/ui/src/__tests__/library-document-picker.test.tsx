@@ -11,12 +11,15 @@
  * - Empty state renders when library is empty.
  * - Close button calls onClose.
  * - ESC calls onClose.
+ * - Course scope and session scope both work (polymorphic scope prop).
  */
 import type {
   CourseId,
   DocumentId,
+  DocumentScope,
   DocumentScopeAttachment,
   PraxisClient,
+  SessionId,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -28,6 +31,9 @@ import { makeFakeClient } from "./helpers/fake-client.js";
 afterEach(() => cleanup());
 
 const COURSE_ID = brandId<"CourseId">("course-1") as CourseId;
+const SESSION_ID = brandId<"SessionId">("session-1") as SessionId;
+const COURSE_SCOPE: DocumentScope = { kind: "course", id: COURSE_ID };
+const SESSION_SCOPE: DocumentScope = { kind: "session", id: SESSION_ID };
 const DOC_A = "doc-a" as DocumentId;
 const DOC_B = "doc-b" as DocumentId;
 
@@ -85,10 +91,11 @@ function renderPicker(
   client: PraxisClient,
   onClose = vi.fn(),
   onAttached?: (id: DocumentId) => void,
+  scope: DocumentScope = COURSE_SCOPE,
 ) {
   return render(
     <PraxisClientProvider client={client}>
-      <LibraryDocumentPicker courseId={COURSE_ID} onClose={onClose} onAttached={onAttached} />
+      <LibraryDocumentPicker scope={scope} onClose={onClose} onAttached={onAttached} />
     </PraxisClientProvider>,
   );
 }
@@ -146,7 +153,7 @@ describe("LibraryDocumentPicker", () => {
 
     await waitFor(() => {
       expect(attachFn).toHaveBeenCalledWith({
-        scope: { kind: "course", id: COURSE_ID },
+        scope: COURSE_SCOPE,
         documentId: DOC_B,
         source: "manual",
       });
@@ -234,7 +241,53 @@ describe("LibraryDocumentPicker", () => {
 
     await waitFor(() => {
       expect(listFn).toHaveBeenCalledOnce();
-      expect(listForScopeFn).toHaveBeenCalledWith({ kind: "course", id: COURSE_ID });
+      expect(listForScopeFn).toHaveBeenCalledWith(COURSE_SCOPE);
+    });
+  });
+
+  describe("session scope", () => {
+    it("calls listForScope with session scope on load", async () => {
+      const listForScopeFn = vi.fn().mockResolvedValue([]);
+      const client = makeFakeClient({
+        documents: {
+          list: vi.fn().mockResolvedValue([makeDocSummary(DOC_A, "algebra.pdf")]),
+          delete: vi.fn(),
+          pageImage: vi.fn().mockResolvedValue(null),
+        } as PraxisClient["documents"],
+        documentScopes: {
+          listForScope: listForScopeFn,
+          attach: vi.fn().mockResolvedValue({ attached: true }),
+          detach: vi.fn().mockResolvedValue({ detached: true }),
+        } as PraxisClient["documentScopes"],
+      });
+      renderPicker(client, vi.fn(), undefined, SESSION_SCOPE);
+
+      await waitFor(() => {
+        expect(listForScopeFn).toHaveBeenCalledWith(SESSION_SCOPE);
+      });
+    });
+
+    it("calls documentScopes.attach with session scope when Attach clicked", async () => {
+      const attachFn = vi.fn().mockResolvedValue({ attached: true });
+      const client = makeClient({
+        library: [makeDocSummary(DOC_B, "calculus.pdf")],
+        attachFn: attachFn as PraxisClient["documentScopes"]["attach"],
+      });
+      renderPicker(client, vi.fn(), undefined, SESSION_SCOPE);
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /^Attach$/i })).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: /^Attach$/i }));
+
+      await waitFor(() => {
+        expect(attachFn).toHaveBeenCalledWith({
+          scope: SESSION_SCOPE,
+          documentId: DOC_B,
+          source: "manual",
+        });
+      });
     });
   });
 });

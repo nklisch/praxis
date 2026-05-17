@@ -1,4 +1,4 @@
-import type { CourseId, DocumentId } from "@praxis/core/types";
+import type { DocumentId, DocumentScope } from "@praxis/core/types";
 import { useCallback, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useResource } from "../hooks/use-resource.js";
@@ -10,7 +10,9 @@ import { LoadingState } from "./loading-state.js";
 import { Modal } from "./modal.js";
 
 export interface LibraryDocumentPickerProps {
-  courseId: CourseId;
+  /** Polymorphic scope: attach to a course (`{ kind: 'course', id }`) or a
+   *  session (`{ kind: 'session', id }`). The picker adapts its heading copy. */
+  scope: DocumentScope;
   onClose: () => void;
   /** Called after any document is successfully attached. */
   onAttached?: (documentId: DocumentId) => void;
@@ -18,25 +20,24 @@ export interface LibraryDocumentPickerProps {
 
 /**
  * Modal picker that lists the student's full document library, marking which
- * docs are already attached to the active course. Clicking "Attach" calls
+ * docs are already attached to the given scope. Clicking "Attach" calls
  * client.documentScopes.attach and optimistically updates the attached set.
+ *
+ * Accepts any DocumentScope (course or session) — pass `scope` instead of
+ * the old `courseId` prop.
  */
-export function LibraryDocumentPicker({
-  courseId,
-  onClose,
-  onAttached,
-}: LibraryDocumentPickerProps) {
+export function LibraryDocumentPicker({ scope, onClose, onAttached }: LibraryDocumentPickerProps) {
   const client = usePraxisClient();
 
   // Load the full library and the currently-attached set in parallel.
   const loader = useCallback(async () => {
     const [library, attached] = await Promise.all([
       client.documents.list(),
-      client.documentScopes.listForScope({ kind: "course", id: courseId }),
+      client.documentScopes.listForScope(scope),
     ]);
     const attachedIds = new Set(attached.map((d) => d.documentId));
     return { library, attachedIds };
-  }, [client, courseId]);
+  }, [client, scope]);
 
   const { data, loading, error, setData } = useResource(loader);
 
@@ -55,7 +56,7 @@ export function LibraryDocumentPicker({
       });
       try {
         await client.documentScopes.attach({
-          scope: { kind: "course", id: courseId },
+          scope,
           documentId,
           source: "manual",
         });
@@ -80,17 +81,18 @@ export function LibraryDocumentPicker({
         });
       }
     },
-    [client, courseId, setData, onAttached],
+    [client, scope, setData, onAttached],
   );
+
+  const isSession = scope.kind === "session";
+  const deckCopy = isSession ? COPY.libraryPicker.deckSession : COPY.libraryPicker.deckCourse;
 
   return (
     <Modal onClose={onClose} ariaLabel="Attach document from library" maxWidth="520px">
       <span className={styles.ornament}>⁂</span>
       <span className={styles.kicker}>LIBRARY</span>
       <h2 className={styles.title}>attach from library</h2>
-      <p className={styles.deck}>
-        Select a document to attach it to this course without re-uploading.
-      </p>
+      <p className={styles.deck}>{deckCopy}</p>
 
       {loading && <LoadingState message={COPY.loading.documents} />}
 
