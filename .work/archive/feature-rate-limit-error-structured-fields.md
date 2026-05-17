@@ -1,7 +1,7 @@
 ---
 id: feature-rate-limit-error-structured-fields
 kind: feature
-stage: review
+stage: done
 tags: [ui, engines, errors]
 parent: null
 depends_on: []
@@ -223,3 +223,21 @@ A separate backlog item should be parked for the UI banner work (mount surface, 
 ### Tests
 
 - `packages/engines/src/__tests__/claude-code-events.test.ts`: Extended both existing `rate_limited` test expected objects to include `details`; added two new tests — one pinning the unknown-status drop (`"warned"` → `null` + warn log), one pinning the full `details` shape when both optional overage fields are present. Total: 19 tests (was 15), all passing.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `d31fb18`. Implementation matches design exactly:
+- `RateLimitErrorDetails` interface added before `EngineError` with the discriminator `kind: "rate_limit"` and the SDK-mirrored fields; doc-comments preserved.
+- `EngineError.details` field optional, doc-comment instructs renderers to switch on `details?.kind`.
+- Adapter mapper now has a three-branch status guard: `"allowed"` → warn+drop (unchanged), `!== "rate_limited"` → warn+drop with key `engine.claude-code.rate_limit_unknown_status` (new), `"rate_limited"` → error event with `details` populated via conditional spreads for `exactOptionalPropertyTypes`-compatibility.
+- Message text preserved verbatim — no break for existing log/UI consumers.
+- 19 tests pass (15 existing + 4 new: extended five_hour, extended seven_day, unknown-status drop, overage-fields shape).
+- Unblocks `gate-tests-rate-limit-unknown-status-guard` for the next autopilot pass.
+
+UI banner work explicitly deferred per design — a separate UX-scoping task for a follow-up backlog item.
