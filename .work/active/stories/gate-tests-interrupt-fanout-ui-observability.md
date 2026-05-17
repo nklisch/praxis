@@ -1,7 +1,7 @@
 ---
 id: gate-tests-interrupt-fanout-ui-observability
 kind: story
-stage: implementing
+stage: review
 tags: [testing, refactor]
 parent: null
 depends_on: []
@@ -40,3 +40,13 @@ it("after interruptAllForSession, a UI subscriber receives a finished event for 
   // Assert events.length === 2 and all kind === 'finished' with status 'interrupted'
 });
 ```
+
+## Implementation notes
+
+New test file: `packages/desktop/electron/main/__tests__/subagent-channel.test.ts`
+
+- Line 98: `"after interruptAllForSession, a UI subscriber receives a finished event for every previously-running item"` — uses a real `SubAgentRegistryImpl` to exercise the subscribe → fanout → terminal-event pipeline through the IPC channel. Subscribes via `praxis.subAgent.events.start`, starts two sub-agents for session-A, calls `interruptAllForSession`, cancels the stream, then asserts two `{ kind: "finished", status: "interrupted" }` pushes were received by the fake `webContents.send` spy.
+
+- Line 163: `"interruptAllForSession does not emit finished events for items in a different session"` — complementary guard confirming session isolation: only session-A items are interrupted, session-B item stays running.
+
+Both tests pass (`pnpm --filter @praxis/desktop test subagent-channel`). Full `pnpm typecheck` clean.
