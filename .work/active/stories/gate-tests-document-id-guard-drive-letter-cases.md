@@ -1,7 +1,7 @@
 ---
 id: gate-tests-document-id-guard-drive-letter-cases
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -39,3 +39,12 @@ it("assertSafeDocumentId rejects mixed-case Windows drive prefix (A: with traili
   expect(() => assertSafeDocumentId("A:")).toThrow();
 });
 ```
+
+## Implementation notes
+
+Two new tests added to `packages/core/src/ingestion/__tests__/embedded-images.test.ts` via `store.dirFor(...)` (the existing indirection pattern — `assertSafeDocumentId` is not imported directly):
+
+- Line 132: `"rejects documentId starting with lowercase Windows drive prefix (c:)"` — input `"c:foo"`
+- Line 137: `"rejects documentId starting with mixed-case Windows drive prefix (A:)"` — input `"A:"`
+
+No source changes needed; `assertSafeDocumentId` already implements `/^[A-Za-z]:/` and both new tests passed on first run (28 tests total, all green).

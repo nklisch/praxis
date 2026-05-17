@@ -129,6 +129,16 @@ describe("FsEmbeddedImageStore — documentId path-traversal guard", () => {
     expect(() => store.dirFor({ documentId: "C:evil" })).toThrow(/Invalid documentId/);
   });
 
+  it("rejects documentId starting with lowercase Windows drive prefix (c:)", () => {
+    const store = makeStore();
+    expect(() => store.dirFor({ documentId: "c:foo" })).toThrow(/Invalid documentId/);
+  });
+
+  it("rejects documentId starting with mixed-case Windows drive prefix (A:)", () => {
+    const store = makeStore();
+    expect(() => store.dirFor({ documentId: "A:" })).toThrow(/Invalid documentId/);
+  });
+
   it("rejects traversal in deleteByDocumentId", async () => {
     const store = makeStore();
     await expect(store.deleteByDocumentId("../../foo")).rejects.toThrow(/Invalid documentId/);
