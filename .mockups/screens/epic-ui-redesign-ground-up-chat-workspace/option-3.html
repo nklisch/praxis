@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat workspace — Option 3: Margin Annotations</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    /* App-shell chrome */
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .running-head .open-tabs { display: flex; gap: 12px; align-items: baseline; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; gap: 4px; align-items: baseline; padding: 2px 6px; border-radius: 3px; cursor: pointer; }
+    .running-head .open-tabs .tab.active { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* Margin-annotation layout: 720px main column + 240px right margin for student annotations */
+    .session-shell { padding: 48px 0 200px; max-width: 1080px; margin: 0 auto; }
+
+    .session-head { padding: 0 80px 24px; border-bottom: 1px solid var(--color-border); margin-bottom: 32px; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head .kicker .glyph { font-family: var(--font-serif); font-style: italic; }
+    .session-head h1 { font: 500 italic 32px/1.15 var(--font-display); margin: 0; }
+    .session-head .deck { margin-top: 6px; font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+
+    .annotated { display: grid; grid-template-columns: 720px 240px; gap: 32px; padding: 0 0 0 80px; align-items: start; }
+
+    .main-text { font: 16px/1.85 var(--font-serif); }
+    .main-text .speaker-mark { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 32px 0 8px; display: block; }
+    .main-text .speaker-mark:first-child { margin-top: 0; }
+    .main-text p { margin: 0 0 14px; }
+    .main-text p em { font-style: italic; }
+    .main-text p:first-of-type::first-letter { float: left; font: italic 500 4.5em/0.85 var(--font-display); padding: 8px 12px 0 0; color: var(--color-accent); }
+
+    /* Inline tool call (small caption + boxed body) */
+    .inline-tool { margin: 20px 0; }
+    .inline-tool .cap { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .inline-tool .body { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 14px 18px; font: 14px/1.5 var(--font-mono); color: var(--color-text-secondary); }
+    .inline-tool .body .result { font: italic 16px/1.5 var(--font-display); color: var(--color-text-primary); margin-top: 6px; }
+    .inline-tool .body .verdict { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-success); margin-top: 8px; }
+
+    /* Margin annotations from the student */
+    .margin-col { position: relative; }
+    .annotation { font: italic 13px/1.45 var(--font-serif); color: var(--color-text-secondary); padding-left: 14px; border-left: 2px solid var(--color-accent-muted); margin-bottom: 24px; position: relative; }
+    .annotation .meta { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); font-style: normal; margin-bottom: 4px; }
+    .annotation p { margin: 0; }
+    .annotation .pointer { position: absolute; left: -18px; top: 6px; color: var(--color-text-tertiary); font-style: normal; font-family: var(--font-serif); }
+    .annotation.assistant { padding-left: 14px; border-left: 2px solid var(--color-border); }
+    .annotation.assistant { color: var(--color-text-tertiary); }
+
+    /* Tucked composer — single pencil triggers expansion */
+    .composer-tab { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: var(--color-bg-inverse); color: var(--color-text-inverse); padding: 14px 20px; border-radius: var(--radius-full); font: italic 14px/1 var(--font-display); cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.16); z-index: 10; }
+    .composer-tab .glyph { color: var(--color-accent); font-size: 18px; }
+    .composer-tab .hint { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-left: 8px; font-style: normal; }
+    .composer-tab.open { padding: 16px 18px; border-radius: var(--radius-md); width: 600px; max-width: calc(100vw - 64px); flex-direction: column; align-items: stretch; gap: 10px; }
+    .composer-tab.open textarea { width: 100%; background: transparent; border: 0; color: var(--color-text-inverse); font: 16px/1.5 var(--font-serif); resize: none; outline: none; min-height: 60px; }
+    .composer-tab.open .actions { display: flex; justify-content: space-between; align-items: center; }
+    .composer-tab.open .actions .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 14px; font: 500 13px/1 var(--font-sans); cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 3 — Margin Annotations</strong>
+    <span>The session reads as a single document. Tutor voice is the main text; the student's voice appears as marginalia in the right column. Composer hides behind a single floating pencil and expands when invoked.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab active"><span class="dot" style="background: var(--tint-teach);"></span>Calculus · L3</span>
+      <span class="tab"><span class="dot" style="background: var(--tint-quiz);"></span>Quiz · deriv.</span>
+    </div>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="session-shell">
+    <header class="session-head">
+      <div class="kicker"><span class="dot"></span><span class="glyph">§</span> Teach · Lesson 3 · Calculus I</div>
+      <h1>Why the chain rule <em>actually works</em></h1>
+      <div class="deck">A short discussion before three worked examples and a quick check.</div>
+    </header>
+
+    <div class="annotated">
+      <div class="main-text">
+        <span class="speaker-mark">Tutor · 2 min ago</span>
+        <p>When two changes compose &mdash; when the position depends on time but the velocity also varies, when the price depends on supply but supply depends on weather &mdash; the <em>rate of the whole</em> is the product of the rates. That sentence is the chain rule in one breath; everything else is unpacking it.</p>
+        <p>Before we touch any notation, let me ask: <em>have you seen the rule written down before</em>? If yes, I'd like to know how it was introduced; if not, that's actually preferable for what comes next.</p>
+
+        <span class="speaker-mark">Tutor · just now</span>
+        <p>That's the most common starting point and it's the one we're going to dismantle. The formula compresses a story about <em>nested rates</em> into eight symbols; the symbols become memorable once the story does. Let's start with a concrete case.</p>
+        <p>Suppose a balloon is being inflated, and you track its <em>radius</em> over time. The radius grows at some rate. But what you actually care about is the <em>volume</em> — and volume depends on radius. If the radius is growing at 2 cm/s when the balloon is 5 cm across, how fast is the volume changing right then?</p>
+
+        <div class="inline-tool">
+          <div class="cap">tool · sympy.diff — d/dt of V(r(t))</div>
+          <div class="body">
+            V(r) = (4/3) π r³ · r(t) = 5 · dr/dt = 2
+            <div class="result">dV/dt = 4 π r² · dr/dt = 4 π (25)(2) = <em>200 π cm³/s ≈ 628.3</em></div>
+            <div class="verdict">✓ verified · sympy</div>
+          </div>
+        </div>
+
+        <p>Notice what just happened. The volume changed at <em>200 π</em> cubic centimeters per second — and that number came from <em>two</em> rates multiplied: the rate at which volume changes <em>with respect to radius</em> (the geometry), times the rate at which radius changes <em>with respect to time</em>. The chain rule is just this, stated generally.</p>
+      </div>
+
+      <div class="margin-col">
+        <div style="height: 80px;"></div>
+
+        <div class="annotation">
+          <div class="meta">you · 1 min ago</div>
+          <span class="pointer">·</span>
+          <p>I've seen <em>(f ∘ g)' = f'(g) · g'</em> but I don't really feel why it's the product. I can apply it on autopilot.</p>
+        </div>
+
+        <div style="height: 80px;"></div>
+
+        <div class="annotation assistant">
+          <div class="meta">sub-agent · grader · 800ms</div>
+          <p style="font-style: normal;">Your free-response on related rates (lesson 2) used the chain rule implicitly without naming it; volume-from-radius is the right re-entry point.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="composer-tab" id="composer" onclick="this.classList.toggle('open')">
+    <span class="glyph">¶</span>
+    <span class="closed-text">answer · or ask the tutor a question</span>
+    <span class="hint">⌘↵</span>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+
+    // Replace composer-tab text with textarea when open
+    const composer = document.getElementById('composer');
+    composer.addEventListener('click', (e) => {
+      if (composer.classList.contains('open') && composer.querySelector('textarea')) return;
+      if (composer.classList.contains('open')) {
+        composer.innerHTML = `<textarea autofocus placeholder="answer · or ask the tutor a question"></textarea><div class="actions"><span style="font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; text-transform: uppercase;">⌘↵ send · ⌘⇧K sketch</span><button class="submit">Send ↵</button></div>`;
+      }
+    });
+  </script>
+</body>
+</html>

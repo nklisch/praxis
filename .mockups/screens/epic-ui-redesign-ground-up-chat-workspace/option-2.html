@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat workspace — Option 2: Bilateral Columns</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    /* App-shell chrome (locked Option 3) */
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .running-head .open-tabs { display: flex; gap: 12px; align-items: baseline; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; gap: 4px; align-items: baseline; padding: 2px 6px; border-radius: 3px; cursor: pointer; }
+    .running-head .open-tabs .tab.active { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* Bilateral session */
+    .session-head { padding: 24px 48px 16px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 24px; max-width: 1280px; margin: 0 auto; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 22px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .session-head h1 em { font-style: italic; font-weight: 600; }
+    .session-head .progress { font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; display: flex; gap: 8px; align-items: center; }
+    .session-head .progress .bar { width: 60px; height: 2px; background: var(--color-bg-tertiary); }
+    .session-head .progress .bar .fill { height: 100%; background: var(--color-accent); width: 25%; }
+    .session-head .panel-toggle { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); cursor: pointer; }
+
+    .bilateral { display: grid; grid-template-columns: 60fr 40fr; max-width: 1280px; margin: 0 auto; min-height: calc(100vh - 200px); padding: 0 48px; }
+
+    .col { padding: 32px 0; }
+    .col.tutor { padding-right: 32px; border-right: 1px solid var(--color-border); }
+    .col.student { padding-left: 32px; }
+    .col .col-label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 24px; display: flex; gap: 8px; align-items: baseline; }
+    .col .col-label .glyph { font-family: var(--font-serif); font-style: italic; }
+    .col.student .col-label { justify-content: flex-end; }
+
+    .turn { margin-bottom: 24px; }
+    .turn .meta { font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .col.student .turn .meta { text-align: right; }
+    .turn p { font: 16px/1.65 var(--font-serif); margin: 0 0 10px; }
+    .turn p em { font-style: italic; }
+    .turn.student p { font-style: italic; color: var(--color-text-primary); }
+    .col.student .turn { text-align: right; }
+    .col.student .turn p { text-align: left; max-width: 90%; margin-left: auto; }
+
+    /* Full-width tool call straddles both columns */
+    .full-tool { grid-column: 1 / -1; margin: 24px -48px; padding: 0 48px; background: var(--color-bg-tertiary); }
+    .full-tool .inner { max-width: 720px; margin: 0 auto; padding: 20px 0; }
+    .full-tool .caption { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; gap: 8px; align-items: baseline; }
+    .full-tool .caption .num { font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+    .full-tool .body { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 20px 24px; }
+    .full-tool .body .input { font: 14px/1.5 var(--font-mono); color: var(--color-text-secondary); }
+    .full-tool .body .result { font: italic 16px/1.5 var(--font-display); margin-top: 6px; }
+    .full-tool .verdict { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-success); margin-top: 10px; }
+
+    /* Sub-agent inline in tutor column */
+    .sub-agent { margin: 16px 0; padding: 10px 14px; background: var(--color-bg-tertiary); border-left: 2px solid var(--color-text-tertiary); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .sub-agent .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); font-style: normal; display: block; margin-bottom: 4px; }
+
+    /* Composer in student column */
+    .composer-row { grid-column: 1 / -1; padding: 16px 0 24px; border-top: 1px solid var(--color-border); display: grid; grid-template-columns: 60fr 40fr; max-width: 1280px; margin: 24px auto 0; padding-left: 48px; padding-right: 48px; }
+    .composer-spacer { padding-right: 32px; }
+    .composer-spacer .hint { font: 11px/1.5 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; font-style: italic; }
+    .composer { padding-left: 32px; }
+    .composer-field { display: flex; gap: 10px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 12px 14px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 16px/1.5 var(--font-serif); resize: none; outline: none; color: var(--color-text-primary); min-height: 22px; font-style: italic; }
+    .composer-field textarea::placeholder { color: var(--color-text-tertiary); font-style: italic; }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 12px; font: 500 13px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 2 — Bilateral Columns</strong>
+    <span>Two columns: tutor on left (60%), student on right (40%). Each side speaks in its own space. Tool calls span both columns as full-width interventions. Composer in the student column.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab active"><span class="dot" style="background: var(--tint-teach);"></span>Calculus · L3</span>
+      <span class="tab"><span class="dot" style="background: var(--tint-quiz);"></span>Quiz · deriv.</span>
+    </div>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <header class="session-head">
+    <div class="kicker"><span class="dot"></span>§ Teach · L3</div>
+    <h1>Why the chain rule <em>actually works</em></h1>
+    <div class="progress"><span>25%</span><div class="bar"><div class="fill"></div></div></div>
+    <span class="panel-toggle">[ ⁂ panel ]</span>
+  </header>
+
+  <div class="bilateral">
+    <div class="col tutor">
+      <div class="col-label"><span class="glyph">§</span> Tutor</div>
+
+      <div class="turn">
+        <div class="meta">2 min ago</div>
+        <p>When two changes compose, the <em>rate of the whole</em> is the product of the rates. That sentence is the chain rule in one breath; everything else is unpacking it.</p>
+        <p>Before we touch any notation, let me ask: <em>have you seen the rule written down before</em>?</p>
+      </div>
+
+      <div class="turn">
+        <div class="meta">just now</div>
+        <p>That's the most common starting point and it's the one we're going to dismantle. The formula compresses a story about <em>nested rates</em> into eight symbols; the symbols become memorable once the story does.</p>
+        <p>Suppose a balloon is being inflated, and you track its <em>radius</em> over time. The radius grows at some rate. But what you actually care about is the <em>volume</em>. If the radius is growing at 2 cm/s when the balloon is 5 cm across, how fast is the volume changing right then?</p>
+        <div class="sub-agent">
+          <span class="label">sub-agent · grader · 800ms</span>
+          Your free-response on related rates (lesson 2) used the chain rule implicitly without naming it; volume-from-radius is the right re-entry point.
+        </div>
+      </div>
+    </div>
+
+    <div class="col student">
+      <div class="col-label">You <span class="glyph">‖</span></div>
+
+      <div class="turn student">
+        <div class="meta">1 min ago</div>
+        <p>I've seen <em>(f ∘ g)' = f'(g) · g'</em> but I don't really feel why it's the product. I can apply it on autopilot.</p>
+      </div>
+    </div>
+
+    <div class="full-tool">
+      <div class="inner">
+        <div class="caption"><span class="num">tool · sympy.diff</span> &mdash; symbolic check of d/dt of V(r(t))</div>
+        <div class="body">
+          <div class="input">V(r) = (4/3) π r³ · r(t) = 5 · dr/dt = 2</div>
+          <div class="result">dV/dt = 4 π r² · dr/dt = 4 π (25)(2) = <em>200 π cm³/s ≈ 628.3</em></div>
+          <div class="verdict">✓ verified · sympy</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-row">
+      <div class="composer-spacer"><span class="hint">⌘↵ send · ⌘⇧K sketch · ⌘/ tools</span></div>
+      <div class="composer">
+        <div class="composer-field">
+          <textarea rows="2" placeholder="answer · or ask the tutor a question"></textarea>
+          <button class="submit">Send ↵</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat workspace — pick a direction</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    h1 { padding: 14px 24px 0; margin: 0; font-weight: 500; font-size: 18px; }
+    h1 .meta { color: #8b949e; font-weight: 400; font-size: 13px; margin-left: 10px; }
+    .lede { padding: 0 24px 12px; margin: 4px 0 0; color: #8b949e; font-size: 13px; max-width: 90ch; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; height: calc(100vh - 80px); box-sizing: border-box; }
+    .cell { background: #fff; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+    .cell h2 { margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #222; color: #eee; display: flex; justify-content: space-between; align-items: baseline; }
+    .cell h2 .desc { color: #8b949e; font-weight: 400; font-size: 11px; }
+    .cell h2 a { color: #6cf; text-decoration: none; font-size: 11px; }
+    .cell iframe { border: 0; flex: 1; width: 100%; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Chat workspace <span class="meta">— pick a direction · epic-ui-redesign-ground-up-chat-workspace</span></h1>
+  <p class="lede">Four structural answers to the central session surface. Same content (Calculus L3, mid-conversation), same locked shell (Option 3 top-nav). What varies: turn shape (prose / bubble / two-column / annotation), how tool calls and sub-agents surface, how side panels participate, and where the composer lives.</p>
+  <div class="grid">
+    <div class="cell">
+      <h2>Option 1 — <span class="desc">Continuous Document · no bubbles · prose + figure tool-calls + right panel</span><a href="option-1.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-1.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 2 — <span class="desc">Bilateral Columns · tutor left / student right / tool spans both</span><a href="option-2.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-2.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 3 — <span class="desc">Margin Annotations · tutor main column · student as marginalia · floating pencil composer</span><a href="option-3.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-3.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 4 — <span class="desc">Refined Bubbles · familiar shape, tinted not outlined · 3-col with docs + concepts</span><a href="option-4.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-4.html"></iframe>
+    </div>
+  </div>
+</body>
+</html>

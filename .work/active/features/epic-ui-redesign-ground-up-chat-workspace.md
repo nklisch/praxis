@@ -70,7 +70,27 @@ What lands:
 - Pattern `session-tab-open-flow`
 - Pattern `modal-primitive`
 
-<!-- The design pass will produce option mocks for the surface and flow
-mocks for mode-switch and assignment-spawn. Implementation child stories
-will land once chosen mocks are captured in this body's `## Mockups`
-section. -->
+## Mockups
+
+- Screens: `.mockups/screens/epic-ui-redesign-ground-up-chat-workspace/index.html`
+- **Selected: Option 4 — Refined Bubbles** (2026-05-17)
+  - Three-column layout: documents (left, 240px) · session (center,
+    flexible) · concepts + sidekick (right, 280px)
+  - Familiar bubble shape kept but **outlines dropped** — tutor turns
+    on `--color-bg-secondary` tint, student turns right-aligned on
+    `--color-bg-tertiary` tint, no borders
+  - Tool calls render as one-line `<details>` disclosures with verdict
+    glyph + tool name + result preview; expand to show full I/O
+  - Sub-agent blocks render inline beneath the originating turn as
+    italic marginalia with mono kicker (`sub-agent · grader · 800ms`)
+  - Sticky session-head carries kicker + title + progress bar
+  - Composer at the bottom of the center column — italic-text serif,
+    accent button, mono hints below
+- Considered: Continuous Document (no bubbles, lecture-style),
+  Bilateral Columns (tutor-left / student-right), Margin Annotations
+  (tutor main / student marginalia + floating composer) — available
+  in `.mockups/screens/.../option-{1,2,3}.html`
+
+The mode-switch and assignment-spawn flows will spawn as child stories
+during implementation; the Refined Bubbles base sets the surface
+language for both flows.
