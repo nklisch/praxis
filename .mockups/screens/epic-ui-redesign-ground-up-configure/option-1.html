@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configure — Option 1: Four Books</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    .book-tabs { padding: 16px 32px 0; display: flex; gap: 4px; border-bottom: 1px solid var(--color-border); align-items: baseline; max-width: 1280px; margin: 0 auto; }
+    .book-tab { padding: 12px 20px; font: 500 italic 18px/1.2 var(--font-display); color: var(--color-text-secondary); cursor: pointer; border-bottom: 2px solid transparent; display: flex; gap: 8px; align-items: baseline; }
+    .book-tab:hover { color: var(--color-text-primary); }
+    .book-tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .book-tab .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .book-tab.active .glyph { color: var(--color-accent); }
+    .book-tab .changed-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-warning); }
+
+    main { max-width: 1080px; margin: 0 auto; padding: 32px; }
+
+    .book-head { margin-bottom: 32px; }
+    .book-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 10px; }
+    .book-head h1 { font: 500 italic 36px/1.1 var(--font-display); margin: 0; }
+    .book-head h1 em { font-weight: 600; }
+    .book-head .deck { font: italic 15px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 6px; max-width: 70ch; }
+    .book-head .actions { margin-top: 16px; display: flex; gap: 8px; }
+    .book-head .actions button { font: 500 13px/1 var(--font-sans); padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .book-head .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    .section { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+    .section:last-child { border-bottom: none; }
+    .section h2 { font: 500 italic 24px/1.2 var(--font-display); margin: 0 0 6px; }
+    .section .section-deck { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 20px; }
+
+    .unit-list { display: flex; flex-direction: column; gap: 4px; }
+    .unit { display: grid; grid-template-columns: 4ch 1fr auto; gap: 16px; align-items: baseline; padding: 14px 16px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; }
+    .unit:hover { border-color: var(--color-border-strong); }
+    .unit .num { font: italic 22px/1 var(--font-display); color: var(--color-text-tertiary); text-align: right; }
+    .unit .title { font: 500 italic 18px/1.25 var(--font-display); }
+    .unit .title em { font-weight: 600; }
+    .unit .lesson-count { font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; }
+    .unit-subline { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); grid-column: 2; margin-top: 2px; }
+    .unit-meta { grid-column: 3; font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+    .add-unit { padding: 14px 16px; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-sm); text-align: center; font: italic 14px/1 var(--font-serif); color: var(--color-text-tertiary); cursor: pointer; }
+    .add-unit:hover { color: var(--color-accent); border-color: var(--color-accent); }
+
+    .field-row { display: grid; grid-template-columns: 22ch 1fr; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--color-border); align-items: baseline; }
+    .field-row:last-child { border-bottom: none; }
+    .field-row .label { font: 600 12px/1.3 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .field-row .label .hint { display: block; font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); text-transform: none; letter-spacing: 0; margin-top: 4px; }
+    .field-row .control input[type=text], .field-row .control textarea { width: 100%; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 8px 12px; font: 15px/1.5 var(--font-serif); color: var(--color-text-primary); outline: none; }
+    .field-row .control textarea { min-height: 80px; resize: vertical; }
+    .field-row .control input:focus, .field-row .control textarea:focus { border-color: var(--color-accent); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 1 — Four Books</strong>
+    <span>Configure as four distinct surfaces — Course / Gates / Prompts / Memory — each its own focused page. Tabs at top; full-width content. Closest to current direction, refined.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="active"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="book-tabs">
+    <div class="book-tab active"><span class="glyph">§</span>Course <span class="changed-dot" title="2 unsaved changes"></span></div>
+    <div class="book-tab"><span class="glyph">‡</span>Gates</div>
+    <div class="book-tab"><span class="glyph">¶</span>Prompts</div>
+    <div class="book-tab"><span class="glyph">‖</span>Memory</div>
+  </div>
+
+  <main>
+    <header class="book-head">
+      <div class="kicker">⁂ Configure · Course · Calculus I</div>
+      <h1><em>Calculus</em> · structure &amp; content</h1>
+      <div class="deck">The course's units, lessons, and assessment shells. Reorder by drag; click a unit to edit its lessons.</div>
+      <div class="actions">
+        <button class="primary">Save 2 changes</button>
+        <button>Discard</button>
+        <button>Preview as student</button>
+      </div>
+    </header>
+
+    <section class="section">
+      <h2>Units &amp; lessons</h2>
+      <div class="section-deck">12 lessons in 4 units. The student is on lesson 3 of unit 2.</div>
+
+      <div class="unit-list">
+        <div class="unit">
+          <span class="num">1.</span>
+          <span class="title"><em>Limits</em> — what calculus really studies</span>
+          <span class="lesson-count">3 lessons</span>
+          <span class="unit-subline">Intuition, ε-δ, one-sided and two-sided limits.</span>
+          <span class="unit-meta">done · gate met</span>
+        </div>
+
+        <div class="unit" style="border-color: var(--color-accent);">
+          <span class="num">2.</span>
+          <span class="title"><em>Differentiation</em> · core rules</span>
+          <span class="lesson-count">5 lessons</span>
+          <span class="unit-subline">Derivative as rate, sum/product/quotient rules, the chain rule (active lesson), implicit differentiation.</span>
+          <span class="unit-meta">active · L3 of 5</span>
+        </div>
+
+        <div class="unit">
+          <span class="num">3.</span>
+          <span class="title"><em>Applications</em> · related rates &amp; optimisation</span>
+          <span class="lesson-count">2 lessons</span>
+          <span class="unit-subline">Related rates word-problems, optimisation; depends on unit 2.</span>
+          <span class="unit-meta">locked</span>
+        </div>
+
+        <div class="unit">
+          <span class="num">4.</span>
+          <span class="title"><em>Integration</em> · the Fundamental Theorem</span>
+          <span class="lesson-count">2 lessons</span>
+          <span class="unit-subline">Antiderivatives, the FTC, basic technique. End of course.</span>
+          <span class="unit-meta">locked</span>
+        </div>
+
+        <div class="add-unit">+ add a unit</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Course-level metadata</h2>
+      <div class="section-deck">High-level configuration. Affects every lesson and gate in the course.</div>
+
+      <div class="field-row">
+        <div class="label">Title<span class="hint">What the student sees.</span></div>
+        <div class="control"><input type="text" value="Calculus I" /></div>
+      </div>
+      <div class="field-row">
+        <div class="label">Description<span class="hint">One paragraph; shows in the library card.</span></div>
+        <div class="control"><textarea>An introduction to differential calculus through the lens of nested rates and accumulated change. Material adapted from Stewart 8e, with verification through symbolic computation and worked examples.</textarea></div>
+      </div>
+      <div class="field-row">
+        <div class="label">Source pack<span class="hint">The canonical pack this course was bootstrapped from (if any).</span></div>
+        <div class="control"><input type="text" value="bootstrap · Stewart Calc 8e (uploaded textbook)" /></div>
+      </div>
+      <div class="field-row">
+        <div class="label">Mastery floor<span class="hint">Minimum mastery on each concept before lesson gate allows progression.</span></div>
+        <div class="control"><input type="text" value="0.70 (BKT prior, decays)" /></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

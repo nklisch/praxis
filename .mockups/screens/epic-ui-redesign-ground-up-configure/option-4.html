@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configure — Option 4: Inspector</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* Dense inspector: every knob in a flat, searchable table */
+    .toolbar { padding: 12px 32px; display: flex; gap: 16px; align-items: center; border-bottom: 1px solid var(--color-border); }
+    .toolbar .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .toolbar .search { flex: 1; max-width: 400px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 6px 12px; display: flex; align-items: center; gap: 8px; }
+    .toolbar .search .glyph { font-style: italic; color: var(--color-text-tertiary); font-family: var(--font-serif); }
+    .toolbar .search input { flex: 1; border: 0; background: transparent; font: italic 14px/1.4 var(--font-serif); outline: none; color: var(--color-text-primary); }
+    .toolbar .search input::placeholder { color: var(--color-text-tertiary); }
+    .toolbar .filters { display: flex; gap: 4px; }
+    .toolbar .filters button { font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 9px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-secondary); }
+    .toolbar .filters button.active { background: var(--color-accent-muted); color: var(--color-accent); border-color: var(--color-accent); }
+    .toolbar .save-status { display: flex; gap: 12px; align-items: center; }
+    .toolbar .save-status .changed { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-warning); }
+    .toolbar .save-status button { font: 500 12px/1 var(--font-sans); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .toolbar .save-status button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    /* Table */
+    main { max-width: 1320px; margin: 0 auto; padding: 0 32px 40px; }
+    .group { margin-top: 20px; }
+    .group-head { font: 500 italic 22px/1.2 var(--font-display); padding: 16px 0 8px; display: flex; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--color-border); }
+    .group-head em { font-weight: 600; }
+    .group-head .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .group-head .count { margin-left: auto; font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; font-style: normal; font-weight: 600; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 12px; text-align: left; vertical-align: top; font-size: 13px; line-height: 1.4; }
+    th { font: 600 10px/1.4 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border); }
+    td { border-bottom: 1px solid var(--color-border); }
+    tr.changed td { background: var(--color-accent-muted); }
+    tr:hover td { background: var(--color-bg-tertiary); }
+    tr.changed:hover td { background: var(--color-accent-muted); }
+
+    td.key { font: 600 12px/1.4 var(--font-mono); color: var(--color-text-primary); letter-spacing: 0.02em; width: 32%; }
+    td.key .hint { display: block; font: italic 12px/1.5 var(--font-serif); color: var(--color-text-tertiary); font-weight: 400; letter-spacing: 0; margin-top: 2px; }
+    td.value { font: 13px/1.5 var(--font-serif); color: var(--color-text-primary); width: 38%; }
+    td.value input, td.value select, td.value textarea { width: 100%; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; font: 13px/1.4 var(--font-serif); color: var(--color-text-primary); outline: none; }
+    td.value textarea { resize: vertical; min-height: 28px; }
+    tr.changed td.value input, tr.changed td.value select { border-color: var(--color-warning); }
+    td.default { font: 12px/1.4 var(--font-mono); color: var(--color-text-tertiary); width: 18%; letter-spacing: 0.02em; }
+    td.actions { width: 12%; }
+    td.actions button { font: 500 11px/1 var(--font-sans); padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-secondary); }
+    td.actions button.preview { color: var(--color-accent); border-color: var(--color-accent); }
+    td.actions button.revert { color: var(--color-danger); border-color: var(--color-danger); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 4 — Inspector</strong>
+    <span>Every configurable knob in one flat table. Search, filter, edit inline. Power-user dense; Settings.app + spreadsheet posture. Subsurfaces become row groups, not separate pages.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="active"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <span class="kicker">⁂ Configure · Calculus I · inspector</span>
+    <div class="search"><span class="glyph">⌕</span><input placeholder="search 142 settings · e.g. mastery, formality, gate, embedding…" /></div>
+    <div class="filters">
+      <button class="active">All</button>
+      <button>Course</button>
+      <button>Gates</button>
+      <button>Prompts</button>
+      <button>Memory</button>
+      <button>Changed</button>
+      <button>Overrides</button>
+    </div>
+    <div class="save-status">
+      <span class="changed">⁂ 4 unsaved</span>
+      <button>Discard</button>
+      <button class="primary">Save 4</button>
+    </div>
+  </div>
+
+  <main>
+    <div class="group">
+      <div class="group-head"><span class="glyph">§</span><em>Course</em> · structure &amp; metadata <span class="count">12 settings</span></div>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Value</th><th>Default</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="key">course.title<span class="hint">What the student sees on the library card.</span></td>
+            <td class="value"><input value="Calculus I" /></td>
+            <td class="default">—</td>
+            <td class="actions"><button class="preview">↗ preview</button></td>
+          </tr>
+          <tr>
+            <td class="key">course.units<span class="hint">Number of units in the course; managed in the course editor.</span></td>
+            <td class="value">4 units, 12 lessons</td>
+            <td class="default">—</td>
+            <td class="actions"><button>edit</button></td>
+          </tr>
+          <tr>
+            <td class="key">course.bootstrap_source<span class="hint">The pack or document this course was bootstrapped from.</span></td>
+            <td class="value">Stewart Calc 8e · uploaded</td>
+            <td class="default">—</td>
+            <td class="actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="group">
+      <div class="group-head"><span class="glyph">‡</span><em>Gates</em> · mastery thresholds &amp; prerequisites <span class="count">28 settings</span></div>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Value</th><th>Default</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="key">gate.course.mastery_floor<span class="hint">Minimum mastery on each concept before lesson gate allows progression.</span></td>
+            <td class="value"><input value="0.70" style="max-width: 80px;" /></td>
+            <td class="default">0.70</td>
+            <td class="actions"></td>
+          </tr>
+          <tr class="changed">
+            <td class="key">gate.concept.chain_rule.mastery_floor<span class="hint">Overrides the course floor for this specific concept.</span></td>
+            <td class="value"><input value="0.85" style="max-width: 80px;" /></td>
+            <td class="default">0.70</td>
+            <td class="actions"><button class="revert">revert</button></td>
+          </tr>
+          <tr>
+            <td class="key">gate.decay_rate<span class="hint">How fast mastery decays with time-since-practiced.</span></td>
+            <td class="value"><select><option>slow (default)</option><option>medium</option><option>fast</option></select></td>
+            <td class="default">slow</td>
+            <td class="actions"></td>
+          </tr>
+          <tr>
+            <td class="key">gate.adaptive_routing<span class="hint">Whether gates re-route the student to remediation when they fail repeatedly.</span></td>
+            <td class="value"><select><option>on (default)</option><option>off</option></select></td>
+            <td class="default">on</td>
+            <td class="actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="group">
+      <div class="group-head"><span class="glyph">¶</span><em>Prompts</em> · per-mode tutor configuration <span class="count">48 settings</span></div>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Value</th><th>Default</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr class="changed">
+            <td class="key">teach.scaffolding<span class="hint">When to show a worked example before asking.</span></td>
+            <td class="value"><select><option>always</option><option selected>concrete-first (new)</option><option>when novel</option><option>never (socratic)</option></select></td>
+            <td class="default">when novel</td>
+            <td class="actions"><button class="preview">↗ preview</button><button class="revert">revert</button></td>
+          </tr>
+          <tr class="changed">
+            <td class="key">teach.formality<span class="hint">Tone slider: socratic ↔ lecture.</span></td>
+            <td class="value"><input value="3" style="max-width: 60px;" /> <span style="color: var(--color-text-tertiary); font-family: var(--font-mono); font-size: 11px;">/ 10 · socratic-leaning</span></td>
+            <td class="default">5</td>
+            <td class="actions"><button class="preview">↗</button><button class="revert">revert</button></td>
+          </tr>
+          <tr>
+            <td class="key">teach.verbosity<span class="hint">Terse ↔ generous.</span></td>
+            <td class="value"><input value="6" style="max-width: 60px;" /> <span style="color: var(--color-text-tertiary); font-family: var(--font-mono); font-size: 11px;">/ 10</span></td>
+            <td class="default">6</td>
+            <td class="actions"></td>
+          </tr>
+          <tr class="changed">
+            <td class="key">teach.condition<span class="hint">A conditional rule the tutor follows.</span></td>
+            <td class="value"><textarea>If concept appears in episodic memory from prior sessions, lean Socratic; otherwise use concrete-first.</textarea></td>
+            <td class="default"><em>(none)</em></td>
+            <td class="actions"><button class="preview">↗</button><button class="revert">revert</button></td>
+          </tr>
+          <tr>
+            <td class="key">quiz.item_interleaving<span class="hint">Mix concepts within a quiz vs block by concept.</span></td>
+            <td class="value"><select><option selected>interleaved</option><option>blocked</option></select></td>
+            <td class="default">interleaved</td>
+            <td class="actions"></td>
+          </tr>
+          <tr>
+            <td class="key">exam.proctored_mode<span class="hint">Disable certain tools (hints, retrieval) during exam mode.</span></td>
+            <td class="value"><select><option selected>on</option><option>off</option></select></td>
+            <td class="default">on</td>
+            <td class="actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="group">
+      <div class="group-head"><span class="glyph">‖</span><em>Memory</em> · projections &amp; mastery <span class="count">22 settings</span></div>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Value</th><th>Default</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="key">memory.semantic.bkt_prior<span class="hint">Bayesian Knowledge Tracing prior probability of mastery.</span></td>
+            <td class="value"><input value="0.30" style="max-width: 80px;" /></td>
+            <td class="default">0.30</td>
+            <td class="actions"></td>
+          </tr>
+          <tr>
+            <td class="key">memory.misconception.auto_record<span class="hint">Whether the misconception indexer fires after every turn.</span></td>
+            <td class="value"><select><option selected>on</option><option>session-end only</option><option>off</option></select></td>
+            <td class="default">on</td>
+            <td class="actions"></td>
+          </tr>
+          <tr>
+            <td class="key">memory.episodic.retention<span class="hint">How long to retain raw episodic logs.</span></td>
+            <td class="value"><select><option selected>forever</option><option>1 year</option><option>90 days</option></select></td>
+            <td class="default">forever</td>
+            <td class="actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

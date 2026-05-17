@@ -68,6 +68,38 @@ What lands:
   authoring — configure-mode posture
 - Pattern `editorial-ui-primitives`
 
-<!-- The design pass will produce option mocks for each configure surface
-and a flow mock for the configure-entry / unlock journey. Implementation
-child stories land once mocks are captured. -->
+## Mockups
+
+- Screens: `.mockups/screens/epic-ui-redesign-ground-up-configure/index.html`
+- **Selected: Option 5 — Canvas + Side Chat** (2026-05-17)
+  - **Center canvas is the artifact being edited** — for gates that's
+    the gate graph (React Flow node diagram with mastery thresholds
+    as edge labels); for course that's the unit/lesson tree; for
+    prompts that's the fragment list; for memory that's the inspector
+    table. Each subsurface owns its native visualisation.
+  - **Sub-surface tab strip at top** (Course / Gates / Prompts /
+    Memory) makes all four authoring systems visible and switchable;
+    tabs carry **change-dots** so dirty state across surfaces is legible.
+    Save bar lives in the strip with "N unsaved across M surfaces"
+    summary.
+  - **Inspector strip beneath the canvas** shows the selected node's
+    editable fields with before/after for changed ones — for example,
+    a gate node's `node.mastery_floor`, `edge.mastery_floor`,
+    `node.adaptive_routing`.
+  - **Side chat panel (380px) on the right** is the conversational
+    configurator (Option 3's direction kept) — talking to the agent
+    drives edits via tool calls; each tool call surfaces as a
+    reviewable diff in chat (keep / tweak / revert) with a **cross-link
+    back to the canvas** ("↗ in graph", "↗ open prompts") so the
+    student sees where the change landed
+  - Composer at the bottom of the chat panel; quick-action hints
+    underneath ("+ undo last", "+ show diff", "+ preview as student")
+- Considered: Four Books (tabbed surfaces), Editor + Live Preview
+  (split-screen), Conversational (chat-only, no visible canvas),
+  Inspector (flat searchable table) — in
+  `.mockups/screens/.../option-{1,2,3,4}.html`
+
+The configure-entry (unlock) flow spawns as a child story during
+implementation. The four sub-surfaces (Course / Gates / Prompts /
+Memory) each get their own implementation child story since each owns
+its native canvas visualisation.
