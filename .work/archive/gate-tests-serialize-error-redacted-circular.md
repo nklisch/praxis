@@ -1,7 +1,7 @@
 ---
 id: gate-tests-serialize-error-redacted-circular
 kind: story
-stage: review
+stage: done
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -49,3 +49,13 @@ change was needed — `serializeErrorRedacted` delegates to `serializeError` fir
 which handles circular objects safely by reading only `instanceof Error` properties
 and `"message" in err` fields (never calls `JSON.stringify`). The test passes
 green, confirming the current implementation is already throw-safe.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `c53fb12`. New test at `errors.test.ts:221` inside the `serializeErrorRedacted` describe block exercises a self-referential circular object. No source change needed — `serializeErrorRedacted` delegates to `serializeError` which only inspects `instanceof Error` properties (no `JSON.stringify` on input). Test pins the property so a future regression that adds stringify would surface.

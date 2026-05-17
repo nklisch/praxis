@@ -1,7 +1,7 @@
 ---
 id: gate-tests-image-cross-chunk-boundary
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -42,3 +42,13 @@ Test already shipped at the suggested location; orchestrator audit confirmed:
 - `packages/tools/src/runtime/ingestion/__tests__/docx-ingestor.test.ts:451` — `it("handles an image whose markdown straddles a chunk boundary — at most one chunk picks it up OR neither (rare but acceptable)")` configures `maxChars: 100` to force chunking mid-paragraph, asserts `chunksWithImage.length` ≤ 1, and asserts the marker count is ≤ 1 — no double-tag. The corresponding source contract is pinned via a "pinned by:" comment in `docx-ingestor.ts:tagChunksWithImages`.
 
 Gate is fully closed — advance to review.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode closure. Citation verified — the test at line 451 of `docx-ingestor.test.ts` exercises the boundary case with `maxChars: 100` to force a mid-paragraph split and asserts both `chunksWithImage.length` ≤ 1 and the marker count ≤ 1.

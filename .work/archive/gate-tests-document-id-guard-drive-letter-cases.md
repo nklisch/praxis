@@ -1,7 +1,7 @@
 ---
 id: gate-tests-document-id-guard-drive-letter-cases
 kind: story
-stage: review
+stage: done
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -48,3 +48,13 @@ Two new tests added to `packages/core/src/ingestion/__tests__/embedded-images.te
 - Line 137: `"rejects documentId starting with mixed-case Windows drive prefix (A:)"` — input `"A:"`
 
 No source changes needed; `assertSafeDocumentId` already implements `/^[A-Za-z]:/` and both new tests passed on first run (28 tests total, all green).
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `b42529e`. Two new tests at `embedded-images.test.ts:132-140` adjacent to the existing `C:` test, exercising lowercase `c:foo` and mixed-case `A:`. No source change needed — the existing `/^[A-Za-z]:/` regex already covers both partitions, which is what the gate expected. Tests pass on first run.

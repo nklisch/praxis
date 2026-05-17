@@ -1,7 +1,7 @@
 ---
 id: gate-tests-interrupt-all-event-fanout-count
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -53,3 +53,13 @@ The "exactly one terminal event per in-flight item" property is already pinned a
 The gate's suggested N=3 case is a different witness of the same property the N=2 case pins. Increasing N would not add coverage of a different state; the property's adversarial dimension is "duplicates or leaks on fanout", which is closed at N=2.
 
 Gate is functionally closed — advance to review.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode closure. The "exactly one terminal event per in-flight item" property is pinned by the existing N=2 test at `subagent-registry.test.ts:445`. Additionally, the end-to-end UI-fanout property is now pinned by the new test added in `gate-tests-interrupt-fanout-ui-observability` (commit `de69ade`), which exercises N=2 through the full IPC channel. The N=3 distinction from the gate body is a witnessed instance of the same property; no additional coverage warranted.

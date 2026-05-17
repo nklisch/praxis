@@ -1,7 +1,7 @@
 ---
 id: story-root-vitest-praxis-source-condition
 kind: story
-stage: review
+stage: done
 tags: [testing, tooling, dx]
 parent: null
 depends_on: []
@@ -66,3 +66,18 @@ The key insight: Vitest uses Vite's SSR mode for node-environment test execution
 3. Ran `pnpm vitest run tests/praxis-source-probe.test.ts` **without** `pnpm build` — test passed. Debug output confirmed Vite's transform resolved `@praxis/core` to `src/index.ts` (via `praxis-source` condition).
 4. Removed `__PRAXIS_SOURCE_PROBE` from source and deleted probe test.
 5. Full test suite (`pnpm test`): **365 test files passed, 3658 tests passed** — no regressions.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: 
+- The root `vitest.config.ts` is minimal (just `test.projects`) — could be inlined into `tests/vitest.config.ts` in a future cleanup, but the current shape mirrors the Vitest 3 idiom and is fine.
+
+**Notes**: Diff inspected at commit `6a2ccc0`. Substantive restructure but well-scoped:
+- Migrates from deprecated `vitest.workspace.ts` to `vitest.config.ts` with `test.projects` (Vitest 3 idiom). Necessary because the workspace-file's inline-object form for the `tests/` project couldn't carry `resolve.conditions`.
+- New `tests/vitest.config.ts` declares the conditions in both `resolve.conditions` (for the client/browser resolver path) AND `ssr.resolve.conditions` + `ssr.resolve.externalConditions` (for the SSR/node resolver path that Vitest actually uses for node-env tests) — the SSR path is the critical one and was the agent's diagnostic finding.
+- Probe-verification methodology documented in the story body (temporary `__PRAXIS_SOURCE_PROBE` constant, test it, observe source resolution without build, then remove).
+- Full test suite reports 365 files / 3658 tests passing — no regressions.

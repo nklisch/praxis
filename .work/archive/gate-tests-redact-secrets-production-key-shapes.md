@@ -1,7 +1,7 @@
 ---
 id: gate-tests-redact-secrets-production-key-shapes
 kind: story
-stage: review
+stage: done
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -52,3 +52,13 @@ it("redacts a key embedded inside a stack trace line", () => {
     .toContain("[REDACTED]");
 });
 ```
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `8098e7b`. Two new tests in `errors.test.ts` — one for the full production-shape `sk-ant-api03-...` (~108 chars with dashes and underscores in body), one for a key embedded in a stack-trace line. Existing `/sk-ant-[A-Za-z0-9_-]+/g` regex covers both; no source change needed. Tests pass.

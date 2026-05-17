@@ -1,7 +1,7 @@
 ---
 id: gate-security-tool-socket-perms-and-token
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -59,3 +59,13 @@ Work already shipped; orchestrator audit confirmed:
 - Test coverage at `packages/claude-cli-sdk/src/__tests__/tool-server-auth.test.ts` exercises the auth-token frame contract.
 
 Gate is fully closed — no code change required. Advance to review.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode closure. Citations verified — 32-byte random auth token, `timingSafeEqualHex` framing, explicit `fs.chmod(socketPath, 0o600)`, and token plumbing via `CLAUDE_SDK_TOOL_SOCKET_TOKEN` env var are all in place. Both halves of the gate's defense-in-depth direction (chmod + auth token) shipped.

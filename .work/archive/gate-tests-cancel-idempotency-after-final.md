@@ -1,7 +1,7 @@
 ---
 id: gate-tests-cancel-idempotency-after-final
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -48,3 +48,13 @@ Tests already shipped at the suggested location; orchestrator audit confirmed:
 The third sub-case the gate mentions (`cancel() during loadHistory`) is implicitly covered because `loadHistory` is not on `useStreamedSend` — there's no in-hook state that would diverge from the pre-send no-op already pinned. No additional tests required.
 
 Gate is fully closed — advance to review.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode closure. Citations verified — both `it("cancel() after the stream finalized is a no-op")` at line 996 and `it("double-cancel during streaming produces a single cancel-marker")` at line 1026 are present in `use-streamed-send.test.tsx`. The `cancel() during loadHistory` sub-case the gate also mentioned isn't a real state on this hook, so its omission is correct.

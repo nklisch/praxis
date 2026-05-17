@@ -1,7 +1,7 @@
 ---
 id: gate-security-sdk-timeout-disabled-defense-in-depth
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -84,3 +84,18 @@ indexers and graders pass `maxSteps: 1`; the bootstrap explorer uses `maxSteps: 
 (the parent `SessionService` drives the conversation, not a turn budget). 100 is
 generous for any normal tutor session while being far below a runaway-loop
 threshold. The floor is a last-resort backstop, not a target operating point.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `6993cb9`.
+
+- Correctness: `maxTurns: openOpts.maxSteps ?? DEFAULT_MAX_TURNS` matches the prior `!== undefined` guard semantically (both treat only `undefined`/`null` as fallback). Floor of 100 is justified by call-site survey in the implementation notes.
+- Tests: both partitions covered (omitted `maxSteps` → floor; provided `maxSteps` → caller value passes through).
+- Comment block at adapter.ts:70-80 updated to accurately describe the new invariant — no stale claim that `maxSteps` alone bounds the loop.
+- Defense-in-depth is real: caller discipline is no longer a precondition for safety.

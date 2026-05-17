@@ -1,7 +1,7 @@
 ---
 id: gate-security-embedded-image-store-dirfor-guard
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -57,3 +57,13 @@ Work already shipped; orchestrator audit confirmed both stores have the guard:
 - Tests in `packages/core/src/ingestion/__tests__/embedded-images.test.ts:85+` cover the throw cases (lines 103-129) and the success cases (lines 140-146).
 
 Gate is fully closed — no code change required. Advance to review.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode closure. Citations verified — `assertSafeDocumentId` is called inside both `FsEmbeddedImageStore.dirFor` and `FsPageImageStore.dirFor` exactly as the gate's remediation direction specified, and existing tests pin all seven rejection rules. No diff to evaluate beyond the story-body audit notes.

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-interrupt-fanout-ui-observability
 kind: story
-stage: review
+stage: done
 tags: [testing, refactor]
 parent: null
 depends_on: []
@@ -50,3 +50,13 @@ New test file: `packages/desktop/electron/main/__tests__/subagent-channel.test.t
 - Line 163: `"interruptAllForSession does not emit finished events for items in a different session"` — complementary guard confirming session isolation: only session-A items are interrupted, session-B item stays running.
 
 Both tests pass (`pnpm --filter @praxis/desktop test subagent-channel`). Full `pnpm typecheck` clean.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `de69ade`. New test file `packages/desktop/electron/main/__tests__/subagent-channel.test.ts` exercises the full subscribe → fanout → terminal-event pipeline end-to-end using a real `SubAgentRegistryImpl`, not a mock — exactly the property the gate identified as untested at the channel layer. Includes an isolation guard (session-B unaffected when session-A is interrupted). Follows the `electron-ipc-test-harness` pattern.

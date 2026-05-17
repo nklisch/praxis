@@ -1,7 +1,7 @@
 ---
 id: gate-tests-sub-agent-collision-warn-log
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -46,3 +46,13 @@ The gate offered two resolutions: (A) document silent-no-op as intentional in th
 The silent-by-design choice is correct given collision is a structural guarantee from the registry, not a caller error condition — warn-logging would create noise on legitimate idempotent retries.
 
 Gate is fully closed — advance to review.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode closure. The gate offered two resolutions; option (A) shipped — the test at `subagent-registry.test.ts:97` is named to make the silent-by-design contract explicit and its inline comment documents the rationale. The choice is correct given collision is a structural guarantee, not a caller error condition that would benefit from log noise.

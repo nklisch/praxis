@@ -1,7 +1,7 @@
 ---
 id: gate-tests-stored-schema-strict-inheritance
 kind: story
-stage: review
+stage: done
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -48,3 +48,16 @@ it("EngineConfigStoredSchema rejects unknown top-level keys (inherits .strict)",
 - **Schema fixed**: `packages/core/src/config/schema.ts` lines 71–80 — `.strict()` chained before `.superRefine(visionModelRefine)` so unknown-key rejection runs before the vision refinement. Docstring updated to explicitly note strictness.
 - **Caller audit**: Only one production caller — `packages/core/src/config/engine-config.ts:164` — parses a row read directly from the DB; no extra keys pass through that path.
 - **All 36 tests pass** after the fix; typecheck clean across all packages.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `c144e88`. Two-part change:
+- `schema.ts`: `.strict()` added before `.superRefine(visionModelRefine)` on `EngineConfigStoredSchema`; docstring updated. Order is correct (strict runs before refine).
+- `engine-config.test.ts`: new test asserts unknown top-level keys are rejected; failed before the source change, passes after.
+Sole production caller (`engine-config.ts:164`) parses DB rows containing only schema-declared fields, so no migration risk from the tightening. Persistence-boundary contract pinned.

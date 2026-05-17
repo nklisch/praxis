@@ -1,7 +1,7 @@
 ---
 id: gate-tests-update-banner-installer-hash-display
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -49,3 +49,13 @@ Both valid and invalid partitions already covered; orchestrator audit confirmed:
 Both partitions pinned with explicit "Pinned spec" / "Pinned contract" comments tying back to the update-banner source contract.
 
 Gate is fully closed — advance to review.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode closure. Both partitions verified — tests at `update-banner.test.tsx:114,156` cover the installerSha256-set and installerSha256-absent cases, both with "Pinned spec" / "Pinned contract" inline comments tying them to the update-banner source. The set-case test additionally asserts the hash is in a `<code>` element verbatim (no truncation) which is stronger than what the gate body specified.

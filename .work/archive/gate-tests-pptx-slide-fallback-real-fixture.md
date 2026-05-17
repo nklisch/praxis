@@ -1,7 +1,7 @@
 ---
 id: gate-tests-pptx-slide-fallback-real-fixture
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -38,3 +38,13 @@ Real-fixture coverage already shipped; orchestrator audit confirmed:
 - `packages/tools/src/runtime/ingestion/__tests__/pptx-ingestor-integration.test.ts:103` — `describe("PptxIngestor against fallback fixture (no slide signal — slow)")` block runs the real fixture through the actual `PptxIngestor` (slow-gated via `PRAXIS_RUN_SLOW_TESTS=1`), asserting both the "fallback produces title from doc metadata" case (line 112) and the "fallback produces empty chunks when no extractable text" case (line 127).
 
 Gate is fully closed — advance to review.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode closure. The gate offered two resolutions ("commit a real-fixture PPTX" or "document mock-only by intention"); the codebase shipped the stronger option — a script (`build-no-slide-signal-pptx.ts`) that generates a real fixture, the fixture itself in `__tests__/fixtures/`, and a slow-gated integration test at `pptx-ingestor-integration.test.ts:103` that exercises the fallback path end-to-end.

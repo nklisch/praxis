@@ -1,7 +1,7 @@
 ---
 id: gate-tests-unwrap-envelope-shape-collision
 kind: story
-stage: review
+stage: done
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -50,3 +50,13 @@ it("unwrapEnvelope passes through { ok: true } without a 'value' key as a legacy
   - "passes through { ok: true } without a 'value' key as a legacy value" — pins that `ok: true` alone (missing the required `value` key) passes through unchanged
 - Source comment added in `packages/client/src/transport/envelope.ts` above `isEnvelope` (before line 61 in original; lines 61–70 after edit) explaining the two-key shape requirement and citing the test names as pin points.
 - All 9 tests pass; `pnpm typecheck` clean.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `3936d46`. Two new tests in `envelope.test.ts` pin the passthrough behavior on `{ ok: 'truthy-non-bool' }` and `{ ok: true }` without a `value` key. Source comment added above `isEnvelope` in `envelope.ts` documents the two-key shape requirement (strict boolean `ok` + matching payload key) and cites the test names. No behavior change — the existing shape check is already strict enough.
