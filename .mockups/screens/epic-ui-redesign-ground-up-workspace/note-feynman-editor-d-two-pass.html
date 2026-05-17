@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feynman — D: Two-Pass Margin</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    .note-head { padding: 14px 32px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 16px; max-width: 1080px; margin: 0 auto; }
+    .note-head .breadcrumb { font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); }
+    .note-head .breadcrumb a { color: var(--color-accent); text-decoration: none; font-style: italic; }
+    .note-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); padding: 4px 8px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); display: flex; gap: 6px; align-items: center; }
+    .note-head .title-input { flex: 1; border: 0; background: transparent; font: 500 italic 24px/1.15 var(--font-display); color: var(--color-text-primary); outline: none; min-width: 0; }
+    .note-head .save-state { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); display: flex; gap: 6px; align-items: center; }
+    .note-head .save-state .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); }
+
+    /* Mode toggle: writing | reviewing */
+    .mode-toggle { max-width: 1080px; margin: 0 auto; padding: 14px 32px 0; display: flex; align-items: baseline; gap: 16px; }
+    .mode-toggle .modes { display: flex; background: var(--color-bg-tertiary); border-radius: var(--radius-full); padding: 3px; gap: 0; }
+    .mode-toggle .mode { padding: 8px 18px; font: 500 italic 14px/1 var(--font-display); color: var(--color-text-secondary); cursor: pointer; border-radius: var(--radius-full); display: flex; gap: 8px; align-items: baseline; }
+    .mode-toggle .mode.active { background: var(--color-bg-primary); color: var(--color-text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .mode-toggle .mode .ornament { font-style: italic; }
+    .mode-toggle .audience { font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); }
+    .mode-toggle .audience em { color: var(--color-text-primary); }
+    .mode-toggle .spacer { flex: 1; }
+    .mode-toggle .step-hint { font: italic 13px/1.4 var(--font-serif); color: var(--color-text-tertiary); }
+    .mode-toggle .step-hint em { color: var(--color-accent); font-weight: 600; }
+
+    /* Two-column: writing column + margin column (in review mode) */
+    .surface { display: grid; grid-template-columns: 680px 280px; max-width: 1080px; margin: 0 auto; padding: 32px 32px 200px; gap: 24px; align-items: start; }
+
+    .writing-col { font: 17px/1.9 var(--font-serif); color: var(--color-text-primary); }
+    .writing-col .frontispiece { margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
+    .writing-col .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; }
+    .writing-col h2 { font: 500 italic 30px/1.15 var(--font-display); margin: 0; }
+    .writing-col h2 em { font-weight: 600; }
+
+    .writing-col p { margin: 0 0 16px; padding: 4px 8px; border-radius: 2px; cursor: text; }
+    .writing-col p em { font-style: italic; }
+    .writing-col p .highlighted { background: var(--color-warning); color: var(--color-text-inverse); padding: 1px 4px; border-radius: 2px; font-style: italic; cursor: pointer; }
+    .writing-col p .highlighted-strong { background: var(--color-danger); color: var(--color-text-inverse); padding: 1px 4px; border-radius: 2px; font-style: italic; cursor: pointer; }
+
+    .margin-col { font: italic 13px/1.5 var(--font-serif); }
+    .margin-note { padding: 8px 12px; background: var(--color-warning); color: var(--color-text-inverse); border-radius: var(--radius-sm); margin-bottom: 8px; position: relative; }
+    .margin-note.strong { background: var(--color-danger); }
+    .margin-note .pointer { position: absolute; left: -12px; top: 12px; width: 0; height: 0; border-style: solid; border-width: 6px 12px 6px 0; border-color: transparent var(--color-warning) transparent transparent; }
+    .margin-note.strong .pointer { border-color: transparent var(--color-danger) transparent transparent; }
+    .margin-note .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; opacity: 0.85; font-style: normal; }
+    .margin-note .text em { font-style: italic; font-weight: 500; }
+
+    .margin-add { padding: 10px 14px; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-sm); font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); cursor: pointer; text-align: center; margin-top: 12px; }
+    .margin-add:hover { color: var(--color-accent); border-color: var(--color-accent); }
+
+    .review-instructions { padding: 14px 18px; background: var(--color-accent-muted); border-left: 3px solid var(--color-accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font: italic 14px/1.5 var(--font-serif); color: var(--color-text-primary); margin-bottom: 24px; }
+    .review-instructions em { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Feynman — Variant D: Two-Pass Margin</strong>
+    <span>Two distinct modes. Pass 1: write the explanation freely (no chrome, no gap-finding). Pass 2: switch to review mode, highlight passages, write the gap in the margin. Separates the writing from the noticing so you don't self-censor.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <header class="note-head">
+    <span class="breadcrumb"><a>workspace</a> · <a>notes</a> ·</span>
+    <span class="kicker">¶ feynman</span>
+    <input class="title-input" value="Explain the chain rule to a 12-year-old" />
+    <span class="breadcrumb">linked to <a>Calc · L3</a></span>
+    <span class="save-state"><span class="dot"></span>saved · 30s ago</span>
+  </header>
+
+  <div class="mode-toggle">
+    <div class="modes">
+      <div class="mode"><span class="ornament">¶</span>I'm writing</div>
+      <div class="mode active"><span class="ornament">⁂</span>I'm reviewing</div>
+    </div>
+    <span class="audience">audience: <em>a 12-year-old</em></span>
+    <span class="spacer"></span>
+    <span class="step-hint">in review mode, select text to mark a <em>gap</em> &mdash; the gap note appears in the margin</span>
+  </div>
+
+  <main class="surface">
+    <div class="writing-col">
+      <div class="frontispiece">
+        <div class="kicker">§ Explanation · pass 1 complete · 4 paragraphs · 152 words</div>
+        <h2>The chain rule, <em>in plain words</em></h2>
+      </div>
+
+      <div class="review-instructions">
+        <em>Re-reading your own explanation.</em> Where do <em>you</em> pause and think "I'm not sure why I said that"? Select that text and mark it &mdash; the gap appears in the margin next to it. The tutor reads your gaps next session.
+      </div>
+
+      <p>Imagine you're blowing up a balloon. As you blow air in, the balloon's <em>radius</em> grows.</p>
+      <p>But what you really care about isn't the radius &mdash; it's how much <em>space</em> the balloon takes up, the volume. The volume gets bigger because the radius gets bigger.</p>
+      <p>Here's the thing: there are <em>two speeds</em> happening at once. The first speed is how fast you're blowing air in &mdash; that's how fast the radius is changing. The second speed is how much extra volume you get for each tiny bit of extra radius &mdash; that depends on how big the balloon already is, because <span class="highlighted">a bigger balloon balloons up faster</span>.</p>
+      <p>To figure out how fast the volume is growing, you <span class="highlighted-strong">multiply</span> those two speeds together. Not add them. Not "cancel" them. Multiply them. Because two changes are stacked on top of each other.</p>
+      <p>That's the chain rule. Two rates, stacked, multiplied. The formula people write down is just a shorthand for that sentence. But I <span class="highlighted">avoided the word "derivative" entirely</span> &mdash; I don't know if my explanation would survive contact with the actual notation.</p>
+    </div>
+
+    <aside class="margin-col">
+      <div class="margin-note">
+        <span class="pointer"></span>
+        <div class="label">¶ gap · paragraph 3</div>
+        <div class="text"><em>"a bigger balloon balloons up faster"</em> &mdash; why? is this because surface area grows like r²? I handwaved. Need to come back.</div>
+      </div>
+
+      <div style="height: 70px;"></div>
+
+      <div class="margin-note strong">
+        <span class="pointer"></span>
+        <div class="label">⚠ load-bearing gap · paragraph 4</div>
+        <div class="text"><em>"multiply"</em> &mdash; I asserted this. I didn't earn it. <em>Why</em> is the right operation multiplication and not addition? This is the actual heart of the rule. The tutor should drill here next session.</div>
+      </div>
+
+      <div style="height: 60px;"></div>
+
+      <div class="margin-note">
+        <span class="pointer"></span>
+        <div class="label">¶ gap · paragraph 5</div>
+        <div class="text">I avoided <em>"derivative"</em> on purpose &mdash; works for the analogy, but I haven't tested whether my picture lines up with the notation. Try it next.</div>
+      </div>
+
+      <div class="margin-add">+ mark another gap · select text on the left</div>
+    </aside>
+  </main>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

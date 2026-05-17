@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feynman editor — variants</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    h1 { padding: 14px 24px 0; margin: 0; font-weight: 500; font-size: 18px; }
+    h1 .meta { color: #8b949e; font-weight: 400; font-size: 13px; margin-left: 10px; }
+    .lede { padding: 0 24px 12px; margin: 4px 0 0; color: #8b949e; font-size: 13px; max-width: 90ch; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; height: calc(100vh - 80px); box-sizing: border-box; }
+    .cell { background: #fff; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+    .cell h2 { margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #222; color: #eee; display: flex; justify-content: space-between; align-items: baseline; }
+    .cell h2 .desc { color: #8b949e; font-weight: 400; font-size: 11px; }
+    .cell h2 a { color: #6cf; text-decoration: none; font-size: 11px; }
+    .cell iframe { border: 0; flex: 1; width: 100%; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Feynman editor <span class="meta">— variants · pick one</span></h1>
+  <p class="lede">Same artifact (a Feynman-method note on the chain rule), four different shapes for the editor. A leans on cards + steps; B drops the boxes for an editorial page; C makes the audience a live participant who interrupts you; D separates writing from reviewing as two modes.</p>
+  <div class="grid">
+    <div class="cell">
+      <h2>A — <span class="desc">Stacked Cards (refined) · 3 numbered steps in cards · current direction</span><a href="note-feynman-editor.html" target="_blank">open ↗</a></h2>
+      <iframe src="note-feynman-editor.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>B — <span class="desc">Editorial Page · no boxes · single typewriter page with hairline sections</span><a href="note-feynman-editor-b-editorial.html" target="_blank">open ↗</a></h2>
+      <iframe src="note-feynman-editor-b-editorial.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>C — <span class="desc">Living Audience · simulated audience reacts in right column · gaps surface automatically</span><a href="note-feynman-editor-c-audience.html" target="_blank">open ↗</a></h2>
+      <iframe src="note-feynman-editor-c-audience.html"></iframe>
+    </div>
+    <div class="cell" style="outline: 2px solid #d8a070;">
+      <h2 style="background: #6b3a14;">D — <span class="desc">★ LOCKED · Two-Pass Margin · write freely, then review-mode marks gaps in the margin</span><a href="note-feynman-editor-d-two-pass.html" target="_blank">open ↗</a></h2>
+      <iframe src="note-feynman-editor-d-two-pass.html"></iframe>
+    </div>
+  </div>
+</body>
+</html>

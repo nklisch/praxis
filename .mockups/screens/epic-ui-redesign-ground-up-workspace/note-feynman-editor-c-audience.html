@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feynman — C: Living Audience</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    .note-head { padding: 14px 32px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 16px; max-width: 1200px; margin: 0 auto; }
+    .note-head .breadcrumb { font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); }
+    .note-head .breadcrumb a { color: var(--color-accent); text-decoration: none; font-style: italic; }
+    .note-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); padding: 4px 8px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); display: flex; gap: 6px; align-items: center; }
+    .note-head .title-input { flex: 1; border: 0; background: transparent; font: 500 italic 24px/1.15 var(--font-display); color: var(--color-text-primary); outline: none; min-width: 0; }
+    .note-head .save-state { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); display: flex; gap: 6px; align-items: center; }
+    .note-head .save-state .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); }
+
+    /* Two columns: your explanation (left, 60%) · the audience's reactions (right, 40%) */
+    .audience-strip { padding: 16px 32px; background: var(--color-bg-tertiary); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 16px; }
+    .audience-strip .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--color-accent); color: var(--color-text-inverse); font: 500 italic 18px/1 var(--font-display); display: flex; align-items: center; justify-content: center; }
+    .audience-strip .text { flex: 1; font: italic 14px/1.5 var(--font-serif); color: var(--color-text-primary); }
+    .audience-strip .text strong { font-style: normal; font-weight: 600; }
+    .audience-strip .picks { display: flex; gap: 4px; }
+    .audience-strip .pill { font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-border-strong); background: var(--color-bg-primary); color: var(--color-text-secondary); cursor: pointer; }
+    .audience-strip .pill.active { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    .dialogue { display: grid; grid-template-columns: 3fr 2fr; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 220px); }
+
+    /* Left column — your writing */
+    .you { padding: 32px 40px 200px; border-right: 1px solid var(--color-border); position: relative; }
+    .you .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 16px; }
+    .you .body { font: 17px/1.85 var(--font-serif); color: var(--color-text-primary); }
+    .you .body p { margin: 0 0 18px; padding: 4px 0; border-left: 3px solid transparent; padding-left: 12px; margin-left: -15px; }
+    .you .body p:hover { border-left-color: var(--color-border); }
+    .you .body p.questioned { border-left-color: var(--color-warning); background: var(--color-accent-muted); }
+    .you .body p.skipped { border-left-color: var(--color-danger); }
+    .you .body em { font-style: italic; }
+    .you .write-prompt { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-tertiary); padding: 12px; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-sm); margin-top: 16px; }
+
+    /* Right column — the audience */
+    .audience { padding: 32px 32px 200px; background: var(--color-bg-secondary); }
+    .audience .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .audience .label .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    .reaction { padding: 14px 0; border-bottom: 1px solid var(--color-border); }
+    .reaction .from { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .reaction .from .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-accent); font-size: 12px; }
+    .reaction .from .when { color: var(--color-text-tertiary); font-weight: 400; margin-left: auto; }
+    .reaction .said { font: italic 15px/1.6 var(--font-serif); color: var(--color-text-primary); }
+    .reaction .said em { font-style: italic; font-weight: 500; color: var(--color-accent); }
+    .reaction .target { font: 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; margin-top: 6px; font-style: italic; font-family: var(--font-serif); text-transform: none; }
+    .reaction.gap { background: var(--color-accent-muted); margin: 0 -12px; padding: 14px 12px; border-radius: var(--radius-sm); border-bottom-color: var(--color-warning); }
+    .reaction.gap .from { color: var(--color-warning); }
+    .reaction.gap .from .label-text { font-style: normal; font-family: var(--font-mono); font-weight: 600; }
+
+    .gap-summary { margin-top: 24px; padding: 14px 16px; background: var(--color-bg-tertiary); border-radius: var(--radius-md); }
+    .gap-summary .head { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
+    .gap-summary .count { font: italic 28px/1 var(--font-display); color: var(--color-accent); font-weight: 500; margin-bottom: 6px; }
+    .gap-summary .text { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Feynman — Variant C: Living Audience</strong>
+    <span>Your explanation on the left. A simulated audience reacts in the right column — asks naïve questions, calls out jargon, surfaces gaps automatically. The audience constraint goes live.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <header class="note-head">
+    <span class="breadcrumb"><a>workspace</a> · <a>notes</a> ·</span>
+    <span class="kicker">¶ feynman</span>
+    <input class="title-input" value="Explain the chain rule" />
+    <span class="breadcrumb">linked to <a>Calc · L3</a></span>
+    <span class="save-state"><span class="dot"></span>saved · 22s ago</span>
+  </header>
+
+  <div class="audience-strip">
+    <div class="avatar">M</div>
+    <div class="text"><strong>Maya, 12.</strong> Smart but distractable. Loves stories; bored by formulas. Will ask "why?" three times.</div>
+    <div class="picks">
+      <span class="pill">a child</span>
+      <span class="pill active">Maya, 12</span>
+      <span class="pill">a smart non-expert</span>
+      <span class="pill">a peer</span>
+      <span class="pill">your future self</span>
+    </div>
+  </div>
+
+  <div class="dialogue">
+    <div class="you">
+      <div class="label">¶ Your explanation</div>
+      <div class="body">
+        <p>Imagine you're blowing up a balloon. As you blow air in, the balloon's <em>radius</em> grows.</p>
+        <p>But what you really care about isn't the radius &mdash; it's how much <em>space</em> the balloon takes up, the volume. The volume gets bigger because the radius gets bigger.</p>
+        <p>Here's the thing: there are <em>two speeds</em> happening at once. The first speed is how fast you're blowing air in &mdash; that's how fast the radius is changing.</p>
+        <p class="questioned">The second speed is how much extra volume you get for each tiny bit of extra radius &mdash; that depends on how big the balloon already is, because a bigger balloon balloons up faster.</p>
+        <p class="skipped">To figure out how fast the volume is growing, you multiply those two speeds together.</p>
+        <p>Not add them. Not "cancel" them. <em>Multiply</em>. Because two changes are stacked on top of each other.</p>
+        <div class="write-prompt">↵ keep explaining · Maya is listening</div>
+      </div>
+    </div>
+
+    <div class="audience">
+      <div class="label"><span class="live-dot"></span>Maya is listening · 6 reactions</div>
+
+      <div class="reaction">
+        <div class="from"><span class="glyph">M</span>Maya<span class="when">paragraph 1</span></div>
+        <div class="said">ok, balloon. I'm with you.</div>
+      </div>
+
+      <div class="reaction">
+        <div class="from"><span class="glyph">M</span>Maya<span class="when">paragraph 2</span></div>
+        <div class="said">wait <em>why</em> would I care about volume more than radius? like in real life.</div>
+        <div class="target">↳ points at paragraph 2</div>
+      </div>
+
+      <div class="reaction">
+        <div class="from"><span class="glyph">M</span>Maya<span class="when">paragraph 3</span></div>
+        <div class="said">"two speeds at once" is a cool way to say it. I get that part.</div>
+      </div>
+
+      <div class="reaction gap">
+        <div class="from"><span class="label-text">⚠ gap detected</span><span class="when">paragraph 4</span></div>
+        <div class="said">you said <em>"a bigger balloon balloons up faster"</em> but you didn't tell me why. is that obvious? I don't see it.</div>
+        <div class="target">↳ highlighted in your text · expand here?</div>
+      </div>
+
+      <div class="reaction gap">
+        <div class="from"><span class="label-text">⚠ gap detected</span><span class="when">paragraph 5</span></div>
+        <div class="said">why <em>multiply</em>? why not add? you just said "multiply" and moved on. add and multiply mean really different things.</div>
+        <div class="target">↳ this is the load-bearing one</div>
+      </div>
+
+      <div class="reaction">
+        <div class="from"><span class="glyph">M</span>Maya<span class="when">paragraph 6</span></div>
+        <div class="said">"stacked on top of each other" is a picture I can see. I trust that.</div>
+      </div>
+
+      <div class="gap-summary">
+        <div class="head">⁂ Gaps this session</div>
+        <div class="count">2</div>
+        <div class="text">Maya stopped you twice. Both are <em>why</em> questions. Address them inline or note them and revisit; the tutor will pick them up next teach session.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

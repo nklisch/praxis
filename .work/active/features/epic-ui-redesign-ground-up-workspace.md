@@ -92,3 +92,72 @@ What lands:
 The review session flow spawns as a child story during implementation
 — launched from the "due for review" filter view via a "Start review
 session →" CTA at the top of filtered results.
+
+### Per-format note editors (locked)
+
+The catalogue is the index; each artifact has its own native editing
+surface. Five note-format editors mocked at
+`.mockups/screens/epic-ui-redesign-ground-up-workspace/note-*-editor.html`
+plus the variants index at `note-editors-index.html`:
+
+- **Cornell** (`note-cornell-editor.html`) — 3-zone layout: cue column
+  (left, 240px), notes column (right, editorial body type), summary
+  band (bottom). ◆ markers in the notes column anchor clickable cues
+  on the left.
+- **Feynman** (`note-feynman-editor-d-two-pass.html` — LOCKED variant D
+  of 4 explored) — explicit mode toggle `I'm writing` ↔ `I'm reviewing`.
+  Pass 1 is a clean writing surface (no gap-finding chrome to
+  self-censor against). Pass 2 enters review mode — select text in the
+  explanation to attach a margin note (warning yellow for soft gaps,
+  danger red for load-bearing ones). Separates *making the explanation*
+  from *finding the gaps*. Variants A (stacked cards refined),
+  B (editorial page), and C (living audience that reacts in right
+  column) considered and available at `note-feynman-editor.html`,
+  `note-feynman-editor-b-editorial.html`,
+  `note-feynman-editor-c-audience.html`; full pick rationale captured
+  in `note-feynman-variants.html`.
+- **Outline** (`note-outline-editor.html`) — hierarchical bullets,
+  keyboard-first. Tab indents / Shift+Tab outdents / ⌘. converts to
+  checkbox. 4 indentation levels (level-1 bold heroic → level-4
+  muted-italic asides). Drag handles on hover.
+- **Free** (`note-free-editor.html`) — minimal-chrome typewriter page.
+  Full-bleed title input, drop-cap on first paragraph, slash-command
+  for inline structure. Right gutter (fixed) shows word count +
+  read time + drifted concept tags.
+- **Sketch** (`note-sketch-editor.html`) — free drawing canvas with
+  tools rail (pen / shape / arrow / text / color swatches). **Inline
+  notice at top** explicitly distinguishes from concept map and offers
+  a `convert to a concept map ↗` bridge — this is the load-bearing
+  visual proof that sketch and concept-map are distinct primitives.
+
+### Concept-map editor (locked)
+
+Concept-map editor is its own surface (distinct from notes; canonical-
+concept linking is the load-bearing distinction). Mock at
+`.mockups/screens/epic-ui-redesign-ground-up-workspace/concept-map-editor.html`.
+
+- Canvas in the middle — student-drawn nodes connected by labeled
+  edges; each node carries the student's own phrasing AND a canonical-
+  link annotation underneath
+- Three node states made visible — **linked** (✓ green outline),
+  **best-guess suggested** (? amber dashed; Praxis's tentative link
+  awaiting confirmation), **unlinked** (default outline, dimmed)
+- Left rail of drawing tools (select / node / edge / text / pen /
+  box / erase)
+- Right panel shows canonical match candidates for the selected node
+  with confidence scores + canonical definition + source citation;
+  "make this concept your own" escape hatch when nothing fits
+
+Implementation: tldraw + the existing `ConceptLinkOverlay` and
+`CanonicalHintsOverlay` (already in the codebase).
+
+### Production-time editor library choices (not constrained by mocks)
+
+The mocks set layout, posture, and visual language. Implementation
+child stories pick the editor library per format when each lands:
+
+- **Cornell / Feynman / Outline / Free**: contenteditable rich-text
+  editor (TipTap or Lexical likely) for keyboard navigation,
+  undo/redo, inline formatting, slash commands, autosave debouncing
+- **Sketch**: tldraw (already in the project)
+- **Concept map**: tldraw + `ConceptLinkOverlay` + `CanonicalHintsOverlay`

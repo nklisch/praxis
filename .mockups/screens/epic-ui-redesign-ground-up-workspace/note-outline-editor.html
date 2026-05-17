@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workspace · Note editor — Outline</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    .note-head { padding: 16px 32px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 16px; max-width: 900px; margin: 0 auto; }
+    .note-head .breadcrumb { font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); }
+    .note-head .breadcrumb a { color: var(--color-accent); text-decoration: none; font-style: italic; }
+    .note-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); padding: 4px 8px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); display: flex; gap: 6px; align-items: center; }
+    .note-head .kicker .glyph { font-family: var(--font-serif); font-style: italic; }
+    .note-head .title-input { flex: 1; border: 0; background: transparent; font: 500 italic 28px/1.15 var(--font-display); color: var(--color-text-primary); outline: none; min-width: 0; }
+    .note-head .save-state { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); display: flex; gap: 6px; align-items: center; }
+    .note-head .save-state .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); }
+    .note-head .actions { display: flex; gap: 6px; }
+    .note-head .actions button { font: 500 12px/1 var(--font-sans); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+
+    /* Outline: hierarchical bullets with keyboard-first interaction */
+    .outline { max-width: 900px; margin: 0 auto; padding: 32px 48px 64px; }
+
+    .keyboard-hints { display: flex; gap: 14px; padding: 10px 14px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); margin-bottom: 28px; font: 11px/1 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); }
+    .keyboard-hints kbd { font: 600 10px/1 var(--font-mono); padding: 3px 6px; background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: 3px; margin-right: 4px; color: var(--color-text-primary); }
+    .keyboard-hints .group { display: flex; align-items: center; gap: 4px; }
+
+    .outline-tree { font: 16px/1.7 var(--font-serif); }
+    .bullet-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; }
+    .bullet-row .handle { color: var(--color-text-tertiary); font-family: var(--font-serif); font-style: italic; font-size: 13px; cursor: grab; opacity: 0; transition: opacity 100ms; min-width: 1ch; }
+    .bullet-row:hover .handle { opacity: 1; }
+    .bullet-row .bullet { color: var(--color-text-tertiary); font-family: var(--font-serif); min-width: 1ch; }
+    .bullet-row .text { flex: 1; cursor: text; outline: none; }
+    .bullet-row .text em { font-style: italic; }
+    .bullet-row .text strong { font-weight: 600; }
+    .bullet-row .text:focus { background: var(--color-accent-muted); padding-left: 4px; margin-left: -4px; border-radius: 2px; }
+
+    .bullet-row.level-1 { padding-left: 0; }
+    .bullet-row.level-1 .text { font-weight: 600; font-size: 17px; }
+    .bullet-row.level-1 .bullet { color: var(--color-accent); }
+    .bullet-row.level-2 { padding-left: 28px; }
+    .bullet-row.level-3 { padding-left: 56px; color: var(--color-text-secondary); }
+    .bullet-row.level-3 .text { font-size: 15px; }
+    .bullet-row.level-4 { padding-left: 84px; color: var(--color-text-tertiary); }
+    .bullet-row.level-4 .text { font-size: 14px; font-style: italic; }
+
+    .bullet-row.checkbox::before { content: '☐'; color: var(--color-text-tertiary); margin-right: 4px; font-family: var(--font-mono); }
+    .bullet-row.checked::before { content: '☑'; color: var(--color-success); }
+    .bullet-row.checked .text { color: var(--color-text-tertiary); text-decoration: line-through; }
+
+    .new-bullet { padding: 12px 0; font: italic 14px/1 var(--font-serif); color: var(--color-text-tertiary); display: flex; align-items: baseline; gap: 8px; cursor: text; }
+    .new-bullet:hover { color: var(--color-accent); }
+
+    .ask-strip { max-width: 900px; margin: 16px auto 0; padding: 0 48px; }
+    .ask-strip .row { display: flex; gap: 12px; align-items: center; padding: 14px 18px; background: var(--color-bg-tertiary); border-radius: var(--radius-md); }
+    .ask-strip .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-accent); font-size: 18px; }
+    .ask-strip .prompt { flex: 1; font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .ask-strip button { font: 500 12px/1 var(--font-sans); padding: 7px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Workspace · Note editor — Outline</strong>
+    <span>Hierarchical bullets, keyboard-first. Tab indents, Shift+Tab outdents, ⌘+. converts to checkbox. Level-1 is heroic; level-4 is muted-italic for asides.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <header class="note-head">
+    <span class="breadcrumb"><a>workspace</a> · <a>notes</a> ·</span>
+    <span class="kicker"><span class="glyph">¶</span>outline</span>
+    <input class="title-input" value="Lesson 2 — summary" />
+    <span class="breadcrumb">linked to <a>Calc · L2</a></span>
+    <span class="save-state"><span class="dot"></span>saved · 4m ago</span>
+    <div class="actions">
+      <button>Convert format</button>
+      <button>Collapse all</button>
+    </div>
+  </header>
+
+  <main class="outline">
+    <div class="keyboard-hints">
+      <span class="group"><kbd>Tab</kbd> indent</span>
+      <span class="group"><kbd>⇧ Tab</kbd> outdent</span>
+      <span class="group"><kbd>↵</kbd> new bullet</span>
+      <span class="group"><kbd>⌘ ↵</kbd> finish branch</span>
+      <span class="group"><kbd>⌘ .</kbd> to-do</span>
+      <span class="group"><kbd>⌘ ⇧ ↑↓</kbd> move bullet</span>
+    </div>
+
+    <div class="outline-tree">
+      <div class="bullet-row level-1"><span class="handle">⁞</span><span class="bullet">·</span><span class="text" contenteditable>Derivative <em>as rate</em> — not slope, despite the picture</span></div>
+      <div class="bullet-row level-2"><span class="handle">⁞</span><span class="bullet">·</span><span class="text">Slope is a <em>consequence</em>; the derivative is the rate</span></div>
+      <div class="bullet-row level-2"><span class="handle">⁞</span><span class="bullet">·</span><span class="text">Geometric vs dynamic interpretation — both true, dynamic comes first</span></div>
+      <div class="bullet-row level-3"><span class="handle">⁞</span><span class="bullet">◦</span><span class="text">Misconception <em>M.043</em>: I keep conflating these</span></div>
+
+      <div class="bullet-row level-1"><span class="handle">⁞</span><span class="bullet">·</span><span class="text">The small rules — <em>compositions of one rule</em></span></div>
+      <div class="bullet-row level-2"><span class="handle">⁞</span><span class="bullet">·</span><span class="text"><strong>Sum rule</strong> — derivative of a sum is the sum of derivatives</span></div>
+      <div class="bullet-row level-2"><span class="handle">⁞</span><span class="bullet">·</span><span class="text"><strong>Product rule</strong> — derivative of (fg) is f'g + fg', not f'g'</span></div>
+      <div class="bullet-row level-3"><span class="handle">⁞</span><span class="bullet">◦</span><span class="text">Why? Two pieces, each one varies; the change in the whole captures <em>both</em></span></div>
+      <div class="bullet-row level-2"><span class="handle">⁞</span><span class="bullet">·</span><span class="text"><strong>Quotient rule</strong> — derived from product rule, not memorized separately</span></div>
+      <div class="bullet-row level-4"><span class="handle">⁞</span><span class="bullet">▹</span><span class="text">memorisation hack: "low d-high minus high d-low, over the square of what's below"</span></div>
+
+      <div class="bullet-row level-1"><span class="handle">⁞</span><span class="bullet">·</span><span class="text">The <em>chain rule</em> — hinted but not stated this lesson</span></div>
+      <div class="bullet-row level-2 checkbox"><span class="handle">⁞</span><span class="bullet"></span><span class="text">Coming in L3 — read Stewart §3.5 before</span></div>
+      <div class="bullet-row level-2 checkbox checked"><span class="handle">⁞</span><span class="bullet"></span><span class="text">Watch the balloon-volume worked example linked from L3 preview</span></div>
+      <div class="bullet-row level-3"><span class="handle">⁞</span><span class="bullet">◦</span><span class="text"><em>my hunch:</em> it's about rates that stack, not derivatives that cancel</span></div>
+
+      <div class="bullet-row level-1"><span class="handle">⁞</span><span class="bullet">·</span><span class="text">For next session</span></div>
+      <div class="bullet-row level-2 checkbox"><span class="handle">⁞</span><span class="bullet"></span><span class="text">Re-do the 3 quotient-rule practice items I got wrong</span></div>
+      <div class="bullet-row level-2 checkbox"><span class="handle">⁞</span><span class="bullet"></span><span class="text">Skim L3 lesson plan in the library before opening the session</span></div>
+
+      <div class="new-bullet"><span class="bullet">·</span><span>type to add a bullet, Tab to indent</span></div>
+    </div>
+  </main>
+
+  <section class="ask-strip">
+    <div class="row">
+      <span class="glyph">§</span>
+      <span class="prompt">2 of 4 to-do bullets are unchecked. The tutor can read your outline summary and start L3 with the unfinished items still in mind.</span>
+      <button>Ask the tutor to brief from this note</button>
+    </div>
+  </section>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

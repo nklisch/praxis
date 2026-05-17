@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feynman — B: Editorial Page</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    .note-head { padding: 14px 32px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 16px; max-width: 800px; margin: 0 auto; }
+    .note-head .breadcrumb { font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); }
+    .note-head .breadcrumb a { color: var(--color-accent); text-decoration: none; font-style: italic; }
+    .note-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); padding: 4px 8px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); display: flex; gap: 6px; align-items: center; }
+    .note-head .spacer { flex: 1; }
+    .note-head .save-state { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); display: flex; gap: 6px; align-items: center; }
+    .note-head .save-state .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); }
+
+    /* Editorial page: no boxes, single column, sections as kickers + hairlines */
+    .page { max-width: 720px; margin: 0 auto; padding: 64px 64px 200px; }
+
+    .frontispiece { margin-bottom: 56px; padding-bottom: 32px; border-bottom: 2px solid var(--color-text-primary); }
+    .frontispiece .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 14px; }
+    .frontispiece .pretitle { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 8px; }
+    .frontispiece h1 { font: 500 italic 48px/1.05 var(--font-display); margin: 0; }
+    .frontispiece h1 em { font-weight: 600; }
+    .frontispiece .deck { font: italic 16px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 12px; }
+
+    .audience-line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 32px; padding: 0 0 16px; border-bottom: 1px solid var(--color-border); }
+    .audience-line .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .audience-line .picks { display: flex; gap: 0; flex: 1; }
+    .audience-line .pick { font: italic 14px/1.4 var(--font-serif); color: var(--color-text-tertiary); padding: 0 12px; cursor: pointer; border-right: 1px solid var(--color-border); }
+    .audience-line .pick:last-child { border-right: none; }
+    .audience-line .pick.active { color: var(--color-accent); font-weight: 600; }
+    .audience-line .pick:hover { color: var(--color-text-primary); }
+
+    section.act { margin-bottom: 56px; }
+    section.act .act-marker { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-secondary); }
+    section.act .act-marker .ornament { font: italic 22px/1 var(--font-display); color: var(--color-text-tertiary); }
+    section.act .act-marker .label { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); flex: 1; }
+    section.act .act-marker .meta { font: 600 10px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--color-text-tertiary); }
+
+    .writing { font: 17px/1.85 var(--font-serif); color: var(--color-text-primary); }
+    .writing p { margin: 0 0 18px; }
+    .writing p em { font-style: italic; }
+    .writing.gaps { font-style: italic; color: var(--color-text-primary); }
+    .writing.gaps p { padding-left: 20px; border-left: 1px solid var(--color-border); }
+    .writing.gaps p::before { content: '— '; color: var(--color-text-tertiary); font-style: normal; }
+
+    .write-here { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-tertiary); padding: 12px 0; cursor: text; }
+    .write-here:hover { color: var(--color-accent); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Feynman — Variant B: Editorial Page</strong>
+    <span>No card chrome. The whole note reads as one editorial page: italic display title, audience tucked into a line of italic picks, hairline-divided sections rather than boxes. The writing IS the surface.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <header class="note-head">
+    <span class="breadcrumb"><a>workspace</a> · <a>notes</a> ·</span>
+    <span class="kicker">¶ feynman</span>
+    <span class="spacer"></span>
+    <span class="save-state"><span class="dot"></span>saved · 12s ago</span>
+  </header>
+
+  <main class="page">
+    <div class="frontispiece">
+      <div class="kicker">§ Feynman · Calculus L3</div>
+      <div class="pretitle">A plain-language explanation of</div>
+      <h1>the <em>chain rule</em></h1>
+      <div class="deck">A way of finding out what you actually understand by trying to say it to someone who doesn't.</div>
+    </div>
+
+    <div class="audience-line">
+      <span class="label">To</span>
+      <div class="picks">
+        <span class="pick">a child</span>
+        <span class="pick active">a 12-year-old</span>
+        <span class="pick">a smart non-expert</span>
+        <span class="pick">a peer in another field</span>
+        <span class="pick">your future self</span>
+      </div>
+    </div>
+
+    <section class="act">
+      <div class="act-marker">
+        <span class="ornament">§</span>
+        <span class="label">The explanation · in plain words</span>
+        <span class="meta">no formulas · no jargon</span>
+      </div>
+      <div class="writing">
+        <p>Imagine you're blowing up a balloon. As you blow air in, the balloon's <em>radius</em> grows. But what you really care about isn't the radius &mdash; it's how much <em>space</em> the balloon takes up, the volume.</p>
+        <p>Here's the thing: there are <em>two speeds</em> happening at once. The first speed is how fast you're blowing air in &mdash; that's how fast the radius is changing. The second speed is how much extra volume you get for each tiny bit of extra radius &mdash; that depends on how big the balloon already is, because a bigger balloon balloons up faster.</p>
+        <p>To figure out how fast the volume is growing, you multiply those two speeds together. Not add them. Not "cancel" them. <em>Multiply</em> them. Because two changes are stacked on top of each other.</p>
+        <p>That's the chain rule. Two rates, stacked, multiplied. The formula people write down is just shorthand for that sentence.</p>
+        <div class="write-here">↵ press enter to keep going</div>
+      </div>
+    </section>
+
+    <section class="act">
+      <div class="act-marker">
+        <span class="ornament">¶</span>
+        <span class="label">The gaps · where you hesitated</span>
+        <span class="meta">where you handwaved, reached for jargon, or moved on too fast</span>
+      </div>
+      <div class="writing gaps">
+        <p>I said "a bigger balloon balloons up faster" but I'm not sure why. Is it because the surface area grows like r²? I had to handwave.</p>
+        <p>I didn't earn the word "multiply." I asserted it. The "stacked rates" picture is right but I haven't shown <em>why</em> the right operation is multiplication.</p>
+        <p>I avoided the word "derivative" entirely. The explanation works without it &mdash; but I don't know if it would survive contact with the actual notation.</p>
+        <div class="write-here">↵ add another gap</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

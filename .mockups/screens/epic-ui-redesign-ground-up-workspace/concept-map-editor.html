@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workspace — Concept map editor</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    /* Editor-specific top strip: title, who linked the map, what the map's for, save */
+    .editor-strip { padding: 12px 32px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .editor-strip .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .editor-strip h1 { font: 500 italic 22px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .editor-strip h1 em { font-weight: 600; }
+    .editor-strip .link { font: italic 13px/1 var(--font-serif); color: var(--color-text-secondary); }
+    .editor-strip .link em { color: var(--color-accent); }
+    .editor-strip .actions { display: flex; gap: 6px; }
+    .editor-strip .actions button { font: 500 12px/1 var(--font-sans); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .editor-strip .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    /* Surface: tools left · canvas center · canonical-hints right */
+    .surface { display: grid; grid-template-columns: 56px 1fr 320px; flex: 1; overflow: hidden; }
+
+    /* Drawing tools rail (left, narrow) */
+    .tools { border-right: 1px solid var(--color-border); padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--color-bg-primary); }
+    .tool { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-secondary); font: italic 18px/1 var(--font-display); }
+    .tool:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+    .tool.active { background: var(--color-accent-muted); color: var(--color-accent); }
+    .tool .label { display: none; }
+    .tool-sep { height: 1px; width: 28px; background: var(--color-border); margin: 6px 0; }
+    .tools .meta { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; color: var(--color-text-tertiary); text-transform: uppercase; writing-mode: vertical-rl; margin-top: auto; padding-bottom: 12px; }
+
+    /* Canvas */
+    .canvas { position: relative; background: var(--color-bg-primary); overflow: hidden; }
+    .canvas svg { width: 100%; height: 100%; display: block; }
+
+    /* Floating node labels positioned over SVG (student-drawn) */
+    .draw-node { position: absolute; padding: 8px 14px; background: var(--color-bg-secondary); border: 1.5px solid var(--color-text-primary); border-radius: var(--radius-sm); font: 500 italic 14px/1.2 var(--font-display); color: var(--color-text-primary); transform: translate(-50%, -50%); white-space: nowrap; cursor: move; box-shadow: 1px 1px 0 var(--color-text-primary); }
+    .draw-node.canonical-linked { border-color: var(--color-success); border-style: solid; }
+    .draw-node.canonical-linked::after { content: '✓'; position: absolute; right: -6px; top: -6px; background: var(--color-success); color: var(--color-text-inverse); width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 11px/1 var(--font-mono); font-style: normal; }
+    .draw-node.suggested { border-color: var(--color-warning); border-style: dashed; cursor: pointer; }
+    .draw-node.suggested::after { content: '?'; position: absolute; right: -6px; top: -6px; background: var(--color-warning); color: var(--color-text-inverse); width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 11px/1 var(--font-mono); font-style: normal; }
+    .draw-node .canonical-name { display: block; font: 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); margin-top: 4px; font-style: normal; font-weight: 600; }
+    .draw-node.canonical-linked .canonical-name { color: var(--color-success); }
+    .draw-node.suggested .canonical-name { color: var(--color-warning); }
+
+    /* Canvas overlay UI */
+    .canvas-meta { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; }
+    .canvas-meta .pill { background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: 4px 8px; border-radius: var(--radius-sm); font: 11px/1 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+    .canvas-meta .pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .canvas-meta .pill.linked .dot { background: var(--color-success); }
+    .canvas-meta .pill.suggested .dot { background: var(--color-warning); }
+    .canvas-meta .pill.unlinked .dot { background: var(--color-text-tertiary); }
+
+    .canvas-controls { position: absolute; bottom: 12px; left: 12px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; display: flex; gap: 2px; }
+    .canvas-controls button { background: transparent; border: 0; padding: 6px 10px; cursor: pointer; font: 600 11px/1 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); border-radius: var(--radius-sm); }
+    .canvas-controls button:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+
+    .legend { position: absolute; bottom: 12px; right: 12px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px 12px; font: 11px/1.5 var(--font-mono); letter-spacing: 0.03em; color: var(--color-text-secondary); display: flex; flex-direction: column; gap: 2px; }
+    .legend .row { display: flex; gap: 8px; align-items: center; }
+    .legend .swatch { width: 12px; height: 12px; border-radius: 2px; border: 1.5px solid var(--color-text-primary); }
+    .legend .swatch.linked { border-color: var(--color-success); }
+    .legend .swatch.suggested { border-color: var(--color-warning); border-style: dashed; }
+
+    /* Right panel — canonical concept hints + side chat */
+    aside.hints { border-left: 1px solid var(--color-border); padding: 16px 18px; overflow-y: auto; background: var(--color-bg-primary); display: flex; flex-direction: column; gap: 18px; }
+    aside.hints h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+
+    .selection-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; }
+    .selection-card .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .selection-card .title { font: 500 italic 18px/1.2 var(--font-display); margin-bottom: 4px; }
+    .selection-card .stat { font: 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .selection-card .stat em { color: var(--color-text-primary); font-style: italic; }
+
+    .candidate { padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: 6px; cursor: pointer; background: var(--color-bg-primary); }
+    .candidate:hover { border-color: var(--color-accent); }
+    .candidate.suggested { border-color: var(--color-warning); }
+    .candidate .head-line { display: flex; align-items: baseline; gap: 8px; }
+    .candidate .name { font: 500 italic 14px/1.2 var(--font-display); flex: 1; }
+    .candidate .confidence { font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .candidate.suggested .confidence { color: var(--color-warning); }
+    .candidate .definition { font: 12px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; }
+    .candidate .source { font: 10px/1.4 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; margin-top: 4px; }
+
+    /* Small inline chat for "ask about this concept" */
+    .ask { background: var(--color-bg-tertiary); border-radius: var(--radius-sm); padding: 10px 12px; }
+    .ask .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .ask input { width: 100%; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 6px 10px; font: italic 13px/1.4 var(--font-serif); outline: none; color: var(--color-text-primary); }
+    .ask input::placeholder { color: var(--color-text-tertiary); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Concept map editor</strong>
+    <span>Workspace · concept map editor surface. Inherits locked shell + Studio Quiet tokens. tldraw-style spatial canvas with canonical-concept linking surfaced via "best guess" suggestions in the right panel.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="editor-strip">
+    <span class="kicker">‡ Concept map</span>
+    <h1>My derivatives <em>mapping</em></h1>
+    <span class="link">linked to <em>Calculus · L2</em> · 12 of 14 nodes canonical-linked</span>
+    <div class="actions">
+      <button>Export PNG</button>
+      <button>Duplicate</button>
+      <button class="primary">Save</button>
+    </div>
+  </div>
+
+  <div class="surface">
+    <div class="tools">
+      <div class="tool active" title="Select">↘<span class="label">select</span></div>
+      <div class="tool" title="Concept node">○<span class="label">node</span></div>
+      <div class="tool" title="Edge">⟶<span class="label">edge</span></div>
+      <div class="tool" title="Text">¶<span class="label">text</span></div>
+      <div class="tool-sep"></div>
+      <div class="tool" title="Sketch / pen">✎<span class="label">pen</span></div>
+      <div class="tool" title="Highlight">▢<span class="label">box</span></div>
+      <div class="tool-sep"></div>
+      <div class="tool" title="Eraser">⌫<span class="label">erase</span></div>
+      <span class="meta">v · select</span>
+    </div>
+
+    <div class="canvas">
+      <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.5" fill="var(--color-text-tertiary)" opacity="0.35"/>
+          </pattern>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-text-primary)"/>
+          </marker>
+        </defs>
+        <rect width="800" height="600" fill="url(#dots)"/>
+
+        <!-- Student-drawn edges between concept nodes -->
+        <g stroke="var(--color-text-primary)" stroke-width="1.5" fill="none" marker-end="url(#arrow)">
+          <line x1="160" y1="120" x2="280" y2="200"/>
+          <line x1="160" y1="120" x2="280" y2="380"/>
+          <line x1="320" y1="220" x2="460" y2="280"/>
+          <line x1="320" y1="400" x2="460" y2="320"/>
+          <line x1="520" y1="300" x2="640" y2="220"/>
+          <line x1="520" y1="320" x2="640" y2="420"/>
+        </g>
+
+        <!-- Edge labels (relations) -->
+        <text x="200" y="170" font-family="serif" font-style="italic" font-size="12" fill="var(--color-text-secondary)" text-anchor="middle">leads to</text>
+        <text x="200" y="280" font-family="serif" font-style="italic" font-size="12" fill="var(--color-text-secondary)" text-anchor="middle">is a kind of</text>
+        <text x="390" y="240" font-family="serif" font-style="italic" font-size="12" fill="var(--color-text-secondary)" text-anchor="middle">used by</text>
+        <text x="390" y="365" font-family="serif" font-style="italic" font-size="12" fill="var(--color-text-secondary)" text-anchor="middle">composes with</text>
+        <text x="580" y="240" font-family="serif" font-style="italic" font-size="12" fill="var(--color-text-secondary)" text-anchor="middle">enables</text>
+      </svg>
+
+      <!-- Student-drawn nodes overlaid -->
+      <div class="draw-node canonical-linked" style="top: 120px; left: 20%;">
+        rate of change
+        <span class="canonical-name">→ derivative</span>
+      </div>
+      <div class="draw-node canonical-linked" style="top: 220px; left: 38%;">
+        the slope thing
+        <span class="canonical-name">→ derivative (geometric)</span>
+      </div>
+      <div class="draw-node canonical-linked" style="top: 400px; left: 38%;">
+        limits
+        <span class="canonical-name">→ limit</span>
+      </div>
+      <div class="draw-node suggested" style="top: 300px; left: 60%;">
+        nested rates
+        <span class="canonical-name">→ chain rule?</span>
+      </div>
+      <div class="draw-node canonical-linked" style="top: 220px; left: 80%;">
+        speeding up
+        <span class="canonical-name">→ second derivative</span>
+      </div>
+      <div class="draw-node" style="top: 420px; left: 80%; border-style: dashed; opacity: 0.7;">
+        the squiggly thing
+        <span class="canonical-name" style="color: var(--color-text-tertiary);">unlinked</span>
+      </div>
+
+      <div class="canvas-meta">
+        <span class="pill linked"><span class="dot"></span>linked · 4</span>
+        <span class="pill suggested"><span class="dot"></span>best-guess · 1</span>
+        <span class="pill unlinked"><span class="dot"></span>unlinked · 1</span>
+      </div>
+
+      <div class="canvas-controls">
+        <button>− zoom</button>
+        <button>+ zoom</button>
+        <button>fit</button>
+        <button>· grid</button>
+      </div>
+
+      <div class="legend">
+        <div class="row"><span class="swatch linked"></span>linked to canonical concept</div>
+        <div class="row"><span class="swatch suggested"></span>Praxis's best guess — confirm or change</div>
+        <div class="row"><span class="swatch"></span>your own (not yet linked)</div>
+      </div>
+    </div>
+
+    <aside class="hints">
+      <div>
+        <h3>Selected · "nested rates"</h3>
+        <div class="selection-card">
+          <div class="kicker">your node · suggested link</div>
+          <div class="title">nested <em>rates</em></div>
+          <div class="stat">2 outgoing edges · 1 incoming · last edited 4 min ago</div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Canonical match candidates</h3>
+        <div class="candidate suggested">
+          <div class="head-line">
+            <span class="name">chain rule</span>
+            <span class="confidence">★★★ · 0.91</span>
+          </div>
+          <div class="definition">The derivative of a composite function: when one quantity depends on another which depends on a third, the rate of the outer composition is the product of the inner rates.</div>
+          <div class="source">canonical · Calc.deriv.chain · used in L3, L4</div>
+        </div>
+        <div class="candidate">
+          <div class="head-line">
+            <span class="name">related rates</span>
+            <span class="confidence">★★ · 0.62</span>
+          </div>
+          <div class="definition">Problems where two or more variables change with respect to a third (usually time), and the chain rule connects them.</div>
+          <div class="source">canonical · Calc.app.related · used in L5</div>
+        </div>
+        <div class="candidate">
+          <div class="head-line">
+            <span class="name">composite function</span>
+            <span class="confidence">★ · 0.41</span>
+          </div>
+          <div class="definition">A function formed by applying one function to the result of another, written (f ∘ g)(x) = f(g(x)).</div>
+          <div class="source">canonical · Calc.func.composition · used in L2</div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Or — make this concept your own</h3>
+        <div class="ask">
+          <div class="label">↑ none fit</div>
+          <input placeholder="describe what you mean by 'nested rates'…" />
+        </div>
+      </div>
+
+      <div>
+        <h3>Unlinked nodes</h3>
+        <div class="candidate" style="background: var(--color-bg-tertiary); border-style: dashed; cursor: pointer;">
+          <div class="name" style="font-style: italic; color: var(--color-text-secondary);">"the squiggly thing"</div>
+          <div class="definition" style="color: var(--color-text-tertiary); font-style: italic;">click to find canonical matches</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>
