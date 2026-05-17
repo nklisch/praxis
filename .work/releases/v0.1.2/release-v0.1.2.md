@@ -1,14 +1,14 @@
 ---
 id: release-v0.1.2
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
 release_binding: v0.1.2
 gate_origin: null
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-17
 ---
 
 # Release v0.1.2
@@ -170,3 +170,15 @@ electron multi-arch rebuild, engine CLI integration smoke test).
   - New patterns: `ipc-envelope-handler`, `per-domain-channel-module`, `resizable-side-panel-hook`, `electron-ipc-test-harness`
   - Inconsistencies (→ `[refactor]` stories at drafting): `migrate-mutating-ipc-channels-to-envelope` (overlaps with `gate-security-ipc-helpers-rethrow-redactor-gap` finding), `share-vitest-spy-logger-factory`
   - Pattern files at `.claude/skills/patterns/`; index updated in `.claude/rules/patterns.md`; SKILL.md updated with 4 new entries; tracking item `gate-patterns-v0-1-2` at stage:done
+
+## Ship
+
+- **Shipped**: 2026-05-17
+- **Mapping**: tag-based — annotated `v0.1.2` tag pushed to origin
+- **Items shipped**: 127 (8 epics, 31 features, 88 stories) + this release file
+- **Gate finding totals**: security 4, tests 20, cruft 6, docs 10, patterns
+  4 patterns + 2 inconsistencies (1 absorbed into security envelope work,
+  1 closed in-release as `gate-patterns-share-vitest-spy-logger-factory`)
+- All bound items reached `stage: done` before tag-cut. The IPC envelope
+  refactor (`feature-mutating-ipc-channels-envelope-migration`, 12 steps)
+  closed every High-severity finding from gate-security in-release.

@@ -5,6 +5,191 @@ All notable changes to Praxis are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.1.2 — 2026-05-17
+
+Largest release since v0.1.0. Eight epics clustered out of the v0.1.1 backlog
+deliver: a course-aware structured tutor (mode prompts that carry course
+context + draft resumption), a first-class document library (polymorphic
+scopes primitive, viewer-tab sidebar, multi-file picker, library tab/filters),
+a unified prompt-editing surface (compose attribution, diff-aware preview,
+full-fragment view, one configure surface), an editorial polish pass (app
+chrome, concept-name surfacing, prompt-config redesign, resizable panels),
+the tutor session-feel set (cancellation propagation, composer queue,
+tool-call thread persistence, tutor-tab rename), UI rendering stability
+(loop flickers + state transitions), security hardening round 2 (image-store
+path guard, IPC boundary redactor, tool-bridge socket auth), and a
+test-coverage adversarial pass (ingestion / state-and-config / UI assertion
+gaps). The release also lands the IPC envelope migration — every mutating
+/ trust-boundary channel now returns `{ ok, value | error }` with redacted
+errors — plus the standard quality-gate sweeps (security, tests, cruft,
+docs, patterns).
+
+### Features
+
+- **Course-aware structured tutor** — the teach, quiz, homework, exam, and
+  study-skills modes now compose a `course-context` prompt fragment so the
+  tutor opens every turn already knowing the course's units, lessons, and
+  active concept. A separate `in-course-behavior` addendum (with per-mode
+  overrides) replaces the previous generic system prompt; mode-by-mode
+  addendums describe the role-specific behavior the student should feel.
+- **Bootstrap draft resumption** — `course.list_drafts` surfaces all in-flight
+  drafts; the `<ResumeDraftPicker>` lets the tutor (or student) reopen one
+  mid-bootstrap. Bootstrap mode wiring threads the picker into the
+  course-creation flow so a refresh or restart no longer strands the work.
+- **Document library** — new polymorphic `document_scopes` table replaces
+  the per-course pivot, supporting `'course' | 'session'` scopes via a
+  single primitive. Bootstrap sessions attach documents at session-scope;
+  confirming a draft promotes them to course-scope. The library tab gained
+  filters and document-kind tabs; the workspace gained a viewer tab kind
+  with a scoped sidebar; a multi-file/folder picker replaces the
+  one-at-a-time ingestion flow. `retrieve_from_textbook` was renamed and
+  re-scoped to `retrieve_from_documents`.
+- **Prompt-editing surface v2** — one unified configure surface ties the
+  cross-mode `user-global`, per-mode `user-append`, and customizable
+  built-in fragments together. New `<PromptBlockStack>` renders each
+  fragment as a directly-editable block; a diff-aware preview shows the
+  composed prompt with attribution per fragment; the full-fragment view
+  expands the source line-by-line. `composeSystemPrompt` records
+  attribution so the surface can show "this paragraph came from
+  `metacognitive-prompts`" without a reverse search.
+- **Tutor session feel** — four coordinated UX improvements: turn
+  cancellation propagates through the engine + sub-agents to
+  `conv.abort()` (no orphaned tool calls); the composer accepts queued
+  messages while a turn is in-flight and delivers them after `final`;
+  per-turn tool-call threads persist across reloads so the chat surface
+  reads the same after a refresh; the tutor tab is renameable in place.
+- **Editorial polish pass** — new app chrome (tighter `<Nav>`, slimmer
+  route headers, refreshed library section spacing); concept names now
+  surface everywhere they're referenced (gate inspector, concept-picker,
+  gates-reading-view, concept-node) via the new `useConceptNames` hook;
+  the prompt configure tab adopts the v2 block primitive + stack; chat
+  side-panels are now drag-to-resize with persisted width via the new
+  `useResizableWidth` hook.
+- **UI rendering stability** — loop-induced flickers in the chat
+  documents sidebar and other live-stream surfaces are gone; question
+  cards no longer persist after answer; the sub-agents panel unmounts
+  cleanly on collapse instead of leaking subscriptions.
+- **Activity rail adoption** — long-running services now surface ambient
+  progress through the existing `<ActivityRail>` instead of blocking
+  modals, with the rail's quiet-period threshold tuned per producer.
+
+### Fixes
+
+- **Rate-limit error message format** — adapter-level rate-limit errors now
+  surface a readable, structured message (ISO retry time + window type)
+  instead of a JSON blob; the UI banner reads as English.
+- **SDK per-turn wall-clock timeout disabled** — long-running tutor turns
+  (multi-step tool use, vision prompts) no longer hit the SDK's default
+  per-turn timeout and abort mid-thought. The adapter sets the timeout to
+  disabled at conversation open.
+- **Question card persists after answer** — the inline question card now
+  collapses to its settled state once the student answers, matching the
+  quick-check card behavior.
+- **Sub-agent panel collapse leak** — collapsing the sub-agent panel now
+  unmounts its event subscriber instead of leaving it streaming in the
+  background.
+- **`wrapEnvelope`/`withSchema` arg routing** — fixed a production bug where
+  the envelope wrapper passed Zod-parsed args to handlers in the wrong
+  order, surfaced by the IPC envelope integration test gap. Client now
+  peels envelopes via a single `unwrapEnvelope` helper.
+
+### Security
+
+- **Embedded image store path guard** — `EmbeddedImageStore` now refuses
+  any `documentId` that would resolve outside its base directory, closing
+  a traversal vector reachable from ingestion of attacker-controlled
+  filenames.
+- **IPC boundary redactor + envelope** — every mutating / trust-boundary
+  IPC channel now returns `{ ok, value | error: { code, message, requestId } }`.
+  Errors are mapped through a redactor that strips internal stack details
+  and replaces unknown codes with `INTERNAL`; each error carries a
+  UUIDv7 `requestId` for log correlation. Twelve channel domains migrated
+  (session, documents, artifacts, memory, assignments, packs, lock/config,
+  author, notes/flashcards, tabs, sketches/concept-maps, misc); residual
+  raw `ipcMain.handle` callsites swept to closure.
+- **Engine config shape** — the renderer can no longer read the stored
+  `apiKey` directly; `praxis.config.engineConfig` returns
+  `{ hasApiKey: boolean }`, and the decrypted key is only available via
+  the separate `reveal` channel under `requireUnlocked()`.
+- **URL allowlist hardening** — `parseAllowedUrl` now rejects C0 control
+  characters and whitespace in URLs before WHATWG normalization, closing
+  a class of homograph / smuggling attacks against the update-feed and
+  retrieve-document URL paths.
+- **Tool-bridge socket auth** — the local tool-bridge socket now requires
+  a per-launch token (compared via `crypto.timingSafeEqual`), enforces
+  `0600` perms on the socket file, and times out unauthenticated frames
+  in 5 s.
+- **MCP SDK transitive CVE sweep** — audited transitive dependencies of
+  `@modelcontextprotocol/sdk` and pinned forward off two advisory-flagged
+  versions.
+- **Streaming-channel error redactor parity** — the streaming IPC path now
+  pushes errors through the same redactor as the request/response path,
+  closing a gap where streamed errors could leak internal codes.
+
+### Refactor
+
+- **Mutating IPC channels → envelope pattern** — twelve-step refactor
+  migrating every mutating channel domain to `wrapEnvelope(channel, log,
+  withSchema(zod, fn))`. Documented as the `ipc-envelope-handler` and
+  `per-domain-channel-module` patterns. Net effect: every wire crossing is
+  now schema-validated, error-redacted, and uniformly shaped.
+- **Tabs state lifted to context** — chat tab state moved out of the
+  route component into a `<TabsProvider>` so tab-body unmount/remount no
+  longer rebuilds the per-tab message log. Documented as the updated
+  `context-hook-pair` pattern.
+- **Shared vitest spy logger factory** — duplicated `vi.fn()`-spy logger
+  shapes across IPC channel tests collapsed into a single
+  `makeSpyLogger()` factory. Inconsistency flagged by `gate-patterns`,
+  closed in-release.
+- **Session-service stale Phase 11/12 null shims removed** — Phase 11 and
+  12 backward-compat shims (now unreachable) deleted; one fewer set of
+  always-null branches.
+
+### Tests
+
+- **Test-coverage adversarial pass** — three feature-scoped sweeps closing
+  coverage gaps from prior releases: ingestion edges (DOCX image
+  boundary, PPTX fallback fixture), state-and-config edges (cancel under
+  adversarial timing, rapid-save draft churn, engine-id rename under
+  unavailable storage), UI assertion gaps (sub-agent collision, update
+  banner content hash).
+- **Engine-config shape + envelope migration integration** — two previously
+  parked test-gap stories promoted into the release: explicit coverage of
+  the encrypted-at-rest engine-config service + UI flow, and an
+  integration test that exercises every envelope channel end-to-end.
+- **SDK wall-clock timeout disable + streaming-error redaction** — new
+  tests pin the wall-clock timeout-disabled posture and the streaming
+  channel's error-redaction parity with the request/response path.
+- **Tool-bridge auth window + frame boundaries** — explicit tests for the
+  5 s auth timeout and the socket's frame-boundary handling.
+- **Composer queue exam-lockdown regression** — added a regression test
+  pinning the composer-queue behavior under exam-mode lockdown.
+
+### Cleanup
+
+- **Six gate-cruft removals** — unused `cleanupFn` in
+  `executePersistedQuery`; `theme-tokens-test` unused `.join()`; stale
+  Phase 11/12 null shims in `SessionServiceImpl`; dead optional-guard in
+  `praxis.quickCheck.*` channel; empty `maxTokens` spread in
+  `claude-code/vision.ts`; `Number.isFinite` modernization in the
+  pacing/stream helpers.
+
+### Documentation
+
+- **Rolling-foundation roll-forward (10 findings)** — `CLAUDE.md` updated
+  for the `document_scopes` polymorphic primitive; ROADMAP Phase 16 brought
+  to current; UX prompt-customization v2 surface and "Tutor workspace"
+  nav label reconciled; CURRICULUM bootstrap-mode tool list updated for
+  `course.list_drafts`. Pattern-skill staleness swept: `mode-tool-scoping`
+  (`retrieve_from_textbook` → `retrieve_from_documents`),
+  `context-hook-pair` (tabs lifted), `shared-test-fake-factories` +
+  index (`noopCourseDocuments` → `noopDocumentScopes`),
+  `tab-body-isolation` (chat.tsx line anchor), and
+  `mode-prompt-fragment-composition` (in-course-behavior addendum).
+- **Four new pattern skills** codified by the patterns gate:
+  `ipc-envelope-handler`, `per-domain-channel-module`,
+  `resizable-side-panel-hook`, `electron-ipc-test-harness`.
+
 ## v0.1.1 — 2026-05-12
 
 Iteration release on the v0.1.0 base. Focuses on tutor-side authoring quality
