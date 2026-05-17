@@ -1,7 +1,7 @@
 ---
 id: gate-tests-serialize-error-redacted-circular
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -40,3 +40,12 @@ it("serializeErrorRedacted never throws on a circular object input", () => {
   expect(() => serializeErrorRedacted(a)).not.toThrow();
 });
 ```
+
+## Implementation notes
+
+Added the new test at line 221 in `packages/core/src/types/__tests__/errors.test.ts`,
+inside the existing `describe("serializeErrorRedacted", ...)` block. No function
+change was needed — `serializeErrorRedacted` delegates to `serializeError` first,
+which handles circular objects safely by reading only `instanceof Error` properties
+and `"message" in err` fields (never calls `JSON.stringify`). The test passes
+green, confirming the current implementation is already throw-safe.

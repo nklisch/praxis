@@ -216,4 +216,11 @@ describe("serializeErrorRedacted", () => {
     expect(serializeErrorRedacted(42).message).toBe("42");
     expect(serializeErrorRedacted(null).message).toBe("null");
   });
+
+  it("never throws on a circular object input", () => {
+    type Circ = { self?: Circ; message: string };
+    const a: Circ = { message: "loop" };
+    a.self = a;
+    expect(() => serializeErrorRedacted(a)).not.toThrow();
+  });
 });
