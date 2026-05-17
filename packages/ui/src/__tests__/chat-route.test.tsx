@@ -24,7 +24,7 @@ import type {
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../context/auth-context.js";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { TabsProvider } from "../context/tabs-context.js";
@@ -32,6 +32,11 @@ import { ChatRoute } from "../routes/chat.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
+
+// Mutable route-match list — individual tests override this to simulate
+// different route contexts (e.g. course route for scoped-docs tests).
+// Default is an empty array → "all" scope → global documents list.
+let mockRouteMatches: Array<{ routeId: string; params: Record<string, string> }> = [];
 
 // Mock TanStack Router hooks. The shell uses useParams (strict: false),
 // useNavigate, and (via useDerivedScope) useMatches. We expose bare /chat
@@ -43,10 +48,9 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
     useSearch: () => ({}),
     useNavigate: () => vi.fn(),
     useParams: () => ({ tabId: undefined }),
-    // useDerivedScope calls useMatches to detect the active route. Return an
-    // empty array so the hook falls through to the "all" default scope, which
-    // preserves the existing global documents list behavior in these tests.
-    useMatches: () => [],
+    // useDerivedScope calls useMatches to detect the active route. References
+    // the mutable mockRouteMatches variable so per-test overrides work.
+    useMatches: () => mockRouteMatches,
   };
 });
 
@@ -179,6 +183,12 @@ function renderWithClient(client: PraxisClient) {
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe("ChatRoute shell", () => {
+  // Reset the mutable route-match list between tests so no test bleeds state
+  // into the next. beforeEach runs after vitest's hoisted vi.mock factories.
+  beforeEach(() => {
+    mockRouteMatches = [];
+  });
+
   it("calls tabs.listOpen exactly once on mount", async () => {
     const client = makeTestClient();
     renderWithClient(client);
@@ -422,5 +432,123 @@ describe("ChatRoute shell", () => {
 
     // Confirm the old placeholder text does NOT appear.
     expect(screen.queryByText(/Document viewer coming soon/i)).toBeNull();
+  });
+
+  // ── Regression: scoped docs sidebar stability (bug-chat-documents-sidebar-flicker) ───
+  //
+  // Root cause: useDerivedScope() returned a fresh object literal on every
+  // render (e.g. `{ kind: "course", id: rawId }`). Even though the values
+  // were identical, a new object reference caused the useCallback-wrapped
+  // scopedLoader in chat.tsx to get a new identity, which re-triggered
+  // useResource's useEffect and fired setLoading(true) — producing the
+  // visible loading flash. Fix: useDerivedScope now wraps its return value
+  // in useMemo keyed on (kind, id) primitives.
+  //
+  // This test pins the fix: listForScope must be called exactly once (on
+  // initial mount), NOT again when openTabs gets a new array reference (e.g.
+  // after switchTo updates lastSeenAt). Without the useMemo fix, openTabs
+  // changing reference would propagate through useDerivedScope and produce
+  // a new scope object, causing a second listForScope call.
+
+  it("scoped sidebar does not re-fetch when the tabs context emits an unrelated update", async () => {
+    // Arrange: course route → scope = { kind: "course", id: "course-stable" }
+    mockRouteMatches = [{ routeId: "/courses/$courseId", params: { courseId: "course-stable" } }];
+
+    const tab1 = makeTab({
+      id: brandId<"TabId">("tab-s1"),
+      title: "biology · teach",
+      lastSeenAt: (Date.now() - 10_000) as Timestamp,
+    });
+    const tab2 = makeTab({
+      id: brandId<"TabId">("tab-s2"),
+      title: "chemistry · teach",
+      modeId: "teach",
+      sortOrder: 1,
+      lastSeenAt: (Date.now() - 5_000) as Timestamp,
+    });
+
+    const listForScope = vi.fn().mockResolvedValue([]);
+
+    const client = makeFakeClient({
+      session: {
+        active: vi.fn().mockResolvedValue(null),
+        start: vi.fn().mockResolvedValue({
+          sessionId: brandId<"SessionId">("session-1"),
+          modeId: "teach",
+          startedAt: Date.now() as Timestamp,
+        }),
+        end: vi.fn().mockResolvedValue({
+          sessionId: brandId<"SessionId">("session-1"),
+          endedAt: Date.now() as Timestamp,
+          unlockedGates: [],
+          newMisconceptions: 0,
+        }),
+        send: vi.fn(async function* () {}) as unknown as PraxisClient["session"]["send"],
+        list: vi.fn().mockResolvedValue([]),
+      },
+      tabs: {
+        listOpen: vi.fn().mockResolvedValue([tab1, tab2]),
+        list: vi.fn().mockResolvedValue([tab1, tab2]),
+        get: vi.fn().mockResolvedValue(null),
+        open: vi.fn().mockResolvedValue(tab1),
+        openDocument: vi.fn().mockResolvedValue(tab1),
+        reopen: vi.fn().mockResolvedValue(tab1),
+        close: vi.fn().mockResolvedValue(undefined),
+        touch: vi.fn().mockResolvedValue(undefined),
+        rename: vi.fn().mockResolvedValue(tab1),
+      },
+      artifacts: {
+        courses: vi.fn().mockResolvedValue([]),
+        course: vi.fn(),
+        lessons: vi.fn(),
+        gates: vi.fn(),
+        progress: vi.fn(),
+        flashcards: vi.fn(),
+        notes: vi.fn(),
+        gateView: vi.fn().mockResolvedValue([]),
+        evaluateGates: vi.fn().mockResolvedValue({ unlockedGateIds: [] }),
+        markGatesViewed: vi.fn().mockResolvedValue(undefined),
+        newlyUnlockedCount: vi.fn().mockResolvedValue(0),
+        concepts: vi.fn().mockResolvedValue([]),
+      } as PraxisClient["artifacts"],
+      documents: {
+        list: vi.fn().mockResolvedValue([]),
+        get: vi.fn().mockResolvedValue(null),
+        delete: vi.fn().mockResolvedValue(undefined),
+        pageImage: vi.fn().mockResolvedValue(null),
+      } as unknown as PraxisClient["documents"],
+      documentScopes: {
+        listForScope,
+        listOrphaned: vi.fn().mockResolvedValue([]),
+        listScopesForDocument: vi.fn().mockResolvedValue([]),
+        attach: vi.fn().mockResolvedValue({ attached: true }),
+        detach: vi.fn().mockResolvedValue({ detached: true }),
+      } as PraxisClient["documentScopes"],
+    });
+
+    renderWithClient(client);
+
+    // Wait for the initial scoped-docs fetch to complete.
+    await waitFor(() => {
+      expect(listForScope).toHaveBeenCalledTimes(1);
+    });
+
+    // Act: click tab2 → calls switchTo(tab2.id) → sets activeTabId to tab2,
+    // then after tabs.touch resolves sets openTabs to a new array reference
+    // ({...t, lastSeenAt: ...} for tab2). This re-renders all useTabs()
+    // consumers including useDerivedScope in ChatRoute.
+    const tab2Button = screen.getByRole("tab", { name: /chemistry · teach/i });
+    fireEvent.click(tab2Button);
+
+    // Let React flush the state updates from switchTo / openTabs change.
+    await waitFor(() => {
+      expect(client.tabs.touch).toHaveBeenCalledWith(tab2.id);
+    });
+
+    // Assert: listForScope must still have been called exactly once.
+    // If useDerivedScope returned a new object on re-render, scopedLoader's
+    // useCallback identity would change, useResource would re-fire its
+    // useEffect, and listForScope would be called a second time.
+    expect(listForScope).toHaveBeenCalledTimes(1);
   });
 });

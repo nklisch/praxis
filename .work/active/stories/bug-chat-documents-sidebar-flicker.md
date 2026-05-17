@@ -1,7 +1,7 @@
 ---
 id: bug-chat-documents-sidebar-flicker
 kind: story
-stage: drafting
+stage: review
 tags: [bug, ui]
 parent: null
 depends_on: []
@@ -26,3 +26,46 @@ In the chat window, the documents sidebar flashes between the library view and a
 - After the initial library load, the sidebar holds the loaded view across normal chat-stream activity (no visible flash).
 - `loading` is `true` only on first fetch, not on subsequent re-renders or stream events.
 - A regression test pins the stable-after-loaded behavior.
+
+## Implementation notes
+
+### Root cause
+
+`useDerivedScope()` (`packages/ui/src/hooks/use-derived-scope.ts`) returned a fresh
+object literal on every render — e.g. `{ kind: "course", id: rawId }`. Even though the
+`kind` and `id` values were identical across renders, each call produced a new object
+reference. This meant:
+
+1. `chat.tsx` line 64: `scopedLoader = useCallback(async () => ..., [client, scope])` got
+   a new identity on every render (because `scope` was a new object reference).
+2. `useResource(scopedLoader)` saw `loader` change → `refresh` changed → `useEffect`
+   re-fired → `setLoading(true)` — producing the visible loading flash.
+
+Any parent re-render caused by `TabsContext` emitting a new value (e.g., `switchTo`
+updating `lastSeenAt` on the active tab's entry in `openTabs`) would trigger this chain
+even though the logical scope (kind + id) hadn't changed.
+
+The fix was applied in commit `df9f1f2` as part of
+`epic-ui-rendering-stability-loop-flickers-sidebar`: wrap the returned `DerivedScope`
+object in `useMemo([kind, id])` so two renders with the same primitive `kind`/`id` values
+return the same object reference.
+
+### Fix location
+
+`packages/ui/src/hooks/use-derived-scope.ts` lines 114–118 — `useMemo<DerivedScope>(() =>
+{ ... }, [kind, id])` at the end of the hook body.
+
+### Regression test
+
+`packages/ui/src/__tests__/chat-route.test.tsx` — "scoped sidebar does not re-fetch when
+the tabs context emits an unrelated update" (final test in the `ChatRoute shell` describe
+block). The test:
+- Mocks `useMatches` to return a course route → `scope = { kind: "course", id: "course-stable" }`
+- Renders `ChatRoute` with two tabs and a `documentScopes.listForScope` spy
+- Waits for the initial scoped-docs fetch (call count = 1)
+- Clicks the second tab → triggers `switchTo` → `setOpenTabs` with a new array reference
+  → all `useTabs()` consumers re-render including `useDerivedScope`
+- Asserts `listForScope` was still called exactly once
+
+Verified: the test fails when the `useMemo` is removed from `useDerivedScope` and passes
+with it in place.
