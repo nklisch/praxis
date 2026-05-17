@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configure — Canvas + Side Chat applied to each tab</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    h1 { padding: 14px 24px 0; margin: 0; font-weight: 500; font-size: 18px; }
+    h1 .meta { color: #8b949e; font-weight: 400; font-size: 13px; margin-left: 10px; }
+    .lede { padding: 0 24px 12px; margin: 4px 0 0; color: #8b949e; font-size: 13px; max-width: 90ch; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; height: calc(100vh - 80px); box-sizing: border-box; }
+    .cell { background: #fff; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+    .cell h2 { margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #222; color: #eee; display: flex; justify-content: space-between; align-items: baseline; }
+    .cell h2 .desc { color: #8b949e; font-weight: 400; font-size: 11px; }
+    .cell h2 a { color: #6cf; text-decoration: none; font-size: 11px; }
+    .cell iframe { border: 0; flex: 1; width: 100%; background: #fff; }
+    .cell.locked h2 { background: #6b3a14; }
+  </style>
+</head>
+<body>
+  <h1>Configure tabs <span class="meta">— Canvas + Side Chat applied to all four · locked pattern from Option 5</span></h1>
+  <p class="lede">Same shell shape on every tab. What varies: the artifact in the middle canvas. Course = unit/lesson tree, Gates = node graph (visible in the locked Option 5 mock), Prompts = composed fragment document with knobs, Memory = projection inspector with selectable projections.</p>
+  <div class="grid">
+    <div class="cell">
+      <h2>§ Course tab — <span class="desc">unit/lesson tree, drag-reorderable</span><a href="tab-course.html" target="_blank">open ↗</a></h2>
+      <iframe src="tab-course.html"></iframe>
+    </div>
+    <div class="cell locked">
+      <h2>‡ Gates tab — <span class="desc">★ already in Option 5 · gate-graph canvas with edge thresholds</span><a href="option-5.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-5.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>¶ Prompts tab — <span class="desc">mode picker · composed fragment document · per-fragment knobs</span><a href="tab-prompts.html" target="_blank">open ↗</a></h2>
+      <iframe src="tab-prompts.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>‖ Memory tab — <span class="desc">projection tabs · semantic table + misconception cards</span><a href="tab-memory.html" target="_blank">open ↗</a></h2>
+      <iframe src="tab-memory.html"></iframe>
+    </div>
+  </div>
+</body>
+</html>

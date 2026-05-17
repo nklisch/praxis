@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configure · Memory tab — applied Canvas + Side Chat</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    .subsurface-tabs { padding: 10px 32px; display: flex; gap: 4px; border-bottom: 1px solid var(--color-border); align-items: baseline; flex-shrink: 0; }
+    .subsurface-tab { padding: 8px 14px; font: 500 italic 15px/1.2 var(--font-display); color: var(--color-text-secondary); cursor: pointer; border-bottom: 2px solid transparent; display: flex; gap: 8px; align-items: baseline; margin-bottom: -1px; }
+    .subsurface-tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .subsurface-tab .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .subsurface-tab.active .glyph { color: var(--color-accent); }
+    .subsurface-tab .changed-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-warning); }
+    .subsurface-tabs .spacer { flex: 1; }
+    .subsurface-tabs .save-status { display: flex; gap: 10px; align-items: baseline; padding-bottom: 6px; }
+    .subsurface-tabs .save-status .changed { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-warning); display: flex; gap: 6px; align-items: center; }
+    .subsurface-tabs .save-status .changed .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-warning); }
+    .subsurface-tabs .save-status button { font: 500 12px/1 var(--font-sans); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .subsurface-tabs .save-status button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    .surface { display: grid; grid-template-columns: 1fr 380px; flex: 1; overflow: hidden; }
+
+    /* Canvas — memory inspector */
+    .canvas { background: var(--color-bg-primary); overflow-y: auto; border-right: 1px solid var(--color-border); }
+    .canvas-head { padding: 20px 32px 12px; }
+    .canvas-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; }
+    .canvas-head h2 { font: 500 italic 28px/1.15 var(--font-display); margin: 0; }
+    .canvas-head h2 em { font-weight: 600; }
+    .canvas-head .deck { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; max-width: 70ch; }
+
+    .projection-tabs { padding: 12px 32px 0; display: flex; gap: 4px; border-bottom: 1px solid var(--color-border); }
+    .projection-tab { padding: 8px 14px; font: 500 italic 14px/1.2 var(--font-display); color: var(--color-text-secondary); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; display: flex; gap: 6px; align-items: baseline; }
+    .projection-tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); }
+    .projection-tab .count { font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; font-style: normal; font-weight: 600; }
+
+    .pane { padding: 24px 32px 32px; }
+    .pane h3 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); }
+
+    /* Concept graph w/ mastery (semantic) */
+    .concepts-table { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 16px; }
+    .concepts-table .row { display: contents; }
+    .concepts-table .row > * { padding: 10px 0; border-bottom: 1px dashed var(--color-border); }
+    .concepts-table .row.head > * { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border); padding-bottom: 8px; }
+    .concepts-table .name { font: italic 15px/1.4 var(--font-serif); }
+    .concepts-table .name em { font-weight: 600; }
+    .concepts-table .mastery-bar { display: flex; align-items: center; gap: 8px; min-width: 160px; }
+    .concepts-table .mastery-bar .bar { width: 110px; height: 4px; background: var(--color-bg-tertiary); border-radius: 2px; overflow: hidden; }
+    .concepts-table .mastery-bar .fill { height: 100%; }
+    .concepts-table .mastery-bar .fill.low { background: var(--color-danger); }
+    .concepts-table .mastery-bar .fill.mid { background: var(--color-warning); }
+    .concepts-table .mastery-bar .fill.high { background: var(--color-success); }
+    .concepts-table .mastery-bar .val { font: 600 11px/1 var(--font-mono); color: var(--color-text-primary); letter-spacing: 0.04em; min-width: 4ch; text-align: right; }
+    .concepts-table .last-practiced { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .concepts-table .actions a { font: italic 12px/1 var(--font-serif); color: var(--color-accent); cursor: pointer; text-decoration: none; }
+
+    /* Misconceptions block */
+    .misc-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-left: 3px solid var(--color-danger); border-radius: 0 var(--radius-md) var(--radius-md) 0; padding: 16px 20px; margin-bottom: 12px; }
+    .misc-card.cleared { opacity: 0.5; border-left-color: var(--color-success); }
+    .misc-card .head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+    .misc-card .head .id { font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.06em; }
+    .misc-card .head .concept { font: 500 italic 14px/1.2 var(--font-display); flex: 1; }
+    .misc-card .head .strength { font: 600 10px/1 var(--font-mono); padding: 3px 6px; border-radius: var(--radius-full); letter-spacing: 0.06em; text-transform: uppercase; background: var(--color-danger); color: var(--color-text-inverse); }
+    .misc-card .head .strength.weak { background: var(--color-warning); }
+    .misc-card .desc { font: 15px/1.5 var(--font-serif); color: var(--color-text-primary); margin-bottom: 8px; }
+    .misc-card .desc em { font-style: italic; }
+    .misc-card .evidence { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); border-left: 2px solid var(--color-border); padding-left: 12px; margin-bottom: 8px; }
+    .misc-card .evidence .ref { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .misc-card .actions { display: flex; gap: 6px; margin-top: 8px; }
+    .misc-card .actions button { font: 500 11px/1 var(--font-sans); padding: 5px 10px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .misc-card .actions button.danger { color: var(--color-danger); border-color: var(--color-danger); }
+
+    /* Episodic timeline (right side, narrower view) */
+    .episodic { padding: 16px 0; }
+    .episodic .day-marker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    .episodic .ep-row { padding: 8px 0; font: 13px/1.5 var(--font-serif); border-bottom: 1px dashed var(--color-border); display: flex; gap: 12px; align-items: baseline; }
+    .episodic .ep-row .when { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; min-width: 6ch; }
+    .episodic .ep-row .glyph { font-style: italic; color: var(--color-text-tertiary); min-width: 1.5ch; }
+    .episodic .ep-row .text { flex: 1; }
+    .episodic .ep-row .text em { font-style: italic; }
+
+    /* Chat panel */
+    .chat { display: flex; flex-direction: column; background: var(--color-bg-primary); }
+    .chat-head { padding: 16px 20px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 10px; }
+    .chat-head .glyph { font-family: var(--font-serif); font-style: italic; color: var(--tint-configure); font-size: 18px; }
+    .chat-head h2 { font: 500 italic 18px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .chat-head .toggle { font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); }
+    .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; display: flex; gap: 6px; align-items: baseline; }
+    .turn.agent .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 12px 14px; font: 14px/1.6 var(--font-serif); }
+    .turn.agent .bubble em { font-style: italic; }
+    .turn.agent .bubble p:not(:last-child) { margin: 0 0 8px; }
+    .turn.user .speaker { text-align: right; }
+    .turn.user .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 10px 14px; font: italic 14px/1.55 var(--font-serif); margin-left: 24px; }
+    .tool { margin: 6px 0; background: var(--color-bg-secondary); border: 1px solid var(--color-warning); border-radius: var(--radius-sm); padding: 10px 14px; }
+    .tool .head { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-warning); display: flex; gap: 6px; align-items: baseline; margin-bottom: 6px; }
+    .tool .summary { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); }
+    .tool .summary em { font-weight: 600; color: var(--color-accent); }
+    .tool .actions { display: flex; gap: 4px; margin-top: 8px; }
+    .tool .actions button { font: 500 10px/1 var(--font-sans); padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .tool .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+    .tool .actions button.danger { color: var(--color-danger); border-color: var(--color-danger); }
+    .tool .actions .canvas-link { margin-left: auto; font: italic 11px/1 var(--font-serif); color: var(--color-accent); cursor: pointer; align-self: center; }
+    .composer { padding: 14px 20px 20px; border-top: 1px solid var(--color-border); flex-shrink: 0; }
+    .composer-field { display: flex; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 10px 12px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 14px/1.5 var(--font-serif); resize: none; outline: none; min-height: 20px; font-style: italic; color: var(--color-text-primary); }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 10px; font: 500 12px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Configure · Memory tab</strong>
+    <span>Canvas + Side Chat applied to the memory inspector. Projection tabs (semantic / misconception / procedural / affective / episodic) switch the canvas view. The configurator can edit memory through tool calls.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="active"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="subsurface-tabs">
+    <div class="subsurface-tab"><span class="glyph">§</span>Course <span class="changed-dot"></span></div>
+    <div class="subsurface-tab"><span class="glyph">‡</span>Gates <span class="changed-dot"></span></div>
+    <div class="subsurface-tab"><span class="glyph">¶</span>Prompts <span class="changed-dot"></span></div>
+    <div class="subsurface-tab active"><span class="glyph">‖</span>Memory</div>
+    <span class="spacer"></span>
+    <div class="save-status">
+      <span class="changed"><span class="dot"></span>5 unsaved across 3 surfaces</span>
+      <button>Discard</button>
+      <button class="primary">Save</button>
+    </div>
+  </div>
+
+  <div class="surface">
+    <div class="canvas">
+      <div class="canvas-head">
+        <span class="kicker">⁂ Configure · Calculus I · memory inspector</span>
+        <h2>What Praxis <em>knows about the student</em></h2>
+        <div class="deck">Read-mostly view of the four projections plus the episodic log. Controlled edits possible — clear a stale misconception, force-recompute a mastery score — through the configurator on the right.</div>
+      </div>
+
+      <div class="projection-tabs">
+        <div class="projection-tab active">Semantic <span class="count">· 14 concepts</span></div>
+        <div class="projection-tab">Misconceptions <span class="count">· 3 active</span></div>
+        <div class="projection-tab">Procedural <span class="count">· 7 prefs</span></div>
+        <div class="projection-tab">Affective <span class="count">· last 7d</span></div>
+        <div class="projection-tab">Episodic <span class="count">· 412 turns</span></div>
+      </div>
+
+      <div class="pane">
+        <h3>Semantic — concept mastery (BKT-adjusted)</h3>
+        <div class="concepts-table">
+          <div class="row head"><span>Concept</span><span>Mastery</span><span>Last practiced</span><span></span></div>
+
+          <div class="row">
+            <span class="name"><em>chain rule</em></span>
+            <span class="mastery-bar"><div class="bar"><div class="fill low" style="width: 31%;"></div></div><span class="val">0.31</span></span>
+            <span class="last-practiced">today, 14:38</span>
+            <span class="actions"><a>recompute</a></span>
+          </div>
+          <div class="row">
+            <span class="name">composite function</span>
+            <span class="mastery-bar"><div class="bar"><div class="fill mid" style="width: 62%;"></div></div><span class="val">0.62</span></span>
+            <span class="last-practiced">yesterday</span>
+            <span class="actions"><a>recompute</a></span>
+          </div>
+          <div class="row">
+            <span class="name">related rates</span>
+            <span class="mastery-bar"><div class="bar"><div class="fill mid" style="width: 48%;"></div></div><span class="val">0.48</span></span>
+            <span class="last-practiced">today, 12:11</span>
+            <span class="actions"><a>recompute</a></span>
+          </div>
+          <div class="row">
+            <span class="name">derivative as rate</span>
+            <span class="mastery-bar"><div class="bar"><div class="fill high" style="width: 71%;"></div></div><span class="val">0.71</span></span>
+            <span class="last-practiced">2 days ago</span>
+            <span class="actions"><a>recompute</a></span>
+          </div>
+          <div class="row">
+            <span class="name">sum/product/quotient rules</span>
+            <span class="mastery-bar"><div class="bar"><div class="fill high" style="width: 84%;"></div></div><span class="val">0.84</span></span>
+            <span class="last-practiced">3 days ago</span>
+            <span class="actions"><a>recompute</a></span>
+          </div>
+          <div class="row">
+            <span class="name">limits (ε-δ)</span>
+            <span class="mastery-bar"><div class="bar"><div class="fill high" style="width: 78%;"></div></div><span class="val">0.78</span></span>
+            <span class="last-practiced">5 days ago</span>
+            <span class="actions"><a>recompute</a></span>
+          </div>
+          <div class="row">
+            <span class="name">limits (intuitive)</span>
+            <span class="mastery-bar"><div class="bar"><div class="fill high" style="width: 91%;"></div></div><span class="val">0.91</span></span>
+            <span class="last-practiced">a week ago</span>
+            <span class="actions"><a>recompute</a></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane" style="padding-top: 0;">
+        <h3>Active misconceptions <span style="font-weight: 400; color: var(--color-text-tertiary); font-family: var(--font-serif); font-style: italic; text-transform: none; letter-spacing: 0;">· 3 currently held · 1 recently cleared</span></h3>
+
+        <div class="misc-card">
+          <div class="head">
+            <span class="id">M.043</span>
+            <span class="concept"><em>derivative</em> — confuses with slope</span>
+            <span class="strength">strong</span>
+          </div>
+          <div class="desc">Student treats the derivative <em>as</em> the slope of a curve at a point, rather than the slope being a consequence of the rate. Conflates the geometric with the dynamic interpretation.</div>
+          <div class="evidence">"the squiggly thing is just measuring how steep" — <span class="ref">session 14, turn 8, 2 days ago</span></div>
+          <div class="actions"><button>address inline</button><button class="danger">clear (stale)</button></div>
+        </div>
+
+        <div class="misc-card">
+          <div class="head">
+            <span class="id">M.051</span>
+            <span class="concept"><em>chain rule</em> — wants to "cancel" derivatives</span>
+            <span class="strength weak">forming</span>
+          </div>
+          <div class="desc">In two recent turns, student described the chain rule as "the dx's cancel" rather than as a product of rates. Likely from prior exposure to formula-only treatment.</div>
+          <div class="evidence">"the inner derivative just cancels the outer dx" — <span class="ref">session 18, turn 4, today</span></div>
+          <div class="actions"><button>address inline</button><button class="danger">clear</button></div>
+        </div>
+
+        <div class="misc-card cleared">
+          <div class="head">
+            <span class="id">M.022</span>
+            <span class="concept"><em>limit</em> — confuses with value at point</span>
+            <span class="strength weak">cleared</span>
+          </div>
+          <div class="desc">Earlier in the course; cleared through L1 sessions.</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="chat">
+      <div class="chat-head">
+        <span class="glyph">⁂</span>
+        <h2>Configurator</h2>
+        <span class="toggle">collapse</span>
+      </div>
+      <div class="messages">
+        <div class="turn user">
+          <div class="speaker">You</div>
+          <div class="bubble">Why is chain-rule mastery so low? The student just had a long teach session on it.</div>
+        </div>
+        <div class="turn agent">
+          <div class="speaker">⁂ Configurator</div>
+          <div class="bubble">
+            <p>The BKT update from today's L3 session hasn't run yet — the indexer fires after session end and the session is still paused mid-lesson. Once it lands I expect mastery to move to ~0.42 based on the engagement signals so far. Want me to force a recompute now?</p>
+          </div>
+        </div>
+        <div class="turn user">
+          <div class="speaker">You</div>
+          <div class="bubble">Yes, force it. And while you're there — M.022 (limits confusion) is definitely cleared. Mark it.</div>
+        </div>
+        <div class="turn agent">
+          <div class="speaker">⁂ Configurator</div>
+          <div class="bubble">
+            <p>Done both:</p>
+          </div>
+          <div class="tool">
+            <div class="head">tool · mastery.recompute</div>
+            <div class="summary">Re-ran BKT update for <em>chain rule</em> against current episodic — new value <em>0.42</em> (was 0.31)</div>
+            <div class="actions">
+              <button class="primary">Acknowledge</button>
+              <span class="canvas-link">↗ in semantic table</span>
+            </div>
+          </div>
+          <div class="tool">
+            <div class="head">tool · misconception.clear</div>
+            <div class="summary">Cleared <em>M.022</em> · limit confusion (already weak; configurator-confirmed)</div>
+            <div class="actions">
+              <button class="primary">Acknowledge</button><button class="danger">Revert</button>
+              <span class="canvas-link">↗ in misconceptions</span>
+            </div>
+          </div>
+          <div class="bubble">
+            <p>Chain rule still sits below the 0.85 floor we set on its outbound gate, which is what's keeping L4 implicit-diff locked. Coming back tomorrow won't move it; another teach pass would.</p>
+          </div>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="composer-field">
+          <textarea rows="1" placeholder="ask about a projection · or request an edit"></textarea>
+          <button class="submit">Send ↵</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>

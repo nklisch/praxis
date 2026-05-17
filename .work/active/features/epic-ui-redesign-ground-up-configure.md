@@ -103,3 +103,36 @@ The configure-entry (unlock) flow spawns as a child story during
 implementation. The four sub-surfaces (Course / Gates / Prompts /
 Memory) each get their own implementation child story since each owns
 its native canvas visualisation.
+
+### Per-tab canvas mocks (locked)
+
+The Canvas + Side Chat pattern from Option 5 applied to all four
+subsurfaces, each showing how the pattern carries its native canvas.
+Index: `.mockups/screens/epic-ui-redesign-ground-up-configure/tabs-applied.html`.
+
+- **§ Course tab** (`tab-course.html`) — canvas is a unit/lesson tree
+  with drag-reorderable unit blocks. Each unit shows its lessons
+  nested with status badges (done / active / gated). Inspector strip
+  below the tree shows the selected lesson's editable fields with
+  before/after for changed ones.
+- **‡ Gates tab** — already in Option 5; canvas is the gate-graph
+  React Flow node diagram with mastery-threshold edge labels and
+  warning-coloured edges for unsaved threshold changes.
+- **¶ Prompts tab** (`tab-prompts.html`) — left rail is a mode picker
+  (teach / quiz / homework / exam / bootstrap / study-skills /
+  configure); canvas is a **composed prompt document** with ordered
+  fragments. Each fragment carries its own lock-status pill
+  (`locked` / `default` / `custom` / `added today`) and per-fragment
+  knobs (scaffold, tone, formality, verbosity). Composed-prompt
+  summary at the bottom shows the final fragment composition order.
+- **‖ Memory tab** (`tab-memory.html`) — projection-tab strip
+  (semantic / misconceptions / procedural / affective / episodic)
+  switches the canvas view. Semantic shows the BKT-adjusted concept
+  mastery table with per-row recompute action; misconceptions show
+  as cards with evidence quotes + concept link + strength badge +
+  inline address-or-clear actions.
+
+The chat panel and inspector pattern are identical across tabs; only
+the canvas representation changes shape per subsurface. Save bar in
+the sub-surface tab strip summarises cross-surface dirty state ("N
+unsaved across M surfaces").

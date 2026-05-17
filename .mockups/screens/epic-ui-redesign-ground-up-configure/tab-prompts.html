@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configure · Prompts tab — applied Canvas + Side Chat</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .theme-toggle { display: flex; gap: 4px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .theme-toggle button { background: transparent; border: 0; padding: 2px 4px; cursor: pointer; color: var(--color-text-tertiary); font: inherit; }
+    .theme-toggle button.active { color: var(--color-accent); border-bottom: 1px solid var(--color-accent); }
+    .theme-toggle .sep { color: var(--color-text-tertiary); opacity: 0.4; }
+
+    .subsurface-tabs { padding: 10px 32px; display: flex; gap: 4px; border-bottom: 1px solid var(--color-border); align-items: baseline; flex-shrink: 0; }
+    .subsurface-tab { padding: 8px 14px; font: 500 italic 15px/1.2 var(--font-display); color: var(--color-text-secondary); cursor: pointer; border-bottom: 2px solid transparent; display: flex; gap: 8px; align-items: baseline; margin-bottom: -1px; }
+    .subsurface-tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .subsurface-tab .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .subsurface-tab.active .glyph { color: var(--color-accent); }
+    .subsurface-tab .changed-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-warning); }
+    .subsurface-tabs .spacer { flex: 1; }
+    .subsurface-tabs .save-status { display: flex; gap: 10px; align-items: baseline; padding-bottom: 6px; }
+    .subsurface-tabs .save-status .changed { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-warning); display: flex; gap: 6px; align-items: center; }
+    .subsurface-tabs .save-status .changed .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-warning); }
+    .subsurface-tabs .save-status button { font: 500 12px/1 var(--font-sans); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .subsurface-tabs .save-status button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    .surface { display: grid; grid-template-columns: 200px 1fr 380px; flex: 1; overflow: hidden; }
+
+    /* Mode picker (left rail) — which mode's prompt are we editing */
+    .mode-list { border-right: 1px solid var(--color-border); padding: 20px 0; background: var(--color-bg-primary); overflow-y: auto; }
+    .mode-list .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); padding: 0 20px 10px; }
+    .mode-list .mode { padding: 10px 20px; cursor: pointer; display: flex; align-items: baseline; gap: 10px; border-left: 2px solid transparent; }
+    .mode-list .mode:hover { background: var(--color-bg-tertiary); }
+    .mode-list .mode.active { border-left-color: var(--color-accent); background: var(--color-accent-muted); }
+    .mode-list .mode .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .mode-list .mode.active .glyph { color: var(--color-accent); }
+    .mode-list .mode .name { font: 500 italic 14px/1.2 var(--font-display); flex: 1; }
+    .mode-list .mode .changed-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-warning); }
+
+    /* Canvas — prompt fragments as a document */
+    .canvas { background: var(--color-bg-primary); overflow-y: auto; border-right: 1px solid var(--color-border); }
+    .canvas-head { padding: 20px 32px 12px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 16px; }
+    .canvas-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .canvas-head h2 { font: 500 italic 24px/1.15 var(--font-display); margin: 0; flex: 1; }
+    .canvas-head h2 em { font-weight: 600; }
+    .canvas-head .preview-btn { font: 500 12px/1 var(--font-sans); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+
+    .fragments { padding: 24px 32px 32px; max-width: 760px; }
+    .frag { margin-bottom: 16px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+    .frag.changed { border-color: var(--color-warning); }
+    .frag.added { border-color: var(--color-success); border-style: dashed; }
+    .frag.locked { background: var(--color-bg-tertiary); }
+
+    .frag-head { padding: 12px 18px; display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--color-border); }
+    .frag-head .pos { font: italic 16px/1 var(--font-display); color: var(--color-text-tertiary); min-width: 3ch; text-align: right; }
+    .frag-head .id { font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .frag-head .name { font: 500 italic 15px/1.2 var(--font-display); flex: 1; }
+    .frag-head .lock { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 6px; border-radius: var(--radius-full); background: var(--color-bg-tertiary); color: var(--color-text-tertiary); }
+    .frag-head .lock.custom { background: var(--color-warning); color: var(--color-text-inverse); }
+    .frag-head .lock.added { background: var(--color-success); color: var(--color-text-inverse); }
+
+    .frag-body { padding: 14px 20px 16px; font: 15px/1.65 var(--font-serif); color: var(--color-text-primary); }
+    .frag-body em { font-style: italic; }
+    .frag-body .placeholder { color: var(--color-text-tertiary); font-style: italic; padding: 8px 12px; background: var(--color-bg-primary); border-left: 2px solid var(--color-border); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    .frag-body .override { background: var(--color-accent-muted); padding: 0 4px; border-radius: 2px; }
+
+    .frag-controls { padding: 8px 18px 12px; display: flex; gap: 8px; font: 11px/1 var(--font-mono); letter-spacing: 0.04em; }
+    .frag-controls .knob { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-bg-primary); border: 1px solid var(--color-border); }
+    .frag-controls .knob .label { color: var(--color-text-tertiary); text-transform: uppercase; }
+    .frag-controls .knob .val { color: var(--color-text-primary); font-weight: 600; }
+    .frag-controls .knob.changed { background: var(--color-accent-muted); border-color: var(--color-warning); }
+    .frag-controls .knob.changed .val { color: var(--color-warning); }
+    .frag-controls .revert { font: italic 11px/1 var(--font-serif); color: var(--color-danger); cursor: pointer; margin-left: auto; align-self: center; }
+
+    .composed-summary { margin-top: 24px; padding: 16px 20px; background: var(--color-bg-tertiary); border-radius: var(--radius-md); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .composed-summary .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); font-style: normal; margin-bottom: 8px; }
+
+    /* Chat panel */
+    .chat { display: flex; flex-direction: column; background: var(--color-bg-primary); }
+    .chat-head { padding: 16px 20px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 10px; }
+    .chat-head .glyph { font-family: var(--font-serif); font-style: italic; color: var(--tint-configure); font-size: 18px; }
+    .chat-head h2 { font: 500 italic 18px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .chat-head .toggle { font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); }
+    .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; display: flex; gap: 6px; align-items: baseline; }
+    .turn.agent .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 12px 14px; font: 14px/1.6 var(--font-serif); }
+    .turn.agent .bubble em { font-style: italic; }
+    .turn.agent .bubble p:not(:last-child) { margin: 0 0 8px; }
+    .turn.user .speaker { text-align: right; }
+    .turn.user .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 10px 14px; font: italic 14px/1.55 var(--font-serif); margin-left: 24px; }
+    .tool { margin: 6px 0; background: var(--color-bg-secondary); border: 1px solid var(--color-warning); border-radius: var(--radius-sm); padding: 10px 14px; }
+    .tool .head { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-warning); display: flex; gap: 6px; align-items: baseline; margin-bottom: 6px; }
+    .tool .summary { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); }
+    .tool .summary em { font-weight: 600; color: var(--color-accent); }
+    .tool .diff { background: var(--color-bg-tertiary); border-radius: var(--radius-sm); padding: 8px 10px; margin-top: 6px; font: 11px/1.4 var(--font-mono); }
+    .tool .diff .removed { color: var(--color-danger); text-decoration: line-through; }
+    .tool .diff .added { color: var(--color-success); }
+    .tool .actions { display: flex; gap: 4px; margin-top: 8px; }
+    .tool .actions button { font: 500 10px/1 var(--font-sans); padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .tool .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+    .tool .actions button.danger { color: var(--color-danger); border-color: var(--color-danger); }
+    .tool .actions .canvas-link { margin-left: auto; font: italic 11px/1 var(--font-serif); color: var(--color-accent); cursor: pointer; align-self: center; }
+    .composer { padding: 14px 20px 20px; border-top: 1px solid var(--color-border); flex-shrink: 0; }
+    .composer-field { display: flex; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 10px 12px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 14px/1.5 var(--font-serif); resize: none; outline: none; min-height: 20px; font-style: italic; color: var(--color-text-primary); }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 10px; font: 500 12px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Configure · Prompts tab</strong>
+    <span>Canvas + Side Chat applied to the prompt-fragment surface. Mode picker on the left selects which mode's prompt to edit; canvas shows ordered fragments (some customizable, some locked); fragment-level knobs surface inline.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="active"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="theme-toggle">
+      <button class="active" data-theme="auto">auto</button><span class="sep">·</span>
+      <button data-theme="light">light</button><span class="sep">·</span>
+      <button data-theme="dark">dark</button>
+    </div>
+  </header>
+
+  <div class="subsurface-tabs">
+    <div class="subsurface-tab"><span class="glyph">§</span>Course <span class="changed-dot"></span></div>
+    <div class="subsurface-tab"><span class="glyph">‡</span>Gates <span class="changed-dot"></span></div>
+    <div class="subsurface-tab active"><span class="glyph">¶</span>Prompts <span class="changed-dot"></span></div>
+    <div class="subsurface-tab"><span class="glyph">‖</span>Memory</div>
+    <span class="spacer"></span>
+    <div class="save-status">
+      <span class="changed"><span class="dot"></span>5 unsaved across 3 surfaces</span>
+      <button>Discard</button>
+      <button class="primary">Save</button>
+    </div>
+  </div>
+
+  <div class="surface">
+    <div class="mode-list">
+      <div class="label">Modes</div>
+      <div class="mode active"><span class="glyph">§</span><span class="name">teach</span><span class="changed-dot"></span></div>
+      <div class="mode"><span class="glyph">‡</span><span class="name">quiz</span></div>
+      <div class="mode"><span class="glyph">❦</span><span class="name">homework</span></div>
+      <div class="mode"><span class="glyph">†</span><span class="name">exam</span></div>
+      <div class="mode"><span class="glyph">¶</span><span class="name">bootstrap</span></div>
+      <div class="mode"><span class="glyph">‖</span><span class="name">study-skills</span></div>
+      <div class="mode"><span class="glyph">⁂</span><span class="name">configure</span></div>
+    </div>
+
+    <div class="canvas">
+      <div class="canvas-head">
+        <span class="kicker">⁂ Configure · Calculus I · prompts</span>
+        <h2>Teach mode — <em>composed prompt</em></h2>
+        <button class="preview-btn">preview as student ↗</button>
+      </div>
+
+      <div class="fragments">
+        <div class="frag locked">
+          <div class="frag-head">
+            <span class="pos">01.</span>
+            <span class="id">role.tutor</span>
+            <span class="name"><em>Tutor role</em></span>
+            <span class="lock">locked</span>
+          </div>
+          <div class="frag-body">
+            You are an AI tutor whose primary obligation is the student's learning, not their convenience. You verify with tools; you do not improvise answers when verification is available.
+          </div>
+        </div>
+
+        <div class="frag changed">
+          <div class="frag-head">
+            <span class="pos">02.</span>
+            <span class="id">teach.persona</span>
+            <span class="name"><em>Tutor persona</em></span>
+            <span class="lock custom">custom</span>
+          </div>
+          <div class="frag-body">
+            <span class="override">You are a calculus tutor who comes from a teaching background — patient, conversational, willing to digress into intuition. You assume the student is smart but rusty.</span>
+          </div>
+          <div class="frag-controls">
+            <span class="knob"><span class="label">tone</span><span class="val">italic, warm</span></span>
+            <span class="knob"><span class="label">audience</span><span class="val">adult learner</span></span>
+            <span class="revert">↶ revert to default</span>
+          </div>
+        </div>
+
+        <div class="frag changed">
+          <div class="frag-head">
+            <span class="pos">03.</span>
+            <span class="id">teach.scaffolding</span>
+            <span class="name"><em>Scaffolding strategy</em></span>
+            <span class="lock custom">custom</span>
+          </div>
+          <div class="frag-body">
+            When introducing a concept new to the student: <span class="override">always start with a concrete example, then introduce the formal name, then state the formal definition</span>. When the student has prior episodic memory of the concept, lean Socratic instead.
+          </div>
+          <div class="frag-controls">
+            <span class="knob changed"><span class="label">scaffold</span><span class="val">concrete-first</span></span>
+            <span class="knob changed"><span class="label">formality</span><span class="val">3/10</span></span>
+            <span class="knob"><span class="label">verbosity</span><span class="val">6/10</span></span>
+            <span class="revert">↶ revert all</span>
+          </div>
+        </div>
+
+        <div class="frag">
+          <div class="frag-head">
+            <span class="pos">04.</span>
+            <span class="id">teach.verification</span>
+            <span class="name"><em>Verification preference</em></span>
+            <span class="lock">default</span>
+          </div>
+          <div class="frag-body">
+            Prefer the most authoritative source: student's course material → sympy → cited search → curated pedagogy → model knowledge. Signal when you're leaning on model knowledge for analogies or motivation.
+          </div>
+        </div>
+
+        <div class="frag added">
+          <div class="frag-head">
+            <span class="pos">05.</span>
+            <span class="id">teach.condition.prior</span>
+            <span class="name"><em>Conditional: prior knowledge</em></span>
+            <span class="lock added">added today</span>
+          </div>
+          <div class="frag-body">
+            If the concept appears in episodic memory from prior sessions, lean Socratic; otherwise use concrete-first. Check the misconception log before each new concept and address it inline if relevant.
+          </div>
+          <div class="frag-controls">
+            <span class="knob changed"><span class="label">priority</span><span class="val">high</span></span>
+            <span class="revert">↶ remove fragment</span>
+          </div>
+        </div>
+
+        <div class="frag locked">
+          <div class="frag-head">
+            <span class="pos">06.</span>
+            <span class="id">role.refuse_dropbox</span>
+            <span class="name"><em>Refuse "just give me the answer"</em></span>
+            <span class="lock">locked</span>
+          </div>
+          <div class="frag-body">
+            When the student asks for an answer without showing work, redirect to scaffolding. This protects learning; it is not negotiable per-student.
+          </div>
+        </div>
+
+        <div class="composed-summary">
+          <div class="label">⁂ Composition order · final prompt</div>
+          role.tutor → teach.persona <em>(custom)</em> → teach.scaffolding <em>(custom)</em> → teach.verification → teach.condition.prior <em>(added)</em> → role.refuse_dropbox
+        </div>
+      </div>
+    </div>
+
+    <aside class="chat">
+      <div class="chat-head">
+        <span class="glyph">⁂</span>
+        <h2>Configurator</h2>
+        <span class="toggle">collapse</span>
+      </div>
+      <div class="messages">
+        <div class="turn user">
+          <div class="speaker">You</div>
+          <div class="bubble">Student keeps getting overwhelmed with notation in teach mode. Push concrete-first and tone down Socratic on novel concepts. Keep Socratic when they've seen the material.</div>
+        </div>
+        <div class="turn agent">
+          <div class="speaker">⁂ Configurator</div>
+          <div class="bubble">
+            <p>Three changes; all visible in the prompt document on the left:</p>
+          </div>
+          <div class="tool">
+            <div class="head">tool · prompt.update</div>
+            <div class="summary">Set <em>teach.scaffolding</em> = <em>concrete-first</em></div>
+            <div class="diff">
+              <div class="removed">- when novel</div>
+              <div class="added">+ concrete → name → formal</div>
+            </div>
+            <div class="actions">
+              <button class="primary">Keep</button><button>Tweak</button><button class="danger">Revert</button>
+              <span class="canvas-link">↗ frag 03</span>
+            </div>
+          </div>
+          <div class="tool">
+            <div class="head">tool · prompt.update</div>
+            <div class="summary">Lowered <em>teach.formality</em>: 5 → 3</div>
+            <div class="actions">
+              <button class="primary">Keep</button><button>Tweak</button><button class="danger">Revert</button>
+              <span class="canvas-link">↗ frag 03</span>
+            </div>
+          </div>
+          <div class="tool">
+            <div class="head">tool · prompt.add_fragment</div>
+            <div class="summary">Added new fragment <em>teach.condition.prior</em></div>
+            <div class="actions">
+              <button class="primary">Keep</button><button>Tweak</button><button class="danger">Remove</button>
+              <span class="canvas-link">↗ frag 05</span>
+            </div>
+          </div>
+          <div class="bubble">
+            <p>Hit "preview as student" up top to feel how it lands before saving.</p>
+          </div>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="composer-field">
+          <textarea rows="1" placeholder="describe a change · or ask what's currently set"></textarea>
+          <button class="submit">Send ↵</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    document.querySelectorAll('.theme-toggle button').forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.theme;
+      if (mode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', mode);
+      document.querySelectorAll('.theme-toggle button').forEach(el => el.classList.toggle('active', el.dataset.theme === mode));
+    }));
+  </script>
+</body>
+</html>
