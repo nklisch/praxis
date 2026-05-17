@@ -1,7 +1,7 @@
 ---
 id: feature-reattach-docs-mid-session
 kind: feature
-stage: review
+stage: done
 tags: [bootstrap, documents, ux]
 parent: null
 depends_on: []
@@ -97,3 +97,20 @@ Mechanical: `courseId={courseId}` → `scope={{ kind: "course", id: courseId }}`
 The `course.list_library_documents` tool (`packages/tools/src/course/list-library-documents.ts:44`) calls `listForScope({ kind: 'session', id: ... })` on every invocation, so session-scope flags (`attachedToCurrentSession`) also update immediately.
 
 No caching gap identified. Mid-session attach is fully live.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Diff inspected at commit `65be731`. Clean polymorphic-scope generalization:
+- `LibraryDocumentPicker` prop renamed `courseId: CourseId` → `scope: DocumentScope` with adaptive deck copy via `COPY.libraryPicker.deckCourse` / `deckSession`. The existing optimistic-update / per-row error handling carries over unchanged.
+- Single call-site update in `course-detail.tsx` (mechanical prop rename).
+- `BootstrapTabBody` gets the affordance: "Add documents" button in the outline header + state-driven modal mount.
+- Per-turn document resolution in the explorer picks up the attach automatically — agent verified by tracing `retrieve_from_documents` and `course.list_library_documents` (both read `listForScope` live per call, no caching gap).
+- 6 new + extended tests across the picker (session scope) and the bootstrap body (button + open + attach call + close). Full UI suite passes (1023 tests).
+
+The generalization improves the design (one picker, two scopes) rather than forking a session-specific variant — exactly the kind of consolidation the codebase favors.
