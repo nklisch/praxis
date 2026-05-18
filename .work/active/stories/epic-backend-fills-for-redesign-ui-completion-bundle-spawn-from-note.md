@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-spawn-from-note
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -100,3 +100,15 @@ need to pass it.
 - 4 new UI tests appended to `note-editor-cornell.test.tsx` and
   `note-editor-feynman.test.tsx` (3 each).
 - Full suite: 3883 tests pass.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Duplicate JSDoc block before `spawnFromNote` in `packages/core/src/types/client.ts` (two consecutive `/** ... */` comments) — fixed inline.
+- `sessionId as any` cast at `session-service.ts:629` with an inaccurate biome-ignore comment ("engine send is async-iterable; drain it" doesn't explain the `any`). `handle.sessionId` is already `SessionId` so the cast is a no-op. Matches the same pattern used in `spawnFromPassage` (line 722); clean up when that area is next touched.
+
+**Notes**: Commit 706a422 bundles a small scope bleed: `ConfidenceBand` import and `confidence?` on `AssignmentResponseInput` in `client.ts`, plus the matching IPC schema extension in `ipc-server.ts`, belong to the sibling `quiz-confidence` story. Both stories share the same parent feature and the quiz-confidence commit landed after, so there's no correctness problem — the changes are consistent. The `openSessionInTab` helper is not reused here (appropriate: that helper calls `session.start`, not `spawnFromNote`; manual chaining is correct).

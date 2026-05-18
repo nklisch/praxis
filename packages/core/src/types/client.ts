@@ -310,15 +310,10 @@ export interface SessionService {
   }): Promise<SessionHandle>;
   /**
    * Open a new teach session pre-loaded with a note's cue context.
-   * If `cueId` is provided, injects that specific cue (index into the cue list
-   * as a string, e.g. "0", "1"); otherwise uses the note's first cue.
-   * The opening user message wraps the cue + body in structured XML tags so
-   * the tutor starts the conversation with the right context.
-   */
-  /**
-   * Open a new teach session pre-loaded with a note's cue context.
    * `studentId` may be omitted — the service resolves it via getOrCreateDefaultStudentId.
-   * `cueId` is the string-encoded index of the cue (e.g. "0", "1").
+   * `cueId` is the string-encoded index of the cue (e.g. "0", "1"); if omitted, uses
+   * the note's first cue. The opening message wraps cue + body in structured XML tags
+   * so the tutor starts the conversation with the right context.
    */
   spawnFromNote(input: {
     studentId?: StudentId;
