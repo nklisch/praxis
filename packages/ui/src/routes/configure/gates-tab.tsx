@@ -6,7 +6,6 @@ import dagre from "dagre";
 import { useCallback, useMemo, useState } from "react";
 import type { ConceptFlowNode, ConceptNodeData } from "../../components/concept-node.js";
 import { ConceptNode } from "../../components/concept-node.js";
-import { ConfigureChatPane } from "../../components/configure-chat-pane.js";
 import type { GateEdgeLabelData } from "../../components/gate-edge-label.js";
 import { GateEdgeLabel } from "../../components/gate-edge-label.js";
 import { GateInspector } from "../../components/gate-inspector.js";
@@ -38,12 +37,18 @@ interface GatesTabProps {
 }
 
 /**
- * Gates tab — React Flow canvas extending Phase 9's read-only map with edit affordances.
+ * Gates tab canvas — React Flow graph of lesson gates for a selected course.
+ *
+ * The chat pane has been promoted to the Configure shell (configure.tsx) and is
+ * now a shared side panel. This component is canvas-only.
  *
  * Click a gate edge label (or concept node adjacent to a gate) → opens GateInspector.
  * Inspector: edit mastery threshold, override, delete.
+ *
+ * `sessionId` is threaded through for future sub-surface canvas features that
+ * may want to correlate canvas interactions with the active configure session.
  */
-export function GatesTab({ sessionId }: GatesTabProps) {
+export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
   const { selectedCourseId, setSelectedCourseId } = useConfigureState();
   // Register this tab with the cross-tab dirty tracker. Gate mutations save
   // immediately on confirm, so the tab-level dirty state is always clean.
@@ -116,10 +121,6 @@ export function GatesTab({ sessionId }: GatesTabProps) {
 
   return (
     <div className={styles.layout}>
-      <div className={styles.chatPane}>
-        <ConfigureChatPane sessionId={sessionId} />
-      </div>
-
       <div className={styles.canvasPane}>
         <div className={styles.canvasHeader}>
           <h2 className={styles.title}>Gates Editor</h2>

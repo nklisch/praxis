@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure-canvas-side-chat-shell
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on:
@@ -11,7 +11,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Configure shell — Canvas + Side Chat layout
@@ -41,7 +41,45 @@ Rebuild `configure.tsx` route per locked Option 5 — Canvas + Side Chat:
 
 ## Acceptance criteria
 
-- [ ] Configure renders Canvas + Side Chat shell with tab strip +
+- [x] Configure renders Canvas + Side Chat shell with tab strip +
       chat pane + inspector strip.
-- [ ] Save bar shows "N unsaved across M surfaces" when applicable.
-- [ ] All quality checks green.
+- [x] Save bar shows "N unsaved across M surfaces" when applicable.
+- [x] All quality checks green.
+
+## Implementation notes
+
+### What landed
+
+- **`configure.tsx`** rebuilt as Canvas + Side Chat (Option 5):
+  - Sub-surface tab strip (Course / Gates / Prompt / Memory) with
+    per-tab change-dots via new `useDirtyStateObserver` hook.
+  - All four tab panels mounted simultaneously; inactive panels use
+    `display:none` (tab-body-isolation pattern).
+  - Right panel (380px): `<AuthoringChatPane mode="configure" />` —
+    shared chat promoted from inside individual tab layouts.
+  - Inspector strip placeholder beneath the canvas (empty for now;
+    per-tab canvas stories will populate it).
+  - `DirtyStateProvider` wraps the workspace.
+  - Save bar: "Unsaved" (1 surface) or "N unsaved across M surfaces"
+    (multiple). Fixed a bug in the prior code where both N and M used
+    `surfaceCount`, making them identical.
+
+- **`CourseTab`** and **`GatesTab`**: removed embedded `<ConfigureChatPane>`
+  (chat is now shared in the shell). Props interface preserves `sessionId`
+  for future sub-surface canvas features.
+
+- **`use-dirty-state.ts`**: added `useDirtyStateObserver(key)` — a
+  subscribe-only hook that reads dirty state without owning (no
+  `clearDirty` on unmount). Used by `TabButton` to avoid clobbering
+  dirty state owned by the surface components.
+
+### CSS layout
+
+`configure.module.css`: new `.surface` grid (`1fr 380px`), `.canvasColumn`
+flex-column, `.tabPanels` + `.tabPanel` for isolation, `.inspectorStrip`
+placeholder, `.chatPanel` aside.
+
+### Tests
+
+`configure-route.test.tsx`: added 3 new tests — inspector strip present,
+authoring chat pane present, all tab panels mounted simultaneously.

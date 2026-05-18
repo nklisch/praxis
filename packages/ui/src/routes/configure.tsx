@@ -1,12 +1,13 @@
 import type { CourseId, SessionHandle } from "@praxis/core/types";
 import { useEffect, useRef, useState } from "react";
+import { AuthoringChatPane } from "../components/authoring-chat-pane.js";
 import { RouteHeader } from "../components/route-header.js";
 import { getRouteMeta } from "../components/route-meta.js";
 import { UnlockModal } from "../components/unlock-modal.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { DirtyStateProvider } from "../contexts/dirty-state-provider.js";
 import { ConfigureStateContext } from "../hooks/use-configure-state.js";
-import { useDirtyAggregate } from "../hooks/use-dirty-state.js";
+import { useDirtyAggregate, useDirtyStateObserver } from "../hooks/use-dirty-state.js";
 import { useLock } from "../hooks/use-lock.js";
 import { COPY } from "../lib/copy.js";
 import { CourseTab } from "./configure/course-tab.js";
@@ -17,12 +18,43 @@ import styles from "./configure.module.css";
 
 type ConfigureTab = "course" | "gates" | "prompt" | "memory";
 
-const TABS: Array<{ id: ConfigureTab; label: string }> = [
-  { id: "course", label: "Course" },
-  { id: "gates", label: "Gates" },
-  { id: "prompt", label: "Prompt" },
-  { id: "memory", label: "Memory" },
+const TABS: Array<{ id: ConfigureTab; label: string; dirtyKey: string }> = [
+  { id: "course", label: "Course", dirtyKey: "configure.course" },
+  { id: "gates", label: "Gates", dirtyKey: "configure.gates" },
+  { id: "prompt", label: "Prompt", dirtyKey: "configure.prompt" },
+  { id: "memory", label: "Memory", dirtyKey: "configure.memory" },
 ];
+
+/**
+ * A single tab button that reads its own dirty key to show a change-dot.
+ * Must be rendered inside <DirtyStateProvider>.
+ */
+function TabButton({
+  id,
+  label,
+  dirtyKey,
+  isActive,
+  onClick,
+}: {
+  id: string;
+  label: string;
+  dirtyKey: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const { isDirty } = useDirtyStateObserver(dirtyKey);
+  return (
+    <button
+      key={id}
+      type="button"
+      className={`${styles.tabBtn} ${isActive ? styles.tabActive : ""}`}
+      onClick={onClick}
+    >
+      {label}
+      {isDirty && <span className={styles.changeDot} aria-hidden="true" title="unsaved changes" />}
+    </button>
+  );
+}
 
 /**
  * Save bar rendered inside <DirtyStateProvider> so it can read useDirtyAggregate.
@@ -30,12 +62,12 @@ const TABS: Array<{ id: ConfigureTab; label: string }> = [
  * dirty; shows "N unsaved across M surfaces" when multiple surfaces are dirty.
  */
 function ConfigureSaveBar() {
-  const { surfaceCount } = useDirtyAggregate();
+  const { dirtyCount, surfaceCount } = useDirtyAggregate();
 
   if (surfaceCount === 0) return null;
 
   const message =
-    surfaceCount === 1 ? "Unsaved" : `${surfaceCount} unsaved across ${surfaceCount} surfaces`;
+    surfaceCount === 1 ? "Unsaved" : `${dirtyCount} unsaved across ${surfaceCount} surfaces`;
 
   return (
     <div className={styles.saveBar} role="status" aria-live="polite">
@@ -45,11 +77,33 @@ function ConfigureSaveBar() {
 }
 
 /**
+ * Inspector strip below the canvas — empty placeholder for this story.
+ * Per-tab canvases will populate this with selected-node fields in their
+ * own implementation stories.
+ */
+function InspectorStrip() {
+  return (
+    <div className={styles.inspectorStrip} data-testid="inspector-strip" aria-hidden="true">
+      {/* Populated by per-tab canvas stories */}
+    </div>
+  );
+}
+
+/**
  * /configure route — the configurator workspace.
  *
  * Lock gate:
  *  - If lock is set AND not unlocked this session → show locked screen with unlock prompt.
- *  - Once unlocked (or if no lock is set) → render the four-tab workspace.
+ *  - Once unlocked (or if no lock is set) → render the Canvas + Side Chat workspace.
+ *
+ * Layout (Option 5 — Canvas + Side Chat):
+ *  - Sub-surface tab strip at top (Course / Gates / Prompt / Memory)
+ *    with per-tab change-dots and "N unsaved across M surfaces" save bar.
+ *  - Center canvas area: all four tab canvases mounted simultaneously;
+ *    inactive tabs use display:none (tab-body-isolation pattern).
+ *  - Inspector strip beneath the canvas: empty now; per-tab canvases will fill it.
+ *  - Right panel (380px): <AuthoringChatPane mode="configure"> — the shared
+ *    configurator chat, promoted from inside individual tab layouts.
  *
  * Session lifecycle:
  *  - When unlocked, auto-start a configure-mode session on mount.
@@ -154,26 +208,23 @@ export function ConfigureRoute() {
     );
   }
 
+  const sessionId = session?.sessionId ?? null;
+
   return (
     <DirtyStateProvider>
       <ConfigureStateContext.Provider value={{ selectedCourseId, setSelectedCourseId }}>
         <div className={styles.workspace}>
-          <RouteHeader
-            ornament={meta.ornament}
-            kicker={meta.kicker}
-            title={meta.title}
-            deck={meta.deck}
-          />
-          <div className={styles.tabBar}>
+          {/* ── Sub-surface tab strip ───────────────────────────────────── */}
+          <div className={styles.tabBar} role="tablist" aria-label="Configure surfaces">
             {TABS.map((tab) => (
-              <button
+              <TabButton
                 key={tab.id}
-                type="button"
-                className={`${styles.tabBtn} ${activeTab === tab.id ? styles.tabActive : ""}`}
+                id={tab.id}
+                label={tab.label}
+                dirtyKey={tab.dirtyKey}
+                isActive={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
+              />
             ))}
             <div className={styles.tabBarRight}>
               <ConfigureSaveBar />
@@ -187,11 +238,64 @@ export function ConfigureRoute() {
             </div>
           </div>
 
-          <div className={styles.tabContent}>
-            {activeTab === "course" && <CourseTab sessionId={session?.sessionId ?? null} />}
-            {activeTab === "gates" && <GatesTab sessionId={session?.sessionId ?? null} />}
-            {activeTab === "prompt" && <PromptTab />}
-            {activeTab === "memory" && <MemoryTab />}
+          {/* ── Main surface: canvas area + side chat ───────────────────── */}
+          <div className={styles.surface}>
+            {/* Canvas column: tab panels (all mounted, inactive display:none) + inspector strip */}
+            <div className={styles.canvasColumn}>
+              <div className={styles.tabPanels}>
+                {/* Course tab panel */}
+                <div
+                  className={styles.tabPanel}
+                  style={{ display: activeTab === "course" ? undefined : "none" }}
+                  role="tabpanel"
+                  aria-label="Course"
+                  hidden={activeTab !== "course"}
+                >
+                  <CourseTab sessionId={sessionId} />
+                </div>
+
+                {/* Gates tab panel */}
+                <div
+                  className={styles.tabPanel}
+                  style={{ display: activeTab === "gates" ? undefined : "none" }}
+                  role="tabpanel"
+                  aria-label="Gates"
+                  hidden={activeTab !== "gates"}
+                >
+                  <GatesTab sessionId={sessionId} />
+                </div>
+
+                {/* Prompt tab panel */}
+                <div
+                  className={styles.tabPanel}
+                  style={{ display: activeTab === "prompt" ? undefined : "none" }}
+                  role="tabpanel"
+                  aria-label="Prompt"
+                  hidden={activeTab !== "prompt"}
+                >
+                  <PromptTab />
+                </div>
+
+                {/* Memory tab panel */}
+                <div
+                  className={styles.tabPanel}
+                  style={{ display: activeTab === "memory" ? undefined : "none" }}
+                  role="tabpanel"
+                  aria-label="Memory"
+                  hidden={activeTab !== "memory"}
+                >
+                  <MemoryTab />
+                </div>
+              </div>
+
+              {/* Inspector strip: empty placeholder — filled by per-tab canvas stories */}
+              <InspectorStrip />
+            </div>
+
+            {/* Right panel: shared configure chat (380px) */}
+            <aside className={styles.chatPanel} aria-label="Configure assistant">
+              <AuthoringChatPane mode="configure" sessionId={sessionId} />
+            </aside>
           </div>
         </div>
       </ConfigureStateContext.Provider>

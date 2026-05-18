@@ -53,6 +53,42 @@ export function useDirtyState(key: string): {
 }
 
 /**
+ * Observe the dirty state of a named key without owning it.
+ *
+ * Unlike `useDirtyState`, this hook does NOT call `clearDirty` on unmount.
+ * Use this in observer components (e.g. tab buttons that display change-dots)
+ * that need to *read* a key's dirty state without being the authoritative owner.
+ *
+ * The owning component (the surface that registers the key via `useDirtyState`)
+ * is responsible for clearing on unmount.
+ *
+ * @param key - A stable identifier for the surface to observe (e.g. "configure.course").
+ */
+export function useDirtyStateObserver(key: string): { isDirty: boolean } {
+  const ctx = useContext(DirtyStateContext);
+  if (!ctx) {
+    throw new Error("useDirtyStateObserver must be used inside <DirtyStateProvider>");
+  }
+
+  const { subscribe } = ctx;
+
+  // Start false; subscription pushes true/false on every state change.
+  // We accept the limitation: if the key was dirty before this component mounts
+  // (rare for the configure tab-strip use case), the dot won't show until the next
+  // state change. For the tab-strip this is fine — the dirty state is driven by
+  // user interaction after the surface mounts.
+  const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribe(key, (dirty) => setIsDirty(dirty));
+    return unsubscribe;
+    // key is stable per tab; subscribe is stable (useCallback in provider)
+  }, [key, subscribe]);
+
+  return { isDirty };
+}
+
+/**
  * Read the aggregate dirty state from the nearest `<DirtyStateProvider>`.
  *
  * - `dirtyCount` — total number of currently-dirty keys (same as surfaceCount

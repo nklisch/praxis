@@ -186,6 +186,47 @@ describe("ConfigureRoute", () => {
     });
   });
 
+  it("renders inspector strip in the canvas column", async () => {
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient);
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Course" })).toBeDefined();
+    });
+
+    // Inspector strip placeholder is present beneath the canvas
+    expect(screen.getByTestId("inspector-strip")).toBeDefined();
+  });
+
+  it("renders the authoring chat pane in the right panel", async () => {
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient);
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Course" })).toBeDefined();
+    });
+
+    // The side chat panel (AuthoringChatPane) renders its header label
+    expect(screen.getByText("Configure assistant")).toBeDefined();
+  });
+
+  it("all tab panels are mounted simultaneously (tab-body-isolation)", async () => {
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient);
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Course" })).toBeDefined();
+    });
+
+    // Tab-body isolation: all panels mount at once; content from hidden panels
+    // is still in the DOM (just display:none). Teaching Style is from PromptTab
+    // which mounts even when Course is the active tab.
+    expect(screen.getByText("Teaching Style")).toBeDefined();
+  });
+
   it("starts a configure session when unlocked", async () => {
     const lockClient = makeLockClient();
     const client = makeClient(lockClient);

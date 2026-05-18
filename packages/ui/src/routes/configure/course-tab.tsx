@@ -1,6 +1,5 @@
 import type { Course, Lesson, LessonId, SessionId } from "@praxis/core/types";
 import { useCallback, useEffect, useState } from "react";
-import { ConfigureChatPane } from "../../components/configure-chat-pane.js";
 import { LessonEditor } from "../../components/lesson-editor.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import { useConfigureState } from "../../hooks/use-configure-state.js";
@@ -13,17 +12,22 @@ interface CourseTabProps {
 }
 
 /**
- * Course tab — split pane: chat (left) + course outline editor (right).
+ * Course tab canvas — course outline editor (unit/lesson tree).
  *
- * Right side:
- *  - Course picker (dropdown from useCourses)
- *  - If course selected: list of lessons (each as LessonEditor), + Add lesson button
- *  - Edits flow through client.author.updateLesson / createLesson / deleteLesson
+ * The chat pane has been promoted to the Configure shell (configure.tsx) and is
+ * now a shared side panel. This component is canvas-only.
+ *
+ * - Course picker (dropdown from useCourses)
+ * - If course selected: list of lessons (each as LessonEditor), + Add lesson button
+ * - Edits flow through client.author.updateLesson / createLesson / deleteLesson
  *
  * No RouteHeader: this is a tab panel inside <ConfigureRoute>, not a standalone route.
  * The parent route owns the header (configure.tsx renders <RouteHeader>).
+ *
+ * `sessionId` is threaded through for future sub-surface canvas features that
+ * may want to correlate canvas interactions with the active configure session.
  */
-export function CourseTab({ sessionId }: CourseTabProps) {
+export function CourseTab({ sessionId: _sessionId }: CourseTabProps) {
   const client = usePraxisClient();
   const { selectedCourseId, setSelectedCourseId } = useConfigureState();
   // Register this tab with the cross-tab dirty tracker. Course mutations save
@@ -99,10 +103,6 @@ export function CourseTab({ sessionId }: CourseTabProps) {
 
   return (
     <div className={styles.layout}>
-      <div className={styles.chatPane}>
-        <ConfigureChatPane sessionId={sessionId} />
-      </div>
-
       <div className={styles.editorPane}>
         <div className={styles.editorHeader}>
           <h2 className={styles.editorTitle}>Course Editor</h2>
