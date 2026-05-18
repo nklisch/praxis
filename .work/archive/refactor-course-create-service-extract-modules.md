@@ -1,7 +1,7 @@
 ---
 id: refactor-course-create-service-extract-modules
 kind: feature
-stage: implementing
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -201,3 +201,74 @@ None. Public `CourseCreateService` interface unchanged.
 
 - Class-level extraction (the lifecycle methods stay tightly cohesive)
 - Renaming any export
+
+## Implementation Run Summary
+
+Single child story landed cleanly (commit `cda3f6c`). 2 free functions
+moved to per-domain files; class stays put.
+
+| Metric | Before | After |
+|---|---|---|
+| `course-create-service.ts` LoC | 1479 | 1157 (−322) |
+| `draft-validator.ts` | n/a | 85 |
+| `draft-persistence.ts` | n/a | 252 |
+| Public `CourseCreateService` API | unchanged | unchanged |
+
+### Cross-cutting deviations
+
+- **`createCourseFromPack` stayed in the class** per the escape hatch. Its
+  pervasive `this.deps.*` usage (including a pre-transaction
+  `this.deps.db.select()`) makes a clean extraction require significant
+  restructure. Acceptable; documented.
+- **`normalizeConceptName` duplicated** into `draft-validator.ts` (also
+  still in `course-create-service.ts` for `applyEdit`). Mild DRY violation;
+  parked as `idea-consolidate-normalize-concept-name-helper` for a small
+  follow-up.
+- **`Issue` re-exported** from `course-create-service.ts` via
+  `export type { Issue }` to preserve the existing public surface.
+
+### Verification status
+
+- **Typecheck**: baseline preserved (3 pre-existing UI errors unchanged)
+- **Tests**: 1060 core tests pass unmodified, including the extensive
+  `course-create-service` suites and the 1260-LoC `drafter.test.ts`
+- **Lint (biome)**: clean
+- **Drizzle transaction semantics**: preserved verbatim — `persistDraftTx`
+  still takes the `tx` parameter; rollback on throw still works
+
+### What's now possible
+
+- Validator and persistence are testable in isolation. Future tests can
+  target `validateProposed` directly without spinning up the full service.
+- Adding a new validation rule lands in `draft-validator.ts` (a 85-LoC
+  file, easy to navigate) instead of hunting in a 1479-LoC service.
+- Persistence shape changes (new tables, migration scaffolding) land in
+  `draft-persistence.ts` (252 LoC, focused on the Drizzle transaction
+  body).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (aggregate)
+
+**Blockers**: none
+**Important**: none
+**Nits**: see child story (normalizeConceptName duplication parked).
+
+**Aggregate lens findings**:
+- **Design alignment**: design correction during refactor-design honestly
+  reframed the work from "class extraction" to "free-function file split"
+  once pre-inspection revealed `validateProposed` and `persistDraftTx`
+  were already top-level functions. Implementation matched.
+- **Foundation-doc alignment**: no foundation-doc claims about service-file
+  internal structure; no drift.
+- **Breaking changes**: none. Public surface unchanged including the
+  re-exported `Issue` type.
+- **Capability completeness**: validator and persistence are now isolated
+  modules. `confirmDraft()` continues to compose them with the same
+  Drizzle transaction semantics. Hot test surface (3500+ LoC of tests)
+  passes unmodified.
+
+**Notes**: Final feature of the autopilot drain. course-create-service
+shape is now appropriately split — class for orchestration, validator for
+pure validation logic, persistence for Drizzle transaction body. Modest
+LoC win but real separation of concerns.
