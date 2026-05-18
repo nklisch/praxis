@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-design-system-token-swap
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-design-system
 depends_on: []
@@ -9,6 +9,7 @@ release_binding: null
 gate_origin: null
 created: 2026-05-17
 updated: 2026-05-17
+reviewed: 2026-05-17
 ---
 
 # Token swap: adopt `tokens.css` + rename CSS variables
@@ -176,3 +177,27 @@ acceptance criteria, risks.
   `.work/backlog/idea-rename-bootstrap-and-explorer.md`.
 - Touching the mockup files in `.mockups/`. The mocks are the SSOT;
   production mirrors them, not the other way round.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+
+**Important**: `fix-ripples-panel-color-error-legacy-token` — `ripples-panel.module.css`
+(added in `7b10e69`, after this story landed) uses the legacy `--color-error`
+token instead of `--color-danger`. Out of scope for this story; filed as backlog
+item `.work/backlog/fix-ripples-panel-color-error-legacy-token.md`.
+
+**Nits**:
+- No nits.
+
+**Notes**: All acceptance criteria satisfied at commit `1cce159`. The bubble-color
+fallback (`var(--color-accent-muted)` instead of mode-tinted `color-mix`) is
+explicitly sanctioned by the story body and the parent feature's Risks section as
+an acceptable v1 limitation. The `--color-surface-1/2/3` → `--color-bg-secondary` /
+`--color-bg-tertiary` resolution is a sound semantic mapping. `global.css` token
+block matches `.mockups/design-system/tokens.css` content with only the expected
+addition of `--tint-route: var(--color-text-secondary)`. Tests pass (3676 green,
+23 skipped expected). Typecheck pre-existing failure (`recommendation-service.ts`,
+`snapshot-capturer.ts`) predates this story and is unrelated.
