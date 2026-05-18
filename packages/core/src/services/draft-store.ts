@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray, isNull, lt } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
 import { drafts } from "../schema.js";
-import type { DraftCourseState, StudentId } from "../types/index.js";
+import type { CourseId, DraftCourseState, DraftId, StudentId } from "../types/index.js";
+import { brandId } from "../types/index.js";
 
 /**
  * Port: durable CRUD over the course-create draft store. CourseCreateServiceImpl
@@ -11,7 +12,7 @@ import type { DraftCourseState, StudentId } from "../types/index.js";
  */
 export interface DraftStore {
   /** Load a draft by id. Returns null if missing, confirmed, or discarded. */
-  load(draftId: string): DraftCourseState | null;
+  load(draftId: DraftId): DraftCourseState | null;
   /** Insert or replace the draft state. Preserves `createdAt` on conflict. */
   save(draft: DraftCourseState): void;
   /** Active drafts for one student, lastTouchedAt DESC. */
@@ -19,21 +20,21 @@ export interface DraftStore {
   /** Active drafts for all students. Used by the IPC outline subscribers. */
   listActive(): readonly DraftCourseState[];
   /** Bump lastTouchedAt without re-serializing the blob. */
-  touch(draftId: string): void;
+  touch(draftId: DraftId): void;
   /**
    * Mark confirmed in the SAME transaction as persistDraft (see the
    * integration story). Caller passes the open transaction handle so the
    * confirmation is atomic with the course write.
    */
-  markConfirmedTx(tx: PraxisDb, draftId: string, courseId: string): void;
+  markConfirmedTx(tx: PraxisDb, draftId: DraftId, courseId: CourseId): void;
   /** Mark discarded (manual or sweep). Out-of-tx because no other write follows. */
-  markDiscarded(draftId: string): void;
+  markDiscarded(draftId: DraftId): void;
   /**
    * Sweep stale active rows (`lastTouchedAt < cutoff`). Marks each
    * discarded with `discardedAt = now`. Returns the ids that were swept
    * so the caller can emit `discarded` events.
    */
-  sweepStale(cutoff: number): readonly string[];
+  sweepStale(cutoff: number): readonly DraftId[];
 }
 
 /** Filter condition: both confirmedAt and discardedAt are null (i.e., active). */
@@ -48,7 +49,7 @@ function rowToState(row: { stateJson: DraftCourseState }): DraftCourseState {
 export class SqliteDraftStore implements DraftStore {
   constructor(private readonly db: PraxisDb) {}
 
-  load(draftId: string): DraftCourseState | null {
+  load(draftId: DraftId): DraftCourseState | null {
     const row = this.db
       .select({ stateJson: drafts.stateJson })
       .from(drafts)
@@ -103,23 +104,23 @@ export class SqliteDraftStore implements DraftStore {
     return rows.map(rowToState);
   }
 
-  touch(draftId: string): void {
+  touch(draftId: DraftId): void {
     const now = new Date();
     this.db.update(drafts).set({ lastTouchedAt: now }).where(eq(drafts.id, draftId)).run();
   }
 
-  markConfirmedTx(tx: PraxisDb, draftId: string, courseId: string): void {
+  markConfirmedTx(tx: PraxisDb, draftId: DraftId, courseId: CourseId): void {
     tx.update(drafts)
       .set({ confirmedAt: new Date(), courseId })
       .where(eq(drafts.id, draftId))
       .run();
   }
 
-  markDiscarded(draftId: string): void {
+  markDiscarded(draftId: DraftId): void {
     this.db.update(drafts).set({ discardedAt: new Date() }).where(eq(drafts.id, draftId)).run();
   }
 
-  sweepStale(cutoff: number): readonly string[] {
+  sweepStale(cutoff: number): readonly DraftId[] {
     const cutoffDate = new Date(cutoff);
     const now = new Date();
 
@@ -132,7 +133,7 @@ export class SqliteDraftStore implements DraftStore {
 
     if (staleRows.length === 0) return [];
 
-    const ids = staleRows.map((r) => r.id);
+    const ids = staleRows.map((r) => brandId<"DraftId">(r.id) as DraftId);
 
     // Mark all stale rows discarded in one statement.
     this.db.update(drafts).set({ discardedAt: now }).where(inArray(drafts.id, ids)).run();

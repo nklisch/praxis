@@ -1,7 +1,7 @@
 ---
 id: refactor-brand-draft-store-id-types
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -90,3 +90,35 @@ is the point).
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Implementation notes
+
+**Port methods tightened (5):**
+- `DraftStore.load(draftId: DraftId)` — interface + impl
+- `DraftStore.touch(draftId: DraftId)` — interface + impl
+- `DraftStore.markConfirmedTx(tx, draftId: DraftId, courseId: CourseId)` — interface + impl
+- `DraftStore.markDiscarded(draftId: DraftId)` — interface + impl
+- `DraftStore.sweepStale(cutoff): readonly DraftId[]` — interface + impl; inner `ids` array now branded via `brandId<"DraftId">(r.id) as DraftId`
+
+**Type file updated (1):**
+- `packages/core/src/types/draft-stream.ts`: `finalized` and `discarded` variants now use `DraftId`/`CourseId`; added imports from `./recommendation.js` and `./ids.js`.
+
+**Caller sites updated in `packages/core/src/services/course-create-service.ts`:**
+- Added `DraftId` to the `import type` block (line ~24)
+- 13× `this.store.load(input.draftId)` → branded (replace_all)
+- 4× `this.store.load(draftId)` → branded (replace_all)
+- 1× `this.store.touch(draftId)` → branded (line ~513)
+- 1× `this.store.markConfirmedTx(tx, input.draftId, r.courseId)` → `draftId` branded; `r.courseId` was already `CourseId` (line ~561)
+- 1× `this.store.markDiscarded(draftId)` → branded (line ~614)
+- 1× `this.emit({ kind: "finalized", draftId: input.draftId, ... })` → `draftId` branded (line ~603)
+- 1× `this.emit({ kind: "discarded", draftId, ... })` → branded (line ~616)
+- Sweep loop `for (const id of sweptIds)` at line ~890: `id` already `DraftId` from the tightened return type — no cast needed
+
+**Tests updated (6 files, 31 call sites):**
+- `packages/core/src/__tests__/draft-store.test.ts` — added `CourseId, DraftId` imports; branded all raw-string `load`/`touch`/`markConfirmedTx`/`markDiscarded` calls (14 sites)
+- `packages/core/src/__tests__/course-create-service-durability.test.ts` — added `DraftId` import; branded 2 `store.load(id)` and 1 `store.load(d1)` calls
+- `packages/core/src/services/__tests__/course-create-service.draft-stream.test.ts` — added `DraftId` import; branded `store.markDiscarded(draftId)` and `store.load(id)` (2 sites)
+- `packages/core/src/services/__tests__/course-create-service.persist-units.test.ts` — added `DraftId` import; branded 1 `store.load(draftId)` call
+- `packages/core/src/services/__tests__/course-create-service.units.test.ts` — added `DraftId` import; branded 3 `store.load(draftId)` calls
+
+**Baseline confirmed:** typecheck passes (0 new errors beyond pre-existing 3 UI-file errors); 52/52 tests pass across 5 affected test files; biome lint clean on all changed files; `grep 'draftId: string\|courseId: string'` returns 0 results in target files.

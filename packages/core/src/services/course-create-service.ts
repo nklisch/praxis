@@ -21,6 +21,7 @@ import type {
   DocumentScopesService,
   DraftCourseState,
   DraftEditOp,
+  DraftId,
   DraftStreamEvent,
   DraftStreamListener,
   DraftSummary,
@@ -220,7 +221,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     name: string;
     description: string;
   }): Promise<{ ok: true; conceptCount: number } | { ok: false; reason: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const lower = normalizeConceptName(input.name);
     if (d.proposed.proposedConcepts.some((c) => normalizeConceptName(c.name) === lower)) {
@@ -241,7 +242,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     draftId: string;
     name: string;
   }): Promise<{ ok: boolean; reason?: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const lower = normalizeConceptName(input.name);
     const before = d.proposed.proposedConcepts.length;
@@ -273,7 +274,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     strength: number;
     rationale: string;
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const known = new Set(d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)));
     const fromLower = normalizeConceptName(input.fromName);
@@ -309,7 +310,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     suggestedStrategy?: StrategyId;
     estimatedMinutes?: number;
   }): Promise<{ ok: true; lessonIndex: number } | { ok: false; reason: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const known = new Set(d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)));
     for (const cn of input.conceptNames) {
@@ -336,7 +337,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     draftId: string;
     lessonIndex: number;
   }): Promise<{ ok: boolean; reason?: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     if (input.lessonIndex < 0 || input.lessonIndex >= d.proposed.proposedLessons.length) {
       return { ok: false, reason: `lesson index ${input.lessonIndex} out of bounds` };
@@ -363,7 +364,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
       rationale: string;
     };
   }): Promise<{ ok: true; draftUnitId: string } | { ok: false; reason: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const knownLessons = new Set(d.proposed.proposedLessons.map((l) => l.draftLessonId));
     for (const id of input.draftLessonIds) {
@@ -415,7 +416,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     draftId: string;
     plan: AssessmentPlan;
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     d.proposed.assessmentPlan = input.plan;
     d.lastTouchedAt = Date.now() as Timestamp;
@@ -435,7 +436,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     rationale: string;
     title: string;
   }): Promise<{ ok: true; draftAssessmentId: string } | { ok: false; reason: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     const knownLessons = new Set(d.proposed.proposedLessons.map((l) => l.draftLessonId));
     if (!knownLessons.has(input.draftLessonId)) {
@@ -480,7 +481,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     gradeLevel?: string;
     thresholds?: Partial<ThresholdConfig>;
   }): Promise<{ ok: boolean; reason?: string }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
     if (input.title !== undefined) d.proposed.title = input.title.trim();
     if (input.subject !== undefined) d.proposed.subject = input.subject.trim();
@@ -506,10 +507,10 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }
 
   async showDraft(draftId: string): Promise<DraftCourseState | null> {
-    const d = this.store.load(draftId);
+    const d = this.store.load(brandId<"DraftId">(draftId) as DraftId);
     if (!d) return null;
     // Column-only bump — no blob re-serialization needed for a read.
-    this.store.touch(draftId);
+    this.store.touch(brandId<"DraftId">(draftId) as DraftId);
     return d;
   }
 
@@ -517,7 +518,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     draftId: string;
     op: DraftEditOp;
   }): Promise<{ draft: DraftCourseState; warnings: readonly string[] }> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) throw new Error(`Draft not found or expired: ${input.draftId}`);
     const result = applyEdit(d.proposed, input.op);
     d.proposed = result.state;
@@ -543,7 +544,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     | { ok: true; courseId: CourseId; lessonIds: LessonId[]; conceptGraphId: string }
     | { ok: false; issues: ReadonlyArray<Issue> }
   > {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) throw new Error(`Draft not found or expired: ${input.draftId}`);
     if (d.studentId !== input.studentId) {
       throw new Error(`Draft owner mismatch: draft belongs to a different student`);
@@ -557,7 +558,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     // same Drizzle transaction. If the persist fails, the draft row stays active.
     const result = this.deps.db.transaction((tx) => {
       const r = persistDraftTx({ tx, draft: d, now });
-      this.store.markConfirmedTx(tx, input.draftId, r.courseId);
+      this.store.markConfirmedTx(tx, brandId<"DraftId">(input.draftId) as DraftId, r.courseId);
       return r;
     });
 
@@ -599,7 +600,11 @@ export class CourseCreateServiceImpl implements CourseCreateService {
       }
     }
 
-    this.emit({ kind: "finalized", draftId: input.draftId, courseId: result.courseId });
+    this.emit({
+      kind: "finalized",
+      draftId: brandId<"DraftId">(input.draftId) as DraftId,
+      courseId: result.courseId,
+    });
     return {
       ok: true,
       courseId: result.courseId,
@@ -609,10 +614,14 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }
 
   async discardDraft(draftId: string): Promise<void> {
-    const d = this.store.load(draftId);
+    const d = this.store.load(brandId<"DraftId">(draftId) as DraftId);
     if (d) {
-      this.store.markDiscarded(draftId);
-      this.emit({ kind: "discarded", draftId, reason: "discarded" });
+      this.store.markDiscarded(brandId<"DraftId">(draftId) as DraftId);
+      this.emit({
+        kind: "discarded",
+        draftId: brandId<"DraftId">(draftId) as DraftId,
+        reason: "discarded",
+      });
     }
   }
 
@@ -730,7 +739,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   // ── Chunked-query methods (expressive-draft-api) ─────────────────────────
 
   async listUnits(draftId: string): Promise<UnitListEntry[] | null> {
-    const d = this.store.load(draftId);
+    const d = this.store.load(brandId<"DraftId">(draftId) as DraftId);
     if (!d) return null;
     const p = d.proposed;
     return (p.proposedUnits ?? []).map((u) => ({
@@ -746,7 +755,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     draftId: string;
     draftUnitId: string;
   }): Promise<LessonsInUnit | null> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return null;
     const p = d.proposed;
     const unit = (p.proposedUnits ?? []).find((u) => u.draftUnitId === input.draftUnitId);
@@ -786,7 +795,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     draftId: string;
     draftLessonId: string;
   }): Promise<LessonDetail | null> {
-    const d = this.store.load(input.draftId);
+    const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return null;
     const p = d.proposed;
 
@@ -818,7 +827,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }
 
   async listDanglingRefs(draftId: string): Promise<DanglingRefsReport | null> {
-    const d = this.store.load(draftId);
+    const d = this.store.load(brandId<"DraftId">(draftId) as DraftId);
     if (!d) return null;
     const p = d.proposed;
 

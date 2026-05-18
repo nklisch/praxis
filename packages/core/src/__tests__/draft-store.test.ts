@@ -20,7 +20,14 @@ import { describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { SqliteDraftStore } from "../services/draft-store.js";
-import type { DraftCourseState, ProposedCourse, StudentId, Timestamp } from "../types/index.js";
+import type {
+  CourseId,
+  DraftCourseState,
+  DraftId,
+  ProposedCourse,
+  StudentId,
+  Timestamp,
+} from "../types/index.js";
 import { brandId } from "../types/index.js";
 
 const STUDENT_A = brandId<"StudentId">("student-a");
@@ -73,7 +80,7 @@ describe("SqliteDraftStore", () => {
     const draft = makeDraft("draft-1", STUDENT_A);
 
     store.save(draft);
-    const loaded = store.load("draft-1");
+    const loaded = store.load(brandId<"DraftId">("draft-1") as DraftId);
 
     expect(loaded).not.toBeNull();
     // All fields must match exactly — save stores caller's state verbatim.
@@ -100,7 +107,7 @@ describe("SqliteDraftStore", () => {
     };
     store.save(updated);
 
-    const loaded = store.load("draft-upsert");
+    const loaded = store.load(brandId<"DraftId">("draft-upsert") as DraftId);
     expect(loaded?.proposed.title).toBe("Updated Algebra");
     // createdAt must remain the original value.
     expect(loaded?.createdAt).toBe(draft.createdAt);
@@ -112,9 +119,13 @@ describe("SqliteDraftStore", () => {
     const draft = makeDraft("draft-confirmed", STUDENT_A);
     store.save(draft);
 
-    store.markConfirmedTx(client, "draft-confirmed", "course-abc");
+    store.markConfirmedTx(
+      client,
+      brandId<"DraftId">("draft-confirmed") as DraftId,
+      brandId<"CourseId">("course-abc") as CourseId,
+    );
 
-    expect(store.load("draft-confirmed")).toBeNull();
+    expect(store.load(brandId<"DraftId">("draft-confirmed") as DraftId)).toBeNull();
   });
 
   it("load() returns null for discarded rows", () => {
@@ -123,15 +134,15 @@ describe("SqliteDraftStore", () => {
     const draft = makeDraft("draft-discarded", STUDENT_A);
     store.save(draft);
 
-    store.markDiscarded("draft-discarded");
+    store.markDiscarded(brandId<"DraftId">("draft-discarded") as DraftId);
 
-    expect(store.load("draft-discarded")).toBeNull();
+    expect(store.load(brandId<"DraftId">("draft-discarded") as DraftId)).toBeNull();
   });
 
   it("load() returns null for unknown id", () => {
     const { db: client } = openDb({ path: db.dbPath });
     const store = new SqliteDraftStore(client);
-    expect(store.load("no-such-draft")).toBeNull();
+    expect(store.load(brandId<"DraftId">("no-such-draft") as DraftId)).toBeNull();
   });
 
   it("listForStudent: filters by student, excludes terminal rows, orders by lastTouchedAt DESC", () => {
@@ -152,7 +163,11 @@ describe("SqliteDraftStore", () => {
     store.save(newer);
     store.save(other);
     store.save(confirmed);
-    store.markConfirmedTx(client, "draft-confirmed-a", "course-xyz");
+    store.markConfirmedTx(
+      client,
+      brandId<"DraftId">("draft-confirmed-a") as DraftId,
+      brandId<"CourseId">("course-xyz") as CourseId,
+    );
 
     const results = store.listForStudent(STUDENT_A);
 
@@ -169,7 +184,7 @@ describe("SqliteDraftStore", () => {
     store.save(makeDraft("active-b", STUDENT_B, now - 1000));
     const toDiscard = makeDraft("discarded-one", STUDENT_A, now - 2000);
     store.save(toDiscard);
-    store.markDiscarded("discarded-one");
+    store.markDiscarded(brandId<"DraftId">("discarded-one") as DraftId);
 
     const results = store.listActive();
     const ids = results.map((d) => d.draftId);
@@ -188,13 +203,17 @@ describe("SqliteDraftStore", () => {
     // Run a transaction that calls markConfirmedTx then deliberately throws.
     expect(() => {
       client.transaction((tx) => {
-        store.markConfirmedTx(tx, "draft-rollback-test", "course-rollback");
+        store.markConfirmedTx(
+          tx,
+          brandId<"DraftId">("draft-rollback-test") as DraftId,
+          brandId<"CourseId">("course-rollback") as CourseId,
+        );
         throw new Error("deliberate rollback");
       });
     }).toThrow("deliberate rollback");
 
     // After the rollback, the row must still be active.
-    const loaded = store.load("draft-rollback-test");
+    const loaded = store.load(brandId<"DraftId">("draft-rollback-test") as DraftId);
     expect(loaded).not.toBeNull();
     expect(loaded?.draftId).toBe("draft-rollback-test");
   });
@@ -205,9 +224,9 @@ describe("SqliteDraftStore", () => {
     const draft = makeDraft("draft-discard-check", STUDENT_A);
     store.save(draft);
 
-    expect(store.load("draft-discard-check")).not.toBeNull();
-    store.markDiscarded("draft-discard-check");
-    expect(store.load("draft-discard-check")).toBeNull();
+    expect(store.load(brandId<"DraftId">("draft-discard-check") as DraftId)).not.toBeNull();
+    store.markDiscarded(brandId<"DraftId">("draft-discard-check") as DraftId);
+    expect(store.load(brandId<"DraftId">("draft-discard-check") as DraftId)).toBeNull();
   });
 
   it("sweepStale: discards stale rows, leaves fresh rows, returns swept ids", () => {
@@ -230,9 +249,9 @@ describe("SqliteDraftStore", () => {
     expect(swept).not.toContain("draft-fresh");
 
     // Stale row must now be inaccessible via load().
-    expect(store.load("draft-stale")).toBeNull();
+    expect(store.load(brandId<"DraftId">("draft-stale") as DraftId)).toBeNull();
     // Fresh row must still be active.
-    expect(store.load("draft-fresh")).not.toBeNull();
+    expect(store.load(brandId<"DraftId">("draft-fresh") as DraftId)).not.toBeNull();
   });
 
   it("sweepStale: returns empty array when no stale rows exist", () => {
@@ -255,7 +274,7 @@ describe("SqliteDraftStore", () => {
 
     const stale = makeDraft("draft-pre-discarded", STUDENT_A, now - 10_000);
     store.save(stale);
-    store.markDiscarded("draft-pre-discarded");
+    store.markDiscarded(brandId<"DraftId">("draft-pre-discarded") as DraftId);
 
     // Sweep with a cutoff that would have caught the stale row.
     const swept = store.sweepStale(cutoff);
@@ -271,14 +290,14 @@ describe("SqliteDraftStore", () => {
     const draft = makeDraft("draft-touch", STUDENT_A, now - 5000);
     store.save(draft);
 
-    const before = store.load("draft-touch");
+    const before = store.load(brandId<"DraftId">("draft-touch") as DraftId);
     expect(before).not.toBeNull();
 
     // Small delay to ensure a measurable timestamp difference.
     const touchTime = Date.now();
-    store.touch("draft-touch");
+    store.touch(brandId<"DraftId">("draft-touch") as DraftId);
 
-    const after = store.load("draft-touch");
+    const after = store.load(brandId<"DraftId">("draft-touch") as DraftId);
     expect(after).not.toBeNull();
     // lastTouchedAt in stateJson is NOT bumped by touch() — touch only updates the column.
     // The state blob itself should be unchanged.
@@ -309,7 +328,7 @@ describe("SqliteDraftStore", () => {
     store.save(stateA);
     store.save(stateB);
 
-    const loaded = store.load("draft-rapid");
+    const loaded = store.load(brandId<"DraftId">("draft-rapid") as DraftId);
     expect(loaded?.proposed.title).toBe("Second Write");
     expect(loaded?.lastTouchedAt).toBe(stateB.lastTouchedAt);
     // createdAt preserved from the FIRST save — upsert never overwrites it.

@@ -18,6 +18,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
 import type {
+  DraftId,
   DraftStreamEvent,
   DraftStreamListener,
   Engine,
@@ -276,7 +277,7 @@ describe("CourseCreateServiceImpl — draft stream", () => {
     });
 
     // Manually mark discarded via the store (simulating external discard or sweep).
-    store.markDiscarded(draftId);
+    store.markDiscarded(brandId<"DraftId">(draftId) as DraftId);
 
     const result = await svc.showDraft(draftId);
     expect(result).toBeNull();
@@ -306,7 +307,7 @@ describe("CourseCreateServiceImpl — draft stream", () => {
       // Set both drafts' lastTouchedAt to 8 days ago so they're swept.
       const eightDaysAgo = (Date.now() - 8 * 24 * 60 * 60 * 1000) as Timestamp;
       for (const id of [id1, id2]) {
-        const d = store.load(id);
+        const d = store.load(brandId<"DraftId">(id) as DraftId);
         if (d) {
           d.lastTouchedAt = eightDaysAgo;
           store.save(d);

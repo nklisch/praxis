@@ -1,4 +1,6 @@
 import type { DraftCourseState } from "./artifacts.js";
+import type { CourseId } from "./ids.js";
+import type { DraftId } from "./recommendation.js";
 
 /**
  * Discriminated event streamed from the bootstrap service to the renderer
@@ -22,8 +24,8 @@ export type DraftStreamEvent =
   | { kind: "snapshot"; drafts: readonly DraftCourseState[] }
   | { kind: "started"; draft: DraftCourseState }
   | { kind: "updated"; draft: DraftCourseState }
-  | { kind: "finalized"; draftId: string; courseId: string }
-  | { kind: "discarded"; draftId: string; reason: "expired" | "discarded" };
+  | { kind: "finalized"; draftId: DraftId; courseId: CourseId }
+  | { kind: "discarded"; draftId: DraftId; reason: "expired" | "discarded" };
 
 export type DraftStreamListener = (event: DraftStreamEvent) => void;
 

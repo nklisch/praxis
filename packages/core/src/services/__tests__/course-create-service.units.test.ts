@@ -12,7 +12,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
-import type { AssessmentPlan, Engine, StudentId, Timestamp } from "../../types/index.js";
+import type { AssessmentPlan, DraftId, Engine, StudentId, Timestamp } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { CourseCreateServiceImpl } from "../course-create-service.js";
 import { SqliteDraftStore } from "../draft-store.js";
@@ -411,7 +411,7 @@ describe("CourseCreateServiceImpl.confirmDraft — validation issue kinds", () =
     const { draftId } = await seedDraft(svc);
 
     // Inject a unit with a bad lesson id directly via the store.
-    const draft = store.load(draftId);
+    const draft = store.load(brandId<"DraftId">(draftId) as DraftId);
     expect(draft).not.toBeNull();
     if (!draft) throw new Error();
     draft.proposed.proposedUnits = [
@@ -438,7 +438,7 @@ describe("CourseCreateServiceImpl.confirmDraft — validation issue kinds", () =
     const { draftId, lessonIds } = await seedDraft(svc);
 
     // Inject a unit with a summative referencing a nonexistent concept.
-    const draft = store.load(draftId);
+    const draft = store.load(brandId<"DraftId">(draftId) as DraftId);
     expect(draft).not.toBeNull();
     if (!draft) throw new Error();
     draft.proposed.proposedUnits = [
@@ -473,7 +473,7 @@ describe("CourseCreateServiceImpl.confirmDraft — validation issue kinds", () =
     const { draftId } = await seedDraft(svc);
 
     // Inject a bad lesson assessment directly via the store.
-    const draft = store.load(draftId);
+    const draft = store.load(brandId<"DraftId">(draftId) as DraftId);
     expect(draft).not.toBeNull();
     if (!draft) throw new Error();
     draft.proposed.proposedLessonAssessments = [

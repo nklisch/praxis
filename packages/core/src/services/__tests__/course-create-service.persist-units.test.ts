@@ -16,7 +16,7 @@ import { assignments, courseUnits, lessonAssessments, lessonUnits } from "@praxi
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
-import type { AssessmentPlan, Engine, Timestamp } from "../../types/index.js";
+import type { AssessmentPlan, DraftId, Engine, Timestamp } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { CourseCreateServiceImpl } from "../course-create-service.js";
 import { SqliteDraftStore } from "../draft-store.js";
@@ -263,7 +263,7 @@ describe("CourseCreateServiceImpl.confirmDraft — units + assessments", () => {
 
     // Inject a unit with an assessment that refs a ghost concept via the store
     // (bypassing method-level validation).
-    const draft = store.load(draftId);
+    const draft = store.load(brandId<"DraftId">(draftId) as DraftId);
     expect(draft).not.toBeNull();
     if (!draft) throw new Error();
     const lessonId = draft.proposed.proposedLessons[0]?.draftLessonId;

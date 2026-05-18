@@ -20,7 +20,7 @@ import { openDb } from "../db/index.js";
 import { drafts } from "../schema.js";
 import { CourseCreateServiceImpl, DRAFT_STALE_MS } from "../services/course-create-service.js";
 import { SqliteDraftStore } from "../services/draft-store.js";
-import type { DraftStreamEvent, Engine, Timestamp } from "../types/index.js";
+import type { DraftId, DraftStreamEvent, Engine, Timestamp } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
 const STUDENT_A = brandId<"StudentId">("student-durability-a");
@@ -230,7 +230,7 @@ describe("CourseCreateServiceImpl — sweepStale", () => {
       // Age stale1 and stale2 by setting lastTouchedAt to 8 days ago.
       const eightDaysAgo = (Date.now() - 8 * 24 * 60 * 60 * 1000) as Timestamp;
       for (const id of [stale1, stale2]) {
-        const d = store.load(id);
+        const d = store.load(brandId<"DraftId">(id) as DraftId);
         if (d) {
           d.lastTouchedAt = eightDaysAgo;
           store.save(d);
@@ -333,7 +333,7 @@ describe("CourseCreateServiceImpl — listActiveForStudent", () => {
 
     // Touch d1 more recently so it's first.
     const recentTs = (Date.now() + 1000) as Timestamp;
-    const draftD1 = store.load(d1);
+    const draftD1 = store.load(brandId<"DraftId">(d1) as DraftId);
     if (draftD1) {
       draftD1.lastTouchedAt = recentTs;
       store.save(draftD1);
