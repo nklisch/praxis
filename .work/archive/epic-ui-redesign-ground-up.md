@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up
 kind: epic
-stage: review
+stage: done
 tags: [ui]
 parent: null
 depends_on: []
@@ -244,3 +244,40 @@ The mocks are throwaway HTML — alignment artifacts, not production
 templates. The implementation translates the visual contract;
 fidelity to the locked direction is what matters, not pixel-level
 preservation.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none (one inline fix applied — `docs/UX.md § Student surface — Library`
+still described the old Phase 14 catalogue layout; rolled forward to the Workbench
+posture as part of this review commit)
+
+**Important**: none above what was already tracked at feature level
+
+**Nits**: none
+
+**Notes**: All 6 child features delivered and approved individually (4 Approve, 2
+Approve with comments). The cumulative epic delivers the full ground-up UI redesign
+as briefed:
+
+- **Design system** — Studio Quiet palette + System Editorial typography + `tokens.css`
+  consumed successfully by every downstream surface.
+- **App shell** — top horizontal nav, near-invisible status strip, italic deck-line
+  tabs strip in running head, theme toggle, first-run rebuild. Two doc-drift stories
+  rolled UX.md forward during implementation; this review rolled forward the Library
+  section.
+- **Chat workspace** — three-column layout, refined-bubble turns, tool-call
+  disclosure, per-mode tab bodies (quiz / homework / exam / study-skills / document),
+  side panels, sub-agent block inline.
+- **Discovery surfaces** — Workbench library (greeting + queue + timeline + footer),
+  5-step course-create entry flow, session-open polish. One open bug story tracked
+  (`course-create-ingestion-status-fix`).
+- **Workspace** — Catalogue rebuild, 4 note-editor formats (Cornell, Feynman, Outline,
+  Free), concept-map restyle, ask-tutor from note, chat-to-workspace inline panel,
+  review session flow.
+- **Configure** — Canvas + Side Chat shell, 4 sub-surface canvases (course / gates /
+  prompts / memory), entry-flow polish.
+
+No cross-cutting capability gaps or undocumented breaking changes. The `release_binding`
+is null; no parent; archiving.

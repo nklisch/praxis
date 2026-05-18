@@ -136,42 +136,45 @@ The lock is the **only** auth gate in the local-first deployment. It exists to k
 
 ## Student surface — Library
 
-The front door. Replaces what used to be `/courses` and `/packs` (and the implicit "where do my sessions live") with a single editorial table-of-contents. Lands in Phase 14.
+The front door. The **Workbench** posture — "where do I pick up?" rather than
+"what exists?" The library is a priority-ordered action surface, not a catalogue.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│   LIBRARY                                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   ¶  COURSES IN PROGRESS                                    │
-│      Algebra I            · wk 4    [ Continue → ]          │
-│      Linear Algebra       · wk 1    [ Continue → ]          │
-│                                                             │
-│   §  PACKS, AVAILABLE                                       │
-│      high-school algebra            [ Use this pack → ]     │
-│      intro statistics               [ Use this pack → ]     │
-│      intro geometry        (imported)  [ Use this pack → ]  │
-│                                                             │
-│   †  DOCUMENTS                                              │
-│      stewart-calc.pdf      · 642pp                          │
-│      tao-analysis.pdf      · 248pp                          │
-│      [ Add a document ]                                     │
-│                                                             │
-│   ‡  RECENT SESSIONS                                        │
-│      teach · algebra · fractions, redux       · Thurs 4pm   │
-│      bootstrap · setting up calculus          · Wed 2pm     │
-│      [ Browse all 24 → ]                                    │
-│                                                             │
+│   Good morning. There's three things ready for you.         │
+├──────────────────────────────┬──────────────────────────────┤
+│  WHAT'S NEXT                 │  LATELY                      │
+│                              │                              │
+│  ▶ Resume Algebra I          │  teach · algebra · fractions │
+│    Lesson 4 · fractions      │  yesterday                   │
+│                              │                              │
+│  ✦ Review 12 cards           │  course create · calculus    │
+│    Low-mastery · 3 concepts  │  Tue 2pm                     │
+│                              │                              │
+│  ✓ Quick check               │  quiz · algebra-3            │
+│    Algebra I · Unit 2        │  Mon 9am                     │
+│                              │                              │
+├──────────────────────────────┴──────────────────────────────┤
+│  [📦 Packs · 3]  [⬡ Concept maps · 5]  [+ Create a course] │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Affordances:**
 
-- **One front door, one mental model.** Materials (packs, documents) and your record of working with them (courses, sessions) live in one place. The IA mirrors how a student actually thinks about their learning: *what do I have to work with* and *what have I been doing*.
-- **Tab-opening primary actions.** Every item's primary action opens a new tab in the chat workspace, never replaces the current one. Continue Algebra in a new tab; the calculus tab stays open beside it.
-- **"Use this pack" as one-click course creation.** Imported packs offer a direct "Use this pack" CTA — no detour through bootstrap chat is required to get value from a pack you've imported. (The bootstrap-chat path remains available for users who want a conversation about tailoring the course.)
-- **Recent sessions are browsable.** Reopening a closed session reopens its tab. Archived sessions show their auto-generated summary as a deck under the title — past arcs visible like a reading list.
-- **Add a document opens ingestion.** The Phase 5 ingestion flow runs in the background; the student can navigate or open new tabs while it works.
+- **What's-next queue.** Left column shows priority-ordered recommendations from
+  `RecommendationService` (resume session, review due cards, practice low-mastery
+  concept, resume draft, quick check). Each row has a CTA that opens a session tab.
+- **Lately timeline.** Right column shows chronological recent sessions grouped by
+  age (Today / Yesterday / N days ago). Clicking reopens the session in a tab.
+- **Footer cards.** Packs, Concept maps, and Documents counts with quick-access links.
+  A "+ Create a course" highlighted card appears when the student has documents but
+  no fitting course — entry point to the 5-step course-create flow.
+- **Greeting line.** Names the count of ready things using natural language ("There's
+  three things ready for you."). Adapts to empty state and time of day.
+- **Tab-opening primary actions.** Every item's primary action opens a new tab in the
+  chat workspace, never replaces the current one.
+- **Recent sessions are browsable.** Reopening a closed session reopens its tab.
+  Archived sessions remain accessible via the lately timeline.
 
 ## Student surface — Tutor workspace
 
