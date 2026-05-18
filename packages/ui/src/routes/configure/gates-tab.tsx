@@ -14,6 +14,7 @@ import { GatesReadingView } from "../../components/gates-reading-view.js";
 import { useConceptNames } from "../../hooks/use-concept-names.js";
 import { useConfigureState } from "../../hooks/use-configure-state.js";
 import { useCourses } from "../../hooks/use-courses.js";
+import { useDirtyState } from "../../hooks/use-dirty-state.js";
 import { useGates } from "../../hooks/use-gates.js";
 import styles from "./gates-tab.module.css";
 
@@ -44,6 +45,9 @@ interface GatesTabProps {
  */
 export function GatesTab({ sessionId }: GatesTabProps) {
   const { selectedCourseId, setSelectedCourseId } = useConfigureState();
+  // Register this tab with the cross-tab dirty tracker. Gate mutations save
+  // immediately on confirm, so the tab-level dirty state is always clean.
+  useDirtyState("configure.gates");
   const { courses, loading: coursesLoading } = useCourses();
 
   const {

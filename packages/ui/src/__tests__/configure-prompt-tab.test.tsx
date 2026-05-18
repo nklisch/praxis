@@ -2,6 +2,7 @@ import type { LockClient, PraxisClient } from "@praxis/core/types";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { DirtyStateProvider } from "../contexts/dirty-state-provider.js";
 import { PromptTab } from "../routes/configure/prompt-tab.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
@@ -42,7 +43,9 @@ function makeClient(lockClient: LockClient = makeLockClient()): PraxisClient {
 function renderTab(client: PraxisClient = makeClient()) {
   return render(
     <PraxisClientProvider client={client}>
-      <PromptTab />
+      <DirtyStateProvider>
+        <PromptTab />
+      </DirtyStateProvider>
     </PraxisClientProvider>,
   );
 }

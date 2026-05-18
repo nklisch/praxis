@@ -5,6 +5,7 @@ import { LessonEditor } from "../../components/lesson-editor.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import { useConfigureState } from "../../hooks/use-configure-state.js";
 import { useCourses } from "../../hooks/use-courses.js";
+import { useDirtyState } from "../../hooks/use-dirty-state.js";
 import styles from "./course-tab.module.css";
 
 interface CourseTabProps {
@@ -25,6 +26,10 @@ interface CourseTabProps {
 export function CourseTab({ sessionId }: CourseTabProps) {
   const client = usePraxisClient();
   const { selectedCourseId, setSelectedCourseId } = useConfigureState();
+  // Register this tab with the cross-tab dirty tracker. Course mutations save
+  // immediately via LessonEditor, so the tab-level dirty state is always clean
+  // unless a future story propagates per-editor dirty state upward.
+  useDirtyState("configure.course");
   const { courses, loading: coursesLoading, error: coursesError } = useCourses();
 
   const [course, setCourse] = useState<Course | null>(null);

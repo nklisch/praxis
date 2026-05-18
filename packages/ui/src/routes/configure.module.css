@@ -115,6 +115,21 @@
   gap: 0.75rem;
 }
 
+.saveBar {
+  display: flex;
+  align-items: center;
+}
+
+.saveBarMessage {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-warning, #c97c10);
+  background: var(--color-warning-bg, #fff7e6);
+  border: 1px solid var(--color-warning-border, #f5c06e);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+}
+
 .sessionStatus {
   font-size: 0.75rem;
   color: var(--color-text-secondary, #999);

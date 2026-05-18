@@ -1,4 +1,5 @@
 import { MemoryInspectorTabs } from "../../components/memory-inspector-tabs.js";
+import { useDirtyState } from "../../hooks/use-dirty-state.js";
 import styles from "./memory-tab.module.css";
 
 /**
@@ -11,6 +12,11 @@ import styles from "./memory-tab.module.css";
  * The parent route owns the header (configure.tsx renders <RouteHeader>).
  */
 export function MemoryTab() {
+  // Register this tab with the cross-tab dirty tracker. Memory operations
+  // (reset concept, clear misconception) save immediately, so this tab is
+  // always clean at the tab level.
+  useDirtyState("configure.memory");
+
   return (
     <div className={styles.layout}>
       <header className={styles.header}>

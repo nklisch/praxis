@@ -4,7 +4,9 @@ import { RouteHeader } from "../components/route-header.js";
 import { getRouteMeta } from "../components/route-meta.js";
 import { UnlockModal } from "../components/unlock-modal.js";
 import { usePraxisClient } from "../context/client-context.js";
+import { DirtyStateProvider } from "../contexts/dirty-state-provider.js";
 import { ConfigureStateContext } from "../hooks/use-configure-state.js";
+import { useDirtyAggregate } from "../hooks/use-dirty-state.js";
 import { useLock } from "../hooks/use-lock.js";
 import { COPY } from "../lib/copy.js";
 import { CourseTab } from "./configure/course-tab.js";
@@ -21,6 +23,26 @@ const TABS: Array<{ id: ConfigureTab; label: string }> = [
   { id: "prompt", label: "Prompt" },
   { id: "memory", label: "Memory" },
 ];
+
+/**
+ * Save bar rendered inside <DirtyStateProvider> so it can read useDirtyAggregate.
+ * Shows nothing when nothing is dirty; shows "Unsaved" when one surface is
+ * dirty; shows "N unsaved across M surfaces" when multiple surfaces are dirty.
+ */
+function ConfigureSaveBar() {
+  const { surfaceCount } = useDirtyAggregate();
+
+  if (surfaceCount === 0) return null;
+
+  const message =
+    surfaceCount === 1 ? "Unsaved" : `${surfaceCount} unsaved across ${surfaceCount} surfaces`;
+
+  return (
+    <div className={styles.saveBar} role="status" aria-live="polite">
+      <span className={styles.saveBarMessage}>{message}</span>
+    </div>
+  );
+}
 
 /**
  * /configure route — the configurator workspace.
@@ -133,43 +155,46 @@ export function ConfigureRoute() {
   }
 
   return (
-    <ConfigureStateContext.Provider value={{ selectedCourseId, setSelectedCourseId }}>
-      <div className={styles.workspace}>
-        <RouteHeader
-          ornament={meta.ornament}
-          kicker={meta.kicker}
-          title={meta.title}
-          deck={meta.deck}
-        />
-        <div className={styles.tabBar}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`${styles.tabBtn} ${activeTab === tab.id ? styles.tabActive : ""}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-          <div className={styles.tabBarRight}>
-            <span className={styles.sessionStatus}>
-              {sessionError
-                ? COPY.error.generic("start the configure session")
-                : session
-                  ? "Configure session active"
-                  : COPY.loading.starting}
-            </span>
+    <DirtyStateProvider>
+      <ConfigureStateContext.Provider value={{ selectedCourseId, setSelectedCourseId }}>
+        <div className={styles.workspace}>
+          <RouteHeader
+            ornament={meta.ornament}
+            kicker={meta.kicker}
+            title={meta.title}
+            deck={meta.deck}
+          />
+          <div className={styles.tabBar}>
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`${styles.tabBtn} ${activeTab === tab.id ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+            <div className={styles.tabBarRight}>
+              <ConfigureSaveBar />
+              <span className={styles.sessionStatus}>
+                {sessionError
+                  ? COPY.error.generic("start the configure session")
+                  : session
+                    ? "Configure session active"
+                    : COPY.loading.starting}
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.tabContent}>
+            {activeTab === "course" && <CourseTab sessionId={session?.sessionId ?? null} />}
+            {activeTab === "gates" && <GatesTab sessionId={session?.sessionId ?? null} />}
+            {activeTab === "prompt" && <PromptTab />}
+            {activeTab === "memory" && <MemoryTab />}
           </div>
         </div>
-
-        <div className={styles.tabContent}>
-          {activeTab === "course" && <CourseTab sessionId={session?.sessionId ?? null} />}
-          {activeTab === "gates" && <GatesTab sessionId={session?.sessionId ?? null} />}
-          {activeTab === "prompt" && <PromptTab />}
-          {activeTab === "memory" && <MemoryTab />}
-        </div>
-      </div>
-    </ConfigureStateContext.Provider>
+      </ConfigureStateContext.Provider>
+    </DirtyStateProvider>
   );
 }

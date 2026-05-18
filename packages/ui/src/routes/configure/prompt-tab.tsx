@@ -1,8 +1,9 @@
 import { listModes } from "@praxis/curriculum/modes";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { PromptBlockStack } from "../../components/prompt-block-stack.js";
 import { StyleSlider } from "../../components/style-slider.js";
 import { usePraxisClient } from "../../context/client-context.js";
+import { useDirtyState } from "../../hooks/use-dirty-state.js";
 import { COPY } from "../../lib/copy.js";
 import styles from "./prompt-tab.module.css";
 
@@ -12,6 +13,7 @@ import styles from "./prompt-tab.module.css";
 
 function StyleSliderForm() {
   const client = usePraxisClient();
+  const { markDirty, markClean } = useDirtyState("configure.prompt");
 
   const [socratic, setSocratic] = useState(0);
   const [verbosity, setVerbosity] = useState(0);
@@ -19,6 +21,16 @@ function StyleSliderForm() {
   const [sliderSaving, setSliderSaving] = useState(false);
   const [sliderError, setSliderError] = useState<string | null>(null);
   const [sliderSaved, setSliderSaved] = useState(false);
+
+  // Mirror slider dirtiness into the cross-tab tracker.
+  const isSlidersDirty = socratic !== 0 || verbosity !== 0 || formality !== 0;
+  useEffect(() => {
+    if (isSlidersDirty) {
+      markDirty();
+    } else {
+      markClean();
+    }
+  }, [isSlidersDirty, markDirty, markClean]);
 
   const handleSliderSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -28,6 +40,7 @@ function StyleSliderForm() {
     try {
       await client.author.setStyleSliders({ socratic, verbosity, formality });
       setSliderSaved(true);
+      markClean();
       setTimeout(() => setSliderSaved(false), 3000);
     } catch (err) {
       setSliderError(err instanceof Error ? err.message : String(err));
