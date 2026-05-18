@@ -125,9 +125,11 @@ describe("ChatTabBody mode dispatcher", () => {
   it("renders exam kicker for modeId 'exam'", () => {
     const tab = makeTab({ modeId: "exam" });
     renderTab(tab);
-    const kickerElements = document.querySelectorAll("[class*='kickerMode']");
-    const texts = Array.from(kickerElements).map((el) => el.textContent);
-    expect(texts.some((t) => t === "exam")).toBe(true);
+    // ExamTabBody redesign: exam chrome uses examStrip with "proctored" text,
+    // not a kickerMode element. Assert the proctored strip is present.
+    const examStrip = document.querySelector("[class*='examStrip']");
+    expect(examStrip).not.toBeNull();
+    expect(examStrip?.textContent).toMatch(/proctored/i);
   });
 
   it("renders the chat composer for teach mode (default path)", () => {

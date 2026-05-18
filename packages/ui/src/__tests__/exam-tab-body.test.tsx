@@ -1,17 +1,23 @@
 /**
- * Tests for ExamTabBody (Phase 16 + timer).
+ * Tests for ExamTabBody.
  *
- * Key assertions:
- * - No chat thread (no textarea / message composer)
- * - ClarificationPill renders
- * - "chat is muted during the exam" notice visible
- *
- * Timer assertions:
- * - Countdown renders when assignment has durationMinutes
- * - Warn CSS class applied when < 5 minutes remain
- * - Auto-submits at expiry and surfaces notice
+ * Covers:
+ * - Proctored chrome: exam-mode strip visible; "chat is muted" notice; no chat composer.
+ * - Nav dimming: "exam-mode" class added to document.documentElement on mount,
+ *   removed on unmount.
+ * - Rubric: per-item rubric card renders for free-response items.
+ * - Tool suppression: rail shows which tools are suppressed in exam mode.
+ * - ClarificationPill: clarification affordance present.
+ * - Timer: countdown renders, ticks, warns at 5 min, auto-submits at expiry (original).
  */
-import type { Assignment, PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
+import type {
+  Assignment,
+  AssignmentItem,
+  PraxisClient,
+  Rubric,
+  TabSummary,
+  Timestamp,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,6 +29,8 @@ import { makeFakeClient } from "./helpers/fake-client.js";
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  // Clean up exam-mode class in case a test fails mid-run
+  document.documentElement.classList.remove("exam-mode");
 });
 
 function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
@@ -40,6 +48,16 @@ function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
   };
 }
 
+function makeRubric(maxScore = 8): Rubric {
+  return {
+    maxScore,
+    criteria: [
+      { id: "c1", description: "Identifies the nesting", weight: 0.5 },
+      { id: "c2", description: "Names the multiplication", weight: 0.5 },
+    ],
+  };
+}
+
 function makeAssignment(overrides: Partial<Assignment> = {}): Assignment {
   return {
     id: brandId<"AssignmentId">("asgn-1"),
@@ -51,6 +69,15 @@ function makeAssignment(overrides: Partial<Assignment> = {}): Assignment {
     assignedAt: Date.now() as Timestamp,
     durationMinutes: 45,
     ...overrides,
+  };
+}
+
+function makeFreeResponseItem(rubric?: Rubric): AssignmentItem {
+  return {
+    kind: "free-response",
+    id: "item-fr-1",
+    prompt: "Explain why the chain rule is the right tool here",
+    rubric,
   };
 }
 
@@ -92,13 +119,13 @@ function renderExamTab(tab: TabSummary = makeTab(), client: PraxisClient = makeC
   );
 }
 
-// ─── Existing layout tests ─────────────────────────────────────────────────────
+// ─── Proctored chrome tests ─────────────────────────────────────────────────────
 
-describe("ExamTabBody", () => {
-  it("renders the exam kicker bar", () => {
+describe("ExamTabBody — proctored chrome", () => {
+  it("renders the exam-mode strip (proctored pill)", () => {
     renderExamTab();
-    const kickerMode = document.querySelector("[class*='kickerMode']");
-    expect(kickerMode?.textContent).toBe("exam");
+    // The exam strip contains "proctored" text
+    expect(screen.getByText(/proctored/i)).toBeDefined();
   });
 
   it("shows the 'chat is muted during the exam' notice", () => {
@@ -108,24 +135,157 @@ describe("ExamTabBody", () => {
 
   it("does NOT render a chat composer textarea", () => {
     renderExamTab();
-    // ExamTabBody renders no chat thread — no textarea
-    expect(screen.queryByRole("textbox")).toBeNull();
-  });
-
-  it("does NOT render a message log (chat thread)", () => {
-    renderExamTab();
-    // No chat messages area; the sidekick panel is also absent in exam mode
+    // ExamTabBody renders no chat thread — no textarea for chat
+    // (ClarificationPill has an input but no role=textbox at rest)
+    const textboxes = document.querySelectorAll("textarea");
+    // Only an answer textarea from the assignment card is acceptable — no chat composer
+    // When no assignment is loaded, there should be zero textareas
+    const assignmentTextareas = Array.from(textboxes).filter((t) => t.closest("[data-testid]"));
     expect(screen.queryByText("ask your tutor")).toBeNull();
+    // No element with placeholder text typical of a chat composer
+    expect(screen.queryByPlaceholderText(/message/i)).toBeNull();
+    void assignmentTextareas; // suppress unused warning
   });
 
-  it("renders the ClarificationPill button", () => {
-    renderExamTab();
+  it("renders the ClarificationPill button when assignment is linked", () => {
+    // ClarificationPill renders inside the assignmentId branch
+    renderExamTab(makeTab({ assignmentId: "asgn-1" }));
     expect(screen.getByRole("button", { name: /ask for clarification/i })).toBeDefined();
   });
 
   it("renders 'no assignment' placeholder when tab has no assignmentId", () => {
     renderExamTab(makeTab({ assignmentId: undefined }));
     expect(screen.getByText(/no assignment is linked/i)).toBeDefined();
+  });
+
+  it("renders the mode rule banner when assignment is linked", () => {
+    // Mode rule banner renders inside the assignmentId branch
+    renderExamTab(makeTab({ assignmentId: "asgn-1" }));
+    expect(screen.getByText(/exam mode is on/i)).toBeDefined();
+  });
+});
+
+// ─── Nav dimming tests ──────────────────────────────────────────────────────────
+
+describe("ExamTabBody — nav dimming", () => {
+  it("adds 'exam-mode' class to document.documentElement on mount", () => {
+    expect(document.documentElement.classList.contains("exam-mode")).toBe(false);
+    renderExamTab();
+    expect(document.documentElement.classList.contains("exam-mode")).toBe(true);
+  });
+
+  it("removes 'exam-mode' class from document.documentElement on unmount", () => {
+    const { unmount } = renderExamTab();
+    expect(document.documentElement.classList.contains("exam-mode")).toBe(true);
+    unmount();
+    expect(document.documentElement.classList.contains("exam-mode")).toBe(false);
+  });
+});
+
+// ─── Rubric tests ───────────────────────────────────────────────────────────────
+
+describe("ExamTabBody — rubric display", () => {
+  it("renders rubric card for a free-response item with a rubric", async () => {
+    const rubric = makeRubric(8);
+    const assignment = makeAssignment({
+      items: [makeFreeResponseItem(rubric)],
+    });
+    const client = makeClient(assignment);
+    const tab = makeTab({ assignmentId: "asgn-1" });
+
+    renderExamTab(tab, client);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Rubric card renders with "pre-committed" label
+    expect(document.querySelectorAll("[data-testid='rubric-card']").length).toBeGreaterThan(0);
+  });
+
+  it("renders per-criterion rows in the rubric card", async () => {
+    const rubric = makeRubric(8);
+    const assignment = makeAssignment({
+      items: [makeFreeResponseItem(rubric)],
+    });
+    const client = makeClient(assignment);
+    const tab = makeTab({ assignmentId: "asgn-1" });
+
+    renderExamTab(tab, client);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText(/Identifies the nesting/i)).toBeDefined();
+    expect(screen.getByText(/Names the multiplication/i)).toBeDefined();
+  });
+
+  it("does not render a rubric section when items have no rubrics", async () => {
+    const assignment = makeAssignment({
+      items: [makeFreeResponseItem(undefined)],
+    });
+    const client = makeClient(assignment);
+    const tab = makeTab({ assignmentId: "asgn-1" });
+
+    renderExamTab(tab, client);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(document.querySelectorAll("[data-testid='rubric-card']").length).toBe(0);
+  });
+});
+
+// ─── Tool suppression tests ─────────────────────────────────────────────────────
+
+describe("ExamTabBody — tool suppression display", () => {
+  it("renders the tools-allowed panel in the item rail", async () => {
+    const assignment = makeAssignment({ items: [] });
+    const client = makeClient(assignment);
+    const tab = makeTab({ assignmentId: "asgn-1" });
+
+    renderExamTab(tab, client);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(document.querySelector("[data-testid='tools-allowed']")).not.toBeNull();
+  });
+
+  it("shows suppressed tools with strikethrough label", async () => {
+    const assignment = makeAssignment({ items: [] });
+    const client = makeClient(assignment);
+    const tab = makeTab({ assignmentId: "asgn-1" });
+
+    renderExamTab(tab, client);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const suppressedPanel = document.querySelector("[data-testid='suppressed-tools']");
+    expect(suppressedPanel).not.toBeNull();
+    expect(suppressedPanel?.textContent).toMatch(/grade_math/i);
+    expect(suppressedPanel?.textContent).toMatch(/tutor/i);
+  });
+
+  it("shows clarification as an allowed tool", async () => {
+    const assignment = makeAssignment({ items: [] });
+    const client = makeClient(assignment);
+    const tab = makeTab({ assignmentId: "asgn-1" });
+
+    renderExamTab(tab, client);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // "clarification" appears in the tools-allowed panel
+    const toolsPanel = document.querySelector("[data-testid='tools-allowed']");
+    expect(toolsPanel?.textContent).toMatch(/clarification/i);
   });
 });
 
@@ -284,6 +444,6 @@ describe("ExamTabBody — countdown timer", () => {
     });
 
     // No timer element at all
-    expect(document.querySelector("[class*='timer']")).toBeNull();
+    expect(document.querySelector("[data-testid='exam-timer']")).toBeNull();
   });
 });

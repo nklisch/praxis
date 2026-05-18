@@ -261,3 +261,14 @@ button {
   font-family: var(--font-display);
   font-style: italic;
 }
+
+/* ─── Exam mode chrome reduction ──────────────────────────────────────────────
+ * Applied while ExamTabBody is mounted — ExamTabBody adds "exam-mode" class to
+ * document.documentElement on mount and removes it on unmount.
+ * Dims the top-nav surface links to signal proctored mode; pointer-events: none
+ * prevents accidental navigation during the exam.
+ * ─────────────────────────────────────────────────────────────────────────── */
+.exam-mode nav[aria-label="Main navigation"] {
+  opacity: 0.4;
+  pointer-events: none;
+}

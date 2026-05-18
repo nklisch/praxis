@@ -1,4 +1,8 @@
-/* Exam tab body — proctored full-surface layout, no chat */
+/* Exam tab body — proctored full-surface layout.
+ * Visual contract: .mockups/screens/epic-ui-redesign-ground-up-chat-workspace/mode-exam.html
+ */
+
+/* ─── Root container ─────────────────────────────────────────────────────────── */
 
 .container {
   display: flex;
@@ -8,91 +12,432 @@
   height: 100%;
 }
 
-/* Kicker bar */
+/* ─── Kicker bar — exam-mode strip + timer ───────────────────────────────────── */
+
 .kicker {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 1rem;
-  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  gap: 16px;
+  padding: 10px 32px 8px;
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
-  background: var(--color-bg-secondary, #1a1a1a);
+  background: var(--color-bg-primary);
 }
 
-.kickerMode {
-  font-size: 0.65rem;
-  font-weight: 700;
+/* Exam-mode strip pill: "† Exam · proctored" with pulsing dot */
+.examStrip {
+  font: 600 11px / 1 var(--font-mono);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-warning); /* amber — exam is distinct from quiz/homework */
+  color: var(--tint-exam);
+  padding: 4px 10px;
+  background: color-mix(in oklab, var(--tint-exam) 12%, transparent);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.kickerTitle {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary, #aaa);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Pulsing dot inside the exam strip */
+.examPulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tint-exam);
+  animation: examPulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
-.kickerNotice {
-  font-size: 0.72rem;
-  color: var(--color-text-secondary, #aaa);
-  font-style: italic;
+@keyframes examPulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
-/* Countdown timer — shown in the kicker when the exam has a time limit */
+/* Countdown timer */
 .timer {
-  font-size: 0.72rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font: 600 14px / 1 var(--font-mono);
   letter-spacing: 0.04em;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--color-bg-tertiary, #2a2a2a);
-  border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.15));
-  color: var(--color-text-primary, #fff);
-  margin-left: auto; /* push to the right side of the kicker */
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
 }
 
 .timerWarn {
   composes: timer;
-  background: color-mix(in oklab, var(--color-warning, #f90) 18%, transparent);
-  border-color: var(--color-warning, #f90);
-  color: var(--color-warning, #f90);
+  background: color-mix(in oklab, var(--color-warning) 18%, transparent);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }
 
-/* One-line notice that appears above the body when time expires */
+.kickerNotice {
+  font: italic 12px / 1 var(--font-serif);
+  color: var(--color-text-tertiary);
+  margin-left: auto;
+}
+
+/* ─── Auto-submit notice bar ─────────────────────────────────────────────────── */
+
 .autoSubmitNotice {
-  padding: 0.35rem 1rem;
-  background: color-mix(in oklab, var(--color-warning, #f90) 14%, transparent);
-  border-bottom: 1px solid var(--color-warning, #f90);
-  font-size: 0.75rem;
-  color: var(--color-warning, #f90);
-  font-weight: 500;
+  padding: 6px 32px;
+  background: color-mix(in oklab, var(--color-warning) 14%, transparent);
+  border-bottom: 1px solid var(--color-warning);
+  font: 500 12px / 1.4 var(--font-sans);
+  color: var(--color-warning);
   flex-shrink: 0;
   text-align: center;
 }
 
-/* Body: full-width assignment, relative for ClarificationPill */
-.body {
+/* ─── Two-column surface layout ──────────────────────────────────────────────── */
+
+.surface {
+  display: grid;
+  grid-template-columns: 1fr 280px;
   flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem 2rem;
-  position: relative;
+  overflow: hidden;
 }
 
-.body > article {
-  max-width: 800px;
-  margin: 0 auto;
+/* ─── Main exam content ──────────────────────────────────────────────────────── */
+
+.examMain {
+  padding: 32px 36px;
+  overflow-y: auto;
 }
+
+/* Exam running head */
+.examHead {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 24px;
+}
+
+.examKicker {
+  font: 600 11px / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tint-exam);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.examKickerDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tint-exam);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.examTitle {
+  font: 500 italic 28px / 1.15 var(--font-display);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.examDeck {
+  font: italic 13px / 1.5 var(--font-serif);
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+/* ─── Mode rule banner ───────────────────────────────────────────────────────── */
+
+.modeRule {
+  background: color-mix(in oklab, var(--tint-exam) 10%, var(--color-bg-secondary));
+  border: 1px solid var(--tint-exam);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font: italic 13px / 1.6 var(--font-serif);
+  color: var(--color-text-primary);
+  margin-bottom: 24px;
+}
+
+.modeRuleLabel {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tint-exam);
+  font-style: normal;
+  margin-bottom: 6px;
+}
+
+/* ─── Assignment wrap ────────────────────────────────────────────────────────── */
+
+.assignmentWrap {
+  max-width: 800px;
+}
+
+/* ─── Per-item rubric section ────────────────────────────────────────────────── */
+
+.rubricSection {
+  margin-top: 32px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 24px;
+  max-width: 800px;
+}
+
+.rubricSectionHeading {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin: 0 0 16px;
+}
+
+.rubricItem {
+  margin-bottom: 20px;
+}
+
+.rubricItemMeta {
+  margin-bottom: 8px;
+}
+
+.rubricItemPrompt {
+  font: italic 14px / 1.5 var(--font-serif);
+  color: var(--color-text-secondary);
+}
+
+/* Rubric card */
+.rubricCard {
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.rubricHeading {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin: 0 0 10px;
+}
+
+.rubricCriteria {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 4px;
+}
+
+.critRow {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 0;
+  font: 13px / 1.5 var(--font-serif);
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.critRow:last-child {
+  border-bottom: none;
+}
+
+.critWeight {
+  font: 600 11px / 1 var(--font-mono);
+  color: var(--color-text-secondary);
+  min-width: 4ch;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.critDesc {
+  flex: 1;
+  color: var(--color-text-primary);
+}
+
+.rubricHint {
+  font: italic 11px / 1.5 var(--font-serif);
+  color: var(--color-text-tertiary);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+}
+
+/* ─── Clarification affordance ───────────────────────────────────────────────── */
+
+.clarificationWrap {
+  position: relative;
+  margin-top: 24px;
+  max-width: 800px;
+  min-height: 48px;
+}
+
+/* ─── No-assignment placeholder ──────────────────────────────────────────────── */
 
 .noAssignment {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-text-secondary, #aaa);
-  font-size: 0.9rem;
+  min-height: 200px;
+  color: var(--color-text-secondary);
+  font: italic 15px / 1.6 var(--font-serif);
+}
+
+/* ─── Right rail ─────────────────────────────────────────────────────────────── */
+
+.rail {
+  border-left: 1px solid var(--color-border);
+  padding: 24px 22px;
+  background: var(--color-bg-primary);
+  overflow-y: auto;
+}
+
+.railHeading {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Item status grid */
+.itemGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 4px;
+}
+
+.ix {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font: 600 11px / 1 var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+}
+
+.ixDone {
+  composes: ix;
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  border-color: var(--color-text-primary);
+}
+
+.ixCurrent {
+  composes: ix;
+  background: var(--tint-exam);
+  color: var(--color-text-inverse);
+  border-color: var(--tint-exam);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--tint-exam) 30%, transparent);
+}
+
+.ixFlagged {
+  composes: ix;
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+  border-color: var(--color-warning);
+}
+
+.itemGridMeta {
+  font: 11px / 1.4 var(--font-mono);
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+}
+
+/* Tools allowed panel */
+.toolsAllowed {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin: 14px 0;
+}
+
+.toolsAllowedHeading {
+  font: 600 9px / 1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin: 0 0 8px;
+}
+
+.toolRow {
+  font: italic 12px / 1.5 var(--font-serif);
+  color: var(--color-text-secondary);
+  padding: 3px 0;
+}
+
+.toolRowNo {
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+  font-style: normal;
+}
+
+/* Submit strip */
+.submitStrip {
+  background: color-mix(in oklab, var(--tint-exam) 12%, var(--color-bg-secondary));
+  border: 1px solid var(--tint-exam);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-top: 16px;
+}
+
+.submitStripHeading {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tint-exam);
+  margin: 0 0 8px;
+}
+
+.submitRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font: 12px / 1.5 var(--font-serif);
+  color: var(--color-text-secondary);
+}
+
+.submitVal {
+  font: 600 11px / 1 var(--font-mono);
+  color: var(--color-text-primary);
+  letter-spacing: 0.04em;
+}
+
+.submitBtn {
+  width: 100%;
+  margin-top: 10px;
+  background: var(--tint-exam);
+  color: var(--color-text-inverse);
+  border: 0;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font: 500 13px / 1 var(--font-sans);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.submitHint {
+  font: italic 11px / 1.4 var(--font-serif);
+  color: var(--color-text-tertiary);
+  margin-top: 8px;
+}
+
+/* ─── Nav dimming — applied via exam-mode class on document.documentElement ──── */
+/* When ExamTabBody mounts, it adds class="exam-mode" to the root element.
+ * This dims the app-shell nav links to signal proctored mode.
+ * TopNav's nav element uses the selector below. */
+:global(.exam-mode) :global(.runningHead) :global(.nav),
+:global(.exam-mode) header nav {
+  opacity: 0.4;
+  pointer-events: none;
 }
