@@ -1,7 +1,7 @@
 ---
 id: refactor-course-create-service-extract-modules-step-1-extract
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-course-create-service-extract-modules
 depends_on: []
@@ -169,3 +169,16 @@ This matches the story's explicit guidance: "if it requires `this.deps.*` access
 - `pnpm --filter @praxis/core test` — 1060 tests pass (86 test files)
 - `pnpm biome check packages/core/src/services/course-create-service.ts` — clean
 - `pnpm biome check packages/core/src/services/course-create/` — clean
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `normalizeConceptName` was duplicated into `draft-validator.ts` (the validator needs it for unit/assessment concept-name checks; the original copy stays in `course-create-service.ts` for `applyEdit`). Mild DRY violation but acceptable — a future consolidation could promote it to a shared `course-create/helpers.ts` or similar. Documented in agent's notes.
+- `createCourseFromPack` correctly stayed in the class per the escape hatch — pervasive `this.deps.*` usage including a pre-transaction `this.deps.db.select()` makes extraction require significant restructure. Future refactor if it becomes a pain point.
+- `Issue` re-exported from `course-create-service.ts` via `export type { Issue }` to preserve the existing public surface. Clean.
+
+**Notes**: Clean file-split mirroring the types-split shape from earlier this session. Validator (85 LoC) + persistence (252 LoC) extracted; course-create-service.ts dropped 1479→1157. Drizzle transaction semantics preserved verbatim — `persistDraftTx` still takes the `tx` parameter, still rolls back on throw. 1060 tests pass unmodified, including the extensive course-create-service test suites and the 1260-LoC `drafter.test.ts`. The `normalizeConceptName` duplication is the only nit; everything else is the intended split.
