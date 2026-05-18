@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-root-layout-top-nav
 kind: story
-stage: review
+stage: implementing
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Root layout — swap left-rail for top horizontal nav
@@ -106,3 +106,24 @@ downstream stories.
 ### Tests
 
 All 390 test files pass; 9 new tests added for `<TopNav>`.
+
+## Review (2026-05-18)
+
+**Verdict**: Request changes
+
+**Blockers**: foundation-doc drift — `<ActivityRail>` unmounted from `RootLayout` but docs still assert it is mounted at the router root
+  → Item: `epic-ui-redesign-ground-up-app-shell-root-layout-top-nav-doc-drift`
+
+**Important**: none
+
+**Nits**:
+- Story 2 (`status-strip`) scopes "Remove the existing `<ActivityRail />` mount" but this story already did it. Story 2 should drop that step to avoid confusion.
+
+**Notes**: The implementation is otherwise clean and complete. `<TopNav>` component matches the locked mock, CSS is verbatim from `option-3.html`, the right slot is correctly reserved for sibling stories, route stubs use `<RouteHeader>` editorial primitive correctly, and the 9 tests give good behavioral coverage (wordmark, accessible label, all 5 links, all 5 glyphs, href attributes, active/inactive CSS class). The sole blocker is that `docs/ARCHITECTURE.md` (line 13), `docs/UX.md` (lines 5, 75, 92), and `CLAUDE.md` (line 111) still claim `<ActivityRail>` is mounted at the router root — a stale assertion that will mislead agents working in adjacent areas. Rolling the docs forward is a one-commit fix tracked in the blocker story.
+
+## Review findings
+
+### Blockers
+
+- **Foundation-doc drift: `<ActivityRail>` still claimed as router-root mount** — `docs/ARCHITECTURE.md` line 13, `docs/UX.md` lines 5/75/92, and `CLAUDE.md` line 111 all assert `<ActivityRail>` is mounted at the router root. This story removed it; the docs must be rolled forward before the story can advance to done.
+  → Item: `epic-ui-redesign-ground-up-app-shell-root-layout-top-nav-doc-drift`
