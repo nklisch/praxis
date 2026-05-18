@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces-session-open-flow-polish
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-discovery-surfaces
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Session-open flow polish — animation, banner, scroll restoration
@@ -33,7 +33,49 @@ Polish the session-open flow:
 
 ## Acceptance criteria
 
-- [ ] New tabs animate in.
-- [ ] Resume shows the banner; fades.
-- [ ] Scroll restores to last-read.
-- [ ] All quality checks green.
+- [x] New tabs animate in.
+- [x] Resume shows the banner; fades.
+- [x] Scroll restores to last-read.
+- [x] All quality checks green.
+
+## Implementation notes
+
+### Tab slide-in animation (`tab-strip.tsx` + `tab-strip.module.css`)
+
+Added `@keyframes tabSlideIn` — max-width 0→300px + opacity 0→1 over 200ms with
+`ease-out`. The `TabStrip` component tracks which tab ids were present at mount
+(pre-populated into `seenTabIdsRef` synchronously so the initial render never
+animates). After mount, any tab id not yet in the seen-set gets `data-new-tab`
+and the `.tabNew` CSS class for 250ms, then the class is cleared via a
+`setTimeout`. This means re-opening the app with existing tabs never flashes,
+but the "+" new-session flow gets a smooth entrance.
+
+### ResumedBanner (`resumed-banner.tsx` + `resumed-banner.module.css`)
+
+Self-contained component with a 3s `@keyframes bannerReveal`: fast fade-in (10%),
+long hold (80%), fade-out + subtle upward drift (100%). Rendered inline at the
+top of the messages list — not overlaid — so it doesn't obstruct reading. Marked
+with `role="status"` + `aria-live="polite"`. Auto-dismissed after 3.2s via a
+`setTimeout` in `TeachChatTabBody`. Detection logic: `resumedDetectedRef` fires
+once when `items.length > 0` and `isStreaming` is false (history load batch, not
+a live send). The ref guard ensures the banner only ever shows once per mount.
+
+### Scroll restoration (`chat-tab-body.tsx`)
+
+localStorage key: `praxis.session.<sessionId>.scroll`. Restore fires via
+`useEffect` on `items.length` change — once `scrollRestoredRef` is unset and
+items are non-empty, reads the stored position and applies it via
+`requestAnimationFrame` (gives the layout one frame to settle before setting
+`scrollTop`). Persist side: `onScroll` debounced at 300ms via a
+`scrollSaveTimerRef`. Both read and write are O(1) localStorage operations;
+no IPC round-trip.
+
+### Tests
+
+- `tab-strip-slide-in.test.tsx` — 5 tests: initial tabs don't animate, new tabs
+  get `data-new-tab`, class clears after timer, only newly-added tabs animate.
+- `resumed-banner.test.tsx` — 8 tests: ARIA attrs, label text, title, dot
+  ornament, empty title, aria-label content.
+- `chat-tab-body-scroll-restore.test.tsx` — 5 tests: key scoping, debounced
+  save, no-crash on missing stored value, key-per-session-id invariant, scroll
+  handler attachment.

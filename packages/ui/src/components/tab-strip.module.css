@@ -127,6 +127,38 @@
   color: var(--color-text-primary);
 }
 
+/* ── Tab slide-in animation ──────────────────────────────────────────────── */
+
+/**
+ * New tabs animate in: expand from 0 width + fade in over 200ms.
+ * Applied via the .tabNew class which is added by TabStrip on the first render
+ * of a tab id it hasn't seen before.
+ *
+ * Implementation note: `max-width` animates from 0 to the natural width
+ * because width/max-width can be animated with CSS whereas `width: auto` cannot.
+ * The tab's inline-flex layout means the content drives intrinsic size;
+ * max-width starts at 0 (clamping the content) and expands to a generous
+ * ceiling. After the animation the max-width property is removed via the
+ * .tab rule override so the value has no ongoing effect.
+ */
+@keyframes tabSlideIn {
+  from {
+    opacity: 0;
+    max-width: 0;
+    /* Ensure the separator pseudo-element doesn't flash before the tab appears */
+    margin-left: 0;
+  }
+  to {
+    opacity: 1;
+    max-width: 300px;
+  }
+}
+
+.tabNew {
+  animation: tabSlideIn 200ms ease-out forwards;
+  overflow: hidden;
+}
+
 /* ── Parent-child decoration ─────────────────────────────────────────────── */
 
 /**

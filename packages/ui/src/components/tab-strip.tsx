@@ -1,5 +1,5 @@
 import type { TabId, TabSummary } from "@praxis/core/types";
-import type { CSSProperties, JSX } from "react";
+import { type CSSProperties, type JSX, useEffect, useRef, useState } from "react";
 import { useParentChildOptional } from "../context/parent-child-context.js";
 import { getModeMeta } from "./mode-meta.js";
 import styles from "./tab-strip.module.css";
@@ -23,6 +23,53 @@ export function TabStrip({
   // Optional — renders in contexts where ParentChildProvider is not mounted
   // (e.g. storybooks, test harnesses). Pill and pulse are suppressed cleanly.
   const parentChild = useParentChildOptional();
+
+  // ── Slide-in animation tracking ─────────────────────────────────────────
+  // Track tab ids seen at mount and in subsequent renders. Tabs not in the
+  // seen set on re-renders (after the first mount) get the .tabNew class
+  // which triggers the CSS slide-in keyframe. The initial render never
+  // animates — only new tabs added after mount do.
+  //
+  // Implementation: populate seenTabIdsRef with the initial tab ids before
+  // any effect runs, so the first useEffect invocation detects 0 new ids
+  // (all were "seen" at init time). Only subsequent tab additions animate.
+  const seenTabIdsRef = useRef<Set<TabId>>(new Set(tabs.map((t) => t.id)));
+  const hasMountedRef = useRef(false);
+  const [animatingTabIds, setAnimatingTabIds] = useState<Set<TabId>>(new Set());
+
+  useEffect(() => {
+    // Skip the effect on the very first run (initial mount): seenTabIdsRef
+    // was pre-populated with initial tab ids so there are no "new" tabs.
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    const newIds = tabs.map((t) => t.id).filter((id) => !seenTabIdsRef.current.has(id));
+    // Mark all current tabs as seen before scheduling the clear-timer so
+    // rapid re-renders don't re-animate already-animating tabs.
+    for (const id of tabs.map((t) => t.id)) {
+      seenTabIdsRef.current.add(id);
+    }
+    if (newIds.length === 0) return;
+
+    setAnimatingTabIds((prev) => {
+      const next = new Set(prev);
+      for (const id of newIds) next.add(id);
+      return next;
+    });
+
+    // Clear the animation class after the keyframe completes + a small buffer.
+    const timer = setTimeout(() => {
+      setAnimatingTabIds((prev) => {
+        const next = new Set(prev);
+        for (const id of newIds) next.delete(id);
+        return next;
+      });
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [tabs]);
 
   return (
     <div className={styles.strip} role="tablist" aria-label="Open sessions">
@@ -61,13 +108,16 @@ export function TabStrip({
         // element remounts (restarting the CSS keyframe) on rapid-fire notes.
         const pulseKey = sessionId !== undefined ? (parentChild?.getPulseKey(sessionId) ?? 0) : 0;
 
+        const isNew = animatingTabIds.has(tab.id);
+
         return (
           <button
             key={tab.id}
             type="button"
             role="tab"
             aria-selected={isActive}
-            className={`${styles.tab}${isActive ? ` ${styles.active}` : ""}`}
+            data-new-tab={isNew || undefined}
+            className={`${styles.tab}${isActive ? ` ${styles.active}` : ""}${isNew ? ` ${styles.tabNew}` : ""}`}
             style={{ "--mode-tint": meta.tint } as CSSProperties}
             onClick={() => onSwitch(tab.id)}
             onMouseDown={(e) => {

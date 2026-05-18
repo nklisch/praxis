@@ -21,6 +21,7 @@ import { AssignmentCard } from "./assignment-card.js";
 import { AuthGate } from "./auth-gate.js";
 import { BootstrapTabBody } from "./bootstrap-tab-body.js";
 import styles from "./chat-tab-body.module.css";
+import { ResumedBanner } from "./resumed-banner.js";
 import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
 import { DocumentTabBody } from "./document-tab-body.js";
@@ -170,6 +171,75 @@ export function TeachChatTabBody({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const composerTextareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // ── Scroll restoration ────────────────────────────────────────────────────
+  // Persist last scroll position per session id so re-opening a tab restores
+  // the student's reading position. Key: praxis.session.<id>.scroll
+  const scrollStorageKey = `praxis.session.${tab.sessionId}.scroll`;
+  const scrollRestoredRef = useRef(false);
+
+  // Restore scroll once after history loads (items go from 0 → n on first load).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: restore once; refs and storageKey stable
+  useEffect(() => {
+    if (scrollRestoredRef.current) return;
+    if (items.length === 0) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    scrollRestoredRef.current = true;
+    const stored = localStorage.getItem(scrollStorageKey);
+    if (stored !== null) {
+      const savedTop = Number(stored);
+      if (Number.isFinite(savedTop) && savedTop > 0) {
+        // Use requestAnimationFrame to let the layout settle before restoring.
+        requestAnimationFrame(() => {
+          container.scrollTop = savedTop;
+        });
+      }
+    }
+  }, [items.length]);
+
+  // Persist scroll position on scroll (debounced to ~300ms).
+  const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleScroll = useCallback(() => {
+    if (scrollSaveTimerRef.current !== null) {
+      clearTimeout(scrollSaveTimerRef.current);
+    }
+    scrollSaveTimerRef.current = setTimeout(() => {
+      const container = messagesContainerRef.current;
+      if (container) {
+        localStorage.setItem(scrollStorageKey, String(container.scrollTop));
+      }
+    }, 300);
+  }, [scrollStorageKey]);
+
+  // ── Resumed banner ────────────────────────────────────────────────────────
+  // Show a brief "Resumed" banner when history loads with existing items.
+  // A session is "resumed" when the initial history load returns >0 items
+  // (as opposed to a brand-new session that starts empty).
+  // We track this with a ref so the banner renders exactly once per mount.
+  const resumedDetectedRef = useRef(false);
+  const [showResumedBanner, setShowResumedBanner] = useState(false);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fire once on first non-empty history load
+  useEffect(() => {
+    if (resumedDetectedRef.current) return;
+    if (items.length === 0) return;
+    // Only show banner if this isn't a live-streaming first message
+    // (isStreaming would be true for new sends; history loads are synchronous
+    // batches that arrive while isStreaming is false).
+    if (isStreaming) return;
+
+    resumedDetectedRef.current = true;
+    setShowResumedBanner(true);
+
+    // Auto-dismiss after the banner animation completes (3s).
+    const timer = setTimeout(() => {
+      setShowResumedBanner(false);
+    }, 3200);
+
+    return () => clearTimeout(timer);
+  }, [items.length, isStreaming]);
+
   // Scroll to bottom only when the user is near the bottom (within 80px).
   // This prevents new items from yanking the view when the user has scrolled up.
   const messageCount = items.length;
@@ -241,7 +311,8 @@ export function TeachChatTabBody({
         />
       )}
 
-      <div ref={messagesContainerRef} className={styles.messages}>
+      <div ref={messagesContainerRef} className={styles.messages} onScroll={handleScroll}>
+        {showResumedBanner && <ResumedBanner title={tab.title} />}
         {items.length === 0 && (
           <p className={styles.emptyState}>Start a conversation with your tutor.</p>
         )}

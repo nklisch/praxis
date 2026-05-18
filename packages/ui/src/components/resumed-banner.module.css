@@ -1,0 +1,89 @@
+/**
+ * ResumedBanner styles.
+ *
+ * Animation timeline:
+ *   0%   → opacity 0, translateY(-4px)   (invisible, slightly above)
+ *   10%  → opacity 1, translateY(0)      (fully visible — fast fade-in)
+ *   80%  → opacity 1, translateY(0)      (hold)
+ *   100% → opacity 0, translateY(-4px)   (fade out + slight upward drift)
+ *
+ * Total: 3s. After the keyframe completes the element has opacity 0 (forwards
+ * fill). The component can then unmount cleanly or be left in the DOM — in
+ * practice React keeps it mounted until the parent re-renders without it.
+ */
+
+@keyframes bannerReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-md, 4px);
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  /* Self-contained: positioned inline in the message flow, not overlaid. */
+  align-self: center;
+  /* Animation: fast-in, hold, fade-out over 3s total. */
+  animation: bannerReveal 3s ease-out forwards;
+  /* Prevent it from getting in the way of the layout while faded. */
+  pointer-events: none;
+  user-select: none;
+}
+
+.dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent, #7ba4db);
+  flex-shrink: 0;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  /* Truncate long titles gracefully */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 24ch;
+}
+
+/* Separator between label and title — rendered via .title::before */
+.title::before {
+  content: "— ";
+  font-style: normal;
+  color: var(--color-text-tertiary);
+  margin-right: 2px;
+}
