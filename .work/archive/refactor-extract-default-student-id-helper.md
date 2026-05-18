@@ -1,7 +1,7 @@
 ---
 id: refactor-extract-default-student-id-helper
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -96,3 +96,13 @@ const studentId = getStudentId();
 - `grep -cn 'getStudentId()' ipc-server.ts` → **41**
 
 **Baseline confirmation**: 3 pre-existing typecheck errors in `ui/src` files (`chat-tab-body.tsx`, `chat.tsx`, `notes-list.tsx`) unchanged. 2 pre-existing biome warnings (unused suppression + noExplicitAny on `LessonId` passthrough) unchanged. 1 pre-existing test failure in `@praxis/ui` (`use-fragment-overrides.test.tsx`) unchanged. No new errors or failures introduced.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Closure-local helper at lines 92-93, typed `(): StudentId` so the brand flows back without per-call recast. 41 call sites collapsed to `const studentId = getStudentId();`. Grep verification confirms: 1 definition + 41 call sites, zero remaining inline brand casts. No new typecheck/lint errors beyond baseline.
