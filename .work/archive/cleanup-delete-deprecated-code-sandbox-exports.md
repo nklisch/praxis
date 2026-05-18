@@ -1,7 +1,7 @@
 ---
 id: cleanup-delete-deprecated-code-sandbox-exports
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -98,3 +98,13 @@ remains as the sole export, consumed by `services.ts`.
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean deletion of 46 lines of dead code. The discovery gap (test file `code-sandbox.test.ts` was an unflagged consumer) was handled cleanly in-session by migrating the test to derive constants from `createCodeSandboxTool(mockSandbox)` instead of importing the deprecated symbols. The factory-derived test constants preserve test behavior verbatim — 12/12 pass unchanged. `ToolDefinition` import remains valid (still used in the factory return type). `@deprecated` grep returns zero results in the file. Net file reduction 126→78 lines as predicted.
