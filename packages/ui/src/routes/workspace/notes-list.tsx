@@ -1,16 +1,22 @@
-import type { Note, NoteBody } from "@praxis/core/types";
-import { parseNoteBody } from "@praxis/core/types";
+import type { NoteBody } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { MarkdownContent } from "../../components/markdown-content.js";
+import { useCallback, useState } from "react";
+import { ArtifactCard } from "../../components/artifact-card.js";
+import {
+  CatalogueFilterRail,
+  type CatalogueFilters,
+  DEFAULT_FILTERS,
+} from "../../components/catalogue-filter-rail.js";
+import { CatalogueSearchBox } from "../../components/catalogue-search-box.js";
 import { NoteFormatPicker } from "../../components/note-format-picker.js";
 import { usePraxisClient } from "../../context/client-context.js";
-import { useNotes } from "../../hooks/use-notes.js";
+import { useResource } from "../../hooks/use-resource.js";
 import styles from "./notes-list.module.css";
+
+// ── Note format helpers ───────────────────────────────────────────────────────
 
 type NoteFormat = "cornell" | "feynman" | "outline" | "free";
 
-/** Empty body for each format when creating a new note. */
 function emptyBody(format: NoteFormat): NoteBody {
   switch (format) {
     case "cornell":
@@ -24,25 +30,55 @@ function emptyBody(format: NoteFormat): NoteBody {
   }
 }
 
+// ── Recency constant ──────────────────────────────────────────────────────────
+
+/** 24 hours in milliseconds — "recent today" filter window. */
+const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// ── NotesListTab (Catalogue) ──────────────────────────────────────────────────
+
 /**
- * Notes tab in the workspace — list of notes with format filter.
- * "New note" opens the format picker modal then creates and navigates.
+ * Workspace Catalogue — search-first flat index of every artifact the student
+ * has made: notes (all formats), flashcards, sketches surface together with the
+ * same card primitive, distinguished by mono kicker.
  *
- * No RouteHeader: this is a tab panel inside <WorkspaceRoute>, not a standalone route.
- * The parent route owns the header (workspace.tsx renders <RouteHeader>).
+ * Layout: big italic search box at top, left filter rail, result grid.
+ * Filters compose with AND semantics; search is debounced 250 ms.
+ *
+ * No RouteHeader: this is a tab panel inside <WorkspaceRoute>.
  */
 export function NotesListTab() {
   const client = usePraxisClient();
   const navigate = useNavigate();
-  const [formatFilter, setFormatFilter] = useState<NoteFormat | "all">("all");
+
+  // ── State ──
+  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<CatalogueFilters>(DEFAULT_FILTERS);
   const [showFormatPicker, setShowFormatPicker] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  const { notes, loading, error, refresh } = useNotes(
-    formatFilter !== "all" ? { format: formatFilter } : {},
-  );
+  // ── Library search ──
+  const loader = useCallback(() => {
+    const params: Parameters<typeof client.library.search>[0] = {};
+    if (query.trim()) params.query = query.trim();
+    if (filters.saved === "due") params.dueOnly = true;
+    if (filters.saved === "recent") params.recentWindowMs = RECENT_WINDOW_MS;
+    if (filters.saved === "orphan") params.orphan = true;
+    return client.library.search(params);
+  }, [client, query, filters.saved]);
 
+  const { data: allHits, loading, error } = useResource(loader);
+
+  // ── Client-side format facet (cheap, no round-trip) ──
+  const hits = (allHits ?? []).filter((h) => {
+    if (filters.format === "all") return true;
+    if (filters.format === "note") return h.kind === "note";
+    if (filters.format === "flashcard") return h.kind === "flashcard";
+    return true;
+  });
+
+  // ── New-note handlers ──
   const handleNewNote = () => {
     setShowFormatPicker(true);
     setCreateError(null);
@@ -65,28 +101,81 @@ export function NotesListTab() {
     }
   };
 
+  // ── Card navigation ──
+  const handleCardClick = useCallback(
+    (hit: (typeof hits)[number]) => {
+      if (hit.kind === "note") {
+        navigate({ to: "/workspace/notes/$noteId", params: { noteId: hit.id } });
+      }
+      // Flashcard navigation: for now, navigate to cards list
+      // (full flashcard editor routing is a separate story)
+    },
+    [navigate],
+  );
+
+  // ── Render ──
   return (
-    <div className={styles.layout}>
-      <div className={styles.toolbar}>
-        <div className={styles.filters}>
-          {(["all", "cornell", "feynman", "outline", "free"] as const).map((f) => (
-            <button
-              key={f}
-              type="button"
-              className={`${styles.filterBtn} ${formatFilter === f ? styles.active : ""}`}
-              onClick={() => setFormatFilter(f)}
-            >
-              {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-        </div>
-        <button type="button" className={styles.newBtn} onClick={handleNewNote} disabled={creating}>
-          {creating ? "Creating…" : "+ New note"}
-        </button>
+    <div>
+      {/* ── Catalogue head ── */}
+      <header className={styles.catalogueHead}>
+        <p className={styles.kicker}>¶ workspace · the catalogue</p>
+        <h1 className={styles.headTitle}>
+          Everything you&apos;ve <em>made</em>
+        </h1>
+        {loading ? (
+          <CatalogueSearchBox onSearchChange={setQuery} />
+        ) : (
+          <CatalogueSearchBox onSearchChange={setQuery} resultCount={hits.length} />
+        )}
+      </header>
+
+      {/* ── Two-column layout ── */}
+      <div className={styles.layout}>
+        <CatalogueFilterRail filters={filters} onChange={setFilters} />
+
+        <main className={styles.results} aria-label="Catalogue results" aria-busy={loading}>
+          {createError && <p className={styles.error}>{createError}</p>}
+
+          {loading && <p className={styles.status}>Loading…</p>}
+          {!loading && error && <p className={styles.error}>{error}</p>}
+
+          {!loading && !error && hits.length === 0 && (
+            <div className={styles.empty}>
+              <p className={styles.emptyPrimary}>
+                {query || filters.saved ? "No matches." : "Nothing here yet."}
+              </p>
+              <p className={styles.emptyHint}>
+                {query || filters.saved
+                  ? "Try a different search or clear the filters."
+                  : "Take your first note — pick a format and start writing."}
+              </p>
+              {!query && !filters.saved && (
+                <button
+                  type="button"
+                  className={styles.newBtn}
+                  onClick={handleNewNote}
+                  disabled={creating}
+                >
+                  {creating ? "Creating…" : "+ New note"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {!loading &&
+            !error &&
+            hits.length > 0 &&
+            hits.map((hit) => (
+              <ArtifactCard
+                key={`${hit.kind}-${hit.id}`}
+                hit={hit}
+                onClick={() => handleCardClick(hit)}
+              />
+            ))}
+        </main>
       </div>
 
-      {createError && <p className={styles.error}>{createError}</p>}
-
+      {/* ── Format picker modal ── */}
       {showFormatPicker && (
         <div className={styles.pickerOverlay}>
           <div className={styles.pickerModal}>
@@ -97,125 +186,6 @@ export function NotesListTab() {
           </div>
         </div>
       )}
-
-      {loading && <p className={styles.status}>Loading notes…</p>}
-      {error && <p className={styles.error}>{error}</p>}
-
-      {!loading && !error && notes.length === 0 && (
-        <div className={styles.empty}>
-          <p className={styles.emptyPrimary}>No notes yet.</p>
-          <p className={styles.emptyHint}>
-            Take your first note — pick a format and start writing.
-          </p>
-          <button type="button" className={styles.newBtn} onClick={handleNewNote}>
-            + New note
-          </button>
-        </div>
-      )}
-
-      {notes.length > 0 && (
-        <ul className={styles.list}>
-          {notes.map((note) => (
-            <NoteListItem
-              key={note.id}
-              note={note}
-              onOpen={() =>
-                navigate({ to: "/workspace/notes/$noteId", params: { noteId: note.id } })
-              }
-              onDelete={async () => {
-                await client.notes.delete(note.id);
-                await refresh();
-              }}
-            />
-          ))}
-        </ul>
-      )}
     </div>
-  );
-}
-
-// ── NoteListItem helpers ──────────────────────────────────────────────────────
-
-/**
- * Extract the primary text from a parsed NoteBody for markdown preview.
- * Free notes use `text` directly (already markdown).
- * Cornell uses the first detail entry (the note content column).
- * Feynman uses `explanation`.
- * Outline uses the root node text.
- * Sketch notes have no textual content.
- */
-function noteBodyToMarkdown(body: NoteBody): string {
-  switch (body.kind) {
-    case "free":
-      return body.text;
-    case "cornell":
-      return body.details[0] ?? body.questions[0] ?? body.summary;
-    case "feynman":
-      return body.explanation;
-    case "outline":
-      return body.root.text;
-    case "sketch":
-      return "";
-  }
-}
-
-// ── NoteListItem ──────────────────────────────────────────────────────────────
-
-interface NoteListItemProps {
-  note: Note;
-  onOpen: () => void;
-  onDelete: () => Promise<void>;
-}
-
-function NoteListItem({ note, onOpen, onDelete }: NoteListItemProps) {
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!window.confirm("Delete this note?")) return;
-    setDeleting(true);
-    try {
-      await onDelete();
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  let previewContent = "";
-  if (note.body) {
-    try {
-      const parsed = parseNoteBody(note.format, note.body);
-      previewContent = noteBodyToMarkdown(parsed);
-    } catch {
-      previewContent = note.body.slice(0, 80);
-    }
-  }
-
-  return (
-    <li className={styles.noteItem}>
-      <button type="button" className={styles.noteBtn} onClick={onOpen}>
-        <div className={styles.noteHeader}>
-          <span className={styles.formatBadge}>{note.format}</span>
-          <time className={styles.noteDate}>{new Date(note.updatedAt).toLocaleDateString()}</time>
-        </div>
-        <div className={styles.notePreview}>
-          {previewContent ? (
-            <MarkdownContent content={previewContent} />
-          ) : (
-            <span className={styles.notePreviewEmpty}>(empty)</span>
-          )}
-        </div>
-      </button>
-      <button
-        type="button"
-        className={styles.deleteBtn}
-        onClick={handleDelete}
-        disabled={deleting}
-        aria-label="Delete note"
-        title="Delete"
-      >
-        ×
-      </button>
-    </li>
   );
 }

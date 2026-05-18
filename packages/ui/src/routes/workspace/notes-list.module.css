@@ -1,242 +1,100 @@
+/* Catalogue — workspace search-first flat index */
+
+.catalogueHead {
+  padding: 24px 0 20px;
+}
+
+.kicker {
+  font: var(--font-weight-semibold) var(--font-size-xs) / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.headTitle {
+  font: var(--font-weight-medium) italic 32px / 1.1 var(--font-display);
+  color: var(--color-text-primary);
+  margin: 0 0 16px;
+}
+
+/* Two-column layout: filter rail + result grid */
 .layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  padding: 1rem 1.5rem;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 32px;
+  padding-top: 8px;
+  align-items: start;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-shrink: 0;
+/* ── Result grid ── */
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  align-content: start;
 }
 
-.filters {
-  display: flex;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-}
-
-.filterBtn {
-  background: transparent;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  color: var(--color-text-secondary, #aaa);
-  border-radius: 20px;
-  font-size: 0.8rem;
-  padding: 0.25rem 0.65rem;
-  cursor: pointer;
-  transition:
-    color 0.15s,
-    border-color 0.15s,
-    background 0.15s;
-  font-family: inherit;
-}
-
-.filterBtn:hover {
-  color: var(--color-text-primary, inherit);
-  border-color: var(--color-text-secondary, #aaa);
-}
-
-.filterBtn.active {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: var(--color-accent, #6366f1);
-  color: var(--color-accent, #6366f1);
-}
-
-.newBtn {
-  background: var(--color-accent, #6366f1);
-  color: #fff; /* intentional literal: button text always white regardless of theme */
-  border: none;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.4rem 0.85rem;
-  cursor: pointer;
-  transition: opacity 0.15s;
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-.newBtn:hover:not(:disabled) {
-  opacity: 0.85;
-}
-
-.newBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* ── Status states ── */
 
 .status {
-  color: var(--color-text-secondary, #aaa);
-  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font: var(--font-size-sm) / 1.5 var(--font-serif);
+  font-style: italic;
   margin: 0;
+  grid-column: 1 / -1;
 }
 
 .error {
   color: var(--color-danger);
-  font-size: 0.9rem;
+  font: var(--font-size-sm) / 1.5 var(--font-serif);
   margin: 0;
+  grid-column: 1 / -1;
 }
 
 .empty {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  gap: 0.5rem;
-  text-align: center;
-  padding: 3rem 1rem;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 32px 0;
 }
 
 .emptyPrimary {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text-primary, inherit);
+  font: var(--font-weight-medium) italic var(--font-size-base) / 1.3 var(--font-display);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .emptyHint {
-  font-size: 0.88rem;
-  color: var(--color-text-secondary, #aaa);
-  max-width: 36ch;
+  font: var(--font-size-sm) / 1.55 var(--font-serif);
+  color: var(--color-text-secondary);
   margin: 0;
-  line-height: 1.5;
 }
 
-.list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  overflow-y: auto;
-  flex: 1;
-}
+/* ── New-note CTA ── */
 
-.noteItem {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  background: var(--color-bg-secondary, #1e1e2e);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-  border-radius: 8px;
-  overflow: hidden;
-  transition: border-color 0.15s;
-}
-
-.noteItem:hover {
-  border-color: var(--color-accent, #6366f1);
-}
-
-.noteBtn {
-  flex: 1;
-  background: transparent;
+.newBtn {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
   border: none;
-  cursor: pointer;
-  text-align: left;
-  padding: 0.7rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-family: inherit;
-}
-
-.noteHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.formatBadge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  font: var(--font-weight-semibold) var(--font-size-sm) / 1 var(--font-mono);
   letter-spacing: 0.04em;
-  background: rgba(99, 102, 241, 0.15);
-  color: var(--color-accent, #6366f1);
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-}
-
-.noteDate {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
-  margin-left: auto;
-}
-
-.notePreview {
-  font-size: 0.84rem;
-  color: var(--color-text-secondary, #aaa);
-  overflow: hidden;
-  max-width: 60ch;
-  /* Allow long words / URLs to wrap rather than overflow the cell */
-  overflow-wrap: anywhere;
-  /* Clamp the preview to 3 lines */
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-
-/* Constrain markdown elements that would otherwise dominate the preview cell */
-.notePreview :global(p),
-.notePreview :global(ul),
-.notePreview :global(ol),
-.notePreview :global(blockquote) {
-  margin: 0;
-}
-
-.notePreview :global(h1),
-.notePreview :global(h2),
-.notePreview :global(h3),
-.notePreview :global(h4),
-.notePreview :global(h5),
-.notePreview :global(h6) {
-  font-size: 0.84rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.notePreview :global(img) {
-  max-width: 100%;
-  height: auto;
-}
-
-.notePreview :global(pre),
-.notePreview :global(code) {
-  font-size: 0.8rem;
-}
-
-.notePreviewEmpty {
-  font-style: italic;
-  opacity: 0.6;
-}
-
-.deleteBtn {
-  background: transparent;
-  border: none;
-  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-  color: var(--color-text-secondary, #aaa);
-  font-size: 1.1rem;
+  padding: 8px 16px;
   cursor: pointer;
-  padding: 0 0.75rem;
-  transition:
-    color 0.15s,
-    background 0.15s;
+  transition: background 0.12s;
+  text-transform: uppercase;
 }
 
-.deleteBtn:hover:not(:disabled) {
-  color: var(--color-danger);
-  background: rgba(248, 113, 113, 0.08);
+.newBtn:hover:not(:disabled) {
+  background: var(--color-accent-hover);
 }
 
-.deleteBtn:disabled {
-  opacity: 0.4;
+.newBtn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -245,7 +103,7 @@
 .pickerOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -253,9 +111,9 @@
 }
 
 .pickerModal {
-  background: var(--color-bg-secondary, #1e1e2e);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  border-radius: 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   max-width: 500px;
   width: 90%;

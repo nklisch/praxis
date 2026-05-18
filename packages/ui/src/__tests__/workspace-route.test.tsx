@@ -17,6 +17,9 @@ afterEach(() => cleanup());
 
 function makeClient(notes: Note[] = [], cards: Flashcard[] = []): PraxisClient {
   return makeFakeClient({
+    library: {
+      search: vi.fn().mockResolvedValue([]),
+    } as PraxisClient["library"],
     notes: {
       list: vi.fn().mockResolvedValue(notes),
       create: vi.fn().mockResolvedValue(notes[0]),
@@ -52,15 +55,16 @@ describe("WorkspaceRoute", () => {
     expect(screen.getByRole("tab", { name: "Review" })).toBeDefined();
   });
 
-  it("shows Notes tab content by default (empty state)", async () => {
+  it("shows Catalogue (notes tab) heading by default", async () => {
     render(
       <PraxisClientProvider client={makeClient()}>
         <WorkspaceRoute />
       </PraxisClientProvider>,
     );
 
+    // The Catalogue heading is always present when the notes tab is active
     await waitFor(() => {
-      expect(screen.getByText(/No notes yet/)).toBeDefined();
+      expect(screen.getByText(/the catalogue/i)).toBeDefined();
     });
   });
 });
