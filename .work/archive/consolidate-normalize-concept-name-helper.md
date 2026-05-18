@@ -1,7 +1,7 @@
 ---
 id: consolidate-normalize-concept-name-helper
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -53,3 +53,13 @@ Story-sized. Mechanical.
 - `pnpm --filter @praxis/core test` — 86 test files, 1060 tests, all passed
 
 No deviations from the plan.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Textbook DRY consolidation. One new file (2 lines), one local definition removed from each of the 2 call sites, plain `import` (runtime value — correct under `verbatimModuleSyntax: true`). `draft-persistence.ts` correctly checked and left untouched (doesn't use the helper). Net delta is tiny and the helper now has a single home.

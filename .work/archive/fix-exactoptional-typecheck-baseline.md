@@ -1,7 +1,7 @@
 ---
 id: fix-exactoptional-typecheck-baseline
 kind: story
-stage: review
+stage: done
 tags: [tech-debt, typecheck, ui]
 parent: null
 depends_on: []
@@ -77,3 +77,16 @@ Applied the conditional-spread pattern to all three sites:
 - `pnpm --filter @praxis/ui test`: 1599/1600 tests pass. The single failure
   (`use-fragment-overrides` refresh test) is the pre-existing flaky test noted
   in the story; it is under separate investigation and unrelated to this change.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none (parked adjacent finding — see Notes)
+**Nits**:
+- `chat.tsx:244` adds `hasSessionNote !== undefined &&` as a conjunct to the conditional spread (`{...(t.id === activeTabId && hasSessionNote !== undefined && { hasSessionNote })}`). With `exactOptionalPropertyTypes: true`, "prop absent" and "prop=undefined" are observably different to a child component using `'hasSessionNote' in props`, but the child consumes via destructure / nullish-fallback in practice — so this is type-equivalent for callers and the right shape for the new typecheck baseline.
+
+**Notes**:
+- The story's 3-site scope is fully addressed. A 4th same-shape `TS2345` baseline error remains at `packages/core/src/services/session-service.ts(42,51)` (`indexerOrchestrator: IndexerOrchestrator | undefined → IndexerOrchestrator`). The original story scope explicitly listed only the 3 UI sites, so expanding scope here was correctly declined. Parked as `idea-fix-session-service-exactoptional-baseline` for the next pass; once that lands, `pnpm typecheck` exits clean workspace-wide.
+- Net delta: +6 lines, -5 lines = +1 LoC, lighter than the story's "< 20 LoC delta" estimate.

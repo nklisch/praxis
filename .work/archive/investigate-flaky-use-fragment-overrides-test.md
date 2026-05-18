@@ -1,7 +1,7 @@
 ---
 id: investigate-flaky-use-fragment-overrides-test
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -69,3 +69,13 @@ The flaky test called `await result.current.refresh()` directly **without** `act
 - 5/5 full `pnpm --filter @praxis/ui test` runs green (1600/1600) after the fix.
 - Previously: failure reproduced on run 1 of a 3-run sequence, and again on run 3 of a 5-run sequence, before the fix.
 - No parked follow-ups needed.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Exemplary investigation work. The agent reproduced the failure, classified the root cause precisely (missing `act()` wrapper around an async state-updating call), applied the canonical RTL fix, and verified empirically with 5 consecutive full-suite runs green. The inline comment in the test explains the *why* (race between data and loading updates under parallel-worker load) and points to `use-resource.test.tsx` as the canonical pattern — exactly the kind of self-documenting test code a future maintainer reads with appreciation. The story scope considered both order-dependent and genuine-hook-bug paths; the actual finding (load-dependent test-internal race) was a third path neither pre-anticipated, and was handled correctly without expanding scope or papering over with `it.skip`/`it.fails`.

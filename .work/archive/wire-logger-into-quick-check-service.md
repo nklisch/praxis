@@ -1,7 +1,7 @@
 ---
 id: wire-logger-into-quick-check-service
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -60,3 +60,14 @@ Trivial change. Story-sized.
 - `pnpm --filter @praxis/desktop test` — pre-existing failure (missing `packages/desktop/tests/` directory, unrelated)
 
 **Optional smoke test:** Deferred. This is a pure wiring change; the logger infrastructure was already proven in prior refactor. Adding a throwing-listener test would verify the warning path but is not required for correctness — the `notifyListeners` implementation already has test coverage in the structured tests.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Component string `"quick-check-service"` (kebab-case) matches the pattern used elsewhere in this file (no change needed; flagging only because PascalCase variants exist nearby — kebab-case is the right call).
+
+**Notes**: 4-line diff. `log.child({ component: ... })` follows the established pattern at `services.ts:198` (`SubAgentRegistryImpl`). Existing test coverage in `quick-check-service-structured.test.ts` exercises the listener-throw path with a recording logger spy, so the warning emission itself is verified there. The optional smoke test was correctly deferred — it would be an integration test, not a unit test, and adds no risk-reduction value.

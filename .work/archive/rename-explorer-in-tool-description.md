@@ -1,7 +1,7 @@
 ---
 id: rename-explorer-in-tool-description
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -71,3 +71,14 @@ Grep across `packages/tools/src/*/` for "explorer" and "bootstrap":
 - `pnpm vitest run packages/tools/src` — 567 passed, 22 skipped (slow-test gates), 0 failures
 
 `pnpm --filter @praxis/tools test` errors with "non-existing directory: tests" — pre-existing infra issue (no `tests/` dir in the package); tests run fine via the workspace runner.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `list-library-documents.ts:29` uses "drafting session" rather than "course-create session" — both defensible (agent-perspective vs mode-id-perspective). Current choice (agent-perspective, matching the new "drafter" identity) is fine and consistent with the prior rename's style.
+
+**Notes**: 4 model-facing strings updated across 4 files. Each preserves the substantive meaning; only the phrasing identity ("bootstrap explorer" → "drafter", "bootstrap mode" → "course-create mode") changes. The audit grep correctly turned up 3 additional sites beyond the originally-noted one — scope expansion was on-spec for this story (the story body explicitly asked for the audit). The user-side spot-check of drafter/configurator sessions (story's verification step #3) is deferred to the user, as is appropriate — not a blocker for advancing this story.

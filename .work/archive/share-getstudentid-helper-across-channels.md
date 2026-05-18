@@ -1,7 +1,7 @@
 ---
 id: share-getstudentid-helper-across-channels
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -87,3 +87,18 @@ Zero regression sites remain.
 - `pnpm --filter @praxis/desktop typecheck` — only pre-existing `session-service.ts(42,51) TS2345` error (documented baseline)
 - `pnpm typecheck` (workspace) — same single pre-existing error, no new errors
 - `pnpm --filter @praxis/desktop test` — pre-existing startup failure (vitest config references non-existing `tests/` dir); unrelated to this story
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none (parked adjacent infra finding — see Notes)
+**Nits**: none
+
+**Notes**:
+- 44 inline regressions collapsed cleanly across 12 channel files. Helper has the right shape: `brandId` as runtime import, `StudentId` and `Services` as `import type` (verbatimModuleSyntax compliant). Each channel correctly drops the now-unused `StudentId` type import; the 3 files where `StudentId` was the sole `brandId` consumer also drop the runtime import.
+- Grep audit verifies zero regression sites remain (`brandId<"StudentId">` only appears in the helper itself + one unrelated lazy lambda in `services.ts:521`).
+- The `ipc-server.ts` local closure mentioned in the story body didn't actually exist — confirmed by the agent. Story body's "if any remained — verify" hedge was correct.
+- **Adjacent finding**: agents noted across multiple wave-2 stories that `pnpm --filter @praxis/desktop test` exits with a "non-existing directory: tests" error — pre-existing config issue, not introduced by any of today's work. Parked as `idea-fix-desktop-vitest-filter-tests-dir`. Doesn't block this story; workspace-level test runner exercises desktop tests through a different path.
+- No new tests added. Pure refactor with type-preserving behavior; existing channel tests transitively exercise the helper through real handlers.

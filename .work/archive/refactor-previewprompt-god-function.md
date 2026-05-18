@@ -1,7 +1,7 @@
 ---
 id: refactor-previewprompt-god-function
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -52,3 +52,13 @@ Land mode — the refactor shipped in earlier commits before this story was
 formally scoped. Story body updated to reflect as-built state. No new tests
 were added; existing coverage was found to be comprehensive across all branches
 of `buildPreviewInput` and both public preview methods.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Land-mode resolution. `PromptCustomizationService.previewPrompt` and the shared `buildPreviewInput` helper actually shipped in earlier feature work (`341fa63 implement: feature-prompt-customization-layers-compose-wiring`, later refined by `de359e7 implement: epic-prompt-editing-surface-v2-compose-attribution`) — well before this story was scoped. The story idea was generated reading the post-extraction-step-3 author-channel.ts state but didn't re-check the current line counts. Substrate is now consistent with reality: handler is the thin dispatch the story envisioned, composition is in the right service, tests are comprehensive. Lesson noted for future scoping passes — verify the current file state before describing "current god-shape" in an idea body.
