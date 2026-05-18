@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-document-viewer
 kind: feature
-stage: drafting
+stage: implementing
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -60,6 +60,151 @@ ingestion (already shipped); the `DocumentScopes` schema itself
 - `.mockups/screens/.../-chat-workspace/mode-document.html` — the
   locked mock direction
 
-<!-- Three sub-capabilities (citations, selection bar, scope-aware
-ask) likely ship together since they share the document-text-range
-contract. -->
+## Design decisions
+
+- **One ship across three sub-capabilities** because they all share
+  the `DocumentRange` type (`{ documentId, startOffset, endOffset }`)
+  and the existing `DocumentScopesService`. Splitting forces three
+  near-duplicates of the range contract.
+- **Citations live in a new dedicated table.** Scopes are
+  course/session-level; a citation is a per-turn, per-range record
+  with a different access pattern (read by document id to render
+  highlights, read by session id to render "what got cited"). A
+  separate table keeps each path indexable.
+- **Selection action bar is a UI primitive in `@praxis/ui`** with the
+  four actions wired to existing services (`notes.create`,
+  `sessions.spawn`, citations service, `flashcards.create`). No new
+  backend except citations.
+- **Passage-scoped "ask Praxis" reuses `DocumentScopesService`** with
+  the existing `scopeKind: "session"` plus a new optional
+  `passageRange` JSON column. Alternative — a new `scopeKind:
+  "passage"` — was rejected: scopes are about "which docs belong to
+  this surface," not "which range within a doc." The range belongs
+  on the session-level scope row.
+
+## Architectural choice
+
+Three units; one new table; the rest are extensions.
+
+1. **Citations**: new `document_citations` table; new `CitationsService`
+   to record + read.
+2. **Selection action bar**: `<SelectionActionBar>` React component
+   subscribing to text-selection events from
+   `<DocumentTabBody>`. Each action calls an existing service.
+3. **Passage-scoped session spawn**: extend `DocumentScopesService`
+   with a `passageRange` column on the scope row; extend
+   `SessionService.spawn(...)` (or add `spawnFromPassage`) to accept
+   a range and pre-attach it.
+
+## Implementation Units
+
+### Unit 1: Citation schema + service
+
+**Files**:
+- `packages/artifacts/src/schema.ts` — new `documentCitations` table:
+  ```ts
+  export const documentCitations = sqliteTable("document_citations", {
+    id: text("id").primaryKey(),
+    documentId: text("document_id").notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    citingSessionId: text("citing_session_id").notNull(),
+    citingTurnId: text("citing_turn_id"),
+    startOffset: integer("start_offset").notNull(),
+    endOffset: integer("end_offset").notNull(),
+    citedText: text("cited_text"),         // captured snippet for display
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  }, t => ({
+    docIdx: index("citations_doc_idx").on(t.documentId),
+    sessionIdx: index("citations_session_idx").on(t.citingSessionId),
+  }));
+  ```
+- `packages/core/src/services/citations-service.ts` (new) with
+  `record({ documentId, sessionId, turnId?, startOffset, endOffset, citedText? })`
+  and `listByDocument(documentId): Promise<Citation[]>`.
+
+### Unit 2: Selection action bar UI
+
+**Files**:
+- `packages/ui/src/components/selection-action-bar.{tsx,module.css}`
+  (new).
+- `packages/ui/src/components/document-tab-body.tsx` — mount the
+  action bar; subscribe to `mouseup` events on the document content
+  pane; resolve the current selection range; position the bar near
+  the selection.
+- Actions:
+  - `+ note` → `notesService.create({ body: selectedText, context: { documentId, range } })`
+  - `↗ ask Praxis` → `sessionService.spawnFromPassage({ documentId, range })` (Unit 3)
+  - `+ cite` → `citationsService.record({ ... })`
+  - `+ flashcard` → `flashcardsService.create({ front: <user-prompt>, back: selectedText })`
+
+### Unit 3: Passage-scoped session spawn
+
+**Files**:
+- `packages/artifacts/src/schema.ts` — add optional
+  `passage_range_json` column on `document_scopes` (carries
+  `{ startOffset, endOffset }` when present).
+- `packages/core/src/services/document-scopes-service.ts` — accept
+  and persist the optional range; surface it on reads.
+- `packages/core/src/services/session-service.ts` —
+  `spawnFromPassage({ studentId, documentId, range }): Promise<SessionId>`
+  creates a teach session, attaches the document as a session scope
+  with the passage range, and pre-injects the passage text into the
+  parent agent's opening turn.
+
+### Unit 4: Cited-passage highlight rendering
+
+**Files**:
+- `packages/ui/src/components/document-tab-body.tsx` — on document
+  load, fetch citations via `citationsService.listByDocument`; wrap
+  cited ranges in a `<mark>` with a `†` marker; on hover/click,
+  surface the citing session.
+
+### Unit 5: IPC + client
+
+- `praxis.citations.record`, `praxis.citations.listByDocument`.
+- Reuse existing `praxis.sessions.spawn` if it accepts a passage
+  range; otherwise add `praxis.sessions.spawnFromPassage`.
+- Client surfaces wired accordingly.
+
+### Unit 6: Tests
+
+- `citations-service.test.ts` round-trip.
+- `document-tab-body` selection + action bar tests using
+  `@testing-library/react`.
+- `session-service.spawnFromPassage` integration test with a seeded
+  document.
+- IPC harness tests for new channels.
+
+## Implementation Order
+
+Two stories:
+
+1. `epic-backend-fills-for-redesign-document-viewer-citations-and-spawn` —
+   Units 1 + 3 + 4 + 5 (backend + render) — depends on `[]`.
+2. `epic-backend-fills-for-redesign-document-viewer-selection-bar` —
+   Unit 2 + 6 (UI primitive) — depends on Story 1 (uses
+   `spawnFromPassage` and `citationsService.record`).
+
+## Acceptance Criteria
+
+Aggregate:
+- [ ] Citations record and read; cited ranges render with `†` in the
+      document viewer.
+- [ ] Selection action bar appears on text selection; all four
+      actions work end-to-end.
+- [ ] `spawnFromPassage` opens a session pre-loaded with the passage;
+      the parent agent's first turn references the passage.
+- [ ] All quality checks green.
+
+## Risks
+
+- **Selection offsets vs DOM offsets.** Browser selections use DOM
+  ranges; the schema stores text offsets. The selection bar must
+  resolve DOM range → text offset against the document's rendered
+  text. Acceptable for monolithic documents; complex per-block layouts
+  may need a different anchoring scheme (paragraph + offset). Story
+  notes the limitation.
+- **Citation invalidation on document re-ingestion.** If the document
+  is re-ingested with a different chunking, offsets become stale.
+  v1: leave the citation row; rendering tolerates out-of-bounds
+  ranges by skipping the highlight + warning in the dev log.
