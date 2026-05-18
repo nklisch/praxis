@@ -1,7 +1,7 @@
 ---
 id: refactor-split-core-type-files-tool-and-client-step-1-tool
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-split-core-type-files-tool-and-client
 depends_on: []
@@ -199,3 +199,13 @@ Existing destinations (`notes.js`, `flashcards.js`, `artifacts.js`, `document-sc
 - **3 pre-existing UI typecheck errors** (chat-tab-body.tsx, chat.tsx, notes-list.tsx) — unchanged.
 - **~529 mockup HTML lint errors** — unchanged (baseline was ~524; within noise).
 - **All 4499 tests pass** (420 test files, 23 skipped) — no behavior drift.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Massive but mechanical refactor executed cleanly. tool.ts 1617→184 LoC. The agent's discovery process found 6+ additional services beyond the destination map (PedagogyPackService, EmbeddingService, VectorStore, FtsStore, DocumentsReader, SymPyService, CodeSandbox, PackImportService) and created appropriate per-service files for them. 5 direct-tool.ts importers inside `packages/core/src/` were fixed in-line — those were code smells pre-dating this work. All 4499 tests pass; typecheck clean across 9 packages; biome clean. The `ToolServices` aggregate now composes from per-domain imports, making the type surface easier to reason about per-domain.
