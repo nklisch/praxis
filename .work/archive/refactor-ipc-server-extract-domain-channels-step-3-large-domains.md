@@ -1,7 +1,7 @@
 ---
 id: refactor-ipc-server-extract-domain-channels-step-3-large-domains
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-ipc-server-extract-domain-channels
 depends_on: [refactor-ipc-server-extract-domain-channels-step-2-medium-domains]
@@ -196,3 +196,16 @@ the cleanup closure and `return`.
 - Pre-existing typecheck: 3 errors in UI files (unchanged)
 - Lint: clean on all 4 new/modified files
 - Tests: 493 tests across 31 files, all pass
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `previewPrompt` moved verbatim — the 82-LoC god-function survives the move. Parked as `idea-refactor-previewprompt-god-function` for a future cleanup (composition logic should live in a service method, not the IPC handler).
+- 11 inline `getStudentId` regressions in this step (6 artifacts, 3 author, 2 session). Combined with steps 1-2 that's ~42 across the 18 extracted channels — parked as `idea-share-getstudentid-helper-across-channels` for a shared helper.
+- `registeredChannels` tracking removed since no inline handlers remain. Clean — pre-existing per-channel files never used the tracking anyway.
+
+**Notes**: Final extraction step. ipc-server.ts dropped to **183 LoC** — pure orchestration with 22 `register*Handlers(...)` calls. Session's hot-path streaming endpoint moved cleanly; no closure dependencies on ipc-server.ts surfaced. All 493 desktop tests pass unmodified. The lessonAssessments biome-ignore placement fix is a nice side benefit (the comment was on the wrong line).
