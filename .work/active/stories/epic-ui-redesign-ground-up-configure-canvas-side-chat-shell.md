@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure-canvas-side-chat-shell
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on:
@@ -83,3 +83,16 @@ placeholder, `.chatPanel` aside.
 
 `configure-route.test.tsx`: added 3 new tests — inspector strip present,
 authoring chat pane present, all tab panels mounted simultaneously.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: `configure-tab-button-change-dot-test-coverage` — `TabButton` change-dot behavior and `useDirtyStateObserver` subscription semantics have no test coverage; the 3 new tests cover structural presence only.
+**Nits**:
+- `TabButton` buttons have `role="tablist"` on the container but no `role="tab"` / `aria-selected` on each button — ARIA tab pattern is incomplete. Acceptable for v1 but worth a polish pass.
+- `hidden` attribute and `style={{ display: "none" }}` are both set on inactive tab panels — redundant but harmless.
+- `useDirtyStateObserver` starts `false` regardless of current dirty state; the code comment explains the accepted limitation correctly.
+
+**Notes**: The Canvas + Side Chat shell is well-structured. `DirtyStateProvider` wraps the workspace, `AuthoringChatPane` is correctly shared via the right panel at 380px, and the tab-body-isolation pattern is applied correctly to all four canvas panels. The `useDirtyStateObserver` hook design (observer doesn't clear on unmount, avoiding clobbering surface ownership) is the right call. Save bar bug fix (`dirtyCount` vs `surfaceCount` for N) is correct — since one key = one surface, both aliases are equivalent but the distinction matters semantically. Main gap is test coverage for the change-dot behavior.
