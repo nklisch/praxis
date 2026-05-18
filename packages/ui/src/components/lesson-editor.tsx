@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { ConceptPicker } from "./concept-picker.js";
 import { ConfirmReasonModal } from "./confirm-reason-modal.js";
+import { LessonAssessmentPills } from "./lesson-assessment-pills.js";
 import styles from "./lesson-editor.module.css";
 
 export interface LessonEditorProps {
@@ -88,6 +89,7 @@ export function LessonEditor({ lesson, availableConcepts, onSaved, onDeleted }: 
               required
             />
           </label>
+          <LessonAssessmentPills lessonId={lesson.id} />
         </div>
 
         <div className={styles.field}>

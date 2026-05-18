@@ -46,6 +46,11 @@ function makeClient(authorOverrides?: Partial<PraxisClient["author"]>): PraxisCl
       listConfiguratorActions: vi.fn(),
       ...authorOverrides,
     } as PraxisClient["author"],
+    // LessonAssessmentPills inside LessonEditor fetches via artifacts.lessonAssessments.
+    // Stub as a never-resolving promise so it doesn't error; pills simply don't render.
+    artifacts: {
+      lessonAssessments: vi.fn().mockReturnValue(new Promise(() => {})),
+    } as unknown as PraxisClient["artifacts"],
   });
 }
 

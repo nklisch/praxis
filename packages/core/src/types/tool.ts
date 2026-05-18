@@ -15,6 +15,7 @@ import type {
   Gate,
   GateTarget,
   Lesson,
+  LessonAssessment,
   Note,
   NoteContext,
   Reference,
@@ -493,6 +494,8 @@ export interface ArtifactsService {
   course(id: CourseId): Promise<Course | null>;
   courses(studentId: StudentId): Promise<CourseSummary[]>;
   lessons(courseId: CourseId): Promise<Lesson[]>;
+  /** Phase 16: Return scheduled assessments for a single lesson. */
+  lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]>;
   gates(courseId: CourseId): Promise<Gate[]>;
   progress(studentId: StudentId): Promise<ProgressSnapshot>;
   markLessonStarted(input: { studentId: StudentId; lessonId: LessonId }): Promise<void>;

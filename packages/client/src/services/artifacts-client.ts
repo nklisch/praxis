@@ -9,6 +9,8 @@ import type {
   GateId,
   GateView,
   Lesson,
+  LessonAssessment,
+  LessonId,
   Note,
   ProgressSnapshot,
 } from "@praxis/core/types";
@@ -67,6 +69,13 @@ export class ArtifactsClient implements ArtifactsClientSurface {
       C.lessons,
       courseId,
     );
+    return unwrapEnvelope(result);
+  }
+
+  async lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<LessonAssessment[]> | LessonAssessment[]
+    >("praxis.artifacts.lessonAssessments", lessonId);
     return unwrapEnvelope(result);
   }
 

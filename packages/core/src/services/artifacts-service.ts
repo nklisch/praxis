@@ -4,6 +4,7 @@ import {
   documents,
   gates as gatesTable,
   gateUnlockEvents,
+  lessonAssessments as lessonAssessmentsTable,
   lessonProgress,
   lessons,
 } from "@praxis/artifacts/schema";
@@ -14,6 +15,7 @@ import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
   ArtifactsService,
+  AssignmentId,
   ConceptId,
   ConceptStateRow,
   ConfiguratorId,
@@ -30,6 +32,8 @@ import type {
   GateView,
   GradeReader,
   Lesson,
+  LessonAssessment,
+  LessonAssessmentId,
   LessonId,
   Logger,
   MasteryReader,
@@ -89,6 +93,21 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
       .orderBy(asc(lessons.orderIndex))
       .all();
     return rows.map(rowToLesson);
+  }
+
+  async lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]> {
+    const rows = this.deps.db
+      .select()
+      .from(lessonAssessmentsTable)
+      .where(eq(lessonAssessmentsTable.lessonId, lessonId))
+      .all();
+    return rows.map((r) => ({
+      id: brandId<"LessonAssessmentId">(r.id) as LessonAssessmentId,
+      lessonId: brandId<"LessonId">(r.lessonId) as LessonId,
+      assignmentId: brandId<"AssignmentId">(r.assignmentId) as AssignmentId,
+      timing: r.timing,
+      purpose: r.purpose,
+    }));
   }
 
   async gates(courseId: CourseId): Promise<Gate[]> {

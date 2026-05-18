@@ -29,7 +29,6 @@ import { app, ipcMain } from "electron";
 import { z } from "zod";
 import { registerActivityHandlers } from "./activity-channel.js";
 import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
-import { registerRecommendationsHandlers } from "./recommendations-channel.js";
 import { registerDocumentScopesHandlers } from "./document-scopes-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
@@ -399,6 +398,18 @@ export function registerIpcHandlers(
       courseIdSchema,
       // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
       async (courseId) => services.artifacts.lessons(brandId<"CourseId">(courseId) as any),
+    ),
+  );
+
+  handle(
+    "praxis.artifacts.lessonAssessments",
+    handleEnvelope(
+      "praxis.artifacts.lessonAssessments",
+      log,
+      z.string().min(1, "lessonId"),
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (lessonId) =>
+        services.artifacts.lessonAssessments(brandId<"LessonId">(lessonId) as any),
     ),
   );
 

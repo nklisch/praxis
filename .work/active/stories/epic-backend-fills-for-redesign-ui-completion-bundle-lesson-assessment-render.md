@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-lesson-assessment-render
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -41,11 +41,33 @@ configure Course tab and the course-create draft panel.
 
 ## Acceptance criteria
 
-- [ ] Pills render per lesson in both configure Course tab and
+- [x] Pills render per lesson in both configure Course tab and
       course-create draft.
-- [ ] Colour coding matches the locked mock.
-- [ ] All quality checks green.
+- [x] Colour coding matches the locked mock.
+- [x] All quality checks green.
 
 ## Out of scope
 
 - Editing assessments inline. v1 is read-only render.
+
+## Implementation notes
+
+**New files:**
+- `packages/ui/src/components/lesson-assessment-pills.tsx` — `LessonAssessmentPills` component accepting either pre-loaded `assessments: AssessmentPillEntry[]` (used by DraftCard for proposed entries) or `lessonId: LessonId` (fetches via `client.artifacts.lessonAssessments`). `AssessmentPillEntry` is exported for callers with draft/proposed data.
+- `packages/ui/src/components/lesson-assessment-pills.module.css` — pill styles matching the locked mock exactly: READY (sage/tint-bootstrap), HW (indigo/tint-homework), QUIZ (slate/tint-quiz) with `color-mix(in oklab, ...)` tint backgrounds.
+- `packages/ui/src/components/__tests__/lesson-assessment-pills.test.tsx` — 14 tests covering empty state, single pill variants, timing display, multi-pill combinations, purpose grouping, and CSS variant classes.
+
+**Modified files:**
+- `packages/core/src/types/tool.ts` — added `LessonAssessment` import; added `lessonAssessments(lessonId): Promise<LessonAssessment[]>` to `ArtifactsService`.
+- `packages/core/src/types/client.ts` — added `LessonAssessment` import; added `lessonAssessments(lessonId)` to `ArtifactsClientSurface`; fixed pre-existing duplicate `Recommendation` import.
+- `packages/core/src/services/artifacts-service.ts` — implemented `lessonAssessments()` with a DB query on `lessonAssessmentsTable`.
+- `packages/desktop/electron/main/ipc-server.ts` — registered `praxis.artifacts.lessonAssessments` IPC channel; fixed pre-existing duplicate `registerRecommendationsHandlers` import.
+- `packages/client/src/services/artifacts-client.ts` — implemented `lessonAssessments()` calling the new IPC channel.
+- `packages/ui/src/components/lesson-editor.tsx` — wired `<LessonAssessmentPills lessonId={lesson.id} />` into the lesson editor, below the title field.
+- `packages/ui/src/components/draft-card.tsx` — wired pills for proposed assessments filtered by `draftLessonId`.
+- `packages/ui/src/__tests__/lesson-editor.test.tsx` — stubbed `artifacts.lessonAssessments` as a never-resolving promise so existing tests don't error.
+
+**Design decisions:**
+- Schema has `purpose: "readiness" | "practice" | "checkpoint"` mapping to READY / HW / QUIZ. No QC or EXAM pills at this layer (QC = quick-check, a separate Phase 17 concept; EXAM = unit exam, shown at the unit level, not lesson level).
+- The `AssessmentPillEntry` interface (`{ purpose, timing }`) is a minimal shared shape that both `LessonAssessment` (DB) and `ProposedLessonAssessmentEntry` (draft) satisfy, allowing the same component to work in both surfaces.
+- Pills render nothing on loading/empty (decorative metadata — no skeleton state needed).

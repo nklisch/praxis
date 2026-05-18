@@ -1,5 +1,6 @@
 import type { ProposedCourse } from "@praxis/core/types";
 import styles from "./draft-card.module.css";
+import { LessonAssessmentPills } from "./lesson-assessment-pills.js";
 
 export interface DraftCardProps {
   /** The proposed course from a course.show_draft tool result. */
@@ -28,21 +29,28 @@ export function DraftCard({ proposed: p }: DraftCardProps) {
           {p.proposedLessons.length} lesson{p.proposedLessons.length !== 1 ? "s" : ""}
         </summary>
         <ol className={styles.lessonList}>
-          {p.proposedLessons.map((lesson, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: lesson draft has no stable id yet
-            <li key={i} className={styles.lessonItem}>
-              <strong className={styles.lessonTitle}>{lesson.title}</strong>
-              {lesson.conceptNames.length > 0 && (
-                <ul className={styles.conceptList}>
-                  {lesson.conceptNames.map((name) => (
-                    <li key={name} className={styles.conceptItem}>
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
+          {p.proposedLessons.map((lesson, i) => {
+            // Filter proposed assessments for this draft lesson.
+            const lessonPills = (p.proposedLessonAssessments ?? []).filter(
+              (a) => a.draftLessonId === lesson.draftLessonId,
+            );
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: lesson draft has no stable id yet
+              <li key={i} className={styles.lessonItem}>
+                <strong className={styles.lessonTitle}>{lesson.title}</strong>
+                {lessonPills.length > 0 && <LessonAssessmentPills assessments={lessonPills} />}
+                {lesson.conceptNames.length > 0 && (
+                  <ul className={styles.conceptList}>
+                    {lesson.conceptNames.map((name) => (
+                      <li key={name} className={styles.conceptItem}>
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ol>
       </details>
 
