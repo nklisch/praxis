@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -184,3 +184,19 @@ Aggregate:
   skipped; the conversion may produce a sparse map for sketches
   without explicit text. Document the limitation; the editor can
   re-run extraction after the user labels more shapes.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Both child stories approved individually. Aggregate capability
+complete: three-state node model (`linked` / `best_guess` / `unlinked`)
+with glyph overlays + ghost-edge hover implemented; ripples panel computing
+correct deltas; sketch→concept-map conversion with 24h undo window wired
+to `snapshot-restore` infrastructure. Foundation docs (`ARCHITECTURE.md`,
+`CONTRACT.md`) are current. 91 new tests across both stories. All
+acceptance criteria satisfied. Advancing to `stage: done`.
