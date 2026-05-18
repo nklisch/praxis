@@ -1,7 +1,7 @@
 ---
 id: refactor-loadorthrow-concept-map-service
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -114,3 +114,13 @@ return loadOrThrow(
 - `pnpm vitest run packages/core/src/services/__tests__/concept-map-service.test.ts` — 32/32 pass
 
 Note: Pre-existing typecheck failures in `packages/tools` (code-sandbox.test.ts) and `packages/desktop` (exactOptionalPropertyTypes) were present before this change and are unrelated.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Mechanical adoption of `load-or-throw` across 4 post-mutation sites (`create`, `rename`, `updateScene`, `setNodeLink`). Entity name `concept_map` follows snake_case convention. Input-validation throws (`map not found`, `note not found`, `note is not a sketch`) correctly left intact. 32/32 tests pass unmodified.
