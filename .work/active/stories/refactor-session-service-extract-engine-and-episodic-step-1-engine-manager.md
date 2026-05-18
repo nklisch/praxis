@@ -1,7 +1,7 @@
 ---
 id: refactor-session-service-extract-engine-and-episodic-step-1-engine-manager
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-session-service-extract-engine-and-episodic
 depends_on: []
@@ -225,3 +225,73 @@ If the `openActive` body has hidden coupling to `SessionServiceImpl`'s
 other private state (beyond `activeSessions`, `deps`, and the public
 helpers), STOP and append `## Implementation discovery`, set stage back
 to `drafting`, commit `revisit: ...`, return.
+
+## Implementation notes
+
+### Manager API as built
+
+`EngineSessionManager` at `packages/core/src/services/session/engine-session-manager.ts`:
+- `ActiveEntry` and `EngineSessionManagerDeps` exported as interfaces
+- `EngineSessionManagerDeps` uses `Pick<ServiceDeps, ...>` over 10 fields (the
+  full subset that `openActive` needs: `db`, `log`, `secretStorage`,
+  `toolDefinitions`, `toolServices`, `indexerOrchestrator`, `activity`,
+  `subAgent`, `promptCustomization`, `engineFactory`)
+- Methods: `acquire(args)`, `openActive(args)`, `close(sessionId)`,
+  `closeAll()`, `get(sessionId)`, `has(sessionId)`
+- `entries()` not needed — `list()` never iterated `activeSessions` directly
+  (it queries the DB for session rows, not the in-memory map)
+- Private helpers `resolveResumeEngineSessionId` and `recordEngineSessionId`
+  moved verbatim into the manager
+
+### Per-facade-method changes
+
+| Method | Change |
+|---|---|
+| `start()` | `this.openActive(...)` → `this.engineManager.openActive(...)` |
+| `send()` | 37-line engine-swap block → single `this.engineManager.acquire(...)` call |
+| `end()` | `activeSessions.get/delete` + `handle.close()` → `this.engineManager.close(sessionId)` |
+| `active()` | No change — queries DB directly, never touched `activeSessions` |
+| `list()` | No change — queries DB directly, never touched `activeSessions` |
+| `notifySession()` | `this.activeSessions.get(...)` → `this.engineManager.get(...)` |
+| `spawnFromAssignment()` | No change — delegates to `start()` |
+| `spawnFromNote()` | No change — delegates to `start()` |
+| `spawnFromPassage()` | No change — delegates to `start()` |
+| `shutdown()` | Loop over `activeSessions` → `this.engineManager.closeAll()` |
+
+### Pattern preservation
+
+- **engine-session-lifecycle**: `Engine.open(opts) → EngineSession; send(msg)
+  reuses live conversation; close() in finally; seed with priorTurns only on
+  engine swap/restart` — fully preserved in manager's `openActive` and `acquire`.
+- **episodic-append-ordering**: `recordUserMessage → yield user_message →
+  for-await engine events → appendEpisodic → yield` — untouched in facade's
+  `send()` body. Only the engine-lifecycle code BEFORE `recordUserMessage` moved.
+
+### FakeEngine test seam
+
+`deps.engineFactory` flows through the manager constructor:
+```
+SessionServiceImpl.constructor(deps) → EngineSessionManager({ ..., engineFactory: deps.engineFactory })
+```
+All existing tests that inject via `engineFactory` pass unmodified (verified:
+`session-service.engine-session-state.test.ts`, `session-service.abort-subagent.test.ts`,
+`session-service.notify.test.ts`, etc.).
+
+### LoC deltas
+
+- `session-service.ts`: 1084 → 703 lines (−381)
+- `session/engine-session-manager.ts`: new, 512 lines
+- `send()` method: 148 → 122 body lines (−26)
+
+The story acceptance criterion `send() < 90 LoC` was not met. The design
+estimate of "~80 LoC" proved optimistic: the for-await loop body (abort
+cascade, subagent interrupt, episodic write) is ~50 lines alone. The actual
+reduction from 148→122 is the correct result of extracting only the
+engine-swap block. The `session-service.ts` target of `< 1000 LoC` is
+satisfied (703 lines).
+
+### Verification
+
+- `pnpm --filter @praxis/core typecheck`: green
+- `pnpm --filter @praxis/core test`: 86 files, 1060 tests, all passed
+- `pnpm biome check session-service.ts engine-session-manager.ts`: clean (no errors)
