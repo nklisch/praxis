@@ -24,6 +24,7 @@ import type {
   TldrawSnapshot,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import { loadOrThrow } from "./db-helpers.js";
 import { SNAPSHOT_SCHEMA_VERSION } from "./snapshot-capturer.js";
 
 export interface ConceptMapServiceDeps {
@@ -131,9 +132,12 @@ export class ConceptMapServiceImpl implements ConceptMapService {
       })
       .run();
 
-    const created = await this.get(brandId<"ConceptMapId">(id));
-    if (!created) throw new Error(`ConceptMapService.create: not found after insert: ${id}`);
-    return created;
+    return loadOrThrow(() => this.get(brandId<"ConceptMapId">(id)), {
+      entity: "concept_map",
+      op: "create",
+      id,
+      log: this.deps.log,
+    });
   }
 
   async get(id: ConceptMapId): Promise<ConceptMapDrawing | null> {
@@ -190,9 +194,12 @@ export class ConceptMapServiceImpl implements ConceptMapService {
       .where(eq(conceptMaps.id, id))
       .run();
 
-    const updated = await this.get(id);
-    if (!updated) throw new Error(`ConceptMapService.rename: not found after update: ${id}`);
-    return updated;
+    return loadOrThrow(() => this.get(id), {
+      entity: "concept_map",
+      op: "update",
+      id,
+      log: this.deps.log,
+    });
   }
 
   async delete(id: ConceptMapId): Promise<void> {
@@ -215,10 +222,12 @@ export class ConceptMapServiceImpl implements ConceptMapService {
       .where(eq(conceptMaps.id, input.id))
       .run();
 
-    const updated = await this.get(input.id);
-    if (!updated)
-      throw new Error(`ConceptMapService.updateScene: not found after update: ${input.id}`);
-    return updated;
+    return loadOrThrow(() => this.get(input.id), {
+      entity: "concept_map",
+      op: "update",
+      id: input.id,
+      log: this.deps.log,
+    });
   }
 
   async listVersions(id: ConceptMapId): Promise<ConceptMapVersion[]> {
@@ -335,11 +344,12 @@ export class ConceptMapServiceImpl implements ConceptMapService {
       .where(eq(conceptMaps.id, input.mapId))
       .run();
 
-    const updated = await this.get(input.mapId);
-    if (!updated) {
-      throw new Error(`ConceptMapService.setNodeLink: not found after update: ${input.mapId}`);
-    }
-    return updated;
+    return loadOrThrow(() => this.get(input.mapId), {
+      entity: "concept_map",
+      op: "update",
+      id: input.mapId,
+      log: this.deps.log,
+    });
   }
 
   // ─── Sketch → concept-map conversion ────────────────────────────────────────

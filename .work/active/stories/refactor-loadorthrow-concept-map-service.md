@@ -1,7 +1,7 @@
 ---
 id: refactor-loadorthrow-concept-map-service
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -86,3 +86,31 @@ return loadOrThrow(
 ## Rollback
 
 `git revert <commit>` — trivially clean.
+
+## Implementation Notes
+
+**Sites converted (4 total):**
+
+1. `create()` method (post-insert round-trip) — `op: "create"`, entity `concept_map`
+2. `rename()` method (post-update round-trip) — `op: "update"`, entity `concept_map`
+3. `updateScene()` method (post-update round-trip) — `op: "update"`, id `input.id`
+4. `setNodeLink()` method (post-update round-trip) — `op: "update"`, id `input.mapId`
+
+**Import added:** `import { loadOrThrow } from "./db-helpers.js";`
+
+**Input-validation throws left untouched:**
+- Line 292: `map not found: ${input.mapId}` (lookup precondition before the update)
+- Line 357: `note not found: ${noteId}` (input validation in `convertFromSketch`)
+- Line 359: `note is not a sketch` (format validation)
+
+**Test impact:** No test asserts on the prior error message strings — grep confirmed zero hits. All 32 concept-map-service tests pass unchanged.
+
+**Final grep verification:**
+`grep -n 'throw new Error.*not found after' packages/core/src/services/concept-map-service.ts` → 0 results.
+
+**Checks:**
+- `pnpm --filter @praxis/core typecheck` — pass
+- `pnpm biome check` on edited file — pass (formatting auto-fixed via `--write`)
+- `pnpm vitest run packages/core/src/services/__tests__/concept-map-service.test.ts` — 32/32 pass
+
+Note: Pre-existing typecheck failures in `packages/tools` (code-sandbox.test.ts) and `packages/desktop` (exactOptionalPropertyTypes) were present before this change and are unrelated.
