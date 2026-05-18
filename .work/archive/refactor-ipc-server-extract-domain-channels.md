@@ -1,7 +1,7 @@
 ---
 id: refactor-ipc-server-extract-domain-channels
 kind: feature
-stage: implementing
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -286,3 +286,96 @@ step. Each step independently reversible.
 - **No renaming of channels** (wire-format break).
 - **No restructuring of `Services` or `ServiceDeps`** — extraction is structural only.
 - A potential post-extraction cleanup: many of the inline `handle/on` blocks in the new channel files will share a pattern that could collapse further (e.g., a generic `handleEnvelope`-shaped registration loop driven by a schema map). Out of scope; if the pattern emerges clearly, file a separate refactor.
+
+## Implementation Run Summary
+
+3 sequential child stories implemented and approved. ipc-server.ts
+collapsed from **1996 → 183 LoC** (a 91% reduction). All 130+ IPC handlers
+now live in per-domain channel files; ipc-server.ts is pure orchestration.
+
+| Step | Commit | Domains | Handlers | ipc-server.ts LoC |
+|------|--------|---------|----------|-------------------|
+| 1 | `b660850` | auth, shell, update, lock, library, documents, packs (7) | 19 | 1996 → 1811 |
+| 2 | `8489e3b` | memory, notes, config, sketches, tabs, conceptMaps, assignments, flashcards (8) | 59 | 1811 → 972 |
+| 3 | `dd9f96c` | artifacts, author, session (3) | 44 | 972 → 183 |
+
+**Total**: 18 new channel files, ~122 handlers extracted. (The remaining 7
+domains — activity, courseCreate, ingest, quickCheck, recommendations,
+subAgent, citations — were pre-extracted before this feature.)
+
+### Cross-cutting deviations
+
+- **`getStudentId` regression** across all extracted channels: ~42 inline
+  `brandId<"StudentId">(services.getDefaultStudentId()) as StudentId`
+  casts replaced the prior single closure in ipc-server.ts. Parked as
+  `idea-share-getstudentid-helper-across-channels` — a future shared
+  helper module will consolidate.
+- **`previewPrompt` god-function** in author-channel.ts moved verbatim
+  (~82 LoC of inline prompt composition). Parked as
+  `idea-refactor-previewprompt-god-function` — the composition logic
+  belongs in a service method.
+- **Local `requireUnlocked` duplication**: both `config-channel.ts` and
+  `author-channel.ts` define their own `requireUnlocked()` closure. Could
+  consolidate to a shared helper alongside `getStudentId` if a future
+  refactor batches them.
+- **`registeredChannels` tracking** removed in step 3 since no inline
+  handlers remain. Pre-existing per-channel files never used the tracking
+  anyway.
+
+### Verification status
+
+- **Typecheck**: pre-existing 3 UI errors only; no new errors in
+  electron/main
+- **Tests**: 493 desktop main tests pass; critical streaming + cancel +
+  envelope tests all preserved
+- **Lint (biome)**: clean on all 18 new channel files. Side benefit:
+  `lessonAssessments` biome-ignore placement bug in ipc-server.ts was
+  fixed during step 3's artifacts extraction.
+- **Wire format**: 130+ channel names preserved exactly; envelope shapes
+  preserved; cancel semantics preserved; streaming patterns preserved.
+- **Memory streaming verified**: step 2 (memory.episodic) — passes
+- **Session streaming verified**: step 3 (session.send) — passes
+
+### What's now possible
+
+- Adding a new IPC handler is a single-file change (the domain's channel
+  file), not a hunt through 2000 lines of ipc-server.ts.
+- Per-channel envelope tests are now cleanly aligned with the channel
+  module they cover.
+- Future `feature-ipc-envelope-validation-coverage`-style work
+  (adding/updating per-channel validation) lands in a focused 30-line file.
+- The `stream-handler.ts` helper landed earlier (commit `e2a46f9`) is now
+  the canonical streaming pattern across all extracted channels —
+  activity, memory, session all use it.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (aggregate)
+
+**Blockers**: none
+**Important**: none
+**Nits**: see child story reviews. Both follow-ups (getStudentId helper,
+previewPrompt refactor) parked to backlog.
+
+**Aggregate lens findings**:
+- **Design alignment**: the design correction during refactor-design
+  honestly updated the brief's "6 channel blocks" estimate to the actual
+  "15 domains remaining". The 3-step grouping (small/medium/large) was
+  the right shape; serializing via depends_on chain kept ipc-server.ts
+  edits clean.
+- **Foundation-doc alignment**: `docs/ARCHITECTURE.md` describes the IPC
+  transport layer at a high level; doesn't pin specific file layouts.
+  The `.claude/skills/patterns/per-domain-channel-module.md` pattern doc
+  is now satisfied by every IPC channel, with no inline-domain holdouts
+  in ipc-server.ts.
+- **Breaking changes**: none. Every channel name and envelope shape
+  preserved. Hot-path session.send streaming verified.
+- **Capability completeness**: the IPC layer is now structurally clean.
+  ipc-server.ts is orchestration only; per-domain channels own their
+  handlers; streaming endpoints adopt the canonical `stream-handler.ts`
+  helper.
+
+**Notes**: This is the biggest single delivery in this autopilot run
+(measured by LoC delta). ipc-server.ts dropped from the largest source
+file in the workspace to a thin coordinator. The 3-step sequential plan
+de-risked the size; each step landed cleanly with full test verification.
