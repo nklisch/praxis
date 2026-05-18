@@ -6,70 +6,224 @@
   padding: 0;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Design tokens — Studio Quiet / System Editorial
+ * Inlined from .mockups/design-system/tokens.css (sans mockup-only header).
+ * Source of truth: .mockups/design-system/tokens.css — mirror changes here.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --color-bg: #0f0f0f;
-  --color-surface: #1a1a1a;
-  --color-border: #2a2a2a;
-  --color-text: #e8e8e8;
-  --color-text-muted: #888;
-  --color-accent: #6b7ef8;
-  --color-user-bubble: #2a2f5e;
-  --color-assistant-bubble: #1e2a1e;
-  /* Badge: amber warning pill — semantic color, same in both modes (4.5:1 on white, 3:1 on black). */
-  --color-badge: #f59e0b;
-  --color-badge-text: #000000;
-  /* Semantic status palette — used for error / success / warning indicators.
-     Dark-mode values chosen for readability on dark surfaces; light-mode
-     overrides below shift to higher-contrast hues.
-     --color-error:   red-400  (#f87171) on dark, red-700  (#b91c1c) on light
-     --color-success: green-400 (#4ade80) on dark, green-700 (#15803d) on light
-     --color-warning: amber-400 (#fbbf24) on dark, amber-600 (#d97706) on light
-     Button/badge text on colored backgrounds always #fff — intentional literal. */
-  --color-error: #f87171;
-  --color-success: #4ade80;
-  --color-warning: #fbbf24;
-  --radius: 8px;
-  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Consolas, monospace;
-  /* Editorial display serif — system-installed across macOS/Win/Linux. No remote
-     fetch (CSP forbids), no bundled assets. Iowan & Sitka have warm, expressive
-     italics; Charter & Source Serif are the strong fallbacks. */
-  --font-display:
+  /* ─────────────────────────────────────────────────────────────────
+   * Color tokens (light mode — default)
+   * Studio Quiet palette: warm off-white surface, true near-black text,
+   * a single muted brick accent used sparingly.
+   * ───────────────────────────────────────────────────────────────── */
+
+  --color-bg-primary: #f5f4f0; /* warm off-white with green-gray undertone (stone) */
+  --color-bg-secondary: #ffffff; /* page — raised surface, cards, modals */
+  --color-bg-tertiary: #ebe9e2; /* sunken — input fields, code blocks (plaster) */
+  --color-bg-inverse: #1a1a18; /* graphite — contrasting surface for emphasis */
+
+  --color-text-primary: #1a1a18;
+  --color-text-secondary: #5f5d57;
+  --color-text-tertiary: #a09e96; /* placeholder, disabled */
+  --color-text-inverse: #f5f4f0;
+  --color-text-link: #9b3a2c; /* same as accent */
+  --color-text-link-hover: #7e2e23;
+
+  --color-border: #e3e1d8;
+  --color-border-strong: #c4c1b5;
+
+  --color-accent: #9b3a2c; /* muted brick — restraint is the point */
+  --color-accent-hover: #7e2e23;
+  --color-accent-muted: #f0e3df; /* selected-row backgrounds, soft highlights */
+
+  --color-success: #4f6e3a;
+  --color-warning: #a86a0a;
+  --color-danger: #a32721;
+  --color-info: #3a5a72;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * Praxis-specific mode tints (dot markers, not color washes)
+   * Each value is the dot color; downstream mocks render a 6–8px dot
+   * in the kicker next to the mode glyph rather than washing the
+   * surface.
+   * ───────────────────────────────────────────────────────────────── */
+
+  --tint-teach: #c97a1a; /* warm amber */
+  --tint-bootstrap: #5f7e3a; /* sage */
+  --tint-quiz: #4a5e6e; /* slate */
+  --tint-homework: #3a3e75; /* indigo */
+  --tint-exam: #9b3a2c; /* brick (shares accent register — exam is the high-stakes mode) */
+  --tint-configure: #5f5d57; /* graphite (no register) */
+  --tint-study-skills: #264f47; /* deep teal */
+
+  /* Route headers use a neutral graphite tint — color is reserved for session mode headers. */
+  --tint-route: var(--color-text-secondary);
+
+  /* ─────────────────────────────────────────────────────────────────
+   * Typography tokens — Option A "System Editorial"
+   * Serif-led; no remote fetch; cross-OS face variation is acceptable
+   * (Iowan on Mac, Sitka on Windows, Charter/Source Serif on Linux —
+   * all warm humanist serifs).
+   * ───────────────────────────────────────────────────────────────── */
+
+  --font-serif:
     "Iowan Old Style", "Sitka Text", "Charter", "Source Serif Pro", "Source Serif 4", Georgia,
     "Times New Roman", serif;
 
-  /* Route headers use a neutral graphite tint — color is reserved for session mode headers. */
-  --tint-route: var(--color-text-muted);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+
+  --font-mono:
+    "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, Consolas, "Liberation Mono", monospace;
+
+  /* Body and display both use the serif stack — Praxis is a literary
+   * surface, not a chat app. Sans is reserved for chrome (nav labels,
+   * settings forms) where serif feels precious. */
+  --font-body: var(--font-serif);
+  --font-display: var(--font-serif);
+
+  /* Size scale */
+  --font-size-xs: 12px; /* kickers, captions, metadata */
+  --font-size-sm: 14px;
+  --font-size-base: 16px; /* default body */
+  --font-size-lg: 18px; /* prose-heavy reading body */
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 32px; /* display titles */
+
+  /* Weights — serif chain supports 400/500/600 reliably across OSes */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-base: 1.55;
+  --line-height-loose: 1.75;
+
+  /* Editorial uppercase mono — kickers and structural metadata */
+  --letter-spacing-kicker: 0.1em;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * Spacing scale (8pt baseline)
+   * ───────────────────────────────────────────────────────────────── */
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * Radius scale
+   * Studio Quiet favors small radii — sharp, architectural shapes
+   * rather than soft cards. Pills (--radius-full) reserved for
+   * status chips and toggle controls.
+   * ───────────────────────────────────────────────────────────────── */
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
 }
 
-/* Light-mode overrides — auto-switched by OS preference. All --color-* variables
-   redefined here; non-color tokens (radius, fonts, badge) are mode-invariant.
-   Contrast checks (WCAG AA, 4.5:1 for normal text, 3:1 for large/UI):
-     --color-text #1a1a1a on --color-bg #fafafa       → ~18.7:1 ✓
-     --color-text #1a1a1a on --color-surface #fff     → ~19.6:1 ✓
-     --color-text-muted #6a6a6a on #fafafa            →  ~6.2:1 ✓
-     --color-accent #4f5fb8 on #fafafa                →  ~5.9:1 ✓ (UI element, also large text)
-     --color-user-bubble #1a1a1a on #e8ecff           → ~18.7:1 ✓ (inherits --color-text)
-     --color-assistant-bubble #1a1a1a on #eef5e8      → ~18.7:1 ✓
-     --color-error #b91c1c on #fafafa                 → ~10.9:1 ✓
-     --color-success #15803d on #fafafa               →  ~7.5:1 ✓
-     --color-warning #d97706 on #fafafa               →  ~3.5:1 ✓ (large/UI element)
-*/
-@media (prefers-color-scheme: light) {
-  :root {
-    --color-bg: #fafafa;
-    --color-surface: #ffffff;
-    --color-border: #e8e8e8;
-    --color-text: #1a1a1a;
-    --color-text-muted: #6a6a6a;
-    --color-accent: #4f5fb8;
-    --color-user-bubble: #e8ecff;
-    --color-assistant-bubble: #eef5e8;
-    --tint-route: var(--color-text-muted);
-    --color-error: #b91c1c;
-    --color-success: #15803d;
-    --color-warning: #d97706;
+/* ───────────────────────────────────────────────────────────────────
+ * Dark-mode values (DRY block — applied by both system-follow path
+ * and explicit data-theme="dark" path below).
+ *
+ * Token names invariant; values shift. Mode-tint dots brighten so
+ * they remain visible on the dark surface.
+ *
+ * Resolution order:
+ *   1. No data-theme attribute  → system-follows via @media query
+ *   2. data-theme="light"       → forced light (always wins)
+ *   3. data-theme="dark"        → forced dark (always wins)
+ * ─────────────────────────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg-primary: #18181a;
+    --color-bg-secondary: #21221f;
+    --color-bg-tertiary: #2c2c28;
+    --color-bg-inverse: #f5f4f0;
+
+    --color-text-primary: #ebebe6;
+    --color-text-secondary: #8d8b82;
+    --color-text-tertiary: #5f5d57;
+    --color-text-inverse: #18181a;
+    --color-text-link: #e8967d;
+    --color-text-link-hover: #f0a892;
+
+    --color-border: #2c2c28;
+    --color-border-strong: #494940;
+
+    --color-accent: #e8967d;
+    --color-accent-hover: #f0a892;
+    --color-accent-muted: #2f201c;
+
+    --color-success: #93b878;
+    --color-warning: #ddae5e;
+    --color-danger: #e08b87;
+    --color-info: #82a8c4;
+
+    --tint-teach: #e0a060;
+    --tint-bootstrap: #93b878;
+    --tint-quiz: #8aa0b0;
+    --tint-homework: #8a8eb8;
+    --tint-exam: #e8967d;
+    --tint-configure: #8d8b82;
+    --tint-study-skills: #82bab3;
   }
 }
+
+/* Explicit toggle: data-theme="dark" — wins over any system preference. */
+:root[data-theme="dark"] {
+  --color-bg-primary: #18181a;
+  --color-bg-secondary: #21221f;
+  --color-bg-tertiary: #2c2c28;
+  --color-bg-inverse: #f5f4f0;
+
+  --color-text-primary: #ebebe6;
+  --color-text-secondary: #8d8b82;
+  --color-text-tertiary: #5f5d57;
+  --color-text-inverse: #18181a;
+  --color-text-link: #e8967d;
+  --color-text-link-hover: #f0a892;
+
+  --color-border: #2c2c28;
+  --color-border-strong: #494940;
+
+  --color-accent: #e8967d;
+  --color-accent-hover: #f0a892;
+  --color-accent-muted: #2f201c;
+
+  --color-success: #93b878;
+  --color-warning: #ddae5e;
+  --color-danger: #e08b87;
+  --color-info: #82a8c4;
+
+  --tint-teach: #e0a060;
+  --tint-bootstrap: #93b878;
+  --tint-quiz: #8aa0b0;
+  --tint-homework: #8a8eb8;
+  --tint-exam: #e8967d;
+  --tint-configure: #8d8b82;
+  --tint-study-skills: #82bab3;
+}
+
+/* data-theme="light" is implicit on :root defaults — listed in the
+ * media-query selector above as the "do not override" sentinel. No
+ * additional rules needed here. */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Base styles
+ * ───────────────────────────────────────────────────────────────────────────── */
 
 html,
 body,
@@ -79,16 +233,16 @@ body,
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--color-text-link);
   text-decoration: none;
 }
 

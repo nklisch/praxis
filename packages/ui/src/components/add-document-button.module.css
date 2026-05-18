@@ -8,7 +8,7 @@
   background: transparent;
   border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.2));
   border-radius: 6px;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.15s;

@@ -6,7 +6,7 @@
 .toggle {
   background: transparent;
   border: 1px solid var(--color-border);
-  color: var(--color-text);
+  color: var(--color-text-primary);
   padding: 0.4rem 0.8rem;
   border-radius: 4px;
   cursor: pointer;
@@ -17,7 +17,7 @@
 }
 
 .toggle:hover {
-  background: var(--color-surface);
+  background: var(--color-bg-secondary);
 }
 
 .panel {
@@ -28,7 +28,7 @@
   min-width: 22rem;
   max-height: 50vh;
   overflow-y: auto;
-  background: var(--color-surface);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 4px;
   list-style: none;
@@ -52,7 +52,7 @@
 }
 
 .row:hover {
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
 }
 
 .rowTitle {
@@ -65,5 +65,5 @@
   font-size: 0.65rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }

@@ -16,7 +16,7 @@
   padding: 0;
   cursor: pointer;
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   line-height: 1.5;
   font-family: inherit;
   text-align: left;
@@ -65,7 +65,7 @@
 
 .errored {
   composes: editorial from global;
-  color: var(--color-warning, var(--color-text-muted));
+  color: var(--color-warning, var(--color-text-secondary));
   opacity: 0.85;
 }
 
@@ -80,14 +80,14 @@
   align-items: baseline;
   gap: 0.4em;
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   opacity: 0.75;
   line-height: 1.5;
   padding: 0.05rem 0;
 }
 
 .stepFailed {
-  color: var(--color-warning, var(--color-text-muted));
+  color: var(--color-warning, var(--color-text-secondary));
 }
 
 .bullet {

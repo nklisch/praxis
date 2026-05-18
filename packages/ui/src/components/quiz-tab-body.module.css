@@ -16,7 +16,7 @@
   padding: 0.45rem 1rem;
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   flex-shrink: 0;
-  background: var(--color-surface-1, #1a1a1a);
+  background: var(--color-bg-secondary, #1a1a1a);
 }
 
 .kickerMode {
@@ -29,7 +29,7 @@
 
 .kickerTitle {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -37,10 +37,10 @@
 }
 
 .sidekickToggle {
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 50%;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 700;
@@ -58,7 +58,7 @@
 
 .sidekickToggle:hover,
 .sidekickToggleActive {
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   border-color: rgba(255, 255, 255, 0.3);
 }
 
@@ -84,6 +84,6 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
 }

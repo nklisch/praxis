@@ -3,7 +3,7 @@
 .indicator {
   composes: editorial from global;
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 0.25rem 0 0.25rem 0.25rem;
   padding: 0;
   align-self: flex-start;

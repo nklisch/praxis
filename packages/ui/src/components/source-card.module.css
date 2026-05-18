@@ -1,5 +1,5 @@
 .card {
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   border-radius: 6px;
   padding: 0.75rem 1rem;
@@ -23,22 +23,22 @@
 
 .title {
   font-weight: 600;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .section {
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.78rem;
 }
 
 .page {
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.78rem;
   margin-left: auto;
 }
 
 .text {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
   line-height: 1.5;
   margin: 0 0 0.5rem;
   white-space: pre-wrap;

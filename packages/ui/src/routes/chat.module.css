@@ -30,7 +30,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .sidebarContent {
@@ -82,7 +82,7 @@
 
 .emptyState {
   text-align: center;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin-top: 4rem;
   font-size: 0.95rem;
 }
@@ -91,7 +91,7 @@
   padding: 0.5rem 1rem;
   background: rgba(220, 50, 50, 0.15);
   border-top: 1px solid rgba(220, 50, 50, 0.3);
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.85rem;
   flex-shrink: 0;
 }
@@ -115,7 +115,7 @@
   padding: 0.6rem 1rem;
   background: rgba(255, 200, 50, 0.15);
   border-top: 1px solid rgba(255, 200, 50, 0.35);
-  color: var(--color-text, #1a1a1a);
+  color: var(--color-text-primary, #1a1a1a);
   font-size: 0.9rem;
   flex-shrink: 0;
 }
@@ -123,8 +123,8 @@
 .authBannerButton {
   padding: 0.3rem 0.75rem;
   border-radius: 4px;
-  border: 1px solid var(--color-primary, #2563eb);
-  background: var(--color-primary, #2563eb);
+  border: 1px solid var(--color-accent, #2563eb);
+  background: var(--color-accent, #2563eb);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   cursor: pointer;
   font-size: 0.85rem;
@@ -139,7 +139,7 @@
   border-radius: 4px;
   border: 1px solid var(--color-border, #e0e0e0);
   background: transparent;
-  color: var(--color-text, #1a1a1a);
+  color: var(--color-text-primary, #1a1a1a);
   cursor: pointer;
   font-size: 0.85rem;
 }

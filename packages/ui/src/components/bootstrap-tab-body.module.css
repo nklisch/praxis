@@ -24,7 +24,7 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
-  background: var(--color-surface-1, #1a1a1a);
+  background: var(--color-bg-secondary, #1a1a1a);
 }
 
 .outlineHeader {
@@ -42,7 +42,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   /* Allow the title to shrink if the header row gets crowded. */
   flex-shrink: 0;
 }
@@ -58,7 +58,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   background: transparent;
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 4px;
@@ -70,7 +70,7 @@
 }
 
 .addDocsBtn:hover {
-  color: var(--color-text, #ddd);
+  color: var(--color-text-primary, #ddd);
   border-color: var(--color-accent, #7aa2f7);
 }
 
@@ -82,7 +82,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .budgetInput {
@@ -91,10 +91,10 @@
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 4px;
-  color: var(--color-text, #ddd);
+  color: var(--color-text-primary, #ddd);
 }
 
 .budgetInput:focus {
@@ -139,7 +139,7 @@
   justify-content: center;
   padding: 1.5rem;
   text-align: center;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.85rem;
   line-height: 1.5;
 }

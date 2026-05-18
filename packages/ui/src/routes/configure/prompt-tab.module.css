@@ -21,13 +21,13 @@
   margin: 0;
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .sectionDesc {
   margin: 0;
   font-size: 0.875rem;
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-secondary, #666);
   max-width: 72ch;
 }
 

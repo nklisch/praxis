@@ -7,7 +7,7 @@
   overflow: hidden;
   transition: width 0.2s ease;
   border-left: none;
-  background: var(--color-surface-1, #1a1a1a);
+  background: var(--color-bg-secondary, #1a1a1a);
   flex-shrink: 0;
 }
 
@@ -33,14 +33,14 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .closeBtn {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 1.1rem;
   line-height: 1;
   padding: 0.1rem 0.3rem;
@@ -48,7 +48,7 @@
 }
 
 .closeBtn:hover {
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -62,7 +62,7 @@
 }
 
 .emptyState {
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.85rem;
   line-height: 1.5;
   margin: 1.5rem 0;
@@ -73,7 +73,7 @@
   padding: 0.4rem 0.875rem;
   background: rgba(220, 50, 50, 0.12);
   border-top: 1px solid rgba(220, 50, 50, 0.25);
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.8rem;
   flex-shrink: 0;
 }

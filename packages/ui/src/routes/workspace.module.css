@@ -14,7 +14,7 @@
   margin: 0;
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .tabs {
@@ -29,7 +29,7 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
   font-weight: 600;
   padding: 0.55rem 1rem;
@@ -42,7 +42,7 @@
 }
 
 .tab:hover {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .tab.active {
@@ -58,7 +58,7 @@
 
 .loading {
   padding: 2rem 1.5rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
   margin: 0;
 }

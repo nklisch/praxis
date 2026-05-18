@@ -17,7 +17,7 @@
 .backBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
   padding: 0;
@@ -27,7 +27,7 @@
 }
 
 .backBtn:hover {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 /* ── Filter row ──────────────────────────────────────────────────────────── */
@@ -46,10 +46,10 @@
 .filterInput {
   width: 100%;
   padding: 0.5rem 2rem 0.5rem 0.75rem;
-  background: var(--color-surface);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   font-size: 0.875rem;
   font-family: inherit;
   outline: none;
@@ -63,7 +63,7 @@
 }
 
 .filterInput::placeholder {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 
@@ -76,7 +76,7 @@
   right: 0.5rem;
   background: transparent;
   border: none;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
@@ -91,7 +91,7 @@
 }
 
 .clearBtn:hover {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 /* ── Scrollable concept container ────────────────────────────────────────── */
@@ -104,7 +104,7 @@
 }
 
 .noResults {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-style: italic;
   font-size: 0.9rem;
   padding: 0.5rem 0;
@@ -121,8 +121,8 @@
   top: 0;
   /* Sits above the scrolling list items */
   z-index: 1;
-  background: var(--color-bg);
-  color: var(--color-text-muted);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -145,7 +145,7 @@
 
 .conceptItem {
   padding: 0.65rem 0.85rem;
-  background: var(--color-surface);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   transition:
@@ -160,19 +160,19 @@
 .conceptName {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .conceptDescription {
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin-top: 0.2rem;
   line-height: 1.4;
 }
 
 .conceptAliases {
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin-top: 0.15rem;
   font-style: italic;
 }

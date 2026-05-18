@@ -14,13 +14,13 @@
   padding: 1rem 1.25rem 0.75rem;
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
   flex-shrink: 0;
-  background: var(--color-bg, #0f0f17);
+  background: var(--color-bg-primary, #0f0f17);
 }
 
 .backBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.85rem;
   cursor: pointer;
   padding: 0;
@@ -30,7 +30,7 @@
 }
 
 .backBtn:hover {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .headerMain {
@@ -43,13 +43,13 @@
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .meta {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 /* Canvas fills remaining space; position relative so the side panel can anchor */
@@ -63,12 +63,12 @@
   width: 100%;
   height: 100%;
   /* Dark background for the canvas */
-  background: var(--color-canvas-bg, #0d0d1a);
+  background: var(--color-bg-primary, #0d0d1a);
 }
 
 /* React Flow override — force dark background on the flow wrapper */
 :global(.react-flow__renderer) {
-  background: var(--color-canvas-bg, #0d0d1a);
+  background: var(--color-bg-primary, #0d0d1a);
 }
 
 .empty {
@@ -76,7 +76,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
   text-align: center;
   padding: 2rem;
@@ -84,12 +84,12 @@
 
 .status {
   padding: 1.5rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
 }
 
 .error {
   padding: 1.5rem;
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.9rem;
 }

@@ -33,7 +33,7 @@
 .filename {
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -50,13 +50,13 @@
 
 .meta {
   font-size: 0.7rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .deleteBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 1.1rem;
   cursor: pointer;
   padding: 0.1rem 0.3rem;
@@ -67,19 +67,19 @@
 }
 
 .deleteBtn:hover {
-  color: var(--color-error);
+  color: var(--color-danger);
 }
 
 .status,
 .empty {
   font-size: 0.82rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   padding: 0.5rem;
   text-align: center;
 }
 
 .error {
   font-size: 0.82rem;
-  color: var(--color-error);
+  color: var(--color-danger);
   padding: 0.5rem;
 }

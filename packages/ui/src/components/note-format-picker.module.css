@@ -14,13 +14,13 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .cancelBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.85rem;
   cursor: pointer;
   padding: 0.2rem 0.5rem;
@@ -29,7 +29,7 @@
 }
 
 .cancelBtn:hover {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .list {
@@ -43,7 +43,7 @@
 
 .formatCard {
   width: 100%;
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 8px;
   padding: 0.85rem 1rem;
@@ -78,11 +78,11 @@
 .label {
   font-size: 0.92rem;
   font-weight: 700;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .description {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   line-height: 1.45;
 }

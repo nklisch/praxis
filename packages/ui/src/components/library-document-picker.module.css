@@ -1,7 +1,7 @@
 .ornament {
   display: block;
   font-size: 1.4rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   margin-bottom: 0.1rem;
 }
 
@@ -11,7 +11,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-family: var(--font-mono, monospace);
   margin-bottom: 0.35rem;
 }
@@ -20,12 +20,12 @@
   composes: editorial from global;
   font-size: 1.4rem;
   margin: 0 0 0.25rem;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .deck {
   font-size: 0.85rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   margin: 0 0 1rem;
 }
 
@@ -46,7 +46,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.55rem 0.85rem;
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   border-radius: 6px;
 }
@@ -62,7 +62,7 @@
 .filename {
   font-size: 0.87rem;
   font-weight: 600;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -70,12 +70,12 @@
 
 .meta {
   font-size: 0.75rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .rowError {
   font-size: 0.75rem;
-  color: var(--color-error);
+  color: var(--color-danger);
 }
 
 .attachedBadge {
@@ -122,7 +122,7 @@
 
 .closeBtn {
   background: transparent;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
   padding: 0.4rem 1rem;
   border-radius: 5px;
@@ -132,5 +132,5 @@
 }
 
 .closeBtn:hover {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }

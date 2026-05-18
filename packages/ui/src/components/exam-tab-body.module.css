@@ -16,7 +16,7 @@
   padding: 0.45rem 1rem;
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   flex-shrink: 0;
-  background: var(--color-surface-1, #1a1a1a);
+  background: var(--color-bg-secondary, #1a1a1a);
 }
 
 .kickerMode {
@@ -29,7 +29,7 @@
 
 .kickerTitle {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -38,7 +38,7 @@
 
 .kickerNotice {
   font-size: 0.72rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-style: italic;
 }
 
@@ -60,6 +60,6 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
 }

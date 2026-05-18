@@ -18,22 +18,22 @@
   margin: 0 0 0.25rem;
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .subtitle {
   margin: 0;
   font-size: 0.88rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .status {
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
 }
 
 .error {
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.9rem;
 }
 
@@ -51,13 +51,13 @@
 .emptyPrimary {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
   margin: 0;
 }
 
 .emptyHint {
   font-size: 0.88rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   max-width: 40ch;
   margin: 0;
   line-height: 1.5;
@@ -82,7 +82,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1rem;
-  background: var(--color-surface, #1e1e2e);
+  background: var(--color-bg-secondary, #1e1e2e);
   border: 1px solid var(--color-border, #2e2e3e);
   border-radius: 8px;
   transition: border-color 0.15s;
@@ -109,12 +109,12 @@
 .packName {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .packVersion {
   font-size: 0.78rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-variant-numeric: tabular-nums;
 }
 
@@ -137,12 +137,12 @@
 
 .metaItem {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .metaSep {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   opacity: 0.5;
 }
 

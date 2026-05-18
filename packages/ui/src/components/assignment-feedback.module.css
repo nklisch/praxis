@@ -21,12 +21,12 @@
 
 .miss {
   background: rgba(239, 68, 68, 0.08);
-  border-left-color: var(--color-error);
+  border-left-color: var(--color-danger);
 }
 
 .review {
   background: rgba(148, 163, 184, 0.08);
-  border-left-color: var(--color-text-muted); /* intentional literal: neutral review tone */
+  border-left-color: var(--color-text-secondary); /* intentional literal: neutral review tone */
 }
 
 /* Score badge */
@@ -51,19 +51,19 @@
 
 .miss .scoreBadge {
   background: rgba(239, 68, 68, 0.2);
-  color: var(--color-error);
+  color: var(--color-danger);
 }
 
 .review .scoreBadge {
   background: rgba(148, 163, 184, 0.2);
-  color: var(--color-text-muted); /* intentional literal: neutral review tone */
+  color: var(--color-text-secondary); /* intentional literal: neutral review tone */
 }
 
 /* Feedback text */
 .feedbackText {
   margin: 0;
   line-height: 1.5;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   white-space: pre-wrap;
 }
 
@@ -76,13 +76,13 @@
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   user-select: none;
   outline: none;
 }
 
 .perCriterion summary:hover {
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
 }
 
 .criterionList {
@@ -96,7 +96,7 @@
 
 .criterionRow {
   padding: 0.35rem 0.5rem;
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.03));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
   border-radius: 4px;
   display: grid;
   grid-template-areas:
@@ -110,7 +110,7 @@
 .criterionName {
   grid-area: name;
   font-weight: 600;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   align-self: center;
 }
 
@@ -125,14 +125,14 @@
 .criterionSource {
   grid-area: source;
   font-size: 0.7rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   align-self: center;
 }
 
 .criterionRationale {
   grid-area: rationale;
   margin: 0;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   line-height: 1.4;
 }
 
@@ -141,6 +141,6 @@
   display: block;
   margin-top: 0.3rem;
   font-size: 0.7rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-style: italic;
 }

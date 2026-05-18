@@ -7,7 +7,7 @@
 .headline {
   margin: 0 0 1rem;
   font-size: 0.9rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .list {
@@ -47,17 +47,17 @@
 }
 
 .itemOk .filename {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .itemFail .filename {
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .detail {
   flex-shrink: 0;
   font-size: 0.75rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   white-space: nowrap;
   max-width: 180px;
   overflow: hidden;
@@ -65,13 +65,13 @@
 }
 
 .itemFail .detail {
-  color: var(--color-error, #e05c5c);
+  color: var(--color-danger, #e05c5c);
 }
 
 .failNote {
   margin: 0 0 1rem;
   font-size: 0.8rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .actions {

@@ -33,7 +33,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition:
     color 0.1s,
@@ -41,12 +41,12 @@
 }
 
 .tabButton:hover {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .tabButtonActive {
-  color: var(--color-text);
-  border-bottom-color: var(--color-text);
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-text-primary);
 }
 
 /* ── Filter bar ────────────────────────────────────────────────────────────── */
@@ -64,13 +64,13 @@
   font-size: 0.6rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .filterSelect {
   font-family: var(--font-mono);
   font-size: 0.65rem;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: 2px;
@@ -116,7 +116,7 @@
 .itemTitle {
   composes: editorial from global;
   font-size: 1rem;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -127,5 +127,5 @@
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.05em;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }

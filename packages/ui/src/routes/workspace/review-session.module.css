@@ -8,13 +8,13 @@
 }
 
 .status {
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
   margin: 0;
 }
 
 .error {
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -33,7 +33,7 @@
 
 .progressText {
   font-size: 0.82rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-variant-numeric: tabular-nums;
 }
 
@@ -85,14 +85,14 @@
   margin: 0;
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .doneSubtitle,
 .emptySubtitle {
   margin: 0;
   font-size: 0.88rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   max-width: 36ch;
   line-height: 1.5;
 }

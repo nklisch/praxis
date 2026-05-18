@@ -3,7 +3,7 @@
 .card {
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 6px;
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.03));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -17,7 +17,7 @@
 .tag {
   composes: editorial from global;
   font-size: 0.68rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   letter-spacing: 0.04em;
   display: flex;
   align-items: center;
@@ -60,7 +60,7 @@
 .prompt {
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   margin: 0;
 }
 
@@ -79,10 +79,10 @@
   width: 100%;
   text-align: left;
   padding: 0.4rem 0.65rem;
-  background: var(--color-surface-3, rgba(255, 255, 255, 0.05));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   border-radius: 4px;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   font-size: 0.85rem;
   cursor: pointer;
   display: flex;
@@ -117,7 +117,7 @@ fieldset:disabled .optionSelected {
 
 .optionDesc {
   font-size: 0.78rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   line-height: 1.4;
 }
 

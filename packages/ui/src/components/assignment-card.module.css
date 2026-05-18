@@ -4,7 +4,7 @@
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 8px;
   padding: 1rem;
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -33,14 +33,14 @@
 .title {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   margin: 0;
   flex: 1;
 }
 
 .itemCount {
   font-size: 0.75rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   white-space: nowrap;
 }
 
@@ -58,12 +58,12 @@
 .loading,
 .error {
   font-size: 0.875rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   padding: 0.5rem;
 }
 
 .error {
-  color: var(--color-error);
+  color: var(--color-danger);
 }
 
 /* Submit section */
@@ -97,14 +97,14 @@
 
 .submitError {
   font-size: 0.8rem;
-  color: var(--color-error);
+  color: var(--color-danger);
 }
 
 /* Submitted state */
 .submittedBanner {
   text-align: center;
   font-size: 0.8rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   padding: 0.25rem 0;
   border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
 }

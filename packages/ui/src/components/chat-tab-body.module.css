@@ -19,7 +19,7 @@
 
 .emptyState {
   text-align: center;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin-top: 4rem;
   font-size: 0.95rem;
 }
@@ -28,7 +28,7 @@
   padding: 0.5rem 1rem;
   background: rgba(220, 50, 50, 0.15);
   border-top: 1px solid rgba(220, 50, 50, 0.3);
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.85rem;
   flex-shrink: 0;
 }
@@ -53,9 +53,9 @@
 
 .stopButton {
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 0.5rem 1.25rem;
   font-weight: 600;
   font-size: 0.875rem;
@@ -67,14 +67,14 @@
 }
 
 .stopButton:hover {
-  color: var(--color-text);
-  border-color: var(--color-text-muted);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
 }
 
 .cancelMarker {
   composes: editorial from global;
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 0.1rem 0 0.1rem 0.25rem;
   padding: 0;
   align-self: flex-start;
@@ -91,9 +91,9 @@
   gap: 0.5rem;
   align-self: flex-end;
   max-width: 70%;
-  background: var(--color-user-bubble, rgba(100, 100, 240, 0.12));
+  background: var(--color-accent-muted);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 0.55rem 0.75rem;
   opacity: 0.55;
   /* Transition so that if the bubble is removed (cancel) it fades out. */
@@ -107,7 +107,7 @@
 .pendingContent {
   flex: 1;
   font-size: 0.9rem;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   word-break: break-word;
   white-space: pre-wrap;
 }
@@ -115,7 +115,7 @@
 .pendingChip {
   composes: editorial from global;
   font-size: 0.68rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
   letter-spacing: 0.04em;
@@ -124,19 +124,19 @@
 .pendingDismiss {
   background: transparent;
   border: none;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: 1.1rem;
   line-height: 1;
   padding: 0 0.1rem;
   cursor: pointer;
   flex-shrink: 0;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   transition: color 0.15s;
 }
 
 .pendingDismiss:hover,
 .pendingDismiss:focus-visible {
-  color: var(--color-text);
+  color: var(--color-text-primary);
   outline: 2px solid var(--color-border);
   outline-offset: 1px;
 }

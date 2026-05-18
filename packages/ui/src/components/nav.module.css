@@ -5,7 +5,7 @@
   /* Tighter vertical, slightly more generous horizontal — matches
      RouteHeader padding rhythm. */
   padding: 0.85rem 1.5rem;
-  background: var(--color-surface);
+  background: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
@@ -27,7 +27,7 @@
   font-feature-settings: "ss01", "ss02";
   font-size: 1.35rem;
   line-height: 1;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   /* Optical baseline lift so the ornament reads above the italic baseline. */
   transform: translateY(2px);
 }
@@ -37,7 +37,7 @@
   font-size: 1.15rem;
   line-height: 1;
   letter-spacing: -0.005em;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   font-weight: 400;
   font-feature-settings: "kern", "liga", "calt";
 }
@@ -65,18 +65,18 @@
   font-size: 0.7rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   padding: 0.4rem 0;
   position: relative;
   transition: color 0.18s ease;
 }
 
 .links a:hover {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .active {
-  color: var(--color-text);
+  color: var(--color-text-primary);
   /* No background pill — replaced by hairline underline below. */
   background: transparent;
 }
@@ -88,7 +88,7 @@
   right: 0;
   bottom: 0;
   height: 1px;
-  background: var(--color-text);
+  background: var(--color-text-primary);
 }
 
 .lockArea {
@@ -104,8 +104,8 @@
 }
 
 .dueBadge {
-  background: var(--color-badge);
-  color: var(--color-badge-text);
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
   font-size: 0.65rem;
   font-weight: 700;
   min-width: 1.2em;

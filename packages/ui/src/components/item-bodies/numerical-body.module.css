@@ -18,14 +18,14 @@
 .inputLabel {
   font-size: 0.7rem;
   text-transform: lowercase;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-weight: 600;
   letter-spacing: 0.03em;
 }
 
 .hint {
   font-size: 0.75rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   margin: 0;
   align-self: flex-end;
   padding-bottom: 0.45rem;

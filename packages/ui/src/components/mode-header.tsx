@@ -27,7 +27,7 @@ export function ModeHeader({ session, starting, onNewChat, newChatDisabled }: Mo
     return (
       <header
         className={styles.header}
-        style={{ "--mode-tint": "var(--color-text-muted)" } as CSSProperties}
+        style={{ "--mode-tint": "var(--color-text-secondary)" } as CSSProperties}
       >
         <span className={styles.ornament} aria-hidden="true">
           ·
@@ -60,7 +60,7 @@ export function ModeHeader({ session, starting, onNewChat, newChatDisabled }: Mo
     return (
       <header
         className={styles.header}
-        style={{ "--mode-tint": "var(--color-text-muted)" } as CSSProperties}
+        style={{ "--mode-tint": "var(--color-text-secondary)" } as CSSProperties}
       >
         <span className={styles.ornament} aria-hidden="true">
           ·

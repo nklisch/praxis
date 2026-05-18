@@ -20,12 +20,12 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-secondary, #666);
 }
 
 .status {
   font-size: 0.75rem;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-secondary, #888);
 }
 
 .messages {
@@ -38,14 +38,14 @@
 }
 
 .emptyState {
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-secondary, #888);
   font-size: 0.875rem;
   text-align: center;
   margin-top: 2rem;
 }
 
 .errorBanner {
-  background: var(--color-danger-bg, #fef2f2);
+  background: var(--color-accent-muted, #fef2f2);
   color: var(--color-danger, #d32f2f);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;

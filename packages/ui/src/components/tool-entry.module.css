@@ -4,7 +4,7 @@
 .entry {
   composes: editorial from global;
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 0.25rem 0 0.25rem 0.25rem;
   padding: 0;
   align-self: flex-start;
@@ -75,7 +75,7 @@
   gap: 0.4em;
   cursor: pointer;
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-style: italic;
   padding: 0;
   margin: 0.25rem 0 0.25rem 0.25rem;
@@ -95,7 +95,7 @@
   flex-shrink: 0;
   font-style: normal;
   font-size: 0.75em;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   opacity: 0.7;
 }
 
@@ -110,7 +110,7 @@
 
 /* Errored state: warning color. */
 .errored .summary {
-  color: var(--color-warning, var(--color-text-muted));
+  color: var(--color-warning, var(--color-text-secondary));
   opacity: 0.85;
 }
 
@@ -118,7 +118,7 @@
 .details {
   margin: 0.25rem 0 0.25rem 1.5rem;
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .details > details {
@@ -137,7 +137,7 @@
   font-size: 0.75rem;
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  background: var(--color-surface-muted, rgba(0, 0, 0, 0.04));
+  background: var(--color-bg-tertiary, rgba(0, 0, 0, 0.04));
   border-radius: 4px;
   padding: 0.4em 0.6em;
   margin: 0.25rem 0 0;

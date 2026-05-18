@@ -42,7 +42,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: var(--color-text-muted, #555);
+  color: var(--color-text-secondary, #555);
 }
 
 .coursePicker {
@@ -68,12 +68,12 @@
 }
 
 .emptyPrimary {
-  color: var(--color-text-muted, #666);
+  color: var(--color-text-secondary, #666);
   margin: 0;
 }
 
 .status {
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-secondary, #888);
   font-size: 0.875rem;
 }
 
@@ -101,7 +101,7 @@
 
 .courseMeta {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #777);
+  color: var(--color-text-secondary, #777);
 }
 
 .addBtn {
@@ -110,7 +110,7 @@
   border: 1px dashed var(--color-border, #ccc);
   border-radius: 6px;
   background: transparent;
-  color: var(--color-text-muted, #555);
+  color: var(--color-text-secondary, #555);
   cursor: pointer;
   font-size: 0.875rem;
   transition:

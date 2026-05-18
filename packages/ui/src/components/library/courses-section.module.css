@@ -30,7 +30,7 @@
 .itemTitle {
   composes: editorial from global;
   font-size: 1rem;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   line-height: 1.2;
 }
 
@@ -38,7 +38,7 @@
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.05em;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .cta {
@@ -47,7 +47,7 @@
   font-size: 0.62rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
   padding: 0.3rem 0;
@@ -67,7 +67,7 @@
 }
 
 .cta:hover {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .cta:hover::after {

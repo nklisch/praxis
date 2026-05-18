@@ -16,13 +16,13 @@
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: lowercase;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   letter-spacing: 0.03em;
 }
 
 .tierPrompt {
   font-size: 0.875rem;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   margin: 0;
   line-height: 1.4;
 }

@@ -8,7 +8,7 @@
 }
 
 .error {
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.9rem;
 }
 
@@ -37,7 +37,7 @@
 .backBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.85rem;
   cursor: pointer;
   padding: 0;
@@ -47,7 +47,7 @@
 }
 
 .backBtn:hover {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .list {
@@ -71,7 +71,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   border-radius: 6px;
   text-align: left;
@@ -89,7 +89,7 @@
 .mapTitle {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .mapMeta {
@@ -100,7 +100,7 @@
 
 .versionCount {
   font-size: 0.78rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .divergenceBadge {

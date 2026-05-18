@@ -18,7 +18,7 @@
   margin: 0;
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .newCourseBtn {
@@ -38,12 +38,12 @@
 }
 
 .status {
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
 }
 
 .error {
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.9rem;
 }
 
@@ -61,13 +61,13 @@
 .emptyPrimary {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
   margin: 0;
 }
 
 .emptyHint {
   font-size: 0.88rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   max-width: 36ch;
   margin: 0;
   line-height: 1.5;

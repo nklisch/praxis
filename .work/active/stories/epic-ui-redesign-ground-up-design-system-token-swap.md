@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-design-system-token-swap
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-design-system
 depends_on: []
@@ -112,6 +112,59 @@ acceptance criteria, risks.
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` all green.
 - [ ] Visual smoke (`pnpm dev`) confirms the locked palette renders on
       every major surface.
+
+## Implementation notes
+
+### What landed
+
+- `packages/ui/src/styles/global.css` fully rewritten: token block inlined
+  verbatim from `.mockups/design-system/tokens.css` (sans the mockup-only
+  header comment), universal reset kept, body/a/button defaults updated to
+  new token names, `.editorial` composable preserved, `--tint-route:
+  var(--color-text-secondary)` re-added inside `:root`.
+- All 115 `*.module.css` files under `packages/ui/src/` updated via the
+  rename map. Also updated `packages/ui/src/components/mode-header.tsx` (one
+  inline style with `--color-text-muted`) and
+  `packages/ui/src/components/quick-check-card.tsx` (two inline style
+  references).
+- `packages/ui/src/__tests__/theme-tokens.test.tsx` rewritten to assert the
+  new Studio Quiet token vocabulary instead of the old one.
+
+### Deviations and decisions
+
+- **Cascade ordering**: ran sed passes in separate steps rather than a single
+  atomic pass. This caused some intermediate double-substitution artifacts
+  (e.g. `--color-surface` → `--color-bg-secondary` then `--color-bg` →
+  `--color-bg-primary` incorrectly matched inside `-secondary`, producing
+  `--color-bg-primary-secondary`). All cascaded artifacts were found and
+  corrected with follow-up passes. Final audit confirmed zero bad names
+  remain.
+- **Private `--color-surface-1/2/3` tokens**: these numbered variants were
+  not in the official rename map (they were ad-hoc private tokens, not in the
+  old global.css). The `--color-surface` rename sed accidentally touched them,
+  producing `--color-bg-secondary-1/2/3`. Mapped them to `--color-bg-secondary`
+  (level-1) and `--color-bg-tertiary` (level-2 and level-3) as the closest
+  semantic matches.
+- **Bubble migration: fallback path taken**. `--color-user-bubble` and
+  `--color-assistant-bubble` replaced with `var(--color-accent-muted)` for
+  both user and assistant bubbles. The full mode-tint path (`color-mix` +
+  `--message-tint` set from `MessageList` based on `session.modeId`) is
+  deferred to a follow-up story as noted in the parent feature risk section.
+  `chat-tab-body.module.css` had one additional bubble reference (the pending
+  bubble) also migrated to `--color-accent-muted`.
+- **`mode-header.tsx`**: two inline style values used the string
+  `"var(--color-text-muted)"` to set `--mode-tint` on the opening/idle header
+  states. Updated to `"var(--color-text-secondary)"`.
+
+### Quality
+
+- `pnpm test`: 3676 tests passed, 23 skipped (expected).
+- `pnpm typecheck`: pre-existing failure in `@praxis/core` (unrelated to this
+  story — `recommendation-service.ts` and `snapshot-capturer.ts` errors that
+  were present before this change).
+- `pnpm lint`: pre-existing failures in `.mockups/` HTML and
+  `packages/ui/src/__tests__/` files (not touched by this story). The one new
+  lint target (`global.css`) was auto-fixed with `biome check --write`.
 
 ## Out of scope
 

@@ -41,7 +41,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: var(--color-text-muted, #555);
+  color: var(--color-text-secondary, #555);
 }
 
 .coursePicker {
@@ -54,7 +54,7 @@
 
 .status {
   padding: 1rem;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-secondary, #888);
   font-size: 0.875rem;
 }
 
@@ -69,7 +69,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-secondary, #888);
   font-size: 0.9rem;
   padding: 2rem;
 }

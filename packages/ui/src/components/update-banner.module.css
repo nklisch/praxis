@@ -3,14 +3,14 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
-  background: var(--color-bg-subtle, #f6f3ee);
-  border-bottom: 1px solid var(--color-rule, #d0d0d0);
+  background: var(--color-bg-tertiary, #f6f3ee);
+  border-bottom: 1px solid var(--color-border, #d0d0d0);
   font-size: 0.95rem;
 }
 
 .message {
   flex: 1;
-  color: var(--color-fg, #111111);
+  color: var(--color-text-primary, #111111);
 }
 
 .downloadLink {
@@ -24,7 +24,7 @@
 
 .downloadLink:hover {
   background: var(--color-accent, #2563eb);
-  color: var(--color-bg, #ffffff);
+  color: var(--color-bg-primary, #ffffff);
 }
 
 .dismissButton {
@@ -33,27 +33,27 @@
   font-size: 1.4rem;
   line-height: 1;
   padding: 0.2rem 0.5rem;
-  color: var(--color-fg-muted, #5a5a5a);
+  color: var(--color-text-secondary, #5a5a5a);
   cursor: pointer;
 }
 
 .dismissButton:hover {
-  color: var(--color-fg, #111111);
+  color: var(--color-text-primary, #111111);
 }
 
 .hashDetails {
   font-size: 0.85rem;
-  color: var(--color-fg-muted, #5a5a5a);
+  color: var(--color-text-secondary, #5a5a5a);
 }
 
 .hashSummary {
   cursor: pointer;
   user-select: none;
-  color: var(--color-fg-muted, #5a5a5a);
+  color: var(--color-text-secondary, #5a5a5a);
 }
 
 .hashSummary:hover {
-  color: var(--color-fg, #111111);
+  color: var(--color-text-primary, #111111);
 }
 
 .hashValue {
@@ -62,11 +62,11 @@
   font-size: 0.8rem;
   word-break: break-all;
   margin: 0.25rem 0;
-  color: var(--color-fg, #111111);
+  color: var(--color-text-primary, #111111);
   user-select: all;
 }
 
 .hashHint {
   margin: 0.25rem 0 0;
-  color: var(--color-fg-muted, #5a5a5a);
+  color: var(--color-text-secondary, #5a5a5a);
 }

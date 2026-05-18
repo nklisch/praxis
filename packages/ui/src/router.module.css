@@ -18,5 +18,5 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  background: var(--color-bg, #ffffff);
+  background: var(--color-bg-primary, #ffffff);
 }

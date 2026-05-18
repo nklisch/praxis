@@ -12,14 +12,14 @@
 
 .modePickerLabel {
   font-size: 0.85rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .modeSelect {
-  background: var(--color-surface);
-  color: var(--color-text);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 0.4rem 0.5rem;
   font-size: 0.9rem;
   font-family: inherit;
@@ -29,14 +29,14 @@
   display: inline-flex;
   gap: 0;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   overflow: hidden;
   width: fit-content;
 }
 
 .toggleBtn {
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   border: none;
   padding: 0.35rem 0.9rem;
   font-size: 0.85rem;
@@ -48,7 +48,7 @@
 }
 
 .toggleBtn:hover {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .toggleBtnActive {

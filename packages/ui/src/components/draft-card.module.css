@@ -1,5 +1,5 @@
 .card {
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 8px;
   padding: 0.85rem 1rem;
@@ -16,13 +16,13 @@
   margin: 0 0 0.15rem;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .meta {
   margin: 0;
   font-size: 0.78rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .section {
@@ -69,7 +69,7 @@ details:not([open]) .sectionSummary::before {
 }
 
 .lessonTitle {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .conceptList {
@@ -82,7 +82,7 @@ details:not([open]) .sectionSummary::before {
 }
 
 .conceptItem {
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.8rem;
 }
 
@@ -96,6 +96,6 @@ details:not([open]) .sectionSummary::before {
 }
 
 .flatItem {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
   line-height: 1.5;
 }

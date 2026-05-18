@@ -4,7 +4,7 @@
   padding: 0.75rem;
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   border-radius: 6px;
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.03));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -22,15 +22,15 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .itemKind {
   font-size: 0.7rem;
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
-  background: var(--color-surface-3, rgba(255, 255, 255, 0.08));
-  color: var(--color-text-muted, #aaa);
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.08));
+  color: var(--color-text-secondary, #aaa);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -47,7 +47,7 @@
 .prompt {
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   margin: 0;
 }
 
@@ -63,7 +63,7 @@
 .answerLabel {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 /* ── Input controls ─────────────────────────────────────────────────────────── */
@@ -72,10 +72,10 @@
 .mathInput {
   width: 100%;
   padding: 0.4rem 0.6rem;
-  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 4px;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   font-size: 0.9rem;
   transition: border-color 0.15s;
   box-sizing: border-box;
@@ -101,10 +101,10 @@
 .codeInput {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 4px;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   font-size: 0.875rem;
   resize: vertical;
   transition: border-color 0.15s;
@@ -131,10 +131,10 @@
 .freeResponseInput {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 4px;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   font-size: 0.9rem;
   resize: vertical;
   transition: border-color 0.15s;
@@ -170,12 +170,12 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   transition: background 0.12s;
 }
 
 .optionLabel:hover:not(.disabled) {
-  background: var(--color-surface-3, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
 }
 
 .optionLabel.disabled {

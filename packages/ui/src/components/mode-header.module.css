@@ -16,7 +16,7 @@
   row-gap: 0.18rem;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--mode-tint, var(--color-text-muted)) 4%, transparent) 0%,
+    color-mix(in srgb, var(--mode-tint, var(--color-text-secondary)) 4%, transparent) 0%,
     transparent 100%
   );
   isolation: isolate;
@@ -32,8 +32,8 @@
   height: 1px;
   background: linear-gradient(
     90deg,
-    var(--mode-tint, var(--color-text-muted)) 0,
-    var(--mode-tint, var(--color-text-muted)) 4.5rem,
+    var(--mode-tint, var(--color-text-secondary)) 0,
+    var(--mode-tint, var(--color-text-secondary)) 4.5rem,
     var(--color-border) 4.5rem,
     var(--color-border) 100%
   );
@@ -49,7 +49,7 @@
   font-family: var(--font-display);
   font-size: 2rem;
   line-height: 1;
-  color: var(--mode-tint, var(--color-text-muted));
+  color: var(--mode-tint, var(--color-text-secondary));
   user-select: none;
   font-feature-settings: "ss01", "ss02";
   /* Tiny upward optical lift so the glyph centers visually rather than
@@ -67,7 +67,7 @@
   font-size: 0.6rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   align-self: end;
   padding-bottom: 0.15rem;
 }
@@ -76,9 +76,9 @@
   width: 0.42rem;
   height: 0.42rem;
   border-radius: 50%;
-  background: var(--mode-tint, var(--color-text-muted));
+  background: var(--mode-tint, var(--color-text-secondary));
   box-shadow: 0 0 0 2px
-    color-mix(in srgb, var(--mode-tint, var(--color-text-muted)) 22%, transparent);
+    color-mix(in srgb, var(--mode-tint, var(--color-text-secondary)) 22%, transparent);
 }
 
 /* Display name + deck share the second row, name on its own line, deck beneath
@@ -97,7 +97,7 @@
   font-size: 1.65rem;
   line-height: 1.05;
   letter-spacing: -0.012em;
-  color: var(--color-text);
+  color: var(--color-text-primary);
   font-weight: 400;
   font-feature-settings: "kern", "liga", "calt";
 }
@@ -106,7 +106,7 @@
   composes: editorial from global;
   font-size: 0.92rem;
   line-height: 1.3;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   letter-spacing: 0.005em;
 }
 
@@ -114,7 +114,7 @@
    often open with a typographic dash. We render it as an inline span so we can
    match its color to the tint while keeping the deck text muted. */
 .deckDash {
-  color: var(--mode-tint, var(--color-text-muted));
+  color: var(--mode-tint, var(--color-text-secondary));
   margin-right: 0.35em;
   font-style: normal;
 }
@@ -135,7 +135,7 @@
   font-size: 0.66rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
   border-radius: 0;
@@ -159,7 +159,7 @@
 }
 
 .actionButton:not(:disabled):hover {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .actionButton:not(:disabled):hover::after {
@@ -178,7 +178,7 @@
 .opening {
   composes: editorial from global;
   font-size: 1.4rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   line-height: 1.05;
   display: inline-flex;
   align-items: baseline;

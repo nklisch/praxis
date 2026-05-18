@@ -11,7 +11,7 @@
 .typeahead {
   position: absolute;
   pointer-events: all;
-  background: var(--color-surface, #1a1a1a);
+  background: var(--color-bg-secondary, #1a1a1a);
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
@@ -35,13 +35,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-secondary, #888);
 }
 
 .dismissBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-secondary, #888);
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
@@ -56,7 +56,7 @@
 }
 
 .dismissBtn:hover {
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .typeaheadList {
@@ -91,7 +91,7 @@
 .typeaheadName {
   flex: 1;
   font-size: 0.88rem;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -99,7 +99,7 @@
 
 .typeaheadConfidence {
   font-size: 0.72rem;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-secondary, #888);
   flex-shrink: 0;
 }
 

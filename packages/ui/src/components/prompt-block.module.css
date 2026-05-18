@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background: var(--color-surface);
+  background: var(--color-bg-secondary);
 }
 
 .header {
@@ -16,7 +16,7 @@
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .title {
@@ -25,19 +25,19 @@
   text-transform: none;
   font-size: 0.95rem;
   letter-spacing: 0;
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .position {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .edited {
-  color: var(--color-accent, var(--color-text));
+  color: var(--color-accent, var(--color-text-primary));
 }
 
 .locked {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .spacer {
@@ -48,7 +48,7 @@
 .smallBtnPrimary {
   background: transparent;
   border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   padding: 0.25rem 0.6rem;
   border-radius: 3px;
   cursor: pointer;
@@ -59,13 +59,13 @@
 }
 
 .smallBtnPrimary {
-  color: var(--color-text);
-  border-color: var(--color-text-muted);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
 }
 
 .smallBtn:hover,
 .smallBtnPrimary:hover {
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
 }
 
 .smallBtn:disabled,
@@ -80,7 +80,7 @@
   font-family: inherit;
   font-size: 0.85rem;
   line-height: 1.5;
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .editor {
@@ -90,8 +90,8 @@
   font-family: inherit;
   font-size: 0.85rem;
   line-height: 1.5;
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
-  color: var(--color-text);
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
   border-radius: 3px;
   padding: 0.4rem 0.6rem;
@@ -117,7 +117,7 @@
   font-size: 0.6rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .diffPre {
@@ -125,7 +125,7 @@
   white-space: pre-wrap;
   font-size: 0.78rem;
   line-height: 1.4;
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
   padding: 0.4rem 0.5rem;
   border-radius: 3px;
 }

@@ -15,7 +15,7 @@
   padding: 0;
   cursor: pointer;
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   opacity: 0.7;
   line-height: 1.5;
   font-family: inherit;
@@ -66,7 +66,7 @@
 .bodyText {
   composes: editorial from global;
   font-size: 0.825rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   opacity: 0.75;
   white-space: pre-wrap;
   word-break: break-word;

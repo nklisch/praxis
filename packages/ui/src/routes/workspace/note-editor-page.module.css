@@ -51,7 +51,7 @@
 
 .updated {
   font-size: 0.78rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .editorBody {
@@ -94,13 +94,13 @@
 
 .status {
   padding: 2rem 1.5rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
   margin: 0;
 }
 
 .error {
-  color: var(--color-error);
+  color: var(--color-danger);
   font-size: 0.88rem;
   margin: 0;
 }

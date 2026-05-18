@@ -3,7 +3,7 @@
 .card {
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 6px;
-  background: var(--color-surface-2, rgba(255, 255, 255, 0.03));
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -23,7 +23,7 @@
 .tag {
   composes: editorial from global;
   font-size: 0.68rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   letter-spacing: 0.04em;
   display: flex;
   align-items: center;
@@ -38,7 +38,7 @@
 .prompt {
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--color-text, #e5e5e5);
+  color: var(--color-text-primary, #e5e5e5);
   margin: 0;
 }
 
@@ -74,7 +74,7 @@
 .submittedLabel {
   composes: editorial from global;
   font-size: 0.75rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 /* ── Collapsed-state summary (post-submit) ─────────────────────────────────── */
@@ -98,7 +98,7 @@
 .disclosure {
   flex-shrink: 0;
   width: 0.85em;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .collapsedStem {
@@ -107,12 +107,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
 }
 
 .collapsedAnswer {
   composes: editorial from global;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   font-size: 0.8rem;
   white-space: nowrap;
   overflow: hidden;
@@ -142,6 +142,6 @@
 .collapsedReasoning {
   margin-top: 0.4rem;
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   white-space: pre-wrap;
 }

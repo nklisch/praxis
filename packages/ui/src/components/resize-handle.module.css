@@ -26,7 +26,7 @@
 .handle:hover::before,
 .handle:focus-visible::before,
 .handle:active::before {
-  background: var(--color-accent, var(--color-text));
+  background: var(--color-accent, var(--color-text-primary));
 }
 
 .handle:focus-visible {

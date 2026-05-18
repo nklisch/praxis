@@ -1,9 +1,9 @@
 /**
  * Theme-token smoke tests.
  *
- * 1. global.css structure — asserts both `:root` (dark default) and the
- *    `@media (prefers-color-scheme: light)` block define the same set of
- *    `--color-*` variables (no token left behind in either mode).
+ * 1. global.css structure — asserts the `:root` block and the dark-mode blocks
+ *    (both @media and data-theme) define the expected set of `--color-*`
+ *    variables from the locked Studio Quiet / System Editorial token vocabulary.
  *
  * 2. <Nav> render smoke — renders the nav inside a PraxisClientProvider and
  *    asserts it produces at least one link without throwing. jsdom doesn't
@@ -69,78 +69,103 @@ function extractColorVarNames(block: string): Set<string> {
 // ---------------------------------------------------------------------------
 
 describe("global.css theme tokens", () => {
-  it("contains a @media (prefers-color-scheme: light) block", () => {
+  it("contains a @media (prefers-color-scheme: dark) block", () => {
     const css = readGlobalCss();
-    expect(css).toContain("@media (prefers-color-scheme: light)");
+    expect(css).toContain("@media (prefers-color-scheme: dark)");
   });
 
-  it("light-mode block overrides all theme-surface --color-* variables from :root", () => {
+  it("contains a :root[data-theme='dark'] explicit override block", () => {
     const css = readGlobalCss();
-
-    // Grab the light-mode block
-    const lightMatch = css.match(
-      /@media\s*\(\s*prefers-color-scheme\s*:\s*light\s*\)\s*\{[\s\S]*?:root\s*\{([^}]+)\}/,
-    );
-    expect(lightMatch, "light-mode :root block must exist").not.toBeNull();
-    const lightBlock = lightMatch![1];
-    const lightVars = extractColorVarNames(lightBlock);
-
-    // These tokens are surface/theme colors that must be overridden in light mode.
-    // Mode-invariant tokens (--color-badge, --color-badge-text) are intentionally
-    // omitted from the light block since they carry the same semantic value in
-    // both modes (amber warning pill reads well on any background).
-    const surfaceTokens = [
-      "--color-bg",
-      "--color-surface",
-      "--color-border",
-      "--color-text",
-      "--color-text-muted",
-      "--color-accent",
-      "--color-user-bubble",
-      "--color-assistant-bubble",
-    ];
-
-    for (const varName of surfaceTokens) {
-      expect(lightVars.has(varName), `${varName} missing from light-mode block`).toBe(true);
-    }
+    expect(css).toContain(':root[data-theme="dark"]');
   });
 
-  it(":root defines the required --color-* tokens", () => {
+  it(":root defines the required Studio Quiet --color-* tokens", () => {
     const css = readGlobalCss();
     const required = [
-      "--color-bg",
-      "--color-surface",
+      "--color-bg-primary",
+      "--color-bg-secondary",
+      "--color-bg-tertiary",
+      "--color-bg-inverse",
+      "--color-text-primary",
+      "--color-text-secondary",
+      "--color-text-tertiary",
+      "--color-text-inverse",
+      "--color-text-link",
       "--color-border",
-      "--color-text",
-      "--color-text-muted",
       "--color-accent",
-      "--color-user-bubble",
-      "--color-assistant-bubble",
+      "--color-accent-muted",
+      "--color-success",
+      "--color-warning",
+      "--color-danger",
     ];
     for (const token of required) {
       expect(css, `${token} must be defined in :root`).toContain(token);
     }
   });
 
-  it("light-mode block defines all required --color-* tokens", () => {
+  it(":root defines all seven mode-tint tokens", () => {
     const css = readGlobalCss();
-    const required = [
-      "--color-bg",
-      "--color-surface",
-      "--color-border",
-      "--color-text",
-      "--color-text-muted",
-      "--color-accent",
-      "--color-user-bubble",
-      "--color-assistant-bubble",
+    const tints = [
+      "--tint-teach",
+      "--tint-bootstrap",
+      "--tint-quiz",
+      "--tint-homework",
+      "--tint-exam",
+      "--tint-configure",
+      "--tint-study-skills",
     ];
-    const lightMatch = css.match(
-      /@media\s*\(\s*prefers-color-scheme\s*:\s*light\s*\)\s*\{[\s\S]*?:root\s*\{([^}]+)\}/,
-    );
-    expect(lightMatch, "light-mode :root block must exist").not.toBeNull();
-    const lightBlock = lightMatch![1];
-    for (const token of required) {
-      expect(lightBlock, `${token} must be defined in light-mode block`).toContain(token);
+    for (const tint of tints) {
+      expect(css, `${tint} must be defined in :root`).toContain(tint);
+    }
+  });
+
+  it("--tint-route is declared as var(--color-text-secondary)", () => {
+    const css = readGlobalCss();
+    expect(css).toContain("--tint-route: var(--color-text-secondary)");
+  });
+
+  it("dark-mode block (data-theme) overrides all surface --color-* variables", () => {
+    const css = readGlobalCss();
+
+    // Grab the explicit data-theme="dark" block
+    const darkMatch = css.match(/:root\[data-theme="dark"\]\s*\{([^}]+)\}/);
+    expect(darkMatch, 'data-theme="dark" :root block must exist').not.toBeNull();
+    const darkBlock = darkMatch![1];
+    const darkVars = extractColorVarNames(darkBlock);
+
+    const surfaceTokens = [
+      "--color-bg-primary",
+      "--color-bg-secondary",
+      "--color-bg-tertiary",
+      "--color-text-primary",
+      "--color-text-secondary",
+      "--color-accent",
+      "--color-accent-muted",
+      "--color-danger",
+    ];
+
+    for (const varName of surfaceTokens) {
+      expect(darkVars.has(varName), `${varName} missing from data-theme="dark" block`).toBe(true);
+    }
+  });
+
+  it("no legacy variable names remain in global.css", () => {
+    const css = readGlobalCss();
+    const forbidden = [
+      "--color-bg:",
+      "--color-surface:",
+      "--color-text:",
+      "--color-text-muted:",
+      "--color-fg:",
+      "--color-error:",
+      "--color-user-bubble:",
+      "--color-assistant-bubble:",
+      "--color-badge:",
+      "--color-badge-text:",
+      "--color-primary:",
+    ];
+    for (const name of forbidden) {
+      expect(css, `legacy token ${name} must not appear in global.css`).not.toContain(name);
     }
   });
 });

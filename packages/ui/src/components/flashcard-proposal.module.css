@@ -7,12 +7,12 @@
 
 .intro {
   font-size: 0.84rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   margin: 0;
 }
 
 .card {
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
   border-radius: 8px;
   padding: 0.7rem 0.85rem;
@@ -41,13 +41,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
 
 .sideText {
   margin: 0;
   font-size: 0.86rem;
-  color: var(--color-text, inherit);
+  color: var(--color-text-primary, inherit);
   line-height: 1.45;
   overflow-wrap: break-word;
 }
@@ -91,7 +91,7 @@
 .skipBtn {
   background: transparent;
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
   border-radius: 6px;
   font-size: 0.82rem;
   padding: 0.3rem 0.75rem;
@@ -103,13 +103,13 @@
 }
 
 .skipBtn:hover {
-  color: var(--color-text, inherit);
-  border-color: var(--color-text-muted, #aaa);
+  color: var(--color-text-primary, inherit);
+  border-color: var(--color-text-secondary, #aaa);
 }
 
 .empty {
   padding: 0.75rem;
-  background: var(--color-card-bg, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   border-radius: 8px;
 }
@@ -117,5 +117,5 @@
 .emptyText {
   margin: 0;
   font-size: 0.86rem;
-  color: var(--color-text-muted, #aaa);
+  color: var(--color-text-secondary, #aaa);
 }
