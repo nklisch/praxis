@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep-step-3-prompt-tab
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: refactor-useresource-adoption-sweep
 depends_on: []
@@ -132,3 +132,12 @@ Before: 491 lines. After: 477 lines. Delta: −14 lines.
 - `pnpm --filter @praxis/ui test`: 1600/1600 passed (155 test files)
 - `pnpm biome check packages/ui/src/routes/configure/prompt-tab.tsx`: clean (no fixes applied)
 - Pre-existing baseline (3 typecheck errors in other UI files, 524 mockup lint errors, flaky use-fragment-overrides test): unchanged
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Mixed load+mutation file separated cleanly — `FragmentDocument`'s composed-preview load converted to useResource, while `FragmentCard`'s per-card save/revert mutations stayed inline with their local state (no state split needed since they were already isolated from the load). The `composedSegments` derivation (`composedData?.segments ?? []`) preserves the rendered shape. 1600/1600 UI tests pass; typecheck and biome clean. The story body's escape-hatch wasn't needed — the file split cleaner than the design warned.
