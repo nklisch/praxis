@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-cross-tab-state-parent-child-and-system-note
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-cross-tab-state
 depends_on: []
@@ -138,3 +138,15 @@ for architectural choices and composition contracts.
 - `src/components/__tests__/tab-strip-parent-child.test.tsx` (9 tests) — pill + pulse + click-to-switch
 - `src/components/__tests__/system-note-card.test.tsx` (6 tests) — card render + review button
 - `src/components/__tests__/message-list-system-note.test.tsx` (5 tests) — dispatch branch + tabs.open integration
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `parentModeName` resolution uses an inline IIFE in the render loop; a small extracted helper would be slightly cleaner, but the logic is readable as-is.
+- The `brandId<"SessionId">("")` fallback in the `onReview` callback is unreachable dead code (condition already narrowed above), but TypeScript requires the expression — acceptable.
+
+**Notes**: All acceptance criteria met. `ParentChildProvider` cleanly separates the no-re-render `childToParent` ref from the re-render-driving `pulseKeys` state. The `key={pulse-${pulseKey}}` remount pattern correctly restarts the CSS keyframe on rapid-fire events. Bubble-boundary parity test updated accurately. Pre-existing `@praxis/desktop` typecheck errors in `note-editor-page.tsx` and `courses-section.tsx` confirmed pre-existing (not introduced by this story). All 1125 UI tests pass; lint clean on changed files.
