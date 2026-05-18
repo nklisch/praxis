@@ -1,174 +1,416 @@
-.step {
-  composes: editorial from global;
-  max-width: 36rem;
-  margin: 0 auto;
-  padding: 4rem 2rem;
+/*
+ * Onboarding flow shell + step surface.
+ *
+ * Visual direction: Studio Quiet — italic serif titles, mono kicker labels,
+ * muted brick accent for primary actions, warm off-white background.
+ * Locked from .mockups/flows/first-run/ (2026-05-18).
+ */
+
+/* ─── Shell ───────────────────────────────────────────────────────────────── */
+
+/**
+ * Full-screen centered container that wraps the onboarding flow.
+ * Mounts in router.tsx's `.onboardingLayout` which handles scroll.
+ */
+.shell {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+}
+
+.wordmark {
+  composes: editorial from global;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  letter-spacing: -0.005em;
+  margin-bottom: var(--space-12);
+  user-select: none;
+}
+
+/* ─── Step progress dots ──────────────────────────────────────────────────── */
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-12);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+  transition: background 0.15s;
+}
+
+.dotActive {
+  background: var(--color-accent);
+}
+
+.dotDone {
+  background: var(--color-text-tertiary);
+}
+
+/* ─── Step card ───────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-12) 52px;
+  max-width: 520px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Wider card for course step (three cards need more breathing room) */
+.cardWide {
+  max-width: 540px;
+}
+
+/* ─── Within-step typography ──────────────────────────────────────────────── */
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-3);
 }
 
 .title {
-  font-size: 2rem;
-  font-weight: 600;
-  margin: 0;
+  composes: editorial from global;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
+}
+
+/* Welcome step gets a larger, more inviting title */
+.titleDisplay {
+  font-size: var(--font-size-3xl);
 }
 
 .body {
-  font-size: 1.0625rem;
-  line-height: 1.6;
-  color: var(--color-text-secondary, #5a5a5a);
-  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-loose);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-8);
+  max-width: 46ch;
 }
+
+/* ─── Actions row ─────────────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}
+
+/* Spacer pushes subsequent elements to the right inside a flex row.
+ * Used in the engine/course steps to separate the Back button from skip/continue. */
+.actionsSpacer {
+  flex: 1;
+}
+
+.primaryButton {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: 10px 22px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.primaryButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.skipButton {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  padding: 10px var(--space-4);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border: none;
+  cursor: pointer;
+}
+
+.skipButton:hover:not(:disabled) {
+  color: var(--color-text-secondary);
+}
+
+.skipButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.backButton {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  padding: 10px var(--space-4);
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.backButton:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+.backButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ─── Engine step fields ──────────────────────────────────────────────────── */
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5, 20px);
 }
 
 .fieldLabel {
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
-  color: var(--color-text-secondary, #5a5a5a);
+  color: var(--color-text-secondary);
 }
 
 .select,
 .input {
-  font-family: inherit;
-  font-size: 1rem;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid var(--color-border, #d0d0d0);
-  border-radius: 4px;
-  background: var(--color-bg-primary, #ffffff);
-  color: var(--color-text-primary, #111111);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .select:focus,
 .input:focus {
-  outline: 2px solid var(--color-accent, #2563eb);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
-.actions {
+/* ─── Claude Code sign-in row ─────────────────────────────────────────────── */
+
+.signinRow {
   display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
   align-items: center;
-  margin-top: 0.5rem;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
+  margin-bottom: var(--space-5, 20px);
 }
 
-.primaryButton {
-  font-family: inherit;
-  font-size: 1rem;
-  padding: 0.6rem 1.4rem;
-  border: 1px solid var(--color-accent, #111111);
-  border-radius: 4px;
-  background: var(--color-accent, #111111);
-  color: var(--color-bg-primary, #ffffff);
+.signinLabel {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-secondary);
+}
+
+.signinLabelStrong {
+  font-style: normal;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.signinButton {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  padding: 8px var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
 }
 
-.primaryButton:hover:not(:disabled) {
-  opacity: 0.9;
+.signinButton:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
 }
 
-.primaryButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ghostButton {
-  font-family: inherit;
-  font-size: 1rem;
-  padding: 0.6rem 1rem;
-  border: none;
+.signedInBadge {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  padding: 8px var(--space-4);
   background: transparent;
-  color: var(--color-text-secondary, #5a5a5a);
-  cursor: pointer;
+  color: var(--color-success);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: default;
+  /* Read-only affordance — no hover */
 }
 
-.ghostButton:hover:not(:disabled) {
-  color: var(--color-text-primary, #111111);
-}
+/* ─── Course cards ────────────────────────────────────────────────────────── */
 
-.ghostButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.cards {
+.courseCards {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
+  margin-bottom: var(--space-8);
 }
 
-.card {
+.courseCard {
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--color-border, #d0d0d0);
-  border-radius: 6px;
-  background: var(--color-bg-primary, #ffffff);
-  text-align: left;
+  align-items: stretch;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
   cursor: pointer;
   font-family: inherit;
   color: inherit;
+  text-align: left;
+  overflow: hidden;
+  transition: border-color 0.1s;
 }
 
-.card:hover:not(:disabled) {
-  border-color: var(--color-text-primary, #111111);
+.courseCard:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
 }
 
-.card:disabled {
-  opacity: 0.5;
+.courseCard:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-.cardLabel {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--color-text-primary, #111111);
+.courseCardDotCol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  border-right: 1px solid var(--color-border);
+  flex-shrink: 0;
+  background: var(--color-bg-secondary);
 }
 
-.cardBody {
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: var(--color-text-secondary, #5a5a5a);
+.courseCardDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--tint-bootstrap);
 }
 
-.cardCta {
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
+/* Syllabus card uses a neutral dot */
+.courseCardDotNeutral {
+  background: var(--color-text-tertiary);
+}
+
+.courseCardBody {
+  flex: 1;
+  padding: var(--space-4) var(--space-4);
+}
+
+.courseCardLabel {
+  composes: editorial from global;
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  display: block;
+  margin-bottom: var(--space-1);
+  line-height: var(--line-height-tight);
+}
+
+.courseCardDesc {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  display: block;
+}
+
+/* Busy state label */
+.courseCardCta {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
-  color: var(--color-accent, #111111);
+  color: var(--color-accent);
+  display: block;
+  margin-top: var(--space-1);
 }
 
-.signedInButton {
-  font-family: inherit;
-  font-size: 1rem;
-  padding: 0.6rem 1.4rem;
-  border: 1px solid var(--color-border, #d0d0d0);
-  border-radius: 4px;
-  background: var(--color-bg-primary, #ffffff);
-  color: var(--color-text-secondary, #5a5a5a);
-  cursor: pointer;
-  text-align: left;
+.courseCardArrow {
+  font-size: 16px;
+  color: var(--color-text-tertiary);
+  padding: 0 var(--space-4);
+  opacity: 0;
+  transition: opacity 0.1s;
+  align-self: center;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
-.signedInButton:hover {
-  border-color: var(--color-text-secondary, #5a5a5a);
+/* Reveal arrow on hover — compound selector comes after base to satisfy
+ * the CSS cascade and silence specificity warnings. */
+.courseCard:hover:not(:disabled) .courseCardArrow {
+  opacity: 1;
 }
+
+/* ─── Misc ────────────────────────────────────────────────────────────────── */
 
 .error {
-  color: var(--color-danger, #b8332a);
-  font-size: 0.95rem;
-  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+  margin: 0 0 var(--space-3);
 }
 
 .loading {
-  font-style: italic;
-  color: var(--color-text-secondary, #5a5a5a);
+  composes: editorial from global;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin: 0;
 }

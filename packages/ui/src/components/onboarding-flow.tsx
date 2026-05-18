@@ -1,3 +1,12 @@
+/**
+ * OnboardingFlow — three-step first-run journey.
+ *
+ * Steps: welcome → engine picker → course picker.
+ *
+ * Visual direction: Studio Quiet tokens — italic serif titles, mono kicker
+ * labels, muted brick accent for primary actions.
+ * Locked mock: .mockups/flows/first-run/ (2026-05-18).
+ */
 import type { EngineConfigSnapshot } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type JSX, useEffect, useState } from "react";
@@ -17,6 +26,9 @@ const ENGINE_OPTIONS = [
 
 type Step = "welcome" | "engine" | "course";
 
+const STEP_INDEX: Record<Step, number> = { welcome: 0, engine: 1, course: 2 };
+const TOTAL_STEPS = 3;
+
 export interface OnboardingFlowProps {
   /**
    * Mark first-run as complete. Called when the user finishes the flow OR
@@ -26,13 +38,6 @@ export interface OnboardingFlowProps {
   onComplete: () => Promise<void>;
 }
 
-/**
- * Three-step first-run flow: welcome → engine → course.
- *
- * Step transitions are local to this component. On completion (any step's
- * "Continue" or "Skip"), the parent's `onComplete` is invoked to write the
- * `firstRunCompletedAt` flag.
- */
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element {
   const [step, setStep] = useState<Step>("welcome");
 
@@ -40,22 +45,42 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps): JSX.Element
     await onComplete();
   };
 
-  if (step === "welcome") {
-    return <WelcomeStep onNext={() => setStep("engine")} onSkip={handleSkip} />;
-  }
-
-  if (step === "engine") {
-    return (
-      <EngineStep
-        onNext={() => setStep("course")}
-        onBack={() => setStep("welcome")}
-        onSkip={handleSkip}
-      />
-    );
-  }
-
   return (
-    <CourseStep onComplete={onComplete} onBack={() => setStep("engine")} onSkip={handleSkip} />
+    <div className={styles.shell}>
+      <span className={styles.wordmark}>Praxis</span>
+
+      <StepProgress current={STEP_INDEX[step]} total={TOTAL_STEPS} />
+
+      {step === "welcome" && <WelcomeStep onNext={() => setStep("engine")} onSkip={handleSkip} />}
+
+      {step === "engine" && (
+        <EngineStep
+          onNext={() => setStep("course")}
+          onBack={() => setStep("welcome")}
+          onSkip={handleSkip}
+        />
+      )}
+
+      {step === "course" && (
+        <CourseStep onComplete={onComplete} onBack={() => setStep("engine")} onSkip={handleSkip} />
+      )}
+    </div>
+  );
+}
+
+// ─── Step progress ────────────────────────────────────────────────────────────
+
+function StepProgress({ current, total }: { current: number; total: number }): JSX.Element {
+  return (
+    <div className={styles.progress} aria-hidden="true">
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          // biome-ignore lint/suspicious/noArrayIndexKey: step dots are positionally stable — they never reorder
+          key={`step-${i}`}
+          className={`${styles.dot} ${i === current ? styles.dotActive : ""} ${i < current ? styles.dotDone : ""}`}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -69,11 +94,12 @@ function WelcomeStep({
   onSkip: () => Promise<void>;
 }): JSX.Element {
   return (
-    <article className={styles.step}>
-      <h1 className={styles.title}>{COPY.onboarding.welcomeTitle}</h1>
+    <article className={styles.card}>
+      <p className={styles.kicker}>Welcome</p>
+      <h1 className={`${styles.title} ${styles.titleDisplay}`}>{COPY.onboarding.welcomeTitle}</h1>
       <p className={styles.body}>{COPY.onboarding.welcomeBody}</p>
       <div className={styles.actions}>
-        <button type="button" className={styles.ghostButton} onClick={onSkip}>
+        <button type="button" className={styles.skipButton} onClick={onSkip}>
           {COPY.onboarding.skipLabel}
         </button>
         <button type="button" className={styles.primaryButton} onClick={onNext}>
@@ -176,20 +202,22 @@ function EngineStep({
 
   if (!config) {
     return (
-      <article className={styles.step}>
+      <article className={styles.card}>
         <p className={styles.loading}>{COPY.loading.default}</p>
       </article>
     );
   }
 
-  const showApiKey = config.engineId !== "claude-code" && config.engineId !== "direct.ollama";
+  const isClaudeCode = config.engineId === "claude-code";
+  const showApiKey = !isClaudeCode && config.engineId !== "direct.ollama";
 
   return (
-    <form className={styles.step} onSubmit={handleContinue}>
+    <form className={styles.card} onSubmit={handleContinue}>
+      <p className={styles.kicker}>Engine — 2 of 3</p>
       <h1 className={styles.title}>{COPY.onboarding.engineTitle}</h1>
       <p className={styles.body}>{COPY.onboarding.engineBody}</p>
 
-      <label className={styles.field}>
+      <div className={styles.field}>
         <span className={styles.fieldLabel}>Engine</span>
         <select
           className={styles.select}
@@ -202,10 +230,10 @@ function EngineStep({
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
       {showApiKey && (
-        <label className={styles.field}>
+        <div className={styles.field}>
           <span className={styles.fieldLabel}>API key</span>
           <input
             type="password"
@@ -214,19 +242,26 @@ function EngineStep({
             placeholder="sk-…"
             onChange={(e) => setApiKey(e.target.value)}
           />
-        </label>
+        </div>
       )}
 
-      {config.engineId === "claude-code" && (
-        <div className={styles.field}>
-          <span className={styles.fieldLabel}>Claude Code sign-in</span>
-          <button
-            type="button"
-            className={claudeLoggedIn ? styles.signedInButton : styles.primaryButton}
-            onClick={() => setShowAuthModal(true)}
-          >
-            {claudeLoggedIn ? "Signed in to Claude Code ✓" : "Sign in to Claude Code"}
-          </button>
+      {isClaudeCode && (
+        <div className={styles.signinRow}>
+          <span className={styles.signinLabel}>
+            Sign in with your <span className={styles.signinLabelStrong}>Claude.ai</span>{" "}
+            subscription to use the Claude Code engine.
+          </span>
+          {claudeLoggedIn ? (
+            <span className={styles.signedInBadge}>{"✓ Signed in"}</span>
+          ) : (
+            <button
+              type="button"
+              className={styles.signinButton}
+              onClick={() => setShowAuthModal(true)}
+            >
+              Sign in to Claude Code
+            </button>
+          )}
         </div>
       )}
 
@@ -243,10 +278,11 @@ function EngineStep({
       )}
 
       <div className={styles.actions}>
-        <button type="button" className={styles.ghostButton} onClick={onBack} disabled={saving}>
+        <button type="button" className={styles.backButton} onClick={onBack} disabled={saving}>
           {COPY.onboarding.backLabel}
         </button>
-        <button type="button" className={styles.ghostButton} onClick={onSkip} disabled={saving}>
+        <span className={styles.actionsSpacer} />
+        <button type="button" className={styles.skipButton} onClick={onSkip} disabled={saving}>
           {COPY.onboarding.skipLabel}
         </button>
         <button type="submit" className={styles.primaryButton} disabled={saving}>
@@ -328,28 +364,32 @@ function CourseStep({
   };
 
   return (
-    <article className={styles.step}>
+    <article className={`${styles.card} ${styles.cardWide}`}>
+      <p className={styles.kicker}>Start — 3 of 3</p>
       <h1 className={styles.title}>{COPY.onboarding.courseTitle}</h1>
       <p className={styles.body}>{COPY.onboarding.courseBody}</p>
 
-      <div className={styles.cards}>
+      <div className={styles.courseCards}>
         <CourseCard
           label={COPY.onboarding.courseAlgebraLabel}
-          body={COPY.onboarding.courseAlgebraBody}
+          desc={COPY.onboarding.courseAlgebraBody}
+          dotVariant="bootstrap"
           busy={busy === "algebra"}
           disabled={busy !== null && busy !== "algebra"}
           onStart={() => handleStart("algebra")}
         />
         <CourseCard
           label={COPY.onboarding.courseBiologyLabel}
-          body={COPY.onboarding.courseBiologyBody}
+          desc={COPY.onboarding.courseBiologyBody}
+          dotVariant="bootstrap"
           busy={busy === "biology"}
           disabled={busy !== null && busy !== "biology"}
           onStart={() => handleStart("biology")}
         />
         <CourseCard
           label={COPY.onboarding.courseFromSyllabusLabel}
-          body={COPY.onboarding.courseFromSyllabusBody}
+          desc={COPY.onboarding.courseFromSyllabusBody}
+          dotVariant="neutral"
           busy={busy === "syllabus"}
           disabled={busy !== null && busy !== "syllabus"}
           onStart={() => handleStart("syllabus")}
@@ -361,15 +401,16 @@ function CourseStep({
       <div className={styles.actions}>
         <button
           type="button"
-          className={styles.ghostButton}
+          className={styles.backButton}
           onClick={onBack}
           disabled={busy !== null}
         >
           {COPY.onboarding.backLabel}
         </button>
+        <span className={styles.actionsSpacer} />
         <button
           type="button"
-          className={styles.ghostButton}
+          className={styles.skipButton}
           onClick={onSkip}
           disabled={busy !== null}
         >
@@ -382,24 +423,36 @@ function CourseStep({
 
 function CourseCard({
   label,
-  body,
+  desc,
+  dotVariant,
   busy,
   disabled,
   onStart,
 }: {
   label: string;
-  body: string;
+  desc: string;
+  dotVariant: "bootstrap" | "neutral";
   busy: boolean;
   disabled: boolean;
   onStart: () => void;
 }): JSX.Element {
   return (
-    <button type="button" className={styles.card} onClick={onStart} disabled={disabled}>
-      <span className={styles.cardLabel}>{label}</span>
-      <span className={styles.cardBody}>{body}</span>
-      <span className={styles.cardCta}>
-        {busy ? COPY.loading.starting : COPY.onboarding.startLabel}
+    <button type="button" className={styles.courseCard} onClick={onStart} disabled={disabled}>
+      <span className={styles.courseCardDotCol} aria-hidden="true">
+        <span
+          className={`${styles.courseCardDot} ${dotVariant === "neutral" ? styles.courseCardDotNeutral : ""}`}
+        />
       </span>
+      <span className={styles.courseCardBody}>
+        <span className={styles.courseCardLabel}>{label}</span>
+        <span className={styles.courseCardDesc}>{desc}</span>
+        {busy && <span className={styles.courseCardCta}>{COPY.loading.starting}</span>}
+      </span>
+      {!busy && (
+        <span className={styles.courseCardArrow} aria-hidden="true">
+          ↗
+        </span>
+      )}
     </button>
   );
 }

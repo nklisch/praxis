@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>first-run flow — index</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); padding: 48px 32px; max-width: 700px; }
+    h1 { font: 500 italic 32px/1.2 var(--font-display); margin: 0 0 6px; }
+    h1 em { font-weight: 600; }
+    .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 10px; }
+    .deck { font: italic 15px/1.6 var(--font-serif); color: var(--color-text-secondary); margin: 8px 0 40px; max-width: 60ch; }
+    .screens { display: flex; flex-direction: column; gap: 12px; }
+    .screen-link { display: flex; align-items: baseline; gap: 16px; padding: 14px 18px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-secondary); text-decoration: none; color: inherit; }
+    .screen-link:hover { border-color: var(--color-border-strong); }
+    .screen-num { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; color: var(--color-text-tertiary); width: 24px; flex-shrink: 0; }
+    .screen-title { font: 500 italic 16px/1.2 var(--font-display); color: var(--color-text-primary); }
+    .screen-desc { font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); margin-top: 3px; }
+    .back { font: 13px/1 var(--font-sans); color: var(--color-text-link); text-decoration: none; display: inline-block; margin-bottom: 32px; }
+  </style>
+</head>
+<body>
+  <a href="../index.html" class="back">← all flows</a>
+  <p class="kicker">Flow · first-run</p>
+  <h1><em>First-run onboarding</em></h1>
+  <p class="deck">
+    Full-screen onboarding journey. The student sees this before the main app chrome is visible.
+    Three steps: welcome, engine picker (with Claude Code sign-in sub-step), and course picker.
+  </p>
+
+  <div class="screens">
+    <a href="01-welcome.html" class="screen-link">
+      <span class="screen-num">01</span>
+      <div>
+        <div class="screen-title">Welcome</div>
+        <div class="screen-desc">Opening card — restrained greeting, italic serif title, continue / skip actions.</div>
+      </div>
+    </a>
+    <a href="02-engine-picker.html" class="screen-link">
+      <span class="screen-num">02</span>
+      <div>
+        <div class="screen-title">Engine picker — default (Direct API)</div>
+        <div class="screen-desc">Engine select + API key field. Mono kicker labels. Back / Skip / Continue actions.</div>
+      </div>
+    </a>
+    <a href="03-engine-claude-code.html" class="screen-link">
+      <span class="screen-num">03</span>
+      <div>
+        <div class="screen-title">Engine picker — Claude Code selected</div>
+        <div class="screen-desc">No API key; sign-in row with brick accent button. After auth: quiet "Signed in ✓" badge.</div>
+      </div>
+    </a>
+    <a href="04-course-picker.html" class="screen-link">
+      <span class="screen-num">04</span>
+      <div>
+        <div class="screen-title">Course picker</div>
+        <div class="screen-desc">Three full-width cards (Algebra, Biology, Syllabus) with mode-tint dots, italic labels. Clicking any launches a bootstrap session.</div>
+      </div>
+    </a>
+  </div>
+</body>
+</html>

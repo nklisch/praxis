@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>first-run · 3/3 · course picker</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta a:hover { background: #30363d; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); white-space: nowrap; }
+
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+
+    .onboarding-shell {
+      min-height: calc(100vh - 80px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+    }
+
+    .shell-wordmark {
+      font: 500 italic 20px/1 var(--font-display);
+      color: var(--color-text-secondary);
+      letter-spacing: -0.005em;
+      margin-bottom: 48px;
+    }
+
+    .step-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 48px;
+    }
+    .step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-border-strong); }
+    .step-dot.active { background: var(--color-accent); }
+    .step-dot.done { background: var(--color-text-tertiary); }
+
+    .step-card {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 40px 52px;
+      max-width: 540px;
+      width: 100%;
+    }
+
+    .step-kicker {
+      font: 600 10px/1 var(--font-mono);
+      letter-spacing: var(--letter-spacing-kicker);
+      text-transform: uppercase;
+      color: var(--color-text-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .step-title {
+      font: 500 italic 28px/1.15 var(--font-display);
+      margin: 0 0 10px;
+    }
+    .step-title em { font-weight: 600; }
+
+    .step-body {
+      font: var(--font-size-sm)/var(--line-height-loose) var(--font-serif);
+      color: var(--color-text-secondary);
+      margin: 0 0 24px;
+    }
+
+    /* Course cards — clickable, full-width */
+    .course-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
+    .course-card {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg-primary);
+      cursor: pointer;
+      font-family: inherit;
+      color: inherit;
+      text-align: left;
+      transition: border-color 0.1s;
+      overflow: hidden;
+    }
+    .course-card:hover { border-color: var(--color-border-strong); }
+    .course-card:hover .card-arrow { opacity: 1; }
+
+    .card-dot-col {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 100%;
+      align-self: stretch;
+      border-right: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .card-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .dot-bootstrap { background: var(--tint-bootstrap); }
+    .dot-syllabus { background: var(--color-text-tertiary); }
+
+    .card-body {
+      flex: 1;
+      padding: 14px 16px;
+    }
+    .card-label {
+      font: 600 italic 15px/1.2 var(--font-display);
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font: 13px/1.45 var(--font-serif);
+      color: var(--color-text-secondary);
+    }
+
+    .card-arrow {
+      font-size: 16px;
+      color: var(--color-text-tertiary);
+      padding: 0 16px;
+      opacity: 0;
+      transition: opacity 0.1s;
+      line-height: 1;
+      align-self: center;
+    }
+
+    .step-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .btn-ghost {
+      font: 14px/1 var(--font-sans);
+      padding: 10px 16px;
+      background: transparent;
+      color: var(--color-text-tertiary);
+      border: none;
+      cursor: pointer;
+    }
+    .btn-back {
+      font: 14px/1 var(--font-sans);
+      padding: 10px 16px;
+      background: transparent;
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="flow-meta">
+    <span>← <a href="03-engine-claude-code.html">prev</a></span>
+    <span class="center">first-run · 3/3 · course picker</span>
+    <span><a href="index.html">index →</a></span>
+  </div>
+
+  <div class="annot">
+    <span class="label">Step 3</span>
+    Course picker. Three choices: Algebra (canonical), Biology (canonical), From your own syllabus. Cards are full-width, each with a mode-tint dot (bootstrap green), italic label, and a brief description. Clicking any card completes onboarding and enters a bootstrap session.
+  </div>
+
+  <div class="onboarding-shell">
+    <div class="shell-wordmark">Praxis</div>
+
+    <div class="step-progress">
+      <div class="step-dot done"></div>
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+    </div>
+
+    <article class="step-card">
+      <p class="step-kicker">Start — 3 of 3</p>
+      <h1 class="step-title"><em>Where shall we start?</em></h1>
+      <p class="step-body">
+        Choose a curated pack to begin immediately, or hand me a syllabus and we'll shape a course together.
+      </p>
+
+      <div class="course-cards">
+        <button type="button" class="course-card">
+          <div class="card-dot-col">
+            <span class="card-dot dot-bootstrap"></span>
+          </div>
+          <div class="card-body">
+            <div class="card-label">Algebra (canonical)</div>
+            <div class="card-desc">A CCSS-aligned algebra-1 concept graph. Good for learners 9–12.</div>
+          </div>
+          <span class="card-arrow" aria-hidden="true">↗</span>
+        </button>
+
+        <button type="button" class="course-card">
+          <div class="card-dot-col">
+            <span class="card-dot dot-bootstrap"></span>
+          </div>
+          <div class="card-body">
+            <div class="card-label">Biology (canonical)</div>
+            <div class="card-desc">An NGSS-aligned high-school biology graph spanning cells, genetics, evolution, and ecosystems.</div>
+          </div>
+          <span class="card-arrow" aria-hidden="true">↗</span>
+        </button>
+
+        <button type="button" class="course-card">
+          <div class="card-dot-col">
+            <span class="card-dot dot-syllabus"></span>
+          </div>
+          <div class="card-body">
+            <div class="card-label">From your own syllabus</div>
+            <div class="card-desc">Drop in a syllabus or textbook outline and we'll design a course together from it.</div>
+          </div>
+          <span class="card-arrow" aria-hidden="true">↗</span>
+        </button>
+      </div>
+
+      <div class="step-actions">
+        <button type="button" class="btn-back">Back</button>
+        <button type="button" class="btn-ghost">Skip onboarding</button>
+      </div>
+    </article>
+  </div>
+</body>
+</html>

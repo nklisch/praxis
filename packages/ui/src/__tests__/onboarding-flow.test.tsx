@@ -251,10 +251,10 @@ describe("OnboardingFlow", () => {
       await waitFor(() => expect(screen.getByText("Sign in to Claude Code")).toBeDefined());
     });
 
-    it("shows 'Signed in to Claude Code ✓' when engine is claude-code and already signed in", async () => {
+    it("shows signed-in badge when engine is claude-code and already signed in", async () => {
       const client = buildClient({ engineId: "claude-code", claudeLoggedIn: true });
       await goToEngineStep(client);
-      await waitFor(() => expect(screen.getByText("Signed in to Claude Code ✓")).toBeDefined());
+      await waitFor(() => expect(screen.getByText("✓ Signed in")).toBeDefined());
     });
 
     it("does not render the sign-in button for non-claude-code engines", async () => {
@@ -263,7 +263,7 @@ describe("OnboardingFlow", () => {
       // Let any async effects settle before asserting absence.
       await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
       expect(screen.queryByText("Sign in to Claude Code")).toBeNull();
-      expect(screen.queryByText("Signed in to Claude Code ✓")).toBeNull();
+      expect(screen.queryByText("✓ Signed in")).toBeNull();
     });
 
     it("opens ClaudeAuthModal when the sign-in button is clicked", async () => {
@@ -281,7 +281,7 @@ describe("OnboardingFlow", () => {
       fireEvent.click(screen.getByText("Sign in to Claude Code"));
       // Simulate successful sign-in via the mock modal's "Signed In" button.
       fireEvent.click(screen.getByText("Signed In"));
-      await waitFor(() => expect(screen.getByText("Signed in to Claude Code ✓")).toBeDefined());
+      await waitFor(() => expect(screen.getByText("✓ Signed in")).toBeDefined());
     });
   });
 });
