@@ -81,6 +81,26 @@
   border-color: var(--color-accent, #6366f1);
 }
 
+.spawnBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-accent, #6366f1);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  line-height: 1;
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.spawnBtn:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
 .removeBtn {
   background: transparent;
   border: none;

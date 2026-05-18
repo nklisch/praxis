@@ -57,4 +57,24 @@ describe("NoteEditorFeynman", () => {
     fireEvent.click(screen.getByLabelText("Remove follow-up 1"));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ followUps: [] }));
   });
+
+  it("does not render spawn buttons when onSpawnFromCue is not provided", () => {
+    render(<NoteEditorFeynman body={makeBody()} onChange={() => {}} />);
+    expect(screen.queryByLabelText("Talk to Praxis about follow-up 1")).toBeNull();
+  });
+
+  it("renders a spawn button for each follow-up when onSpawnFromCue is provided", () => {
+    const body = makeBody({ followUps: ["Q1", "Q2"] });
+    render(<NoteEditorFeynman body={body} onChange={() => {}} onSpawnFromCue={() => {}} />);
+    expect(screen.getByLabelText("Talk to Praxis about follow-up 1")).toBeDefined();
+    expect(screen.getByLabelText("Talk to Praxis about follow-up 2")).toBeDefined();
+  });
+
+  it("calls onSpawnFromCue with the follow-up index string when spawn button is clicked", () => {
+    const onSpawnFromCue = vi.fn();
+    const body = makeBody({ followUps: ["Q1", "Q2"] });
+    render(<NoteEditorFeynman body={body} onChange={() => {}} onSpawnFromCue={onSpawnFromCue} />);
+    fireEvent.click(screen.getByLabelText("Talk to Praxis about follow-up 2"));
+    expect(onSpawnFromCue).toHaveBeenCalledWith("1");
+  });
 });

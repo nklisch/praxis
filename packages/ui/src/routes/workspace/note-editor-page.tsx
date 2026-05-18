@@ -37,6 +37,7 @@ export function NoteEditorPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [spawning, setSpawning] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,6 +85,30 @@ export function NoteEditorPage() {
       setSaving(false);
     }
   };
+
+  /**
+   * Spawn a new teach session pre-loaded with a specific note cue.
+   * Follows the session-tab-open-flow pattern: spawn → open tab → navigate.
+   */
+  const handleSpawnFromCue = useCallback(
+    async (cueId: string) => {
+      if (!note || spawning) return;
+      setSpawning(true);
+      try {
+        const handle = await client.session.spawnFromNote({
+          noteId: note.id,
+          cueId,
+        });
+        const tab = await client.tabs.open({ sessionId: handle.sessionId });
+        await navigate({ to: "/chat/$tabId", params: { tabId: tab.id } });
+      } catch {
+        // Non-fatal — button returns to normal state; user can retry.
+      } finally {
+        setSpawning(false);
+      }
+    },
+    [client, note, navigate, spawning],
+  );
 
   /**
    * Phase 15a: auto-save handler for sketch notes. Called by NoteEditorSketch
@@ -151,10 +176,18 @@ export function NoteEditorPage() {
 
       <div className={`${styles.editorBody} ${isSketch ? styles.sketchEditorBody : ""}`}>
         {body.kind === "cornell" && (
-          <NoteEditorCornell body={body} onChange={(updated) => setBody(updated)} />
+          <NoteEditorCornell
+            body={body}
+            onChange={(updated) => setBody(updated)}
+            onSpawnFromCue={spawning ? undefined : handleSpawnFromCue}
+          />
         )}
         {body.kind === "feynman" && (
-          <NoteEditorFeynman body={body} onChange={(updated) => setBody(updated)} />
+          <NoteEditorFeynman
+            body={body}
+            onChange={(updated) => setBody(updated)}
+            onSpawnFromCue={spawning ? undefined : handleSpawnFromCue}
+          />
         )}
         {body.kind === "outline" && (
           <NoteEditorOutline body={body} onChange={(updated) => setBody(updated)} />

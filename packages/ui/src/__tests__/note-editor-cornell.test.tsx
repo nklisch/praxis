@@ -69,4 +69,24 @@ describe("NoteEditorCornell", () => {
       }),
     );
   });
+
+  it("does not render spawn buttons when onSpawnFromCue is not provided", () => {
+    render(<NoteEditorCornell body={makeBody()} onChange={() => {}} />);
+    expect(screen.queryByLabelText("Talk to Praxis about row 1")).toBeNull();
+  });
+
+  it("renders spawn buttons for each row when onSpawnFromCue is provided", () => {
+    render(<NoteEditorCornell body={makeBody()} onChange={() => {}} onSpawnFromCue={() => {}} />);
+    expect(screen.getByLabelText("Talk to Praxis about row 1")).toBeDefined();
+    expect(screen.getByLabelText("Talk to Praxis about row 2")).toBeDefined();
+  });
+
+  it("calls onSpawnFromCue with the row index string when spawn button is clicked", () => {
+    const onSpawnFromCue = vi.fn();
+    render(
+      <NoteEditorCornell body={makeBody()} onChange={() => {}} onSpawnFromCue={onSpawnFromCue} />,
+    );
+    fireEvent.click(screen.getByLabelText("Talk to Praxis about row 2"));
+    expect(onSpawnFromCue).toHaveBeenCalledWith("1");
+  });
 });

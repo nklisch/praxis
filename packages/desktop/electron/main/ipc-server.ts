@@ -12,6 +12,7 @@ import type {
   LessonId,
   Logger,
   MisconceptionId,
+  NoteId,
   SessionId,
   SketchId,
   StudentId,
@@ -144,6 +145,25 @@ export function registerIpcHandlers(
           parentSessionId: brandId<"SessionId">(opts.parentSessionId) as SessionId,
         }),
     ),
+  );
+
+  const SpawnFromNoteSchema = z.object({
+    noteId: z.string().min(1, "noteId"),
+    cueId: z.string().optional(),
+  });
+
+  // Spawn a teach session pre-loaded with a note's cue context.
+  // studentId is resolved server-side (consistent with all notes.* channels).
+  handle(
+    "praxis.session.spawnFromNote",
+    handleEnvelope("praxis.session.spawnFromNote", log, SpawnFromNoteSchema, async (opts) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.session.spawnFromNote({
+        studentId,
+        noteId: brandId<"NoteId">(opts.noteId) as NoteId,
+        ...(opts.cueId !== undefined && { cueId: opts.cueId }),
+      });
+    }),
   );
 
   // Streaming: client invokes `praxis.session.send.start` with streamId + args.
@@ -651,6 +671,7 @@ export function registerIpcHandlers(
     response: z.string(),
     work: z.string().optional(),
     sketchId: z.string().optional(),
+    confidence: z.enum(["guessed", "unsure", "pretty_sure", "certain"]).optional(),
   });
 
   handle(
@@ -662,6 +683,7 @@ export function registerIpcHandlers(
         response: input.response,
         ...(input.work !== undefined && { work: input.work }),
         ...(input.sketchId !== undefined && { sketchId: input.sketchId }),
+        ...(input.confidence !== undefined && { confidence: input.confidence }),
       }),
     ),
   );

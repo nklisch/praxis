@@ -10,6 +10,8 @@ export interface FeynmanBody {
 export interface NoteEditorFeynmanProps {
   body: FeynmanBody;
   onChange: (body: FeynmanBody) => void;
+  /** Called with the follow-up index (as a string) when the spawn button is clicked. */
+  onSpawnFromCue?: (cueId: string) => void;
 }
 
 /**
@@ -17,7 +19,7 @@ export interface NoteEditorFeynmanProps {
  * The Feynman technique: explain the concept simply, then identify gaps
  * (follow-up questions) that reveal what you don't yet understand.
  */
-export function NoteEditorFeynman({ body, onChange }: NoteEditorFeynmanProps) {
+export function NoteEditorFeynman({ body, onChange, onSpawnFromCue }: NoteEditorFeynmanProps) {
   const [localBody, setLocalBody] = useState<FeynmanBody>(body);
 
   const emit = (updated: FeynmanBody) => {
@@ -79,6 +81,17 @@ export function NoteEditorFeynman({ body, onChange }: NoteEditorFeynmanProps) {
                   rows={2}
                   aria-label={`Follow-up ${i + 1}`}
                 />
+                {onSpawnFromCue !== undefined && (
+                  <button
+                    type="button"
+                    className={styles.spawnBtn}
+                    onClick={() => onSpawnFromCue(String(i))}
+                    aria-label={`Talk to Praxis about follow-up ${i + 1}`}
+                    title="Talk to Praxis about this"
+                  >
+                    ▶
+                  </button>
+                )}
                 <button
                   type="button"
                   className={styles.removeBtn}

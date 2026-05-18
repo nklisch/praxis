@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-spawn-from-note
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -55,8 +55,48 @@ updated: 2026-05-17
 
 ## Acceptance criteria
 
-- [ ] `spawnFromNote` returns a working teach session with the cue
+- [x] `spawnFromNote` returns a working teach session with the cue
       pre-injected.
-- [ ] Workspace note editors surface the spawn button on cues.
-- [ ] IPC + client end-to-end works against the IPC harness.
-- [ ] All quality checks green.
+- [x] Workspace note editors surface the spawn button on cues.
+- [x] IPC + client end-to-end works against the IPC harness.
+- [x] All quality checks green.
+
+## Implementation notes
+
+### Service (`SessionServiceImpl.spawnFromNote`)
+Added to `packages/core/src/services/session-service.ts` after `spawnFromAssignment`.
+- Resolves `studentId` via `getOrCreateDefaultStudentId` if not supplied (so the
+  IPC handler can omit it — consistent with all `notes.*` channels).
+- Parses the note body to extract the cue: `followUps[idx]` for feynman notes,
+  `questions[idx]` for cornell, `root.text` for outline, raw `text` for free.
+- Wraps cue + body in `<note-cue>…</note-cue>` / `<note-body>…</note-body>` XML tags.
+- Calls `start({ modeId: "teach" })` then drains the first `send()` turn to seed
+  the session transcript; turn failure is non-fatal (session still returns).
+- Returns the `SessionHandle` from `start()`.
+
+### IPC channel (`praxis.session.spawnFromNote`)
+Added to `packages/desktop/electron/main/ipc-server.ts` alongside
+`praxis.session.spawnFromAssignment`. Zod schema: `{ noteId, cueId? }`.
+`studentId` resolved server-side via `services.getDefaultStudentId()`.
+
+### Client (`SessionClient.spawnFromNote`)
+Added to `packages/client/src/services/session-client.ts`. Accepts `{ noteId, cueId? }`.
+Interface method added to `SessionService` in `packages/core/src/types/client.ts` with
+optional `studentId?` so `SessionServiceImpl` accepts it but `SessionClient` doesn't
+need to pass it.
+
+### UI buttons
+- `NoteEditorFeynman`: optional `onSpawnFromCue` prop; `▶` button rendered next to
+  each follow-up item when the prop is provided.
+- `NoteEditorCornell`: same pattern; `▶` button next to each question row, wrapped
+  in a `rowActions` div.
+- `NoteEditorPage`: wires `handleSpawnFromCue` — calls `client.session.spawnFromNote`,
+  then `client.tabs.open`, then `navigate` to `/chat/$tabId`. Disabled during
+  in-flight spawn (`spawning` state).
+
+### Tests
+- 5 service integration tests in `session-service-spawn-from-note.test.ts`.
+- 7 IPC harness tests in `spawn-from-note-channel-envelope.test.ts`.
+- 4 new UI tests appended to `note-editor-cornell.test.tsx` and
+  `note-editor-feynman.test.tsx` (3 each).
+- Full suite: 3883 tests pass.

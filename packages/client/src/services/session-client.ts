@@ -2,6 +2,7 @@ import type {
   AssignmentId,
   CourseId,
   EngineEvent,
+  NoteId,
   SessionEndSummary,
   SessionHandle,
   SessionId,
@@ -62,6 +63,15 @@ export class SessionClient implements SessionService {
   }): Promise<SessionHandle> {
     const result = await this.transport.invoke<IpcEnvelope<SessionHandle> | SessionHandle>(
       `${CHANNEL}.spawnFromAssignment`,
+      input,
+    );
+    return unwrapEnvelope(result);
+  }
+
+  /** Open a teach session pre-loaded with a note's cue context. */
+  async spawnFromNote(input: { noteId: NoteId; cueId?: string }): Promise<SessionHandle> {
+    const result = await this.transport.invoke<IpcEnvelope<SessionHandle> | SessionHandle>(
+      `${CHANNEL}.spawnFromNote`,
       input,
     );
     return unwrapEnvelope(result);

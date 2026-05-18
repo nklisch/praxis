@@ -11,6 +11,8 @@ export interface CornellBody {
 export interface NoteEditorCornellProps {
   body: CornellBody;
   onChange: (body: CornellBody) => void;
+  /** Called with the row index (as a string) when the spawn button is clicked. */
+  onSpawnFromCue?: (cueId: string) => void;
 }
 
 /**
@@ -18,7 +20,7 @@ export interface NoteEditorCornellProps {
  * "+ Add row" extends both questions and details arrays together.
  * The parent (note-editor-page) calls onSave with the body via onChange.
  */
-export function NoteEditorCornell({ body, onChange }: NoteEditorCornellProps) {
+export function NoteEditorCornell({ body, onChange, onSpawnFromCue }: NoteEditorCornellProps) {
   const [localBody, setLocalBody] = useState<CornellBody>(body);
 
   const emit = (updated: CornellBody) => {
@@ -85,15 +87,28 @@ export function NoteEditorCornell({ body, onChange }: NoteEditorCornellProps) {
               rows={3}
               aria-label={`Detail ${i + 1}`}
             />
-            <button
-              type="button"
-              className={styles.removeBtn}
-              onClick={() => removeRow(i)}
-              aria-label={`Remove row ${i + 1}`}
-              title="Remove row"
-            >
-              ×
-            </button>
+            <div className={styles.rowActions}>
+              {onSpawnFromCue !== undefined && (
+                <button
+                  type="button"
+                  className={styles.spawnBtn}
+                  onClick={() => onSpawnFromCue(String(i))}
+                  aria-label={`Talk to Praxis about row ${i + 1}`}
+                  title="Talk to Praxis about this"
+                >
+                  ▶
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.removeBtn}
+                onClick={() => removeRow(i)}
+                aria-label={`Remove row ${i + 1}`}
+                title="Remove row"
+              >
+                ×
+              </button>
+            </div>
           </div>
         ))}
       </div>
