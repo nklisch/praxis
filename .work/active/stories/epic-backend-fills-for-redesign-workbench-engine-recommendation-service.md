@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-workbench-engine-recommendation-service
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-workbench-engine
 depends_on: []
@@ -99,3 +99,34 @@ reason-string templates.
 - A learned / ML ranking layer. The static table is the v1 spec.
 - Background pre-compute. On-demand only.
 - Localization of reason strings.
+
+## Implementation notes
+
+**Types** — `packages/core/src/types/recommendation.ts` defines the
+`Recommendation` discriminated union (5 variants), `DraftId`, `ModeId`, and
+`RecommendationService` interface. Re-exported from `types/index.ts` and from
+`types/client.ts` via `RecommendationsClientApi`.
+
+**Service** — `packages/core/src/services/recommendation-service.ts` implements
+`RecommendationServiceImpl` with five synchronous collectors (`collectResumeSessions`,
+`collectReviewCards`, `collectPracticeConcepts`, `collectResumeDrafts`,
+`collectQuickChecks`). All scoring and reason helpers are exported for unit testing.
+Collectors are fanned out in `Promise.all` (they're sync but wrapped in the async
+interface). `practice_concept` capped at top 3. `resume_session` uses `startedAt` as
+`lastTouchedAt` proxy (no separate column on `sessions` table).
+
+**IPC** — `packages/desktop/electron/main/recommendations-channel.ts` uses
+`wrapEnvelope` with `(_event, raw)` args and inline `nextInputSchema.parse(raw)` at
+the trust boundary (not `withSchema` — that helper doesn't fit the `(event, payload)`
+calling convention of `createIpcHelpers.handle`).
+
+**DraftStore sharing** — a single `SqliteDraftStore` instance is constructed in
+`services.ts` and injected into both `BootstrapServiceImpl` and
+`RecommendationServiceImpl`.
+
+**Tests** — 36 service tests in
+`packages/core/src/services/__tests__/recommendation-service.test.ts` covering
+unit helpers, per-collector fixtures, ordering, limit, and tie-break. 6 IPC harness
+tests in `packages/desktop/electron/main/__tests__/recommendations-channel.test.ts`
+covering registration, no-payload call, limit forwarding, result wrapping, studentId
+resolution, and Zod validation rejection.

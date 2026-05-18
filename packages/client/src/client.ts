@@ -16,6 +16,7 @@ import { MemoryClient } from "./services/memory-client.js";
 import { NotesClient } from "./services/notes-client.js";
 import { PacksClientImpl } from "./services/packs-client.js";
 import { QuickCheckClient } from "./services/quick-check-client.js";
+import { RecommendationsClient } from "./services/recommendations-client.js";
 import { SessionClient } from "./services/session-client.js";
 import { ShellClientImpl } from "./services/shell-client.js";
 import { SketchClient } from "./services/sketch-client.js";
@@ -54,5 +55,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     quickCheck: new QuickCheckClient(transport), // ← Phase 17
     update: new UpdateClient(transport), // ← Phase 19
     subAgent: new SubAgentClient(transport),
+    recommendations: new RecommendationsClient(transport),
   };
 }

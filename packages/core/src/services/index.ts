@@ -100,6 +100,22 @@ export type { MemoryServiceDeps } from "./memory/memory-service.js";
 export { MemoryServiceImpl } from "./memory/memory-service.js";
 // Phase 17: QuickCheck service
 export { QuickCheckServiceImpl } from "./quick-check-service.js";
+// Workbench recommendation engine
+export type { RecommendationServiceDeps } from "./recommendation-service.js";
+export {
+  humanize,
+  RecommendationServiceImpl,
+  reasonPracticeConcept,
+  reasonQuickCheck,
+  reasonResumeDraft,
+  reasonResumeSession,
+  reasonReviewCards,
+  recencyOf,
+  scorePracticeConcept,
+  scoreResumeDraft,
+  scoreResumeSession,
+  scoreReviewCards,
+} from "./recommendation-service.js";
 export { SessionServiceImpl } from "./session-service.js";
 // Phase 15a: Sketch service
 export type { SketchServiceDeps } from "./sketch-service.js";

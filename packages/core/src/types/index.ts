@@ -31,6 +31,7 @@ export type {
   PacksClient,
   PraxisClient,
   ProgressSnapshot,
+  RecommendationsClientApi,
   SessionEndSummary,
   SessionHandle,
   SessionService,
@@ -75,6 +76,13 @@ export type {
   QuickCheckListener,
   QuickCheckService,
 } from "./quick-check.js";
+// Workbench recommendation engine types.
+export type {
+  DraftId,
+  ModeId,
+  Recommendation,
+  RecommendationService,
+} from "./recommendation.js";
 export type { SecretStorage } from "./secret-storage.js";
 // Security: at-rest secret storage port (Electron safeStorage adapter in @praxis/desktop).
 export { SecretStorageError } from "./secret-storage.js";

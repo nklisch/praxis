@@ -60,6 +60,7 @@ import type {
 import type { NoteBody } from "./notes.js";
 import type { ComposedSystemPromptWithAttribution } from "./prompt-attribution.js";
 import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
+import type { Recommendation } from "./recommendation.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
 import type { DocumentTabSummary, TabId, TabSummary } from "./tabs.js";
@@ -109,6 +110,8 @@ export interface PraxisClient {
   update: UpdateClientApi;
   /** Sub-agent transparency — subscribe to step-level events from sub-agent runs. */
   subAgent: SubAgentClientApi;
+  /** Workbench recommendation engine — priority-ordered "what's next" queue. */
+  recommendations: RecommendationsClientApi;
 }
 
 /**
@@ -794,4 +797,12 @@ export interface FlashcardsClient {
  */
 export interface UpdateClientApi {
   checkLatest(): Promise<UpdateCheckResult>;
+}
+
+/**
+ * Workbench recommendation engine — renderer-side surface.
+ * Returns the priority-ordered "what's next" list for the front door.
+ */
+export interface RecommendationsClientApi {
+  next(input?: { limit?: number }): Promise<Recommendation[]>;
 }

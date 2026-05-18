@@ -34,6 +34,7 @@ import { registerIngestHandlers } from "./ingest-channel.js";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
+import { registerRecommendationsHandlers } from "./recommendations-channel.js";
 import type { Services } from "./services.js";
 import { registerSubAgentHandlers } from "./subagent-channel.js";
 
@@ -1817,6 +1818,10 @@ export function registerIpcHandlers(
   // ── Phase 16: Polymorphic scope ↔ document attachments ───────────────────────
 
   registerDocumentScopesHandlers(services, log);
+
+  // ── Workbench recommendation engine ──────────────────────────────────────────
+
+  registerRecommendationsHandlers(services, log);
 
   // ── Shell helpers ─────────────────────────────────────────────────────────────
 

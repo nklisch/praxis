@@ -32,8 +32,10 @@ import {
   ProceduralIndexer,
   PromptCustomizationServiceImpl,
   QuickCheckServiceImpl,
+  RecommendationServiceImpl,
   SessionServiceImpl,
   SketchServiceImpl,
+  SqliteDraftStore,
   SubAgentRegistryImpl,
   TabsServiceImpl,
   UpdateServiceImpl,
@@ -162,6 +164,8 @@ export interface Services {
   quickCheck: QuickCheckServiceImpl;
   /** Phase 18: pedagogy pack service — read-only service over the bundled pedagogy pack. */
   pedagogyPack: PedagogyPackServiceImpl;
+  /** Workbench recommendation engine — priority-ordered "what's next" queue. */
+  recommendations: RecommendationServiceImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: WorkerEmbeddingService; // exposed so main can preload it
@@ -275,11 +279,16 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // Phase 16: DocumentScopesServiceImpl — must be constructed before BootstrapServiceImpl.
   const documentScopesService = new DocumentScopesServiceImpl({ db, log });
 
+  // Shared durable draft store — one instance used by both BootstrapServiceImpl
+  // and RecommendationServiceImpl so they read from the same SQLite source.
+  const draftStore = new SqliteDraftStore(db);
+
   const bootstrapService = new BootstrapServiceImpl({
     db,
     log,
     engineResolver: bootstrapEngineResolver,
     documentScopes: documentScopesService,
+    draftStore,
   });
 
   // Phase 7: helper to look up the courseId for a given session (used by indexers).
@@ -468,6 +477,14 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     scheduler: fsrsScheduler,
   });
 
+  // Workbench recommendation engine — aggregates sessions, cards, mastery, drafts.
+  // Reuses the shared draftStore constructed above alongside BootstrapServiceImpl.
+  const recommendationsService = new RecommendationServiceImpl({
+    db,
+    log,
+    draftStore,
+  });
+
   // Prompt customization service — global fragment + per-mode appends.
   const promptCustomizationService = new PromptCustomizationServiceImpl({ db });
 
@@ -520,6 +537,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     log,
     modes,
     toolDefinitions,
+    recommendations: recommendationsService,
     toolServices: {
       sympy,
       sandbox,
@@ -615,6 +633,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     activity: activityRegistry,
     subAgent: subAgentRegistry,
     quickCheck: quickCheckService, // ← Phase 17
+    recommendations: recommendationsService,
     ingestorRegistry,
     pyodide,
     embeddings,

@@ -26,6 +26,7 @@ import type {
   PackImportService,
   PedagogyPackService,
   QuickCheckService,
+  RecommendationService,
   SecretStorage,
   SketchService,
   SubAgentRegistry,
@@ -146,6 +147,12 @@ export interface ServiceDeps {
    * proceeds with no user layers applied).
    */
   promptCustomization?: PromptCustomizationService;
+  /**
+   * Workbench recommendation engine — aggregates open sessions, due cards,
+   * low-mastery concepts, active drafts, and pending quick checks into a
+   * priority-ordered list for the front door.
+   */
+  recommendations?: RecommendationService;
   /**
    * At-rest secret storage. Reads decrypt; writes encrypt. The Electron
    * adapter (`ElectronSafeStorageAdapter`) is wired in `@praxis/desktop`.
