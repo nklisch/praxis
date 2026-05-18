@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces-course-create-ingestion-status-fix
 kind: story
-stage: review
+stage: done
 tags: [bug, ui]
 parent: epic-ui-redesign-ground-up-discovery-surfaces
 depends_on: []
@@ -119,3 +119,22 @@ looping. Fixed by depending on `ingestionState` (= `ingestion.state`) only.
 
 All use `await act(async () => { click() })` to flush the async promise chain
 from `startPickBatch` before asserting with `waitFor`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Three distinct root causes addressed cleanly. The `batch_summary`
+upsert pattern (Map over `prev`, then `Array.from`) correctly handles the React
+18 batching race where intermediate `"ingesting"` setState calls may never have
+been rendered when `batch_summary` fires. The `ingestionState` dep narrowing
+(pulling `ingestion.state` to a stable ref before the effect) eliminates the
+pre-existing infinite re-render risk. The `"done"` branch is correctly preserved
+for the single-file `startPick` path. Tests run through the real `useIngestion`
+state machine (mocking only the client layer) — that's the right depth. All 1575
+UI tests pass; the two changed files are lint-clean; the three typecheck errors
+in `@praxis/desktop` are pre-existing and unrelated.
