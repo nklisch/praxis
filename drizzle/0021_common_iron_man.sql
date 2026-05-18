@@ -1,0 +1,1 @@
+ALTER TABLE `notes` ADD `annotations_json` text;

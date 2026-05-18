@@ -13,6 +13,7 @@ import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import type { PraxisDb } from "../db/index.js";
 import type {
+  Annotation,
   CourseId,
   Engine,
   LessonId,
@@ -187,6 +188,42 @@ export class NotesServiceImpl implements NotesService {
       .delete(notes)
       .where(and(eq(notes.id, input.noteId), eq(notes.studentId, input.studentId)))
       .run();
+  }
+
+  async setAnnotations(input: {
+    studentId: StudentId;
+    noteId: NoteId;
+    annotations: Annotation[];
+  }): Promise<void> {
+    for (const ann of input.annotations) {
+      if (
+        !Number.isInteger(ann.rangeStart) ||
+        !Number.isInteger(ann.rangeEnd) ||
+        ann.rangeStart < 0 ||
+        ann.rangeEnd < 0 ||
+        ann.rangeStart >= ann.rangeEnd
+      ) {
+        throw new Error(
+          `Invalid annotation range [${ann.rangeStart}, ${ann.rangeEnd}): ` +
+            "rangeStart and rangeEnd must be non-negative integers with rangeStart < rangeEnd.",
+        );
+      }
+    }
+    this.deps.db
+      .update(notes)
+      .set({ annotationsJson: input.annotations })
+      .where(and(eq(notes.id, input.noteId), eq(notes.studentId, input.studentId)))
+      .run();
+  }
+
+  async getAnnotations(input: { studentId: StudentId; noteId: NoteId }): Promise<Annotation[]> {
+    const row = this.deps.db
+      .select({ annotationsJson: notes.annotationsJson })
+      .from(notes)
+      .where(and(eq(notes.id, input.noteId), eq(notes.studentId, input.studentId)))
+      .get();
+    if (!row || row.annotationsJson === null || row.annotationsJson === undefined) return [];
+    return row.annotationsJson as Annotation[];
   }
 
   /**

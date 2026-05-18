@@ -35,6 +35,8 @@ describe("createNoteTool", () => {
           list: vi.fn(),
           delete: vi.fn(),
           fromSessionSummary: vi.fn(),
+          setAnnotations: vi.fn(),
+          getAnnotations: vi.fn(),
         },
       },
     });
@@ -83,6 +85,8 @@ describe("createNoteTool", () => {
           list: vi.fn(),
           delete: vi.fn(),
           fromSessionSummary: vi.fn(),
+          setAnnotations: vi.fn(),
+          getAnnotations: vi.fn(),
         },
       },
     });

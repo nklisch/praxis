@@ -1,4 +1,22 @@
 /**
+ * A selection-anchored annotation on a note body.
+ *
+ * `rangeStart`/`rangeEnd` are character-offset indices into the note body
+ * string. `rangeStart < rangeEnd`, both non-negative.
+ * `severity` distinguishes light highlights ("soft") from load-bearing
+ * annotations the editor should not silently discard ("load_bearing").
+ *
+ * NOTE: Re-anchoring when the note body changes is out of scope for v1 — callers
+ * must be aware that offsets may become stale after a body update.
+ */
+export interface Annotation {
+  rangeStart: number;
+  rangeEnd: number;
+  text: string;
+  severity: "soft" | "load_bearing";
+}
+
+/**
  * Phase 12: NoteBody — discriminated union over the four supported text formats.
  * Phase 15a adds "sketch" (tldraw snapshot stored as opaque JSON).
  *

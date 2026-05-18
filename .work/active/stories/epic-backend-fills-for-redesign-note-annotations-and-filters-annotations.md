@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-note-annotations-and-filters-annotations
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-note-annotations-and-filters
 depends_on: []
@@ -85,3 +85,46 @@ See parent feature
 
 - Re-anchoring on body edits — accept the limitation; flag in v1.
 - The editor UI consuming this — lives in the workspace feature.
+
+## Implementation notes
+
+All acceptance criteria met.
+
+**Schema**: Added `annotationsJson: text("annotations_json", { mode: "json" })` (nullable)
+to the `notes` table in `packages/artifacts/src/schema.ts`. Migration `drizzle/0021_common_iron_man.sql`
+is a single `ALTER TABLE notes ADD annotations_json text;` — applied cleanly via `pnpm db:reset`.
+
+**Type**: `Annotation` interface added to `packages/core/src/types/notes.ts` at the top of the file,
+re-exported via the existing `export * from "./notes.js"` in `packages/core/src/types/index.ts`. Also
+imported into `packages/core/src/types/client.ts` and `packages/core/src/types/tool.ts` for the new
+interface methods.
+
+**Service**: `setAnnotations` and `getAnnotations` added to:
+- `NotesService` interface in `packages/core/src/types/tool.ts`
+- `NotesClient` interface in `packages/core/src/types/client.ts`
+- `NotesServiceImpl` in `packages/core/src/services/notes-service.ts`
+
+`setAnnotations` validates all ranges up front (non-negative integers, `rangeStart < rangeEnd`) before
+writing; throws a clear error describing the failing range. `getAnnotations` returns `[]` when the
+column is NULL or when the note doesn't exist for the student.
+
+**IPC**: `praxis.notes.setAnnotations` and `praxis.notes.getAnnotations` added inline in
+`packages/desktop/electron/main/ipc-server.ts` next to the existing notes channels, following the
+`handleEnvelope` pattern. Zod schema for annotations validates at the IPC boundary (integer, nonnegative,
+correct enum).
+
+**Client**: `NotesClientImpl` in `packages/client/src/services/notes-client.ts` extended with both
+methods.
+
+**Tests**:
+- 9 new service tests in `packages/core/src/__tests__/notes-service.test.ts` — round-trip, replace,
+  clear, unknown-id, and 4 validation rejection cases.
+- 9 new IPC harness tests in `packages/desktop/electron/main/__tests__/notes-flashcards-channel-envelope.test.ts`
+  — success paths, validation failures, and INTERNAL propagation for both channels.
+- Updated `makeServices` stubs in the notes-flashcards test file and partial stubs in
+  `packages/tools/src/flashcards/__tests__/from-note.test.ts` and
+  `packages/tools/src/notes/__tests__/create.test.ts`.
+
+**v1 limitation noted**: Annotations are character-offset based. If the note body is edited,
+existing offsets may become stale. Re-anchoring is explicitly out of scope for v1; the comment
+in `Annotation`'s JSDoc flags this for future work.

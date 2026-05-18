@@ -203,6 +203,7 @@ export const notes = sqliteTable(
     body: text("body"),
     sketchSceneJson: text("sketch_scene_json", { mode: "json" }),
     linksJson: text("links_json", { mode: "json" }).notNull(),
+    annotationsJson: text("annotations_json", { mode: "json" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },

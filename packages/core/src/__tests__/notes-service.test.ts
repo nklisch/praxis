@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { NotesServiceImpl } from "../services/notes-service.js";
-import type { NoteBody } from "../types/index.js";
+import type { Annotation, NoteBody } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
 const MOCK_LOG = {
@@ -232,6 +232,158 @@ describe("NotesServiceImpl", () => {
       });
       const result = await svc.get({ studentId: STUDENT_ID, noteId: note.id });
       expect(result).not.toBeNull();
+    });
+  });
+
+  describe("setAnnotations + getAnnotations", () => {
+    it("round-trip: set annotations then get returns them deep-equal", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const note = await svc.create({
+        studentId: STUDENT_ID,
+        format: "free",
+        body: { kind: "free", text: "annotatable note" },
+      });
+
+      const annotations: Annotation[] = [
+        { rangeStart: 0, rangeEnd: 5, text: "hello", severity: "soft" },
+        { rangeStart: 6, rangeEnd: 10, text: "word", severity: "load_bearing" },
+      ];
+
+      await svc.setAnnotations({ studentId: STUDENT_ID, noteId: note.id, annotations });
+      const result = await svc.getAnnotations({ studentId: STUDENT_ID, noteId: note.id });
+      expect(result).toEqual(annotations);
+    });
+
+    it("getAnnotations returns [] when no annotations have been set", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const note = await svc.create({
+        studentId: STUDENT_ID,
+        format: "free",
+        body: { kind: "free", text: "no annotations yet" },
+      });
+      const result = await svc.getAnnotations({ studentId: STUDENT_ID, noteId: note.id });
+      expect(result).toEqual([]);
+    });
+
+    it("getAnnotations returns [] for unknown noteId", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const result = await svc.getAnnotations({
+        studentId: STUDENT_ID,
+        noteId: brandId<"NoteId">("nonexistent-note"),
+      });
+      expect(result).toEqual([]);
+    });
+
+    it("setAnnotations replaces previous annotations", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const note = await svc.create({
+        studentId: STUDENT_ID,
+        format: "free",
+        body: { kind: "free", text: "replace test" },
+      });
+
+      const first: Annotation[] = [{ rangeStart: 0, rangeEnd: 3, text: "rep", severity: "soft" }];
+      await svc.setAnnotations({ studentId: STUDENT_ID, noteId: note.id, annotations: first });
+
+      const second: Annotation[] = [
+        { rangeStart: 4, rangeEnd: 9, text: "place", severity: "load_bearing" },
+      ];
+      await svc.setAnnotations({ studentId: STUDENT_ID, noteId: note.id, annotations: second });
+
+      const result = await svc.getAnnotations({ studentId: STUDENT_ID, noteId: note.id });
+      expect(result).toEqual(second);
+    });
+
+    it("setAnnotations accepts an empty array (clears annotations)", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const note = await svc.create({
+        studentId: STUDENT_ID,
+        format: "free",
+        body: { kind: "free", text: "clear test" },
+      });
+
+      await svc.setAnnotations({
+        studentId: STUDENT_ID,
+        noteId: note.id,
+        annotations: [{ rangeStart: 0, rangeEnd: 4, text: "clea", severity: "soft" }],
+      });
+      await svc.setAnnotations({ studentId: STUDENT_ID, noteId: note.id, annotations: [] });
+      const result = await svc.getAnnotations({ studentId: STUDENT_ID, noteId: note.id });
+      expect(result).toEqual([]);
+    });
+
+    it("setAnnotations rejects rangeStart >= rangeEnd", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const note = await svc.create({
+        studentId: STUDENT_ID,
+        format: "free",
+        body: { kind: "free", text: "validation" },
+      });
+      await expect(
+        svc.setAnnotations({
+          studentId: STUDENT_ID,
+          noteId: note.id,
+          annotations: [{ rangeStart: 5, rangeEnd: 3, text: "bad", severity: "soft" }],
+        }),
+      ).rejects.toThrow("Invalid annotation range");
+    });
+
+    it("setAnnotations rejects negative rangeStart", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const note = await svc.create({
+        studentId: STUDENT_ID,
+        format: "free",
+        body: { kind: "free", text: "validation" },
+      });
+      await expect(
+        svc.setAnnotations({
+          studentId: STUDENT_ID,
+          noteId: note.id,
+          annotations: [{ rangeStart: -1, rangeEnd: 5, text: "bad", severity: "soft" }],
+        }),
+      ).rejects.toThrow("Invalid annotation range");
+    });
+
+    it("setAnnotations rejects equal rangeStart and rangeEnd", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const note = await svc.create({
+        studentId: STUDENT_ID,
+        format: "free",
+        body: { kind: "free", text: "validation" },
+      });
+      await expect(
+        svc.setAnnotations({
+          studentId: STUDENT_ID,
+          noteId: note.id,
+          annotations: [{ rangeStart: 3, rangeEnd: 3, text: "bad", severity: "soft" }],
+        }),
+      ).rejects.toThrow("Invalid annotation range");
+    });
+
+    it("setAnnotations rejects non-integer range values", async () => {
+      const { db } = openDb({ path: dbCtx.dbPath });
+      const svc = makeService(db);
+      const note = await svc.create({
+        studentId: STUDENT_ID,
+        format: "free",
+        body: { kind: "free", text: "validation" },
+      });
+      await expect(
+        svc.setAnnotations({
+          studentId: STUDENT_ID,
+          noteId: note.id,
+          // biome-ignore lint/suspicious/noExplicitAny: testing runtime validation with bad input
+          annotations: [{ rangeStart: 0.5, rangeEnd: 3, text: "bad", severity: "soft" } as any],
+        }),
+      ).rejects.toThrow("Invalid annotation range");
     });
   });
 });

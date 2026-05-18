@@ -1,4 +1,5 @@
 import type {
+  Annotation,
   CourseId,
   LessonId,
   Note,
@@ -17,6 +18,8 @@ const C = {
   get: "praxis.notes.get",
   list: "praxis.notes.list",
   delete: "praxis.notes.delete",
+  setAnnotations: "praxis.notes.setAnnotations",
+  getAnnotations: "praxis.notes.getAnnotations",
 } as const;
 
 /**
@@ -62,6 +65,22 @@ class NotesClientImpl implements NotesClient {
 
   async delete(noteId: NoteId): Promise<void> {
     const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.delete, noteId);
+    return unwrapEnvelope(result);
+  }
+
+  async setAnnotations(input: { noteId: NoteId; annotations: Annotation[] }): Promise<void> {
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
+      C.setAnnotations,
+      input,
+    );
+    return unwrapEnvelope(result);
+  }
+
+  async getAnnotations(noteId: NoteId): Promise<Annotation[]> {
+    const result = await this.transport.invoke<IpcEnvelope<Annotation[]> | Annotation[]>(
+      C.getAnnotations,
+      noteId,
+    );
     return unwrapEnvelope(result);
   }
 }

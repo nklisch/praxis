@@ -60,7 +60,7 @@ import type {
   ProceduralModel,
   StudentModel,
 } from "./memory.js";
-import type { NoteBody } from "./notes.js";
+import type { Annotation, NoteBody } from "./notes.js";
 import type { ComposedSystemPromptWithAttribution } from "./prompt-attribution.js";
 import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { Recommendation } from "./recommendation.js";
@@ -814,6 +814,12 @@ export interface NotesClient {
   }): Promise<Note[]>;
 
   delete(noteId: NoteId): Promise<void>;
+
+  /** Replace all annotations on a note (validates ranges). */
+  setAnnotations(input: { noteId: NoteId; annotations: Annotation[] }): Promise<void>;
+
+  /** Return all annotations for a note; [] when none exist. */
+  getAnnotations(noteId: NoteId): Promise<Annotation[]>;
 }
 
 // ─── Phase 12: FlashcardsClient (client-side) ────────────────────────────────

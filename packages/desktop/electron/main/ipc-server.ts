@@ -1383,6 +1383,43 @@ export function registerIpcHandlers(
     }),
   );
 
+  const annotationSchema = z.object({
+    rangeStart: z.number().int().nonnegative(),
+    rangeEnd: z.number().int().nonnegative(),
+    text: z.string(),
+    severity: z.enum(["soft", "load_bearing"]),
+  });
+
+  const setAnnotationsSchema = z.object({
+    noteId: z.string().min(1, "noteId"),
+    annotations: z.array(annotationSchema),
+  });
+
+  handle(
+    "praxis.notes.setAnnotations",
+    handleEnvelope(
+      "praxis.notes.setAnnotations",
+      log,
+      setAnnotationsSchema,
+      async (input) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+        return services.notes.setAnnotations({
+          studentId,
+          noteId: brandId<"NoteId">(input.noteId),
+          annotations: input.annotations,
+        });
+      },
+    ),
+  );
+
+  handle(
+    "praxis.notes.getAnnotations",
+    handleEnvelope("praxis.notes.getAnnotations", log, noteIdSchema, async (noteId) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.notes.getAnnotations({ studentId, noteId: brandId<"NoteId">(noteId) });
+    }),
+  );
+
   // ── Phase 12: Flashcards ─────────────────────────────────────────────────────
 
   const flashcardCreateSchema = z.object({

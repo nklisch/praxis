@@ -60,7 +60,7 @@ import type {
   ProceduralModel,
   StudentModel,
 } from "./memory.js";
-import type { NoteBody } from "./notes.js";
+import type { Annotation, NoteBody } from "./notes.js";
 import type {
   MetacognitivePrompt,
   MetacognitivePromptTrigger,
@@ -275,6 +275,22 @@ export interface NotesService {
     sessionId: string;
     format: "cornell" | "feynman" | "outline" | "free";
   }): Promise<Note>;
+
+  /**
+   * Replace all annotations on a note. Validates each annotation before writing.
+   * Throws if any annotation has invalid ranges (rangeStart >= rangeEnd or negative values).
+   */
+  setAnnotations(input: {
+    studentId: StudentId;
+    noteId: NoteId;
+    annotations: Annotation[];
+  }): Promise<void>;
+
+  /**
+   * Return all annotations for a note. Returns [] when the note has no annotations
+   * or does not exist for this student.
+   */
+  getAnnotations(input: { studentId: StudentId; noteId: NoteId }): Promise<Annotation[]>;
 }
 
 // ─── Phase 12: FlashcardsService ─────────────────────────────────────────────

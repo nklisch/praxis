@@ -61,6 +61,8 @@ type NotesOverrides = {
   update?: (input: unknown) => Promise<unknown>;
   get?: (input: unknown) => Promise<unknown>;
   delete?: (input: unknown) => Promise<unknown>;
+  setAnnotations?: (input: unknown) => Promise<unknown>;
+  getAnnotations?: (input: unknown) => Promise<unknown>;
 };
 
 type FlashcardsOverrides = {
@@ -220,6 +222,12 @@ function makeServices(
     delete: notesOverrides.delete
       ? vi.fn().mockImplementation(notesOverrides.delete)
       : vi.fn().mockResolvedValue(undefined),
+    setAnnotations: notesOverrides.setAnnotations
+      ? vi.fn().mockImplementation(notesOverrides.setAnnotations)
+      : vi.fn().mockResolvedValue(undefined),
+    getAnnotations: notesOverrides.getAnnotations
+      ? vi.fn().mockImplementation(notesOverrides.getAnnotations)
+      : vi.fn().mockResolvedValue([]),
   };
 
   const flashcards = {
@@ -566,6 +574,123 @@ describe("praxis.flashcards.delete — envelope wiring", () => {
     expect(handler).toBeDefined();
 
     await expect(handler?.({}, "fc-1")).resolves.toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL" },
+    });
+  });
+});
+
+// ── praxis.notes.setAnnotations — structured-payload envelope ────────────────
+
+describe("praxis.notes.setAnnotations — envelope wiring", () => {
+  it("resolves with { ok: true } for a valid payload", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices({ setAnnotations: async () => undefined });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.setAnnotations");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.(
+      {},
+      {
+        noteId: "n-1",
+        annotations: [
+          { rangeStart: 0, rangeEnd: 5, text: "hello", severity: "soft" },
+        ],
+      },
+    );
+    expect(result).toMatchObject({ ok: true });
+    expect(services.notes.setAnnotations).toHaveBeenCalledOnce();
+  });
+
+  it("returns VALIDATION_FAILED when noteId is missing", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.setAnnotations");
+    const result = await handler?.({}, { annotations: [] });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.notes.setAnnotations).not.toHaveBeenCalled();
+  });
+
+  it("returns VALIDATION_FAILED when annotations array is missing", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.setAnnotations");
+    const result = await handler?.({}, { noteId: "n-1" });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.notes.setAnnotations).not.toHaveBeenCalled();
+  });
+
+  it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices({
+      setAnnotations: async () => {
+        throw new Error("Invalid annotation range");
+      },
+    });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.setAnnotations");
+    await expect(
+      handler?.({}, { noteId: "n-1", annotations: [] }),
+    ).resolves.toMatchObject({ ok: false, error: { code: "INTERNAL" } });
+  });
+});
+
+// ── praxis.notes.getAnnotations — string-payload envelope ─────────────────────
+
+describe("praxis.notes.getAnnotations — envelope wiring", () => {
+  it("resolves with { ok: true, value: <annotations> } for a valid noteId", async () => {
+    const annotations = [{ rangeStart: 0, rangeEnd: 5, text: "hello", severity: "soft" }];
+    const log = makeFakeLogger();
+    const services = makeServices({ getAnnotations: async () => annotations });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.getAnnotations");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "n-1");
+    expect(result).toMatchObject({ ok: true, value: annotations });
+    expect(services.notes.getAnnotations).toHaveBeenCalledOnce();
+  });
+
+  it("resolves with { ok: true, value: [] } when no annotations", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices({ getAnnotations: async () => [] });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.getAnnotations");
+    const result = await handler?.({}, "n-1");
+    expect(result).toMatchObject({ ok: true, value: [] });
+  });
+
+  it("returns VALIDATION_FAILED for an empty string noteId", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.getAnnotations");
+    const result = await handler?.({}, "");
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.notes.getAnnotations).not.toHaveBeenCalled();
+  });
+
+  it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices({
+      getAnnotations: async () => {
+        throw new Error("DB error");
+      },
+    });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.getAnnotations");
+    await expect(handler?.({}, "n-1")).resolves.toMatchObject({
       ok: false,
       error: { code: "INTERNAL" },
     });
