@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-homework-tab-body
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Homework tab body — paginated batch + save/skip/flag
@@ -32,7 +32,35 @@ feedback delayed until submission.
 
 ## Acceptance criteria
 
-- [ ] Homework tab body matches the locked mock.
-- [ ] Per-item save/skip/flag persists.
-- [ ] Feedback delayed until final submission.
-- [ ] All quality checks green.
+- [x] Homework tab body matches the locked mock.
+- [x] Per-item save/skip/flag persists.
+- [x] Feedback delayed until final submission.
+- [x] All quality checks green.
+
+## Implementation notes
+
+Complete rewrite of `HomeworkTabBody` matching the locked `mode-homework.html` mock.
+
+**Architecture**: Three-column grid layout (200px page-nav · flex-1 main · 280px submit rail).
+The component owns per-item state directly (skipped/flagged Sets, work-tab Map) rather than
+delegating to `AssignmentCard` — this gives finer pagination control.
+
+**Key decisions**:
+- `useAssignment` hook provides responses/work/submit — the same hook used by `AssignmentCard`
+  and `QuizTabBody`, so auto-save (1s debounce) and sketch capture are unchanged.
+- Skipped/flagged items are tracked in local state (Set<itemId>); they don't require a new API
+  field since they are a UI-layer concept (the backend sees empty responses as unanswered).
+- Work-area tabs (typed/show-work/sketch) are per-item, stored in a `Map<itemId, WorkTab>` in
+  local state. The sketch tab is a placeholder pointing users to the item body's draw tool.
+- `AssignmentFeedback` renders only in the post-submission review pane — never during active work.
+- Submit button is disabled while `emptyCount > 0` (no partially-complete sets; all items must
+  be answered or explicitly skipped/flagged before submitting). This matches the mock's disabled
+  state with `(N empty)` label.
+- Agent clarification: no suppression logic needed in the component — homework mode's backend
+  brief constrains the model to clarify-only. The "Ask about this item" button is a static
+  affordance (no wiring to a sidekick session in this story; wiring belongs to a future story).
+
+**Tests** (`packages/ui/src/__tests__/homework-tab-body.test.tsx`): 34 tests across layout,
+pagination, save/skip/flag state, work-area tab switching, feedback gating, and edge states.
+Used `within(document.querySelector("main"))` to scope item-content queries away from the
+page-nav which renders truncated prompt text for the same items.
