@@ -1,7 +1,7 @@
 ---
 id: refactor-ipc-server-extract-domain-channels
 kind: feature
-stage: drafting
+stage: implementing
 tags: [refactor]
 parent: null
 depends_on: []
@@ -114,3 +114,175 @@ refactor.
 
 `git revert <commit>` per extracted channel is clean; each extraction is
 self-contained.
+
+## Design correction (2026-05-18, refactor-design pass)
+
+Reality is bigger than the original brief estimated. Channel inventory in
+current `ipc-server.ts` (post stream-handler refactor):
+
+- **130 `handle()` / `on()` registrations** across **22 unique domains**
+- **7 domains already extracted** to their own channel files: `activity`,
+  `courseCreate`, `ingest`, `quickCheck`, `recommendations`, `subAgent`,
+  `citations`
+- **15 domains still inline** in ipc-server.ts: `artifacts`, `assignments`,
+  `auth`, `author`, `conceptMaps`, `config`, `documents`, `flashcards`,
+  `library`, `lock`, `memory`, `notes`, `packs`, `session`, `shell`,
+  `sketches`, `tabs`, `update`
+
+The original feature body's "6 channel blocks" estimate was based on the
+discovery scan reading line ranges; the actual unique-domain count is 15
+not counting the already-extracted ones.
+
+ipc-server.ts is currently 1996 LoC (already down from 2066 after prior
+work). Post-refactor target: ~400-500 LoC — pure orchestration that calls
+each `register<Domain>Handlers(services, ...)` function in sequence, plus
+the streaming-channel teardown cleanup and shutdown handling.
+
+## Refactor Overview
+
+Three sequential child stories. All edit ipc-server.ts (removing inline
+registrations) so they chain via `depends_on` to avoid git conflicts. Each
+extraction follows the established pattern from already-extracted channels
+(see `activity-channel.ts`, `recommendations-channel.ts`, etc. for the
+canonical shape).
+
+### Standard extraction pattern (per domain)
+
+For domain `X`:
+
+1. Create `packages/desktop/electron/main/<X>-channel.ts` exporting
+   `register<X>Handlers(services, log)` (or with extra args
+   `webContentsGetter, activeAbortControllers` if the domain has streaming
+   handlers — most don't).
+2. Move every `handle("praxis.<X>.*")` registration from ipc-server.ts
+   into the new file, preserving the exact handler bodies and using
+   `createIpcHelpers(log)` to get the typed `{ handle, on }` pair.
+3. In ipc-server.ts's wiring block, add `register<X>Handlers(services, log)`
+   alongside the existing register calls.
+4. Confirm the streaming-handler helpers (`registerSubscriberStream`,
+   `registerGeneratorStream`) are reused where the domain has streaming
+   endpoints (memory.episodic, session.send — these already use the
+   helpers inline; just move them with everything else).
+5. Preserve removeAllListeners calls in the teardown section of
+   ipc-server.ts where they reference the domain's cancel channels.
+
+### Per-step grouping
+
+| Step | Domains | Approx handlers | Story |
+|---|---|---|---|
+| 1 | `auth`, `shell`, `update`, `lock`, `library`, `documents`, `packs` (7 small/medium) | ~25-35 | `refactor-ipc-server-extract-domain-channels-step-1-small-domains` |
+| 2 | `memory`, `notes`, `config`, `sketches`, `tabs`, `conceptMaps`, `assignments`, `flashcards` (8 medium) | ~35-50 | `refactor-ipc-server-extract-domain-channels-step-2-medium-domains` |
+| 3 | `artifacts`, `author`, `session` (3 large) | ~45-50 | `refactor-ipc-server-extract-domain-channels-step-3-large-domains` |
+
+Each step extracts its full set of domains into per-domain channel files
+and removes the inline registrations from ipc-server.ts. Single commit per
+step.
+
+Sequencing: step 2 depends_on step 1; step 3 depends_on step 2.
+
+## Refactor Steps
+
+### Step 1: Extract small/medium domains
+**Priority**: High (smallest scope; establishes the pattern at scale)
+**Risk**: Low (mechanical extractions; pattern is established)
+**Files**: 
+- NEW: `packages/desktop/electron/main/{auth,shell,update,lock,library,documents,packs}-channel.ts` (7 new files)
+- `packages/desktop/electron/main/ipc-server.ts` (remove inline registrations; add register calls)
+**Story**: `refactor-ipc-server-extract-domain-channels-step-1-small-domains`
+
+**Per-domain extraction approach**: same pattern as `activity-channel.ts` 
+(reference: post step-1 of stream-handler refactor, commit `e2a46f9`). Each 
+new file exports `register<Domain>Handlers(services, log)` taking the 
+canonical Services + Logger signature. If a domain has streaming handlers, 
+also accept `webContentsGetter` and `activeAbortControllers`.
+
+**Verification per step**:
+- `pnpm --filter @praxis/desktop typecheck`
+- `pnpm --filter @praxis/desktop test` (especially `*-channel-envelope.test.ts` and `ipc-server.envelope-migration.test.ts`)
+- `pnpm biome check packages/desktop/electron/main/`
+- Wire format preserved (channel names unchanged; envelope shapes unchanged)
+
+**Acceptance**:
+- 7 new channel files created
+- `ipc-server.ts` LoC drops by ~150
+- All existing IPC tests pass unmodified
+
+**Risk**: Low. Pattern-mirror; tests cover the surface.
+**Rollback**: `git revert <commit>` — clean.
+
+---
+
+### Step 2: Extract medium domains
+**Priority**: High
+**Risk**: Low-Medium (includes `memory` which has streaming handler — already uses helper, just moves)
+**Files**: 
+- NEW: `packages/desktop/electron/main/{memory,notes,config,sketches,tabs,conceptMaps,assignments,flashcards}-channel.ts` (8 new files)
+- `packages/desktop/electron/main/ipc-server.ts`
+**Story**: `refactor-ipc-server-extract-domain-channels-step-2-medium-domains`
+**Depends on**: `refactor-ipc-server-extract-domain-channels-step-1-small-domains`
+
+Same shape as Step 1. The `memory` channel's streaming endpoint
+(`praxis.memory.episodic.start` + `.cancel`) currently uses
+`registerGeneratorStream` inline in ipc-server.ts (post stream-handler
+step 4) — move it cleanly into `memory-channel.ts`.
+
+**Acceptance**:
+- 8 new channel files created
+- `ipc-server.ts` LoC drops by ~250 from end-of-step-1
+- Memory streaming + envelope tests all pass unmodified
+
+**Risk**: Low-Medium. Memory channel's streaming nature is the only added complexity.
+**Rollback**: `git revert <commit>` — clean.
+
+---
+
+### Step 3: Extract large domains
+**Priority**: High
+**Risk**: Medium (session is hot path; author is the biggest with ~24 handlers)
+**Files**: 
+- NEW: `packages/desktop/electron/main/{artifacts,author,session}-channel.ts` (3 new files)
+- `packages/desktop/electron/main/ipc-server.ts`
+**Story**: `refactor-ipc-server-extract-domain-channels-step-3-large-domains`
+**Depends on**: `refactor-ipc-server-extract-domain-channels-step-2-medium-domains`
+
+Same shape. After this step ipc-server.ts becomes pure orchestration: 
+helper setup (createIpcHelpers, getStudentId), then a sequence of 
+`register<Domain>Handlers(services, log)` calls, then the cleanup/shutdown 
+handler that removes listeners for cancellable streaming channels.
+
+The `session` channel's `praxis.session.send.start` + `.cancel` streaming 
+handlers (currently using `registerGeneratorStream` inline) move cleanly 
+into `session-channel.ts`.
+
+**Acceptance**:
+- 3 new channel files created
+- `ipc-server.ts` LoC drops to **< 500** (target ~400 — orchestration + cleanup only)
+- Session streaming + all envelope tests pass unmodified
+- All 130 channel registrations now happen via `register<Domain>Handlers` calls
+
+**Risk**: Medium. Session is on the hot path of every tutor turn — verify 
+session streaming end-to-end via `ipc-server.cancel.test.ts`, 
+`streaming-channel-error-redaction.test.ts`, and the envelope tests.
+**Rollback**: `git revert <commit>` — clean per step.
+
+---
+
+## Implementation Order
+
+1. Step 1 (`step-1-small-domains`) — no deps
+2. Step 2 (`step-2-medium-domains`) — depends on Step 1
+3. Step 3 (`step-3-large-domains`) — depends on Step 2
+
+Each step is a single commit; chain ensures clean ipc-server.ts edits.
+
+## Atomic-step acknowledgments
+
+None. Per-step extraction; each step preserves wire format. Tests at every
+step. Each step independently reversible.
+
+## Out-of-scope follow-ups
+
+- **No new envelope-validation wrapping** (that's behavior-changing; covered by `feature-ipc-envelope-validation-coverage` which already landed).
+- **No renaming of channels** (wire-format break).
+- **No restructuring of `Services` or `ServiceDeps`** — extraction is structural only.
+- A potential post-extraction cleanup: many of the inline `handle/on` blocks in the new channel files will share a pattern that could collapse further (e.g., a generic `handleEnvelope`-shaped registration loop driven by a schema map). Out of scope; if the pattern emerges clearly, file a separate refactor.
