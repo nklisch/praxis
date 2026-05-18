@@ -1,7 +1,7 @@
 ---
 id: refactor-split-core-type-files-tool-and-client
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -304,3 +304,35 @@ None. Type-only moves; barrel preserves public surface; both steps fully reversi
 - Renaming any type. Scope is structural, not nominal.
 - Changing what's exported. Public surface preserved exactly.
 - Moving the supporting tests in `__tests__/`. Tests stay where they are; their imports update only if the moved types' imports break (unlikely since they come through the barrel).
+
+## Implementation Run Summary
+
+Both child stories implemented and advanced to `stage: review`. Combined
+delivery: `tool.ts` 1617→184 LoC (−1433), `client.ts` 944→76 LoC (−868).
+~50 service/client interfaces redistributed across 21+ destinations.
+
+| Step | Story | Commit | Result |
+|------|-------|--------|--------|
+| 1 | `step-1-tool` | `cbfa318` | tool.ts 1617→184; ~15+ services moved (more than the destination map — agent found PedagogyPackService, EmbeddingService, VectorStore, FtsStore, DocumentsReader, SymPyService, CodeSandbox, PackImportService in addition); 5 direct-tool.ts importers fixed (memory-service.ts, documents-reader-impl.ts, documents-service.ts, 2 grader tests, plus client.ts) |
+| 2 | `step-2-client` | `55c16d3` | client.ts 944→76; 37 types moved across 21 destinations; 1 direct-client.ts importer fixed (documents-service.ts) |
+
+### Cross-cutting deviations
+
+- **ProgressSnapshot relocated** to `artifacts.ts` (broke a circular import where artifacts.ts was trying to import from client.ts). Sensible — `ProgressSnapshot` is artifact-shaped data, the location fits.
+- **client-memory.ts NOT exported via wildcard** in the barrel. Only the `MemoryService as MemoryClientService` alias is surfaced, to avoid a name collision with server-side `MemoryService` in `memory.ts`. The barrel block now reads `export type { MemoryService as MemoryClientService } from "./client-memory.js";` (no `export type * from "./client-memory.js"`).
+- **Step 1's destination map under-estimated** — discovery during implementation found 6+ additional services beyond the initial list. The agent created additional per-service files (`rag-service.ts`, `sympy-service.ts`, `sandbox-service.ts`, `pack-import-service.ts`) for these.
+- **Several explicit-export-block style barrel entries extended** — for sketches.ts, tabs.ts, subagent.ts, quick-check.ts, recommendation.ts, concept-map-service.ts — since those files were already on the explicit-list re-export style rather than wildcard.
+
+### Verification status
+
+- **Typecheck**: baseline preserved across all 9 packages (3 pre-existing UI errors in chat-tab-body.tsx, chat.tsx, notes-list.tsx — tracked at `idea-fix-exactoptional-typecheck-baseline`)
+- **Tests**: 4499 tests pass through Step 1; 420 test files pass through Step 2 (numbers different because of which packages each step touched)
+- **Lint (biome)**: clean on `packages/core/src/types/`
+- **Public API surface**: every previously-exported symbol from `@praxis/core/types` still exported. No consumer outside `packages/core/src/types/` needed an import-path update (the 5+1 direct-importers found were INSIDE core, fixed in-line).
+
+### What's now possible
+
+- Each service interface lives next to its data types. Adding a method to `NotesService` is now a single-file change in `notes.ts`, not a hunt through a 1617-line tool.ts.
+- Adding a new service is a single new file (`<domain>-service.ts`) plus one line in the barrel.
+- The strict dependency-direction reason for the `VisionService` inline workaround is gone — `vision.ts` lives in `core/types/`, not `core/services/`.
+- The `MemoryService` name collision between server/client is now structural (different files) rather than alias-papered-over.
