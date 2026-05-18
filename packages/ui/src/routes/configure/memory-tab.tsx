@@ -10,8 +10,10 @@ import type {
 } from "@praxis/core/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ConfirmReasonModal } from "../../components/confirm-reason-modal.js";
+import { EmptyState } from "../../components/empty-state.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import { useDirtyState } from "../../hooks/use-dirty-state.js";
+import { COPY } from "../../lib/copy.js";
 import styles from "./memory-tab.module.css";
 
 type ProjectionTab = "semantic" | "misconceptions" | "procedural" | "affective" | "episodic";
@@ -336,10 +338,7 @@ function SemanticPane({
     <>
       <h3 className={styles.paneHeading}>Semantic — concept mastery (BKT-adjusted)</h3>
       {mastery.length === 0 ? (
-        <EmptyState
-          primary="No mastery data yet."
-          hint="Start a teach session to begin tracking concept mastery."
-        />
+        <EmptyState message={COPY.empty.memorySemanticEmpty} compact />
       ) : (
         <div className={styles.conceptsTable}>
           <div className={`${styles.conceptsRow} ${styles.conceptsHead}`}>
@@ -413,10 +412,7 @@ function MisconceptionsPane({
         </span>
       </h3>
       {misconceptions.length === 0 ? (
-        <EmptyState
-          primary="No misconceptions recorded."
-          hint="Misconceptions are detected automatically during sessions."
-        />
+        <EmptyState message={COPY.empty.memoryMisconceptionsEmpty} compact />
       ) : (
         <div className={styles.miscCards}>
           {[...active, ...cleared].map((m) => (
@@ -499,10 +495,7 @@ function ProceduralPane({
     <>
       <h3 className={styles.paneHeading}>Procedural — strategy preferences</h3>
       {entries.length === 0 ? (
-        <EmptyState
-          primary="No strategy preferences recorded yet."
-          hint="Strategy preferences accumulate as the student works through sessions."
-        />
+        <EmptyState message={COPY.empty.memoryProceduralEmpty} compact />
       ) : (
         <div className={styles.proceduralList}>
           {entries.map(([strategyId, pref]) => {
@@ -549,10 +542,7 @@ function AffectivePane({
     return (
       <>
         <h3 className={styles.paneHeading}>Affective — engagement + confidence signals</h3>
-        <EmptyState
-          primary="No affective signals recorded yet."
-          hint="Engagement and confidence signals are inferred during active sessions."
-        />
+        <EmptyState message={COPY.empty.memoryAffectiveEmpty} compact />
       </>
     );
   }
@@ -640,10 +630,7 @@ function EpisodicPane({
     <>
       <h3 className={styles.paneHeading}>Episodic — turn log</h3>
       {events.length === 0 ? (
-        <EmptyState
-          primary="No episodic events recorded yet."
-          hint="Events are appended after each session turn."
-        />
+        <EmptyState message={COPY.empty.memoryEpisodicEmpty} compact />
       ) : (
         <div className={styles.episodicList}>
           {events
@@ -694,13 +681,3 @@ function EpisodicRow({ event: evt }: { event: EpisodicEvent }) {
   );
 }
 
-// ── Shared empty state ────────────────────────────────────────────────────────
-
-function EmptyState({ primary, hint }: { primary: string; hint: string }) {
-  return (
-    <div className={styles.emptyState}>
-      <p className={styles.emptyPrimary}>{primary}</p>
-      <p className={styles.emptyHint}>{hint}</p>
-    </div>
-  );
-}

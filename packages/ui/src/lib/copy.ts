@@ -43,6 +43,17 @@ export const COPY = {
     libraryDocumentsFiltered: "No documents match these filters.",
     /** Course concepts list — shown when the course has no concepts yet. */
     concepts: "No concepts yet. Run a bootstrap session to populate the course with concepts.",
+    /** Memory tab — per-projection empty states */
+    memorySemanticEmpty:
+      "No mastery data yet. Start a teach session to begin tracking concept mastery.",
+    memoryMisconceptionsEmpty:
+      "No misconceptions recorded. Misconceptions are detected automatically during sessions.",
+    memoryProceduralEmpty:
+      "No strategy preferences recorded yet. Strategy preferences accumulate as the student works through sessions.",
+    memoryAffectiveEmpty:
+      "No affective signals recorded yet. Engagement and confidence signals are inferred during active sessions.",
+    memoryEpisodicEmpty:
+      "No episodic events recorded yet. Events are appended after each session turn.",
   },
   loading: {
     default: "loading…",

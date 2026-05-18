@@ -1,7 +1,7 @@
 ---
 id: configure-memory-tab-local-empty-state
 kind: story
-stage: implementing
+stage: review
 tags: [ui, patterns]
 parent: null
 depends_on: []
@@ -34,3 +34,11 @@ and "never re-implement."
 
 - `packages/ui/src/routes/configure/memory-tab.tsx`
 - `packages/ui/src/lib/copy.ts` (add empty state copy keys)
+
+## Implementation notes
+
+- Removed the local `EmptyState({ primary, hint })` function from `memory-tab.tsx` (was at line 699).
+- Added import for `EmptyState` from `../../components/empty-state.js` and `COPY` from `../../lib/copy.js`.
+- Added 5 new keys under `COPY.empty` in `copy.ts`: `memorySemanticEmpty`, `memoryMisconceptionsEmpty`, `memoryProceduralEmpty`, `memoryAffectiveEmpty`, `memoryEpisodicEmpty`. Each combines the former `primary` + `hint` strings into a single sentence.
+- All 5 call sites now use `<EmptyState message={COPY.empty.memoryXxxEmpty} compact />` — `compact` mode is appropriate since these render inside constrained pane sections, not full-screen routes.
+- All 18 existing memory-tab tests pass. Lint shows no errors in changed files (pre-existing errors in mockup HTML files and unrelated source files are unchanged).
