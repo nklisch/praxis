@@ -1513,6 +1513,8 @@ export interface AssignmentService {
      * When set, `submit()` will notify this session with a system_note after grading.
      */
     parentSessionId?: SessionId;
+    /** Optional time limit in minutes. Null for untimed. Only meaningful for exam kind. */
+    durationMinutes?: number | null;
   }): Promise<{ assignmentId: AssignmentId }>;
 
   get(input: { assignmentId: AssignmentId }): Promise<Assignment | null>;

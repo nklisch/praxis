@@ -127,6 +127,13 @@
       "when": 1779072203623,
       "tag": "0017_green_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1779075674379,
+      "tag": "0018_secret_the_enforcers",
+      "breakpoints": true
     }
   ]
 }

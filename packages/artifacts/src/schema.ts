@@ -65,6 +65,12 @@ export const assignments = sqliteTable(
      * On submit, this is the target for the system_note notification.
      */
     parentSessionId: text("parent_session_id"),
+    /**
+     * Optional exam time limit in minutes. Null for untimed assignments.
+     * When set on an exam, the UI renders a countdown and auto-submits
+     * at expiry (measured from assignedAt).
+     */
+    durationMinutes: integer("duration_minutes"),
   },
   (t) => ({
     courseIdx: index("assignments_course_idx").on(t.courseId),

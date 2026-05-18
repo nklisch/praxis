@@ -10,6 +10,12 @@ const InputSchema = z.object({
   title: z.string().min(1),
   items: z.array(AssignmentItemSchema).min(1),
   conceptIds: z.array(z.string()),
+  /**
+   * Optional time limit in minutes for timed exams. Omit (or null) for untimed.
+   * The UI renders a countdown and auto-submits at expiry when this is set.
+   * Only meaningful for kind: "exam".
+   */
+  durationMinutes: z.number().int().positive().nullable().optional(),
 });
 
 const OutputSchema = z.object({
@@ -73,6 +79,7 @@ Rubrics use criteria with weights summing to 1.0 (validated). Each criterion has
       authoredBy: "tutor",
       // Phase 16: capture the calling session so submit() can notify it.
       parentSessionId: ctx.sessionId,
+      durationMinutes: args.durationMinutes ?? null,
     });
 
     // Phase 16: post an activity-rail entry so the renderer knows an assignment

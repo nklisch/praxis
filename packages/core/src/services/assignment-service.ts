@@ -274,6 +274,10 @@ function rowToAssignment(row: AssignmentRow): Assignment {
       row.gradeJson !== undefined && {
         grade: row.gradeJson as Grade,
       }),
+    ...(row.durationMinutes !== null &&
+      row.durationMinutes !== undefined && {
+        durationMinutes: row.durationMinutes,
+      }),
   };
 }
 
@@ -391,6 +395,8 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
     authoredBy?: "tutor" | "configurator";
     /** Phase 16: teach-mode session that authored this assignment via the tool. */
     parentSessionId?: SessionId;
+    /** Optional time limit in minutes. Null for untimed. Only meaningful for exam kind. */
+    durationMinutes?: number | null;
   }): Promise<{ assignmentId: AssignmentId }> {
     if (input.items.length === 0) {
       throw new Error("Assignment must have at least one item");
@@ -413,8 +419,9 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
       };
     });
 
-    // Drizzle with exactOptionalPropertyTypes requires null (not undefined) for nullable text columns.
+    // Drizzle with exactOptionalPropertyTypes requires null (not undefined) for nullable columns.
     const parentSessionIdValue: string | null = input.parentSessionId ?? null;
+    const durationMinutesValue: number | null = input.durationMinutes ?? null;
 
     this.deps.db
       .insert(assignments)
@@ -427,6 +434,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
         conceptIdsJson: input.conceptIds,
         assignedAt: now,
         parentSessionId: parentSessionIdValue,
+        durationMinutes: durationMinutesValue,
       })
       .run();
 

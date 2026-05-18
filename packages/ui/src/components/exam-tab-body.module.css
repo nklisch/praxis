@@ -42,6 +42,39 @@
   font-style: italic;
 }
 
+/* Countdown timer — shown in the kicker when the exam has a time limit */
+.timer {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-bg-tertiary, #2a2a2a);
+  border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.15));
+  color: var(--color-text-primary, #fff);
+  margin-left: auto; /* push to the right side of the kicker */
+}
+
+.timerWarn {
+  composes: timer;
+  background: color-mix(in oklab, var(--color-warning, #f90) 18%, transparent);
+  border-color: var(--color-warning, #f90);
+  color: var(--color-warning, #f90);
+}
+
+/* One-line notice that appears above the body when time expires */
+.autoSubmitNotice {
+  padding: 0.35rem 1rem;
+  background: color-mix(in oklab, var(--color-warning, #f90) 14%, transparent);
+  border-bottom: 1px solid var(--color-warning, #f90);
+  font-size: 0.75rem;
+  color: var(--color-warning, #f90);
+  font-weight: 500;
+  flex-shrink: 0;
+  text-align: center;
+}
+
 /* Body: full-width assignment, relative for ClarificationPill */
 .body {
   flex: 1;

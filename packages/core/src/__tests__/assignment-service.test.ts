@@ -131,6 +131,57 @@ describe("AssignmentServiceImpl.create", () => {
     expect(assignment?.submittedAt).toBeUndefined();
   });
 
+  it("persists and round-trips durationMinutes for exam assignments", async () => {
+    const svc = makeMCService();
+    const { assignmentId } = await svc.create({
+      courseId: COURSE_ID,
+      studentId: STUDENT_ID,
+      kind: "exam",
+      title: "Timed Exam",
+      items: [
+        {
+          id: "q1",
+          kind: "single-choice",
+          prompt: "What is 2+2?",
+          options: ["2", "3", "4", "5"],
+          correctOptionIndex: 2,
+        },
+      ],
+      conceptIds: [],
+      durationMinutes: 45,
+    });
+
+    const assignment = await svc.get({ assignmentId });
+    expect(assignment).not.toBeNull();
+    expect(assignment?.durationMinutes).toBe(45);
+  });
+
+  it("round-trips durationMinutes: null (untimed)", async () => {
+    const svc = makeMCService();
+    const { assignmentId } = await svc.create({
+      courseId: COURSE_ID,
+      studentId: STUDENT_ID,
+      kind: "exam",
+      title: "Untimed Exam",
+      items: [
+        {
+          id: "q1",
+          kind: "single-choice",
+          prompt: "What is 2+2?",
+          options: ["2", "3", "4", "5"],
+          correctOptionIndex: 2,
+        },
+      ],
+      conceptIds: [],
+      durationMinutes: null,
+    });
+
+    const assignment = await svc.get({ assignmentId });
+    expect(assignment).not.toBeNull();
+    // null persists as undefined (absent field) in rowToAssignment
+    expect(assignment?.durationMinutes).toBeUndefined();
+  });
+
   it("throws when items array is empty", async () => {
     const svc = makeMCService();
     await expect(

@@ -1,0 +1,1 @@
+ALTER TABLE `assignments` ADD `duration_minutes` integer;
