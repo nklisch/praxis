@@ -1,6 +1,6 @@
 ---
 id: refactor-note-body-schema-restore-discriminated-union
-stage: implementing
+stage: review
 created: 2026-05-18
 tags: [refactor, perf]
 ---
@@ -33,3 +33,16 @@ Also doubles as a SSOT fix: the single-branch approach removes the need for
 the TypeScript type.
 
 Origin: review of `epic-ui-redesign-ground-up-workspace-note-editor-outline`.
+
+## Implementation notes
+
+Collapsed both outline variants (`{ kind: "outline", rows: OutlineRow[] }` and `{ kind: "outline", root: OutlineNode }`) into a single `z.object` branch with both fields optional. This allowed restoring `z.discriminatedUnion("kind", [...])` in both locations:
+
+- `packages/tools/src/notes/schema.ts` — removed `OutlineBodySchema`, inlined merged outline branch into `NoteBodySchema`
+- `packages/core/src/services/notes-service.ts` — same: removed `OutlineBodySchema`, inlined merged branch
+
+The `OutlineBodySchema` intermediate was deleted from both files — it only existed to work around the two-discriminator problem.
+
+`parseNoteBody` in `packages/core/src/types/notes.ts` already handles both shapes at runtime; no change needed there as stated in the brief.
+
+All 19 notes-body tests and all 1060 core package tests pass. Pre-existing typecheck and lint failures (in unrelated UI files) are unchanged.

@@ -49,7 +49,7 @@ export interface NotesServiceDeps {
   memory: MemoryService;
 }
 
-/** Zod schema for the NoteBody discriminated union — reused for LLM output validation. */
+/** Recursive outline node schema (legacy tree format). Requires z.lazy for self-reference. */
 const OutlineNodeSchema: z.ZodType<{ text: string; children: unknown[] }> = z.lazy(() =>
   z.object({
     text: z.string(),
@@ -66,17 +66,7 @@ const OutlineRowSchema = z.object({
   checked: z.boolean().optional(),
 });
 
-/**
- * Outline body: either flat rows (new editor) or legacy tree root.
- * We use z.union here because z.discriminatedUnion requires unique discriminator
- * values and the outline kind has two shapes.
- */
-const OutlineBodySchema = z.union([
-  z.object({ kind: z.literal("outline"), rows: z.array(OutlineRowSchema) }),
-  z.object({ kind: z.literal("outline"), root: z.lazy(() => OutlineNodeSchema) }),
-]);
-
-export const NoteBodySchema = z.union([
+export const NoteBodySchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("cornell"),
     questions: z.array(z.string()),
@@ -88,7 +78,11 @@ export const NoteBodySchema = z.union([
     explanation: z.string().min(1),
     followUps: z.array(z.string()),
   }),
-  OutlineBodySchema,
+  z.object({
+    kind: z.literal("outline"),
+    rows: z.array(OutlineRowSchema).optional(),
+    root: z.lazy(() => OutlineNodeSchema).optional(),
+  }),
   z.object({
     kind: z.literal("free"),
     text: z.string(),
