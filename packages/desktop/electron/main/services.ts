@@ -38,7 +38,6 @@ import {
   SessionServiceImpl,
   SketchServiceImpl,
   SqliteDraftStore,
-  SqliteDraftStore,
   SubAgentRegistryImpl,
   TabsServiceImpl,
   UpdateServiceImpl,

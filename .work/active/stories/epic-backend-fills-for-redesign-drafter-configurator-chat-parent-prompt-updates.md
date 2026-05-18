@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat-parent-prompt-updates
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-drafter-configurator-chat
 depends_on: []
@@ -98,3 +98,14 @@ Tone choices:
   is neutral, accurate, and consistent with the architecture docs.
 - Kept the structural-progress / no-ETA language intact (covered by
   existing tests `bootstrap-no-time-estimate.test.ts`).
+
+## Review (2026-05-17)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none (one blocker found and fixed inline — see Notes)
+**Important**: none
+**Nits**:
+- The story commit bundled three stray file changes out of scope: `packages/core/src/types/client.ts` (duplicate `Recommendation` import), `packages/desktop/electron/main/ipc-server.ts` (import of `registerRecommendationsHandlers`), and `packages/desktop/electron/main/services.ts` (duplicate `SqliteDraftStore` import). The `client.ts` duplicate was cleaned up by a later story's commit; the `services.ts` duplicate survived and caused `TS2300: Duplicate identifier 'SqliteDraftStore'` — fixed inline during this review by removing the extra line.
+
+**Notes**: The four fragment files and 22-test suite deliver exactly what the scope called for: drafter posture in bootstrap, configurator posture in configure, ↶ revert language on all authoring tools, "sub-agent" replacing "explorer" in user-visible text, and "execute-first on unambiguous directives" rule. All 22 new tests and all 465 curriculum tests pass. The stray edits appear to have been accidentally staged from another story's working tree at commit time; the only lasting damage was the `services.ts` duplicate, which is a one-line fix. Quality checks are green after the fix.
