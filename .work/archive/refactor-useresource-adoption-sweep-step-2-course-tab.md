@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep-step-2-course-tab
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: refactor-useresource-adoption-sweep
 depends_on: []
@@ -133,3 +133,12 @@ Pre-existing baseline: 3 typecheck errors in UI files, ~524 lint errors in `.moc
 **LoC delta**: -18 net (56 deleted, 38 inserted) — within the expected ~15-20 range.
 
 **Baseline confirmation**: `pnpm --filter @praxis/ui typecheck` clean, `pnpm biome check` clean, `pnpm --filter @praxis/ui test` 155 files / 1600 tests all passed.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Promise.all → tuple-result useResource adoption is clean. Pre-existing separate useEffect for `setSelectedLessonId(null) + setSelectedLesson(null)` on course-change already exists; the conversion just removed the duplicate clears from the early-return branch. Drag-reorder migration (`handleDrop` → `setData(prev => [reorderedUnits, prevLessons])`) is the only subtle bit and was handled correctly (with `setData` added to the dep array). 1600/1600 UI tests pass; typecheck and biome clean.
