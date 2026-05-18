@@ -201,7 +201,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   });
 
   // Phase 17: QuickCheckService — stateless in-process dispatch.
-  const quickCheckService = new QuickCheckServiceImpl();
+  const quickCheckService = new QuickCheckServiceImpl(
+    log.child({ component: "quick-check-service" }),
+  );
 
   // Phase 4: Pyodide + sandbox
   const pyodide = new PyodideHost({ packages: ["sympy"] });

@@ -1,7 +1,7 @@
 ---
 id: wire-logger-into-quick-check-service
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -45,3 +45,18 @@ new QuickCheckServiceImpl(log.child({ component: "quick-check-service" }))
    synthetic throwing listener is added to a smoke test (optional).
 
 Trivial change. Story-sized.
+
+## Implementation notes
+
+**What landed:** Single-line wiring change in `packages/desktop/electron/main/services.ts:204` — `new QuickCheckServiceImpl()` → `new QuickCheckServiceImpl(log.child({ component: "quick-check-service" }))`. Uses the same `child({ component: "..." })` pattern already present in the file (e.g. `SubAgentRegistryImpl` at line 198). `log` was already in scope.
+
+**Grep audit:** `grep -rn "new QuickCheckServiceImpl" packages/` confirmed exactly one production call site (now fixed) and seven test call sites in `quick-check-service-structured.test.ts` (all legitimately left as no-arg, using the noop-logger fallback — correct for unit tests).
+
+**Verification:**
+- `pnpm --filter @praxis/desktop build` — pass
+- `pnpm --filter @praxis/desktop typecheck` — pre-existing unrelated error only (`session-service.ts(42,51) TS2345`, noted in story as expected)
+- `pnpm lint` — pre-existing failures only (530 errors unrelated to this change)
+- `pnpm --filter @praxis/core test` — 1060 tests passed (86 test files)
+- `pnpm --filter @praxis/desktop test` — pre-existing failure (missing `packages/desktop/tests/` directory, unrelated)
+
+**Optional smoke test:** Deferred. This is a pure wiring change; the logger infrastructure was already proven in prior refactor. Adding a throwing-listener test would verify the warning path but is not required for correctness — the `notifyListeners` implementation already has test coverage in the structured tests.
