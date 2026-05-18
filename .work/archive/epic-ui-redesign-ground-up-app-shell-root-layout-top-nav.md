@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-root-layout-top-nav
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -131,3 +131,16 @@ All 390 test files pass; 9 new tests added for `<TopNav>`.
 ## Re-review note
 
 Doc-drift sibling story `epic-ui-redesign-ground-up-app-shell-root-layout-top-nav-doc-drift` cleared the only review blocker (foundation-doc drift for `<ActivityRail>` unmounting). No code changes needed in this story. Re-advanced to `review` for verdict pass 2.
+
+## Review (2026-05-18, pass 2)
+
+**Verdict**: Approve
+
+**Blockers**: none — sole blocker from pass 1 (foundation-doc drift) was cleared by sibling story `epic-ui-redesign-ground-up-app-shell-root-layout-top-nav-doc-drift`
+
+**Important**: none
+
+**Nits**:
+- Story 2 (`status-strip`) still has "Remove the existing `<ActivityRail />` mount" in its scope; implementers will find it already done and can skip that step. (Carried from pass 1; not a new issue.)
+
+**Notes**: Re-review confirms the doc-drift blocker is fully resolved. `docs/ARCHITECTURE.md`, `docs/UX.md`, `CLAUDE.md`, and `docs/ROADMAP.md` all correctly state that `<ActivityRail>` exists but is no longer mounted, and that the status strip pattern is the planned replacement. The implementation itself was clean in pass 1 (TopNav matches locked mock, CSS verbatim from option-3.html, right slot reserved, route stubs use RouteHeader editorial primitive, 9 tests with good behavioral coverage). Advancing to done.
