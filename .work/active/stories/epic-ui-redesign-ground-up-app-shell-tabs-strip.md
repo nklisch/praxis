@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-tabs-strip
 kind: story
-stage: review
+stage: implementing
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -94,3 +94,16 @@ only the tab bodies, sidebar, and `NewTabPicker`.
   the `<TabStrip>` connected via the shared `<TabsProvider>`, simulating
   the running-head layout.
 - All 1239 tests pass; typecheck and lint green.
+
+## Review (2026-05-18)
+
+**Verdict**: Request changes
+
+**Blockers**: `epic-ui-redesign-ground-up-app-shell-tabs-strip-fix-ux-doc-drift` — `docs/UX.md` lines 178–193 still describe the tab strip as a block-style component inside the Tutor workspace (`/chat`) with Unicode glyph ornaments. The implementation moved the strip to the running head and replaced block tabs with italic deck-line typography and coloured CSS dot ornaments. Foundation-doc drift is a hard blocker per the rolling-foundation principle.
+
+**Important**: none
+
+**Nits**:
+- Acceptance criteria marks `[x] Active / held / closed states distinguishable`, but "held" is not represented in `TabSummary` or the CSS — it's a mockup-only concept. The mark is slightly overclaiming; consider dropping "held" from the AC or noting it's deferred.
+
+**Notes**: Code quality is high. Typography restyle, slot prop, and router wiring are all clean. Tests cover the new ornament contract, kicker label, and the `renderWithTabStrip` harness for the shell topology change. The only issue is the stale UX.md section.
