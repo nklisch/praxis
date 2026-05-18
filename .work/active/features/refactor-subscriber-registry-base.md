@@ -1,7 +1,7 @@
 ---
 id: refactor-subscriber-registry-base
 kind: feature
-stage: drafting
+stage: implementing
 tags: [refactor]
 parent: null
 depends_on: []
@@ -118,3 +118,169 @@ race) but each service's tests cover that.
 ## Rollback
 
 `git revert <commit>` per service adoption is clean.
+
+## Design correction (2026-05-18, refactor-design pass)
+
+After reading the 4 services' actual subscribe/emit code, the original
+"SubscriberRegistry<EventType> base class" framing is wrong — the shape
+variance across the cluster is too high for a clean base class:
+
+| Service | Listener set shape | Snapshot on subscribe? | Filter? | Inline emit observability |
+|---|---|---|---|---|
+| `activity-registry.ts:29` | `Set<ActivityListener>` | No (snapshot via `list()`) | No | No |
+| `quick-check-service.ts:28` | `Set<QuickCheckListener>` | No (transient events) | No | No |
+| `course-create-service.ts:88` | `Set<DraftStreamListener>` | Yes (`{kind:"snapshot", drafts}`) | No | Yes (rich debug log with per-kind fingerprint) |
+| `subagent-registry.ts:95` | `Set<{listener, filter?}>` | Yes (filtered snapshot) | Yes (`{parentCallId?}`) | No |
+
+A base class that supports snapshot-on-subscribe-or-not, filter-or-not, and
+inline-observability-or-not would have so many hooks it'd be more code than
+the inline implementations. Each service is correctly using the
+subscriber-fanout pattern; that's the pattern doc's job, not a base class.
+
+**What IS worth extracting**: the listener-iteration-with-error-isolation
+inner loop. Every service has this shape:
+
+```ts
+private emit(event: E): void {
+  // …optional observability log…
+  for (const listener of this.listeners) {
+    try {
+      listener(event);
+    } catch (err) {
+      this.deps.log.warn("<service>.listener_threw", { err: String(err) });
+    }
+  }
+}
+```
+
+A 7-line pure helper covers it:
+
+```ts
+// packages/core/src/services/_utils/listener-fanout.ts  (or co-locate next to load-or-throw in db-helpers.ts)
+export function notifyListeners<E>(
+  listeners: Iterable<(event: E) => void>,
+  event: E,
+  log: Logger,
+  component: string,
+): void {
+  for (const listener of listeners) {
+    try {
+      listener(event);
+    } catch (err) {
+      log.warn(`${component}.listener_threw`, { err: String(err) });
+    }
+  }
+}
+```
+
+Adopted across the 3 services that have a plain listener set (activity,
+quick-check, course-create). Subagent's filter-aware delivery extracts its
+target listeners first then calls the helper, so it can adopt too:
+
+```ts
+// subagent-registry.ts
+const targets = Array.from(this.listenerEntries)
+  .filter(e => this.matchesFilter(e.filter, event))
+  .map(e => e.listener);
+notifyListeners(targets, event, this.deps.log, "subagent-registry");
+```
+
+Net savings: ~5 LoC per site × 4 sites = ~20 LoC, plus uniform error log
+key (`*.listener_threw`) across services that today emit slightly different
+keys.
+
+This is a **smaller** refactor than the original feature scoped. Honest
+verdict: the original "SubscriberRegistry base class" was an over-design.
+A tiny helper is the right shape.
+
+## Refactor Overview
+
+Add `notifyListeners<E>` to `packages/core/src/services/db-helpers.ts` (the
+existing service utilities module). Adopt in 4 services' private `emit`
+methods. No public API change; pure internal cleanup.
+
+## Refactor Steps
+
+### Step 1: Add helper + adopt in all 4 services
+**Priority**: Low (small payoff)
+**Risk**: Very low (mechanical inner-loop refactor)
+**Files**:
+- `packages/core/src/services/db-helpers.ts` (add helper)
+- `packages/core/src/services/activity-registry.ts` (adopt in `emit`)
+- `packages/core/src/services/quick-check-service.ts` (adopt in `emit`)
+- `packages/core/src/services/course-create-service.ts` (adopt in `emit`; preserve the rich debug-log side effect outside the listener-loop)
+- `packages/core/src/services/subagent-registry.ts` (extract filter-matching targets then call helper)
+**Story**: `refactor-subscriber-registry-base-step-1-notify-listeners-helper`
+
+**Current state** (representative — activity-registry.ts):
+```ts
+private emit(event: ActivityEvent): void {
+  for (const listener of this.listeners) {
+    try { listener(event); }
+    catch (err) { this.deps.log.warn("activity-registry.listener_threw", { err: String(err) }); }
+  }
+}
+```
+
+**Target state**:
+```ts
+private emit(event: ActivityEvent): void {
+  notifyListeners(this.listeners, event, this.deps.log, "activity-registry");
+}
+```
+
+For course-create-service: keep the debug log call BEFORE the helper invocation:
+```ts
+private emit(event: DraftStreamEvent): void {
+  this.deps.log.debug("course-create.draft_stream.emit", { /* existing fingerprint */ });
+  notifyListeners(this.listeners, event, this.deps.log, "course-create-service");
+}
+```
+
+For subagent-registry:
+```ts
+private emit(event: SubAgentEvent): void {
+  const targets: SubAgentListener[] = [];
+  for (const entry of this.listenerEntries) {
+    if (this.matchesFilter(entry.filter, event)) {
+      targets.push(entry.listener);
+    }
+  }
+  notifyListeners(targets, event, this.deps.log, "subagent-registry");
+}
+```
+
+(The filter-matching predicate is an existing helper in subagent-registry; or
+extract one if not.)
+
+**Implementation notes**:
+- The error log key changes shape across all 4 services to `"<service>.listener_threw"` (consistent). Today they use slightly different prefixes (`"subagent-registry.listener_threw"` already matches this shape; others may differ). Read each service's current key before the swap; verify no test asserts on the exact string.
+- The helper accepts `Iterable<(event: E) => void>` so it works with `Set<Listener>` directly (most cases) and with `Array<Listener>` (subagent after filter extraction).
+- Place the helper next to `loadOrThrow` in `packages/core/src/services/db-helpers.ts`. That file is the established home for these tiny cross-service helpers; adding here keeps imports short and discoverable.
+
+**Acceptance criteria**:
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green from repo root (baseline preserved)
+- [ ] `notifyListeners` exported from `packages/core/src/services/db-helpers.ts`
+- [ ] Each of the 4 services' `private emit(...)` method body is now ~1-3 lines
+- [ ] Error log keys are uniform across the 4 services (`"<component>.listener_threw"`)
+- [ ] No wire-format / public API change — services still expose the same `subscribe(listener)` shape
+
+**Rollback**: `git revert <commit>` — clean. Single-commit refactor; reverts cleanly.
+
+---
+
+## Implementation Order
+
+1. Single step. Could be done inline by one agent in a single pass since the surface is small.
+
+## Atomic-step acknowledgments
+
+None. Every change is reversible per-file.
+
+## Out-of-scope follow-ups
+
+- Adding `subscribe(listener): () => void` to the helper as an `addListener`
+  variant — not worth it; the `Set.add` / return-unsub pattern is already
+  one line.
+- A real `SubscriberRegistry<T>` base class — explicitly DROPPED per the
+  design correction above.
