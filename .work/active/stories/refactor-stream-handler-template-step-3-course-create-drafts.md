@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template-step-3-course-create-drafts
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-stream-handler-template
 depends_on: [refactor-stream-handler-template-step-1-helper-and-activity]
@@ -99,3 +99,14 @@ preserved verbatim. The only behavioral diff is the dropped running counter.
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Implementation notes (post-implementation)
+
+- **File LoC delta**: 98 → 60 lines (−38 lines). Target was ~40 net lines; landed at 60 due to the `onEvent` block being substantial. Boilerplate (AbortController lifecycle, push callback, error redaction, cancel handler) all moved into the helper.
+- **Service field name**: `services.bootstrap` — the rename did not sweep `services.ts` field name; field remains `bootstrap`.
+- **`eventsForwarded` dropped**: The running counter and `totalForwarded` field in the debug log are removed. The `onEvent` hook does not expose a counter parameter (unlike `registerGeneratorStream`'s `onEvent` which does via `{ count, log }`). Recoverable via log aggregation if needed.
+- **Log key delta**:
+  - Lifecycle logs changed: `"course-create.drafts.subscribe"` → `"courseCreate.drafts.events.subscribe"`, `"course-create.drafts.unsubscribe"` → `"courseCreate.drafts.events.unsubscribe"`, `"course-create.drafts.error"` → `"courseCreate.drafts.events.error"` (all derived from channelBase by stripping `"praxis."` prefix).
+  - Per-event debug key unchanged: `"course-create.drafts.forward"` — passed verbatim via `onEvent`.
+- **Test updates**: No test assertions on log keys; the `streaming-channel-error-redaction.test.ts` only asserts on pushed IPC message payloads. All 6 tests pass unchanged.
+- **Typecheck**: 3 pre-existing UI errors in `@praxis/ui` (baseline) — not introduced by this change. Desktop electron main typechecks clean.
