@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-tabs-strip
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -107,3 +107,9 @@ only the tab bodies, sidebar, and `NewTabPicker`.
 - Acceptance criteria marks `[x] Active / held / closed states distinguishable`, but "held" is not represented in `TabSummary` or the CSS — it's a mockup-only concept. The mark is slightly overclaiming; consider dropping "held" from the AC or noting it's deferred.
 
 **Notes**: Code quality is high. Typography restyle, slot prop, and router wiring are all clean. Tests cover the new ornament contract, kicker label, and the `renderWithTabStrip` harness for the shell topology change. The only issue is the stale UX.md section.
+
+## Re-review note
+
+Doc-drift sibling `epic-ui-redesign-ground-up-app-shell-tabs-strip-fix-ux-doc-drift`
+cleared the foundation-doc blocker (UX.md tab strip section). No code changes
+needed in this story. Re-advanced to review for verdict pass 2.

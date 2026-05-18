@@ -175,22 +175,26 @@ The front door. Replaces what used to be `/courses` and `/packs` (and the implic
 
 ## Student surface — Tutor workspace
 
-Every session lives inside the Tutor workspace (nav label "Tutor", route `/chat`). It has a tab strip at the top and a body whose shape is determined by the active tab's mode. Each tab's title is generated from `Mode.displayName` — e.g. "teach · algebra fractions" or "course design · new course". Tabs land in Phase 14; per-modality bodies in Phase 16.
+Every session lives inside the Tutor workspace (nav label "Tutor", route `/chat`). The body's shape is determined by the active tab's mode. Each tab's title is generated from `Mode.displayName` — e.g. "teach · algebra fractions" or "course design · new course". Tabs land in Phase 14; per-modality bodies in Phase 16.
 
 ### Tab strip
 
+The tab strip lives in the **running head** (`<TopNav tabsSlot>`), not inside the `/chat` route body. It is visible on every surface, not just the Tutor workspace. Open tabs render as italic deck-line typography to the right of the primary surface nav:
+
 ```
-┌──────────────┬───────────────┬─────────────┬─────┐
-│ §  algebra   │ ¶  calc-intro │ ‡  quiz-3   │  +  │
-│   teach      │    bootstrap  │    quiz     │     │
-└──────────────┴───────────────┴─────────────┴─────┘
+  Praxis   § Library  ¶ Workspace  …   OPEN  ● algebra · teach  ·  ● calc-intro · bootstrap  ·  ● quiz-3 · quiz  +
+                                                ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+                                                (active tab: mode-tint hairline underline)
 ```
 
-- Each tab is a live session of any mode. Multiple sessions of any modes run simultaneously; switching is instant.
-- Each tab shows its mode's ornament glyph + the auto-generated session name (e.g. `algebra · fractions, redux`). The active tab's hairline is colored with the mode tint.
-- The `+` opens a quick session picker (mode + course + optional assignment).
-- Closing a tab archives the session — it stays in Library's archive and is reopenable. Right-click for archive / rename / move.
+- **Typography**: italic serif, 13 px (`font: italic 13px / 1 var(--font-serif)`). Middle-dot (`·`) separators between adjacent tabs. A `OPEN` mono kicker precedes the group.
+- **Ornament**: a small coloured CSS dot (`5 × 5 px`, `border-radius: 50%`, `background: var(--mode-tint)`) — not a Unicode glyph. Each mode's tint colour fills the dot.
+- **Active state**: the active tab's title goes to `--color-text-primary` and receives a `border-bottom: 1px solid var(--mode-tint, var(--color-accent))` hairline underline.
+- Each tab is a live session of any mode. Multiple sessions run simultaneously; switching is instant.
+- The `+` button (mono, right of the strip) opens a quick session picker (mode + course + optional assignment).
+- Closing a tab (× button, visible on hover/active) archives the session — it stays in Library's archive and is reopenable.
 - Open tabs survive app restart. The workspace restores exactly where you left off.
+- **Parent-child decoration**: child session tabs show a `from {parentMode}` mono pill to the right of the title. The parent tab shows a brief pulse dot (CSS keyframe animation) when a child session emits a `system_note` callback.
 
 ### Per-modality bodies
 

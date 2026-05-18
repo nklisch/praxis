@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-tabs-strip-fix-ux-doc-drift
 kind: story
-stage: implementing
+stage: review
 tags: [docs, ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -42,8 +42,30 @@ In `docs/UX.md`, update the **Student surface — Tutor workspace** section:
 
 ## Acceptance criteria
 
-- [ ] UX.md Tab Strip section accurately describes deck-line italic
+- [x] UX.md Tab Strip section accurately describes deck-line italic
       typography in the running head (not a block strip inside /chat).
-- [ ] ASCII art removed or updated to represent the deck-line layout.
-- [ ] Ornament description updated: coloured dot, not Unicode glyph.
-- [ ] `pnpm lint` green (docs only change — no typecheck/test impact).
+- [x] ASCII art removed or updated to represent the deck-line layout.
+- [x] Ornament description updated: coloured dot, not Unicode glyph.
+- [x] `pnpm lint` green (docs only change — no typecheck/test impact).
+
+## Implementation notes
+
+### Files changed
+
+- **`docs/UX.md`** — "Student surface — Tutor workspace / Tab strip" section (lines 178–193) replaced in full.
+
+### Wording chosen
+
+The old section described the strip as residing "at the top" of the `/chat` route body, rendered as ASCII box-style tabs with Unicode glyph ornaments (`§`, `¶`, `‡`).
+
+The replacement:
+
+1. **Placement**: states the strip lives in the running head (`<TopNav tabsSlot>`) and is visible on every surface, not just the Tutor workspace.
+2. **ASCII art**: replaced the box-tab art with a single-line deck-line sketch matching the actual running-head layout — inline italic text items separated by `·`.
+3. **Typography**: documents `font: italic 13px / 1 var(--font-serif)`, middle-dot separators, and the mono `OPEN` kicker label.
+4. **Ornament**: documents the CSS dot (`5 × 5 px circle`, `background: var(--mode-tint)`) explicitly — not a Unicode glyph.
+5. **Active state**: documents `border-bottom: 1px solid var(--mode-tint, var(--color-accent))`.
+6. **Preserved behaviour bullets**: open / close / switch, session survival across restarts.
+7. **Added parent-child decoration**: `from {parentMode}` pill and pulse dot on `system_note` — present in the implementation but absent from the old doc section.
+
+`docs/ARCHITECTURE.md` had no claims about tab placement and required no changes.
