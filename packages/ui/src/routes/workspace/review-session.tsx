@@ -1,43 +1,76 @@
-import type { Rating } from "@praxis/core/types";
+import type { Flashcard, Rating } from "@praxis/core/types";
 import { useState } from "react";
-import { WorkspaceFlashcardReview } from "../../components/flashcard-review.js";
 import { useDueCards } from "../../hooks/use-due-cards.js";
 import styles from "./review-session.module.css";
 
 /**
- * Review tab — sit-down flashcard review session.
+ * Review tab — spaced-repetition review session.
  *
- * Shows one due card at a time via WorkspaceFlashcardReview.
- * After rating, removes the card from the queue (optimistic) and advances.
- * When the queue empties, shows an "All done" celebration screen.
- * Pre-fetches no data — back text is already on the Flashcard object.
+ * Three phases in sequence:
+ *   1. Queue surface — shows due count + "Start session" CTA.
+ *   2. Per-card surface — one card at a time with reveal + outcome buttons.
+ *   3. Session-end summary — count + got/partial/forgot breakdown.
  *
  * No RouteHeader: this is a tab panel inside <WorkspaceRoute>, not a standalone route.
- * The parent route owns the header (workspace.tsx renders <RouteHeader>).
  */
 export function ReviewSessionTab() {
   const { dueList, loading, error, refresh, reviewCard } = useDueCards();
+
+  // Session state machine: "queue" | "reviewing" | "done"
+  const [phase, setPhase] = useState<"queue" | "reviewing" | "done">("queue");
+  const [sessionQueue, setSessionQueue] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [reviewedCount, setReviewedCount] = useState(0);
-  const [done, setDone] = useState(false);
 
-  const remaining = dueList.length;
+  // Summary counters
+  const [gotCount, setGotCount] = useState(0);
+  const [partialCount, setPartialCount] = useState(0);
+  const [forgotCount, setForgotCount] = useState(0);
 
-  const handleRate = async (rating: Rating) => {
-    const card = dueList[currentIndex];
+  // Card transition state
+  const [cardVisible, setCardVisible] = useState(true);
+
+  const handleStart = () => {
+    if (dueList.length === 0) return;
+    setSessionQueue([...dueList]);
+    setCurrentIndex(0);
+    setGotCount(0);
+    setPartialCount(0);
+    setForgotCount(0);
+    setCardVisible(true);
+    setPhase("reviewing");
+  };
+
+  const handleOutcome = (rating: Rating) => {
+    const card = sessionQueue[currentIndex];
     if (!card) return;
 
-    await reviewCard(card.id, rating);
-    setReviewedCount((c) => c + 1);
+    // Fire-and-forget — persist the review result; UI doesn't block on it.
+    reviewCard(card.id, rating).catch(() => {
+      // Non-fatal: UI advances regardless. The API best-effort records the review.
+    });
 
-    // Advance to next card or finish
-    if (currentIndex >= remaining - 1) {
-      setDone(true);
+    // Tally
+    if (rating === "good" || rating === "easy") setGotCount((n) => n + 1);
+    else if (rating === "hard") setPartialCount((n) => n + 1);
+    else setForgotCount((n) => n + 1);
+
+    const nextIndex = currentIndex + 1;
+
+    if (nextIndex >= sessionQueue.length) {
+      // Fade out, then show done
+      setCardVisible(false);
+      setTimeout(() => setPhase("done"), 250);
     } else {
-      // Stay at the same index — the rated card is removed from dueList by the hook
-      // so the next card slides into this position.
+      // Fade out → swap card → fade in
+      setCardVisible(false);
+      setTimeout(() => {
+        setCurrentIndex(nextIndex);
+        setCardVisible(true);
+      }, 220);
     }
   };
+
+  // ── Loading / error ────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -50,82 +83,215 @@ export function ReviewSessionTab() {
   if (error) {
     return (
       <div className={styles.layout}>
-        <p className={styles.error}>{error}</p>
-        <button type="button" className={styles.refreshBtn} onClick={refresh}>
+        <p className={styles.errorMsg}>{error}</p>
+        <button type="button" className={styles.ctaBtn} onClick={refresh}>
           Retry
         </button>
       </div>
     );
   }
 
-  if (done || (remaining === 0 && reviewedCount > 0)) {
+  // ── Phase: queue ──────────────────────────────────────────────────────────
+
+  if (phase === "queue") {
+    if (dueList.length === 0) {
+      return (
+        <div className={styles.layout}>
+          <div className={styles.centerStage}>
+            <span className={styles.glyphBlock} aria-hidden>
+              ·
+            </span>
+            <h2 className={styles.stageTitle}>All caught up.</h2>
+            <p className={styles.stageSub}>
+              No cards are due right now. Your next batch is scheduled.
+            </p>
+            <button type="button" className={styles.ghostBtn} onClick={refresh}>
+              Refresh
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className={styles.layout}>
-        <div className={styles.doneScreen}>
-          <span className={styles.doneIcon} aria-hidden>
+        <div className={styles.centerStage}>
+          <div className={styles.queueCount}>
+            <span className={styles.queueNumber}>{dueList.length}</span>
+            <span className={styles.queueLabel}>
+              {dueList.length === 1 ? "card due" : "cards due"}
+            </span>
+          </div>
+          <h2 className={styles.stageTitle}>Ready to review?</h2>
+          <p className={styles.stageSub}>
+            Work through each card at your own pace. Rate your recall honestly — the schedule
+            adapts.
+          </p>
+          <button type="button" className={styles.ctaBtn} onClick={handleStart}>
+            Start session →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Phase: done ────────────────────────────────────────────────────────────
+
+  if (phase === "done") {
+    const total = gotCount + partialCount + forgotCount;
+    return (
+      <div className={styles.layout}>
+        <div className={styles.centerStage}>
+          <span className={styles.glyphBlock} aria-hidden>
             ✓
           </span>
-          <h2 className={styles.doneTitle}>All done!</h2>
-          <p className={styles.doneSubtitle}>
-            You reviewed {reviewedCount} card{reviewedCount !== 1 ? "s" : ""}. Come back tomorrow
-            for more.
+          <h2 className={styles.stageTitle}>Session complete.</h2>
+          <p className={styles.stageSub}>
+            You reviewed {total} card{total !== 1 ? "s" : ""}.
           </p>
+          <div className={styles.summaryGrid}>
+            <div className={styles.summaryItem}>
+              <span className={`${styles.summaryCount} ${styles.gotColor}`}>{gotCount}</span>
+              <span className={styles.summaryLabel}>Got it</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={`${styles.summaryCount} ${styles.partialColor}`}>
+                {partialCount}
+              </span>
+              <span className={styles.summaryLabel}>Partial</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={`${styles.summaryCount} ${styles.forgotColor}`}>{forgotCount}</span>
+              <span className={styles.summaryLabel}>Forgot</span>
+            </div>
+          </div>
           <button
             type="button"
-            className={styles.refreshBtn}
+            className={styles.ghostBtn}
             onClick={async () => {
-              setReviewedCount(0);
+              setPhase("queue");
+              setSessionQueue([]);
               setCurrentIndex(0);
-              setDone(false);
               await refresh();
             }}
           >
-            Check again
+            Check for more
           </button>
         </div>
       </div>
     );
   }
 
-  if (remaining === 0) {
-    return (
-      <div className={styles.layout}>
-        <div className={styles.emptyScreen}>
-          <span className={styles.emptyIcon} aria-hidden>
-            🌙
-          </span>
-          <h2 className={styles.emptyTitle}>Nothing due right now.</h2>
-          <p className={styles.emptySubtitle}>Come back later — your cards are scheduled.</p>
-          <button type="button" className={styles.refreshBtn} onClick={refresh}>
-            Refresh
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // ── Phase: reviewing ──────────────────────────────────────────────────────
 
-  const currentCard = dueList[currentIndex];
-  if (!currentCard) return null;
+  const card = sessionQueue[currentIndex];
+  if (!card) return null;
+
+  const total = sessionQueue.length;
+  const reviewed = currentIndex; // cards before current index
+  const progressPct = total > 0 ? (reviewed / total) * 100 : 0;
 
   return (
     <div className={styles.layout}>
-      <header className={styles.header}>
-        <div className={styles.progress}>
-          <span className={styles.progressText}>
-            {reviewedCount} / {reviewedCount + remaining} reviewed
+      {/* Progress header */}
+      <header className={styles.progressHeader}>
+        <div className={styles.progressMeta}>
+          <span className={styles.progressText} aria-live="polite">
+            {reviewed} / {total}
           </span>
-          <div className={styles.progressBar}>
-            <div
-              className={styles.progressFill}
-              style={{ width: `${(reviewedCount / (reviewedCount + remaining)) * 100}%` }}
-            />
-          </div>
+          <button
+            type="button"
+            className={styles.exitLink}
+            onClick={() => setPhase("queue")}
+            aria-label="Exit session"
+          >
+            ✕
+          </button>
+        </div>
+        <div
+          className={styles.progressTrack}
+          role="progressbar"
+          aria-valuenow={reviewed}
+          aria-valuemin={0}
+          aria-valuemax={total}
+        >
+          <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
         </div>
       </header>
 
-      <div className={styles.cardArea}>
-        <WorkspaceFlashcardReview card={currentCard} onRate={handleRate} />
+      {/* Card area — key on card.id resets CardSurface state when the card changes */}
+      <div className={styles.cardStage}>
+        <div
+          className={`${styles.cardWrap} ${cardVisible ? styles.cardVisible : styles.cardHidden}`}
+        >
+          <CardSurface key={card.id} card={card} onOutcome={handleOutcome} />
+        </div>
       </div>
     </div>
+  );
+}
+
+// ── Per-card surface ──────────────────────────────────────────────────────────
+
+interface CardSurfaceProps {
+  card: Flashcard;
+  onOutcome: (rating: Rating) => void;
+}
+
+function CardSurface({ card, onOutcome }: CardSurfaceProps) {
+  const [revealed, setRevealed] = useState(false);
+
+  return (
+    <article className={styles.card} aria-label="Flashcard">
+      {/* Front */}
+      <div className={styles.cardFront}>
+        <span className={styles.cardKicker}>Question</span>
+        <p className={styles.cardFrontText}>{card.front}</p>
+      </div>
+
+      {/* Answer band — collapses until revealed */}
+      {!revealed ? (
+        <div className={styles.revealBand}>
+          <button type="button" className={styles.revealBtn} onClick={() => setRevealed(true)}>
+            Reveal answer
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className={styles.cardBack}>
+            <span className={styles.cardKicker}>Answer</span>
+            <p className={styles.cardBackText}>{card.back}</p>
+          </div>
+
+          {/* Outcome buttons */}
+          <div className={styles.outcomeBand}>
+            <p className={styles.outcomePrompt}>How did you do?</p>
+            <div className={styles.outcomeRow}>
+              <button
+                type="button"
+                className={`${styles.outcomeBtn} ${styles.outcomeForgot}`}
+                onClick={() => onOutcome("again")}
+              >
+                Forgot
+              </button>
+              <button
+                type="button"
+                className={`${styles.outcomeBtn} ${styles.outcomePartial}`}
+                onClick={() => onOutcome("hard")}
+              >
+                Partial
+              </button>
+              <button
+                type="button"
+                className={`${styles.outcomeBtn} ${styles.outcomeGot}`}
+                onClick={() => onOutcome("good")}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </article>
   );
 }

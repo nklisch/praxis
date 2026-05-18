@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-review-session-flow
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Review-session flow rebuild
@@ -35,6 +35,36 @@ the locked direction. If absent, run `/ux-ui-design:flows` first.
 
 ## Acceptance criteria
 
-- [ ] Flow walks through queue → cards → end.
-- [ ] Session-end summary surfaces.
-- [ ] All quality checks green.
+- [x] Flow walks through queue → cards → end.
+- [x] Session-end summary surfaces.
+- [x] All quality checks green.
+
+## Implementation notes
+
+**Mockup**: `.mockups/flows/review-session/` was absent. Proceeded directly with
+token-aligned restyle per the established convention (configure-entry-flow precedent).
+
+**State machine**: Three phases (`queue` | `reviewing` | `done`) replace the previous
+single-state component. The queue phase is a new surface that was entirely absent before.
+
+**Outcome labels**: User-facing labels are "Got it" / "Partial" / "Forgot" mapping to
+FSRS ratings `good` / `hard` / `again`. The `easy` rating maps to "Got it" in the tally
+(not exposed as a distinct button — spaced review sessions don't need that distinction at
+the UX level).
+
+**Transitions**: CSS opacity fade (0.2s) between cards via `cardVisible` toggle +
+`setTimeout`. `CardSurface` resets via React `key={card.id}` rather than a `useEffect` dep.
+
+**Session snapshot**: Queue is snapshotted on `handleStart` so mid-session background
+refreshes don't shift the active deck.
+
+**API wiring**: `reviewCard(card.id, rating)` from `useDueCards` called fire-and-forget per
+outcome. The hook's optimistic removal from `dueList` is harmless (queue is already snapshotted).
+
+**Tests (8)**: queue surface (empty + due count + CTA), per-card surface (start → reveal →
+outcome buttons), session-end summary (complete heading + got/partial/forgot labels).
+
+**Files changed**:
+- `packages/ui/src/routes/workspace/review-session.tsx` — full rebuild
+- `packages/ui/src/routes/workspace/review-session.module.css` — token-aligned redesign
+- `packages/ui/src/__tests__/review-session.test.tsx` — updated for new flow

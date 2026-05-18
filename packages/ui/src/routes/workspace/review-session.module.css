@@ -1,116 +1,385 @@
+/* ── Review Session Tab ──────────────────────────────────────────────────────
+ * Three-phase flow: queue → per-card → session-end summary.
+ * Uses design tokens from global.css (Studio Quiet palette).
+ * ─────────────────────────────────────────────────────────────────────────── */
+
 .layout {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  padding: 1rem 1.5rem;
-  gap: 1rem;
+  padding: var(--space-6);
+  gap: var(--space-4);
 }
 
 .status {
-  color: var(--color-text-secondary, #aaa);
-  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
   margin: 0;
 }
 
-.error {
+.errorMsg {
   color: var(--color-danger);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   margin: 0;
 }
 
-/* ── Progress header ── */
+/* ── Centre-stage (queue + done screens) ──────────────────────────────────── */
 
-.header {
-  flex-shrink: 0;
-}
-
-.progress {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.progressText {
-  font-size: 0.82rem;
-  color: var(--color-text-secondary, #aaa);
-  font-variant-numeric: tabular-nums;
-}
-
-.progressBar {
-  height: 4px;
-  background: var(--color-border, rgba(255, 255, 255, 0.1));
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  background: var(--color-accent, #6366f1);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-/* ── Card area ── */
-
-.cardArea {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  overflow-y: auto;
-}
-
-/* ── Done / empty screens ── */
-
-.doneScreen,
-.emptyScreen {
+.centerStage {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1;
-  gap: 0.6rem;
+  gap: var(--space-4);
   text-align: center;
-  padding: 3rem 1rem;
+  padding: var(--space-16) var(--space-4);
 }
 
-.doneIcon,
-.emptyIcon {
-  font-size: 2.5rem;
+.glyphBlock {
+  font-size: var(--font-size-3xl);
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+/* Queue count badge */
+.queueCount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.queueNumber {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
   line-height: 1;
 }
 
-.doneTitle,
-.emptyTitle {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--color-text-primary, inherit);
+.queueLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-kicker);
+  font-weight: var(--font-weight-medium);
 }
 
-.doneSubtitle,
-.emptySubtitle {
+.stageTitle {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
   margin: 0;
-  font-size: 0.88rem;
-  color: var(--color-text-secondary, #aaa);
-  max-width: 36ch;
-  line-height: 1.5;
+  line-height: var(--line-height-tight);
 }
 
-.refreshBtn {
-  background: var(--color-accent, #6366f1);
-  color: #fff; /* intentional literal: button text always white regardless of theme */
+.stageSub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  max-width: 38ch;
+  line-height: var(--line-height-base);
+  margin: 0;
+}
+
+/* CTA button — primary action */
+.ctaBtn {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 6px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  padding: 0.45rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-3) var(--space-6);
   cursor: pointer;
-  transition: opacity 0.15s;
-  font-family: inherit;
-  margin-top: 0.5rem;
+  transition: background 0.15s;
+  margin-top: var(--space-2);
+  font-family: var(--font-sans);
 }
 
-.refreshBtn:hover {
-  opacity: 0.85;
+.ctaBtn:hover {
+  background: var(--color-accent-hover);
+}
+
+/* Ghost button — secondary action */
+.ghostBtn {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+  margin-top: var(--space-2);
+  font-family: var(--font-sans);
+}
+
+.ghostBtn:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+/* ── Session-end summary grid ─────────────────────────────────────────────── */
+
+.summaryGrid {
+  display: flex;
+  gap: var(--space-8);
+  margin-top: var(--space-2);
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.summaryCount {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.summaryLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-kicker);
+}
+
+.gotColor {
+  color: var(--color-success);
+}
+
+.partialColor {
+  color: var(--color-warning);
+}
+
+.forgotColor {
+  color: var(--color-danger);
+}
+
+/* ── Progress header (reviewing phase) ───────────────────────────────────── */
+
+.progressHeader {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progressMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.progressText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-sans);
+}
+
+.exitLink {
+  background: none;
+  border: none;
+  padding: var(--space-1);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  transition: color 0.12s;
+}
+
+.exitLink:hover {
+  color: var(--color-text-secondary);
+}
+
+.progressTrack {
+  height: 2px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+/* ── Card stage ───────────────────────────────────────────────────────────── */
+
+.cardStage {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding-top: var(--space-4);
+}
+
+/* Card transition — fade between cards */
+.cardWrap {
+  width: 100%;
+  max-width: 600px;
+  transition: opacity 0.2s ease;
+}
+
+.cardVisible {
+  opacity: 1;
+}
+
+.cardHidden {
+  opacity: 0;
+}
+
+/* ── Card surface ─────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+.cardKicker {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-kicker);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.cardFront {
+  padding: var(--space-6);
+  padding-bottom: var(--space-4);
+}
+
+.cardFrontText {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
+  margin: 0;
+}
+
+/* Reveal band — sits below the front, above the back */
+.revealBand {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+}
+
+.revealBtn {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-2) var(--space-6);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background 0.15s;
+}
+
+.revealBtn:hover {
+  background: var(--color-accent-hover);
+}
+
+/* Answer back section */
+.cardBack {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-tertiary);
+}
+
+.cardBackText {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
+  margin: 0;
+}
+
+/* Outcome band — below the back */
+.outcomeBand {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.outcomePrompt {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-sans);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-kicker);
+  font-weight: var(--font-weight-medium);
+  margin: 0;
+}
+
+.outcomeRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.outcomeBtn {
+  flex: 1;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    filter 0.15s;
+  text-align: center;
+}
+
+.outcomeBtn:hover {
+  filter: brightness(1.07);
+}
+
+.outcomeForgot {
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  color: var(--color-danger);
+}
+
+.outcomePartial {
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  color: var(--color-warning);
+}
+
+.outcomeGot {
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  color: var(--color-success);
 }
