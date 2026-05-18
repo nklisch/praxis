@@ -122,11 +122,10 @@ export function NotesListTab() {
         <h1 className={styles.headTitle}>
           Everything you&apos;ve <em>made</em>
         </h1>
-        {loading ? (
-          <CatalogueSearchBox onSearchChange={setQuery} />
-        ) : (
-          <CatalogueSearchBox onSearchChange={setQuery} resultCount={hits.length} />
-        )}
+        <CatalogueSearchBox
+          onSearchChange={setQuery}
+          resultCount={loading ? undefined : hits.length}
+        />
       </header>
 
       {/* ── Two-column layout ── */}

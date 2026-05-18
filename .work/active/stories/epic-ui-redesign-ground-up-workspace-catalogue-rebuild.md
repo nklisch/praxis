@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-catalogue-rebuild
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on:
@@ -72,3 +72,19 @@ story.
 - Format facet applied client-side (no round-trip): `library.search` returns all format kinds; format filter is cheap and the result set is already bounded by query/saved params.
 - Flashcard card navigation is a no-op for now (full flashcard editor routing is a separate story); clicking a flashcard card does nothing beyond calling `onClick`.
 - `<search>` and `<fieldset>` semantic elements used throughout (Biome `useSemanticElements` rule satisfied without suppression).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments (blocker fixed inline)
+
+**Blockers**: One — fixed inline during review:
+- `CatalogueSearchBox` was conditionally rendered in a ternary on `loading` (`loading ? <CatalogueSearchBox /> : <CatalogueSearchBox resultCount={...} />`). React treats these as distinct component instances at the same tree position, so the search box unmounted and remounted every time a search fired, resetting the user's typed query to empty. Fixed by rendering a single stable instance and passing `resultCount={loading ? undefined : hits.length}`.
+
+**Important**: none
+
+**Nits**:
+- `FORMAT_META` uses `Record<string, ...>` (stringly typed) instead of keying on the actual format union — harmless, falls back gracefully, but could be tightened later.
+- `handleCardClick` dependency array lists only `[navigate]`; the `hit` argument is passed as a parameter so no stale-closure risk, but Biome might flag the inline arrow `onClick={() => handleCardClick(hit)}` at the call-site. Not a bug.
+- The format picker overlay (`pickerOverlay` + `pickerModal` divs) doesn't use the `<Modal>` primitive — pre-existing debt carried from the original notes-list, not introduced by this story.
+
+**Notes**: Quality checks green (134 test files, 1209 tests pass). The desktop typecheck errors (`courses-section.tsx`, `note-editor-page.tsx`) are pre-existing and unrelated to this story. All new code is clean under `biome check`.
