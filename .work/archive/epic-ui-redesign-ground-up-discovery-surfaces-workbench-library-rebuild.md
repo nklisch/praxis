@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces-workbench-library-rebuild
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-discovery-surfaces
 depends_on:
@@ -90,3 +90,15 @@ is fully replaced.
 lessonId is not threaded to `session.start` because the API doesn't accept it
 directly. This is intentional for v1; if the quiz session needs the lesson
 context it can be passed via the session system note mechanism in a follow-up.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: 1 (fixed inline — Documents footer card `onClick` called `client.ingest.pickFile()` directly and discarded the result; no ingestion was triggered. Fixed by routing through `ingestion.startPick` from the mounted `useIngestion` hook)
+**Important**: none
+**Nits**:
+- `groupSessionsByAge` uses `DAY = 86_400_000ms` which can be off by 1h during DST transitions; display-only so no user impact.
+- `void handleUsePack; void importing;` suppressions are intentional stubs — expected to be wired to the Packs footer in a follow-up.
+
+**Notes**: Large, well-structured rebuild. Greeting + two-column queue/timeline + footer cards all render correctly. Recommendation dispatch covers all 5 kinds with correct mode routing; `quick_check` lessonId omission is documented. Tests cover greeting, queue (populated + empty), timeline (grouped by age), footer cards, and per-kind CTA dispatch. `useRecommendations` hook correctly wraps `useResource`. Foundation-doc `CLAUDE.md` had a residual `(planned)` for `<StatusStrip>` — rolled forward in this review commit.
