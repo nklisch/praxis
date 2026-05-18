@@ -448,9 +448,9 @@ describe("ChatRoute shell", () => {
     window.localStorage.removeItem("praxis.panel.documents.width");
   });
 
-  it("sidekick resize handle uses storage key praxis.panel.sidekick.width", async () => {
+  it("chat-right panel uses storage key praxis.panel.chat-right.width", async () => {
     // Seed a persisted width so the panel renders at that width.
-    window.localStorage.setItem("praxis.panel.sidekick.width", "300");
+    window.localStorage.setItem("praxis.panel.chat-right.width", "300");
     const client = makeTestClient({}, []);
     renderWithClient(client);
 
@@ -460,7 +460,7 @@ describe("ChatRoute shell", () => {
       expect((rightPanel as HTMLElement).style.width).toBe("300px");
     });
 
-    window.localStorage.removeItem("praxis.panel.sidekick.width");
+    window.localStorage.removeItem("praxis.panel.chat-right.width");
   });
 
   // ── Regression: scoped docs sidebar stability (bug-chat-documents-sidebar-flicker) ───

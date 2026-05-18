@@ -185,7 +185,7 @@ export function ChatRoute() {
   // Right column: persisted user-resizable width for the concepts + sidekick panel.
   // Sits on the right edge — handle is on the left side of the panel.
   const { width: sidekickWidth, handleProps: sidekickHandleProps } = useResizableWidth({
-    storageKey: "praxis.panel.sidekick.width",
+    storageKey: "praxis.panel.chat-right.width",
     defaultWidth: 280,
     minWidth: 220,
     maxWidth: 380,

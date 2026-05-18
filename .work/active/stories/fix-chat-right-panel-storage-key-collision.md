@@ -1,6 +1,6 @@
 ---
 id: fix-chat-right-panel-storage-key-collision
-stage: implementing
+stage: review
 created: 2026-05-18
 tags: [ui, bug]
 ---
@@ -34,3 +34,13 @@ The quiz/homework sidekick key (`praxis.panel.sidekick.width`) remains
 unchanged.
 
 Origin: review of `epic-ui-redesign-ground-up-chat-workspace-side-panels-restyle`.
+
+## Implementation notes
+
+- `packages/ui/src/routes/chat.tsx` line 188: `storageKey` changed from
+  `"praxis.panel.sidekick.width"` to `"praxis.panel.chat-right.width"`.
+- `packages/ui/src/__tests__/chat-route.test.tsx` lines 451/453/463: test
+  description and both `localStorage` calls updated to use the new key.
+- Quiz/homework sidekick key (`praxis.panel.sidekick.width`) left untouched.
+- All 14 chat-route tests pass; pre-existing typecheck/lint failures are
+  unrelated to this change (confirmed by stash-and-recheck).
