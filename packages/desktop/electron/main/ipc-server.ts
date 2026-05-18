@@ -30,6 +30,7 @@ import { app, ipcMain } from "electron";
 import { z } from "zod";
 import { registerActivityHandlers } from "./activity-channel.js";
 import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
+import { registerCitationsHandlers } from "./citations-channel.js";
 import { registerDocumentScopesHandlers } from "./document-scopes-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
@@ -162,6 +163,28 @@ export function registerIpcHandlers(
         studentId,
         noteId: brandId<"NoteId">(opts.noteId) as NoteId,
         ...(opts.cueId !== undefined && { cueId: opts.cueId }),
+      });
+    }),
+  );
+
+  const SpawnFromPassageSchema = z.object({
+    documentId: z.string().min(1, "documentId"),
+    range: z.object({
+      startOffset: z.number().int().nonnegative(),
+      endOffset: z.number().int().nonnegative(),
+    }),
+  });
+
+  // Open a teach session scoped to a document passage.
+  // studentId is resolved server-side (consistent with all document/* channels).
+  handle(
+    "praxis.session.spawnFromPassage",
+    handleEnvelope("praxis.session.spawnFromPassage", log, SpawnFromPassageSchema, async (opts) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      return services.session.spawnFromPassage({
+        studentId,
+        documentId: brandId<"DocumentId">(opts.documentId) as DocumentId,
+        range: opts.range,
       });
     }),
   );
@@ -1892,6 +1915,10 @@ export function registerIpcHandlers(
   // ── Phase 17: QuickCheck ──────────────────────────────────────────────────────
 
   registerQuickCheckHandlers(services, webContentsGetter, activeAbortControllers, log);
+
+  // ── Document citations ────────────────────────────────────────────────────────
+
+  registerCitationsHandlers(services, log);
 
   // ── Phase 16: Polymorphic scope ↔ document attachments ───────────────────────
 

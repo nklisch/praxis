@@ -1,4 +1,4 @@
-import { assignments, notes } from "@praxis/artifacts/schema";
+import { assignments, documentChunks, documents, notes } from "@praxis/artifacts/schema";
 import { composeSystemPrompt } from "@praxis/curriculum/brief";
 import { composeAssignmentContextFragment } from "@praxis/curriculum/brief/assignment-context";
 import { composeCourseContextFragment } from "@praxis/curriculum/brief/course-context";
@@ -633,6 +633,99 @@ export class SessionServiceImpl implements SessionService {
     } catch (cause) {
       this.deps.log.warn("spawn_from_note.opening_turn_failed", {
         noteId: input.noteId,
+        err: cause instanceof Error ? cause.message : String(cause),
+      });
+      // Non-fatal: session is still valid; tutor just won't have pre-context.
+    }
+
+    return handle;
+  }
+
+  /**
+   * Open a new teach session scoped to a specific passage in a document.
+   * Mirrors `spawnFromNote` — creates a teach session then injects the passage
+   * text as the first user message wrapped in `<passage>...</passage>` so the
+   * tutor opens with the right context.
+   *
+   * The document is attached to the session via DocumentScopesService with the
+   * passage range stored so the document viewer can render the `†` marker.
+   *
+   * `studentId` may be omitted — falls back to getOrCreateDefaultStudentId.
+   */
+  async spawnFromPassage(input: {
+    studentId?: StudentId;
+    documentId: DocumentId;
+    range: { startOffset: number; endOffset: number };
+  }): Promise<SessionHandle> {
+    const studentId: StudentId =
+      input.studentId ?? (getOrCreateDefaultStudentId(this.deps.db) as StudentId);
+
+    // Verify the document exists and belongs to this student.
+    const docRow = this.deps.db
+      .select({ id: documents.id, filename: documents.filename })
+      .from(documents)
+      .where(and(eq(documents.id, input.documentId), eq(documents.studentId, studentId)))
+      .get();
+    if (!docRow) {
+      throw new Error(`Document not found: ${input.documentId}`);
+    }
+
+    // Fetch all chunks for the document in order, then join to get the full text.
+    const chunkRows = this.deps.db
+      .select({ text: documentChunks.text })
+      .from(documentChunks)
+      .where(eq(documentChunks.documentId, input.documentId))
+      .orderBy(asc(documentChunks.chunkIndex))
+      .all();
+
+    const fullText = chunkRows.map((c) => c.text).join("\n\n");
+
+    // Extract the passage text from the range — clamp to document bounds.
+    const safeStart = Math.max(0, Math.min(input.range.startOffset, fullText.length));
+    const safeEnd = Math.max(safeStart, Math.min(input.range.endOffset, fullText.length));
+    const passageText = fullText.slice(safeStart, safeEnd).trim();
+
+    // Compose the injected opening message.
+    const openingMessage =
+      `I'm studying a document ("${docRow.filename}") and would like to explore a passage with you.\n\n` +
+      (passageText
+        ? `<passage>${passageText}</passage>`
+        : "<passage>[passage text unavailable]</passage>");
+
+    // Start a teach session.
+    const handle = await this.start({ modeId: "teach" });
+
+    // Attach the document to this session with the passage range so the viewer
+    // can render the † marker later.
+    if (this.deps.toolServices.documentScopes) {
+      try {
+        await this.deps.toolServices.documentScopes.attach({
+          scope: { kind: "session", id: handle.sessionId },
+          documentId: input.documentId,
+          source: "manual",
+          passageRange: input.range,
+        });
+      } catch (cause) {
+        this.deps.log.warn("spawn_from_passage.scope_attach_failed", {
+          documentId: input.documentId,
+          sessionId: handle.sessionId,
+          err: cause instanceof Error ? cause.message : String(cause),
+        });
+        // Non-fatal: session still valid; viewer just won't render the marker.
+      }
+    }
+
+    // Inject the passage as the opening user message (fire-and-forget, non-streaming).
+    try {
+      const sessionId = handle.sessionId;
+      // biome-ignore lint/suspicious/noExplicitAny: engine send is async-iterable; drain it
+      const stream = this.send(sessionId as any, openingMessage);
+      for await (const _event of stream) {
+        // Drain; we don't forward events — caller opens the tab and sees history.
+      }
+    } catch (cause) {
+      this.deps.log.warn("spawn_from_passage.opening_turn_failed", {
+        documentId: input.documentId,
         err: cause instanceof Error ? cause.message : String(cause),
       });
       // Non-fatal: session is still valid; tutor just won't have pre-context.

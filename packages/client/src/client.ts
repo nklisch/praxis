@@ -3,6 +3,7 @@ import { ActivityClient } from "./services/activity-client.js";
 import { ArtifactsClient } from "./services/artifacts-client.js";
 import { AssignmentsClient } from "./services/assignments-client.js";
 import { AuthoringClientImpl } from "./services/authoring-client.js";
+import { CitationsClient } from "./services/citations-client.js";
 import { ClaudeAuthClient } from "./services/claude-auth-client.js";
 import { ConceptMapClient } from "./services/concept-map-client.js";
 import { ConfigClient } from "./services/config-client.js";
@@ -56,5 +57,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     update: new UpdateClient(transport), // ← Phase 19
     subAgent: new SubAgentClient(transport),
     recommendations: new RecommendationsClient(transport),
+    citations: new CitationsClient(transport),
   };
 }

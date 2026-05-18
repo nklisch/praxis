@@ -23,13 +23,6 @@ export { SubAgentRegistryImpl } from "./subagent-registry.js";
 
 export type { AuthoringServiceDeps } from "./authoring-service.js";
 export { AuthoringServiceImpl } from "./authoring-service.js";
-// Snapshot-restore infrastructure
-export type {
-  CapturedSnapshot,
-  SnapshotCapturerDeps,
-  SnapshotPayload,
-} from "./snapshot-capturer.js";
-export { SNAPSHOT_SCHEMA_VERSION, SnapshotCapturer } from "./snapshot-capturer.js";
 export type { LockServiceDeps } from "./lock-service.js";
 export { LockServiceImpl } from "./lock-service.js";
 // Prompt customization layers
@@ -40,6 +33,13 @@ export type {
   PromptCustomizationServiceDeps,
 } from "./prompt-customization-service.js";
 export { PromptCustomizationServiceImpl } from "./prompt-customization-service.js";
+// Snapshot-restore infrastructure
+export type {
+  CapturedSnapshot,
+  SnapshotCapturerDeps,
+  SnapshotPayload,
+} from "./snapshot-capturer.js";
+export { SNAPSHOT_SCHEMA_VERSION, SnapshotCapturer } from "./snapshot-capturer.js";
 
 // Phase 8: Assignment service + graders
 
@@ -63,8 +63,11 @@ export { ConceptMapServiceImpl } from "./concept-map-service.js";
 export type { ConceptMapSnapshotterDeps } from "./concept-map-snapshotter.js";
 export { ConceptMapSnapshotter } from "./concept-map-snapshotter.js";
 export { ConfigServiceImpl } from "./config-service.js";
+// Document citations service
+export type { CitationsServiceDeps, CitationsService } from "./citations-service.js";
+export { CitationsServiceImpl } from "./citations-service.js";
 // Phase 16: Document scopes service (polymorphic scope ↔ document attachment)
-export type { DocumentScopesServiceDeps } from "./document-scopes-service.js";
+export type { DocumentScopesServiceDeps, PassageRange } from "./document-scopes-service.js";
 export { DocumentScopesServiceImpl } from "./document-scopes-service.js";
 export { DrizzleDocumentsReader } from "./documents-reader-impl.js";
 export type { DocumentsServiceDeps } from "./documents-service.js";

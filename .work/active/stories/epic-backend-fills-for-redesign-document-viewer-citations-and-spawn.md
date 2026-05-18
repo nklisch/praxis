@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-document-viewer-citations-and-spawn
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-document-viewer
 depends_on: []
@@ -88,3 +88,16 @@ See parent feature
 - Selection action bar UI — Story 2 (`-selection-bar`).
 - Re-anchoring citations on document re-ingest — v1 tolerates
   out-of-bounds by skipping the highlight.
+
+## Implementation notes
+
+- `documentCitations` table added to `packages/artifacts/src/schema.ts`; `passage_range_json` column added to `documentScopes`; migration `drizzle/0020_sad_thor_girl.sql` generated.
+- `CitationsServiceImpl` in `packages/core/src/services/citations-service.ts` — `record` + `listByDocument`; exported from `packages/core/src/services/index.ts`.
+- `DocumentScopesService.attach` extended with optional `passageRange`; when provided, uses upsert (`onConflictDoUpdate`) path so `attached:true` is always returned; standard path retains idempotent `onConflictDoNothing` behaviour. `getPassageRange` method added.
+- `SessionServiceImpl.spawnFromPassage` in `packages/core/src/services/session-service.ts`: verifies document ownership, reconstructs full text from `documentChunks` ordered by `chunkIndex`, slices the passage, opens a teach session, attaches the document scope with the range, and fire-and-forgets the opening message.
+- IPC: `praxis.citations.record` + `praxis.citations.listByDocument` in `packages/desktop/electron/main/citations-channel.ts`; `praxis.session.spawnFromPassage` in `ipc-server.ts` (both envelope-wrapped). `createdAt` converted to epoch-ms on the wire.
+- Client: `CitationsClient` in `packages/client/src/services/citations-client.ts`; `citations` field added to `PraxisClient` in `packages/client/src/client.ts`; `spawnFromPassage` added to `SessionClient`.
+- `<DocumentTabBody>` updated: `buildTextNodeIndex` + `applyCitationMark` DOM helpers; `useResource` fetches citations; `useEffect` clears old marks then re-applies using `Range.surroundContents`; stale (out-of-bounds) citations are silently skipped; PDF documents skip text-node walking.
+- `fake-client.ts` test helper updated with `citations` stub field.
+- Tests: `citations-service.test.ts` (10 tests), `citations-channel-envelope.test.ts` (12 tests), `spawn-from-note-channel-envelope.test.ts` extended with 5 `spawnFromPassage` tests, `document-tab-body.test.tsx` extended with 4 citation-rendering tests.
+- All 387 test files pass; no new typecheck or lint errors in TS/TSX files.

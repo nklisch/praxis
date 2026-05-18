@@ -677,11 +677,14 @@ export interface DocumentScopesService {
   /**
    * Attach. Idempotent on (documentId, scope.kind, scope.id).
    * Returns true iff a row was inserted.
+   * `passageRange` is optional; when set, stores the character-level range
+   * on the scope row so the document viewer can render a `†` marker.
    */
   attach(input: {
     scope: DocumentScope;
     documentId: DocumentId;
     source: DocumentScopeSource;
+    passageRange?: { startOffset: number; endOffset: number };
   }): Promise<{ attached: boolean }>;
 
   /** Detach. Idempotent. */

@@ -376,3 +376,77 @@ describe("praxis.session.spawnFromNote — envelope wiring", () => {
     expect(envelope.error.message).not.toContain("dev.db");
   });
 });
+
+// ── praxis.session.spawnFromPassage ──────────────────────────────────────────
+
+describe("praxis.session.spawnFromPassage — envelope wiring", () => {
+  it("resolves with { ok: true, value: <handle> } for a valid payload", async () => {
+    const passageHandle = { sessionId: "sess-passage-1", modeId: "teach", startedAt: 0 };
+    const spawnFromPassage = vi.fn().mockResolvedValue(passageHandle);
+    const log = makeFakeLogger();
+    const services = makeServices();
+    // Patch spawnFromPassage onto the session stub.
+    // biome-ignore lint/suspicious/noExplicitAny: test patching
+    (services.session as any).spawnFromPassage = spawnFromPassage;
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.spawnFromPassage");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.(
+      {},
+      { documentId: "doc-001", range: { startOffset: 10, endOffset: 50 } },
+    );
+    expect(result).toMatchObject({ ok: true, value: passageHandle });
+    expect(spawnFromPassage).toHaveBeenCalledWith(
+      expect.objectContaining({ documentId: "doc-001", range: { startOffset: 10, endOffset: 50 } }),
+    );
+  });
+
+  it("returns VALIDATION_FAILED for missing documentId", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.spawnFromPassage");
+    const result = await handler?.({}, { range: { startOffset: 0, endOffset: 10 } });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+
+  it("returns VALIDATION_FAILED for missing range", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.spawnFromPassage");
+    const result = await handler?.({}, { documentId: "doc-001" });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+
+  it("returns VALIDATION_FAILED for negative startOffset", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.spawnFromPassage");
+    const result = await handler?.(
+      {},
+      { documentId: "doc-001", range: { startOffset: -1, endOffset: 10 } },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+
+  it("returns INTERNAL (never rejects) when service throws", async () => {
+    const spawnFromPassage = vi.fn().mockRejectedValue(new Error("document not found"));
+    const log = makeFakeLogger();
+    const services = makeServices();
+    // biome-ignore lint/suspicious/noExplicitAny: test patching
+    (services.session as any).spawnFromPassage = spawnFromPassage;
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.spawnFromPassage");
+    await expect(
+      handler?.({}, { documentId: "doc-001", range: { startOffset: 0, endOffset: 10 } }),
+    ).resolves.toMatchObject({ ok: false, error: { code: "INTERNAL" } });
+  });
+});

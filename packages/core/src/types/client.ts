@@ -115,6 +115,8 @@ export interface PraxisClient {
   subAgent: SubAgentClientApi;
   /** Workbench recommendation engine — priority-ordered "what's next" queue. */
   recommendations: RecommendationsClientApi;
+  /** Document citations — record and list per-document passage citations. */
+  citations: CitationsClientApi;
 }
 
 /**
@@ -320,6 +322,18 @@ export interface SessionService {
     studentId?: StudentId;
     noteId: NoteId;
     cueId?: string;
+  }): Promise<SessionHandle>;
+  /**
+   * Open a new teach session scoped to a passage in a document.
+   * `studentId` may be omitted — the service resolves it via getOrCreateDefaultStudentId.
+   * The passage text is injected into the opening message wrapped in `<passage>` tags.
+   * The document is attached to the session with the passage range so the document
+   * viewer can render a `†` marker on the cited range.
+   */
+  spawnFromPassage(input: {
+    studentId?: StudentId;
+    documentId: DocumentId;
+    range: { startOffset: number; endOffset: number };
   }): Promise<SessionHandle>;
 }
 
@@ -848,4 +862,40 @@ export interface UpdateClientApi {
  */
 export interface RecommendationsClientApi {
   next(input?: { limit?: number }): Promise<Recommendation[]>;
+}
+
+// ─── Document citations (client-side) ────────────────────────────────────────
+
+/**
+ * A single document citation record — a passage range within a document that
+ * was referenced by the tutor in a teach session.
+ */
+export interface DocumentCitationRecord {
+  id: string;
+  documentId: DocumentId;
+  citingSessionId: SessionId;
+  citingTurnId: string | null;
+  startOffset: number;
+  endOffset: number;
+  /** Captured snippet; may be null when the text was not stored at record time. */
+  citedText: string | null;
+  createdAt: number; // epoch ms
+}
+
+/**
+ * Client-side citations API.
+ * - `record`: called by the tutor tool pipeline when citing a passage.
+ * - `listByDocument`: called by `<DocumentTabBody>` on mount to fetch highlights.
+ */
+export interface CitationsClientApi {
+  record(input: {
+    documentId: DocumentId;
+    citingSessionId: SessionId;
+    citingTurnId?: string;
+    startOffset: number;
+    endOffset: number;
+    citedText?: string;
+  }): Promise<DocumentCitationRecord>;
+
+  listByDocument(documentId: DocumentId): Promise<DocumentCitationRecord[]>;
 }

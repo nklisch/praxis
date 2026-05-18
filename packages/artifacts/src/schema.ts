@@ -269,11 +269,53 @@ export const documentScopes = sqliteTable(
     source: text("source", {
       enum: ["bootstrap", "manual", "ingestion"],
     }).notNull(),
+    /**
+     * Optional passage range for session-scoped documents opened via
+     * "ask Praxis about this passage". Null for course-scoped attachments
+     * and full-document session attachments. JSON shape: { startOffset, endOffset }.
+     */
+    passageRangeJson: text("passage_range_json", { mode: "json" }),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.documentId, t.scopeKind, t.scopeId] }),
     scopeIdx: index("document_scopes_scope_idx").on(t.scopeKind, t.scopeId),
     documentIdx: index("document_scopes_document_idx").on(t.documentId),
+  }),
+);
+
+// ─── Document citations ───────────────────────────────────────────────────────
+
+/**
+ * Per-turn citation records. When the tutor references a specific document
+ * passage in a teach session, a row is inserted here so the document viewer
+ * can render `†` markers on cited ranges.
+ *
+ * Access patterns:
+ *  - read by documentId → render highlights in DocumentTabBody
+ *  - read by citingSessionId → "what did this session cite?" (future)
+ */
+export const documentCitations = sqliteTable(
+  "document_citations",
+  {
+    id: text("id").primaryKey(),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    /** The session in which this citation was produced. */
+    citingSessionId: text("citing_session_id").notNull(),
+    /** Optional turn id for fine-grained linkback to the exact tutor turn. */
+    citingTurnId: text("citing_turn_id"),
+    /** Character offset (inclusive) in the document's full text. */
+    startOffset: integer("start_offset").notNull(),
+    /** Character offset (exclusive) in the document's full text. */
+    endOffset: integer("end_offset").notNull(),
+    /** Optional captured snippet for display without re-fetching the document. */
+    citedText: text("cited_text"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => ({
+    docIdx: index("citations_doc_idx").on(t.documentId),
+    sessionIdx: index("citations_session_idx").on(t.citingSessionId),
   }),
 );
 
@@ -391,4 +433,5 @@ export const artifactsSchema = {
   courseUnits, // ← Phase 16
   lessonUnits, // ← Phase 16
   lessonAssessments, // ← Phase 16
+  documentCitations,
 };

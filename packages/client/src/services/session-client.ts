@@ -1,6 +1,7 @@
 import type {
   AssignmentId,
   CourseId,
+  DocumentId,
   EngineEvent,
   NoteId,
   SessionEndSummary,
@@ -8,6 +9,7 @@ import type {
   SessionId,
   SessionService,
   SessionSummary,
+  StudentId,
 } from "@praxis/core/types";
 import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
@@ -73,6 +75,19 @@ export class SessionClient implements SessionService {
     const result = await this.transport.invoke<IpcEnvelope<SessionHandle> | SessionHandle>(
       `${CHANNEL}.spawnFromNote`,
       input,
+    );
+    return unwrapEnvelope(result);
+  }
+
+  /** Open a teach session scoped to a specific passage in a document. */
+  async spawnFromPassage(input: {
+    studentId?: StudentId;
+    documentId: DocumentId;
+    range: { startOffset: number; endOffset: number };
+  }): Promise<SessionHandle> {
+    const result = await this.transport.invoke<IpcEnvelope<SessionHandle> | SessionHandle>(
+      `${CHANNEL}.spawnFromPassage`,
+      { documentId: input.documentId, range: input.range },
     );
     return unwrapEnvelope(result);
   }

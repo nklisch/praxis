@@ -6,8 +6,16 @@
  * - Error state is shown when documents.get rejects.
  * - "Document not found" when documents.get returns null.
  * - Correct renderer is mounted based on mimeType (smoke-tested via rendered output).
+ * - Citation marks (†) are applied to cited ranges in text documents.
+ * - Stale citations (out-of-bounds offsets) are silently skipped.
+ * - PDF documents skip text-node citation walking.
  */
-import type { DocumentDetail, DocumentTabSummary, Timestamp } from "@praxis/core/types";
+import type {
+  DocumentCitationRecord,
+  DocumentDetail,
+  DocumentTabSummary,
+  Timestamp,
+} from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -48,7 +56,11 @@ function makeDetail(overrides: Partial<DocumentDetail> = {}): DocumentDetail {
   };
 }
 
-function renderTab(tab: DocumentTabSummary, getResult: DocumentDetail | null | Error) {
+function renderTab(
+  tab: DocumentTabSummary,
+  getResult: DocumentDetail | null | Error,
+  citations: DocumentCitationRecord[] = [],
+) {
   const client = makeFakeClient({
     documents: {
       list: vi.fn().mockResolvedValue([]),
@@ -58,6 +70,10 @@ function renderTab(tab: DocumentTabSummary, getResult: DocumentDetail | null | E
           : vi.fn().mockResolvedValue(getResult),
       delete: vi.fn().mockResolvedValue(undefined),
       pageImage: vi.fn().mockResolvedValue(null),
+    },
+    citations: {
+      listByDocument: vi.fn().mockResolvedValue(citations),
+      record: vi.fn().mockResolvedValue(undefined),
     },
   });
 
@@ -160,5 +176,92 @@ describe("DocumentTabBody", () => {
     await waitFor(() => {
       expect(screen.getByText(/Preview not available/i)).toBeDefined();
     });
+  });
+});
+
+describe("DocumentTabBody citation marks", () => {
+  it("renders a † dagger mark when a citation covers the document text", async () => {
+    const text = "Hello world, this is the document text.";
+    // Citation covers "world" (offsets 6–11).
+    const citation: DocumentCitationRecord = {
+      id: "cit-1",
+      documentId: brandId<"DocumentId">("doc-1"),
+      citingSessionId: brandId<"SessionId">("sess-1"),
+      citingTurnId: null,
+      startOffset: 6,
+      endOffset: 11,
+      citedText: "world",
+      createdAt: Date.now(),
+    };
+
+    renderTab(makeTab(), makeDetail({ mimeType: "text/plain", text }), [citation]);
+
+    await waitFor(() => {
+      // A <mark> element should be injected for the cited range.
+      expect(document.querySelector("mark")).not.toBeNull();
+      // The mark wraps the cited word.
+      expect(document.querySelector("mark")?.textContent).toContain("world");
+    });
+  });
+
+  it("does not render marks when there are no citations", async () => {
+    const text = "Hello world, no citations here.";
+    renderTab(makeTab(), makeDetail({ mimeType: "text/plain", text }), []);
+
+    // Wait for the document to load fully.
+    await waitFor(() => {
+      expect(screen.queryAllByText(/Hello world/)).not.toHaveLength(0);
+    });
+
+    expect(document.querySelector("mark")).toBeNull();
+  });
+
+  it("skips stale citations with out-of-bounds offsets (no mark rendered)", async () => {
+    const text = "Short text."; // length 11
+    const staleCitation: DocumentCitationRecord = {
+      id: "cit-stale",
+      documentId: brandId<"DocumentId">("doc-1"),
+      citingSessionId: brandId<"SessionId">("sess-1"),
+      citingTurnId: null,
+      startOffset: 100, // well beyond the document length
+      endOffset: 200,
+      citedText: null,
+      createdAt: Date.now(),
+    };
+
+    renderTab(makeTab(), makeDetail({ mimeType: "text/plain", text }), [staleCitation]);
+
+    await waitFor(() => {
+      expect(screen.queryAllByText(/Short text/)).not.toHaveLength(0);
+    });
+
+    // No mark should be injected for the stale citation.
+    expect(document.querySelector("mark")).toBeNull();
+  });
+
+  it("does not walk text nodes for PDF documents", async () => {
+    const citation: DocumentCitationRecord = {
+      id: "cit-pdf",
+      documentId: brandId<"DocumentId">("doc-1"),
+      citingSessionId: brandId<"SessionId">("sess-1"),
+      citingTurnId: null,
+      startOffset: 0,
+      endOffset: 10,
+      citedText: null,
+      createdAt: Date.now(),
+    };
+
+    renderTab(
+      makeTab(),
+      makeDetail({ mimeType: "application/pdf", text: null }),
+      [citation],
+    );
+
+    // PDF renderer shows page images; no mark should be injected.
+    await waitFor(() => {
+      expect(screen.queryByText("Loading document")).toBeNull();
+    });
+
+    expect(document.querySelector("mark")).toBeNull();
   });
 });

@@ -13,6 +13,12 @@ import type {
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
+/** Optional character-level range within the document text. */
+export interface PassageRange {
+  startOffset: number;
+  endOffset: number;
+}
+
 export interface DocumentScopesServiceDeps {
   db: PraxisDb;
   log: Logger;
@@ -156,7 +162,31 @@ export class DocumentScopesServiceImpl implements DocumentScopesService {
     scope: DocumentScope;
     documentId: DocumentId;
     source: DocumentScopeSource;
+    /** Optional character-level range; only meaningful on session-scoped attachments. */
+    passageRange?: PassageRange;
   }): Promise<{ attached: boolean }> {
+    if (input.passageRange !== undefined) {
+      // Upsert path: write the passage range, updating if the row already exists.
+      // Returns attached:true unconditionally — the caller is explicitly setting a range.
+      this.deps.db
+        .insert(documentScopes)
+        .values({
+          documentId: input.documentId,
+          scopeKind: input.scope.kind,
+          scopeId: input.scope.id,
+          attachedAt: new Date(),
+          source: input.source,
+          passageRangeJson: input.passageRange,
+        })
+        .onConflictDoUpdate({
+          target: [documentScopes.documentId, documentScopes.scopeKind, documentScopes.scopeId],
+          set: { passageRangeJson: input.passageRange },
+        })
+        .run();
+      return { attached: true };
+    }
+
+    // Standard idempotent path — no passage range.
     const result = this.deps.db
       .insert(documentScopes)
       .values({
@@ -165,10 +195,36 @@ export class DocumentScopesServiceImpl implements DocumentScopesService {
         scopeId: input.scope.id,
         attachedAt: new Date(),
         source: input.source,
+        passageRangeJson: null,
       })
       .onConflictDoNothing()
       .run();
     return { attached: result.changes > 0 };
+  }
+
+  /**
+   * Retrieve the passage range recorded on a session-scoped document attachment.
+   * Returns null when no passage range was stored or no scope row exists.
+   */
+  async getPassageRange(input: {
+    scope: DocumentScope;
+    documentId: DocumentId;
+  }): Promise<PassageRange | null> {
+    const row = this.deps.db
+      .select({ passageRangeJson: documentScopes.passageRangeJson })
+      .from(documentScopes)
+      .where(
+        and(
+          eq(documentScopes.documentId, input.documentId),
+          eq(documentScopes.scopeKind, input.scope.kind),
+          eq(documentScopes.scopeId, input.scope.id),
+        ),
+      )
+      .get();
+    if (!row) return null;
+    const raw = row.passageRangeJson as PassageRange | null;
+    if (raw == null) return null;
+    return { startOffset: raw.startOffset, endOffset: raw.endOffset };
   }
 
   async detach(input: {

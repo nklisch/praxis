@@ -13,6 +13,7 @@ import {
   AssignmentServiceImpl,
   AuthoringServiceImpl,
   BootstrapServiceImpl,
+  CitationsServiceImpl,
   ClaudeAuthServiceImpl,
   ConceptMapDivergenceIndexer,
   ConceptMapServiceImpl,
@@ -36,13 +37,13 @@ import {
   SessionServiceImpl,
   SketchServiceImpl,
   SqliteDraftStore,
+  SqliteDraftStore,
   SubAgentRegistryImpl,
   TabsServiceImpl,
   UpdateServiceImpl,
   VisionServiceImpl,
 } from "@praxis/core/services";
 import { FsSketchStore } from "@praxis/core/sketch";
-import { SqliteDraftStore } from "@praxis/core/services";
 import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import {
@@ -157,6 +158,8 @@ export interface Services {
   conceptMaps: ConceptMapServiceImpl;
   /** Phase 16: polymorphic scope ↔ document attachment service. */
   documentScopes: DocumentScopesServiceImpl;
+  /** Document citations service — record + list cited passages. */
+  citations: CitationsServiceImpl;
   /** Activity registry — exposed for the activity IPC channel and shutdown. */
   activity: ActivityRegistryImpl;
   /** Sub-agent transparency registry — exposed for the subagent IPC channel. */
@@ -279,6 +282,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
 
   // Phase 16: DocumentScopesServiceImpl — must be constructed before BootstrapServiceImpl.
   const documentScopesService = new DocumentScopesServiceImpl({ db, log });
+
+  // Citations service — record and list document passage citations.
+  const citationsService = new CitationsServiceImpl({ db, log });
 
   // Shared durable draft store — one instance used by both BootstrapServiceImpl
   // and RecommendationServiceImpl so they read from the same SQLite source.
@@ -631,6 +637,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     sketches: sketchService, // ← Phase 15a
     conceptMaps: conceptMapService, // ← Phase 15b
     documentScopes: documentScopesService, // ← Phase 16
+    citations: citationsService,
     activity: activityRegistry,
     subAgent: subAgentRegistry,
     quickCheck: quickCheckService, // ← Phase 17
