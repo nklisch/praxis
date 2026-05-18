@@ -209,6 +209,13 @@ Test gate carryovers (15):
 
 - **gate-security** (2026-05-18) — 1 new finding (Medium=1), 4 already-tracked skipped
   - `gate-security-engine-baseurl-url-validator-scheme-allowlist` (Medium)
+- **gate-docs** (2026-05-18) — 6 items from 20 raw findings (5 implementing, 1 drafting); consolidated by surface
+  - `gate-docs-status-strip-no-longer-planned` (High — CLAUDE.md, UX.md, ARCHITECTURE.md)
+  - `gate-docs-engine-session-manager-extraction-references` (High — CLAUDE.md, CONTRACT.md, patterns.md, 2 pattern skills)
+  - `gate-docs-ipc-server-extraction-pattern-skill-references` (High — 4 pattern skills)
+  - `gate-docs-bootstrap-explorer-pattern-skill-rename` (High — 4 pattern skills)
+  - `gate-docs-contract-spawn-and-passagerange` (High — CONTRACT.md, ARCHITECTURE.md, CLAUDE.md)
+  - `gate-docs-readme-refactors-latest-date` (Medium — README.md)
 - **gate-cruft** (2026-05-18) — 6 items from 18 raw findings (4 implementing, 2 drafting); consolidated to focused sweeps
   - `gate-cruft-mode-glyph-bootstrap-entry-dead` (High)
   - `gate-cruft-bootstrap-explorer-stale-comment-sweep` (High, ~30-file sweep)
