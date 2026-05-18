@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-free
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -80,3 +80,16 @@ Rewrote `note-editor-free.{tsx,module.css}` from scratch:
 - `onChange` fires with updated text on input.
 
 **Quality**: `pnpm biome check` clean on all three files; 1270/1270 tests pass.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+
+**Important**: none
+
+**Nits**:
+- The gutter uses `position: fixed` inside an `overflow-y: auto` scroll container (`.editorBody`). Fixed elements anchor to the viewport rather than the scroll container, so the gutter stays visible while scrolling — this is the stated design intent ("fixed-position 220px aside") and matches the mock. Worth a comment in the CSS to make the intent explicit for future editors.
+
+**Notes**: Implementation is clean and well-structured. `escapeHtml` correctly sanitises body text before setting `innerHTML`. The `seededRef` / one-way-seeding pattern is appropriate for an uncontrolled contenteditable. Slash command detection (`detectSlashContext`) handles the prefix-match filter correctly; `noUncheckedIndexedAccess` safety at `slashCommands[slashIdx]` is guarded. No foundation-doc drift — UX.md's "plain text for resistance to the system's preferences" description of the Free format is additive to, not contradicted by, the typewriter/drop-cap/slash-command enhancements. Tests cover the behavioural contract (gutter stats, slash menu open/dismiss, onChange propagation). 1270 tests pass.
