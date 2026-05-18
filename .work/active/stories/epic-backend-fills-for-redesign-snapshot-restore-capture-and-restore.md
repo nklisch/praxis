@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-snapshot-restore-capture-and-restore
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-snapshot-restore
 depends_on: []
@@ -194,3 +194,15 @@ surface, no UI. Tests prove round-trip per action kind.
   row. Snapshot captures the actual prior mastery (or null).
 - **`memory.clear_misconception` semantics**: sets `status: "manually-cleared"`,
   does not delete. Snapshot stores the full prior row (including status).
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `upsertLesson` docstring says "The orderIndex from the snapshot is preserved verbatim" but this is only true when the row still exists (edit/upsert case). After delete-then-restore the row is gone, `existingRow` is null, and the lesson is appended at the end — the original position is lost. The `Lesson` type omits `orderIndex` so there is no way to do better without changing the type. The behavior is correct (append rather than fail); only the docstring is inaccurate. Low-impact nit given that `lesson.delete` restore is a rare path.
+- `snapshot-restore.test.ts` has 28 `noNonNullAssertion` warnings from `actions[0]!.id` indexing patterns throughout the test file. Optional-chain form would be safer but the pattern is idiomatic in tests that assert on known-present items.
+
+**Notes**: Full test suite passes (3967 tests, 386 files). The pre-existing `@praxis/desktop` typecheck failures (3 errors in `courses-section.tsx` and `note-editor-page.tsx` re: `exactOptionalPropertyTypes`) are not introduced by this commit — verified by stashing and re-running. All changed files are lint-clean (only pre-existing warnings in `artifacts-service.ts`). Design alignment is solid: every unit from the design is implemented, the exhaustive `switch` on `entityKind` correctly uses a `never`-typed default, `schemaVersion` guard is in place, double-restore and un-revert are both tested and working.
