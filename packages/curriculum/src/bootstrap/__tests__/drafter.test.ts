@@ -1,5 +1,5 @@
 /**
- * Tests for runConceptExplorer.
+ * Tests for runConceptDrafter.
  *
  * Uses ScriptedEngine to drive a real InProcessToolRegistry without any LLM
  * calls — tool dispatch is real (BootstrapServiceImpl), only the model
@@ -35,7 +35,7 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { makeEmptyPedagogyPackService } from "../../pedagogy/pedagogy-pack-service.js";
-import { runConceptExplorer } from "../explorer.js";
+import { runConceptDrafter } from "../drafter.js";
 import type { ScriptedStep } from "./helpers/scripted-engine.js";
 import { ScriptedEngine } from "./helpers/scripted-engine.js";
 
@@ -65,7 +65,7 @@ function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
     db,
     log: MOCK_LOG,
     engineResolver: () => {
-      throw new Error("engineResolver not used in explorer tests");
+      throw new Error("engineResolver not used in drafter tests");
     },
     documentScopes: MOCK_DOCUMENT_SCOPES,
     sweepIntervalMs: 9999999,
@@ -80,7 +80,7 @@ function makeBaseContext(
     sessionId: brandId<"SessionId">("session-explorer"),
     services: {
       bootstrap,
-      // biome-ignore lint/suspicious/noExplicitAny: stub for unused services in explorer tests
+      // biome-ignore lint/suspicious/noExplicitAny: stub for unused services in drafter tests
       memory: null as any,
       // biome-ignore lint/suspicious/noExplicitAny: stub
       artifacts: null as any,
@@ -121,7 +121,7 @@ function makeBaseContext(
   };
 }
 
-const EXPLORER_TOOLS = [
+const DRAFTER_TOOLS = [
   draftInitTool,
   draftAddConceptsTool,
   draftAddEdgesTool,
@@ -133,7 +133,7 @@ const DOC_IDS: DocumentId[] = [brandId<"DocumentId">("doc-1")];
 
 // ─── success path — fresh draft ───────────────────────────────────────────────
 
-describe("runConceptExplorer — fresh draft success path", () => {
+describe("runConceptDrafter — fresh draft success path", () => {
   const dbCtx = useTempDb();
 
   it("returns ok:true with draftId and summary built from live state", async () => {
@@ -191,10 +191,10 @@ describe("runConceptExplorer — fresh draft success path", () => {
       },
     ]);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math.algebra-1",
@@ -219,7 +219,7 @@ describe("runConceptExplorer — fresh draft success path", () => {
 
 // ─── exhaustedBudget ─────────────────────────────────────────────────────────
 
-describe("runConceptExplorer — exhaustedBudget", () => {
+describe("runConceptDrafter — exhaustedBudget", () => {
   const dbCtx = useTempDb();
 
   it("returns ok:true with exhaustedBudget=true when stepsUsed hits the cap with a live draft", async () => {
@@ -250,10 +250,10 @@ describe("runConceptExplorer — exhaustedBudget", () => {
 
     const engine = new ScriptedEngine(steps);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math",
@@ -274,7 +274,7 @@ describe("runConceptExplorer — exhaustedBudget", () => {
 
 // ─── early stop without finalize is success ──────────────────────────────────
 
-describe("runConceptExplorer — early stop without finalize", () => {
+describe("runConceptDrafter — early stop without finalize", () => {
   const dbCtx = useTempDb();
 
   it("returns ok:true when the engine simply stops; no exhaustedBudget if budget left", async () => {
@@ -297,10 +297,10 @@ describe("runConceptExplorer — early stop without finalize", () => {
       },
     ]);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Incomplete",
       subject: "test",
@@ -321,7 +321,7 @@ describe("runConceptExplorer — early stop without finalize", () => {
 
 // ─── continuation — pass existing draftId ────────────────────────────────────
 
-describe("runConceptExplorer — continuation with existing draftId", () => {
+describe("runConceptDrafter — continuation with existing draftId", () => {
   const dbCtx = useTempDb();
 
   it("skips draft_init and adds to the existing draft when draftId is supplied", async () => {
@@ -356,10 +356,10 @@ describe("runConceptExplorer — continuation with existing draftId", () => {
       },
     ]);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math",
@@ -381,7 +381,7 @@ describe("runConceptExplorer — continuation with existing draftId", () => {
 
 // ─── no_draft_init ───────────────────────────────────────────────────────────
 
-describe("runConceptExplorer — no draft created", () => {
+describe("runConceptDrafter — no draft created", () => {
   it("returns ok:false reason:no_draft_init when the model never calls draft_init", async () => {
     const dbCtx = useTempDb();
     const { db } = openDb({ path: dbCtx.dbPath });
@@ -390,10 +390,10 @@ describe("runConceptExplorer — no draft created", () => {
     // No tool calls at all — empty script.
     const engine = new ScriptedEngine([]);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Empty",
       subject: "test",
@@ -413,7 +413,7 @@ describe("runConceptExplorer — no draft created", () => {
 
 // ─── engine_error ─────────────────────────────────────────────────────────────
 
-describe("runConceptExplorer — engine_error", () => {
+describe("runConceptDrafter — engine_error", () => {
   it("returns ok:false reason:engine_error when session emits an error event", async () => {
     const errorEngine: import("@praxis/core/types").Engine = {
       id: "error-engine",
@@ -439,10 +439,10 @@ describe("runConceptExplorer — engine_error", () => {
     // biome-ignore lint/suspicious/noExplicitAny: stub context for engine_error test
     const baseContext = makeBaseContext(null as any);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine: errorEngine,
       baseContext,
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Error Course",
       subject: "test",
@@ -459,7 +459,7 @@ describe("runConceptExplorer — engine_error", () => {
 
 // ─── tutor instructions threading ─────────────────────────────────────────────
 
-describe("runConceptExplorer — tutor instructions", () => {
+describe("runConceptDrafter — tutor instructions", () => {
   it("surfaces the instructions verbatim in the initial message under a clear header", async () => {
     let capturedMessage: string | undefined;
 
@@ -472,7 +472,7 @@ describe("runConceptExplorer — tutor instructions", () => {
           capturedMessage = msg;
           return {
             [Symbol.asyncIterator]: async function* () {
-              // No tool calls — just close the stream cleanly so the explorer
+              // No tool calls — just close the stream cleanly so the drafter
               // exits with reason: no_draft_init.
               yield {
                 type: "final" as const,
@@ -496,10 +496,10 @@ describe("runConceptExplorer — tutor instructions", () => {
       "Focus on Ch. R through Ch. 4 of Sullivan only. Skip trig and conics entirely. " +
       "Student has weak fractions — emphasize fraction operations early.";
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine: recordingEngine,
       baseContext,
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math.algebra-1",
@@ -547,10 +547,10 @@ describe("runConceptExplorer — tutor instructions", () => {
     // biome-ignore lint/suspicious/noExplicitAny: stub
     const baseContext = makeBaseContext(null as any);
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine: recordingEngine,
       baseContext,
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math",
@@ -593,10 +593,10 @@ describe("runConceptExplorer — tutor instructions", () => {
     // biome-ignore lint/suspicious/noExplicitAny: stub
     const baseContext = makeBaseContext(null as any);
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine: recordingEngine,
       baseContext,
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math",
@@ -612,7 +612,7 @@ describe("runConceptExplorer — tutor instructions", () => {
 
 // ─── document scoping ────────────────────────────────────────────────────────
 
-describe("runConceptExplorer — document scoping", () => {
+describe("runConceptDrafter — document scoping", () => {
   const dbCtx = useTempDb();
 
   it("pins ctx.courseDocumentIds to input.documentIds so retrieval auto-scopes", async () => {
@@ -645,10 +645,10 @@ describe("runConceptExplorer — document scoping", () => {
       brandId<"DocumentId">("doc-stewart"),
     ];
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: [recordCtxTool, ...EXPLORER_TOOLS],
+      toolDefinitions: [recordCtxTool, ...DRAFTER_TOOLS],
       documentIds: docIds,
       courseTitle: "Algebra 1",
       subject: "math.algebra-1",
@@ -669,7 +669,7 @@ const recordCtxOutput = z.object({ ok: z.literal(true) });
 
 // ─── subAgentHandle emissions ─────────────────────────────────────────────────
 
-describe("runConceptExplorer — subAgentHandle emissions", () => {
+describe("runConceptDrafter — subAgentHandle emissions", () => {
   /**
    * Minimal fake SubAgentHandle that records all calls for assertion.
    */
@@ -721,10 +721,10 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
       },
     ]);
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math",
@@ -768,10 +768,10 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
       },
     ]);
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math",
@@ -816,10 +816,10 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
 
     const engine = new ScriptedEngine(steps);
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math",
@@ -836,7 +836,7 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
   });
 
   it("does not emit stepStarted/stepSettled when subAgentHandle is absent", async () => {
-    // Just verify the explorer doesn't error when handle is undefined (the
+    // Just verify the drafter doesn't error when handle is undefined (the
     // optional-chaining guard means this is a no-op path).
     const { db } = openDb({ path: dbCtx.dbPath });
     const bootstrap = makeBootstrapService(db);
@@ -853,10 +853,10 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
       },
     ]);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math",
@@ -871,9 +871,9 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
     bootstrap.shutdown();
   });
 
-  it("engine_error path: finish is not called by the explorer (caller is responsible)", async () => {
-    // The explorer itself does not call subHandle.finish — start-exploration.ts does.
-    // This test confirms no finish call happens from within runConceptExplorer on error.
+  it("engine_error path: finish is not called by the drafter (caller is responsible)", async () => {
+    // The drafter itself does not call subHandle.finish — start-exploration.ts does.
+    // This test confirms no finish call happens from within runConceptDrafter on error.
     const { handle, finishCalls } = makeFakeHandle();
 
     const errorEngine: import("@praxis/core/types").Engine = {
@@ -900,10 +900,10 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
     // biome-ignore lint/suspicious/noExplicitAny: stub context for error test
     const baseContext = makeBaseContext(null as any);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine: errorEngine,
       baseContext,
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Error Course",
       subject: "test",
@@ -915,7 +915,7 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
 
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("engine_error");
-    // The explorer does NOT call finish — the caller (start-exploration.ts) does.
+    // The drafter does NOT call finish — the caller (start-exploration.ts) does.
     expect(finishCalls).toHaveLength(0);
   });
 
@@ -950,7 +950,7 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
     const draftLessonId = draft?.proposed.proposedLessons[0]?.draftLessonId;
     if (!draftLessonId) throw new Error("test setup: no lesson in draft");
 
-    // Run the explorer in continuation mode (draftId pre-set) so draft_init
+    // Run the drafter in continuation mode (draftId pre-set) so draft_init
     // is skipped and we go straight to unit grouping.
     const TOOLS_WITH_UNIT = [
       draftInitTool,
@@ -968,7 +968,7 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
       },
     ]);
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
       toolDefinitions: TOOLS_WITH_UNIT,
@@ -1042,7 +1042,7 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
       },
     ]);
 
-    await runConceptExplorer({
+    await runConceptDrafter({
       engine,
       baseContext: makeBaseContext(bootstrap),
       toolDefinitions: TOOLS_WITH_UNIT,
@@ -1067,7 +1067,7 @@ describe("runConceptExplorer — subAgentHandle emissions", () => {
 
 // ─── abort / signal propagation ───────────────────────────────────────────────
 
-describe("runConceptExplorer — signal propagation", () => {
+describe("runConceptDrafter — signal propagation", () => {
   it("returns interrupted immediately when signal is already aborted before open", async () => {
     // Track whether engine.open was called — it must NOT be.
     let openCalled = false;
@@ -1097,10 +1097,10 @@ describe("runConceptExplorer — signal propagation", () => {
     // biome-ignore lint/suspicious/noExplicitAny: stub context for abort test
     const baseContext = makeBaseContext(null as any);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine: earlyAbortEngine,
       baseContext,
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Aborted Course",
       subject: "test",
@@ -1181,10 +1181,10 @@ describe("runConceptExplorer — signal propagation", () => {
       }),
     };
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine: abortMidLoopEngine,
       baseContext: makeBaseContext(bootstrap),
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Aborted Mid",
       subject: "math",
@@ -1207,14 +1207,14 @@ describe("runConceptExplorer — signal propagation", () => {
 
 // ─── parentSessionId threading ────────────────────────────────────────────────
 
-describe("runConceptExplorer — parentSessionId threading", () => {
+describe("runConceptDrafter — parentSessionId threading", () => {
   const dbCtx = useTempDb();
 
-  it("sets parentSessionId on the explorer's ToolContext to the base context's sessionId", async () => {
+  it("sets parentSessionId on the drafter's ToolContext to the base context's sessionId", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const bootstrap = makeBootstrapService(db);
 
-    // We verify that the explorer's context has parentSessionId by checking
+    // We verify that the drafter's context has parentSessionId by checking
     // the observable effect: draft_init (which reads ctx.parentSessionId) should
     // store the parent session id on the draft.
     const parentSessionId = brandId<"SessionId">("parent-session-s1");
@@ -1235,10 +1235,10 @@ describe("runConceptExplorer — parentSessionId threading", () => {
       },
     ]);
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine,
       baseContext,
-      toolDefinitions: EXPLORER_TOOLS,
+      toolDefinitions: DRAFTER_TOOLS,
       documentIds: DOC_IDS,
       courseTitle: "Algebra 1",
       subject: "math.algebra-1",

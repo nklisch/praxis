@@ -9,13 +9,13 @@ import type {
 } from "@praxis/core/types";
 import { InProcessToolRegistry } from "@praxis/tools";
 import type { z } from "zod";
-import { EXPLORER_SYSTEM_PROMPT } from "./explorer-prompt.js";
+import { DRAFTER_SYSTEM_PROMPT } from "./drafter-prompt.js";
 
-export interface RunConceptExplorerInput {
+export interface RunConceptDrafterInput {
   engine: Engine;
   /** The base ToolContext from the live tutor session. Cloned with overrides. */
   baseContext: Omit<ToolContext, "courseId" | "courseDocumentIds">;
-  /** Tools the explorer is allowed to call. Must include draft mutation and search tools. */
+  /** Tools the drafter is allowed to call. Must include draft mutation and search tools. */
   toolDefinitions: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
   documentIds: ReadonlyArray<DocumentId>;
   courseTitle: string;
@@ -25,7 +25,7 @@ export interface RunConceptExplorerInput {
   /** Maximum loop steps. Default 30. */
   maxSteps?: number;
   /**
-   * Optional draft id to continue. When present, the explorer skips
+   * Optional draft id to continue. When present, the drafter skips
    * `draft_init` and the model is told the draft already exists — it should
    * call `course.show_draft` first to see what's there before adding more.
    * Used by the tutor to "spend more budget" on a partially-built draft.
@@ -33,8 +33,8 @@ export interface RunConceptExplorerInput {
   draftId?: string;
   /**
    * Optional free-form scope / strategy guidance from the tutor (the parent
-   * agent). Surfaced verbatim in the explorer's initial message under a
-   * clearly-labelled "Tutor instructions" block so the explorer treats it as
+   * agent). Surfaced verbatim in the drafter's initial message under a
+   * clearly-labelled "Tutor instructions" block so the drafter treats it as
    * authoritative narrowing on top of the structured fields.
    *
    * Use cases the structured input can't express:
@@ -47,13 +47,13 @@ export interface RunConceptExplorerInput {
    */
   instructions?: string;
   /**
-   * Optional progress callback. Fired when the explorer transitions between
+   * Optional progress callback. Fired when the drafter transitions between
    * coarse phases. Only called on transitions — `"reading"` is the initial
    * state and the callback does not fire until the first transition from it.
    */
   onProgress?: (phase: "reading" | "shaping" | "finalizing") => void;
   /**
-   * Sub-agent transparency handle. When provided, the explorer emits
+   * Sub-agent transparency handle. When provided, the drafter emits
    * step_started / step_settled events on each tool_call / tool_result, and
    * calls setLabel on phase transitions. When absent (test stubs without a
    * full engine), all emissions are no-ops — existing tests pass unchanged.
@@ -61,42 +61,42 @@ export interface RunConceptExplorerInput {
   subAgentHandle?: SubAgentHandle;
   /**
    * Optional AbortSignal from the parent engine turn. When the user clicks Stop,
-   * the parent session aborts this signal; the explorer propagates it into its
+   * the parent session aborts this signal; the drafter propagates it into its
    * own engine session so tool calls stop as quickly as the engine allows.
    *
    * Threading chain:
-   *   parent send(signal) → ctx.signal → runConceptExplorer({ signal })
+   *   parent send(signal) → ctx.signal → runConceptDrafter({ signal })
    *     → session.send(initialMessage, signal) → sub-agent adapter abort
    *
-   * If the signal is already aborted before the explorer opens a session, the
+   * If the signal is already aborted before the drafter opens a session, the
    * function returns immediately with `{ ok: false, reason: "interrupted" }`.
    */
   signal?: AbortSignal;
 }
 
-export interface RunConceptExplorerResult {
+export interface RunConceptDrafterResult {
   ok: boolean;
-  /** Always present when the explorer reached a state where a draft existed. */
+  /** Always present when the drafter reached a state where a draft existed. */
   draftId?: string;
-  /** Compact view of the draft as it stood when the explorer exited. */
+  /** Compact view of the draft as it stood when the drafter exited. */
   summary?: DraftSummary;
   /**
-   * True if the explorer ran out of budget mid-build. The tutor uses this to
+   * True if the drafter ran out of budget mid-build. The tutor uses this to
    * offer continuation rather than narrating it as a failure — partial work is
    * preserved and the same draftId can be passed to a follow-up
    * `course.start_exploration` call.
    */
   exhaustedBudget?: boolean;
-  /** Reason the explorer ended without producing a usable draft. */
+  /** Reason the drafter ended without producing a usable draft. */
   reason?: "no_draft_init" | "engine_error" | "interrupted";
   stepsUsed: number;
 }
 
 /**
- * Drive the concept-explorer agent in a fresh isolated engine session.
+ * Drive the concept-drafter agent in a fresh isolated engine session.
  *
  * Lifecycle:
- *   1. Open EngineSession with EXPLORER_SYSTEM_PROMPT and a scoped tool registry.
+ *   1. Open EngineSession with DRAFTER_SYSTEM_PROMPT and a scoped tool registry.
  *   2. send() the initial user message (course params + document list +
  *      either "create a fresh draft" or "continue draft <id>").
  *   3. The SDK loops internally across many tool calls inside that single send.
@@ -115,14 +115,14 @@ export interface RunConceptExplorerResult {
  * `BootstrapServiceImpl.confirmDraft` so the tutor sees structured issues at
  * confirm time rather than via a separate ritual.
  */
-export async function runConceptExplorer(
-  input: RunConceptExplorerInput,
-): Promise<RunConceptExplorerResult> {
+export async function runConceptDrafter(
+  input: RunConceptDrafterInput,
+): Promise<RunConceptDrafterResult> {
   // Early-abort: if the signal is already fired before we even open a session,
   // return immediately without touching the engine. This avoids opening a
   // subprocess / network connection that would be torn down immediately.
   if (input.signal?.aborted) {
-    input.log.info("explorer.aborted_before_open", {});
+    input.log.info("drafter.aborted_before_open", {});
     return { ok: false, reason: "interrupted", stepsUsed: 0 };
   }
 
@@ -130,7 +130,7 @@ export async function runConceptExplorer(
   // up front so the first draft-mutation tool call (which won't be draft_init)
   // already knows which draft to mutate.
   //
-  // We also pin `courseDocumentIds` to the explorer's `documentIds` so that
+  // We also pin `courseDocumentIds` to the drafter's `documentIds` so that
   // retrieval tools (specifically `retrieve_from_documents`) hard-scope to
   // exactly the documents the tutor passed in. Without this, retrieval falls
   // back to "search the whole student library" in bootstrap mode (no course in
@@ -138,26 +138,26 @@ export async function runConceptExplorer(
   // happens to have uploaded. The fence is enforced server-side; the model
   // doesn't need to remember to pass documentIds on every call.
   //
-  // parentSessionId: thread the parent (tutor) session's id into the explorer's
+  // parentSessionId: thread the parent (tutor) session's id into the drafter's
   // context so that sub-agent tools (draft_init, list_library_documents) can
-  // operate on the correct session scope. The explorer's own session id is
+  // operate on the correct session scope. The drafter's own session id is
   // irrelevant for scoping — S1 (tutor) is the scope owner.
-  const explorerContext = {
+  const drafterContext = {
     ...input.baseContext,
     courseDocumentIds: [...input.documentIds],
     parentSessionId: input.baseContext.sessionId,
   } as unknown as ToolContext;
   if (input.draftId !== undefined) {
-    (explorerContext as { draftId?: string }).draftId = input.draftId;
+    (drafterContext as { draftId?: string }).draftId = input.draftId;
   }
   const registry = new InProcessToolRegistry({
     tools: input.toolDefinitions,
-    context: explorerContext,
-    log: input.log.child({ component: "explorer-tools" }),
+    context: drafterContext,
+    log: input.log.child({ component: "drafter-tools" }),
   });
 
   const session = await input.engine.open({
-    systemPrompt: EXPLORER_SYSTEM_PROMPT,
+    systemPrompt: DRAFTER_SYSTEM_PROMPT,
     tools: registry,
     maxSteps: input.maxSteps ?? 30,
   });
@@ -182,13 +182,13 @@ export async function runConceptExplorer(
 
   const initialMessage = buildInitialMessage(input);
 
-  // Every event the explorer emits is logged at debug level with a small
-  // fingerprint so dev runs have a paper trail. The explorer's tool calls
+  // Every event the drafter emits is logged at debug level with a small
+  // fingerprint so dev runs have a paper trail. The drafter's tool calls
   // happen inside an isolated InProcessToolRegistry — they never reach the
-  // parent session's episodic log, so without this, a stuck explorer is
+  // parent session's episodic log, so without this, a stuck drafter is
   // completely opaque from the outside.
-  const explorerLog = input.log.child({ component: "explorer" });
-  explorerLog.info("explorer.start", {
+  const drafterLog = input.log.child({ component: "drafter" });
+  drafterLog.info("drafter.start", {
     courseTitle: input.courseTitle,
     subject: input.subject,
     gradeLevel: input.gradeLevel,
@@ -210,7 +210,7 @@ export async function runConceptExplorer(
       if (input.signal?.aborted) break;
       if (ev.type === "tool_call") {
         stepsUsed++;
-        explorerLog.debug("explorer.tool_call", {
+        drafterLog.debug("drafter.tool_call", {
           step: stepsUsed,
           toolName: ev.toolName,
           callId: ev.callId,
@@ -238,7 +238,7 @@ export async function runConceptExplorer(
         }
       }
       if (ev.type === "tool_result") {
-        explorerLog.debug("explorer.tool_result", {
+        drafterLog.debug("drafter.tool_result", {
           step: stepsUsed,
           callId: ev.callId,
           ok: ev.result.ok,
@@ -255,7 +255,7 @@ export async function runConceptExplorer(
           if (typeof value.draftId === "string" && draftId === undefined) {
             draftId = value.draftId;
             registry.setContextField("draftId", draftId);
-            explorerLog.info("explorer.draft_init_captured", { draftId });
+            drafterLog.info("drafter.draft_init_captured", { draftId });
           }
           // Per-unit progress label: each successful draft_add_unit call updates
           // the sub-agent label so the bootstrap tab shows "unit N drafted"
@@ -267,17 +267,17 @@ export async function runConceptExplorer(
         }
       }
       if (ev.type === "model_message") {
-        // The explorer prompt says "tool calls only", but the model still
+        // The drafter prompt says "tool calls only", but the model still
         // narrates briefly between calls. Log a truncated snippet so we can
         // see the model's reasoning when debugging a stalled run.
-        explorerLog.debug("explorer.model_message", {
+        drafterLog.debug("drafter.model_message", {
           partial: ev.partial === true,
           chars: ev.content.length,
           preview: ev.content.length > 0 ? ev.content.slice(0, 200) : undefined,
         });
       }
       if (ev.type === "error") {
-        input.log.warn("explorer.engine_error", { err: ev.error.message });
+        input.log.warn("drafter.engine_error", { err: ev.error.message });
         return {
           ok: false,
           reason: "engine_error",
@@ -288,7 +288,7 @@ export async function runConceptExplorer(
       if (ev.type === "final") {
         if (ev.finalReason !== undefined) engineFinalReason = ev.finalReason;
         if (ev.errorMessage !== undefined) engineErrorMessage = ev.errorMessage;
-        explorerLog.debug("explorer.final", {
+        drafterLog.debug("drafter.final", {
           finalReason: ev.finalReason ?? "success",
           ...(ev.errorMessage !== undefined && { errorMessage: ev.errorMessage }),
         });
@@ -302,7 +302,7 @@ export async function runConceptExplorer(
   // Return interrupted regardless of draft state — partial work is preserved
   // (draftId is carried so the tutor can surface it as a continuation offer).
   if (input.signal?.aborted) {
-    explorerLog.info("explorer.exit", { outcome: "interrupted", stepsUsed });
+    drafterLog.info("drafter.exit", { outcome: "interrupted", stepsUsed });
     return {
       ok: false,
       reason: "interrupted",
@@ -314,32 +314,32 @@ export async function runConceptExplorer(
   // No draft was ever created — nothing to continue from.
   if (draftId === undefined) {
     if (engineFinalReason === "generation_error" || engineFinalReason === "interrupted") {
-      input.log.warn("explorer.engine_terminal_error", {
+      input.log.warn("drafter.engine_terminal_error", {
         reason: engineFinalReason,
         err: engineErrorMessage,
       });
-      explorerLog.info("explorer.exit", { outcome: "engine_error", stepsUsed });
+      drafterLog.info("drafter.exit", { outcome: "engine_error", stepsUsed });
       return { ok: false, reason: "engine_error", stepsUsed };
     }
-    explorerLog.info("explorer.exit", { outcome: "no_draft_init", stepsUsed });
+    drafterLog.info("drafter.exit", { outcome: "no_draft_init", stepsUsed });
     return { ok: false, reason: "no_draft_init", stepsUsed };
   }
 
   // A draft exists — the run "succeeded" regardless of how complete it is.
   // The tutor decides whether to continue (call again with this draftId),
   // confirm, or discard. Surface `exhaustedBudget` so the tutor can offer
-  // continuation when the explorer ran short.
+  // continuation when the drafter ran short.
   const exhaustedBudget = engineFinalReason === "max_turns" || stepsUsed >= (input.maxSteps ?? 30);
   if (exhaustedBudget && engineErrorMessage !== undefined) {
-    input.log.warn("explorer.exhausted_budget", { err: engineErrorMessage });
+    input.log.warn("drafter.exhausted_budget", { err: engineErrorMessage });
   }
 
   // Build the summary from live draft state via the bootstrap service. We
-  // reach in through the base context's services bag — the explorer's
+  // reach in through the base context's services bag — the drafter's
   // ToolContext shares the same service references as the calling tutor's.
   const summary = await summarizeFromContext(input.baseContext, draftId);
 
-  explorerLog.info("explorer.exit", {
+  drafterLog.info("drafter.exit", {
     outcome: "ok",
     draftId,
     stepsUsed,
@@ -431,7 +431,7 @@ function fingerprintResult(result: {
 }
 
 /**
- * Look up the bootstrap service via the explorer's base context (which carries
+ * Look up the bootstrap service via the drafter's base context (which carries
  * the same services bag the tutor uses) and return a DraftSummary. Returns
  * null if the draft is gone or the bootstrap service isn't wired (e.g. test
  * stubs that skip it).
@@ -445,7 +445,7 @@ async function summarizeFromContext(
   return bootstrap.summarize(draftId);
 }
 
-function buildInitialMessage(input: RunConceptExplorerInput): string {
+function buildInitialMessage(input: RunConceptDrafterInput): string {
   const budget = input.maxSteps ?? 30;
   const pacingThreshold = Math.floor(budget * 0.8);
   const lines = [
@@ -456,7 +456,7 @@ function buildInitialMessage(input: RunConceptExplorerInput): string {
     `Tool-call budget: ${budget} steps. If you reach step ${pacingThreshold}, stop adding new content — you'll be allowed to resume on a follow-up call if needed.`,
   ];
   // Tutor instructions block. Surfaced verbatim and clearly attributed so the
-  // explorer treats it as authoritative narrowing on top of the structured
+  // drafter treats it as authoritative narrowing on top of the structured
   // fields above. Trimmed but otherwise untouched.
   if (input.instructions !== undefined && input.instructions.trim().length > 0) {
     lines.push(

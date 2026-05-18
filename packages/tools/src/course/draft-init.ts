@@ -22,8 +22,8 @@ export const draftInitTool: ToolDefinition<typeof InputSchema, typeof OutputSche
   tier: "grounded",
   effects: ["artifact.mutate"],
   async handler(args, ctx: ToolContext) {
-    // parentSessionId is set by the explorer harness (runConceptExplorer) to the
-    // tutor session (S1). ctx.sessionId here is the explorer's own sub-session
+    // parentSessionId is set by the drafter harness (runConceptDrafter) to the
+    // tutor session (S1). ctx.sessionId here is the drafter's own sub-session
     // (S2), which is not the scope owner. Fall back to ctx.sessionId for any
     // non-sub-agent invocation (e.g., direct tool dispatch in tests).
     const parentSessionId = ctx.parentSessionId ?? ctx.sessionId;

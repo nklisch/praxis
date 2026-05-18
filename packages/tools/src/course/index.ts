@@ -1,5 +1,5 @@
 // Note: `startExplorationTool` is intentionally NOT re-exported from this
-// barrel. It imports `runConceptExplorer` from `@praxis/curriculum/bootstrap`,
+// barrel. It imports `runConceptDrafter` from `@praxis/curriculum/bootstrap`,
 // which makes any consumer that grabs it via this barrel pull in curriculum —
 // and curriculum's own tests then load `@praxis/tools/course` while it's
 // already partially loaded, leaving some tool bindings undefined.
@@ -85,7 +85,7 @@ export const COURSE_TOOLS = [
   startLessonTool,
   currentConceptTool,
   markStudiedTool,
-  // Bootstrap draft mutation tools (the explorer entry point lives in a
+  // Bootstrap draft mutation tools (the drafter entry point lives in a
   // separate file — see top-of-file note).
   // All add-many tools take arrays — pass a length-1 array to add a single
   // item. There are no singular variants.

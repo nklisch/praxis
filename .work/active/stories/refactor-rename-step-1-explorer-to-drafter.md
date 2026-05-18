@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-1-explorer-to-drafter
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, naming]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: []
@@ -144,3 +144,50 @@ export { DRAFTER_SYSTEM_PROMPT } from "./drafter-prompt.js";
 
 `git revert <commit>` cleanly reverses the file renames and symbol changes. No
 DB, no IPC, no external API affected.
+
+## Implementation Notes
+
+**File renames (4 total):**
+- `packages/curriculum/src/bootstrap/explorer.ts` → `drafter.ts`
+- `packages/curriculum/src/bootstrap/explorer-prompt.ts` → `drafter-prompt.ts`
+- `packages/curriculum/src/bootstrap/__tests__/explorer.test.ts` → `drafter.test.ts`
+- `.mockups/flows/course-create-entry/03-explorer-running.html` → `03-drafter-running.html`
+  - Also updated `index.html` in the same flow to reference `03-drafter-running.html`
+
+**Symbol renames (4 exported symbols):**
+- `runConceptExplorer` → `runConceptDrafter` (function)
+- `RunConceptExplorerInput` → `RunConceptDrafterInput` (interface)
+- `RunConceptExplorerResult` → `RunConceptDrafterResult` (interface)
+- `EXPLORER_SYSTEM_PROMPT` → `DRAFTER_SYSTEM_PROMPT` (const)
+
+**Log key renames (11 strings in drafter.ts):**
+All `"explorer.<event>"` log keys flipped to `"drafter.<event>"`.
+`component: "explorer"` → `component: "drafter"`.
+`component: "explorer-tools"` → `component: "drafter-tools"`.
+Local variable `explorerContext` → `drafterContext`, `explorerLog` → `drafterLog`.
+
+**Files edited (not renamed):**
+- `packages/curriculum/src/bootstrap/index.ts` — barrel updated
+- `packages/tools/src/course/start-exploration.ts` — import + handler body refs updated; internal variable `explorerToolDefs` → `drafterToolDefs`; `"explorer error"` fallback message → `"drafter error"`
+- `packages/tools/src/course/index.ts` — comment updated
+- `packages/tools/src/course/draft-init.ts` — comment updated
+- `packages/core/src/types/tool.ts` — doc comment updated
+- `packages/ui/src/lib/copy.ts` — one user-facing string updated
+
+**Unexpected matches found and handled:**
+- `packages/core/src/types/tool.ts` line 156 and `packages/tools/src/course/draft-init.ts` line 25 had comment references to `runConceptExplorer` — both updated.
+- `packages/tools/src/course/__tests__/start-exploration.test.ts` uses the `@praxis/curriculum/bootstrap` exports via dist. The dist was rebuilt (`pnpm build`) to make the tests pass.
+
+**Grep results (post-rename):**
+```
+grep -rn "runConceptExplorer|RunConceptExplorerInput|RunConceptExplorerResult|EXPLORER_SYSTEM_PROMPT" packages/ --include="*.ts" --include="*.tsx" | grep -v dist
+# → no results
+
+grep -rn '"explorer\.' packages/curriculum/src/bootstrap/drafter.ts
+# → no results
+```
+
+**Verification:**
+- `pnpm typecheck` — all 9 affected packages pass (pre-existing desktop errors unrelated to this rename)
+- `pnpm test` — 419 test files passed (4481 tests), 0 failures from this rename
+- `pnpm lint` — our changed `.ts` files are lint-clean; 524 pre-existing errors are all in `.mockups/` HTML files

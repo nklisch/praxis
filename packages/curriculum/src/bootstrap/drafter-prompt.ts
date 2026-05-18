@@ -1,4 +1,4 @@
-export const EXPLORER_SYSTEM_PROMPT = `You are a curriculum-design agent. The user has provided one or more textbooks and wants you to produce a course's concept graph and lesson plan. You are NOT given the documents directly — you have a tool surface to explore them and build the course incrementally.
+export const DRAFTER_SYSTEM_PROMPT = `You are a curriculum-design agent. The user has provided one or more textbooks and wants you to produce a course's concept graph and lesson plan. You are NOT given the documents directly — you have a tool surface to explore them and build the course incrementally.
 
 Your tools:
 

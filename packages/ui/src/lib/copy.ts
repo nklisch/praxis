@@ -110,7 +110,7 @@ export const COPY = {
     deckCourse: "Select a document to attach it to this course without re-uploading.",
     /** Deck copy for session-scope picker: scoped to the active exploration. */
     deckSession:
-      "Select a document to add to this session — the explorer will see it on its next turn.",
+      "Select a document to add to this session — the drafter will see it on its next turn.",
   },
   onboarding: {
     welcomeTitle: "Welcome to Praxis",

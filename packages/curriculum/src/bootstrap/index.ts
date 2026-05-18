@@ -1,3 +1,3 @@
-export type { RunConceptExplorerInput, RunConceptExplorerResult } from "./explorer.js";
-export { runConceptExplorer } from "./explorer.js";
-export { EXPLORER_SYSTEM_PROMPT } from "./explorer-prompt.js";
+export type { RunConceptDrafterInput, RunConceptDrafterResult } from "./drafter.js";
+export { runConceptDrafter } from "./drafter.js";
+export { DRAFTER_SYSTEM_PROMPT } from "./drafter-prompt.js";

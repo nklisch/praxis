@@ -1,6 +1,6 @@
 import type { ToolContext, ToolDefinition } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { runConceptExplorer } from "@praxis/curriculum/bootstrap";
+import { runConceptDrafter } from "@praxis/curriculum/bootstrap";
 import { z } from "zod";
 import { documentListSectionsTool } from "../document/list-sections.js";
 import { documentOutlineTool } from "../document/outline.js";
@@ -115,7 +115,7 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
       });
     }
 
-    const explorerToolDefs = [
+    const drafterToolDefs = [
       // Read-only exploration tools.
       retrieveFromDocumentsTool,
       documentOutlineTool,
@@ -163,10 +163,10 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
       detail: args.draftId !== undefined ? "reading prior draft" : "reading materials",
     });
 
-    const result = await runConceptExplorer({
+    const result = await runConceptDrafter({
       engine,
       baseContext: ctx,
-      toolDefinitions: explorerToolDefs,
+      toolDefinitions: drafterToolDefs,
       documentIds: args.documentIds.map((id) => brandId<"DocumentId">(id)),
       courseTitle: args.courseTitle,
       subject: args.subject,
@@ -185,7 +185,7 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
               ? "shaping the course"
               : "finalizing";
         actHandle?.update({ detail });
-        // Sub-agent label updates are emitted inside the explorer's loop via
+        // Sub-agent label updates are emitted inside the drafter's loop via
         // subAgentHandle.setLabel() on phase transitions (reading/shaping/finalizing).
         // The onProgress callback here drives the activity rail detail; the sub-agent
         // handle drives the inline sub-agent block label.
@@ -193,10 +193,10 @@ export const startExplorationTool: ToolDefinition<typeof InputSchema, typeof Out
     });
 
     subHandle?.finish(result.ok ? "done" : "failed", {
-      message: result.ok ? "done" : (result.reason ?? "explorer error"),
+      message: result.ok ? "done" : (result.reason ?? "drafter error"),
     });
     actHandle?.finish(result.ok ? "done" : "failed", {
-      message: result.ok ? "done" : (result.reason ?? "explorer error"),
+      message: result.ok ? "done" : (result.reason ?? "drafter error"),
     });
 
     if (result.ok && result.draftId !== undefined) {
