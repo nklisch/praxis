@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-bootstrap-and-explorer
 kind: feature
-stage: review
+stage: done
 tags: [refactor, naming, curriculum, tools]
 parent: null
 depends_on: []
@@ -518,3 +518,26 @@ All 5 child stories implemented and advanced to `stage: review`. Total of
 - Historical `.work/archive/`, `.work/releases/`, `docs/designs/`, migration SQL — substrate / phase history.
 - The electron `bootstrap()` lifecycle function in `packages/desktop/electron/main/index.ts` (generic CS usage).
 
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (epic-style aggregate review — children were reviewed individually)
+
+**Blockers**: none
+**Important**: 1 — pre-existing typecheck baseline parked as `idea-fix-exactoptional-typecheck-baseline` in the backlog. Not caused by this refactor; surfaced as adjacent tech debt during verification.
+**Nits**: none
+
+**Aggregate lens findings**:
+
+- **Design alignment**: 5-step decomposition matched the brief's surface area. Each step's atomicity was respected (Step 3's wire+DB; Step 4's IPC+config migration). The naming-convention override (`course-create` hyphen, `courseCreate` camelCase for IPC) is documented and applied consistently across all 5 children.
+- **Foundation-doc alignment**: Step 5 rolled docs forward in place. No assertion left invalidated; the docs now describe the renamed system. Zero "previously" prose violations.
+- **Breaking changes (cross-cutting)**: Tool name, mode id, IPC channel, service/config/hook/component/type names — all internal to the Praxis app. No external API affected; no consumer outside the workspace depends on these names.
+- **Capability completeness**: The student flow (`/course-create` → drafter explores → drafts a course shape → confirm) is behaviorally unchanged. Workspace tests (4481 passing) and the smoke-test path are intact. Users see "Create a course" / "Praxis is drafting" framing consistently from UI down through model-facing tool descriptions.
+
+**Notes**:
+
+Out of scope as intentionally documented in the feature body — `.work/archive/`, `.work/releases/`, `docs/designs/phase-16-bootstrap-explorer.md` retain bootstrap naming as substrate/phase history. The electron `bootstrap()` lifecycle function and a few CS-sense "bootstrap" mentions in CONTRACT.md / ARCHITECTURE.md were preserved as Category B.
+
+The 3 pre-existing `exactOptionalPropertyTypes` errors in `chat-tab-body.tsx`, `chat.tsx`, and `notes-list.tsx` are tech debt unrelated to this refactor — parked as a backlog story for a future stride. Filing it during this review keeps the work visible without scope-creeping the rename feature.
+
+Feature advanced `review → done`. The five child stories advanced earlier in this run. The rename refactor is complete; future code and docs work from a single course-create / drafter vocabulary.
