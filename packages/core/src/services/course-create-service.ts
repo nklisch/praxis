@@ -42,6 +42,9 @@ import type {
 import { brandId } from "../types/index.js";
 import { type DraftStore, SqliteDraftStore } from "./draft-store.js";
 
+/** Normalize a concept name for case-insensitive set/map membership checks. */
+const normalizeConceptName = (name: string): string => name.trim().toLowerCase();
+
 export interface Issue {
   kind: string;
   message: string;
@@ -219,8 +222,8 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: true; conceptCount: number } | { ok: false; reason: string }> {
     const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const lower = input.name.trim().toLowerCase();
-    if (d.proposed.proposedConcepts.some((c) => c.name.trim().toLowerCase() === lower)) {
+    const lower = normalizeConceptName(input.name);
+    if (d.proposed.proposedConcepts.some((c) => normalizeConceptName(c.name) === lower)) {
       return { ok: false, reason: `concept "${input.name}" already exists` };
     }
     d.proposed.proposedConcepts.push({
@@ -240,22 +243,22 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: boolean; reason?: string }> {
     const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const lower = input.name.trim().toLowerCase();
+    const lower = normalizeConceptName(input.name);
     const before = d.proposed.proposedConcepts.length;
     d.proposed.proposedConcepts = d.proposed.proposedConcepts.filter(
-      (c) => c.name.trim().toLowerCase() !== lower,
+      (c) => normalizeConceptName(c.name) !== lower,
     );
     if (d.proposed.proposedConcepts.length === before) {
       return { ok: false, reason: `concept "${input.name}" not found` };
     }
     // Remove edges referencing this concept.
     d.proposed.proposedEdges = d.proposed.proposedEdges.filter(
-      (e) => e.fromName.trim().toLowerCase() !== lower && e.toName.trim().toLowerCase() !== lower,
+      (e) => normalizeConceptName(e.fromName) !== lower && normalizeConceptName(e.toName) !== lower,
     );
     // Remove concept from lessons.
     d.proposed.proposedLessons = d.proposed.proposedLessons.map((l) => ({
       ...l,
-      conceptNames: l.conceptNames.filter((n) => n.trim().toLowerCase() !== lower),
+      conceptNames: l.conceptNames.filter((n) => normalizeConceptName(n) !== lower),
     }));
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
@@ -272,9 +275,9 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
     const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const known = new Set(d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
-    const fromLower = input.fromName.trim().toLowerCase();
-    const toLower = input.toName.trim().toLowerCase();
+    const known = new Set(d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)));
+    const fromLower = normalizeConceptName(input.fromName);
+    const toLower = normalizeConceptName(input.toName);
     if (!known.has(fromLower))
       return { ok: false, reason: `concept "${input.fromName}" not found` };
     if (!known.has(toLower)) return { ok: false, reason: `concept "${input.toName}" not found` };
@@ -282,7 +285,8 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     // Check duplicate edge.
     const exists = d.proposed.proposedEdges.some(
       (e) =>
-        e.fromName.trim().toLowerCase() === fromLower && e.toName.trim().toLowerCase() === toLower,
+        normalizeConceptName(e.fromName) === fromLower &&
+        normalizeConceptName(e.toName) === toLower,
     );
     if (exists) return { ok: false, reason: "edge already exists" };
     d.proposed.proposedEdges.push({
@@ -307,9 +311,9 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: true; lessonIndex: number } | { ok: false; reason: string }> {
     const d = this.store.load(input.draftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const known = new Set(d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
+    const known = new Set(d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)));
     for (const cn of input.conceptNames) {
-      if (!known.has(cn.trim().toLowerCase())) {
+      if (!known.has(normalizeConceptName(cn))) {
         return { ok: false, reason: `concept "${cn}" not found — add it first` };
       }
     }
@@ -369,10 +373,10 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     }
     if (input.summative) {
       const knownConcepts = new Set(
-        d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()),
+        d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)),
       );
       for (const cn of input.summative.conceptNames) {
-        if (!knownConcepts.has(cn.trim().toLowerCase())) {
+        if (!knownConcepts.has(normalizeConceptName(cn))) {
           return {
             ok: false,
             reason: `summative references unknown concept "${cn}" — add it first`,
@@ -441,10 +445,10 @@ export class CourseCreateServiceImpl implements CourseCreateService {
       };
     }
     const knownConcepts = new Set(
-      d.proposed.proposedConcepts.map((c) => c.name.trim().toLowerCase()),
+      d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)),
     );
     for (const cn of input.conceptNames) {
-      if (!knownConcepts.has(cn.trim().toLowerCase())) {
+      if (!knownConcepts.has(normalizeConceptName(cn))) {
         return { ok: false, reason: `concept "${cn}" not found in draft — add it first` };
       }
     }
@@ -943,7 +947,7 @@ function validateProposed(p: ProposedCourse): Issue[] {
 
   // Phase 16: validate units.
   const knownLessons = new Set(p.proposedLessons.map((l) => l.draftLessonId));
-  const knownLower = new Set(p.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
+  const knownLower = new Set(p.proposedConcepts.map((c) => normalizeConceptName(c.name)));
   for (const unit of p.proposedUnits ?? []) {
     for (const id of unit.draftLessonIds) {
       if (!knownLessons.has(id)) {
@@ -955,7 +959,7 @@ function validateProposed(p: ProposedCourse): Issue[] {
     }
     if (unit.summative) {
       for (const cn of unit.summative.conceptNames) {
-        if (!knownLower.has(cn.trim().toLowerCase())) {
+        if (!knownLower.has(normalizeConceptName(cn))) {
           issues.push({
             kind: "assessment_unknown_concept",
             message: `unit "${unit.name}" summative references unknown concept "${cn}"`,
@@ -974,7 +978,7 @@ function validateProposed(p: ProposedCourse): Issue[] {
       });
     }
     for (const cn of la.conceptNames) {
-      if (!knownLower.has(cn.trim().toLowerCase())) {
+      if (!knownLower.has(normalizeConceptName(cn))) {
         issues.push({
           kind: "assessment_unknown_concept",
           message: `lesson assessment "${la.title}" references unknown concept "${cn}"`,
@@ -1177,9 +1181,9 @@ function applyEdit(p: ProposedCourse, op: DraftEditOp): EditResult {
     }
 
     case "add-edge": {
-      const known = new Set(p.proposedConcepts.map((c) => c.name.trim().toLowerCase()));
-      const fromLower = op.fromName.trim().toLowerCase();
-      const toLower = op.toName.trim().toLowerCase();
+      const known = new Set(p.proposedConcepts.map((c) => normalizeConceptName(c.name)));
+      const fromLower = normalizeConceptName(op.fromName);
+      const toLower = normalizeConceptName(op.toName);
       if (!known.has(fromLower))
         throw new Error(`add-edge: concept "${op.fromName}" not found in draft`);
       if (!known.has(toLower))
@@ -1187,8 +1191,8 @@ function applyEdit(p: ProposedCourse, op: DraftEditOp): EditResult {
       if (fromLower === toLower) throw new Error("add-edge: self-edges are not allowed");
       const duplicate = p.proposedEdges.some(
         (e) =>
-          e.fromName.trim().toLowerCase() === fromLower &&
-          e.toName.trim().toLowerCase() === toLower,
+          normalizeConceptName(e.fromName) === fromLower &&
+          normalizeConceptName(e.toName) === toLower,
       );
       if (duplicate)
         throw new Error(`add-edge: edge from "${op.fromName}" to "${op.toName}" already exists`);
