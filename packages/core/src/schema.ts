@@ -53,7 +53,7 @@ export const configuratorActions = sqliteTable(
 );
 
 /**
- * Durable per-student draft course state for the bootstrap explorer.
+ * Durable per-student draft course state for the drafter.
  * One row per in-flight draft. Indexed columns support student-scoped
  * list and stale-draft sweep; `state_json` carries the
  * `DraftCourseState` shape so the schema is stable as ProposedCourse

@@ -10,8 +10,8 @@
  *     inline (via the pane's own rendering layer — no extra wiring here).
  *
  * The canvas renders `ProposedUnit` groups with their lessons when the
- * explorer has produced unit scaffolding; it falls back to a flat lesson list
- * for pre-Phase-16 explorers.  `<LessonAssessmentPills>` decorates each lesson
+ * drafter has produced unit scaffolding; it falls back to a flat lesson list
+ * for pre-Phase-16 drafters.  `<LessonAssessmentPills>` decorates each lesson
  * row when proposed assessments are available.
  *
  * The "Add documents" affordance lives in the canvas header and opens
@@ -202,9 +202,9 @@ interface DraftCanvasProps {
 /**
  * Renders the live draft preview.
  *
- * When the explorer has produced unit scaffolding (`proposedUnits` is
+ * When the drafter has produced unit scaffolding (`proposedUnits` is
  * non-empty), renders units as titled blocks with their lesson rows inside.
- * Falls back to a flat lesson list for pre-Phase-16 explorers.
+ * Falls back to a flat lesson list for pre-Phase-16 drafters.
  */
 function DraftCanvas({ proposed }: DraftCanvasProps): JSX.Element {
   const units = proposed.proposedUnits ?? [];

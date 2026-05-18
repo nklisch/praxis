@@ -78,7 +78,7 @@ export class InProcessToolRegistry implements ToolRegistry {
 
   /**
    * Phase 16: mutate a single field on the bound ToolContext after construction.
-   * Used by the explorer to inject `draftId` once `draft_init` returns it, so
+   * Used by the drafter to inject `draftId` once `draft_init` returns it, so
    * subsequent draft-mutation tools see it without the model threading it
    * explicitly through every arg.
    */

@@ -75,7 +75,7 @@ export class ClaudeCodeEngine implements Engine {
         // turn cap is always set via maxTurns (see above), and explicit
         // cancellation flows through `signal` → `conv.abort()` in
         // `ClaudeCodeEngineSession.send`. The SDK's 10-minute default would
-        // kill legitimate long-running turns — notably the bootstrap explorer
+        // kill legitimate long-running turns — notably the drafter
         // reading large textbook bundles — producing a CLITimeoutError that
         // the student sees as an opaque failure mid-course-build.
         timeout: 0,

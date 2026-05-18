@@ -598,8 +598,8 @@ export interface LessonAssessment {
 
 /**
  * Aggregate description of a course's assessment scaffold. Stored as
- * JSON on the courses row. Written by persistDraft when the bootstrap
- * explorer produces a plan; immutable after that except via configure-mode.
+ * JSON on the courses row. Written by persistDraft when the drafter produces a
+ * plan; immutable after that except via configure-mode.
  */
 export interface AssessmentPlan {
   perLesson: {
@@ -658,16 +658,16 @@ export interface ProposedCourse {
   proposedLessons: ProposedLesson[];
   /**
    * Phase 16: proposed unit groupings.
-   * Empty array for pre-16 explorers that don't produce unit scaffolding.
+   * Empty array for pre-16 drafters that don't produce unit scaffolding.
    * Defaults to `[]` at call sites; required at persist time if an assessment plan is set.
    */
   proposedUnits?: ProposedUnit[];
   /**
-   * Phase 16: per-lesson assessment schedules proposed by the explorer.
-   * Each entry maps a lesson to an assessment shell. Empty for pre-16 explorers.
+   * Phase 16: per-lesson assessment schedules proposed by the drafter.
+   * Each entry maps a lesson to an assessment shell. Empty for pre-16 drafters.
    */
   proposedLessonAssessments?: ProposedLessonAssessmentEntry[];
-  /** Phase 16: proposed assessment plan. Optional; absent for pre-16 explorers. */
+  /** Phase 16: proposed assessment plan. Optional; absent for pre-16 drafters. */
   assessmentPlan?: AssessmentPlan;
 }
 
@@ -683,7 +683,7 @@ export interface ProposedLessonAssessmentEntry extends ProposedAssessment {
 }
 
 /**
- * A unit as proposed by the bootstrap explorer before IDs are assigned.
+ * A unit as proposed by the drafter before IDs are assigned.
  * `draftLessonIds` reference `ProposedLesson.draftLessonId` values within the
  * same `ProposedCourse.proposedLessons` array.
  */
@@ -699,7 +699,7 @@ export interface ProposedUnit {
 }
 
 /**
- * An assessment scheduled by the explorer before items are authored.
+ * An assessment scheduled by the drafter before items are authored.
  * Items are filled in by the tutor or configurator before the student takes it.
  */
 export interface ProposedAssessment {
@@ -740,7 +740,7 @@ export interface DraftCourseState {
   expiresAt: Timestamp;
   /**
    * Phase 16 (bootstrap-session-scoped-attachment): the parent bootstrap session
-   * id (S1 — the tutor session that invoked start_drafting, NOT the explorer
+   * id (S1 — the tutor session that invoked start_drafting, NOT the drafter
    * sub-agent's own session). Stored here so confirmDraft can promote
    * session-scope document rows to course-scope via documentScopes.promoteScope.
    *
@@ -759,7 +759,7 @@ export interface DraftSummary {
   edgeCount: number;
   /** First 5 lessons for the agent to narrate. */
   firstLessons: Array<{ title: string; conceptCount: number }>;
-  /** Phase 16: number of proposed units in the draft (0 for pre-16 explorers). */
+  /** Phase 16: number of proposed units in the draft (0 for pre-16 drafters). */
   unitCount: number;
   /** Phase 16: total assessment shells scheduled (summatives + per-lesson). */
   assessmentCount: number;

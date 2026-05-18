@@ -8,7 +8,7 @@ export interface UseDraftsResult {
   /**
    * The draft most recently mutated — convenient for the bootstrap right-pane
    * outline, which only needs to render the active draft. Null until the
-   * explorer fires its first `draft_init`.
+   * drafter fires its first `draft_init`.
    */
   current: DraftCourseState | null;
 }

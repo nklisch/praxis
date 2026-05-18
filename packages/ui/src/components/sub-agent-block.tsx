@@ -18,7 +18,7 @@ export interface SubAgentBlockProps {
  * Inline marginalia block rendered in the chat thread when `course.start_drafting`
  * (or any other `spawnsSubAgent: true` tool) fires.
  *
- * Visual contract (per locked mock 03-explorer-running.html):
+ * Visual contract (per locked mock 03-drafter-running.html):
  * - Accent left-border, secondary background — marginalia posture.
  * - Mono kicker: `¶ sub-agent · {label} · {N} steps`.
  * - Pulse dot when running.

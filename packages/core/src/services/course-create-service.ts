@@ -165,8 +165,8 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }
 
   /**
-   * Phase 16: create a new draft up-front (before the explorer has any concepts
-   * to add). Used by the explorer's draft_init tool.
+   * Phase 16: create a new draft up-front (before the drafter has any concepts
+   * to add). Used by the drafter's draft_init tool.
    *
    * `sessionId` is the PARENT bootstrap session id (S1 — the tutor session that
    * invoked start_drafting). It is stored on the draft so that confirmDraft
@@ -496,7 +496,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
 
   /**
    * Build a compact summary of the live draft. Returns null if the draft is
-   * gone (expired or never existed). Used by the explorer to surface partial
+   * gone (expired or never existed). Used by the drafter to surface partial
    * progress to the tutor without forcing a "finalize" ritual, and by the
    * tutor's UI to render quick metrics.
    */

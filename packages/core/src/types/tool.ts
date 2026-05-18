@@ -122,9 +122,9 @@ export interface ToolContext {
    */
   courseDocumentIds?: DocumentId[];
   /**
-   * Phase 16: present only inside the explorer agent's isolated session.
+   * Phase 16: present only inside the drafter agent's isolated session.
    * The draft-mutation tools read it to know which draft to mutate. Outside
-   * the explorer, this is undefined.
+   * the drafter, this is undefined.
    */
   draftId?: string;
   /**

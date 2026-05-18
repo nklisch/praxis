@@ -42,7 +42,7 @@ export const DEFAULT_LOGGING_CONFIG: LoggingConfig = LoggingConfigSchema.parse({
  * The optional `isPackaged` argument flips a few defaults for dev:
  * when `isPackaged === false` and no stored value or env override is set,
  * `level` defaults to `"debug"` (so `pnpm dev` is loud by default — the only
- * way to diagnose engine adapter / explorer / IPC issues post hoc) and
+ * way to diagnose engine adapter / drafter / IPC issues post hoc) and
  * `fileEnabled` defaults to `true` so those records actually land on disk.
  * Packaged builds keep the quieter "info" + no-file defaults to honor
  * SPEC.md's "no telemetry by default".

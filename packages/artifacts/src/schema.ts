@@ -15,7 +15,7 @@ export const courses = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
     /**
      * Phase 16: serialized AssessmentPlan. Null for courses bootstrapped
-     * before Phase 16. Written by persistDraft when the explorer produces a
+     * before Phase 16. Written by persistDraft when the drafter produces a
      * plan; immutable after that except through configure-mode tooling.
      */
     assessmentPlanJson: text("assessment_plan_json", { mode: "json" }),

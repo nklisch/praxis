@@ -54,7 +54,7 @@ export const courseCreateMode: Mode = {
     "course.list_lessons_in_unit",
     "course.get_lesson_detail",
     "course.list_dangling_refs",
-    // Retrieval — for ad-hoc lookup by the tutor (NOT the explorer; explorer has its own registry)
+    // Retrieval — for ad-hoc lookup by the tutor (NOT the drafter; drafter has its own registry)
     "retrieve_from_documents",
     // Dialog — structured choice questions the model poses to the student
     "ask_student_question",

@@ -1,7 +1,7 @@
 ---
 id: cleanup-stale-explorer-comments-sweep
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup, docs]
 parent: null
 depends_on: []
@@ -74,6 +74,34 @@ the renamed code and user-facing language.
   where they don't reference the named agent.
 - Run `pnpm typecheck` after — comments don't affect compilation, but a
   stray edit might shift a multi-line string.
+
+### Sweep results
+
+**Files touched (13):**
+- `packages/artifacts/src/schema.ts` (1 comment)
+- `packages/core/src/schema.ts` (1 comment)
+- `packages/core/src/config/logging-config.ts` (1 comment)
+- `packages/core/src/services/course-create-service.ts` (3 comments)
+- `packages/core/src/types/artifacts.ts` (8 JSDoc comments)
+- `packages/core/src/types/tool.ts` (2 JSDoc lines)
+- `packages/curriculum/src/modes/course-create.ts` (1 comment)
+- `packages/engines/src/claude-code/adapter.ts` (1 comment)
+- `packages/tools/src/registry.ts` (1 comment)
+- `packages/tools/src/course/list-library-documents.ts` (2 comments)
+- `packages/ui/src/components/sub-agent-block.tsx` (1 comment — mockup filename ref updated to `03-drafter-running.html`)
+- `packages/ui/src/components/course-create-tab-body.tsx` (4 comments)
+- `packages/ui/src/hooks/use-drafts.ts` (1 comment)
+
+**Total comments rewritten:** 27
+
+**Non-comment residuals flagged (out of scope, separate cleanup):**
+- `packages/tools/src/course/use-canonical-pack.ts:25` — `description:` string literal in tool definition ("running the bootstrap explorer") — flows to the LLM at runtime. Intentionally left alone per comment-only scope.
+
+**Final sweep verification:**
+```
+grep -rn 'the explorer\|bootstrap explorer\|explorer agent\|explorer.s ' packages/ --include='*.ts' --include='*.tsx' | grep -v dist | grep -v node_modules | grep -v __tests__ | grep -v release | grep -v archive
+```
+Result: 1 match — only the runtime string in `use-canonical-pack.ts:25` (flagged above). Zero comment/JSDoc residuals.
 
 ## Acceptance Criteria
 
