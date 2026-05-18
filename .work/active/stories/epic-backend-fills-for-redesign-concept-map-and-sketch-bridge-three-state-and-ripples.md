@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge-three-state-and-ripples
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge
 depends_on: []
@@ -81,6 +81,19 @@ See parent feature
 
 - Sketch → concept-map conversion (separate story).
 - Ripple-computation indexing for large corpora (follow-up).
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `setNodeLink` sets `confidence: 0.0` for `best_guess` state — the original typeahead score is not preserved on the top-level field. The per-candidate `candidates[]` array retains confidence scores, so downstream logic can still read them. Acceptable.
+- `computeRipples` fetches all student notes in JS rather than using SQL JSON path queries; acknowledged in impl notes as v1 / acceptable for small corpora.
+- The `durationMinutes?: number | null` field on `Assignment` (in `artifacts.ts`) appears in this commit's diff but belongs to the `exam-timer` story. The field is correct and that story is already done — cosmetic cross-commit attribution quirk only.
+
+**Notes**: 69 new tests across 4 files (service, UI overlay, ripples panel, IPC harness) all green. Pre-existing typecheck failures in `courses-section.tsx` / `note-editor-page.tsx` and the flaky `use-fragment-overrides` test are unrelated and pre-date this story. IPC channel naming matches client constant (`praxis.conceptMaps`). Backward-compatibility for maps without `linkState` (treated as `"unlinked"`) is correctly handled in both `computeRipples` and the overlay glyph renderer. Ghost edge hover UX is correctly guarded to `best_guess` nodes only.
 
 ## Implementation notes
 
