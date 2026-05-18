@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-tabs-strip-fix-ux-doc-drift
 kind: story
-stage: review
+stage: done
 tags: [docs, ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -69,3 +69,15 @@ The replacement:
 7. **Added parent-child decoration**: `from {parentMode}` pill and pulse dot on `system_note` — present in the implementation but absent from the old doc section.
 
 `docs/ARCHITECTURE.md` had no claims about tab placement and required no changes.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+
+**Important**: none
+
+**Nits**: none
+
+**Notes**: Docs-only change. The UX.md tab-strip section precisely reflects the implementation — running-head placement, italic serif typography, CSS dot ornament, active hairline, and parent-child decoration all documented accurately. No secondary drift introduced; ARCHITECTURE.md correctly required no changes. Clean.
