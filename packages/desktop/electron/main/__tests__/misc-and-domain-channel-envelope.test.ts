@@ -21,18 +21,18 @@
  *     praxis.ingest.candidatesFor — wrapEnvelope
  *
  *   quick-check-channel.ts:
- *     praxis.quickCheck.resolve — wrapEnvelope
+ *     praxis.quickCheck.resolve — handleEnvelope (QuickCheckResolveInputSchema)
  *
  *   subagent-channel.ts:
  *     praxis.subAgent.list — wrapEnvelope
  *
  *   activity-channel.ts:
- *     praxis.activity.dismiss — wrapEnvelope
+ *     praxis.activity.dismiss — handleEnvelope (z.string().min(1))
  *
  * Pattern: electron-ipc-test-harness — mock `electron` before importing the
  * module under test; capture handlers from ipcMain.handle; invoke directly.
  *
- * Test count: 20
+ * Test count: 28
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -652,7 +652,7 @@ describe("praxis.ingest.candidatesFor — envelope wiring", () => {
 // ── praxis.quickCheck.resolve — structured-payload envelope ───────────────────
 
 describe("praxis.quickCheck.resolve — envelope wiring", () => {
-  it("resolves with { ok: true, value: undefined } on success", async () => {
+  it("resolves with { ok: true, value: undefined } on success (single-choice)", async () => {
     const log = makeFakeLogger();
     const services = makeServices({ quickCheck: { resolve: () => undefined } });
     registerIpcHandlers(services, () => null, log);
@@ -660,9 +660,50 @@ describe("praxis.quickCheck.resolve — envelope wiring", () => {
     const handler = handlers.get("praxis.quickCheck.resolve");
     expect(handler).toBeDefined();
 
-    const result = await handler?.({}, { callId: "call-1", answer: { correct: true } });
+    const result = await handler?.(
+      {},
+      { callId: "call-1", answer: { kind: "single-choice", selectedIndex: 0 } },
+    );
     expect(result).toMatchObject({ ok: true });
     expect(services.quickCheck.resolve).toHaveBeenCalledOnce();
+  });
+
+  it("resolves with { ok: true } for abandoned answer", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices({ quickCheck: { resolve: () => undefined } });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.quickCheck.resolve");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { callId: "call-2", answer: { kind: "abandoned" } });
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it("returns VALIDATION_FAILED when answer.kind is unknown", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.quickCheck.resolve");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { callId: "call-1", answer: { kind: "unknown-kind" } });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.quickCheck.resolve).not.toHaveBeenCalled();
+  });
+
+  it("returns VALIDATION_FAILED when callId is missing", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.quickCheck.resolve");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { answer: { kind: "abandoned" } });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.quickCheck.resolve).not.toHaveBeenCalled();
   });
 
   it("returns INTERNAL envelope (never rejects) when quickCheck.resolve throws", async () => {
@@ -680,7 +721,7 @@ describe("praxis.quickCheck.resolve — envelope wiring", () => {
     expect(handler).toBeDefined();
 
     await expect(
-      handler?.({}, { callId: "call-missing", answer: { correct: false } }),
+      handler?.({}, { callId: "call-missing", answer: { kind: "abandoned" } }),
     ).resolves.toMatchObject({
       ok: false,
       error: { code: "INTERNAL" },
@@ -759,5 +800,31 @@ describe("praxis.activity.dismiss — envelope wiring", () => {
       ok: false,
       error: { code: "INTERNAL" },
     });
+  });
+
+  it("returns VALIDATION_FAILED on empty string", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.activity.dismiss");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, "");
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.activity.dismiss).not.toHaveBeenCalled();
+  });
+
+  it("returns VALIDATION_FAILED on non-string input", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.activity.dismiss");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, null);
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.activity.dismiss).not.toHaveBeenCalled();
   });
 });

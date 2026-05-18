@@ -1,6 +1,6 @@
 import type { ActivityEvent, Logger } from "@praxis/core/types";
-import { wrapEnvelope } from "./ipc-error-envelope.js";
-import { createIpcHelpers } from "./ipc-helpers.js";
+import { z } from "zod";
+import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 import { registerSubscriberStream } from "./stream-handler.js";
 
@@ -25,7 +25,7 @@ export function registerActivityHandlers(
 
   handle(
     "praxis.activity.dismiss",
-    wrapEnvelope("praxis.activity.dismiss", log, async (_event: unknown, id: string) => {
+    handleEnvelope("praxis.activity.dismiss", log, z.string().min(1), async (id) => {
       services.activity.dismiss(id);
     }),
   );

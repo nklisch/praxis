@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-envelope-validation-coverage-step-1-add-validation
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-ipc-envelope-validation-coverage
 depends_on: []
@@ -270,3 +270,46 @@ If callers wrap `unwrapEnvelope` properly (or use the `PraxisClient`'s typed met
 ## Design-flaw escape hatch
 
 If the `QuickCheckAnswer` discriminated-union Zod schema doesn't compile cleanly against the TS type (e.g., a recent TS-type change wasn't mirrored), STOP. Append `## Implementation discovery` with the type mismatch, set stage back to `drafting`, commit `revisit: ...`, and return.
+
+## Implementation notes
+
+### Per-channel summary
+
+**activity-channel.ts**: Replaced `wrapEnvelope` with `handleEnvelope("praxis.activity.dismiss", log, z.string().min(1), ...)`. Dropped `wrapEnvelope` import (was the only consumer in that file). Added `import { z } from "zod"` and updated import of `handleEnvelope` from `./ipc-helpers.js`.
+
+**quick-check-channel.ts**: Added `QuickCheckAnswerSchema` (7-variant discriminated union) and `QuickCheckResolveInputSchema` near the top of the file, after imports. Replaced `wrapEnvelope` with `handleEnvelope` using the new schema. Dropped `wrapEnvelope` import. Added `import { z } from "zod"` and added `handleEnvelope` to the `./ipc-helpers.js` import.
+
+**recommendations-channel.ts**: Replaced `wrapEnvelope` + inline `nextInputSchema.parse(raw)` with `handleEnvelope(channel, log, nextInputSchema, fn)`. Dropped `wrapEnvelope` import. Behavior is identical — this is pure pattern alignment. Updated doc comment to say `handleEnvelope` instead of `wrapEnvelope + withSchema`.
+
+### Schema parity check
+
+Used the `satisfies` compile-time check approach:
+```ts
+const _quickCheckAnswerSchemaShape = null as unknown as z.infer<
+  typeof QuickCheckAnswerSchema
+> satisfies QuickCheckAnswer;
+```
+This compiled cleanly against the TS type at `@praxis/core/types/quick-check.ts:16`. No mismatch found — schema is in sync with the TS type.
+
+### Test additions
+
+- `misc-and-domain-channel-envelope.test.ts`: +6 new cases (2 VALIDATION_FAILED for `activity.dismiss` on empty string and null; 3 new VALIDATION_FAILED for `quickCheck.resolve` on unknown kind, missing callId; 1 new happy-path using valid `abandoned` answer). Updated 1 existing happy-path test to use a valid `QuickCheckAnswer` (`{ kind: "single-choice", selectedIndex: 0 }` instead of the previously-invalid `{ correct: true }`). Also updated the error-path test to use a valid answer kind (both call-path tests now use valid answers so the error source is service-throw, not validation).
+- `quick-check-channel.test.ts`: Created new file with 13 tests — 5 VALIDATION_FAILED cases (missing callId, empty callId, unknown kind, negative selectedIndex, missing answer field) + 7 happy-path round-trips covering all 7 answer kinds (single-choice, multi-select, short-answer, abandoned, confidence, matching, structured-question).
+- `recommendations-channel.test.ts`: No changes needed — the existing 6 tests cover both happy path and validation error path; behavior is equivalent.
+
+Total new tests: 19 (6 added to misc-and-domain, 13 in new quick-check-channel.test.ts).
+
+### Renderer consumer audit
+
+All 3 channels have well-behaved renderer clients in `@praxis/client`:
+- `ActivityClient.dismiss()` in `packages/client/src/services/activity-client.ts` — calls `unwrapEnvelope(result)`, already throws `IpcError` on `{ ok: false }`.
+- `QuickCheckClient.resolve()` in `packages/client/src/services/quick-check-client.ts` — calls `unwrapEnvelope(result)`, already throws `IpcError` on `{ ok: false }`.
+- `RecommendationsClient.next()` in `packages/client/src/services/recommendations-client.ts` — calls `unwrapEnvelope(result)`, already throws `IpcError` on `{ ok: false }`.
+
+No findings. All callers handle `IpcError` via `unwrapEnvelope` and will receive a structured `VALIDATION_FAILED` IpcError on bad input rather than a crash or silent failure.
+
+### Baseline confirmation
+
+- Pre-existing 3 typecheck errors in UI files (chat-tab-body.tsx, chat.tsx, notes-list.tsx): still present, not caused by this change.
+- `pnpm vitest run --project @praxis/desktop`: 505 tests passing, 34 test files, 0 failures.
+- `pnpm biome check` on all 5 touched files: clean (no errors, no warnings).
