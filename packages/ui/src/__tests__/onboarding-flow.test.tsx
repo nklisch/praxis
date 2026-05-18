@@ -236,6 +236,33 @@ describe("OnboardingFlow", () => {
     });
   });
 
+  describe("EngineStep — accessible label association", () => {
+    async function goToEngineStepAndSettle(client: PraxisClient) {
+      renderFlow({ client });
+      fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+      await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
+    }
+
+    it("engine select has an accessible name via <label>", async () => {
+      const client = buildClient({ engineId: "direct.anthropic" });
+      await goToEngineStepAndSettle(client);
+      // getByLabelText throws if no label association exists — this is the regression guard.
+      expect(screen.getByLabelText("Engine")).toBeDefined();
+    });
+
+    it("API key input has an accessible name via <label>", async () => {
+      const client = buildClient({ engineId: "direct.anthropic" });
+      await goToEngineStepAndSettle(client);
+      expect(screen.getByLabelText("API key")).toBeDefined();
+    });
+
+    it("API key field is not rendered for claude-code engine", async () => {
+      const client = buildClient({ engineId: "claude-code" });
+      await goToEngineStepAndSettle(client);
+      expect(screen.queryByLabelText("API key")).toBeNull();
+    });
+  });
+
   describe("EngineStep — claude-code sign-in button", () => {
     async function goToEngineStep(client: PraxisClient) {
       const onComplete = vi.fn(async () => undefined);

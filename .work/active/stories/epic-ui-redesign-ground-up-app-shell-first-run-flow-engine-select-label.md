@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-first-run-flow-engine-select-label
 kind: story
-stage: implementing
+stage: review
 tags: [ui, a11y]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on: []
@@ -47,7 +47,22 @@ applied to a `<label>` element without any visual change.
 
 ## Acceptance criteria
 
-- [ ] Engine `<select>` is associated with its visible label via native `<label>`.
-- [ ] API key `<input>` is associated with its visible label via native `<label>`.
-- [ ] Visual appearance unchanged.
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+- [x] Engine `<select>` is associated with its visible label via native `<label>`.
+- [x] API key `<input>` is associated with its visible label via native `<label>`.
+- [x] Visual appearance unchanged.
+- [x] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+
+Chose option 1 (`htmlFor` + `id`) as the story preferred:
+
+- `<span className={styles.fieldLabel}>Engine</span>` → `<label htmlFor="onboarding-engine-select" className={styles.fieldLabel}>Engine</label>`; `id="onboarding-engine-select"` added to the `<select>`.
+- Same pattern for the API key field: `id="onboarding-api-key-input"` on the `<input>`, `htmlFor="onboarding-api-key-input"` on the label.
+- No CSS change needed — `label` inherits `.fieldLabel` styles identically to `span`.
+
+Three regression tests added to `onboarding-flow.test.tsx` in a new `EngineStep — accessible label association` describe block:
+1. Engine select has an accessible name via `<label>` (uses `screen.getByLabelText("Engine")`).
+2. API key input has an accessible name via `<label>` (uses `screen.getByLabelText("API key")`).
+3. API key field is absent for the `claude-code` engine (existing conditional render still correct).
+
+`@praxis/ui` typechecks clean; lint clean on changed files; all 19 tests pass.

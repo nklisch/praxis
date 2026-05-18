@@ -218,8 +218,11 @@ function EngineStep({
       <p className={styles.body}>{COPY.onboarding.engineBody}</p>
 
       <div className={styles.field}>
-        <span className={styles.fieldLabel}>Engine</span>
+        <label htmlFor="onboarding-engine-select" className={styles.fieldLabel}>
+          Engine
+        </label>
         <select
+          id="onboarding-engine-select"
           className={styles.select}
           value={config.engineId}
           onChange={(e) => setConfig({ ...config, engineId: e.target.value })}
@@ -234,8 +237,11 @@ function EngineStep({
 
       {showApiKey && (
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>API key</span>
+          <label htmlFor="onboarding-api-key-input" className={styles.fieldLabel}>
+            API key
+          </label>
           <input
+            id="onboarding-api-key-input"
             type="password"
             className={styles.input}
             value={apiKey}
