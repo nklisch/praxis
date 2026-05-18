@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-exam-tab-body
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles]
@@ -70,3 +70,26 @@ this story is the surface restyle.
 - **Pre-existing failures**: `homework-tab-body.test.tsx` had 30 pre-existing failures before this
   PR; the workspace changes (other already-modified files) reduced them to 6. None introduced by
   this story.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `ItemRail` receives `currentIndex={0}` hardcoded (line 436). Because `ExamTabBody` delegates
+  rendering to `AssignmentCard` (which shows all items at once), the item-grid meta text "1 current
+  · N ahead" is inaccurate — it always shows item 1 as current regardless of what the student is
+  working on. Cosmetic only and consistent with the story's "surface restyle" scope (no item
+  navigation in exam mode per the mock). Consider `currentIndex={-1}` or removing the meta text
+  in a follow-up for accuracy.
+- `handleExpiry` is `async () => void` but `CountdownProps.onExpiry` is typed `() => void`.
+  TypeScript allows this (async fn returns `Promise<void>` which is assignable to `void`), and
+  fire-and-forget is correct here since expiry initiates submit and sets UI state. Not a bug — nit.
+- The `assignmentId as AssignmentId | undefined` cast (line 307) is redundant; `brandId<"AssignmentId">` already returns `AssignmentId`. Harmless.
+
+**Notes**: All 20 tests pass (nav dimming, rubric, tool suppression, proctored chrome, timer —
+all covered). Nav dimming via `document.documentElement.classList` with mount/unmount cleanup is
+clean and tested. The pre-existing `notes-list.tsx` desktop typecheck error is unrelated to this
+story (introduced in a prior commit). No blockers or significant findings.

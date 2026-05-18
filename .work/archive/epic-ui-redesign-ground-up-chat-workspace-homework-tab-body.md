@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-homework-tab-body
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles]
@@ -64,3 +64,23 @@ delegating to `AssignmentCard` — this gives finer pagination control.
 pagination, save/skip/flag state, work-area tab switching, feedback gating, and edge states.
 Used `within(document.querySelector("main"))` to scope item-content queries away from the
 page-nav which renders truncated prompt text for the same items.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `Save & close · finish later` button (rail, line 416) has no `onClick` handler — it's a
+  static affordance. Intentional per scope ("wiring belongs to a future story"), but a
+  `// TODO` comment would clarify intent.
+- The `isItemWithWork` type guard (line 692) checks `"workRubric" in item` after narrowing
+  on `kind`, which is slightly redundant since the kind check alone is sufficient — minor
+  clarity nit.
+
+**Notes**: All 34 tests pass (plus 1364 workspace-wide). Three-column layout, pagination,
+save/skip/flag, work-area tabs, feedback gating, and submission flow all cleanly implemented
+and tested. The pre-existing `notes-list.tsx` desktop typecheck failure is unrelated to this
+story. `Save & close` being a stub is declared in the design — acceptable. No blockers or
+significant findings.
