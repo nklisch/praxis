@@ -1,0 +1,129 @@
+/* tool-call-disclosure.module.css
+ * Native <details> one-line disclosure for tool calls.
+ * Visual contract: Option-4 locked mock (epic-ui-redesign-ground-up-chat-workspace).
+ */
+
+.disclosure {
+  margin: 10px 0;
+  font-size: 0;
+}
+
+/* Collapsed summary line */
+.summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 3px);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+  user-select: none;
+}
+
+/* Remove the default browser marker triangle */
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+/* When open, square off the bottom corners to flow into the detail panel */
+.disclosure[open] > .summary {
+  border-radius: var(--radius-sm, 3px) var(--radius-sm, 3px) 0 0;
+  border-bottom-color: transparent;
+}
+
+/* Verdict glyphs */
+.glyph {
+  font-style: normal;
+  flex-shrink: 0;
+}
+
+.glyphOk {
+  color: var(--color-success);
+}
+
+.glyphError {
+  color: var(--color-danger);
+}
+
+.glyphRunning {
+  color: var(--color-text-tertiary);
+}
+
+/* Tool name — primary weight, full color */
+.name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Result preview — serif italic, secondary color, normal weight */
+.resultPreview {
+  composes: editorial from global;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Chevron — pushed to far right */
+.chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+}
+
+/* Expanded detail panel */
+.detail {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm, 3px) var(--radius-sm, 3px);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detailHeading {
+  margin: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.detailPre {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  background: var(--color-bg-tertiary, rgba(0, 0, 0, 0.04));
+  border-radius: var(--radius-sm, 3px);
+  padding: 6px 10px;
+  margin: 0;
+  max-height: 20rem;
+  overflow-y: auto;
+}

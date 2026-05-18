@@ -37,7 +37,7 @@ import { StudySkillsTabBody } from "./study-skills-tab-body.js";
 import { SubAgentBlock } from "./sub-agent-block.js";
 import { SystemNoteCard } from "./system-note-card.js";
 import { ThinkingIndicator } from "./thinking-indicator.js";
-import { ToolEntry } from "./tool-entry.js";
+import { ToolCallDisclosure } from "./tool-call-disclosure.js";
 
 export interface ChatTabBodyProps {
   tab: TabSummary;
@@ -223,10 +223,12 @@ export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element 
         {items.map((item) => {
           if (item.kind === "tool-entry") {
             return (
-              <ToolEntry
+              <ToolCallDisclosure
                 key={`tc-${item.callId}`}
                 toolName={item.toolName}
-                status={item.status}
+                verdict={
+                  item.status === "errored" ? "error" : item.status === "settled" ? "ok" : "running"
+                }
                 {...(item.input !== undefined && { input: item.input })}
                 {...(item.output !== undefined && { output: item.output })}
                 {...(item.errorMessage !== undefined && { errorMessage: item.errorMessage })}
