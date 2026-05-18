@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-ask-tutor-from-note
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on:
@@ -10,7 +10,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Ask-tutor-from-note brief preparation surface
@@ -38,7 +38,22 @@ Per the locked `note-to-tutor-brief` flow:
 
 ## Acceptance criteria
 
-- [ ] CTA appears on Cornell + Feynman cues.
-- [ ] Click spawns a teach session with the cue pre-injected.
-- [ ] Parent prompt acknowledges briefed-from-note context.
-- [ ] All quality checks green.
+- [x] CTA appears on Cornell + Feynman cues.
+- [x] Click spawns a teach session with the cue pre-injected.
+- [x] Parent prompt acknowledges briefed-from-note context.
+- [x] All quality checks green.
+
+## Implementation notes
+
+**Land-mode audit**: the sibling `spawn-from-note` story had already landed:
+- `NoteEditorCornell`: `▶` spawn button per cue row, gated on `onSpawnFromCue` prop.
+- `NoteEditorFeynman`: `▶` spawn button per follow-up, gated on `onSpawnFromCue` prop.
+- `note-editor-page.tsx`: `handleSpawnFromCue` → `client.session.spawnFromNote({ noteId, cueId })` → `client.tabs.open` → navigate. Disables buttons while spawning (`spawning` guard).
+- Tests in `note-editor-cornell.test.tsx` and `note-editor-feynman.test.tsx`: button visibility + click callback coverage fully present.
+- `spawnFromNote` backend: wraps cue text in `<note-cue>` and detail in `<note-body>` tags as the opening user message.
+
+**Added in this story**: the teach-mode prompt had no guidance about `<note-cue>` tags or the post-conversation note-update offer. Added:
+- `packages/curriculum/src/modes/fragments/note-brief-awareness.ts` — new `context`-position fragment that tells the tutor to: (1) open by addressing the `<note-cue>` directly, (2) use `<note-body>` to read the student's existing mental model, (3) stay focused on the cue, (4) offer `note.update` at session close.
+- `teach.ts`: fragment added after `behaviorInCourseFragmentDefault.teach`.
+- `packages/curriculum/src/modes/fragments/__tests__/note-brief-awareness.test.ts`: 9 tests (shape + template content + teach-mode inclusion).
+- `packages/curriculum/src/__tests__/teach-mode.test.ts`: updated fragment count assertion (10 → 11) and added id assertion for `context.note-brief-awareness`.

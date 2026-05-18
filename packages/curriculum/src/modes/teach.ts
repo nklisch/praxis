@@ -3,6 +3,7 @@ import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
 import { behaviorInCourseFragmentDefault } from "./fragments/in-course-behavior.js";
 import { metacognitivePromptsFragment } from "./fragments/metacognitive-prompts.js";
+import { noteBriefAwarenessFragment } from "./fragments/note-brief-awareness.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
@@ -28,6 +29,7 @@ export const teachMode: Mode = {
     sketchAwarenessFragment, // ← Phase 15a: sketch tool usage instructions
     courseContextFragmentDefault, // ← Phase 6: replaced at session start when courseId is set
     behaviorInCourseFragmentDefault.teach, // ← course-aware behavior addendum (replaced when courseId is set)
+    noteBriefAwarenessFragment, // ← note-briefed session opening + note.update offer at close
     constraintsFragment,
     postambleFragment,
   ],
