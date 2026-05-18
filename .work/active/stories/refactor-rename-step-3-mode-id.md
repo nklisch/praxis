@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-3-mode-id
 kind: story
-stage: review
+stage: done
 tags: [refactor, naming, curriculum, db-migration]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: [refactor-rename-step-2-tool-rename]
@@ -364,3 +364,25 @@ The 3 pre-existing `exactOptionalPropertyTypes` errors remain unchanged:
 - `packages/ui/src/routes/workspace/notes-list.tsx:125`
 
 No new errors were introduced.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+
+Migration policy is correct — `sessions` backfills only live (non-ended) rows, matching the runtime invariant that `requireMode(sessionRow.modeId)` only fires after `endedAt` is checked (session-service.ts:158, gated by line 150). Historical bootstrap sessions never enter `requireMode` so retaining `mode_id = "bootstrap"` for them is sound as an audit record.
+
+Other tables get full backfill (`prompt_overrides`, `mode_prompt_appends`, `document_scopes`) — these are current-state, no historical/audit distinction needed. The agent correctly discovered that `tabs.mode_id` doesn't exist (joins through `sessions`) and adjusted the migration; that omission is documented in the migration comments.
+
+`DocumentScopeSource` union and `documentScopes.source` enum flip together; old data is backfilled, so the TypeScript narrowing aligns with stored values.
+
+Naming-convention override: `"course-create"` (hyphen) chosen over the design's `"course_create"` to match `study-skills` precedent and the existing `/course-create` route. Decision documented in the implementation notes — defensible and consistent.
+
+CSS variable `--tint-bootstrap` → `--tint-course-create` flipped across all 10 consumer files; the theme-tokens test asserts the new var name.
+
+This is the highest-risk step in the refactor — wire-level discriminator + DB migration — and it lands cleanly with verification (4481 tests passing, baseline typecheck preserved). The forward-only migration rollback path is documented in the story body.
