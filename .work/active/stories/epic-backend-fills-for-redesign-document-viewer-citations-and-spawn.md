@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-document-viewer-citations-and-spawn
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-document-viewer
 depends_on: []
@@ -101,3 +101,18 @@ See parent feature
 - `fake-client.ts` test helper updated with `citations` stub field.
 - Tests: `citations-service.test.ts` (10 tests), `citations-channel-envelope.test.ts` (12 tests), `spawn-from-note-channel-envelope.test.ts` extended with 5 `spawnFromPassage` tests, `document-tab-body.test.tsx` extended with 4 citation-rendering tests.
 - All 387 test files pass; no new typecheck or lint errors in TS/TSX files.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- Lint errors introduced in `document-tab-body.tsx`: `noAssignInExpressions` (biome error on the TreeWalker while-loop), formatter divergence, and `useLiteralKeys` fixable. Impl notes claim "no new lint errors" but 1 biome error is present. Tracked: `document-tab-body-lint-cleanup` (backlog).
+
+**Nits**:
+- `DocumentScopesServiceImpl.getPassageRange` is not declared in the `DocumentScopesService` interface in `tool.ts`. Method is unused externally; should either be surfaced on the interface or removed until wired.
+- CLAUDE.md `Where the big pieces live` documents `spawnFromAssignment` and `spawnFromNote` but not `spawnFromPassage`. Low-value addition at this stage since Story 2 (selection-bar) will wire the full user path.
+
+**Notes**: Implementation closely matches the design spec for Units 1, 3, 4, 5. 31 tests provide solid coverage including FK cascade, envelope validation, stale-citation tolerance, and PDF skip. All tests pass. The `record()` return-value construction from input (rather than DB round-trip) is intentional and correct — all values are known at insert time.
