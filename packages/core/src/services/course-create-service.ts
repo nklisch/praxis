@@ -35,13 +35,11 @@ import type {
 import { brandId } from "../types/index.js";
 import { persistDraftTx } from "./course-create/draft-persistence.js";
 import { type Issue, validateProposed } from "./course-create/draft-validator.js";
+import { normalizeConceptName } from "./course-create/helpers.js";
 import { notifyListeners } from "./db-helpers.js";
 import { type DraftStore, SqliteDraftStore } from "./draft-store.js";
 
 export type { Issue };
-
-/** Normalize a concept name for case-insensitive set/map membership checks. */
-const normalizeConceptName = (name: string): string => name.trim().toLowerCase();
 
 /** Drafts not touched in 7 days are swept as stale. */
 export const DRAFT_STALE_MS = 7 * 24 * 60 * 60 * 1000;

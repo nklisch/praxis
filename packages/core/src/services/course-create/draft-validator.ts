@@ -1,7 +1,5 @@
 import type { ProposedCourse } from "../../types/index.js";
-
-/** Normalize a concept name for case-insensitive set/map membership checks. */
-const normalizeConceptName = (name: string): string => name.trim().toLowerCase();
+import { normalizeConceptName } from "./helpers.js";
 
 export interface Issue {
   kind: string;

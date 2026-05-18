@@ -1,7 +1,7 @@
 ---
 id: consolidate-normalize-concept-name-helper
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -34,3 +34,22 @@ Mild DRY violation. Trivial to consolidate.
 3. ~5 LoC of net cleanup.
 
 Story-sized. Mechanical.
+
+## Implementation notes
+
+**Files created:**
+- `packages/core/src/services/course-create/helpers.ts` — exports `normalizeConceptName` with its JSDoc comment
+
+**Files modified:**
+- `packages/core/src/services/course-create-service.ts` — removed local `const normalizeConceptName`, added import from `./course-create/helpers.js`
+- `packages/core/src/services/course-create/draft-validator.ts` — removed local `const normalizeConceptName`, added import from `./helpers.js`
+
+**Also checked:** `draft-persistence.ts` — does not use `normalizeConceptName`; left untouched.
+
+**Verification:**
+- `pnpm --filter @praxis/core build` — clean
+- `pnpm --filter @praxis/core typecheck` — clean
+- `pnpm biome check` on the 3 modified files — clean (root `pnpm lint` has pre-existing `.mockups/` HTML errors unrelated to this change)
+- `pnpm --filter @praxis/core test` — 86 test files, 1060 tests, all passed
+
+No deviations from the plan.
