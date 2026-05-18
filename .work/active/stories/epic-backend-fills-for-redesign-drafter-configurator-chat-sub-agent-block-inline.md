@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat-sub-agent-block-inline
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-drafter-configurator-chat
 depends_on:
@@ -81,3 +81,15 @@ to `SubAgentRegistry` step events.
 
 - **17 `sub-agent-block.test.tsx` tests + 11 `use-sub-agent-steps.test.ts` tests**
   — all green. Full workspace test suite: 1407 tests passing.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `useSubAgent` (the old hook) is now unused by production code but kept to avoid churn-only removal. Fine for now; worth a `park` item if dead-weight becomes an issue later.
+- `steps.slice(-8)` in the render path caps the displayed list, but the hook accumulates up to 200 steps in memory (`slice(-200)`). Reasonable for v1 — not a leak.
+
+**Notes**: Clean implementation. `useSubAgentSteps` correctly narrows the existing event stream contract (no new IPC needed). The `spread conditional` pattern for `errored` satisfies `exactOptionalPropertyTypes` correctly. `isSettledFailed` captures both the parent prop and agent-stream failure paths. Test coverage is thorough — all UI states (pulse dot, step icons ✓/✗/◐, collapsed/expanded, aria-expanded, phase label update) are exercised. No foundation-doc drift.

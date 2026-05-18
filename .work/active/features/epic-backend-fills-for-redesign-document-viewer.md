@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-document-viewer
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Document viewer enhancements
@@ -208,3 +208,11 @@ Aggregate:
   is re-ingested with a different chunking, offsets become stale.
   v1: leave the citation row; rendering tolerates out-of-bounds
   ranges by skipping the highlight + warning in the dev log.
+
+## Children complete (2026-05-18)
+
+Both child stories are at `stage: done`:
+- `epic-backend-fills-for-redesign-document-viewer-citations-and-spawn`
+- `epic-backend-fills-for-redesign-document-viewer-selection-bar`
+
+Feature advanced to `stage: review`.

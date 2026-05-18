@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-document-viewer-selection-bar
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-document-viewer
 depends_on: [epic-backend-fills-for-redesign-document-viewer-citations-and-spawn]
@@ -105,3 +105,16 @@ integration tests appended to `document-tab-body.test.tsx` (38 total
 in the two files; all green). The integration tests patch
 `window.getSelection()` to return a fake selection and assert that each
 handler is called with the correct arguments against a fake client.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `citingSessionId: (currentSessionId ?? "") as SessionId` is a documented v1 limitation. The empty-string cast bypasses the type contract (`SessionId` is required by the API). Fine as a v1 placeholder, but the comment in the code makes the intent clear. A follow-up could gate the `+ cite` button on `currentSessionId` being present rather than sending an invalid sentinel.
+- Position estimation for `centredLeft`/`aboveTop` uses hardcoded ballpark constants (`BAR_W = 280`, `BAR_H = 32`). Acceptable for v1 per the comment; a `useLayoutEffect` resize observer would be a polish item.
+- `void onSpawnedSession(sessionId as SessionId)` in the citation dagger click path (line 339) — the `void` is intentional (fire-and-forget from a sync callback), but `sessionId` is cast from `string` to `SessionId`. No semantic risk here since it came from the DB as a `SessionId`; cast is fine.
+
+**Notes**: Well-structured delivery. `SelectionActionBar` is a clean presentational component — portal positioning, Escape/outside-mousedown dismiss, pending-state disabled buttons all implemented correctly. `computeRangeOffset` uses the standard `TreeWalker` pattern with the biome-ignore comment for `noAssignInExpressions` (justified). The `selectionchange` debounce fires at 100ms which matches the spec. Citation dagger click delegation to `onSpawnedSession` (previously a no-op TODO) is properly wired. Test coverage covers all four action handlers, both dismiss triggers, the outside-selection guard, and the portal visibility states. No foundation-doc drift.
