@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template-step-4-generator-streams
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-stream-handler-template
 depends_on: [refactor-stream-handler-template-step-1-helper-and-activity]
@@ -154,3 +154,44 @@ ipc-server.ts blocks fully before editing to catch any local-state surprises.
 `git revert <commit>` per file/channel is clean. Recommend splitting commits
 per channel (ingest, session.send, memory.episodic) so any regression is
 isolated to one channel's adoption.
+
+## Implementation notes
+
+### LoC deltas
+
+- `ingest-channel.ts`: 212 → 170 lines (-42 LoC). Removed the manual `handle`
+  + `on` streaming block (56 lines), added `registerGeneratorStream` call (20
+  lines). Also removed unused `IpcStreamMessage`, `redactSecrets`,
+  `serializeErrorRedacted` imports; added `IngestionEvent` and
+  `registerGeneratorStream` imports.
+
+- `ipc-server.ts`: 2069 → 1994 lines (-75 LoC). `session.send` block (55
+  lines) and `memory.episodic` block (63 lines) replaced with two
+  `registerGeneratorStream` calls (~20 lines each). Added `EpisodicEvent` to
+  type imports and `registerGeneratorStream` import.
+
+### Observability fields dropped
+
+- `messageLength` (was in `session.send.start` opening log) — intentionally
+  dropped per design. Recoverable via log aggregation.
+- `errorCount` (was in `session.send.done` closing log) — intentionally
+  dropped per design. Recoverable via log aggregation.
+- `eventCount` in done log — replaced by helper's default `eventCount` field
+  (same semantic, same name in the default `onDone` log).
+- `durationMs` — covered by helper's default `onDone`.
+
+No tests asserted on `messageLength` or `errorCount`, so no test updates
+required.
+
+### Test updates
+
+Zero test modifications. All 475 desktop main tests pass unmodified, including:
+- `streaming-channel-error-redaction.test.ts` (6 tests)
+- `ipc-server.envelope-migration.test.ts` (26 tests)
+- `ipc-server.cancel.test.ts` (3 tests)
+
+### Type resolution
+
+`services.session.send` returns `AsyncIterable<unknown>` cleanly. No design
+flaw discovered. `services.memory.episodic` returns `AsyncIterable<EpisodicEvent>`
+cleanly. Both channel conversions proceeded without needing the escape hatch.
