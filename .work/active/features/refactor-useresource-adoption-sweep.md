@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -265,3 +265,34 @@ table above for the per-file rationale:
 - `context/tabs-context.tsx` — Provider context shape
 
 If a future refactor pass surfaces these, the answer is: useResource isn't the right tool for any of them. A different abstraction (e.g., `useStreamedResource`, `useBlobResource`) could cover the blob-URL / streaming cases — file as separate features if/when the pattern is genuinely repeated.
+
+## Implementation Run Summary
+
+All 3 child stories implemented and advanced to `stage: review` in one
+parallel wave (3 agents, disjoint files, zero file-overlap conflicts).
+
+| Step | Story | Commit | LoC delta |
+|------|-------|--------|-----------|
+| 1 | `step-1-memory-tab` | `9f3dda2` | memory-tab 684→652 (−32) |
+| 2 | `step-2-course-tab` | `274acd1` | course-tab −18 net |
+| 3 | `step-3-prompt-tab` | `4246e76` | prompt-tab 491→477 (−14) |
+
+**Total LoC removed from UI components**: ~64.
+
+### Cross-cutting deviations
+
+- **course-tab drag-reorder migration**: `handleDrop`'s `setUnits(prev => ...)` was migrated to `setData(prev => [reorderedUnits, prevLessons])` using `useResource`'s `setData` callback. Added to handler's dep array per `useExhaustiveDependencies`. Drag-reorder UX preserved.
+- **prompt-tab `FragmentCard` mutations stay inline**: `handleSave` and `handleRevert` keep their per-card local state (`saving`/`reverting`/`error`). Only the `FragmentDocument`'s composed-preview load converted to useResource. The mixed-file separation came out cleaner than the story body warned — no state splits required.
+- **memory-tab unused setData**: neither converted loader has optimistic-update sites in memory-tab, so `setData` was omitted from the destructures to avoid unused-variable lint errors.
+
+### Verification status
+
+- **Typecheck**: `pnpm --filter @praxis/ui typecheck` clean. Pre-existing 3 UI typecheck errors in `chat-tab-body.tsx`, `chat.tsx`, `notes-list.tsx` (tracked at `idea-fix-exactoptional-typecheck-baseline`) unchanged — those only surface under the stricter desktop tsconfig.
+- **Tests**: 155 UI test files / 1600 tests all pass. Including 18 memory-tab tests unmodified.
+- **Lint (biome)**: clean on all 3 touched files.
+- **Behavior**: rendered loading/error/data UX identical before vs after for all 3 tabs. Refresh callbacks (renamed `refreshMastery`, `refreshMisconceptions`, etc.) still wired to the buttons via the destructure aliases.
+
+### What's now possible
+
+- All 3 configure tabs follow the canonical `useResource` pattern.
+- The skipped files (page-image-panel, pdf-renderer, attributed-preview-pane, note-editor-page, tabs-context) are explicitly documented as out-of-scope with rationale, so future refactor passes don't re-discover them as false positives.
