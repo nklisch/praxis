@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-sketch
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on:
@@ -69,3 +69,15 @@ Refactored `note-editor-sketch.{tsx,module.css}` to match the locked mock:
   updated from `/convert to concept map/i` to `/convert to a concept map/i` to match the new
   notice-strip button text.
 - Full test suite: 415 files / 4423 tests green.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `activeTool` / `activeSwatch` state is display-only (tldraw manages its own tool state internally) — the comment on line 88 documents this clearly. Not a concern; it's the correct approach for an overlay rail.
+- `.noticeText` and `.convertBtn` both declare `pointer-events: auto` — the button inherits from the span, so the button override is redundant but harmless.
+
+**Notes**: Implementation cleanly matches the locked mock. Grid layout, tools rail, `<hr>` separators, 5 color swatches mapped to design tokens, and inline notice strip with conditional convert link are all present and tested. The `pointer-events: none` / `pointer-events: auto` split on the notice strip correctly avoids blocking canvas interaction. 14 + 7 tests cover the component contract well (tool buttons, aria-pressed toggle, swatches, notice strip visibility, convert conditional, modal open). Token alignment is complete — no hardcoded hex colors remain. Foundation docs are unaffected.

@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure-entry-flow
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -84,3 +84,17 @@ Full restyle using Studio Quiet locked tokens throughout:
 - Re-lock path: icon reflects locked state after `lock()` resolves
 
 All 151 test files, 1544 tests green. Lint clean. UI typecheck clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The `lock()` call on the lock button is `onClick={() => lock()}` — could be `onClick={lock}` directly, but the inline wrapper is harmless.
+- The story scope said "Cover the re-lock path back to student surfaces" — the lock button takes the user back to the locked screen (which then shows the configure-locked card, not the student surface directly). This is the correct behavior given configure's navigation model; the student navigates away via `<TopNav>`. No concern.
+
+**Notes**: Implementation correctly replaced all hardcoded values in `unlock-modal.module.css`, `configure.module.css` with Studio Quiet design tokens. The `lock()` button is correctly gated to `isSet && isUnlocked` — appears only when a code is configured and the session is currently unlocked. `useLock.lock()` calls the client and optimistically flips `isUnlocked: false` via `setData`, so the locked screen renders on the next frame without a round-trip. The decision to skip the flows mockup (no `.mockups/flows/configure-entry/` existed) is properly documented in implementation notes. 9 tests cover the full state machine including the re-lock path. No foundation-doc drift.
+
+Since this is the last story under `epic-ui-redesign-ground-up-configure` (5 siblings already at done), the parent feature should advance to review.

@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -10,7 +10,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Configure — Authoring Surfaces
@@ -210,9 +210,13 @@ Story 6 independent.
 
 ## Acceptance Criteria
 
-- [ ] Configure route renders Canvas + Side Chat with sub-surface
+- [x] Configure route renders Canvas + Side Chat with sub-surface
       tab strip.
-- [ ] Each of the four sub-surfaces renders its native canvas per
+- [x] Each of the four sub-surfaces renders its native canvas per
       locked mock.
-- [ ] Configure-entry / unlock flow matches its locked mock.
-- [ ] All quality checks green.
+- [x] Configure-entry / unlock flow matches its locked mock.
+- [x] All quality checks green.
+
+## Children complete (2026-05-18)
+
+All 6 child stories at `stage: done`. Feature advanced `implementing → review`.
