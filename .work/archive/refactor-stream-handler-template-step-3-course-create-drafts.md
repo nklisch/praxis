@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template-step-3-course-create-drafts
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-stream-handler-template
 depends_on: [refactor-stream-handler-template-step-1-helper-and-activity]
@@ -110,3 +110,15 @@ preserved verbatim. The only behavioral diff is the dropped running counter.
   - Per-event debug key unchanged: `"course-create.drafts.forward"` — passed verbatim via `onEvent`.
 - **Test updates**: No test assertions on log keys; the `streaming-channel-error-redaction.test.ts` only asserts on pushed IPC message payloads. All 6 tests pass unchanged.
 - **Typecheck**: 3 pre-existing UI errors in `@praxis/ui` (baseline) — not introduced by this change. Desktop electron main typechecks clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: 
+- Same log-key shape change noted in step 1's review (`course-create.drafts.subscribe` → `courseCreate.drafts.events.subscribe`). No test impact.
+- The `eventsForwarded` running counter is dropped because the subscriber-variant `onEvent` hook only exposes `{ log }`, not `{ count }`. Recoverable via log aggregation. If a future channel genuinely needs per-event count via subscribe, extend the hook shape (small change).
+
+**Notes**: Clean adoption with the `onEvent` hook preserving the rich per-event debug payload (eventKind + per-kind fingerprint) verbatim. File 98→60 LoC. The `services.bootstrap` field reference is correctly retained (the rename refactor didn't touch the field name on `Services`). All 6 streaming-envelope tests pass unmodified.
