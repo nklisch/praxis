@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-tool-call-disclosure
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -40,6 +40,16 @@ covers the generic disclosure for all tools in chat surfaces.)
 - [x] Expand shows full I/O.
 - [x] Verdict glyph reflects state.
 - [x] All quality checks green.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean implementation. Native `<details>` pattern is the right call — avoids React state for open/close, content is always in DOM for accessibility/findability. Fallback chain (`getToolSummary` → `label.past` → `label.present`) is robust. All 15 tests pass (1290 UI tests green). `ToolEntry` correctly preserved for drafter/configurator surfaces. Status mapping (`errored` → `"error"`, `settled` → `"ok"`, `in_flight` → `"running"`) is correct and complete.
 
 ## Implementation notes
 
