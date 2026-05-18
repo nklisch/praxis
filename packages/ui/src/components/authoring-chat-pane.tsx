@@ -1,11 +1,11 @@
-import type { SessionId } from "@praxis/core/types";
-import { useEffect, useState } from "react";
+import type { ConfiguratorActionRow, SessionId, Timestamp } from "@praxis/core/types";
+import { useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import styles from "./authoring-chat-pane.module.css";
 import { Composer } from "./composer.js";
 import { MessageBubble } from "./message.js";
-import { ToolEntry } from "./tool-entry.js";
+import { ToolCallEntry } from "./tool-call-entry.js";
 
 /** Mode ids that mount an authoring chat pane. */
 export type AuthoringModeId = "configure" | "bootstrap";
@@ -43,6 +43,108 @@ export function AuthoringChatPane({ mode, sessionId, disabled = false }: Authori
   const { items, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
 
+  // ── Configurator actions correlation ───────────────────────────────────────
+  // Load the audit log once per session and refresh at the end of each
+  // streaming turn. Used to match settled tool-entry items to audit-log action
+  // rows so we can pass `actionId` + `restoredAt` to <ToolCallEntry>.
+  const [actions, setActions] = useState<ConfiguratorActionRow[]>([]);
+  const wasStreamingRef = useRef(false);
+
+  useEffect(() => {
+    const fetchActions = async () => {
+      try {
+        const rows = await client.author.listConfiguratorActions();
+        setActions(rows);
+      } catch {
+        // Non-fatal: revert buttons simply won't appear.
+      }
+    };
+
+    // Refresh when a streaming turn ends (wasStreaming → not streaming).
+    if (wasStreamingRef.current && !isStreaming) {
+      void fetchActions();
+    }
+    wasStreamingRef.current = isStreaming;
+  }, [isStreaming, client]);
+
+  // Load once when the session id is set.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load once per session id
+  useEffect(() => {
+    if (!sessionId) return;
+    void (async () => {
+      try {
+        const rows = await client.author.listConfiguratorActions();
+        setActions(rows);
+      } catch {
+        // Non-fatal.
+      }
+    })();
+  }, [sessionId]);
+
+  /**
+   * Correlate a `tool-entry` item's callId to a `ConfiguratorActionRow`.
+   *
+   * Tool names match action kinds directly (e.g. "lesson.create" → action.kind
+   * "lesson.create"). Within a kind group, correlation is by time order: the
+   * n-th settled tool entry of a given kind maps to the n-th action row of that
+   * kind (ordered by `ts` asc). This is reliable because authoring sessions are
+   * single-turn (no concurrent tool fan-out within one user message).
+   */
+  const buildCallIdToActionMap = (): Map<
+    string,
+    { actionId: string; restoredAt: Timestamp | null | undefined }
+  > => {
+    const map = new Map<string, { actionId: string; restoredAt: Timestamp | null | undefined }>();
+    if (actions.length === 0) return map;
+
+    // Group action rows by kind, sorted by ts asc.
+    const actionsByKind = new Map<string, ConfiguratorActionRow[]>();
+    for (const row of actions) {
+      const kind = row.action.kind;
+      const bucket = actionsByKind.get(kind) ?? [];
+      bucket.push(row);
+      actionsByKind.set(kind, bucket);
+    }
+    for (const [, bucket] of actionsByKind) {
+      bucket.sort((a, b) => (a.ts as number) - (b.ts as number));
+    }
+
+    // Group settled tool-entry items by toolName, sorted by firstSeenAt asc.
+    const entriesByName = new Map<string, (typeof items)[number][]>();
+    for (const item of items) {
+      if (item.kind !== "tool-entry" || item.status === "in_flight") continue;
+      const bucket = entriesByName.get(item.toolName) ?? [];
+      bucket.push(item);
+      entriesByName.set(item.toolName, bucket);
+    }
+    for (const [, bucket] of entriesByName) {
+      // ToolEntryItem has firstSeenAt; runtime cast is safe here
+      bucket.sort((a, b) => {
+        const aTs = (a as { firstSeenAt?: number }).firstSeenAt ?? 0;
+        const bTs = (b as { firstSeenAt?: number }).firstSeenAt ?? 0;
+        return aTs - bTs;
+      });
+    }
+
+    // Zip by index within each kind group.
+    for (const [toolName, entries] of entriesByName) {
+      const rows = actionsByKind.get(toolName);
+      if (!rows) continue;
+      entries.forEach((entry, idx) => {
+        const row = rows[idx];
+        if (row == null) return;
+        map.set((entry as { callId: string }).callId, {
+          actionId: row.id,
+          restoredAt: row.restoredAt,
+        });
+      });
+    }
+
+    return map;
+  };
+
+  const callIdToAction = buildCallIdToActionMap();
+
   // Load the persisted transcript when a session id appears. The pane may be
   // reused across tabs so sessionId can be null while a session is starting.
   // biome-ignore lint/correctness/useExhaustiveDependencies: load once per session id
@@ -68,14 +170,38 @@ export function AuthoringChatPane({ mode, sessionId, disabled = false }: Authori
         {items.length === 0 && <p className={styles.emptyState}>{MODE_EMPTY_STATE[mode]}</p>}
         {items.map((item) => {
           if (item.kind === "tool-entry") {
+            const verdict =
+              item.status === "in_flight" ? "running" : item.status === "errored" ? "error" : "ok";
+            const summary =
+              item.status === "errored"
+                ? (item.errorMessage ?? `Failed.`)
+                : item.status === "in_flight"
+                  ? "…"
+                  : typeof item.output === "string"
+                    ? item.output
+                    : ((item.output as { summary?: string } | undefined)?.summary ?? item.toolName);
+            const correlation = callIdToAction.get(item.callId);
+            // Build partial props separately to avoid exactOptionalPropertyTypes issues:
+            // only include actionId/restoredAt when correlation is known.
+            const revertProps: {
+              actionId?: string;
+              restoredAt?: Timestamp | null;
+            } =
+              correlation != null
+                ? {
+                    actionId: correlation.actionId,
+                    ...(correlation.restoredAt !== undefined && {
+                      restoredAt: correlation.restoredAt,
+                    }),
+                  }
+                : {};
             return (
-              <ToolEntry
+              <ToolCallEntry
                 key={`tc-${item.callId}`}
-                toolName={item.toolName}
-                status={item.status}
-                {...(item.input !== undefined && { input: item.input })}
-                {...(item.output !== undefined && { output: item.output })}
-                {...(item.errorMessage !== undefined && { errorMessage: item.errorMessage })}
+                name={item.toolName}
+                summary={summary}
+                verdict={verdict}
+                {...revertProps}
               />
             );
           }
