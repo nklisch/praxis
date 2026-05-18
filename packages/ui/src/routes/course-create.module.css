@@ -227,7 +227,7 @@
   text-transform: uppercase;
   padding: 3px 6px;
   border-radius: var(--radius-full, 9999px);
-  background: var(--color-error, #f44336);
+  background: var(--color-danger, #a32721);
   color: var(--color-text-inverse);
   flex-shrink: 0;
 }
