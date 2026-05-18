@@ -1,13 +1,19 @@
 /**
- * Tests for <SubAgentBlock>.
+ * Tests for <SubAgentBlock> — inline marginalia restyle.
  *
  * Verifies:
- * - Shows initialLabel before subscription events arrive.
- * - Shows step count when steps arrive.
- * - Click expands to show step list (capped to 8 most recent).
- * - "live" indicator present while status is in_flight and item.status is running.
- * - "couldn't finish" text shown when errored and settled.
- * - No "live" indicator once status is settled.
+ * - Renders mono kicker with initialLabel before subscription events arrive.
+ * - Kicker includes "sub-agent" prefix.
+ * - No step count when there are no steps.
+ * - Step count appears in kicker when steps are present.
+ * - Collapsed by default — no toggle shown until steps arrive.
+ * - Expand toggle appears once steps arrive; click reveals step list.
+ * - Step list capped at 8 most recent when expanded.
+ * - Step icons: ✓ for done/ok, ✗ for done/failed, ◐ for running.
+ * - Pulse dot present when in_flight and agent status running.
+ * - No pulse dot once status is settled.
+ * - "couldn't finish" text shown when settled and errored.
+ * - aria-expanded toggles on expand/collapse.
  */
 import type { PraxisClient, SubAgentEvent, SubAgentItem } from "@praxis/core/types";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
@@ -53,7 +59,21 @@ function Wrapper({ client, children }: { client: PraxisClient; children: React.R
   return <PraxisClientProvider client={client}>{children}</PraxisClientProvider>;
 }
 
-describe("SubAgentBlock", () => {
+describe("SubAgentBlock — marginalia render", () => {
+  it("renders kicker with 'sub-agent' prefix", () => {
+    const client = makeClient([]);
+    const { container } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    expect(container.textContent).toContain("sub-agent");
+  });
+
   it("shows initialLabel before any subscription events", () => {
     const client = makeClient([]);
     const { container } = render(
@@ -82,7 +102,7 @@ describe("SubAgentBlock", () => {
     expect(container.textContent).not.toContain("step");
   });
 
-  it("shows step count after steps arrive", async () => {
+  it("shows step count in kicker after steps arrive", async () => {
     const item = makeItem();
     const steps = [
       {
@@ -118,7 +138,92 @@ describe("SubAgentBlock", () => {
     await waitFor(() => expect(container.textContent).toContain("3 steps"));
   });
 
-  it("click expands to show step list", async () => {
+  it("updates kicker label from phase_changed event", async () => {
+    const item = makeItem();
+    const events: SubAgentEvent[] = [
+      { kind: "snapshot", items: [item] },
+      { kind: "phase_changed", parentCallId: CALL_ID, label: "drafting unit 2" },
+    ];
+    const client = makeClient(events);
+    const { container } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(container.textContent).toContain("drafting unit 2"));
+  });
+});
+
+describe("SubAgentBlock — collapsed-by-default + expand toggle", () => {
+  it("no expand toggle when there are no steps", () => {
+    const client = makeClient([]);
+    const { queryByRole } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    expect(queryByRole("button")).toBeNull();
+  });
+
+  it("expand toggle appears once steps arrive", async () => {
+    const item = makeItem();
+    const steps = [
+      {
+        callId: "s1",
+        toolName: "document.outline",
+        label: "Reading outline",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+      },
+    ];
+    const events: SubAgentEvent[] = [{ kind: "snapshot", items: [{ ...item, steps }] }];
+    const client = makeClient(events);
+    const { queryByRole } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(queryByRole("button")).not.toBeNull());
+  });
+
+  it("step list not visible when collapsed", async () => {
+    const item = makeItem();
+    const steps = [
+      {
+        callId: "s1",
+        toolName: "document.outline",
+        label: "Reading the table of contents",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+      },
+    ];
+    const events: SubAgentEvent[] = [{ kind: "snapshot", items: [{ ...item, steps }] }];
+    const client = makeClient(events);
+    const { queryByText } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(queryByText(/show steps/i)).not.toBeNull());
+    // Step label not visible in collapsed state.
+    expect(queryByText("Reading the table of contents")).toBeNull();
+  });
+
+  it("click expand toggle reveals step list", async () => {
     const item = makeItem();
     const steps = [
       {
@@ -139,10 +244,6 @@ describe("SubAgentBlock", () => {
         />
       </Wrapper>,
     );
-    // Initially collapsed — step label not visible.
-    expect(queryByText("Reading the table of contents")).toBeNull();
-
-    // Expand.
     await waitFor(() => expect(getByRole("button").getAttribute("aria-expanded")).toBe("false"));
     fireEvent.click(getByRole("button"));
     await waitFor(() => expect(queryByText("Reading the table of contents")).not.toBeNull());
@@ -166,57 +267,11 @@ describe("SubAgentBlock", () => {
         />
       </Wrapper>,
     );
-    await waitFor(() => expect(getByRole("button").textContent).toContain("10 steps"));
+    await waitFor(() => expect(getByRole("button")).not.toBeNull());
     fireEvent.click(getByRole("button"));
     // Only 8 list items rendered (most recent 8 of 10).
     const listItems = getAllByRole("listitem");
     expect(listItems).toHaveLength(8);
-  });
-
-  it("shows live indicator when in_flight and item status running", async () => {
-    const item = makeItem({ status: "running" });
-    const client = makeClient([{ kind: "snapshot", items: [item] }]);
-    const { container } = render(
-      <Wrapper client={client}>
-        <SubAgentBlock
-          parentCallId={CALL_ID}
-          initialLabel="reading your materials"
-          status="in_flight"
-        />
-      </Wrapper>,
-    );
-    await waitFor(() => expect(container.textContent).toContain("live"));
-  });
-
-  it("no live indicator when status is settled", async () => {
-    const item = makeItem({ status: "done" });
-    const client = makeClient([{ kind: "snapshot", items: [item] }]);
-    const { container } = render(
-      <Wrapper client={client}>
-        <SubAgentBlock
-          parentCallId={CALL_ID}
-          initialLabel="reading your materials"
-          status="settled"
-        />
-      </Wrapper>,
-    );
-    await waitFor(() => expect(container.textContent).not.toContain("live"));
-  });
-
-  it("shows 'couldn't finish' when settled and errored", async () => {
-    const item = makeItem({ status: "failed" });
-    const client = makeClient([{ kind: "snapshot", items: [item] }]);
-    const { container } = render(
-      <Wrapper client={client}>
-        <SubAgentBlock
-          parentCallId={CALL_ID}
-          initialLabel="reading your materials"
-          status="settled"
-          errored={true}
-        />
-      </Wrapper>,
-    );
-    await waitFor(() => expect(container.textContent).toContain("couldn't finish"));
   });
 
   it("aria-expanded toggles on click", async () => {
@@ -239,11 +294,151 @@ describe("SubAgentBlock", () => {
         />
       </Wrapper>,
     );
+    await waitFor(() => expect(getByRole("button")).not.toBeNull());
     const button = getByRole("button");
     expect(button.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("false");
+  });
+});
+
+describe("SubAgentBlock — step event rendering", () => {
+  it("shows ✓ icon for done/ok step", async () => {
+    const item = makeItem();
+    const steps = [
+      {
+        callId: "s1",
+        toolName: "document.outline",
+        label: "Reading outline",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+        ok: true,
+        endedAt: Date.now() as SubAgentItem["startedAt"],
+      },
+    ];
+    const client = makeClient([{ kind: "snapshot", items: [{ ...item, steps }] }]);
+    const { getByRole, container } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(getByRole("button")).not.toBeNull());
+    fireEvent.click(getByRole("button"));
+    await waitFor(() => expect(container.textContent).toContain("✓"));
+  });
+
+  it("shows ✗ icon for done/failed step", async () => {
+    const item = makeItem();
+    const steps = [
+      {
+        callId: "s1",
+        toolName: "document.outline",
+        label: "Reading outline",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+        ok: false,
+        endedAt: Date.now() as SubAgentItem["startedAt"],
+      },
+    ];
+    const client = makeClient([{ kind: "snapshot", items: [{ ...item, steps }] }]);
+    const { getByRole, container } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(getByRole("button")).not.toBeNull());
+    fireEvent.click(getByRole("button"));
+    await waitFor(() => expect(container.textContent).toContain("✗"));
+  });
+
+  it("shows ◐ icon for running step (no ok yet)", async () => {
+    const item = makeItem();
+    const steps = [
+      {
+        callId: "s1",
+        toolName: "document.outline",
+        label: "Reading outline",
+        startedAt: Date.now() as SubAgentItem["startedAt"],
+        // ok is undefined — step is still running
+      },
+    ];
+    const client = makeClient([{ kind: "snapshot", items: [{ ...item, steps }] }]);
+    const { getByRole, container } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(getByRole("button")).not.toBeNull());
+    fireEvent.click(getByRole("button"));
+    await waitFor(() => expect(container.textContent).toContain("◐"));
+  });
+});
+
+describe("SubAgentBlock — live indicator + error states", () => {
+  it("pulse element present when in_flight and agent status running", async () => {
+    const item = makeItem({ status: "running" });
+    const client = makeClient([{ kind: "snapshot", items: [item] }]);
+    const { container } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="in_flight"
+        />
+      </Wrapper>,
+    );
+    // Pulse dot is aria-hidden; check by selector — wait for snapshot to arrive
+    await waitFor(() => {
+      // When item arrives from subscription, the pulse is driven by isLive check.
+      // The item is running and status is in_flight, so pulse should be present.
+      const pulse = container.querySelector("[aria-hidden='true'][class*='pulse']");
+      expect(pulse).not.toBeNull();
+    });
+  });
+
+  it("no pulse when status is settled", async () => {
+    const item = makeItem({ status: "done" });
+    const client = makeClient([{ kind: "snapshot", items: [item] }]);
+    const { container } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="settled"
+        />
+      </Wrapper>,
+    );
+    await waitFor(() => {
+      const pulse = container.querySelector("[class*='pulse']");
+      expect(pulse).toBeNull();
+    });
+  });
+
+  it("shows 'couldn't finish' when settled and errored", async () => {
+    const item = makeItem({ status: "failed" });
+    const client = makeClient([{ kind: "snapshot", items: [item] }]);
+    const { container } = render(
+      <Wrapper client={client}>
+        <SubAgentBlock
+          parentCallId={CALL_ID}
+          initialLabel="reading your materials"
+          status="settled"
+          errored={true}
+        />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(container.textContent).toContain("couldn't finish"));
   });
 });

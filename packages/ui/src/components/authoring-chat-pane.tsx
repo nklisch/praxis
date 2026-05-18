@@ -5,6 +5,7 @@ import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import styles from "./authoring-chat-pane.module.css";
 import { Composer } from "./composer.js";
 import { MessageBubble } from "./message.js";
+import { SubAgentBlock } from "./sub-agent-block.js";
 import { ToolCallEntry } from "./tool-call-entry.js";
 
 /** Mode ids that mount an authoring chat pane. */
@@ -206,8 +207,15 @@ export function AuthoringChatPane({ mode, sessionId, disabled = false }: Authori
             );
           }
           if (item.kind === "sub-agent") {
-            // Sub-agent blocks don't appear in the authoring pane — render nothing.
-            return null;
+            return (
+              <SubAgentBlock
+                key={`sa-${item.callId}`}
+                parentCallId={item.callId}
+                initialLabel={item.toolName}
+                status={item.status}
+                {...(item.errored === true && { errored: true })}
+              />
+            );
           }
           if (item.kind === "thinking") {
             // Reasoning blocks don't appear in the authoring pane — render nothing.

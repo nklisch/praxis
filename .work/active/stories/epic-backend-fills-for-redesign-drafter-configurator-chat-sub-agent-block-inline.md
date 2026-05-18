@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat-sub-agent-block-inline
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-backend-fills-for-redesign-drafter-configurator-chat
 depends_on:
@@ -9,7 +9,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # `<SubAgentBlock>` inline marginalia + live step events
@@ -55,3 +55,29 @@ to `SubAgentRegistry` step events.
 
 - Persisting sub-agent step events long-term (already handled by
   episodic log).
+
+## Implementation notes
+
+- **No new IPC channel needed.** `praxis.subAgent.events.*` was already
+  implemented in `subagent-channel.ts` and `sub-agent-client.ts`. The
+  `SubAgentRegistry.subscribe()` was already wired up server-side.
+
+- **New hook `useSubAgentSteps`** (`packages/ui/src/hooks/use-sub-agent-steps.ts`)
+  provides a narrower interface than `useSubAgent`: `{ steps, status, label }`.
+  `interrupted` maps to `"failed"` for the UI — both mean the run ended badly.
+  The existing `useSubAgent` hook is retained for other consumers (it remains
+  used by nothing else at this point, but keeping it avoids a churn-only removal).
+
+- **`<SubAgentBlock>` restyle** per locked mock `03-explorer-running.html`:
+  accent left-border (`border-left: 3px solid var(--color-accent)`), secondary
+  background, mono kicker `¶ sub-agent · {label} · N steps`, pulsing dot when
+  running. Expand toggle appears only once steps arrive. Step list shows ✓/✗/◐
+  icons, capped to 8 most recent when expanded.
+
+- **`<AuthoringChatPane>` now renders `<SubAgentBlock>`** inline for
+  `kind === "sub-agent"` items (previously returned null). Uses
+  `item.toolName` as `initialLabel` (no label field on `SubAgentSpawn`).
+  Uses spread conditional for `errored` to satisfy `exactOptionalPropertyTypes`.
+
+- **17 `sub-agent-block.test.tsx` tests + 11 `use-sub-agent-steps.test.ts` tests**
+  — all green. Full workspace test suite: 1407 tests passing.

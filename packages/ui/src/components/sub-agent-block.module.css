@@ -1,55 +1,37 @@
-/* sub-agent-block.module.css — editorial restraint, mirrors tool-interstitial. */
+/* sub-agent-block.module.css — inline marginalia; accent left-border; per locked mock. */
 
 .block {
-  margin: 0.25rem 0 0.25rem 0.25rem;
-  align-self: flex-start;
-  max-width: 80%;
+  background: var(--color-bg-secondary);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 10px 13px;
+  margin: 6px 0;
 }
 
-.summary {
+/* ── Header row ───────────────────────────────────────────────────────────── */
+
+.head {
   display: flex;
   align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.25em;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-  font-family: inherit;
-  text-align: left;
+  gap: 6px;
 }
 
-.summary:hover {
-  opacity: 0.85;
-}
-
-.chevron {
-  font-size: 0.75em;
+/* Pulsing live dot — shown while sub-agent is running */
+.pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
   flex-shrink: 0;
+  /* Push dot to center vertically relative to baseline text */
+  align-self: center;
+  animation: praxis-subagent-pulse 1.4s ease-in-out infinite;
 }
 
-.label {
-  composes: editorial from global;
-}
-
-.meta {
-  composes: editorial from global;
-  opacity: 0.7;
-}
-
-.live {
-  composes: editorial from global;
-  opacity: 0.85;
-  animation: praxis-subagent-live-pulse 1.6s ease-in-out infinite;
-}
-
-@keyframes praxis-subagent-live-pulse {
+@keyframes praxis-subagent-pulse {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.4;
   }
   50% {
     opacity: 1;
@@ -57,46 +39,138 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .live {
+  .pulse {
     animation: none;
-    opacity: 0.75;
+    opacity: 0.7;
   }
 }
 
-.errored {
-  composes: editorial from global;
-  color: var(--color-warning, var(--color-text-secondary));
-  opacity: 0.85;
+/* ¶ glyph */
+.kicker {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--color-accent);
+  flex-shrink: 0;
 }
+
+/* "sub-agent · {label} · N steps" mono line */
+.kickerText {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+/* Label in serif italic inside the kicker — phase/label from registry */
+.kickerLabel {
+  font-family: var(--font-serif);
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* Muted step-count meta */
+.kickerMeta {
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+}
+
+/* Error state */
+.kickerFailed {
+  font-weight: 400;
+  color: var(--color-warning, var(--color-text-secondary));
+}
+
+/* ── Expand toggle ─────────────────────────────────────────────────────────── */
+
+.toggle {
+  display: block;
+  margin-top: 7px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: italic 11px / 1.4 var(--font-serif);
+  color: var(--color-text-tertiary);
+  text-align: left;
+}
+
+.toggle:hover {
+  color: var(--color-accent);
+}
+
+/* ── Step list ────────────────────────────────────────────────────────────── */
 
 .steps {
   list-style: none;
-  margin: 0.3rem 0 0 1ch;
-  padding: 0;
+  margin: 6px 0 0;
+  padding: 7px 9px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  max-height: 140px;
+  overflow-y: auto;
+  font: 11px / 1.6 var(--font-mono);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.02em;
 }
 
 .step {
   display: flex;
   align-items: baseline;
-  gap: 0.4em;
-  font-size: 0.8rem;
+  gap: 7px;
+  padding: 1px 0;
+}
+
+.stepDone {
   color: var(--color-text-secondary);
-  opacity: 0.75;
-  line-height: 1.5;
-  padding: 0.05rem 0;
 }
 
 .stepFailed {
   color: var(--color-warning, var(--color-text-secondary));
 }
 
-.bullet {
-  flex-shrink: 0;
-  font-size: 0.85em;
-  opacity: 0.6;
+.stepRunning {
+  color: var(--color-accent);
 }
 
+/* ✓ / ✗ / ◐ prefix icon */
+.stepIcon {
+  flex-shrink: 0;
+  min-width: 12px;
+  font-size: 10px;
+}
+
+/* Step running icon — spinning ◐ */
+.stepRunning .stepIcon {
+  display: inline-block;
+  animation: praxis-subagent-spin 1.2s linear infinite;
+}
+
+@keyframes praxis-subagent-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepRunning .stepIcon {
+    animation: none;
+  }
+}
+
+/* Step label — serif italic inside mono list */
 .stepLabel {
-  composes: editorial from global;
-  font-size: inherit;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: inherit;
+  font-size: 11px;
 }
