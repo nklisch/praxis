@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template-step-2-quick-check-and-subagent
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-stream-handler-template
 depends_on: [refactor-stream-handler-template-step-1-helper-and-activity]
@@ -125,3 +125,13 @@ the only new wrinkle.
 
 `git revert <commit>` — clean. Channels can revert to inline scaffolding
 independently of each other if needed.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none (the log-key shape change for subagent — `subagent.subscribe` → `subAgent.events.subscribe` — is the same observability shift noted in step 1's review).
+
+**Notes**: Two clean adoptions of `registerSubscriberStream`. Quick-check (−41 LoC) is the simplest case; subagent (−36 LoC) exercises the variadic `Args = [parentCallId?: string]` generic which compiled cleanly. Both files dropped now-unused imports (`IpcStreamMessage`, `redactSecrets`, `serializeErrorRedacted`). Wire format preserved. All 8 streaming-envelope + subagent-channel tests pass unmodified.
