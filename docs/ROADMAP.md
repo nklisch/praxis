@@ -8,7 +8,7 @@ Three integration milestones along the way: **M1** end-to-end tutor session (Pha
 
 These landed alongside the numbered phases but don't carry a phase number of their own:
 
-- **Activity rail** — replaced the `IngestionProgress` blocking modal. `<ActivityRail>` is mounted at the router root and surfaces ambient progress for ingestion, indexing, and grading. Producers inject `ActivityRegistry` via `ServiceDeps.activity`. Design: `docs/designs/activity-rail.md`.
+- **Activity rail** — replaced the `IngestionProgress` blocking modal. The `<ActivityRail>` component and `ActivityRegistry` / `useActivity()` infrastructure shipped but the rail is no longer mounted at the router root; the new app-shell top-nav rebuild (epic-ui-redesign-ground-up) replaces it with a `<StatusStrip>` beneath `<TopNav>`. Producers still inject `ActivityRegistry` via `ServiceDeps.activity`. Design: `docs/designs/activity-rail.md`.
 - **Language sandbox registry** — QuickJS WASM (`quickjs-emscripten`) replaces `isolated-vm` for JavaScript execution. No native build required; no ABI dance. `CodeSandboxImpl` is registry-based with `QuickJsLanguageSandbox` and `PyodideLanguageSandbox` adapters. Design: `docs/designs/language-sandbox-registry.md`.
 
 ---

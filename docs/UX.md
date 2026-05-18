@@ -2,7 +2,7 @@
 
 The user-facing surfaces of Praxis. `ARCHITECTURE.md` describes what the UI is (a Vite + React + TanStack Router SPA talking to `@praxis/core` over a transport); this document describes what it *does* and what it *feels like* to use.
 
-The UI has two top-level surfaces: **student** (the learning experience) and **configure** (authoring and tuning). They share the same SPA; the lock code controls which is accessible. A third ambient surface — `<ActivityRail>` — is mounted at the router root and shows progress for background work (ingestion, indexing, grading) without blocking navigation.
+The UI has two top-level surfaces: **student** (the learning experience) and **configure** (authoring and tuning). They share the same SPA; the lock code controls which is accessible. The chrome is a top horizontal running head (`<TopNav>`) with a near-invisible status strip directly beneath it (`<StatusStrip>`, planned) that surfaces ambient background work (ingestion, indexing, grading) without blocking navigation. The `<ActivityRail>` component exists in the codebase but is no longer mounted; the status strip pattern replaces it.
 
 ## Surface map
 
@@ -72,7 +72,7 @@ Praxis supports three onboarding paths. They share the same backend machinery �
 
 1. **First-run greeting** in configure mode. Agent greets, asks for context (who's the student, what subject, what's the goal).
 2. **Subject selection** — pick a canonical subject pack (Math, Biology) or "custom subject."
-3. **Material upload (optional but encouraged)** — drag in textbook PDFs, syllabus, lesson notes. Ingestion runs in the background; progress surfaces on the `<ActivityRail>` without blocking other use.
+3. **Material upload (optional but encouraged)** — drag in textbook PDFs, syllabus, lesson notes. Ingestion runs in the background; progress surfaces on the status strip without blocking other use.
 4. **Course shape conversation** — agent and configurator co-author lesson sequence. Agent suggests; configurator confirms or edits via chat or via the structured editor visible alongside. Courses bootstrapped from materials now have a unit structure (units → lessons → lesson assessments) rather than a flat lesson list.
 5. **Threshold and gate setup** — configurator picks defaults or customizes. Sensible defaults from the canonical pack.
 6. **Teaching style selection** — knobs for Socratic ↔ lecture, terse ↔ verbose, formal ↔ casual. Live preview of a sample exchange.
@@ -89,7 +89,7 @@ Praxis supports three onboarding paths. They share the same backend machinery �
 
 1. **Greeting** — agent asks what class they're in.
 2. **Material upload** — student drags in syllabus + textbook + class notes.
-3. **Bootstrap** — student opens a bootstrap session; the agent calls `course.start_exploration`, which runs a multi-turn agentic loop reading documents via outline / section / page tools and building a draft with units, lessons, and assessment shells. Progress surfaces on the `<ActivityRail>`.
+3. **Bootstrap** — student opens a bootstrap session; the agent calls `course.start_exploration`, which runs a multi-turn agentic loop reading documents via outline / section / page tools and building a draft with units, lessons, and assessment shells. Progress surfaces on the status strip.
 4. **Confirmation** — UI shows the draft course (lesson sequence, concept graph, suggested gates). Student reviews and edits. Agent walks through it conversationally if asked.
 5. **First session** — student starts a `teach` session on the first concept.
 

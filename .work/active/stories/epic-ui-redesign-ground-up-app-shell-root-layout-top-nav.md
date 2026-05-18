@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-root-layout-top-nav
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -127,3 +127,7 @@ All 390 test files pass; 9 new tests added for `<TopNav>`.
 
 - **Foundation-doc drift: `<ActivityRail>` still claimed as router-root mount** — `docs/ARCHITECTURE.md` line 13, `docs/UX.md` lines 5/75/92, and `CLAUDE.md` line 111 all assert `<ActivityRail>` is mounted at the router root. This story removed it; the docs must be rolled forward before the story can advance to done.
   → Item: `epic-ui-redesign-ground-up-app-shell-root-layout-top-nav-doc-drift`
+
+## Re-review note
+
+Doc-drift sibling story `epic-ui-redesign-ground-up-app-shell-root-layout-top-nav-doc-drift` cleared the only review blocker (foundation-doc drift for `<ActivityRail>` unmounting). No code changes needed in this story. Re-advanced to `review` for verdict pass 2.
