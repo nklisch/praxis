@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-envelope-validation-coverage
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: null
 depends_on: []
