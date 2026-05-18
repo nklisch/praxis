@@ -1,7 +1,7 @@
 ---
 id: refactor-subscriber-registry-base
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -284,3 +284,35 @@ None. Every change is reversible per-file.
   one line.
 - A real `SubscriberRegistry<T>` base class — explicitly DROPPED per the
   design correction above.
+
+## Implementation Run Summary
+
+Single child story implemented and advanced to review (commit `1df6ce0`).
+Total LoC delta: +23 (helper) in `db-helpers.ts`; net −19 across the 4
+service files; +6 in quick-check-service for the new optional logger
+parameter + NOOP fallback (see deviation note below).
+
+| Service | Prior emit body | New emit body | Notes |
+|---|---|---|---|
+| `activity-registry.ts` | 7 LoC | 1 LoC | Component `"activity"` preserves prior log-key shape |
+| `quick-check-service.ts` | 6 LoC (silent swallow, no log) | 1 LoC (logs via helper) | **Behavior change**: silent → observable (see deviation) |
+| `course-create-service.ts` | 8 LoC | 1 LoC + preserved debug-log call | Debug log call stays before the helper invocation |
+| `subagent-registry.ts` | 12 LoC | 6 LoC | Filter-match extraction loop + helper call |
+
+### Cross-cutting deviations
+
+- **`QuickCheckServiceImpl` gained a logger dep**: the class previously had no deps; the agent added an optional `constructor(log?: Logger)` parameter defaulting to a module-local `NOOP_LOGGER`. Existing call sites (`new QuickCheckServiceImpl()`) are unchanged. Production observability is unchanged until someone updates the wiring in `services.ts` to pass a real logger — that's a small follow-up worth a backlog item (`idea-wire-logger-into-quick-check-service`).
+- **Silent-swallow removed from quick-check-service**: previously, listener exceptions were silently dropped (`} catch { /* swallow */ }`). After the refactor, exceptions are routed through the helper which logs `"quick-check-service.listener_threw"`. With the NOOP logger default in production, this is currently observably the same as before. Once the wiring follow-up lands, this becomes a net improvement (observable listener bugs instead of silent corruption).
+
+### Verification status
+
+- **Typecheck**: baseline preserved (3 pre-existing UI errors unchanged)
+- **Tests**: 55 across the 4 service test files pass unmodified
+- **Lint**: clean on all 5 touched files
+- **Public API**: every service's `subscribe(listener)` signature is unchanged
+
+### What's now possible
+
+- Future services adopting the subscriber-fanout pattern get the listener loop for free — one line: `notifyListeners(this.listeners, event, this.deps.log, "<component>")`.
+- Listener-error log keys are uniform across the codebase (`"<component>.listener_threw"`).
+- The pattern doc at `.claude/skills/patterns/subscriber-fanout-stream.md` can reference `notifyListeners` as the canonical inner-loop primitive (small follow-up).
