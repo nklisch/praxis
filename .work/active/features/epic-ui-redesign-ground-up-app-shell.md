@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on: [epic-ui-redesign-ground-up-design-system]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # App Shell — Root Chrome, Navigation, Ambient Surface, First-Run
