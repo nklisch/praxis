@@ -179,14 +179,15 @@ export function NoteEditorPage() {
           <NoteEditorCornell
             body={body}
             onChange={(updated) => setBody(updated)}
-            onSpawnFromCue={spawning ? undefined : handleSpawnFromCue}
+            {...(!spawning && { onSpawnFromCue: handleSpawnFromCue })}
           />
         )}
         {body.kind === "feynman" && (
           <NoteEditorFeynman
             body={body}
             onChange={(updated) => setBody(updated)}
-            onSpawnFromCue={spawning ? undefined : handleSpawnFromCue}
+            noteId={noteId as unknown as NoteId}
+            {...(!spawning && { onSpawnFromCue: handleSpawnFromCue })}
           />
         )}
         {body.kind === "outline" && (

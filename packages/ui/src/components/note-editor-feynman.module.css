@@ -1,4 +1,53 @@
+/* ── Outer container ──────────────────────────────────────────────────────── */
+
 .editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Mode toggle ──────────────────────────────────────────────────────────── */
+
+.modeToggle {
+  display: flex;
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
+  border-radius: var(--radius-full, 999px);
+  padding: 3px;
+  gap: 0;
+  align-self: flex-start;
+}
+
+.modeBtn {
+  padding: 8px 18px;
+  font: 500 italic 14px/1 var(--font-display, inherit);
+  color: var(--color-text-secondary, #aaa);
+  cursor: pointer;
+  border-radius: var(--radius-full, 999px);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  background: transparent;
+  border: none;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.modeBtnActive {
+  background: var(--color-bg-primary, #fff);
+  color: var(--color-text-primary, #111);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.modeOrnament {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* ── Writing pass ─────────────────────────────────────────────────────────── */
+
+.writingPass {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -141,4 +190,276 @@
 .addBtn:hover {
   background: rgba(99, 102, 241, 0.08);
   border-color: var(--color-accent, #6366f1);
+}
+
+/* ── Review pass ──────────────────────────────────────────────────────────── */
+
+.reviewPass {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.reviewInstructions {
+  padding: 12px 16px;
+  background: var(--color-accent-muted, rgba(99, 102, 241, 0.08));
+  border-left: 3px solid var(--color-accent, #6366f1);
+  border-radius: 0 4px 4px 0;
+  font: italic 0.875rem/1.5 var(--font-serif, inherit);
+  color: var(--color-text-primary, inherit);
+}
+
+.reviewInstructions em {
+  font-weight: 600;
+}
+
+.reviewColumns {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 24px;
+  align-items: start;
+}
+
+.writingCol {
+  position: relative;
+}
+
+.annotationBody {
+  font: 1rem/1.85 var(--font-serif, inherit);
+  color: var(--color-text-primary, inherit);
+  cursor: text;
+  user-select: text;
+  min-height: 160px;
+  padding: 12px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.reviewEmptyHint {
+  color: var(--color-text-tertiary, #888);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Annotated spans — severity colour-coding */
+
+.highlightSoft {
+  background: var(--color-warning, #f59e0b);
+  color: var(--color-text-inverse, #fff);
+  padding: 1px 3px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.highlightStrong {
+  background: var(--color-danger, #ef4444);
+  color: var(--color-text-inverse, #fff);
+  padding: 1px 3px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+/* ── Selection popover ────────────────────────────────────────────────────── */
+
+.popover {
+  position: absolute;
+  z-index: 100;
+  background: var(--color-bg-secondary, #1a1a2e);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 260px;
+  max-width: 320px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popoverSelected {
+  font: italic 0.8rem/1.4 var(--font-serif, inherit);
+  color: var(--color-text-secondary, #aaa);
+  border-left: 2px solid var(--color-border, rgba(255, 255, 255, 0.2));
+  padding-left: 8px;
+}
+
+.popoverSeverityRow {
+  display: flex;
+  gap: 6px;
+}
+
+.severityBtn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+
+.severitySoft {
+  background: transparent;
+  border-color: var(--color-warning, #f59e0b);
+  color: var(--color-warning, #f59e0b);
+}
+
+.severitySoft.severityActive {
+  background: var(--color-warning, #f59e0b);
+  color: var(--color-text-inverse, #fff);
+}
+
+.severityStrong {
+  background: transparent;
+  border-color: var(--color-danger, #ef4444);
+  color: var(--color-danger, #ef4444);
+}
+
+.severityStrong.severityActive {
+  background: var(--color-danger, #ef4444);
+  color: var(--color-text-inverse, #fff);
+}
+
+.popoverTextarea {
+  width: 100%;
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  color: var(--color-text-primary, inherit);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  padding: 6px 8px;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.popoverTextarea:focus {
+  outline: none;
+  border-color: var(--color-accent, #6366f1);
+}
+
+.popoverActions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.popoverSave {
+  padding: 6px 14px;
+  border-radius: 4px;
+  background: var(--color-accent, #6366f1);
+  color: #fff;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.popoverSave:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.popoverCancel {
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.2));
+  color: var(--color-text-secondary, #aaa);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.popoverCancel:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary, inherit);
+}
+
+/* ── Margin notes column ──────────────────────────────────────────────────── */
+
+.marginCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font: italic 0.8rem/1.5 var(--font-serif, inherit);
+  padding-top: 12px;
+}
+
+.marginEmpty {
+  padding: 10px 14px;
+  border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.2));
+  border-radius: 4px;
+  font: italic 0.78rem/1.4 var(--font-serif, inherit);
+  color: var(--color-text-tertiary, #888);
+  text-align: center;
+}
+
+.marginNote {
+  padding: 8px 12px;
+  background: var(--color-warning, #f59e0b);
+  color: var(--color-text-inverse, #fff);
+  border-radius: 4px;
+  position: relative;
+}
+
+.marginNoteStrong {
+  background: var(--color-danger, #ef4444);
+}
+
+.marginPointer {
+  position: absolute;
+  left: -11px;
+  top: 12px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 11px 5px 0;
+  border-color: transparent var(--color-warning, #f59e0b) transparent transparent;
+}
+
+.marginNoteStrong .marginPointer {
+  border-color: transparent var(--color-danger, #ef4444) transparent transparent;
+}
+
+.marginLabel {
+  font: 600 9px/1 var(--font-mono, monospace);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  opacity: 0.85;
+  font-style: normal;
+}
+
+.marginQuote {
+  font-style: italic;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.marginDelete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: opacity 0.12s;
+}
+
+.marginDelete:hover {
+  opacity: 1;
 }
