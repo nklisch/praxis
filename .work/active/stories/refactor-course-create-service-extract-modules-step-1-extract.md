@@ -1,7 +1,7 @@
 ---
 id: refactor-course-create-service-extract-modules-step-1-extract
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-course-create-service-extract-modules
 depends_on: []
@@ -131,3 +131,41 @@ Pre-existing baseline: 3 UI typecheck errors, ~524 `.mockups/**` lint debt, one 
 If `validateProposed` or `persistDraftTx` turn out to have hidden coupling to file-private helpers that aren't obvious from a quick read, move those helpers along OR keep the function in place. If the move would require splitting a tightly-coupled helper cluster, document and adapt.
 
 If `createCourseFromPack` looks like it should move but its `this.deps.*` usage is so pervasive that extracting requires significant restructure, keep it as a class method — that's a future refactor.
+
+## Implementation notes
+
+### Functions moved
+
+**`validateProposed`** (75 LoC in source → `draft-validator.ts`, 85 LoC including imports and the `normalizeConceptName` helper):
+- Moved with `Issue` interface and a local copy of `normalizeConceptName` (the validator needs it for unit/assessment concept name checks).
+- `course-create-service.ts` re-exports `Issue` via `export type { Issue }` to preserve the existing public API.
+- `applyEdit`'s `validate-draft` case still calls `validateProposed` — now imported from the new file.
+
+**`persistDraftTx` + `PersistDraftTxArgs`** (~240 LoC in source → `draft-persistence.ts`, 252 LoC including imports):
+- Moved with all Drizzle schema imports it required (`assignments`, `courses`, `courseUnits`, `gates`, `lessonAssessments`, `lessons`, `lessonUnits`, `conceptGraphs`, `concepts`, `prerequisiteEdges`).
+- The inner `materializeShell` helper moved with the function (nested helper, only used by `persistDraftTx`).
+- Transaction semantics unchanged: `persistDraftTx` still accepts `tx: PraxisDb` and is called inside `this.deps.db.transaction()` in `confirmDraft`.
+
+### `createCourseFromPack` decision: stayed as class method
+
+`createCourseFromPack` (line 629, ~104 LoC) was evaluated for extraction. It was kept as a class method because:
+1. It reads from `this.deps.db` before opening the transaction (the pre-transaction `SELECT` for conceptRows uses `this.deps.db`).
+2. The transaction block itself directly uses the `this.deps.db.transaction()` API.
+3. Extracting it would require passing both a `db` instance and a `conceptGraphId` resolve path — equivalent restructuring to the persistence function, but with more ambient state from `this.deps`. The cost-benefit ratio is unfavorable for a refactor story scoped to free-function extraction.
+
+This matches the story's explicit guidance: "if it requires `this.deps.*` access throughout, keep as a class method — that's a future refactor."
+
+### File LoC deltas
+
+| File | Before | After |
+|---|---|---|
+| `course-create-service.ts` | 1479 | 1157 (−322) |
+| `course-create/draft-validator.ts` | — | 85 (new) |
+| `course-create/draft-persistence.ts` | — | 252 (new) |
+
+### Baseline confirmation
+
+- `pnpm --filter @praxis/core typecheck` — clean (0 errors)
+- `pnpm --filter @praxis/core test` — 1060 tests pass (86 test files)
+- `pnpm biome check packages/core/src/services/course-create-service.ts` — clean
+- `pnpm biome check packages/core/src/services/course-create/` — clean
