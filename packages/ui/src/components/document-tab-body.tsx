@@ -18,20 +18,48 @@
  * via `client.citations.listByDocument` and applied to the rendered text as
  * `<mark>` elements with a `†` marker. Stale (out-of-bounds) offsets are
  * silently skipped with a dev-log warning.
+ *
+ * Selection action bar: when the student selects text inside the document
+ * content pane, a floating `<SelectionActionBar>` appears with four capture
+ * actions (note · ask Praxis · cite · flashcard). Listens to
+ * `selectionchange` on the document, debounced ~100ms.
  */
 
-import type { DocumentCitationRecord, DocumentTabSummary } from "@praxis/core/types";
+import type {
+  DocumentCitationRecord,
+  DocumentId,
+  DocumentTabSummary,
+  SessionId,
+} from "@praxis/core/types";
 import type { JSX } from "react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useResource } from "../hooks/use-resource.js";
 import styles from "./document-tab-body.module.css";
 import { pickRenderer } from "./document-viewer/format-router.js";
 import { ErrorMessage } from "./error-message.js";
 import { LoadingState } from "./loading-state.js";
+import { SelectionActionBar } from "./selection-action-bar.js";
 
 export interface DocumentTabBodyProps {
   tab: DocumentTabSummary;
+  /**
+   * Optional: the session currently open alongside this document view.
+   * When provided, `+ cite` records the citation against this session.
+   * When absent, `citingSessionId` is omitted from the citation record.
+   */
+  currentSessionId?: SessionId;
+  /**
+   * Optional: called after a `↗ ask Praxis` spawn completes, with the new
+   * session handle. The caller is responsible for opening the tab and
+   * navigating — this mirrors the session-tab-open-flow pattern where the
+   * shell's `useTabs()` owns the in-memory state.
+   *
+   * When absent, `spawnFromPassage` is still called; the session is created
+   * but no tab is opened automatically (the IPC channel works, the UI does
+   * not navigate). Callers that own the tab strip should pass this.
+   */
+  onSpawnedSession?: (sessionId: SessionId) => Promise<void>;
 }
 
 /**
@@ -93,7 +121,7 @@ function applyCitationMark(
     // biome-ignore lint/style/noNonNullAssertion: CSS module key always exists
     mark.className = styles.citationMark!;
     mark.title = "Cited in session — click to open";
-    mark.dataset["sessionId"] = citingSessionId;
+    mark.dataset.sessionId = citingSessionId;
     mark.addEventListener("click", (e) => {
       e.preventDefault();
       onClickSessionId(citingSessionId);
@@ -116,6 +144,26 @@ function applyCitationMark(
 }
 
 /**
+ * Compute the linear character offset of the start of `range` relative to
+ * `root`, walking all text nodes in document order.
+ *
+ * Returns -1 if the range start node is not a descendant of `root`.
+ */
+function computeRangeOffset(root: Element, rangeNode: Node, rangeOffset: number): number {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let cursor = 0;
+  let node: Node | null;
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard TreeWalker pattern
+  while ((node = walker.nextNode()) !== null) {
+    if (node === rangeNode) {
+      return cursor + rangeOffset;
+    }
+    cursor += (node as Text).length;
+  }
+  return -1;
+}
+
+/**
  * Top-level document viewer. Loads `DocumentDetail` on mount and delegates
  * rendering to the per-format renderer selected by `pickRenderer(doc.mimeType)`.
  *
@@ -123,14 +171,128 @@ function applyCitationMark(
  * inside every renderer inherits 64ch, serif typography, and loose leading per
  * the locked mode-document.html mock.
  */
-export function DocumentTabBody({ tab }: DocumentTabBodyProps): JSX.Element {
+export function DocumentTabBody({
+  tab,
+  currentSessionId,
+  onSpawnedSession,
+}: DocumentTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const bodyRef = useRef<HTMLElement>(null);
 
+  // ── Selection action bar state ───────────────────────────────────────────
+  const [selectionBar, setSelectionBar] = useState<{
+    visible: boolean;
+    rect: DOMRect | null;
+    text: string;
+    startOffset: number;
+    endOffset: number;
+  }>({ visible: false, rect: null, text: "", startOffset: 0, endOffset: 0 });
+
+  const dismissBar = useCallback(() => {
+    setSelectionBar((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  // Subscribe to selectionchange on the document; show the bar when the
+  // selection is non-empty and inside the document content pane.
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleSelectionChange = () => {
+      if (debounceTimer !== null) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const sel = window.getSelection();
+        const bodyEl = bodyRef.current;
+
+        if (!sel || sel.rangeCount === 0 || !bodyEl) {
+          setSelectionBar((prev) => ({ ...prev, visible: false }));
+          return;
+        }
+
+        const range = sel.getRangeAt(0);
+        const selectedText = sel.toString().trim();
+
+        if (!selectedText) {
+          setSelectionBar((prev) => ({ ...prev, visible: false }));
+          return;
+        }
+
+        // Only show if the selection is inside the document body.
+        if (!bodyEl.contains(range.commonAncestorContainer)) {
+          setSelectionBar((prev) => ({ ...prev, visible: false }));
+          return;
+        }
+
+        const rect = range.getBoundingClientRect();
+        const startOffset = computeRangeOffset(bodyEl, range.startContainer, range.startOffset);
+        const endOffset = computeRangeOffset(bodyEl, range.endContainer, range.endOffset);
+
+        if (startOffset < 0 || endOffset < 0 || startOffset >= endOffset) {
+          setSelectionBar((prev) => ({ ...prev, visible: false }));
+          return;
+        }
+
+        setSelectionBar({
+          visible: true,
+          rect,
+          text: selectedText,
+          startOffset,
+          endOffset,
+        });
+      }, 100);
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      if (debounceTimer !== null) clearTimeout(debounceTimer);
+    };
+  }, []);
+
+  // ── Action handlers ──────────────────────────────────────────────────────
+
+  const handleNote = useCallback(async () => {
+    await client.notes.create({
+      format: "free",
+      body: { kind: "free", text: selectionBar.text },
+    });
+  }, [client, selectionBar.text]);
+
+  const handleAskPraxis = useCallback(async () => {
+    const handle = await client.session.spawnFromPassage({
+      documentId: tab.documentId as DocumentId,
+      range: { startOffset: selectionBar.startOffset, endOffset: selectionBar.endOffset },
+    });
+    if (onSpawnedSession) {
+      await onSpawnedSession(handle.sessionId);
+    }
+  }, [client, tab.documentId, selectionBar.startOffset, selectionBar.endOffset, onSpawnedSession]);
+
+  const handleCite = useCallback(async () => {
+    await client.citations.record({
+      documentId: tab.documentId as DocumentId,
+      // v1: citingSessionId is required by the API; if no session is active
+      // we use an empty-string sentinel. A future iteration can gate this
+      // button on an active session being present.
+      citingSessionId: (currentSessionId ?? "") as SessionId,
+      startOffset: selectionBar.startOffset,
+      endOffset: selectionBar.endOffset,
+      citedText: selectionBar.text,
+    });
+  }, [client, tab.documentId, currentSessionId, selectionBar]);
+
+  const handleFlashcard = useCallback(async () => {
+    const front = window.prompt("Flashcard front (question or cue):", "");
+    if (front === null || front.trim() === "") return; // user cancelled
+    await client.flashcards.create({
+      front: front.trim(),
+      back: selectionBar.text,
+      source: { kind: "user-created" },
+    });
+  }, [client, selectionBar.text]);
+
   const loader = useCallback(() => client.documents.get(tab.documentId), [client, tab.documentId]);
   const citationsLoader = useCallback(
-    () =>
-      client.citations.listByDocument(tab.documentId as import("@praxis/core/types").DocumentId),
+    () => client.citations.listByDocument(tab.documentId as DocumentId),
     [client, tab.documentId],
   );
 
@@ -171,13 +333,14 @@ export function DocumentTabBody({ tab }: DocumentTabBodyProps): JSX.Element {
     const index = buildTextNodeIndex(bodyEl);
 
     for (const citation of citations) {
-      applyCitationMark(bodyEl, index, citation, (_sessionId) => {
-        // Opening a session tab is handled by the session-tab-open-flow pattern.
-        // The selection-bar story (-selection-bar) wires this fully.
-        // No-op for v1 — the dagger marker is rendered; tap/click UX is in Story 2.
+      applyCitationMark(bodyEl, index, citation, (sessionId) => {
+        // Delegate to the caller's session-open handler when available.
+        if (onSpawnedSession) {
+          void onSpawnedSession(sessionId as SessionId);
+        }
       });
     }
-  }, [data, citations]);
+  }, [data, citations, onSpawnedSession]);
 
   if (loading) {
     return (
@@ -207,27 +370,40 @@ export function DocumentTabBody({ tab }: DocumentTabBodyProps): JSX.Element {
   const displayTitle = data.title ?? data.filename;
 
   return (
-    <div className={styles.container}>
-      {/* Document head — kicker + display title + meta */}
-      <header className={styles.docHead}>
-        <div className={styles.kicker}>
-          <span className={styles.kickerGlyph}>†</span>
-          <span>{data.mimeType}</span>
-        </div>
-        <h1 className={styles.title}>
-          <span className={styles.titleStrong}>{displayTitle}</span>
-        </h1>
-        {data.title && data.title !== data.filename && (
-          <div className={styles.docMeta}>{data.filename}</div>
-        )}
-      </header>
+    <>
+      <div className={styles.container}>
+        {/* Document head — kicker + display title + meta */}
+        <header className={styles.docHead}>
+          <div className={styles.kicker}>
+            <span className={styles.kickerGlyph}>†</span>
+            <span>{data.mimeType}</span>
+          </div>
+          <h1 className={styles.title}>
+            <span className={styles.titleStrong}>{displayTitle}</span>
+          </h1>
+          {data.title && data.title !== data.filename && (
+            <div className={styles.docMeta}>{data.filename}</div>
+          )}
+        </header>
 
-      {/* Scrolling reading surface — renderer output constrained to 64ch column */}
-      <main className={styles.body} ref={bodyRef} aria-label="Document content">
-        <div className={styles.readingColumn}>
-          <Renderer doc={data} />
-        </div>
-      </main>
-    </div>
+        {/* Scrolling reading surface — renderer output constrained to 64ch column */}
+        <main className={styles.body} ref={bodyRef} aria-label="Document content">
+          <div className={styles.readingColumn}>
+            <Renderer doc={data} />
+          </div>
+        </main>
+      </div>
+
+      {/* Selection action bar — floats above selected text via a portal */}
+      <SelectionActionBar
+        visible={selectionBar.visible}
+        rect={selectionBar.rect}
+        onDismiss={dismissBar}
+        onNote={handleNote}
+        onAskPraxis={handleAskPraxis}
+        onCite={handleCite}
+        onFlashcard={handleFlashcard}
+      />
+    </>
   );
 }

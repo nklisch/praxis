@@ -11,15 +11,19 @@
  * - Citation marks (†) are applied to cited ranges in text documents.
  * - Stale citations (out-of-bounds offsets) are silently skipped.
  * - PDF documents skip text-node citation walking.
+ * - Selection bar: a fake selectionchange event triggers the bar; cite/note/flashcard
+ *   handlers delegate to the client methods.
  */
 import type {
   DocumentCitationRecord,
   DocumentDetail,
+  DocumentId,
   DocumentTabSummary,
+  SessionId,
   Timestamp,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
 import { PraxisClientProvider } from "../../context/client-context.js";
@@ -297,5 +301,262 @@ describe("DocumentTabBody citation marks", () => {
     });
 
     expect(document.querySelector("mark")).toBeNull();
+  });
+});
+
+// ── Selection action bar integration ─────────────────────────────────────────
+
+/**
+ * Helper: stub window.getSelection() to return a fake Selection whose toString()
+ * returns `text`, and whose getRangeAt(0) returns a range with the given
+ * startContainer, startOffset, endOffset. Returns a restore function.
+ */
+function stubSelection(
+  text: string,
+  commonAncestorContainer: Node,
+  rangeOpts?: { startContainer?: Node; startOffset?: number; endOffset?: number },
+) {
+  const fakeRange = {
+    getBoundingClientRect: () =>
+      ({ left: 100, top: 200, right: 220, bottom: 220, width: 120, height: 20 }) as DOMRect,
+    commonAncestorContainer,
+    startContainer: rangeOpts?.startContainer ?? commonAncestorContainer,
+    startOffset: rangeOpts?.startOffset ?? 0,
+    endContainer: rangeOpts?.startContainer ?? commonAncestorContainer,
+    endOffset: rangeOpts?.endOffset ?? text.length,
+  };
+  const fakeSelection = {
+    rangeCount: 1,
+    toString: () => text,
+    getRangeAt: (_i: number) => fakeRange,
+  };
+  const original = window.getSelection;
+  // biome-ignore lint/suspicious/noExplicitAny: test stub for window.getSelection
+  (window as any).getSelection = () => fakeSelection;
+  return () => {
+    // biome-ignore lint/suspicious/noExplicitAny: restoring original
+    (window as any).getSelection = original;
+  };
+}
+
+function renderTabWithHandlers(overrides?: {
+  citeFn?: ReturnType<typeof vi.fn>;
+  noteFn?: ReturnType<typeof vi.fn>;
+  flashcardFn?: ReturnType<typeof vi.fn>;
+  spawnFn?: ReturnType<typeof vi.fn>;
+}) {
+  const citeFn = overrides?.citeFn ?? vi.fn().mockResolvedValue({ id: "cit-new" });
+  const noteFn = overrides?.noteFn ?? vi.fn().mockResolvedValue({ id: "note-new" });
+  const flashcardFn = overrides?.flashcardFn ?? vi.fn().mockResolvedValue({ id: "fc-new" });
+  const spawnFn =
+    overrides?.spawnFn ??
+    vi.fn().mockResolvedValue({
+      sessionId: brandId<"SessionId">("sess-spawn"),
+      modeId: "teach",
+      startedAt: Date.now(),
+    });
+
+  const tab = makeTab();
+  const client = makeFakeClient({
+    documents: {
+      list: vi.fn().mockResolvedValue([]),
+      get: vi.fn().mockResolvedValue(makeDetail({ text: "Hello world, test text." })),
+      delete: vi.fn().mockResolvedValue(undefined),
+      pageImage: vi.fn().mockResolvedValue(null),
+    },
+    citations: {
+      listByDocument: vi.fn().mockResolvedValue([]),
+      record: citeFn,
+    },
+    notes: {
+      create: noteFn,
+      update: vi.fn(),
+      get: vi.fn(),
+      list: vi.fn(),
+      delete: vi.fn(),
+      setAnnotations: vi.fn(),
+      getAnnotations: vi.fn(),
+    },
+    flashcards: {
+      create: flashcardFn,
+      update: vi.fn(),
+      get: vi.fn(),
+      list: vi.fn(),
+      delete: vi.fn(),
+      review: vi.fn(),
+      dueCount: vi.fn(),
+    },
+    session: {
+      start: vi.fn(),
+      send: vi.fn(
+        async function* () {},
+      ) as unknown as import("@praxis/core/types").PraxisClient["session"]["send"],
+      end: vi.fn(),
+      active: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue([]),
+      spawnFromAssignment: vi.fn(),
+      spawnFromNote: vi.fn(),
+      spawnFromPassage: spawnFn,
+    },
+  });
+
+  const onSpawnedSession = vi.fn().mockResolvedValue(undefined);
+
+  const result = render(
+    <PraxisClientProvider client={client}>
+      <DocumentTabBody
+        tab={tab}
+        currentSessionId={brandId<"SessionId">("sess-current") as SessionId}
+        onSpawnedSession={onSpawnedSession}
+      />
+    </PraxisClientProvider>,
+  );
+
+  return { tab, client, citeFn, noteFn, flashcardFn, spawnFn, onSpawnedSession, ...result };
+}
+
+/**
+ * Trigger the selectionchange listener and wait for the selection bar to appear.
+ * Returns the container element under which the selection was stubbed.
+ */
+async function triggerSelectionBar(text: string) {
+  // Wait for document to load (main content pane rendered)
+  const bodyEl = await waitFor(() => {
+    const el = document.querySelector("main[aria-label='Document content']");
+    if (!el) throw new Error("body not rendered");
+    return el;
+  });
+
+  // Create a real text node inside the body for the selection stub to reference.
+  const textNode = document.createTextNode(text);
+  bodyEl.appendChild(textNode);
+
+  const restore = stubSelection(text, bodyEl, {
+    startContainer: textNode,
+    startOffset: 0,
+    endOffset: text.length,
+  });
+
+  // Fire the selectionchange event; the debounced handler fires after ~100ms.
+  fireEvent(document, new Event("selectionchange"));
+
+  // Wait for the bar to appear (debounced 100ms + async state update).
+  await waitFor(
+    () => {
+      if (!screen.queryByRole("toolbar", { name: /selection actions/i })) {
+        throw new Error("toolbar not visible yet");
+      }
+    },
+    { timeout: 500 },
+  );
+
+  // Clean up the extra text node.
+  bodyEl.removeChild(textNode);
+
+  return restore;
+}
+
+describe("DocumentTabBody selection action bar", () => {
+  it("shows the selection bar when text is selected inside the document body", async () => {
+    renderTabWithHandlers();
+    const restore = await triggerSelectionBar("Hello world");
+    restore();
+    expect(screen.getByRole("toolbar", { name: /selection actions/i })).toBeDefined();
+  });
+
+  it("+ cite calls citations.record with correct args", async () => {
+    const { citeFn } = renderTabWithHandlers();
+    const restore = await triggerSelectionBar("world");
+    restore();
+
+    fireEvent.click(screen.getByRole("button", { name: /cite selection/i }));
+
+    await waitFor(() => {
+      expect(citeFn).toHaveBeenCalledOnce();
+      const call = citeFn.mock.calls[0]?.[0] as {
+        documentId: DocumentId;
+        citingSessionId: SessionId;
+        citedText: string;
+      };
+      expect(call.documentId).toBe("doc-1");
+      expect(call.citingSessionId).toBe("sess-current");
+      expect(call.citedText).toBe("world");
+    });
+  });
+
+  it("+ note calls notes.create with the selected text", async () => {
+    const { noteFn } = renderTabWithHandlers();
+    const restore = await triggerSelectionBar("Hello world");
+    restore();
+
+    fireEvent.click(screen.getByRole("button", { name: /add note from selection/i }));
+
+    await waitFor(() => {
+      expect(noteFn).toHaveBeenCalledOnce();
+      const call = noteFn.mock.calls[0]?.[0] as {
+        format: string;
+        body: { kind: string; text: string };
+      };
+      expect(call.format).toBe("free");
+      expect(call.body.kind).toBe("free");
+      expect(call.body.text).toBe("Hello world");
+    });
+  });
+
+  it("↗ ask Praxis calls spawnFromPassage and then onSpawnedSession", async () => {
+    const { spawnFn, onSpawnedSession } = renderTabWithHandlers();
+    const restore = await triggerSelectionBar("test text");
+    restore();
+
+    fireEvent.click(screen.getByRole("button", { name: /ask praxis about selection/i }));
+
+    await waitFor(() => {
+      expect(spawnFn).toHaveBeenCalledOnce();
+    });
+    await waitFor(() => {
+      expect(onSpawnedSession).toHaveBeenCalledWith(brandId<"SessionId">("sess-spawn"));
+    });
+  });
+
+  it("+ flashcard calls flashcards.create with user-prompted front and selected back", async () => {
+    const { flashcardFn } = renderTabWithHandlers();
+    // Stub window.prompt to return a cue text.
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue("What is highlighted?"));
+
+    const restore = await triggerSelectionBar("test text");
+    restore();
+
+    fireEvent.click(screen.getByRole("button", { name: /add flashcard from selection/i }));
+
+    await waitFor(() => {
+      expect(flashcardFn).toHaveBeenCalledOnce();
+      const call = flashcardFn.mock.calls[0]?.[0] as { front: string; back: string };
+      expect(call.front).toBe("What is highlighted?");
+      expect(call.back).toBe("test text");
+    });
+
+    vi.unstubAllGlobals();
+  });
+
+  it("does not show the bar when selection is outside the document body", async () => {
+    renderTabWithHandlers();
+
+    // Wait for document to load.
+    await waitFor(() => screen.getByRole("main", { name: /document content/i }));
+
+    // Stub a selection on document.body (outside the content pane).
+    const outsideNode = document.createElement("div");
+    document.body.appendChild(outsideNode);
+    const restore = stubSelection("some text", outsideNode);
+
+    fireEvent(document, new Event("selectionchange"));
+
+    // Give the debounce time to flush.
+    await new Promise((r) => setTimeout(r, 150));
+
+    expect(screen.queryByRole("toolbar", { name: /selection actions/i })).toBeNull();
+
+    restore();
+    document.body.removeChild(outsideNode);
   });
 });

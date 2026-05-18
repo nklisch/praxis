@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-document-viewer-selection-bar
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-backend-fills-for-redesign-document-viewer
 depends_on: [epic-backend-fills-for-redesign-document-viewer-citations-and-spawn]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Selection action bar — `+ note · ↗ ask Praxis · + cite · + flashcard`
@@ -73,3 +73,35 @@ Depends on `-citations-and-spawn` for `citationsService.record` and
   offsets.
 - Custom selection styling within the document body — relies on
   default browser selection.
+
+## Implementation notes
+
+Landed as two files:
+- `packages/ui/src/components/selection-action-bar.tsx` — pure
+  presentational component; floats via `createPortal` into `document.body`
+  at `position: fixed` above the selection rect. Four buttons, Escape +
+  outside-mousedown dismiss, pending state while any async handler
+  is in-flight.
+- `packages/ui/src/components/selection-action-bar.module.css` — mono
+  button pills on a `--color-bg-primary` card with accent hover.
+
+`DocumentTabBody` extended with:
+- `currentSessionId?: SessionId` and `onSpawnedSession?` props.
+- `selectionchange` listener on `document` (debounced 100ms); checks
+  that selection is inside `bodyRef.current` before showing the bar.
+- `computeRangeOffset(root, rangeNode, rangeOffset)` helper maps DOM
+  range anchors to linear character offsets.
+- Four action handlers wired to `notes.create`, `session.spawnFromPassage`,
+  `citations.record`, and `flashcards.create`.
+- `+ cite` falls back to empty string for `citingSessionId` when no
+  `currentSessionId` prop is provided (v1 limitation, tolerated).
+- `+ flashcard` uses `window.prompt` for the front text (v1 per spec).
+
+Citation dagger click now delegates to `onSpawnedSession` when set (was
+a no-op TODO in the previous story).
+
+Tests: 17 new tests in `selection-action-bar.test.tsx` + 6 new
+integration tests appended to `document-tab-body.test.tsx` (38 total
+in the two files; all green). The integration tests patch
+`window.getSelection()` to return a fake selection and assert that each
+handler is called with the correct arguments against a fake client.
