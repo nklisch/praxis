@@ -69,10 +69,7 @@ class NotesClientImpl implements NotesClient {
   }
 
   async setAnnotations(input: { noteId: NoteId; annotations: Annotation[] }): Promise<void> {
-    const result = await this.transport.invoke<IpcEnvelope<void> | void>(
-      C.setAnnotations,
-      input,
-    );
+    const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.setAnnotations, input);
     return unwrapEnvelope(result);
   }
 

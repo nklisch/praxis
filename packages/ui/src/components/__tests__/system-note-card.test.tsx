@@ -30,7 +30,11 @@ const SYSTEM_ORIGIN: Extract<SystemNoteOrigin, { kind: "system" }> = {
 describe("SystemNoteCard", () => {
   it("renders the card for an assignment_submission origin", () => {
     const { container } = render(
-      <SystemNoteCard origin={ASSIGNMENT_ORIGIN} childSessionId="child-sess-1" onReview={undefined} />,
+      <SystemNoteCard
+        origin={ASSIGNMENT_ORIGIN}
+        childSessionId="child-sess-1"
+        onReview={undefined}
+      />,
     );
     expect(container.querySelector('[role="note"]')).not.toBeNull();
   });
@@ -49,7 +53,11 @@ describe("SystemNoteCard", () => {
   it("renders a review button when onReview is provided", () => {
     const onReview = vi.fn();
     const { getByRole } = render(
-      <SystemNoteCard origin={ASSIGNMENT_ORIGIN} childSessionId="child-sess-1" onReview={onReview} />,
+      <SystemNoteCard
+        origin={ASSIGNMENT_ORIGIN}
+        childSessionId="child-sess-1"
+        onReview={onReview}
+      />,
     );
     const btn = getByRole("button");
     fireEvent.click(btn);
@@ -58,7 +66,11 @@ describe("SystemNoteCard", () => {
 
   it("does not render a review button when onReview is undefined", () => {
     const { queryByRole } = render(
-      <SystemNoteCard origin={ASSIGNMENT_ORIGIN} childSessionId="child-sess-1" onReview={undefined} />,
+      <SystemNoteCard
+        origin={ASSIGNMENT_ORIGIN}
+        childSessionId="child-sess-1"
+        onReview={undefined}
+      />,
     );
     expect(queryByRole("button")).toBeNull();
   });
@@ -72,7 +84,11 @@ describe("SystemNoteCard", () => {
 
   it("shows the kicker label 'assignment submitted'", () => {
     const { container } = render(
-      <SystemNoteCard origin={ASSIGNMENT_ORIGIN} childSessionId="child-sess-1" onReview={undefined} />,
+      <SystemNoteCard
+        origin={ASSIGNMENT_ORIGIN}
+        childSessionId="child-sess-1"
+        onReview={undefined}
+      />,
     );
     expect(container.textContent?.toLowerCase()).toContain("assignment submitted");
   });

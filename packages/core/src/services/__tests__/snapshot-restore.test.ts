@@ -128,9 +128,7 @@ function noopLog() {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(function () {
-      return noopLog();
-    }),
+    child: vi.fn(() => noopLog()),
   };
 }
 

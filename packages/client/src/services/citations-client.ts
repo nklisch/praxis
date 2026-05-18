@@ -1,4 +1,9 @@
-import type { CitationsClientApi, DocumentCitationRecord, DocumentId, SessionId } from "@praxis/core/types";
+import type {
+  CitationsClientApi,
+  DocumentCitationRecord,
+  DocumentId,
+  SessionId,
+} from "@praxis/core/types";
 import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
 

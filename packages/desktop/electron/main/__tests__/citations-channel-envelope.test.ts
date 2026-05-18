@@ -56,7 +56,8 @@ function makeServices(
   return {
     citations: {
       record: overrides.citationsRecord ?? vi.fn().mockResolvedValue(FAKE_CITATION),
-      listByDocument: overrides.citationsListByDocument ?? vi.fn().mockResolvedValue([FAKE_CITATION]),
+      listByDocument:
+        overrides.citationsListByDocument ?? vi.fn().mockResolvedValue([FAKE_CITATION]),
     },
     // biome-ignore lint/suspicious/noExplicitAny: partial stub
   } as any;
@@ -183,7 +184,10 @@ describe("praxis.citations.record — envelope wiring", () => {
 
     const handler = handlers.get("praxis.citations.record");
     await expect(
-      handler?.({}, { documentId: "doc-1", citingSessionId: "sess-1", startOffset: 0, endOffset: 10 }),
+      handler?.(
+        {},
+        { documentId: "doc-1", citingSessionId: "sess-1", startOffset: 0, endOffset: 10 },
+      ),
     ).resolves.toMatchObject({ ok: false, error: { code: "INTERNAL" } });
   });
 });

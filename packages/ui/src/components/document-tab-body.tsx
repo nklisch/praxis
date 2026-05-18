@@ -36,9 +36,7 @@ export interface DocumentTabBodyProps {
  * document order. Used to map `(startOffset, endOffset)` from the citation
  * record (which counts characters in the full document text) to DOM ranges.
  */
-function buildTextNodeIndex(
-  root: Element,
-): Array<{ node: Text; start: number; end: number }> {
+function buildTextNodeIndex(root: Element): Array<{ node: Text; start: number; end: number }> {
   const result: Array<{ node: Text; start: number; end: number }> = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let cursor = 0;
@@ -123,7 +121,8 @@ export function DocumentTabBody({ tab }: DocumentTabBodyProps): JSX.Element {
 
   const loader = useCallback(() => client.documents.get(tab.documentId), [client, tab.documentId]);
   const citationsLoader = useCallback(
-    () => client.citations.listByDocument(tab.documentId as import("@praxis/core/types").DocumentId),
+    () =>
+      client.citations.listByDocument(tab.documentId as import("@praxis/core/types").DocumentId),
     [client, tab.documentId],
   );
 

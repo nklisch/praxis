@@ -15,10 +15,9 @@
  * directly with a minimal fake Services bag.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SubAgentEvent } from "@praxis/core/types";
 import { SubAgentRegistryImpl } from "@praxis/core/services";
-import type { SessionId } from "@praxis/core/types";
+import type { SessionId, SubAgentEvent } from "@praxis/core/types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;

@@ -151,9 +151,7 @@ describe("redactSecrets", () => {
 
   it("redacts a key embedded inside a stack trace line", () => {
     expect(
-      redactSecrets(
-        "    at fetch (file:///x.js:42:1) [Authorization: Bearer sk-ant-api03-abc...]",
-      ),
+      redactSecrets("    at fetch (file:///x.js:42:1) [Authorization: Bearer sk-ant-api03-abc...]"),
     ).toContain("[REDACTED]");
   });
 

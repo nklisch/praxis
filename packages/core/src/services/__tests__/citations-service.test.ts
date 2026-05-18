@@ -111,11 +111,30 @@ describe("CitationsServiceImpl", () => {
       const { service, db: drizzle } = makeService();
       insertDocument(drizzle, DOC_1);
 
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_A, startOffset: 0, endOffset: 10 });
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_A, startOffset: 20, endOffset: 40 });
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_B, startOffset: 5, endOffset: 15 });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_A,
+        startOffset: 0,
+        endOffset: 10,
+      });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_A,
+        startOffset: 20,
+        endOffset: 40,
+      });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_B,
+        startOffset: 5,
+        endOffset: 15,
+      });
 
-      const rows = drizzle.select().from(documentCitations).where(eq(documentCitations.documentId, DOC_1)).all();
+      const rows = drizzle
+        .select()
+        .from(documentCitations)
+        .where(eq(documentCitations.documentId, DOC_1))
+        .all();
       expect(rows).toHaveLength(3);
     });
 
@@ -148,9 +167,24 @@ describe("CitationsServiceImpl", () => {
       insertDocument(drizzle, DOC_1);
 
       // Insert in reverse order to confirm sorting.
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_A, startOffset: 80, endOffset: 100 });
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_A, startOffset: 10, endOffset: 20 });
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_B, startOffset: 40, endOffset: 60 });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_A,
+        startOffset: 80,
+        endOffset: 100,
+      });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_A,
+        startOffset: 10,
+        endOffset: 20,
+      });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_B,
+        startOffset: 40,
+        endOffset: 60,
+      });
 
       const results = await service.listByDocument(DOC_1);
 
@@ -179,8 +213,18 @@ describe("CitationsServiceImpl", () => {
       insertDocument(drizzle, DOC_1);
       insertDocument(drizzle, DOC_2);
 
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_A, startOffset: 0, endOffset: 10 });
-      await service.record({ documentId: DOC_2, citingSessionId: SESSION_A, startOffset: 5, endOffset: 15 });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_A,
+        startOffset: 0,
+        endOffset: 10,
+      });
+      await service.record({
+        documentId: DOC_2,
+        citingSessionId: SESSION_A,
+        startOffset: 5,
+        endOffset: 15,
+      });
 
       const resultsDoc1 = await service.listByDocument(DOC_1);
       const resultsDoc2 = await service.listByDocument(DOC_2);
@@ -219,8 +263,18 @@ describe("CitationsServiceImpl", () => {
       const { service, db: drizzle } = makeService();
       insertDocument(drizzle, DOC_1);
 
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_A, startOffset: 0, endOffset: 10 });
-      await service.record({ documentId: DOC_1, citingSessionId: SESSION_B, startOffset: 20, endOffset: 30 });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_A,
+        startOffset: 0,
+        endOffset: 10,
+      });
+      await service.record({
+        documentId: DOC_1,
+        citingSessionId: SESSION_B,
+        startOffset: 20,
+        endOffset: 30,
+      });
 
       // Verify rows exist.
       expect(await service.listByDocument(DOC_1)).toHaveLength(2);
@@ -229,7 +283,11 @@ describe("CitationsServiceImpl", () => {
       drizzle.delete(documents).where(eq(documents.id, DOC_1)).run();
 
       // Citations should be gone.
-      const rows = drizzle.select().from(documentCitations).where(eq(documentCitations.documentId, DOC_1)).all();
+      const rows = drizzle
+        .select()
+        .from(documentCitations)
+        .where(eq(documentCitations.documentId, DOC_1))
+        .all();
       expect(rows).toHaveLength(0);
     });
   });

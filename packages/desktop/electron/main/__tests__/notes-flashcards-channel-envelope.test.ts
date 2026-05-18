@@ -595,9 +595,7 @@ describe("praxis.notes.setAnnotations — envelope wiring", () => {
       {},
       {
         noteId: "n-1",
-        annotations: [
-          { rangeStart: 0, rangeEnd: 5, text: "hello", severity: "soft" },
-        ],
+        annotations: [{ rangeStart: 0, rangeEnd: 5, text: "hello", severity: "soft" }],
       },
     );
     expect(result).toMatchObject({ ok: true });
@@ -636,9 +634,10 @@ describe("praxis.notes.setAnnotations — envelope wiring", () => {
     registerIpcHandlers(services, () => null, log);
 
     const handler = handlers.get("praxis.notes.setAnnotations");
-    await expect(
-      handler?.({}, { noteId: "n-1", annotations: [] }),
-    ).resolves.toMatchObject({ ok: false, error: { code: "INTERNAL" } });
+    await expect(handler?.({}, { noteId: "n-1", annotations: [] })).resolves.toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL" },
+    });
   });
 });
 

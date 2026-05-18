@@ -251,11 +251,7 @@ describe("DocumentTabBody citation marks", () => {
       createdAt: Date.now(),
     };
 
-    renderTab(
-      makeTab(),
-      makeDetail({ mimeType: "application/pdf", text: null }),
-      [citation],
-    );
+    renderTab(makeTab(), makeDetail({ mimeType: "application/pdf", text: null }), [citation]);
 
     // PDF renderer shows page images; no mark should be injected.
     await waitFor(() => {
