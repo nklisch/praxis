@@ -1,7 +1,7 @@
 ---
 id: refactor-previewprompt-god-function
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -15,30 +15,40 @@ updated: 2026-05-18
 
 ## Brief
 
-The `praxis.author.previewPrompt` handler in
-`packages/desktop/electron/main/author-channel.ts` (~82 LoC) was moved verbatim
-during the `refactor-ipc-server-extract-domain-channels` step 3 (commit
-`dd9f96c`) but its internals are still god-shaped:
+(Historical context.) The `praxis.author.previewPrompt` handler in
+`packages/desktop/electron/main/author-channel.ts` was originally a ~82 LoC
+god-function that composed system prompts inline — extracting courseId, loading
+course state, merging fragments with overrides, calling `composeSystemPrompt`,
+and catching validation errors. This story tracked extracting that composition
+logic into a service method so the IPC handler became a thin dispatch.
 
-- Composes a system prompt inline by extracting courseId, loading course
-  state, merging fragments with overrides, calling `composeSystemPrompt`,
-  catching validation errors
-- The patch-object construction has conditional spreads scattered through
-  the handler body
+## As-built (landed prior to this story being formally scoped)
 
-The IPC handler should be thin (input validation + service dispatch).
-Composition logic belongs in a service.
+- IPC handler at `author-channel.ts:394-404` is now ~10 lines: validate input
+  via `previewPromptSchema`, call `services.authoring.previewPrompt({...})`,
+  return result. Same thin shape for `previewPromptWithAttribution` at lines
+  406-421.
+- `AuthoringServiceImpl.previewPrompt` and `previewPromptWithAttribution` in
+  `authoring-service.ts:371-381` are pure read-through delegates to
+  `PromptCustomizationService` — no audit row, no inline composition.
+- Composition logic lives in `PromptCustomizationServiceImpl` at
+  `prompt-customization-service.ts:168-174`. A private `buildPreviewInput`
+  helper (lines 184-225) is shared by both preview methods, keeping them DRY:
+  it resolves the mode via `requireMode`, loads stored overrides, and merges
+  draft-global / draft-append inputs with the "undefined → use stored, null →
+  omit, string → use draft" semantics.
+- Unit tests cover all meaningful composition cases in
+  `prompt-customization-service.test.ts` (lines 175-390):
+  - `requireMode` throws for unknown modeId (both methods)
+  - `draftGlobal` string, null, and undefined (fallback) semantics
+  - `draftAppend` string, null, and stored-fallback ordering semantics
+  - Stored fragment override surfaced via `previewPromptWithAttribution` segments
+  - Attribution equivalence between `previewPrompt` and `previewPromptWithAttribution`
+  - Segment-join invariant and source tagging (`default`, `override`, `global`, `append`)
 
-## Implementation plan
+## Implementation notes
 
-1. Extract the prompt-composition logic into a service method (likely on
-   `PromptCustomizationService` or a sibling on `AuthoringService`) —
-   `previewPrompt(input): Promise<ComposedSystemPrompt>`.
-2. The channel handler becomes a 3-line dispatch (parse input → call
-   service method → return result).
-3. Tests for the new service method cover the composition cases that the
-   current channel handler tests implicitly cover.
-
-Pre-existing biome suppression for `lessonAssessments` was already fixed
-during the step-3 move — that's a separate cleanup. The `previewPrompt`
-refactor is the main outstanding item from the author channel extraction.
+Land mode — the refactor shipped in earlier commits before this story was
+formally scoped. Story body updated to reflect as-built state. No new tests
+were added; existing coverage was found to be comprehensive across all branches
+of `buildPreviewInput` and both public preview methods.
