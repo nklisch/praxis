@@ -124,7 +124,7 @@ export function NotesListTab() {
         </h1>
         <CatalogueSearchBox
           onSearchChange={setQuery}
-          resultCount={loading ? undefined : hits.length}
+          {...(!loading && { resultCount: hits.length })}
         />
       </header>
 

@@ -531,6 +531,12 @@ export function ChatTabBody({ tab, onNoteOpen, hasSessionNote }: ChatTabBodyProp
     case "study-skills":
       return <StudySkillsTabBody tab={tab} />;
     default:
-      return <TeachChatTabBody tab={tab} onNoteOpen={onNoteOpen} hasSessionNote={hasSessionNote} />;
+      return (
+        <TeachChatTabBody
+          tab={tab}
+          {...(onNoteOpen !== undefined && { onNoteOpen })}
+          {...(hasSessionNote !== undefined && { hasSessionNote })}
+        />
+      );
   }
 }

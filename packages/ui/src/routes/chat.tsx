@@ -243,8 +243,8 @@ export function ChatRoute() {
           >
             <ChatTabBody
               tab={t}
-              onNoteOpen={t.id === activeTabId ? handleNoteOpen : undefined}
-              hasSessionNote={t.id === activeTabId ? hasSessionNote : undefined}
+              {...(t.id === activeTabId && { onNoteOpen: handleNoteOpen })}
+              {...(t.id === activeTabId && hasSessionNote !== undefined && { hasSessionNote })}
             />
           </div>
         ))}
