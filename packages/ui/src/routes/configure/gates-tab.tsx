@@ -3,7 +3,7 @@ import { brandId } from "@praxis/core/types";
 import { Background, Controls, type Node, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "dagre";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ConceptFlowNode, ConceptNodeData } from "../../components/concept-node.js";
 import { ConceptNode } from "../../components/concept-node.js";
 import type { GateEdgeLabelData } from "../../components/gate-edge-label.js";
@@ -49,10 +49,14 @@ interface GatesTabProps {
  * may want to correlate canvas interactions with the active configure session.
  */
 export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
-  const { selectedCourseId, setSelectedCourseId } = useConfigureState();
-  // Register this tab with the cross-tab dirty tracker. Gate mutations save
-  // immediately on confirm, so the tab-level dirty state is always clean.
-  useDirtyState("configure.gates");
+  const { selectedCourseId, setSelectedCourseId, setSelectedGate: setContextSelectedGate } =
+    useConfigureState();
+
+  // Register this tab with the cross-tab dirty tracker.
+  // markDirty is called when the user edits a threshold in GateInspector;
+  // markClean is called after a save completes.
+  const { markDirty, markClean } = useDirtyState("configure.gates");
+
   const { courses, loading: coursesLoading } = useCourses();
 
   const {
@@ -67,7 +71,38 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
   const gateViews: GateView[] = gatesData?.gateViews ?? [];
   const gates: Gate[] = gatesData?.gates ?? [];
 
+  // Local selected gate state (tab-internal; also written to context for inspector strip).
   const [selectedGate, setSelectedGate] = useState<Gate | null>(null);
+
+  // Track gate IDs whose thresholds have been edited but not yet saved.
+  // A gate's id is present here when the user has started editing its threshold
+  // in GateInspector (which edits the field) but hasn't confirmed the save.
+  const [dirtyGateIds, setDirtyGateIds] = useState<ReadonlySet<GateId>>(new Set());
+
+  // Keep context inspector strip in sync with the local selection + dirty state.
+  useEffect(() => {
+    if (!selectedGate) {
+      setContextSelectedGate(null);
+      return;
+    }
+    setContextSelectedGate({
+      gate: selectedGate,
+      pendingMinScore: dirtyGateIds.has(selectedGate.id)
+        ? selectedGate.successCriteria.kind === "mastery-threshold"
+          ? selectedGate.successCriteria.minScore
+          : null
+        : null,
+    });
+  }, [selectedGate, dirtyGateIds, setContextSelectedGate]);
+
+  // Propagate aggregate dirty state to the cross-tab tracker.
+  useEffect(() => {
+    if (dirtyGateIds.size > 0) {
+      markDirty();
+    } else {
+      markClean();
+    }
+  }, [dirtyGateIds, markDirty, markClean]);
 
   const { getName, getById } = useConceptNames(selectedCourseId ?? undefined);
 
@@ -82,8 +117,8 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
 
   const { nodes, edges } = useMemo(() => {
     if (lessons.length === 0) return { nodes: [], edges: [] };
-    return buildGraph(lessons, gateViews, getName);
-  }, [lessons, gateViews, getName]);
+    return buildGraph(lessons, gateViews, getName, dirtyGateIds);
+  }, [lessons, gateViews, getName, dirtyGateIds]);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -105,6 +140,12 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
       const base = prev ?? { lessons: [], gateViews: [], gates: [] };
       return { ...base, gates: base.gates.map((g) => (g.id === updated.id ? updated : g)) };
     });
+    // Clear this gate's dirty flag — save confirmed.
+    setDirtyGateIds((prev) => {
+      const next = new Set(prev);
+      next.delete(updated.id);
+      return next;
+    });
     setSelectedGate(updated);
     // Refresh gate views for the progress display
     loadData();
@@ -115,9 +156,31 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
       const base = prev ?? { lessons: [], gateViews: [], gates: [] };
       return { ...base, gates: base.gates.filter((g) => g.id !== gateId) };
     });
+    setDirtyGateIds((prev) => {
+      const next = new Set(prev);
+      next.delete(gateId);
+      return next;
+    });
     setSelectedGate(null);
     loadData();
   };
+
+  /**
+   * Called by GateInspector when the user changes a threshold value in the form.
+   * We mark this gate dirty immediately so the edge label turns warning-coloured.
+   */
+  const handleGateThresholdEdit = useCallback((gateId: GateId) => {
+    setDirtyGateIds((prev) => {
+      const next = new Set(prev);
+      next.add(gateId);
+      return next;
+    });
+  }, []);
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedGate(null);
+    setContextSelectedGate(null);
+  }, [setContextSelectedGate]);
 
   return (
     <div className={styles.layout}>
@@ -133,6 +196,8 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
                 const val = e.target.value;
                 setSelectedCourseId(val ? (val as CourseId) : null);
                 setSelectedGate(null);
+                setContextSelectedGate(null);
+                setDirtyGateIds(new Set());
               }}
               disabled={coursesLoading}
             >
@@ -170,7 +235,7 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
                     nodeTypes={NODE_TYPES}
                     edgeTypes={EDGE_TYPES}
                     onNodeClick={handleNodeClick}
-                    onPaneClick={() => setSelectedGate(null)}
+                    onPaneClick={handlePaneClick}
                     fitView
                     fitViewOptions={{ padding: 0.2 }}
                     minZoom={0.2}
@@ -198,7 +263,11 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
                 allGates={gates}
                 onSaved={handleGateSaved}
                 onDeleted={handleGateDeleted}
-                onClose={() => setSelectedGate(null)}
+                onThresholdEdit={handleGateThresholdEdit}
+                onClose={() => {
+                  setSelectedGate(null);
+                  setContextSelectedGate(null);
+                }}
               />
             )}
           </div>
@@ -214,6 +283,7 @@ function buildGraph(
   lessons: Lesson[],
   gates: GateView[],
   getName: (id: string) => string,
+  dirtyGateIds: ReadonlySet<GateId> = new Set(),
 ): { nodes: ConceptFlowNode[]; edges: import("@xyflow/react").Edge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
@@ -283,7 +353,8 @@ function buildGraph(
     );
 
     if (gateView) {
-      const data: GateEdgeLabelData = { gate: gateView };
+      const dirty = dirtyGateIds.has(gateView.gate.id);
+      const data: GateEdgeLabelData = { gate: gateView, dirty };
       edges.push({
         id: `gate-${li}`,
         source: src.last,

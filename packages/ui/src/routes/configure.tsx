@@ -6,7 +6,7 @@ import { getRouteMeta } from "../components/route-meta.js";
 import { UnlockModal } from "../components/unlock-modal.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { DirtyStateProvider } from "../contexts/dirty-state-provider.js";
-import type { SelectedLessonState } from "../hooks/use-configure-state.js";
+import type { SelectedGateState, SelectedLessonState } from "../hooks/use-configure-state.js";
 import { ConfigureStateContext } from "../hooks/use-configure-state.js";
 import { useDirtyAggregate, useDirtyStateObserver } from "../hooks/use-dirty-state.js";
 import { useLock } from "../hooks/use-lock.js";
@@ -78,18 +78,91 @@ function ConfigureSaveBar() {
 }
 
 /**
- * Inspector strip below the canvas — shows the selected lesson's editable fields
- * when a lesson is selected in the Course tab canvas. Empty when nothing is selected.
+ * Inspector strip below the canvas — shows the selected lesson's or gate's
+ * editable fields. Each tab canvas writes to its own slot in ConfigureState;
+ * this component renders whichever slot is non-null (selectedGate takes
+ * priority over selectedLesson because the Gates tab is more interactive).
  */
-function InspectorStrip({ selectedLesson }: { selectedLesson: SelectedLessonState | null }) {
-  if (!selectedLesson) {
-    return (
-      <div className={styles.inspectorStrip} data-testid="inspector-strip">
-        <span className={styles.inspectorEmpty}>Select a lesson to inspect its fields</span>
-      </div>
-    );
+function InspectorStrip({
+  selectedLesson,
+  selectedGate,
+}: {
+  selectedLesson: SelectedLessonState | null;
+  selectedGate: SelectedGateState | null;
+}) {
+  if (selectedGate) {
+    return <GateInspectorStrip selectedGate={selectedGate} />;
   }
+  if (selectedLesson) {
+    return <LessonInspectorStrip selectedLesson={selectedLesson} />;
+  }
+  return (
+    <div className={styles.inspectorStrip} data-testid="inspector-strip">
+      <span className={styles.inspectorEmpty}>Select a lesson or gate node to inspect its fields</span>
+    </div>
+  );
+}
 
+/** Inspector strip content for a selected gate node. */
+function GateInspectorStrip({ selectedGate }: { selectedGate: SelectedGateState }) {
+  const { gate, pendingMinScore } = selectedGate;
+
+  // Extract minScore from the top-level criteria (mastery-threshold only).
+  const savedMinScore =
+    gate.successCriteria.kind === "mastery-threshold" ? gate.successCriteria.minScore : null;
+  const hasPendingChange = pendingMinScore !== null && pendingMinScore !== savedMinScore;
+
+  const stateLabel =
+    gate.state.kind === "unlocked"
+      ? "unlocked"
+      : gate.state.kind === "overridden"
+        ? "overridden"
+        : "locked";
+
+  return (
+    <div className={styles.inspectorStrip} data-testid="inspector-strip">
+      <div className={styles.inspectorLabel}>
+        ‡ Gate · {gate.id} · {stateLabel}
+      </div>
+      <h3 className={styles.inspectorTitle}>
+        Gate <em>{gate.id}</em> — {gate.guards.kind}
+      </h3>
+      <div className={styles.inspectorFields}>
+        {savedMinScore !== null && (
+          <div
+            className={`${styles.inspectorField} ${hasPendingChange ? styles.inspectorFieldChanged : ""}`}
+            data-testid="inspector-field-mastery-floor"
+          >
+            <div className={styles.inspectorFieldKey}>edge.mastery_floor</div>
+            <div className={styles.inspectorFieldVal}>
+              {hasPendingChange ? (
+                <em>{pendingMinScore !== null ? (pendingMinScore * 100).toFixed(0) + "%" : ""}</em>
+              ) : (
+                `${(savedMinScore * 100).toFixed(0)}%`
+              )}
+            </div>
+            {hasPendingChange && (
+              <div className={styles.inspectorFieldOld}>
+                was {(savedMinScore * 100).toFixed(0)}%
+              </div>
+            )}
+          </div>
+        )}
+        <div className={styles.inspectorField}>
+          <div className={styles.inspectorFieldKey}>gate.state</div>
+          <div className={styles.inspectorFieldVal}>{stateLabel}</div>
+        </div>
+        <div className={styles.inspectorField}>
+          <div className={styles.inspectorFieldKey}>gate.criteria</div>
+          <div className={styles.inspectorFieldVal}>{gate.successCriteria.kind}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Inspector strip content for a selected lesson node. */
+function LessonInspectorStrip({ selectedLesson }: { selectedLesson: SelectedLessonState }) {
   const { lesson, unitIndex, lessonIndex } = selectedLesson;
   const label = `L${unitIndex}.${lessonIndex} · ${lesson.title}`;
 
@@ -163,6 +236,7 @@ export function ConfigureRoute() {
   const [activeTab, setActiveTab] = useState<ConfigureTab>("course");
   const [selectedCourseId, setSelectedCourseId] = useState<CourseId | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<SelectedLessonState | null>(null);
+  const [selectedGate, setSelectedGate] = useState<SelectedGateState | null>(null);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const meta = getRouteMeta("configure");
 
@@ -264,6 +338,8 @@ export function ConfigureRoute() {
           selectedLesson,
           setSelectedLesson,
           clearSelectedLesson: () => setSelectedLesson(null),
+          selectedGate,
+          setSelectedGate,
         }}
       >
         <div className={styles.workspace}>
@@ -342,7 +418,7 @@ export function ConfigureRoute() {
               </div>
 
               {/* Inspector strip: shows the selected node from the active canvas */}
-              <InspectorStrip selectedLesson={selectedLesson} />
+              <InspectorStrip selectedLesson={selectedLesson} selectedGate={selectedGate} />
             </div>
 
             {/* Right panel: shared configure chat (380px) */}

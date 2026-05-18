@@ -14,6 +14,13 @@
   stroke-dasharray: 6 3;
 }
 
+/* Dirty edge: unsaved threshold change — rendered in warning colour */
+.edge.dirty {
+  stroke: var(--color-warning);
+  stroke-width: 2.5;
+  stroke-opacity: 1;
+}
+
 /* HTML label rendered via EdgeLabelRenderer */
 .label {
   display: flex;
@@ -21,7 +28,7 @@
   align-items: center;
   gap: 0.2rem;
   padding: 0.3rem 0.55rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 3px);
   font-size: 0.68rem;
   max-width: 140px;
   text-align: center;
@@ -32,7 +39,8 @@
 }
 
 .label.open {
-  border-color: rgba(34, 197, 94, 0.4);
+  border-color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
 }
 
 .label.locked {
@@ -40,8 +48,26 @@
   opacity: 0.9;
 }
 
+/* Dirty label: warning border + warning-tinted background */
+.label.dirty {
+  border-color: var(--color-warning);
+  background: var(--color-accent-muted, rgba(168, 106, 10, 0.08));
+}
+
+/* Mastery threshold — monospace kicker above the summary text */
+.threshold {
+  font: 600 10px/1 var(--font-mono, monospace);
+  letter-spacing: 0.1em;
+  color: var(--color-text-tertiary, #aaa);
+}
+
+.label.dirty .threshold {
+  color: var(--color-warning);
+  font-weight: 700;
+}
+
 .summaryText {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-primary, inherit);
   line-height: 1.2;
   word-break: break-word;
@@ -50,6 +76,10 @@
 
 .label.locked .summaryText {
   color: var(--color-text-secondary, #aaa);
+}
+
+.label.dirty .summaryText {
+  color: var(--color-warning);
 }
 
 .progressBar {

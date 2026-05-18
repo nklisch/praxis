@@ -246,6 +246,25 @@
   color: var(--color-text-primary);
 }
 
+/* Changed field: warning border + muted accent background + before/after old value */
+.inspectorFieldChanged {
+  background: var(--color-accent-muted, #f0e3df);
+  border-color: var(--color-warning, #a86a0a);
+}
+
+.inspectorFieldChanged .inspectorFieldVal em {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--color-accent, #9b3a2c);
+}
+
+.inspectorFieldOld {
+  font: 11px/1.4 var(--font-mono, monospace);
+  color: var(--color-text-tertiary, #aaa);
+  text-decoration: line-through;
+  margin-top: 2px;
+}
+
 /* ── Side chat panel (380px) ─────────────────────────────────────────────────── */
 
 .chatPanel {

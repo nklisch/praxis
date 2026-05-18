@@ -16,6 +16,12 @@ export interface GateInspectorProps {
   onSaved: (gate: Gate) => void;
   onDeleted: (gateId: GateId) => void;
   onClose: () => void;
+  /**
+   * Called when the user edits the mastery threshold field (before saving).
+   * The parent can use this to mark the corresponding edge dirty immediately,
+   * so the gate graph shows a warning-coloured edge for pending changes.
+   */
+  onThresholdEdit?: (gateId: GateId) => void;
 }
 
 function formatCriteria(criteria: SuccessCriteria): string {
@@ -48,7 +54,14 @@ function formatState(gate: Gate): string {
  * Shows: gate state, success criteria, prerequisites.
  * Actions: Save (update criteria), Override (with reason), Delete.
  */
-export function GateInspector({ gate, allGates, onSaved, onDeleted, onClose }: GateInspectorProps) {
+export function GateInspector({
+  gate,
+  allGates,
+  onSaved,
+  onDeleted,
+  onClose,
+  onThresholdEdit,
+}: GateInspectorProps) {
   const client = usePraxisClient();
 
   const prereqLookup = (pid: string): { summary: string; id: string } => {
@@ -141,7 +154,10 @@ export function GateInspector({ gate, allGates, onSaved, onDeleted, onClose }: G
                 type="number"
                 className={styles.input}
                 value={minScore}
-                onChange={(e) => setMinScore(e.target.value)}
+                onChange={(e) => {
+                setMinScore(e.target.value);
+                onThresholdEdit?.(gate.id);
+              }}
                 min={0}
                 max={100}
                 step={5}

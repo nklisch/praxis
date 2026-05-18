@@ -10,6 +10,11 @@ import styles from "./gate-edge-label.module.css";
 
 export interface GateEdgeLabelData extends Record<string, unknown> {
   gate: GateView;
+  /**
+   * True when the user has an unsaved threshold change on this edge.
+   * Renders the edge and label in --color-warning to signal the pending edit.
+   */
+  dirty?: boolean;
 }
 
 /** React Flow edge type with GateEdgeLabelData payload. */
@@ -48,9 +53,18 @@ export function GateEdgeLabel({
     return <BaseEdge id={id} path={edgePath} />;
   }
 
-  const { gate } = data;
+  const { gate, dirty } = data;
   const isUnlocked = gate.gate.state.kind === "unlocked" || gate.gate.state.kind === "overridden";
-  const tone = isUnlocked ? "open" : "locked";
+
+  // Tone precedence: dirty (unsaved threshold change) > open > locked.
+  const tone = dirty ? "dirty" : isUnlocked ? "open" : "locked";
+
+  // Extract mastery threshold for display (mastery-threshold criteria only).
+  const minScore =
+    gate.gate.successCriteria.kind === "mastery-threshold"
+      ? gate.gate.successCriteria.minScore
+      : null;
+  const thresholdLabel = minScore !== null ? `${Math.round(minScore * 100)}%` : null;
 
   return (
     <>
@@ -63,7 +77,14 @@ export function GateEdgeLabel({
             pointerEvents: "all",
           }}
           className={`${styles.label} ${styles[tone]}`}
+          data-testid="gate-edge-label"
+          data-dirty={dirty ? "true" : undefined}
         >
+          {thresholdLabel && (
+            <span className={styles.threshold} aria-label={`Mastery threshold: ${thresholdLabel}`}>
+              {thresholdLabel}
+            </span>
+          )}
           <span className={styles.summaryText}>{gate.summaryText}</span>
           {!isUnlocked && (
             <progress
