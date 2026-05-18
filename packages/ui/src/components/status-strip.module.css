@@ -1,0 +1,160 @@
+/* Near-invisible status strip — mounts beneath the top nav. Idle state:
+ * opacity 0, zero block size — no chrome, no space consumed. Reveals on
+ * activity. Mono kicker typography; no icons, no badge widgets. */
+
+.strip {
+  /* Idle: transparent + collapsed so it takes up no visual or layout space */
+  padding: 0 32px;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font: 11px / 1 var(--font-mono);
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-height 180ms ease-out,
+    opacity 180ms ease-out,
+    padding 180ms ease-out,
+    border-color 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strip {
+    transition: none;
+  }
+}
+
+/* Active: expand and reveal */
+.strip.hasWork {
+  padding: 6px 32px;
+  background: var(--color-bg-tertiary);
+  border-bottom-color: var(--color-border);
+  max-height: 48px;
+  opacity: 1;
+}
+
+/* ── Individual item ──────────────────────────────────────────────── */
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+}
+
+.item + .item::before {
+  /* Separator bullet between concurrent items */
+  content: "·";
+  color: var(--color-text-tertiary);
+  margin-right: 6px;
+}
+
+.itemDone {
+  color: var(--color-text-tertiary);
+}
+
+.itemFailed {
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--color-text-primary) 30%);
+}
+
+/* ── Glyphs ──────────────────────────────────────────────────────── */
+
+.pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tint-bootstrap);
+  display: inline-block;
+  flex-shrink: 0;
+  animation: praxis-strip-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+.checkmark {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 0.9em;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.failGlyph {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 0.9em;
+  flex-shrink: 0;
+}
+
+/* ── Label + detail ─────────────────────────────────────────────── */
+
+.label {
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-kicker);
+  font-weight: 600;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail {
+  font-style: italic;
+  font-family: var(--font-serif);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+
+/* ── Hairline progress bar ──────────────────────────────────────── */
+
+.bar {
+  position: relative;
+  display: inline-block;
+  width: 72px;
+  height: 2px;
+  background: var(--color-bg-secondary);
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--status-strip-progress, 0%);
+  background: var(--tint-bootstrap);
+  transition: width 240ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar::after {
+    transition: none;
+  }
+}
+
+@keyframes praxis-strip-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}

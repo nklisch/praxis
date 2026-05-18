@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-status-strip
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -10,7 +10,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Status strip — replace blocking ActivityRail with near-invisible ambient surface
@@ -52,3 +52,26 @@ existing activity events into the strip. Idle = invisible.
 
 - Removing the `ActivityRegistry` service — keep it; the strip
   consumes the same events.
+
+## Implementation notes
+
+- New files: `packages/ui/src/components/status-strip.tsx` and
+  `status-strip.module.css`. Component uses `useActivity()` — same hook
+  as the old `<ActivityRail>`.
+- Idle state: `max-height: 0; overflow: hidden; opacity: 0` via CSS;
+  `hasWork` class transitions to `max-height: 48px; opacity: 1` over
+  180ms. No layout space consumed when idle; no content flash.
+- Active state: `--color-bg-tertiary` background, `1px solid
+  --color-border` bottom border, `--font-mono` 11px kicker for label
+  (uppercase + `--letter-spacing-kicker`), `--font-serif` italic 12px
+  for detail. Pulse dot uses `--tint-bootstrap` + CSS keyframe animation.
+  Hairline progress bar (2px, 72px wide) consistent with ActivityRail.
+- Multiple concurrent items separated by a CSS `::before` bullet (no JS
+  concatenation); each item is a `<span>` flex row.
+- `router.tsx`: `<StatusStrip />` inserted between `<TopNav />` and
+  `<main>`. `activity-rail.tsx` file left untouched.
+- `role="status"` on the outer `<div>` satisfies Biome's
+  `useAriaPropsSupportedByRole` rule (aria-label on a `div` with
+  aria-live needs a role).
+- 7 tests in `src/__tests__/status-strip.test.tsx`; full UI suite
+  (1216 tests, 135 files) passes.

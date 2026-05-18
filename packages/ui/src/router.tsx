@@ -6,6 +6,7 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import { OnboardingFlow } from "./components/onboarding-flow.js";
+import { StatusStrip } from "./components/status-strip.js";
 import { TopNav } from "./components/top-nav.js";
 import { UpdateBanner } from "./components/update-banner.js";
 import { useFirstRun } from "./hooks/use-first-run.js";
@@ -41,6 +42,7 @@ function RootLayout() {
     <div className={styles.layout}>
       <UpdateBanner />
       <TopNav />
+      <StatusStrip />
       <main className={styles.main}>
         <Outlet />
       </main>
