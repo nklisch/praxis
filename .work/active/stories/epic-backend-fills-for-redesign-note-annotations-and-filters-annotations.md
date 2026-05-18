@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-note-annotations-and-filters-annotations
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-note-annotations-and-filters
 depends_on: []
@@ -128,3 +128,15 @@ methods.
 **v1 limitation noted**: Annotations are character-offset based. If the note body is edited,
 existing offsets may become stale. Re-anchoring is explicitly out of scope for v1; the comment
 in `Annotation`'s JSDoc flags this for future work.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `annotationSchema` in `ipc-server.ts` validates non-negative integers but not `rangeStart < rangeEnd`. The service layer enforces this correctly so correctness is preserved; adding a `.refine()` at the IPC layer would give callers an earlier VALIDATION_FAILED instead of INTERNAL.
+- No test for `setAnnotations` against an unknown note ID (silent no-op). Consistent with `delete` behavior; acceptable for v1.
+
+**Notes**: All acceptance criteria met. Schema, type, service validation, IPC envelope wiring, client methods, and 18 total new tests (9 service + 9 IPC harness) are clean. The `as Annotation[]` cast in `getAnnotations` is consistent with all other `{ mode: "json" }` columns in the schema. The v1 stale-offset limitation is correctly documented in JSDoc.
