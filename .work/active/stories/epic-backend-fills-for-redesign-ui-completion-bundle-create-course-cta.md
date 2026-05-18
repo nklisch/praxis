@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-create-course-cta
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -44,3 +44,21 @@ new user has a cold-start entry point that isn't "Use this pack."
 
 - Renaming the underlying tool / mode id — tracked separately at
   `.work/backlog/idea-rename-bootstrap-and-explorer.md`.
+
+## Implementation notes
+
+- Added `onCreateCourse?: () => void` prop to `CoursesSection`; when set, the
+  prop is passed to `LibrarySection` as both a `headerAction` (small mono button
+  in the section header right) and an `emptyAction` (EmptyState action button for
+  cold-start users with no courses yet).
+- Handler in `library.tsx` calls `openSessionInTab` with `modeId: "bootstrap"` —
+  same path as "Use this pack" but without the prior `packs.import` step.
+- `courses-section.module.css` gets a `.createCta` class matching the existing
+  `.cta` typographic style (mono, uppercase, accent underline on hover) but
+  slightly smaller (0.58rem) to read as a secondary header affordance.
+- Two new tests in `library-route.test.tsx`: renders check + click-spawns check
+  (both header-action and empty-action carry the same label, so the click test
+  uses `getAllByRole` and clicks index 0).
+- All 3794 tests pass; lint clean; pre-existing typecheck failure in
+  `@praxis/core` (duplicate `Recommendation` identifier) was present before this
+  change.

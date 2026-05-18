@@ -53,6 +53,15 @@ export function LibraryRoute() {
     });
   };
 
+  /** "+ Create a course" — opens a bootstrap session to design a course from scratch. */
+  const handleCreateCourse = async () => {
+    await openSessionInTab({
+      client,
+      navigate,
+      startOpts: { modeId: "bootstrap" },
+    });
+  };
+
   /**
    * "Use this pack" — imports the pack (idempotent) then opens a bootstrap
    * session so the agent creates a course from the concept graph.
@@ -104,7 +113,12 @@ export function LibraryRoute() {
       {error && <p className={styles.error}>{error}</p>}
 
       <div className={styles.sections}>
-        <CoursesSection courses={data?.courses} loading={loading} onOpenInTab={handleCourseOpen} />
+        <CoursesSection
+          courses={data?.courses}
+          loading={loading}
+          onOpenInTab={handleCourseOpen}
+          onCreateCourse={handleCreateCourse}
+        />
         <PacksSection
           packs={data?.packs}
           loading={loading}

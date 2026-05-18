@@ -73,3 +73,38 @@
 .cta:hover::after {
   background-color: var(--color-accent);
 }
+
+/* ── "+ Create a course" header action ───────────────────────────────────── */
+
+.createCta {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0;
+  position: relative;
+  transition: color 0.18s ease;
+  cursor: pointer;
+}
+
+.createCta::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: transparent;
+  transition: background-color 0.18s ease;
+}
+
+.createCta:hover {
+  color: var(--color-accent);
+}
+
+.createCta:hover::after {
+  background-color: var(--color-accent);
+}

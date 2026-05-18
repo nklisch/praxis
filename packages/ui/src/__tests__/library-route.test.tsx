@@ -334,6 +334,34 @@ describe("LibraryRoute", () => {
     });
   });
 
+  it("renders '+ Create a course' button in the courses section header", async () => {
+    const client = makeClient();
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /\+ Create a course/i })).toBeDefined();
+    });
+  });
+
+  it("'+ Create a course' calls session.start with modeId bootstrap then tabs.open", async () => {
+    const client = makeClient();
+    renderRoute(client);
+
+    // Both the header action and empty-state action render the same label — click the first one
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: /\+ Create a course/i }).length).toBeGreaterThan(
+        0,
+      );
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /\+ Create a course/i })[0]!);
+
+    await waitFor(() => {
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+      expect(client.tabs.open).toHaveBeenCalled();
+    });
+  });
+
   it("'Use this pack' calls packs.import then session.start", async () => {
     const client = makeClient({ packs: [makePack()] });
     renderRoute(client);

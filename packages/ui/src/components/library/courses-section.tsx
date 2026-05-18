@@ -7,14 +7,22 @@ export interface CoursesSectionProps {
   courses: ReadonlyArray<CourseSummary> | undefined;
   loading: boolean;
   onOpenInTab: (input: { courseId: CourseId; courseTitle: string }) => void;
+  /** Called when the user clicks "+ Create a course". */
+  onCreateCourse?: () => void;
 }
 
 /**
  * Editorial table-of-contents listing for in-progress courses.
  * Each row has the course title as the lead + subject/grade deck + "Continue" CTA.
+ * The section header carries a "+ Create a course" affordance for cold-start users.
  * Empty state uses library-specific copy as an invitation.
  */
-export function CoursesSection({ courses, loading, onOpenInTab }: CoursesSectionProps) {
+export function CoursesSection({
+  courses,
+  loading,
+  onOpenInTab,
+  onCreateCourse,
+}: CoursesSectionProps) {
   return (
     <LibrarySection<CourseSummary>
       ornament="§"
@@ -22,6 +30,18 @@ export function CoursesSection({ courses, loading, onOpenInTab }: CoursesSection
       loading={loading}
       items={courses}
       emptyMessage={COPY.empty.libraryCoursesEmpty}
+      headerAction={
+        onCreateCourse !== undefined ? (
+          <button type="button" className={styles.createCta} onClick={onCreateCourse}>
+            + Create a course
+          </button>
+        ) : undefined
+      }
+      emptyAction={
+        onCreateCourse !== undefined
+          ? { label: "+ Create a course", onClick: onCreateCourse }
+          : undefined
+      }
       renderItems={(items) => (
         <ol className={styles.list}>
           {items.map((course) => (
