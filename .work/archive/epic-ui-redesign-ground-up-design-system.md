@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-design-system
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on: []
@@ -270,3 +270,28 @@ computed-style assertion), fix it in-story rather than spawning a follow-up.
   `study-skills`. If a new mode lands before this story, add its tint to
   `tokens.css` first (the mockup file is the SSOT) and mirror into
   `global.css`.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+
+**Important**: none (the `ripples-panel.module.css` `--color-error` token violation
+was filed during child story review as backlog item
+`fix-ripples-panel-color-error-legacy-token.md`; it is out of scope for this
+feature — the file was added after the token-swap landed)
+
+**Nits**: none
+
+**Notes**: All acceptance criteria met. The single child story
+`epic-ui-redesign-ground-up-design-system-token-swap` is at `stage: done` (commit
+`1cce159`). Token variable audit confirms zero banned old-name tokens remain in
+`packages/ui/src/` (excluding the already-tracked ripples-panel outlier). The
+`global.css` token block matches `.mockups/design-system/tokens.css` verbatim (only
+expected addition: `--tint-route: var(--color-text-secondary)`). All 7 mode-tint
+tokens are defined for both light/dark modes. The bubble-color fallback to
+`--color-accent-muted` is explicitly sanctioned by the feature's Risks section.
+Foundation docs are not drifted: UX.md's "4% gradient washes" description of mode
+tint rendering remains accurate for current production components; the "7px color
+dots" treatment will land with the downstream surface redesign features.
