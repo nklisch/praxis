@@ -1,4 +1,4 @@
-/* ── Library Route Layout ─────────────────────────────────────────────────── */
+/* ── Library Route — Workbench Layout ─────────────────────────────────────── */
 
 .layout {
   display: flex;
@@ -8,16 +8,288 @@
   overflow-y: auto;
 }
 
-.sections {
+.body {
+  padding: 28px 32px 64px;
+  max-width: 1320px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Greeting ───────────────────────────────────────────────────────────────── */
+
+.greeting {
+  margin-bottom: 28px;
+}
+
+.greetingKicker {
+  font: 600 11px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+.greetingTitle {
+  composes: editorial from global;
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
+.greetingCount {
+  font-weight: 600;
+}
+
+.greetingDeck {
+  composes: editorial from global;
+  font-size: 0.94rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 70ch;
+}
+
+/* ── Two-column workbench ────────────────────────────────────────────────────── */
+
+.workbench {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* ── Column panels ──────────────────────────────────────────────────────────── */
+
+.column {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  padding: 20px 24px;
+  min-width: 0;
+}
+
+.columnHeading {
+  font: 600 11px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.columnGlyph {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.emptyQueue {
+  composes: editorial from global;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  padding: 8px 0;
+}
+
+/* ── Lately timeline ─────────────────────────────────────────────────────────── */
+
+.timeline {
+  position: relative;
+  padding-left: 22px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.timelineSection {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 14px 0 8px -22px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.timelineSection:first-child {
+  margin-top: 0;
+}
+
+.timelineEntry {
+  padding: 4px 0 14px;
+  position: relative;
+  cursor: pointer;
+}
+
+.timelineEntry:last-child {
+  padding-bottom: 4px;
+}
+
+.timelineEntry::before {
+  content: "";
+  position: absolute;
+  left: -21px;
+  top: 8px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--color-border-strong, var(--color-border));
+}
+
+.timelineEntrySession::before {
+  background: var(--mode-dot-color, var(--color-accent));
+  border-color: var(--mode-dot-color, var(--color-accent));
+}
+
+.timelineWhen {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: 3px;
+}
+
+.timelineTitle {
+  composes: editorial from global;
+  font-size: 0.94rem;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+.timelineMeta {
+  font: 12px / 1.4 var(--font-mono);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.timelineModeDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.timelineOpenBadge {
+  font: 600 9px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin-left: 4px;
+}
+
+.timelineEmpty {
+  composes: editorial from global;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+  padding: 4px 0;
+}
+
+/* ── Footer row ─────────────────────────────────────────────────────────────── */
+
+.footerRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.footerCard {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
+}
+
+.footerCardHeading {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.footerCardGlyph {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+.footerCardCount {
+  composes: editorial from global;
+  font-size: 1.75rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.footerCardDetail {
+  font: 13px / 1.4 var(--font-serif);
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
   flex: 1;
 }
+
+.footerCardLink {
+  font: italic 12px / 1 var(--font-serif);
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  margin-top: 6px;
+  align-self: flex-start;
+  transition: opacity 0.15s ease;
+}
+
+.footerCardLink:hover {
+  opacity: 0.75;
+}
+
+/* ── Error ──────────────────────────────────────────────────────────────────── */
 
 .error {
   composes: editorial from global;
   font-size: 0.9rem;
   color: var(--color-text-secondary);
-  padding: 0.75rem 1.75rem;
+  padding: 0.75rem 2rem;
   margin: 0;
+}
+
+/* ── Responsive collapse ─────────────────────────────────────────────────────── */
+
+@media (max-width: 860px) {
+  .workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .footerRow {
+    grid-template-columns: 1fr;
+  }
 }

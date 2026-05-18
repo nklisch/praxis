@@ -1,19 +1,18 @@
 /**
- * Tests for LibraryRoute (Unit 12).
+ * Tests for LibraryRoute — the Workbench.
  *
  * Verifies:
- * - Renders all four editorial section kickers
- * - Empty states per section when data is empty
- * - Course "Continue" CTA calls session.start then tabs.open then navigate
- * - Pack "Use this pack" calls packs.import then session.start then tabs.open
- * - Recent session click (no existing tab) calls tabs.open with the existing sessionId
- * - Recent session click (existing tab) calls tabs.touch and navigates without session.start
+ * - Greeting renders with time-of-day text and count of ready things
+ * - What's-next queue renders recommendation rows (and empty state)
+ * - Lately timeline renders session entries grouped by day
+ * - Footer cards render (packs / concept maps / documents)
+ * - "+ Create a course" CTA triggers bootstrap session
+ * - Timeline session click calls tabs.open (or switchTo if open)
+ * - Recommendation CTA clicks dispatch to correct surface
  */
 import type {
-  CourseSummary,
-  DocumentSummary,
-  PackSummaryClient,
   PraxisClient,
+  Recommendation,
   SessionSummary,
   TabSummary,
   Timestamp,
@@ -30,61 +29,23 @@ afterEach(() => cleanup());
 
 // ── Mock TanStack Router ───────────────────────────────────────────────────────
 
+const mockNavigate = vi.fn().mockResolvedValue(undefined);
 vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-router")>();
   return {
     ...actual,
-    useNavigate: () => vi.fn().mockResolvedValue(undefined),
+    useNavigate: () => mockNavigate,
     useParams: () => ({}),
   };
 });
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────
 
-function makeCourse(): CourseSummary {
-  return {
-    courseId: brandId<"CourseId">("course-1"),
-    title: "Algebra 1",
-    subject: "mathematics",
-    gradeLevel: "grade-8",
-    lessonCount: 5,
-    conceptCount: 20,
-    studiedConcepts: 3,
-    createdAt: Date.now() as Timestamp,
-  };
-}
-
-function makePack(): PackSummaryClient {
-  return {
-    id: "algebra-1",
-    version: "1.0.0",
-    name: "Algebra 1 (CCSS)",
-    subject: "math.algebra-1",
-    gradeLevel: "9-12",
-    conceptCount: 32,
-    edgeCount: 40,
-    imported: false,
-  };
-}
-
-function makeDocument(): DocumentSummary {
-  return {
-    documentId: "doc-1",
-    filename: "textbook.pdf",
-    mimeType: "application/pdf",
-    ingestorId: "pdf",
-    ingestorLabel: "PDF",
-    chunkCount: 10,
-    createdAt: new Date().toISOString(),
-    hasPageImages: false,
-  };
-}
-
 function makeSession(overrides: Partial<SessionSummary> = {}): SessionSummary {
   return {
     sessionId: brandId<"SessionId">("session-1"),
     modeId: "teach",
-    startedAt: (Date.now() - 60_000) as Timestamp,
+    startedAt: Date.now() as Timestamp,
     endedAt: null,
     firstUserMessage: "Explain fractions",
     ...overrides,
@@ -106,16 +67,40 @@ function makeTab(overrides: Partial<TabSummary> = {}): TabSummary {
   };
 }
 
+const RESUME_REC: Recommendation = {
+  kind: "resume_session",
+  sessionId: brandId<"SessionId">("session-resume"),
+  mode: "teach",
+  lastTouchedAt: Date.now() as Timestamp,
+  reason: "You stopped mid-lesson.",
+  score: 0.95,
+};
+
+const REVIEW_REC: Recommendation = {
+  kind: "review_cards",
+  courseId: brandId<"CourseId">("course-1"),
+  dueNow: 5,
+  dueIn24h: 3,
+  reason: "5 cards due today.",
+  score: 0.8,
+};
+
+const DRAFT_REC: Recommendation = {
+  kind: "resume_draft",
+  draftId: "draft-1" as import("@praxis/core/types").DraftId,
+  lastTouchedAt: Date.now() as Timestamp,
+  reason: "Draft is ready to review.",
+  score: 0.6,
+};
+
 interface MakeClientOpts {
-  courses?: CourseSummary[];
-  packs?: PackSummaryClient[];
-  documents?: DocumentSummary[];
   sessions?: SessionSummary[];
   openTabs?: TabSummary[];
+  recommendations?: Recommendation[];
 }
 
 function makeClient(opts: MakeClientOpts = {}): PraxisClient {
-  const { courses = [], packs = [], documents = [], sessions = [], openTabs = [] } = opts;
+  const { sessions = [], openTabs = [], recommendations = [] } = opts;
 
   const newTab = makeTab({ id: brandId<"TabId">("tab-new") });
 
@@ -150,7 +135,7 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
       rename: vi.fn().mockResolvedValue(newTab),
     },
     artifacts: {
-      courses: vi.fn().mockResolvedValue(courses),
+      courses: vi.fn().mockResolvedValue([]),
       course: vi.fn().mockResolvedValue(null),
       lessons: vi.fn().mockResolvedValue([]),
       gates: vi.fn().mockResolvedValue([]),
@@ -166,7 +151,7 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
     packs: {
-      listAvailable: vi.fn().mockResolvedValue(packs),
+      listAvailable: vi.fn().mockResolvedValue([]),
       listImported: vi.fn().mockResolvedValue([]),
       import: vi.fn().mockResolvedValue({
         packId: "algebra-1",
@@ -176,7 +161,7 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
       }),
     },
     documents: {
-      list: vi.fn().mockResolvedValue(documents),
+      list: vi.fn().mockResolvedValue([]),
       delete: vi.fn().mockResolvedValue(undefined),
       pageImage: vi.fn().mockResolvedValue(null),
     } as unknown as PraxisClient["documents"],
@@ -188,6 +173,9 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
     flashcards: {
       dueCount: vi.fn().mockResolvedValue(0),
     } as unknown as PraxisClient["flashcards"],
+    recommendations: {
+      next: vi.fn().mockResolvedValue(recommendations),
+    },
   });
 }
 
@@ -203,205 +191,131 @@ function renderRoute(client: PraxisClient) {
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
-describe("LibraryRoute", () => {
-  it("renders the LIBRARY kicker", () => {
-    const client = makeClient();
-    renderRoute(client);
-    expect(screen.getByText("LIBRARY")).toBeDefined();
+describe("LibraryRoute — Workbench", () => {
+  // ── Greeting ────────────────────────────────────────────────────────────────
+
+  it("renders a time-of-day greeting", () => {
+    renderRoute(makeClient());
+    // Should contain "Good morning/afternoon/evening"
+    expect(screen.getByText(/Good (morning|afternoon|evening)\./)).toBeDefined();
   });
 
-  it("renders editorial title and deck", () => {
-    const client = makeClient();
-    renderRoute(client);
-    expect(screen.getByText("your library")).toBeDefined();
-    expect(screen.getByText("what you have to work with")).toBeDefined();
-  });
-
-  it("renders all four section kickers", async () => {
-    const client = makeClient();
-    renderRoute(client);
-
+  it("shows 'You're all caught up.' when no recommendations", async () => {
+    renderRoute(makeClient({ recommendations: [] }));
     await waitFor(() => {
-      expect(screen.getByText("COURSES")).toBeDefined();
-      expect(screen.getByText("PACKS")).toBeDefined();
-      expect(screen.getByText("DOCUMENTS")).toBeDefined();
-      expect(screen.getByText("RECENT SESSIONS")).toBeDefined();
+      expect(screen.getByText(/You're all caught up\./)).toBeDefined();
     });
   });
 
-  it("shows courses empty state when no courses", async () => {
-    const client = makeClient({ courses: [] });
-    renderRoute(client);
-
+  it("shows count of ready things when recommendations exist", async () => {
+    renderRoute(makeClient({ recommendations: [RESUME_REC, REVIEW_REC] }));
     await waitFor(() => {
-      expect(screen.getByText(/No courses in progress/)).toBeDefined();
+      expect(screen.getByText(/two things/i)).toBeDefined();
     });
   });
 
-  it("shows packs empty state when no packs", async () => {
-    const client = makeClient({ packs: [] });
-    renderRoute(client);
-
+  it("shows 'one thing' (singular) for exactly one recommendation", async () => {
+    renderRoute(makeClient({ recommendations: [RESUME_REC] }));
     await waitFor(() => {
-      expect(screen.getByText(/No knowledge packs available/)).toBeDefined();
+      expect(screen.getByText(/one thing/i)).toBeDefined();
     });
   });
 
-  it("shows documents empty state when no documents", async () => {
-    const client = makeClient({ documents: [] });
-    renderRoute(client);
+  // ── What's-next queue ────────────────────────────────────────────────────────
 
+  it("renders 'What's next' column heading", async () => {
+    renderRoute(makeClient());
     await waitFor(() => {
-      expect(screen.getByText(/No documents ingested/)).toBeDefined();
+      expect(screen.getByText(/What's next/i)).toBeDefined();
     });
   });
 
-  it("shows sessions empty state when no recent sessions", async () => {
-    const client = makeClient({ sessions: [] });
-    renderRoute(client);
-
+  it("renders recommendation rows when recs exist", async () => {
+    renderRoute(makeClient({ recommendations: [RESUME_REC, REVIEW_REC] }));
     await waitFor(() => {
-      expect(screen.getByText(/No recent sessions/)).toBeDefined();
+      // ResumeSession shows "Resume ↵" CTA
+      expect(screen.getByRole("button", { name: /Resume/i })).toBeDefined();
     });
   });
 
-  it("renders course list when courses present", async () => {
-    const client = makeClient({ courses: [makeCourse()] });
-    renderRoute(client);
-
-    await waitFor(() => {
-      expect(screen.getByText("Algebra 1")).toBeDefined();
-    });
-  });
-
-  it("renders pack list when packs present", async () => {
-    const client = makeClient({ packs: [makePack()] });
-    renderRoute(client);
-
-    await waitFor(() => {
-      expect(screen.getByText("Algebra 1 (CCSS)")).toBeDefined();
-    });
-  });
-
-  it("renders document list when documents present", async () => {
-    const client = makeClient({ documents: [makeDocument()] });
-    renderRoute(client);
-
-    await waitFor(() => {
-      expect(screen.getByText("textbook.pdf")).toBeDefined();
-    });
-  });
-
-  it("renders recent session when sessions present", async () => {
-    const client = makeClient({ sessions: [makeSession()] });
-    renderRoute(client);
-
-    await waitFor(() => {
-      expect(screen.getByText("Explain fractions")).toBeDefined();
-    });
-  });
-
-  it("'Continue' on a course calls session.start with modeId teach and courseId", async () => {
-    const client = makeClient({ courses: [makeCourse()] });
-    renderRoute(client);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Continue/i })).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /Continue/i }));
-
-    await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({
-        modeId: "teach",
-        courseId: brandId<"CourseId">("course-1"),
-      });
-    });
-  });
-
-  it("'Continue' on a course calls tabs.open after session.start", async () => {
-    const client = makeClient({ courses: [makeCourse()] });
-    renderRoute(client);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Continue/i })).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /Continue/i }));
-
-    await waitFor(() => {
-      expect(client.tabs.open).toHaveBeenCalled();
-    });
-  });
-
-  it("renders '+ Create a course' button in the courses section header", async () => {
-    const client = makeClient();
-    renderRoute(client);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /\+ Create a course/i })).toBeDefined();
-    });
-  });
-
-  it("'+ Create a course' calls session.start with modeId bootstrap then tabs.open", async () => {
-    const client = makeClient();
-    renderRoute(client);
-
-    // Both the header action and empty-state action render the same label — click the first one
+  it("shows '+ Create a course' link in empty queue state", async () => {
+    renderRoute(makeClient({ recommendations: [] }));
     await waitFor(() => {
       expect(screen.getAllByRole("button", { name: /\+ Create a course/i }).length).toBeGreaterThan(
         0,
       );
     });
+  });
 
-    fireEvent.click(screen.getAllByRole("button", { name: /\+ Create a course/i })[0]!);
-
+  it("'+ Create a course' triggers bootstrap session.start + tabs.open", async () => {
+    const client = makeClient({ recommendations: [] });
+    renderRoute(client);
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: /\+ Create a course/i }).length).toBeGreaterThan(
+        0,
+      );
+    });
+    // Click the first one (in the empty queue state)
+    const createBtns = screen.getAllByRole("button", { name: /\+ Create a course/i });
+    fireEvent.click(createBtns[0] as HTMLElement);
     await waitFor(() => {
       expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
       expect(client.tabs.open).toHaveBeenCalled();
     });
   });
 
-  it("'Use this pack' calls packs.import then session.start", async () => {
-    const client = makeClient({ packs: [makePack()] });
-    renderRoute(client);
+  // ── Lately timeline ──────────────────────────────────────────────────────────
 
+  it("renders 'Lately' column heading", async () => {
+    renderRoute(makeClient());
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Use this pack/i })).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /Use this pack/i }));
-
-    await waitFor(() => {
-      expect(client.packs.import).toHaveBeenCalledWith("algebra-1");
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+      expect(screen.getByText(/Lately/i)).toBeDefined();
     });
   });
 
-  it("clicking a recent session (no open tab) calls tabs.open with the existing sessionId", async () => {
+  it("shows 'No sessions yet' empty state when no sessions", async () => {
+    renderRoute(makeClient({ sessions: [] }));
+    await waitFor(() => {
+      expect(screen.getByText(/No sessions yet/i)).toBeDefined();
+    });
+  });
+
+  it("renders session entries in the timeline", async () => {
+    renderRoute(makeClient({ sessions: [makeSession()] }));
+    await waitFor(() => {
+      // The timeline groups sessions; "Today" should appear
+      expect(screen.getByText("Today")).toBeDefined();
+    });
+  });
+
+  it("renders session first message in timeline title", async () => {
+    renderRoute(makeClient({ sessions: [makeSession()] }));
+    await waitFor(() => {
+      expect(screen.getByText(/Explain fractions/i)).toBeDefined();
+    });
+  });
+
+  it("clicking a timeline session (no existing tab) calls tabs.open", async () => {
     const session = makeSession({ sessionId: brandId<"SessionId">("existing-session") });
     const client = makeClient({ sessions: [session], openTabs: [] });
     renderRoute(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Explain fractions")).toBeDefined();
+      expect(screen.getByText(/Explain fractions/i)).toBeDefined();
     });
 
-    // Click the session button (wraps the text)
-    const button = screen.getByRole("button", { name: /teach/i });
-    fireEvent.click(button);
+    const sessionBtn = screen.getByRole("button", { name: /Open teach session/i });
+    fireEvent.click(sessionBtn);
 
     await waitFor(() => {
       expect(client.tabs.open).toHaveBeenCalledWith(
         expect.objectContaining({ sessionId: "existing-session" }),
       );
     });
-
-    // Should NOT start a new session
     expect(client.session.start).not.toHaveBeenCalled();
   });
 
-  it("clicking a recent session with an existing open tab calls tabs.touch, not tabs.open", async () => {
+  it("clicking a timeline session with open tab calls tabs.touch (switchTo), not tabs.open", async () => {
     const sessionId = brandId<"SessionId">("session-open");
     const tabId = brandId<"TabId">("tab-open");
     const session = makeSession({ sessionId });
@@ -410,17 +324,107 @@ describe("LibraryRoute", () => {
     renderRoute(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Explain fractions")).toBeDefined();
+      expect(screen.getByText(/Explain fractions/i)).toBeDefined();
     });
 
-    const button = screen.getByRole("button", { name: /teach/i });
-    fireEvent.click(button);
+    const sessionBtn = screen.getByRole("button", { name: /Open teach session/i });
+    fireEvent.click(sessionBtn);
 
     await waitFor(() => {
       expect(client.tabs.touch).toHaveBeenCalledWith(tabId);
     });
+    expect(client.tabs.open).not.toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "session-open" }),
+    );
+  });
 
-    // Should NOT open a new tab
-    expect(client.tabs.open).not.toHaveBeenCalledWith(expect.objectContaining({ sessionId }));
+  // ── Footer cards ─────────────────────────────────────────────────────────────
+
+  it("renders Packs footer card", async () => {
+    renderRoute(makeClient());
+    await waitFor(() => {
+      expect(screen.getByText(/Packs available/i)).toBeDefined();
+    });
+  });
+
+  it("renders Concept maps footer card", async () => {
+    renderRoute(makeClient());
+    await waitFor(() => {
+      // Heading text is "‡ Concept maps" — use open concept maps button as the probe
+      expect(screen.getByRole("button", { name: /open concept maps/i })).toBeDefined();
+    });
+  });
+
+  it("renders Documents footer card", async () => {
+    renderRoute(makeClient());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /\+ attach a document/i })).toBeDefined();
+    });
+  });
+
+  it("Packs footer card has '+ Create a course ↗' link", async () => {
+    renderRoute(makeClient());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /\+ Create a course ↗/i })).toBeDefined();
+    });
+  });
+
+  it("concept maps footer 'open concept maps' navigates to /concept-maps", async () => {
+    renderRoute(makeClient());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /open concept maps/i })).toBeDefined();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /open concept maps/i }));
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(expect.objectContaining({ to: "/concept-maps" }));
+    });
+  });
+
+  // ── Recommendation dispatch ──────────────────────────────────────────────────
+
+  it("resume_session rec: clicking 'Resume' opens the session tab", async () => {
+    const client = makeClient({ recommendations: [RESUME_REC] });
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Resume/i })).toBeDefined();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Resume ↵/i }));
+
+    await waitFor(() => {
+      expect(client.tabs.open).toHaveBeenCalledWith(
+        expect.objectContaining({ sessionId: "session-resume" }),
+      );
+    });
+  });
+
+  it("review_cards rec: clicking CTA opens study-skills session", async () => {
+    const client = makeClient({ recommendations: [REVIEW_REC] });
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Review 5 cards/i })).toBeDefined();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Review 5 cards/i }));
+
+    await waitFor(() => {
+      expect(client.session.start).toHaveBeenCalledWith(
+        expect.objectContaining({ modeId: "study-skills" }),
+      );
+    });
+  });
+
+  it("resume_draft rec: clicking CTA opens bootstrap session", async () => {
+    const client = makeClient({ recommendations: [DRAFT_REC] });
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Review draft/i })).toBeDefined();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Review draft/i }));
+
+    await waitFor(() => {
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+    });
   });
 });
