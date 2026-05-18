@@ -1,7 +1,7 @@
 ---
 id: cleanup-stale-explorer-comments-sweep
 kind: story
-stage: review
+stage: done
 tags: [cleanup, docs]
 parent: null
 depends_on: []
@@ -120,3 +120,13 @@ Result: 1 match — only the runtime string in `use-canonical-pack.ts:25` (flagg
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 27 comment/JSDoc edits across 13 files. Rolling-forward principle honored (zero "previously"/"formerly" prose introduced). All Category A (named-entity) references rewritten; generic "explore" verb usages correctly left alone. Verified: the `sub-agent-block.tsx` mockup filename reference correctly points to the existing renamed file (`03-drafter-running.html`). The non-comment runtime residual at `use-canonical-pack.ts:25` (tool description string flowing to the LLM) was correctly NOT touched and was parked separately as `idea-rename-explorer-in-tool-description` for a model-facing review. Final grep verification confirms zero comment/JSDoc residuals.
