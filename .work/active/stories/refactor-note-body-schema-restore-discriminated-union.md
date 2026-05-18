@@ -1,5 +1,6 @@
 ---
 id: refactor-note-body-schema-restore-discriminated-union
+stage: implementing
 created: 2026-05-18
 tags: [refactor, perf]
 ---
