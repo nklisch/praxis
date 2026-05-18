@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-note-annotations-and-filters-search-and-filters
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-note-annotations-and-filters
 depends_on: []
@@ -107,3 +107,18 @@ See parent feature
 - IPC channel `praxis.library.search` envelope-wrapped with optional Zod schema: `{ query, sessionId, orphan, dueOnly, recentWindowMs, limit }`. Empty-string `query` → `VALIDATION_FAILED`.
 - Client: `praxisClient.library.search(input)` in `packages/client/src/services/library-client.ts`.
 - 16 service-layer tests + 5 IPC envelope tests; all green.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- `dueOnly` FTS path treats `NULL nextReviewAt` as "due" (`IS NULL OR next_review_at <= ?`), while the non-FTS path and the rest of the codebase (FlashcardsService.list/dueCount) exclude NULL rows → behavioral inconsistency depending on whether a `query` is passed → Item: `library-service-dueonly-fts-null-inconsistency`
+
+**Nits**:
+- `recentWindowMs` silently ignored for flashcards (correct — no `updatedAt` column), but no comment explains why. Trivial.
+- `search()` is declared `async` but all internal work is synchronous; fine for interface compatibility.
+
+**Notes**: Migration, FTS5 tables, triggers, service layer, IPC, and client all implemented correctly and completely. Tests cover the full acceptance criteria. The `dueOnly` inconsistency is minor (only manifests when `query` + `dueOnly` + flashcards-with-null-nextReviewAt are combined) and is triaged as a backlog bug. Advancing to done.
