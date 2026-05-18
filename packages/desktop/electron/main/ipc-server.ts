@@ -89,6 +89,9 @@ export function registerIpcHandlers(
     }
   }
 
+  const getStudentId = (): StudentId =>
+    brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+
   // ── Session ──────────────────────────────────────────────────────────────
 
   const SpawnFromAssignmentSchema = z.object({
@@ -158,7 +161,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.session.spawnFromNote",
     handleEnvelope("praxis.session.spawnFromNote", log, SpawnFromNoteSchema, async (opts) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.session.spawnFromNote({
         studentId,
         noteId: brandId<"NoteId">(opts.noteId) as NoteId,
@@ -180,7 +183,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.session.spawnFromPassage",
     handleEnvelope("praxis.session.spawnFromPassage", log, SpawnFromPassageSchema, async (opts) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.session.spawnFromPassage({
         studentId,
         documentId: brandId<"DocumentId">(opts.documentId) as DocumentId,
@@ -417,7 +420,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.artifacts.courses",
     wrapEnvelope("praxis.artifacts.courses", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.artifacts.courses(studentId);
     }),
   );
@@ -481,7 +484,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.artifacts.progress",
     wrapEnvelope("praxis.artifacts.progress", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.artifacts.progress(studentId);
     }),
   );
@@ -491,7 +494,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.artifacts.gateView",
     handleEnvelope("praxis.artifacts.gateView", log, courseIdSchema, async (courseId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.artifacts.gateView({
         studentId,
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
@@ -503,7 +506,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.artifacts.evaluateGates",
     handleEnvelope("praxis.artifacts.evaluateGates", log, courseIdSchema, async (courseId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.artifacts.evaluateAndPersistGates({
         studentId,
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
@@ -515,7 +518,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.artifacts.markGatesViewed",
     handleEnvelope("praxis.artifacts.markGatesViewed", log, courseIdSchema, async (courseId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.artifacts.markGatesViewed({
         studentId,
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
@@ -527,7 +530,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.artifacts.newlyUnlockedCount",
     handleEnvelope("praxis.artifacts.newlyUnlockedCount", log, courseIdSchema, async (courseId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.artifacts.newlyUnlockedCount({
         studentId,
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
@@ -541,7 +544,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.memory.studentModel",
     wrapEnvelope("praxis.memory.studentModel", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       const model = await services.memory.studentModel(studentId);
       // Maps don't survive JSON.stringify — serialize conceptMastery as entries array.
       return {
@@ -554,7 +557,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.memory.misconceptions",
     wrapEnvelope("praxis.memory.misconceptions", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.memory.misconceptions(studentId);
     }),
   );
@@ -562,7 +565,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.memory.procedural",
     wrapEnvelope("praxis.memory.procedural", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       const model = await services.memory.procedural(studentId);
       return {
         ...model,
@@ -574,7 +577,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.memory.affective",
     wrapEnvelope("praxis.memory.affective", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.memory.affective(studentId);
     }),
   );
@@ -582,7 +585,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.memory.export",
     wrapEnvelope("praxis.memory.export", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       const exported = await services.memory.export(studentId);
       // Serialize Maps as entries arrays for IPC transport.
       return {
@@ -602,7 +605,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.memory.delete",
     wrapEnvelope("praxis.memory.delete", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.memory.delete({ studentId, confirm: true });
     }),
   );
@@ -632,7 +635,7 @@ export function registerIpcHandlers(
 
       streamLog.info("memory.episodic.start");
       try {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         const stream = services.memory.episodic({
           studentId,
           ...(opts.sessionId !== undefined && {
@@ -1195,7 +1198,7 @@ export function registerIpcHandlers(
       }),
       async (input) => {
         await requireUnlocked();
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.authoring.resetConcept({
           studentId,
           conceptId: brandId<"ConceptId">(input.conceptId) as ConceptId,
@@ -1232,7 +1235,7 @@ export function registerIpcHandlers(
       z.object({ targetPath: z.string().min(1, "targetPath") }),
       async (input) => {
         await requireUnlocked();
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.authoring.exportMemory({ studentId, targetPath: input.targetPath });
       },
     ),
@@ -1249,7 +1252,7 @@ export function registerIpcHandlers(
       }),
       async (input) => {
         await requireUnlocked();
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.authoring.deleteAllMemory({
           studentId,
           reason: input.reason,
@@ -1317,7 +1320,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.notes.create",
     handleEnvelope("praxis.notes.create", log, noteCreateSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.notes.create({
         studentId,
         format: input.format,
@@ -1353,7 +1356,7 @@ export function registerIpcHandlers(
       log,
       z.object({ noteId: z.string().min(1, "noteId"), body: z.unknown() }),
       async (input) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+        const studentId = getStudentId();
         return services.notes.update({
           studentId,
           noteId: brandId<"NoteId">(input.noteId),
@@ -1367,7 +1370,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.notes.get",
     handleEnvelope("praxis.notes.get", log, noteIdSchema, async (noteId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.notes.get({ studentId, noteId: brandId<"NoteId">(noteId) });
     }),
   );
@@ -1384,7 +1387,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.notes.list",
     handleEnvelope("praxis.notes.list", log, noteListSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.notes.list({
         studentId,
         ...(input?.courseId !== undefined && {
@@ -1402,7 +1405,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.notes.delete",
     handleEnvelope("praxis.notes.delete", log, noteIdSchema, async (noteId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.notes.delete({ studentId, noteId: brandId<"NoteId">(noteId) });
     }),
   );
@@ -1422,7 +1425,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.notes.setAnnotations",
     handleEnvelope("praxis.notes.setAnnotations", log, setAnnotationsSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.notes.setAnnotations({
         studentId,
         noteId: brandId<"NoteId">(input.noteId),
@@ -1434,7 +1437,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.notes.getAnnotations",
     handleEnvelope("praxis.notes.getAnnotations", log, noteIdSchema, async (noteId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.notes.getAnnotations({ studentId, noteId: brandId<"NoteId">(noteId) });
     }),
   );
@@ -1456,7 +1459,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.flashcards.create",
     handleEnvelope("praxis.flashcards.create", log, flashcardCreateSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.flashcards.create({
         studentId,
         front: input.front,
@@ -1481,7 +1484,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.flashcards.update",
     handleEnvelope("praxis.flashcards.update", log, flashcardUpdateSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.flashcards.update({
         studentId,
         flashcardId: brandId<"FlashcardId">(input.flashcardId),
@@ -1499,7 +1502,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.flashcards.get",
     handleEnvelope("praxis.flashcards.get", log, flashcardIdSchema, async (flashcardId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.flashcards.get({
         studentId,
         flashcardId: brandId<"FlashcardId">(flashcardId),
@@ -1518,7 +1521,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.flashcards.list",
     handleEnvelope("praxis.flashcards.list", log, flashcardListSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.flashcards.list({
         studentId,
         ...(input?.conceptId !== undefined && {
@@ -1533,7 +1536,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.flashcards.delete",
     handleEnvelope("praxis.flashcards.delete", log, flashcardIdSchema, async (flashcardId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.flashcards.delete({
         studentId,
         flashcardId: brandId<"FlashcardId">(flashcardId),
@@ -1549,7 +1552,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.flashcards.review",
     handleEnvelope("praxis.flashcards.review", log, flashcardReviewSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.flashcards.review({
         studentId,
         flashcardId: brandId<"FlashcardId">(input.flashcardId),
@@ -1561,7 +1564,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.flashcards.dueCount",
     wrapEnvelope("praxis.flashcards.dueCount", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.flashcards.dueCount({ studentId });
     }),
   );
@@ -1582,7 +1585,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.library.search",
     handleEnvelope("praxis.library.search", log, librarySearchSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      const studentId = getStudentId();
       return services.library.search({
         studentId,
         ...(input?.query !== undefined && { query: input.query }),
@@ -1660,7 +1663,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.tabs.listOpen",
     wrapEnvelope("praxis.tabs.listOpen", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       return services.tabs.listOpen(studentId);
     }),
   );
@@ -1677,7 +1680,7 @@ export function registerIpcHandlers(
         })
         .optional(),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.tabs.list(
           studentId,
           opts !== undefined
@@ -1708,7 +1711,7 @@ export function registerIpcHandlers(
         courseTitle: z.string().optional(),
       }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.tabs.open({
           studentId,
           sessionId: opts.sessionId as SessionId,
@@ -1728,7 +1731,7 @@ export function registerIpcHandlers(
         title: z.string().min(1, "title"),
       }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.tabs.openDocument({
           studentId,
           documentId: opts.documentId as DocumentId,
@@ -1809,7 +1812,7 @@ export function registerIpcHandlers(
   handle(
     "praxis.sketches.put",
     handleEnvelope("praxis.sketches.put", log, sketchPutSchema, async (opts) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId();
       const image = Buffer.from(opts.imageBase64, "base64");
       return services.sketches.put({
         studentId,
@@ -1858,7 +1861,7 @@ export function registerIpcHandlers(
         title: z.string().min(1, "title"),
       }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.conceptMaps.create({
           studentId,
           courseId: opts.courseId as CourseId,
@@ -1884,7 +1887,7 @@ export function registerIpcHandlers(
       log,
       z.object({ courseId: z.string().min(1, "courseId") }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.conceptMaps.list({
           studentId,
           courseId: opts.courseId as CourseId,
@@ -1996,7 +1999,7 @@ export function registerIpcHandlers(
       log,
       z.object({ sketchNoteId: z.string().min(1, "sketchNoteId") }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId();
         return services.conceptMaps.convertFromSketch(opts.sketchNoteId as NoteId, studentId);
       },
     ),

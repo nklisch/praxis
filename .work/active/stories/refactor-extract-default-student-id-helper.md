@@ -1,7 +1,7 @@
 ---
 id: refactor-extract-default-student-id-helper
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -84,3 +84,15 @@ const studentId = getStudentId();
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Implementation notes
+
+**Helper location**: inserted at lines 92–93 of `ipc-server.ts`, inside `registerIpcHandlers`, after the `requireUnlocked` inner function and before the session section. Typed as `(): StudentId` so callers infer the branded type without the cast.
+
+**Sites converted**: 41 total occurrences of `brandId<"StudentId">(services.getDefaultStudentId())` before this change. The helper now contains the only remaining occurrence (the definition); all 41 former call sites use `getStudentId()`.
+
+**Final grep counts**:
+- `grep -cn 'brandId<"StudentId">(services.getDefaultStudentId())' ipc-server.ts` → **1** (helper definition only)
+- `grep -cn 'getStudentId()' ipc-server.ts` → **41**
+
+**Baseline confirmation**: 3 pre-existing typecheck errors in `ui/src` files (`chat-tab-body.tsx`, `chat.tsx`, `notes-list.tsx`) unchanged. 2 pre-existing biome warnings (unused suppression + noExplicitAny on `LessonId` passthrough) unchanged. 1 pre-existing test failure in `@praxis/ui` (`use-fragment-overrides.test.tsx`) unchanged. No new errors or failures introduced.
