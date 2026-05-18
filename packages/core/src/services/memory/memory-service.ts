@@ -26,13 +26,12 @@ import type {
   EpisodicEvent,
   MasterySignal,
   MemoryExport,
+  MemoryService,
   Misconception,
   ProceduralModel,
   StrategyPreference,
   StudentModel,
 } from "../../types/memory.js";
-// Import server-side MemoryService (with studentId params) directly from tool.ts.
-import type { MemoryService } from "../../types/tool.js";
 import { applySignalsToConcept } from "../indexers/mastery-indexer.js";
 import { upsertMisconception as indexerUpsertMisconception } from "../indexers/misconception-indexer.js";
 import { bktInitial } from "./bkt.js";

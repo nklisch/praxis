@@ -1,6 +1,6 @@
 import { notes as notesTable } from "@praxis/artifacts/schema";
-import { configuratorSnapshots } from "@praxis/core/schema";
 import { openDb } from "@praxis/core/db";
+import { configuratorSnapshots } from "@praxis/core/schema";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import type {

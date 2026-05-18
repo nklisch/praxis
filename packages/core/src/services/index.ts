@@ -54,8 +54,6 @@ export {
   AssignmentServiceImpl,
   validateItems,
 } from "./assignment-service.js";
-export type { CourseCreateServiceDeps } from "./course-create-service.js";
-export { CourseCreateServiceImpl } from "./course-create-service.js";
 // Document citations service
 export type { CitationsService, CitationsServiceDeps } from "./citations-service.js";
 export { CitationsServiceImpl } from "./citations-service.js";
@@ -69,6 +67,8 @@ export { ConceptMapServiceImpl } from "./concept-map-service.js";
 export type { ConceptMapSnapshotterDeps } from "./concept-map-snapshotter.js";
 export { ConceptMapSnapshotter } from "./concept-map-snapshotter.js";
 export { ConfigServiceImpl } from "./config-service.js";
+export type { CourseCreateServiceDeps } from "./course-create-service.js";
+export { CourseCreateServiceImpl } from "./course-create-service.js";
 // Phase 16: Document scopes service (polymorphic scope ↔ document attachment)
 export type { DocumentScopesServiceDeps, PassageRange } from "./document-scopes-service.js";
 export { DocumentScopesServiceImpl } from "./document-scopes-service.js";

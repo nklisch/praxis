@@ -1,4 +1,4 @@
-import type { Logger, Timestamp } from "./common.js";
+import type { Logger, TimeRange, Timestamp } from "./common.js";
 import type { EngineEvent } from "./engine.js";
 import type {
   ArtifactSnapshotId,
@@ -174,4 +174,112 @@ export interface MemoryExport {
   misconceptions: Misconception[];
   exportedAt: Timestamp;
   formatVersion: string;
+}
+
+// ─── Phase 7: MemoryService (server-side) ─────────────────────────────────────
+// NOTE: The client-side MemoryService lives in client.ts and has different signatures
+// (no studentId — IPC handlers resolve it via getDefaultStudentId). This is the
+// server-side interface; MemoryServiceImpl implements this one.
+
+export interface MemoryService {
+  studentModel(studentId: StudentId): Promise<StudentModel>;
+  misconceptions(studentId: StudentId): Promise<Misconception[]>;
+  /** Returns empty defaults in Phase 7; Phase 14 fills. */
+  procedural(studentId: StudentId): Promise<ProceduralModel>;
+  /** Returns empty defaults in Phase 7; Phase 14 fills. */
+  affective(studentId: StudentId): Promise<AffectiveModel>;
+  /** Stream episodic events; skips redacted rows. */
+  episodic(opts: {
+    studentId: StudentId;
+    sessionId?: SessionId;
+    range?: TimeRange;
+  }): AsyncIterable<EpisodicEvent>;
+  /** Full snapshot in MemoryExport format. */
+  export(studentId: StudentId): Promise<MemoryExport>;
+  /**
+   * Wipe projection tables; mark episodic rows as redacted.
+   * The episodic rows themselves are NOT deleted.
+   */
+  delete(opts: { studentId: StudentId; confirm: true }): Promise<void>;
+  /**
+   * Phase 7: apply explicit mastery signals to a concept.
+   * Used by the active-path `update_mastery` tool.
+   * Same BKT logic as the MasteryIndexer — single source of truth.
+   */
+  applySignal(opts: { studentId: StudentId; conceptId: ConceptId; signals: MasterySignal[] }): void;
+  /**
+   * Phase 7: upsert a misconception row (dedup by studentId+conceptId+errorForm).
+   * Used by the active-path `record_misconception` tool.
+   * Same logic as the MisconceptionIndexer — single source of truth.
+   * Returns the misconception ID (new or existing) and whether it was a merge.
+   */
+  recordMisconception(opts: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    description: string;
+    errorForm: string;
+    remediation: { strategyId: string; rationale: string };
+    evidenceEventIds: string[];
+  }): { misconceptionId: string; merged: boolean };
+
+  // ── Phase 11: Configurator memory writes ─────────────────────────────────
+
+  /**
+   * Reset a concept to initial BKT state ("as if never observed").
+   * Upserts student_mastery with BKT priors; clears evidenceJson + lastPracticedAt.
+   */
+  resetConcept(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    reason: string;
+  }): Promise<void>;
+
+  /**
+   * Flip a misconception's status to "manually-cleared".
+   * Documents when it was cleared (updates lastObservedAt to now).
+   */
+  clearMisconception(input: { misconceptionId: MisconceptionId; reason: string }): Promise<void>;
+
+  /**
+   * Export memory snapshot to a JSON file at `targetPath`.
+   * Wraps `export()` and serializes Maps to entry arrays.
+   * Returns the byte count written.
+   */
+  exportToFile(input: {
+    studentId: StudentId;
+    targetPath: string;
+  }): Promise<{ ok: true; bytesWritten: number }>;
+
+  // ── Snapshot-restore helpers ─────────────────────────────────────────────
+  // These thin upsert methods exist to support restoreAction's reverse-apply
+  // path. They restore memory to an arbitrary prior shape.
+
+  /**
+   * Read a single mastery row for (studentId, conceptId). Returns null if not found.
+   * Used by SnapshotCapturer to capture pre-mutation mastery state.
+   */
+  getMastery(input: { studentId: StudentId; conceptId: ConceptId }): Promise<ConceptMastery | null>;
+
+  /**
+   * Upsert a mastery row to an exact prior shape (insert if absent, overwrite if present).
+   * Used by restoreAction to reverse memory.reset_concept mutations.
+   * Pass null to delete the row (restoring "never seen" state).
+   */
+  upsertMastery(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    mastery: ConceptMastery | null;
+  }): Promise<void>;
+
+  /**
+   * Get a single misconception row by id. Returns null if not found.
+   * Used by SnapshotCapturer to capture pre-mutation misconception state.
+   */
+  getMisconception(misconceptionId: MisconceptionId): Promise<Misconception | null>;
+
+  /**
+   * Upsert a misconception row to an exact prior shape (insert if absent, overwrite if present).
+   * Used by restoreAction to reverse memory.clear_misconception mutations.
+   */
+  upsertMisconception(misconception: Misconception): Promise<void>;
 }

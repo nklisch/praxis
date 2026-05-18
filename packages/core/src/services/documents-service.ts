@@ -5,7 +5,7 @@ import { assertSafeDocumentId } from "../ingestion/document-id-guard.js";
 import type { EmbeddedImageStore } from "../ingestion/embedded-images.js";
 import type { PageImageStore } from "../ingestion/page-images.js";
 import type { DocumentDetail, DocumentSummary } from "../types/client.js";
-import type { FtsStore, VectorStore } from "../types/tool.js";
+import type { FtsStore, VectorStore } from "../types/rag-service.js";
 
 export interface DocumentsServiceDeps {
   db: PraxisDb;

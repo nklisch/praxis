@@ -2,7 +2,9 @@
  * Phase 12: FSRS flashcard scheduling types.
  */
 
+import type { Flashcard } from "./artifacts.js";
 import type { Timestamp } from "./common.js";
+import type { ConceptId, FlashcardId, StudentId } from "./ids.js";
 
 /** Rating per FSRS-5 — four ratings the user picks during review. */
 export type Rating = "again" | "hard" | "good" | "easy";
@@ -50,4 +52,46 @@ export interface FsrsScheduler {
    * Used by the UI to show "Easy → 14 days" labels on rating buttons.
    */
   preview(input: { state: FsrsState; now: Timestamp }): Record<Rating, { nextReviewAt: Timestamp }>;
+}
+
+// ─── Phase 12: FlashcardsService ─────────────────────────────────────────────
+
+/** Server-side FlashcardsService. */
+export interface FlashcardsService {
+  create(input: {
+    studentId: StudentId;
+    front: string;
+    back: string;
+    conceptId?: ConceptId;
+    source?: { kind: "authored" | "extracted" | "user-created"; ref?: string };
+  }): Promise<Flashcard>;
+
+  update(input: {
+    studentId: StudentId;
+    flashcardId: FlashcardId;
+    patch: Partial<Pick<Flashcard, "front" | "back" | "conceptId">>;
+  }): Promise<Flashcard>;
+
+  get(input: { studentId: StudentId; flashcardId: FlashcardId }): Promise<Flashcard | null>;
+
+  list(input: {
+    studentId: StudentId;
+    conceptId?: ConceptId;
+    due?: boolean;
+    limit?: number;
+  }): Promise<Flashcard[]>;
+
+  delete(input: { studentId: StudentId; flashcardId: FlashcardId }): Promise<void>;
+
+  /**
+   * Record a rating; compute the new FSRS state; persist; return the new card row.
+   */
+  review(input: {
+    studentId: StudentId;
+    flashcardId: FlashcardId;
+    rating: Rating;
+  }): Promise<{ flashcard: Flashcard; nextReviewAt: Timestamp }>;
+
+  /** Total count of cards currently due (`nextReviewAt <= now`). */
+  dueCount(input: { studentId: StudentId }): Promise<number>;
 }

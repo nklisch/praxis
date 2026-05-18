@@ -26,6 +26,7 @@ import type {
   ThresholdConfig,
   Unit,
 } from "./artifacts.js";
+import type { FragmentOverride } from "./authoring-service.js";
 import type { TimeRange, Timestamp, TldrawSnapshot } from "./common.js";
 import type { ConfiguratorActionRow, RestoreResult } from "./configurator.js";
 import type {
@@ -53,6 +54,7 @@ import type {
   StudentId,
 } from "./ids.js";
 import type { IngestionEvent, IngestionRequest } from "./ingestion.js";
+import type { LibraryHit, LibrarySearchInput } from "./library-service.js";
 import type {
   AffectiveModel,
   EpisodicEvent,
@@ -68,7 +70,6 @@ import type { Recommendation } from "./recommendation.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
 import type { DocumentTabSummary, TabId, TabSummary } from "./tabs.js";
-import type { FragmentOverride, LibraryHit, LibrarySearchInput } from "./tool.js";
 
 export interface PraxisClient {
   session: SessionService;

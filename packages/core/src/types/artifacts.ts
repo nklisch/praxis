@@ -1,4 +1,6 @@
+import type { ProgressSnapshot } from "./client.js";
 import type { Timestamp, TldrawSnapshot } from "./common.js";
+import type { GateView, GradeReader, MasteryReader } from "./gate.js";
 import type {
   AssignmentId,
   ConceptGraphId,
@@ -818,4 +820,222 @@ export interface CourseSummary {
   /** Studied / total — derived from concept_progress. */
   studiedConcepts: number;
   createdAt: Timestamp;
+}
+
+// ─── Phase 6: ArtifactsService ───────────────────────────────────────────────
+
+export interface DocumentSummaryItem {
+  documentId: DocumentId;
+  filename: string;
+  mimeType: string;
+  chunkCount: number;
+  hasPageImages: boolean;
+}
+
+export interface ArtifactsService {
+  course(id: CourseId): Promise<Course | null>;
+  courses(studentId: StudentId): Promise<CourseSummary[]>;
+  lessons(courseId: CourseId): Promise<Lesson[]>;
+  /** Phase 16: Return units for a course, ordered by orderIndex. */
+  units(courseId: CourseId): Promise<Unit[]>;
+  /** Phase 16: Return scheduled assessments for a single lesson. */
+  lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]>;
+  gates(courseId: CourseId): Promise<Gate[]>;
+  progress(studentId: StudentId): Promise<ProgressSnapshot>;
+  markLessonStarted(input: { studentId: StudentId; lessonId: LessonId }): Promise<void>;
+  markConceptStudied(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    evidenceEventId?: string;
+  }): Promise<{ lessonComplete: boolean; lessonId: LessonId | null }>;
+  /** Phase 6: list ingested documents for bootstrap's list_library_documents tool. */
+  listDocuments(studentId: StudentId): Promise<DocumentSummaryItem[]>;
+
+  /** Phase 9: Computed enriched view of all gates for a course. Pure read. */
+  gateView(input: { studentId: StudentId; courseId: CourseId }): Promise<GateView[]>;
+
+  /**
+   * Phase 9: Run gate evaluation for the course, persist transitions atomically,
+   * write gate_unlock_events for newly-unlocked gates. Returns unlocked gate IDs.
+   */
+  evaluateAndPersistGates(input: {
+    studentId: StudentId;
+    courseId: CourseId;
+  }): Promise<{ unlockedGateIds: GateId[] }>;
+
+  /**
+   * Phase 9: Mark all unlock events for a course as "viewed by student".
+   * Used to clear the courses-list "newly unlocked" badge.
+   */
+  markGatesViewed(input: { studentId: StudentId; courseId: CourseId }): Promise<void>;
+
+  /**
+   * Phase 9: Count of unlock events for a course since the last markGatesViewed
+   * (or all unlock events if never viewed). Used by CoursesList badge.
+   */
+  newlyUnlockedCount(input: { studentId: StudentId; courseId: CourseId }): Promise<number>;
+
+  /**
+   * Phase 10: Return the full concept list for a course (names + descriptions + tags).
+   * Joined via the course's conceptGraphId. Concept ids are PREFIXED (e.g.,
+   * "<graphId>:algebra-1.real-numbers") for canonical packs; extracted courses
+   * use plain UUIDs. Callers should treat the id as an opaque string.
+   */
+  concepts(courseId: CourseId): Promise<
+    Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>
+  >;
+
+  // ── Phase 11: Configurator write methods ──────────────────────────────────
+
+  updateCourse(input: {
+    courseId: CourseId;
+    patch: Partial<
+      Pick<Course, "title"> & { subject: string; gradeLevel: string; thresholds: ThresholdConfig }
+    >;
+    reason?: string;
+  }): Promise<Course>;
+
+  createLesson(input: {
+    courseId: CourseId;
+    title: string;
+    conceptIds: ConceptId[];
+    orderIndex?: number;
+    suggestedStrategy?: StrategyId;
+    estimatedMinutes?: number;
+    references?: Reference[];
+  }): Promise<Lesson>;
+
+  updateLesson(input: {
+    lessonId: LessonId;
+    patch: Partial<
+      Pick<Lesson, "title" | "conceptIds" | "references" | "suggestedStrategy" | "estimatedMinutes">
+    >;
+  }): Promise<Lesson>;
+
+  deleteLesson(input: { lessonId: LessonId; reason?: string }): Promise<void>;
+
+  createGate(input: {
+    courseId: CourseId;
+    guards: GateTarget;
+    prerequisites: GateId[];
+    successCriteria: SuccessCriteria;
+  }): Promise<Gate>;
+
+  updateGate(input: {
+    gateId: GateId;
+    patch: Partial<Pick<Gate, "guards" | "prerequisites" | "successCriteria">>;
+    reason?: string;
+  }): Promise<Gate>;
+
+  deleteGate(input: { gateId: GateId; reason?: string }): Promise<void>;
+
+  overrideGate(input: {
+    gateId: GateId;
+    reason: string;
+    configuratorId: ConfiguratorId;
+    studentId: StudentId;
+    courseId: CourseId;
+  }): Promise<Gate>;
+
+  getCourseSummary(courseId: CourseId): Promise<{
+    course: Course;
+    lessons: Lesson[];
+    gates: Gate[];
+    concepts: Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>;
+  }>;
+
+  // ── Snapshot-restore helpers ─────────────────────────────────────────────
+  // These thin upsert methods exist to support restoreAction's reverse-apply
+  // path. They restore an artifact to an arbitrary prior shape (including
+  // re-creating a previously deleted entity) — the standard create/update/delete
+  // trio doesn't cover that case.
+
+  /** Get a single lesson by id. Returns null if not found. */
+  getLesson(lessonId: LessonId): Promise<Lesson | null>;
+
+  /** Get a single gate by id. Returns null if not found. */
+  getGate(gateId: GateId): Promise<Gate | null>;
+
+  /**
+   * Upsert a lesson to an exact prior shape (insert if absent, full-replace if present).
+   * Used by restoreAction to handle both re-create-after-delete and overwrite cases.
+   */
+  upsertLesson(lesson: Lesson): Promise<void>;
+
+  /**
+   * Upsert a gate to an exact prior shape (insert if absent, full-replace if present).
+   * Used by restoreAction to handle both re-create-after-delete and overwrite cases.
+   */
+  upsertGate(gate: Gate): Promise<void>;
+}
+
+// Re-export gate ports so callers can import from artifacts.ts (was previously exported from tool.ts).
+export type { GateView, GradeReader, MasteryReader };
+
+// ─── Phase 8: AssignmentService (server-side) ─────────────────────────────────
+// NOTE: The client-side AssignmentsClient lives in @praxis/client/services/assignments-client.ts
+// and is added by Agent 2. This is the server-side interface; AssignmentServiceImpl implements this.
+
+export interface AssignmentService {
+  create(input: {
+    courseId: CourseId;
+    studentId: StudentId;
+    kind: "quiz" | "homework" | "exam";
+    title: string;
+    items: AssignmentItem[];
+    conceptIds: ConceptId[];
+    authoredBy?: "tutor" | "configurator";
+    /**
+     * Phase 16: session that authored this assignment via assignment.create tool.
+     * When set, `submit()` will notify this session with a system_note after grading.
+     */
+    parentSessionId?: SessionId;
+    /** Optional time limit in minutes. Null for untimed. Only meaningful for exam kind. */
+    durationMinutes?: number | null;
+  }): Promise<{ assignmentId: AssignmentId }>;
+
+  get(input: { assignmentId: AssignmentId }): Promise<Assignment | null>;
+
+  /** List assignments for a course; useful for course-detail views. */
+  list(input: { courseId: CourseId; kind?: "quiz" | "homework" | "exam" }): Promise<Assignment[]>;
+
+  /** Auto-save partial response for a single item. Idempotent upsert. */
+  recordResponse(input: {
+    assignmentId: AssignmentId;
+    itemId: string;
+    response: string;
+    /** Optional shown work; only meaningful for items with workRubric. */
+    work?: string;
+    /** Confidence band — formative self-assessment signal per quiz item. Optional. */
+    confidence?: ConfidenceBand;
+  }): Promise<void>;
+
+  /** Read all in-progress responses for an assignment (for resume). */
+  getResponses(input: { assignmentId: AssignmentId }): Promise<AssignmentResponse[]>;
+
+  /**
+   * Submit the assignment for grading. Reads the persisted responses (or
+   * accepts an explicit array), runs the grader dispatch per item, builds
+   * the Grade, persists `submittedAt` + `gradeJson`, and returns the result.
+   * Throws if already submitted.
+   */
+  submit(input: {
+    assignmentId: AssignmentId;
+    /** Optional explicit responses (overrides the persisted ones). */
+    responses?: AssignmentResponse[];
+  }): Promise<AssignmentSubmissionResult>;
 }

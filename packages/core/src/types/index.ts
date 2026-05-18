@@ -1,5 +1,6 @@
 export type * from "./activity.js";
 export type * from "./artifacts.js";
+export type * from "./authoring-service.js";
 export type * from "./citation.js";
 // client.ts: Note: MemoryService is intentionally NOT re-exported from here.
 // The client-side MemoryService (no studentId params) lives in ./client.ts and is
@@ -10,11 +11,11 @@ export type {
   ArtifactsClientSurface,
   AssignmentsClient,
   AuthoringClient,
-  CourseCreateConfigSnapshot,
   BootstrapOpts,
   CitationsClientApi,
   ConceptMapClientApi,
   ConfigService,
+  CourseCreateConfigSnapshot,
   CreateCourseInput,
   DocumentCitationRecord,
   DocumentDetail,
@@ -53,6 +54,8 @@ export type * from "./concept-graph.js";
 export type { ConceptMapService } from "./concept-map-service.js";
 export type * from "./configurator.js";
 export type * from "./conversation.js";
+export type * from "./course-create-service.js";
+export type * from "./course-state.js";
 export type * from "./document-scopes.js";
 // Bootstrap mode: live draft-stream events surfaced to the renderer.
 export type * from "./draft-stream.js";
@@ -65,11 +68,16 @@ export type * from "./flashcards.js";
 export type * from "./gate.js";
 export * from "./ids.js"; // exports `brandId` runtime helper
 export type * from "./ingestion.js";
+// Per-service type files (split from tool.ts — public surface unchanged).
+export type * from "./library-service.js";
+export type * from "./lock-service.js";
 // memory.ts: `export *` (not `export type *`) so MASTERY_SIGNAL_KINDS const is exported as a runtime value.
 export * from "./memory.js";
 export type * from "./mode.js";
 // Phase 12: NoteBody + helpers — `export *` (not `export type *`) so parseNoteBody + serializeNoteBody are exported as runtime values.
 export * from "./notes.js";
+// Per-service type files split from tool.ts (public surface unchanged).
+export type * from "./pack-import-service.js";
 export type * from "./pedagogy.js";
 export type * from "./prompt-attribution.js";
 // Phase 17: QuickCheck types — human-in-the-loop dispatch.
@@ -79,6 +87,7 @@ export type {
   QuickCheckListener,
   QuickCheckService,
 } from "./quick-check.js";
+export type * from "./rag-service.js";
 // Workbench recommendation engine types.
 export type {
   DraftId,
@@ -86,6 +95,7 @@ export type {
   Recommendation,
   RecommendationService,
 } from "./recommendation.js";
+export type * from "./sandbox-service.js";
 export type { SecretStorage } from "./secret-storage.js";
 // Security: at-rest secret storage port (Electron safeStorage adapter in @praxis/desktop).
 export { SecretStorageError } from "./secret-storage.js";
@@ -101,6 +111,7 @@ export type {
   SubAgentStartInput,
   SubAgentStep,
 } from "./subagent.js";
+export type * from "./sympy-service.js";
 // Phase 14: Tab strip types.
 export type {
   DocumentTabSummary,
@@ -109,7 +120,8 @@ export type {
   TabSummary,
   TabsService,
 } from "./tabs.js";
-// tool.ts: MemoryService here is the server-side interface (with studentId params).
+// tool.ts: core tool primitives only (ToolDefinition, ToolContext, ToolServices, EffectKind).
 export type * from "./tool.js";
 export { isAllowedExternalUrl } from "./url-allowlist.js"; // runtime helper — not re-exported by `export type *`
+export type * from "./vision.js";
 // ToolDispatchMeta is re-exported via engine.ts through the wildcard above.

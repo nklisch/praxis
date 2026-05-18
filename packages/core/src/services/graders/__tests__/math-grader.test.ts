@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AssignmentItem, AssignmentResponse, MathItem } from "../../../types/artifacts.js";
-import type { SymPyCheckSolutionResult } from "../../../types/tool.js";
+import type { SymPyCheckSolutionResult } from "../../../types/sympy-service.js";
 import { MathGrader } from "../math-grader.js";
 import type { GraderContext, GraderServices } from "../types.js";
 

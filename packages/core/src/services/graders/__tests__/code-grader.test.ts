@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AssignmentResponse, CodeItem } from "../../../types/artifacts.js";
-import type { CodeSandboxResult } from "../../../types/tool.js";
+import type { CodeSandboxResult } from "../../../types/sandbox-service.js";
 import { CodeGrader } from "../code-grader.js";
 import type { GraderContext, GraderServices } from "../types.js";
 

@@ -1,3 +1,6 @@
+import type { Note, NoteContext } from "./artifacts.js";
+import type { CourseId, LessonId, NoteId, StudentId } from "./ids.js";
+
 /**
  * A selection-anchored annotation on a note body.
  *
@@ -184,4 +187,57 @@ function parseOutlineNode(raw: unknown): OutlineNode {
  */
 export function serializeNoteBody(body: NoteBody): string {
   return JSON.stringify(body);
+}
+
+// ─── Phase 12: NotesService ───────────────────────────────────────────────────
+
+/** Server-side NotesService. Methods take studentId where applicable. */
+export interface NotesService {
+  create(input: {
+    studentId: StudentId;
+    format: "cornell" | "feynman" | "outline" | "free";
+    body: NoteBody;
+    context?: NoteContext;
+  }): Promise<Note>;
+
+  update(input: { studentId: StudentId; noteId: NoteId; body: NoteBody }): Promise<Note>;
+
+  get(input: { studentId: StudentId; noteId: NoteId }): Promise<Note | null>;
+
+  list(input: {
+    studentId: StudentId;
+    courseId?: CourseId;
+    lessonId?: LessonId;
+    format?: "cornell" | "feynman" | "outline" | "free";
+    limit?: number;
+  }): Promise<Note[]>;
+
+  delete(input: { studentId: StudentId; noteId: NoteId }): Promise<void>;
+
+  /**
+   * Phase 12: Generate a structured note from a session's episodic events via a
+   * one-shot LLM call. Reads events, composes them into a prompt, runs runOneShot,
+   * parses the result, and persists.
+   */
+  fromSessionSummary(input: {
+    studentId: StudentId;
+    sessionId: string;
+    format: "cornell" | "feynman" | "outline" | "free";
+  }): Promise<Note>;
+
+  /**
+   * Replace all annotations on a note. Validates each annotation before writing.
+   * Throws if any annotation has invalid ranges (rangeStart >= rangeEnd or negative values).
+   */
+  setAnnotations(input: {
+    studentId: StudentId;
+    noteId: NoteId;
+    annotations: Annotation[];
+  }): Promise<void>;
+
+  /**
+   * Return all annotations for a note. Returns [] when the note has no annotations
+   * or does not exist for this student.
+   */
+  getAnnotations(input: { studentId: StudentId; noteId: NoteId }): Promise<Annotation[]>;
 }

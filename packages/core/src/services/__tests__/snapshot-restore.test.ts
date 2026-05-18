@@ -18,8 +18,7 @@
  * All tests use a real migrated SQLite via useTempDb().
  */
 
-import { notes as notesTable } from "@praxis/artifacts/schema";
-import { courses as coursesTable } from "@praxis/artifacts/schema";
+import { courses as coursesTable, notes as notesTable } from "@praxis/artifacts/schema";
 import { conceptGraphs, concepts as conceptsTable } from "@praxis/curriculum/schema";
 import { v7 as uuidv7 } from "uuid";
 import { beforeEach, describe, expect, it, vi } from "vitest";

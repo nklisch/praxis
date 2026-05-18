@@ -1,7 +1,7 @@
 ---
 id: refactor-split-core-type-files-tool-and-client-step-1-tool
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-split-core-type-files-tool-and-client
 depends_on: []
@@ -136,3 +136,66 @@ If a test file imports a type from a direct path like `from "@praxis/core/types/
 If during implementation you discover that a service's "supporting types" are heavily entangled with types in another domain file (e.g., `CourseStateSnapshot` deeply references `Lesson` from `artifacts.ts` in ways that suggest it should LIVE in artifacts.ts), adapt the destination map and document the choice in implementation notes. The destination map is a starting point, not a constraint.
 
 If the `ToolServices` aggregate's import block becomes unwieldy (more than 20 imports), consider an intermediate barrel `services.ts` that re-exports all the service interfaces, then `ToolServices` imports from `./services.js` once. Document this if you take the path.
+
+## Implementation notes
+
+### Per-destination type counts moved
+
+The destination map in the feature body was incomplete — it listed 11 service interfaces but `tool.ts` actually contained ~20 services. All were moved:
+
+**Existing file destinations (appended):**
+- `notes.ts` — `NotesService` (1 interface, ~50 LoC)
+- `flashcards.ts` — `FlashcardsService` (1 interface, ~45 LoC); also added imports for `Flashcard`, `ConceptId`, `FlashcardId`, `StudentId`
+- `artifacts.ts` — `ArtifactsService` (1 interface, ~150 LoC), `DocumentSummaryItem` (1 interface), `AssignmentService` (1 interface, ~55 LoC); added imports for `ProgressSnapshot` from `client.ts`, `GateView`/`GradeReader`/`MasteryReader` from `gate.ts`
+- `document-scopes.ts` — `DocumentScopesService` (1 interface, ~55 LoC)
+- `memory.ts` — `MemoryService` (1 interface, ~95 LoC)
+- `pedagogy.ts` — `PedagogyPackService` (1 interface, ~30 LoC)
+
+**New per-service files created (6 from original destination map + 4 discovered additions):**
+- `library-service.ts` — `LibraryService`, `NoteLibraryHit`, `FlashcardLibraryHit`, `LibraryHit`, `LibrarySearchInput` (5 types)
+- `lock-service.ts` — `LockService` (1 interface)
+- `authoring-service.ts` — `AuthoringService`, `FragmentOverride` (2 types)
+- `course-state.ts` — `CourseStateReader`, `CourseStateSnapshot`, `VisibilityWindow`, `ConceptStateRow` (4 types)
+- `course-create-service.ts` — `CourseCreateService`, `DraftIssue`, `UnitListEntry`, `LessonsInUnit`, `LessonDetail`, `DanglingRefsReport` (6 types)
+- `vision.ts` — `VisionService` (1 interface, workaround comment dropped)
+- `rag-service.ts` — `EmbeddingService`, `VectorStore`, `VectorUpsertInput`, `VectorSearchInput`, `VectorSearchResult`, `FtsStore`, `FtsUpsertInput`, `FtsSearchInput`, `FtsSearchResult`, `DocumentsReader`, `DocumentChunkRow` (11 types)
+- `sympy-service.ts` — `SymPyService`, `SymPyCheckSolutionInput`, `SymPyCheckSolutionResult`, `SymPySolveEquationInput`, `SymPySolveEquationResult`, `SymPySimplifyInput`, `SymPySimplifyResult`, `SymPyCheckEquivalentInput`, `SymPyCheckEquivalentResult`, `SymPyParseLatexInput`, `SymPyParseLatexResult` (11 types)
+- `sandbox-service.ts` — `CodeSandbox`, `CodeSandboxInput`, `CodeSandboxResult`, `LanguageSandbox`, `LanguageSandboxRunOptions`, `LanguageSandboxRunResult` (6 types)
+- `pack-import-service.ts` — `PackImportService`, `PackSummaryView`, `ImportedPackView` (3 types)
+
+### Final tool.ts LoC
+
+**184 lines** (down from 1617 — 89% reduction). Contains only: `EffectKind`, `ToolDefinition`, `ToolContext`, `ToolServices`.
+
+### Consumers that needed import-path adjustment (direct tool.ts importers)
+
+Four files inside `packages/core/src/` imported directly from `../types/tool.js` or `../../types/tool.js`:
+- `packages/core/src/services/memory/memory-service.ts` — imported `MemoryService`; updated to `./memory.js`
+- `packages/core/src/services/documents-reader-impl.ts` — imported `DocumentChunkRow`, `DocumentsReader`; updated to `./rag-service.js`
+- `packages/core/src/services/documents-service.ts` — imported `FtsStore`, `VectorStore`; updated to `./rag-service.js`
+- `packages/core/src/services/graders/__tests__/code-grader.test.ts` — imported `CodeSandboxResult`; updated to `./sandbox-service.js`
+- `packages/core/src/services/graders/__tests__/math-grader.test.ts` — imported `SymPyCheckSolutionResult`; updated to `./sympy-service.js`
+- `packages/core/src/types/client.ts` — imported `FragmentOverride`, `LibraryHit`, `LibrarySearchInput`; updated to `./authoring-service.js` and `./library-service.js`
+
+All consumers outside `packages/core/src/types/` import through the barrel `@praxis/core/types` and needed no changes.
+
+### Barrel updates
+
+Added 10 new `export type *` lines to `index.ts` (biome re-sorted them alphabetically):
+- `authoring-service.js`, `course-create-service.js`, `course-state.js`, `library-service.js`, `lock-service.js`, `pack-import-service.js`, `rag-service.js`, `sandbox-service.js`, `sympy-service.js`, `vision.js`
+
+Existing destinations (`notes.js`, `flashcards.js`, `artifacts.js`, `document-scopes.js`, `memory.js`, `pedagogy.js`) picked up new service interfaces automatically via existing `export type *` wildcards.
+
+### Design adaptations
+
+- The destination map's `EmbeddingService`, `VectorStore`, `FtsStore`, `DocumentsReader` were not listed but grouped into new `rag-service.ts` (RAG infrastructure cluster). `SymPyService`, `CodeSandbox`/`LanguageSandbox`, `PackImportService`, `PedagogyPackService`, `AssignmentService` were similarly not in the original map but moved to their natural homes.
+- `AssignmentService` placed in `artifacts.ts` (alongside `Assignment`, `AssignmentItem` etc.) rather than a new file, as all supporting types are already co-located there.
+- `PedagogyPackService` placed in `pedagogy.ts` (alongside `PedagogyPack`, `TeachingStrategy` etc.).
+- No intermediate `services-barrel.ts` was needed — the `ToolServices` import block has 23 imports but they're well-organized and the file is now only 184 lines.
+- `GateView`/`GradeReader`/`MasteryReader` re-export moved from `tool.ts` to `artifacts.ts` since `ArtifactsService` uses `GateView`.
+
+### Baseline confirmation
+
+- **3 pre-existing UI typecheck errors** (chat-tab-body.tsx, chat.tsx, notes-list.tsx) — unchanged.
+- **~529 mockup HTML lint errors** — unchanged (baseline was ~524; within noise).
+- **All 4499 tests pass** (420 test files, 23 skipped) — no behavior drift.

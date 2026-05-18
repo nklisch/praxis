@@ -2,7 +2,7 @@ import { documentChunks, documents } from "@praxis/artifacts/schema";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
 import type { PageImageStore } from "../ingestion/page-images.js";
-import type { DocumentChunkRow, DocumentsReader } from "../types/tool.js";
+import type { DocumentChunkRow, DocumentsReader } from "../types/rag-service.js";
 
 /**
  * DrizzleDocumentsReader implements the DocumentsReader port.
