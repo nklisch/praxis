@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep
 kind: feature
-stage: drafting
+stage: implementing
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -111,3 +111,157 @@ slightly higher risk due to React effect-ordering semantics.
 
 `git revert <commit>` per component is clean; recommend one commit per
 file or per cluster.
+
+## Design correction (2026-05-18, refactor-design pass)
+
+After reading the actual call sites, the original "10+ components" scope is
+too broad. Several have shape mismatches that make useResource a poor fit:
+
+| File | Inline pattern? | useResource fit? | Decision |
+|---|---|---|---|
+| `routes/configure/memory-tab.tsx` | 5 blocks (mastery, miscs, procedural, affective, episodic) | 4 fit, 1 doesn't (episodic is streaming) | **CONVERT 4** |
+| `routes/configure/course-tab.tsx` | 1 block, Promise.all into two state pieces | Yes (tuple result) | **CONVERT** |
+| `routes/configure/prompt-tab.tsx` | Multiple async ops | Yes, the load ones fit | **CONVERT** |
+| `components/page-image-panel.tsx` | 1 block with URL.revokeObjectURL cleanup | No — useResource doesn't cover blob-URL lifecycle | **SKIP** (justified) |
+| `components/document-viewer/pdf-renderer.tsx` | 1 block with URL.revokeObjectURL + IntersectionObserver gating + ref-based one-shot fetch | No — composite side-effect cleanup | **SKIP** (justified) |
+| `components/attributed-preview-pane.tsx` | 1 block with silent error swallow + useDeferredValue interaction | No — silent-error pattern is intentional ("keep prior preview on transient errors") and useResource exposes errors | **SKIP** (justified) |
+| `routes/workspace/note-editor-page.tsx` | 1 block with post-load body parsing + multiple distinct state pieces (note, body, save state, spawn state) | Poor — post-load processing chains; not a clean "load N, store N" shape | **SKIP** (justified — could be done but the per-component complexity outweighs the consolidation win) |
+| `context/tabs-context.tsx` | Multiple loaders inside a Provider context | Poor — the loaders are part of the context's API surface and use the same pattern repeatedly; useResource doesn't cleanly cover the "manages N loaders in a provider" shape | **SKIP** (justified — would need a per-loader factory pattern; out of scope for a sweep) |
+
+Net scope: **3 configure-tab files**, 6-7 inline load blocks total. Memory-tab is the biggest win (4 conversions in one file). Steps are independent (different files), can run in parallel.
+
+The skipped files are not "left behind by laziness" — they're skipped because the refactor would either lose functionality (page-image-panel, pdf-renderer), change observable behavior (attributed-preview-pane), or require shape gymnastics that outweigh the consolidation (note-editor-page, tabs-context). Each is documented so a future refactor pass doesn't re-discover them as candidates.
+
+## Refactor Overview
+
+Adopt `useResource` in the 3 configure routes' load functions. Each tab
+currently inlines the load-with-state-and-error pattern multiple times.
+The hook is already used elsewhere in the codebase (e.g.,
+`study-skills-tab-body`, `library-document-picker`), so this is a pattern
+adoption, not a new abstraction.
+
+Streaming consumers (memory-tab's `loadEpisodic`) stay inline — they have
+AbortController + iteration semantics that useResource doesn't cover.
+
+## Refactor Steps
+
+### Step 1: memory-tab — convert 4 single-fetch loaders
+**Priority**: High (worst offender — 5 inline blocks in one file)
+**Risk**: Low (single file, no public API change)
+**Files**: `packages/ui/src/routes/configure/memory-tab.tsx`
+**Story**: `refactor-useresource-adoption-sweep-step-1-memory-tab`
+
+**Current state** (lines 39-110 area): four near-identical inline blocks for mastery, misconceptions, procedural, affective. Each defines `[X, setX]` + `[XLoading, setXLoading]` + `[XError, setXError]` + a `loadX` useCallback with try/catch/finally.
+
+**Target state** (per loader):
+```ts
+const loadMastery = useCallback(
+  () => client.memory.studentModel().then(m => Array.from(m.conceptMastery.entries())),
+  [client],
+);
+const { data: mastery = [], loading: masteryLoading, error: masteryError, refresh: refreshMastery } =
+  useResource(loadMastery);
+```
+
+Loaders that transform data before storing it (mastery's `Array.from`) wrap the transform inside the loader function so `useResource` sees the final shape. The default `= []` on destructure preserves the initial empty-array UX.
+
+**Out of scope for this step**: `loadEpisodic` at lines 119-150 — streaming with AbortController, not a useResource fit. Stays inline.
+
+**Acceptance criteria**:
+- [ ] Typecheck/lint/test green (baseline preserved)
+- [ ] 4 inline load blocks → 4 `useResource` calls
+- [ ] `loadEpisodic` stays inline (explicitly preserved as the streaming holdout)
+- [ ] Component renders identical loading/error/data states (verified by existing tests if any cover memory-tab)
+- [ ] File LoC drops by ~40
+
+**Risk**: low. UI-only change, narrow blast radius.
+**Rollback**: `git revert <commit>` — clean.
+
+---
+
+### Step 2: course-tab — convert Promise.all loader
+**Priority**: Medium
+**Risk**: Low
+**Files**: `packages/ui/src/routes/configure/course-tab.tsx`
+**Story**: `refactor-useresource-adoption-sweep-step-2-course-tab`
+
+**Current state** (lines 229-267): one inline block where `loadCourse` does `Promise.all([client.artifacts.units(...), client.artifacts.lessons(...)])` and stores each result in a separate state. Has an early-return when no course is selected (clears state).
+
+**Target state**: useResource with a tuple result, then destructure:
+
+```ts
+const loadCourse = useCallback(async () => {
+  if (!selectedCourseId) return [[], []] as [Unit[], Lesson[]];
+  return Promise.all([
+    client.artifacts.units(selectedCourseId),
+    client.artifacts.lessons(selectedCourseId),
+  ]);
+}, [client, selectedCourseId]);
+
+const { data, loading, error, refresh } = useResource(loadCourse);
+const [units = [], lessons = []] = data ?? [];
+```
+
+The "clear state when no course" semantic moves into the loader returning `[[], []]`. The `setSelectedLesson(null)` side effect that was in the early-return branch needs to be preserved via a separate `useEffect` that watches `selectedCourseId`.
+
+**Implementation notes**:
+- Verify the `setSelectedLesson(null)` side effect doesn't break — it was previously inside the load function but is a parent-state side effect; should move to a separate effect.
+- Confirm the existing `useCourses()` hook (which already wraps useResource) isn't being duplicated by the new conversion.
+
+**Acceptance criteria**:
+- [ ] Typecheck/lint/test green
+- [ ] Inline load block replaced with `useResource`
+- [ ] `selectedLesson(null)` clear-on-no-course preserved (via a separate effect or as part of the loader's side effect chain — both work)
+- [ ] File LoC drops by ~20
+
+**Risk**: low-medium — the `setSelectedLesson` side effect is the only subtle bit; verify visually that no-course-selected state still clears correctly.
+**Rollback**: `git revert <commit>` — clean.
+
+---
+
+### Step 3: prompt-tab — convert load operations
+**Priority**: Medium
+**Risk**: Low-Medium (multiple async ops in one file)
+**Files**: `packages/ui/src/routes/configure/prompt-tab.tsx`
+**Story**: `refactor-useresource-adoption-sweep-step-3-prompt-tab`
+
+**Current state** (lines 120-170 area): multiple async operations sharing a single `[error, setError]`. Some are loads; others are save/preview operations that mutate. Distinguish before converting.
+
+**Target state**: convert only the LOAD operations to useResource; leave the SAVE/PREVIEW mutation operations as-is (they don't have a clean useResource shape since they're imperatively triggered, not load-on-mount).
+
+**Implementation notes**:
+- Read the file fully before editing — there are multiple `setError(null)` calls that may be share-error or sequential-clear; the exact target shape depends on how the file is structured.
+- If a mutation operation shares the `[error, setError]` with a load, ANOTHER useState `[mutationError, setMutationError]` may be needed to separate concerns. Document any structural change in implementation notes.
+- If after reading the file the conversion looks awkward, FLAG it and consider deferring this step — better to leave the file as-is than force a shape that doesn't fit.
+
+**Acceptance criteria**:
+- [ ] Typecheck/lint/test green
+- [ ] Load operations use useResource; mutation operations remain inline (or split with their own state)
+- [ ] No regression in the save-prompt or preview-prompt UX
+- [ ] File LoC drops by ~15
+
+**Risk**: low-medium. Mixed load+mutation file means the conversion is per-operation, not per-file.
+**Rollback**: `git revert <commit>` — clean.
+
+---
+
+## Implementation Order
+
+All 3 steps are independent (different files, no shared state). Orchestrator can run them in a single parallel wave (3 agents).
+
+## Atomic-step acknowledgments
+
+None. Each step is per-file and reversible.
+
+## Out-of-scope follow-ups (DOCUMENTED, NOT to-be-done)
+
+These were considered and explicitly dropped — see the design correction
+table above for the per-file rationale:
+
+- `page-image-panel.tsx` — URL lifecycle cleanup
+- `pdf-renderer.tsx` (PdfPage) — URL + IntersectionObserver + ref-based one-shot
+- `attributed-preview-pane.tsx` — intentional silent-error pattern
+- `routes/workspace/note-editor-page.tsx` — post-load body parsing
+- `context/tabs-context.tsx` — Provider context shape
+
+If a future refactor pass surfaces these, the answer is: useResource isn't the right tool for any of them. A different abstraction (e.g., `useStreamedResource`, `useBlobResource`) could cover the blob-URL / streaming cases — file as separate features if/when the pattern is genuinely repeated.
