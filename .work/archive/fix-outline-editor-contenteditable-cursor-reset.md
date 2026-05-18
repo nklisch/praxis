@@ -1,7 +1,7 @@
 ---
 id: fix-outline-editor-contenteditable-cursor-reset
 kind: story
-stage: review
+stage: done
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -75,6 +75,16 @@ Also remove the now-unused `escapeHtml` function.
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
 
 Origin: review of `epic-ui-redesign-ground-up-workspace-note-editor-outline`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Root cause analysis is accurate and the fix is minimal and correct. Removing `dangerouslySetInnerHTML` means React has no prop to reconcile, so it never overwrites the DOM node. Using `textContent` (not `innerHTML`) for the mount-time set is the right choice — no HTML interpretation, no XSS vector. The `if (!el.textContent)` guard correctly handles mount (empty element) and leaves existing content untouched on re-render. The 5 regression tests cover all four escape characters plus initial render with special chars. 28/28 tests pass.
 
 ## Implementation notes
 
