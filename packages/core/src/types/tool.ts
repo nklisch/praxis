@@ -474,6 +474,14 @@ export interface AuthoringService {
     fromTs?: Timestamp;
     limit?: number;
   }): Promise<ConfiguratorActionRow[]>;
+
+  // ── Snapshot restore ──────────────────────────────────────────────────────
+  /**
+   * Reverse-apply the mutation identified by actionId.
+   * Returns already_restored if the snapshot was already consumed.
+   * Returns no_snapshot if no snapshot exists for the action.
+   */
+  restoreAction(input: { actionId: string }): Promise<import("./configurator.js").RestoreResult>;
 }
 
 // ConfiguratorAction and ConfiguratorActionRow are re-exported via index.ts's
@@ -602,6 +610,30 @@ export interface ArtifactsService {
       standardsTags: string[];
     }>;
   }>;
+
+  // ── Snapshot-restore helpers ─────────────────────────────────────────────
+  // These thin upsert methods exist to support restoreAction's reverse-apply
+  // path. They restore an artifact to an arbitrary prior shape (including
+  // re-creating a previously deleted entity) — the standard create/update/delete
+  // trio doesn't cover that case.
+
+  /** Get a single lesson by id. Returns null if not found. */
+  getLesson(lessonId: LessonId): Promise<Lesson | null>;
+
+  /** Get a single gate by id. Returns null if not found. */
+  getGate(gateId: GateId): Promise<Gate | null>;
+
+  /**
+   * Upsert a lesson to an exact prior shape (insert if absent, full-replace if present).
+   * Used by restoreAction to handle both re-create-after-delete and overwrite cases.
+   */
+  upsertLesson(lesson: Lesson): Promise<void>;
+
+  /**
+   * Upsert a gate to an exact prior shape (insert if absent, full-replace if present).
+   * Used by restoreAction to handle both re-create-after-delete and overwrite cases.
+   */
+  upsertGate(gate: Gate): Promise<void>;
 }
 
 // Re-export gate ports so callers can import from tool.ts.
@@ -1129,6 +1161,44 @@ export interface MemoryService {
     studentId: StudentId;
     targetPath: string;
   }): Promise<{ ok: true; bytesWritten: number }>;
+
+  // ── Snapshot-restore helpers ─────────────────────────────────────────────
+  // These thin upsert methods exist to support restoreAction's reverse-apply
+  // path. They restore memory to an arbitrary prior shape.
+
+  /**
+   * Read a single mastery row for (studentId, conceptId). Returns null if not found.
+   * Used by SnapshotCapturer to capture pre-mutation mastery state.
+   */
+  getMastery(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+  }): Promise<import("./memory.js").ConceptMastery | null>;
+
+  /**
+   * Upsert a mastery row to an exact prior shape (insert if absent, overwrite if present).
+   * Used by restoreAction to reverse memory.reset_concept mutations.
+   * Pass null to delete the row (restoring "never seen" state).
+   */
+  upsertMastery(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    mastery: import("./memory.js").ConceptMastery | null;
+  }): Promise<void>;
+
+  /**
+   * Get a single misconception row by id. Returns null if not found.
+   * Used by SnapshotCapturer to capture pre-mutation misconception state.
+   */
+  getMisconception(
+    misconceptionId: MisconceptionId,
+  ): Promise<import("./memory.js").Misconception | null>;
+
+  /**
+   * Upsert a misconception row to an exact prior shape (insert if absent, overwrite if present).
+   * Used by restoreAction to reverse memory.clear_misconception mutations.
+   */
+  upsertMisconception(misconception: import("./memory.js").Misconception): Promise<void>;
 }
 
 // ─── EmbeddingService ────────────────────────────────────────────────────────

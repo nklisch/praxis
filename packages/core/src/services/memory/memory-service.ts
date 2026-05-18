@@ -34,7 +34,7 @@ import type {
 // Import server-side MemoryService (with studentId params) directly from tool.ts.
 import type { MemoryService } from "../../types/tool.js";
 import { applySignalsToConcept } from "../indexers/mastery-indexer.js";
-import { upsertMisconception } from "../indexers/misconception-indexer.js";
+import { upsertMisconception as indexerUpsertMisconception } from "../indexers/misconception-indexer.js";
 import { bktInitial } from "./bkt.js";
 import { applyDecay } from "./decay.js";
 
@@ -317,7 +317,7 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
     remediation: { strategyId: string; rationale: string };
     evidenceEventIds: string[];
   }): { misconceptionId: string; merged: boolean } {
-    return upsertMisconception(this.deps.db, opts.studentId, {
+    return indexerUpsertMisconception(this.deps.db, opts.studentId, {
       conceptId: opts.conceptId,
       description: opts.description,
       errorForm: opts.errorForm,
@@ -445,6 +445,145 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
 
     await writeFile(resolvedPath, json, "utf-8");
     return { ok: true, bytesWritten: bytes };
+  }
+
+  // ── Snapshot-restore helpers ─────────────────────────────────────────────────
+
+  async getMastery(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+  }): Promise<import("../../types/memory.js").ConceptMastery | null> {
+    const row = this.deps.db
+      .select()
+      .from(studentMastery)
+      .where(
+        and(
+          eq(studentMastery.studentId, input.studentId),
+          eq(studentMastery.conceptId, input.conceptId),
+        ),
+      )
+      .get();
+    if (!row) return null;
+
+    const pKnown = row.pKnown / 1000;
+    const uncertainty = row.uncertainty / 1000;
+    const effectivePKnown = row.effectivePKnown / 1000;
+    const lastPracticedAt: import("../../types/common.js").Timestamp | undefined =
+      row.lastPracticedAt
+        ? (row.lastPracticedAt.getTime() as import("../../types/common.js").Timestamp)
+        : undefined;
+    const conceptId = brandId<"ConceptId">(row.conceptId);
+    const evidence = (row.evidenceJson as string[]).map((id) => brandId<"EventId">(id));
+
+    return {
+      conceptId,
+      pKnown,
+      uncertainty,
+      effectivePKnown,
+      ...(lastPracticedAt !== undefined && { lastPracticedAt }),
+      evidence,
+    };
+  }
+
+  async upsertMastery(input: {
+    studentId: StudentId;
+    conceptId: ConceptId;
+    mastery: import("../../types/memory.js").ConceptMastery | null;
+  }): Promise<void> {
+    if (input.mastery === null) {
+      // Restore "never seen" state by deleting the row.
+      this.deps.db
+        .delete(studentMastery)
+        .where(
+          and(
+            eq(studentMastery.studentId, input.studentId),
+            eq(studentMastery.conceptId, input.conceptId),
+          ),
+        )
+        .run();
+      return;
+    }
+    const m = input.mastery;
+    const now = new Date();
+    this.deps.db
+      .insert(studentMastery)
+      .values({
+        studentId: input.studentId,
+        conceptId: input.conceptId,
+        pKnown: Math.round(m.pKnown * 1000),
+        uncertainty: Math.round(m.uncertainty * 1000),
+        effectivePKnown: Math.round(m.effectivePKnown * 1000),
+        lastPracticedAt: m.lastPracticedAt ? new Date(m.lastPracticedAt) : null,
+        evidenceJson: m.evidence,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [studentMastery.studentId, studentMastery.conceptId],
+        set: {
+          pKnown: Math.round(m.pKnown * 1000),
+          uncertainty: Math.round(m.uncertainty * 1000),
+          effectivePKnown: Math.round(m.effectivePKnown * 1000),
+          lastPracticedAt: m.lastPracticedAt ? new Date(m.lastPracticedAt) : null,
+          evidenceJson: m.evidence,
+          updatedAt: now,
+        },
+      })
+      .run();
+  }
+
+  async getMisconception(
+    misconceptionId: MisconceptionId,
+  ): Promise<import("../../types/memory.js").Misconception | null> {
+    const r = this.deps.db
+      .select()
+      .from(misconceptions)
+      .where(eq(misconceptions.id, misconceptionId))
+      .get();
+    if (!r) return null;
+    return {
+      id: brandId<"MisconceptionId">(r.id),
+      studentId: brandId<"StudentId">(r.studentId),
+      conceptId: brandId<"ConceptId">(r.conceptId),
+      description: r.description,
+      errorForm: r.errorForm,
+      remediation: r.remediationJson as { strategyId: StrategyId; rationale: string },
+      evidence: (r.evidenceJson as string[]).map((id) => brandId<"EventId">(id)),
+      status: r.status as "active" | "remediated" | "manually-cleared",
+      firstObservedAt: r.firstObservedAt.getTime() as import("../../types/common.js").Timestamp,
+      lastObservedAt: r.lastObservedAt.getTime() as import("../../types/common.js").Timestamp,
+    };
+  }
+
+  async upsertMisconception(m: import("../../types/memory.js").Misconception): Promise<void> {
+    this.deps.db
+      .insert(misconceptions)
+      .values({
+        id: m.id,
+        studentId: m.studentId,
+        conceptId: m.conceptId,
+        description: m.description,
+        errorForm: m.errorForm,
+        remediationJson: m.remediation,
+        evidenceJson: m.evidence,
+        status: m.status,
+        firstObservedAt: new Date(m.firstObservedAt),
+        lastObservedAt: new Date(m.lastObservedAt),
+      })
+      .onConflictDoUpdate({
+        target: misconceptions.id,
+        set: {
+          studentId: m.studentId,
+          conceptId: m.conceptId,
+          description: m.description,
+          errorForm: m.errorForm,
+          remediationJson: m.remediation,
+          evidenceJson: m.evidence,
+          status: m.status,
+          firstObservedAt: new Date(m.firstObservedAt),
+          lastObservedAt: new Date(m.lastObservedAt),
+        },
+      })
+      .run();
   }
 
   // ── MasteryReader.read (Phase 9) ──────────────────────────────────────────────

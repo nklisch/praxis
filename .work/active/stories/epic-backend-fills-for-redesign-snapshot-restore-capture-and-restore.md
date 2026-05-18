@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-snapshot-restore-capture-and-restore
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-snapshot-restore
 depends_on: []
@@ -143,3 +143,54 @@ surface, no UI. Tests prove round-trip per action kind.
   problem.
 - Snapshotting `memory.delete_all` — out of scope by design (separate
   confirmation flow in UI, not a one-click revert).
+
+## Implementation notes
+
+### Files changed
+
+- `packages/core/src/schema.ts` — added `configuratorSnapshots` table
+  with `actionId` PK, `entityKind`, `entityKeyJson`, `snapshotJson`,
+  `restoredAt`; two indexes; added to `coreSchema` export.
+- `drizzle/0017_green_gunslinger.sql` — generated migration.
+- `packages/core/src/types/configurator.ts` — added `SnapshotEntityKind`
+  (11 variants), `ConfiguratorSnapshotRow`, `RestoreResult`, and `restore`
+  variant on `ConfiguratorAction`.
+- `packages/core/src/types/tool.ts` — added `getLesson`, `getGate`,
+  `upsertLesson`, `upsertGate` to `ArtifactsService`; `getMastery`,
+  `upsertMastery`, `getMisconception`, `upsertMisconception` to
+  `MemoryService`; `restoreAction` to `AuthoringService`.
+- `packages/core/src/services/artifacts-service.ts` — implemented
+  `getLesson`, `getGate`, `upsertLesson` (preserves `orderIndex`),
+  `upsertGate`.
+- `packages/core/src/services/memory/memory-service.ts` — implemented
+  `getMastery`, `upsertMastery` (null = delete row), `getMisconception`,
+  `upsertMisconception`; renamed indexer import to avoid name collision.
+- `packages/core/src/services/snapshot-capturer.ts` (new) — `SnapshotCapturer`
+  class with one method per snapshottable action kind; `SNAPSHOT_SCHEMA_VERSION = 1`.
+- `packages/core/src/services/authoring-service.ts` — wired snapshot
+  capture into every mutating method; `restoreAction` exhaustive switch
+  on `entityKind`; `captureCurrentStateForUnrevert` captures pre-restore
+  state for un-revert support.
+- `packages/core/src/services/index.ts` — exports `SnapshotCapturer` and
+  related types.
+- `packages/core/src/services/__tests__/snapshot-restore.test.ts` (new)
+  — 23 tests covering every snapshottable kind, double-restore guard, and
+  un-revert.
+- `packages/core/src/__tests__/authoring-service.test.ts` — stub factories
+  updated to include new `ArtifactsService` and `MemoryService` methods.
+
+### Design decisions
+
+- **Global prompt capture**: `config_kv` stores `{ text: string }` as
+  `valueJson`. The capturer now extracts `.text` from the JSON object
+  instead of casting the whole object as a string.
+- **Un-revert**: snapshot for the `restore` action captures state BEFORE
+  the reverse-apply (= post-mutation state). This enables re-applying the
+  original mutation on un-revert. `lesson.create`/`gate.create` sentinels
+  are upgraded to `lesson`/`gate` kind snapshots for the restore action,
+  since the entity exists at capture time.
+- **`memory.reset_concept` semantics**: `resetConcept` inserts/updates to
+  BKT initial state (does not delete); `upsertMastery(null)` deletes the
+  row. Snapshot captures the actual prior mastery (or null).
+- **`memory.clear_misconception` semantics**: sets `status: "manually-cleared"`,
+  does not delete. Snapshot stores the full prior row (including status).

@@ -96,6 +96,11 @@ function makeStubArtifacts(overrides: Partial<ArtifactsService> = {}): Artifacts
     getCourseSummary: vi
       .fn()
       .mockResolvedValue({ course: {} as unknown as Course, lessons: [], gates: [], concepts: [] }),
+    // Snapshot-restore helpers — stub read methods so SnapshotCapturer can call them.
+    getLesson: vi.fn().mockResolvedValue(null),
+    getGate: vi.fn().mockResolvedValue(null),
+    upsertLesson: vi.fn().mockResolvedValue(undefined),
+    upsertGate: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as ArtifactsService;
 }
@@ -114,6 +119,11 @@ function makeStubMemory(overrides: Partial<MemoryService> = {}): MemoryService {
     resetConcept: vi.fn().mockResolvedValue(undefined),
     clearMisconception: vi.fn().mockResolvedValue(undefined),
     exportToFile: vi.fn().mockResolvedValue({ ok: true, bytesWritten: 100 }),
+    // Snapshot-restore helpers — stub read methods so SnapshotCapturer can call them.
+    getMastery: vi.fn().mockResolvedValue(null),
+    upsertMastery: vi.fn().mockResolvedValue(undefined),
+    getMisconception: vi.fn().mockResolvedValue(null),
+    upsertMisconception: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as MemoryService;
 }

@@ -23,6 +23,13 @@ export { SubAgentRegistryImpl } from "./subagent-registry.js";
 
 export type { AuthoringServiceDeps } from "./authoring-service.js";
 export { AuthoringServiceImpl } from "./authoring-service.js";
+// Snapshot-restore infrastructure
+export type {
+  CapturedSnapshot,
+  SnapshotCapturerDeps,
+  SnapshotPayload,
+} from "./snapshot-capturer.js";
+export { SNAPSHOT_SCHEMA_VERSION, SnapshotCapturer } from "./snapshot-capturer.js";
 export type { LockServiceDeps } from "./lock-service.js";
 export { LockServiceImpl } from "./lock-service.js";
 // Prompt customization layers

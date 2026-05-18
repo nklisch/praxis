@@ -105,6 +105,52 @@ export const modePromptAppends = sqliteTable("mode_prompt_appends", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+/**
+ * Snapshot of the pre-mutation entity state captured before each
+ * AuthoringServiceImpl write. Keyed 1:1 with configurator_actions rows.
+ * Enables the ↶ revert affordance in the drafter/configurator chat.
+ */
+export const configuratorSnapshots = sqliteTable(
+  "configurator_snapshots",
+  {
+    /**
+     * Foreign key to configurator_actions.id. Each snapshotted mutation has
+     * exactly one row here; un-snapshotted kinds (memory.export, memory.delete_all)
+     * have no row.
+     */
+    actionId: text("action_id").primaryKey(),
+    /**
+     * Entity kind affected by the original action. Drives the
+     * reverse-apply dispatcher in restoreAction.
+     */
+    entityKind: text("entity_kind").notNull(), // SnapshotEntityKind union
+    /**
+     * Primary entity id when applicable (courseId / lessonId / gateId /
+     * modeId+fragmentId composite). Stored as JSON for composite keys.
+     * Null only for "create" sentinel snapshots where reverse-apply is
+     * "delete the entity created by the original action."
+     */
+    entityKeyJson: text("entity_key_json", { mode: "json" }),
+    /**
+     * Pre-mutation entity shape — full row(s) as JSON. For create-kind
+     * snapshots, this is the sentinel `{ schemaVersion: 1, kind: "create" }` so
+     * reverse-apply knows to delete-by-id. For batch mutations (set_style)
+     * this is an array of prior rows.
+     */
+    snapshotJson: text("snapshot_json", { mode: "json" }).notNull(),
+    /**
+     * Set when this snapshot is consumed by a restoreAction call. Null
+     * means "available to restore." A second restore of the same actionId
+     * returns already_restored.
+     */
+    restoredAt: integer("restored_at", { mode: "timestamp_ms" }),
+  },
+  (t) => ({
+    entityIdx: index("configurator_snapshots_entity_idx").on(t.entityKind),
+    restoredAtIdx: index("configurator_snapshots_restored_at_idx").on(t.restoredAt),
+  }),
+);
+
 export const coreSchema = {
   configKv,
   lockState,
@@ -112,4 +158,5 @@ export const coreSchema = {
   configuratorActions, // ← Phase 11
   drafts, // ← durable-drafts
   modePromptAppends, // ← prompt-customization-layers
+  configuratorSnapshots, // ← snapshot-restore
 };

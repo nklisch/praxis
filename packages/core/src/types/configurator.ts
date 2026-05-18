@@ -36,7 +36,9 @@ export type ConfiguratorAction =
   | { kind: "memory.reset_concept"; conceptId: ConceptId; reason: string }
   | { kind: "memory.clear_misconception"; misconceptionId: MisconceptionId; reason: string }
   | { kind: "memory.export" }
-  | { kind: "memory.delete_all"; reason: string };
+  | { kind: "memory.delete_all"; reason: string }
+  /** Reverse-apply of a prior mutation. The restore action itself is snapshotted for un-revert. */
+  | { kind: "restore"; originalActionId: string };
 
 export interface ConfiguratorActionRow {
   id: string;
@@ -44,3 +46,37 @@ export interface ConfiguratorActionRow {
   ts: Timestamp;
   action: ConfiguratorAction;
 }
+
+// ─── Snapshot / restore domain types ─────────────────────────────────────────
+
+/**
+ * Discriminates the reverse-apply path in restoreAction.
+ * One value per snapshottable mutation surface in AuthoringServiceImpl.
+ */
+export type SnapshotEntityKind =
+  | "course"
+  | "lesson"
+  | "lesson.create" // sentinel: reverse-apply = deleteLesson(entityKey as LessonId)
+  | "gate"
+  | "gate.create" // sentinel: reverse-apply = deleteGate(entityKey as GateId)
+  | "prompt_override" // single fragment override (customizePrompt / clearFragmentOverride)
+  | "prompt_override_batch" // setStyleSliders — snapshot is an array of prior rows
+  | "global_prompt"
+  | "mode_append"
+  | "memory.concept"
+  | "memory.misconception";
+
+export interface ConfiguratorSnapshotRow {
+  actionId: string;
+  entityKind: SnapshotEntityKind;
+  entityKey: unknown; // JSON-decoded (string id, { modeId, fragmentId }, etc.)
+  snapshot: unknown; // JSON-decoded full prior shape; includes schemaVersion: 1
+  restoredAt: Timestamp | null;
+}
+
+/**
+ * Return value of AuthoringServiceImpl.restoreAction.
+ */
+export type RestoreResult =
+  | { ok: true; restoredEntity: SnapshotEntityKind; entityKey: unknown }
+  | { ok: false; reason: "not_found" | "already_restored" | "no_snapshot" | "schema_drift" };
