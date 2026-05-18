@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-quiz-tab-body
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Quiz tab body — item-typed cards, no tutor scaffolding
@@ -36,7 +36,42 @@ this story is the surface restyle.
 
 ## Acceptance criteria
 
-- [ ] QuizTabBody matches the locked mock layout.
-- [ ] Item dispatch works per existing item-body types.
-- [ ] No tutor messages mid-quiz.
-- [ ] All quality checks green.
+- [x] QuizTabBody matches the locked mock layout.
+- [x] Item dispatch works per existing item-body types.
+- [x] No tutor messages mid-quiz.
+- [x] All quality checks green.
+
+## Implementation notes
+
+Rewrote `QuizTabBody` from an `AssignmentCard`-wrapper + sidekick-panel to the
+locked `mode-quiz.html` spec:
+
+**Layout.** Two-column CSS grid: center column (flexible, scrollable) and right
+rail (280px fixed). Center shows the quiz head, mode-rule banner, current item
+card, and a ghost preview of the next item. Rail shows item-status dots, item
+kinds summary, and a timing note.
+
+**No tutor.** Removed `SidekickPanel`, `useResizableWidth`, and the `?` toggle
+entirely. The mode-rule banner explains the no-tutor policy in-surface.
+
+**One item at a time.** State drives `currentIndex`; Skip / Submit answer advance
+to the next unanswered/unskipped item. After all items are addressed, a
+ready-to-submit panel appears with final submit + optional "return to skipped".
+
+**Item-status rail.** Each item renders as a clickable `<li><button>` dot in an
+`<ul>` (semantic list). States: `upcoming` (default), `current` (quiz tint
+fill + box-shadow ring), `answered` (success green), `skipped` (warning amber).
+Dots are clickable for direct navigation.
+
+**Confidence band.** Preserved via `AssignmentItemCard`'s existing
+`confidence` / `onConfidenceChange` props — no change to the confidence
+infrastructure.
+
+**Post-submit review.** After the final submit, the center column shows the
+score + per-item review with `AssignmentFeedback` displayed below each item.
+
+**Tests.** 20 tests across layout, tutor-suppression, item dispatch, rail
+behaviour, navigation, and confidence. Updated the stale sidekick-focused tests
+in `quiz-tab-body.test.tsx` and confirmed `chat-tab-body-dispatch.test.tsx`
+still passes (the kickerMode glyph `‡` was separated into its own span so the
+mode text stays exactly `"quiz"`).
