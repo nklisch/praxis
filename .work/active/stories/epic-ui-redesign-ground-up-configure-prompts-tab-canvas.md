@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure-prompts-tab-canvas
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on: [epic-ui-redesign-ground-up-configure-canvas-side-chat-shell]
@@ -93,3 +93,16 @@ edit open, save → `customizePrompt`, revert → `clearFragmentOverride`.
 Updated `configure-route.test.tsx` (2 tests) to reflect the new v4 layout
 identifiers ("Modes" label for tab-body-isolation, mode picker nav for tab
 switch).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Prompt tab change-dot never lights up** (`configure.tsx:25` uses `dirtyKey: "configure.prompt"` but `prompt-tab.tsx:339` registers `useDirtyState("configure.prompts")` — the `s` mismatch means the tab button's change-dot never activates when fragments are customised; the save-bar still works via `useDirtyAggregate`).
+  → Item: `fix-configure-prompt-tab-dirty-key-mismatch` (`.work/backlog/`)
+
+**Nits**: none
+
+**Notes**: Core functionality correct — `ModePickerRail`, `FragmentDocument`, `FragmentCard` (inline edit + save + revert), `ComposedSummary` (previewPromptWithAttribution), and dirty tracking all work. The `key={selectedModeId}` remount pattern cleanly resets loading state on mode switch. 11 new tests + 2 updated covering all acceptance criteria. The dirty-key mismatch is a visual-only bug (change-dot) that doesn't affect data operations. Advancing to `stage: done`.
