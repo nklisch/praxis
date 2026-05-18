@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-study-skills-tab-body
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Study-skills tab body — structured reflection + technique rail
@@ -30,6 +30,45 @@ rail shows active technique + observed patterns + review queue.
 
 ## Acceptance criteria
 
-- [ ] Study-skills tab body matches the locked mock.
-- [ ] Right rail surfaces all three sections.
-- [ ] All quality checks green.
+- [x] Study-skills tab body matches the locked mock.
+- [x] Right rail surfaces all three sections.
+- [x] All quality checks green.
+
+## Implementation notes
+
+Rewrote `StudySkillsTabBody` from the old chip-over-TeachChatTabBody wrapper into a
+two-column layout matching the locked `mode-study-skills.html` mock.
+
+**Layout**: two-column grid — center (flex-1) holds the sticky head, the metacognitive
+prompt banner, and the full teach chat surface (message log + composer via TeachChatTabBody);
+right rail (300px) holds the three sections.
+
+**Right rail sections**:
+1. **Active technique card** — static for now (design shows the current pedagogy-pack
+   technique; runtime wiring deferred until the pedagogy-pack tool call plumbing lands
+   on the client surface). Tinted with `--tint-study-skills` per mock.
+2. **Observed patterns** — loaded from `memory.procedural()` and `memory.affective()` via
+   `useResource`. Procedural strategies with `evidenceCount > 0` render as pattern cards
+   sorted by preference descending (top 3). Affective model's recent engagement average
+   drives a single affective card. Empty states handled.
+3. **Review queue** — loaded from `flashcards.list({ due: true })`, grouped by `conceptId`,
+   capped at 3 groups in view. "Plan a session →" button present.
+
+**Metacognitive prompt banner**: renders above the chat surface as a tinted left-bordered
+card with the pattern-recognition prompt and citation. Marked `role="note"` for
+accessibility.
+
+**Mode head**: replaced the old "study skills" chip with a proper sticky head matching
+the other mode tab bodies — kicker dot + glyph (‖) + mono uppercase label + italic title.
+
+**Tokens used**: `--tint-study-skills`, `--font-display`, `--font-mono`, `--font-serif`,
+`--radius-md`, `--radius-sm`, `--color-bg-secondary`, `--color-bg-tertiary`,
+`--color-border`, `--color-text-*`.
+
+**Tests**: 13 tests covering head render, composer embed, metacognitive prompt banner,
+all three rail sections (data-testid), prompt sequence (label + citation), ChatTabBody
+dispatcher routing, and teach ↔ study-skills isolation invariant. All pass.
+
+**Pre-existing test flakiness**: `use-fragment-overrides.test.tsx` has an intermittent
+failure when run in the full suite (timing/ordering issue); confirmed unrelated to this
+story — the file was not touched and the test passes when run in isolation.
