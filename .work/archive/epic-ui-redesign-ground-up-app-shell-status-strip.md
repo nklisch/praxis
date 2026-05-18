@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-status-strip
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -75,3 +75,15 @@ existing activity events into the strip. Idle = invisible.
   aria-live needs a role).
 - 7 tests in `src/__tests__/status-strip.test.tsx`; full UI suite
   (1216 tests, 135 files) passes.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none (blocker fixed inline — `docs/ARCHITECTURE.md` had two "(planned)" annotations for the status strip that were stale; rolled forward in this review commit)
+**Important**: none
+**Nits**:
+- `use-activity.ts` doc comment referenced `<ActivityRail/>` — updated to `<StatusStrip/>` inline.
+- `patterns.md` activity-rail-producer entry referenced `<ActivityRail>` — updated inline.
+
+**Notes**: Clean implementation. Component is minimal (74 lines), CSS uses design tokens throughout, `prefers-reduced-motion` respected, ARIA correct (`role="status"` + `aria-live="polite"` + `aria-label`). Tests cover all 6 item states including detail and progress variants. The `flex-wrap: wrap` + `max-height: 48px` combination will clip many concurrent items, but the single-row ambient use case is correct — no fix needed.

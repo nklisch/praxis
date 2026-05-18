@@ -59,7 +59,7 @@ Praxis ships as a pnpm workspace monorepo. Every component is a TypeScript packa
 | **`@praxis/ui`** | Vite + React + TanStack Router SPA. Student surface (chat + progress map + workspace + concept-map), configure surface (course authoring, gate editing, prompt customization), shared component library. Embeds tldraw for sketching surfaces and React Flow for the gate editor. Imports only from `@praxis/client`. |
 | **`@praxis/desktop`** | Electron host. Starts `@praxis/core` in the Electron main process (or a forked child for isolation), mounts the IPC transport server, loads the Vite-built `@praxis/ui` static bundle in the renderer. Adds local-first conveniences (file picker, on-disk storage paths) and at-rest secret encryption via `ElectronSafeStorageAdapter` (the `SecretStorage` port implementation backed by OS keyring through Electron `safeStorage`). |
 | **`@praxis/claude-cli-sdk`** | In-tree TypeScript wrapper around the Claude Code CLI subprocess. Forked from `@nklisch/claude-cli-sdk` and brought in-tree so the workspace deploy pipeline can resolve it. Consumed exclusively by `@praxis/engines`'s Claude Code adapter. Owned and modified freely — Praxis is the only consumer. |
-| **`praxis-ingest`** | Python CLI (deferred post-v1). In v1, ingestion is TS-native via `Ingestor` port + per-format adapters in `@praxis/tools/runtime/ingestion/`. Ingestion progress surfaces inline via the status strip (planned) beneath the running head — no blocking modal. |
+| **`praxis-ingest`** | Python CLI (deferred post-v1). In v1, ingestion is TS-native via `Ingestor` port + per-format adapters in `@praxis/tools/runtime/ingestion/`. Ingestion progress surfaces inline via `<StatusStrip>` beneath the running head — no blocking modal. |
 
 ## Dependency direction
 
@@ -383,7 +383,7 @@ IngestionService:
 UI confirms with the user (especially for self-onboard) and persists
 ```
 
-Ingestion is offline batch work, not in the agent's hot path. Long-running ingestion (large textbooks) surfaces progress inline via the status strip (planned) beneath the running head without blocking other use.
+Ingestion is offline batch work, not in the agent's hot path. Long-running ingestion (large textbooks) surfaces progress inline via `<StatusStrip>` beneath the running head without blocking other use.
 
 ## Document scoping
 

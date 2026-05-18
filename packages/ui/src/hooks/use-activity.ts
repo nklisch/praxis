@@ -11,8 +11,8 @@ export interface UseActivityResult {
  * Subscribe to the activity stream for the lifetime of the component.
  * Returns a stable list of currently-visible items + a dismiss callback.
  *
- * Mount once at the root of the renderer (in <ActivityRail/>). Multiple
- * consumers are safe but waste IPC overhead — the rail is the only
+ * Mount once at the root of the renderer (in <StatusStrip/>). Multiple
+ * consumers are safe but waste IPC overhead — the strip is the only
  * intended consumer.
  */
 export function useActivity(): UseActivityResult {
