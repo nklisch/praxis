@@ -1,72 +1,320 @@
+/*
+ * Cornell note editor — 3-zone layout.
+ *
+ * Grid shape:
+ *   ┌──────────────┬──────────────────────────────────────┐
+ *   │ cueColumn    │ notesColumn                          │
+ *   │ (240px)      │ (flex)                               │
+ *   ├──────────────┴──────────────────────────────────────┤
+ *   │ summaryBand  (grid-column: 1 / -1)                  │
+ *   └─────────────────────────────────────────────────────┘
+ *
+ * Token reference: --font-serif, --font-mono, --space-*, --color-*
+ * from the design-system tokens. No hardcoded colors/sizes where
+ * a token exists.
+ */
+
 .editor {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.columnsHeader {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  padding-right: 2rem; /* align with rows (account for remove button) */
-}
-
-.colLabel {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--color-text-secondary, #aaa);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 0.5rem;
-  align-items: flex-start;
-}
-
-.rowActions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  align-items: center;
-}
-
-.textarea {
   width: 100%;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  border-radius: 6px;
-  color: var(--color-text-primary, inherit);
-  font-size: 0.88rem;
-  line-height: 1.5;
-  padding: 0.5rem 0.6rem;
-  resize: vertical;
-  font-family: inherit;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
 }
 
-.textarea:focus {
-  outline: none;
-  border-color: var(--color-accent, #6366f1);
+/* ─────────────────────────────────────────────────────────────────────
+ * Three-zone grid
+ * ───────────────────────────────────────────────────────────────────── */
+
+.threeZone {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 1fr auto;
+  border: 1px solid var(--color-border-strong, #c4c1b5);
+  border-radius: var(--radius-md, 6px);
+  overflow: hidden;
+  min-height: 480px;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Shared zone-label kicker (◆ Cues / ◆ Notes)
+ * ───────────────────────────────────────────────────────────────────── */
+
+.zoneLabel {
+  font: 600 var(--font-size-xs, 12px) / 1 var(--font-mono, monospace);
+  letter-spacing: var(--letter-spacing-kicker, 0.1em);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #a09e96);
+  margin-bottom: var(--space-4, 16px);
+  padding-bottom: var(--space-2, 8px);
+  border-bottom: 1px solid var(--color-border, #e3e1d8);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+.markerGlyph {
+  color: var(--color-accent, #9b3a2c);
+  font-family: var(--font-serif, serif);
+  font-style: normal;
+  font-size: 11px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Cue column (left, 240px)
+ * ───────────────────────────────────────────────────────────────────── */
+
+.cueColumn {
+  grid-column: 1;
+  grid-row: 1;
+  padding: var(--space-6, 24px) var(--space-4, 16px) var(--space-4, 16px);
+  border-right: 1px solid var(--color-border-strong, #c4c1b5);
+  background: var(--color-bg-tertiary, #ebe9e2);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.cueList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+}
+
+.cueItem {
+  border-bottom: 1px dashed var(--color-border, #e3e1d8);
+  padding-bottom: var(--space-2, 8px);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.cueItem:last-child {
+  border-bottom: none;
+}
+
+/* The outer button is the hit-target for cue click-to-scroll;
+ * it holds the textarea but doesn't visually look like a button. */
+.cueButton {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-sm, 3px);
+  transition: background 0.12s;
+}
+
+.cueButton:hover {
+  background: var(--color-accent-muted, #f0e3df);
+}
+
+.cueButtonActive {
+  background: var(--color-accent-muted, #f0e3df);
+  box-shadow: inset 2px 0 0 var(--color-accent, #9b3a2c);
+}
+
+/* The textarea inside the cue button gets pointer-events so the user
+ * can still type; stopPropagation keeps the outer button from
+ * triggering a scroll on every keystroke. */
+.cueTextarea {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary, #1a1a18);
+  font: italic var(--font-size-sm, 14px) / 1.5 var(--font-serif, serif);
+  padding: var(--space-3, 12px) var(--space-1, 4px);
+  resize: none;
+  box-sizing: border-box;
+  cursor: text;
+}
+
+.cueTextarea:focus {
+  outline: none;
+}
+
+.cueTextarea::placeholder {
+  color: var(--color-text-tertiary, #a09e96);
+  font-style: italic;
+}
+
+.cueRowActions {
+  display: flex;
+  gap: var(--space-1, 4px);
+  justify-content: flex-end;
+  padding-top: var(--space-1, 4px);
+}
+
+.addCueBtn {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: var(--space-3, 12px) 0;
+  font: italic var(--font-size-sm, 14px) / 1 var(--font-serif, serif);
+  color: var(--color-text-tertiary, #a09e96);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.addCueBtn:hover {
+  color: var(--color-accent, #9b3a2c);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Notes column (right, flex)
+ * ───────────────────────────────────────────────────────────────────── */
+
+.notesColumn {
+  grid-column: 2;
+  grid-row: 1;
+  padding: var(--space-6, 24px) var(--space-6, 24px) var(--space-4, 16px);
+  background: var(--color-bg-secondary, #ffffff);
+  overflow-y: auto;
+}
+
+.notesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+/* Each notes entry: ◆ marker glyph (absolute left) + detail textarea */
+.notesEntry {
+  position: relative;
+  padding-left: 22px; /* space for the ◆ marker */
+  border-radius: var(--radius-sm, 3px);
+  transition: background 0.12s;
+}
+
+.notesEntryActive {
+  background: var(--color-accent-muted, #f0e3df);
+}
+
+/* The ◆ marker button positioned at the left edge */
+.cueMarker {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--color-accent, #9b3a2c);
+  font-size: 11px;
+  font-family: var(--font-serif, serif);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.cueMarker:hover {
+  opacity: 1;
+}
+
+.cueMarker:focus-visible {
+  outline: 2px solid var(--color-accent, #9b3a2c);
+  border-radius: 2px;
+}
+
+.detailTextarea {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 3px);
+  color: var(--color-text-primary, #1a1a18);
+  font: var(--font-size-base, 16px) / var(--line-height-loose, 1.75) var(--font-serif, serif);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.detailTextarea:focus {
+  outline: none;
+  border-color: var(--color-border-strong, #c4c1b5);
+  background: var(--color-bg-primary, #f5f4f0);
+}
+
+.detailTextarea::placeholder {
+  color: var(--color-text-tertiary, #a09e96);
+}
+
+.emptyNotes {
+  font: italic var(--font-size-sm, 14px) / 1.5 var(--font-serif, serif);
+  color: var(--color-text-tertiary, #a09e96);
+  margin: 0;
+  padding: var(--space-4, 16px) 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Summary band (full-width, bottom)
+ * ───────────────────────────────────────────────────────────────────── */
+
+.summaryBand {
+  grid-column: 1 / -1;
+  padding: var(--space-4, 16px) var(--space-6, 24px) var(--space-6, 24px);
+  border-top: 1px solid var(--color-border-strong, #c4c1b5);
+  background: var(--color-bg-primary, #f5f4f0);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.summaryLabel {
+  font: 600 var(--font-size-xs, 12px) / 1 var(--font-mono, monospace);
+  letter-spacing: var(--letter-spacing-kicker, 0.1em);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #a09e96);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  cursor: default;
+}
+
+.summaryGlyph {
+  color: var(--color-accent, #9b3a2c);
+  font-family: var(--font-serif, serif);
+  font-style: italic;
+  font-size: 13px;
+}
+
+.summaryTextarea {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 3px);
+  color: var(--color-text-primary, #1a1a18);
+  font: italic var(--font-size-base, 16px) / 1.7 var(--font-serif, serif);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.summaryTextarea:focus {
+  outline: none;
+  border-color: var(--color-border-strong, #c4c1b5);
+  background: var(--color-bg-secondary, #ffffff);
+}
+
+.summaryTextarea::placeholder {
+  color: var(--color-text-tertiary, #a09e96);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Row action buttons (spawn + remove) shared between cue and notes
+ * ───────────────────────────────────────────────────────────────────── */
 
 .spawnBtn {
   background: transparent;
   border: none;
-  color: var(--color-accent, #6366f1);
-  font-size: 0.9rem;
+  color: var(--color-accent, #9b3a2c);
+  font-size: 0.85rem;
   cursor: pointer;
-  padding: 0.25rem 0.4rem;
-  border-radius: 4px;
+  padding: var(--space-1, 4px) var(--space-1, 4px);
+  border-radius: var(--radius-sm, 3px);
   line-height: 1;
   transition:
     color 0.15s,
@@ -74,17 +322,17 @@
 }
 
 .spawnBtn:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--color-accent-muted, #f0e3df);
 }
 
 .removeBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #aaa);
-  font-size: 1.1rem;
+  color: var(--color-text-secondary, #5f5d57);
+  font-size: 1.05rem;
   cursor: pointer;
-  padding: 0.25rem 0.4rem;
-  border-radius: 4px;
+  padding: var(--space-1, 4px) var(--space-1, 4px);
+  border-radius: var(--radius-sm, 3px);
   line-height: 1;
   transition:
     color 0.15s,
@@ -92,46 +340,6 @@
 }
 
 .removeBtn:hover {
-  color: var(--color-danger);
-  background: rgba(248, 113, 113, 0.1);
-}
-
-.addBtn {
-  align-self: flex-start;
-  background: transparent;
-  border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.2));
-  color: var(--color-accent, #6366f1);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0.35rem 0.8rem;
-  border-radius: 6px;
-  transition:
-    background 0.15s,
-    border-color 0.15s;
-}
-
-.addBtn:hover {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: var(--color-accent, #6366f1);
-}
-
-.summarySection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-  padding-top: 0.75rem;
-}
-
-.summaryLabel {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--color-text-secondary, #aaa);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.summaryTextarea {
-  width: 100%;
+  color: var(--color-danger, #a32721);
+  background: rgba(163, 39, 33, 0.08);
 }
