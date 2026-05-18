@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-1-explorer-to-drafter
 kind: story
-stage: review
+stage: done
 tags: [refactor, naming]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: []
@@ -191,3 +191,13 @@ grep -rn '"explorer\.' packages/curriculum/src/bootstrap/drafter.ts
 - `pnpm typecheck` — all 9 affected packages pass (pre-existing desktop errors unrelated to this rename)
 - `pnpm test` — 419 test files passed (4481 tests), 0 failures from this rename
 - `pnpm lint` — our changed `.ts` files are lint-clean; 524 pre-existing errors are all in `.mockups/` HTML files
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Rename is symmetric — 4 file renames (git mv preserves history), 4 exported symbols + ~14 log keys + local variable + doc comments all flipped together. The sole caller (`start-exploration.ts`) updates its import and `drafterToolDefs` local in the same commit. Test file moved with the rename and uses `runConceptDrafter` correctly (now resolved to the post-Step-4 directory `packages/curriculum/src/course-create/__tests__/drafter.test.ts`). Two small adjacent fixes — comments in `draft-init.ts` and a doc-comment in `core/src/types/tool.ts` — align prose with the new naming and are appropriate to fold in. No public API affected; no DB or wire-format concerns. Workspace tests pass (4481), typecheck baseline preserved.
