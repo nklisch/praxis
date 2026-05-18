@@ -14,7 +14,7 @@ import type {
   Timestamp,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { CourseCreateRoute } from "../routes/course-create.js";
@@ -105,7 +105,140 @@ function renderRoute(client: PraxisClient) {
   );
 }
 
+/** Build a client wired for the context-forwarding tests (no ingest needed). */
+function makeClientWithSend(sendSpy?: ReturnType<typeof vi.fn>): PraxisClient {
+  const send =
+    sendSpy ??
+    vi.fn().mockReturnValue(
+      (async function* () {
+        // empty — simulates a session that yields no events
+      })(),
+    );
+
+  return makeFakeClient({
+    session: {
+      active: vi.fn().mockResolvedValue(null),
+      start: vi.fn().mockResolvedValue({
+        sessionId: brandId<"SessionId">("s1"),
+        modeId: "bootstrap",
+        startedAt: Date.now() as Timestamp,
+      } satisfies SessionHandle),
+      end: vi.fn().mockResolvedValue({
+        sessionId: brandId<"SessionId">("s1"),
+        endedAt: Date.now() as Timestamp,
+        unlockedGates: [],
+        newMisconceptions: 0,
+      }),
+      send: send as PraxisClient["session"]["send"],
+    } as PraxisClient["session"],
+    tabs: {
+      open: vi.fn().mockResolvedValue({
+        kind: "session",
+        id: brandId<"TabId">("tab-1"),
+        sessionId: brandId<"SessionId">("s1"),
+        modeId: "bootstrap",
+        title: "test tab",
+        sortOrder: 0,
+        openedAt: Date.now() as Timestamp,
+        lastSeenAt: Date.now() as Timestamp,
+        closedAt: null,
+      } satisfies SessionTabSummary),
+    } as unknown as PraxisClient["tabs"],
+    ingest: {
+      pickFile: vi.fn().mockResolvedValue(null),
+      pickPaths: vi.fn().mockResolvedValue([]),
+      isAvailable: () => true,
+      start: vi.fn().mockImplementation(() => makeDoneStream()) as unknown as IngestClient["start"],
+      candidatesFor: vi.fn().mockResolvedValue([]),
+    } as IngestClient,
+  });
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
+
+describe("CourseCreateRoute — context textarea forwarding", () => {
+  it("does NOT call session.send when context is empty", async () => {
+    const sendSpy = vi.fn().mockReturnValue((async function* () {})());
+    const client = makeClientWithSend(sendSpy);
+    renderRoute(client);
+
+    // Context textarea is empty by default — click Start Praxis immediately.
+    await act(async () => {
+      screen.getByRole("button", { name: /Start Praxis/i }).click();
+    });
+
+    await waitFor(() => {
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+    });
+
+    // Allow microtasks to flush so any fire-and-forget would have fired.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  it("does NOT call session.send when context is whitespace-only", async () => {
+    const sendSpy = vi.fn().mockReturnValue((async function* () {})());
+    const client = makeClientWithSend(sendSpy);
+    const { getByRole } = renderRoute(client);
+
+    fireEvent.change(getByRole("textbox"), { target: { value: "   " } });
+
+    await act(async () => {
+      screen.getByRole("button", { name: /Start Praxis/i }).click();
+    });
+
+    await waitFor(() => {
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+    });
+
+    // Allow microtasks to flush so any fire-and-forget would have fired.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  it("calls session.send with context text when context is non-empty", async () => {
+    const sendSpy = vi.fn().mockReturnValue((async function* () {})());
+    const client = makeClientWithSend(sendSpy);
+    const { getByRole } = renderRoute(client);
+
+    const contextText = "I'm an adult learner returning to calculus to prep for an actuarial exam.";
+
+    fireEvent.change(getByRole("textbox"), { target: { value: contextText } });
+
+    await act(async () => {
+      screen.getByRole("button", { name: /Start Praxis/i }).click();
+    });
+
+    await waitFor(() => {
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+    });
+
+    // The fire-and-forget send is async — wait for it to be called.
+    await waitFor(() => {
+      expect(sendSpy).toHaveBeenCalledWith(brandId<"SessionId">("s1"), contextText);
+    });
+  });
+
+  it("trims whitespace before sending context", async () => {
+    const sendSpy = vi.fn().mockReturnValue((async function* () {})());
+    const client = makeClientWithSend(sendSpy);
+    const { getByRole } = renderRoute(client);
+
+    fireEvent.change(getByRole("textbox"), { target: { value: "  learn calculus deeply  " } });
+
+    await act(async () => {
+      screen.getByRole("button", { name: /Start Praxis/i }).click();
+    });
+
+    await waitFor(() => {
+      expect(sendSpy).toHaveBeenCalledWith(brandId<"SessionId">("s1"), "learn calculus deeply");
+    });
+  });
+});
 
 describe("CourseCreateRoute — ingestion status sync", () => {
   it("batch_summary with all-ok results: files transition from indexing to ready", async () => {

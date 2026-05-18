@@ -105,11 +105,12 @@ export function CourseCreateRoute() {
         client,
         navigate,
         startOpts: { modeId: "bootstrap" },
+        initialMessage: context.trim() || undefined,
       });
     } finally {
       setStarting(false);
     }
-  }, [client, navigate]);
+  }, [client, navigate, context]);
 
   const indexingCount = attachedFiles.filter((f) => f.status === "indexing").length;
 

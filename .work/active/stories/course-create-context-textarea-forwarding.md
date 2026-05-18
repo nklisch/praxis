@@ -1,7 +1,7 @@
 ---
 id: course-create-context-textarea-forwarding
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: null
 depends_on: []
@@ -54,3 +54,17 @@ the `handleStart` callback ignores `context`.
 ## Files
 
 - `packages/ui/src/routes/course-create.tsx` — `handleStart` callback
+
+## Implementation Notes
+
+Chose Option A (extended `openSessionInTab` helper).
+
+**Key files touched:**
+- `packages/ui/src/lib/open-session-in-tab.ts` — added optional `initialMessage?: string` parameter with fire-and-forget send between `session.start` and `tabs.open`. Whitespace-only values are ignored. Failures are caught and logged via `console.warn`, never blocking navigation. JSDoc updated to document the new step 2.
+- `packages/ui/src/routes/course-create.tsx` — `handleStart` now passes `initialMessage: context.trim() || undefined` to `openSessionInTab`; `context` added to the `useCallback` dependency array.
+
+**Tests added:**
+- `packages/ui/src/__tests__/open-session-in-tab.test.tsx` — 5 new cases covering: no send when `initialMessage` absent, no send for whitespace-only, sends message verbatim when non-empty, non-blocking on send failure (navigation still completes).
+- `packages/ui/src/__tests__/course-create-route.test.tsx` — 4 new cases in a new describe block: no send for empty context, no send for whitespace-only context, sends trimmed context on non-empty input, trims before sending.
+
+All 1600 tests pass; typecheck and lint clean on changed files.

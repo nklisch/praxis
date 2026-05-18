@@ -11,6 +11,7 @@
  */
 import type { PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
+import { waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
@@ -197,5 +198,126 @@ describe("openSessionInTab", () => {
     ).rejects.toThrow("tab open failed");
 
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  // ── initialMessage ────────────────────────────────────────────────────────────
+
+  it("does not call session.send when initialMessage is not provided", async () => {
+    const { client, startFn } = makeClient();
+    const navigate = vi.fn().mockResolvedValue(undefined);
+    const sendFn = vi.fn();
+    // biome-ignore lint/suspicious/noExplicitAny: overwriting session for spy purposes
+    (client.session as any).send = sendFn;
+
+    await openSessionInTab({ client, navigate, startOpts: { modeId: "bootstrap" } });
+
+    // Allow any microtasks to flush
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sendFn).not.toHaveBeenCalled();
+    expect(startFn).toHaveBeenCalled();
+  });
+
+  it("does not call session.send when initialMessage is whitespace-only", async () => {
+    const { client } = makeClient();
+    const navigate = vi.fn().mockResolvedValue(undefined);
+    const sendFn = vi.fn();
+    // biome-ignore lint/suspicious/noExplicitAny: overwriting session for spy purposes
+    (client.session as any).send = sendFn;
+
+    await openSessionInTab({
+      client,
+      navigate,
+      startOpts: { modeId: "bootstrap" },
+      initialMessage: "   ",
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sendFn).not.toHaveBeenCalled();
+  });
+
+  it("fire-and-forget sends initialMessage when non-empty", async () => {
+    const tab = makeTab();
+    const { client } = makeClient(tab);
+    const navigate = vi.fn().mockResolvedValue(undefined);
+
+    const sendFn = vi.fn().mockReturnValue(
+      (async function* () {
+        // empty event stream
+      })(),
+    );
+    // biome-ignore lint/suspicious/noExplicitAny: overwriting session for spy purposes
+    (client.session as any).send = sendFn;
+
+    const message = "I want to understand calculus, not just memorize it.";
+
+    await openSessionInTab({
+      client,
+      navigate,
+      startOpts: { modeId: "bootstrap" },
+      initialMessage: message,
+    });
+
+    // The fire-and-forget send is async — wait for it to resolve
+    await waitFor(() => {
+      expect(sendFn).toHaveBeenCalledWith(tab.sessionId, message);
+    });
+  });
+
+  it("sends initialMessage verbatim (callers are responsible for trimming)", async () => {
+    const tab = makeTab();
+    const { client } = makeClient(tab);
+    const navigate = vi.fn().mockResolvedValue(undefined);
+
+    const sendFn = vi.fn().mockReturnValue((async function* () {})());
+    // biome-ignore lint/suspicious/noExplicitAny: overwriting session for spy purposes
+    (client.session as any).send = sendFn;
+
+    const rawMessage = "learn calculus deeply";
+
+    await openSessionInTab({
+      client,
+      navigate,
+      startOpts: { modeId: "bootstrap" },
+      initialMessage: rawMessage,
+    });
+
+    await waitFor(() => {
+      expect(sendFn).toHaveBeenCalledWith(tab.sessionId, rawMessage);
+    });
+  });
+
+  it("does not block navigation when initialMessage send fails", async () => {
+    const tab = makeTab();
+    const { client } = makeClient(tab);
+    const navigate = vi.fn().mockResolvedValue(undefined);
+
+    // Return a rejected promise wrapped in an async iterable — triggers the
+    // fire-and-forget catch path without needing a generator body.
+    const failingIterable: AsyncIterable<never> = {
+      [Symbol.asyncIterator]() {
+        return {
+          next: () => Promise.reject(new Error("send failed")),
+          return: () => Promise.resolve({ done: true as const, value: undefined }),
+        };
+      },
+    };
+    const sendFn = vi.fn().mockReturnValue(failingIterable);
+    // biome-ignore lint/suspicious/noExplicitAny: overwriting session for spy purposes
+    (client.session as any).send = sendFn;
+
+    // Should not throw even though send fails
+    const result = await openSessionInTab({
+      client,
+      navigate,
+      startOpts: { modeId: "bootstrap" },
+      initialMessage: "hello",
+    });
+
+    expect(result).toBe(tab.id);
+    expect(navigate).toHaveBeenCalled();
   });
 });
