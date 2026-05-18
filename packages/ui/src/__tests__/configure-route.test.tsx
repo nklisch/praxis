@@ -269,4 +269,29 @@ describe("ConfigureRoute", () => {
       expect(screen.getByRole("navigation", { name: /mode picker/i })).toBeDefined();
     });
   });
+
+  it("Prompt tab change-dot lights up when the prompts surface marks dirty", async () => {
+    // Regression test for dirty-key mismatch: TABS registers "configure.prompts"
+    // and FragmentDocument calls useDirtyState("configure.prompts") — they must match.
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient, undefined);
+
+    // Return a fragment override so FragmentDocument sets hasAnyOverride=true → markDirty().
+    (client.author.listFragmentOverrides as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { fragmentId: "teach.system.role", override: "custom text" },
+    ]);
+
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Prompt" })).toBeDefined();
+    });
+
+    // The Prompt tab button should show a change-dot (title="unsaved changes")
+    // once FragmentDocument's useEffect fires and calls markDirty().
+    await waitFor(() => {
+      const promptBtn = screen.getByRole("button", { name: "Prompt" });
+      expect(promptBtn.querySelector('[title="unsaved changes"]')).not.toBeNull();
+    });
+  });
 });

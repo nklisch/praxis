@@ -1,7 +1,7 @@
 ---
 id: fix-configure-prompt-tab-dirty-key-mismatch
 kind: story
-stage: implementing
+stage: review
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -44,3 +44,18 @@ Prompt tab after a fragment is saved.
 - `packages/ui/src/routes/configure/prompt-tab.tsx` line 339
 - `packages/ui/src/routes/configure.tsx` line 25
 - `packages/ui/src/__tests__/configure-route.test.tsx`
+
+## Implementation notes
+
+Chose option 2: updated the TABS array in `configure.tsx` line 25 from
+`dirtyKey: "configure.prompt"` to `dirtyKey: "configure.prompts"` to match
+the writer in `FragmentDocument` — "prompts" plural is more consistent with
+the surface name.
+
+Added regression test `"Prompt tab change-dot lights up when the prompts surface marks dirty"`
+to `configure-route.test.tsx`. The test mocks `listFragmentOverrides` to return a
+non-empty array, which causes `FragmentDocument`'s `useEffect` to call `markDirty()` on
+`"configure.prompts"`, and then asserts the change-dot span (title="unsaved changes")
+appears inside the Prompt tab button.
+
+All 1576 UI tests pass; no new lint or typecheck errors introduced.

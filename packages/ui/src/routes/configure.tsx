@@ -22,7 +22,7 @@ type ConfigureTab = "course" | "gates" | "prompt" | "memory";
 const TABS: Array<{ id: ConfigureTab; label: string; dirtyKey: string }> = [
   { id: "course", label: "Course", dirtyKey: "configure.course" },
   { id: "gates", label: "Gates", dirtyKey: "configure.gates" },
-  { id: "prompt", label: "Prompt", dirtyKey: "configure.prompt" },
+  { id: "prompt", label: "Prompt", dirtyKey: "configure.prompts" },
   { id: "memory", label: "Memory", dirtyKey: "configure.memory" },
 ];
 
