@@ -30,6 +30,15 @@ export interface AuthoringChatPaneProps {
   sessionId: SessionId | null;
   /** When true, the composer is disabled even if a session is active. */
   disabled?: boolean;
+  /**
+   * When set, this message is sent to the session as soon as the session is
+   * active and the pane is not already streaming. Used by BootstrapTabBody's
+   * "Confirm and open" CTA to trigger `course.confirm_draft` via the agent.
+   * Cleared after the send fires via `onPrefillSent`.
+   */
+  prefillMessage?: string;
+  /** Called once after `prefillMessage` has been sent. Use to clear the prefill. */
+  onPrefillSent?: () => void;
 }
 
 /**
@@ -39,7 +48,13 @@ export interface AuthoringChatPaneProps {
  * authoring session. `<ConfigureChatPane>` is a thin wrapper that passes
  * `mode="configure"`.
  */
-export function AuthoringChatPane({ mode, sessionId, disabled = false }: AuthoringChatPaneProps) {
+export function AuthoringChatPane({
+  mode,
+  sessionId,
+  disabled = false,
+  prefillMessage,
+  onPrefillSent,
+}: AuthoringChatPaneProps) {
   const client = usePraxisClient();
   const { items, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
@@ -157,6 +172,17 @@ export function AuthoringChatPane({ mode, sessionId, disabled = false }: Authori
     if (!sessionId) return;
     await send(sessionId, message);
   };
+
+  // Programmatic send for externally-triggered messages (e.g. "Confirm and open").
+  // Fires once when prefillMessage is set, the session is ready, and we're idle.
+  const sentPrefillRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!prefillMessage || !sessionId || isStreaming) return;
+    if (sentPrefillRef.current === prefillMessage) return; // already sent this message
+    sentPrefillRef.current = prefillMessage;
+    onPrefillSent?.();
+    void send(sessionId, prefillMessage);
+  }, [prefillMessage, sessionId, isStreaming, send, onPrefillSent]);
 
   return (
     <div className={styles.pane}>

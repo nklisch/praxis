@@ -214,6 +214,16 @@
   background: var(--color-bg-primary, transparent);
 }
 
+/**
+ * Flex-1 wrapper around AuthoringChatPane so the confirm card (flex-shrink: 0)
+ * stays anchored at the bottom of the panel without pushing the pane off-screen.
+ */
+.chatPaneWrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* ── Budget field ────────────────────────────────────────────────────────────── */
 
 .budgetField {
@@ -248,4 +258,55 @@
 
 .budgetInput:disabled {
   opacity: 0.5;
+}
+
+/* ── Confirm card (draft-ready state) ────────────────────────────────────────── */
+
+/**
+ * Shown in the right (chat) panel once the draft has lessons.
+ * Matches the `confirm-card` in mock step 4 (04-draft-ready.html).
+ */
+.confirmCard {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--color-accent-muted, rgba(122, 162, 247, 0.08));
+  border-top: 1px solid var(--color-accent, #7aa2f7);
+}
+
+.confirmTitle {
+  font: 500 italic 15px / 1.2 var(--font-display, serif);
+  margin: 0 0 4px;
+  color: var(--color-text-primary, inherit);
+}
+
+.confirmTitle em {
+  font-weight: 600;
+}
+
+.confirmLede {
+  font: italic 12px / 1.5 var(--font-serif, serif);
+  color: var(--color-text-secondary, #aaa);
+  margin: 0 0 10px;
+}
+
+.confirmBtn {
+  width: 100%;
+  font: 500 13px / 1 var(--font-sans, sans-serif);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  background: var(--color-accent, #7aa2f7);
+  color: var(--color-text-inverse, #fff);
+  border: 1px solid var(--color-accent, #7aa2f7);
+  transition: opacity 0.15s;
+}
+
+.confirmBtn:hover {
+  opacity: 0.9;
+}
+
+.confirmBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }

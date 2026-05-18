@@ -15,6 +15,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
+// Mock TanStack Router so useNavigate works in test context.
+const mockNavigate = vi.fn().mockResolvedValue(undefined);
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-router")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    useParams: () => ({}),
+  };
+});
+
 // Mock heavy sub-components to keep test fast and focused.
 vi.mock("../components/authoring-chat-pane.js", () => ({
   AuthoringChatPane: () => <div data-testid="authoring-chat-pane" />,
@@ -83,6 +94,11 @@ function renderBootstrap(attachFn = vi.fn().mockResolvedValue({ attached: true }
       list: vi.fn().mockResolvedValue([]),
       events: vi.fn(async function* () {}),
     },
+    // The finalization handler subscribes to drafts.events — return an empty
+    // async generator so the useEffect doesn't throw in tests.
+    drafts: {
+      events: vi.fn(async function* () {}),
+    } as unknown as ReturnType<typeof makeFakeClient>["drafts"],
   });
 
   return {

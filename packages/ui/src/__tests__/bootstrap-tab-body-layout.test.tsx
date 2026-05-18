@@ -17,6 +17,17 @@ import { makeFakeClient } from "./helpers/fake-client.js";
 // Mutable draft state for parameterising useDrafts in tests.
 let _mockCurrentDraft: unknown = null;
 
+// Mock TanStack Router so useNavigate works in test context.
+const mockNavigate = vi.fn().mockResolvedValue(undefined);
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-router")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    useParams: () => ({}),
+  };
+});
+
 // Mock heavy sub-components to isolate layout concerns.
 vi.mock("../components/authoring-chat-pane.js", () => ({
   AuthoringChatPane: ({ mode }: { mode: string }) => (
@@ -68,6 +79,11 @@ function renderBootstrap() {
     author: {
       listConfiguratorActions: vi.fn().mockResolvedValue([]),
     } as unknown as ReturnType<typeof makeFakeClient>["author"],
+    // The finalization handler subscribes to drafts.events — return an empty
+    // async generator so the useEffect doesn't throw in tests.
+    drafts: {
+      events: vi.fn(async function* () {}),
+    } as unknown as ReturnType<typeof makeFakeClient>["drafts"],
   });
 
   return render(
@@ -177,5 +193,61 @@ describe("BootstrapTabBody — draft canvas with units", () => {
 
     renderBootstrap();
     expect(screen.getByText("Biology 101")).toBeTruthy();
+  });
+});
+
+describe("BootstrapTabBody — confirm card (draft-ready state)", () => {
+  it("does NOT show confirm card when no draft is present", () => {
+    _mockCurrentDraft = null;
+    renderBootstrap();
+    expect(screen.queryByTestId("confirm-card")).toBeNull();
+  });
+
+  it("does NOT show confirm card when draft has no lessons", () => {
+    _mockCurrentDraft = {
+      draftId: "d3",
+      proposed: {
+        title: "Empty Draft",
+        subject: "X",
+        gradeLevel: "K",
+        thresholds: {},
+        proposedConcepts: [],
+        proposedEdges: [],
+        proposedLessons: [],
+        proposedUnits: [],
+        proposedLessonAssessments: [],
+      },
+    };
+    renderBootstrap();
+    expect(screen.queryByTestId("confirm-card")).toBeNull();
+  });
+
+  it("shows confirm card once draft has at least one lesson", () => {
+    _mockCurrentDraft = {
+      draftId: "d4",
+      proposed: {
+        title: "Calculus I",
+        subject: "Math",
+        gradeLevel: "University",
+        thresholds: {},
+        proposedConcepts: [],
+        proposedEdges: [],
+        proposedLessons: [
+          {
+            draftLessonId: "l1",
+            title: "Limits",
+            conceptNames: [],
+            references: [],
+            suggestedStrategy: "direct",
+            estimatedMinutes: 60,
+          },
+        ],
+        proposedUnits: [],
+        proposedLessonAssessments: [],
+      },
+    };
+    renderBootstrap();
+    expect(screen.getByTestId("confirm-card")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Confirm and open/i })).toBeTruthy();
   });
 });

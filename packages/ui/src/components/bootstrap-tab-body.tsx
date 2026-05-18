@@ -16,20 +16,31 @@
  *
  * The "Add documents" affordance lives in the canvas header and opens
  * `<LibraryDocumentPicker>` scoped to the current session.
+ *
+ * **Materialize handoff** (course-create-entry-path story):
+ * A "Confirm and open" CTA appears below the steering chat once the draft has
+ * lessons.  Clicking sends a confirmation message to the agent; the agent calls
+ * `course.confirm_draft` which fires a `finalized` draft-stream event. The
+ * `useEffect` here catches that event, opens a teach session for the new
+ * course, and navigates to the tab.
  */
 import type {
+  CourseId,
   ProposedLesson,
   ProposedLessonAssessmentEntry,
   ProposedUnit,
   SessionTabSummary,
 } from "@praxis/core/types";
-import { type ChangeEvent, type JSX, useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { type ChangeEvent, type JSX, useEffect, useRef, useState } from "react";
+import { usePraxisClient } from "../context/client-context.js";
 import {
   BOOTSTRAP_BUDGET_MAX,
   BOOTSTRAP_BUDGET_MIN,
   useBootstrapBudget,
 } from "../hooks/use-bootstrap-budget.js";
 import { useDrafts } from "../hooks/use-drafts.js";
+import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import { AuthoringChatPane } from "./authoring-chat-pane.js";
 import styles from "./bootstrap-tab-body.module.css";
 import { LessonAssessmentPills } from "./lesson-assessment-pills.js";
@@ -48,10 +59,58 @@ export interface BootstrapTabBodyProps {
  * inline sub-agent blocks — no additional wiring needed here.
  */
 export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
+  const client = usePraxisClient();
+  const navigate = useNavigate();
   const { current } = useDrafts();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  // Tracks finalization in-flight so we don't double-open.
+  const materializingRef = useRef(false);
+
+  // ── Finalization handler — open first teach session on draft finalized ────────
+  // biome-ignore lint/correctness/useExhaustiveDependencies: client.drafts.events is a stable method ref; subscribing once per tab session is intentional
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for await (const event of client.drafts.events()) {
+        if (cancelled) break;
+        if (event.kind === "finalized") {
+          if (materializingRef.current) break;
+          materializingRef.current = true;
+          try {
+            await openSessionInTab({
+              client,
+              navigate,
+              startOpts: {
+                modeId: "teach",
+                courseId: event.courseId as CourseId,
+              },
+            });
+          } catch {
+            // Non-fatal — student can open a session from the library.
+          }
+          break;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab.sessionId, client, navigate]);
 
   const proposed = current?.proposed ?? null;
+  // Show the confirm card once there's at least one lesson drafted.
+  const draftReady =
+    proposed != null &&
+    (proposed.proposedLessons.length > 0 || (proposed.proposedUnits ?? []).length > 0);
+
+  const handleConfirmAndOpen = () => {
+    // Delegate to the agent via the AuthoringChatPane's send path so the
+    // confirmation message appears in the chat transcript.
+    // The finalization useEffect above catches the draft-stream `finalized` event
+    // and opens the first teach session automatically.
+    setConfirming(true);
+  };
 
   return (
     <div className={styles.container}>
@@ -90,7 +149,37 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
 
       {/* Right: authoring chat — parent-agent steer interface. */}
       <div className={styles.chatPanel}>
-        <AuthoringChatPane mode="bootstrap" sessionId={tab.sessionId} />
+        {/* chatPaneWrap takes flex: 1 so the confirm card stays anchored below. */}
+        <div className={styles.chatPaneWrap}>
+          <AuthoringChatPane
+            mode="bootstrap"
+            sessionId={tab.sessionId}
+            {...(confirming && {
+              prefillMessage: "Please confirm the draft and open the course.",
+              onPrefillSent: () => setConfirming(false),
+            })}
+          />
+        </div>
+        {/* Confirm card — shown when the draft has lessons, per mock step 4. */}
+        {draftReady && (
+          <div className={styles.confirmCard} data-testid="confirm-card">
+            <h3 className={styles.confirmTitle}>
+              Ready to <em>materialize</em>?
+            </h3>
+            <p className={styles.confirmLede}>
+              Confirming creates the course in your library, sets up gates between lessons, and
+              opens your first lesson.
+            </p>
+            <button
+              type="button"
+              className={styles.confirmBtn}
+              onClick={handleConfirmAndOpen}
+              disabled={confirming}
+            >
+              {confirming ? "Asking Praxis to confirm…" : "Confirm and open ↗"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Session-scope library picker — opened from canvas header. */}

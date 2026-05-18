@@ -64,14 +64,10 @@ export function LibraryRoute() {
     [navigate, openTab, switchTo],
   );
 
-  /** "+ Create a course" — bootstrap session. */
+  /** "+ Create a course" — navigate to the upload / material step. */
   const handleCreateCourse = useCallback(async () => {
-    await openSessionInTab({
-      client,
-      navigate,
-      startOpts: { modeId: "bootstrap" },
-    });
-  }, [client, navigate]);
+    await navigate({ to: "/course-create" });
+  }, [navigate]);
 
   /** "Use this pack" — import pack then bootstrap. */
   const handleUsePack = useCallback(

@@ -247,7 +247,7 @@ describe("LibraryRoute — Workbench", () => {
     });
   });
 
-  it("'+ Create a course' triggers bootstrap session.start + tabs.open", async () => {
+  it("'+ Create a course' navigates to /course-create upload screen", async () => {
     const client = makeClient({ recommendations: [] });
     renderRoute(client);
     await waitFor(() => {
@@ -259,8 +259,7 @@ describe("LibraryRoute — Workbench", () => {
     const createBtns = screen.getAllByRole("button", { name: /\+ Create a course/i });
     fireEvent.click(createBtns[0] as HTMLElement);
     await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
-      expect(client.tabs.open).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/course-create" });
     });
   });
 

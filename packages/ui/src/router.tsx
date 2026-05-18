@@ -21,6 +21,7 @@ import { ConceptMapsRoute } from "./routes/concept-maps.js";
 import { ConceptMapsListRoute } from "./routes/concept-maps-list.js";
 import { ConfigureRoute } from "./routes/configure.js";
 import { CourseConceptsListRoute } from "./routes/course-concepts-list.js";
+import { CourseCreateRoute } from "./routes/course-create.js";
 import { CourseDetailRoute } from "./routes/course-detail.js";
 import { CourseMapRoute } from "./routes/course-map.js";
 import { LibraryRoute } from "./routes/library.js";
@@ -175,6 +176,14 @@ const noteEditorRoute = createRoute({
   component: NoteEditorPage,
 });
 
+// Course-create entry flow — step 2: upload/material screen.
+// Library "Create a course" CTA navigates here before opening a bootstrap session.
+const courseCreateRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/course-create",
+  component: CourseCreateRoute,
+});
+
 // Top-nav surface stubs — full implementations land in subsequent surface stories.
 const conceptMapsSurfaceRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -204,6 +213,7 @@ const routeTree = rootRoute.addChildren([
   configureRoute,
   workspaceRoute,
   noteEditorRoute,
+  courseCreateRoute,
   conceptMapsSurfaceRoute,
   progressRoute,
 ]);
