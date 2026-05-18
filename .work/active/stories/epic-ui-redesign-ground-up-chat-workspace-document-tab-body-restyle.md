@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-document-tab-body-restyle
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles]
@@ -76,3 +76,15 @@ story is the surface layout restyle.
 ### Scope boundary
 
 Three-column layout shell (TOC left · reading center · right panel) belongs to the parent `-side-panels-restyle` story. This story owns only the center reading column chrome and typography.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `mark.dataset["sessionId"]` in `applyCitationMark` triggers a pre-existing biome `useLiteralKeys` warning (should be `mark.dataset.sessionId`). Pre-existing — this code was not introduced by this story. Tracked separately.
+- `noUnusedFunctionParameters` on `root: Element` in `applyCitationMark` is similarly pre-existing.
+
+**Notes**: Token sweep is thorough — no stale `--surface-*`, `--text-*`, or `rgba()` literals in any of the five CSS modules. The `readingColumn` wrapper pattern cleanly delegates max-width and typography to the shell without leaking into per-format renderer modules. Citation highlight refactor from amber fallback values to `color-mix(in oklab, var(--color-accent) …)` is correct token discipline. 15 tests (10 pre-existing + 5 new visual contract) all pass. The `docMeta` condition (`data.title && data.title !== data.filename`) is correct for all three test cases (null title, equal title/filename, different title/filename). Scope boundary with the side-panels story is clearly documented.

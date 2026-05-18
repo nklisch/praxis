@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-study-skills-tab-body
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles]
@@ -72,3 +72,15 @@ dispatcher routing, and teach ↔ study-skills isolation invariant. All pass.
 **Pre-existing test flakiness**: `use-fragment-overrides.test.tsx` has an intermittent
 failure when run in the full suite (timing/ordering issue); confirmed unrelated to this
 story — the file was not touched and the test passes when run in isolation.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `reviewPlanBtn` is a dead button with no `onClick` (navigates nowhere). Acceptable for this story — wiring flashcard session launch is explicitly out of scope. A backlog item for this already exists or should be created when the flashcard flow lands.
+- The `MetaPromptBanner` renders a hardcoded prompt rather than a live pedagogy-pack prompt. The implementation notes call this out explicitly as deferred; the static text still matches the mock contract.
+
+**Notes**: Clean two-column rewrite. Token discipline is correct — all `--tint-study-skills`, `--font-*`, `--color-*` vars are defined in global.css. ProceduralModel and AffectiveModel types match the shapes in `packages/core/src/types/memory.ts`. The `useCallback`/`useResource` data-fetching pattern is idiomatic. 13 tests covering all three rail sections, prompt sequence, dispatcher routing, and isolation invariant — all pass. Lint clean on the new files; the typecheck error in notes-list.tsx is pre-existing and unrelated.

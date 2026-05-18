@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -10,7 +10,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Chat Workspace — Tabs, Messages, Mode Bodies, Side Panels
@@ -245,3 +245,7 @@ Cross-feature dependencies (per parent epic) handled via per-story
   must keep the `display:none` isolation; tests verify.
 - **Course-create tab body lives in sibling backend feature** —
   ensure no duplicate work; integration test exercises both surfaces.
+
+## Children complete (2026-05-18)
+
+All 9 child stories advanced to `stage: done`. Feature advanced to `stage: review`.
