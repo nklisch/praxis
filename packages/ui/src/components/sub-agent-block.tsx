@@ -15,7 +15,7 @@ export interface SubAgentBlockProps {
 }
 
 /**
- * Inline marginalia block rendered in the chat thread when `course.start_exploration`
+ * Inline marginalia block rendered in the chat thread when `course.start_drafting`
  * (or any other `spawnsSubAgent: true` tool) fires.
  *
  * Visual contract (per locked mock 03-explorer-running.html):

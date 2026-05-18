@@ -81,7 +81,7 @@ describe("configure mode toolNames", () => {
 
   it("includes bootstrap tools", () => {
     const names = configureMode.toolNames;
-    expect(names).toContain("course.start_exploration");
+    expect(names).toContain("course.start_drafting");
     expect(names).toContain("course.use_canonical_pack");
   });
 

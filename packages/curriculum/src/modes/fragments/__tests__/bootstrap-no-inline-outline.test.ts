@@ -14,7 +14,7 @@ import { bootstrapToolsFragment } from "../bootstrap-tools.js";
 import { configureToolsFragment } from "../configure-tools.js";
 
 describe("bootstrapToolsFragment — outline-panel restraint", () => {
-  it("mentions the right-side panel after course.show_draft / course.start_exploration", () => {
+  it("mentions the right-side panel after course.show_draft / course.start_drafting", () => {
     expect(bootstrapToolsFragment.template).toContain("right-side panel");
   });
 
@@ -53,7 +53,7 @@ describe("bootstrapRoleFragment — chat discipline", () => {
 });
 
 describe("configureToolsFragment — outline-panel restraint", () => {
-  it("mentions the right-side panel after course.show_draft / course.start_exploration", () => {
+  it("mentions the right-side panel after course.show_draft / course.start_drafting", () => {
     expect(configureToolsFragment.template).toContain("right-side panel");
   });
 

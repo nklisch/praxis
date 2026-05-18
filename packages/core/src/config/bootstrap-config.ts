@@ -15,7 +15,7 @@ export const BOOTSTRAP_DEFAULT_MAX_STEPS = 200;
 export const BootstrapConfigSchema = z.object({
   /**
    * Max tool-call steps the explore agent may take in a single
-   * `course.start_exploration` run. Each `tool_call` event counts as one step.
+   * `course.start_drafting` run. Each `tool_call` event counts as one step.
    *
    * Bounded at construction by [BOOTSTRAP_MIN_STEPS, BOOTSTRAP_MAX_STEPS_LIMIT].
    * The user can tune this from the bootstrap tab body's outline-pane header.

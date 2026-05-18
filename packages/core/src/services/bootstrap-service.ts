@@ -165,7 +165,7 @@ export class BootstrapServiceImpl implements BootstrapService {
    * to add). Used by the explorer's draft_init tool.
    *
    * `sessionId` is the PARENT bootstrap session id (S1 — the tutor session that
-   * invoked start_exploration). It is stored on the draft so that confirmDraft
+   * invoked start_drafting). It is stored on the draft so that confirmDraft
    * can promote session-scope document rows to course-scope. Pass
    * `ctx.parentSessionId ?? ctx.sessionId` from the calling tool handler.
    */

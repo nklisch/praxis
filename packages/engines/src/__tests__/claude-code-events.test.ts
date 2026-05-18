@@ -365,7 +365,7 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
     const event3 = mapClaudeCodeEvent(
       {
         type: "tool_use",
-        toolName: "praxis__course.start_exploration",
+        toolName: "praxis__course.start_drafting",
         toolId: "toolu_03GHI",
         toolInput: {},
       },
@@ -386,7 +386,7 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
     mapClaudeCodeEvent(
       {
         type: "tool_use",
-        toolName: "praxis__course.start_exploration",
+        toolName: "praxis__course.start_drafting",
         toolId: "toolu_01ABC",
         toolInput: {},
       },
@@ -458,7 +458,7 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
     const result = mapClaudeCodeEvent(
       {
         type: "tool_use",
-        toolName: "praxis__course.start_exploration",
+        toolName: "praxis__course.start_drafting",
         toolId: "toolu_01ABC",
         toolInput: {},
       },

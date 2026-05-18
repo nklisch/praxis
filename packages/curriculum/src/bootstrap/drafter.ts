@@ -84,7 +84,7 @@ export interface RunConceptDrafterResult {
    * True if the drafter ran out of budget mid-build. The tutor uses this to
    * offer continuation rather than narrating it as a failure — partial work is
    * preserved and the same draftId can be passed to a follow-up
-   * `course.start_exploration` call.
+   * `course.start_drafting` call.
    */
   exhaustedBudget?: boolean;
   /** Reason the drafter ended without producing a usable draft. */

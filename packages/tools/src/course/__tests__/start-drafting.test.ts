@@ -1,5 +1,5 @@
 /**
- * Tests for the course.start_exploration tool handler.
+ * Tests for the course.start_drafting tool handler.
  *
  * Focuses on the sub-agent registration branch:
  *   - When ctx.callId is defined, subAgent.start() is called.
@@ -27,7 +27,7 @@ import { makeEmptyPedagogyPackService } from "@praxis/curriculum/pedagogy";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
-import { startExplorationTool } from "../start-exploration.js";
+import { startDraftingTool } from "../start-drafting.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -142,7 +142,7 @@ function makeMinimalScriptedEngine(): Engine {
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-describe("course.start_exploration handler — sub-agent registration guard", () => {
+describe("course.start_drafting handler — sub-agent registration guard", () => {
   const dbCtx = useTempDb();
 
   it("does not call subAgent.start() when ctx.callId is absent", async () => {
@@ -168,7 +168,7 @@ describe("course.start_exploration handler — sub-agent registration guard", ()
     // Confirm callId is absent so the test invariant is clear.
     expect(ctx.callId).toBeUndefined();
 
-    const result = await startExplorationTool.handler(
+    const result = await startDraftingTool.handler(
       {
         documentIds: ["doc-test"],
         courseTitle: "Algebra 1",
@@ -213,7 +213,7 @@ describe("course.start_exploration handler — sub-agent registration guard", ()
       callId: "parent-call-id-abc",
     };
 
-    const result = await startExplorationTool.handler(
+    const result = await startDraftingTool.handler(
       {
         documentIds: ["doc-test"],
         courseTitle: "Algebra 1",
@@ -237,7 +237,7 @@ describe("course.start_exploration handler — sub-agent registration guard", ()
 
 // ─── Session-scope attach tests ───────────────────────────────────────────────
 
-describe("course.start_exploration handler — session-scope attach", () => {
+describe("course.start_drafting handler — session-scope attach", () => {
   const dbCtx = useTempDb();
 
   it("attaches documentIds to session scope before spawning the explorer", async () => {
@@ -266,7 +266,7 @@ describe("course.start_exploration handler — session-scope attach", () => {
       log: MOCK_LOG,
     });
 
-    await startExplorationTool.handler(
+    await startDraftingTool.handler(
       {
         documentIds: ["doc-a", "doc-b"],
         courseTitle: "Algebra 1",
@@ -318,7 +318,7 @@ describe("course.start_exploration handler — session-scope attach", () => {
     // Pass a non-empty documentIds so the InputSchema validation passes (min(1)),
     // but we test the behaviour with 1 doc — the guard is "if length > 0".
     // Actually the schema enforces min(1), so we can't pass []. Test with 1 doc.
-    await startExplorationTool.handler(
+    await startDraftingTool.handler(
       {
         documentIds: ["doc-single"],
         courseTitle: "Algebra 1",

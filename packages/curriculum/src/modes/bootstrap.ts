@@ -40,8 +40,8 @@ export const bootstrapMode: Mode = {
     // Canonical packs (Phase 10) — unchanged
     "course.list_canonical_packs",
     "course.use_canonical_pack",
-    // Phase 16: explorer entry point (replaces propose_draft)
-    "course.start_exploration",
+    // Phase 16: drafter entry point (replaces propose_draft)
+    "course.start_drafting",
     // Draft lifecycle
     "course.show_draft",
     "course.edit_draft",

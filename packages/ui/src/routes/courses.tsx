@@ -30,13 +30,13 @@ export function CoursesRoute() {
       const handle = await client.session.start({ modeId: "bootstrap" });
       await navigate({ to: "/", search: { sessionId: handle.sessionId } });
       // Seed the bootstrap conversation so the model picks up the draftId.
-      // The model already knows the resume-via-course.start_exploration(draftId)
+      // The model already knows the resume-via-course.start_drafting(draftId)
       // protocol per the bootstrap-role fragment. We send a one-shot seed
       // message and drop the response stream — chat UI subscribes via the
       // streaming hook once the tab mounts.
       const message =
         `Please resume draft ${draft.draftId} ("${displayTitle(draft)}"). ` +
-        `Call course.start_exploration with this draftId to continue building it.`;
+        `Call course.start_drafting with this draftId to continue building it.`;
       const stream = client.session.send(handle.sessionId, message);
       // Drain in the background — we don't need the events here; the chat
       // tab body will independently subscribe.

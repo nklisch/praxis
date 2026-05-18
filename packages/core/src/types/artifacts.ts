@@ -740,7 +740,7 @@ export interface DraftCourseState {
   expiresAt: Timestamp;
   /**
    * Phase 16 (bootstrap-session-scoped-attachment): the parent bootstrap session
-   * id (S1 — the tutor session that invoked start_exploration, NOT the explorer
+   * id (S1 — the tutor session that invoked start_drafting, NOT the explorer
    * sub-agent's own session). Stored here so confirmDraft can promote
    * session-scope document rows to course-scope via documentScopes.promoteScope.
    *
@@ -750,7 +750,7 @@ export interface DraftCourseState {
   sessionId?: SessionId;
 }
 
-/** Compact summary returned by `course.start_exploration` to keep tool output small. */
+/** Compact summary returned by `course.start_drafting` to keep tool output small. */
 export interface DraftSummary {
   draftId: string;
   title: string;

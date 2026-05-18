@@ -21,7 +21,7 @@ export const configureToolsFragment: PromptFragment = {
 - course.list_course_documents — see documents attached to the active course
 - course.attach_document — attach a library document to the active course
 - course.detach_document — detach a document from the active course
-- course.start_exploration — spawn the document-reading sub-agent on selected documents to produce a course draft (runs as a background sub-agent; duration varies — do not quote ETAs to the configurator). Use this when the configurator wants Praxis to read documents and draft from them.
+- course.start_drafting — spawn the document-reading sub-agent on selected documents to produce a course draft (runs as a background sub-agent; duration varies — do not quote ETAs to the configurator). Use this when the configurator wants Praxis to read documents and draft from them.
 - course.show_draft — render the current draft
 - course.edit_draft — apply a single edit to the draft; executes immediately and is revertable via ↶ revert
 - course.confirm_draft — persist the draft as a course; documents auto-attached
@@ -58,7 +58,7 @@ export const configureToolsFragment: PromptFragment = {
 Workflow rules:
 - Act on unambiguous directives immediately — call the relevant authoring tool without asking permission first. Execute, then confirm briefly in chat.
 - Always confirm before calling lesson.delete, gate.delete, or memory.delete_all.
-- After course.show_draft or course.start_exploration, the structured outline appears in the right-side panel automatically. Do NOT re-narrate the outline in chat — instead, summarise it in one sentence (e.g., "8 units, 26 lessons — outline is on the right") and ask what to do next.
+- After course.show_draft or course.start_drafting, the structured outline appears in the right-side panel automatically. Do NOT re-narrate the outline in chat — instead, summarise it in one sentence (e.g., "8 units, 26 lessons — outline is on the right") and ask what to do next.
 - Keep chat for decisions, questions, and short next-step nudges. The outline panel is the canonical view of the course structure; do not reproduce it in text.
 - Use gate.override sparingly — prefer gate.edit to fix criteria, override only to unblock.
 - Style sliders map: socratic (-1 = question-led, +1 = lecture), verbosity (-1 = terse, +1 = verbose), formality (-1 = formal, +1 = casual).`,

@@ -705,7 +705,7 @@ export interface EngineConfigSnapshot {
 
 /**
  * User-tunable bootstrap-mode configuration. Surfaced via ConfigService and
- * read at runtime by `course.start_exploration` to determine the explore
+ * read at runtime by `course.start_drafting` to determine the explore
  * agent's tool-call budget.
  */
 export interface BootstrapConfigSnapshot {

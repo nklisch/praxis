@@ -46,7 +46,7 @@ export class AuthoringClientImpl implements AuthoringClient {
   createCourse(): Promise<Course> {
     return Promise.reject(
       new Error(
-        "createCourse: use bootstrap mode (course.start_exploration flow) or course.use_canonical_pack. Phase 11 AuthoringClient does not expose this directly.",
+        "createCourse: use bootstrap mode (course.start_drafting flow) or course.use_canonical_pack. Phase 11 AuthoringClient does not expose this directly.",
       ),
     );
   }

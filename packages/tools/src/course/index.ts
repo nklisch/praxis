@@ -1,11 +1,11 @@
-// Note: `startExplorationTool` is intentionally NOT re-exported from this
+// Note: `startDraftingTool` is intentionally NOT re-exported from this
 // barrel. It imports `runConceptDrafter` from `@praxis/curriculum/bootstrap`,
 // which makes any consumer that grabs it via this barrel pull in curriculum —
 // and curriculum's own tests then load `@praxis/tools/course` while it's
 // already partially loaded, leaving some tool bindings undefined.
 //
-// Consumers that need `startExplorationTool` (currently only `services.ts`)
-// import it directly from `./start-exploration.js`.
+// Consumers that need `startDraftingTool` (currently only `services.ts`)
+// import it directly from `./start-drafting.js`.
 
 import { attachDocumentTool } from "./attach-document.js";
 import { confirmDraftTool } from "./confirm-draft.js";
@@ -71,7 +71,7 @@ export {
 
 /**
  * Aggregated array used by services.ts when building the tool registry.
- * `startExplorationTool` is appended by services.ts (imported separately) —
+ * `startDraftingTool` is appended by services.ts (imported separately) —
  * see the note at the top of this file for why it isn't included here.
  */
 export const COURSE_TOOLS = [

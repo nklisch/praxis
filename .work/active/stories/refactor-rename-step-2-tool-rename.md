@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-2-tool-rename
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, naming, tools]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: [refactor-rename-step-1-explorer-to-drafter]
@@ -155,3 +155,35 @@ verbatim, so behaviour switches at next turn.
 
 `git revert <commit>` is atomic; no DB rows depend on this string for live
 behavior. Historical episodic events stay as they are.
+
+## Implementation Notes
+
+**File renames (git mv)**:
+- `packages/tools/src/course/start-exploration.ts` → `start-drafting.ts`
+- `packages/tools/src/course/__tests__/start-exploration.test.ts` → `start-drafting.test.ts`
+
+**Symbol rename count**: 1 (`startExplorationTool` → `startDraftingTool` in 3 files: source, test, services.ts)
+
+**String rename count**: `"course.start_exploration"` → `"course.start_drafting"` across 31 files (tool definition, label registry, both mode toolNames, 3 prompt fragments, 4 test files, 11 other files with comments/descriptions)
+
+**Before grep (packages/ *.ts *.tsx, no dist)**:
+```
+grep -rn "start_exploration\|startExplorationTool" packages/ --include="*.ts" --include="*.tsx" | grep -v dist
+# → 0 results
+```
+
+**After grep (positive)**:
+```
+grep -rn '"course\.start_drafting"' packages/ --include="*.ts" --include="*.tsx" | grep -v dist
+# → 7 results: tool definition, label registry, bootstrap.ts, configure.ts, bootstrap-toolnames.test.ts, drafter-configurator-posture.test.ts, configure-mode.test.ts
+```
+
+**Unexpected discovery**: `tsconfig.electron.json` uses `moduleResolution: Bundler` without the `praxis-source` custom condition, so it resolves `@praxis/tools/course/start-*` via the dist `.d.ts` files (cached from prior builds). The old `start-exploration.d.ts` existed in `dist/`; the new `start-drafting.d.ts` didn't yet. Fixed by adding an explicit path entry `"@praxis/tools/course/start-drafting": ["../tools/src/course/start-drafting.ts"]` to `tsconfig.electron.json`. This also uncovered a latent `exactOptionalPropertyTypes` violation in the handler where `subAgentHandle: subHandle` (type `SubAgentHandle | undefined`) was passed directly — fixed with the conditional spread pattern.
+
+**Also updated `packages/tools/package.json`** subpath exports: `./course/start-exploration` → `./course/start-drafting` (required for runtime Electron loading under `praxis-source` condition).
+
+**Pre-existing errors NOT fixed** (unchanged from baseline):
+- `packages/ui/src/components/chat-tab-body.tsx:534` — `exactOptionalPropertyTypes` for `onNoteOpen`
+- `packages/ui/src/routes/chat.tsx:244` — same
+- `packages/ui/src/routes/workspace/notes-list.tsx:125` — `resultCount: number | undefined`
+- Lint errors in `.mockups/**.html` — 524 total (pre-existing mockup lint debt)

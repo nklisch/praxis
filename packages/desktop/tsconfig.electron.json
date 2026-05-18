@@ -21,6 +21,7 @@
       "@praxis/client": ["../client/src/index.ts"],
       "@praxis/ui": ["../ui/src/index.ts"],
       "@praxis/curriculum/*": ["../curriculum/src/*/index.ts"],
+      "@praxis/tools/course/start-drafting": ["../tools/src/course/start-drafting.ts"],
       "@praxis/tools/*": ["../tools/src/*/index.ts"]
     }
   },

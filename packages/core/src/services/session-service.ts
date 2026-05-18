@@ -971,7 +971,7 @@ export class SessionServiceImpl implements SessionService {
         documentScopes: this.deps.toolServices.documentScopes,
         // Phase 16: engine resolver — used by tools that spawn isolated agent sessions.
         engineResolver: this.deps.toolServices.engineResolver,
-        // Bootstrap budget resolver — read by course.start_exploration.
+        // Bootstrap budget resolver — read by course.start_drafting.
         ...(this.deps.toolServices.bootstrapConfigResolver !== undefined && {
           bootstrapConfigResolver: this.deps.toolServices.bootstrapConfigResolver,
         }),

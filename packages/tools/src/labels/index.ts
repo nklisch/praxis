@@ -26,7 +26,7 @@ export interface ToolLabel {
    * step-by-step progress from the sub-agent session.
    *
    * Default false. Only set on tools that explicitly spawn a sub-agent session
-   * (today: `course.start_exploration`).
+   * (today: `course.start_drafting`).
    */
   spawnsSubAgent?: boolean;
   /**
@@ -60,7 +60,7 @@ export const TOOL_LABELS: Readonly<Record<string, ToolLabel>> = {
   "document.read_pages": { present: "Reading pages" },
 
   // Course bootstrap (drafting)
-  "course.start_exploration": {
+  "course.start_drafting": {
     present: "Reading your materials",
     past: "Read your materials",
     spawnsSubAgent: true,

@@ -105,7 +105,7 @@ export interface ServiceDeps {
     quickCheck?: QuickCheckService;
     /**
      * Sub-agent transparency registry. Tool handlers that spawn sub-agents
-     * (e.g., `course.start_exploration`) use this to publish step-level events
+     * (e.g., `course.start_drafting`) use this to publish step-level events
      * that the UI subscribes to for the inline sub-agent block.
      * Optional so tests that don't wire it stay unaffected.
      */

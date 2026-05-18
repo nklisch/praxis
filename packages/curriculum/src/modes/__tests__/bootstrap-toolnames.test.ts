@@ -25,8 +25,8 @@ describe("bootstrapMode.toolNames — included tools", () => {
     expect(bootstrapMode.toolNames).toContain("course.list_library_documents");
   });
 
-  it("includes course.start_exploration", () => {
-    expect(bootstrapMode.toolNames).toContain("course.start_exploration");
+  it("includes course.start_drafting", () => {
+    expect(bootstrapMode.toolNames).toContain("course.start_drafting");
   });
 
   it("includes course.show_draft", () => {

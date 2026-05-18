@@ -67,12 +67,12 @@
       "node": "./dist/course/index.js",
       "default": "./dist/course/index.js"
     },
-    "./course/start-exploration": {
-      "praxis-source": "./src/course/start-exploration.ts",
-      "types": "./dist/course/start-exploration.d.ts",
-      "import": "./dist/course/start-exploration.js",
-      "node": "./dist/course/start-exploration.js",
-      "default": "./dist/course/start-exploration.js"
+    "./course/start-drafting": {
+      "praxis-source": "./src/course/start-drafting.ts",
+      "types": "./dist/course/start-drafting.d.ts",
+      "import": "./dist/course/start-drafting.js",
+      "node": "./dist/course/start-drafting.js",
+      "default": "./dist/course/start-drafting.js"
     },
     "./memory": {
       "praxis-source": "./src/memory/index.ts",

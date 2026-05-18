@@ -22,8 +22,8 @@ export interface UseBootstrapBudgetResult {
 /**
  * Read + write the user's bootstrap-mode tool-call budget. Loads on mount via
  * `client.config.bootstrapConfig()`. The config is the single source of truth
- * — `course.start_exploration` reads it server-side at call time, so a saved
- * change applies to the next exploration without restarting the app.
+ * — `course.start_drafting` reads it server-side at call time, so a saved
+ * change applies to the next drafting run without restarting the app.
  */
 export function useBootstrapBudget(): UseBootstrapBudgetResult {
   const client = usePraxisClient();

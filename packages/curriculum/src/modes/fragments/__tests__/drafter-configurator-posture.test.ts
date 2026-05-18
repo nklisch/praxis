@@ -36,18 +36,15 @@ describe("bootstrapRoleFragment — drafter posture", () => {
     expect(bootstrapRoleFragment.template).toContain("revert");
   });
 
-  it("describes when to invoke course.start_exploration as a sub-agent", () => {
+  it("describes when to invoke course.start_drafting as a sub-agent", () => {
     expect(bootstrapRoleFragment.template).toContain("sub-agent");
-    expect(bootstrapRoleFragment.template).toContain("course.start_exploration");
+    expect(bootstrapRoleFragment.template).toContain("course.start_drafting");
   });
 
   it("does not use the word 'explorer' for the sub-agent from the user's perspective", () => {
     // The term 'explorer' must not appear as a user-visible agent name.
-    // The tool name 'start_exploration' is fine — that is a code identifier.
-    const withoutToolRefs = bootstrapRoleFragment.template.replace(
-      /course\.start_exploration/g,
-      "",
-    );
+    // The tool name 'start_drafting' is fine — that is a code identifier.
+    const withoutToolRefs = bootstrapRoleFragment.template.replace(/course\.start_drafting/g, "");
     expect(withoutToolRefs).not.toMatch(/\bexplorer\b/i);
   });
 
@@ -64,7 +61,7 @@ describe("bootstrapToolsFragment — drafter posture", () => {
     expect(bootstrapToolsFragment.template).toContain("revert");
   });
 
-  it("describes course.start_exploration as a sub-agent (not 'explorer')", () => {
+  it("describes course.start_drafting as a sub-agent (not 'explorer')", () => {
     expect(bootstrapToolsFragment.template).toContain("sub-agent");
   });
 
@@ -73,10 +70,7 @@ describe("bootstrapToolsFragment — drafter posture", () => {
   });
 
   it("does not use the word 'explorer' in user-visible description (outside tool name)", () => {
-    const withoutToolRefs = bootstrapToolsFragment.template.replace(
-      /course\.start_exploration/g,
-      "",
-    );
+    const withoutToolRefs = bootstrapToolsFragment.template.replace(/course\.start_drafting/g, "");
     expect(withoutToolRefs).not.toMatch(/\bexplorer\b/i);
   });
 });
@@ -116,7 +110,7 @@ describe("configureToolsFragment — configurator posture", () => {
     expect(configureToolsFragment.template).toContain("revert");
   });
 
-  it("describes course.start_exploration as a sub-agent (not 'explorer')", () => {
+  it("describes course.start_drafting as a sub-agent (not 'explorer')", () => {
     expect(configureToolsFragment.template).toContain("sub-agent");
   });
 
@@ -125,10 +119,7 @@ describe("configureToolsFragment — configurator posture", () => {
   });
 
   it("does not use the word 'explorer' as a user-visible agent name", () => {
-    const withoutToolRefs = configureToolsFragment.template.replace(
-      /course\.start_exploration/g,
-      "",
-    );
+    const withoutToolRefs = configureToolsFragment.template.replace(/course\.start_drafting/g, "");
     expect(withoutToolRefs).not.toMatch(/\bexplorer\b/i);
   });
 });

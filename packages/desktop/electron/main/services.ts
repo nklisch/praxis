@@ -62,7 +62,7 @@ import { sessions } from "@praxis/memory/schema";
 import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/assignment";
 import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
-import { startExplorationTool } from "@praxis/tools/course/start-exploration";
+import { startDraftingTool } from "@praxis/tools/course/start-drafting";
 import { DIALOG_TOOLS } from "@praxis/tools/dialog";
 import { DOCUMENT_TOOLS } from "@praxis/tools/document";
 import { EXAM_TOOLS } from "@praxis/tools/exam";
@@ -535,7 +535,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     codeSandboxTool,
     retrieveFromDocumentsTool,
     ...COURSE_TOOLS,
-    startExplorationTool, // imported via its own subpath to avoid a course-barrel cycle
+    startDraftingTool, // imported via its own subpath to avoid a course-barrel cycle
 
     ...DOCUMENT_TOOLS, // ← Phase 16
     ...MEMORY_TOOLS, // ← Phase 7

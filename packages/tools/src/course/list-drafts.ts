@@ -26,7 +26,7 @@ export type DraftListing = z.infer<typeof DraftListingSchema>;
 export const listDraftsTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.list_drafts",
   description:
-    "List the student's active course drafts (unconfirmed, undiscarded), newest-touched first. Each entry includes a recognizable title and structural progress signals. Call this when the student says they want to resume a course they started — pick the right draftId from the returned list, then call course.start_exploration with that draftId to continue.",
+    "List the student's active course drafts (unconfirmed, undiscarded), newest-touched first. Each entry includes a recognizable title and structural progress signals. Call this when the student says they want to resume a course they started — pick the right draftId from the returned list, then call course.start_drafting with that draftId to continue.",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",

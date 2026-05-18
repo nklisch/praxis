@@ -132,7 +132,7 @@ export interface ToolContext {
    * tool_call.callId for this invocation. Populated by
    * `InProcessToolRegistry.dispatch(name, args, { callId })` when the engine
    * adapter passes the per-request correlation id. Tools that spawn sub-agents
-   * (e.g., `course.start_exploration`) use this as their `parentCallId` when
+   * (e.g., `course.start_drafting`) use this as their `parentCallId` when
    * registering on `SubAgentRegistry` so the UI can subscribe to the right stream.
    * Absent when dispatched from test stubs that don't supply a callId.
    */
@@ -152,7 +152,7 @@ export interface ToolContext {
    * to the PARENT session's id. For top-level sessions this is undefined.
    *
    * Threading chain:
-   *   tutor session S1 invokes start_exploration (ctx.sessionId === S1)
+   *   tutor session S1 invokes start_drafting (ctx.sessionId === S1)
    *   → runConceptDrafter sets drafterContext.parentSessionId = S1
    *   → drafter sub-agent tools (draft_init, list_library_documents) read
    *     ctx.parentSessionId to operate on the parent session's scope.
@@ -210,7 +210,7 @@ export interface ToolServices {
   documentScopes: DocumentScopesService;
   /**
    * Phase 16: resolves the user's currently configured engine at call time.
-   * Used by tools that spawn isolated agent sessions (e.g., start_exploration,
+   * Used by tools that spawn isolated agent sessions (e.g., start_drafting,
    * rubric grader). Same lazy-resolver pattern as visionResolver.
    */
   engineResolver: () => Engine;
@@ -218,7 +218,7 @@ export interface ToolServices {
    * Resolves user-tunable bootstrap config (currently just `maxSteps` —
    * the explore agent's tool-call budget). Read at call time so UI changes
    * take effect on the next exploration without a restart. Used by
-   * `course.start_exploration`. Optional so test stubs that don't exercise
+   * `course.start_drafting`. Optional so test stubs that don't exercise
    * the bootstrap path don't need to wire it.
    */
   bootstrapConfigResolver?: () => { maxSteps: number };

@@ -41,7 +41,7 @@ export const configureMode: Mode = {
     "course.list_course_documents",
     "course.attach_document",
     "course.detach_document",
-    "course.start_exploration",
+    "course.start_drafting",
     "course.show_draft",
     "course.edit_draft",
     "course.confirm_draft",
