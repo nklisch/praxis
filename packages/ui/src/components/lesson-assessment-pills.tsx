@@ -87,9 +87,13 @@ function FetchingPills({ lessonId }: { lessonId: LessonId }) {
 
   useEffect(() => {
     let cancelled = false;
-    void client.artifacts.lessonAssessments(lessonId).then((rows) => {
-      if (!cancelled) setAssessments(rows);
-    });
+    void client.artifacts.lessonAssessments(lessonId)
+      .then((rows) => {
+        if (!cancelled) setAssessments(rows);
+      })
+      .catch(() => {
+        // Pills are decorative — silently ignore fetch failures.
+      });
     return () => {
       cancelled = true;
     };
