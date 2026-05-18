@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-exam-timer
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -107,3 +107,15 @@ Added `durationMinutes: integer("duration_minutes")` (nullable) to the `assignme
 assignment is assigned, not when the student opens the tab. This is the right semantics for
 proctored exams and avoids a new column. The mock at `.mockups/screens/.../mode-exam.html` confirms
 this approach (the timer in the header shows "26:14 left" with no separate "started at" concept).
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `ExamTabBody` calls `useAssignment(assignmentId)` and then renders `<AssignmentCard assignmentId={assignmentId}>` which also calls `useAssignment` internally — two independent fetches, not one shared instance. The impl note "avoiding a second fetch" is inaccurate. Functionally harmless (separate state trees, no interference) but the comment is misleading.
+- `useEffect([assignment])` dep in `ExamCountdown`: if `assignment` object identity ever changed before expiry (e.g., due to polling), `expiredRef` would reset, enabling a theoretical double-submit. Non-triggerable today because `ExamTabBody`'s `useAssignment` only refreshes on submit (at which point the countdown unmounts), but it's latent fragility. Could be hardened by using `[assignment.id, assignment.durationMinutes, assignment.assignedAt]` as the dep array.
+
+**Notes**: All six timer tests pass using fake timers (render, tick, warn-class, submit-on-expiry, double-fire guard, no-timer-when-null). Schema, service, tool, and type layers are consistent and correctly wired. Migration is clean. `assignedAt`-as-clock-start is the right call.
