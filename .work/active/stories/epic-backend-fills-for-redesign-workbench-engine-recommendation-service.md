@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-workbench-engine-recommendation-service
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-workbench-engine
 depends_on: []
@@ -99,6 +99,18 @@ reason-string templates.
 - A learned / ML ranking layer. The static table is the v1 spec.
 - Background pre-compute. On-demand only.
 - Localization of reason strings.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none (foundation-doc drift fixed inline — see below)
+**Important**: none
+**Nits**:
+- `recommendations-channel.ts` docblock line 10 claims "Uses `wrapEnvelope` + `withSchema`" but the actual code uses `wrapEnvelope` + inline `nextInputSchema.parse(raw)`. The implementation notes correctly explain why (`withSchema` expects a stripped `(payload)` signature but `wrapEnvelope` passes `(event, payload)`). Docblock is misleading; could be updated to say "Uses `wrapEnvelope` + inline Zod parse (not `withSchema` — calling convention mismatch)."
+- `collectPracticeConcepts` does N+1 concept-name lookups plus a full lesson scan per concept inside the loop. Capped at 3 results and SQLite in-process, so negligible in practice, but a JOIN or batch-select would be cleaner if the mastery table grows large.
+
+**Notes**: Foundation-doc drift fixed inline: `docs/ARCHITECTURE.md` § package table for `@praxis/core` now lists `RecommendationServiceImpl`. The parent feature design explicitly called this out as a required update on ship. All 36 service tests + 6 IPC harness tests pass. Typecheck failures visible in the run are pre-existing (unrelated to this story — same errors present before the commit).
 
 ## Implementation notes
 
