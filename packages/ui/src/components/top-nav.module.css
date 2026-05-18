@@ -1,0 +1,76 @@
+/* ─ TopNav — app-shell running head ─────────────────────────────────────────
+ * Locked to option-3.html ("The Index"): top horizontal nav as a journal's
+ * running head. Wordmark on the left; five surface links center-left;
+ * right slot for tabs strip + theme toggle (sibling stories).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+.runningHead {
+  padding: 18px 32px 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 32px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  flex-shrink: 0;
+}
+
+/* Italic display-serif wordmark — the journal's masthead title */
+.wordmark {
+  font: 500 italic 22px / 1 var(--font-display);
+  letter-spacing: -0.005em;
+  color: var(--color-text-primary);
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Center-left surface links */
+.nav {
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+  flex: 1;
+}
+
+.link {
+  text-decoration: none;
+  font: 500 14px / 1 var(--font-serif);
+  color: var(--color-text-secondary);
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  transition: color 0.15s ease;
+}
+
+.link:hover {
+  color: var(--color-text-primary);
+}
+
+/* Active link: text goes primary, accent hairline underline */
+.linkActive {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-accent);
+}
+
+/* Italic editorial glyph ornament preceding the link label */
+.glyph {
+  font-style: italic;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+}
+
+.linkActive .glyph {
+  color: var(--color-accent);
+}
+
+/* Right slot — holds tabs strip (Story 4) and theme toggle (Story 3).
+ * Left border visually separates it from the nav links, matching the mock. */
+.rightSlot {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-left: auto;
+  padding-left: 24px;
+  border-left: 1px solid var(--color-border);
+}

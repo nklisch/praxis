@@ -5,20 +5,21 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
-import { ActivityRail } from "./components/activity-rail.js";
-import { Nav } from "./components/nav.js";
 import { OnboardingFlow } from "./components/onboarding-flow.js";
+import { TopNav } from "./components/top-nav.js";
 import { UpdateBanner } from "./components/update-banner.js";
 import { useFirstRun } from "./hooks/use-first-run.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
 import { ConceptMapEditorRoute } from "./routes/concept-map-editor.js";
+import { ConceptMapsRoute } from "./routes/concept-maps.js";
 import { ConceptMapsListRoute } from "./routes/concept-maps-list.js";
 import { ConfigureRoute } from "./routes/configure.js";
 import { CourseConceptsListRoute } from "./routes/course-concepts-list.js";
 import { CourseDetailRoute } from "./routes/course-detail.js";
 import { CourseMapRoute } from "./routes/course-map.js";
 import { LibraryRoute } from "./routes/library.js";
+import { ProgressRoute } from "./routes/progress.js";
 import { SettingsRoute } from "./routes/settings.js";
 import { NoteEditorPage } from "./routes/workspace/note-editor-page.js";
 import { WorkspaceRoute } from "./routes/workspace.js";
@@ -39,11 +40,10 @@ function RootLayout() {
   return (
     <div className={styles.layout}>
       <UpdateBanner />
-      <Nav />
+      <TopNav />
       <main className={styles.main}>
         <Outlet />
       </main>
-      <ActivityRail />
     </div>
   );
 }
@@ -154,6 +154,19 @@ const noteEditorRoute = createRoute({
   component: NoteEditorPage,
 });
 
+// Top-nav surface stubs — full implementations land in subsequent surface stories.
+const conceptMapsSurfaceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/concept-maps",
+  component: ConceptMapsRoute,
+});
+
+const progressRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/progress",
+  component: ProgressRoute,
+});
+
 const routeTree = rootRoute.addChildren([
   libraryRoute,
   libraryAliasRoute,
@@ -170,6 +183,8 @@ const routeTree = rootRoute.addChildren([
   configureRoute,
   workspaceRoute,
   noteEditorRoute,
+  conceptMapsSurfaceRoute,
+  progressRoute,
 ]);
 
 export const router = createRouter({ routeTree });

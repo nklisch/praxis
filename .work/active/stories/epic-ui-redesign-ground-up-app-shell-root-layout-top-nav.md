@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-root-layout-top-nav
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -57,3 +57,52 @@ See parent feature
 - Status strip (Story 2).
 - Tabs strip (Story 4).
 - Theme toggle (mounted by Story 3 + sibling backend-fills bundle).
+
+## Implementation notes
+
+### Files changed
+
+- `packages/ui/src/components/top-nav.tsx` — new `<TopNav>` component: wordmark
+  (italic serif, 22px, `--font-display`), five surface links with typographic
+  glyph ornaments (§ ¶ ‡ ‖ ⁂), right slot div for tabs+theme (empty; sibling
+  stories mount into it).
+- `packages/ui/src/components/top-nav.module.css` — running-head layout matching
+  `option-3.html` exactly: `padding: 18px 32px 12px`, `border-bottom: 1px solid
+  var(--color-border)`, serif nav links at 14px/500, accent hairline underline
+  on active.
+- `packages/ui/src/router.tsx` — replaced `<Nav>` + `<ActivityRail>` mount with
+  `<TopNav>`. ActivityRail removed from layout (being replaced by status strip in
+  Story 2; the ActivityRail component itself is not deleted).
+- `packages/ui/src/routes/concept-maps.tsx` — stub `<ConceptMapsRoute>` so
+  TanStack Router's type-safe `to="/concept-maps"` compiles. Full surface story
+  pending.
+- `packages/ui/src/routes/progress.tsx` — stub `<ProgressRoute>` for the same
+  reason. Full surface story pending.
+- `packages/ui/src/__tests__/top-nav.test.tsx` — 9 tests covering: wordmark,
+  nav accessible label, all 5 link labels, all 5 glyphs, link hrefs, and
+  active/inactive CSS class application.
+
+### Design fidelity
+
+Matched `option-3.html` running-head CSS verbatim (padding, gap, font specs,
+border style, hover/active transitions). The wordmark uses an `<em>` tag as in
+the mock (`<span class="wordmark"><em>Praxis</em></span>`). Glyph ornaments are
+`aria-hidden="true"` spans with `font-style: italic; color: var(--color-text-tertiary)`.
+
+### ActivityRail
+
+`<ActivityRail>` is no longer mounted in `RootLayout` — it was previously
+rendered below `<main>` and served as a blocking-modal ambient progress surface.
+Story 2 (status strip) replaces its function inline beneath the running head.
+The `activity-rail.tsx` component is not deleted; it is simply unmounted.
+
+### Route stubs
+
+Two new top-level routes (`/concept-maps`, `/progress`) are registered in the
+router tree and linked from the top-nav. They render minimal `<RouteHeader>`
+placeholders. These will be replaced by full surface implementations in
+downstream stories.
+
+### Tests
+
+All 390 test files pass; 9 new tests added for `<TopNav>`.
