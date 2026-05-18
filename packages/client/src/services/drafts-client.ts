@@ -5,11 +5,11 @@ import type {
 import type { ClientTransport } from "../transport/types.js";
 
 const C = {
-  streamBase: "praxis.bootstrap.drafts.events",
+  streamBase: "praxis.courseCreate.drafts.events",
 } as const;
 
 /**
- * Renderer-side client for the bootstrap-mode draft stream. `events()` opens
+ * Renderer-side client for the course-create-mode draft stream. `events()` opens
  * a persistent stream and returns each `DraftStreamEvent` as it arrives. The
  * server delivers a `snapshot` first so the renderer sees current state
  * immediately on subscribe.

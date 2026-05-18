@@ -76,8 +76,8 @@ function makeServices(
     setSelectedEngine: vi.fn(),
     engineConfig: vi.fn().mockResolvedValue({}),
     setEngineConfig: vi.fn(),
-    bootstrapConfig: vi.fn().mockResolvedValue({}),
-    setBootstrapConfig: vi.fn(),
+    courseCreateConfig: vi.fn().mockResolvedValue({}),
+    setCourseCreateConfig: vi.fn(),
     firstRunCompleted: vi.fn().mockResolvedValue(false),
     markFirstRunComplete: vi.fn().mockResolvedValue(undefined),
   };

@@ -169,6 +169,13 @@
       "when": 1747872000000,
       "tag": "0023_rename-bootstrap-mode-to-course-create",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1747958400000,
+      "tag": "0024_rename-bootstrap-config-key",
+      "breakpoints": true
     }
   ]
 }

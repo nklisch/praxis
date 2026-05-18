@@ -1,6 +1,6 @@
 import type {
-  BootstrapConfigSnapshot,
   ConfigService,
+  CourseCreateConfigSnapshot,
   EngineConfigSnapshot,
 } from "@praxis/core/types";
 import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
@@ -78,16 +78,16 @@ export class ConfigClient implements ConfigService {
     unwrapEnvelope(result);
   }
 
-  async bootstrapConfig(): Promise<BootstrapConfigSnapshot> {
+  async courseCreateConfig(): Promise<CourseCreateConfigSnapshot> {
     const result = await this.transport.invoke<
-      IpcEnvelope<BootstrapConfigSnapshot> | BootstrapConfigSnapshot
-    >(`${CHANNEL}.bootstrapConfig`);
+      IpcEnvelope<CourseCreateConfigSnapshot> | CourseCreateConfigSnapshot
+    >(`${CHANNEL}.courseCreateConfig`);
     return unwrapEnvelope(result);
   }
 
-  async setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void> {
+  async setCourseCreateConfig(config: CourseCreateConfigSnapshot): Promise<void> {
     const result = await this.transport.invoke<IpcEnvelope<void> | void>(
-      `${CHANNEL}.setBootstrapConfig`,
+      `${CHANNEL}.setCourseCreateConfig`,
       config,
     );
     unwrapEnvelope(result);

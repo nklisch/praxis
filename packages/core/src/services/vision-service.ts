@@ -24,7 +24,7 @@ export interface VisionServiceDeps {
  *
  * Resolves the active engine config at call time so engine swaps reflect
  * immediately (same pattern as `visionResolver` in services.ts, and as
- * BootstrapServiceImpl's engineResolver).
+ * CourseCreateServiceImpl's engineResolver).
  *
  * Each call to `describe` opens a fresh one-shot engine session — no state
  * is shared with the active tutoring EngineSession.

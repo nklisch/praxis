@@ -1,7 +1,7 @@
 /**
  * Tests for the course.get_lesson_detail tool handler.
  */
-import type { BootstrapService } from "@praxis/core/types";
+import type { CourseCreateService } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { getLessonDetailTool } from "../get-lesson-detail.js";
@@ -24,11 +24,11 @@ const DETAIL_FIXTURE = {
 
 describe("course.get_lesson_detail handler", () => {
   it("returns lesson detail on success", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       getLessonDetail: vi.fn().mockResolvedValue(DETAIL_FIXTURE),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 
@@ -48,11 +48,11 @@ describe("course.get_lesson_detail handler", () => {
   });
 
   it("uses ctx.draftId when args.draftId is not provided", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       getLessonDetail: vi.fn().mockResolvedValue(DETAIL_FIXTURE),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "ctx-draft",
     });
 
@@ -67,11 +67,11 @@ describe("course.get_lesson_detail handler", () => {
   });
 
   it("throws when draft or lesson does not exist — locks the throw-contract chosen over empty+warning to distinguish 'caller error' from 'legitimate empty state'", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       getLessonDetail: vi.fn().mockResolvedValue(null),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "d1",
     });
 
@@ -81,10 +81,10 @@ describe("course.get_lesson_detail handler", () => {
   });
 
   it("throws when no draftId is available", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       getLessonDetail: vi.fn(),
     };
-    const ctx = makeToolContext({ services: { bootstrap: bootstrap as BootstrapService } });
+    const ctx = makeToolContext({ services: { bootstrap: bootstrap as CourseCreateService } });
 
     await expect(
       getLessonDetailTool.handler(

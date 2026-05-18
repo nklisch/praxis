@@ -92,8 +92,8 @@ function makeServices(assignmentsOverrides: AssignmentsOverrides = {}) {
     engineConfig: vi.fn().mockResolvedValue({}),
     revealApiKey: vi.fn().mockResolvedValue({}),
     setEngineConfig: vi.fn().mockResolvedValue(undefined),
-    bootstrapConfig: vi.fn().mockResolvedValue({}),
-    setBootstrapConfig: vi.fn().mockResolvedValue(undefined),
+    courseCreateConfig: vi.fn().mockResolvedValue({}),
+    setCourseCreateConfig: vi.fn().mockResolvedValue(undefined),
     firstRunCompleted: vi.fn().mockResolvedValue(false),
     markFirstRunComplete: vi.fn().mockResolvedValue(undefined),
   };

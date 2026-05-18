@@ -9,7 +9,7 @@ import type {
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePraxisClient } from "../../context/client-context.js";
-import { useActiveBootstrapSession } from "../../hooks/use-active-bootstrap-session.js";
+import { useActiveCourseCreateSession } from "../../hooks/use-active-course-create-session.js";
 import { useResource } from "../../hooks/use-resource.js";
 import { COPY } from "../../lib/copy.js";
 import { openDocumentInTab } from "../../lib/open-document-in-tab.js";
@@ -197,7 +197,7 @@ export function DocumentsSection({
 }: DocumentsSectionProps) {
   const client = usePraxisClient();
   const navigate = useNavigate();
-  const activeBootstrapSessionId = useActiveBootstrapSession();
+  const activeBootstrapSessionId = useActiveCourseCreateSession();
 
   const [activeTab, setActiveTab] = useState<LibraryTab>("all");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);

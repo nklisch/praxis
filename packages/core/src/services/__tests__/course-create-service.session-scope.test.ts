@@ -12,7 +12,7 @@ import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
 import type { Engine, SessionId, StudentId } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
-import { BootstrapServiceImpl } from "../bootstrap-service.js";
+import { CourseCreateServiceImpl } from "../course-create-service.js";
 import { SqliteDraftStore } from "../draft-store.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-scope-test") as StudentId;
@@ -49,7 +49,7 @@ function makeService(documentScopes: ReturnType<typeof makeMockDocumentScopes>) 
   const { db } = openDb({ path: dbCtx.dbPath });
   const store = new SqliteDraftStore(db);
   return {
-    svc: new BootstrapServiceImpl({
+    svc: new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
@@ -63,7 +63,7 @@ function makeService(documentScopes: ReturnType<typeof makeMockDocumentScopes>) 
 
 /** Build a minimal valid draft with 1 concept, 1 lesson required for confirmDraft. */
 async function buildConfirmableDraft(
-  svc: BootstrapServiceImpl,
+  svc: CourseCreateServiceImpl,
   sessionId?: SessionId,
 ): Promise<string> {
   const { draftId } = await svc.initDraft({

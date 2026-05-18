@@ -12,7 +12,7 @@
  *  Test 4: High-mastery lesson 1, lesson 2 in-progress, interleave condition met →
  *           interleaves populated (mutual exclusion with reviews verified).
  *
- * Uses real DB (useTempDb) + PackImportServiceImpl + BootstrapServiceImpl +
+ * Uses real DB (useTempDb) + PackImportServiceImpl + CourseCreateServiceImpl +
  * MemoryServiceImpl. No LLM calls.
  */
 
@@ -23,7 +23,7 @@ import { openDb } from "@praxis/core/db";
 import { configKv } from "@praxis/core/schema";
 import {
   ArtifactsServiceImpl,
-  BootstrapServiceImpl,
+  CourseCreateServiceImpl,
   MemoryServiceImpl,
 } from "@praxis/core/services";
 import type {
@@ -149,7 +149,7 @@ async function setupCourse(db: ReturnType<typeof openDb>["db"]) {
 
   const imported = await importService.importPack(PACK_ID);
 
-  const bootstrapService = new BootstrapServiceImpl({
+  const bootstrapService = new CourseCreateServiceImpl({
     db,
     log: noopLogger(),
     engineResolver: () => new FakeEngine(),
@@ -242,7 +242,7 @@ function seedMastery(
 async function callCurrentConcept(
   db: ReturnType<typeof openDb>["db"],
   courseId: string,
-  bootstrapService: BootstrapServiceImpl,
+  bootstrapService: CourseCreateServiceImpl,
 ) {
   const memoryService = new MemoryServiceImpl({
     db,

@@ -29,8 +29,8 @@ import {
 import { app, ipcMain } from "electron";
 import { z } from "zod";
 import { registerActivityHandlers } from "./activity-channel.js";
-import { registerBootstrapDraftsHandlers } from "./bootstrap-drafts-channel.js";
 import { registerCitationsHandlers } from "./citations-channel.js";
+import { registerCourseCreateDraftsHandlers } from "./course-create-drafts-channel.js";
 import { registerDocumentScopesHandlers } from "./document-scopes-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
@@ -317,19 +317,19 @@ export function registerIpcHandlers(
   );
 
   handle(
-    "praxis.config.bootstrapConfig",
-    wrapEnvelope("praxis.config.bootstrapConfig", log, async () =>
-      services.config.bootstrapConfig(),
+    "praxis.config.courseCreateConfig",
+    wrapEnvelope("praxis.config.courseCreateConfig", log, async () =>
+      services.config.courseCreateConfig(),
     ),
   );
 
   handle(
-    "praxis.config.setBootstrapConfig",
+    "praxis.config.setCourseCreateConfig",
     handleEnvelope(
-      "praxis.config.setBootstrapConfig",
+      "praxis.config.setCourseCreateConfig",
       log,
       z.object({ maxSteps: z.number().int().positive() }),
-      async (cfg) => services.config.setBootstrapConfig(cfg),
+      async (cfg) => services.config.setCourseCreateConfig(cfg),
     ),
   );
 
@@ -2012,7 +2012,7 @@ export function registerIpcHandlers(
 
   // ── Bootstrap-mode draft stream ──────────────────────────────────────────────
 
-  registerBootstrapDraftsHandlers(services, webContentsGetter, activeAbortControllers, log);
+  registerCourseCreateDraftsHandlers(services, webContentsGetter, activeAbortControllers, log);
 
   // ── Phase 17: QuickCheck ──────────────────────────────────────────────────────
 
@@ -2054,7 +2054,7 @@ export function registerIpcHandlers(
     ipcMain.removeAllListeners("praxis.memory.episodic.cancel");
     ipcMain.removeAllListeners("praxis.auth.claude.login.cancel");
     ipcMain.removeAllListeners("praxis.activity.events.cancel");
-    ipcMain.removeAllListeners("praxis.bootstrap.drafts.events.cancel");
+    ipcMain.removeAllListeners("praxis.courseCreate.drafts.events.cancel");
     ipcMain.removeAllListeners("praxis.quickCheck.events.cancel");
     for (const ctrl of activeAbortControllers.values()) {
       ctrl.abort();

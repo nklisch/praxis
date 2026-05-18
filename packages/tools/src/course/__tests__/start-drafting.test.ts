@@ -5,13 +5,13 @@
  *   - When ctx.callId is defined, subAgent.start() is called.
  *   - When ctx.callId is absent (undefined), subAgent.start() must NOT be called.
  *
- * Uses a real BootstrapServiceImpl with an in-memory temp DB and an inline
+ * Uses a real CourseCreateServiceImpl with an in-memory temp DB and an inline
  * scripted engine — the same approach used by the explorer unit tests in
  * packages/curriculum/src/bootstrap/__tests__/explorer.test.ts.
  */
 
 import { openDb } from "@praxis/core/db";
-import { BootstrapServiceImpl } from "@praxis/core/services";
+import { CourseCreateServiceImpl } from "@praxis/core/services";
 import type {
   Engine,
   EngineEvent,
@@ -50,8 +50,8 @@ const MOCK_DOCUMENT_SCOPES = {
   listOrphaned: vi.fn().mockResolvedValue([]),
 };
 
-function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
-  return new BootstrapServiceImpl({
+function makeCourseCreateService(db: ReturnType<typeof openDb>["db"]) {
+  return new CourseCreateServiceImpl({
     db,
     log: MOCK_LOG,
     engineResolver: () => {
@@ -147,7 +147,7 @@ describe("course.start_drafting handler — sub-agent registration guard", () =>
 
   it("does not call subAgent.start() when ctx.callId is absent", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const engine = makeMinimalScriptedEngine();
     const { registry, startSpy } = makeSpySubAgentRegistry();
 
@@ -160,7 +160,7 @@ describe("course.start_drafting handler — sub-agent registration guard", () =>
         documentScopes: MOCK_DOCUMENT_SCOPES,
         pedagogyPack: makeEmptyPedagogyPackService(),
         engineResolver: () => engine,
-        bootstrapConfigResolver: () => ({ maxSteps: 200 }),
+        courseCreateConfigResolver: () => ({ maxSteps: 200 }),
       },
       log: MOCK_LOG,
     });
@@ -193,7 +193,7 @@ describe("course.start_drafting handler — sub-agent registration guard", () =>
 
   it("calls subAgent.start() when ctx.callId is present", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const engine = makeMinimalScriptedEngine();
     const { registry, startSpy } = makeSpySubAgentRegistry();
 
@@ -206,7 +206,7 @@ describe("course.start_drafting handler — sub-agent registration guard", () =>
           documentScopes: MOCK_DOCUMENT_SCOPES,
           pedagogyPack: makeEmptyPedagogyPackService(),
           engineResolver: () => engine,
-          bootstrapConfigResolver: () => ({ maxSteps: 200 }),
+          courseCreateConfigResolver: () => ({ maxSteps: 200 }),
         },
         log: MOCK_LOG,
       }),
@@ -242,7 +242,7 @@ describe("course.start_drafting handler — session-scope attach", () => {
 
   it("attaches documentIds to session scope before spawning the explorer", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const engine = makeMinimalScriptedEngine();
     const { registry } = makeSpySubAgentRegistry();
 
@@ -261,7 +261,7 @@ describe("course.start_drafting handler — session-scope attach", () => {
         documentScopes,
         pedagogyPack: makeEmptyPedagogyPackService(),
         engineResolver: () => engine,
-        bootstrapConfigResolver: () => ({ maxSteps: 200 }),
+        courseCreateConfigResolver: () => ({ maxSteps: 200 }),
       },
       log: MOCK_LOG,
     });
@@ -292,7 +292,7 @@ describe("course.start_drafting handler — session-scope attach", () => {
 
   it("skips attachMany when documentIds is empty", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const engine = makeMinimalScriptedEngine();
     const { registry } = makeSpySubAgentRegistry();
 
@@ -310,7 +310,7 @@ describe("course.start_drafting handler — session-scope attach", () => {
         documentScopes,
         pedagogyPack: makeEmptyPedagogyPackService(),
         engineResolver: () => engine,
-        bootstrapConfigResolver: () => ({ maxSteps: 200 }),
+        courseCreateConfigResolver: () => ({ maxSteps: 200 }),
       },
       log: MOCK_LOG,
     });

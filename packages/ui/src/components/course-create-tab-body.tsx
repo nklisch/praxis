@@ -1,5 +1,5 @@
 /**
- * Bootstrap mode tab body — Canvas + Side Chat layout.
+ * Course-create mode tab body — Canvas + Side Chat layout.
  *
  * Two-column layout per the locked mode-course-create.html mock:
  *   - Left (flex 1): draft canvas — live preview of units, lessons, and
@@ -35,30 +35,30 @@ import { useNavigate } from "@tanstack/react-router";
 import { type ChangeEvent, type JSX, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import {
-  BOOTSTRAP_BUDGET_MAX,
-  BOOTSTRAP_BUDGET_MIN,
-  useBootstrapBudget,
-} from "../hooks/use-bootstrap-budget.js";
+  COURSE_CREATE_BUDGET_MAX,
+  COURSE_CREATE_BUDGET_MIN,
+  useCourseCreateBudget,
+} from "../hooks/use-course-create-budget.js";
 import { useDrafts } from "../hooks/use-drafts.js";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import { AuthoringChatPane } from "./authoring-chat-pane.js";
-import styles from "./bootstrap-tab-body.module.css";
+import styles from "./course-create-tab-body.module.css";
 import { LessonAssessmentPills } from "./lesson-assessment-pills.js";
 import { LibraryDocumentPicker } from "./library-document-picker.js";
 import { SessionHead } from "./session-head.js";
 
-export interface BootstrapTabBodyProps {
+export interface CourseCreateTabBodyProps {
   tab: SessionTabSummary;
 }
 
 /**
- * Bootstrap mode body: draft canvas on left, authoring chat on right.
+ * Course-create mode body: draft canvas on left, authoring chat on right.
  *
  * The canvas updates in real time via the draft stream.  The chat pane is
  * `<AuthoringChatPane mode="course-create">` which handles tool-call entries and
  * inline sub-agent blocks — no additional wiring needed here.
  */
-export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
+export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
   const { current } = useDrafts();
@@ -316,7 +316,7 @@ function LessonRow({ lesson, index, assessments, unitIndex }: LessonRowProps): J
  * Clamped client-side and again server-side by Zod.
  */
 function BudgetField(): JSX.Element {
-  const { maxSteps, saving, setMaxSteps } = useBootstrapBudget();
+  const { maxSteps, saving, setMaxSteps } = useCourseCreateBudget();
   const [draft, setDraft] = useState<string>("");
 
   // Sync local draft string when the loaded value arrives or changes externally.
@@ -343,8 +343,8 @@ function BudgetField(): JSX.Element {
       <input
         type="number"
         className={styles.budgetInput}
-        min={BOOTSTRAP_BUDGET_MIN}
-        max={BOOTSTRAP_BUDGET_MAX}
+        min={COURSE_CREATE_BUDGET_MIN}
+        max={COURSE_CREATE_BUDGET_MAX}
         step={1}
         value={draft}
         disabled={maxSteps === null || saving}
@@ -354,7 +354,7 @@ function BudgetField(): JSX.Element {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
         aria-label="Course-design budget"
-        title={`Tool-call budget for the course-design sub-agent (${BOOTSTRAP_BUDGET_MIN}–${BOOTSTRAP_BUDGET_MAX} steps).`}
+        title={`Tool-call budget for the course-design sub-agent (${COURSE_CREATE_BUDGET_MIN}–${COURSE_CREATE_BUDGET_MAX} steps).`}
       />
       steps
     </label>

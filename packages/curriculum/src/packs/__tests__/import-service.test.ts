@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { courses, lessons } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
-import { BootstrapServiceImpl } from "@praxis/core/services";
+import { CourseCreateServiceImpl } from "@praxis/core/services";
 import { brandId } from "@praxis/core/types";
 import { concepts } from "@praxis/curriculum/schema";
 import { eq } from "drizzle-orm";
@@ -359,7 +359,7 @@ describe("PackImportServiceImpl", () => {
       const { conceptGraphId } = await svc.importPack("biology");
 
       const { db } = openDb({ path: ctx.dbPath });
-      const bootstrap = new BootstrapServiceImpl({
+      const bootstrap = new CourseCreateServiceImpl({
         db,
         log: noopLog,
         engineResolver: () => {

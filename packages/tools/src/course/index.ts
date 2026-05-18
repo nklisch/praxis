@@ -1,5 +1,5 @@
 // Note: `startDraftingTool` is intentionally NOT re-exported from this
-// barrel. It imports `runConceptDrafter` from `@praxis/curriculum/bootstrap`,
+// barrel. It imports `runConceptDrafter` from `@praxis/curriculum/course-create`,
 // which makes any consumer that grabs it via this barrel pull in curriculum —
 // and curriculum's own tests then load `@praxis/tools/course` while it's
 // already partially loaded, leaving some tool bindings undefined.

@@ -1,8 +1,8 @@
 /**
- * Tests for useActiveBootstrapSession.
+ * Tests for useActiveCourseCreateSession.
  *
  * The hook reads open tabs from useTabs() and returns the sessionId of the
- * first bootstrap session tab, or null when none exists.
+ * first course-create session tab, or null when none exists.
  */
 import type {
   DocumentTabSummary,
@@ -36,7 +36,7 @@ vi.mock("../use-tabs.js", () => ({
 }));
 
 // Import after mock registration.
-const { useActiveBootstrapSession } = await import("../use-active-bootstrap-session.js");
+const { useActiveCourseCreateSession } = await import("../use-active-course-create-session.js");
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ function setTabs(tabs: TabSummary[], activeTabId: TabId | null = null): void {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe("useActiveBootstrapSession", () => {
+describe("useActiveCourseCreateSession", () => {
   beforeEach(() => {
     mockUseTabsReturn.openTabs = [];
     mockUseTabsReturn.activeTabId = null;
@@ -84,63 +84,63 @@ describe("useActiveBootstrapSession", () => {
 
   it("returns null when no tabs are open", () => {
     setTabs([]);
-    const { result } = renderHook(() => useActiveBootstrapSession());
+    const { result } = renderHook(() => useActiveCourseCreateSession());
     expect(result.current).toBeNull();
   });
 
   it("returns null when only teach-mode tabs are open", () => {
     setTabs([makeSessionTab({ modeId: "teach" })]);
-    const { result } = renderHook(() => useActiveBootstrapSession());
+    const { result } = renderHook(() => useActiveCourseCreateSession());
     expect(result.current).toBeNull();
   });
 
   it("returns null when only document tabs are open", () => {
     setTabs([makeDocumentTab()]);
-    const { result } = renderHook(() => useActiveBootstrapSession());
+    const { result } = renderHook(() => useActiveCourseCreateSession());
     expect(result.current).toBeNull();
   });
 
-  it("returns the sessionId of the bootstrap tab", () => {
-    const bootSession = brandId<"SessionId">("boot-session");
+  it("returns the sessionId of the course-create tab", () => {
+    const courseCreateSession = brandId<"SessionId">("course-create-session");
     setTabs([
       makeSessionTab({
-        id: brandId<"TabId">("tab-boot"),
-        sessionId: bootSession,
+        id: brandId<"TabId">("tab-course-create"),
+        sessionId: courseCreateSession,
         modeId: "course-create",
       }),
     ]);
-    const { result } = renderHook(() => useActiveBootstrapSession());
-    expect(result.current).toBe(bootSession);
+    const { result } = renderHook(() => useActiveCourseCreateSession());
+    expect(result.current).toBe(courseCreateSession);
   });
 
-  it("returns the first bootstrap sessionId when multiple tabs are open", () => {
-    const firstBoot = brandId<"SessionId">("boot-first");
-    const secondBoot = brandId<"SessionId">("boot-second");
+  it("returns the first course-create sessionId when multiple tabs are open", () => {
+    const firstSession = brandId<"SessionId">("course-create-first");
+    const secondSession = brandId<"SessionId">("course-create-second");
     setTabs([
       makeSessionTab({ modeId: "teach" }),
       makeSessionTab({
-        id: brandId<"TabId">("tab-boot-1"),
-        sessionId: firstBoot,
+        id: brandId<"TabId">("tab-cc-1"),
+        sessionId: firstSession,
         modeId: "course-create",
         sortOrder: 1,
       }),
       makeSessionTab({
-        id: brandId<"TabId">("tab-boot-2"),
-        sessionId: secondBoot,
+        id: brandId<"TabId">("tab-cc-2"),
+        sessionId: secondSession,
         modeId: "course-create",
         sortOrder: 2,
       }),
     ]);
-    const { result } = renderHook(() => useActiveBootstrapSession());
-    expect(result.current).toBe(firstBoot);
+    const { result } = renderHook(() => useActiveCourseCreateSession());
+    expect(result.current).toBe(firstSession);
   });
 
-  it("returns null when tabs include quiz, homework, exam but no bootstrap", () => {
+  it("returns null when tabs include quiz, homework, exam but no course-create", () => {
     setTabs([
       makeSessionTab({ modeId: "quiz" }),
       makeSessionTab({ id: brandId<"TabId">("tab-2"), modeId: "homework", sortOrder: 1 }),
     ]);
-    const { result } = renderHook(() => useActiveBootstrapSession());
+    const { result } = renderHook(() => useActiveCourseCreateSession());
     expect(result.current).toBeNull();
   });
 });

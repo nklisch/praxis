@@ -112,7 +112,7 @@ export interface RunConceptDrafterResult {
  *   - On a fatal stream error: `ok: false, reason: "engine_error"`.
  *
  * There is no separate "finalize" step. Validation runs inside
- * `BootstrapServiceImpl.confirmDraft` so the tutor sees structured issues at
+ * `CourseCreateServiceImpl.confirmDraft` so the tutor sees structured issues at
  * confirm time rather than via a separate ritual.
  */
 export async function runConceptDrafter(

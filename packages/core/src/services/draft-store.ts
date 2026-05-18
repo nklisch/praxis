@@ -4,7 +4,7 @@ import { drafts } from "../schema.js";
 import type { DraftCourseState, StudentId } from "../types/index.js";
 
 /**
- * Port: durable CRUD over the bootstrap draft store. BootstrapServiceImpl
+ * Port: durable CRUD over the course-create draft store. CourseCreateServiceImpl
  * stays the owner of mutation logic (pure functions on DraftCourseState);
  * this port handles the read/write halves so the service can be a thin
  * read-mutate-write wrapper rather than a stateful Map.

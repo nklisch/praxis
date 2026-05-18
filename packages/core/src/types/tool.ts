@@ -177,8 +177,8 @@ export interface ToolServices {
   sympy: SymPyService; // ← Phase 4
   embeddings: EmbeddingService; // ← Phase 5
   documents: DocumentsReader; // ← Phase 5
-  /** Phase 6: bootstrap draft management. */
-  bootstrap: BootstrapService;
+  /** Phase 6: course-create draft management. */
+  bootstrap: CourseCreateService;
   /** Phase 6: narrow read-only course state for tools and brief composition. */
   courseState: CourseStateReader;
   /**
@@ -221,7 +221,7 @@ export interface ToolServices {
    * `course.start_drafting`. Optional so test stubs that don't exercise
    * the bootstrap path don't need to wire it.
    */
-  bootstrapConfigResolver?: () => { maxSteps: number };
+  courseCreateConfigResolver?: () => { maxSteps: number };
   /**
    * Activity registry for ambient progress reporting via the activity rail.
    * Optional so tools that don't need it and test stubs stay simple.
@@ -827,7 +827,7 @@ export interface ConceptStateRow {
   lessonId: LessonId;
 }
 
-// ─── Phase 6: BootstrapService ────────────────────────────────────────────────
+// ─── Phase 6: CourseCreateService ─────────────────────────────────────────────
 
 /** Issue returned by finalizeDraft validation. */
 export interface DraftIssue {
@@ -835,7 +835,7 @@ export interface DraftIssue {
   message: string;
 }
 
-export interface BootstrapService {
+export interface CourseCreateService {
   // ── Phase 16: incremental draft mutations ──────────────────────���─────────────
 
   /** Create an empty draft and return its id. */
@@ -1023,7 +1023,7 @@ export interface BootstrapService {
 
 // ─── Chunked-query return types ───────────────────────────────────────────────
 
-/** One entry in the list returned by `BootstrapService.listUnits`. */
+/** One entry in the list returned by `CourseCreateService.listUnits`. */
 export interface UnitListEntry {
   draftUnitId: string;
   name: string;
@@ -1032,7 +1032,7 @@ export interface UnitListEntry {
   hasSummative: boolean;
 }
 
-/** Result of `BootstrapService.listLessonsInUnit`. */
+/** Result of `CourseCreateService.listLessonsInUnit`. */
 export interface LessonsInUnit {
   draftUnitId: string;
   unitName: string;
@@ -1044,7 +1044,7 @@ export interface LessonsInUnit {
   }>;
 }
 
-/** Result of `BootstrapService.getLessonDetail`. */
+/** Result of `CourseCreateService.getLessonDetail`. */
 export interface LessonDetail {
   draftLessonId: string;
   title: string;
@@ -1059,7 +1059,7 @@ export interface LessonDetail {
   parentUnit: { draftUnitId: string; name: string } | null;
 }
 
-/** Result of `BootstrapService.listDanglingRefs`. */
+/** Result of `CourseCreateService.listDanglingRefs`. */
 export interface DanglingRefsReport {
   orphanConcepts: string[];
   danglingUnitMemberships: Array<{

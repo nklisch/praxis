@@ -727,7 +727,7 @@ export interface ProposedLesson {
 }
 
 /**
- * In-memory draft state held by BootstrapService. Identifies the draft and
+ * In-memory draft state held by CourseCreateService. Identifies the draft and
  * carries the editable shape the user is iterating on.
  */
 export interface DraftCourseState {

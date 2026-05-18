@@ -64,8 +64,8 @@ function buildClient(opts?: {
       setEngineConfig: vi.fn(async (cfg: { engineId: string; apiKey?: string }) => {
         await opts?.setEngineConfigSpy?.(cfg);
       }),
-      bootstrapConfig: vi.fn(),
-      setBootstrapConfig: vi.fn(),
+      courseCreateConfig: vi.fn(),
+      setCourseCreateConfig: vi.fn(),
       firstRunCompleted: vi.fn().mockResolvedValue(false),
       markFirstRunComplete: vi.fn(),
     } as unknown as PraxisClient["config"],

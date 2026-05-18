@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-4-service-and-ipc
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, naming, ipc, db-migration]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: [refactor-rename-step-3-mode-id]
@@ -188,6 +188,22 @@ UPDATE config_kv SET key = 'course_create' WHERE key = 'bootstrap';
   renderer must agree in the same commit.
 - Patterns to consult: `ipc-channel-convention`, `per-domain-channel-module`,
   `subscriber-fanout-stream` (drafts channel uses this).
+
+### What was done
+
+- `packages/curriculum/src/bootstrap/` → `packages/curriculum/src/course-create/` via `git mv`; package.json subpath `"./bootstrap"` → `"./course-create"`.
+- `packages/core/src/config/bootstrap-config.ts` → `course-create-config.ts`; all symbols renamed (`COURSE_CREATE_CONFIG_KEY = "course-create"`, `CourseCreateConfig`, `CourseCreateConfigSchema`, `DEFAULT_COURSE_CREATE_CONFIG`, `readCourseCreateConfig`, `writeCourseCreateConfig`).
+- `packages/core/src/services/bootstrap-service.ts` → `course-create-service.ts`; `BootstrapServiceImpl` → `CourseCreateServiceImpl`, `BootstrapServiceDeps` → `CourseCreateServiceDeps`.
+- `BootstrapService` port in `packages/core/src/types/tool.ts` → `CourseCreateService`.
+- `BootstrapConfigSnapshot` in `packages/core/src/types/client.ts` → `CourseCreateConfigSnapshot`; `ConfigService.bootstrapConfig()/setBootstrapConfig()` → `courseCreateConfig()/setCourseCreateConfig()`.
+- `packages/desktop/electron/main/bootstrap-drafts-channel.ts` → `course-create-drafts-channel.ts`; IPC channel `praxis.bootstrap.drafts.events.*` → `praxis.courseCreate.drafts.events.*`.
+- `packages/client/src/services/config-client.ts` and `drafts-client.ts` updated with new method/channel names.
+- UI: `use-active-bootstrap-session.ts` → `use-active-course-create-session.ts`, `use-bootstrap-budget.ts` → `use-course-create-budget.ts`, `bootstrap-tab-body.tsx/.css` → `course-create-tab-body.tsx/.css`.
+- `bootstrapConfigResolver` field renamed to `courseCreateConfigResolver` in `ServiceDeps`, `ToolContext`, `session-service.ts`, `services.ts`, and all consumers.
+- Migration `drizzle/0024_rename-bootstrap-config-key.sql` created: `UPDATE config_kv SET key = 'course-create' WHERE key = 'bootstrap';`.
+- All tests in `packages/tools/`, `packages/curriculum/`, `packages/ui/`, `packages/core/`, `packages/desktop/`, and root `tests/` updated.
+- `pnpm build`, `pnpm test` (4481 passed), `pnpm typecheck` (pre-existing desktop `exactOptionalPropertyTypes` errors unchanged) all pass.
+- Remaining pre-existing lint issues in `ipc-server.ts` (`noExplicitAny` suppression) and `chat-tab-body.tsx` (`suppressions/unused`) unchanged from baseline.
 
 ## Acceptance Criteria
 

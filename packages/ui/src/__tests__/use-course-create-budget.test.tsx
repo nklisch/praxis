@@ -1,10 +1,10 @@
 /**
- * Tests for useBootstrapBudget hook.
+ * Tests for useCourseCreateBudget hook.
  *
  * Verifies:
  * - Loads the current config on mount.
  * - setMaxSteps writes through and clamps to [MIN, MAX].
- * - setMaxSteps reverts maxSteps if the underlying setBootstrapConfig rejects.
+ * - setMaxSteps reverts maxSteps if the underlying setCourseCreateConfig rejects.
  * - Floor of fractional values to integers before writing.
  */
 import type { PraxisClient } from "@praxis/core/types";
@@ -13,10 +13,10 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import {
-  BOOTSTRAP_BUDGET_MAX,
-  BOOTSTRAP_BUDGET_MIN,
-  useBootstrapBudget,
-} from "../hooks/use-bootstrap-budget.js";
+  COURSE_CREATE_BUDGET_MAX,
+  COURSE_CREATE_BUDGET_MIN,
+  useCourseCreateBudget,
+} from "../hooks/use-course-create-budget.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
@@ -35,8 +35,8 @@ function makeClient(opts?: {
       setSelectedEngine: vi.fn(),
       engineConfig: vi.fn(),
       setEngineConfig: vi.fn(),
-      bootstrapConfig: vi.fn().mockResolvedValue({ maxSteps: initial }),
-      setBootstrapConfig: vi.fn(async (next: { maxSteps: number }) => {
+      courseCreateConfig: vi.fn().mockResolvedValue({ maxSteps: initial }),
+      setCourseCreateConfig: vi.fn(async (next: { maxSteps: number }) => {
         await opts?.setSpy?.(next);
       }),
     } as unknown as PraxisClient["config"],
@@ -49,10 +49,10 @@ function wrapper(client: PraxisClient) {
   );
 }
 
-describe("useBootstrapBudget", () => {
+describe("useCourseCreateBudget", () => {
   it("loads the current value on mount", async () => {
     const client = makeClient({ initial: 75 });
-    const { result } = renderHook(() => useBootstrapBudget(), { wrapper: wrapper(client) });
+    const { result } = renderHook(() => useCourseCreateBudget(), { wrapper: wrapper(client) });
     await waitFor(() => expect(result.current.maxSteps).toBe(75));
     expect(result.current.error).toBeNull();
   });
@@ -60,7 +60,7 @@ describe("useBootstrapBudget", () => {
   it("setMaxSteps writes through and updates local state optimistically", async () => {
     const setSpy = vi.fn();
     const client = makeClient({ initial: 200, setSpy });
-    const { result } = renderHook(() => useBootstrapBudget(), { wrapper: wrapper(client) });
+    const { result } = renderHook(() => useCourseCreateBudget(), { wrapper: wrapper(client) });
     await waitFor(() => expect(result.current.maxSteps).toBe(200));
 
     await act(async () => {
@@ -74,35 +74,35 @@ describe("useBootstrapBudget", () => {
   it("clamps values above the ceiling", async () => {
     const setSpy = vi.fn();
     const client = makeClient({ initial: 200, setSpy });
-    const { result } = renderHook(() => useBootstrapBudget(), { wrapper: wrapper(client) });
+    const { result } = renderHook(() => useCourseCreateBudget(), { wrapper: wrapper(client) });
     await waitFor(() => expect(result.current.maxSteps).toBe(200));
 
     await act(async () => {
       await result.current.setMaxSteps(9999);
     });
 
-    expect(result.current.maxSteps).toBe(BOOTSTRAP_BUDGET_MAX);
-    expect(setSpy).toHaveBeenCalledWith({ maxSteps: BOOTSTRAP_BUDGET_MAX });
+    expect(result.current.maxSteps).toBe(COURSE_CREATE_BUDGET_MAX);
+    expect(setSpy).toHaveBeenCalledWith({ maxSteps: COURSE_CREATE_BUDGET_MAX });
   });
 
   it("clamps values below the floor", async () => {
     const setSpy = vi.fn();
     const client = makeClient({ initial: 200, setSpy });
-    const { result } = renderHook(() => useBootstrapBudget(), { wrapper: wrapper(client) });
+    const { result } = renderHook(() => useCourseCreateBudget(), { wrapper: wrapper(client) });
     await waitFor(() => expect(result.current.maxSteps).toBe(200));
 
     await act(async () => {
       await result.current.setMaxSteps(-5);
     });
 
-    expect(result.current.maxSteps).toBe(BOOTSTRAP_BUDGET_MIN);
-    expect(setSpy).toHaveBeenCalledWith({ maxSteps: BOOTSTRAP_BUDGET_MIN });
+    expect(result.current.maxSteps).toBe(COURSE_CREATE_BUDGET_MIN);
+    expect(setSpy).toHaveBeenCalledWith({ maxSteps: COURSE_CREATE_BUDGET_MIN });
   });
 
   it("floors fractional values before writing", async () => {
     const setSpy = vi.fn();
     const client = makeClient({ initial: 200, setSpy });
-    const { result } = renderHook(() => useBootstrapBudget(), { wrapper: wrapper(client) });
+    const { result } = renderHook(() => useCourseCreateBudget(), { wrapper: wrapper(client) });
     await waitFor(() => expect(result.current.maxSteps).toBe(200));
 
     await act(async () => {
@@ -113,10 +113,10 @@ describe("useBootstrapBudget", () => {
     expect(setSpy).toHaveBeenCalledWith({ maxSteps: 99 });
   });
 
-  it("reverts maxSteps and surfaces error when setBootstrapConfig rejects", async () => {
+  it("reverts maxSteps and surfaces error when setCourseCreateConfig rejects", async () => {
     const setSpy = vi.fn().mockRejectedValue(new Error("write failed"));
     const client = makeClient({ initial: 200, setSpy });
-    const { result } = renderHook(() => useBootstrapBudget(), { wrapper: wrapper(client) });
+    const { result } = renderHook(() => useCourseCreateBudget(), { wrapper: wrapper(client) });
     await waitFor(() => expect(result.current.maxSteps).toBe(200));
 
     await act(async () => {

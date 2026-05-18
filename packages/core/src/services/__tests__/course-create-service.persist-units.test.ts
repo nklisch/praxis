@@ -1,5 +1,5 @@
 /**
- * Integration tests for BootstrapServiceImpl.confirmDraft — Phase 16 unit +
+ * Integration tests for CourseCreateServiceImpl.confirmDraft — Phase 16 unit +
  * assessment materialisation.
  *
  * Uses a real temp DB (via useTempDb) to verify all rows are created correctly.
@@ -18,7 +18,7 @@ import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
 import type { AssessmentPlan, Engine, Timestamp } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
-import { BootstrapServiceImpl } from "../bootstrap-service.js";
+import { CourseCreateServiceImpl } from "../course-create-service.js";
 import { SqliteDraftStore } from "../draft-store.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-persist-units");
@@ -48,13 +48,13 @@ function makeEngine(): Engine {
 
 // ─── DB persistence tests ─────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
+describe("CourseCreateServiceImpl.confirmDraft — units + assessments", () => {
   const dbCtx = useTempDb();
 
   it("materialises course_units, lesson_units, and assessment shells", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const store = new SqliteDraftStore(db);
-    const svc = new BootstrapServiceImpl({
+    const svc = new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
@@ -193,7 +193,7 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
 
   it("materialises nothing extra when no units or assessments in draft", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const svc = new BootstrapServiceImpl({
+    const svc = new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
@@ -237,7 +237,7 @@ describe("BootstrapServiceImpl.confirmDraft — units + assessments", () => {
     // discriminated-union shape rather than a throw.
     const { db } = openDb({ path: dbCtx.dbPath });
     const store = new SqliteDraftStore(db);
-    const svc = new BootstrapServiceImpl({
+    const svc = new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,

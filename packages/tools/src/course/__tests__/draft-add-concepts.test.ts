@@ -2,7 +2,7 @@
  * Unit tests for course.draft_add_concepts (batch) tool handler.
  * Verifies happy path, partial failure, draftId resolution, and per-item ordering.
  */
-import type { BootstrapService } from "@praxis/core/types";
+import type { CourseCreateService } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { draftAddConceptsTool } from "../draft-add-concepts.js";
@@ -10,14 +10,14 @@ import { draftAddConceptsTool } from "../draft-add-concepts.js";
 describe("course.draft_add_concepts handler", () => {
   it("happy path — every concept added, ok:true, results in order", async () => {
     let count = 0;
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       addConcept: vi.fn().mockImplementation(async () => {
         count++;
         return { ok: true, conceptCount: count };
       }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 
@@ -42,7 +42,7 @@ describe("course.draft_add_concepts handler", () => {
 
   it("partial failure — duplicates surface as per-item ok:false without aborting", async () => {
     let count = 0;
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       addConcept: vi.fn().mockImplementation(async (input: { name: string }) => {
         if (input.name === "Equations") {
           return { ok: false, reason: 'concept "Equations" already exists' };
@@ -52,7 +52,7 @@ describe("course.draft_add_concepts handler", () => {
       }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 
@@ -80,8 +80,8 @@ describe("course.draft_add_concepts handler", () => {
   });
 
   it("returns per-item failures when no draftId available", async () => {
-    const bootstrap: Partial<BootstrapService> = { addConcept: vi.fn() };
-    const ctx = makeToolContext({ services: { bootstrap: bootstrap as BootstrapService } });
+    const bootstrap: Partial<CourseCreateService> = { addConcept: vi.fn() };
+    const ctx = makeToolContext({ services: { bootstrap: bootstrap as CourseCreateService } });
 
     const result = await draftAddConceptsTool.handler(
       {
@@ -101,11 +101,11 @@ describe("course.draft_add_concepts handler", () => {
   });
 
   it("uses args.draftId over ctx.draftId when both provided", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       addConcept: vi.fn().mockResolvedValue({ ok: true, conceptCount: 1 }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "ctx-draft",
     });
 

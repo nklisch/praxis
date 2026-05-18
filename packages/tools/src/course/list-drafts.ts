@@ -33,7 +33,7 @@ export const listDraftsTool: ToolDefinition<typeof InputSchema, typeof OutputSch
   effects: ["none"],
   async handler(_args, ctx: ToolContext): Promise<z.infer<typeof OutputSchema>> {
     const drafts = ctx.services.bootstrap.listActiveForStudent(ctx.studentId);
-    // Already ordered DESC by lastTouchedAt per BootstrapService contract.
+    // Already ordered DESC by lastTouchedAt per CourseCreateService contract.
     return { drafts: drafts.map(toDraftListing) };
   },
 };

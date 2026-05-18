@@ -1,8 +1,8 @@
 /**
  * Unit tests for course.list_drafts — the projection (pure function) plus a
- * thin handler test using a fake BootstrapService.
+ * thin handler test using a fake CourseCreateService.
  */
-import type { BootstrapService, DraftCourseState, Timestamp } from "@praxis/core/types";
+import type { CourseCreateService, DraftCourseState, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
@@ -113,11 +113,11 @@ describe("toDraftListing — projection", () => {
 
 describe("listDraftsTool — handler", () => {
   it("returns drafts: [] when no active drafts exist", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       listActiveForStudent: vi.fn().mockReturnValue([]),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       studentId: STUDENT,
     });
     const result = await listDraftsTool.handler({}, ctx);
@@ -126,11 +126,11 @@ describe("listDraftsTool — handler", () => {
   });
 
   it("projects each draft through toDraftListing", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       listActiveForStudent: vi.fn().mockReturnValue([makeDraft({ draftId: "abc" })]),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       studentId: STUDENT,
     });
     const result = await listDraftsTool.handler({}, ctx);

@@ -20,7 +20,7 @@ import { openDb } from "@praxis/core/db";
 import { configKv } from "@praxis/core/schema";
 import {
   ArtifactsServiceImpl,
-  BootstrapServiceImpl,
+  CourseCreateServiceImpl,
   MemoryServiceImpl,
 } from "@praxis/core/services";
 import type {
@@ -238,7 +238,7 @@ describe("pack-import end-to-end", () => {
 
     const imported = await importService.importPack(PACK_ID);
 
-    const bootstrapService = new BootstrapServiceImpl({
+    const bootstrapService = new CourseCreateServiceImpl({
       db,
       log: noopLogger(),
       engineResolver: () => new FakeEngine(),
@@ -302,7 +302,7 @@ describe("pack-import end-to-end", () => {
 
     const imported = await importService.importPack(PACK_ID);
 
-    const bootstrapService = new BootstrapServiceImpl({
+    const bootstrapService = new CourseCreateServiceImpl({
       db,
       log: noopLogger(),
       engineResolver: () => new FakeEngine(),

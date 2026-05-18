@@ -32,7 +32,7 @@ export interface AuthoringChatPaneProps {
   disabled?: boolean;
   /**
    * When set, this message is sent to the session as soon as the session is
-   * active and the pane is not already streaming. Used by BootstrapTabBody's
+   * active and the pane is not already streaming. Used by CourseCreateTabBody's
    * "Confirm and open" CTA to trigger `course.confirm_draft` via the agent.
    * Cleared after the send fires via `onPrefillSent`.
    */

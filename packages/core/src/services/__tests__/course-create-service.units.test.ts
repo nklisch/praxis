@@ -1,5 +1,5 @@
 /**
- * Unit tests for BootstrapServiceImpl — Phase 16 unit + assessment scaffold methods.
+ * Unit tests for CourseCreateServiceImpl — Phase 16 unit + assessment scaffold methods.
  *
  * Covers:
  *  - addUnit: unknown lesson rejected; happy path adds to draft
@@ -14,7 +14,7 @@ import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
 import type { AssessmentPlan, Engine, StudentId, Timestamp } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
-import { BootstrapServiceImpl } from "../bootstrap-service.js";
+import { CourseCreateServiceImpl } from "../course-create-service.js";
 import { SqliteDraftStore } from "../draft-store.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-test") as StudentId;
@@ -49,7 +49,7 @@ function makeService() {
   const { db } = openDb({ path: dbCtx.dbPath });
   const store = new SqliteDraftStore(db);
   return {
-    svc: new BootstrapServiceImpl({
+    svc: new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeEngine,
@@ -64,7 +64,7 @@ function makeService() {
 
 /** Seed a draft with 2 concepts and 2 lessons, returns draftId and lessonIds. */
 async function seedDraft(
-  svc: BootstrapServiceImpl,
+  svc: CourseCreateServiceImpl,
 ): Promise<{ draftId: string; lessonIds: string[] }> {
   const { draftId } = await svc.initDraft({
     studentId: STUDENT_ID,
@@ -97,7 +97,7 @@ async function seedDraft(
 
 // ─── addUnit ─────────────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl.addUnit", () => {
+describe("CourseCreateServiceImpl.addUnit", () => {
   it("happy path: adds a unit with two lessons", async () => {
     const { svc } = makeService();
     const { draftId, lessonIds } = await seedDraft(svc);
@@ -201,7 +201,7 @@ describe("BootstrapServiceImpl.addUnit", () => {
 
 // ─── setAssessmentPlan ────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl.setAssessmentPlan", () => {
+describe("CourseCreateServiceImpl.setAssessmentPlan", () => {
   it("stores the plan on the draft", async () => {
     const { svc } = makeService();
     const { draftId } = await seedDraft(svc);
@@ -237,7 +237,7 @@ describe("BootstrapServiceImpl.setAssessmentPlan", () => {
 
 // ─── addLessonAssessment ──────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl.addLessonAssessment", () => {
+describe("CourseCreateServiceImpl.addLessonAssessment", () => {
   it("happy path: schedules a homework after lesson 1", async () => {
     const { svc } = makeService();
     const { draftId, lessonIds } = await seedDraft(svc);
@@ -337,7 +337,7 @@ describe("BootstrapServiceImpl.addLessonAssessment", () => {
 
 // ─── summarize — DraftSummary.unitCount / assessmentCount ─────────────────────
 
-describe("BootstrapServiceImpl.summarize — DraftSummary unit/assessment counts", () => {
+describe("CourseCreateServiceImpl.summarize — DraftSummary unit/assessment counts", () => {
   it("returns unitCount=0 and assessmentCount=0 when no units or assessments", async () => {
     const { svc } = makeService();
     const { draftId } = await seedDraft(svc);
@@ -405,7 +405,7 @@ describe("BootstrapServiceImpl.summarize — DraftSummary unit/assessment counts
 // these checks injects an invalid state via the store directly (bypassing public
 // API validation) then verifies confirmDraft surfaces the expected issue kind.
 
-describe("BootstrapServiceImpl.confirmDraft — validation issue kinds", () => {
+describe("CourseCreateServiceImpl.confirmDraft — validation issue kinds", () => {
   it("issues unit_unknown_lesson when unit refs an unknown draftLessonId", async () => {
     const { svc, store } = makeService();
     const { draftId } = await seedDraft(svc);

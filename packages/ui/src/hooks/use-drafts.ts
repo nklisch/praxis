@@ -19,7 +19,7 @@ export interface UseDraftsResult {
  * most recently mutated one.
  *
  * Mirrors `useActivity` — same Map+state shape, same lifecycle. Mounted by
- * `<BootstrapTabBody>`; multiple consumers are safe but waste IPC overhead.
+ * `<CourseCreateTabBody>`; multiple consumers are safe but waste IPC overhead.
  */
 export function useDrafts(): UseDraftsResult {
   const client = usePraxisClient();

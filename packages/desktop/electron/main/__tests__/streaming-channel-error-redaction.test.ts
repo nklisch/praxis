@@ -10,7 +10,7 @@
  *
  * Approach per channel:
  *   - For channels backed by a synchronous `subscribe(listener)` call
- *     (activity, bootstrap-drafts, quick-check, subagent): mock `subscribe`
+ *     (activity, course-create-drafts, quick-check, subagent): mock `subscribe`
  *     to throw synchronously, which propagates to the `catch` block.
  *   - For channels backed by an async generator (`session.send`, `ingest`):
  *     mock the generator to throw on the first `next()` call, which propagates
@@ -33,7 +33,7 @@
  *   - `?key=topsecret`             → URL-embedded query param shape
  *
  * All six channel handlers are tested via their dedicated module entry points
- * (registerActivityHandlers, registerBootstrapDraftsHandlers, etc.) so the
+ * (registerActivityHandlers, registerCourseCreateDraftsHandlers, etc.) so the
  * test reaches the same code path that runs in production, not a reimplemented
  * approximation.
  */
@@ -75,7 +75,7 @@ vi.mock("electron", () => ({
 // Channel registrars — imported AFTER vi.mock (Vitest hoisting ensures the
 // mock is in place before any module-level import code executes).
 import { registerActivityHandlers } from "../activity-channel.js";
-import { registerBootstrapDraftsHandlers } from "../bootstrap-drafts-channel.js";
+import { registerCourseCreateDraftsHandlers } from "../course-create-drafts-channel.js";
 import { registerIngestHandlers } from "../ingest-channel.js";
 import { registerIpcHandlers } from "../ipc-server.js";
 import { registerQuickCheckHandlers } from "../quick-check-channel.js";
@@ -162,8 +162,8 @@ function makeFullServices(overrides: Record<string, any> = {}): any {
     engineConfig: vi.fn().mockResolvedValue({}),
     revealApiKey: vi.fn().mockResolvedValue({}),
     setEngineConfig: vi.fn().mockResolvedValue(undefined),
-    bootstrapConfig: vi.fn().mockResolvedValue({}),
-    setBootstrapConfig: vi.fn().mockResolvedValue(undefined),
+    courseCreateConfig: vi.fn().mockResolvedValue({}),
+    setCourseCreateConfig: vi.fn().mockResolvedValue(undefined),
     firstRunCompleted: vi.fn().mockResolvedValue(false),
     markFirstRunComplete: vi.fn().mockResolvedValue(undefined),
   };
@@ -478,14 +478,14 @@ describe("streaming channel error redaction", () => {
   });
 
   /**
-   * Channel: praxis.bootstrap.drafts.events.start (bootstrap-drafts-channel.ts:83)
+   * Channel: praxis.courseCreate.drafts.events.start (course-create-drafts-channel.ts)
    *
    * `services.bootstrap.subscribe(...)` throws synchronously with a URL-embedded
    * `?key=` secret. The catch block must redact it.
    *
-   * Tighter scope: tests registerBootstrapDraftsHandlers directly.
+   * Tighter scope: tests registerCourseCreateDraftsHandlers directly.
    */
-  it("bootstrap-drafts-channel — error push redacts URL-embedded ?key= secret", async () => {
+  it("course-create-drafts-channel — error push redacts URL-embedded ?key= secret", async () => {
     const bootstrap = {
       subscribe: vi.fn(() => {
         throw new Error("https://api.example.com/v1/foo?key=topsecret");
@@ -497,14 +497,14 @@ describe("streaming channel error redaction", () => {
     const log = makeFakeLogger();
     const activeAbortControllers = new Map<string, AbortController>();
 
-    registerBootstrapDraftsHandlers(
+    registerCourseCreateDraftsHandlers(
       { bootstrap } as unknown as import("../services.js").Services,
       () => wc as unknown as Electron.WebContents,
       activeAbortControllers,
       log,
     );
 
-    const handler = handlers.get("praxis.bootstrap.drafts.events.start");
+    const handler = handlers.get("praxis.courseCreate.drafts.events.start");
     expect(handler).toBeDefined();
 
     await handler?.({}, "stream-bs-1");

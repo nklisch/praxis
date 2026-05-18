@@ -5,19 +5,19 @@ import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 
 /**
- * Streams bootstrap-mode draft events from `services.bootstrap` to the
+ * Streams course-create-mode draft events from `services.bootstrap` to the
  * renderer. The right-pane outline subscribes once and rebuilds its
  * Map<draftId, DraftCourseState> from each event as it arrives.
  *
  * Channel naming follows the project's streaming convention:
- *   praxis.bootstrap.drafts.events.start  (invoke with streamId) — kicks off subscription
- *   praxis.bootstrap.drafts.events.events.<streamId> (push)      — IpcStreamMessage<DraftStreamEvent>
- *   praxis.bootstrap.drafts.events.cancel (on)                   — unsubscribes
+ *   praxis.courseCreate.drafts.events.start  (invoke with streamId) — kicks off subscription
+ *   praxis.courseCreate.drafts.events.events.<streamId> (push)      — IpcStreamMessage<DraftStreamEvent>
+ *   praxis.courseCreate.drafts.events.cancel (on)                   — unsubscribes
  *
- * The bootstrap service emits a `snapshot` first on subscribe so a fresh
+ * The course-create service emits a `snapshot` first on subscribe so a fresh
  * subscriber sees current state without waiting for the next mutation.
  */
-export function registerBootstrapDraftsHandlers(
+export function registerCourseCreateDraftsHandlers(
   services: Services,
   webContentsGetter: () => Electron.WebContents | null,
   activeAbortControllers: Map<string, AbortController>,
@@ -25,11 +25,11 @@ export function registerBootstrapDraftsHandlers(
 ): void {
   const { handle, on } = createIpcHelpers(log);
 
-  handle("praxis.bootstrap.drafts.events.start", async (_event, streamId: string) => {
-    const streamLog = log.child({ component: "bootstrap.drafts", streamId });
+  handle("praxis.courseCreate.drafts.events.start", async (_event, streamId: string) => {
+    const streamLog = log.child({ component: "course-create.drafts", streamId });
     const controller = new AbortController();
     activeAbortControllers.set(streamId, controller);
-    const eventsChannel = `praxis.bootstrap.drafts.events.events.${streamId}`;
+    const eventsChannel = `praxis.courseCreate.drafts.events.events.${streamId}`;
 
     const push = (msg: IpcStreamMessage<DraftStreamEvent>) => {
       const wc = webContentsGetter();
@@ -37,7 +37,7 @@ export function registerBootstrapDraftsHandlers(
       wc.send(eventsChannel, msg);
     };
 
-    streamLog.info("bootstrap.drafts.subscribe");
+    streamLog.info("course-create.drafts.subscribe");
     let unsubscribe: (() => void) | null = null;
     let eventsForwarded = 0;
     try {
@@ -45,10 +45,10 @@ export function registerBootstrapDraftsHandlers(
         if (controller.signal.aborted) return;
         eventsForwarded++;
         // Per-event debug log so we can verify the chain
-        // bootstrap-service -> IPC -> renderer is intact when the UI doesn't
+        // course-create-service -> IPC -> renderer is intact when the UI doesn't
         // appear to update. Keep payload fingerprint small — `event.kind`
-        // plus the draftId is enough to correlate with explorer logs.
-        streamLog.debug("bootstrap.drafts.forward", {
+        // plus the draftId is enough to correlate with drafter logs.
+        streamLog.debug("course-create.drafts.forward", {
           eventKind: event.kind,
           ...(event.kind === "snapshot" && { draftCount: event.drafts.length }),
           ...(event.kind === "started" && { draftId: event.draft.draftId }),
@@ -77,9 +77,9 @@ export function registerBootstrapDraftsHandlers(
       });
 
       push({ kind: "done" });
-      streamLog.info("bootstrap.drafts.unsubscribe");
+      streamLog.info("course-create.drafts.unsubscribe");
     } catch (err) {
-      streamLog.error("bootstrap.drafts.error", { err: serializeErrorRedacted(err) });
+      streamLog.error("course-create.drafts.error", { err: serializeErrorRedacted(err) });
       push({
         kind: "error",
         error: redactSecrets(err instanceof Error ? err.message : String(err)),
@@ -90,7 +90,7 @@ export function registerBootstrapDraftsHandlers(
     }
   });
 
-  on("praxis.bootstrap.drafts.events.cancel", (_event, streamId: string) => {
+  on("praxis.courseCreate.drafts.events.cancel", (_event, streamId: string) => {
     activeAbortControllers.get(streamId)?.abort();
     activeAbortControllers.delete(streamId);
   });

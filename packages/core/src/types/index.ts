@@ -10,7 +10,7 @@ export type {
   ArtifactsClientSurface,
   AssignmentsClient,
   AuthoringClient,
-  BootstrapConfigSnapshot,
+  CourseCreateConfigSnapshot,
   BootstrapOpts,
   CitationsClientApi,
   ConceptMapClientApi,

@@ -9,7 +9,7 @@ import { usePraxisClient } from "../context/client-context.js";
  * by subscribing to the unfiltered event stream. When a new sub-agent starts
  * or finishes, the hook re-evaluates to pick the most recent running item.
  *
- * Used by `<BootstrapTabBody>` to pass the current parentCallId down to
+ * Used by `<CourseCreateTabBody>` to pass the current parentCallId down to
  * `<SubAgentPanel>`.
  */
 export function useCurrentSubAgent(): string | null {

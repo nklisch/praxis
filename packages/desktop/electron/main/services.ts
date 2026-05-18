@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { assignments } from "@praxis/artifacts/schema";
-import { readBootstrapConfig, readEngineConfig } from "@praxis/core/config";
+import { readCourseCreateConfig, readEngineConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
 import { FsEmbeddedImageStore, FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
 import type { NodeWorker } from "@praxis/core/runtime";
@@ -12,13 +12,13 @@ import {
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
   AuthoringServiceImpl,
-  BootstrapServiceImpl,
   CitationsServiceImpl,
   ClaudeAuthServiceImpl,
   ConceptMapDivergenceIndexer,
   ConceptMapServiceImpl,
   ConceptMapSnapshotter,
   ConfigServiceImpl,
+  CourseCreateServiceImpl,
   DocumentScopesServiceImpl,
   DocumentsServiceImpl,
   DrizzleDocumentsReader,
@@ -47,8 +47,8 @@ import { FsSketchStore } from "@praxis/core/sketch";
 import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import {
-  courseCreateMode,
   configureMode,
+  courseCreateMode,
   examMode,
   homeworkMode,
   quizMode,
@@ -133,7 +133,7 @@ export interface Services {
   ingestion: IngestionService;
   documents: DocumentsServiceImpl;
   artifacts: ArtifactsServiceImpl; // ← Phase 6: exposed for IPC handlers
-  bootstrap: BootstrapServiceImpl; // ← Phase 6: exposed for shutdown
+  bootstrap: CourseCreateServiceImpl; // ← Phase 6: exposed for shutdown
   memory: MemoryServiceImpl; // ← Phase 7: exposed for IPC handlers
   assignments: AssignmentServiceImpl; // ← Phase 8: exposed for IPC handlers (Agent 2)
   /** Phase 10: pack import + listing — exposed for IPC handlers. */
@@ -282,17 +282,17 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     return createEngine({ config: engineConfig, deps: { log } });
   };
 
-  // Phase 16: DocumentScopesServiceImpl — must be constructed before BootstrapServiceImpl.
+  // Phase 16: DocumentScopesServiceImpl — must be constructed before CourseCreateServiceImpl.
   const documentScopesService = new DocumentScopesServiceImpl({ db, log });
 
   // Citations service — record and list document passage citations.
   const citationsService = new CitationsServiceImpl({ db, log });
 
-  // Shared durable draft store — one instance used by both BootstrapServiceImpl
+  // Shared durable draft store — one instance used by both CourseCreateServiceImpl
   // and RecommendationServiceImpl so they read from the same SQLite source.
   const draftStore = new SqliteDraftStore(db);
 
-  const bootstrapService = new BootstrapServiceImpl({
+  const bootstrapService = new CourseCreateServiceImpl({
     db,
     log,
     engineResolver: bootstrapEngineResolver,
@@ -496,7 +496,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   const libraryService = new LibraryServiceImpl({ db, sqlite });
 
   // Workbench recommendation engine — aggregates sessions, cards, mastery, drafts.
-  // Reuses the shared draftStore constructed above alongside BootstrapServiceImpl.
+  // Reuses the shared draftStore constructed above alongside CourseCreateServiceImpl.
   const recommendationsService = new RecommendationServiceImpl({
     db,
     log,
@@ -581,9 +581,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
       conceptMaps: conceptMapService, // ← Phase 15b
       documentScopes: documentScopesService, // ← Phase 16
       engineResolver: bootstrapEngineResolver, // ← Phase 16
-      // Lazy-read the user-set bootstrap budget so UI changes apply to the
-      // next exploration without restarting the desktop app.
-      bootstrapConfigResolver: () => readBootstrapConfig(db),
+      // Lazy-read the user-set course-create budget so UI changes apply to the
+      // next run without restarting the desktop app.
+      courseCreateConfigResolver: () => readCourseCreateConfig(db),
       quickCheck: quickCheckService, // ← Phase 17
       subAgent: subAgentRegistry,
     },

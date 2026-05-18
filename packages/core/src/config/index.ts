@@ -1,14 +1,14 @@
 export {
-  BOOTSTRAP_CONFIG_KEY,
-  BOOTSTRAP_DEFAULT_MAX_STEPS,
-  BOOTSTRAP_MAX_STEPS_LIMIT,
-  BOOTSTRAP_MIN_STEPS,
-  type BootstrapConfig,
-  BootstrapConfigSchema,
-  DEFAULT_BOOTSTRAP_CONFIG,
-  readBootstrapConfig,
-  writeBootstrapConfig,
-} from "./bootstrap-config.js";
+  COURSE_CREATE_CONFIG_KEY,
+  COURSE_CREATE_DEFAULT_MAX_STEPS,
+  COURSE_CREATE_MAX_STEPS_LIMIT,
+  COURSE_CREATE_MIN_STEPS,
+  type CourseCreateConfig,
+  CourseCreateConfigSchema,
+  DEFAULT_COURSE_CREATE_CONFIG,
+  readCourseCreateConfig,
+  writeCourseCreateConfig,
+} from "./course-create-config.js";
 export {
   providerApiKeyEnvName,
   readEngineConfig,

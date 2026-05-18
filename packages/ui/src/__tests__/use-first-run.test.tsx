@@ -32,8 +32,8 @@ function makeClient(opts?: {
       setSelectedEngine: vi.fn(),
       engineConfig: vi.fn(),
       setEngineConfig: vi.fn(),
-      bootstrapConfig: vi.fn(),
-      setBootstrapConfig: vi.fn(),
+      courseCreateConfig: vi.fn(),
+      setCourseCreateConfig: vi.fn(),
       firstRunCompleted: vi.fn(async () => {
         if (opts?.readRejects) throw new Error("ipc broken");
         return opts?.completed ?? false;

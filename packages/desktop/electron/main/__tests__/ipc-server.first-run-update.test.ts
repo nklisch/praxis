@@ -54,8 +54,8 @@ function makeServices(overrides: {
     setSelectedEngine: vi.fn(),
     engineConfig: vi.fn().mockResolvedValue({}),
     setEngineConfig: vi.fn(),
-    bootstrapConfig: vi.fn().mockResolvedValue({}),
-    setBootstrapConfig: vi.fn(),
+    courseCreateConfig: vi.fn().mockResolvedValue({}),
+    setCourseCreateConfig: vi.fn(),
   };
 
   const update = {

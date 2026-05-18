@@ -1,6 +1,6 @@
 import type { ToolContext, ToolDefinition } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { runConceptDrafter } from "@praxis/curriculum/bootstrap";
+import { runConceptDrafter } from "@praxis/curriculum/course-create";
 import { z } from "zod";
 import { documentListSectionsTool } from "../document/list-sections.js";
 import { documentOutlineTool } from "../document/outline.js";
@@ -145,7 +145,7 @@ export const startDraftingTool: ToolDefinition<typeof InputSchema, typeof Output
     // can never exceed the user setting. When the resolver is absent (e.g.
     // test stubs that don't wire it), fall back to a generous 200 so realistic
     // bootstraps still complete.
-    const userMax = ctx.services.bootstrapConfigResolver?.().maxSteps ?? 200;
+    const userMax = ctx.services.courseCreateConfigResolver?.().maxSteps ?? 200;
     const requested = args.maxSteps ?? userMax;
     const effectiveMaxSteps = Math.min(requested, userMax);
 

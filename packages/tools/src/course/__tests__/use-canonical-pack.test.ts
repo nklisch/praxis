@@ -12,7 +12,7 @@
  *  - Propagates errors from createCourseFromPack
  *  - Tool name, tier, and effects are correct
  */
-import type { BootstrapService, ImportedPackView, PackImportService } from "@praxis/core/types";
+import type { CourseCreateService, ImportedPackView, PackImportService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
@@ -38,10 +38,10 @@ function makePacksService(imported: ImportedPackView = IMPORTED_PACK): PackImpor
   } as PackImportService;
 }
 
-function makeBootstrapService(
+function makeCourseCreateService(
   courseId = "course-ucp-1",
   conceptCount = 42,
-): Partial<BootstrapService> {
+): Partial<CourseCreateService> {
   return {
     createCourseFromPack: vi.fn().mockResolvedValue({ courseId, conceptCount }),
   };
@@ -56,11 +56,11 @@ describe("course.use_canonical_pack", () => {
 
   it("calls importPack with the given packId", async () => {
     const packs = makePacksService();
-    const bootstrap = makeBootstrapService();
+    const bootstrap = makeCourseCreateService();
     const ctx = makeToolContext({
       studentId: "student-ucp",
       sessionId: "session-ucp",
-      services: { packs, bootstrap: bootstrap as BootstrapService },
+      services: { packs, bootstrap: bootstrap as CourseCreateService },
     });
 
     await useCanonicalPackTool.handler(
@@ -73,11 +73,11 @@ describe("course.use_canonical_pack", () => {
 
   it("calls createCourseFromPack with the returned conceptGraphId", async () => {
     const packs = makePacksService();
-    const bootstrap = makeBootstrapService();
+    const bootstrap = makeCourseCreateService();
     const ctx = makeToolContext({
       studentId: "student-ucp",
       sessionId: "session-ucp",
-      services: { packs, bootstrap: bootstrap as BootstrapService },
+      services: { packs, bootstrap: bootstrap as CourseCreateService },
     });
 
     await useCanonicalPackTool.handler(
@@ -97,11 +97,11 @@ describe("course.use_canonical_pack", () => {
 
   it("returns ok: true with courseId, conceptGraphId, and conceptCount", async () => {
     const packs = makePacksService();
-    const bootstrap = makeBootstrapService("course-abc-123", 42);
+    const bootstrap = makeCourseCreateService("course-abc-123", 42);
     const ctx = makeToolContext({
       studentId: "student-ucp",
       sessionId: "session-ucp",
-      services: { packs, bootstrap: bootstrap as BootstrapService },
+      services: { packs, bootstrap: bootstrap as CourseCreateService },
     });
 
     const result = await useCanonicalPackTool.handler(
@@ -118,11 +118,11 @@ describe("course.use_canonical_pack", () => {
   it("propagates error when importPack throws", async () => {
     const packs = makePacksService();
     vi.mocked(packs.importPack).mockRejectedValue(new Error("Pack not found: unknown-pack"));
-    const bootstrap = makeBootstrapService();
+    const bootstrap = makeCourseCreateService();
     const ctx = makeToolContext({
       studentId: "student-ucp",
       sessionId: "session-ucp",
-      services: { packs, bootstrap: bootstrap as BootstrapService },
+      services: { packs, bootstrap: bootstrap as CourseCreateService },
     });
 
     await expect(
@@ -135,14 +135,14 @@ describe("course.use_canonical_pack", () => {
 
   it("propagates error when createCourseFromPack throws", async () => {
     const packs = makePacksService();
-    const bootstrap = makeBootstrapService();
+    const bootstrap = makeCourseCreateService();
     vi.mocked(bootstrap.createCourseFromPack!).mockRejectedValue(
       new Error("no concepts found for conceptGraphId"),
     );
     const ctx = makeToolContext({
       studentId: "student-ucp",
       sessionId: "session-ucp",
-      services: { packs, bootstrap: bootstrap as BootstrapService },
+      services: { packs, bootstrap: bootstrap as CourseCreateService },
     });
 
     await expect(

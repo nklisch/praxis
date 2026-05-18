@@ -1,18 +1,18 @@
 import {
-  type BootstrapConfig,
-  BootstrapConfigSchema,
+  type CourseCreateConfig,
+  CourseCreateConfigSchema,
   type EngineConfig,
   EngineConfigSchema,
   markFirstRunComplete,
-  readBootstrapConfig,
+  readCourseCreateConfig,
   readEngineConfig,
   readOnboardingConfig,
-  writeBootstrapConfig,
+  writeCourseCreateConfig,
   writeEngineConfig,
 } from "../config/index.js";
 import type {
-  BootstrapConfigSnapshot,
   ConfigService,
+  CourseCreateConfigSnapshot,
   EngineConfigSnapshot,
 } from "../types/index.js";
 import type { ServiceDeps } from "./types.js";
@@ -83,13 +83,13 @@ export class ConfigServiceImpl implements ConfigService {
     writeEngineConfig(this.deps.db, this.deps.secretStorage, merged, this.deps.log);
   }
 
-  async bootstrapConfig(): Promise<BootstrapConfigSnapshot> {
-    return toBootstrapSnapshot(readBootstrapConfig(this.deps.db));
+  async courseCreateConfig(): Promise<CourseCreateConfigSnapshot> {
+    return toCourseCreateSnapshot(readCourseCreateConfig(this.deps.db));
   }
 
-  async setBootstrapConfig(snapshot: BootstrapConfigSnapshot): Promise<void> {
-    const validated = BootstrapConfigSchema.parse(snapshot);
-    writeBootstrapConfig(this.deps.db, validated);
+  async setCourseCreateConfig(snapshot: CourseCreateConfigSnapshot): Promise<void> {
+    const validated = CourseCreateConfigSchema.parse(snapshot);
+    writeCourseCreateConfig(this.deps.db, validated);
   }
 
   async firstRunCompleted(): Promise<boolean> {
@@ -101,7 +101,7 @@ export class ConfigServiceImpl implements ConfigService {
   }
 }
 
-function toBootstrapSnapshot(cfg: BootstrapConfig): BootstrapConfigSnapshot {
+function toCourseCreateSnapshot(cfg: CourseCreateConfig): CourseCreateConfigSnapshot {
   return { maxSteps: cfg.maxSteps };
 }
 

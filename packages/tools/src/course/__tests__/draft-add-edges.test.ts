@@ -1,7 +1,7 @@
 /**
  * Unit tests for course.draft_add_edges (batch) tool handler.
  */
-import type { BootstrapService } from "@praxis/core/types";
+import type { CourseCreateService } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { draftAddEdgesTool } from "../draft-add-edges.js";
@@ -20,11 +20,11 @@ const E = (
 
 describe("course.draft_add_edges handler", () => {
   it("happy path — every edge added, ok:true", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       addEdge: vi.fn().mockResolvedValue({ ok: true }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 
@@ -42,7 +42,7 @@ describe("course.draft_add_edges handler", () => {
   });
 
   it("partial failure — unknown concept reported per-item, others succeed", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       addEdge: vi.fn().mockImplementation(async (input: { fromName: string }) => {
         if (input.fromName === "Ghost") {
           return { ok: false, reason: 'concept "Ghost" not found' };
@@ -51,7 +51,7 @@ describe("course.draft_add_edges handler", () => {
       }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 
@@ -72,8 +72,8 @@ describe("course.draft_add_edges handler", () => {
   });
 
   it("missing draftId returns per-item failures with a descriptive reason", async () => {
-    const bootstrap: Partial<BootstrapService> = { addEdge: vi.fn() };
-    const ctx = makeToolContext({ services: { bootstrap: bootstrap as BootstrapService } });
+    const bootstrap: Partial<CourseCreateService> = { addEdge: vi.fn() };
+    const ctx = makeToolContext({ services: { bootstrap: bootstrap as CourseCreateService } });
 
     const result = await draftAddEdgesTool.handler({ edges: [E("A", "B")] }, ctx);
 

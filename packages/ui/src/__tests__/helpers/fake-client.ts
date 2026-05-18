@@ -29,7 +29,7 @@ export function makeFakeClient(overrides?: Partial<PraxisClient>): PraxisClient 
     documentScopes: {} as PraxisClient["documentScopes"],
     activity: {} as PraxisClient["activity"],
     drafts: {
-      // Default no-op generator so BootstrapTabBody's finalization useEffect
+      // Default no-op generator so CourseCreateTabBody's finalization useEffect
       // doesn't throw in tests that don't need to exercise draft events.
       events: async function* () {},
     } as unknown as PraxisClient["drafts"],

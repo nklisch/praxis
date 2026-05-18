@@ -130,8 +130,8 @@ function makeServices(authoringOverrides: AuthoringOverrides = {}) {
     engineConfig: vi.fn().mockResolvedValue({}),
     revealApiKey: vi.fn().mockResolvedValue({ apiKey: null }),
     setEngineConfig: vi.fn().mockResolvedValue(undefined),
-    bootstrapConfig: vi.fn().mockResolvedValue({ maxSteps: 10 }),
-    setBootstrapConfig: vi.fn().mockResolvedValue(undefined),
+    courseCreateConfig: vi.fn().mockResolvedValue({ maxSteps: 10 }),
+    setCourseCreateConfig: vi.fn().mockResolvedValue(undefined),
     firstRunCompleted: vi.fn().mockResolvedValue(false),
     markFirstRunComplete: vi.fn().mockResolvedValue(undefined),
   };

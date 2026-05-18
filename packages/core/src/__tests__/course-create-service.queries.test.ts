@@ -1,5 +1,5 @@
 /**
- * Tests for the four chunked-query methods on BootstrapServiceImpl:
+ * Tests for the four chunked-query methods on CourseCreateServiceImpl:
  *   listUnits, listLessonsInUnit, getLessonDetail, listDanglingRefs
  *
  * All tests use a real temp DB (SqliteDraftStore) seeded via the public API
@@ -8,7 +8,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
-import { BootstrapServiceImpl } from "../services/bootstrap-service.js";
+import { CourseCreateServiceImpl } from "../services/course-create-service.js";
 import { SqliteDraftStore } from "../services/draft-store.js";
 import type { DraftCourseState, Engine, Timestamp } from "../types/index.js";
 import { brandId } from "../types/index.js";
@@ -43,7 +43,7 @@ function makeEngine(): Engine {
 function makeService(dbPath: string) {
   const { db } = openDb({ path: dbPath });
   const store = new SqliteDraftStore(db);
-  const svc = new BootstrapServiceImpl({
+  const svc = new CourseCreateServiceImpl({
     db,
     log: MOCK_LOG,
     engineResolver: makeEngine,
@@ -56,7 +56,7 @@ function makeService(dbPath: string) {
 
 // ─── listUnits ────────────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl.listUnits", () => {
+describe("CourseCreateServiceImpl.listUnits", () => {
   const dbCtx = useTempDb();
 
   it("returns null for unknown draftId", async () => {
@@ -156,7 +156,7 @@ describe("BootstrapServiceImpl.listUnits", () => {
 
 // ─── listLessonsInUnit ────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl.listLessonsInUnit", () => {
+describe("CourseCreateServiceImpl.listLessonsInUnit", () => {
   const dbCtx = useTempDb();
 
   it("returns null for unknown draftId", async () => {
@@ -257,7 +257,7 @@ describe("BootstrapServiceImpl.listLessonsInUnit", () => {
 
 // ─── getLessonDetail ──────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl.getLessonDetail", () => {
+describe("CourseCreateServiceImpl.getLessonDetail", () => {
   const dbCtx = useTempDb();
 
   it("returns null for unknown draftId", async () => {
@@ -377,7 +377,7 @@ describe("BootstrapServiceImpl.getLessonDetail", () => {
 
 // ─── listDanglingRefs ─────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl.listDanglingRefs", () => {
+describe("CourseCreateServiceImpl.listDanglingRefs", () => {
   const dbCtx = useTempDb();
 
   it("returns null for unknown draftId", async () => {

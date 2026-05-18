@@ -1,5 +1,5 @@
 /**
- * Interaction tests for the "Add documents" affordance on BootstrapTabBody.
+ * Interaction tests for the "Add documents" affordance on CourseCreateTabBody.
  *
  * Verifies:
  * - An "Add documents" button is rendered in the outline header.
@@ -36,18 +36,18 @@ vi.mock("../components/draft-card.js", () => ({
 vi.mock("../hooks/use-drafts.js", () => ({
   useDrafts: () => ({ current: null }),
 }));
-vi.mock("../hooks/use-bootstrap-budget.js", () => ({
-  BOOTSTRAP_BUDGET_MIN: 5,
-  BOOTSTRAP_BUDGET_MAX: 200,
-  useBootstrapBudget: () => ({ maxSteps: 100, saving: false, setMaxSteps: vi.fn() }),
+vi.mock("../hooks/use-course-create-budget.js", () => ({
+  COURSE_CREATE_BUDGET_MIN: 5,
+  COURSE_CREATE_BUDGET_MAX: 200,
+  useCourseCreateBudget: () => ({ maxSteps: 100, saving: false, setMaxSteps: vi.fn() }),
 }));
 
 // Import after mocks (Vitest hoists vi.mock calls).
-const { BootstrapTabBody } = await import("../components/bootstrap-tab-body.js");
+const { CourseCreateTabBody } = await import("../components/course-create-tab-body.js");
 
 afterEach(() => cleanup());
 
-const SESSION_ID = brandId<"SessionId">("session-bootstrap-1") as SessionId;
+const SESSION_ID = brandId<"SessionId">("session-course-create-1") as SessionId;
 
 function makeTab(overrides: Partial<SessionTabSummary> = {}): SessionTabSummary {
   return {
@@ -64,7 +64,7 @@ function makeTab(overrides: Partial<SessionTabSummary> = {}): SessionTabSummary 
   };
 }
 
-function renderBootstrap(attachFn = vi.fn().mockResolvedValue({ attached: true })) {
+function renderCourseCreate(attachFn = vi.fn().mockResolvedValue({ attached: true })) {
   const client = makeFakeClient({
     documents: {
       list: vi.fn().mockResolvedValue([
@@ -106,20 +106,20 @@ function renderBootstrap(attachFn = vi.fn().mockResolvedValue({ attached: true }
     attachFn,
     ...render(
       <PraxisClientProvider client={client}>
-        <BootstrapTabBody tab={makeTab()} />
+        <CourseCreateTabBody tab={makeTab()} />
       </PraxisClientProvider>,
     ),
   };
 }
 
-describe("BootstrapTabBody — Add documents affordance", () => {
+describe("CourseCreateTabBody — Add documents affordance", () => {
   it("renders an 'Add documents' button in the outline header", () => {
-    renderBootstrap();
+    renderCourseCreate();
     expect(screen.getByRole("button", { name: /add documents/i })).toBeDefined();
   });
 
   it("clicking 'Add documents' opens the LibraryDocumentPicker modal", async () => {
-    renderBootstrap();
+    renderCourseCreate();
 
     fireEvent.click(screen.getByRole("button", { name: /add documents/i }));
 
@@ -132,7 +132,7 @@ describe("BootstrapTabBody — Add documents affordance", () => {
 
   it("attach inside the picker calls documentScopes.attach with session scope", async () => {
     const attachFn = vi.fn().mockResolvedValue({ attached: true });
-    renderBootstrap(attachFn);
+    renderCourseCreate(attachFn);
 
     // Open picker.
     fireEvent.click(screen.getByRole("button", { name: /add documents/i }));
@@ -155,7 +155,7 @@ describe("BootstrapTabBody — Add documents affordance", () => {
   });
 
   it("picker closes when Close is clicked", async () => {
-    renderBootstrap();
+    renderCourseCreate();
 
     // Open picker.
     fireEvent.click(screen.getByRole("button", { name: /add documents/i }));

@@ -13,8 +13,8 @@ import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
   AssessmentPlan,
-  BootstrapService,
   ConceptGraphId,
+  CourseCreateService,
   CourseId,
   DanglingRefsReport,
   DocumentId,
@@ -50,7 +50,7 @@ export interface Issue {
 /** Drafts not touched in 7 days are swept as stale. */
 export const DRAFT_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 
-export interface BootstrapServiceDeps {
+export interface CourseCreateServiceDeps {
   db: PraxisDb;
   log: Logger;
   /** Resolves to the user's currently selected engine. Same pattern as visionResolver. */
@@ -64,19 +64,19 @@ export interface BootstrapServiceDeps {
 }
 
 /**
- * BootstrapServiceImpl — owns draft lifecycle and the `confirmDraft`
+ * CourseCreateServiceImpl — owns draft lifecycle and the `confirmDraft`
  * transactional persist.
  *
  * Drafts are durable: they survive process restarts via SqliteDraftStore.
  * Drafts not touched in 7 days (DRAFT_STALE_MS) are swept as stale.
  *
  * This class is mode-agnostic — it does not know whether the caller is in
- * bootstrap mode or configure mode. Methods accept inputs, return outputs.
+ * course-create mode or configure mode. Methods accept inputs, return outputs.
  */
-export class BootstrapServiceImpl implements BootstrapService {
+export class CourseCreateServiceImpl implements CourseCreateService {
   private readonly store: DraftStore;
   /**
-   * Live subscribers (e.g. the bootstrap-drafts IPC channel forwarding to the
+   * Live subscribers (e.g. the course-create-drafts IPC channel forwarding to the
    * renderer's right-pane outline). Each receives a `snapshot` event on
    * subscribe, then `started` / `updated` / `finalized` / `discarded` per
    * mutation. Listener exceptions are logged but do not stop other listeners.
@@ -84,7 +84,7 @@ export class BootstrapServiceImpl implements BootstrapService {
   private readonly listeners = new Set<DraftStreamListener>();
   private sweepTimer: NodeJS.Timeout | null = null;
 
-  constructor(private readonly deps: BootstrapServiceDeps) {
+  constructor(private readonly deps: CourseCreateServiceDeps) {
     this.store = deps.draftStore ?? new SqliteDraftStore(deps.db);
     const period = deps.sweepIntervalMs ?? 60_000;
     this.sweepTimer = setInterval(() => {
@@ -121,7 +121,7 @@ export class BootstrapServiceImpl implements BootstrapService {
     // that the service is firing events even when the renderer isn't visibly
     // updating — pairs with `bootstrap.drafts.forward` in the IPC channel
     // so the chain service -> IPC -> renderer is end-to-end traceable.
-    this.deps.log.debug("bootstrap.draft_stream.emit", {
+    this.deps.log.debug("course-create.draft_stream.emit", {
       eventKind: event.kind,
       listenerCount: this.listeners.size,
       ...(event.kind === "snapshot" && { draftCount: event.drafts.length }),
@@ -145,7 +145,7 @@ export class BootstrapServiceImpl implements BootstrapService {
       try {
         listener(event);
       } catch (err) {
-        this.deps.log.warn("bootstrap.draft_listener_threw", { err: String(err) });
+        this.deps.log.warn("course-create.draft_listener_threw", { err: String(err) });
       }
     }
   }

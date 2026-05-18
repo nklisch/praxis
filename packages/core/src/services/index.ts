@@ -54,8 +54,8 @@ export {
   AssignmentServiceImpl,
   validateItems,
 } from "./assignment-service.js";
-export type { BootstrapServiceDeps } from "./bootstrap-service.js";
-export { BootstrapServiceImpl } from "./bootstrap-service.js";
+export type { CourseCreateServiceDeps } from "./course-create-service.js";
+export { CourseCreateServiceImpl } from "./course-create-service.js";
 // Document citations service
 export type { CitationsService, CitationsServiceDeps } from "./citations-service.js";
 export { CitationsServiceImpl } from "./citations-service.js";

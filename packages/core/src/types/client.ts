@@ -704,13 +704,13 @@ export interface EngineConfigSnapshot {
 }
 
 /**
- * User-tunable bootstrap-mode configuration. Surfaced via ConfigService and
- * read at runtime by `course.start_drafting` to determine the explore
+ * User-tunable course-create-mode configuration. Surfaced via ConfigService and
+ * read at runtime by `course.start_drafting` to determine the drafter
  * agent's tool-call budget.
  */
-export interface BootstrapConfigSnapshot {
+export interface CourseCreateConfigSnapshot {
   /**
-   * Max tool-call steps the explore agent may take in a single run.
+   * Max tool-call steps the drafter agent may take in a single run.
    * Bounded server-side; out-of-range values are rejected by the schema.
    */
   maxSteps: number;
@@ -732,9 +732,9 @@ export interface ConfigService {
    */
   revealApiKey(): Promise<{ apiKey: string | null }>;
   setEngineConfig(config: EngineConfigSnapshot & { apiKey?: string }): Promise<void>;
-  // Bootstrap-mode budget knob.
-  bootstrapConfig(): Promise<BootstrapConfigSnapshot>;
-  setBootstrapConfig(config: BootstrapConfigSnapshot): Promise<void>;
+  // Course-create-mode budget knob.
+  courseCreateConfig(): Promise<CourseCreateConfigSnapshot>;
+  setCourseCreateConfig(config: CourseCreateConfigSnapshot): Promise<void>;
   // Phase 19 — first-run flow gating.
   firstRunCompleted(): Promise<boolean>;
   markFirstRunComplete(): Promise<void>;

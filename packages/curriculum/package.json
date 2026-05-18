@@ -52,12 +52,12 @@
       "node": "./dist/brief/assignment-context.js",
       "default": "./dist/brief/assignment-context.js"
     },
-    "./bootstrap": {
-      "praxis-source": "./src/bootstrap/index.ts",
-      "types": "./dist/bootstrap/index.d.ts",
-      "import": "./dist/bootstrap/index.js",
-      "node": "./dist/bootstrap/index.js",
-      "default": "./dist/bootstrap/index.js"
+    "./course-create": {
+      "praxis-source": "./src/course-create/index.ts",
+      "types": "./dist/course-create/index.d.ts",
+      "import": "./dist/course-create/index.js",
+      "node": "./dist/course-create/index.js",
+      "default": "./dist/course-create/index.js"
     },
     "./gates": {
       "praxis-source": "./src/gates/index.ts",

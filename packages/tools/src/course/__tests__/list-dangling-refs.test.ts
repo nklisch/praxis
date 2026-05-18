@@ -1,7 +1,7 @@
 /**
  * Tests for the course.list_dangling_refs tool handler.
  */
-import type { BootstrapService } from "@praxis/core/types";
+import type { CourseCreateService } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { listDanglingRefsTool } from "../list-dangling-refs.js";
@@ -15,11 +15,11 @@ const CLEAN_REPORT = {
 
 describe("course.list_dangling_refs handler", () => {
   it("returns clean report when draft is intact", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       listDanglingRefs: vi.fn().mockResolvedValue(CLEAN_REPORT),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 
@@ -30,11 +30,11 @@ describe("course.list_dangling_refs handler", () => {
   });
 
   it("uses ctx.draftId when args.draftId is not provided", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       listDanglingRefs: vi.fn().mockResolvedValue(CLEAN_REPORT),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "ctx-draft",
     });
 
@@ -44,11 +44,11 @@ describe("course.list_dangling_refs handler", () => {
   });
 
   it("throws when draft does not exist — locks the throw-contract chosen over empty+warning to distinguish 'caller error' from 'legitimate empty state'", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       listDanglingRefs: vi.fn().mockResolvedValue(null),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "ghost-draft",
     });
 
@@ -58,10 +58,10 @@ describe("course.list_dangling_refs handler", () => {
   });
 
   it("throws when no draftId is available", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       listDanglingRefs: vi.fn(),
     };
-    const ctx = makeToolContext({ services: { bootstrap: bootstrap as BootstrapService } });
+    const ctx = makeToolContext({ services: { bootstrap: bootstrap as CourseCreateService } });
 
     await expect(listDanglingRefsTool.handler({} as { draftId: string }, ctx)).rejects.toThrow(
       /draftId is required/,
@@ -70,14 +70,14 @@ describe("course.list_dangling_refs handler", () => {
   });
 
   it("forwards orphan concepts from the report", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       listDanglingRefs: vi.fn().mockResolvedValue({
         ...CLEAN_REPORT,
         orphanConcepts: ["Orphan1", "Orphan2"],
       }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "d1",
     });
 

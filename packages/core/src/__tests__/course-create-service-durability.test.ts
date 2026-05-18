@@ -1,5 +1,5 @@
 /**
- * Durability tests for BootstrapServiceImpl with the SqliteDraftStore backend.
+ * Durability tests for CourseCreateServiceImpl with the SqliteDraftStore backend.
  *
  * Covers:
  *  1. Restart-survival: draft created by service A is visible to service B
@@ -18,7 +18,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { drafts } from "../schema.js";
-import { BootstrapServiceImpl, DRAFT_STALE_MS } from "../services/bootstrap-service.js";
+import { CourseCreateServiceImpl, DRAFT_STALE_MS } from "../services/course-create-service.js";
 import { SqliteDraftStore } from "../services/draft-store.js";
 import type { DraftStreamEvent, Engine, Timestamp } from "../types/index.js";
 import { brandId } from "../types/index.js";
@@ -52,7 +52,7 @@ function makeEngine(): Engine {
 function makeService(dbPath: string, opts?: { sweepIntervalMs?: number }) {
   const { db } = openDb({ path: dbPath });
   const store = new SqliteDraftStore(db);
-  const svc = new BootstrapServiceImpl({
+  const svc = new CourseCreateServiceImpl({
     db,
     log: MOCK_LOG,
     engineResolver: makeEngine,
@@ -65,7 +65,7 @@ function makeService(dbPath: string, opts?: { sweepIntervalMs?: number }) {
 
 // ─── 1. Restart-survival ──────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl — restart-survival", () => {
+describe("CourseCreateServiceImpl — restart-survival", () => {
   const dbCtx = useTempDb();
 
   it("draft created by service A is readable by service B over the same DB", async () => {
@@ -99,7 +99,7 @@ describe("BootstrapServiceImpl — restart-survival", () => {
 
 // ─── 2. Atomic confirm — happy path ──────────────────────────────────────────
 
-describe("BootstrapServiceImpl — atomic confirm (happy path)", () => {
+describe("CourseCreateServiceImpl — atomic confirm (happy path)", () => {
   const dbCtx = useTempDb();
 
   it("course rows exist AND draft has confirmedAt set AND showDraft returns null after confirmDraft", async () => {
@@ -139,7 +139,7 @@ describe("BootstrapServiceImpl — atomic confirm (happy path)", () => {
 
 // ─── 3. Atomic confirm — rollback ────────────────────────────────────────────
 
-describe("BootstrapServiceImpl — atomic confirm (rollback)", () => {
+describe("CourseCreateServiceImpl — atomic confirm (rollback)", () => {
   const dbCtx = useTempDb();
 
   it("draft stays active (confirmedAt: null) and no course rows if persist fails inside tx", async () => {
@@ -196,7 +196,7 @@ describe("BootstrapServiceImpl — atomic confirm (rollback)", () => {
 
 // ─── 4. sweepStale behaviour ─────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl — sweepStale", () => {
+describe("CourseCreateServiceImpl — sweepStale", () => {
   const dbCtx = useTempDb();
 
   it("emits one discarded event per swept draft; never touches confirmed or discarded rows", async () => {
@@ -274,7 +274,7 @@ describe("BootstrapServiceImpl — sweepStale", () => {
 
 // ─── 5. shutdown() does NOT delete rows ──────────────────────────────────────
 
-describe("BootstrapServiceImpl — shutdown does not delete rows", () => {
+describe("CourseCreateServiceImpl — shutdown does not delete rows", () => {
   const dbCtx = useTempDb();
 
   it("draft rows survive shutdown", async () => {
@@ -302,7 +302,7 @@ describe("BootstrapServiceImpl — shutdown does not delete rows", () => {
 
 // ─── 6. listActiveForStudent ─────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl — listActiveForStudent", () => {
+describe("CourseCreateServiceImpl — listActiveForStudent", () => {
   const dbCtx = useTempDb();
 
   it("returns active drafts for the student ordered by lastTouchedAt DESC", async () => {

@@ -1,5 +1,5 @@
 /**
- * Layout regression tests for BootstrapTabBody — Canvas + Side Chat shape.
+ * Layout regression tests for CourseCreateTabBody — Canvas + Side Chat shape.
  *
  * Guards the two-column structure (draft canvas left, authoring chat right)
  * introduced by the course-create tab body rebuild.
@@ -40,14 +40,14 @@ vi.mock("../components/draft-card.js", () => ({
 vi.mock("../hooks/use-drafts.js", () => ({
   useDrafts: () => ({ current: _mockCurrentDraft }),
 }));
-vi.mock("../hooks/use-bootstrap-budget.js", () => ({
-  BOOTSTRAP_BUDGET_MIN: 5,
-  BOOTSTRAP_BUDGET_MAX: 200,
-  useBootstrapBudget: () => ({ maxSteps: 100, saving: false, setMaxSteps: vi.fn() }),
+vi.mock("../hooks/use-course-create-budget.js", () => ({
+  COURSE_CREATE_BUDGET_MIN: 5,
+  COURSE_CREATE_BUDGET_MAX: 200,
+  useCourseCreateBudget: () => ({ maxSteps: 100, saving: false, setMaxSteps: vi.fn() }),
 }));
 
 // Import after mocks (Vitest hoists vi.mock calls).
-const { BootstrapTabBody } = await import("../components/bootstrap-tab-body.js");
+const { CourseCreateTabBody } = await import("../components/course-create-tab-body.js");
 
 afterEach(() => {
   cleanup();
@@ -70,7 +70,7 @@ function makeTab(overrides: Partial<SessionTabSummary> = {}): SessionTabSummary 
   };
 }
 
-function renderBootstrap() {
+function renderCourseCreate() {
   const client = makeFakeClient({
     subAgent: {
       list: vi.fn().mockResolvedValue([]),
@@ -88,26 +88,26 @@ function renderBootstrap() {
 
   return render(
     <PraxisClientProvider client={client}>
-      <BootstrapTabBody tab={makeTab()} />
+      <CourseCreateTabBody tab={makeTab()} />
     </PraxisClientProvider>,
   );
 }
 
-describe("BootstrapTabBody — Canvas + Side Chat layout", () => {
+describe("CourseCreateTabBody — Canvas + Side Chat layout", () => {
   it("renders the draft canvas scroll region", () => {
-    const { getByTestId } = renderBootstrap();
+    const { getByTestId } = renderCourseCreate();
     expect(getByTestId("draft-canvas-scroll")).toBeTruthy();
   });
 
-  it("mounts AuthoringChatPane in bootstrap mode", () => {
-    renderBootstrap();
+  it("mounts AuthoringChatPane in course-create mode", () => {
+    renderCourseCreate();
     const pane = screen.getByTestId("authoring-chat-pane");
     expect(pane).toBeTruthy();
     expect(pane.getAttribute("data-mode")).toBe("course-create");
   });
 
   it("canvas scroll and chat panel are siblings (not nested)", () => {
-    const { getByTestId, container } = renderBootstrap();
+    const { getByTestId, container } = renderCourseCreate();
     const canvasScroll = getByTestId("draft-canvas-scroll");
 
     // Find chatPanel by class substring.
@@ -124,17 +124,17 @@ describe("BootstrapTabBody — Canvas + Side Chat layout", () => {
   });
 
   it("renders empty-state copy when no draft is present", () => {
-    renderBootstrap();
+    renderCourseCreate();
     expect(screen.getByText(/the outline will appear here/i)).toBeTruthy();
   });
 
   it("renders the budget field", () => {
-    renderBootstrap();
+    renderCourseCreate();
     expect(screen.getByRole("spinbutton", { name: /course-design budget/i })).toBeTruthy();
   });
 });
 
-describe("BootstrapTabBody — draft canvas with units", () => {
+describe("CourseCreateTabBody — draft canvas with units", () => {
   it("renders unit blocks and lesson rows when draft has units", () => {
     // Set draft state via the shared mutable ref consumed by the useDrafts mock.
     _mockCurrentDraft = {
@@ -167,7 +167,7 @@ describe("BootstrapTabBody — draft canvas with units", () => {
       },
     };
 
-    const { getAllByTestId } = renderBootstrap();
+    const { getAllByTestId } = renderCourseCreate();
 
     const unitBlocks = getAllByTestId("unit-block");
     expect(unitBlocks.length).toBe(1);
@@ -191,15 +191,15 @@ describe("BootstrapTabBody — draft canvas with units", () => {
       },
     };
 
-    renderBootstrap();
+    renderCourseCreate();
     expect(screen.getByText("Biology 101")).toBeTruthy();
   });
 });
 
-describe("BootstrapTabBody — confirm card (draft-ready state)", () => {
+describe("CourseCreateTabBody — confirm card (draft-ready state)", () => {
   it("does NOT show confirm card when no draft is present", () => {
     _mockCurrentDraft = null;
-    renderBootstrap();
+    renderCourseCreate();
     expect(screen.queryByTestId("confirm-card")).toBeNull();
   });
 
@@ -218,7 +218,7 @@ describe("BootstrapTabBody — confirm card (draft-ready state)", () => {
         proposedLessonAssessments: [],
       },
     };
-    renderBootstrap();
+    renderCourseCreate();
     expect(screen.queryByTestId("confirm-card")).toBeNull();
   });
 
@@ -246,7 +246,7 @@ describe("BootstrapTabBody — confirm card (draft-ready state)", () => {
         proposedLessonAssessments: [],
       },
     };
-    renderBootstrap();
+    renderCourseCreate();
     expect(screen.getByTestId("confirm-card")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Confirm and open/i })).toBeTruthy();
   });

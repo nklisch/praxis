@@ -1,5 +1,5 @@
 /**
- * Unit tests for BootstrapServiceImpl — Phase 6/16.
+ * Unit tests for CourseCreateServiceImpl — Phase 6/16.
  *
  * Uses a real temp DB (via useTempDb) for confirmDraft / persistDraft.
  * Draft mutation is tested by seeding via the public API (initDraft + mutators).
@@ -16,7 +16,7 @@ import { conceptGraphs, concepts } from "@praxis/curriculum/schema";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
-import { BootstrapServiceImpl } from "../services/bootstrap-service.js";
+import { CourseCreateServiceImpl } from "../services/course-create-service.js";
 import { SqliteDraftStore } from "../services/draft-store.js";
 import type { DraftEditOp, Engine, ProposedCourse } from "../types/index.js";
 import { brandId } from "../types/index.js";
@@ -95,7 +95,7 @@ const MOCK_DOCUMENT_SCOPES = {
 // Each test seeds via initDraft + addConcept/addLesson rather than injecting
 // into the private store directly.
 
-describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
+describe("CourseCreateServiceImpl — applyEdit via editDraft", () => {
   // These tests use a temp DB so the store has a real backing.
   const dbCtx = useTempDb();
 
@@ -103,7 +103,7 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     // Each test gets its own store so drafts don't bleed across tests.
     const store = new SqliteDraftStore(db);
-    return new BootstrapServiceImpl({
+    return new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
@@ -240,12 +240,12 @@ describe("BootstrapServiceImpl — applyEdit via editDraft", () => {
 
 // ─── Draft not found ──────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl — draft not found", () => {
+describe("CourseCreateServiceImpl — draft not found", () => {
   const dbCtx = useTempDb();
 
   it("showDraft returns null for non-existent draft id", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const svc = new BootstrapServiceImpl({
+    const svc = new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
@@ -260,7 +260,7 @@ describe("BootstrapServiceImpl — draft not found", () => {
 
   it("editDraft throws for non-existent draft", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const svc = new BootstrapServiceImpl({
+    const svc = new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
@@ -277,13 +277,13 @@ describe("BootstrapServiceImpl — draft not found", () => {
 
 // ─── confirmDraft + DB persistence ───────────────────────────────────────────
 
-describe("BootstrapServiceImpl — confirmDraft", () => {
+describe("CourseCreateServiceImpl — confirmDraft", () => {
   // useTempDb inside describe scope so migrations only run for these tests.
   const dbCtx = useTempDb();
   it("writes Course + Lessons + Concepts + Edges + Gates in one tx; draft confirmed after", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
 
-    const svc = new BootstrapServiceImpl({
+    const svc = new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
@@ -362,7 +362,7 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
 
   it("throws when draft not found", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const svc = new BootstrapServiceImpl({
+    const svc = new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,
@@ -379,13 +379,13 @@ describe("BootstrapServiceImpl — confirmDraft", () => {
 
 // ─── New edit-op tests ────────────────────────────────────────────────────────
 
-describe("BootstrapServiceImpl — new edit ops (relink-concept, add-edge, remove-unit, validate-draft)", () => {
+describe("CourseCreateServiceImpl — new edit ops (relink-concept, add-edge, remove-unit, validate-draft)", () => {
   const dbCtx = useTempDb();
 
   function makeEditSvc() {
     const { db } = openDb({ path: dbCtx.dbPath });
     const store = new SqliteDraftStore(db);
-    return new BootstrapServiceImpl({
+    return new CourseCreateServiceImpl({
       db,
       log: MOCK_LOG,
       engineResolver: makeMockEngine,

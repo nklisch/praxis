@@ -6,9 +6,9 @@ import type {
   ArtifactsService,
   AssignmentService,
   AuthoringService,
-  BootstrapService,
   CodeSandbox,
   ConceptMapService,
+  CourseCreateService,
   CourseStateReader,
   DocumentScopesService,
   DocumentsReader,
@@ -55,8 +55,8 @@ export interface ServiceDeps {
     documents: DocumentsReader;
     /** Phase 6: concrete artifacts read/write service. */
     artifacts: ArtifactsService;
-    /** Phase 6: bootstrap draft management. */
-    bootstrap: BootstrapService;
+    /** Phase 6: course-create draft management. */
+    bootstrap: CourseCreateService;
     /** Phase 6: narrow course-state reader (ArtifactsServiceImpl implements both). */
     courseState: CourseStateReader;
     /** Phase 7: concrete memory service. */
@@ -87,16 +87,16 @@ export interface ServiceDeps {
     documentScopes: DocumentScopesService;
     /**
      * Phase 16: lazy engine resolver — used by tools that spawn isolated sessions.
-     * Same pattern as bootstrapEngineResolver; wired from the same source.
+     * Same pattern as courseCreateConfigResolver; wired from the same source.
      */
     engineResolver: () => Engine;
     /**
-     * Resolves the user-tunable bootstrap config (currently just `maxSteps` —
+     * Resolves the user-tunable course-create config (currently just `maxSteps` —
      * the explore agent's tool-call budget). Read at call time so a UI change
      * applies to the next exploration. Optional so tests that don't exercise
-     * the bootstrap path don't have to wire it.
+     * the course-create path don't have to wire it.
      */
-    bootstrapConfigResolver?: () => { maxSteps: number };
+    courseCreateConfigResolver?: () => { maxSteps: number };
     /**
      * Phase 17: in-process human-in-the-loop quick check dispatch.
      * Tool handlers call `quickCheck.await(...)` to pend an inline question.

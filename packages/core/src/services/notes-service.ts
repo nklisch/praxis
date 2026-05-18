@@ -38,7 +38,7 @@ export interface NotesServiceDeps {
   log: Logger;
   /**
    * Resolves the user's currently selected engine.
-   * Same pattern as BootstrapServiceImpl and MisconceptionIndexer.
+   * Same pattern as CourseCreateServiceImpl and MisconceptionIndexer.
    * Only needed for fromSessionSummary; safe to pass a dummy in unit tests
    * that don't invoke that method.
    */

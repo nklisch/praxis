@@ -1,7 +1,7 @@
 /**
  * Unit tests for course.draft_add_lessons (batch) tool handler.
  */
-import type { BootstrapService } from "@praxis/core/types";
+import type { CourseCreateService } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
 import { draftAddLessonsTool } from "../draft-add-lessons.js";
@@ -9,7 +9,7 @@ import { draftAddLessonsTool } from "../draft-add-lessons.js";
 describe("course.draft_add_lessons handler", () => {
   it("happy path — order preserved, lessonCount reflects total", async () => {
     let i = 0;
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       addLesson: vi.fn().mockImplementation(async () => {
         const lessonIndex = i;
         i++;
@@ -17,7 +17,7 @@ describe("course.draft_add_lessons handler", () => {
       }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 
@@ -41,7 +41,7 @@ describe("course.draft_add_lessons handler", () => {
 
   it("partial failure — unknown concept reported per-item, subsequent lessons still attempted", async () => {
     let i = 0;
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       addLesson: vi.fn().mockImplementation(async (input: { conceptNames: string[] }) => {
         if (input.conceptNames.includes("Ghost")) {
           return { ok: false, reason: 'concept "Ghost" not found — add it first' };
@@ -52,7 +52,7 @@ describe("course.draft_add_lessons handler", () => {
       }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 
@@ -73,11 +73,11 @@ describe("course.draft_add_lessons handler", () => {
   });
 
   it("forwards optional fields (suggestedStrategy, estimatedMinutes)", async () => {
-    const bootstrap: Partial<BootstrapService> = {
+    const bootstrap: Partial<CourseCreateService> = {
       addLesson: vi.fn().mockResolvedValue({ ok: true, lessonIndex: 0 }),
     };
     const ctx = makeToolContext({
-      services: { bootstrap: bootstrap as BootstrapService },
+      services: { bootstrap: bootstrap as CourseCreateService },
       draftId: "draft-1",
     });
 

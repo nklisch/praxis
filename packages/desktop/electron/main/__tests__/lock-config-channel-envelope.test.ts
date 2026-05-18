@@ -8,7 +8,7 @@
  *   praxis.config.isLocked         — no-payload, wrapEnvelope, returns boolean
  *   praxis.config.unlock           — string code, handleEnvelope + z.string().min(1)
  *   praxis.config.selectedEngine   — no-payload getter, wrapEnvelope, returns string
- *   praxis.config.bootstrapConfig  — no-payload getter, wrapEnvelope, returns BootstrapConfigSnapshot
+ *   praxis.config.courseCreateConfig  — no-payload getter, wrapEnvelope, returns CourseCreateConfigSnapshot
  *   praxis.config.firstRunCompleted  — no-payload getter, wrapEnvelope, returns boolean
  *   praxis.config.markFirstRunComplete — no-payload mutation, wrapEnvelope, returns void
  *
@@ -70,7 +70,7 @@ type ConfigOverrides = {
   isLocked?: () => Promise<unknown>;
   unlock?: (code: string) => Promise<unknown>;
   selectedEngine?: () => Promise<unknown>;
-  bootstrapConfig?: () => Promise<unknown>;
+  courseCreateConfig?: () => Promise<unknown>;
   firstRunCompleted?: () => Promise<unknown>;
   markFirstRunComplete?: () => Promise<unknown>;
 };
@@ -116,10 +116,10 @@ function makeServices(lockOverrides: LockOverrides = {}, configOverrides: Config
     engineConfig: vi.fn().mockResolvedValue({}),
     revealApiKey: vi.fn().mockResolvedValue({ apiKey: null }),
     setEngineConfig: vi.fn().mockResolvedValue(undefined),
-    bootstrapConfig: configOverrides.bootstrapConfig
-      ? vi.fn().mockImplementation(configOverrides.bootstrapConfig)
+    courseCreateConfig: configOverrides.courseCreateConfig
+      ? vi.fn().mockImplementation(configOverrides.courseCreateConfig)
       : vi.fn().mockResolvedValue({ maxSteps: 10 }),
-    setBootstrapConfig: vi.fn().mockResolvedValue(undefined),
+    setCourseCreateConfig: vi.fn().mockResolvedValue(undefined),
     firstRunCompleted: configOverrides.firstRunCompleted
       ? vi.fn().mockImplementation(configOverrides.firstRunCompleted)
       : vi.fn().mockResolvedValue(false),
@@ -627,21 +627,21 @@ describe("praxis.config.selectedEngine — envelope wiring", () => {
   });
 });
 
-// ── praxis.config.bootstrapConfig ─────────────────────────────────────────────
+// ── praxis.config.courseCreateConfig ─────────────────────────────────────────────
 
-describe("praxis.config.bootstrapConfig — envelope wiring", () => {
+describe("praxis.config.courseCreateConfig — envelope wiring", () => {
   it("resolves with { ok: true, value: <snapshot> } on success", async () => {
     const snapshot = { maxSteps: 20 };
     const log = makeFakeLogger();
-    const services = makeServices({}, { bootstrapConfig: async () => snapshot });
+    const services = makeServices({}, { courseCreateConfig: async () => snapshot });
     registerIpcHandlers(services, () => null, log);
 
-    const handler = handlers.get("praxis.config.bootstrapConfig");
+    const handler = handlers.get("praxis.config.courseCreateConfig");
     expect(handler).toBeDefined();
 
     const result = await handler?.({});
     expect(result).toMatchObject({ ok: true, value: snapshot });
-    expect(services.config.bootstrapConfig).toHaveBeenCalledOnce();
+    expect(services.config.courseCreateConfig).toHaveBeenCalledOnce();
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
@@ -649,14 +649,14 @@ describe("praxis.config.bootstrapConfig — envelope wiring", () => {
     const services = makeServices(
       {},
       {
-        bootstrapConfig: async () => {
+        courseCreateConfig: async () => {
           throw new Error("read error");
         },
       },
     );
     registerIpcHandlers(services, () => null, log);
 
-    const handler = handlers.get("praxis.config.bootstrapConfig");
+    const handler = handlers.get("praxis.config.courseCreateConfig");
     expect(handler).toBeDefined();
 
     await expect(handler?.({})).resolves.toMatchObject({

@@ -1,5 +1,5 @@
 /**
- * Unit tests for BootstrapServiceImpl's draft-stream subscription —
+ * Unit tests for CourseCreateServiceImpl's draft-stream subscription —
  * the live-update channel the renderer's bootstrap right-pane outline uses.
  *
  * Covers:
@@ -25,7 +25,7 @@ import type {
   Timestamp,
 } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
-import { BootstrapServiceImpl } from "../bootstrap-service.js";
+import { CourseCreateServiceImpl } from "../course-create-service.js";
 import { SqliteDraftStore } from "../draft-store.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-test") as StudentId;
@@ -59,7 +59,7 @@ const dbCtx = useTempDb();
 function makeService(opts?: { sweepIntervalMs?: number }) {
   const { db } = openDb({ path: dbCtx.dbPath });
   const store = new SqliteDraftStore(db);
-  const svc = new BootstrapServiceImpl({
+  const svc = new CourseCreateServiceImpl({
     db,
     log: MOCK_LOG,
     engineResolver: makeEngine,
@@ -83,7 +83,7 @@ function makeListener(): {
   };
 }
 
-describe("BootstrapServiceImpl — draft stream", () => {
+describe("CourseCreateServiceImpl — draft stream", () => {
   it("subscribe emits a snapshot of currently-live drafts", async () => {
     const { svc } = makeService();
     // Seed a draft BEFORE subscribing.

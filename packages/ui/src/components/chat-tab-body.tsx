@@ -19,11 +19,10 @@ import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import { isClaudeAuthRequiredError } from "../lib/auth-error.js";
 import { AssignmentCard } from "./assignment-card.js";
 import { AuthGate } from "./auth-gate.js";
-import { BootstrapTabBody } from "./bootstrap-tab-body.js";
 import styles from "./chat-tab-body.module.css";
-import { ResumedBanner } from "./resumed-banner.js";
 import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
+import { CourseCreateTabBody } from "./course-create-tab-body.js";
 import { DocumentTabBody } from "./document-tab-body.js";
 import { ExamTabBody } from "./exam-tab-body.js";
 import { HomeworkTabBody } from "./homework-tab-body.js";
@@ -33,6 +32,7 @@ import { PageImagePanel } from "./page-image-panel.js";
 import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
 import { ReasoningBlock } from "./reasoning-block.js";
+import { ResumedBanner } from "./resumed-banner.js";
 import { SessionHead } from "./session-head.js";
 import { StructuredQuestionCard } from "./structured-question-card.js";
 import { StudySkillsTabBody } from "./study-skills-tab-body.js";
@@ -107,7 +107,7 @@ export interface TeachChatTabBodyProps extends SessionChatTabBodyProps {
  * NewTabPicker (or openSessionInTab). This component's job is to drive the
  * existing session via client.session.send.
  *
- * Exported so BootstrapTabBody can embed it in the left pane.
+ * Exported so CourseCreateTabBody can embed it in the left pane.
  */
 export function TeachChatTabBody({
   tab,
@@ -527,7 +527,7 @@ export function ChatTabBody({ tab, onNoteOpen, hasSessionNote }: ChatTabBodyProp
     case "exam":
       return <ExamTabBody tab={tab} />;
     case "course-create":
-      return <BootstrapTabBody tab={tab} />;
+      return <CourseCreateTabBody tab={tab} />;
     case "study-skills":
       return <StudySkillsTabBody tab={tab} />;
     default:

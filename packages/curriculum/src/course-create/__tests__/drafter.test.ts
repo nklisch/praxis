@@ -2,7 +2,7 @@
  * Tests for runConceptDrafter.
  *
  * Uses ScriptedEngine to drive a real InProcessToolRegistry without any LLM
- * calls — tool dispatch is real (BootstrapServiceImpl), only the model
+ * calls — tool dispatch is real (CourseCreateServiceImpl), only the model
  * driving is fake.
  *
  * Exit policy under test:
@@ -14,9 +14,9 @@
  */
 
 import { openDb } from "@praxis/core/db";
-import { BootstrapServiceImpl } from "@praxis/core/services";
+import { CourseCreateServiceImpl } from "@praxis/core/services";
 import type {
-  BootstrapService,
+  CourseCreateService,
   DocumentId,
   Logger,
   ToolContext,
@@ -60,8 +60,8 @@ const MOCK_DOCUMENT_SCOPES = {
   listOrphaned: vi.fn().mockResolvedValue([]),
 };
 
-function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
-  return new BootstrapServiceImpl({
+function makeCourseCreateService(db: ReturnType<typeof openDb>["db"]) {
+  return new CourseCreateServiceImpl({
     db,
     log: MOCK_LOG,
     engineResolver: () => {
@@ -73,7 +73,7 @@ function makeBootstrapService(db: ReturnType<typeof openDb>["db"]) {
 }
 
 function makeBaseContext(
-  bootstrap: BootstrapService,
+  bootstrap: CourseCreateService,
 ): Omit<ToolContext, "courseId" | "courseDocumentIds"> {
   return {
     studentId: STUDENT_ID,
@@ -138,7 +138,7 @@ describe("runConceptDrafter — fresh draft success path", () => {
 
   it("returns ok:true with draftId and summary built from live state", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     const engine = new ScriptedEngine([
       {
@@ -224,7 +224,7 @@ describe("runConceptDrafter — exhaustedBudget", () => {
 
   it("returns ok:true with exhaustedBudget=true when stepsUsed hits the cap with a live draft", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     // 1 init + 4 concept-batch calls = 5 tool calls. Budget is 5.
     const steps = [
@@ -279,7 +279,7 @@ describe("runConceptDrafter — early stop without finalize", () => {
 
   it("returns ok:true when the engine simply stops; no exhaustedBudget if budget left", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     const engine = new ScriptedEngine([
       {
@@ -326,7 +326,7 @@ describe("runConceptDrafter — continuation with existing draftId", () => {
 
   it("skips draft_init and adds to the existing draft when draftId is supplied", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     // Seed a draft externally (as if a prior run had created it).
     const { draftId } = await bootstrap.initDraft({
@@ -385,7 +385,7 @@ describe("runConceptDrafter — no draft created", () => {
   it("returns ok:false reason:no_draft_init when the model never calls draft_init", async () => {
     const dbCtx = useTempDb();
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     // No tool calls at all — empty script.
     const engine = new ScriptedEngine([]);
@@ -617,7 +617,7 @@ describe("runConceptDrafter — document scoping", () => {
 
   it("pins ctx.courseDocumentIds to input.documentIds so retrieval auto-scopes", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     let capturedCourseDocumentIds: readonly string[] | undefined;
     let capturedHadDocId: boolean | undefined;
@@ -702,7 +702,7 @@ describe("runConceptDrafter — subAgentHandle emissions", () => {
 
   it("emits stepStarted and stepSettled once per tool_call/tool_result pair", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const { handle, stepStartedCalls, stepSettledCalls } = makeFakeHandle();
 
     const engine = new ScriptedEngine([
@@ -753,7 +753,7 @@ describe("runConceptDrafter — subAgentHandle emissions", () => {
 
   it("emits setLabel('drafting an outline') when draft_init fires during reading phase", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const { handle, setLabelCalls } = makeFakeHandle();
 
     const engine = new ScriptedEngine([
@@ -790,7 +790,7 @@ describe("runConceptDrafter — subAgentHandle emissions", () => {
 
   it("emits setLabel('finalizing the draft') when budget hits 80%", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const { handle, setLabelCalls } = makeFakeHandle();
 
     // Budget = 5; 80% threshold = 4. We'll have: init (step 1) + 3 concept batches
@@ -839,7 +839,7 @@ describe("runConceptDrafter — subAgentHandle emissions", () => {
     // Just verify the drafter doesn't error when handle is undefined (the
     // optional-chaining guard means this is a no-op path).
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     const engine = new ScriptedEngine([
       {
@@ -925,7 +925,7 @@ describe("runConceptDrafter — subAgentHandle emissions", () => {
     // draft_add_unit call must update the sub-agent label to "unit N drafted"
     // so the bootstrap tab shows live structural progress.
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const { handle, setLabelCalls } = makeFakeHandle();
 
     // Pre-populate a draft with one concept and one lesson via the service
@@ -991,7 +991,7 @@ describe("runConceptDrafter — subAgentHandle emissions", () => {
 
   it("increments label counter across multiple draft_add_unit calls", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
     const { handle, setLabelCalls } = makeFakeHandle();
 
     // Set up a draft with two concepts and two lessons so we can add two units.
@@ -1121,7 +1121,7 @@ describe("runConceptDrafter — signal propagation", () => {
 
   it("returns interrupted and carries partial draftId when aborted mid-loop (after draft_init)", async () => {
     const { db } = openDb({ path: midLoopDbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     const ac = new AbortController();
 
@@ -1212,7 +1212,7 @@ describe("runConceptDrafter — parentSessionId threading", () => {
 
   it("sets parentSessionId on the drafter's ToolContext to the base context's sessionId", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const bootstrap = makeBootstrapService(db);
+    const bootstrap = makeCourseCreateService(db);
 
     // We verify that the drafter's context has parentSessionId by checking
     // the observable effect: draft_init (which reads ctx.parentSessionId) should
