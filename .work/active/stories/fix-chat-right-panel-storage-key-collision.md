@@ -1,5 +1,6 @@
 ---
 id: fix-chat-right-panel-storage-key-collision
+stage: implementing
 created: 2026-05-18
 tags: [ui, bug]
 ---

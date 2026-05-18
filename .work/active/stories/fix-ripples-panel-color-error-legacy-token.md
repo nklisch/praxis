@@ -1,5 +1,6 @@
 ---
 id: fix-ripples-panel-color-error-legacy-token
+stage: implementing
 created: 2026-05-17
 tags: [ui, bug]
 ---
