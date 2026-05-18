@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-cross-tab-state
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -164,3 +164,20 @@ Two independent stories (can run in parallel):
   animation; restart via key change. Test the rapid-fire case.
 - **Dirty-state leak on tab unmount.** Provider cleans up keys when
   consumers unmount; tests cover.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Both child stories reviewed and approved individually. All six acceptance criteria confirmed from code:
+- `useDirtyState(key)` / `useDirtyAggregate()` implemented with ref-based subscription (no provider re-renders).
+- Configure save bar shows "Unsaved" (1 surface) or "N unsaved across N surfaces" (N > 1).
+- Child tabs with `parentSessionId` show "from {parentMode}" pill via `ParentChildProvider`.
+- Parent tab pulse driven by incrementing `pulseKey`; `key={pulse-${pulseKey}}` remount restarts CSS `tabPulse` keyframe on rapid-fire events.
+- `system_note` events render as `<SystemNoteCard>` (green-border card with score %, elapsed time, "review answers" link).
+- 1125 UI tests pass; lint clean; `@praxis/desktop` typecheck errors are pre-existing (in `courses-section.tsx` and `note-editor-page.tsx`, not touched by this feature).
+- Foundation docs (`CONTRACT.md`, `ARCHITECTURE.md`, `CLAUDE.md`) already correctly describe `system_note`, `parentSessionId`, `notifySession`, and `spawnFromAssignment` — no drift.
