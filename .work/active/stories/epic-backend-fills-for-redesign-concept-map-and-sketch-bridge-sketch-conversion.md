@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge-sketch-conversion
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore-capture-and-restore]
@@ -146,3 +146,15 @@ See parent feature
 ### Quality
 
 All 4349 tests pass. Zero new typecheck errors. Lint clean (source files).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `SnapshotCapturer.forConceptMapCreate()` is added but never called — `concept-map-service.ts` writes the snapshot row inline. The helper is dead code. Fine to leave for now; delete it in a later cleanup pass.
+- `note-editor-page.tsx` line 140: `note.id as any` to pass `NoteId` to `convertFromSketch`. Pre-existing pattern in that file; not introduced by this story.
+
+**Notes**: Core conversion logic (`extractFromTldrawScene`, `buildConceptMapScene`) is solid and handles all three tldraw JSON layouts. The undo path (configurator_actions + configurator_snapshots → `restoreAction` → `conceptMaps.delete`) is correctly wired and covered by the round-trip test in `snapshot-restore.test.ts`. IPC channel follows the `ipc-envelope-handler` pattern. UI modal uses `<Modal>` primitive correctly with converting/error states. `configu ratorId?` optional dep keeps the service embeddable in test-only contexts. 22 new tests total (the scope doc says 20 — the discrepancy is because snapshot-restore got 1 and IPC got 4 more than the headline implied; still well covered). All acceptance criteria satisfied.

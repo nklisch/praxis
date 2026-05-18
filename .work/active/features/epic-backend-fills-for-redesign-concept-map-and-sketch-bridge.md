@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Concept-map UX completion + Sketch ↔ concept-map conversion

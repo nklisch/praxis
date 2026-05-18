@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-chat-to-workspace-inline-panel
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on:
@@ -92,3 +92,17 @@ column.
   unrelated to this story, present before these changes).
 - `pnpm lint` (biome check on all new/modified files) — clean.
 - `pnpm --filter @praxis/ui test` — 1463 tests pass (1433 pre-existing + 30 new).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `SavedNoteToast` accepts a `noteId: NoteId` prop in its interface but never uses it in the component body or JSX. It's dead prop surface. Remove it or wire up the workspace navigation when that path is added.
+- `InlineNotePanel.handleSave` hardcodes `format: "cornell"` in the `client.notes.create` call regardless of the `format` prop passed to the panel. Non-Cornell format selections (feynman, outline, free, sketch) get saved with `format: "cornell"` in the DB. The comment in the code correctly calls this out ("until dedicated editors land") — but the saved note's format will silently misreport for non-Cornell picks. Fine for this phase since the panel always renders `NoteEditorCornell` anyway, but worth tracking.
+- `SavedNoteToast.onDismiss` is passed as an inline arrow `() => setSavedToast(null)` from `ChatRoute`. Because `autoHideMs` and `onDismiss` are both in the `useEffect` dep array, any parent re-render before the 5 s window closes will restart the timer. In practice this is unlikely to cause a visible issue (toast state is stable after save), but the fix is trivial: `useCallback` on the dismiss handler in `chat.tsx`.
+- `onNoteOpen` is only threaded to `TeachChatTabBody` via the `default` case. Quiz/homework/exam/bootstrap/study-skills tabs receive the prop at the `ChatTabBodyProps` boundary but drop it in the switch. Acceptable for now since the "+ note" button is teach-mode-centric, but consider narrowing the prop to `TeachChatTabBodyProps` only to avoid the unused threading.
+
+**Notes**: Architecture is clean — popover anchored locally to the trigger, panel lifecycle owned by `ChatRoute`, right-column swap avoids portal complexity. State resets correctly on tab switch. 30 new tests with good coverage of keyboard shortcuts, lifecycle, and the integration path through `ComposerVerbs`. The `hasSessionNote` dot indicator and `¶·` glyph give appropriate visual feedback. Locked flow mock steps 2–4 are delivered.
