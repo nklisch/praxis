@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template-step-2-quick-check-and-subagent
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-stream-handler-template
 depends_on: [refactor-stream-handler-template-step-1-helper-and-activity]
@@ -88,6 +88,33 @@ registerSubscriberStream<SubAgentEvent, [parentCallId?: string]>(
 - [ ] Subagent's `parentCallId` filter behavior preserved — test that an
       invoke without `parentCallId` and one with it both still work
 - [ ] No wire-format change
+
+## Implementation notes
+
+- **quick-check-channel.ts**: 81 → 40 lines (−41 LoC). Removed inline
+  `IpcStreamMessage` import and `redactSecrets`/`serializeErrorRedacted`
+  imports (no longer needed). The `wrapEnvelope` resolve handler is
+  unchanged and kept verbatim.
+- **subagent-channel.ts**: 80 → 44 lines (−36 LoC). Same unused imports
+  dropped. The variadic `[parentCallId?: string]` tuple generic compiled
+  cleanly — no type escape hatch needed.
+- **Log key diffs**: The old subagent implementation logged
+  `"subagent.subscribe"` / `"subagent.unsubscribe"` / `"subagent.error"`
+  (lowercase `subagent`). The helper derives from `channelBase
+  "praxis.subAgent.events"` → logPrefix `"subAgent.events"` → now logs
+  `"subAgent.events.subscribe"` / `"subAgent.events.unsubscribe"` /
+  `"subAgent.events.error"`. No tests assert on these log keys so this
+  is not a test regression. The quick-check keys were already
+  `"quickCheck.events.*"` in both old and new implementations — no diff.
+- **Test updates**: None. All 8 tests in
+  `streaming-channel-error-redaction.test.ts` (6) and
+  `subagent-channel.test.ts` (2) pass against the new implementations
+  without modification.
+- **Baseline confirmation**: 3 pre-existing UI typecheck errors
+  (chat-tab-body.tsx, chat.tsx, notes-list.tsx) unchanged. The
+  `pnpm --filter @praxis/desktop test` startup failure (`packages/desktop/tests`
+  not found) is also pre-existing — confirmed by running against the
+  baseline before applying changes.
 
 ## Risk
 

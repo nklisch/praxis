@@ -1,9 +1,8 @@
-import type { IpcStreamMessage } from "@praxis/client";
 import type { Logger, SubAgentEvent } from "@praxis/core/types";
-import { redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { registerSubscriberStream } from "./stream-handler.js";
 
 /**
  * Streams sub-agent transparency events from `services.subAgent` to the renderer.
@@ -29,51 +28,14 @@ export function registerSubAgentHandlers(
     wrapEnvelope("praxis.subAgent.list", log, async () => services.subAgent.list()),
   );
 
-  handle(
-    "praxis.subAgent.events.start",
-    async (_event, streamId: string, parentCallId?: string) => {
-      const streamLog = log.child({ component: "subagent.events", streamId, parentCallId });
-      const controller = new AbortController();
-      activeAbortControllers.set(streamId, controller);
-      const eventsChannel = `praxis.subAgent.events.events.${streamId}`;
-
-      const push = (msg: IpcStreamMessage<SubAgentEvent>) => {
-        const wc = webContentsGetter();
-        if (!wc || wc.isDestroyed()) return;
-        wc.send(eventsChannel, msg);
-      };
-
-      streamLog.info("subagent.subscribe");
-      let unsubscribe: (() => void) | null = null;
-      try {
+  registerSubscriberStream<SubAgentEvent, [parentCallId?: string]>(
+    { channelBase: "praxis.subAgent.events", log, webContentsGetter, activeAbortControllers },
+    { handle, on },
+    {
+      subscribe: (cb, [parentCallId]) => {
         const filter = parentCallId !== undefined ? { parentCallId } : undefined;
-        unsubscribe = services.subAgent.subscribe((event) => {
-          if (controller.signal.aborted) return;
-          push({ kind: "event", payload: event });
-        }, filter);
-
-        // Hold open until cancelled.
-        await new Promise<void>((resolve) => {
-          controller.signal.addEventListener("abort", () => resolve(), { once: true });
-        });
-
-        push({ kind: "done" });
-        streamLog.info("subagent.unsubscribe");
-      } catch (err) {
-        streamLog.error("subagent.error", { err: serializeErrorRedacted(err) });
-        push({
-          kind: "error",
-          error: redactSecrets(err instanceof Error ? err.message : String(err)),
-        });
-      } finally {
-        unsubscribe?.();
-        activeAbortControllers.delete(streamId);
-      }
+        return services.subAgent.subscribe(cb, filter);
+      },
     },
   );
-
-  on("praxis.subAgent.events.cancel", (_event, streamId: string) => {
-    activeAbortControllers.get(streamId)?.abort();
-    activeAbortControllers.delete(streamId);
-  });
 }
