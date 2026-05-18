@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-cross-tab-state-dirty-tracker
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-cross-tab-state
 depends_on: []
@@ -110,3 +110,13 @@ and only notify when the state actually changes.
 - Provider guard throws verified for both hooks.
 - Existing `configure-prompt-tab.test.tsx` updated to wrap `<PromptTab>` in
   `<DirtyStateProvider>`.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Save bar copy `"${surfaceCount} unsaved across ${surfaceCount} surfaces"` shows the same number twice (since `dirtyCount === surfaceCount` by design). Correct per spec but slightly awkward phrasing — fine to leave.
+
+**Notes**: Ref-based subscription model is well-suited to this use case (avoids provider re-renders on every dirty-state change). Unmount cleanup is correct within the configure tab's conditional-render pattern — sliders reset local state on unmount so dirty state + local state are self-consistent. 15 tests cover all acceptance criteria including unmount cleanup, provider guard, and aggregate multi-key scenarios. Quality checks: 1125 UI tests pass; typecheck and lint failures are pre-existing (lint count decreased by 7 with this commit).
