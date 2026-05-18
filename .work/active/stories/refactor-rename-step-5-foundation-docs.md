@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-5-foundation-docs
 kind: story
-stage: review
+stage: done
 tags: [refactor, naming, documentation]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: [refactor-rename-step-4-service-and-ipc]
@@ -200,3 +200,27 @@ Any agent reading the codebase and docs encounters a single consistent
 framing that matches the UI surface ("Create a course", "Praxis is
 drafting"), and the naming bleed that motivated this refactor has no
 remaining foothold in the active codebase or its documentation.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+
+Doc-only change; all acceptance greps clean:
+
+- `grep -in "bootstrap mode|bootstrap session|bootstrap explorer|the explorer" docs/*.md CLAUDE.md` (excluding `docs/designs/` and `docs/refactors/`) → zero results
+- Rolling-forward grep over the diff → zero results (no "previously", "originally", "formerly", "renamed from")
+- CONTRACT.md tracks the post-Step-4 implementation: `course-create` mode discriminator and `course.start_drafting` tool name are used consistently in the tool catalog (lines 1327-1330) and the mode definition (line 1108, 1110, 1514)
+
+Category-B preservation handled with judgment — 5 occurrences kept in CONTRACT.md and 1 in ARCHITECTURE.md (the `1. Bootstrap` numbered step header) are CS-sense "bootstrap" uses, and `"bootstrapped"` as a past-tense verb in some descriptive prose is appropriate to keep when context is unambiguous.
+
+The `client.author.bootstrap()` line in ARCHITECTURE.md was removed (vs renamed) since the underlying method remains a placeholder that throws, and the `createCourse` placeholder is already documented adjacent — removing the duplicate avoids confusion. Reasonable judgment call.
+
+Foundation docs now describe the system as it currently is. Future agents reading the codebase + docs find a single consistent vocabulary.
+
+This commit completes the `refactor-rename-bootstrap-and-explorer` feature.
