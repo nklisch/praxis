@@ -9,7 +9,9 @@
     header { background: #0d1117; color: #fff; padding: 32px; }
     header h1 { margin: 0 0 6px; font-weight: 600; font-size: 24px; }
     header p { margin: 0; color: #8b949e; max-width: 80ch; }
-    .flows { display: grid; gap: 16px; grid-template-columns: 1fr 1fr 1fr; padding: 24px 32px; }
+    .flows { display: grid; gap: 16px; grid-template-columns: 1fr 1fr 1fr; padding: 24px 32px 8px; }
+    .flows.lower { padding: 0 32px 24px; }
+    .group-label { padding: 18px 32px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #8b949e; }
     .flow { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
     .flow h2 { margin: 0; padding: 16px 20px 8px; font-size: 16px; font-weight: 600; }
     .flow .lede { padding: 0 20px 16px; color: #57606a; font-size: 13px; }
@@ -22,8 +24,9 @@
 <body>
   <header>
     <h1>Flows · feel + navigation between locked surfaces</h1>
-    <p>Three sequences focused on the critical connecting moments: the daily walked path (tab switching, state preservation), inter-tab integration (chat ↔ workspace), and a finer-component interaction (concept-map link confirmation). Each flow walks step-by-step; open any flow's index for the navigator.</p>
+    <p>Seven sequences spanning the critical connecting moments — daily path + tab feel, chat ↔ workspace ↔ chat back-flow, the concept-map finer-component, bootstrap onramp, sketch ↔ concept-map primitive bridge, and parent ↔ child session linkage. Each flow walks step-by-step; open any flow's index for the navigator.</p>
   </header>
+  <div class="group-label">Core navigation</div>
   <div class="flows">
     <div class="flow">
       <h2>session-loop</h2>
@@ -42,6 +45,34 @@
       <div class="lede">4 steps · draw node → best-guess surfaces → hover preview ghosts on canvas → confirm → ripples surface what changed.<br><strong>Shows:</strong> finer component interaction; the three-state node model (unlinked / best-guess / linked); the visual contract between agent suggestion and student confirmation.</div>
       <iframe src="concept-map-link/index.html"></iframe>
       <div class="meta"><span>4 steps · concept-map-link</span><a href="concept-map-link/index.html">open flow ↗</a></div>
+    </div>
+  </div>
+
+  <div class="group-label">Connecting flows</div>
+  <div class="flows lower">
+    <div class="flow">
+      <h2>note-to-tutor-brief</h2>
+      <div class="lede">4 steps · note with unanswered Q → ask tutor to brief → new session opens quoting the note → conversation closes the loop + offers to update the note.<br><strong>Shows:</strong> workspace ↔ chat back-flow; how a student's own writing becomes a session's opening.</div>
+      <iframe src="note-to-tutor-brief/index.html"></iframe>
+      <div class="meta"><span>4 steps · note-to-tutor-brief</span><a href="note-to-tutor-brief/index.html">open flow ↗</a></div>
+    </div>
+    <div class="flow">
+      <h2>bootstrap-entry</h2>
+      <div class="lede">5 steps · library CTA → upload docs → watch the explorer draft units live → review &amp; edit → course materializes with first session open.<br><strong>Shows:</strong> the bootstrap onramp; how a brand-new course comes into being from raw material; the explorer agent's activity stream as observable.</div>
+      <iframe src="bootstrap-entry/index.html"></iframe>
+      <div class="meta"><span>5 steps · bootstrap-entry</span><a href="bootstrap-entry/index.html">open flow ↗</a></div>
+    </div>
+    <div class="flow">
+      <h2>sketch-to-concept-map</h2>
+      <div class="lede">4 steps · sketch with convert link glowing → confirmation modal (what changes) → conversion in motion (nodes pop, hints panel slides in) → it's a concept map; original sketch saved alongside.<br><strong>Shows:</strong> the explicit primitive bridge; reversibility; how the sketch ↔ concept-map distinction stays load-bearing through the conversion.</div>
+      <iframe src="sketch-to-concept-map/index.html"></iframe>
+      <div class="meta"><span>4 steps · sketch-to-concept-map</span><a href="sketch-to-concept-map/index.html">open flow ↗</a></div>
+    </div>
+    <div class="flow">
+      <h2>assignment-spawn</h2>
+      <div class="lede">5 steps · teach mid-lesson → tutor issues quick check → child tab spawns with "from L3" pill → student takes it → system_note returns to parent → tutor responds grounded in the result.<br><strong>Shows:</strong> parent ↔ child session linkage; how a child knows where it came from; how a parent receives results without losing context.</div>
+      <iframe src="assignment-spawn/index.html"></iframe>
+      <div class="meta"><span>5 steps · assignment-spawn</span><a href="assignment-spawn/index.html">open flow ↗</a></div>
     </div>
   </div>
 </body>

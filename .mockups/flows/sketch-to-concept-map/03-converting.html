@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sketch→concept · 3/4 · converting · nodes surfacing</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .running-head { padding: 12px 32px 8px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .editor-strip { padding: 10px 24px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; background: color-mix(in oklab, var(--color-success) 6%, var(--color-bg-primary)); animation: shifting 1400ms ease-in-out infinite; }
+    @keyframes shifting { 0%, 100% { background: color-mix(in oklab, var(--color-success) 6%, var(--color-bg-primary)); } 50% { background: color-mix(in oklab, var(--color-success) 12%, var(--color-bg-primary)); } }
+    .editor-strip .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-success); display: flex; gap: 6px; align-items: center; }
+    .editor-strip .kicker .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .editor-strip h1 { font: 500 italic 18px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .editor-strip h1 em { font-weight: 600; }
+    .editor-strip .step { font: italic 12px/1 var(--font-serif); color: var(--color-text-secondary); }
+    .editor-strip .step em { color: var(--color-success); font-weight: 600; }
+
+    .surface { display: grid; grid-template-columns: 56px 1fr 320px; flex: 1; overflow: hidden; }
+    .tools { border-right: 1px solid var(--color-border); padding: 10px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .tool { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-secondary); font: italic 17px/1 var(--font-display); }
+    .tool.active { background: var(--color-accent-muted); color: var(--color-accent); }
+    .tool-sep { height: 1px; width: 26px; background: var(--color-border); margin: 4px 0; }
+
+    .canvas { position: relative; background: var(--color-bg-primary); overflow: hidden; }
+    .canvas svg { width: 100%; height: 100%; display: block; }
+
+    /* Sketch strokes faded; new nodes surfacing on top */
+    .sketch-bg { opacity: 0.32; transition: opacity 600ms; }
+
+    .draw-node { position: absolute; padding: 7px 12px; background: var(--color-bg-secondary); border: 1.5px solid var(--color-text-primary); border-radius: var(--radius-sm); font: 500 italic 14px/1.2 var(--font-display); color: var(--color-text-primary); transform: translate(-50%, -50%); white-space: nowrap; animation: node-pop 600ms ease-out backwards; }
+    @keyframes node-pop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 60% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+    .draw-node.detected { border: 1.5px dashed var(--color-warning); background: linear-gradient(to right, var(--color-bg-secondary), color-mix(in oklab, var(--color-warning) 10%, var(--color-bg-secondary))); }
+    .draw-node.detected::after { content: '?'; position: absolute; right: -8px; top: -8px; background: var(--color-warning); color: var(--color-text-inverse); width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 12px/1 var(--font-mono); font-style: normal; }
+    .draw-node .canonical-name { display: block; font: 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-warning); margin-top: 4px; font-style: normal; font-weight: 600; }
+
+    .draw-node.popping-1 { animation-delay: 200ms; }
+    .draw-node.popping-2 { animation-delay: 500ms; }
+    .draw-node.popping-3 { animation-delay: 800ms; }
+
+    .canvas-meta { position: absolute; top: 12px; left: 12px; display: flex; gap: 5px; }
+    .canvas-meta .pill { background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: 4px 8px; border-radius: var(--radius-sm); font: 11px/1 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px; }
+    .canvas-meta .pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    /* Right panel — appearing */
+    aside.hints { border-left: 1px solid var(--color-border); padding: 16px 18px; background: var(--color-bg-primary); animation: panel-slide 500ms ease-out; }
+    @keyframes panel-slide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    aside.hints h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+
+    .conversion-status { padding: 12px 14px; background: color-mix(in oklab, var(--color-success) 10%, var(--color-bg-secondary)); border: 1px solid var(--color-success); border-radius: var(--radius-md); margin-bottom: 16px; }
+    .conversion-status .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-success); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .conversion-status .label .ornament { font: 600 14px/1 var(--font-mono); }
+    .conversion-status .progress { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); }
+    .conversion-status .progress em { font-weight: 600; }
+    .conversion-status .progress-bar { width: 100%; height: 3px; background: var(--color-bg-tertiary); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+    .conversion-status .progress-bar .fill { height: 100%; background: var(--color-success); animation: fill 2s ease-out forwards; width: 0; }
+    @keyframes fill { from { width: 0; } to { width: 70%; } }
+
+    .step-list { display: flex; flex-direction: column; gap: 4px; }
+    .step-row { padding: 6px 10px; font: 13px/1.4 var(--font-serif); display: flex; gap: 8px; align-items: baseline; border-radius: var(--radius-sm); }
+    .step-row.done { color: var(--color-text-secondary); }
+    .step-row.done::before { content: '✓'; color: var(--color-success); font: 600 10px/1 var(--font-mono); min-width: 12px; }
+    .step-row.running { background: color-mix(in oklab, var(--color-success) 8%, transparent); color: var(--color-text-primary); }
+    .step-row.running::before { content: '◐'; color: var(--color-success); font: 600 10px/1 var(--font-mono); min-width: 12px; animation: spin 1s linear infinite; display: inline-block; }
+    .step-row.pending { color: var(--color-text-tertiary); }
+    .step-row.pending::before { content: '·'; color: var(--color-text-tertiary); font: 600 10px/1 var(--font-mono); min-width: 12px; }
+    .step-row em { font-style: italic; font-weight: 500; color: var(--color-text-primary); }
+    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="02-convert-clicked.html">← prev</a>
+    <span class="center">sketch→concept · step 3/4 · converting · drawing fades · nodes pop in</span>
+    <a href="04-now-concept-map.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 3</span><span>Conversion in motion. The drawing strokes <em>fade to 32%</em> (still visible as decoration). Three nodes pop into existence over the labelled regions; canonical-hints panel slides in from the right. Each new node is in <em>"best guess"</em> state with the ? badge — student needs to confirm.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <div class="editor-strip">
+    <span class="kicker"><span class="pulse"></span>‡ converting · sketch → concept map</span>
+    <h1>Volume from radius — <em>a picture of the chain</em></h1>
+    <span class="step">step <em>3/4</em> · matching canonical concepts</span>
+  </div>
+
+  <div class="surface">
+    <div class="tools">
+      <div class="tool active">↘</div>
+      <div class="tool">○</div>
+      <div class="tool">⟶</div>
+      <div class="tool">¶</div>
+      <div class="tool-sep"></div>
+      <div class="tool">✎</div>
+    </div>
+
+    <div class="canvas">
+      <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.5" fill="var(--color-text-tertiary)" opacity="0.35"/></pattern>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-text-primary)"/></marker>
+        </defs>
+        <rect width="1000" height="600" fill="url(#dots)"/>
+
+        <g class="sketch-bg">
+          <circle cx="220" cy="300" r="100" stroke="var(--color-text-primary)" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+          <circle cx="220" cy="300" r="70" stroke="var(--color-text-primary)" stroke-width="2" fill="none"/>
+          <line x1="220" y1="300" x2="290" y2="300" stroke="var(--color-text-primary)" stroke-width="1.5" stroke-dasharray="2 3"/>
+          <text x="380" y="310" font-family="serif" font-size="40" fill="var(--color-text-primary)">→</text>
+          <g stroke="var(--color-text-primary)" stroke-width="2" fill="none">
+            <path d="M 480 380 Q 540 220 700 220 L 760 240 Q 820 300 880 240"/>
+          </g>
+          <line x1="480" y1="450" x2="900" y2="450" stroke="var(--color-text-secondary)" stroke-width="1"/>
+          <line x1="480" y1="450" x2="480" y2="180" stroke="var(--color-text-secondary)" stroke-width="1"/>
+          <g stroke="var(--color-accent)" stroke-width="2" fill="none" marker-end="url(#arrow)">
+            <line x1="220" y1="430" x2="220" y2="500"/>
+            <line x1="690" y1="350" x2="690" y2="450"/>
+          </g>
+          <text x="220" y="520" font-family="serif" font-style="italic" font-size="14" fill="var(--color-accent)" text-anchor="middle">dr/dt = 2 cm/s</text>
+          <text x="690" y="470" font-family="serif" font-style="italic" font-size="14" fill="var(--color-accent)" text-anchor="middle">dV/dr = 4πr²</text>
+          <rect x="380" y="540" width="280" height="44" rx="6" fill="var(--color-bg-secondary)" stroke="var(--color-text-primary)" stroke-width="1.5"/>
+        </g>
+      </svg>
+
+      <div class="draw-node detected popping-1" style="top: 22%; left: 22%;">
+        the balloon<span class="canonical-name">→ rate-bearing variable?</span>
+      </div>
+      <div class="draw-node detected popping-2" style="top: 30%; left: 70%;">
+        the geometry rule<span class="canonical-name">→ derivative of V wrt r?</span>
+      </div>
+      <div class="draw-node detected popping-3" style="top: 95%; left: 52%;">
+        two rates · stacked · multiplied<span class="canonical-name">→ chain rule?</span>
+      </div>
+
+      <div class="canvas-meta">
+        <span class="pill"><span class="dot" style="background: var(--color-warning);"></span>best-guess · 3</span>
+        <span class="pill"><span class="dot" style="background: var(--color-text-tertiary);"></span>sketch strokes · faded</span>
+      </div>
+    </div>
+
+    <aside class="hints">
+      <div class="conversion-status">
+        <div class="label"><span class="ornament">↗</span>converting · 70%</div>
+        <div class="progress"><em>3 nodes</em> detected from your labels · matching canonical concepts now</div>
+        <div class="progress-bar"><div class="fill"></div></div>
+      </div>
+
+      <h3>Conversion steps</h3>
+      <div class="step-list">
+        <div class="step-row done">Created concept-map artifact · kept sketch alongside</div>
+        <div class="step-row done">Detected <em>3 candidate nodes</em> from labelled regions</div>
+        <div class="step-row done">Faded sketch strokes to 32% (decoration)</div>
+        <div class="step-row running">Matching candidates to canonical knowledge graph</div>
+        <div class="step-row pending">Render canonical-hints panel · ready for confirmation</div>
+      </div>
+
+      <div style="margin-top: 16px; padding: 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); font: italic 12px/1.5 var(--font-serif); color: var(--color-text-secondary);">
+        Once matching finishes, you'll review each node — confirm Praxis's guess, pick a different canonical, or keep the concept as your own.
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

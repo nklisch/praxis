@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>assignment · 4/5 · quiz submitted · returning to tutor</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid transparent; }
+    .running-head .open-tabs .tab.active { background: var(--color-bg-tertiary); color: var(--color-text-primary); border-color: var(--color-border); }
+    .running-head .open-tabs .tab.dimming { opacity: 0.6; }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; }
+    .running-head .open-tabs .tab .from-pill { font: 600 8px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 4px; background: var(--color-bg-tertiary); border-radius: 2px; color: var(--color-text-tertiary); font-style: normal; margin-left: 4px; }
+    .running-head .open-tabs .tab.calling-back { animation: tab-call 1.4s ease-in-out infinite; }
+    .running-head .open-tabs .tab.calling-back::after { content: '↩'; color: var(--color-accent); margin-left: 4px; font: 600 14px/1 var(--font-mono); font-style: normal; }
+    @keyframes tab-call { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px var(--color-accent-muted); } }
+
+    main { padding: 56px 32px 32px; max-width: 700px; margin: 0 auto; text-align: center; }
+
+    .submitted-card { background: var(--color-bg-secondary); border: 2px solid var(--color-success); border-radius: var(--radius-md); padding: 36px 40px; }
+    .submitted-card .ornament { font: 500 italic 56px/1 var(--font-display); color: var(--color-success); margin-bottom: 12px; }
+    .submitted-card .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-success); margin-bottom: 8px; }
+    .submitted-card h1 { font: 500 italic 30px/1.15 var(--font-display); margin: 0 0 8px; }
+    .submitted-card h1 em { font-weight: 600; color: var(--color-success); }
+    .submitted-card .deck { font: italic 15px/1.55 var(--font-serif); color: var(--color-text-secondary); max-width: 50ch; margin: 0 auto 24px; }
+
+    .result-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; }
+    .result-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 13px/1 var(--font-mono); background: var(--color-success); color: var(--color-text-inverse); border: 2px solid var(--color-success); }
+    .result-dot.wrong { background: var(--color-danger); border-color: var(--color-danger); }
+
+    .stats { display: flex; gap: 24px; justify-content: center; margin: 0 0 24px; }
+    .stat .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .stat .val { font: italic 24px/1 var(--font-display); }
+    .stat .val em { font-weight: 600; }
+    .stat .val.up { color: var(--color-success); }
+
+    /* Sending event back to parent — animated */
+    .returning-strip { background: var(--color-accent-muted); border: 1px solid var(--color-accent); border-radius: var(--radius-md); padding: 16px 20px; margin: 24px 0; font: italic 14px/1.55 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: center; }
+    .returning-strip .arrow-pulse { font: 600 22px/1 var(--font-mono); color: var(--color-accent); animation: arrow-pulse 1.4s ease-in-out infinite; font-style: normal; }
+    @keyframes arrow-pulse { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(6px); opacity: 1; } }
+    .returning-strip .text { flex: 1; text-align: left; }
+    .returning-strip .text em { font-weight: 600; }
+
+    .actions { display: flex; gap: 8px; justify-content: center; padding-top: 18px; border-top: 1px solid var(--color-border); }
+    .actions button { font: 500 13px/1 var(--font-sans); padding: 12px 18px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="03-quiz-running.html">← prev</a>
+    <span class="center">assignment · step 4/5 · quiz submitted · system_note traveling back to parent</span>
+    <a href="05-parent-receives.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 4</span><span>Student submitted item 4. Result: 4/4 correct. <em>Returning-strip</em> animates the system_note being delivered to the parent teach session. The parent tab in the strip is <em>calling-back</em> — pulsing halo with an ↩ glyph — telling the student "your tutor is ready for you."</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Quick check · done</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab calling-back"><span class="dot" style="background: var(--tint-teach);"></span>Calc · L3</span>
+      <span class="tab active dimming"><span class="dot" style="background: var(--tint-quiz);"></span>Quick check · done<span class="from-pill">submitted</span></span>
+    </div>
+  </header>
+
+  <main>
+    <div class="submitted-card">
+      <div class="ornament">✓</div>
+      <div class="kicker">⁂ quick check submitted</div>
+      <h1>Four for <em>four.</em></h1>
+      <div class="deck">You earned every one — including the trickiest, (3x+1)⁵, where the inner rate is constant 3 and easy to forget. The chain rule is yours.</div>
+
+      <div class="result-row">
+        <div class="result-dot">1</div>
+        <div class="result-dot">2</div>
+        <div class="result-dot">3</div>
+        <div class="result-dot">4</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="label">Score</div><div class="val"><em>4 / 4</em></div></div>
+        <div class="stat"><div class="label">Time</div><div class="val">4m 12s</div></div>
+        <div class="stat"><div class="label">Chain rule mastery</div><div class="val up"><em>0.31 → 0.89</em></div></div>
+        <div class="stat"><div class="label">L4 implicit-diff</div><div class="val up"><em>unlocked</em></div></div>
+      </div>
+
+      <div class="returning-strip">
+        <span class="arrow-pulse">↗</span>
+        <div class="text">
+          <em>Sending the result back to your tutor</em> · the parent session in Calc · L3 just received a system note and is ready to continue.
+        </div>
+      </div>
+
+      <div class="actions">
+        <button>Stay here · review my answers</button>
+        <button class="primary">↩ Return to the tutor</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

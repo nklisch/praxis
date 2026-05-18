@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>assignment · 2/5 · tutor issues · child tab appears</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg-tertiary); position: relative; }
+    .running-head .open-tabs .tab.active { background: var(--color-bg-tertiary); color: var(--color-text-primary); border-color: var(--color-border-strong); }
+    .running-head .open-tabs .tab.new { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); animation: tab-slide-in 600ms ease-out; }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; }
+    .running-head .open-tabs .tab .from-pill { font: 600 8px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 4px; background: rgba(0,0,0,0.18); border-radius: 2px; font-style: normal; margin-left: 4px; }
+    .running-head .open-tabs .arrow { color: var(--color-accent); font: 600 14px/1 var(--font-mono); align-self: center; animation: arrow-bounce 1.2s ease-in-out infinite; }
+    @keyframes tab-slide-in { 0% { opacity: 0; transform: translateX(-30px) scale(0.7); } 50% { opacity: 1; transform: translateX(0) scale(1.12); } 100% { opacity: 1; transform: translateX(0) scale(1); } }
+    @keyframes arrow-bounce { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+
+    .workspace { display: grid; grid-template-columns: 240px 1fr 280px; min-height: calc(100vh - 100px); }
+    aside.docs { border-right: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.docs h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+
+    main.session { display: flex; flex-direction: column; }
+    .session-head { padding: 16px 28px 10px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: baseline; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 20px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .session-head h1 em { font-weight: 600; }
+
+    .messages { flex: 1; padding: 20px 28px; max-width: 800px; margin: 0 auto; width: 100%; }
+    .turn { margin-bottom: 18px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .turn.tutor .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 18px; font: 15px/1.65 var(--font-serif); }
+    .turn.tutor .bubble em { font-style: italic; }
+    .turn.student { display: flex; justify-content: flex-end; }
+    .turn.student .wrap { max-width: 75%; }
+    .turn.student .speaker { text-align: right; }
+    .turn.student .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 12px 16px; font: italic 15px/1.6 var(--font-serif); }
+
+    /* The system event card — assignment issued */
+    .system-event { background: color-mix(in oklab, var(--tint-quiz) 12%, var(--color-bg-secondary)); border: 1px solid var(--tint-quiz); border-radius: var(--radius-md); padding: 14px 18px; margin: 12px 0; display: flex; gap: 12px; align-items: baseline; }
+    .system-event .glyph { font: italic 18px/1 var(--font-display); color: var(--tint-quiz); }
+    .system-event .body { flex: 1; }
+    .system-event .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tint-quiz); margin-bottom: 4px; }
+    .system-event .title { font: 500 italic 16px/1.25 var(--font-display); margin-bottom: 4px; }
+    .system-event .title em { font-weight: 600; }
+    .system-event .meta { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .system-event .meta em { color: var(--color-text-primary); font-weight: 500; }
+    .system-event .actions { display: flex; gap: 6px; margin-top: 10px; }
+    .system-event .actions button { font: 500 11px/1 var(--font-sans); padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .system-event .actions button.primary { background: var(--tint-quiz); color: var(--color-text-inverse); border-color: var(--tint-quiz); }
+    .system-event .actions .ghost { color: var(--color-text-tertiary); font-style: italic; padding: 6px 4px; cursor: pointer; }
+
+    .waiting-banner { background: var(--color-bg-tertiary); border-radius: var(--radius-sm); padding: 10px 14px; margin: 12px 0; font: italic 13px/1.55 var(--font-serif); color: var(--color-text-secondary); display: flex; gap: 10px; align-items: baseline; }
+    .waiting-banner .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--tint-quiz); animation: pulse 1.4s ease-in-out infinite; }
+    .waiting-banner em { color: var(--color-text-primary); font-weight: 500; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    .composer { padding: 14px 28px 20px; border-top: 1px solid var(--color-border); opacity: 0.55; pointer-events: none; }
+    .composer-inner { max-width: 800px; margin: 0 auto; }
+    .composer-field { display: flex; gap: 10px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 15px/1.5 var(--font-serif); resize: none; outline: none; min-height: 22px; font-style: italic; color: var(--color-text-tertiary); }
+
+    aside.concepts { border-left: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.concepts h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    aside.concepts .concept { padding: 6px 0; font: 13px/1.4 var(--font-serif); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; }
+    aside.concepts .concept .name { font-style: italic; }
+    aside.concepts .concept .mastery { font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    aside.concepts .waiting-card { background: color-mix(in oklab, var(--tint-quiz) 10%, var(--color-bg-secondary)); border: 1px solid var(--tint-quiz); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 14px; font: italic 12px/1.5 var(--font-serif); }
+    aside.concepts .waiting-card .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tint-quiz); margin-bottom: 4px; font-style: normal; }
+    aside.concepts .waiting-card em { color: var(--color-text-primary); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="01-teach-mid-lesson.html">← prev</a>
+    <span class="center">assignment · step 2/5 · tutor issues · child tab slides in next to parent</span>
+    <a href="03-quiz-running.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 2</span><span>Tutor issued the assignment. A <em>quiz tab slides into the strip</em> next to the parent teach tab — carries a <em>"from L3"</em> pill so the parent relationship is visible. System-event card in the chat names what was issued. Teach composer disables; the session is <em>paused awaiting the child</em>.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">§</span>Calculus · L3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab active"><span class="dot" style="background: var(--tint-teach);"></span>Calc · L3</span>
+      <span class="arrow">→</span>
+      <span class="tab new"><span class="dot" style="background: var(--tint-quiz);"></span>Quick check<span class="from-pill">from L3</span></span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="docs">
+      <h3>Cited</h3>
+      <div style="padding: 6px 0; font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary);">Stewart 8e · §3.5</div>
+      <h3 style="margin-top: 20px;">Just spawned</h3>
+      <div style="padding: 8px 10px; background: color-mix(in oklab, var(--tint-quiz) 10%, var(--color-bg-secondary)); border: 1px solid var(--tint-quiz); border-radius: var(--radius-sm); font: italic 12px/1.5 var(--font-serif); color: var(--color-text-primary);">
+        <em style="font-weight: 600;">Quick check · chain rule</em> · 4 items · child of this session
+      </div>
+    </aside>
+
+    <main class="session">
+      <header class="session-head">
+        <div class="kicker"><span class="dot"></span>§ Teach · L3 · awaiting child submission</div>
+        <h1>Why the chain rule <em>actually works</em></h1>
+      </header>
+
+      <div class="messages">
+        <div class="turn tutor">
+          <div class="speaker">Tutor · just now</div>
+          <div class="bubble">
+            <p>Before we move on, let me give you 4 quick items to confirm this. I'll open it as its own tab; we'll come back here when you're done.</p>
+          </div>
+        </div>
+
+        <div class="system-event">
+          <span class="glyph">‡</span>
+          <div class="body">
+            <div class="label">⁂ assignment issued · child session</div>
+            <div class="title">Quick check · <em>chain rule</em> · 4 items</div>
+            <div class="meta">Spawned as a new tab · <em>"Quick check · from L3"</em> in the strip → click to start. Estimated ~5 minutes.</div>
+            <div class="actions">
+              <button class="primary">Take the check now →</button>
+              <button>Snooze 10 min</button>
+              <span class="ghost">— or skip and continue teaching</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="waiting-banner">
+          <span class="pulse"></span>
+          <em>Waiting for the quick-check result.</em> This session pauses; the tutor will pick up with what the check reveals.
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <div class="composer-field">
+            <textarea rows="1" placeholder="paused — take the check, then come back here"></textarea>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="concepts">
+      <h3>Concepts active</h3>
+      <div class="concept"><span class="name">chain rule</span><span class="mastery">0.31 → est. 0.56</span></div>
+      <div class="concept"><span class="name">composite fn</span><span class="mastery">0.62 → est. 0.74</span></div>
+      <div class="concept"><span class="name">derivative</span><span class="mastery">0.71</span></div>
+
+      <div class="waiting-card">
+        <div class="label">⏳ awaiting result</div>
+        <em>4 items</em> on the chain rule · ~5 min · the tutor will be back in this tab the moment you submit.
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

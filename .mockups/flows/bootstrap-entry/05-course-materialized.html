@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>bootstrap · 5/5 · course materialized</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid transparent; }
+    .running-head .open-tabs .tab.new { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); animation: tab-slide-in 600ms ease-out; }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tint-teach); }
+    @keyframes tab-slide-in { 0% { opacity: 0; transform: translateX(-20px) scale(0.85); } 40% { opacity: 1; transform: translateX(0) scale(1.08); } 100% { opacity: 1; transform: translateX(0) scale(1); } }
+
+    main { padding: 32px 32px 64px; max-width: 1280px; margin: 0 auto; }
+
+    .celebrate { padding: 32px 36px; background: var(--color-bg-secondary); border: 2px solid var(--color-success); border-radius: var(--radius-md); margin-bottom: 32px; position: relative; }
+    .celebrate::before { content: 'just materialized'; position: absolute; top: -12px; left: 24px; background: var(--color-success); color: var(--color-text-inverse); padding: 4px 10px; border-radius: var(--radius-full); font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .celebrate .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-success); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .celebrate .kicker .ornament { font: 600 14px/1 var(--font-mono); }
+    .celebrate h1 { font: 500 italic 30px/1.15 var(--font-display); margin: 0 0 6px; }
+    .celebrate h1 em { font-weight: 600; }
+    .celebrate .deck { font: italic 15px/1.55 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 24px; max-width: 70ch; }
+    .celebrate .stats { display: flex; gap: 24px; margin-bottom: 20px; padding: 16px 0; border-top: 1px dashed var(--color-border); border-bottom: 1px dashed var(--color-border); }
+    .celebrate .stat .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .celebrate .stat .val { font: italic 22px/1 var(--font-display); color: var(--color-text-primary); }
+    .celebrate .stat .val em { font-weight: 600; }
+    .celebrate .actions { display: flex; gap: 8px; }
+    .celebrate .actions button { font: 500 13px/1 var(--font-sans); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .celebrate .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    .lib-row { margin-bottom: 32px; }
+    .lib-row h2 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
+    .lib-row h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+
+    /* Workbench queue revisited — calculus now at top */
+    .queue { display: flex; flex-direction: column; gap: 8px; }
+    .queue-item { padding: 14px 18px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; gap: 14px; align-items: baseline; }
+    .queue-item.new { border-color: var(--color-success); background: color-mix(in oklab, var(--color-success) 5%, var(--color-bg-secondary)); position: relative; }
+    .queue-item.new::after { content: 'new'; position: absolute; top: -8px; right: 18px; background: var(--color-success); color: var(--color-text-inverse); padding: 2px 7px; border-radius: var(--radius-full); font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .queue-item .marker .dot { width: 9px; height: 9px; border-radius: 50%; }
+    .queue-item .body { flex: 1; }
+    .queue-item .title { font: 500 italic 17px/1.25 var(--font-display); margin-bottom: 4px; }
+    .queue-item .title em { font-weight: 600; }
+    .queue-item .meta { font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .queue-item .meta .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-right: 8px; }
+    .queue-item .action { font: 500 12px/1 var(--font-sans); padding: 8px 12px; background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); cursor: pointer; align-self: center; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="04-draft-ready.html">← prev</a>
+    <span class="center">bootstrap · step 5/5 · course in library · first session opening</span>
+    <a href="index.html">done ↗</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 5</span><span>Confirmed. The course materialized into the library — units + lessons + gates + assessment shells all persisted in one transaction. Library now shows it at the top with a "new" badge, AND a new teach tab for L1.1 has already opened in the strip. One click and the student is in their first lesson.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#" class="active"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab new"><span class="dot"></span>Calc I · L1.1 · opening</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="celebrate">
+      <div class="kicker"><span class="ornament">✓</span>§ course materialized · 12 seconds ago</div>
+      <h1><em>Calculus I</em> is now in your library</h1>
+      <div class="deck">4 units · 12 lessons · 16 quick-check assessments · 21 concepts mapped to the canonical graph · gates set between lessons with the default mastery floor (0.70). You can change any of this from configure mode at any time.</div>
+      <div class="stats">
+        <div class="stat"><div class="label">Units</div><div class="val"><em>4</em></div></div>
+        <div class="stat"><div class="label">Lessons</div><div class="val"><em>12</em></div></div>
+        <div class="stat"><div class="label">Concepts</div><div class="val"><em>21</em></div></div>
+        <div class="stat"><div class="label">Gates</div><div class="val"><em>11</em></div></div>
+        <div class="stat"><div class="label">Sources cited</div><div class="val"><em>2</em></div></div>
+      </div>
+      <div class="actions">
+        <button class="primary">Open Lesson 1.1 — Intuitive limits ↗</button>
+        <button>Take a tour of the course first</button>
+        <button>Adjust gates in configure</button>
+      </div>
+    </div>
+
+    <div class="lib-row">
+      <h2><span class="glyph">§</span> What's next · queue refreshed</h2>
+      <div class="queue">
+        <div class="queue-item new">
+          <div class="marker"><span class="dot" style="background: var(--color-success);"></span></div>
+          <div class="body">
+            <div class="title">Start <em>Calculus I</em> · L1.1 · Intuitive limits</div>
+            <div class="meta"><span class="kicker">teach · first session</span>Your new course is ready. ~25 min for a first session.</div>
+          </div>
+          <button class="action">Begin ↵</button>
+        </div>
+        <div class="queue-item">
+          <div class="marker"><span class="dot" style="background: var(--tint-study-skills);"></span></div>
+          <div class="body">
+            <div class="title">Spaced review · <em>15 cards</em></div>
+            <div class="meta"><span class="kicker">study skills</span>~12 min</div>
+          </div>
+          <button class="action" style="background: transparent; color: var(--color-text-primary); border: 1px solid var(--color-border-strong);">Start</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

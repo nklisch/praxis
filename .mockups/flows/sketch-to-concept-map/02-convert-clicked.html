@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sketch→concept · 2/4 · convert confirmation</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+    .running-head { padding: 12px 32px 8px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .note-head, .surface { filter: blur(2px) brightness(0.85); pointer-events: none; }
+    .note-head { padding: 12px 24px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 14px; flex-shrink: 0; }
+    .note-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); padding: 4px 8px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); }
+    .note-head .title-input { flex: 1; font: 500 italic 22px/1.15 var(--font-display); color: var(--color-text-primary); }
+    .surface { display: grid; grid-template-columns: 56px 1fr; flex: 1; }
+    .surface .placeholder { background: var(--color-bg-secondary); }
+    .surface aside { border-right: 1px solid var(--color-border); }
+
+    /* Convert modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(26,26,24,0.45); display: flex; align-items: center; justify-content: center; padding: 32px; z-index: 50; }
+    .modal { background: var(--color-bg-secondary); border-radius: var(--radius-md); box-shadow: 0 24px 80px rgba(0,0,0,0.25); width: 580px; max-width: 100%; overflow: hidden; border: 1px solid var(--color-border-strong); }
+
+    .modal-head { padding: 20px 28px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 12px; background: color-mix(in oklab, var(--color-success) 6%, var(--color-bg-secondary)); }
+    .modal-head .ornament { font: italic 22px/1 var(--font-display); color: var(--color-success); }
+    .modal-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-success); margin-bottom: 4px; }
+    .modal-head h2 { font: 500 italic 22px/1.2 var(--font-display); margin: 0; flex: 1; padding-bottom: 2px; }
+    .modal-head h2 em { font-weight: 600; }
+    .modal-head .esc { font: 600 9px/1 var(--font-mono); padding: 3px 6px; background: var(--color-bg-tertiary); border-radius: 3px; color: var(--color-text-tertiary); letter-spacing: 0.08em; align-self: center; }
+
+    .modal-body { padding: 24px 28px; }
+    .modal-body .deck { font: italic 14px/1.6 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 18px; }
+    .modal-body .deck em { font-weight: 500; color: var(--color-text-primary); }
+
+    .what-changes { background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; margin-bottom: 16px; }
+    .what-changes h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 12px; }
+    .change-row { display: flex; gap: 12px; align-items: baseline; padding: 7px 0; font: 13px/1.5 var(--font-serif); }
+    .change-row .badge { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; padding: 3px 6px; border-radius: var(--radius-full); text-transform: uppercase; min-width: 6ch; text-align: center; }
+    .change-row .badge.plus { background: var(--color-success); color: var(--color-text-inverse); }
+    .change-row .badge.minus { background: var(--color-warning); color: var(--color-text-inverse); }
+    .change-row .badge.same { background: var(--color-bg-tertiary); color: var(--color-text-tertiary); }
+    .change-row .text em { font-style: italic; font-weight: 500; color: var(--color-text-primary); }
+
+    .preview-detection { background: color-mix(in oklab, var(--color-success) 8%, var(--color-bg-secondary)); border: 1px dashed var(--color-success); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px; }
+    .preview-detection .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-success); margin-bottom: 8px; }
+    .preview-detection .nodes-detected { display: flex; flex-wrap: wrap; gap: 6px; }
+    .preview-detection .node-chip { font: italic 13px/1.2 var(--font-display); padding: 5px 10px; background: var(--color-bg-primary); border: 1px solid var(--color-success); border-radius: var(--radius-sm); color: var(--color-text-primary); }
+    .preview-detection .footnote { font: italic 12px/1.4 var(--font-serif); color: var(--color-text-secondary); margin-top: 8px; }
+
+    .reversibility { padding: 10px 14px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); font: italic 12px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 16px; display: flex; gap: 8px; align-items: baseline; }
+    .reversibility em { color: var(--color-text-primary); font-weight: 500; }
+
+    .modal-foot { padding: 16px 28px; border-top: 1px solid var(--color-border); display: flex; gap: 8px; align-items: center; }
+    .modal-foot .spacer { flex: 1; }
+    .modal-foot button { font: 500 13px/1 var(--font-sans); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .modal-foot button.primary { background: var(--color-success); color: var(--color-text-inverse); border-color: var(--color-success); }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="01-sketch-with-bridge.html">← prev</a>
+    <span class="center">sketch→concept · step 2/4 · convert confirmation modal</span>
+    <a href="03-converting.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 2</span><span>Clicked <em>↗ Convert</em>. Modal explains what will and won't change. Praxis already pre-detected three candidate nodes from labelled text in the sketch — shown as chips. The action is reversible (keep both, or undo within 24h). No surprises.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <header class="note-head">
+    <span class="kicker">✎ sketch</span>
+    <span class="title-input">Volume from radius — a picture of the chain</span>
+  </header>
+
+  <div class="surface">
+    <aside></aside>
+    <div class="placeholder"></div>
+  </div>
+
+  <div class="modal-overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span class="ornament">↗</span>
+        <div style="flex: 1;">
+          <div class="kicker">convert · sketch → concept map</div>
+          <h2>Turn this sketch into a <em>concept map</em>?</h2>
+        </div>
+        <span class="esc">esc</span>
+      </div>
+      <div class="modal-body">
+        <div class="deck">Concept maps are a <em>distinct artifact</em> from sketches — they're structured graphs whose nodes link to canonical concepts. That linking is what lets the tutor compare your mental model to the knowledge graph and surface mismatches.</div>
+
+        <div class="preview-detection">
+          <div class="label">↳ pre-detected · 3 candidate nodes from your labels</div>
+          <div class="nodes-detected">
+            <span class="node-chip"><em>the balloon</em></span>
+            <span class="node-chip"><em>the geometry rule</em></span>
+            <span class="node-chip"><em>two rates · stacked · multiplied</em></span>
+          </div>
+          <div class="footnote">You'll review and link each one to a canonical concept (or keep your own phrasing). Free drawing strokes stay as decoration in the background.</div>
+        </div>
+
+        <div class="what-changes">
+          <h3>What changes</h3>
+          <div class="change-row"><span class="badge plus">add</span><span class="text">A <em>canonical-hints panel</em> opens on the right · best-guess suggestions per node</span></div>
+          <div class="change-row"><span class="badge plus">add</span><span class="text">Three labelled regions become <em>typed nodes</em> · pre-filled with your phrasing</span></div>
+          <div class="change-row"><span class="badge plus">add</span><span class="text">The artifact moves to <em>concept maps</em> in the nav · also stays linked to L3</span></div>
+          <div class="change-row"><span class="badge same">keep</span><span class="text">Your <em>drawing strokes</em> stay as background decoration · nothing is erased</span></div>
+          <div class="change-row"><span class="badge same">keep</span><span class="text">All <em>tools</em> stay available · you can keep sketching alongside the structured nodes</span></div>
+        </div>
+
+        <div class="reversibility">
+          <span>↺</span>
+          <span><em>Reversible.</em> Keep the original sketch alongside the new concept map (default), or undo the conversion within 24h.</span>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button>Cancel</button>
+        <span class="spacer"></span>
+        <button>Keep both (default)</button>
+        <button class="primary">Convert · just the concept map</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

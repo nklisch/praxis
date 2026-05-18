@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>bootstrap · 2/5 · upload material</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-bg-tertiary); border: 1px solid var(--color-border); color: var(--color-text-primary); }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tint-bootstrap); }
+
+    .head-block { padding: 32px 32px 16px; max-width: 920px; margin: 0 auto; }
+    .head-block .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .head-block .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-bootstrap); }
+    .head-block h1 { font: 500 italic 32px/1.15 var(--font-display); margin: 0; }
+    .head-block h1 em { font-weight: 600; }
+    .head-block .deck { font: italic 15px/1.55 var(--font-serif); color: var(--color-text-secondary); margin-top: 8px; max-width: 60ch; }
+
+    .surface { max-width: 920px; margin: 0 auto; padding: 8px 32px 64px; }
+
+    /* Steps stepper */
+    .stepper { display: flex; gap: 12px; padding: 12px 18px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 24px; font: 600 10px/1.4 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .stepper .step { display: flex; align-items: center; gap: 6px; }
+    .stepper .step.done { color: var(--color-success); }
+    .stepper .step.active { color: var(--color-accent); }
+    .stepper .step.done::before { content: '✓'; font-family: var(--font-mono); }
+    .stepper .step.active::before { content: '◐'; font-family: var(--font-mono); animation: spin 1.2s linear infinite; display: inline-block; }
+    .stepper .step .num { display: none; }
+    .stepper .sep { color: var(--color-border-strong); }
+    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+    /* Drop zone */
+    .dropzone { background: var(--color-bg-secondary); border: 2px dashed var(--color-border-strong); border-radius: var(--radius-md); padding: 48px 32px; text-align: center; margin-bottom: 20px; transition: all 200ms; }
+    .dropzone.hover { border-color: var(--color-accent); background: var(--color-accent-muted); }
+    .dropzone .ornament { font: italic 56px/1 var(--font-display); color: var(--color-text-tertiary); margin-bottom: 16px; }
+    .dropzone h3 { font: 500 italic 22px/1.2 var(--font-display); margin: 0 0 8px; }
+    .dropzone h3 em { font-weight: 600; }
+    .dropzone .hint { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); max-width: 50ch; margin: 0 auto 18px; }
+    .dropzone .browse { font: 500 13px/1 var(--font-sans); padding: 10px 18px; background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+    .dropzone .formats { display: flex; gap: 6px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+    .dropzone .formats .pill { font: 600 9px/1 var(--font-mono); letter-spacing: 0.06em; padding: 4px 8px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); color: var(--color-text-tertiary); text-transform: uppercase; }
+
+    /* Attached files list */
+    .attached h3 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin: 24px 0 12px; }
+    .file-row { display: flex; gap: 14px; align-items: baseline; padding: 14px 18px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 8px; }
+    .file-row .icon { font: 500 italic 16px/1 var(--font-display); color: var(--color-text-tertiary); }
+    .file-row .name { font: 500 italic 15px/1.2 var(--font-display); flex: 1; }
+    .file-row .meta { font: 11px/1.5 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; text-align: right; }
+    .file-row .meta em { font-style: italic; font-family: var(--font-serif); text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--color-text-secondary); }
+    .file-row .progress-bar { width: 80px; height: 3px; background: var(--color-bg-tertiary); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+    .file-row .progress-bar .fill { height: 100%; background: var(--color-accent); }
+    .file-row .status { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 6px; border-radius: var(--radius-full); }
+    .file-row .status.indexing { background: var(--color-accent); color: var(--color-text-inverse); }
+    .file-row .status.ready { background: var(--color-success); color: var(--color-text-inverse); }
+    .file-row .remove { color: var(--color-text-tertiary); cursor: pointer; font: 11px/1 var(--font-mono); padding: 4px 6px; }
+
+    /* What you have / Tell us strip */
+    .context-row { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 16px 20px; margin: 20px 0; }
+    .context-row h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    .context-row textarea { width: 100%; background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 14px; font: italic 14px/1.55 var(--font-serif); color: var(--color-text-primary); outline: none; resize: vertical; min-height: 60px; }
+    .context-row textarea::placeholder { color: var(--color-text-tertiary); }
+
+    .action-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+    .action-row .hint { flex: 1; align-self: center; font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary); }
+    .action-row button { font: 500 13px/1 var(--font-sans); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .action-row button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+    .action-row button.primary[disabled] { opacity: 0.55; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="01-library-cta.html">← prev</a>
+    <span class="center">bootstrap · step 2/5 · drag in material · one ready, one indexing</span>
+    <a href="03-explorer-running.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 2</span><span>Bootstrap session opened in a new tab. Surface is the upload step. Drop zone is the hero; one file already indexed and ready, one indexing (visible progress). Small textarea below lets the student add context (subject, audience, goal) — improves the explorer's draft.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Bootstrap · new</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab"><span class="dot"></span>Bootstrap · new</span>
+    </div>
+  </header>
+
+  <div class="head-block">
+    <div class="kicker"><span class="dot"></span>¶ Bootstrap · new course</div>
+    <h1>Bring me <em>something to teach you</em></h1>
+    <div class="deck">A textbook, a syllabus, lecture notes, course PDFs. Drop it in; Praxis will read it and draft a course shape — units, lessons, and assessment shells — for you to confirm.</div>
+  </div>
+
+  <div class="surface">
+    <div class="stepper">
+      <div class="step active"><span class="num">1</span>Material</div>
+      <span class="sep">·</span>
+      <div class="step">2 · Explore</div>
+      <span class="sep">·</span>
+      <div class="step">3 · Confirm</div>
+      <span class="sep">·</span>
+      <div class="step">4 · Open</div>
+    </div>
+
+    <div class="dropzone">
+      <div class="ornament">¶</div>
+      <h3>Drop your material <em>here</em></h3>
+      <div class="hint">A whole textbook is fine. A syllabus is fine. A mix is best. The more Praxis reads, the better the draft.</div>
+      <button class="browse">browse files…</button>
+      <div class="formats">
+        <span class="pill">pdf</span>
+        <span class="pill">epub</span>
+        <span class="pill">docx</span>
+        <span class="pill">pptx</span>
+        <span class="pill">md</span>
+        <span class="pill">html</span>
+        <span class="pill">txt</span>
+      </div>
+    </div>
+
+    <div class="attached">
+      <h3>Attached · 2 files</h3>
+      <div class="file-row">
+        <span class="icon">†</span>
+        <span class="name">Stewart Calculus 8e</span>
+        <div class="meta">847 pages · <em>indexing 312/847</em><div class="progress-bar"><div class="fill" style="width: 37%;"></div></div></div>
+        <span class="status indexing">indexing</span>
+        <span class="remove">remove</span>
+      </div>
+      <div class="file-row">
+        <span class="icon">†</span>
+        <span class="name">Calc I syllabus &amp; outline</span>
+        <div class="meta">14 pages</div>
+        <span class="status ready">ready</span>
+        <span class="remove">remove</span>
+      </div>
+    </div>
+
+    <div class="context-row">
+      <h3>Tell Praxis what you're trying to learn <span style="font-family: var(--font-serif); font-style: italic; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--color-text-tertiary); font-size: 12px;">— optional but helpful</span></h3>
+      <textarea placeholder="e.g. — I'm an adult learner returning to calculus to prep for an actuarial exam. I want to actually understand derivatives this time, not memorize them."></textarea>
+    </div>
+
+    <div class="action-row">
+      <span class="hint">— starting the explorer doesn't require indexing to finish; it'll work with what's ready now.</span>
+      <button>Add more material</button>
+      <button class="primary">Start the explorer →</button>
+    </div>
+  </div>
+</body>
+</html>

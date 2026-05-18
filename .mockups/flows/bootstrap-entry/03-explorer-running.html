@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>bootstrap · 3/5 · explorer agent running</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-bg-tertiary); border: 1px solid var(--color-border); }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tint-bootstrap); animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    /* Two column: explorer activity stream + draft taking shape on the right */
+    .workspace { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 100px); }
+
+    .activity { padding: 28px 32px; border-right: 1px solid var(--color-border); overflow-y: auto; }
+    .activity-head { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
+    .activity-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .activity-head .kicker .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); animation: pulse 1.4s ease-in-out infinite; }
+    .activity-head h2 { font: 500 italic 22px/1.2 var(--font-display); margin: 0 0 4px; }
+    .activity-head h2 em { font-weight: 600; }
+    .activity-head .deck { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+
+    .activity-stream { font: 14px/1.6 var(--font-serif); }
+    .agent-line { padding: 8px 14px; border-left: 2px solid var(--color-border); margin-left: 4px; margin-bottom: 6px; position: relative; }
+    .agent-line.completed { color: var(--color-text-secondary); }
+    .agent-line.completed::before { content: '✓'; position: absolute; left: -7px; top: 12px; width: 12px; height: 12px; background: var(--color-success); color: var(--color-text-inverse); border-radius: 50%; font: 600 8px/12px var(--font-mono); text-align: center; }
+    .agent-line.running { border-left-color: var(--color-accent); background: var(--color-accent-muted); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--color-text-primary); }
+    .agent-line.running::before { content: '◐'; position: absolute; left: -7px; top: 12px; width: 12px; height: 12px; background: var(--color-accent); color: var(--color-text-inverse); border-radius: 50%; font: 600 8px/12px var(--font-mono); text-align: center; animation: spin 1.2s linear infinite; display: inline-block; }
+    .agent-line .turn-num { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .agent-line .action { font-style: italic; }
+    .agent-line .action em { font-weight: 500; color: var(--color-text-primary); }
+    .agent-line .tool-call { font: 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); margin-top: 4px; letter-spacing: 0.02em; }
+    .agent-line .tool-call em { font-style: italic; font-family: var(--font-serif); text-transform: none; color: var(--color-text-secondary); font-size: 12px; letter-spacing: 0; }
+    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+    .activity-stats { margin-top: 24px; padding: 14px 16px; background: var(--color-bg-tertiary); border-radius: var(--radius-md); display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .activity-stats .stat .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .activity-stats .stat .val { font: italic 22px/1 var(--font-display); color: var(--color-text-primary); }
+    .activity-stats .stat .val em { font-weight: 600; }
+
+    /* Right: draft taking shape */
+    .draft { padding: 28px 32px; overflow-y: auto; background: var(--color-bg-primary); }
+    .draft-head { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
+    .draft-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .draft-head h2 { font: 500 italic 22px/1.2 var(--font-display); margin: 0; }
+    .draft-head .progress-meta { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; }
+
+    .draft-unit { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; }
+    .draft-unit.complete { border-color: var(--color-success); }
+    .draft-unit.in-progress { border-color: var(--color-accent); animation: subtle-pulse 1.6s ease-in-out infinite; }
+    @keyframes subtle-pulse { 0%, 100% { background: var(--color-bg-secondary); } 50% { background: var(--color-accent-muted); } }
+    .draft-unit.pending { border: 1px dashed var(--color-border-strong); opacity: 0.55; }
+
+    .draft-unit .head { display: flex; align-items: baseline; gap: 10px; }
+    .draft-unit .num { font: italic 18px/1 var(--font-display); color: var(--color-text-tertiary); min-width: 2ch; }
+    .draft-unit .title { font: 500 italic 16px/1.2 var(--font-display); flex: 1; }
+    .draft-unit .title em { font-weight: 600; }
+    .draft-unit .meta { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); padding: 3px 6px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); }
+    .draft-unit.complete .meta { background: var(--color-success); color: var(--color-text-inverse); }
+    .draft-unit.in-progress .meta { background: var(--color-accent); color: var(--color-text-inverse); }
+    .draft-unit .lessons { margin-top: 8px; padding-left: 22px; font: italic 12px/1.6 var(--font-serif); color: var(--color-text-secondary); }
+    .draft-unit .lesson { padding: 2px 0; }
+    .draft-unit .lesson em { font-weight: 500; color: var(--color-text-primary); }
+    .draft-unit .lesson.fading-in { animation: fade-in 600ms ease-out; }
+    @keyframes fade-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+
+    .draft-actions { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--color-border); font: italic 12px/1.5 var(--font-serif); color: var(--color-text-tertiary); text-align: center; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="02-upload-docs.html">← prev</a>
+    <span class="center">bootstrap · step 3/5 · explorer agent running · draft taking shape</span>
+    <a href="04-draft-ready.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 3</span><span>The explorer agent runs. Left column streams its activity — what it's reading, what tools it's calling, what concepts it's identifying. Right column is the <em>draft taking shape</em> in real-time — units appearing as they're sketched, lessons fading in beneath. Not a black box; the student can watch the agent think.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Bootstrap · running</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab"><span class="dot"></span>Bootstrap · running</span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <div class="activity">
+      <div class="activity-head">
+        <div class="kicker"><span class="pulse"></span>¶ Explorer agent · running</div>
+        <h2>Reading <em>Stewart Calc 8e</em></h2>
+        <div class="deck">turn 18 of ~24 · ~3 min remaining at current pace</div>
+      </div>
+
+      <div class="activity-stream">
+        <div class="agent-line completed">
+          <div class="turn-num">turn 1</div>
+          <div class="action">Read document outline · <em>found 14 chapters</em></div>
+          <div class="tool-call">document.outline · <em>847 pages indexed</em></div>
+        </div>
+        <div class="agent-line completed">
+          <div class="turn-num">turn 2-4</div>
+          <div class="action">Scanned <em>chapters 1-3</em> for unit candidates</div>
+          <div class="tool-call">document.list_sections · §1 Limits, §2 Derivatives, §3 Differentiation Rules…</div>
+        </div>
+        <div class="agent-line completed">
+          <div class="turn-num">turn 5-9</div>
+          <div class="action">Drafted unit <em>"Limits"</em> · 3 lessons + 2 quick-check assessments</div>
+          <div class="tool-call">course.draft_add_unit · course.draft_add_lesson ×3</div>
+        </div>
+        <div class="agent-line completed">
+          <div class="turn-num">turn 10-13</div>
+          <div class="action">Drafted unit <em>"Differentiation"</em> · 5 lessons including chain rule</div>
+          <div class="tool-call">course.draft_add_unit · course.draft_add_lesson ×5</div>
+        </div>
+        <div class="agent-line completed">
+          <div class="turn-num">turn 14</div>
+          <div class="action">Identified <em>17 canonical concepts</em>; linked to existing knowledge graph</div>
+          <div class="tool-call">retrieve_from_documents · 220 chunks scanned</div>
+        </div>
+        <div class="agent-line completed">
+          <div class="turn-num">turn 15-17</div>
+          <div class="action">Drafted unit <em>"Applications"</em> · related rates + optimisation</div>
+          <div class="tool-call">course.draft_add_unit · course.draft_add_lesson ×2</div>
+        </div>
+        <div class="agent-line running">
+          <div class="turn-num">turn 18 · running</div>
+          <div class="action">Drafting <em>"Integration"</em> unit · reading chapters 5-6 now</div>
+          <div class="tool-call">document.read_pages · pages 280-340 · ~600 tokens/s</div>
+        </div>
+      </div>
+
+      <div class="activity-stats">
+        <div class="stat"><div class="label">units drafted</div><div class="val">3 <em>· 1 in progress</em></div></div>
+        <div class="stat"><div class="label">lessons</div><div class="val">10 <em>· 14 expected</em></div></div>
+        <div class="stat"><div class="label">concepts mapped</div><div class="val">17</div></div>
+      </div>
+    </div>
+
+    <div class="draft">
+      <div class="draft-head">
+        <div class="kicker">⁂ Draft course shape · taking form</div>
+        <h2><em>Calculus I</em></h2>
+        <div class="progress-meta">3 units done · 1 unit in progress · estimated 4 units total</div>
+      </div>
+
+      <div class="draft-unit complete">
+        <div class="head">
+          <span class="num">1.</span>
+          <span class="title"><em>Limits</em> — what calculus really studies</span>
+          <span class="meta">complete · 3 lessons</span>
+        </div>
+        <div class="lessons">
+          <div class="lesson">1.1 · <em>Intuitive limits — the rate idea</em></div>
+          <div class="lesson">1.2 · ε-δ — the formal definition</div>
+          <div class="lesson">1.3 · One-sided &amp; infinite limits</div>
+        </div>
+      </div>
+
+      <div class="draft-unit complete">
+        <div class="head">
+          <span class="num">2.</span>
+          <span class="title"><em>Differentiation</em> · core rules</span>
+          <span class="meta">complete · 5 lessons</span>
+        </div>
+        <div class="lessons">
+          <div class="lesson">2.1 · <em>Derivative as rate</em></div>
+          <div class="lesson">2.2 · Sum / product / quotient rules</div>
+          <div class="lesson">2.3 · <em>The chain rule</em></div>
+          <div class="lesson">2.4 · Implicit differentiation</div>
+          <div class="lesson">2.5 · Higher-order derivatives</div>
+        </div>
+      </div>
+
+      <div class="draft-unit complete">
+        <div class="head">
+          <span class="num">3.</span>
+          <span class="title"><em>Applications</em> · related rates + optimisation</span>
+          <span class="meta">complete · 2 lessons</span>
+        </div>
+        <div class="lessons">
+          <div class="lesson">3.1 · Related rates word-problems</div>
+          <div class="lesson">3.2 · Optimisation</div>
+        </div>
+      </div>
+
+      <div class="draft-unit in-progress">
+        <div class="head">
+          <span class="num">4.</span>
+          <span class="title"><em>Integration</em> · the Fundamental Theorem</span>
+          <span class="meta">in progress</span>
+        </div>
+        <div class="lessons">
+          <div class="lesson fading-in">4.1 · Antiderivatives</div>
+          <div class="lesson fading-in" style="opacity: 0.6;">4.2 · <em>The FTC</em> · drafting now…</div>
+        </div>
+      </div>
+
+      <div class="draft-unit pending">
+        <div class="head">
+          <span class="num">5.</span>
+          <span class="title">— another unit may surface from the remaining chapters</span>
+          <span class="meta">pending</span>
+        </div>
+      </div>
+
+      <div class="draft-actions">
+        you can stop the explorer at any point and confirm what's drafted so far · or let it finish
+      </div>
+    </div>
+  </div>
+</body>
+</html>

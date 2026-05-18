@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>note→tutor · 1/4 · note open in workspace</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .note-head { padding: 16px 32px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 16px; max-width: 1280px; margin: 0 auto; }
+    .note-head .breadcrumb { font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); }
+    .note-head .breadcrumb a { color: var(--color-accent); text-decoration: none; font-style: italic; }
+    .note-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); padding: 4px 8px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); display: flex; gap: 6px; align-items: center; }
+    .note-head .title { flex: 1; font: 500 italic 24px/1.15 var(--font-display); }
+    .note-head .save-state { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); display: flex; gap: 6px; align-items: center; }
+    .note-head .save-state .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); }
+
+    .cornell { max-width: 1100px; margin: 0 auto; padding: 24px 32px 24px; }
+    .cornell .three-zone { display: grid; grid-template-columns: 220px 1fr; gap: 0; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); overflow: hidden; }
+    .cornell .cue { padding: 18px 16px; border-right: 1px solid var(--color-border-strong); background: var(--color-bg-tertiary); }
+    .cornell .cue .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    .cornell .cue .cue-item { padding: 10px 0; border-bottom: 1px dashed var(--color-border); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); }
+    .cornell .cue .cue-item:last-child { border-bottom: none; }
+    .cornell .cue .cue-item.unanswered { color: var(--color-warning); }
+    .cornell .cue .cue-item.unanswered::before { content: '? '; font-weight: 600; }
+
+    .cornell .notes { padding: 20px 24px; background: var(--color-bg-secondary); }
+    .cornell .notes .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 14px; }
+    .cornell .notes p { font: 15px/1.7 var(--font-serif); margin: 0 0 12px; }
+    .cornell .notes p em { font-style: italic; }
+    .cornell .notes .formula { background: var(--color-bg-primary); padding: 10px 14px; border-radius: var(--radius-sm); font: 14px/1.5 var(--font-mono); margin: 10px 0; }
+
+    .cornell .summary { grid-column: 1 / -1; padding: 18px 24px; border-top: 1px solid var(--color-border-strong); background: var(--color-bg-primary); }
+    .cornell .summary .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
+    .cornell .summary .text { font: italic 14px/1.7 var(--font-serif); }
+    .cornell .summary .text em { font-weight: 600; }
+
+    /* The tutor-brief CTA — nudges at the bottom */
+    .ask-strip { max-width: 1100px; margin: 16px auto 64px; padding: 0 32px; }
+    .ask-strip .row { display: flex; gap: 14px; align-items: center; padding: 18px 24px; background: var(--color-accent-muted); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); position: relative; }
+    .ask-strip .row::after { content: '↓'; position: absolute; bottom: -10px; right: 24px; background: var(--color-accent); color: var(--color-text-inverse); width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 600 12px/1 var(--font-mono); animation: nudge-down 1.6s ease-in-out infinite; }
+    @keyframes nudge-down { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+    .ask-strip .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-accent); font-size: 20px; }
+    .ask-strip .text { flex: 1; font: italic 14px/1.55 var(--font-serif); color: var(--color-text-primary); }
+    .ask-strip .text em { color: var(--color-accent); font-weight: 600; font-style: italic; }
+    .ask-strip .text strong { color: var(--color-text-primary); font-weight: 600; font-style: normal; }
+    .ask-strip .actions { display: flex; gap: 6px; }
+    .ask-strip .actions button { font: 500 13px/1 var(--font-sans); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .ask-strip .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); box-shadow: 0 3px 10px rgba(155,58,44,0.25); }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="index.html">← overview</a>
+    <span class="center">note→tutor · step 1/4 · note open · "Q for myself" still unanswered</span>
+    <a href="02-tutor-spawning.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 1</span><span>Student opens a Cornell note from yesterday. One cue is marked <em>unanswered</em> (amber). The note ends with a <em>"Q for myself"</em> that never got answered. Bottom strip surfaces the affordance: <em>"Ask the tutor to brief from this note"</em> — the tutor can read the note and turn the unfinished question into next session's opening.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <header class="note-head">
+    <span class="breadcrumb"><a>workspace</a> · <a>notes</a> · cornell</span>
+    <span class="kicker">¶ cornell</span>
+    <span class="title">Chain rule — <em>nested rates</em></span>
+    <span class="breadcrumb">linked to <a>Calc · L3</a> · yesterday</span>
+    <span class="save-state"><span class="dot"></span>saved</span>
+  </header>
+
+  <main class="cornell">
+    <div class="three-zone">
+      <aside class="cue">
+        <div class="label">◆ Cues</div>
+        <div class="cue-item">Chain rule in one sentence?</div>
+        <div class="cue-item">Why <em>multiply</em> not <em>cancel</em>?</div>
+        <div class="cue-item">The two rates — which is which?</div>
+        <div class="cue-item unanswered">Q: <em>why multiply</em> the rates instead of the variables themselves?</div>
+      </aside>
+      <div class="notes">
+        <div class="label">◆ Notes</div>
+        <p>The rate of the whole is the <em>product</em> of the rates when changes nest. Don't say "cancel" — say "multiply." The notation hides a story about rates compounding.</p>
+        <p>For the balloon: dV/dt = (dV/dr) · (dr/dt). The geometry rate (4πr²) times the physics rate (2 cm/s) gives 200π cm³/s. Two separate rates, one product.</p>
+        <div class="formula">dV/dt = 4πr² · dr/dt = 4π(25)(2) = 200π ≈ 628.3</div>
+        <p><em>Q for myself:</em> Why can't I just multiply the variables instead of the rates? — write a one-paragraph answer tonight. <em>(I didn't.)</em></p>
+      </div>
+      <div class="summary">
+        <div class="label">¶ Summary</div>
+        <div class="text">The chain rule is just <em>"rates multiply when changes nest."</em> The formula <em>(f ∘ g)' = f'(g) · g'</em> is one breath of that sentence. The balloon example makes it concrete. <em>— but I still don't fully see why multiplication is the right operation.</em></div>
+      </div>
+    </div>
+  </main>
+
+  <section class="ask-strip">
+    <div class="row">
+      <span class="glyph">§</span>
+      <span class="text">You wrote a <strong>"Q for myself"</strong> that's still unanswered: <em>"why multiply the rates?"</em> — and your summary says the same gap. The tutor can read this note and start the next session there.</span>
+      <div class="actions">
+        <button>Re-read first</button>
+        <button class="primary">Ask the tutor to brief from this note ↗</button>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

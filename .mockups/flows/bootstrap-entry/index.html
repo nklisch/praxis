@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>flow · bootstrap entry</title>
+  <style>
+    body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #f6f8fa; color: #24292f; }
+    header { background: #0d1117; color: #fff; padding: 24px 32px; }
+    header h1 { margin: 0 0 4px; font-weight: 600; font-size: 20px; }
+    header p { margin: 0; color: #8b949e; }
+    .ribbon { display: flex; gap: 4px; padding: 16px 32px; background: #fff; border-bottom: 1px solid #d0d7de; }
+    .ribbon a { flex: 1; padding: 8px 12px; text-align: center; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; color: #24292f; text-decoration: none; font-size: 13px; }
+    .ribbon a.primary { background: #0969da; color: #fff; border-color: #0969da; font-weight: 600; }
+    .steps { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); padding: 24px 32px; }
+    .step { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+    .step .label { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #d0d7de; }
+    .step .label .num { background: #0969da; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+    .step .label a { color: #0969da; text-decoration: none; font-size: 12px; }
+    .step iframe { border: 0; width: 100%; height: 280px; background: #fff; }
+    .step .caption { padding: 10px 16px; font-size: 12px; color: #57606a; border-top: 1px solid #d0d7de; background: #f6f8fa; font-style: italic; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>bootstrap entry · library → upload → explorer → confirm → course</h1>
+    <p>Onramp for a brand-new course. Drop in textbook + syllabus, watch the explorer agent draft units in real-time, review &amp; edit the draft, confirm — course materializes with gates and a first session tab already open.</p>
+  </header>
+  <div class="ribbon">
+    <a class="primary" href="01-library-cta.html">▶ start the flow</a>
+    <a href="01-library-cta.html" target="_blank">▶ start in new tab</a>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="label"><span><span class="num">1</span> &nbsp; Library CTA · upgraded bootstrap card</span><a href="01-library-cta.html">open ↗</a></div>
+      <iframe src="01-library-cta.html"></iframe>
+      <div class="caption">Bootstrap card in the footer row gets the accent treatment when student has docs but no fitting course. Invitational copy.</div>
+    </div>
+    <div class="step">
+      <div class="label"><span><span class="num">2</span> &nbsp; Upload material</span><a href="02-upload-docs.html">open ↗</a></div>
+      <iframe src="02-upload-docs.html"></iframe>
+      <div class="caption">Drop zone hero + attached files with per-file indexing progress + a small context textarea (audience / goal) to improve the draft.</div>
+    </div>
+    <div class="step">
+      <div class="label"><span><span class="num">3</span> &nbsp; Explorer running · draft building</span><a href="03-explorer-running.html">open ↗</a></div>
+      <iframe src="03-explorer-running.html"></iframe>
+      <div class="caption">Left: agent activity stream (every turn, every tool call). Right: draft taking shape — units complete, lessons fading in. Not a black box.</div>
+    </div>
+    <div class="step">
+      <div class="label"><span><span class="num">4</span> &nbsp; Draft ready · in-place edit</span><a href="04-draft-ready.html">open ↗</a></div>
+      <iframe src="04-draft-ready.html"></iframe>
+      <div class="caption">"Best guess" badge. Inline-editable unit titles. Rail summarises + offers Confirm or Save Draft. Escape hatches for re-running.</div>
+    </div>
+    <div class="step">
+      <div class="label"><span><span class="num">5</span> &nbsp; Course materialized</span><a href="05-course-materialized.html">open ↗</a></div>
+      <iframe src="05-course-materialized.html"></iframe>
+      <div class="caption">Library shows the new course at the top with a celebrate card; L1.1 teach tab is already open in the strip — one click into first lesson.</div>
+    </div>
+  </div>
+</body>
+</html>

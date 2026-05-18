@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>bootstrap · 1/5 · library CTA</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    main { padding: 32px 32px 64px; max-width: 1280px; margin: 0 auto; }
+    .greeting { margin-bottom: 32px; }
+    .greeting .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; }
+    .greeting h1 { font: 500 italic 32px/1.2 var(--font-display); margin: 0; }
+    .greeting h1 em { font-weight: 600; }
+    .greeting .deck { font: italic 15px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 6px; max-width: 70ch; }
+
+    .workbench { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+    .column { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 24px; }
+    .column h2 { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); display: flex; gap: 10px; align-items: baseline; }
+    .column h2 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 14px; }
+    .queue-item { padding: 12px 0; border-bottom: 1px solid var(--color-border); font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); display: flex; align-items: baseline; gap: 8px; }
+    .queue-item .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .queue-item em { font-style: italic; font-weight: 500; color: var(--color-text-primary); }
+
+    /* Footer row — bootstrap CTA highlighted */
+    .footer-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .footer-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 18px 22px; }
+    .footer-card h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin: 0 0 12px; display: flex; gap: 8px; align-items: baseline; }
+    .footer-card h3 .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); }
+    .footer-card .count-big { font: italic 28px/1 var(--font-display); margin-bottom: 4px; }
+    .footer-card .detail { font: 13px/1.4 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 8px; }
+    .footer-card .link { font: italic 12px/1 var(--font-serif); color: var(--color-accent); margin-top: 10px; display: inline-block; cursor: pointer; }
+
+    /* Bootstrap card — the CTA */
+    .footer-card.bootstrap-card { background: var(--color-accent-muted); border: 2px solid var(--color-accent); position: relative; box-shadow: 0 8px 28px rgba(155,58,44,0.18); }
+    .footer-card.bootstrap-card::before { content: 'how to start a new course'; position: absolute; top: -10px; left: 16px; background: var(--color-accent); color: var(--color-text-inverse); padding: 3px 10px; border-radius: var(--radius-full); font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    .footer-card.bootstrap-card h3 .glyph { color: var(--color-accent); }
+    .footer-card.bootstrap-card .lede { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-primary); margin-bottom: 12px; }
+    .footer-card.bootstrap-card .lede em { font-weight: 600; }
+    .footer-card.bootstrap-card .primary-action { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-md); font: 500 14px/1 var(--font-sans); cursor: pointer; width: 100%; justify-content: center; }
+    .footer-card.bootstrap-card .primary-action::after { content: '↗'; }
+    .footer-card.bootstrap-card .secondary-link { font: italic 12px/1.4 var(--font-serif); color: var(--color-text-secondary); margin-top: 12px; padding-top: 10px; border-top: 1px dashed color-mix(in oklab, var(--color-accent) 30%, transparent); }
+    .footer-card.bootstrap-card .secondary-link a { color: var(--color-accent); text-decoration: none; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="index.html">← overview</a>
+    <span class="center">bootstrap · step 1/5 · library · "+ bootstrap" highlighted in footer</span>
+    <a href="02-upload-docs.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 1</span><span>Workbench library. <em>Bootstrap CTA</em> sits in the footer row alongside packs / concept-maps / documents — but the card is upgraded: accent border, "how to start a new course" pill, primary button. The phrasing is invitational: <em>"upload material, we'll draft the course shape."</em></span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#" class="active"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="greeting">
+      <div class="kicker">§ Library · workbench</div>
+      <h1>Good afternoon. <em>Three things ready</em>; one more <em>could be</em>.</h1>
+      <div class="deck">A bootstrap card sits below, ready when you have new material to start a course from.</div>
+    </div>
+
+    <div class="workbench">
+      <div class="column">
+        <h2><span class="glyph">‖</span> What's next</h2>
+        <div class="queue-item"><span class="dot" style="background: var(--color-accent);"></span><em>Resume chain rule</em> · L3</div>
+        <div class="queue-item"><span class="dot" style="background: var(--tint-study-skills);"></span><em>Spaced review</em> · 15 cards</div>
+        <div class="queue-item"><span class="dot" style="background: var(--tint-quiz);"></span><em>Quick check</em> · derivatives</div>
+      </div>
+      <div class="column">
+        <h2><span class="glyph">§</span> Lately</h2>
+        <div class="queue-item"><span class="dot" style="background: var(--tint-teach);"></span>Calc · chain rule · 2h ago</div>
+        <div class="queue-item"><span class="dot" style="background: var(--tint-bootstrap);"></span>Stewart 8e · draft · yesterday</div>
+        <div class="queue-item"><span class="dot" style="background: var(--tint-quiz);"></span>Derivatives review · 2d</div>
+      </div>
+    </div>
+
+    <div class="footer-row">
+      <div class="footer-card">
+        <h3><span class="glyph">¶</span>Packs available</h3>
+        <div class="count-big">2</div>
+        <div class="detail">Cell Biology · Linear Algebra</div>
+        <span class="link">browse all ↗</span>
+      </div>
+      <div class="footer-card bootstrap-card">
+        <h3><span class="glyph">¶</span>Bootstrap a course</h3>
+        <div class="lede">Have a textbook, a syllabus, a stack of lecture notes? <em>Upload it</em> — Praxis will draft the course shape (units, lessons, assessments) and you confirm.</div>
+        <button class="primary-action">Start a bootstrap session</button>
+        <div class="secondary-link">or <a>continue your existing draft</a> — Stewart Calc 8e · started yesterday</div>
+      </div>
+      <div class="footer-card">
+        <h3><span class="glyph">†</span>Documents</h3>
+        <div class="count-big">2</div>
+        <div class="detail">Stewart Calc 8e · indexing<br>AP Bio class notes · ready</div>
+        <span class="link">+ attach a document ↗</span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

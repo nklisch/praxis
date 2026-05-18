@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>flow · assignment spawn → parent notification</title>
+  <style>
+    body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #f6f8fa; color: #24292f; }
+    header { background: #0d1117; color: #fff; padding: 24px 32px; }
+    header h1 { margin: 0 0 4px; font-weight: 600; font-size: 20px; }
+    header p { margin: 0; color: #8b949e; }
+    .ribbon { display: flex; gap: 4px; padding: 16px 32px; background: #fff; border-bottom: 1px solid #d0d7de; }
+    .ribbon a { flex: 1; padding: 8px 12px; text-align: center; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; color: #24292f; text-decoration: none; font-size: 13px; }
+    .ribbon a.primary { background: #0969da; color: #fff; border-color: #0969da; font-weight: 600; }
+    .steps { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); padding: 24px 32px; }
+    .step { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+    .step .label { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #d0d7de; }
+    .step .label .num { background: #0969da; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+    .step .label a { color: #0969da; text-decoration: none; font-size: 12px; }
+    .step iframe { border: 0; width: 100%; height: 280px; background: #fff; }
+    .step .caption { padding: 10px 16px; font-size: 12px; color: #57606a; border-top: 1px solid #d0d7de; background: #f6f8fa; font-style: italic; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>assignment spawn → parent notification · parent ↔ child sessions</h1>
+    <p>Tutor decides student is ready for a quick check → child quiz tab spawns next to the parent teach tab → student takes it → submission delivers a system_note back to the parent → tutor continues, grounded in what the check revealed.</p>
+  </header>
+  <div class="ribbon">
+    <a class="primary" href="01-teach-mid-lesson.html">▶ start the flow</a>
+    <a href="01-teach-mid-lesson.html" target="_blank">▶ start in new tab</a>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="label"><span><span class="num">1</span> &nbsp; Teach mid-lesson · tutor reasons</span><a href="01-teach-mid-lesson.html">open ↗</a></div>
+      <iframe src="01-teach-mid-lesson.html"></iframe>
+      <div class="caption">Student just earned the answer. Sub-agent block (italic marginalia) shows the tutor's reasoning for proposing a check.</div>
+    </div>
+    <div class="step">
+      <div class="label"><span><span class="num">2</span> &nbsp; Tutor issues · child tab spawns</span><a href="02-tutor-issues.html">open ↗</a></div>
+      <iframe src="02-tutor-issues.html"></iframe>
+      <div class="caption">Quiz tab slides in next to parent with "from L3" pill. System-event card in chat names the assignment. Teach composer disables.</div>
+    </div>
+    <div class="step">
+      <div class="label"><span><span class="num">3</span> &nbsp; Quiz running · parent visible</span><a href="03-quiz-running.html">open ↗</a></div>
+      <iframe src="03-quiz-running.html"></iframe>
+      <div class="caption">Parent-strip at top names the parent + offers a "peek read-only" link. Parent shown as [held] in tab strip. Rail has parent card.</div>
+    </div>
+    <div class="step">
+      <div class="label"><span><span class="num">4</span> &nbsp; Submitted · system_note in flight</span><a href="04-quiz-submitted.html">open ↗</a></div>
+      <iframe src="04-quiz-submitted.html"></iframe>
+      <div class="caption">4/4 result. Parent tab in strip "calling back" (pulsing halo, ↩ glyph). Returning-strip animates the system_note traveling back.</div>
+    </div>
+    <div class="step">
+      <div class="label"><span><span class="num">5</span> &nbsp; Parent receives · tutor responds</span><a href="05-parent-receives.html">open ↗</a></div>
+      <iframe src="05-parent-receives.html"></iframe>
+      <div class="caption">Back in teach. system_note inline (green left-border, mastery delta). Child tab strikethrough/closed. Tutor's next turn references the result + names what just unlocked.</div>
+    </div>
+  </div>
+</body>
+</html>
