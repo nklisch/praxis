@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure-gates-tab-canvas
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on: [epic-ui-redesign-ground-up-configure-canvas-side-chat-shell]
@@ -114,3 +114,28 @@ user actually saves.
 `memory-tab.tsx` had a stale `assistant_text` event type comparison (the type
 was renamed to `model_message`). Fixed in passing — it was blocking the UI
 typecheck.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- `pendingMinScore` in `SelectedGateState` is always set to the saved value,
+  not the locally-edited value. `hasPendingChange` in `GateInspectorStrip` is
+  always `false`, so the inspector strip's before/after changed-field highlight
+  never activates. The warning-coloured dirty edge works. Only the inspector
+  strip "changed" visual is a no-op.
+  → Item: `configure-gates-inspector-strip-pending-minscore`
+
+**Nits**:
+- `gate-inspector.tsx` `onChange` body indentation is slightly off (cosmetic,
+  Biome didn't flag it).
+
+**Notes**: All 1521 tests pass. Typecheck and lint are clean for the changed
+files (existing failures are pre-existing in unrelated files). Edge label
+restyle, dirty-edge variant, and the GateInspectorStrip plumbing all land
+correctly. The one gap is that `pendingMinScore` always echoes the saved value,
+so the before/after inspector display never shows a real diff — this is a small
+follow-up to wire the actual typed value through.

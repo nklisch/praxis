@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure-memory-tab-canvas
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on: [epic-ui-redesign-ground-up-configure-canvas-side-chat-shell]
@@ -82,3 +82,26 @@ Tests (`configure-memory-tab.test.tsx`, 18 tests): projection tab switching,
 semantic table rendering + recompute modal flow, misconception cards + clear
 modal flow, cleared-misconception no-action guard, canvas head kicker/title,
 affective and procedural pane smoke tests.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- `memory-tab.tsx` defines a local `EmptyState({ primary, hint })` function used
+  in five places. The project has a shared `<EmptyState>` from
+  `packages/ui/src/components/empty-state.tsx`. The `editorial-ui-primitives`
+  pattern says "use these primitives, never re-implement." This is a direct
+  violation to fix in a follow-up.
+  → Item: `configure-memory-tab-local-empty-state`
+
+**Nits**: none
+
+**Notes**: All 1521 tests pass. Typecheck and lint are clean for the changed
+files. All five projection views implemented correctly. Lazy episodic loading
+with AbortController cleanup is well-handled. Recompute and clear flows with
+ConfirmReasonModal are correct. Strength label derivation from `lastObservedAt`
+(< 48h = strong) is a reasonable heuristic. The pattern violation is the only
+finding; functional delivery is complete.
