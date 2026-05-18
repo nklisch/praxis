@@ -178,6 +178,7 @@ describe("ConceptMapSnapshotter — per-map failure is non-fatal", () => {
       setDivergences: vi.fn(),
       setNodeLink: vi.fn(),
       computeRipples: vi.fn(),
+      convertFromSketch: vi.fn(),
     };
 
     const log = makeLog();

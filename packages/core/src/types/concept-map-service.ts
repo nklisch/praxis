@@ -7,7 +7,7 @@ import type {
   RippleSummary,
 } from "./artifacts.js";
 import type { TldrawSnapshot } from "./common.js";
-import type { ConceptId, ConceptMapId, CourseId, SessionId, StudentId } from "./ids.js";
+import type { ConceptId, ConceptMapId, CourseId, NoteId, SessionId, StudentId } from "./ids.js";
 
 export interface ConceptMapService {
   /** Create a new empty map for (student, course). Title required. */
@@ -91,4 +91,27 @@ export interface ConceptMapService {
     elementId: string;
     candidateId: ConceptId;
   }): Promise<RippleSummary>;
+
+  /**
+   * Convert a sketch note (format: "sketch") into a new concept-map artifact.
+   *
+   * Extraction logic:
+   *   - Labelled text shapes → candidate nodes (label = shape text, trimmed).
+   *   - Arrows between shapes → edges; arrow label mapped to canonical relation
+   *     kind where possible; defaults to "related".
+   *
+   * The original sketch note is preserved (no mutation, no deletion).
+   * The conversion is recorded as a configurator action so the 24h undo window
+   * works: restoring the action deletes the newly-created concept map.
+   *
+   * The `courseId` and `studentId` are resolved from the sketch note's context.
+   * If `courseId` is absent from the context, the call throws an error.
+   *
+   * Returns `{ conceptMapId, originalSketchNoteId, nodeCount }` for the UI to
+   * surface candidate count in the confirmation dialog.
+   */
+  convertFromSketch(
+    noteId: NoteId,
+    studentId: StudentId,
+  ): Promise<{ conceptMapId: ConceptMapId; originalSketchNoteId: NoteId; nodeCount: number }>;
 }

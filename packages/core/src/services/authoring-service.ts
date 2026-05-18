@@ -23,6 +23,8 @@ import type {
   ArtifactsService,
   AuthoringService,
   ConceptId,
+  ConceptMapId,
+  ConceptMapService,
   ConfiguratorAction,
   ConfiguratorActionRow,
   ConfiguratorId,
@@ -76,6 +78,11 @@ export interface AuthoringServiceDeps {
   studentId: () => StudentId;
   /** Prompt customization service — handles global fragment + per-mode appends. */
   promptCustomization: PromptCustomizationService;
+  /**
+   * Concept-map service — used by restoreAction to delete a concept map when
+   * undoing a conceptMap.create action (sketch → concept-map conversion).
+   */
+  conceptMaps: ConceptMapService;
 }
 
 /**
@@ -662,6 +669,12 @@ export class AuthoringServiceImpl implements AuthoringService {
         break;
       }
 
+      case "conceptMap.create": {
+        // Sentinel: the original action CREATED a concept map — restore = delete it.
+        await this.deps.conceptMaps.delete(entityKey as ConceptMapId);
+        break;
+      }
+
       default: {
         const _exhaustive: never = entityKind;
         throw new Error(`Unknown snapshot entityKind: ${String(_exhaustive)}`);
@@ -810,6 +823,12 @@ export class AuthoringServiceImpl implements AuthoringService {
 
       case "memory.misconception":
         return this.capturer.forMemoryClearMisconception(entityKey as MisconceptionId);
+
+      case "conceptMap.create":
+        // The map was created; before restoring (deleting) it, nothing to
+        // capture for un-revert since the map will simply be gone after delete.
+        // Return null — un-reverting a map deletion is not supported in v1.
+        return null;
 
       default: {
         const _exhaustive: never = entityKind;

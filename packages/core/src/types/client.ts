@@ -236,6 +236,18 @@ export interface ConceptMapClientApi {
     elementId: string;
     candidateId: ConceptId;
   }): Promise<RippleSummary>;
+
+  /**
+   * Convert a sketch note (format: "sketch") into a new concept-map artifact.
+   * The original sketch note is preserved. Returns the new concept map id,
+   * the original note id, and the extracted node count (for the confirmation UI).
+   *
+   * The conversion is recorded as an undoable configurator action — use
+   * `authoring.restoreAction(actionId)` within the 24h window to delete the map.
+   */
+  convertFromSketch(input: {
+    sketchNoteId: NoteId;
+  }): Promise<{ conceptMapId: ConceptMapId; originalSketchNoteId: NoteId; nodeCount: number }>;
 }
 
 /**

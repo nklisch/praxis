@@ -18,6 +18,7 @@
  * All tests use a real migrated SQLite via useTempDb().
  */
 
+import { notes as notesTable } from "@praxis/artifacts/schema";
 import { courses as coursesTable } from "@praxis/artifacts/schema";
 import { conceptGraphs, concepts as conceptsTable } from "@praxis/curriculum/schema";
 import { v7 as uuidv7 } from "uuid";
@@ -31,12 +32,14 @@ import type {
   GateId,
   LessonId,
   MisconceptionId,
+  NoteId,
   StudentId,
   Timestamp,
 } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { ArtifactsServiceImpl } from "../artifacts-service.js";
 import { AuthoringServiceImpl } from "../authoring-service.js";
+import { ConceptMapServiceImpl } from "../concept-map-service.js";
 import { MemoryServiceImpl } from "../memory/memory-service.js";
 import { PromptCustomizationServiceImpl } from "../prompt-customization-service.js";
 import { getOrCreateDefaultStudentId } from "../student.js";
@@ -109,6 +112,8 @@ function buildServices() {
 
   const studentId = brandId<"StudentId">(getOrCreateDefaultStudentId(db));
 
+  const conceptMaps = new ConceptMapServiceImpl({ db, log: noopLog() });
+
   const authoring = new AuthoringServiceImpl({
     db,
     log: noopLog(),
@@ -117,6 +122,7 @@ function buildServices() {
     configuratorId: () => "default" as ConfiguratorId,
     studentId: () => studentId,
     promptCustomization,
+    conceptMaps,
   });
 
   return { db, artifacts, memory, promptCustomization, authoring, studentId };
@@ -684,5 +690,79 @@ describe("restoreAction — un-revert", () => {
 
     // After un-revert, title should be "Mutated Title" again.
     expect((await artifacts.course(COURSE_ID))?.title).toBe("Mutated Title");
+  });
+});
+
+// ── Sketch → concept-map conversion undo round-trip ──────────────────────────
+
+describe("snapshot-restore — conceptMap.create undo (sketch → concept-map)", () => {
+  const SKETCH_NOTE_ID = brandId<"NoteId">("note-sketch-undo-1") as NoteId;
+
+  function seedSketchNote(db: ReturnType<typeof openDb>["db"]) {
+    db.insert(notesTable)
+      .values({
+        id: SKETCH_NOTE_ID,
+        studentId: services.studentId,
+        contextJson: { courseId: COURSE_ID },
+        format: "sketch",
+        body: null,
+        sketchSceneJson: {
+          store: {
+            "shape:n1": { id: "shape:n1", type: "text", props: { text: "Photosynthesis" } },
+            "shape:n2": { id: "shape:n2", type: "text", props: { text: "Chloroplast" } },
+          },
+        },
+        linksJson: [],
+        annotationsJson: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .run();
+  }
+
+  it("restoreAction deletes the converted concept map (undo path)", async () => {
+    const { db, authoring, studentId } = services;
+
+    // Ensure the course row exists (reuses the shared COURSE_ID seeded in beforeEach).
+    // seedCourse is idempotent when called after beforeEach already seeded the course.
+    seedSketchNote(db);
+
+    // 1. Create the concept-map service with a configuratorId (for audit trail).
+    const conceptMapsWithAudit = new ConceptMapServiceImpl({
+      db,
+      log: noopLog(),
+      configuratorId: () => "default" as ConfiguratorId,
+    });
+
+    // 2. Convert the sketch to a concept map.
+    const { conceptMapId } = await conceptMapsWithAudit.convertFromSketch(
+      SKETCH_NOTE_ID,
+      studentId,
+    );
+
+    // Verify map was created.
+    const mapBefore = await conceptMapsWithAudit.get(conceptMapId);
+    expect(mapBefore).not.toBeNull();
+
+    // 3. Find the conceptMap.create action row.
+    const actions = await authoring.listConfiguratorActions();
+    const createAction = actions.find((a) => a.action.kind === "conceptMap.create");
+    expect(createAction).toBeDefined();
+    expect(createAction?.restoredAt).toBeNull();
+
+    // 4. Undo: restore the action.
+    const restoreResult = await authoring.restoreAction({ actionId: createAction!.id });
+    expect(restoreResult.ok).toBe(true);
+    if (restoreResult.ok) {
+      expect(restoreResult.restoredEntity).toBe("conceptMap.create");
+    }
+
+    // 5. Verify the concept map is deleted after undo.
+    const mapAfter = await conceptMapsWithAudit.get(conceptMapId);
+    expect(mapAfter).toBeNull();
+
+    // 6. Verify the sketch note is still present.
+    const noteRows = db.select({ id: notesTable.id }).from(notesTable).all();
+    expect(noteRows.some((r) => r.id === SKETCH_NOTE_ID)).toBe(true);
   });
 });

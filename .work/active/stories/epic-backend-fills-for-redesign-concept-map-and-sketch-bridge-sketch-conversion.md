@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge-sketch-conversion
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore-capture-and-restore]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Sketch → concept-map conversion + undo
@@ -80,3 +80,69 @@ See parent feature
 - Bidirectional sync (concept-map edits propagating back to the
   sketch).
 - "Delete original sketch" affordance — separate concern.
+
+## Implementation notes
+
+### Architecture
+
+- **`ConceptMapServiceImpl.convertFromSketch(noteId, studentId)`** — new method on
+  the existing service. Reads the `notes` row, extracts tldraw shapes/arrows via
+  `extractFromTldrawScene()` (handles both `store`-at-root and `document.store` layouts),
+  creates the concept map + initial version, then records a `configurator_actions` row
+  (`kind: "conceptMap.create"`) and a `configurator_snapshots` row (`entityKind:
+  "conceptMap.create"`) for the 24h undo window.
+
+- **`ConceptMapServiceDeps.configuratorId?`** — optional: when absent, the conversion
+  skips the audit trail (test/embed convenience). Wired in `services.ts` with the shared
+  `conceptMapConfiguratorId` lambda.
+
+- **`AuthoringServiceImpl.restoreAction`** — extended with a `conceptMap.create` case:
+  `restore = services.conceptMaps.delete(entityKey)`. `captureCurrentStateForUnrevert`
+  returns `null` for this case (un-revert of a map deletion is not supported in v1).
+
+- **`SnapshotEntityKind`** and **`ConfiguratorAction`** extended with `"conceptMap.create"`.
+
+- **`ConceptMapService` interface** extended with `convertFromSketch(noteId, studentId)`.
+
+### IPC + client
+
+- New channel `praxis.conceptMaps.convertFromSketch` (envelope-wrapped, Zod-validated
+  `{ sketchNoteId: string }`). Wired in `ipc-server.ts` after `computeRipples`.
+- `ConceptMapClient.convertFromSketch({ sketchNoteId })` added.
+- `ConceptMapClientApi` type updated.
+
+### UI bridge
+
+- `NoteEditorSketch` accepts optional `onConvertToConceptMap?: () => Promise<void>` prop.
+  When provided, a toolbar strip appears above the canvas with "↗ convert to concept map".
+  Clicking opens a `<Modal>` (modal-primitive pattern) with a label-warning message,
+  Cancel + Convert buttons, converting/error states.
+- `note-editor-page.tsx` wires `handleConvertToConceptMap` → calls
+  `client.conceptMaps.convertFromSketch` → navigates to
+  `/courses/$courseId/concept-maps/$conceptMapId`. Button is only shown when the sketch
+  note has a `courseId` in context.
+
+### tldraw extraction
+
+- `extractFromTldrawScene`: handles `{ store }` (top-level), `{ document: { store } }`,
+  and flat shape-map layouts. Extracts `type: "text"` and `type: "geo"` shapes with
+  non-empty `props.text` as nodes; `type: "arrow"` shapes with bound `start/end`
+  shape ids as edges. Arrow `props.text` is mapped through `RELATION_LABEL_MAP` (15+
+  known labels) defaulting to `"related"`. Empty/unlabelled shapes silently skipped.
+- `buildConceptMapScene`: lays out nodes in a 4-column grid with `COL_GAP=220px`,
+  inserts arrow shapes with bound start/end anchors.
+
+### Tests added
+
+- `concept-map-service.test.ts` — 10 new tests: creation, node extraction, edge
+  extraction with known labels, empty scene, configurator audit trail, error cases
+  (note not found, wrong format, no courseId).
+- `snapshot-restore.test.ts` — undo round-trip test: convert → restoreAction →
+  map deleted, original sketch preserved.
+- `sketches-concept-maps-channel-envelope.test.ts` — 4 new IPC harness tests.
+- `note-editor-sketch-convert.test.tsx` — 7 new UI tests: button visibility, modal
+  open/close, confirm call, error display, ESC key.
+
+### Quality
+
+All 4349 tests pass. Zero new typecheck errors. Lint clean (source files).

@@ -129,6 +129,25 @@ export function NoteEditorPage() {
     [client, note],
   );
 
+  /**
+   * Phase 15b: sketch → concept-map conversion.
+   * Calls the IPC conversion, then navigates to the new map's editor route.
+   * Follows the session-tab-open-flow spirit: service call → navigate.
+   */
+  const handleConvertToConceptMap = useCallback(async () => {
+    if (!note) return;
+    // biome-ignore lint/suspicious/noExplicitAny: NoteId branded — cast safely
+    const result = await client.conceptMaps.convertFromSketch({ sketchNoteId: note.id as any });
+    const courseId = (note.context as { courseId?: string }).courseId;
+    if (!courseId) {
+      throw new Error("Sketch has no courseId in context — cannot navigate to concept map");
+    }
+    await navigate({
+      to: "/courses/$courseId/concept-maps/$conceptMapId",
+      params: { courseId, conceptMapId: result.conceptMapId },
+    });
+  }, [client, note, navigate]);
+
   if (loading) {
     return (
       <div className={styles.layout}>
@@ -206,6 +225,10 @@ export function NoteEditorPage() {
             noteId={note.id as any as NoteId}
             initialSnapshot={body.snapshot}
             onSave={handleSketchAutoSave}
+            // Only offer conversion when sketch has a courseId in context.
+            {...((note.context as { courseId?: string }).courseId !== undefined && {
+              onConvertToConceptMap: handleConvertToConceptMap,
+            })}
           />
         )}
       </div>

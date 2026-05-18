@@ -73,6 +73,7 @@ type ConceptMapsOverrides = {
   listVersions?: (id: unknown) => Promise<unknown>;
   setNodeLink?: (input: unknown) => Promise<unknown>;
   computeRipples?: (input: unknown) => Promise<unknown>;
+  convertFromSketch?: (noteId: unknown, studentId: unknown) => Promise<unknown>;
 };
 
 function makeServices(
@@ -275,6 +276,9 @@ function makeServices(
     computeRipples: conceptMapsOverrides.computeRipples
       ? vi.fn().mockImplementation(conceptMapsOverrides.computeRipples)
       : vi.fn().mockResolvedValue({ conceptCountDelta: 0, notesRetagged: 0, tutorRefsAffected: 0 }),
+    convertFromSketch: conceptMapsOverrides.convertFromSketch
+      ? vi.fn().mockImplementation(conceptMapsOverrides.convertFromSketch)
+      : vi.fn().mockResolvedValue({ conceptMapId: "cm-new-1", originalSketchNoteId: "note-1", nodeCount: 3 }),
   };
 
   const activity = {
@@ -928,5 +932,72 @@ describe("praxis.conceptMaps.computeRipples — envelope wiring", () => {
     await expect(
       handler?.({}, { mapId: "cm-1", elementId: "shape:n1", candidateId: "concept-x" }),
     ).resolves.toMatchObject({ ok: false, error: { code: "INTERNAL" } });
+  });
+});
+
+// ── praxis.conceptMaps.convertFromSketch — structured-payload envelope ────────
+
+describe("praxis.conceptMaps.convertFromSketch — envelope wiring", () => {
+  it("resolves with { ok: true, value: <result> } for a valid sketchNoteId", async () => {
+    const conversionResult = {
+      conceptMapId: "cm-new-1",
+      originalSketchNoteId: "note-sketch-1",
+      nodeCount: 5,
+    };
+    const log = makeFakeLogger();
+    const services = makeServices({}, { convertFromSketch: async () => conversionResult });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.convertFromSketch");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { sketchNoteId: "note-sketch-1" });
+    expect(result).toMatchObject({ ok: true, value: conversionResult });
+    expect(services.conceptMaps.convertFromSketch).toHaveBeenCalledOnce();
+  });
+
+  it("returns VALIDATION_FAILED when sketchNoteId is empty", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.convertFromSketch");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { sketchNoteId: "" });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.conceptMaps.convertFromSketch).not.toHaveBeenCalled();
+  });
+
+  it("returns VALIDATION_FAILED when sketchNoteId is missing", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.convertFromSketch");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, {});
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.conceptMaps.convertFromSketch).not.toHaveBeenCalled();
+  });
+
+  it("returns INTERNAL when the service throws", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices(
+      {},
+      {
+        convertFromSketch: async () => {
+          throw new Error("sketch not found");
+        },
+      },
+    );
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.convertFromSketch");
+    await expect(handler?.({}, { sketchNoteId: "note-1" })).resolves.toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL" },
+    });
   });
 });

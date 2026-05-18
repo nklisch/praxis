@@ -396,7 +396,13 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // NOTE: conceptMapService is constructed below — forward-declare the variable
   // and assign it before the indexers reference it via the lazy lambda.
   // We create conceptMapService early here so the indexers can reference it.
-  const conceptMapService = new ConceptMapServiceImpl({ db, log });
+  // v1: single configurator, always "default" (shared with AuthoringServiceImpl).
+  const conceptMapConfiguratorId = () => "default" as ConfiguratorId;
+  const conceptMapService = new ConceptMapServiceImpl({
+    db,
+    log,
+    configuratorId: conceptMapConfiguratorId,
+  });
 
   const conceptMapSnapshotter = new ConceptMapSnapshotter({
     log,
@@ -508,10 +514,11 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     artifacts: artifactsService,
     memory: memoryService,
     // v1: single configurator, always "default".
-    configuratorId: () => "default" as ConfiguratorId,
+    configuratorId: conceptMapConfiguratorId,
     // v1: resolve the default student at call time (lazy, so no DB read at construction).
     studentId: () => brandId<"StudentId">(getOrCreateDefaultStudentId(db)),
     promptCustomization: promptCustomizationService,
+    conceptMaps: conceptMapService,
   });
 
   const modes = new Map([

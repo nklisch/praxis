@@ -1976,6 +1976,21 @@ export function registerIpcHandlers(
     ),
   );
 
+  // ── Phase 15b: Sketch → concept-map conversion ────────────────────────────────
+
+  handle(
+    "praxis.conceptMaps.convertFromSketch",
+    handleEnvelope(
+      "praxis.conceptMaps.convertFromSketch",
+      log,
+      z.object({ sketchNoteId: z.string().min(1, "sketchNoteId") }),
+      async (opts) => {
+        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        return services.conceptMaps.convertFromSketch(opts.sketchNoteId as NoteId, studentId);
+      },
+    ),
+  );
+
   // ── Activity rail ─────────────────────────────────────────────────────────────
 
   registerActivityHandlers(services, webContentsGetter, activeAbortControllers, log);

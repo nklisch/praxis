@@ -3,6 +3,7 @@ import { conceptMaps, conceptMapVersions, sessions } from "@praxis/memory/schema
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
+import { configuratorActions, configuratorSnapshots } from "../schema.js";
 import type {
   ConceptId,
   ConceptLink,
@@ -12,8 +13,10 @@ import type {
   ConceptMapService,
   ConceptMapSummary,
   ConceptMapVersion,
+  ConfiguratorId,
   CourseId,
   Logger,
+  NoteId,
   RippleSummary,
   SessionId,
   StudentId,
@@ -21,10 +24,17 @@ import type {
   TldrawSnapshot,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import { SNAPSHOT_SCHEMA_VERSION } from "./snapshot-capturer.js";
 
 export interface ConceptMapServiceDeps {
   readonly db: PraxisDb;
   readonly log: Logger;
+  /**
+   * Required for convertFromSketch: records the conversion as a configurator
+   * action so the 24h undo window (restoreAction) can delete the new map.
+   * If not provided, convertFromSketch omits the audit trail (test/embed mode).
+   */
+  readonly configuratorId?: () => ConfiguratorId;
 }
 
 /** Row shape returned from the concept_maps select. */
@@ -332,6 +342,121 @@ export class ConceptMapServiceImpl implements ConceptMapService {
     return updated;
   }
 
+  // ─── Sketch → concept-map conversion ────────────────────────────────────────
+
+  async convertFromSketch(
+    noteId: NoteId,
+    studentId: StudentId,
+  ): Promise<{ conceptMapId: ConceptMapId; originalSketchNoteId: NoteId; nodeCount: number }> {
+    // 1. Load the sketch note.
+    const noteRow = this.deps.db
+      .select()
+      .from(notes)
+      .where(and(eq(notes.id, noteId), eq(notes.studentId, studentId)))
+      .get();
+    if (!noteRow) throw new Error(`convertFromSketch: note not found: ${noteId}`);
+    if (noteRow.format !== "sketch") {
+      throw new Error(`convertFromSketch: note is not a sketch (format='${noteRow.format}')`);
+    }
+
+    // 2. Resolve courseId from the note context.
+    const ctx = noteRow.contextJson as {
+      courseId?: string;
+      lessonId?: string;
+      sessionId?: string;
+    } | null;
+    const courseId = ctx?.courseId;
+    if (!courseId) {
+      throw new Error(
+        `convertFromSketch: sketch note has no courseId in context — cannot create concept map`,
+      );
+    }
+
+    // 3. Extract nodes and edges from the tldraw scene JSON.
+    const { nodes, edges } = extractFromTldrawScene(noteRow.sketchSceneJson);
+
+    // 4. Build the initial tldraw snapshot for the concept map using extracted data.
+    //    We create a minimal scene that positions nodes in a grid and adds edges.
+    const mapScene = buildConceptMapScene(nodes, edges);
+
+    // 5. Create the concept map row.
+    const mapId = uuidv7();
+    const now = new Date();
+    this.deps.db
+      .insert(conceptMaps)
+      .values({
+        id: mapId,
+        studentId,
+        courseId,
+        title: `From sketch`,
+        sceneJson: mapScene,
+        conceptLinksJson: [],
+        divergencesJson: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+
+    // Write initial version.
+    this.deps.db
+      .insert(conceptMapVersions)
+      .values({
+        id: uuidv7(),
+        conceptMapId: mapId,
+        sceneJson: mapScene,
+        conceptLinksJson: [],
+        sessionId: null,
+        snapshotAt: now,
+      })
+      .run();
+
+    this.deps.log.info("conceptMap.convertFromSketch", {
+      noteId,
+      mapId,
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+    });
+
+    // 6. Record the conversion as a configurator action for undo.
+    if (this.deps.configuratorId) {
+      const actionId = uuidv7();
+      this.deps.db
+        .insert(configuratorActions)
+        .values({
+          id: actionId,
+          configuratorId: this.deps.configuratorId(),
+          ts: now,
+          actionJson: {
+            kind: "conceptMap.create",
+            conceptMapId: mapId,
+            originalSketchNoteId: noteId,
+          },
+        })
+        .run();
+
+      // Snapshot: sentinel "create" — restore = delete the map.
+      this.deps.db
+        .insert(configuratorSnapshots)
+        .values({
+          actionId,
+          entityKind: "conceptMap.create",
+          entityKeyJson: mapId,
+          snapshotJson: {
+            schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+            data: { kind: "create" },
+          },
+          restoredAt: null,
+        })
+        .run();
+    }
+
+    return {
+      conceptMapId: brandId<"ConceptMapId">(mapId),
+      originalSketchNoteId: noteId,
+      nodeCount: nodes.length,
+    };
+  }
+
   async computeRipples(input: {
     mapId: ConceptMapId;
     elementId: string;
@@ -419,4 +544,245 @@ export class ConceptMapServiceImpl implements ConceptMapService {
 
     return { conceptCountDelta, notesRetagged, tutorRefsAffected };
   }
+}
+
+// ─── tldraw scene extraction helpers ─────────────────────────────────────────
+
+/**
+ * Known relation-label → canonical edge kind mappings.
+ * Arrow labels are lowercased before lookup.
+ */
+const RELATION_LABEL_MAP: Readonly<Record<string, string>> = {
+  "is-a": "is-a",
+  "is a": "is-a",
+  isa: "is-a",
+  "instance of": "is-a",
+  "instance-of": "is-a",
+  causes: "causes",
+  cause: "causes",
+  "caused by": "caused-by",
+  "caused-by": "caused-by",
+  "depends on": "depends-on",
+  "depends-on": "depends-on",
+  "part of": "part-of",
+  "part-of": "part-of",
+  "has part": "has-part",
+  "has-part": "has-part",
+  contains: "contains",
+  related: "related",
+  "related to": "related",
+  "related-to": "related",
+};
+
+interface ExtractedNode {
+  id: string;
+  label: string;
+}
+
+interface ExtractedEdge {
+  id: string;
+  fromId: string;
+  toId: string;
+  label: string;
+  relationKind: string;
+}
+
+/**
+ * Extract nodes and edges from a tldraw scene JSON.
+ *
+ * tldraw snapshot shape:
+ *   { document: { store: Record<string, TLShape> } }
+ *   OR a flat `store` at the top level (v2 snapshot).
+ *
+ * For each shape:
+ *   - type "text" or "geo" with non-empty `props.text` → candidate node.
+ *   - type "arrow" with bound start/end shapes → edge between those nodes.
+ *     Arrow's label is read from `props.text` or the first bound label shape.
+ *
+ * Shapes without text labels are silently skipped.
+ */
+function extractFromTldrawScene(sceneJson: unknown): {
+  nodes: ExtractedNode[];
+  edges: ExtractedEdge[];
+} {
+  if (sceneJson === null || typeof sceneJson !== "object") {
+    return { nodes: [], edges: [] };
+  }
+
+  // Resolve the store map: try document.store first (v2), then top-level store.
+  // biome-ignore lint/suspicious/noExplicitAny: tldraw internal JSON shape; validated below
+  const scene = sceneJson as any;
+  // biome-ignore lint/suspicious/noExplicitAny: tldraw store shape varies per version
+  let store: Record<string, any> | null = null;
+
+  if (
+    typeof scene.document === "object" &&
+    scene.document !== null &&
+    typeof scene.document.store === "object"
+  ) {
+    store = scene.document.store as Record<string, unknown>;
+  } else if (typeof scene.store === "object" && scene.store !== null) {
+    store = scene.store as Record<string, unknown>;
+  } else if (typeof scene === "object") {
+    // Flat shape map (some editor.getSnapshot() formats).
+    store = scene;
+  }
+
+  if (store === null) return { nodes: [], edges: [] };
+
+  const nodeMap = new Map<string, ExtractedNode>();
+  const rawArrows: Array<{
+    id: string;
+    startId: string | null;
+    endId: string | null;
+    label: string;
+  }> = [];
+
+  for (const [key, shape] of Object.entries(store)) {
+    if (typeof shape !== "object" || shape === null) continue;
+    const shapeId = (shape.id as string | undefined) ?? key;
+    const type = shape.type as string | undefined;
+
+    if (type === "text" || type === "geo") {
+      const text = ((shape.props?.text as string | undefined) ?? "").trim();
+      if (text.length > 0) {
+        nodeMap.set(shapeId, { id: shapeId, label: text });
+      }
+    } else if (type === "arrow") {
+      const startId =
+        (shape.props?.start?.boundShapeId as string | undefined) ??
+        (shape.props?.startShapeId as string | undefined) ??
+        null;
+      const endId =
+        (shape.props?.end?.boundShapeId as string | undefined) ??
+        (shape.props?.endShapeId as string | undefined) ??
+        null;
+      const arrowText = ((shape.props?.text as string | undefined) ?? "").trim();
+      rawArrows.push({ id: shapeId, startId, endId, label: arrowText });
+    }
+  }
+
+  const edges: ExtractedEdge[] = [];
+  for (const arrow of rawArrows) {
+    if (!arrow.startId || !arrow.endId) continue;
+    if (!nodeMap.has(arrow.startId) || !nodeMap.has(arrow.endId)) continue;
+    const normalizedLabel = arrow.label.toLowerCase();
+    const relationKind = RELATION_LABEL_MAP[normalizedLabel] ?? "related";
+    edges.push({
+      id: arrow.id,
+      fromId: arrow.startId,
+      toId: arrow.endId,
+      label: arrow.label,
+      relationKind,
+    });
+  }
+
+  return { nodes: Array.from(nodeMap.values()), edges };
+}
+
+/**
+ * Build a minimal tldraw snapshot for the new concept map.
+ * Nodes are laid out in a grid (4 columns); edges are represented as arrows.
+ * The resulting snapshot can be loaded directly by the tldraw editor.
+ */
+function buildConceptMapScene(nodes: ExtractedNode[], edges: ExtractedEdge[]): TldrawSnapshot {
+  const COLS = 4;
+  const COL_GAP = 220;
+  const ROW_GAP = 140;
+  const NODE_W = 180;
+  const NODE_H = 60;
+
+  // biome-ignore lint/suspicious/noExplicitAny: tldraw shape JSON
+  const store: Record<string, any> = {};
+
+  // Place nodes in a grid.
+  nodes.forEach((node, i) => {
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const x = col * COL_GAP;
+    const y = row * ROW_GAP;
+    store[node.id] = {
+      id: node.id,
+      type: "geo",
+      typeName: "shape",
+      x,
+      y,
+      rotation: 0,
+      isLocked: false,
+      opacity: 1,
+      meta: {},
+      props: {
+        geo: "rectangle",
+        w: NODE_W,
+        h: NODE_H,
+        text: node.label,
+        align: "middle",
+        verticalAlign: "middle",
+        growY: 0,
+        url: "",
+        labelColor: "black",
+        color: "blue",
+        fill: "solid",
+        dash: "draw",
+        size: "m",
+        font: "draw",
+      },
+      parentId: "page:page",
+      index: `a${i.toString().padStart(5, "0")}`,
+    };
+  });
+
+  // Add arrows for edges.
+  edges.forEach((edge, i) => {
+    store[edge.id] = {
+      id: edge.id,
+      type: "arrow",
+      typeName: "shape",
+      x: 0,
+      y: 0,
+      rotation: 0,
+      isLocked: false,
+      opacity: 1,
+      meta: {},
+      props: {
+        dash: "draw",
+        size: "m",
+        fill: "none",
+        color: "black",
+        labelColor: "black",
+        bend: 0,
+        text: edge.label,
+        font: "draw",
+        start: {
+          type: "binding",
+          boundShapeId: edge.fromId,
+          normalizedAnchor: { x: 0.5, y: 0.5 },
+          isExact: false,
+          isPrecise: false,
+        },
+        end: {
+          type: "binding",
+          boundShapeId: edge.toId,
+          normalizedAnchor: { x: 0.5, y: 0.5 },
+          isExact: false,
+          isPrecise: false,
+        },
+        arrowheadStart: "none",
+        arrowheadEnd: "arrow",
+      },
+      parentId: "page:page",
+      index: `z${i.toString().padStart(5, "0")}`,
+    };
+  });
+
+  // Add the page record.
+  store["page:page"] = {
+    id: "page:page",
+    typeName: "page",
+    name: "Page 1",
+    index: "a1",
+    meta: {},
+  };
+
+  return { store } as unknown as TldrawSnapshot;
 }

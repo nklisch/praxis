@@ -7,6 +7,7 @@ import type {
   ConceptMapSummary,
   ConceptMapVersion,
   CourseId,
+  NoteId,
   RippleSummary,
   TldrawSnapshot,
 } from "@praxis/core/types";
@@ -101,6 +102,20 @@ export class ConceptMapClient implements ConceptMapClientApi {
       `${C}.computeRipples`,
       input,
     );
+    return unwrapEnvelope(result);
+  }
+
+  async convertFromSketch(input: {
+    sketchNoteId: NoteId;
+  }): Promise<{ conceptMapId: ConceptMapId; originalSketchNoteId: NoteId; nodeCount: number }> {
+    const result = await this.transport.invoke<
+      | IpcEnvelope<{
+          conceptMapId: ConceptMapId;
+          originalSketchNoteId: NoteId;
+          nodeCount: number;
+        }>
+      | { conceptMapId: ConceptMapId; originalSketchNoteId: NoteId; nodeCount: number }
+    >(`${C}.convertFromSketch`, input);
     return unwrapEnvelope(result);
   }
 }

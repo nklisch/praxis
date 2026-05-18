@@ -37,6 +37,12 @@ export type ConfiguratorAction =
   | { kind: "memory.clear_misconception"; misconceptionId: MisconceptionId; reason: string }
   | { kind: "memory.export" }
   | { kind: "memory.delete_all"; reason: string }
+  /** Sketch → concept-map conversion. Restore = delete the new map. */
+  | {
+      kind: "conceptMap.create";
+      conceptMapId: string;
+      originalSketchNoteId: string;
+    }
   /** Reverse-apply of a prior mutation. The restore action itself is snapshotted for un-revert. */
   | { kind: "restore"; originalActionId: string };
 
@@ -76,7 +82,8 @@ export type SnapshotEntityKind =
   | "global_prompt"
   | "mode_append"
   | "memory.concept"
-  | "memory.misconception";
+  | "memory.misconception"
+  | "conceptMap.create"; // sentinel: reverse-apply = delete the concept map (entityKey = conceptMapId)
 
 export interface ConfiguratorSnapshotRow {
   actionId: string;

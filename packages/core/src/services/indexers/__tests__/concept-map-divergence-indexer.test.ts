@@ -100,6 +100,7 @@ function makeMockConceptMaps(
     snapshotIfDirty: vi.fn(),
     setNodeLink: vi.fn(),
     computeRipples: vi.fn(),
+    convertFromSketch: vi.fn(),
     setDivergences: vi.fn().mockImplementation(async (id, divergences) => {
       setDivergencesCalls.push({ id, divergences });
     }),

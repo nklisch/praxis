@@ -260,4 +260,19 @@ export class SnapshotCapturer {
       snapshot: { schemaVersion: SNAPSHOT_SCHEMA_VERSION, data: misconception },
     };
   }
+
+  // ─── Concept map ───────────────────────────────────────────────────────────
+
+  /**
+   * Sentinel for conceptMap.create — no pre-state exists yet.
+   * The caller must set entityKey to the new concept map id post-mutate.
+   * Restore = delete the created concept map.
+   */
+  async forConceptMapCreate(): Promise<CapturedSnapshot> {
+    return {
+      entityKind: "conceptMap.create",
+      entityKey: null,
+      snapshot: { schemaVersion: SNAPSHOT_SCHEMA_VERSION, data: { kind: "create" } },
+    };
+  }
 }

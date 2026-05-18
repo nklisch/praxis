@@ -140,6 +140,27 @@ function makeStubPromptCustomization(): PromptCustomizationService {
   };
 }
 
+function makeStubConceptMaps(): import("../types/index.js").ConceptMapService {
+  return {
+    create: vi.fn().mockResolvedValue({}),
+    get: vi.fn().mockResolvedValue(null),
+    list: vi.fn().mockResolvedValue([]),
+    rename: vi.fn().mockResolvedValue({}),
+    delete: vi.fn().mockResolvedValue(undefined),
+    updateScene: vi.fn().mockResolvedValue({}),
+    listVersions: vi.fn().mockResolvedValue([]),
+    snapshotIfDirty: vi.fn().mockResolvedValue({ snapshotted: false }),
+    setDivergences: vi.fn().mockResolvedValue(undefined),
+    setNodeLink: vi.fn().mockResolvedValue({}),
+    computeRipples: vi
+      .fn()
+      .mockResolvedValue({ conceptCountDelta: 0, notesRetagged: 0, tutorRefsAffected: 0 }),
+    convertFromSketch: vi
+      .fn()
+      .mockResolvedValue({ conceptMapId: "cm-1", originalSketchNoteId: "note-1", nodeCount: 0 }),
+  } as unknown as import("../types/index.js").ConceptMapService;
+}
+
 function makeService(
   db: ReturnType<typeof openDb>["db"],
   artifactsOverrides: Partial<ArtifactsService> = {},
@@ -153,6 +174,7 @@ function makeService(
     configuratorId: () => CONFIGURATOR_ID,
     studentId: () => STUDENT_ID,
     promptCustomization: makeStubPromptCustomization(),
+    conceptMaps: makeStubConceptMaps(),
   });
 }
 
@@ -482,6 +504,7 @@ function makeServiceWithRealPromptCustomization(db: ReturnType<typeof openDb>["d
       configuratorId: () => CONFIGURATOR_ID,
       studentId: () => STUDENT_ID,
       promptCustomization,
+      conceptMaps: makeStubConceptMaps(),
     }),
     promptCustomization,
   };
