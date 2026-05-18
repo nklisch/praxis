@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat-authoring-pane
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-backend-fills-for-redesign-drafter-configurator-chat
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore-ipc]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Extract `<AuthoringChatPane>` from `<ConfigureChatPane>`
@@ -30,8 +30,32 @@ course-create surfaces.
 
 ## Acceptance criteria
 
-- [ ] `<AuthoringChatPane>` accepts mode + artifact-id props.
-- [ ] `<ConfigureChatPane>` continues to render identically (existing
+- [x] `<AuthoringChatPane>` accepts mode + artifact-id props.
+- [x] `<ConfigureChatPane>` continues to render identically (existing
       consumers untouched).
-- [ ] Tests cover both mounts.
-- [ ] All quality checks green.
+- [x] Tests cover both mounts.
+- [x] All quality checks green.
+
+## Implementation notes
+
+**Extraction approach**: the existing `ConfigureChatPane` body moved
+verbatim into `AuthoringChatPane`. The only parametric additions are
+`mode: AuthoringModeId` (`"configure" | "bootstrap"`) and two small
+lookup tables (`MODE_LABEL`, `MODE_EMPTY_STATE`) that drive the header
+label and empty-state hint copy. No `artifactId` prop was needed — the
+session already carries artifact context, and neither configure nor
+bootstrap surfaces pass an artifact id separately at this layer.
+
+**CSS**: styles copied into `authoring-chat-pane.module.css`;
+`configure-chat-pane.module.css` left intact (empty would break the
+import in a stale build cache).
+
+**Wrapper**: `configure-chat-pane.tsx` is now 18 lines — imports the
+generic component and pins `mode="configure"`. Both configure-route
+tabs (`CourseTab`, `GatesTab`) are untouched.
+
+**Tests**: 11 tests in
+`packages/ui/src/components/__tests__/authoring-chat-pane.test.tsx`
+covering header labels, status text, empty-state hints, composer
+enable/disable for both `AuthoringChatPane` and the `ConfigureChatPane`
+wrapper. All 1209 tests pass.
