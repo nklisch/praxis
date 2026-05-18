@@ -209,6 +209,13 @@ Test gate carryovers (15):
 
 - **gate-security** (2026-05-18) — 1 new finding (Medium=1), 4 already-tracked skipped
   - `gate-security-engine-baseurl-url-validator-scheme-allowlist` (Medium)
+- **gate-cruft** (2026-05-18) — 6 items from 18 raw findings (4 implementing, 2 drafting); consolidated to focused sweeps
+  - `gate-cruft-mode-glyph-bootstrap-entry-dead` (High)
+  - `gate-cruft-bootstrap-explorer-stale-comment-sweep` (High, ~30-file sweep)
+  - `gate-cruft-biome-unused-imports-and-suppressions-sweep` (High)
+  - `gate-cruft-ipc-server-cancel-test-dead-scaffolding` (High)
+  - `gate-cruft-ingest-pickfile-back-compat-comment` (Medium)
+  - `gate-cruft-concept-link-overlay-legacy-markers-decision` (Medium)
 - **gate-tests** (2026-05-18) — 12 new findings (Critical=2, High=4, Medium=4, Low=2), 15 already-tracked skipped
   - `gate-tests-document-scopes-passagerange-untested` (Critical)
   - `gate-tests-spawn-from-passage-service-untested` (Critical)

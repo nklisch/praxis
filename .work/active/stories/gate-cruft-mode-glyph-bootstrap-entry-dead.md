@@ -1,0 +1,42 @@
+---
+id: gate-cruft-mode-glyph-bootstrap-entry-dead
+kind: story
+stage: implementing
+tags: [cleanup]
+parent: null
+depends_on: []
+release_binding: v0.1.3
+gate_origin: cruft
+created: 2026-05-18
+updated: 2026-05-18
+---
+
+# Dead `bootstrap` glyph entry in mode-glyph map
+
+## Confidence
+High
+
+## Category
+residual-rename / dead code
+
+## Location
+`packages/ui/src/routes/configure/prompt-tab.tsx:20`
+
+## Evidence
+```ts
+const MODE_GLYPHS: Record<string, string> = {
+  teach: "§",
+  quiz: "‡",
+  homework: "❦",
+  exam: "†",
+  bootstrap: "¶",
+  "study-skills": "‖",
+  configure: "⁂",
+  "course-create": "¶",
+};
+```
+
+## Removal
+Delete the `bootstrap: "¶"` line. No mode with `modeId === "bootstrap"` exists
+in the codebase after the rename — only `"course-create"` is registered. The
+lookup `MODE_GLYPHS[modeId]` will never hit this key.
