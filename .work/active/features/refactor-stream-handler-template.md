@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -436,3 +436,73 @@ modification.
   story to add a typed extra-log-fields hook to the helper.
 - The `eventsForwarded` running counter in `course-create-drafts` is
   dropped for the same reason. Recoverable from log aggregation.
+
+## Implementation Run Summary
+
+All 4 child stories implemented and advanced to `stage: review` in a single
+orchestrator pass (Wave 1: step 1 alone; Wave 2: steps 2/3/4 parallel).
+
+| Step | Story | Commit(s) | LoC delta |
+|------|-------|-----------|-----------|
+| 1 | `step-1-helper-and-activity` | `e2a46f9` | new helper 207 LoC; activity-channel 77→38 (−39) |
+| 2 | `step-2-quick-check-and-subagent` | `45a1b94` | quick-check 81→40 (−41); subagent 80→44 (−36) |
+| 3 | `step-3-course-create-drafts` | `ee0ad9b` | course-create-drafts 98→60 (−38) |
+| 4 | `step-4-generator-streams` | `02fd4cb`, `48bc745`, `89bc6b6` | ingest 212→170 (−42); ipc-server 2069→1994 (−75) |
+
+**Total LoC removed from channel files**: ~271 (against +207 LoC in the new
+helper). Net consolidation: −64 LoC plus a reusable abstraction that the
+forthcoming `refactor-ipc-server-extract-domain-channels` feature can adopt
+when extracting new channel modules.
+
+### Cross-cutting deviations
+
+- **Log keys changed shape** for 3 of the 7 channels:
+  - `activity.subscribe` → `activity.events.subscribe` (and `.unsubscribe`, `.error`)
+  - `subagent.subscribe` → `subAgent.events.subscribe` (and `.unsubscribe`, `.error`)
+  - `course-create.drafts.subscribe` → `courseCreate.drafts.events.subscribe` (and `.unsubscribe`, `.error`)
+  
+  The helper derives the log prefix from `channelBase` by stripping `"praxis."`
+  (so `"praxis.activity.events"` → `"activity.events"`). Prior implementations
+  used bespoke short keys. **No tests assert on these strings**, so this is
+  not a test regression — but if downstream log dashboards key on the prior
+  short names, they need updating. Flagged as nit in step-1 implementation
+  notes.
+
+- **Observability fields dropped**:
+  - `messageLength` on `praxis.session.send.start` opening log
+  - `errorCount` on `praxis.session.send.done` closing log
+  - `eventsForwarded` running total in `course-create-drafts` per-event debug log
+  
+  All intentional per the design — recoverable via log aggregation. No tests
+  asserted on these fields.
+
+- **Per-event count NOT exposed on subscriber-stream `onEvent` hook**: The
+  generator-stream variant exposes `{ count, log }` in `onEvent` but the
+  subscriber variant only exposes `{ log }`. This is by design (subscriber
+  channels rarely need a counter; if a future channel does, extend the hook
+  shape).
+
+### Verification status
+
+- **Typecheck**: baseline preserved (3 pre-existing UI errors in
+  `chat-tab-body.tsx`, `chat.tsx`, `notes-list.tsx` — tracked at
+  `idea-fix-exactoptional-typecheck-baseline`). Zero new errors.
+- **Tests**: 475+ desktop main tests pass, including all critical streaming
+  envelope tests (`streaming-channel-error-redaction`,
+  `ipc-server.envelope-migration`, `ipc-server.cancel`). Zero test
+  modifications needed across the 4 stories.
+- **Lint (biome)**: clean on all touched files.
+- **Wire format**: every channel name and envelope shape preserved exactly.
+  All `praxis.X.events.start` / `praxis.X.events.events.<id>` /
+  `praxis.X.events.cancel` (subscriber) and `praxis.Y.start` /
+  `praxis.Y.events.<id>` / `praxis.Y.cancel` (generator) shapes unchanged.
+
+### What's now possible
+
+- The `refactor-ipc-server-extract-domain-channels` feature (still at
+  drafting) can adopt the helper for new channel modules from day one — no
+  inline streaming scaffolding to write.
+- Future streaming channels add ~10 lines, not ~70.
+- Cancel semantics, redaction, and envelope shape are guaranteed-correct
+  via the helper — no per-channel risk of forgetting `serializeErrorRedacted`
+  or `wc.isDestroyed()` checks.
