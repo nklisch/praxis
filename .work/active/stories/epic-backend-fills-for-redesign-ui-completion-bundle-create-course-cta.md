@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-create-course-cta
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -62,3 +62,13 @@ new user has a cold-start entry point that isn't "Use this pack."
 - All 3794 tests pass; lint clean; pre-existing typecheck failure in
   `@praxis/core` (duplicate `Recommendation` identifier) was present before this
   change.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: First render-test uses `getByRole` (singular) despite two matching buttons potentially existing in the empty state; test passes in practice because `loading` is still true when `waitFor` resolves — no functional issue.
+
+**Notes**: Implementation is clean and minimal. Correctly uses `session-tab-open-flow` via `openSessionInTab`. The `headerAction`/`emptyAction` dual-placement correctly addresses both warm (has courses) and cold-start (no courses) cases. No foundation-doc assertions affected. No breaking changes.
