@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign
 kind: epic
-stage: drafting
+stage: implementing
 tags: []
 parent: null
 depends_on: []
@@ -67,43 +67,75 @@ implementation being in place; the workbench engine is independent).
   with UI implementation features once the design pass is locked
   (which it is).
 
-## Anticipated child features
+## Decomposition
 
-To be confirmed/refined by `/agile-workflow:epic-design`:
+Eight child features along capability seams. Most are independent of
+each other — the only within-epic edge is `snapshot-restore` →
+`drafter-configurator-chat` (the ↶ revert affordance consumes the
+snapshot infrastructure). The other six can run fully in parallel.
 
-1. **`-workbench-recommendation-engine`** · new
-   `RecommendationService` returning priority-ordered "what's next"
-   actions with reason strings. Required by the locked Workbench
-   (discovery feature).
-2. **`-artifact-snapshot-restore`** · generic snapshot/restore layer
-   for artifact mutations. Foundation for the ↶ revert affordance on
-   any agent-driven tool call. Used by drafter + configurator + note
-   editors.
-3. **`-drafter-configurator-chat-rebuild`** · UI rebuild to surface
-   the bootstrap-mode + configure-mode parent-agent chat with the
-   Canvas + Side Chat shape. Tool-entry rendering with summary +
-   ↶ revert affordance. `<SubAgentBlock>` inline for
-   `course.start_exploration`. (Smaller than originally framed —
-   architecture is already in place; UI just needs to surface it.)
-4. **`-note-annotations-and-catalogue-filters`** · selection-anchored
-   annotations on the notes schema (Feynman two-pass margin notes) +
-   catalogue search/filter queries (from-session / orphan / due /
-   recent).
-5. **`-document-viewer-enhancements`** · text-selection action bar +
-   cited-passage highlight tracking + scope-aware "ask Praxis" from
-   passage. DocumentTabBody scaffold exists; this fills it out.
-6. **`-concept-map-completion-and-sketch-conversion`** · three-state
-   node UX (linked ✓ / best-guess ? / unlinked) + ghost-edge preview
-   on candidate hover + ripples panel + sketch→concept-map conversion
-   service.
-7. **`-cross-tab-and-parent-child-ui`** · UI plumbing only: "N
-   unsaved across M surfaces" tracker, "from L3" pill on child tab,
-   distinct system-event card rendering in chat. Surfaces what the
-   data model already supports.
-8. **`-ui-completion-bundle`** · theme persistence + Library "+
-   Create a course" CTA + quiz confidence band + exam timer/auto-
-   submit + lesson-assessment plan rendering + spawn-from-note brief.
-   Small UI gaps bundled into one shipping unit.
+UI-feature dependencies (`epic-ui-redesign-ground-up` children) are
+**not** in `depends_on` because the work co-ships rather than blocks:
+backend can be built in parallel with the UI rebuild, and each
+backend feature lands alongside its corresponding UI feature at
+release-binding time. Each child brief calls out its UI co-ship
+explicitly.
+
+Eight is one over the soft 2-6 cap; collapsing further would force
+unnatural bundling. Two features are themselves bundles
+(`note-annotations-and-filters` is two related sub-features by user
+direction; `ui-completion-bundle` is six tiny items bundled into one
+shipping unit per user direction). The shape preserves user-stated
+priorities (split F-B, bundle F-J) and matches the gap-analysis
+groupings.
+
+### Child features
+
+- `epic-backend-fills-for-redesign-workbench-engine` —
+  new `RecommendationService` returning priority-ordered "what's
+  next" actions with reason strings — depends on: `[]`
+- `epic-backend-fills-for-redesign-snapshot-restore` —
+  generic snapshot/restore layer for artifact mutations; foundation
+  for the ↶ revert affordance — depends on: `[]`
+- `epic-backend-fills-for-redesign-drafter-configurator-chat` —
+  UI rebuild surfacing the bootstrap + configure parent-agent chat
+  with Canvas + Side Chat shape, tool-entry rendering, SubAgentBlock
+  inline — depends on:
+  `[epic-backend-fills-for-redesign-snapshot-restore]`
+- `epic-backend-fills-for-redesign-note-annotations-and-filters` —
+  selection-anchored note annotations (Feynman two-pass) + Catalogue
+  search & saved filters (from-session / orphan / due / recent) —
+  depends on: `[]`
+- `epic-backend-fills-for-redesign-document-viewer` —
+  text-selection action bar + cited-passage highlights + scope-aware
+  "ask Praxis" from passage — depends on: `[]`
+- `epic-backend-fills-for-redesign-concept-map-and-sketch-bridge` —
+  three-state node UX + ghost-edge preview + ripples panel +
+  sketch→concept-map conversion — depends on: `[]`
+- `epic-backend-fills-for-redesign-cross-tab-state` —
+  "N unsaved across M surfaces" + parent-child tab pill + system_note
+  card rendering — depends on: `[]`
+- `epic-backend-fills-for-redesign-ui-completion-bundle` —
+  theme persistence + library CTA + quiz confidence + exam timer +
+  lesson-plan rendering + `spawnFromNote` — depends on: `[]`
+
+### Decomposition risks
+
+- **8 features is over the 2-6 soft cap.** Mitigated by tight scope
+  per feature + user-stated bundling preferences (note-annotations
+  and ui-completion-bundle each absorb what would otherwise be
+  3-5 trivial features).
+- **Co-ship coordination with UI features.** Each backend feature
+  needs its UI counterpart to land in the same release for the
+  user-facing capability to work. Mitigation: release-binding at
+  `/agile-workflow:release-deploy` time pairs each backend feature
+  with its UI feature explicitly.
+- **`snapshot-restore` is the critical-path within this epic.** If
+  its design discovers a heavier-than-expected mechanism (e.g.,
+  per-mutation snapshots cause storage bloat at scale), the
+  `drafter-configurator-chat` feature blocks. Mitigation: design
+  snapshot-restore first; if it surfaces tradeoffs, surface them at
+  feature-design time and reconsider revert affordance scope.
 
 ## Dependencies
 
