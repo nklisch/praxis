@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-outline
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -102,3 +102,9 @@ drag-handle reorder, Enter sibling creation, and legacy body migration.
 **Blockers**: `fix-outline-editor-contenteditable-cursor-reset`, `CONTRACT.md` drift (fixed inline)
 **Important**: `refactor-note-body-schema-restore-discriminated-union`
 **Nits**: double `normaliseBody` call in useState; stale comment about contentEditable control
+
+## Re-review note
+
+Sibling fix story `fix-outline-editor-contenteditable-cursor-reset` cleared
+the contenteditable cursor-reset blocker. No code changes needed in this
+story body. Re-advanced to review for verdict pass 2.

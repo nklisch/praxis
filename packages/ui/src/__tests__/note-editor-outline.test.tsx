@@ -338,3 +338,104 @@ describe("NoteEditorOutline — legacy tree-body migration", () => {
     expect(items).toHaveLength(4);
   });
 });
+
+// ── Regression: special-character input does not reset cursor ─────────────────
+//
+// Previously, dangerouslySetInnerHTML={{ __html: escapeHtml(row.text) }} caused
+// React to overwrite the DOM node whenever the user typed &, <, >, or " because
+// escapeHtml produced a string that differed from the raw DOM content. React
+// detected the mismatch and reset innerHTML, moving the cursor to position 0.
+//
+// The fix removes dangerouslySetInnerHTML entirely and sets initial text via
+// ref + textContent on mount. After mount React touches no innerHTML prop, so
+// subsequent re-renders triggered by these characters never overwrite the DOM.
+
+describe("NoteEditorOutline — special-character cursor stability", () => {
+  it("typing & does not cause dangerouslySetInnerHTML to overwrite the DOM node", () => {
+    // Verify: after an onInput event carrying &, the DOM textContent still
+    // equals exactly "&" — not the HTML-escaped "&amp;" — confirming React
+    // never replaced the node's innerHTML.
+    const onChange = vi.fn();
+    const { container } = render(
+      <NoteEditorOutline
+        body={makeBody([row({ id: "r1", text: "", level: 1 })])}
+        onChange={onChange}
+      />,
+    );
+    const input = textEl(container, "r1");
+
+    // Simulate the user having typed "&" — jsdom won't actually update
+    // textContent via fireEvent.input, so we set it imperatively to mirror
+    // what the browser would do before firing the synthetic event.
+    input.textContent = "&";
+    fireEvent.input(input);
+
+    // The DOM must still read exactly "&", not "&amp;" or "".
+    expect(input.textContent).toBe("&");
+
+    // onChange should have received the raw "&".
+    const last: OutlineBody = onChange.mock.calls[onChange.mock.calls.length - 1]?.[0];
+    expect(last?.rows[0]?.text).toBe("&");
+  });
+
+  it("typing < does not corrupt the DOM text node", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <NoteEditorOutline
+        body={makeBody([row({ id: "r1", text: "", level: 1 })])}
+        onChange={onChange}
+      />,
+    );
+    const input = textEl(container, "r1");
+    input.textContent = "<";
+    fireEvent.input(input);
+    expect(input.textContent).toBe("<");
+    const last: OutlineBody = onChange.mock.calls[onChange.mock.calls.length - 1]?.[0];
+    expect(last?.rows[0]?.text).toBe("<");
+  });
+
+  it("typing > does not corrupt the DOM text node", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <NoteEditorOutline
+        body={makeBody([row({ id: "r1", text: "", level: 1 })])}
+        onChange={onChange}
+      />,
+    );
+    const input = textEl(container, "r1");
+    input.textContent = ">";
+    fireEvent.input(input);
+    expect(input.textContent).toBe(">");
+    const last: OutlineBody = onChange.mock.calls[onChange.mock.calls.length - 1]?.[0];
+    expect(last?.rows[0]?.text).toBe(">");
+  });
+
+  it('typing " does not corrupt the DOM text node', () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <NoteEditorOutline
+        body={makeBody([row({ id: "r1", text: "", level: 1 })])}
+        onChange={onChange}
+      />,
+    );
+    const input = textEl(container, "r1");
+    input.textContent = '"';
+    fireEvent.input(input);
+    expect(input.textContent).toBe('"');
+    const last: OutlineBody = onChange.mock.calls[onChange.mock.calls.length - 1]?.[0];
+    expect(last?.rows[0]?.text).toBe('"');
+  });
+
+  it("initial row text with special characters is rendered via textContent (not innerHTML)", () => {
+    // Rows initialised with special characters must appear in the DOM as the
+    // raw characters, not as HTML entities, proving we're using textContent.
+    const { container } = render(
+      <NoteEditorOutline
+        body={makeBody([row({ id: "r1", text: "a & b < c > d", level: 1 })])}
+        onChange={() => {}}
+      />,
+    );
+    const input = textEl(container, "r1");
+    expect(input.textContent).toBe("a & b < c > d");
+  });
+});

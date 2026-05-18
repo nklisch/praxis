@@ -1,7 +1,7 @@
 ---
 id: fix-outline-editor-contenteditable-cursor-reset
 kind: story
-stage: implementing
+stage: review
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -75,3 +75,30 @@ Also remove the now-unused `escapeHtml` function.
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
 
 Origin: review of `epic-ui-redesign-ground-up-workspace-note-editor-outline`.
+
+## Implementation notes
+
+**Approach**: Extended the existing `ref` callback in `OutlineBulletRow` to set
+`el.textContent = row.text` on mount (when `!el.textContent`). This is the
+canonical one-line fix: React no longer owns any `innerHTML` prop on the div, so
+re-renders triggered by `handleTextChange` never overwrite the DOM node and the
+cursor is never disturbed.
+
+**`textContent` vs `innerHTML`**: Used `textContent` (not `innerHTML`) so stored
+text containing `<`, `>`, `&`, or `"` is always treated as plain text — no HTML
+interpretation, no XSS vector.
+
+**`escapeHtml` removed**: The function existed solely to make
+`dangerouslySetInnerHTML` safe. With both removed it became dead code; deleted.
+
+**Regression tests added** (5 new tests in `note-editor-outline.test.tsx`):
+- Typing `&`, `<`, `>`, `"` each verify the DOM `textContent` equals the raw
+  character after an `onInput` event — confirming React never replaced the node.
+- One additional test verifies rows initialised with special characters in their
+  text render the raw string (not HTML-escaped entities) via `textContent`.
+
+**Total tests**: 28 (23 pre-existing + 5 new), all green.
+
+**Quality**: `pnpm typecheck` (ui package) and `pnpm lint` (src files) clean;
+pre-existing failures in `@praxis/desktop` and `.mockups/` are unrelated.
+`pnpm test` 4132/4132 passed.

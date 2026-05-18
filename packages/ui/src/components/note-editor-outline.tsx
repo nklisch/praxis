@@ -421,8 +421,18 @@ function OutlineBulletRow({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: contenteditable div is interactive */}
       <div
         ref={(el) => {
-          if (el) inputRefs.current.set(row.id, el);
-          else inputRefs.current.delete(row.id);
+          if (el) {
+            inputRefs.current.set(row.id, el);
+            // Set text content only on mount (element is empty) so the initial
+            // value is visible without using dangerouslySetInnerHTML. After
+            // mount React owns no innerHTML prop, so typing special characters
+            // like &, <, >, " never triggers a DOM overwrite and the cursor is
+            // never reset. textContent (not innerHTML) means no HTML
+            // interpretation of the stored text.
+            if (!el.textContent) el.textContent = row.text;
+          } else {
+            inputRefs.current.delete(row.id);
+          }
         }}
         contentEditable
         suppressContentEditableWarning
@@ -441,19 +451,7 @@ function OutlineBulletRow({
           onTextChange(row.id, target.textContent ?? "");
         }}
         onKeyDown={(e) => onKeyDown(e, row.id)}
-        // Set initial content once; React does not control contentEditable value.
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: safe — text-only, no HTML injection
-        dangerouslySetInnerHTML={{ __html: escapeHtml(row.text) }}
       />
     </li>
   );
-}
-
-/** Escape HTML entities for safe injection into contentEditable. */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
