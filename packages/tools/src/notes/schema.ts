@@ -16,7 +16,25 @@ const OutlineNodeSchema: z.ZodType<{ text: string; children: any[] }> = z.lazy((
 
 export { OutlineNodeSchema };
 
-export const NoteBodySchema = z.discriminatedUnion("kind", [
+/** Flat outline row (new keyboard-first editor). */
+const OutlineRowSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  isCheckbox: z.boolean().optional(),
+  checked: z.boolean().optional(),
+});
+
+/**
+ * Outline body: either flat rows (new editor) or legacy tree root.
+ * z.union is required here because two schemas share the same "outline" kind.
+ */
+const OutlineBodySchema = z.union([
+  z.object({ kind: z.literal("outline"), rows: z.array(OutlineRowSchema) }),
+  z.object({ kind: z.literal("outline"), root: OutlineNodeSchema }),
+]);
+
+export const NoteBodySchema = z.union([
   z.object({
     kind: z.literal("cornell"),
     questions: z.array(z.string()),
@@ -28,10 +46,7 @@ export const NoteBodySchema = z.discriminatedUnion("kind", [
     explanation: z.string().min(1),
     followUps: z.array(z.string()),
   }),
-  z.object({
-    kind: z.literal("outline"),
-    root: OutlineNodeSchema,
-  }),
+  OutlineBodySchema,
   z.object({
     kind: z.literal("free"),
     text: z.string(),

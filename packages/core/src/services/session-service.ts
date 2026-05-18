@@ -593,7 +593,12 @@ export class SessionServiceImpl implements SessionService {
           cueText = body.questions[idx] ?? body.questions[0] ?? null;
           noteBodyText = body.details[idx] ?? body.details[0] ?? null;
         } else if (body.kind === "outline") {
-          cueText = body.root.text;
+          // Flat rows (new editor) or legacy tree root — extract the first meaningful text.
+          if (body.rows !== undefined) {
+            cueText = body.rows[0]?.text ?? null;
+          } else if (body.root !== undefined) {
+            cueText = body.root.text;
+          }
         } else if (body.kind === "free") {
           cueText = body.text;
         }

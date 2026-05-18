@@ -190,7 +190,11 @@ export function NoteEditorPage() {
           />
         )}
         {body.kind === "outline" && (
-          <NoteEditorOutline body={body} onChange={(updated) => setBody(updated)} />
+          <NoteEditorOutline
+            body={body}
+            // biome-ignore lint/suspicious/noExplicitAny: OutlineBody rows-variant is a NoteBody member — structurally compatible at runtime
+            onChange={(updated) => setBody(updated as any)}
+          />
         )}
         {body.kind === "free" && (
           <NoteEditorFree body={body} onChange={(updated) => setBody(updated)} />

@@ -75,10 +75,20 @@ function proposeFlashcardsFromBody(
       return cards;
     }
     case "outline": {
+      // Flat-rows format (new editor): each row becomes a front/back pair.
+      if (body.rows !== undefined) {
+        return body.rows
+          .filter((r) => r.text.trim())
+          .map((r) => ({
+            front: `Level-${r.level} point`,
+            back: r.text,
+          }));
+      }
+      // Legacy tree format.
+      if (body.root === undefined) return [];
       const out: Array<{ front: string; back: string }> = [];
       const walk = (node: OutlineNode, ancestors: string[]) => {
         if (node.children.length === 0) {
-          // leaf — front is the ancestor path; back is the leaf text
           out.push({
             front: ancestors.join(" > ") || "(root)",
             back: node.text,

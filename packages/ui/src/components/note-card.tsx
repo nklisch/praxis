@@ -110,6 +110,24 @@ function FeynmanDisplay({ body }: { body: Extract<NoteBody, { kind: "feynman" }>
 }
 
 function OutlineDisplay({ body }: { body: Extract<NoteBody, { kind: "outline" }> }) {
+  // Flat-rows format (new editor) — show first few items as a bullet list.
+  if (body.rows !== undefined) {
+    return (
+      <div className={styles.outline}>
+        {body.rows.slice(0, 5).map((row) => (
+          <span
+            key={row.id}
+            className={styles.rootLabel}
+            style={{ paddingLeft: `${(row.level - 1) * 1.1}rem` }}
+          >
+            {row.text}
+          </span>
+        ))}
+      </div>
+    );
+  }
+  // Legacy tree format.
+  if (body.root === undefined) return null;
   return (
     <div className={styles.outline}>
       <span className={styles.rootLabel}>{body.root.text}</span>

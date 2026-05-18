@@ -57,7 +57,26 @@ const OutlineNodeSchema: z.ZodType<{ text: string; children: unknown[] }> = z.la
   }),
 );
 
-export const NoteBodySchema = z.discriminatedUnion("kind", [
+/** Flat outline row schema (new keyboard-first editor). */
+const OutlineRowSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  isCheckbox: z.boolean().optional(),
+  checked: z.boolean().optional(),
+});
+
+/**
+ * Outline body: either flat rows (new editor) or legacy tree root.
+ * We use z.union here because z.discriminatedUnion requires unique discriminator
+ * values and the outline kind has two shapes.
+ */
+const OutlineBodySchema = z.union([
+  z.object({ kind: z.literal("outline"), rows: z.array(OutlineRowSchema) }),
+  z.object({ kind: z.literal("outline"), root: z.lazy(() => OutlineNodeSchema) }),
+]);
+
+export const NoteBodySchema = z.union([
   z.object({
     kind: z.literal("cornell"),
     questions: z.array(z.string()),
@@ -69,10 +88,7 @@ export const NoteBodySchema = z.discriminatedUnion("kind", [
     explanation: z.string().min(1),
     followUps: z.array(z.string()),
   }),
-  z.object({
-    kind: z.literal("outline"),
-    root: z.lazy(() => OutlineNodeSchema),
-  }),
+  OutlineBodySchema,
   z.object({
     kind: z.literal("free"),
     text: z.string(),

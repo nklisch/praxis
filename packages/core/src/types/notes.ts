@@ -27,15 +27,35 @@ export interface Annotation {
 export type NoteBody =
   | { kind: "cornell"; questions: string[]; details: string[]; summary: string }
   | { kind: "feynman"; explanation: string; followUps: string[] }
-  | { kind: "outline"; root: OutlineNode }
+  /**
+   * Outline body — two supported storage shapes; exactly one of `rows`/`root` will be set:
+   * - `rows: OutlineRow[]` — flat-list (new keyboard-first editor, preferred).
+   * - `root: OutlineNode` — legacy recursive tree (migrated on first load by the editor).
+   */
+  | { kind: "outline"; rows?: OutlineRow[]; root?: OutlineNode }
   | { kind: "free"; text: string }
   /** Phase 15a: tldraw snapshot. `snapshot` is opaque JSON from `editor.getSnapshot()`. */
   | { kind: "sketch"; snapshot: unknown };
 
-/** Recursive outline node. Leaves have no children (empty array). */
+/** Recursive outline node. Leaves have no children (empty array). Used by legacy tree format. */
 export interface OutlineNode {
   text: string;
   children: OutlineNode[];
+}
+
+/**
+ * A single flat bullet row in the new keyboard-first outline editor.
+ * Stored as `{ kind: "outline", rows: OutlineRow[] }` in the DB.
+ */
+export interface OutlineRow {
+  id: string;
+  text: string;
+  /** 1 = top-level heroic; 4 = muted-italic aside. */
+  level: 1 | 2 | 3 | 4;
+  /** Row is rendered as a checkbox (toggled by ⌘.). */
+  isCheckbox?: boolean;
+  /** Checkbox is checked. */
+  checked?: boolean;
 }
 
 /**
@@ -105,8 +125,18 @@ export function parseNoteBody(
       if (kind !== "outline") {
         throw new Error(`Note format 'outline' does not match body kind '${kind}'`);
       }
+      // Flat rows format (new editor — preferred).
+      if (Array.isArray(parsed.rows)) {
+        return {
+          kind: "outline",
+          rows: parsed.rows as OutlineRow[],
+        };
+      }
+      // Legacy tree format — pass through as-is; the editor migrates on first load.
       if (typeof parsed.root !== "object" || parsed.root === null) {
-        throw new Error("parseNoteBody: outline body missing required field 'root'");
+        throw new Error(
+          "parseNoteBody: outline body must have either 'rows' (flat) or 'root' (legacy tree)",
+        );
       }
       return {
         kind: "outline",

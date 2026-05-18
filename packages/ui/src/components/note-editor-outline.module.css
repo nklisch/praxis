@@ -1,149 +1,224 @@
+/* ── Outline note editor ────────────────────────────────────────────────────
+ *
+ * Flat-list keyboard-first bullet editor.
+ * 4 indentation levels; level-1 heroic → level-4 muted-italic aside.
+ * Uses design tokens from global.css (Studio Quiet / System Editorial).
+ *
+ * ────────────────────────────────────────────────────────────────────────── */
+
 .editor {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0;
 }
 
-.rootRow {
+/* ── Keyboard hints bar ──────────────────────────────────────────────────── */
+
+.keyboardHints {
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm, 4px);
+  margin-bottom: 28px;
+  font: var(--font-size-xs) / 1 var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.hintGroup {
+  display: flex;
   align-items: center;
+  gap: 4px;
 }
 
-.nodeInput {
-  flex: 1;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  border-radius: 6px;
-  color: var(--color-text-primary, inherit);
-  font-size: 0.9rem;
-  padding: 0.45rem 0.65rem;
-  font-family: inherit;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-  min-width: 0;
+.kbd {
+  font: var(--font-weight-semibold) 10px / 1 var(--font-mono);
+  padding: 3px 6px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  color: var(--color-text-primary);
 }
 
-.nodeInput:focus {
-  outline: none;
-  border-color: var(--color-accent, #6366f1);
+/* ── Outline tree ────────────────────────────────────────────────────────── */
+
+.outlineTree {
+  font: var(--font-size-base) / var(--line-height-loose) var(--font-serif);
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-.nodeDepth1 {
-  font-size: 0.88rem;
+/* ── Bullet row — base ───────────────────────────────────────────────────── */
+
+.bulletRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  position: relative;
 }
 
-.nodeDepth2 {
-  font-size: 0.84rem;
-}
-
-.addChildBtn {
+.handle {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 100ms;
+  min-width: 1ch;
+  user-select: none;
   flex-shrink: 0;
-  background: transparent;
-  border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.2));
-  color: var(--color-accent, #6366f1);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0.3rem 0.65rem;
-  border-radius: 6px;
-  white-space: nowrap;
-  transition:
-    background 0.15s,
-    border-color 0.15s;
 }
 
-.addChildBtn:hover {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: var(--color-accent, #6366f1);
+.bulletRow:hover .handle {
+  opacity: 1;
 }
 
-.addSiblingBtn {
+.handle:active {
+  cursor: grabbing;
+}
+
+.bullet {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-serif);
+  min-width: 1ch;
   flex-shrink: 0;
-  background: transparent;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  color: var(--color-text-secondary, #aaa);
-  font-size: 0.78rem;
-  cursor: pointer;
-  padding: 0.25rem 0.55rem;
-  border-radius: 6px;
-  white-space: nowrap;
-  transition:
-    color 0.15s,
-    border-color 0.15s;
+  user-select: none;
 }
 
-.addSiblingBtn:hover {
-  color: var(--color-text-primary, inherit);
-  border-color: var(--color-text-secondary, #aaa);
-}
-
-.deleteBtn {
-  flex-shrink: 0;
+.checkboxBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #aaa);
-  font-size: 1.1rem;
   cursor: pointer;
-  padding: 0.2rem 0.35rem;
-  border-radius: 4px;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding: 0;
   line-height: 1;
-  transition:
-    color 0.15s,
-    background 0.15s;
-}
-
-.deleteBtn:hover {
-  color: var(--color-danger);
-  background: rgba(248, 113, 113, 0.1);
-}
-
-.childList {
-  list-style: none;
-  padding: 0 0 0 1.5rem;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  border-left: 2px solid var(--color-border, rgba(255, 255, 255, 0.1));
-}
-
-.childItem {
-  /* no additional styles needed */
-}
-
-.grandchildList {
-  list-style: none;
-  padding: 0 0 0 1.25rem;
-  margin: 0.25rem 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  border-left: 2px solid var(--color-border, rgba(255, 255, 255, 0.07));
-}
-
-.nodeBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.nodeRow {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-
-.nodeActions {
-  display: flex;
-  gap: 0.3rem;
-  align-items: center;
+  min-width: 1ch;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
-.emptyHint {
-  font-size: 0.84rem;
-  color: var(--color-text-secondary, #aaa);
-  margin: 0.5rem 0 0;
+/* ── Editable text field ─────────────────────────────────────────────────── */
+
+.text {
+  flex: 1;
+  outline: none;
+  min-width: 0;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* Remove default contenteditable outline */
+  border: none;
+  background: transparent;
+}
+
+.text:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-tertiary);
   font-style: italic;
+  pointer-events: none;
+}
+
+.text:focus {
+  background: var(--color-accent-muted);
+  padding-left: 4px;
+  margin-left: -4px;
+  border-radius: 2px;
+}
+
+/* ── Level-specific styles ───────────────────────────────────────────────── */
+
+/* Level 1 — heroic heading: bold, accent bullet, full size */
+.level1 {
+  padding-left: 0;
+}
+
+.level1 .text {
+  font-weight: var(--font-weight-semibold);
+  font-size: 17px;
+}
+
+.level1 .bullet {
+  color: var(--color-accent);
+}
+
+/* Level 2 — regular supporting detail */
+.level2 {
+  padding-left: 28px;
+}
+
+.level2 .text {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+}
+
+/* Level 3 — secondary colour, slightly smaller */
+.level3 {
+  padding-left: 56px;
+  color: var(--color-text-secondary);
+}
+
+.level3 .text {
+  font-size: 15px;
+}
+
+/* Level 4 — muted italic asides */
+.level4 {
+  padding-left: 84px;
+  color: var(--color-text-tertiary);
+}
+
+.level4 .text {
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
+/* ── Checkbox / checked states ───────────────────────────────────────────── */
+
+.checkbox .checkboxBtn {
+  color: var(--color-text-tertiary);
+}
+
+.checked .checkboxBtn {
+  color: var(--color-success);
+}
+
+.checked .text {
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+}
+
+/* ── New bullet footer ───────────────────────────────────────────────────── */
+
+.newBullet {
+  padding: 12px 0;
+  font: italic var(--font-size-sm) / 1 var(--font-serif);
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  cursor: text;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  transition: color 120ms;
+}
+
+.newBullet:hover {
+  color: var(--color-accent);
+}
+
+.newBulletGlyph {
+  font-family: var(--font-serif);
+  flex-shrink: 0;
 }
