@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-outline
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -108,3 +108,13 @@ drag-handle reorder, Enter sibling creation, and legacy body migration.
 Sibling fix story `fix-outline-editor-contenteditable-cursor-reset` cleared
 the contenteditable cursor-reset blocker. No code changes needed in this
 story body. Re-advanced to review for verdict pass 2.
+
+## Review 2 (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none (all pass-1 blockers resolved)
+**Important**: none (z.union backlog item still tracked in `.work/backlog/refactor-note-body-schema-restore-discriminated-union.md`)
+**Nits**: double `normaliseBody` call in useState initializer still present — acceptable for now
+
+**Notes**: Both pass-1 blockers resolved. `dangerouslySetInnerHTML` removed in `fix-outline-editor-contenteditable-cursor-reset` (cursor-reset fix approved). `CONTRACT.md` drift fixed inline in pass-1 response. Stale comment about "React does not control contentEditable" gone with the removal of `dangerouslySetInnerHTML`. 28 tests pass including 5 new regression tests for special-character input. Bounce count: 1 — only one prior bounce, no new blockers found.
