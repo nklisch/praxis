@@ -1,7 +1,7 @@
 ---
 id: refactor-subscriber-registry-base
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -316,3 +316,19 @@ parameter + NOOP fallback (see deviation note below).
 - Future services adopting the subscriber-fanout pattern get the listener loop for free — one line: `notifyListeners(this.listeners, event, this.deps.log, "<component>")`.
 - Listener-error log keys are uniform across the codebase (`"<component>.listener_threw"`).
 - The pattern doc at `.claude/skills/patterns/subscriber-fanout-stream.md` can reference `notifyListeners` as the canonical inner-loop primitive (small follow-up).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (aggregate)
+
+**Blockers**: none
+**Important**: none
+**Nits**: see child story review (`refactor-subscriber-registry-base-step-1-notify-listeners-helper`).
+
+**Aggregate lens findings**:
+- **Design alignment**: the original framing was wrong (SubscriberRegistry base class doesn't fit); the design correction in this body pivots to a tiny `notifyListeners` helper, which actually shipped.
+- **Foundation-doc alignment**: no foundation-doc claims about subscriber-fanout internals; only the pattern doc at `.claude/skills/patterns/subscriber-fanout-stream.md` describes the producer-side contract. That doc can be updated to reference `notifyListeners` as the canonical inner-loop primitive — small docs follow-up.
+- **Breaking changes**: none. Public `subscribe(listener)` signatures unchanged across all 4 services. The optional `log?: Logger` ctor param added to QuickCheckServiceImpl is backward-compatible and tracked separately at `idea-wire-logger-into-quick-check-service`.
+- **Capability completeness**: the listener-fanout pattern is now consolidated; future services adopt with one line.
+
+**Notes**: Smaller delivery than originally scoped (one helper + one child story instead of a base class hierarchy). The design correction is honest and produces a real abstraction — modest savings (~20 LoC) but uniform observability primitive across the codebase.
