@@ -92,6 +92,12 @@ function stripIds(items: ChatStreamItem[]): unknown[] {
       const { firstSeenAt: _firstSeenAt, ...rest } = item;
       return rest;
     }
+    if (item.kind === "system-note") {
+      // Strip id — live uses nextId() counter; replay uses a turn-scoped counter.
+      // The structural shape (kind, content, origin) is what matters for parity.
+      const { id: _id, ...rest } = item;
+      return rest;
+    }
     // thinking, cancel-marker — no volatile fields
     return item;
   });
@@ -245,7 +251,7 @@ describe("bubble-boundary parity: live vs replay", () => {
     expect(assistants[1]?.kind === "message" && assistants[1].citations).toHaveLength(1);
   });
 
-  it("system-note-boundary: one bubble, system_note not in items", async () => {
+  it("system-note-boundary: one bubble, system_note rendered as system-note item", async () => {
     const live = await runLive(SYSTEM_NOTE_BOUNDARY);
     const replay = runReplay(SYSTEM_NOTE_BOUNDARY);
     expect(stripIds(live)).toEqual(stripIds(replay));
@@ -253,8 +259,11 @@ describe("bubble-boundary parity: live vs replay", () => {
     const assistants = live.filter((i) => i.kind === "message" && i.role === "assistant");
     expect(assistants).toHaveLength(1);
     expect(assistants[0]?.kind === "message" && assistants[0].content).toBe("A");
-    // Total items: user + assistant (no system_note item)
+    // Total message-kind items: user + assistant = 2
     const msgItems = live.filter((i) => i.kind === "message");
     expect(msgItems).toHaveLength(2);
+    // Plus one system-note item
+    const noteItems = live.filter((i) => i.kind === "system-note");
+    expect(noteItems).toHaveLength(1);
   });
 });

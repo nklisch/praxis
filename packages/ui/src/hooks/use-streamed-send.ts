@@ -6,6 +6,7 @@ import type {
   ProposedCourse,
   RetrievalCitation,
   SessionId,
+  SystemNoteOrigin,
   Timestamp,
 } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
@@ -119,13 +120,27 @@ export interface PendingMessageItem {
   sketchId?: string;
 }
 
+/**
+ * A `system_note` event rendered inline as a `<SystemNoteCard>`.
+ * Phase 16: emitted when a child assignment session submits; delivered to
+ * the parent (teach-mode) session's stream. Only `assignment_submission`
+ * origins produce a visible card; other origins fall through silently.
+ */
+export interface SystemNoteItem {
+  kind: "system-note";
+  id: string;
+  content: string;
+  origin: SystemNoteOrigin;
+}
+
 export type ChatStreamItem =
   | ({ kind: "message" } & ChatMessage)
   | ({ kind: "tool-entry" } & ToolEntryItem)
   | ({ kind: "sub-agent" } & SubAgentSpawn)
   | ({ kind: "thinking" } & ReasoningItem)
   | ({ kind: "cancel-marker" } & CancelMarker)
-  | PendingMessageItem;
+  | PendingMessageItem
+  | SystemNoteItem;
 
 export interface UseStreamedSendResult {
   items: ChatStreamItem[];
@@ -173,7 +188,17 @@ interface PendingMessage {
   sketchId?: string;
 }
 
-export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
+export function useStreamedSend(
+  client: PraxisClient,
+  opts?: {
+    /**
+     * Called when a `system_note` event arrives in the stream for `sessionId`.
+     * Used by `TeachChatTabBody` to trigger the pulse animation on the parent
+     * tab in the tab strip.
+     */
+    onSystemNote?: (sessionId: SessionId) => void;
+  },
+): UseStreamedSendResult {
   const [items, setItems] = useState<ChatStreamItem[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [thinking, setThinking] = useState(false);
@@ -549,8 +574,14 @@ export function useStreamedSend(client: PraxisClient): UseStreamedSendResult {
             }
           }
         } else if (event.type === "system_note") {
-          // system_note acts as a bubble boundary; it is not rendered as an item.
+          // system_note acts as a bubble boundary and renders as a visible card.
           closeAssistantBubble();
+          setItems((prev) => [
+            ...prev,
+            { kind: "system-note", id: nextId(), content: event.content, origin: event.origin },
+          ]);
+          // Notify the caller so it can trigger a pulse on the parent tab strip.
+          opts?.onSystemNote?.(sessionId);
         } else if (event.type === "interrupted") {
           // Turn was cancelled — close the open bubble, close reasoning block,
           // drain pending settle timers, and append a cancel marker.

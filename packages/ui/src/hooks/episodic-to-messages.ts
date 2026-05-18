@@ -7,7 +7,7 @@ import type {
 } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
 import type { ReviewCard } from "../components/flashcard-review.js";
-import type { ChatStreamItem, ToolEntryItem } from "./use-streamed-send.js";
+import type { ChatStreamItem, SystemNoteItem, ToolEntryItem } from "./use-streamed-send.js";
 
 /** Subset of the streamed `tool_result.value` shapes we render today. Mirrors `useStreamedSend`. */
 type ToolResultValue =
@@ -44,7 +44,7 @@ type ToolResultValue =
  * - `tool_result` → settle the matching interstitial; harvest citations /
  *   drafts / notes / due-cards into pending arrays; they drain into the FIRST
  *   bubble that opens after the tool resolves (Unit 3 placement rule).
- * - `system_note` → close bubble, no item pushed.
+ * - `system_note` → close bubble, push a `system-note` item.
  * - `final` / `error` → close bubble, no item pushed.
  *
  * Cross-cutting invariant: given the same EngineEvent sequence, this function
@@ -289,10 +289,18 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         break;
       }
 
-      case "system_note":
-        // system_note acts as a bubble boundary; not rendered as an item.
+      case "system_note": {
+        // system_note acts as a bubble boundary and renders as a visible card.
         closeBubble();
+        const noteItem: SystemNoteItem = {
+          kind: "system-note",
+          id: nextId("user"), // reuse counter; "user" prefix keeps ids unique
+          content: event.content,
+          origin: event.origin,
+        };
+        items.push(noteItem);
         break;
+      }
 
       case "final":
       case "error":

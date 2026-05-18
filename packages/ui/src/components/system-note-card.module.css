@@ -1,0 +1,102 @@
+/* ── System Note Card ───────────────────────────────────────────────────────── */
+
+/* Slide-in entrance animation — matches the mockup's `note-arrive` keyframe. */
+@keyframes noteArrive {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.875rem 1rem;
+  background: color-mix(
+    in oklab,
+    var(--color-success, #93b878) 8%,
+    var(--color-bg-secondary, #1a1f2e)
+  );
+  border-left: 3px solid var(--color-success, #93b878);
+  border-radius: 0 6px 6px 0;
+  margin: 0.5rem 0;
+  animation: noteArrive 600ms ease-out;
+}
+
+.glyph {
+  font-family: var(--font-display, serif);
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--color-success, #93b878);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  composes: editorial from global;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-success, #93b878);
+}
+
+.kickerOrnament {
+  font-family: var(--font-display, serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--color-success, #93b878);
+}
+
+.kickerText {
+  letter-spacing: 0.1em;
+}
+
+.summary {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #aaa);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.summary strong {
+  color: var(--color-text-primary, #e5e5e5);
+  font-weight: 600;
+}
+
+.reviewLink {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 0.15rem;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: italic;
+  color: var(--color-accent, #60a5fa);
+  cursor: pointer;
+  line-height: inherit;
+  text-decoration: none;
+}
+
+.reviewLink:hover {
+  text-decoration: underline;
+}

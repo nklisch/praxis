@@ -15,10 +15,11 @@
  * tabs.listOpen call at app-shell level. The ChatRoute already owns the
  * useTabs instance; it passes openTab down here.
  */
-import type { AssignmentId, SessionId, TabSummary } from "@praxis/core/types";
+import type { SessionId, TabSummary } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { useEffect, useRef } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useParentChildOptional } from "../context/parent-child-context.js";
 
 /**
  * Mount once at app-shell level (e.g. inside ChatRoute). Subscribes to the
@@ -32,6 +33,7 @@ export function useAssignmentIssuedSpawn(
   openTab: (input: { sessionId: SessionId; courseTitle?: string }) => Promise<TabSummary>,
 ): void {
   const client = usePraxisClient();
+  const parentChild = useParentChildOptional();
   // Track seen assignmentIds so duplicate events don't open duplicate tabs.
   const seenRef = useRef<Set<string>>(new Set());
 
@@ -46,10 +48,10 @@ export function useAssignmentIssuedSpawn(
 
           const metadata = event.item.metadata;
           if (!metadata) continue;
-          if (metadata["kind"] !== "assignment.issued") continue;
+          if (metadata.kind !== "assignment.issued") continue;
 
-          const assignmentId = metadata["assignmentId"];
-          const parentSessionId = metadata["parentSessionId"];
+          const assignmentId = metadata.assignmentId;
+          const parentSessionId = metadata.parentSessionId;
 
           if (typeof assignmentId !== "string" || !assignmentId) continue;
           if (typeof parentSessionId !== "string" || !parentSessionId) continue;
@@ -63,6 +65,9 @@ export function useAssignmentIssuedSpawn(
               assignmentId: brandId<"AssignmentId">(assignmentId),
               parentSessionId: brandId<"SessionId">(parentSessionId),
             });
+
+            // Record the child→parent relationship for tab decoration.
+            parentChild?.recordSpawn(handle.sessionId, parentSessionId);
 
             // Open a tab for the new session but do NOT navigate to it.
             // The student stays where they are; the tab strip shows the new tab.
@@ -81,5 +86,5 @@ export function useAssignmentIssuedSpawn(
     return () => {
       cancelled = true;
     };
-  }, [client, openTab]);
+  }, [client, openTab, parentChild]);
 }

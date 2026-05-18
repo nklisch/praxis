@@ -1,6 +1,7 @@
 import type {
   AssignmentId,
   SessionHandle,
+  SessionId,
   SessionTabSummary,
   SketchId,
   TabSummary,
@@ -9,9 +10,10 @@ import type {
 import { brandId } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
 import { useNavigate } from "@tanstack/react-router";
-import { type JSX, useEffect, useRef, useState } from "react";
+import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { useAuthStatus } from "../context/auth-context.js";
 import { usePraxisClient } from "../context/client-context.js";
+import { useParentChildOptional } from "../context/parent-child-context.js";
 import { useAssignment } from "../hooks/use-assignment.js";
 import { useQuickCheckBridge } from "../hooks/use-quick-check-bridge.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
@@ -34,6 +36,7 @@ import { ReasoningBlock } from "./reasoning-block.js";
 import { StructuredQuestionCard } from "./structured-question-card.js";
 import { StudySkillsTabBody } from "./study-skills-tab-body.js";
 import { SubAgentBlock } from "./sub-agent-block.js";
+import { SystemNoteCard } from "./system-note-card.js";
 import { ThinkingIndicator } from "./thinking-indicator.js";
 import { ToolEntry } from "./tool-entry.js";
 
@@ -88,8 +91,18 @@ function ExamLockdownGate({
 export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const navigate = useNavigate();
+  const parentChild = useParentChildOptional();
+
+  // Trigger a tab-strip pulse whenever a system_note arrives in this session.
+  const onSystemNote = useCallback(
+    (sessionId: SessionId) => {
+      parentChild?.triggerPulse(sessionId);
+    },
+    [parentChild],
+  );
+
   const { items, isStreaming, thinking, lastError, send, cancel, cancelPending, loadHistory } =
-    useStreamedSend(client);
+    useStreamedSend(client, { onSystemNote });
   const { flagAuthRequired } = useAuthStatus();
 
   // Load the persisted transcript on first mount (or when this tab body is
@@ -252,6 +265,32 @@ export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element 
               <p key={item.id} className={styles.cancelMarker}>
                 Cancelled
               </p>
+            );
+          }
+          if (item.kind === "system-note") {
+            return (
+              <SystemNoteCard
+                key={item.id}
+                origin={item.origin}
+                childSessionId={
+                  item.origin.kind === "assignment_submission"
+                    ? item.origin.childSessionId
+                    : undefined
+                }
+                onReview={
+                  item.origin.kind === "assignment_submission"
+                    ? () => {
+                        void client.tabs.open({
+                          sessionId: brandId<"SessionId">(
+                            item.origin.kind === "assignment_submission"
+                              ? item.origin.childSessionId
+                              : "",
+                          ),
+                        });
+                      }
+                    : undefined
+                }
+              />
             );
           }
           if (item.kind === "pending-message") {

@@ -123,6 +123,10 @@ export function SidekickPanel({
             // teach-mode UI state only.
             return null;
           }
+          if (item.kind === "system-note") {
+            // system_note cards don't appear in the sidekick panel.
+            return null;
+          }
           return (
             <MessageBubble
               key={item.id}

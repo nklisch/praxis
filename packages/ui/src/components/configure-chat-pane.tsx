@@ -79,6 +79,10 @@ export function ConfigureChatPane({ sessionId, disabled = false }: ConfigureChat
             // teach-mode UI state and the configure pane uses a separate session.
             return null;
           }
+          if (item.kind === "system-note") {
+            // system_note cards don't appear in the configure pane.
+            return null;
+          }
           return (
             <MessageBubble
               key={item.id}

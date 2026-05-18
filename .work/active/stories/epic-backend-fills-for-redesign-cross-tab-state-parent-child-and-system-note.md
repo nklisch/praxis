@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-cross-tab-state-parent-child-and-system-note
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-backend-fills-for-redesign-cross-tab-state
 depends_on: []
@@ -81,3 +81,60 @@ for architectural choices and composition contracts.
   in the feature brief but not in the locked mocks); can be added in
   a follow-up if the user requests.
 - Any backend change. This story is UI-only.
+
+## Implementation notes
+
+### Architecture decisions
+
+- `ParentChildProvider` in `src/context/parent-child-context.tsx` is the
+  in-memory registry for two pieces of state:
+  - `childToParent` (ref, no re-render) — child sessionId → parent sessionId.
+    Populated by `useAssignmentIssuedSpawn` when `activity.events()` fires an
+    `assignment.issued` metadata event.
+  - `pulseKeys` (state map) — parent sessionId → monotonically-increasing counter.
+    Each `triggerPulse()` call increments it, which drives tab-strip re-renders.
+  The provider mounts at app-shell level in `app.tsx` (above `TabsProvider`).
+
+- Pulse animation restart: the pulse dot uses `key={pulse-${pulseKey}}` on a
+  `<span>` (not a `<button>` — avoids nested-button HTML violation). React
+  unmounts and remounts the element on each key change, restarting the CSS
+  `tabPulse` keyframe animation (~2s ease-out). Rapid-fire `system_note` events
+  each increment the counter; the last committed re-render shows the dot with the
+  freshest key.
+
+- `onSystemNote` callback: `useStreamedSend` accepts an optional
+  `opts.onSystemNote` callback, called once per `system_note` event. In
+  `TeachChatTabBody`, this calls `parentChild?.triggerPulse(sessionId)` so
+  the tab strip pulses when the teach session receives the note.
+
+- `system_note` rendering: `useStreamedSend` and `episodicToItems` both push a
+  `SystemNoteItem` (`kind: "system-note"`) when a `system_note` event arrives.
+  `TeachChatTabBody` renders a `<SystemNoteCard>` for these items. The card:
+  - Returns `null` for `kind: "system"` origins (framework-internal; invisible).
+  - For `kind: "assignment_submission"` shows a green-left-border card with score
+    percentage, elapsed time, and a "↗ review answers" button that calls
+    `client.tabs.open({ sessionId: childSessionId })`.
+
+- `configure-chat-pane.tsx` and `sidekick-panel.tsx` also handle `system-note`
+  items by returning `null` — those contexts don't surface the card.
+
+### Files changed
+
+- `packages/ui/src/context/parent-child-context.tsx` (new) — registry + hooks
+- `packages/ui/src/components/tab-strip.tsx` — pill + pulse decoration
+- `packages/ui/src/components/tab-strip.module.css` — `.fromPill`, `.pulseDot`, `@keyframes tabPulse`
+- `packages/ui/src/components/system-note-card.tsx` (new) — card component
+- `packages/ui/src/components/system-note-card.module.css` (new) — green-border card styles
+- `packages/ui/src/hooks/use-streamed-send.ts` — `SystemNoteItem` type, `system_note` branch, `onSystemNote` opt
+- `packages/ui/src/hooks/episodic-to-messages.ts` — `system_note` replay branch
+- `packages/ui/src/hooks/use-assignment-issued-spawn.ts` — calls `recordSpawn` after successful spawn
+- `packages/ui/src/components/chat-tab-body.tsx` — renders `<SystemNoteCard>` for `system-note` items; wires `onSystemNote`
+- `packages/ui/src/components/configure-chat-pane.tsx` — `system-note` → null guard
+- `packages/ui/src/components/sidekick-panel.tsx` — `system-note` → null guard
+- `packages/ui/src/app.tsx` — wraps tree in `<ParentChildProvider>`
+
+### Tests
+
+- `src/components/__tests__/tab-strip-parent-child.test.tsx` (9 tests) — pill + pulse + click-to-switch
+- `src/components/__tests__/system-note-card.test.tsx` (6 tests) — card render + review button
+- `src/components/__tests__/message-list-system-note.test.tsx` (5 tests) — dispatch branch + tabs.open integration
