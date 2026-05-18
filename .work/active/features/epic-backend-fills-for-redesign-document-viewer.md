@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-document-viewer
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -216,3 +216,15 @@ Both child stories are at `stage: done`:
 - `epic-backend-fills-for-redesign-document-viewer-selection-bar`
 
 Feature advanced to `stage: review`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `docs/ARCHITECTURE.md` § "Document scoping" describes `document_scopes` columns without mentioning the new `passage_range_json` column. The "extensible" framing covers it conceptually, so this is low-priority polish.
+- `CLAUDE.md` "Where the big pieces live" mentions `spawnFromAssignment` and `spawnFromNote` but not `spawnFromPassage`. Now that both stories are done and the path is fully wired, a one-liner addition would help future agents orient.
+
+**Notes**: Both child stories delivered cleanly and passed individual reviews. The aggregate feature delivers all three promised sub-capabilities: citation recording + highlight rendering (`†` markers), selection action bar with four working handlers, and `spawnFromPassage` for passage-scoped teach sessions. No cross-cutting concerns visible across the two stories. No foundation-doc drift blocking the feature; the two nits above are purely additive documentation polish. Feature advanced to `stage: done`.
