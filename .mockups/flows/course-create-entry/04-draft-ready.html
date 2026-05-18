@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>course-create · 4/5 · draft ready · steer + confirm</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .flow-meta a { color: #58a6ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+    .flow-meta .center { font-weight: 600; }
+    .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
+    .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .running-head { padding: 12px 32px 8px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+
+    .head-block { padding: 16px 32px 12px; max-width: 1320px; margin: 0 auto; flex-shrink: 0; }
+    .head-block .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .head-block .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); }
+    .head-block h1 { font: 500 italic 24px/1.2 var(--font-display); margin: 0; }
+    .head-block h1 em { font-weight: 600; }
+    .head-block .badge { display: inline-block; font: 600 9px/1 var(--font-mono); padding: 3px 7px; border-radius: var(--radius-full); letter-spacing: 0.08em; text-transform: uppercase; margin-left: 10px; vertical-align: 3px; background: var(--color-warning); color: var(--color-text-inverse); }
+
+    .surface { max-width: 1320px; margin: 0 auto; padding: 0 32px 24px; display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; flex: 1; overflow: hidden; min-height: 0; }
+
+    .draft-col { overflow-y: auto; padding-right: 8px; padding-bottom: 16px; }
+
+    /* Assessment-plan legend */
+    .legend-strip { padding: 10px 14px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); margin-bottom: 14px; display: flex; gap: 18px; flex-wrap: wrap; font: italic 12px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .legend-strip .item { display: flex; align-items: baseline; gap: 6px; }
+    .legend-strip .pill { font: 600 9px/1 var(--font-mono); padding: 3px 6px; border-radius: var(--radius-full); letter-spacing: 0.06em; text-transform: uppercase; font-style: normal; }
+    .legend-strip .pill.qc { background: var(--color-bg-secondary); color: var(--color-text-secondary); border: 1px solid var(--color-border-strong); }
+    .legend-strip .pill.read { background: color-mix(in oklab, var(--tint-bootstrap) 22%, transparent); color: var(--tint-bootstrap); border: 1px solid var(--tint-bootstrap); }
+    .legend-strip .pill.home { background: color-mix(in oklab, var(--tint-homework) 22%, transparent); color: var(--tint-homework); border: 1px solid var(--tint-homework); }
+    .legend-strip .pill.check { background: color-mix(in oklab, var(--tint-quiz) 22%, transparent); color: var(--tint-quiz); border: 1px solid var(--tint-quiz); }
+    .legend-strip .pill.exam { background: color-mix(in oklab, var(--tint-exam) 22%, transparent); color: var(--tint-exam); border: 1px solid var(--tint-exam); }
+
+    .unit-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; }
+    .unit-head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); }
+    .unit-head .num { font: italic 20px/1 var(--font-display); color: var(--color-text-tertiary); min-width: 3ch; text-align: right; }
+    .unit-head .title-input { flex: 1; border: 0; background: transparent; font: 500 italic 18px/1.2 var(--font-display); color: var(--color-text-primary); outline: none; padding: 0; }
+    .unit-head .title-input:focus { background: var(--color-bg-tertiary); padding: 2px 6px; border-radius: 3px; }
+    .unit-head .lesson-count { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .unit-head .handle { color: var(--color-text-tertiary); cursor: grab; font: italic 13px/1 var(--font-display); }
+
+    .lesson-row { display: grid; grid-template-columns: 4ch 1fr; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--color-border); }
+    .lesson-row:last-child { border-bottom: none; }
+    .lesson-row .lnum { font: italic 12px/1 var(--font-display); color: var(--color-text-tertiary); text-align: right; padding-top: 2px; }
+    .lesson-row .lbody { display: flex; flex-direction: column; gap: 4px; }
+    .lesson-row .ltitle { font: italic 14px/1.4 var(--font-serif); cursor: text; }
+    .lesson-row .ltitle em { font-weight: 500; }
+    .lesson-row .assessments { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .lesson-row .ax { font: 600 9px/1 var(--font-mono); padding: 3px 6px; border-radius: var(--radius-full); letter-spacing: 0.06em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 4px; }
+    .lesson-row .ax.qc { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
+    .lesson-row .ax.read { background: color-mix(in oklab, var(--tint-bootstrap) 18%, transparent); color: var(--tint-bootstrap); }
+    .lesson-row .ax.home { background: color-mix(in oklab, var(--tint-homework) 18%, transparent); color: var(--tint-homework); }
+    .lesson-row .ax.check { background: color-mix(in oklab, var(--tint-quiz) 18%, transparent); color: var(--tint-quiz); }
+    .lesson-row .ax .count { font-weight: 600; }
+    .lesson-row .ax .timing { opacity: 0.7; font-weight: 400; font-style: italic; font-family: var(--font-serif); text-transform: none; letter-spacing: 0; font-size: 11px; }
+    .lesson-row .add-ax { font: italic 11px/1 var(--font-serif); color: var(--color-text-tertiary); cursor: pointer; padding: 2px 4px; }
+    .lesson-row .add-ax:hover { color: var(--color-accent); }
+
+    .unit-exam-row { padding: 10px 12px; background: color-mix(in oklab, var(--tint-exam) 14%, transparent); border-radius: var(--radius-sm); margin-top: 8px; border-left: 3px solid var(--tint-exam); display: flex; gap: 10px; align-items: baseline; font: italic 13px/1.5 var(--font-serif); }
+    .unit-exam-row .ax { font: 600 9px/1 var(--font-mono); padding: 3px 6px; border-radius: var(--radius-full); letter-spacing: 0.06em; text-transform: uppercase; background: var(--tint-exam); color: var(--color-text-inverse); font-style: normal; }
+    .unit-exam-row em { font-weight: 600; }
+
+    .add-unit { padding: 12px; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); text-align: center; font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); cursor: pointer; margin-top: 4px; }
+
+    /* Right column · steering chat + confirm */
+    .right-col { display: flex; flex-direction: column; gap: 14px; height: 100%; overflow: hidden; min-height: 0; }
+
+    .stat-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 16px; flex-shrink: 0; }
+    .stat-card h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 8px; }
+    .stat-card .row { display: flex; justify-content: space-between; padding: 3px 0; font: 12px/1.4 var(--font-serif); border-bottom: 1px dashed var(--color-border); }
+    .stat-card .row:last-child { border-bottom: none; }
+    .stat-card .row .v { font: 600 11px/1 var(--font-mono); color: var(--color-text-primary); letter-spacing: 0.04em; }
+
+    .chat { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; flex-direction: column; flex: 1; min-height: 200px; overflow: hidden; }
+    .chat-head { padding: 10px 14px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 8px; background: var(--color-accent-muted); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+    .chat-head .glyph { font: italic 14px/1 var(--font-display); color: var(--color-accent); }
+    .chat-head h3 { font: 500 italic 14px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .chat-head h3 em { font-weight: 600; }
+    .messages { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .turn .speaker { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .turn.agent .bubble { background: var(--color-bg-primary); border-radius: var(--radius-sm); padding: 8px 11px; font: 12px/1.55 var(--font-serif); }
+    .turn.agent .bubble em { font-style: italic; }
+    .turn.user { display: flex; flex-direction: column; align-items: flex-end; }
+    .turn.user .speaker { text-align: right; }
+    .turn.user .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-sm); padding: 7px 10px; font: italic 12px/1.55 var(--font-serif); max-width: 92%; }
+
+    .composer { padding: 10px 14px; border-top: 1px solid var(--color-border); flex-shrink: 0; }
+    .composer-field { display: flex; gap: 6px; background: var(--color-bg-primary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 7px 9px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 12px/1.5 var(--font-serif); resize: none; outline: none; min-height: 18px; color: var(--color-text-primary); font-style: italic; }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 3px 8px; font: 500 10px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
+
+    .confirm-card { background: var(--color-accent-muted); border: 1px solid var(--color-accent); border-radius: var(--radius-md); padding: 14px; flex-shrink: 0; }
+    .confirm-card h3 { font: 500 italic 16px/1.2 var(--font-display); margin: 0 0 4px; }
+    .confirm-card h3 em { font-weight: 600; }
+    .confirm-card .lede { font: italic 12px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 10px; }
+    .confirm-card button { width: 100%; font: 500 13px/1 var(--font-sans); padding: 10px 14px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: var(--color-bg-secondary); color: var(--color-text-primary); margin-bottom: 4px; }
+    .confirm-card button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+  </style>
+</head>
+<body>
+  <header class="flow-meta">
+    <a href="03-explorer-running.html">← prev</a>
+    <span class="center">course-create · step 4/5 · draft ready · steer + confirm</span>
+    <a href="05-course-materialized.html">next →</a>
+  </header>
+  <div class="annot"><span class="label">⁂ step 4</span><span>Draft ready, fully steerable. Center shows the full <em>assessment plan</em> per lesson — quick checks, readiness quizzes, practice homework, checkpoint quizzes, unit exams — distinguished by mode tint and timing badge. The steering chat is still here on the right; finer changes ("add a midterm after unit 2") happen via chat. Confirm card stays sticky.</span></div>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Drafting</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+  </header>
+
+  <div class="head-block">
+    <div class="kicker"><span class="dot"></span>¶ Course creation · draft ready · 4 units · 12 lessons · 28 assessments</div>
+    <h1>Here's <em>Calculus I</em> as Praxis drafted it <span class="badge">best guess · steerable</span></h1>
+  </div>
+
+  <div class="surface">
+    <div class="draft-col">
+      <div class="legend-strip">
+        <span class="item"><span class="pill qc">QC</span>quick check (inline, formative)</span>
+        <span class="item"><span class="pill read">READY</span>readiness quiz (before)</span>
+        <span class="item"><span class="pill home">HW</span>practice homework (interleaved)</span>
+        <span class="item"><span class="pill check">QUIZ</span>checkpoint quiz (after)</span>
+        <span class="item"><span class="pill exam">EXAM</span>unit exam (end of unit)</span>
+      </div>
+
+      <div class="unit-card">
+        <div class="unit-head">
+          <span class="handle">⁞</span>
+          <span class="num">1.</span>
+          <input class="title-input" value="Limits — what calculus really studies" />
+          <span class="lesson-count">3 lessons · 6 assessments</span>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">1.1</span>
+          <div class="lbody">
+            <span class="ltitle"><em>Intuitive limits</em> — the rate idea</span>
+            <div class="assessments">
+              <span class="ax qc"><span class="count">1</span> qc</span>
+              <span class="ax check"><span class="count">1</span> quiz <span class="timing">after</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">1.2</span>
+          <div class="lbody">
+            <span class="ltitle">ε-δ — the formal definition</span>
+            <div class="assessments">
+              <span class="ax qc"><span class="count">1</span> qc</span>
+              <span class="ax home"><span class="count">1</span> hw <span class="timing">interleaved</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">1.3</span>
+          <div class="lbody">
+            <span class="ltitle">One-sided &amp; infinite limits</span>
+            <div class="assessments">
+              <span class="ax qc"><span class="count">2</span> qc</span>
+              <span class="ax check"><span class="count">1</span> quiz <span class="timing">after</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="unit-exam-row">
+          <span class="ax">EXAM</span>
+          <span><em>Unit 1 exam</em> · 12 items · concepts: limit, ε-δ, continuity · 30 min · timing: end of unit</span>
+        </div>
+      </div>
+
+      <div class="unit-card">
+        <div class="unit-head">
+          <span class="handle">⁞</span>
+          <span class="num">2.</span>
+          <input class="title-input" value="Differentiation — core rules" />
+          <span class="lesson-count">5 lessons · 18 assessments · readiness on each</span>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">2.1</span>
+          <div class="lbody">
+            <span class="ltitle">Derivative as rate, not slope</span>
+            <div class="assessments">
+              <span class="ax read"><span class="count">1</span> ready <span class="timing">before</span></span>
+              <span class="ax qc"><span class="count">1</span> qc</span>
+              <span class="ax check"><span class="count">1</span> quiz <span class="timing">after</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">2.2</span>
+          <div class="lbody">
+            <span class="ltitle">Sum / product / quotient rules</span>
+            <div class="assessments">
+              <span class="ax read"><span class="count">1</span> ready <span class="timing">before</span></span>
+              <span class="ax qc"><span class="count">2</span> qc</span>
+              <span class="ax home"><span class="count">1</span> hw <span class="timing">interleaved</span></span>
+              <span class="ax check"><span class="count">1</span> quiz <span class="timing">after</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">2.3</span>
+          <div class="lbody">
+            <span class="ltitle"><em>The chain rule</em></span>
+            <div class="assessments">
+              <span class="ax read"><span class="count">1</span> ready <span class="timing">before</span></span>
+              <span class="ax qc"><span class="count">1</span> qc</span>
+              <span class="ax home"><span class="count">1</span> hw <span class="timing">interleaved</span></span>
+              <span class="ax check"><span class="count">1</span> quiz <span class="timing">after</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">2.4</span>
+          <div class="lbody">
+            <span class="ltitle">Implicit differentiation</span>
+            <div class="assessments">
+              <span class="ax read"><span class="count">1</span> ready <span class="timing">before</span></span>
+              <span class="ax qc"><span class="count">2</span> qc</span>
+              <span class="ax home"><span class="count">1</span> hw <span class="timing">interleaved</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">2.5</span>
+          <div class="lbody">
+            <span class="ltitle">Higher-order derivatives</span>
+            <div class="assessments">
+              <span class="ax read"><span class="count">1</span> ready <span class="timing">before</span></span>
+              <span class="ax qc"><span class="count">1</span> qc</span>
+              <span class="ax check"><span class="count">1</span> quiz <span class="timing">after</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="unit-exam-row">
+          <span class="ax">EXAM</span>
+          <span><em>Unit 2 exam</em> · 16 items · concepts: derivative, chain rule, implicit, higher-order · 45 min · timing: end of unit</span>
+        </div>
+      </div>
+
+      <div class="unit-card">
+        <div class="unit-head">
+          <span class="handle">⁞</span>
+          <span class="num">3.</span>
+          <input class="title-input" value="Applications — related rates &amp; optimisation" />
+          <span class="lesson-count">2 lessons · 5 assessments</span>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">3.1</span>
+          <div class="lbody">
+            <span class="ltitle">Related rates word-problems</span>
+            <div class="assessments">
+              <span class="ax qc"><span class="count">2</span> qc</span>
+              <span class="ax home"><span class="count">1</span> hw <span class="timing">interleaved</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">3.2</span>
+          <div class="lbody">
+            <span class="ltitle">Optimisation</span>
+            <div class="assessments">
+              <span class="ax qc"><span class="count">1</span> qc</span>
+              <span class="ax check"><span class="count">1</span> quiz <span class="timing">after</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="unit-card">
+        <div class="unit-head">
+          <span class="handle">⁞</span>
+          <span class="num">4.</span>
+          <input class="title-input" value="Integration — the Fundamental Theorem" />
+          <span class="lesson-count">2 lessons · 4 assessments · midterm before</span>
+        </div>
+        <div class="unit-exam-row" style="margin-top: 0; margin-bottom: 8px; border-left-color: var(--color-warning); background: color-mix(in oklab, var(--color-warning) 16%, transparent);">
+          <span class="ax" style="background: var(--color-warning);">MIDTERM</span>
+          <span><em>Midterm</em> · placed before unit 4 · covers units 1-3 · 20 items · 60 min</span>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">4.1</span>
+          <div class="lbody">
+            <span class="ltitle">Antiderivatives</span>
+            <div class="assessments">
+              <span class="ax qc"><span class="count">1</span> qc</span>
+              <span class="ax home"><span class="count">1</span> hw <span class="timing">interleaved</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-row">
+          <span class="lnum">4.2</span>
+          <div class="lbody">
+            <span class="ltitle"><em>The Fundamental Theorem</em></span>
+            <div class="assessments">
+              <span class="ax qc"><span class="count">2</span> qc</span>
+              <span class="ax check"><span class="count">1</span> quiz <span class="timing">after</span></span>
+              <span class="add-ax">+ add</span>
+            </div>
+          </div>
+        </div>
+        <div class="unit-exam-row">
+          <span class="ax">FINAL</span>
+          <span><em>Final exam</em> · covers all 4 units · 30 items · 90 min · timing: end of course</span>
+        </div>
+      </div>
+
+      <div class="add-unit">+ add a unit · or ask Praxis →</div>
+    </div>
+
+    <aside class="right-col">
+      <div class="stat-card">
+        <h3>Assessment plan summary</h3>
+        <div class="row"><span>Quick checks (inline)</span><span class="v">12</span></div>
+        <div class="row"><span>Readiness quizzes (before)</span><span class="v">5</span></div>
+        <div class="row"><span>Practice homework (interleaved)</span><span class="v">5</span></div>
+        <div class="row"><span>Checkpoint quizzes (after)</span><span class="v">8</span></div>
+        <div class="row"><span>Unit exams</span><span class="v">2</span></div>
+        <div class="row"><span>Midterm + final</span><span class="v">2</span></div>
+      </div>
+
+      <div class="chat">
+        <div class="chat-head">
+          <span class="glyph">¶</span>
+          <h3>Steer the <em>explorer</em></h3>
+        </div>
+        <div class="messages">
+          <div class="turn agent">
+            <div class="speaker">¶ Praxis</div>
+            <div class="bubble">Drafting finished. Final shape: 4 units, 12 lessons, 28 assessments. <em>Want changes</em> before you confirm?</div>
+          </div>
+          <div class="turn user">
+            <div class="speaker">You</div>
+            <div class="bubble">Add a midterm after unit 2 covering units 1-3.</div>
+          </div>
+          <div class="turn agent">
+            <div class="speaker">¶ Praxis</div>
+            <div class="bubble"><em>Added.</em> Visible on unit 4 (placed before — midterm-style). Anything else?</div>
+          </div>
+        </div>
+        <div class="composer">
+          <div class="composer-field">
+            <textarea rows="1" placeholder="e.g., 'drop readiness on unit 2 — too much'"></textarea>
+            <button class="submit">Send ↵</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="confirm-card">
+        <h3>Ready to <em>materialize</em>?</h3>
+        <div class="lede">Confirming creates the course in your library, sets up gates between lessons, and opens L1.1.</div>
+        <button class="primary">Confirm and open ↗</button>
+        <button>Save draft, don't open yet</button>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

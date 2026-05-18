@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>flow · bootstrap entry</title>
+  <title>flow · create a course</title>
   <style>
     body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #f6f8fa; color: #24292f; }
     header { background: #0d1117; color: #fff; padding: 24px 32px; }
@@ -23,8 +23,9 @@
 </head>
 <body>
   <header>
-    <h1>bootstrap entry · library → upload → explorer → confirm → course</h1>
-    <p>Onramp for a brand-new course. Drop in textbook + syllabus, watch the explorer agent draft units in real-time, review &amp; edit the draft, confirm — course materializes with gates and a first session tab already open.</p>
+    <h1>create a course · library → upload → draft → confirm → opens</h1>
+    <p>Onramp for a brand-new course. Drop in textbook + syllabus, watch Praxis draft units in real-time, steer the draft via chat, review &amp; confirm — course materializes with gates and a first session tab already open.</p>
+    <p style="margin-top: 8px; font-style: italic; font-size: 12px;">Internal names "bootstrap" and "explorer" no longer surface in UI copy — see substrate item for backend rename.</p>
   </header>
   <div class="ribbon">
     <a class="primary" href="01-library-cta.html">▶ start the flow</a>
@@ -32,29 +33,29 @@
   </div>
   <div class="steps">
     <div class="step">
-      <div class="label"><span><span class="num">1</span> &nbsp; Library CTA · upgraded bootstrap card</span><a href="01-library-cta.html">open ↗</a></div>
+      <div class="label"><span><span class="num">1</span> &nbsp; Library CTA · "Create a course"</span><a href="01-library-cta.html">open ↗</a></div>
       <iframe src="01-library-cta.html"></iframe>
-      <div class="caption">Bootstrap card in the footer row gets the accent treatment when student has docs but no fitting course. Invitational copy.</div>
+      <div class="caption">"Create a course" card in the footer row gets the accent treatment when student has docs but no fitting course. Invitational copy.</div>
     </div>
     <div class="step">
       <div class="label"><span><span class="num">2</span> &nbsp; Upload material</span><a href="02-upload-docs.html">open ↗</a></div>
       <iframe src="02-upload-docs.html"></iframe>
-      <div class="caption">Drop zone hero + attached files with per-file indexing progress + a small context textarea (audience / goal) to improve the draft.</div>
+      <div class="caption">Drop zone hero + attached files with per-file indexing + a context textarea (audience / goal) to improve the draft.</div>
     </div>
     <div class="step">
-      <div class="label"><span><span class="num">3</span> &nbsp; Explorer running · draft building</span><a href="03-explorer-running.html">open ↗</a></div>
+      <div class="label"><span><span class="num">3</span> &nbsp; Drafting · steer via chat</span><a href="03-explorer-running.html">open ↗</a></div>
       <iframe src="03-explorer-running.html"></iframe>
-      <div class="caption">Left: agent activity stream (every turn, every tool call). Right: draft taking shape — units complete, lessons fading in. Not a black box.</div>
+      <div class="caption">3 columns: activity stream · draft taking shape · <strong>steering chat</strong> (configurator drives Praxis's drafting via natural language).</div>
     </div>
     <div class="step">
-      <div class="label"><span><span class="num">4</span> &nbsp; Draft ready · in-place edit</span><a href="04-draft-ready.html">open ↗</a></div>
+      <div class="label"><span><span class="num">4</span> &nbsp; Draft ready · full assessment plan + steerable</span><a href="04-draft-ready.html">open ↗</a></div>
       <iframe src="04-draft-ready.html"></iframe>
-      <div class="caption">"Best guess" badge. Inline-editable unit titles. Rail summarises + offers Confirm or Save Draft. Escape hatches for re-running.</div>
+      <div class="caption">Per-lesson <em>lesson_assessments</em> shown by kind (qc / readiness / homework / quiz) + timing. Unit exams + midterm visible. Steering chat persists.</div>
     </div>
     <div class="step">
       <div class="label"><span><span class="num">5</span> &nbsp; Course materialized</span><a href="05-course-materialized.html">open ↗</a></div>
       <iframe src="05-course-materialized.html"></iframe>
-      <div class="caption">Library shows the new course at the top with a celebrate card; L1.1 teach tab is already open in the strip — one click into first lesson.</div>
+      <div class="caption">Library shows the new course at the top with a celebrate card; L1.1 teach tab is already open in the strip.</div>
     </div>
   </div>
 </body>
