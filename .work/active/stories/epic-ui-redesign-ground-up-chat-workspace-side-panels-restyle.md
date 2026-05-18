@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-side-panels-restyle
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -85,3 +85,14 @@ tokens come from `tokens.css`.
   by `praxis.panel.documents.width` per the story spec. Old persisted values are
   ignored (clamped to new defaults on first read). No migration needed — this is
   per-device UI state.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: `fix-chat-right-panel-storage-key-collision` — `ChatRoute`'s right panel uses `praxis.panel.sidekick.width` (clamp 220–380) but that key was already owned by `QuizTabBody`/`HomeworkTabBody` (clamp 280–640). Cross-contamination: values outside the other's clamp range silently snap to bound. The chat-route outer column should use a distinct key (`praxis.panel.chat-right.width`). Tracked in `.work/backlog/fix-chat-right-panel-storage-key-collision.md`.
+**Nits**:
+- `chat-right-panel.module.css` line 64: `font-size: 10px` on `.masteryBadge` is a hard-coded literal; consider a token or at minimum a comment noting it's intentional.
+
+**Notes**: Implementation is clean and correct. Three-column layout, per-panel resize hooks, 5 tests (ARIA, separators, sections, both storage keys) all land well. Token usage throughout the new CSS; `.sidebar` → `.docsPanel` rename clarifies vocabulary. The storage-key collision is the only material issue — it doesn't cause visible breakage in common use (values clamp silently) but is semantically wrong and could confuse future maintainers.
