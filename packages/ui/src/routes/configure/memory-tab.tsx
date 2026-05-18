@@ -1,6 +1,6 @@
 import type {
-  AffectSample,
   AffectiveModel,
+  AffectSample,
   ConceptId,
   ConceptMastery,
   EpisodicEvent,
@@ -364,9 +364,7 @@ function SemanticPane({
                   <span className={styles.masteryVal}>{cm.pKnown.toFixed(2)}</span>
                 </span>
                 <span className={styles.lastPracticed}>
-                  {cm.lastPracticedAt
-                    ? new Date(cm.lastPracticedAt).toLocaleDateString()
-                    : "Never"}
+                  {cm.lastPracticedAt ? new Date(cm.lastPracticedAt).toLocaleDateString() : "Never"}
                 </span>
                 <span className={styles.rowActions}>
                   <button
@@ -510,11 +508,7 @@ function ProceduralPane({
           {entries.map(([strategyId, pref]) => {
             const pct = Math.round(((pref.preference + 1) / 2) * 100);
             const label =
-              pref.preference > 0.3
-                ? "preferred"
-                : pref.preference < -0.3
-                  ? "avoids"
-                  : "neutral";
+              pref.preference > 0.3 ? "preferred" : pref.preference < -0.3 ? "avoids" : "neutral";
             return (
               <div key={strategyId} className={styles.proceduralRow}>
                 <span className={styles.strategyId}>{strategyId}</span>

@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-configure-memory-tab-canvas
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on: [epic-ui-redesign-ground-up-configure-canvas-side-chat-shell]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Configure Memory tab canvas — projection tabs + tables/cards
@@ -41,7 +41,44 @@ Rebuild Memory tab canvas per `tab-memory.html`:
 
 ## Acceptance criteria
 
-- [ ] Memory tab matches the locked mock.
-- [ ] All five projection views render.
-- [ ] Recompute + clear actions work end-to-end.
-- [ ] All quality checks green.
+- [x] Memory tab matches the locked mock.
+- [x] All five projection views render.
+- [x] Recompute + clear actions work end-to-end.
+- [x] All quality checks green.
+
+## Implementation notes
+
+Rewrote `memory-tab.tsx` from the old `MemoryInspectorTabs` wrapper into a
+self-contained canvas per `tab-memory.html`:
+
+- **Canvas head** — kicker + italic display title + deck description matching
+  the mock's editorial style.
+- **Projection tab strip** (`ProjectionTabBtn`) — five tabs with count badges
+  derived from live data (concept count, active misconception count, strategy
+  count). Active tab underlined with `--color-text-primary` border, not accent,
+  per the mock.
+- **SemanticPane** — grid layout (4 columns: concept / mastery bar / last
+  practiced / recompute link). Mastery fill color tiered low/mid/high by pKnown
+  threshold (< 0.45 / < 0.70 / ≥ 0.70). Recompute opens `ConfirmReasonModal`
+  → `client.author.resetConcept`.
+- **MisconceptionsPane** — cards with left-border severity indicator
+  (danger = active, success = cleared). Head row shows: mono id chip, italic
+  concept + description snippet, strength badge (strong/forming/cleared).
+  Evidence blockquote shows `errorForm` + first-observed date. Clear action
+  opens `ConfirmReasonModal` → `client.author.clearMisconception`.
+- **ProceduralPane** — 4-column grid: strategy id / preference bar / label
+  (preferred/neutral/avoids) / evidence count.
+- **AffectivePane** — baseline card with three `AffectBar` rows (engagement,
+  confidence, frustration); recent samples table (last 20, reversed).
+- **EpisodicPane** — lazy-loaded (only fetches when tab first activated);
+  capped at 200 events; columnar layout (time / glyph / event type / content
+  snippet). Cleanup via `AbortController` on unmount.
+
+The old `MemoryInspectorTabs` component and its CSS module are left in place —
+they are still exercised by their own test file and could be reused elsewhere.
+`memory-tab.tsx` no longer imports them.
+
+Tests (`configure-memory-tab.test.tsx`, 18 tests): projection tab switching,
+semantic table rendering + recompute modal flow, misconception cards + clear
+modal flow, cleared-misconception no-action guard, canvas head kicker/title,
+affective and procedural pane smoke tests.

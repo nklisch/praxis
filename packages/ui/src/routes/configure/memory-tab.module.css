@@ -1,31 +1,579 @@
+/* ── Layout ─────────────────────────────────────────────────────────────────── */
+
 .layout {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-width: 0;
+  overflow-y: auto;
 }
 
-.header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border, #e0e0e0);
+/* ── Canvas head ─────────────────────────────────────────────────────────────── */
+
+.canvasHead {
+  padding: 20px 32px 12px;
   flex-shrink: 0;
 }
 
-.title {
-  margin: 0 0 0.35rem;
-  font-size: 1.05rem;
-  font-weight: 600;
+.kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
 }
 
-.description {
+.canvasTitle {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: var(--font-weight-medium);
+  font-style: italic;
+  line-height: 1.15;
   margin: 0;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-primary);
 }
 
-.content {
+.canvasTitle em {
+  font-weight: var(--font-weight-semibold);
+}
+
+.deck {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-secondary);
+  margin: 6px 0 0;
+  max-width: 70ch;
+}
+
+/* ── Projection tab strip ────────────────────────────────────────────────────── */
+
+.projectionTabs {
+  padding: 12px 32px 0;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.projectionTab {
+  padding: 8px 14px;
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-style: italic;
+  line-height: 1.2;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  transition: color 0.12s;
+}
+
+.projectionTab:hover {
+  color: var(--color-text-primary);
+}
+
+.projectionTabActive {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-text-primary);
+}
+
+.projectionCount {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  font-style: normal;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+/* ── Pane ────────────────────────────────────────────────────────────────────── */
+
+.pane {
+  padding: 24px 32px 32px;
   flex: 1;
   min-height: 0;
+}
+
+.paneHeading {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.paneSubheading {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: var(--font-weight-regular);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Status / error ──────────────────────────────────────────────────────────── */
+
+.statusText {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
+.errorText {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────────── */
+
+.emptyState {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.emptyPrimary {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin: 0 0 0.5rem;
+}
+
+.emptyHint {
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+/* ── Shared mastery bar ──────────────────────────────────────────────────────── */
+
+.masteryBarTrack {
+  display: inline-block;
+  width: 110px;
+  height: 4px;
+  background: var(--color-bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.masteryBarFill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* biome-ignore: CSS module dynamic class composed via template literal */
+.masteryFill_low {
+  background: var(--color-danger);
+}
+
+/* biome-ignore: CSS module dynamic class composed via template literal */
+.masteryFill_mid {
+  background: var(--color-warning);
+}
+
+/* biome-ignore: CSS module dynamic class composed via template literal */
+.masteryFill_high {
+  background: var(--color-success);
+}
+
+.masteryVal {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: 0.04em;
+  min-width: 4ch;
+  text-align: right;
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* ── Semantic — concepts table ───────────────────────────────────────────────── */
+
+.conceptsTable {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 0 16px;
+}
+
+.conceptsRow {
+  display: contents;
+}
+
+.conceptsRow > * {
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.conceptsHead > * {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  border-bottom: 1px solid var(--color-border) !important;
+  padding-bottom: 8px !important;
+}
+
+.conceptName {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.masteryBarWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 170px;
+}
+
+.lastPracticed {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+}
+
+.inlineLink {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+
+.inlineLink:hover {
+  text-decoration: underline;
+}
+
+/* ── Misconceptions — cards ──────────────────────────────────────────────────── */
+
+.miscCards {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.miscCard {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-danger);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 16px 20px;
+}
+
+.miscCardCleared {
+  opacity: 0.5;
+  border-left-color: var(--color-success);
+}
+
+.miscCardHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.miscId {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.miscConcept {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-style: italic;
+  flex: 1;
+}
+
+.miscStrength {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  padding: 3px 6px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+  flex-shrink: 0;
+}
+
+.miscStrengthWeak {
+  background: var(--color-warning);
+}
+
+.miscDesc {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+}
+
+.miscEvidence {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  border-left: 2px solid var(--color-border);
+  padding-left: 12px;
+  margin: 0 0 8px;
+}
+
+.miscQuote {
+  color: var(--color-text-primary);
+}
+
+.miscRef {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  margin-left: 8px;
+}
+
+.miscActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.miscBtn {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.miscBtnDanger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.miscBtnDanger:hover {
+  background: var(--color-accent-muted);
+}
+
+/* ── Procedural — strategy list ──────────────────────────────────────────────── */
+
+.proceduralList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.proceduralRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.strategyId {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 14px;
+}
+
+.strategyPref {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.strategyLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  min-width: 8ch;
+  text-align: right;
+}
+
+.strategyEvidence {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  min-width: 5ch;
+  text-align: right;
+}
+
+/* ── Affective ────────────────────────────────────────────────────────────────── */
+
+.affectiveBaseline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.baselineLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+}
+
+.affectBarRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.affectBarLabel {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  min-width: 10ch;
+}
+
+.affectiveSamples {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.affectSampleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--color-border);
+  font-size: 13px;
+}
+
+.affectSampleTs {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  min-width: 14ch;
+}
+
+.affectSampleSource {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  min-width: 16ch;
+}
+
+.affectSampleStats {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-primary);
+  letter-spacing: 0.04em;
+}
+
+/* ── Episodic ─────────────────────────────────────────────────────────────────── */
+
+.episodicList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.episodicRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--color-border);
+  font-size: 13px;
+}
+
+.episodicTs {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  min-width: 8ch;
+  flex-shrink: 0;
+}
+
+.episodicGlyph {
+  font-style: italic;
+  color: var(--color-text-tertiary);
+  min-width: 1.5ch;
+  flex-shrink: 0;
+}
+
+.episodicType {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  min-width: 16ch;
+  flex-shrink: 0;
+}
+
+.episodicSnippet {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
