@@ -1,7 +1,7 @@
 ---
 id: refactor-extract-normalize-concept-name-helper
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -65,6 +65,22 @@ if (!knownConcepts.has(normalizeConceptName(cn))) { … }
       `course-create-service.test.ts`)
 - [ ] `grep -cn '\.trim()\.toLowerCase()' packages/core/src/services/course-create-service.ts` returns 1 (helper definition only) or 0 if the helper uses an alternative form
 - [ ] `grep -cn 'normalizeConceptName' packages/core/src/services/course-create-service.ts` returns ≥8 (1 def + 7 uses)
+
+## Implementation notes
+
+- **Helper location**: line 46, file-private const arrow function, placed after the import block and before `export interface Issue`.
+- **Sites converted**: 24 call sites total (more than the 7 originally flagged — discovery was incomplete). All are concept-name string normalizations for Set/Map membership checks.
+  - Original lines 222, 223: `addConcept` — `input.name` and `c.name` comparisons
+  - Original lines 243, 246, 253 (×2), 258: `removeConcept` — `input.name`, `c.name`, `e.fromName`, `e.toName`, `n` (lesson concept names)
+  - Original lines 275, 276, 277, 285 (×2): `addEdge` — `c.name`, `input.fromName`, `input.toName`, `e.fromName`, `e.toName`
+  - Original lines 310, 312: `addLesson` — `c.name`, `cn`
+  - Original lines 372, 375: `addUnit` summative check — `c.name`, `cn`
+  - Original lines 444, 447: `addLessonAssessment` — `c.name`, `cn`
+  - Original lines 946, 958, 977: `validateProposed` — `c.name`, `cn` (unit summative), `cn` (lesson assessments)
+  - Original lines 1180, 1181, 1182, 1190, 1191: `applyDraftOp` "add-edge" case — `c.name`, `op.fromName`, `op.toName`, `e.fromName`, `e.toName`
+- **Sites left alone**: none — every `.trim().toLowerCase()` in the file was a concept-name normalization.
+- **Final grep counts**: `.trim().toLowerCase()` = 1 (helper definition only); `normalizeConceptName` = 25 (1 def + 24 uses).
+- **Checks**: `pnpm typecheck` clean, `pnpm biome check` clean (no fixes applied), 37 tests pass.
 
 ## Risk
 
