@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-snapshot-restore-ipc
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-snapshot-restore
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore-capture-and-restore]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Snapshot restore — IPC channel + client method
@@ -147,3 +147,26 @@ must exist.
 Only rows with a matching `configurator_snapshots` row get the field populated;
 `undefined` (absent key) indicates no snapshot, `null` indicates snapshot exists
 but not yet restored, and a `Timestamp` indicates restored.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none (one blocker found and fixed inline — see Notes)
+**Important**: none
+**Nits**:
+- Story scope text used `praxis.authoring.restoreAction` and `praxis.authoring.listActions` — the established convention is `praxis.author.*`. Implementation was correct; scope prose was wrong.
+
+**Notes**: The `listConfiguratorActions` left-join null-guard was logically
+incorrect. The code checked `r.snapshotRestoredAt !== undefined` to detect
+join presence, but Drizzle returns `null` (not `undefined`) for all selected
+columns when a left-join finds no matching row. This meant non-snapshotted
+action kinds (`memory.export`, `memory.delete_all`) would erroneously receive
+`restoredAt: null` — implying a snapshot exists but hasn't been restored, which
+contradicts the `ConfiguratorActionRow` contract where absent `restoredAt` means
+"not restorable". The comment in the code even noted the Drizzle null behavior
+but the guard didn't account for it. Fix: added `snapshotActionId` (the PK,
+`notNull`) to the select projection and gated `restoredAt` population on
+`r.snapshotActionId !== null` instead. No consumers exist yet so no runtime
+regression; all 15 tests pass after the fix. Fixed inline in
+`packages/core/src/services/authoring-service.ts`.

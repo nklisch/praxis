@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-snapshot-restore
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Artifact snapshot / restore infrastructure
@@ -473,3 +473,10 @@ sequential:
   cost (action + snapshot). For tens-to-hundreds of mutations per
   configurator session this is negligible. If it grows, add a
   retention sweep — out of scope for v1.
+
+## Children complete (2026-05-18)
+
+Both child stories reached `stage: done`. Feature advanced to `stage: review`.
+
+- `epic-backend-fills-for-redesign-snapshot-restore-capture-and-restore` — done
+- `epic-backend-fills-for-redesign-snapshot-restore-ipc` — done (blocker fixed inline: left-join null-guard in `listConfiguratorActions`)

@@ -440,6 +440,14 @@ export class AuthoringServiceImpl implements AuthoringService {
         configuratorId: configuratorActions.configuratorId,
         ts: configuratorActions.ts,
         actionJson: configuratorActions.actionJson,
+        // Use the primary-key column (notNull) as the join-presence sentinel.
+        // Drizzle left-join returns null for ALL selected columns when there is
+        // no matching row — including for nullable columns like restoredAt. We
+        // therefore cannot use restoredAt alone to distinguish "no snapshot row"
+        // (null from join miss) from "snapshot row with restoredAt=null" (not
+        // yet restored). Selecting actionId (notNull PK) gives us a reliable
+        // sentinel: null → no snapshot row; non-null → snapshot row exists.
+        snapshotActionId: configuratorSnapshots.actionId,
         snapshotRestoredAt: configuratorSnapshots.restoredAt,
       })
       .from(configuratorActions)
@@ -459,16 +467,11 @@ export class AuthoringServiceImpl implements AuthoringService {
         action,
       };
 
-      // `snapshotRestoredAt` is null when the join found a snapshot row whose
-      // restoredAt column is NULL (not yet restored), and undefined/null when
-      // there is no snapshot row at all (non-snapshotted action kinds). In
-      // either case where there IS a snapshot row (not undefined), surface the
-      // restoredAt field. We distinguish "no snapshot row" (undefined from
-      // left-join) from "snapshot row present but restoredAt=null" by checking
-      // whether we got a non-undefined result from the join.
-      // Drizzle left-join returns null for missing rows, not undefined — but
-      // we guard both to be safe.
-      if (r.snapshotRestoredAt !== undefined) {
+      // Only populate restoredAt when a snapshot row actually exists for this
+      // action (snapshotActionId is non-null). Non-snapshotted action kinds
+      // (memory.export, memory.delete_all) have no snapshot row and must NOT
+      // get restoredAt set — absent key signals "not restorable" to consumers.
+      if (r.snapshotActionId !== null) {
         // A snapshot row exists for this action.
         row.restoredAt = r.snapshotRestoredAt
           ? (r.snapshotRestoredAt.getTime() as Timestamp)
