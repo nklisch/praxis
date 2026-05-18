@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-free
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Free note editor — typewriter page + slash commands + drift tags
@@ -33,7 +33,50 @@ Rewrite the free note editor per
 
 ## Acceptance criteria
 
-- [ ] Typewriter page renders with drop-cap.
-- [ ] Slash commands surface inline structure.
-- [ ] Gutter shows word count + read time + tags.
-- [ ] All quality checks green.
+- [x] Typewriter page renders with drop-cap.
+- [x] Slash commands surface inline structure.
+- [x] Gutter shows word count + read time + tags.
+- [x] All quality checks green.
+
+## Implementation notes
+
+Rewrote `note-editor-free.{tsx,module.css}` from scratch:
+
+**Component architecture**
+- `NoteEditorFree` now accepts optional `title`/`onTitleChange`/`conceptTags` props
+  alongside the existing `body`/`onChange` pair. Props are optional so the
+  existing call-site in `note-editor-page.tsx` compiles without changes.
+- Body stored as plain text (`body.text`); seeded into contenteditable once on
+  mount via `innerHTML` (paragraphs split on double-newlines). Subsequent edits
+  read back via `textContent`.
+
+**Drop-cap**
+- Contenteditable div (not `<textarea>`) so `::first-letter` CSS pseudo-element
+  can target `.bodyEditor > p:first-child::first-letter`. Float-left, 4.5em,
+  italic, accent colour — exact match to the mock.
+
+**Slash-command menu**
+- Detects `/` at the start of the current line by inspecting `window.getSelection()`
+  caret position on every `onInput` event.
+- Filters `SLASH_COMMANDS` list by prefix match; shows a `role="listbox"` overlay.
+- Arrow keys navigate; Enter/Tab applies; Escape dismisses.
+- Applying a command replaces the current paragraph's text with the appropriate
+  Markdown-style prefix (`# `, `> `, `- `, etc.) and moves the caret to end.
+- Menu dismissed with 150 ms delay on blur so `mousedown` on a menu item fires
+  before blur clears state.
+
+**Right gutter**
+- Fixed-position 220px aside — three panels matching the mock exactly:
+  "This note" (words + read time at 200 wpm), "Concepts drifted in" (tag chips),
+  and the `⌘ /` hint panel with accent-muted background.
+- Word count and read time derived from `statsText` state updated on every input.
+
+**Tests** (9 tests, all green)
+- Title renders + onChange fires.
+- Body editor is a contenteditable div (drop-cap CSS targeting confirmed).
+- Gutter shows correct word count (5 words → "5" + "~1 min").
+- Concept tags appear/hidden based on prop.
+- Slash-menu opens on `/` input; Escape dismisses it.
+- `onChange` fires with updated text on input.
+
+**Quality**: `pnpm biome check` clean on all three files; 1270/1270 tests pass.

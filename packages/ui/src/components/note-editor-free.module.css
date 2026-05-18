@@ -1,35 +1,219 @@
-.editor {
+/* ── Shell: page + gutter side by side ──────────────────────────────────────── */
+
+.shell {
+  display: flex;
+  min-height: 100%;
+  position: relative;
+}
+
+/* ── Typewriter page ──────────────────────────────────────────────────────────── */
+
+.page {
+  flex: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  /* Right pad leaves room for the fixed gutter (220px + 32px gap). */
+  padding: var(--space-16) 280px var(--space-16) var(--space-16);
+  cursor: text;
+}
+
+/* ── Title area ───────────────────────────────────────────────────────────────── */
+
+.titleArea {
+  margin-bottom: var(--space-8);
+}
+
+.titleInput {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: var(--font-weight-medium) italic 44px / 1.1 var(--font-display);
+  color: var(--color-text-primary);
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+
+.titleInput::placeholder {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+/* ── Body wrapper ─────────────────────────────────────────────────────────────── */
+
+.bodyWrapper {
+  position: relative;
+}
+
+/* ── Body contenteditable editor ─────────────────────────────────────────────── */
+
+.bodyEditor {
+  font: 17px / 1.85 var(--font-serif);
+  color: var(--color-text-primary);
+  outline: none;
+  min-height: 320px;
+  /* Ensure paragraphs wrap within the writing column. */
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.bodyEditor p {
+  margin: 0 0 var(--space-4);
+}
+
+/* Placeholder — shown when the editor has no text content. */
+.bodyEditor:empty::before,
+.bodyEditor > p:only-child:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Drop-cap on the first letter of the first paragraph. */
+.bodyEditor > p:first-child::first-letter {
+  float: left;
+  font: italic var(--font-weight-medium) 4.5em / 0.85 var(--font-display);
+  padding: 8px 14px 0 0;
+  color: var(--color-accent);
+}
+
+/* ── Slash-command menu ───────────────────────────────────────────────────────── */
+
+.slashMenu {
+  position: absolute;
+  z-index: 100;
+  top: 0; /* positioned above the current line; JS can adjust if needed */
+  left: 0;
+  min-width: 220px;
+  background: var(--color-bg-inverse);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  padding: var(--space-1) 0;
+}
+
+.slashItem {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  user-select: none;
+}
+
+.slashItem:hover,
+.slashItemActive {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.slashLabel {
+  font: var(--font-weight-semibold) var(--font-size-xs) / 1 var(--font-mono);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-inverse);
+}
+
+.slashDesc {
+  font: italic var(--font-size-xs) / 1 var(--font-serif);
+  color: var(--color-text-tertiary);
+}
+
+/* ── Right gutter ─────────────────────────────────────────────────────────────── */
+
+.gutter {
+  position: fixed;
+  right: var(--space-8);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 220px;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  height: 100%;
+  gap: var(--space-4);
 }
 
-.textarea {
-  flex: 1;
-  width: 100%;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  border-radius: 6px;
-  color: var(--color-text-primary, inherit);
-  font-size: 0.9rem;
-  line-height: 1.65;
-  padding: 0.75rem 0.9rem;
-  resize: vertical;
-  font-family: inherit;
-  transition: border-color 0.15s;
-  box-sizing: border-box;
-  min-height: 300px;
+.gutterPanel {
+  padding: var(--space-3) 14px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
-.textarea:focus {
-  outline: none;
-  border-color: var(--color-accent, #6366f1);
+.gutterHeading {
+  font: var(--font-weight-semibold) 9px / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin: 0 0 var(--space-2);
 }
 
-.hint {
-  font-size: 0.78rem;
-  color: var(--color-text-secondary, #aaa);
-  margin: 0;
+.gutterHeadingAccent {
+  font: var(--font-weight-semibold) 9px / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin: 0 0 var(--space-2);
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font: var(--font-size-xs) / 1.4 var(--font-serif);
+}
+
+.statLabel {
+  color: var(--color-text-secondary);
+}
+
+.statVal {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-primary);
+  letter-spacing: 0.04em;
+}
+
+.tagCloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.tag {
+  font: var(--font-size-xs) / 1 var(--font-mono);
+  padding: 3px 7px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
+}
+
+.tag em {
   font-style: italic;
+  color: var(--color-accent);
+  font-family: var(--font-serif);
+  font-size: 12px;
+}
+
+/* ── Slash-command hint panel ─────────────────────────────────────────────────── */
+
+.gutterHint {
+  background: var(--color-accent-muted);
+  border-color: var(--color-accent);
+}
+
+.gutterHintText {
+  font: italic 12px / 1.5 var(--font-serif);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.kbd {
+  font: var(--font-weight-semibold) 10px / 1 var(--font-mono);
+  padding: 2px 5px;
+  background: var(--color-bg-primary);
+  border-radius: 2px;
+  color: var(--color-text-primary);
+  font-style: normal;
 }
