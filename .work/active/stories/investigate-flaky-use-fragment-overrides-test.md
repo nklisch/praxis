@@ -1,7 +1,7 @@
 ---
 id: investigate-flaky-use-fragment-overrides-test
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -42,3 +42,30 @@ Symptoms reported:
 
 Honest failing test beats a green test that lies — see the `test-integrity`
 guidance in the autopilot skill.
+
+## Implementation notes
+
+### Failure reproduction
+
+- Reproduces intermittently (~1 in 3–5 full `pnpm --filter @praxis/ui test` runs) but **never** in isolation (`vitest run` on the file alone).
+- Failing test: `useFragmentOverrides > refresh re-calls the loader and updates the map`
+- Error: `AssertionError: expected undefined to be 'refreshed'` at line 87 (`byId.get("role.tutor")`)
+- Symptom: after `refresh()` completes and `loading` returns to false, `byId` still reflects pre-refresh stale data.
+
+### Root cause classification: genuine test bug
+
+The hook (`use-fragment-overrides.ts` → `use-resource.ts`) is correct. The companion `use-resource.test.tsx` demonstrates the canonical pattern for testing `refresh()`: wrap the call in `await act(async () => { ... })`.
+
+The flaky test called `await result.current.refresh()` directly **without** `act()`. React Testing Library's `act()` ensures React flushes all pending state updates (both `setDataInternal(result)` and `setLoading(false)`) before control returns to the test. Without it, those state updates fire outside React's test scheduler, creating a race: the subsequent `waitFor(() => loading === false)` observes loading=false but does so on a render that may have committed before the data state update propagated — so `byId` is empty. The race only surfaces under load contention with 155 test files running concurrently.
+
+### Fix applied
+
+- Added `act` to the import from `@testing-library/react`.
+- Wrapped `await result.current.refresh()` in `await act(async () => { ... })` and removed the now-redundant `waitFor(() => loading === false)` that followed it (act already guarantees all state is flushed).
+- Added an inline comment citing the root cause and pointing to `use-resource.test.tsx` as the canonical pattern.
+
+### Verification
+
+- 5/5 full `pnpm --filter @praxis/ui test` runs green (1600/1600) after the fix.
+- Previously: failure reproduced on run 1 of a 3-run sequence, and again on run 3 of a 5-run sequence, before the fix.
+- No parked follow-ups needed.

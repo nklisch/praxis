@@ -1,5 +1,5 @@
 import type { FragmentOverride, PraxisClient } from "@praxis/core/types";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
@@ -81,9 +81,15 @@ describe("useFragmentOverrides", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.byId.size).toBe(0);
 
-    await result.current.refresh();
+    // Wrap in act() so React flushes all state updates (data + loading) before
+    // we assert. Without act(), the async state updates from refresh() can fire
+    // outside React's test queue, causing a race where waitFor sees loading=false
+    // but byId still reflects stale data. See use-resource.test.tsx refresh test
+    // for the canonical pattern.
+    await act(async () => {
+      await result.current.refresh();
+    });
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.byId.get("role.tutor")).toBe("refreshed");
   });
 });
