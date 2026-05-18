@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-root-layout-top-nav-doc-drift
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on: [epic-ui-redesign-ground-up-app-shell-root-layout-top-nav]
@@ -94,3 +94,13 @@ Every reference now reads: rail component exists (not deleted), not mounted
 (fact), status strip is planned (accurate — sibling story `-status-strip`
 has not landed). Rolling-Foundation principle: docs describe the system NOW;
 future work is called "planned" not "done".
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `.claude/rules/patterns.md` line 27 (`activity-rail-producer`) still says "items appear on the `<ActivityRail>`" — minor stale phrase. Out of this story's declared scope; can be swept in a later patterns-index pass.
+
+**Notes**: All four acceptance-criteria doc sites updated correctly. No stale "ActivityRail mounted at router root" assertion remains in any foundation doc. Wording accurately reflects the current state: component exists, not mounted, status strip is the planned replacement. Doc-only change; typecheck/lint/test trivially green.
