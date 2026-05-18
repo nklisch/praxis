@@ -71,6 +71,8 @@ type ConceptMapsOverrides = {
   rename?: (id: unknown, title: unknown) => Promise<unknown>;
   delete?: (id: unknown) => Promise<unknown>;
   listVersions?: (id: unknown) => Promise<unknown>;
+  setNodeLink?: (input: unknown) => Promise<unknown>;
+  computeRipples?: (input: unknown) => Promise<unknown>;
 };
 
 function makeServices(
@@ -267,6 +269,12 @@ function makeServices(
     listVersions: conceptMapsOverrides.listVersions
       ? vi.fn().mockImplementation(conceptMapsOverrides.listVersions)
       : vi.fn().mockResolvedValue([]),
+    setNodeLink: conceptMapsOverrides.setNodeLink
+      ? vi.fn().mockImplementation(conceptMapsOverrides.setNodeLink)
+      : vi.fn().mockResolvedValue({ id: "cm-1", conceptLinks: [] }),
+    computeRipples: conceptMapsOverrides.computeRipples
+      ? vi.fn().mockImplementation(conceptMapsOverrides.computeRipples)
+      : vi.fn().mockResolvedValue({ conceptCountDelta: 0, notesRetagged: 0, tutorRefsAffected: 0 }),
   };
 
   const activity = {
@@ -751,5 +759,174 @@ describe("praxis.conceptMaps.listVersions — envelope wiring", () => {
     const result = await handler?.({}, "");
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
     expect(services.conceptMaps.listVersions).not.toHaveBeenCalled();
+  });
+});
+
+// ── praxis.conceptMaps.setNodeLink — structured-payload envelope ──────────────
+
+describe("praxis.conceptMaps.setNodeLink — envelope wiring", () => {
+  it("resolves with { ok: true, value: <map> } for a valid payload", async () => {
+    const map = { id: "cm-1", conceptLinks: [{ elementId: "shape:n1", linkState: "linked" }] };
+    const log = makeFakeLogger();
+    const services = makeServices({}, { setNodeLink: async () => map });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.setNodeLink");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.(
+      {},
+      {
+        mapId: "cm-1",
+        elementId: "shape:n1",
+        candidateId: "concept-algebra",
+        state: "linked",
+      },
+    );
+    expect(result).toMatchObject({ ok: true, value: map });
+    expect(services.conceptMaps.setNodeLink).toHaveBeenCalledOnce();
+  });
+
+  it("resolves with null candidateId for unlinked state", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices(
+      {},
+      { setNodeLink: async () => ({ id: "cm-1", conceptLinks: [] }) },
+    );
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.setNodeLink");
+    const result = await handler?.(
+      {},
+      {
+        mapId: "cm-1",
+        elementId: "shape:n1",
+        candidateId: null,
+        state: "unlinked",
+      },
+    );
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it("returns VALIDATION_FAILED when mapId is missing", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.setNodeLink");
+    const result = await handler?.(
+      {},
+      { elementId: "shape:n1", candidateId: "c-1", state: "linked" },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.conceptMaps.setNodeLink).not.toHaveBeenCalled();
+  });
+
+  it("returns VALIDATION_FAILED when state is not a valid enum value", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.setNodeLink");
+    const result = await handler?.(
+      {},
+      {
+        mapId: "cm-1",
+        elementId: "shape:n1",
+        candidateId: "c-1",
+        state: "invalid_state",
+      },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.conceptMaps.setNodeLink).not.toHaveBeenCalled();
+  });
+
+  it("returns INTERNAL when service throws", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices(
+      {},
+      {
+        setNodeLink: async () => {
+          throw new Error("map not found");
+        },
+      },
+    );
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.setNodeLink");
+    await expect(
+      handler?.({}, { mapId: "cm-1", elementId: "shape:n1", candidateId: "c-1", state: "linked" }),
+    ).resolves.toMatchObject({ ok: false, error: { code: "INTERNAL" } });
+  });
+});
+
+// ── praxis.conceptMaps.computeRipples — structured-payload envelope ───────────
+
+describe("praxis.conceptMaps.computeRipples — envelope wiring", () => {
+  it("resolves with { ok: true, value: <ripples> } for a valid payload", async () => {
+    const ripples = { conceptCountDelta: 1, notesRetagged: 2, tutorRefsAffected: 0 };
+    const log = makeFakeLogger();
+    const services = makeServices({}, { computeRipples: async () => ripples });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.computeRipples");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.(
+      {},
+      {
+        mapId: "cm-1",
+        elementId: "shape:n1",
+        candidateId: "concept-algebra",
+      },
+    );
+    expect(result).toMatchObject({ ok: true, value: ripples });
+    expect(services.conceptMaps.computeRipples).toHaveBeenCalledOnce();
+  });
+
+  it("returns VALIDATION_FAILED when candidateId is empty", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.computeRipples");
+    const result = await handler?.(
+      {},
+      {
+        mapId: "cm-1",
+        elementId: "shape:n1",
+        candidateId: "",
+      },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.conceptMaps.computeRipples).not.toHaveBeenCalled();
+  });
+
+  it("returns VALIDATION_FAILED when elementId is missing", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.computeRipples");
+    const result = await handler?.({}, { mapId: "cm-1", candidateId: "concept-x" });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+
+  it("returns INTERNAL when service throws", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices(
+      {},
+      {
+        computeRipples: async () => {
+          throw new Error("DB error");
+        },
+      },
+    );
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.conceptMaps.computeRipples");
+    await expect(
+      handler?.({}, { mapId: "cm-1", elementId: "shape:n1", candidateId: "concept-x" }),
+    ).resolves.toMatchObject({ ok: false, error: { code: "INTERNAL" } });
   });
 });

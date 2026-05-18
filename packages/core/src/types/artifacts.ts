@@ -79,6 +79,12 @@ export interface Assignment {
   grade?: Grade;
   /** Phase 9: retake chain. Points to the original assignment when this is a retake. */
   retakeOf?: AssignmentId;
+  /**
+   * Optional exam time limit in minutes. Null / undefined for untimed assignments.
+   * When set on an exam, the UI renders a countdown and auto-submits at expiry
+   * (measured from assignedAt).
+   */
+  durationMinutes?: number | null;
 }
 
 /** Tier the per-item grader returned. Used in GradeItem for traceability. */
@@ -454,6 +460,33 @@ export interface ConceptLink {
   conceptId: ConceptId; // canonical concept this element represents
   /** 0..1 — fuzzy match score from the typeahead, 1.0 if user explicitly linked. */
   confidence: number;
+  /**
+   * Three-state canonical-link status for this node.
+   * - `"linked"`: student confirmed the link (or explicitly selected a candidate).
+   * - `"best_guess"`: Praxis's tentative match awaiting student confirmation.
+   * - `"unlinked"`: no canonical link (the default before any matching occurs).
+   * Optional for backwards compatibility: absent means `"unlinked"` on pre-feature maps.
+   */
+  linkState?: "linked" | "best_guess" | "unlinked";
+  /**
+   * Ranked candidates the agent considers for this node. Present when
+   * `linkState` is `"best_guess"` or when the typeahead produced alternatives
+   * for the student to choose from.
+   */
+  candidates?: Array<{ canonicalConceptId: ConceptId; confidence: number }>;
+}
+
+/**
+ * Downstream consequence summary for confirming a single canonical link.
+ * Returned by `ConceptMapService.computeRipples` — computed on demand, not cached.
+ */
+export interface RippleSummary {
+  /** Net change in distinct canonical concepts covered by this map after linking. */
+  conceptCountDelta: number;
+  /** Notes whose `context.conceptIds` tag would change (gain this concept). */
+  notesRetagged: number;
+  /** Open tutor sessions that reference this concept-map node and would resolve differently. */
+  tutorRefsAffected: number;
 }
 
 /** A historical snapshot of a concept map. */

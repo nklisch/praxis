@@ -114,3 +114,64 @@
   /* Slight drop shadow so it's visible over light shapes */
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
+
+/* ✓ glyph for confirmed canonical link */
+.linkedGlyph {
+  position: absolute;
+  pointer-events: all;
+  cursor: default;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-success, #22c55e);
+  line-height: 1;
+  user-select: none;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 3px;
+  padding: 0 3px;
+  text-shadow: none;
+}
+
+/* ? glyph for best-guess (tentative) canonical link */
+.bestGuessGlyph {
+  position: absolute;
+  pointer-events: all;
+  cursor: help;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-warning, #f59e0b);
+  line-height: 1;
+  user-select: none;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 3px;
+  padding: 0 3px;
+  text-shadow: none;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
+}
+
+.bestGuessGlyph:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+/* Ghost edge SVG container — pointer-events: none so the canvas stays interactive */
+.ghostEdgeSvg {
+  pointer-events: none;
+}
+
+/* Dashed ghost edge line suggesting a would-be canonical connection */
+.ghostEdge {
+  stroke: var(--color-warning, #f59e0b);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  opacity: 0.55;
+}
+
+/* Ghost edge endpoint dot */
+.ghostEdgeDot {
+  fill: var(--color-warning, #f59e0b);
+  opacity: 0.55;
+}

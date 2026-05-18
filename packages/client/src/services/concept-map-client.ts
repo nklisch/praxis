@@ -1,4 +1,5 @@
 import type {
+  ConceptId,
   ConceptLink,
   ConceptMapClientApi,
   ConceptMapDrawing,
@@ -6,6 +7,7 @@ import type {
   ConceptMapSummary,
   ConceptMapVersion,
   CourseId,
+  RippleSummary,
   TldrawSnapshot,
 } from "@praxis/core/types";
 import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
@@ -74,6 +76,31 @@ export class ConceptMapClient implements ConceptMapClientApi {
     const result = await this.transport.invoke<
       IpcEnvelope<ConceptMapVersion[]> | ConceptMapVersion[]
     >(`${C}.listVersions`, id);
+    return unwrapEnvelope(result);
+  }
+
+  async setNodeLink(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: string | null;
+    state: "linked" | "best_guess" | "unlinked";
+  }): Promise<ConceptMapDrawing> {
+    const result = await this.transport.invoke<IpcEnvelope<ConceptMapDrawing> | ConceptMapDrawing>(
+      `${C}.setNodeLink`,
+      input,
+    );
+    return unwrapEnvelope(result);
+  }
+
+  async computeRipples(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: ConceptId;
+  }): Promise<RippleSummary> {
+    const result = await this.transport.invoke<IpcEnvelope<RippleSummary> | RippleSummary>(
+      `${C}.computeRipples`,
+      input,
+    );
     return unwrapEnvelope(result);
   }
 }

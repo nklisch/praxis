@@ -4,9 +4,10 @@ import type {
   ConceptMapDrawing,
   ConceptMapSummary,
   ConceptMapVersion,
+  RippleSummary,
 } from "./artifacts.js";
 import type { TldrawSnapshot } from "./common.js";
-import type { ConceptMapId, CourseId, SessionId, StudentId } from "./ids.js";
+import type { ConceptId, ConceptMapId, CourseId, SessionId, StudentId } from "./ids.js";
 
 export interface ConceptMapService {
   /** Create a new empty map for (student, course). Title required. */
@@ -60,4 +61,34 @@ export interface ConceptMapService {
    * Persist divergences (output of the indexer) onto the live row.
    */
   setDivergences(id: ConceptMapId, divergences: ConceptMapDivergence[]): Promise<void>;
+
+  /**
+   * Update the `linkState` and optional selected `candidateId` on a concept-map
+   * node (identified by its tldraw `elementId`). When `candidateId` is non-null
+   * and `state` is `"linked"`, also sets `conceptId` to the candidate's
+   * canonical concept id, raising confidence to 1.0.
+   *
+   * Pass `candidateId: null` with `state: "unlinked"` to clear a link.
+   */
+  setNodeLink(input: {
+    mapId: ConceptMapId;
+    /** tldraw shape id — matches ConceptLink.elementId. */
+    elementId: string;
+    candidateId: string | null;
+    state: "linked" | "best_guess" | "unlinked";
+  }): Promise<ConceptMapDrawing>;
+
+  /**
+   * Compute the downstream consequences of confirming the link from
+   * `elementId` to `candidateId` (a canonical concept id). Returns a
+   * `RippleSummary` quantifying concept-count delta, notes that would be
+   * re-tagged, and tutor sessions that would resolve the node differently.
+   *
+   * The computation is hypothetical — nothing is persisted.
+   */
+  computeRipples(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: ConceptId;
+  }): Promise<RippleSummary>;
 }

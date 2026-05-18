@@ -1811,6 +1811,50 @@ export function registerIpcHandlers(
     }),
   );
 
+  const conceptMapSetNodeLinkSchema = z.object({
+    mapId: z.string().min(1, "mapId"),
+    elementId: z.string().min(1, "elementId"),
+    candidateId: z.string().nullable(),
+    state: z.enum(["linked", "best_guess", "unlinked"]),
+  });
+
+  handle(
+    "praxis.conceptMaps.setNodeLink",
+    handleEnvelope(
+      "praxis.conceptMaps.setNodeLink",
+      log,
+      conceptMapSetNodeLinkSchema,
+      async (opts) =>
+        services.conceptMaps.setNodeLink({
+          mapId: opts.mapId as ConceptMapId,
+          elementId: opts.elementId,
+          candidateId: opts.candidateId,
+          state: opts.state,
+        }),
+    ),
+  );
+
+  const conceptMapComputeRipplesSchema = z.object({
+    mapId: z.string().min(1, "mapId"),
+    elementId: z.string().min(1, "elementId"),
+    candidateId: z.string().min(1, "candidateId"),
+  });
+
+  handle(
+    "praxis.conceptMaps.computeRipples",
+    handleEnvelope(
+      "praxis.conceptMaps.computeRipples",
+      log,
+      conceptMapComputeRipplesSchema,
+      async (opts) =>
+        services.conceptMaps.computeRipples({
+          mapId: opts.mapId as ConceptMapId,
+          elementId: opts.elementId,
+          candidateId: opts.candidateId as ConceptId,
+        }),
+    ),
+  );
+
   // ── Activity rail ─────────────────────────────────────────────────────────────
 
   registerActivityHandlers(services, webContentsGetter, activeAbortControllers, log);

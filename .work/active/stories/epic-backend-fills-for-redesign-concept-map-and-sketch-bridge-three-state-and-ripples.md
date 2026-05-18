@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge-three-state-and-ripples
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-concept-map-and-sketch-bridge
 depends_on: []
@@ -81,3 +81,26 @@ See parent feature
 
 - Sketch → concept-map conversion (separate story).
 - Ripple-computation indexing for large corpora (follow-up).
+
+## Implementation notes
+
+- `linkState` and `candidates` added as optional fields on `ConceptLink` in
+  `packages/core/src/types/artifacts.ts` — backward-compatible; maps without
+  the field treat nodes as unlinked.
+- `setNodeLink` / `computeRipples` added to `ConceptMapService` interface and
+  `ConceptMapServiceImpl`. Ripple counts query `notes` (artifacts schema) and
+  `sessions` (memory schema) entirely in-process; SQL JSON path queries not
+  used (portability), concept-tag cross-check done in JS.
+- `ConceptLinkOverlay` extended with a `glyphs` state array computed on each
+  map/editor update. Glyph elements carry `aria-role="img"` with descriptive
+  labels. Ghost edge rendered as an absolute-positioned SVG overlay; activated
+  by `mouseEnter` on a `best_guess` glyph, removed on `mouseLeave`.
+- New `<RipplesPanel>` component follows the `useResource` pattern — fires
+  `computeRipples` whenever `elementId + candidateId` are both non-null, shows
+  animated loading dot while in-flight, and resets to idle dashes when cleared.
+- IPC channels added to `ipc-server.ts` using the `wrapEnvelope` / Zod
+  validation pattern. Client methods added to `concept-map-client.ts` and the
+  `ConceptMapClientApi` type.
+- 69 new tests green across 4 files (service, UI overlay, ripples panel, IPC
+  harness). Pre-existing lint failures in `.mockups/` and one flaky
+  `use-fragment-overrides` test are unrelated and untouched.

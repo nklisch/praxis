@@ -1,10 +1,18 @@
 /**
- * Phase 15b: ConceptLinkOverlay
+ * Phase 15b + three-state: ConceptLinkOverlay
  *
  * Watches for tldraw text-shape label edits, fuzzy-matches against the
  * course's canonical concepts, and shows a floating typeahead near the shape.
  * Clicking a match fires onLink({ elementId, conceptId, confidence }).
- * Linked shapes get a § marker overlay positioned near their screen coords.
+ *
+ * Three-state glyph overlays:
+ *   ✓  (linked)     — student confirmed canonical link
+ *   ?  (best_guess) — Praxis tentative match awaiting confirmation
+ *   ○  (unlinked)   — no canonical link yet (no glyph shown — just absence)
+ *
+ * Ghost edges: hovering a `best_guess` node renders a floating dashed connector
+ * to a placeholder near the map center to suggest the candidate relationship
+ * before the student confirms.
  *
  * The `editorRef` is populated by the parent (ConceptMapEditorRoute) via its
  * tldraw onMount callback. The overlay subscribes to store changes in a
@@ -45,11 +53,41 @@ export interface ConceptLinkOverlayProps {
   onLink: (link: ConceptLink) => void;
 }
 
+/** Resolved screen-space bounding rect for a tldraw shape. */
+interface ShapeBoundsScreen {
+  x: number;
+  y: number;
+  maxX: number;
+  maxY: number;
+}
+
 interface TypeaheadState {
   shapeId: string;
   screenX: number;
   screenY: number;
   matches: ConceptMatch[];
+}
+
+/** State for a three-state glyph positioned near a node. */
+interface GlyphMarker {
+  shapeId: string;
+  screenX: number;
+  screenY: number;
+  /** Display glyph: ✓ for linked, ? for best_guess */
+  glyph: "✓" | "?";
+  linkState: "linked" | "best_guess";
+}
+
+/** Ghost edge drawn from a best_guess node toward a phantom "canonical" anchor. */
+interface GhostEdge {
+  /** Shape being hovered. */
+  shapeId: string;
+  /** Start = center of the hovered shape (screen coords). */
+  x1: number;
+  y1: number;
+  /** End = a nearby phantom anchor position (screen coords). */
+  x2: number;
+  y2: number;
 }
 
 interface MarkerState {
@@ -69,7 +107,13 @@ export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: Concept
   // Active typeahead popup.
   const [typeahead, setTypeahead] = useState<TypeaheadState | null>(null);
 
-  // § markers for linked shapes.
+  // Three-state glyph markers (✓ and ?) for linked/best_guess nodes.
+  const [glyphs, setGlyphs] = useState<GlyphMarker[]>([]);
+
+  // Ghost edge for the currently hovered best_guess node.
+  const [ghostEdge, setGhostEdge] = useState<GhostEdge | null>(null);
+
+  // § markers for linked shapes (legacy — kept for backwards compat).
   const [markers, setMarkers] = useState<MarkerState[]>([]);
 
   // Fetch canonical concepts on mount.
@@ -179,6 +223,35 @@ export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: Concept
     setMarkers(nextMarkers);
   }, [editorRef, map.conceptLinks]);
 
+  // Compute three-state glyph markers (✓ / ?) whenever conceptLinks change.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) {
+      setGlyphs([]);
+      return;
+    }
+
+    const nextGlyphs: GlyphMarker[] = [];
+    for (const link of map.conceptLinks) {
+      const state = link.linkState ?? "unlinked";
+      if (state === "unlinked") continue; // no glyph for unlinked nodes
+
+      const bounds = editor.getShapePageBounds(link.elementId as TLShapeId);
+      if (!bounds) continue;
+
+      // Position the glyph at the top-right corner of the shape.
+      const screenPt = editor.pageToScreen({ x: bounds.maxX, y: bounds.y });
+      nextGlyphs.push({
+        shapeId: link.elementId,
+        screenX: screenPt.x + 2,
+        screenY: screenPt.y - 2,
+        glyph: state === "linked" ? "✓" : "?",
+        linkState: state,
+      });
+    }
+    setGlyphs(nextGlyphs);
+  }, [editorRef, map.conceptLinks]);
+
   const handleSelect = useCallback(
     (match: ConceptMatch, shapeId: string) => {
       onLink({
@@ -193,8 +266,58 @@ export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: Concept
 
   const handleDismiss = useCallback(() => setTypeahead(null), []);
 
+  // Ghost edge: show on hover of a best_guess glyph marker.
+  const handleGlyphMouseEnter = useCallback(
+    (glyph: GlyphMarker) => {
+      if (glyph.linkState !== "best_guess") return;
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      // Center of hovered shape as start point.
+      const bounds = editor.getShapePageBounds(glyph.shapeId as TLShapeId);
+      if (!bounds) return;
+      const centerPt = editor.pageToScreen({
+        x: bounds.x + bounds.w / 2,
+        y: bounds.y + bounds.h / 2,
+      });
+
+      // Ghost end = offset 120px to the right and 40px up (suggests a canonical neighbor).
+      setGhostEdge({
+        shapeId: glyph.shapeId,
+        x1: centerPt.x,
+        y1: centerPt.y,
+        x2: centerPt.x + 120,
+        y2: centerPt.y - 40,
+      });
+    },
+    [editorRef],
+  );
+
+  const handleGlyphMouseLeave = useCallback(() => {
+    setGhostEdge(null);
+  }, []);
+
   return (
     <div className={styles.overlay} aria-live="polite">
+      {/* Ghost edge SVG — drawn below all interactive elements */}
+      {ghostEdge && (
+        <svg
+          className={styles.ghostEdgeSvg}
+          aria-hidden="true"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        >
+          <line
+            className={styles.ghostEdge}
+            x1={ghostEdge.x1}
+            y1={ghostEdge.y1}
+            x2={ghostEdge.x2}
+            y2={ghostEdge.y2}
+          />
+          {/* Ghost arrowhead at end */}
+          <circle cx={ghostEdge.x2} cy={ghostEdge.y2} r={4} className={styles.ghostEdgeDot} />
+        </svg>
+      )}
+
       {/* Floating typeahead popup near the editing shape */}
       {typeahead && typeahead.matches.length > 0 && (
         <div
@@ -232,7 +355,31 @@ export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: Concept
         </div>
       )}
 
-      {/* § markers for already-linked shapes */}
+      {/* Three-state glyph markers: ✓ (linked) or ? (best_guess) */}
+      {glyphs.map((glyph) => (
+        <span
+          key={glyph.shapeId}
+          className={glyph.linkState === "linked" ? styles.linkedGlyph : styles.bestGuessGlyph}
+          style={{ left: glyph.screenX, top: glyph.screenY }}
+          aria-label={
+            glyph.linkState === "linked"
+              ? "Confirmed canonical link"
+              : "Tentative canonical link — click to confirm"
+          }
+          title={
+            glyph.linkState === "linked"
+              ? "Linked to canonical concept"
+              : "Best-guess match — hover to preview, click to confirm"
+          }
+          onMouseEnter={() => handleGlyphMouseEnter(glyph)}
+          onMouseLeave={handleGlyphMouseLeave}
+          role="img"
+        >
+          {glyph.glyph}
+        </span>
+      ))}
+
+      {/* § markers for already-linked shapes (legacy support) */}
       {markers.map((marker) => (
         <span
           key={marker.shapeId}

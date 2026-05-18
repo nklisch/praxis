@@ -1,8 +1,10 @@
-import { conceptMaps, conceptMapVersions } from "@praxis/memory/schema";
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { notes } from "@praxis/artifacts/schema";
+import { conceptMaps, conceptMapVersions, sessions } from "@praxis/memory/schema";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
+  ConceptId,
   ConceptLink,
   ConceptMapDivergence,
   ConceptMapDrawing,
@@ -12,6 +14,7 @@ import type {
   ConceptMapVersion,
   CourseId,
   Logger,
+  RippleSummary,
   SessionId,
   StudentId,
   Timestamp,
@@ -267,5 +270,153 @@ export class ConceptMapServiceImpl implements ConceptMapService {
       .set({ divergencesJson: divergences, updatedAt: new Date() })
       .where(eq(conceptMaps.id, id))
       .run();
+  }
+
+  async setNodeLink(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: string | null;
+    state: "linked" | "best_guess" | "unlinked";
+  }): Promise<ConceptMapDrawing> {
+    const map = await this.get(input.mapId);
+    if (!map) throw new Error(`ConceptMapService.setNodeLink: map not found: ${input.mapId}`);
+
+    const existingLinks = map.conceptLinks as ConceptLink[];
+
+    // Build the updated conceptLinks array.
+    // If we're unlinking, remove the element's entry entirely (or set it to unlinked state).
+    let updatedLinks: ConceptLink[];
+
+    if (input.state === "unlinked" && input.candidateId === null) {
+      // Clear the link — remove the node from conceptLinks.
+      updatedLinks = existingLinks.filter((l) => l.elementId !== input.elementId);
+    } else {
+      const conceptId =
+        input.candidateId !== null
+          ? (brandId<"ConceptId">(input.candidateId) as ConceptId)
+          : // If no candidateId, keep existing conceptId if one exists, else use placeholder.
+            (existingLinks.find((l) => l.elementId === input.elementId)?.conceptId ??
+            (brandId<"ConceptId">(input.elementId) as ConceptId));
+
+      const confidence = input.state === "linked" ? 1.0 : 0.0;
+
+      const existing = existingLinks.find((l) => l.elementId === input.elementId);
+      const updatedLink: ConceptLink = {
+        elementId: input.elementId,
+        conceptId,
+        confidence,
+        linkState: input.state,
+        // Keep existing candidates when transitioning to/from best_guess.
+        ...(existing?.candidates !== undefined && { candidates: existing.candidates }),
+      };
+
+      if (existing !== undefined) {
+        updatedLinks = existingLinks.map((l) =>
+          l.elementId === input.elementId ? updatedLink : l,
+        );
+      } else {
+        updatedLinks = [...existingLinks, updatedLink];
+      }
+    }
+
+    this.deps.db
+      .update(conceptMaps)
+      .set({ conceptLinksJson: updatedLinks, updatedAt: new Date() })
+      .where(eq(conceptMaps.id, input.mapId))
+      .run();
+
+    const updated = await this.get(input.mapId);
+    if (!updated) {
+      throw new Error(`ConceptMapService.setNodeLink: not found after update: ${input.mapId}`);
+    }
+    return updated;
+  }
+
+  async computeRipples(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: ConceptId;
+  }): Promise<RippleSummary> {
+    const map = await this.get(input.mapId);
+    if (!map) {
+      return { conceptCountDelta: 0, notesRetagged: 0, tutorRefsAffected: 0 };
+    }
+
+    // ── conceptCountDelta ─────────────────────────────────────────────────────
+    // Count distinct canonical concept ids currently linked (excluding this node's
+    // current mapping, if any). Then determine how many NEW concepts this link adds.
+    const currentLinkedConceptIds = new Set(
+      map.conceptLinks
+        .filter((l) => l.elementId !== input.elementId && l.linkState !== "unlinked")
+        .map((l) => l.conceptId as string),
+    );
+    const candidateStr = input.candidateId as string;
+    const conceptCountDelta = currentLinkedConceptIds.has(candidateStr) ? 0 : 1;
+
+    // ── notesRetagged ─────────────────────────────────────────────────────────
+    // Notes whose contextJson.conceptIds do NOT currently include this candidate
+    // but whose linksJson includes a reference to this map — those notes would
+    // gain the canonical concept tag upon link confirmation.
+    // v1: we count notes belonging to this map's student that don't already
+    // have candidateId in their context.conceptIds. The "would be retagged" heuristic
+    // is: notes associated with this course that don't yet carry the candidate concept.
+    let notesRetagged = 0;
+    try {
+      // Query notes for this student + course that lack candidateId in their contextJson.
+      // contextJson is { courseId?, lessonId?, sessionId?, conceptIds? }
+      // We can't SQL-query inside JSON arrays portably, so we pull all student notes
+      // for this course and filter in JS. This is v1 — acceptable for small corpora.
+      const studentNotes = this.deps.db
+        .select()
+        .from(notes)
+        .where(eq(notes.studentId, map.studentId))
+        .all();
+
+      for (const noteRow of studentNotes) {
+        const ctx = noteRow.contextJson as {
+          courseId?: string;
+          lessonId?: string;
+          sessionId?: string;
+          conceptIds?: string[];
+        } | null;
+        // Only count notes associated with this course (or without a specific course).
+        const notesCourseId = ctx?.courseId;
+        if (notesCourseId !== undefined && notesCourseId !== (map.courseId as string)) {
+          continue;
+        }
+        const conceptIds = ctx?.conceptIds ?? [];
+        if (!conceptIds.includes(candidateStr)) {
+          notesRetagged++;
+        }
+      }
+    } catch {
+      // Non-fatal — ripple count degrades gracefully to 0 if notes query fails.
+      notesRetagged = 0;
+    }
+
+    // ── tutorRefsAffected ─────────────────────────────────────────────────────
+    // Count open (non-ended) teach-mode sessions for this student+course that
+    // reference the map's course. These sessions would see the link resolve
+    // differently next time the tutor queries the concept map.
+    let tutorRefsAffected = 0;
+    try {
+      const openSessionRows = this.deps.db
+        .select({ id: sessions.id })
+        .from(sessions)
+        .where(
+          and(
+            eq(sessions.studentId, map.studentId),
+            eq(sessions.courseId, map.courseId as string),
+            sql`${sessions.endedAt} IS NULL`,
+          ),
+        )
+        .all();
+      tutorRefsAffected = openSessionRows.length;
+    } catch {
+      // Non-fatal.
+      tutorRefsAffected = 0;
+    }
+
+    return { conceptCountDelta, notesRetagged, tutorRefsAffected };
   }
 }

@@ -20,6 +20,7 @@ import type {
   Note,
   NoteContext,
   Reference,
+  RippleSummary,
   SuccessCriteria,
   ThresholdConfig,
 } from "./artifacts.js";
@@ -211,6 +212,25 @@ export interface ConceptMapClientApi {
     conceptLinks: ConceptLink[];
   }): Promise<ConceptMapDrawing>;
   listVersions(id: ConceptMapId): Promise<ConceptMapVersion[]>;
+  /**
+   * Update the three-state link status on a single concept-map node.
+   * Returns the updated ConceptMapDrawing.
+   */
+  setNodeLink(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: string | null;
+    state: "linked" | "best_guess" | "unlinked";
+  }): Promise<ConceptMapDrawing>;
+  /**
+   * Compute the downstream ripple summary for hypothetically linking
+   * `elementId` → `candidateId` (canonical concept id) on the given map.
+   */
+  computeRipples(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: ConceptId;
+  }): Promise<RippleSummary>;
 }
 
 /**

@@ -2,6 +2,7 @@ import { openDb } from "@praxis/core/db";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import type {
+  ConceptId,
   ConceptLink,
   ConceptMapId,
   CourseId,
@@ -313,6 +314,153 @@ describe("ConceptMapServiceImpl", () => {
       await service.setDivergences(map.id, divergences);
       const updated = await service.get(map.id);
       expect(updated?.divergences).toEqual(divergences);
+    });
+  });
+
+  describe("setNodeLink", () => {
+    it("adds a new link with best_guess state", async () => {
+      const { service } = makeService();
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Link Map",
+      });
+
+      const updated = await service.setNodeLink({
+        mapId: map.id,
+        elementId: "shape:node1",
+        candidateId: "concept-algebra-1",
+        state: "best_guess",
+      });
+
+      expect(updated.conceptLinks).toHaveLength(1);
+      const link = updated.conceptLinks[0];
+      expect(link?.elementId).toBe("shape:node1");
+      expect(link?.linkState).toBe("best_guess");
+      expect(link?.conceptId as string).toBe("concept-algebra-1");
+    });
+
+    it("promotes best_guess to linked and sets confidence to 1.0", async () => {
+      const { service } = makeService();
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Promote Map",
+      });
+
+      // First set as best_guess.
+      await service.setNodeLink({
+        mapId: map.id,
+        elementId: "shape:node1",
+        candidateId: "concept-geo-1",
+        state: "best_guess",
+      });
+
+      // Confirm (promote to linked).
+      const confirmed = await service.setNodeLink({
+        mapId: map.id,
+        elementId: "shape:node1",
+        candidateId: "concept-geo-1",
+        state: "linked",
+      });
+
+      const link = confirmed.conceptLinks.find((l) => l.elementId === "shape:node1");
+      expect(link?.linkState).toBe("linked");
+      expect(link?.confidence).toBe(1.0);
+    });
+
+    it("clears a link when state is unlinked and candidateId is null", async () => {
+      const { service } = makeService();
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Clear Map",
+      });
+
+      await service.setNodeLink({
+        mapId: map.id,
+        elementId: "shape:node1",
+        candidateId: "concept-bio-1",
+        state: "linked",
+      });
+
+      const cleared = await service.setNodeLink({
+        mapId: map.id,
+        elementId: "shape:node1",
+        candidateId: null,
+        state: "unlinked",
+      });
+
+      expect(cleared.conceptLinks.find((l) => l.elementId === "shape:node1")).toBeUndefined();
+    });
+
+    it("throws when the map does not exist", async () => {
+      const { service } = makeService();
+      await expect(
+        service.setNodeLink({
+          mapId: brandId<"ConceptMapId">("nonexistent") as ConceptMapId,
+          elementId: "shape:x",
+          candidateId: "concept-x",
+          state: "linked",
+        }),
+      ).rejects.toThrow(/not found/);
+    });
+  });
+
+  describe("computeRipples", () => {
+    it("returns zero counts for an empty map with no notes/sessions", async () => {
+      const { service } = makeService();
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Ripple Map",
+      });
+
+      const ripples = await service.computeRipples({
+        mapId: map.id,
+        elementId: "shape:node1",
+        candidateId: brandId<"ConceptId">("concept-new") as ConceptId,
+      });
+
+      // No notes, no open sessions → all zeros; adding a new concept counts as +1.
+      expect(ripples.conceptCountDelta).toBe(1);
+      expect(ripples.notesRetagged).toBe(0);
+      expect(ripples.tutorRefsAffected).toBe(0);
+    });
+
+    it("returns conceptCountDelta of 0 when candidate is already linked on another node", async () => {
+      const { service } = makeService();
+      const map = await service.create({
+        studentId: STUDENT_A,
+        courseId: COURSE_X,
+        title: "Dup Map",
+      });
+
+      // Link another node to the same candidate first.
+      await service.setNodeLink({
+        mapId: map.id,
+        elementId: "shape:node1",
+        candidateId: "concept-dup",
+        state: "linked",
+      });
+
+      const ripples = await service.computeRipples({
+        mapId: map.id,
+        elementId: "shape:node2",
+        candidateId: brandId<"ConceptId">("concept-dup") as ConceptId,
+      });
+
+      expect(ripples.conceptCountDelta).toBe(0);
+    });
+
+    it("returns zeros gracefully for a nonexistent map", async () => {
+      const { service } = makeService();
+      const ripples = await service.computeRipples({
+        mapId: brandId<"ConceptMapId">("nonexistent") as ConceptMapId,
+        elementId: "shape:x",
+        candidateId: brandId<"ConceptId">("concept-x") as ConceptId,
+      });
+      expect(ripples).toEqual({ conceptCountDelta: 0, notesRetagged: 0, tutorRefsAffected: 0 });
     });
   });
 });

@@ -1,0 +1,101 @@
+/* RipplesPanel — downstream consequence summary for a link confirmation candidate. */
+
+.panel {
+  background: var(--color-bg-secondary, #1a1a1a);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  min-width: 200px;
+}
+
+.panelMuted {
+  opacity: 0.55;
+}
+
+/* ── Header ── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.headerLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--color-text-secondary, #888);
+}
+
+/* Animated loading dot */
+.loadingDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent, #6366f1);
+  opacity: 0.8;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* ── Stats row ── */
+
+.stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 56px;
+}
+
+.statLabel {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-secondary, #888);
+  white-space: nowrap;
+}
+
+.statValue {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #f0f0f0);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.statMuted {
+  color: var(--color-text-tertiary, #555);
+}
+
+/* ── Hint messages ── */
+
+.emptyHint,
+.errorHint {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #888);
+}
+
+.errorHint {
+  color: var(--color-error, #ef4444);
+}
