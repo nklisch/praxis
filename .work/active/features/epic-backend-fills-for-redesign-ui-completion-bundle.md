@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # UI completion bundle
@@ -167,3 +167,23 @@ green across all six.
 - **`spawnFromNote` injection format may drift from
   `spawnFromAssignment`**. Mitigation: read `spawnFromAssignment` as
   the template; mirror the opening-turn structure exactly.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none at feature level (child-level nits recorded in story bodies)
+
+**Notes**: All 6 child stories reached `stage: done` with passing reviews.
+Two stories required follow-up work before approval:
+`quiz-confidence` bounced once (debounce stale-closure bug fixed in
+`quiz-confidence-debounce-fix`); `lesson-assessment-render` approved with
+a minor important finding parked to backlog
+(`lesson-assessment-pills-add-catch-on-fetch`). The remaining four stories
+(theme-persistence, create-course-cta, exam-timer, spawn-from-note) approved
+on first pass. Aggregate acceptance: `pnpm typecheck && pnpm lint && pnpm test`
+green (3883+ tests passing at final story review). No foundation-doc drift.
+No breaking changes. Parent epic `epic-backend-fills-for-redesign` has 5
+siblings not yet done — feature stays in active.
