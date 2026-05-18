@@ -1,7 +1,7 @@
 ---
 id: document-tab-body-lint-cleanup
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -67,3 +67,13 @@ while (node !== null) {
   the manual rewrites.
 - All 1580 UI tests pass; pre-existing typecheck errors in unrelated files
   (`chat-tab-body.tsx`, `chat.tsx`, `notes-list.tsx`) are unchanged.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Textbook cleanup. Both TreeWalker loops rewritten identically to the prescribed pattern; semantics are unchanged. Removing the `biome-ignore` suppression comment on `computeRangeOffset` is correct — the rewrite makes it redundant. `_root` prefix on unused parameter follows the project convention cleanly. The scope item noted `useLiteralKeys` as a fix needed, but it was already clean in source; noted honestly in implementation notes. No logic change, no risk.

@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-first-run-flow-engine-select-label
 kind: story
-stage: review
+stage: done
 tags: [ui, a11y]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on: []
@@ -66,3 +66,13 @@ Three regression tests added to `onboarding-flow.test.tsx` in a new `EngineStep 
 3. API key field is absent for the `claude-code` engine (existing conditional render still correct).
 
 `@praxis/ui` typechecks clean; lint clean on changed files; all 19 tests pass.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Minimal, correct fix. `<span>` → `<label htmlFor>` is the right native-semantics approach; ids are suitably namespaced (`onboarding-engine-select`, `onboarding-api-key-input`) to avoid collisions. Three `getByLabelText` regression tests are the ideal guard — they fail the moment the association breaks again. Conditional-render test (third test) is a good bonus. No behavioral, visual, or structural changes beyond the accessibility fix.

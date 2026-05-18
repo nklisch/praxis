@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-cornell-fix-nested-interactive
 kind: story
-stage: review
+stage: done
 tags: [ui, a11y]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: []
@@ -72,3 +72,13 @@ tabIndex={0}>` to remove the invalid nested interactive content. Key changes:
   Biome 2) — this was not introduced by this change; the section is unchanged
   from the original commit.
 - All 17 tests pass. Full suite (4461 tests) green.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Correct fix for invalid HTML5 content model. `<div role="button" tabIndex={0}>` with Enter/Space `onKeyDown` satisfies keyboard accessibility equivalence to a real button. `onClick` propagation guard on `<textarea>` correctly retained (prevents cue-scroll on every text click). `biome-ignore lint/a11y/useSemanticElements` suppression is well-justified with an explanatory comment — this is the one case where a native `<button>` cannot be used. CSS comment updated to match new element. The pre-existing `noArrayIndexKey` lint note is acknowledged correctly as out of scope. No behavioral regression.
