@@ -113,6 +113,9 @@ function makeClient(
       delete: vi.fn(),
       updateScene: vi.fn().mockImplementation(async (input) => ({ ...makeMap(), ...input })),
       listVersions: vi.fn().mockResolvedValue(versions),
+      computeRipples: vi
+        .fn()
+        .mockResolvedValue({ conceptCountDelta: 0, notesRetagged: 0, tutorRefsAffected: 0 }),
     },
     artifacts: {
       courses: vi.fn().mockResolvedValue([]),
@@ -175,33 +178,37 @@ describe("ConceptMapEditorRoute", () => {
     });
   });
 
-  it("renders the toolbar with 'Show canonical hints' and 'Rename' buttons", async () => {
+  it("renders the three-column surface layout", async () => {
     renderRoute(makeClient());
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Show canonical hints/i })).toBeDefined();
-      expect(screen.getByRole("button", { name: /Rename/i })).toBeDefined();
+      // Three-column surface is present.
+      expect(screen.getByTestId("three-column-surface")).toBeDefined();
+      // Left tools rail is present.
+      expect(screen.getByTestId("tools-rail")).toBeDefined();
+      // Canvas area is present.
+      expect(screen.getByTestId("canvas-area")).toBeDefined();
+      // Right hints panel is always visible (no toggle needed).
+      expect(screen.getByTestId("hints-panel")).toBeDefined();
     });
   });
 
-  it("toggles hints overlay text when 'Show canonical hints' is clicked", async () => {
+  it("renders the Rename button and drawing tool buttons", async () => {
     renderRoute(makeClient());
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Show canonical hints/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /Rename/i })).toBeDefined();
+      // Select tool is in the tools rail.
+      expect(screen.getByRole("button", { name: /Select/i })).toBeDefined();
     });
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: /Show canonical hints/i }));
+  it("renders the RipplesPanel in the hints panel", async () => {
+    renderRoute(makeClient());
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Hide canonical hints/i })).toBeDefined();
-    });
-
-    // Toggle back off
-    fireEvent.click(screen.getByRole("button", { name: /Hide canonical hints/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Show canonical hints/i })).toBeDefined();
+      // RipplesPanel renders its testid.
+      expect(screen.getByTestId("ripples-panel")).toBeDefined();
     });
   });
 

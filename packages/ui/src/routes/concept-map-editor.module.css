@@ -1,55 +1,101 @@
+/* ── Layout wrapper ──────────────────────────────────────────────────────── */
+
 .layout {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  padding: 1.5rem 1.5rem 0;
-  gap: 0.75rem;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-serif);
 }
 
 .status {
+  padding: 1.5rem;
   color: var(--color-text-secondary, #aaa);
   font-size: 0.9rem;
 }
 
 .error {
-  color: var(--color-danger);
+  padding: 1.5rem;
+  color: var(--color-danger, #ef4444);
   font-size: 0.9rem;
 }
 
-.backBtn {
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary, #aaa);
-  font-size: 0.85rem;
+/* ── Editor strip ────────────────────────────────────────────────────────── */
+
+.editorStrip {
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.editorKicker {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.editorTitle {
+  font: 500 italic 20px / 1.2 var(--font-display, var(--font-serif));
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editorDeck {
+  font: italic 12px / 1 var(--font-serif);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.editorActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  font: 500 12px / 1 var(--font-sans, system-ui);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 4px);
   cursor: pointer;
-  padding: 0;
-  text-align: left;
-  transition: color 0.15s;
+  border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.2));
+  background: transparent;
+  color: var(--color-text-primary);
+  transition: border-color 0.15s;
 }
 
-.backBtn:hover {
-  color: var(--color-text-primary, inherit);
+.actionBtn:hover {
+  border-color: var(--color-accent, #6366f1);
+  color: var(--color-text-primary);
 }
 
-/* Inline rename form */
+/* Inline rename row */
 .renameRow {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
+  flex: 1;
 }
 
 .renameInput {
   flex: 1;
-  max-width: 400px;
-  padding: 0.4rem 0.65rem;
+  max-width: 360px;
+  padding: 0.35rem 0.6rem;
   background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--color-accent, #6366f1);
-  border-radius: 5px;
-  color: var(--color-text-primary, inherit);
-  font-size: 0.95rem;
-  font-weight: 600;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-text-primary);
+  font: italic 18px / 1 var(--font-display, var(--font-serif));
 }
 
 .renameInput:focus {
@@ -61,10 +107,9 @@
   background: var(--color-accent, #6366f1);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
-  padding: 0.4rem 0.85rem;
-  border-radius: 5px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-sm, 4px);
+  font: 600 12px / 1 var(--font-sans, system-ui);
   cursor: pointer;
   transition: opacity 0.15s;
 }
@@ -75,57 +120,380 @@
 
 .renameCancelBtn {
   background: transparent;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   border: none;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.85rem;
+  padding: 0.35rem 0.6rem;
+  font: 12px / 1 var(--font-sans, system-ui);
   cursor: pointer;
   transition: color 0.15s;
 }
 
 .renameCancelBtn:hover {
-  color: var(--color-text-primary, inherit);
+  color: var(--color-text-primary);
 }
 
-/* Toolbar */
-.toolbar {
-  display: flex;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
+/* ── Three-column surface ─────────────────────────────────────────────────── */
 
-.toolbarBtn {
-  background: transparent;
-  color: var(--color-text-secondary, #aaa);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  padding: 0.35rem 0.85rem;
-  border-radius: 5px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.toolbarBtn:hover {
-  color: var(--color-text-primary, inherit);
-  border-color: var(--color-accent, #6366f1);
-}
-
-/* Canvas container — fills remaining space; position: relative for overlays */
-.canvasContainer {
+.surface {
+  display: grid;
+  grid-template-columns: 56px 1fr 320px;
   flex: 1;
-  position: relative;
   overflow: hidden;
-  /* Small bottom padding so tldraw UI doesn't clip at the edge */
-  margin-bottom: 0;
+  min-height: 0;
 }
 
-/* Inner tldraw wrapper — fills the container */
+/* ── Left tools rail ──────────────────────────────────────────────────────── */
+
+.toolsRail {
+  border-right: 1px solid var(--color-border);
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-bg-primary);
+  overflow-y: auto;
+}
+
+.toolGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.toolGroup + .toolGroup {
+  border-top: 1px solid var(--color-border);
+  padding-top: 6px;
+  margin-top: 4px;
+}
+
+.tool {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  transition:
+    background 0.1s,
+    color 0.1s;
+}
+
+.tool:hover {
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
+  color: var(--color-text-primary);
+}
+
+.toolActive {
+  background: var(--color-accent-muted, rgba(99, 102, 241, 0.15));
+  color: var(--color-accent, #6366f1);
+}
+
+.toolActive:hover {
+  background: var(--color-accent-muted, rgba(99, 102, 241, 0.2));
+  color: var(--color-accent, #6366f1);
+}
+
+.toolGlyph {
+  font: italic 18px / 1 var(--font-display, var(--font-serif));
+  pointer-events: none;
+}
+
+.toolMeta {
+  margin-top: auto;
+  padding-bottom: 12px;
+  font: 600 9px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  user-select: none;
+}
+
+/* ── Canvas area ──────────────────────────────────────────────────────────── */
+
+.canvas {
+  position: relative;
+  background: var(--color-bg-primary);
+  overflow: hidden;
+}
+
+/* Inner tldraw wrapper fills the container */
 .canvasInner {
   width: 100%;
   height: 100%;
   position: absolute;
   inset: 0;
+}
+
+/* Legend pills in top-left of canvas */
+.canvasLegend {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.legendPill {
+  background: var(--color-bg-secondary, rgba(20, 20, 20, 0.88));
+  border: 1px solid var(--color-border);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm, 4px);
+  font: 11px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  backdrop-filter: blur(4px);
+}
+
+.legendDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendLinked .legendDot {
+  background: var(--color-success, #22c55e);
+}
+
+.legendSuggested .legendDot {
+  background: var(--color-warning, #f59e0b);
+}
+
+.legendUnlinked .legendDot {
+  background: var(--color-text-tertiary, #555);
+}
+
+/* ── Right hints panel ────────────────────────────────────────────────────── */
+
+.hintsPanel {
+  border-left: 1px solid var(--color-border);
+  padding: 14px 16px;
+  overflow-y: auto;
+  background: var(--color-bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hintSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hintSectionTitle {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hintEmpty {
+  font: italic 12px / 1.4 var(--font-serif);
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+/* Selection card */
+.selectionCard {
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+  padding: 12px 14px;
+}
+
+.selectionKicker {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: 6px;
+}
+
+.selectionTitle {
+  font: 500 italic 16px / 1.2 var(--font-display, var(--font-serif));
+}
+
+/* Candidate list */
+.candidateList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.candidate {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  background: var(--color-bg-primary);
+  transition: border-color 0.12s;
+}
+
+.candidate:hover {
+  border-color: var(--color-accent, #6366f1);
+}
+
+.candidateChosen {
+  border-color: var(--color-warning, #f59e0b);
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.03));
+}
+
+.candidateHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.candidateName {
+  font: 500 italic 13px / 1.2 var(--font-display, var(--font-serif));
+  flex: 1;
+  color: var(--color-text-primary);
+}
+
+.candidateConfidence {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.candidateDefinition {
+  font: 11px / 1.5 var(--font-serif);
+  color: var(--color-text-secondary);
+  margin: 4px 0 0;
+}
+
+/* Confirm link row */
+.confirmRow {
+  display: flex;
+}
+
+.confirmBtn {
+  background: var(--color-success, #22c55e);
+  color: #fff; /* intentional literal: always white regardless of theme */
+  border: none;
+  padding: 7px 16px;
+  border-radius: var(--radius-sm, 4px);
+  font: 600 12px / 1 var(--font-sans, system-ui);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.confirmBtn:hover {
+  opacity: 0.85;
+}
+
+/* "Make it your own" escape hatch */
+.ownConceptBox {
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
+  border-radius: var(--radius-sm, 4px);
+  padding: 10px 12px;
+}
+
+.ownConceptLabel {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: 6px;
+}
+
+.ownConceptInput {
+  width: 100%;
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.18));
+  border-radius: var(--radius-sm, 4px);
+  padding: 6px 10px;
+  font: italic 12px / 1.4 var(--font-serif);
+  outline: none;
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+
+.ownConceptInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.ownConceptInput:focus {
+  border-color: var(--color-accent, #6366f1);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* Undrawn canonical concepts list */
+.undrawnList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.undrawnItem {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+
+.undrawnItem:hover {
+  border-color: var(--color-accent, #6366f1);
+}
+
+.undrawnName {
+  font: italic 12px / 1.2 var(--font-serif);
+  color: var(--color-text-secondary);
+}
+
+.undrawnAdd {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+  color: var(--color-accent, #6366f1);
+  opacity: 0;
+  transition: opacity 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Reveal on hover and touch */
+.undrawnItem:hover .undrawnAdd {
+  opacity: 1;
+}
+
+/* Show add button on touch devices */
+@media (hover: none) {
+  .undrawnAdd {
+    opacity: 1;
+  }
 }
