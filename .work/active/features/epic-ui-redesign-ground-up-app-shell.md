@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on: [epic-ui-redesign-ground-up-design-system]
@@ -110,16 +110,63 @@ every downstream surface mock that inherits the shell.
 
 ### Implementation outlook
 
-Implementation stories spawn at `stage:implementing`. Likely shape:
+## Design decisions
 
-- **Story:** swap `RootLayout` from left-rail to top-nav (Index shape)
-- **Story:** drop the blocking-modal `<ActivityRail>` mount; build the
-  near-invisible status strip pattern
-- **Story:** add the theme toggle (auto / light / dark) with
-  `data-theme` override; store user preference; wire to `tokens.css`
-- **Story:** first-run flow rework (after a flow mock pass)
-- **Story:** open-tabs italic deck-line strip in the running head
+- **Five parallel stories** along the locked design's natural seams
+  (top-nav, status strip, theme toggle, tabs strip, first-run flow).
+- **Theme toggle owned by `ui-completion-bundle-theme-persistence`**
+  (sibling backend-fills story) — this feature's app-shell story
+  mounts the toggle UI but the hook + storage lives in that sibling
+  story to avoid duplication. Declare a `depends_on` on it.
+- **First-run flow** lands last; needs a separate `.mockups/flows/first-run/`
+  pass once the chrome is solid.
 
-The bootstrap → course-create rename will affect the open-tabs strip
-example data ("Bootstrap · new" → "Create course") — covered by the
-parked backend rename item.
+## Implementation Units (one story each)
+
+1. **Root layout rebuild** — swap left-rail for top-nav Index shape.
+   - File: `packages/ui/src/router.tsx` (RootLayout component).
+2. **Status strip + ambient progress** — drop the blocking-modal
+   `<ActivityRail>` mount in favor of an inline near-invisible
+   status strip beneath the running head; folds existing activity
+   events into the strip.
+   - Files: `router.tsx` (mount), new
+     `packages/ui/src/components/status-strip.{tsx,module.css}`.
+3. **Theme toggle UI mount** — uses
+   `useTheme` from the ui-completion-bundle sibling story; renders
+   the 3-state segmented control at the right edge of the running
+   head. (Hook + storage live in the bundle story.)
+   - File: `router.tsx` mount the existing
+     `<ThemeToggle>` from the sibling story.
+4. **Open-tabs italic deck-line strip** — render the tab strip in the
+   running head per the locked mock; italic deck-line typography;
+   active state mapped to the locked palette.
+   - Files: `packages/ui/src/components/tab-strip.{tsx,module.css}`
+     restyle; `router.tsx` mount in the running head.
+5. **First-run flow rework** — after a mockup pass produces
+   `.mockups/flows/first-run/`, rebuild `OnboardingFlow` to match.
+   - Files: `packages/ui/src/components/onboarding-flow.tsx`,
+     possibly extracts to per-step components.
+
+## Implementation Order
+
+Stories 1 + 2 + 4 in parallel; Story 3 after design-system token
+swap (depends on `tokens.css` adoption); Story 5 after Story 1 (uses
+the new chrome).
+
+## Acceptance Criteria
+
+- [ ] Root layout uses top horizontal nav with five surface links + tabs strip.
+- [ ] Status strip surfaces ambient progress; idle = invisible.
+- [ ] Theme toggle visible in the running head; switching applies
+      `data-theme` to `<html>` and persists.
+- [ ] Open-tabs strip renders next to nav as italic deck lines.
+- [ ] First-run flow matches its locked mock.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Risks
+
+- **Activity rail consumers** — removing the rail removes the
+  blocking-modal behavior. Confirm no consumer depends on the
+  modal interaction; status strip only surfaces inline updates.
+- **First-run flow mock pass** is an additional design step; the
+  story can be deferred without blocking the rest.

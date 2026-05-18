@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -127,14 +127,35 @@ The session-open flow is implicit in session-loop steps 1-3 (Workbench
 → tab opens → mid-session) but warrants its own focused 2-3 step
 mock when ready.
 
-### Implementation outlook
+## Design decisions
 
-Likely implementation stories:
+- Three parallel stories per the outlook above.
+- Workbench consumes the `RecommendationService` from sibling
+  `epic-backend-fills-for-redesign-workbench-engine-recommendation-service`.
+- Course-create entry path produces session via existing
+  `praxisClient.bootstrap.startExploration` (or the renamed
+  equivalent post backend rename).
 
-- **Story:** rebuild `LibraryRoute` as the Workbench (what's-next
-  queue + lately timeline + footer cards)
-- **Story:** course-create entry path — library CTA, upload screen,
-  drafting page (with steering chat surface), draft-ready page,
-  materialize handoff
-- **Story:** session-open flow polishing — tab-slide-in animation,
-  "resumed" banner, scroll restoration
+## Implementation Units (one story each)
+
+1. **`-workbench-library-rebuild`** — Rebuild `LibraryRoute` as the
+   Workbench shape: greeting + what's-next queue (consumes
+   RecommendationService) + lately timeline + footer cards
+   (packs / concept maps / documents).
+2. **`-course-create-entry-path`** — Multi-page entry path:
+   library CTA → upload screen → drafting page (steering chat) →
+   draft-ready page → materialize handoff.
+3. **`-session-open-flow-polish`** — Tab-slide-in animation,
+   "resumed" banner, scroll restoration on resume.
+
+## Implementation Order
+
+Stories 1-3 parallel. Story 1 depends on the backend Workbench
+engine landing for the queue data.
+
+## Acceptance Criteria
+
+- [ ] LibraryRoute renders the Workbench shape per the locked mock.
+- [ ] Course-create entry path walks through the 5 steps.
+- [ ] Session-open flow has polish (animation, banner, scroll).
+- [ ] All quality checks green.

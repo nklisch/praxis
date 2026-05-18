@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -171,23 +171,48 @@ The Prompts tab's mode picker no longer lists "bootstrap" — it lists
 Backend rename (mode id, agent class, tool names) parked at
 `.work/backlog/idea-rename-bootstrap-and-explorer.md`.
 
-### Implementation outlook
+## Design decisions
 
-Likely implementation stories:
+- **Six parallel stories** per the outlook: shell rebuild + 4
+  subsurface canvases + entry-flow polish.
+- **Configurator chat infrastructure delegated** to sibling
+  `epic-backend-fills-for-redesign-drafter-configurator-chat` (5
+  stories covering the chat pane, tool-call entry, sub-agent block,
+  course-create body, prompt updates). This feature consumes those
+  primitives — does not duplicate.
+- **Dirty-state aggregation delegated** to sibling
+  `epic-backend-fills-for-redesign-cross-tab-state-dirty-tracker`.
 
-- **Story:** rebuild `configure.tsx` route as Canvas + Side Chat
-  (sub-surface tab strip + canvas + side chat panel + inspector strip)
-- **Story per subsurface:** rebuild each tab's canvas to its native
-  visualization
-  - Course tab — unit/lesson tree with lesson_assessments pills
-  - Gates tab — React Flow polish with edge-label thresholds and
-    warning-coloured unsaved-change edges
-  - Prompts tab — composed prompt fragment document (mode picker
-    rail + ordered fragments with per-fragment lock status + knobs)
-  - Memory tab — projection tabs (semantic / misconceptions /
-    procedural / affective / episodic) with table + cards per
-    projection
-- **Story:** Configurator chat infrastructure — the agentic loop that
-  emits tool-call diffs into the chat as reviewable patches
-  (keep / tweak / revert / cross-link to canvas)
-- **Story:** configure-entry / unlock flow polishing
+## Implementation Units (one story each)
+
+1. **`-canvas-side-chat-shell`** — Rebuild `configure.tsx` route as
+   Canvas + Side Chat: sub-surface tab strip at top + center canvas
+   + side chat panel + inspector strip beneath canvas. Mounts
+   `<AuthoringChatPane>` from sibling backend feature.
+2. **`-course-tab-canvas`** — Rebuild Course tab canvas: unit/lesson
+   tree with drag-reorderable units + nested lessons + assessment
+   pills (consumes
+   `epic-backend-fills-for-redesign-ui-completion-bundle-lesson-assessment-render`).
+3. **`-gates-tab-canvas`** — React Flow polish with edge-label
+   thresholds and warning-coloured unsaved-change edges.
+4. **`-prompts-tab-canvas`** — Mode picker rail + composed prompt
+   fragment document with per-fragment lock pills + knobs.
+5. **`-memory-tab-canvas`** — Projection tabs (semantic /
+   misconceptions / procedural / affective / episodic) with
+   per-projection table + cards.
+6. **`-configure-entry-flow`** — Unlock modal flow polish per
+   `.mockups/flows/configure-entry/`.
+
+## Implementation Order
+
+Story 1 (shell) gates stories 2–5 (canvas mounts inside the shell).
+Story 6 independent.
+
+## Acceptance Criteria
+
+- [ ] Configure route renders Canvas + Side Chat with sub-surface
+      tab strip.
+- [ ] Each of the four sub-surfaces renders its native canvas per
+      locked mock.
+- [ ] Configure-entry / unlock flow matches its locked mock.
+- [ ] All quality checks green.

@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat
 kind: feature
-stage: drafting
+stage: implementing
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore]
@@ -65,7 +65,83 @@ implementation feature).
 - `.mockups/screens/.../mode-course-create.html` and
   `.mockups/screens/.../configure/option-5.html` — re-mocked surfaces
 
-<!-- The design pass will define the AuthoringChatPane primitive (if
-extraction is warranted), the tool-entry rendering schema (summary +
-verdict + revert), the SubAgentBlock inline display contract, and the
-parent prompt deltas for bootstrap vs configure modes. -->
+## Design decisions
+
+- **Extract `AuthoringChatPane` from `ConfigureChatPane`.** Both
+  course-create and configure use the Canvas + Side Chat shape with
+  the same tool-entry rendering and revert affordance. One primitive,
+  two mounts.
+- **`<ToolCallEntry>` is the new render unit**, replacing the
+  invisible/collapsed tool call. Props: `{ name, summary, verdict,
+  actionId? }`. When `actionId` is set, surfaces ↶ revert.
+- **`<SubAgentBlock>` becomes inline marginalia**, subscribing to
+  `SubAgentRegistry` step events via a hook.
+- **Parent prompt deltas land in mode definitions** — `bootstrap.ts`
+  gets the drafter posture; `configure.ts` stays configurator
+  posture. Both updated to encourage liberal authoring-tool calls.
+
+## Architectural choice
+
+Five parallel stories along clean boundaries: chat-pane extraction,
+tool-entry rendering, sub-agent block restyle, course-create tab
+body shell, and parent-prompt updates.
+
+## Implementation Units (one story each)
+
+### Unit 1: `AuthoringChatPane` extraction
+**File**: `packages/ui/src/components/authoring-chat-pane.{tsx,module.css}`
+(new). Extract from `configure-chat-pane.tsx`. Generic over which
+mode (`course_create` vs `configure`) and which artifact id.
+`ConfigureChatPane` becomes a thin wrapper.
+
+### Unit 2: `<ToolCallEntry>` rendering
+**File**: `packages/ui/src/components/tool-call-entry.{tsx,module.css}`
+(new). Replaces inline tool-call rendering in `AuthoringChatPane`.
+Props: `{ name, summary, verdict, actionId? }`. When `actionId` is
+present, button calls
+`praxisClient.authoring.restoreAction({ actionId })`.
+
+### Unit 3: `<SubAgentBlock>` inline restyle
+Refactor existing `packages/ui/src/components/sub-agent-block.tsx` to
+inline marginalia style (italic, mono kicker, collapsed-by-default).
+Subscribe to step events via a hook reading from
+`SubAgentRegistry`'s subscribable channel (add the channel if it
+doesn't exist).
+
+### Unit 4: Course-create tab body shell
+Re-shape existing `packages/ui/src/components/bootstrap-tab-body.tsx`
+to mount Canvas (draft preview) + `AuthoringChatPane` (side chat) per
+mock `mode-course-create.html`.
+
+### Unit 5: Parent prompt updates
+`packages/curriculum/src/modes/bootstrap.ts` +
+`packages/curriculum/src/modes/configure.ts`. Update parent prompt
+fragments to encourage authoring-tool calls and frame Praxis as the
+drafter / configurator (no named "explorer").
+
+## Implementation Order
+
+Five stories, all depend on
+`epic-backend-fills-for-redesign-snapshot-restore-ipc` for the
+revert IPC. Internal sequencing:
+- Story 1 first (extraction)
+- Stories 2 + 3 + 5 in parallel after Story 1
+- Story 4 after Stories 1+2+3 (consumes them all)
+
+## Acceptance Criteria
+
+- [ ] `AuthoringChatPane` mounts under both configure and course-create.
+- [ ] Tool calls render as `<ToolCallEntry>` with revert button when
+      `actionId` available.
+- [ ] `<SubAgentBlock>` renders inline marginalia with live step events.
+- [ ] Course-create mode renders Canvas + Side Chat.
+- [ ] Parent prompts updated; no named "explorer" agent surfaces.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Risks
+
+- **`ConfigureChatPane` consumers** must switch to the extracted
+  primitive. Mitigation: keep `ConfigureChatPane` as a thin wrapper.
+- **Sub-agent step-event channel** may not exist. If
+  `SubAgentRegistry` doesn't publish events on a subscribable
+  channel today, add it as part of Story 3.

@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -164,19 +164,84 @@ backend rename lands, mode tints stay as `--tint-bootstrap` etc. in
   grounded in the result. Demonstrates parent/child session linkage
   visible across the open-tabs strip.
 
-### Implementation outlook
+## Design decisions
 
-Likely implementation stories:
+- **Many parallel stories.** Each tab body, the chat-shell, tool-call,
+  sub-agent renderer, and the two flows are independent visual
+  contracts; spawning one story each maximizes parallel fan-out.
+- **Course-create tab body delegated to backend-fills epic** —
+  `epic-backend-fills-for-redesign-drafter-configurator-chat-course-create-tab-body`
+  owns the Canvas + Side Chat rebuild for course-create. This feature
+  doesn't duplicate.
+- **Tool-call entry renderer delegated** to
+  `epic-backend-fills-for-redesign-drafter-configurator-chat-tool-call-entry`
+  for the configure / course-create surfaces. Teach mode reuses the
+  same primitive (it's mode-agnostic).
+- **Mode-switch flow** is light implementation; folds into the chat
+  shell rebuild story.
+- **Assignment-spawn flow** parent-child tab UX is delegated to
+  `epic-backend-fills-for-redesign-cross-tab-state-parent-child-and-system-note`.
 
-- **Story:** convert `ChatTabBody` to Refined Bubbles shape (drop
-  bubble outlines, switch to tint backgrounds, keep tab-body-isolation)
-- **Story:** convert tool-call rendering to `<details>` one-line
-  disclosure (verdict glyph + tool name + result preview + chevron)
-- **Story:** convert sub-agent rendering to inline marginalia
-  (`SubAgentBlock` re-style)
-- **Story:** each per-mode tab body — 6 stories, one per mode
-  (Quiz / Homework / Exam / Study-skills / Document / Course-create),
-  each rewriting its tab body component
-- **Story:** mode-switch flow polishing
-- **Story:** assignment-spawn flow — the system-event card, the
-  "calling-back" tab pulse, the system_note inline rendering
+## Implementation Units (one story each)
+
+1. **`-chat-shell-refined-bubbles`** — Convert `ChatTabBody` to
+   Refined Bubbles shape: drop bubble outlines, tint backgrounds,
+   keep tab-body-isolation. Restyle `Message` accordingly. Sticky
+   session-head with kicker + title + progress bar.
+2. **`-quiz-tab-body`** — Rewrite `QuizTabBody` to item-typed card
+   layout (no tutor mid-quiz; confidence band per item; item-status
+   rail). Note: confidence band lands via
+   `ui-completion-bundle-quiz-confidence`; this story is the surface
+   restyle.
+3. **`-homework-tab-body`** — Rewrite `HomeworkTabBody` to paginated
+   multi-item batch with save/skip/flag; agent answers clarifications
+   only.
+4. **`-exam-tab-body`** — Rewrite `ExamTabBody` to proctored chrome
+   (dimmed nav, exam strip, timer); timer + auto-submit added by
+   `ui-completion-bundle-exam-timer` sibling story.
+5. **`-study-skills-tab-body`** — Rewrite `StudySkillsTabBody` for
+   structured reflection with right-rail technique + observed
+   patterns + review queue.
+6. **`-document-tab-body`** — Rewrite `DocumentTabBody` for read-mostly
+   viewer; cited-passage highlights + selection bar lands via
+   `epic-backend-fills-for-redesign-document-viewer` sibling stories.
+7. **`-side-panels-restyle`** — Three-column layout (documents left,
+   session center, concepts + sidekick right) with the new tokens
+   per the locked mock.
+8. **`-tool-call-disclosure`** — Convert tool-call rendering to
+   `<details>` one-line disclosure (verdict glyph + tool name +
+   result preview + chevron). Generic — used by all chat surfaces.
+9. **`-sub-agent-marginalia`** — Sibling restyle work to
+   `drafter-configurator-chat-sub-agent-block-inline`; this story
+   covers the teach-mode surface mount (the chat-workspace cell that
+   embeds the block).
+10. **`-composer-restyle`** — Italic serif composer with accent
+    button + mono hints below.
+
+## Implementation Order
+
+Stories 1–10 in parallel where possible. Internal sequencing:
+- Story 1 (shell) gates 2-6 (per-mode bodies — they consume the shell).
+- Story 8 (tool-call) is independent of the rest.
+- Stories 7 + 10 independent.
+
+Cross-feature dependencies (per parent epic) handled via per-story
+`depends_on`.
+
+## Acceptance Criteria
+
+- [ ] All chat surfaces render with the locked Refined Bubbles base.
+- [ ] Per-mode tab bodies match their locked variants.
+- [ ] Tool calls render as `<details>` disclosures.
+- [ ] Sub-agent blocks render inline as marginalia.
+- [ ] Three-column layout + composer + side panels match the mock.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Risks
+
+- **Per-mode tab body rewrites are large.** Each is its own story so
+  failures isolate; orchestrator can wave them in groups of 3.
+- **tab-body-isolation pattern preserved** — every per-mode story
+  must keep the `display:none` isolation; tests verify.
+- **Course-create tab body lives in sibling backend feature** —
+  ensure no duplicate work; integration test exercises both surfaces.

@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -200,25 +200,63 @@ preserving the original sketch alongside the new concept map.
   with `?` badges, hints panel slides in) → it's a concept map; the
   original sketch is saved alongside (toast links back).
 
-### Implementation outlook
+## Design decisions
 
-Likely implementation stories:
+- **Many parallel stories.** Per-format editors and the catalogue are
+  independent; spawn one story each for maximum fan-out.
+- **Concept-map editor changes split** — the three-state UX + ripples
+  panel is owned by sibling backend feature
+  `epic-backend-fills-for-redesign-concept-map-and-sketch-bridge`
+  (story
+  `-three-state-and-ripples`); this feature's concept-map story is the
+  surface restyle + integration with the new design tokens.
+- **Sketch → concept-map bridge** owned by sibling backend feature's
+  conversion story.
 
-- **Story:** rebuild `notes-list.tsx` as the Catalogue (search + filter
-  rail + grid of artifact-typed cards)
-- **Story per format:** rewrite each note-format editor
-  - Cornell (3-zone with cue-anchor markers)
-  - Feynman (two-pass mode toggle + margin-anchored gap notes)
-  - Outline (keyboard-first, hierarchical bullets + checkbox)
-  - Free (typewriter page + slash-command + drift tags)
-  - Sketch (free canvas + `↗ convert to concept map` bridge)
-- **Story:** concept-map editor — refactor existing
-  `concept-map-editor.tsx` to match the canonical-hints panel mock
-  (three-state nodes, candidate cards, ghost-edge preview on hover,
-  ripple-surface on confirm)
-- **Story:** review-session flow (still deferred — mock when ready)
-- **Story:** chat-to-workspace inline-panel infrastructure (panel
-  slides in from right, replaces concepts panel temporarily,
-  format-picker popover)
-- **Story:** ask-tutor-from-note brief preparation surface +
-  briefed-session opening pattern
+## Implementation Units (one story each)
+
+1. **`-catalogue-rebuild`** — Rebuild `notes-list.tsx` as the
+   Catalogue (search box + filter rail + artifact-typed cards).
+   Consumes `LibraryService.search` from sibling
+   `epic-backend-fills-for-redesign-note-annotations-and-filters-search-and-filters`.
+2. **`-note-editor-cornell`** — 3-zone Cornell editor with ◆
+   cue-anchor markers.
+3. **`-note-editor-feynman`** — Two-pass Feynman editor (locked
+   variant D) with mode toggle and margin-anchored gap notes
+   (consumes annotations API from
+   `epic-backend-fills-for-redesign-note-annotations-and-filters-annotations`).
+4. **`-note-editor-outline`** — Keyboard-first hierarchical outline.
+5. **`-note-editor-free`** — Typewriter page + slash-command + drift
+   tags.
+6. **`-note-editor-sketch`** — Free canvas + `↗ convert to concept
+   map` bridge (consumes
+   `epic-backend-fills-for-redesign-concept-map-and-sketch-bridge-sketch-conversion`).
+7. **`-concept-map-editor-restyle`** — Refactor `concept-map-editor.tsx`
+   to match the canonical-hints panel mock (consumes three-state UX
+   from sibling backend story).
+8. **`-review-session-flow`** — Deferred until a flow mockup pass
+   produces the locked direction.
+9. **`-chat-to-workspace-inline-panel`** — Inline note panel sliding
+   in from chat composer; format-picker popover; saves linked to
+   originating session.
+10. **`-ask-tutor-from-note`** — "▶ talk to Praxis about this" button
+    in note editors (consumes
+    `epic-backend-fills-for-redesign-ui-completion-bundle-spawn-from-note`).
+
+## Implementation Order
+
+Stories largely parallel. Sequencing notes:
+- Story 1 (catalogue) is independent of editors.
+- Editors (2-6) can run fully parallel.
+- Concept-map (7) depends on backend three-state story landing first.
+- Inline-panel (9) depends on at least one note editor (10's
+  triggering surface).
+
+## Acceptance Criteria
+
+- [ ] Catalogue renders + filters work end-to-end.
+- [ ] All five note-format editors match their locked mocks.
+- [ ] Concept-map editor renders three-state + canonical hints panel.
+- [ ] Inline-panel infrastructure surfaces from the chat composer.
+- [ ] Ask-tutor-from-note button spawns sessions per the locked flow.
+- [ ] All quality checks green.
