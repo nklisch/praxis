@@ -38,8 +38,8 @@ export function NoteEditorCornell({ body, onChange, onSpawnFromCue }: NoteEditor
   const [localBody, setLocalBody] = useState<CornellBody>(body);
   const [activeCueIdx, setActiveCueIdx] = useState<number | null>(null);
 
-  // Refs for scrolling: cue buttons + marker wrappers indexed by row.
-  const cueRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  // Refs for scrolling: cue wrappers + marker wrappers indexed by row.
+  const cueRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const markerRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   const emit = (updated: CornellBody) => {
@@ -113,30 +113,37 @@ export function NoteEditorCornell({ body, onChange, onSpawnFromCue }: NoteEditor
             {Array.from({ length: rowCount }, (_, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: cue list indexed by position
               <li key={i} className={styles.cueItem}>
-                <button
+                {/* div instead of button avoids nesting interactive content (textarea)
+                    inside a button, which is invalid per the HTML5 content model. */}
+                {/* biome-ignore lint/a11y/useSemanticElements: <button> cannot contain <textarea> (interactive content) per HTML5; role="button" on div is the correct workaround */}
+                <div
                   ref={(el) => {
                     if (el) cueRefs.current.set(i, el);
                     else cueRefs.current.delete(i);
                   }}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   className={`${styles.cueButton} ${activeCueIdx === i ? styles.cueButtonActive : ""}`}
                   onClick={() => handleCueClick(i)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleCueClick(i);
+                    }
+                  }}
                   aria-label={`Cue ${i + 1}`}
                   title="Click to jump to this marker in the notes"
                 >
                   <textarea
                     className={styles.cueTextarea}
                     value={localBody.questions[i] ?? ""}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleQuestionChange(i, e.target.value);
-                    }}
+                    onChange={(e) => handleQuestionChange(i, e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     placeholder="Question or cue…"
                     rows={3}
                     aria-label={`Question ${i + 1}`}
                   />
-                </button>
+                </div>
 
                 <div className={styles.cueRowActions}>
                   {onSpawnFromCue !== undefined && (

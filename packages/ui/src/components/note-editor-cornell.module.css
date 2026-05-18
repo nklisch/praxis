@@ -91,7 +91,7 @@
   border-bottom: none;
 }
 
-/* The outer button is the hit-target for cue click-to-scroll;
+/* The outer div (role="button") is the hit-target for cue click-to-scroll;
  * it holds the textarea but doesn't visually look like a button. */
 .cueButton {
   display: block;
@@ -114,9 +114,8 @@
   box-shadow: inset 2px 0 0 var(--color-accent, #9b3a2c);
 }
 
-/* The textarea inside the cue button gets pointer-events so the user
- * can still type; stopPropagation keeps the outer button from
- * triggering a scroll on every keystroke. */
+/* The textarea inside the cue div — stopPropagation on click keeps the outer
+ * role="button" div from triggering scroll when the user clicks to type. */
 .cueTextarea {
   display: block;
   width: 100%;
