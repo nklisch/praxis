@@ -1,7 +1,7 @@
 ---
 id: course-create-context-textarea-forwarding
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: null
 depends_on: []
@@ -68,3 +68,23 @@ Chose Option A (extended `openSessionInTab` helper).
 - `packages/ui/src/__tests__/course-create-route.test.tsx` — 4 new cases in a new describe block: no send for empty context, no send for whitespace-only context, sends trimmed context on non-empty input, trims before sending.
 
 All 1600 tests pass; typecheck and lint clean on changed files.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+
+Implementation chose to extend `openSessionInTab` with an optional `initialMessage` param rather than inlining the fire-and-forget pattern in the route — centralizes the pattern for future callers (e.g., the existing `onboarding-flow.tsx` pre-seed path could adopt it in a follow-up). Whitespace-only values are ignored (`opts.initialMessage.trim() !== ""`); failure is caught and logged via `console.warn` without blocking navigation; the AsyncIterable is consumed in a `void` IIFE so the stream actually starts.
+
+Test coverage is thorough — `open-session-in-tab.test.tsx` has 5 new cases (no send absent / whitespace / verbatim / failure-non-blocking / etc.) and `course-create-route.test.tsx` has 4 new cases asserting the route's `handleStart` honours the empty/whitespace/non-empty/trim contract end-to-end.
+
+One follow-up was needed and already landed: under `exactOptionalPropertyTypes: true`, passing `initialMessage: context.trim() || undefined` was a type error (literal `undefined` is not assignable to an optional). Fixed in commit `93e820b` with the codebase's conditional-spread pattern. The fix was caught during orchestrator verification (workspace typecheck) before any downstream Wave 2 work proceeded.
+
+Subsequent Step 3 (mode-id rename) correctly rolled the `{ modeId: "bootstrap" }` literal in this route forward to `{ modeId: "course-create" }` — the textarea story's surface area landed on top of the renamed mode without conflict.
+
+No public API affected; backward compatible (param is optional); tests pass.
