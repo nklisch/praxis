@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-theme-persistence
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -90,3 +90,19 @@ story only — mounting in the app shell is handled by the sibling
   light/dark/auto, storage roundtrip, restore on mount.
 - `theme-toggle.test.tsx` (7): 3 buttons, aria-pressed default, click dark,
   click light, click auto to clear, localStorage persistence, separator glyphs.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: The `span[display:contents]` wrapper in the `OPTIONS.map` loop is a minor unnecessary layer — buttons and sep spans could be rendered flat without it. No impact on correctness.
+
+**Notes**: Hook and component are clean. `readStored()` validates the union value
+before accepting it; both `localStorage` accesses are try/catch guarded. The
+`applyToDocument` call in the `useState` initializer is a sound
+before-first-paint optimization. SSR guard (`typeof document === "undefined"`)
+is present. `data-theme` contract matches `global.css` selectors. Tests are
+thorough (14), all passing. The "Toggle UI renders in app shell" acceptance
+criterion is intentionally deferred to the sibling `epic-ui-redesign-ground-up-app-shell-theme-toggle-mount` story, which is correctly documented in the implementation notes.
