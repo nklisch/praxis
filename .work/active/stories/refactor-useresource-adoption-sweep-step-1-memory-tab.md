@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep-step-1-memory-tab
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: refactor-useresource-adoption-sweep
 depends_on: []
@@ -166,3 +166,36 @@ Pre-existing baseline: 3 typecheck errors in UI files (chat-tab-body, chat, note
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Implementation notes
+
+**Conversions performed (4 loaders):**
+
+1. **mastery** — `client.memory.studentModel()` → transform to `Array.from(model.conceptMastery.entries())`. Returned `Array<[ConceptId, ConceptMastery]>`. `useResource` destructure uses `refresh: refreshMastery`; handlers updated from `loadMastery()` to `refreshMastery()`.
+
+2. **misconceptions** — `client.memory.misconceptions()` → returns `Misconception[]` directly. `refresh: refreshMisconceptions`; handler updated from `loadMisconceptions()` to `refreshMisconceptions()`.
+
+3. **procedural** — `client.memory.procedural()` → returns `ProceduralModel | null`. Destructure defaults: `data: procedural = null`.
+
+4. **affective** — `client.memory.affective()` → returns `AffectiveModel | null`. Destructure defaults: `data: affective = null`.
+
+**Skipped (intentionally):**
+
+5. **episodic** — streaming `for await` with AbortController. Doesn't fit `useResource` (single-promise only). Left fully intact.
+
+**Manual useEffect blocks removed:** 1 — the combined mount effect that called all 4 loaders:
+```ts
+useEffect(() => {
+  loadMastery(); loadMisconceptions(); loadProcedural(); loadAffective();
+}, [loadMastery, loadMisconceptions, loadProcedural, loadAffective]);
+```
+The 2 remaining useEffects (episodic lazy-load + episodic cleanup on unmount) are unchanged.
+
+**`setData` note:** Neither `mastery` nor `misconceptions` had in-place optimistic updates — mutation handlers called `await refresh()` directly. No `setData` usages were needed, so they were omitted from the destructure to avoid unused-variable lint errors.
+
+**File LoC delta:** 684 → 652 = -32 lines (within the expected 30-40 range).
+
+**Baseline confirmation:**
+- `pnpm --filter @praxis/ui typecheck` — passed (no new errors)
+- `pnpm biome check packages/ui/src/routes/configure/memory-tab.tsx` — passed
+- `pnpm --filter @praxis/ui test` — 18/18 memory-tab tests pass; 155/155 test files pass; 1 pre-existing unhandled error in `configure-course-tab` (`setUnits is not defined` in `course-tab.tsx`) confirmed pre-existing (course-tab.tsx was already modified before this story)

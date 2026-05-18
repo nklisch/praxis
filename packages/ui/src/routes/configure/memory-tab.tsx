@@ -13,6 +13,7 @@ import { ConfirmReasonModal } from "../../components/confirm-reason-modal.js";
 import { EmptyState } from "../../components/empty-state.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import { useDirtyState } from "../../hooks/use-dirty-state.js";
+import { useResource } from "../../hooks/use-resource.js";
 import { COPY } from "../../lib/copy.js";
 import styles from "./memory-tab.module.css";
 
@@ -37,78 +38,55 @@ export function MemoryTab() {
   const [activeProjection, setActiveProjection] = useState<ProjectionTab>("semantic");
 
   // ── Semantic (concept mastery) ───────────────────────────────────────────
-  const [mastery, setMastery] = useState<Array<[ConceptId, ConceptMastery]>>([]);
-  const [masteryLoading, setMasteryLoading] = useState(false);
-  const [masteryError, setMasteryError] = useState<string | null>(null);
   const [resetTarget, setResetTarget] = useState<ConceptId | null>(null);
 
   const loadMastery = useCallback(async () => {
-    setMasteryLoading(true);
-    setMasteryError(null);
-    try {
-      const model = await client.memory.studentModel();
-      setMastery(Array.from(model.conceptMastery.entries()));
-    } catch (err) {
-      setMasteryError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setMasteryLoading(false);
-    }
+    const model = await client.memory.studentModel();
+    return Array.from(model.conceptMastery.entries());
   }, [client]);
 
+  const {
+    data: mastery = [],
+    loading: masteryLoading,
+    error: masteryError,
+    refresh: refreshMastery,
+  } = useResource<Array<[ConceptId, ConceptMastery]>>(loadMastery);
+
   // ── Misconceptions ───────────────────────────────────────────────────────
-  const [misconceptions, setMisconceptions] = useState<Misconception[]>([]);
-  const [miscLoading, setMiscLoading] = useState(false);
-  const [miscError, setMiscError] = useState<string | null>(null);
   const [clearTarget, setClearTarget] = useState<MisconceptionId | null>(null);
 
   const loadMisconceptions = useCallback(async () => {
-    setMiscLoading(true);
-    setMiscError(null);
-    try {
-      const data = await client.memory.misconceptions();
-      setMisconceptions(data);
-    } catch (err) {
-      setMiscError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setMiscLoading(false);
-    }
+    return client.memory.misconceptions();
   }, [client]);
+
+  const {
+    data: misconceptions = [],
+    loading: miscLoading,
+    error: miscError,
+    refresh: refreshMisconceptions,
+  } = useResource<Misconception[]>(loadMisconceptions);
 
   // ── Procedural ───────────────────────────────────────────────────────────
-  const [procedural, setProcedural] = useState<ProceduralModel | null>(null);
-  const [proceduralLoading, setProceduralLoading] = useState(false);
-  const [proceduralError, setProceduralError] = useState<string | null>(null);
-
   const loadProcedural = useCallback(async () => {
-    setProceduralLoading(true);
-    setProceduralError(null);
-    try {
-      const model = await client.memory.procedural();
-      setProcedural(model);
-    } catch (err) {
-      setProceduralError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setProceduralLoading(false);
-    }
+    return client.memory.procedural();
   }, [client]);
+
+  const {
+    data: procedural = null,
+    loading: proceduralLoading,
+    error: proceduralError,
+  } = useResource<ProceduralModel | null>(loadProcedural);
 
   // ── Affective ─────────────────────────────────────────────────────────────
-  const [affective, setAffective] = useState<AffectiveModel | null>(null);
-  const [affectiveLoading, setAffectiveLoading] = useState(false);
-  const [affectiveError, setAffectiveError] = useState<string | null>(null);
-
   const loadAffective = useCallback(async () => {
-    setAffectiveLoading(true);
-    setAffectiveError(null);
-    try {
-      const model = await client.memory.affective();
-      setAffective(model);
-    } catch (err) {
-      setAffectiveError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setAffectiveLoading(false);
-    }
+    return client.memory.affective();
   }, [client]);
+
+  const {
+    data: affective = null,
+    loading: affectiveLoading,
+    error: affectiveError,
+  } = useResource<AffectiveModel | null>(loadAffective);
 
   // ── Episodic ──────────────────────────────────────────────────────────────
   const [episodicEvents, setEpisodicEvents] = useState<EpisodicEvent[]>([]);
@@ -141,15 +119,7 @@ export function MemoryTab() {
     }
   }, [client]);
 
-  // Load on mount
-  useEffect(() => {
-    loadMastery();
-    loadMisconceptions();
-    loadProcedural();
-    loadAffective();
-    // Episodic loads lazily when tab is activated
-  }, [loadMastery, loadMisconceptions, loadProcedural, loadAffective]);
-
+  // Episodic loads lazily when tab is activated
   useEffect(() => {
     if (activeProjection === "episodic" && episodicEvents.length === 0 && !episodicLoading) {
       loadEpisodic();
@@ -167,14 +137,14 @@ export function MemoryTab() {
     if (!resetTarget) return;
     await client.author.resetConcept({ conceptId: resetTarget, reason });
     setResetTarget(null);
-    await loadMastery();
+    await refreshMastery();
   };
 
   const handleClearMisconception = async (reason: string) => {
     if (!clearTarget) return;
     await client.author.clearMisconception({ misconceptionId: clearTarget, reason });
     setClearTarget(null);
-    await loadMisconceptions();
+    await refreshMisconceptions();
   };
 
   // Counts for projection tab badges
@@ -680,4 +650,3 @@ function EpisodicRow({ event: evt }: { event: EpisodicEvent }) {
     </div>
   );
 }
-
