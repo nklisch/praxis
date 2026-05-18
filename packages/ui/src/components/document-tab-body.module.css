@@ -1,71 +1,277 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * DocumentTabBody — read-mostly viewer, locked to mode-document.html mock.
+ *
+ * Layout: scrollable reading surface; doc-head at top; reading column
+ * max-width 64ch centered within the main area. The three-column shell
+ * (TOC left + right-panel) is composed by the parent layout story
+ * (-side-panels-restyle). This component owns the center reading column.
+ *
+ * Typography: --font-serif body at --font-size-base / --line-height-loose.
+ * Kickers use --font-mono uppercase with --letter-spacing-kicker.
+ * Headings use italic display serif per Studio Quiet tokens.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* Outermost wrapper — fills the tab body area, scrolls vertically. */
 .container {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--surface-page, #f8fafc);
+  background: var(--color-bg-secondary);
 }
 
-.header {
+/* ── Document head ──────────────────────────────────────────────────────────── */
+/* Corresponds to .doc-head in the mock: kicker + display title + meta line. */
+
+.docHead {
   flex: 0 0 auto;
-  padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
-  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
-  background: var(--surface-elevated, #fff);
+  padding: var(--space-8) var(--space-8) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.kickerGlyph {
+  font-style: italic;
+  font-family: var(--font-serif);
+  color: var(--color-text-tertiary);
+  letter-spacing: normal;
+  text-transform: none;
+  font-size: 13px;
 }
 
 .title {
-  font-size: var(--text-lg, 1.125rem);
-  font-weight: 600;
-  color: var(--text-heading, #0f172a);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
   margin: 0;
-  line-height: 1.3;
-  /* Prevent very long filenames from breaking layout */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.subtitle {
-  display: block;
-  margin-top: var(--space-1, 0.25rem);
-  font-size: var(--text-xs, 0.75rem);
-  color: var(--text-muted, #94a3b8);
-  font-family: var(--font-mono, monospace);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.titleStrong {
+  font-weight: var(--font-weight-semibold);
+  font-style: inherit;
 }
+
+.docMeta {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-base);
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-2);
+}
+
+/* ── Scrolling body ─────────────────────────────────────────────────────────── */
 
 .body {
   flex: 1 1 auto;
   overflow-y: auto;
+  padding: var(--space-6) var(--space-8) var(--space-16);
 }
 
+/* ── Reading column ─────────────────────────────────────────────────────────── */
+/* 64ch is tight enough to read comfortably at 16px/1.85; centered in the body. */
+
+.readingColumn {
+  max-width: 64ch;
+  margin: 0 auto;
+}
+
+/* ── Reading column typography ──────────────────────────────────────────────── */
+/* All prose inside the reading column inherits serif + loose leading. */
+
+.readingColumn p,
+.readingColumn li {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-loose);
+  color: var(--color-text-primary);
+}
+
+.readingColumn p {
+  margin: 0 0 var(--space-3);
+}
+
+.readingColumn h1,
+.readingColumn h2 {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  margin: var(--space-8) 0 var(--space-3);
+}
+
+.readingColumn h1:first-child,
+.readingColumn h2:first-child {
+  margin-top: var(--space-3);
+}
+
+.readingColumn h3,
+.readingColumn h4 {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  margin: var(--space-6) 0 var(--space-3);
+}
+
+.readingColumn h5,
+.readingColumn h6 {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: var(--space-6) 0 var(--space-2);
+}
+
+.readingColumn ul,
+.readingColumn ol {
+  padding-left: 1.5em;
+  margin-bottom: var(--space-3);
+}
+
+.readingColumn li {
+  margin-bottom: 4px;
+}
+
+.readingColumn code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--color-bg-tertiary);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+}
+
+.readingColumn pre {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  overflow-x: auto;
+  margin-bottom: var(--space-3);
+}
+
+.readingColumn pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.readingColumn blockquote {
+  border-left: 3px solid var(--color-border-strong);
+  margin-left: 0;
+  padding-left: var(--space-4);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.readingColumn table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.readingColumn th,
+.readingColumn td {
+  border: 1px solid var(--color-border);
+  padding: 6px var(--space-3);
+  text-align: left;
+}
+
+.readingColumn th {
+  background: var(--color-bg-primary);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.readingColumn a {
+  color: var(--color-text-link);
+  text-decoration: none;
+}
+
+.readingColumn a:hover {
+  color: var(--color-text-link-hover);
+  text-decoration: underline;
+}
+
+.readingColumn img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+/* Formula / code display block */
+.readingColumn .formula,
+.readingColumn [data-formula] {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-6);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  text-align: center;
+  margin: var(--space-4) 0;
+  overflow-x: auto;
+}
+
+/* ── Status wrappers ────────────────────────────────────────────────────────── */
+
 .statusWrapper {
-  padding: var(--space-6, 1.5rem);
+  padding: var(--space-8);
 }
 
 /* ── Citation highlights ──────────────────────────────────────────────────── */
+/* Preserved exactly from prior sibling work — do not alter offsets. */
 
 .citationMark {
-  background: var(--citation-highlight, rgba(251, 191, 36, 0.25));
-  border-bottom: 1.5px solid var(--citation-underline, rgba(217, 119, 6, 0.6));
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+  border-bottom: 1.5px solid color-mix(in oklab, var(--color-accent) 50%, transparent);
   border-radius: 2px;
   cursor: pointer;
   position: relative;
   transition: background 0.15s ease;
+  padding: 0 3px;
 }
 
 .citationMark:hover {
-  background: var(--citation-highlight-hover, rgba(251, 191, 36, 0.45));
+  background: color-mix(in oklab, var(--color-accent) 22%, transparent);
 }
 
 .citationDagger {
   display: inline-block;
   font-size: 0.7em;
   vertical-align: super;
-  color: var(--color-amber-600, #d97706);
-  font-weight: 600;
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
   margin-right: 1px;
   user-select: none;
   pointer-events: none;

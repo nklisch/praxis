@@ -6,6 +6,8 @@
  * - Error state is shown when documents.get rejects.
  * - "Document not found" when documents.get returns null.
  * - Correct renderer is mounted based on mimeType (smoke-tested via rendered output).
+ * - Visual contract: doc-head chrome renders kicker, h1 title, optional filename meta.
+ * - Visual contract: reading column wrapper is present for text content.
  * - Citation marks (†) are applied to cited ranges in text documents.
  * - Stale citations (out-of-bounds offsets) are silently skipped.
  * - PDF documents skip text-node citation walking.
@@ -120,19 +122,55 @@ describe("DocumentTabBody", () => {
     });
   });
 
-  it("renders the document title in the header", async () => {
+  it("renders the document title in the header h1", async () => {
     renderTab(makeTab(), makeDetail({ title: "Lecture 1: Introduction" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Lecture 1: Introduction")).toBeDefined();
+      // Title appears in the h1 element.
+      const h1 = document.querySelector("h1");
+      expect(h1).not.toBeNull();
+      expect(h1?.textContent).toContain("Lecture 1: Introduction");
     });
   });
 
-  it("renders filename in header when title is null", async () => {
+  it("renders filename in header h1 when title is null", async () => {
     renderTab(makeTab(), makeDetail({ title: null, filename: "lecture-01.md" }));
 
     await waitFor(() => {
-      expect(screen.getByText("lecture-01.md")).toBeDefined();
+      const h1 = document.querySelector("h1");
+      expect(h1).not.toBeNull();
+      expect(h1?.textContent).toContain("lecture-01.md");
+    });
+  });
+
+  it("renders the doc-head kicker with the document MIME type", async () => {
+    renderTab(makeTab(), makeDetail({ mimeType: "text/markdown", title: "A Document" }));
+
+    await waitFor(() => {
+      // Kicker shows the MIME type as a metadata label.
+      expect(screen.getByText("text/markdown")).toBeDefined();
+    });
+  });
+
+  it("renders the filename as docMeta when title differs from filename", async () => {
+    renderTab(
+      makeTab(),
+      makeDetail({ title: "Introduction to Calculus", filename: "calc-intro.md" }),
+    );
+
+    await waitFor(() => {
+      // Both the title (in h1) and the filename (in docMeta) appear.
+      expect(screen.getByText("Introduction to Calculus")).toBeDefined();
+      expect(screen.getByText("calc-intro.md")).toBeDefined();
+    });
+  });
+
+  it("does not render docMeta when title equals filename", async () => {
+    renderTab(makeTab(), makeDetail({ title: "test.md", filename: "test.md" }));
+
+    await waitFor(() => {
+      // Title in h1 only — no duplicate docMeta line.
+      expect(document.querySelectorAll('[class*="docMeta"]')).toHaveLength(0);
     });
   });
 

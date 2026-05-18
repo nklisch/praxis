@@ -10,6 +10,10 @@
  * open document tabs; display:none hides inactive ones at the parent level
  * (see chat.tsx). This component does not manage its own visibility.
  *
+ * Layout: clean reading column (max-width 64ch, editorial typography) per the
+ * locked mode-document.html mock. The three-column shell (TOC · doc · right
+ * panel) is composed at the side-panels layer (-side-panels-restyle story).
+ *
  * Citation highlights: after the document text renders, citations are fetched
  * via `client.citations.listByDocument` and applied to the rendered text as
  * `<mark>` elements with a `†` marker. Stale (out-of-bounds) offsets are
@@ -114,6 +118,10 @@ function applyCitationMark(
 /**
  * Top-level document viewer. Loads `DocumentDetail` on mount and delegates
  * rendering to the per-format renderer selected by `pickRenderer(doc.mimeType)`.
+ *
+ * The reading column wraps the renderer output in `.readingColumn` so prose
+ * inside every renderer inherits 64ch, serif typography, and loose leading per
+ * the locked mode-document.html mock.
  */
 export function DocumentTabBody({ tab }: DocumentTabBodyProps): JSX.Element {
   const client = usePraxisClient();
@@ -196,17 +204,29 @@ export function DocumentTabBody({ tab }: DocumentTabBodyProps): JSX.Element {
   }
 
   const Renderer = pickRenderer(data.mimeType);
+  const displayTitle = data.title ?? data.filename;
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{data.title ?? data.filename}</h1>
+      {/* Document head — kicker + display title + meta */}
+      <header className={styles.docHead}>
+        <div className={styles.kicker}>
+          <span className={styles.kickerGlyph}>†</span>
+          <span>{data.mimeType}</span>
+        </div>
+        <h1 className={styles.title}>
+          <span className={styles.titleStrong}>{displayTitle}</span>
+        </h1>
         {data.title && data.title !== data.filename && (
-          <span className={styles.subtitle}>{data.filename}</span>
+          <div className={styles.docMeta}>{data.filename}</div>
         )}
       </header>
-      <main className={styles.body} ref={bodyRef}>
-        <Renderer doc={data} />
+
+      {/* Scrolling reading surface — renderer output constrained to 64ch column */}
+      <main className={styles.body} ref={bodyRef} aria-label="Document content">
+        <div className={styles.readingColumn}>
+          <Renderer doc={data} />
+        </div>
       </main>
     </div>
   );

@@ -1,45 +1,49 @@
+/* StructuredRenderer — PPTX/DOCX section cards inside the reading column. */
+
 .container {
-  padding: var(--space-4, 1rem);
+  /* No extra padding or max-width — parent reading column handles both. */
 }
 
 .sectionList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3, 0.75rem);
+  gap: var(--space-3);
 }
 
 .section {
-  background: var(--surface-elevated, #fff);
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  border-radius: var(--radius-md, 6px);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .sectionHeading {
-  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-  font-size: var(--text-sm, 0.875rem);
-  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-heading, #0f172a);
-  background: var(--surface-subtle, #f8fafc);
-  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
   margin: 0;
 }
 
 .sectionBody {
-  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-  font-size: var(--text-sm, 0.875rem);
-  line-height: 1.6;
-  color: var(--text-body, #1e293b);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: inherit;
   margin: 0;
 }
 
 .empty {
-  padding: var(--space-6, 1.5rem);
-  color: var(--text-muted, #94a3b8);
+  font-family: var(--font-serif);
   font-style: italic;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
 }
