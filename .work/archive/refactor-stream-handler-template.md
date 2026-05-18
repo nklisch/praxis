@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -506,3 +506,24 @@ when extracting new channel modules.
 - Cancel semantics, redaction, and envelope shape are guaranteed-correct
   via the helper — no per-channel risk of forgetting `serializeErrorRedacted`
   or `wc.isDestroyed()` checks.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (aggregate review — children individually approved)
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Log-key shape change across 3 subscriber channels (`activity.subscribe` → `activity.events.subscribe`, etc.) — observability shift, not a test regression. Carried in each child story's review and the feature-level run summary above. If downstream log dashboards alert on the prior short forms, they need updating.
+- Subscriber-variant `onEvent` hook doesn't expose a counter — dropped course-create-drafts' `eventsForwarded` running total. Trivial to extend the hook shape later if a future channel needs it.
+
+**Aggregate lens findings**:
+- **Design alignment**: 4-step decomposition matched the corrected inventory (2 shapes, 7 channels — not the original 8). Step 1 was foundational and atomicity-conscious (helper + reference impl in one commit); steps 2-4 fanned out cleanly in parallel via the orchestrator.
+- **Foundation-doc alignment**: no foundation-doc assertion invalidated — the streaming channel internals aren't described in `docs/`. The pattern doc index at `.claude/rules/patterns.md` references `per-domain-channel-module` and other IPC patterns; consider a brief note in that index pointing at the new helper, but that's a follow-up nicety, not a blocker.
+- **Breaking changes**: log-key shape (noted as nit). Wire format and envelope shape preserved exactly. No client-side changes needed.
+- **Capability completeness**: every streaming channel still streams (verified by 475+ desktop tests passing unmodified, including the critical envelope and cancel tests). Cancel semantics preserved on the hot tutor-session path. The new `stream-handler.ts` module is now the canonical shape — future channels add ~10 LoC instead of ~70.
+
+**Notes**: This refactor delivers on its purpose and unlocks
+`refactor-ipc-server-extract-domain-channels` (still at drafting) — that
+feature's extracted channels can adopt the helper from the start instead
+of inheriting inline scaffolding.
