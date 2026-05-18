@@ -2,37 +2,46 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  max-width: 80%;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
+  /* No max-width on the wrapper — alignment is controlled per-role. */
   word-break: break-word;
 }
 
-.user {
-  align-self: flex-end;
-  /* Bubble color: fallback to accent-muted; full mode-tint path is a follow-up story. */
-  background: var(--color-accent-muted);
-  border-bottom-right-radius: 2px;
-}
-
+/* ── Tutor turn: left-aligned, secondary background tint, no border ── */
 .assistant {
   align-self: flex-start;
-  /* Bubble color: fallback to accent-muted; full mode-tint path is a follow-up story. */
-  background: var(--color-accent-muted);
-  border-bottom-left-radius: 2px;
+  max-width: 100%;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+}
+
+/* ── Student turn: right-aligned container so the bubble sticks to the right ── */
+.user {
+  align-self: flex-end;
+  max-width: 75%;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: 0.875rem 1.125rem;
 }
 
 .label {
-  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--letter-spacing-kicker);
 }
 
 .content {
+  font-family: var(--font-serif);
   white-space: pre-wrap;
-  line-height: 1.6;
+  line-height: 1.65;
+}
+
+/* Student bubbles use italic serif per the locked mock */
+.user .content {
+  font-style: italic;
 }
 
 .drafts {

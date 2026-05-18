@@ -13,8 +13,14 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: 1.25rem;
+  padding: 1.5rem 2rem;
+  /* Center the message column, matching the locked mock's 800px max-width. */
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  /* Ensure the auto-margin centering works with flex parent: */
+  align-self: center;
 }
 
 .emptyState {
@@ -90,11 +96,11 @@
   align-items: baseline;
   gap: 0.5rem;
   align-self: flex-end;
-  max-width: 70%;
-  background: var(--color-accent-muted);
-  border: 1px solid var(--color-border);
+  max-width: 75%;
+  /* No border — Refined Bubbles uses background tint only. */
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-md);
-  padding: 0.55rem 0.75rem;
+  padding: 0.875rem 1.125rem;
   opacity: 0.55;
   /* Transition so that if the bubble is removed (cancel) it fades out. */
   transition: opacity 0.15s;

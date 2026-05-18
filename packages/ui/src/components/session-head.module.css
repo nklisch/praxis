@@ -1,0 +1,96 @@
+/* ── SessionHead — sticky session header for Refined Bubbles layout ────────
+ *
+ * Anatomy (from the locked Option 4 mock):
+ *   [ dot  GLYPH · MODE · LABEL ]   italic display title   [ progress ]
+ *
+ * Sits at the top of the center column, sticky so it stays in view when
+ * the message list scrolls. Border-bottom separates it from the message feed.
+ */
+
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-shrink: 0;
+  background: var(--color-bg-primary);
+  padding: 1.25rem 2rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+/* ── Kicker: MODE GLYPH · MODE LABEL ─────────────────────────────────────── */
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Mode-tint dot — color flows through --head-tint set inline by the component */
+.kickerDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--head-tint, var(--color-text-secondary));
+  flex-shrink: 0;
+}
+
+.kickerGlyph {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Title: italic display serif ─────────────────────────────────────────── */
+
+.title {
+  composes: editorial from global;
+  font-size: 1.375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Progress bar ─────────────────────────────────────────────────────────── */
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+.progressBar {
+  width: 60px;
+  height: 2px;
+  background: var(--color-bg-tertiary);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}

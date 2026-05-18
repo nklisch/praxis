@@ -9,7 +9,6 @@ import type {
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
-import { useNavigate } from "@tanstack/react-router";
 import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { useAuthStatus } from "../context/auth-context.js";
 import { usePraxisClient } from "../context/client-context.js";
@@ -28,11 +27,11 @@ import { DocumentTabBody } from "./document-tab-body.js";
 import { ExamTabBody } from "./exam-tab-body.js";
 import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
-import { ModeHeader } from "./mode-header.js";
 import { PageImagePanel } from "./page-image-panel.js";
 import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
 import { ReasoningBlock } from "./reasoning-block.js";
+import { SessionHead } from "./session-head.js";
 import { StructuredQuestionCard } from "./structured-question-card.js";
 import { StudySkillsTabBody } from "./study-skills-tab-body.js";
 import { SubAgentBlock } from "./sub-agent-block.js";
@@ -90,7 +89,6 @@ function ExamLockdownGate({
  */
 export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
-  const navigate = useNavigate();
   const parentChild = useParentChildOptional();
 
   // Trigger a tab-strip pulse whenever a system_note arrives in this session.
@@ -208,16 +206,7 @@ export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element 
 
   return (
     <div className={styles.container}>
-      <ModeHeader
-        session={session}
-        starting={false}
-        onNewChat={() => {
-          // "New chat" in tab context: navigate back to bare /chat so user can
-          // open a fresh tab via the picker. We don't auto-create a session.
-          navigate({ to: "/chat" });
-        }}
-        newChatDisabled={isStreaming}
-      />
+      <SessionHead modeId={session.modeId} title={tab.title} />
 
       {session.assignmentId && (
         <ExamLockdownGate

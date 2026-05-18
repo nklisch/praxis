@@ -216,7 +216,8 @@ describe("ChatRoute shell", () => {
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByText("algebra · teach")).toBeDefined();
+      // getAllByText: the title now appears in both the TabStrip and the SessionHead h1.
+      expect(screen.getAllByText("algebra · teach").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -265,8 +266,9 @@ describe("ChatRoute shell", () => {
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByText("algebra · teach")).toBeDefined();
-      expect(screen.getByText("calc · bootstrap")).toBeDefined();
+      // getAllByText: the title appears in both the TabStrip and the SessionHead h1.
+      expect(screen.getAllByText("algebra · teach").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("calc · bootstrap").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -303,7 +305,8 @@ describe("ChatRoute shell", () => {
     renderWithClient(client);
 
     await waitFor(() => {
-      expect(screen.getByText("algebra · teach")).toBeDefined();
+      // getAllByText: the title appears in both the TabStrip and the SessionHead h1.
+      expect(screen.getAllByText("algebra · teach").length).toBeGreaterThanOrEqual(1);
     });
 
     // Click the tab button (not the close button inside it)
