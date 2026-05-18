@@ -16,6 +16,7 @@ import type {
   Timestamp,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import { loadOrThrow } from "./db-helpers.js";
 
 export interface TabsServiceDeps {
   readonly db: PraxisDb;
@@ -285,11 +286,13 @@ export class TabsServiceImpl implements TabsService {
       })
       .run();
 
-    const created = await this.get(brandId<"TabId">(id));
-    if (!created || created.kind !== "session") {
-      throw new Error(`TabsService.open: tab not found after insert: ${id}`);
-    }
-    return created;
+    return loadOrThrow(
+      async () => {
+        const t = await this.get(brandId<"TabId">(id));
+        return t && t.kind === "session" ? t : null;
+      },
+      { entity: "tab", op: "create", id, log: this.deps.log },
+    );
   }
 
   async openDocument(input: {
@@ -324,11 +327,13 @@ export class TabsServiceImpl implements TabsService {
       })
       .run();
 
-    const created = await this.get(brandId<"TabId">(id));
-    if (!created || created.kind !== "document") {
-      throw new Error(`TabsService.openDocument: tab not found after insert: ${id}`);
-    }
-    return created;
+    return loadOrThrow(
+      async () => {
+        const t = await this.get(brandId<"TabId">(id));
+        return t && t.kind === "document" ? t : null;
+      },
+      { entity: "tab", op: "create", id, log: this.deps.log },
+    );
   }
 
   async reopen(tabId: TabId): Promise<TabSummary> {
@@ -357,11 +362,12 @@ export class TabsServiceImpl implements TabsService {
       .where(eq(tabs.id, tabId))
       .run();
 
-    const updated = await this.get(tabId);
-    if (!updated) {
-      throw new Error(`TabsService.reopen: tab not found after update: ${tabId}`);
-    }
-    return updated;
+    return loadOrThrow(() => this.get(tabId), {
+      entity: "tab",
+      op: "update",
+      id: tabId,
+      log: this.deps.log,
+    });
   }
 
   async close(tabId: TabId): Promise<void> {
@@ -375,11 +381,12 @@ export class TabsServiceImpl implements TabsService {
   async rename(tabId: TabId, title: string): Promise<TabSummary> {
     this.deps.db.update(tabs).set({ title }).where(eq(tabs.id, tabId)).run();
 
-    const updated = await this.get(tabId);
-    if (!updated) {
-      throw new Error(`TabsService.rename: tab not found after update: ${tabId}`);
-    }
-    return updated;
+    return loadOrThrow(() => this.get(tabId), {
+      entity: "tab",
+      op: "update",
+      id: tabId,
+      log: this.deps.log,
+    });
   }
 }
 

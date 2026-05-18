@@ -1,7 +1,7 @@
 ---
 id: refactor-loadorthrow-tabs-service
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -94,3 +94,37 @@ during implementation; adjust the predicate filter for the `kind` check.)
 ## Rollback
 
 `git revert <commit>` — trivially clean.
+
+## Implementation notes
+
+### Sites converted (4 total)
+
+1. **`open()` — post-insert session tab** (was line 288-292): replaced with `loadOrThrow` using an async predicate closure that filters `t.kind === "session"` before returning, so kind-narrowing stays inside the contract and the return type is `SessionTabSummary` without a cast.
+
+2. **`openDocument()` — post-insert document tab** (was line 327-331): same shape as above but `t.kind === "document"`, returning `DocumentTabSummary`.
+
+3. **`reopen()` — post-update tab** (was line 360-364): direct `loadOrThrow(() => this.get(tabId), { entity: "tab", op: "update", id: tabId, log })`. No kind filtering needed — returns `TabSummary`.
+
+4. **`rename()` — post-update tab** (was line 378-382): same shape as `reopen`.
+
+### Import added
+
+```ts
+import { loadOrThrow } from "./db-helpers.js";
+```
+
+### op values used
+
+- Post-insert sites: `op: "create"` (the enum has no `"insert"`).
+- Post-update sites: `op: "update"`.
+
+### Test updates
+
+None required. Grep of `packages/core/src/services/__tests__/` and `tests/` found zero assertions on the prior bespoke error strings.
+
+### Verification
+
+- `pnpm --filter @praxis/core typecheck` — clean (desktop errors are pre-existing, verified by stash test).
+- `pnpm biome check packages/core/src/services/tabs-service.ts` — clean after auto-format.
+- `pnpm vitest run packages/core/src/services/__tests__/tabs-service.test.ts` — 25/25 passed.
+- `grep -n 'throw new Error.*not found after' packages/core/src/services/tabs-service.ts` — 0 results.
