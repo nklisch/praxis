@@ -1,14 +1,14 @@
 ---
 id: document-tab-body-lint-cleanup
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Fix lint errors in document-tab-body.tsx introduced by citation highlights
@@ -48,3 +48,22 @@ while (node !== null) {
   node = walker.nextNode();
 }
 ```
+
+## Implementation notes
+
+- Rewrote both TreeWalker `while ((node = walker.nextNode()) !== null)` loops
+  (in `buildTextNodeIndex` and `computeRangeOffset`) to the
+  `let node = walker.nextNode(); while (node !== null) { ...; node = walker.nextNode(); }`
+  form, eliminating `noAssignInExpressions` without any behavioural change.
+  Also removed the pre-existing `biome-ignore` suppression comment on the
+  `computeRangeOffset` loop since the rewrite made it unnecessary.
+- The `useLiteralKeys` warning mentioned in the scope was already fixed in the
+  source (`mark.dataset.sessionId` not `mark.dataset["sessionId"]`); no change
+  needed there.
+- Fixed a `noUnusedFunctionParameters` warning on `applyCitationMark`'s `root`
+  parameter (unused because the function operates on the pre-built `index`);
+  prefixed with `_root`.
+- `pnpm biome check --write` confirmed no formatter divergence remained after
+  the manual rewrites.
+- All 1580 UI tests pass; pre-existing typecheck errors in unrelated files
+  (`chat-tab-body.tsx`, `chat.tsx`, `notes-list.tsx`) are unchanged.

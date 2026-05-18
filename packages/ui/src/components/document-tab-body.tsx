@@ -72,13 +72,13 @@ function buildTextNodeIndex(root: Element): Array<{ node: Text; start: number; e
   const result: Array<{ node: Text; start: number; end: number }> = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let cursor = 0;
-  let node: Node | null;
-  // eslint-disable-next-line no-cond-assign
-  while ((node = walker.nextNode()) !== null) {
+  let node = walker.nextNode();
+  while (node !== null) {
     const text = node as Text;
     const len = text.length;
     result.push({ node: text, start: cursor, end: cursor + len });
     cursor += len;
+    node = walker.nextNode();
   }
   return result;
 }
@@ -91,7 +91,7 @@ function buildTextNodeIndex(root: Element): Array<{ node: Text; start: number; e
  * or the DOM range could not be constructed (stale citation tolerance).
  */
 function applyCitationMark(
-  root: Element,
+  _root: Element,
   index: ReturnType<typeof buildTextNodeIndex>,
   citation: DocumentCitationRecord,
   onClickSessionId: (sessionId: string) => void,
@@ -152,13 +152,13 @@ function applyCitationMark(
 function computeRangeOffset(root: Element, rangeNode: Node, rangeOffset: number): number {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let cursor = 0;
-  let node: Node | null;
-  // biome-ignore lint/suspicious/noAssignInExpressions: standard TreeWalker pattern
-  while ((node = walker.nextNode()) !== null) {
+  let node = walker.nextNode();
+  while (node !== null) {
     if (node === rangeNode) {
       return cursor + rangeOffset;
     }
     cursor += (node as Text).length;
+    node = walker.nextNode();
   }
   return -1;
 }
