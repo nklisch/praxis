@@ -207,4 +207,5 @@ Test gate carryovers (15):
 
 ## Gate runs
 
-<!-- populated as gates run -->
+- **gate-security** (2026-05-18) — 1 new finding (Medium=1), 4 already-tracked skipped
+  - `gate-security-engine-baseurl-url-validator-scheme-allowlist` (Medium)
