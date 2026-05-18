@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-design-system
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on: []
