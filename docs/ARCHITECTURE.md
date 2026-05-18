@@ -51,10 +51,10 @@ Praxis ships as a pnpm workspace monorepo. Every component is a TypeScript packa
 |---|---|
 | **`@praxis/core`** | The agent harness. Brief construction, event stream consumption, mode runtime, tool registry, prompt composition. Owns the `run()` loop dispatch. Exposes a typed service interface consumed via transport. Houses `ActivityRegistry`, concept-graph indexers, draft persistence (`SqliteDraftStore`), prompt-customization layers (`PromptCustomizationService`), `SubAgentRegistry`, the signed-update verifier (`UpdateServiceImpl` + `update-feed-public-key`), the ingestion `Ingestor` port + per-format adapters, and `RecommendationServiceImpl` (priority-ordered Workbench "what's next" queue — aggregates open sessions, due cards, low-mastery concepts, active drafts, and pending quick checks). |
 | **`@praxis/client`** | Typed RPC client for the UI. Bundles two transport implementations (IPC for Electron, WebSocket+HTTP for hosted), selected at runtime. The only `@praxis/*` package the UI imports — enforces the UI/backend boundary. Imports `@praxis/core` types only (no runtime). |
-| **`@praxis/engines`** | The three engine adapters (Claude Code / Codex / Direct). Each implements the engine contract. Also exports `runOneShot` (a one-turn convenience helper) used by `@praxis/core/services` indexers and the bootstrap explorer at runtime. The rest of `@praxis/core` (outside `services/`) must not import `@praxis/engines`. |
+| **`@praxis/engines`** | The three engine adapters (Claude Code / Codex / Direct). Each implements the engine contract. Also exports `runOneShot` (a one-turn convenience helper) used by `@praxis/core/services` indexers and the drafter at runtime. The rest of `@praxis/core` (outside `services/`) must not import `@praxis/engines`. |
 | **`@praxis/memory`** | Episodic log, the four projection layers, indexer agents that compute projections, the export/import format, the BKT-inspired mastery model. |
 | **`@praxis/artifacts`** | Schemas and persistence for courses, lessons, units, assignments, exams, gates, flashcards, notes, concept maps, lesson assessments. The "structured world" the agent operates on. |
-| **`@praxis/tools`** | Verification tools (math via sympy, code sandbox, retrieval, vision, citation), pedagogy tools, course tools, bootstrap-explorer tools (`course.start_exploration`, `course.draft_*`), sketch tools, clarification tool, gating tools. Zod-typed schemas; engine-adapter-format conversion. |
+| **`@praxis/tools`** | Verification tools (math via sympy, code sandbox, retrieval, vision, citation), pedagogy tools, course tools, drafter tools (`course.start_drafting`, `course.draft_*`), sketch tools, clarification tool, gating tools. Zod-typed schemas; engine-adapter-format conversion. |
 | **`@praxis/curriculum`** | Mode definitions, pedagogy pack runtime, gating logic, adaptive routing, knowledge-graph schema, BKT-style mastery updates. |
 | **`@praxis/ui`** | Vite + React + TanStack Router SPA. Student surface (chat + progress map + workspace + concept-map), configure surface (course authoring, gate editing, prompt customization), shared component library. Embeds tldraw for sketching surfaces and React Flow for the gate editor. Imports only from `@praxis/client`. |
 | **`@praxis/desktop`** | Electron host. Starts `@praxis/core` in the Electron main process (or a forked child for isolation), mounts the IPC transport server, loads the Vite-built `@praxis/ui` static bundle in the renderer. Adds local-first conveniences (file picker, on-disk storage paths) and at-rest secret encryption via `ElectronSafeStorageAdapter` (the `SecretStorage` port implementation backed by OS keyring through Electron `safeStorage`). |
@@ -139,9 +139,8 @@ client.artifacts.gates(courseId): Gate[]
 client.artifacts.progress(): ProgressSnapshot
 
 // authoring (configure mode)
-client.author.createCourse(...): Course
+client.author.createCourse(...): Course   // placeholder — v1 course creation goes through course-create mode tools
 client.author.editGate(id, patch): Gate
-client.author.bootstrap(files): DraftCourse
 
 // memory
 client.memory.studentModel(): StudentModel
@@ -309,7 +308,7 @@ Tools are defined in `@praxis/tools` with Zod schemas and runtime handlers. Engi
 This means:
 
 - One implementation of `grade_math` that always uses sympy, regardless of which engine is active.
-- Tool implementations may themselves call sub-agents (e.g., `course.start_exploration` runs the bootstrap explorer agent; `grade_with_rubric` runs a small grader agent against the rubric). Sub-agent activity is published through `SubAgentRegistry` — the registry surfaces a `SubAgentItem` per parent `tool_call`, streams `step_started` / `step_settled` / `phase_changed` events, and is fanned out to renderers over the `praxis.subAgent.events` IPC family. The chat UI renders these inline as `<SubAgentBlock>` next to the originating tool_call. Tools key their items on `ctx.callId` (threaded in via `ToolDispatchMeta`); when `ctx.callId` is absent (tests, direct invocation) the registry returns null and the tool simply doesn't publish.
+- Tool implementations may themselves call sub-agents (e.g., `course.start_drafting` runs the drafter agent; `grade_with_rubric` runs a small grader agent against the rubric). Sub-agent activity is published through `SubAgentRegistry` — the registry surfaces a `SubAgentItem` per parent `tool_call`, streams `step_started` / `step_settled` / `phase_changed` events, and is fanned out to renderers over the `praxis.subAgent.events` IPC family. The chat UI renders these inline as `<SubAgentBlock>` next to the originating tool_call. Tools key their items on `ctx.callId` (threaded in via `ToolDispatchMeta`); when `ctx.callId` is absent (tests, direct invocation) the registry returns null and the tool simply doesn't publish.
 - Adding a tool is a single-place change: define schema + handler in `@praxis/tools`, register in the right mode's tool subset.
 
 ## Artifact lifecycle
@@ -330,11 +329,11 @@ Tutor   ──┘
 
 **Authoring path** (configure mode, parent/teacher or self-directed): the agent has tools that mutate artifacts. The user "talks to the agent" to build a course; the agent calls `course.create()`, `course.add_lesson()`, etc.
 
-**Self-onboard path**: bootstrap mode is agentic — `course.start_exploration` runs a multi-turn exploration loop. The agent reads ingested documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes drafts with `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
+**Self-onboard path**: course-create mode is agentic — `course.start_drafting` runs a multi-turn drafting loop. The agent reads ingested documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes drafts with `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
 
 **Student-facing**: artifacts are read-only to the student via the agent (tutor session) plus directly via the UI (progress map, workspace). The student never sees raw artifact JSON; the UI renders it.
 
-**Concept extraction** is an agentic task. Bootstrap mode runs `course.start_exploration`, which spawns a multi-turn exploration agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes unit/lesson/concept drafts via `course.draft_*` tools. The draft is confirmed by the user; `persistDraft` materialises units + lessons + assessment shells in one transaction. Never auto-applied without confirmation in v1.
+**Concept extraction** is an agentic task. Course-create mode runs `course.start_drafting`, which spawns a multi-turn drafter agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes unit/lesson/concept drafts via `course.draft_*` tools. The draft is confirmed by the user; `persistDraft` materialises units + lessons + assessment shells in one transaction. Never auto-applied without confirmation in v1.
 
 ## UI architecture
 
@@ -387,9 +386,9 @@ Ingestion is offline batch work, not in the agent's hot path. Long-running inges
 
 ## Document scoping
 
-Documents are linked to **scopes** via the `document_scopes` table — a polymorphic join with rows `(document_id, scope_kind, scope_id, source, attached_at)`. Scope kinds start with `course` and `session`; the primitive is extensible (lesson, unit, etc.) without schema migration. A document can belong to multiple scopes simultaneously, enabling patterns like "a document attached to a course is also remembered as having been ingested during a specific bootstrap session."
+Documents are linked to **scopes** via the `document_scopes` table — a polymorphic join with rows `(document_id, scope_kind, scope_id, source, attached_at)`. Scope kinds start with `course` and `session`; the primitive is extensible (lesson, unit, etc.) without schema migration. A document can belong to multiple scopes simultaneously, enabling patterns like "a document attached to a course is also remembered as having been ingested during a specific course-create session."
 
-The bootstrap explorer reads from session-scoped documents during a draft exploration and promotes them to course-scope when the user confirms the draft. Manual attachments from the configure surface go directly to course-scope. The `retrieve_from_documents` tool (and the `document.*` explorer tools) takes a scope argument and queries documents linked to that scope.
+The drafter reads from session-scoped documents during a drafting run and promotes them to course-scope when the user confirms the draft. Manual attachments from the configure surface go directly to course-scope. The `retrieve_from_documents` tool (and the `document.*` tools) takes a scope argument and queries documents linked to that scope.
 
 ## Future seams
 

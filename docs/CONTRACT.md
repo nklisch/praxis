@@ -341,7 +341,7 @@ interface Course {
   thresholds: ThresholdConfig;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  /** Phase 16: optional assessment plan. Absent for courses bootstrapped before Phase 16. */
+  /** Phase 16: optional assessment plan. Absent for courses created before Phase 16. */
   assessmentPlan?: AssessmentPlan;
 }
 
@@ -414,8 +414,8 @@ interface LessonAssessment {
 
 /**
  * Aggregate description of a course's assessment scaffold. Stored as
- * JSON on the courses row. Written by persistDraft when the bootstrap
- * explorer produces a plan; immutable after that except via configure-mode.
+ * JSON on the courses row. Written by persistDraft when the drafter
+ * produces a plan; immutable after that except via configure-mode.
  */
 interface AssessmentPlan {
   perLesson: {
@@ -886,15 +886,16 @@ interface ArtifactsService {
 }
 
 /**
- * v1 ships course-bootstrap as a `bootstrap` mode (Phase 6) and full lock-gated
+ * v1 ships course creation as a `course-create` mode (Phase 6) and full lock-gated
  * authoring as `configure` mode (Phase 11). The bootstrap(files, opts) → DraftCourse
  * interface remains specified for forward-compat with scripted-authoring use cases
- * but is unimplemented in v1.
+ * but is unimplemented in v1 — course drafting goes through the course-create mode
+ * agent loop instead.
  */
 interface AuthoringService {
   createCourse(input: CreateCourseInput): Promise<Course>;
   editGate(id: GateId, patch: Partial<Gate>): Promise<Gate>;
-  /** Unimplemented in v1 — Phase 6 ships bootstrap as a mode, not a service method. */
+  /** Unimplemented in v1 — Phase 6 ships course creation as a mode, not a service method. */
   bootstrap(files: FileRef[], opts: BootstrapOpts): Promise<DraftCourse>;
   customizePrompt(modeId: string, fragmentId: string, override: string): Promise<void>;
 }
@@ -1104,9 +1105,9 @@ Three new methods on the server-side `MemoryService` (in `@praxis/core/types/too
 
 ### `configure` mode (Phase 11)
 
-New mode with `id: "configure"`, `uiSurface: "configure"`, `requiredRole: "configurator"`. Session start is gated by `LockService.isUnlocked()` in `SessionServiceImpl`. Bootstrap mode intentionally has no lock gate (first-run authoring is lock-free).
+New mode with `id: "configure"`, `uiSurface: "configure"`, `requiredRole: "configurator"`. Session start is gated by `LockService.isUnlocked()` in `SessionServiceImpl`. Course-create mode intentionally has no lock gate (first-run authoring is lock-free).
 
-Tool set: all bootstrap tools + 11 authoring tools + 4 configure-memory tools = 25 tools total.
+Tool set: all course-create tools + 11 authoring tools + 4 configure-memory tools = 25 tools total.
 
 Prompt fragments: preamble, role.configure (customizable), principles, tools.configure (not customizable), course-context, constraints, postamble.
 
@@ -1323,10 +1324,10 @@ interface ActivityHandle {
 | Tool name | Mode(s) | Description |
 |---|---|---|
 | `clarification` | exam | Rephrase a confusing exam prompt; never reveals method or answer |
-| `course.start_exploration` | bootstrap | Entry point for the multi-turn agentic bootstrap explorer |
-| `course.draft_add_unit` | bootstrap (explorer) | Add a proposed unit to the in-progress draft |
-| `course.draft_set_assessment_plan` | bootstrap (explorer) | Set the assessment plan on the draft |
-| `course.draft_add_lesson_assessment` | bootstrap (explorer) | Add an assessment shell to a lesson in the draft |
+| `course.start_drafting` | course-create | Entry point for the multi-turn agentic drafter |
+| `course.draft_add_unit` | course-create (drafter) | Add a proposed unit to the in-progress draft |
+| `course.draft_set_assessment_plan` | course-create (drafter) | Set the assessment plan on the draft |
+| `course.draft_add_lesson_assessment` | course-create (drafter) | Add an assessment shell to a lesson in the draft |
 
 ## Phase 17 additive changes
 
@@ -1506,11 +1507,11 @@ interface PedagogyPackService {
 
 ### `study-skills` mode (Phase 18)
 
-New mode (`packages/curriculum/src/modes/study-skills.ts`): `id: "study-skills"`, `label: "Study Skills"`, `requiredRole: "student"`, `uiSurface: "chat"`. Tool set: all five `pedagogy.*` tools, `course.what_can_i_teach`, all five `note.*` and four `flashcard.*` workspace tools, and four `quick_check.*` tools (excludes `quick_check.matching`). The mode does **not** include the metacognitive-prompts fragment (the fragment is excluded from study-skills, bootstrap, and configure).
+New mode (`packages/curriculum/src/modes/study-skills.ts`): `id: "study-skills"`, `label: "Study Skills"`, `requiredRole: "student"`, `uiSurface: "chat"`. Tool set: all five `pedagogy.*` tools, `course.what_can_i_teach`, all five `note.*` and four `flashcard.*` workspace tools, and four `quick_check.*` tools (excludes `quick_check.matching`). The mode does **not** include the metacognitive-prompts fragment (the fragment is excluded from study-skills, course-create, and configure).
 
 ### Metacognitive-prompts prompt fragment (`packages/curriculum/src/modes/fragments/metacognitive-prompts.ts`)
 
-A parameterised fragment (`position: "principles"`, `customizable: false`) injected into `teach`, `quiz`, `homework`, and `exam` modes. It instructs the model to call `pedagogy.list_metacognitive_prompts({ trigger })` at five trigger moments (`pre-reading`, `post-reading`, `pre-quiz`, `post-error`, `session-end`) and weave one prompt naturally into the response. The fragment is absent from `study-skills`, `bootstrap`, and `configure`.
+A parameterised fragment (`position: "principles"`, `customizable: false`) injected into `teach`, `quiz`, `homework`, and `exam` modes. It instructs the model to call `pedagogy.list_metacognitive_prompts({ trigger })` at five trigger moments (`pre-reading`, `post-reading`, `pre-quiz`, `post-error`, `session-end`) and weave one prompt naturally into the response. The fragment is absent from `study-skills`, `course-create`, and `configure`.
 
 ```typescript
 type MetacognitivePromptTrigger =
@@ -1579,7 +1580,7 @@ interface RouterSuggestion {
 
 ## Phase 19 additive changes
 
-Phase 19 (ship-v1) added the auto-update check surface, the first-run onboarding config, the bootstrap draft-stream client, and the biology canonical pack. These are additive surfaces; no existing interfaces changed shape.
+Phase 19 (ship-v1) added the auto-update check surface, the first-run onboarding config, the course-create draft-stream client, and the biology canonical pack. These are additive surfaces; no existing interfaces changed shape.
 
 ### `UpdateService` / `UpdateClientApi` / `UpdateCheckResult` (Phase 19)
 
@@ -1632,9 +1633,9 @@ Stored in the `config_kv` table under key `"onboarding"`. Read by `readOnboardin
 
 - IPC channels (invoke): `praxis.config.firstRunCompleted`, `praxis.config.markFirstRunComplete` — both registered in `packages/desktop/electron/main/ipc-server.ts`.
 
-### `DraftStreamClient` / `DraftStreamEvent` — bootstrap draft stream (`packages/core/src/types/draft-stream.ts`)
+### `DraftStreamClient` / `DraftStreamEvent` — course-create draft stream (`packages/core/src/types/draft-stream.ts`)
 
-The bootstrap service streams draft mutations to the renderer so the right-pane outline rebuilds without polling.
+The course-create service streams draft mutations to the renderer so the right-pane outline rebuilds without polling.
 
 ```typescript
 type DraftStreamEvent =
@@ -1651,10 +1652,10 @@ interface DraftStreamClient {
 
 The server always delivers a `snapshot` event first on subscribe so a fresh subscriber sees current state immediately. Implemented by `DraftsClient` in `packages/client/src/services/drafts-client.ts`.
 
-- IPC channel family (`packages/desktop/electron/main/bootstrap-drafts-channel.ts`):
-  - `praxis.bootstrap.drafts.events.start` (invoke with streamId) — open subscription
-  - `praxis.bootstrap.drafts.events.events.<streamId>` (push) — `IpcStreamMessage<DraftStreamEvent>`
-  - `praxis.bootstrap.drafts.events.cancel` (on) — unsubscribe
+- IPC channel family (`packages/desktop/electron/main/course-create-drafts-channel.ts`):
+  - `praxis.courseCreate.drafts.events.start` (invoke with streamId) — open subscription
+  - `praxis.courseCreate.drafts.events.events.<streamId>` (push) — `IpcStreamMessage<DraftStreamEvent>`
+  - `praxis.courseCreate.drafts.events.cancel` (on) — unsubscribe
 - Exposed as `PraxisClient.drafts`.
 
 ### Biology canonical pack (`packages/curriculum/packs/biology.json`)
@@ -1663,14 +1664,14 @@ A second subject pack alongside `algebra-1.json` and `geometry.json`. Referenced
 
 ## Sub-agent transparency
 
-When a tool handler spawns its own LLM agent (e.g. `course.start_exploration`'s bootstrap explorer), the framework surfaces that work as a first-class object in the chat thread so the student can see the steps it's taking. The contract lives in `@praxis/core/types/subagent.ts`.
+When a tool handler spawns its own LLM agent (e.g. `course.start_drafting`'s drafter), the framework surfaces that work as a first-class object in the chat thread so the student can see the steps it's taking. The contract lives in `@praxis/core/types/subagent.ts`.
 
 ```typescript
 interface SubAgentItem {
   id: string;
   parentSessionId: SessionId;
   parentCallId: string;             // the parent tool_call.callId
-  label: string;                    // human-readable agent name; e.g. "Bootstrap explorer"
+  label: string;                    // human-readable agent name; e.g. "Drafter"
   phase: SubAgentPhase;             // "running" | "succeeded" | "failed" | "cancelled"
   startedAt: Timestamp;
   endedAt?: Timestamp;

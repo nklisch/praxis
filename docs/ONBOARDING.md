@@ -96,15 +96,15 @@ Choose where you want to start:
 - **Biology (canonical)** — an NGSS-aligned high-school biology graph
   spanning cells, genetics, evolution, and ecosystems.
 - **From your own syllabus** — drop in a syllabus, textbook outline,
-  or course description and the bootstrap agent explores it with you
+  or course description and the drafter works through it with you
   to draft a course.
 
-Picking any option lands you in a fresh chat session in bootstrap
+Picking any option lands you in a fresh chat session in course-create
 mode. Type your first message — for canonical packs, ask the tutor to
 use the pack: *"Start me on the algebra-1 canonical pack."* For your
 own syllabus, paste it in or describe what you want to learn.
 
-[Screenshot: bootstrap mode chat]
+[Screenshot: course-create mode chat]
 
 ## Your first teach session
 
@@ -161,7 +161,7 @@ records once and updates rarely. Storyboard:
 |-------|------|---------|
 | 1 | 0:00 - 0:15 | Tagline + welcome screen. "Praxis is an AI tutor that adapts to how you learn." |
 | 2 | 0:15 - 0:45 | Engine pick + API key entry. Show the dropdown, type an API key into the password field, click Continue. |
-| 3 | 0:45 - 1:15 | Course pick. Click "Algebra (canonical)" — show the bootstrap session opening. |
+| 3 | 0:45 - 1:15 | Course pick. Click "Algebra (canonical)" — show the course-create session opening. |
 | 4 | 1:15 - 2:15 | First teach turn. Student asks for help with a concept; agent responds; student sketches a problem; agent verifies and offers feedback. |
 | 5 | 2:15 - 2:30 | "Pause anytime — your progress carries over." Show the activity rail and a session resume. |
 

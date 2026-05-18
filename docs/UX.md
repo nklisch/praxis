@@ -22,7 +22,7 @@ The UI has two top-level surfaces: **student** (the learning experience) and **c
         ▸ Tutor workspace (tabs)            ▸ Memory inspector
             tab body shape per mode:       ▸ Engine / config settings
               teach       → chat
-              bootstrap   → canvas + outline
+              course-create → canvas + outline
               quiz        → flashcard rhythm
               homework    → paginated set
               exam        → proctored
@@ -47,7 +47,7 @@ Praxis is a literary review, not a chat app. The visual system is editorial: typ
 | Mode | Tint | Glyph |
 |---|---|---|
 | teach | warm amber | § |
-| bootstrap | sage | ¶ |
+| course-create | sage | ¶ |
 | quiz | slate | ‡ |
 | homework | indigo | ❦ |
 | exam | crimson | † |
@@ -73,7 +73,7 @@ Praxis supports three onboarding paths. They share the same backend machinery �
 1. **First-run greeting** in configure mode. Agent greets, asks for context (who's the student, what subject, what's the goal).
 2. **Subject selection** — pick a canonical subject pack (Math, Biology) or "custom subject."
 3. **Material upload (optional but encouraged)** — drag in textbook PDFs, syllabus, lesson notes. Ingestion runs in the background; progress surfaces on the status strip without blocking other use.
-4. **Course shape conversation** — agent and configurator co-author lesson sequence. Agent suggests; configurator confirms or edits via chat or via the structured editor visible alongside. Courses bootstrapped from materials now have a unit structure (units → lessons → lesson assessments) rather than a flat lesson list.
+4. **Course shape conversation** — agent and configurator co-author lesson sequence. Agent suggests; configurator confirms or edits via chat or via the structured editor visible alongside. Courses drafted from materials now have a unit structure (units → lessons → lesson assessments) rather than a flat lesson list.
 5. **Threshold and gate setup** — configurator picks defaults or customizes. Sensible defaults from the canonical pack.
 6. **Teaching style selection** — knobs for Socratic ↔ lecture, terse ↔ verbose, formal ↔ casual. Live preview of a sample exchange.
 7. **Lock code (optional)** — configurator can set a lock now or leave unlocked.
@@ -89,7 +89,7 @@ Praxis supports three onboarding paths. They share the same backend machinery �
 
 1. **Greeting** — agent asks what class they're in.
 2. **Material upload** — student drags in syllabus + textbook + class notes.
-3. **Bootstrap** — student opens a bootstrap session; the agent calls `course.start_exploration`, which runs a multi-turn agentic loop reading documents via outline / section / page tools and building a draft with units, lessons, and assessment shells. Progress surfaces on the status strip.
+3. **Course create** — student opens a course-create session; the agent calls `course.start_drafting`, which runs a multi-turn agentic loop reading documents via outline / section / page tools and building a draft with units, lessons, and assessment shells. Progress surfaces on the status strip.
 4. **Confirmation** — UI shows the draft course (lesson sequence, concept graph, suggested gates). Student reviews and edits. Agent walks through it conversationally if asked.
 5. **First session** — student starts a `teach` session on the first concept.
 
@@ -185,7 +185,7 @@ Every session lives inside the Tutor workspace (nav label "Tutor", route `/chat`
 The tab strip lives in the **running head** (`<TopNav tabsSlot>`), not inside the `/chat` route body. It is visible on every surface, not just the Tutor workspace. Open tabs render as italic deck-line typography to the right of the primary surface nav:
 
 ```
-  Praxis   § Library  ¶ Workspace  …   OPEN  ● algebra · teach  ·  ● calc-intro · bootstrap  ·  ● quiz-3 · quiz  +
+  Praxis   § Library  ¶ Workspace  …   OPEN  ● algebra · teach  ·  ● calc-intro · course-create  ·  ● quiz-3 · quiz  +
                                                 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
                                                 (active tab: mode-tint hairline underline)
 ```
@@ -231,7 +231,7 @@ The familiar conversational chat. Streamed messages with KaTeX, code blocks, cit
 └───────────────────────────────────────────────────────────┘
 ```
 
-#### bootstrap (canvas + outline)
+#### course-create (canvas + outline)
 
 A nearly-blank canvas with a single open prompt. As the student and agent talk through what to cover, the outline of the course-being-built appears in a side rail and grows visibly. Conversation in the body builds structure on the side. The student watches the course take shape.
 
@@ -348,7 +348,7 @@ Out-of-conversation view. Visible from a persistent rail or a top-level tab.
 - **Edge lines** represent prerequisite relationships. Strong edges solid; weak edges dashed.
 - **Locked content** is *visible but not accessible*. Hovering shows the prerequisites needed to unlock.
 - **Recommendations** in a sidebar — quizzes, reviews, lessons the adaptive router suggests. The student can take or defer.
-- **Unlock notifications** — when a session ends and a gate opens, the next-session bootstrap shows a celebratory but not gamified surface ("you've unlocked Word Problems"). One screen, then move on.
+- **Unlock notifications** — when a session ends and a gate opens, the next session's opening shows a celebratory but not gamified surface ("you've unlocked Word Problems"). One screen, then move on.
 
 ## Student surface — Workspace
 
@@ -469,9 +469,9 @@ Quick checks are formative probes the tutor calls mid-explanation without spawni
 
 **What stays out of episodic.** The synthetic system message that holds the card never reaches the episodic log. The `tool_call` event and the `tool_result` event that bracket the card do appear in episodic — the transcript shows that the tutor asked a question and the student answered, in the normal event flow.
 
-## Structured question cards (bootstrap / configure)
+## Structured question cards (course-create / configure)
 
-`ask_student_question` is the bootstrap / configure cousin of the quick-check card — a structured-choice prompt the agent uses mid-flow to clarify intent without yielding the turn. Visually identical chassis to `<QuickCheckCard>` (kicker tag, prompt body, choice control, submit button), but the kicker reads `tutor asked` in configure-mode contexts and the card always carries a `choice required` semantic — the agent's next step depends on the answer, so there is no "skip" affordance. Rendered as `<StructuredQuestionCard>` (`packages/ui/src/components/structured-question-card.tsx`).
+`ask_student_question` is the course-create / configure cousin of the quick-check card — a structured-choice prompt the agent uses mid-flow to clarify intent without yielding the turn. Visually identical chassis to `<QuickCheckCard>` (kicker tag, prompt body, choice control, submit button), but the kicker reads `tutor asked` in configure-mode contexts and the card always carries a `choice required` semantic — the agent's next step depends on the answer, so there is no "skip" affordance. Rendered as `<StructuredQuestionCard>` (`packages/ui/src/components/structured-question-card.tsx`).
 
 Locked-state treatment mirrors quick-check: controls become inert on submission and the submit button is replaced with a quiet `answered` marker. Because these questions don't carry a `correctIndex` (they're disambiguation, not assessment), the locked card omits correctness feedback — only the chosen answer is shown.
 

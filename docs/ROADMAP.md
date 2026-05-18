@@ -103,18 +103,18 @@ These landed alongside the numbered phases but don't carry a phase number of the
 
 ---
 
-## Phase 6: Course + lesson + bootstrap
+## Phase 6: Course + lesson + course-create
 
 **Goal:** Author a course conversationally; tutor navigates lessons.
 
 **Build:**
 - Course / Lesson / Reference schemas + state machine (`lesson_progress`, `concept_progress` tables)
 - Course-navigation tools in `teach` mode (`course.what_can_i_teach`, `course.start_lesson`, `course.current_concept`, `course.mark_studied`)
-- New `bootstrap` mode + draft-authoring tools (`course.list_documents`, `course.propose_draft`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`) — bootstrap is conversational; the user refines the proposed course in dialogue with the agent
+- New `course-create` mode + draft-authoring tools (`course.list_documents`, `course.propose_draft`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`) — course-create is conversational; the user refines the proposed course in dialogue with the agent
 - Concept-extractor agent: one-shot fresh engine session reading ingested document chunks; returns proposed concepts, edges, lessons; persisted on `course.confirm_draft`
-- Course context loaded into `teach` system prompts at session bootstrap (current lesson, concepts studied/unstudied, references, suggested strategy)
+- Course context loaded into `teach` system prompts at session start (current lesson, concepts studied/unstudied, references, suggested strategy)
 
-**Test checkpoint:** Drop syllabus + textbook through Phase 5 ingestion. Open a `bootstrap` session, ask the tutor to draft a course; refine via conversation; confirm. Confirmed course appears in /courses. Open a `teach` session against the new course — the tutor's first message references the active lesson and concepts.
+**Test checkpoint:** Drop syllabus + textbook through Phase 5 ingestion. Open a `course-create` session, ask the tutor to draft a course; refine via conversation; confirm. Confirmed course appears in /courses. Open a `teach` session against the new course — the tutor's first message references the active lesson and concepts.
 
 ---
 
@@ -177,7 +177,7 @@ These landed alongside the numbered phases but don't carry a phase number of the
 
 **Test checkpoint:** Course with three gated lessons. Mastery reaches threshold → session end evaluates and unlocks gate → next session brief includes "Newly unlocked" fragment → `gate_unlock_events` row written. Tool lock test: `start_lesson` on locked lesson throws.
 
-**Integration milestone M2:** bootstrap → learn → assess → unlock → progress all wired.
+**Integration milestone M2:** course-create → learn → assess → unlock → progress all wired.
 
 ---
 
@@ -194,8 +194,8 @@ These landed alongside the numbered phases but don't carry a phase number of the
   review / interleave reasons
 - `course.current_concept` tool rewritten to use the adaptive router (additive output:
   `reason`, `masteryNow`, `uncertainty`, `reviews[]`, `interleaves[]`)
-- Bootstrap-mode pack tools: `course.list_canonical_packs`, `course.use_canonical_pack`
-- `BootstrapServiceImpl.createCourseFromPack`: groups pack concepts into lessons of 7,
+- Course-create mode pack tools: `course.list_canonical_packs`, `course.use_canonical_pack`
+- `CourseCreateServiceImpl.createCourseFromPack`: groups pack concepts into lessons of 7,
   inserts course + lessons + skeleton gates in a single transaction
 - `ArtifactsServiceImpl.concepts(courseId)`: exposes full concept list for a course via IPC
 - `PacksClient` + IPC handlers: `praxis.packs.listAvailable`, `.listImported`, `.import`
@@ -214,7 +214,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 **Build (landed):**
 - `LockServiceImpl` — bcrypt code hashing + install-ID salt; in-process unlock flag; `lock_state` table
 - `AuthoringServiceImpl` — audit-log boundary; every write calls `appendAction` after the underlying write; `configurator_actions` table
-- `configure` mode — 25 tools (bootstrap + 11 authoring + 4 memory admin); 7 prompt fragments; `uiSurface: "configure"`; lock-gated in `SessionServiceImpl.start`
+- `configure` mode — 25 tools (course-create + 11 authoring + 4 memory admin); 7 prompt fragments; `uiSurface: "configure"`; lock-gated in `SessionServiceImpl.start`
 - 16 authoring/memory tools: `course.edit`, `lesson.{create,edit,delete}`, `gate.{create,edit,delete,override}`, `prompt.{override_fragment,clear_fragment,set_style}`, `memory.{reset_concept,clear_misconception,export,delete_all}`
 - Full IPC wiring: `praxis.lock.*` (6 handlers) + `praxis.author.*` (16 handlers, all behind `requireUnlocked()`)
 - `LockClientImpl` + `AuthoringClientImpl` (real implementation replacing Phase 3 stub)
@@ -270,14 +270,14 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 - Tab strip at the top of the chat workspace. Each tab is a live session of any mode; ornament glyph + name in the tab itself; tint colors the active-tab hairline. New tab `+` opens a quick session picker (mode + course + optional assignment).
 - Tab persistence — open tabs survive app restart. Stored in `tabs` table (small: `id, sessionId, modeId, title, openedAt, lastSeenAt, archived`).
 - Tab CRUD — open from any session-start affordance; close ends/archives the session; right-click for archive / rename. Sessions remain in the archive after their tab closes; reopening one reopens its tab.
-- `/library` route replaces `/courses` and `/packs`. Editorial table-of-contents listing: courses (in progress, unstarted), packs (available with "Use this pack" CTA — no bootstrap detour), documents, recent sessions. Each item's primary action opens a new tab. The mental model unifies: a Library has materials and a record of your reading.
+- `/library` route replaces `/courses` and `/packs`. Editorial table-of-contents listing: courses (in progress, unstarted), packs (available with "Use this pack" CTA — direct pack import, no course-create session required), documents, recent sessions. Each item's primary action opens a new tab. The mental model unifies: a Library has materials and a record of your reading.
 - Session archive — closed sessions remain visible in Library with auto-generated summaries (the Phase 12 `notes.from_session_summary` machinery, repurposed). Past arcs are browsable like a reading list.
 - All session-start entry points (course-detail "Start", assignment "Begin", "New course", Library) open a new tab rather than replacing the current chat.
 - Each tab still uses the existing chat surface inside (modality work lands in Phase 16).
 
 **Research:** TanStack Router multi-instance route patterns; how `/chat/:tabId` handles deep-link reopening; whether tab state should live client-side (renderer state machine) or main-process-side (shared across renderer reloads).
 
-**Test checkpoint:** Open three sessions of three different modes; switch between them via tabs. Close one, restart the app; the other two are restored, the closed one is in the Library archive. Library shows packs alongside courses with one-click "Use pack" affordances; no bootstrap detour required. Past closed sessions are browsable with summaries.
+**Test checkpoint:** Open three sessions of three different modes; switch between them via tabs. Close one, restart the app; the other two are restored, the closed one is in the Library archive. Library shows packs alongside courses with one-click "Use pack" affordances; direct pack import works without opening a course-create session. Past closed sessions are browsable with summaries.
 
 ---
 
@@ -300,20 +300,20 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 
 ---
 
-## Phase 16a: Bootstrap explorer + course-scoped documents ✓ SHIPPED
+## Phase 16a: Drafter + course-scoped documents ✓ SHIPPED
 
-**Goal:** Replace the single-shot `course.propose_draft` with an agentic multi-turn exploration loop. The bootstrap agent reads uploaded materials deeply and produces a richer draft with units, lessons, and assessment shells.
+**Goal:** Replace the single-shot `course.propose_draft` with an agentic multi-turn drafting loop. The drafter reads uploaded materials deeply and produces a richer draft with units, lessons, and assessment shells.
 
 **Build:**
-- `course.start_exploration` tool — entry point for the multi-turn bootstrap explorer. Spawns a fresh engine session scoped to the attached documents.
-- Explorer reads documents via `document.outline`, `document.list_sections`, `document.read_pages`, `retrieve_from_documents`.
-- Draft mutation tools: `course.draft_add_unit`, `course.draft_set_assessment_plan`, `course.draft_add_lesson_assessment` — the explorer builds the draft incrementally.
+- `course.start_drafting` tool — entry point for the multi-turn drafter. Spawns a fresh engine session scoped to the attached documents.
+- Drafter reads documents via `document.outline`, `document.list_sections`, `document.read_pages`, `retrieve_from_documents`.
+- Draft mutation tools: `course.draft_add_unit`, `course.draft_set_assessment_plan`, `course.draft_add_lesson_assessment` — the drafter builds the draft incrementally.
 - `persistDraft` materialises units + lessons + assessment shells in one transaction on `course.confirm_draft`.
-- `document_scopes` polymorphic join table + `DocumentScopesServiceImpl` — links ingested documents to scopes (`course`, `session`) so the explorer's retrieval is scoped; bootstrap sessions read from session-scope and promote to course-scope on confirm.
+- `document_scopes` polymorphic join table + `DocumentScopesServiceImpl` — links ingested documents to scopes (`course`, `session`) so the drafter's retrieval is scoped; course-create sessions read from session-scope and promote to course-scope on confirm.
 - `Unit`, `LessonAssessment`, `AssessmentPlan` types added to `@praxis/artifacts`.
-- Bootstrap mode toolNames updated: `course.start_exploration` replaces `course.propose_draft`.
+- Course-create mode toolNames updated: `course.start_drafting` replaces `course.propose_draft`.
 
-**Test checkpoint:** Drop a textbook PDF → ingest. Open bootstrap session → `course.start_exploration` → explorer reads chapters → draft contains units + lesson assessments + assessment plan. Confirm → course has structured `assessmentPlan`.
+**Test checkpoint:** Drop a textbook PDF → ingest. Open course-create session → `course.start_drafting` → drafter reads chapters → draft contains units + lesson assessments + assessment plan. Confirm → course has structured `assessmentPlan`.
 
 ---
 
@@ -327,7 +327,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
   - **quiz** — flashcard rhythm: one item at a time, large display typography, keyboard-driven (`Space` = next, `1`–`4` = confidence rating after answering). Tutor visible as a side strip the student can summon.
   - **homework** — paginated problem set; per-problem workspace combining sketch (Phase 15 primitive) + typed input + chat side-rail. Auto-saves on each navigation.
   - **exam** — proctored full-tab; timer in the kicker; problem-by-problem nav; sketched and/or typed answers; AI agent restricted to `clarification` tool only.
-  - **bootstrap** — canvas with a side outline of the course being built.
+  - **course-create** — canvas with a side outline of the course being built.
   - **configure** — already largely its own surface; editorial polish.
 - `parent_session_id` column on sessions and assignments tables.
 - `assignment.create` records `parentSessionId` on the assignment linking back to the teach session.
@@ -337,7 +337,7 @@ concepts, inserts decayed-concept reviews. 5 new test files (tools + core + clie
 - `useAssignmentIssuedSpawn` hook — renderer auto-opens a child tab in the right modality when `ActivityItem.metadata.kind === "assignment.issued"` lands.
 - `<SidekickPanel>`, `<ClarificationPill>` — exam-mode UI affordances.
 - `clarification` tool — rephrase a confusing prompt; never reveals method or answer.
-- Mode-aware composer chips extended for quiz / exam / bootstrap modes.
+- Mode-aware composer chips extended for quiz / exam / course-create modes.
 
 **Test checkpoint:** Teach session authors quiz. `useAssignmentIssuedSpawn` opens quiz tab automatically (no focus steal). Student submits in quiz tab. Teach-session tutor receives `system_note` with grade summary and narrates feedback. In exam mode, asking for help returns only a clarification.
 

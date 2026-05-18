@@ -109,14 +109,14 @@ The metacognition coach's dedicated mode. Teaches and practices the principles-t
 - Tools: pedagogy-pack reads (`pedagogy.list_strategies`, `pedagogy.get_strategy`, `pedagogy.list_techniques`, `pedagogy.get_technique`, `pedagogy.list_metacognitive_prompts`), concept-graph navigation (`course.what_can_i_teach`), workspace tools (5 `note.*` + 4 `flashcard.*`), inline quick checks (`quick_check.single_choice`, `quick_check.multi_select`, `quick_check.short_answer`, `quick_check.confidence`). See `packages/curriculum/src/modes/study-skills.ts` for the canonical list.
 - Often spans across courses — study skills generalize.
 
-### `bootstrap`
+### `course-create`
 
 A pre-curricular mode for authoring a new course from uploaded materials. Available without lock; intended for student self-onboard (UX path 2 in `UX.md`) and for the parent / teacher's first course before lock-gated `configure` is set up.
 
-- Prompt fragments: bootstrap-specific role + tools.
-- Tools: `course.list_library_documents`, `course.attach_document`, `course.list_canonical_packs`, `course.use_canonical_pack`, `course.start_exploration`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`, `course.list_drafts`, `retrieve_from_documents`. The single-shot `course.propose_draft` is gone (Phase 16 replaced it with the agentic `course.start_exploration` entry point). See `packages/curriculum/src/modes/bootstrap.ts` for the canonical list.
-- `course.start_exploration` runs a multi-turn exploration agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes unit/lesson/assessment drafts via `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
-- Phase 11's `configure` mode subsumes bootstrap (lock-gated, with full gate / prompt / memory editors layered on).
+- Prompt fragments: course-create-specific role + tools.
+- Tools: `course.list_library_documents`, `course.attach_document`, `course.list_canonical_packs`, `course.use_canonical_pack`, `course.start_drafting`, `course.show_draft`, `course.edit_draft`, `course.confirm_draft`, `course.discard_draft`, `course.list_drafts`, `retrieve_from_documents`. The single-shot `course.propose_draft` is gone (Phase 16 replaced it with the agentic `course.start_drafting` entry point). See `packages/curriculum/src/modes/course-create.ts` for the canonical list.
+- `course.start_drafting` runs a multi-turn drafter agent that reads documents via `document.outline` / `document.list_sections` / `document.read_pages` / `retrieve_from_documents` and writes unit/lesson/assessment drafts via `course.draft_*` tools. `persistDraft` materialises units + lessons + assessment shells in one transaction on confirmation.
+- Phase 11's `configure` mode subsumes course-create (lock-gated, with full gate / prompt / memory editors layered on).
 
 ### `configure`
 
@@ -125,7 +125,7 @@ Lock-gated. Parent/teacher (or self-directed learner) authors and tunes.
 - Same agent loop, different audience.
 - `uiSurface: "configure"`, `requiredRole: "configurator"`.
 - Session start is gated by `LockService.isUnlocked()` in `SessionServiceImpl`.
-- Tools (Phase 11 — 25 total): bootstrap tools + `course.edit`, `lesson.{create,edit,delete}`, `gate.{create,edit,delete,override}`, `prompt.{override_fragment,clear_fragment,set_style}`, `memory.{reset_concept,clear_misconception,export,delete_all}`.
+- Tools (Phase 11 — 25 total): course-create tools + `course.edit`, `lesson.{create,edit,delete}`, `gate.{create,edit,delete,override}`, `prompt.{override_fragment,clear_fragment,set_style}`, `memory.{reset_concept,clear_misconception,export,delete_all}`.
 - Phase 12 adds 9 note + flashcard tools to `teach` mode: `note.{create,update,show,list,from_session_summary}`, `flashcard.{create,from_note,review,review_next}`. Total teach tools: 34 (25 + 9).
 - Prompt fragments: preamble, `role.configure` (customizable), principles, `tools.configure` (not customizable), course-context, constraints, postamble.
 - Every write goes through `AuthoringServiceImpl`, which appends a `configurator_actions` audit row.
@@ -135,9 +135,9 @@ Lock-gated. Parent/teacher (or self-directed learner) authors and tunes.
 
 ## Course structure (Phase 16)
 
-Phase 16 adds **units** as a grouping layer between courses and lessons. A course that was bootstrapped with `course.start_exploration` has: course → units → lessons → lesson_assessments. Each `Unit` groups an ordered list of lessons and optionally has a summative assessment (unit exam or midterm) at its end. Each `LessonAssessment` binds an assignment shell to a specific lesson with `timing` (before / after / interleaved) and `purpose` (readiness / practice / checkpoint). The aggregate scaffold is captured in `Course.assessmentPlan` (an `AssessmentPlan`).
+Phase 16 adds **units** as a grouping layer between courses and lessons. A course drafted with `course.start_drafting` has: course → units → lessons → lesson_assessments. Each `Unit` groups an ordered list of lessons and optionally has a summative assessment (unit exam or midterm) at its end. Each `LessonAssessment` binds an assignment shell to a specific lesson with `timing` (before / after / interleaved) and `purpose` (readiness / practice / checkpoint). The aggregate scaffold is captured in `Course.assessmentPlan` (an `AssessmentPlan`).
 
-Courses bootstrapped before Phase 16 have no units and no `assessmentPlan`; the UI defaults to a flat-lesson view when `course.assessmentPlan` is absent.
+Courses created before Phase 16 have no units and no `assessmentPlan`; the UI defaults to a flat-lesson view when `course.assessmentPlan` is absent.
 
 ## Assessment loop (Phase 16)
 
@@ -170,7 +170,7 @@ Both tools require at least one `evidenceEventId` pointing to an episodic event 
 
 ## Adaptive routing
 
-The system reads the student model and decides what to teach next. Routing happens at three points: session bootstrap (pick mode + scope), within a lesson (pick next item / next concept), at session end (re-evaluate gates, schedule review).
+The system reads the student model and decides what to teach next. Routing happens at three points: session start (pick mode + scope), within a lesson (pick next item / next concept), at session end (re-evaluate gates, schedule review).
 
 **Inputs to the router:**
 
@@ -207,7 +207,7 @@ The `course.current_concept` tool calls `suggestNext` and forwards its output to
 
 ### Canonical pack routing (Phase 10)
 
-When a course is created from a canonical pack (`course.use_canonical_pack`), the pack's concept graph becomes the course's backbone. Concepts are grouped into lessons of ~7 at import time; the router then operates exactly as it does for extracted courses. The bootstrap agent is told to call `course.list_canonical_packs` first when a student names a known subject, and to offer the canonical pack as an alternative to document extraction.
+When a course is created from a canonical pack (`course.use_canonical_pack`), the pack's concept graph becomes the course's backbone. Concepts are grouped into lessons of ~7 at import time; the router then operates exactly as it does for extracted courses. The drafter is told to call `course.list_canonical_packs` first when a student names a known subject, and to offer the canonical pack as an alternative to document extraction.
 
 ## Knowledge graph design
 
@@ -246,7 +246,7 @@ Gates exist to enforce prerequisite competence and motivate progression — *not
 **Defaults (v1 — Phase 9):**
 
 - **Gates are course-local in v1.** Gate evaluation is scoped to one course. Cross-course mastery already flows through shared concept IDs (Phase 7 mastery is per-(studentId, conceptId)); the gate-criteria part of cross-course gating is deferred to Phase 11 as a non-breaking discriminated-union extension (`external-mastery` variant).
-- **Strict gating only in v1.** The bootstrap default produces strict gates. Soft gates (warn but don't refuse) are a future configurable; Phase 9 ships strict only.
+- **Strict gating only in v1.** The course-create default produces strict gates. Soft gates (warn but don't refuse) are a future configurable; Phase 9 ships strict only.
 - **Unlock-only transitions in v1.** A gate that has been unlocked stays unlocked even if mastery later decays below threshold. Re-locking creates a frustrating UX that needs careful UX work; deferred to Phase 14 alongside spaced-review nudges.
 - **Session-end evaluation.** Gates re-evaluate at session boundaries, not mid-session. Mid-session unlocks are explicitly not a v1 feature (per ARCHITECTURE.md). The evaluator runs in `SessionService.end()` after indexers.
 - **Strong-edge prerequisites**: strict gating. Student must reach `mastery >= 0.7` (configurable) on prerequisites before the next concept unlocks.

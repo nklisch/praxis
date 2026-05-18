@@ -53,13 +53,13 @@ platforms when their signing pipelines come online.
 |---|------|----------|
 | 2.1 | Welcome step renders with the "Welcome to Praxis" copy. Click **Continue**. | Engine step renders. |
 | 2.2 | In the engine step, pick **Direct — Anthropic (Claude)**, paste an API key, click **Continue**. | Course step renders. Engine config is saved (verified later in Stage 4). |
-| 2.3 | Click **Algebra (canonical)**. | Bootstrap chat session opens. The first-run flag is now set; relaunch would land on Library, not first-run. |
+| 2.3 | Click **Algebra (canonical)**. | Course-create session opens. The first-run flag is now set; relaunch would land on Library, not first-run. |
 
 ## Stage 3 — Teach + sketch + assignment
 
 | # | Step | Expected |
 |---|------|----------|
-| 3.1 | In the bootstrap session, type: "Use the canonical algebra-1 pack to create my course." | Agent calls `course.use_canonical_pack`; course + lessons appear in the left rail; bootstrap session transitions toward teach mode. |
+| 3.1 | In the course-create session, type: "Use the canonical algebra-1 pack to create my course." | Agent calls `course.use_canonical_pack`; course + lessons appear in the left rail; course-create session transitions toward teach mode. |
 | 3.2 | Switch to (or follow agent into) teach mode. Ask: "Teach me how to solve linear equations step-by-step." | Agent picks the first concept; explains; offers a worked example. |
 | 3.3 | Open the sketch composer; sketch `2x + 5 = 11` and the steps to solve it. Submit. | Sympy verifies the final answer; agent gives feedback (correct or specific correction). |
 | 3.4 | When the agent issues a quick check or assignment, submit a deliberately wrong answer first, then a right one. | Both submissions grade reasonably. Wrong → constructive feedback; right → confirmation + next step. |

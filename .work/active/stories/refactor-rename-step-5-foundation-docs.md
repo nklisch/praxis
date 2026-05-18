@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-5-foundation-docs
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, naming, documentation]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: [refactor-rename-step-4-service-and-ipc]
@@ -147,10 +147,56 @@ the consistency check in the acceptance criteria catches that.
 
 `git revert <commit>` — doc-only revert, no consequences.
 
+## Implementation Notes
+
+### File-by-file occurrence count (before → after)
+
+| File | Before | After | Notes |
+|------|--------|-------|-------|
+| `docs/VISION.md` | 1 | 0 | "calculus bootstrap" → "calculus course-create" |
+| `docs/SPEC.md` | 1 | 0 | "bootstrap-readiness work … bootstrap and configure modes" → new wording |
+| `docs/ARCHITECTURE.md` | 8 | 1 | 7 renamed; 1 kept (Category B: `1. Bootstrap` step label) |
+| `docs/CURRICULUM.md` | 9 | 0 | All renamed; "session bootstrap" clarified to "session start" |
+| `docs/UX.md` | 8 | 1 | 7 renamed; "next-session bootstrap" → "next session's opening" |
+| `docs/ROADMAP.md` | 17 | 0 | All renamed, including Phase 6 header and Phase 16a header |
+| `docs/ONBOARDING.md` | 4 | 0 | All renamed |
+| `docs/CONTRACT.md` | 15 | 5 | 10 renamed; 5 kept (see below) |
+| `docs/v1-ship-checklist.md` | 2 | 0 | Both renamed |
+| `CLAUDE.md` | 3 | 0 | All 3 renamed (permission mode note, "Bootstrap explorer tools" section, phase map) |
+
+### Category-B occurrences intentionally kept
+
+1. **ARCHITECTURE.md `1. Bootstrap`** — generic CS step label in the session data flow diagram. This names the initialization phase of a session, not the course-create mode.
+
+2. **CONTRACT.md `{ kind: "bootstrapped"; sourceMaterials: DocumentId[] }`** — the `CourseSource` discriminated union's `"bootstrapped"` variant. This is the stored data-model discriminator value still in the codebase (Steps 1–4 did not rename `CourseSource` variants, only mode ids and service symbols). Kept as accurate documentation of the actual type.
+
+3. **CONTRACT.md `Gates are bootstrapped in locked state`** — generic CS initialization sense.
+
+4. **CONTRACT.md `bootstrap(files, opts) → DraftCourse`** (comment) and **`bootstrap(files: FileRef[], ...)` method** — the `AuthoringService.bootstrap()` placeholder method still exists in the codebase under that name (Steps 1–4 scope was the mode, service, and IPC layer — not this aspirational placeholder). Kept accurate. The comment around it was updated to use `course-create` for mode references.
+
+### `client.author.bootstrap()` resolution
+
+The `bootstrap` line was **removed from the architecture diagram** in ARCHITECTURE.md (line 144) rather than renamed. The diagram already had `createCourse()` on the line above; duplicating it as `createCourse(files)` would add confusion. A comment was added to `createCourse()` noting it's a placeholder — v1 course creation goes through course-create mode tools. The `AuthoringService.bootstrap()` interface method in CONTRACT.md line 899 was kept accurate to the code.
+
+### Rolling-forward check
+
+`git diff docs/ CLAUDE.md | grep -iE "^\+.*previously|^\+.*originally|^\+.*formerly|^\+.*used to be called|^\+.*was named|^\+.*renamed from"` returned zero hits.
+
+### Acceptance criteria status
+
+- [x] All Category A occurrences from the discovery inventory are rewritten
+- [x] `grep -in "bootstrap mode\|bootstrap session\|bootstrap explorer\|bootstrap agent\|the explorer" docs/*.md CLAUDE.md` returns no results outside `docs/designs/` and `docs/refactors/`
+- [x] Rolling-forward grep returned zero hits
+- [x] CONTRACT.md's IPC channels, tool names, and mode references track the implementation (`praxis.courseCreate.drafts.events.*`, `course.start_drafting`, course-create mode)
+- [x] CLAUDE.md "Bootstrap explorer tools" section renamed to "Drafter tools"
+- [x] No code changes; doc-only
+
 ## What's now possible (post-feature note)
 
 Once Step 5 lands, the entire feature is complete: backend code, tool
-names, mode ids, prompt files, and foundation docs all match the user-
-facing "Create a course" / "Praxis is drafting" framing. Future agents
-reading the codebase + docs find a single consistent vocabulary, and the
-naming bleed that motivated this refactor stays out.
+names, mode ids, prompt files, and foundation docs all use the same
+vocabulary — `course-create` mode, the drafter, `course.start_drafting`.
+Any agent reading the codebase and docs encounters a single consistent
+framing that matches the UI surface ("Create a course", "Praxis is
+drafting"), and the naming bleed that motivated this refactor has no
+remaining foothold in the active codebase or its documentation.
