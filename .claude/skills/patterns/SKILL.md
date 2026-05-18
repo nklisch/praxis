@@ -49,6 +49,8 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [per-domain-channel-module.md](per-domain-channel-module.md) — cohesive IPC domains live in `<domain>-channel.ts` exporting `registerXxxHandlers(services, …, log)`; `createIpcHelpers(log)` is the single seam for timing + redacted error logging
 - [discriminated-union-dispatch.md](discriminated-union-dispatch.md) — `type` for events, `kind` for domain objects; `switch` for exhaustive dispatch
 - [subscriber-fanout-stream.md](subscriber-fanout-stream.md) — service `subscribe(listener)` (sends `snapshot` first) → `*-channel.ts` fanout with AbortController hold-open → client `events()` → UI hook iterating `for await` and folding `event.kind` into a Map
+- [streaming-ipc-channel-helpers.md](streaming-ipc-channel-helpers.md) — `registerSubscriberStream` (callback) and `registerGeneratorStream` (AsyncIterable) factories own all `.start`/`.events.<id>`/`.cancel` envelope/abort/redaction boilerplate; derive channel names from a single `channelBase`
+- [notify-listeners-helper.md](notify-listeners-helper.md) — `notifyListeners(listeners, event, log, component)` in `services/db-helpers.ts` is the shared listener-loop with per-listener try/catch; services keep their own `Set` and snapshot semantics, but the fanout step is the helper
 
 ### Testing patterns
 - [ui-test-helper.md](ui-test-helper.md) — `makeFakeClient(overrides?)` from `__tests__/helpers/`; `<PraxisClientProvider>` render wrapper; TanStack Router mock

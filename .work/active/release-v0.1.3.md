@@ -209,6 +209,12 @@ Test gate carryovers (15):
 
 - **gate-security** (2026-05-18) — 1 new finding (Medium=1), 4 already-tracked skipped
   - `gate-security-engine-baseurl-url-validator-scheme-allowlist` (Medium)
+- **gate-patterns** (2026-05-18) — 2 new patterns codified, 2 inconsistencies tracked
+  - New: `streaming-ipc-channel-helpers` (7 call sites — activity, sub-agent, course-create-drafts, quick-check, session.send, ingest, memory)
+  - New: `notify-listeners-helper` (4 services — activity, quick-check, sub-agent, course-create)
+  - Tracking item: `gate-patterns-v0.1.3` (stage:done)
+  - Inconsistency: `gate-patterns-inconsistency-subscriber-fanout-stream-skill-rewrite` (drafting)
+  - Inconsistency: `gate-patterns-inconsistency-ipc-envelope-handler-add-handleenvelope` (drafting)
 - **gate-docs** (2026-05-18) — 6 items from 20 raw findings (5 implementing, 1 drafting); consolidated by surface
   - `gate-docs-status-strip-no-longer-planned` (High — CLAUDE.md, UX.md, ARCHITECTURE.md)
   - `gate-docs-engine-session-manager-extraction-references` (High — CLAUDE.md, CONTRACT.md, patterns.md, 2 pattern skills)
