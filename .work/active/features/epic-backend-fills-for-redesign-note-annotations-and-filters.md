@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-note-annotations-and-filters
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -151,12 +151,12 @@ to run in parallel.
 
 Aggregate (per-story criteria in the story bodies):
 
-- [ ] Annotations persist on notes; round-trip via the service API.
-- [ ] FTS5-backed search returns ranked results for note + flashcard
+- [x] Annotations persist on notes; round-trip via the service API.
+- [x] FTS5-backed search returns ranked results for note + flashcard
       bodies.
-- [ ] All four saved filters return correct sets against seeded
+- [x] All four saved filters return correct sets against seeded
       fixtures.
-- [ ] All quality checks green.
+- [x] All quality checks green.
 
 ## Risks
 
@@ -170,3 +170,23 @@ Aggregate (per-story criteria in the story bodies):
 - **Annotation range stability**: ranges become stale when the body
   is edited. v1 accepts this; story body documents the limitation
   and the editor can recompute or re-anchor in a follow-up.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none — the `dueOnly` FTS/non-FTS inconsistency was caught by the
+  Story B review and triaged to
+  `library-service-dueonly-fts-null-inconsistency` in `.work/backlog/`.
+**Nits**:
+- IPC-layer annotation schema does not cross-check `rangeStart < rangeEnd`
+  (service layer handles it; callers get INTERNAL rather than VALIDATION_FAILED).
+- `recentWindowMs` silently no-ops for flashcards (correct design, no comment).
+
+**Notes**: Both child stories approved at their individual reviews. All
+acceptance criteria met — annotations round-trip correctly, FTS5 tables and
+triggers are in sync, all four saved filters tested, 71 feature-specific tests
+green (39 service + 32 IPC). The triage backlog item for the `dueOnly`
+inconsistency is properly filed. Pre-existing typecheck and lint errors in
+unrelated UI files do not originate from this feature.
