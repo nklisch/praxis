@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-quiz-tab-body
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles]
@@ -75,3 +75,27 @@ behaviour, navigation, and confidence. Updated the stale sidekick-focused tests
 in `quiz-tab-body.test.tsx` and confirmed `chat-tab-body-dispatch.test.tsx`
 still passes (the kickerMode glyph `‡` was separated into its own span so the
 mode text stays exactly `"quiz"`).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**: UX.md § "quiz (flashcard rhythm)" still describes the pre-redesign
+side-strip tutor summon ("`?`" key, agent visible between cards). The locked mock
+and this implementation intentionally remove that affordance. `docs/UX.md` needs
+rolling forward to reflect the no-tutor-mid-quiz contract. Filed as
+`backlog-ux-md-quiz-mode-doc-drift`.
+
+**Nits**:
+- `"concept" in currentItem` check at `quiz-tab-body.tsx:248` is dead code —
+  no `AssignmentItem` variant exposes a `concept` field. Silent no-op, no crash.
+- `--color-warning: #ca8a04` fallback in `.dotSkipped` is redundant; token is
+  defined in `global.css`. Harmless.
+- `isItemWithWork` checks `"workRubric" in item` instead of just `item.kind` —
+  overly conservative but correct.
+
+**Notes**: Rewrite faithfully implements the locked mock. Layout, tutor
+suppression, item dispatch, rail, confidence band, and post-submit review are
+all present and tested. No correctness bugs found.

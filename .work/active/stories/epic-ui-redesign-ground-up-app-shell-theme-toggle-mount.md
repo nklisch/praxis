@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-theme-toggle-mount
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -58,3 +58,17 @@ Tests: three new cases in `top-nav.test.tsx` assert (a) the three toggle
 buttons render when `themeSlot` is provided, (b) they sit inside the
 `<header>` (role=banner), and (c) they are absent when `themeSlot` is omitted.
 All 12 TopNav tests and 7 ThemeToggle tests pass.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Minimal, correct implementation. `themeSlot` prop added alongside
+`tabsSlot` keeps concerns distinct. CSS correctly relies on `nav { flex:1 }`
+to push both slots right — no `margin-left: auto` needed on slots. Three new
+TopNav tests cover presence/absence and containment in the running head.
+No foundation-doc drift. Ship it.
