@@ -1,7 +1,7 @@
 ---
 id: refactor-split-core-type-files-tool-and-client
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -336,3 +336,18 @@ delivery: `tool.ts` 1617→184 LoC (−1433), `client.ts` 944→76 LoC (−868).
 - Adding a new service is a single new file (`<domain>-service.ts`) plus one line in the barrel.
 - The strict dependency-direction reason for the `VisionService` inline workaround is gone — `vision.ts` lives in `core/types/`, not `core/services/`.
 - The `MemoryService` name collision between server/client is now structural (different files) rather than alias-papered-over.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (aggregate)
+**Blockers**: none
+**Important**: none
+**Nits**: see child reviews.
+
+**Aggregate lens findings**:
+- **Design alignment**: the design correction pivoted away from the initial "split into 3-4 thematic chunks" approach to "move each service to its natural per-domain home." Implementation matched the corrected design. Both steps surfaced extra interfaces beyond the destination map and handled them gracefully (Step 1 found 6+ additional services; Step 2 found a circular import that motivated relocating ProgressSnapshot).
+- **Foundation-doc alignment**: `docs/CONTRACT.md` describes the type surface but doesn't pin file locations within `@praxis/core/types/`, so no foundation-doc drift. The barrel preserves every public re-export.
+- **Breaking changes**: none. Every consumer outside `packages/core/src/types/` continues to work via the barrel re-export.
+- **Capability completeness**: type surface is structurally cleaner. Adding a new service is now a single-file change in its domain instead of editing a 1617-line god file.
+
+**Notes**: Substantial structural cleanup with zero behavior change. The end state (tool.ts 184, client.ts 76, ~25 per-domain type files) is dramatically easier to navigate than the prior monoliths.
