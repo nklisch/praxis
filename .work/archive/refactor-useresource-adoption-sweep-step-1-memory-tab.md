@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep-step-1-memory-tab
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: refactor-useresource-adoption-sweep
 depends_on: []
@@ -199,3 +199,12 @@ The 2 remaining useEffects (episodic lazy-load + episodic cleanup on unmount) ar
 - `pnpm --filter @praxis/ui typecheck` — passed (no new errors)
 - `pnpm biome check packages/ui/src/routes/configure/memory-tab.tsx` — passed
 - `pnpm --filter @praxis/ui test` — 18/18 memory-tab tests pass; 155/155 test files pass; 1 pre-existing unhandled error in `configure-course-tab` (`setUnits is not defined` in `course-tab.tsx`) confirmed pre-existing (course-tab.tsx was already modified before this story)
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean conversion of 4 single-fetch loaders to useResource. The 5th (loadEpisodic) correctly stayed inline. Manual mount useEffect removed (was firing all 4 loaders); useResource owns the mount. `setData` correctly omitted since memory-tab has no optimistic-update sites. File 684→652 LoC (−32). 18/18 memory-tab tests pass; UI typecheck and biome clean. The two remaining useEffects (episodic lazy-load + cleanup-on-unmount) are unchanged.
