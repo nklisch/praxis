@@ -329,6 +329,14 @@ export const assignmentResponses = sqliteTable(
      * but no FK constraint (deduplication-friendly — sketches are content-addressed).
      */
     sketchId: text("sketch_id"),
+    /**
+     * Confidence band — formative signal captured per item in quiz mode.
+     * Null when the student did not select a confidence level (always optional).
+     * Feed to the procedural-memory indexer as a self-assessment signal.
+     */
+    confidence: text("confidence", {
+      enum: ["guessed", "unsure", "pretty_sure", "certain"],
+    }),
     recordedAt: integer("recorded_at", { mode: "timestamp_ms" }).notNull(),
   },
   (t) => ({

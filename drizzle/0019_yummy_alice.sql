@@ -1,0 +1,1 @@
+ALTER TABLE `assignment_responses` ADD `confidence` text;

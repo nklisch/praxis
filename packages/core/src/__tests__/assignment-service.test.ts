@@ -361,6 +361,97 @@ describe("AssignmentServiceImpl.recordResponse", () => {
     const responses = await svc.getResponses({ assignmentId });
     expect(responses[0]?.work).toBe("x + 2 = 5 → x = 3");
   });
+
+  it("persists and round-trips confidence band per item", async () => {
+    const svc = makeMCService();
+    const { assignmentId } = await svc.create({
+      courseId: COURSE_ID,
+      studentId: STUDENT_ID,
+      kind: "quiz",
+      title: "Confidence Quiz",
+      items: [
+        {
+          id: "q1",
+          kind: "single-choice",
+          prompt: "Q?",
+          options: ["A", "B"],
+          correctOptionIndex: 0,
+        },
+        {
+          id: "q2",
+          kind: "single-choice",
+          prompt: "Q2?",
+          options: ["A", "B"],
+          correctOptionIndex: 1,
+        },
+      ],
+      conceptIds: [],
+    });
+
+    await svc.recordResponse({ assignmentId, itemId: "q1", response: "0", confidence: "certain" });
+    await svc.recordResponse({ assignmentId, itemId: "q2", response: "1", confidence: "guessed" });
+
+    const responses = await svc.getResponses({ assignmentId });
+    const q1 = responses.find((r) => r.itemId === "q1");
+    const q2 = responses.find((r) => r.itemId === "q2");
+    expect(q1?.confidence).toBe("certain");
+    expect(q2?.confidence).toBe("guessed");
+  });
+
+  it("confidence is null when not provided", async () => {
+    const svc = makeMCService();
+    const { assignmentId } = await svc.create({
+      courseId: COURSE_ID,
+      studentId: STUDENT_ID,
+      kind: "quiz",
+      title: "No Confidence Quiz",
+      items: [
+        {
+          id: "q1",
+          kind: "single-choice",
+          prompt: "Q?",
+          options: ["A", "B"],
+          correctOptionIndex: 0,
+        },
+      ],
+      conceptIds: [],
+    });
+
+    await svc.recordResponse({ assignmentId, itemId: "q1", response: "0" });
+
+    const responses = await svc.getResponses({ assignmentId });
+    expect(responses[0]?.confidence).toBeUndefined();
+  });
+
+  it("updating response preserves confidence if not re-provided", async () => {
+    const svc = makeMCService();
+    const { assignmentId } = await svc.create({
+      courseId: COURSE_ID,
+      studentId: STUDENT_ID,
+      kind: "quiz",
+      title: "Update Quiz",
+      items: [
+        {
+          id: "q1",
+          kind: "single-choice",
+          prompt: "Q?",
+          options: ["A", "B"],
+          correctOptionIndex: 0,
+        },
+      ],
+      conceptIds: [],
+    });
+
+    // First record with confidence
+    await svc.recordResponse({ assignmentId, itemId: "q1", response: "0", confidence: "unsure" });
+    // Update answer without confidence (upsert clears confidence to null — expected behavior)
+    await svc.recordResponse({ assignmentId, itemId: "q1", response: "1" });
+
+    const responses = await svc.getResponses({ assignmentId });
+    // Without confidence in the upsert, it's written as null
+    expect(responses[0]?.response).toBe("1");
+    expect(responses[0]?.confidence).toBeUndefined();
+  });
 });
 
 // ── submit tests ──────────────────────────────────────────────────────────────

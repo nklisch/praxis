@@ -469,11 +469,15 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
     work?: string;
     /** Phase 15a: optional sketch attached to this response. */
     sketchId?: string;
+    /** Confidence band — formative self-assessment signal per quiz item. Optional. */
+    confidence?: "guessed" | "unsure" | "pretty_sure" | "certain";
   }): Promise<void> {
     const now = new Date();
     // Drizzle with exactOptionalPropertyTypes requires null (not undefined) for nullable text columns.
     const workValue: string | null = input.work ?? null;
     const sketchIdValue: string | null = input.sketchId ?? null;
+    const confidenceValue: "guessed" | "unsure" | "pretty_sure" | "certain" | null =
+      input.confidence ?? null;
     this.deps.db
       .insert(assignmentResponses)
       .values({
@@ -482,6 +486,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
         response: input.response,
         work: workValue,
         sketchId: sketchIdValue,
+        confidence: confidenceValue,
         recordedAt: now,
       })
       .onConflictDoUpdate({
@@ -490,6 +495,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
           response: input.response,
           work: workValue,
           sketchId: sketchIdValue,
+          confidence: confidenceValue,
           recordedAt: now,
         },
       })
@@ -508,6 +514,7 @@ export class AssignmentServiceImpl implements AssignmentService, GradeReader {
       response: r.response,
       ...(r.work !== null && r.work !== undefined && { work: r.work }),
       ...(r.sketchId !== null && r.sketchId !== undefined && { sketchId: r.sketchId }),
+      ...(r.confidence !== null && r.confidence !== undefined && { confidence: r.confidence }),
       recordedAt: r.recordedAt.getTime() as Timestamp,
     }));
   }

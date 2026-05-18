@@ -4,6 +4,7 @@ import type {
   AssignmentResponse,
   AssignmentSubmissionResult,
   AssignmentsClient,
+  ConfidenceBand,
   CourseId,
 } from "@praxis/core/types";
 import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
@@ -53,6 +54,8 @@ class AssignmentsClientImpl implements AssignmentsClient {
     work?: string;
     /** Phase 15a: optional sketch attached to this response. */
     sketchId?: string;
+    /** Confidence band — formative self-assessment signal per quiz item. Optional. */
+    confidence?: ConfidenceBand;
   }): Promise<void> {
     const result = await this.transport.invoke<IpcEnvelope<void> | void>(C.recordResponse, input);
     return unwrapEnvelope(result);

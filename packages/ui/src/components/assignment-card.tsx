@@ -32,11 +32,13 @@ export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: As
     assignment,
     responses,
     work,
+    confidences,
     loading,
     error,
     submitting,
     submitError,
     recordResponse,
+    recordConfidence,
     submit,
   } = useAssignment(assignmentId);
 
@@ -164,6 +166,10 @@ export function AssignmentCard({ assignmentId, examLockdown: _examLockdown }: As
                 })}
                 disabled={isSubmitted || submitting}
                 {...(sketchHandleRef !== undefined && { sketchHandleRef })}
+                {...(assignment.kind === "quiz" && {
+                  confidence: confidences.get(item.id) ?? null,
+                  onConfidenceChange: (c) => recordConfidence(item.id, c),
+                })}
               />
               {itemGrade && (
                 <AssignmentFeedback

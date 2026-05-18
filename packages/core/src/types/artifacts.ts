@@ -338,6 +338,9 @@ export interface Grade {
   reviewedBy: GraderTier;
 }
 
+/** Confidence band values captured per item in quiz mode. */
+export type ConfidenceBand = "guessed" | "unsure" | "pretty_sure" | "certain";
+
 /** Per-item draft response for resumable assignments. */
 export interface AssignmentResponse {
   assignmentId: AssignmentId;
@@ -358,6 +361,12 @@ export interface AssignmentResponse {
    * via `sketch.read({ sketchId })` or via `grade_math({ kind: "sketch", sketchId })`.
    */
   sketchId?: string;
+  /**
+   * Confidence band — formative self-assessment signal per quiz item.
+   * Optional: null/absent when the student did not select a level.
+   * Fed to the procedural-memory indexer alongside correctness.
+   */
+  confidence?: ConfidenceBand;
   recordedAt: Timestamp;
 }
 

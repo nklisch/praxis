@@ -1,4 +1,4 @@
-import type { AssignmentItem } from "@praxis/core/types";
+import type { AssignmentItem, ConfidenceBand } from "@praxis/core/types";
 import type { ForwardedRef } from "react";
 import styles from "./assignment-item-card.module.css";
 import { CodeBody } from "./item-bodies/code-body.js";
@@ -33,6 +33,13 @@ export interface AssignmentItemCardProps {
   sketchHandleRef?: ForwardedRef<SketchCanvasHandle>;
   /** When true and item has requireReasoning, show validation hint on empty work field. */
   showValidation?: boolean;
+  /**
+   * Confidence band selection for quiz mode. Null means no selection yet.
+   * When provided alongside onConfidenceChange, the 4-button confidence band is rendered.
+   */
+  confidence?: ConfidenceBand | null;
+  /** Called when the student selects a confidence level. */
+  onConfidenceChange?: (confidence: ConfidenceBand) => void;
 }
 
 /**
@@ -51,6 +58,8 @@ export function AssignmentItemCard({
   disabled = false,
   sketchHandleRef,
   showValidation = false,
+  confidence = null,
+  onConfidenceChange,
 }: AssignmentItemCardProps) {
   const hasWorkRubric =
     (item.kind === "math" || item.kind === "code" || item.kind === "numerical") &&
@@ -92,6 +101,27 @@ export function AssignmentItemCard({
           disabled={disabled}
           showValidation={showValidation}
         />
+      )}
+
+      {/* Confidence band — formative self-assessment signal for quiz mode */}
+      {onConfidenceChange !== undefined && (
+        <fieldset className={styles.confidenceBand}>
+          <legend className={styles.confidenceLabel}>confidence in this answer</legend>
+          <div className={styles.confidenceScale}>
+            {(["guessed", "unsure", "pretty_sure", "certain"] as const).map((level) => (
+              <button
+                key={level}
+                type="button"
+                className={`${styles.confidencePip}${confidence === level ? ` ${styles.confidencePipSelected}` : ""}`}
+                onClick={() => !disabled && onConfidenceChange(level)}
+                disabled={disabled}
+                aria-pressed={confidence === level}
+              >
+                {level === "pretty_sure" ? "pretty sure" : level}
+              </button>
+            ))}
+          </div>
+        </fieldset>
       )}
     </div>
   );

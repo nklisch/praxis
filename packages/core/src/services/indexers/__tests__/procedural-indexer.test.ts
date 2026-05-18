@@ -5,12 +5,16 @@
  * and pedagogyPack. Covers all acceptance criteria from the story design.
  */
 
+import { assignmentResponses, assignments, courses } from "@praxis/artifacts/schema";
+import { conceptGraphs } from "@praxis/curriculum/schema";
 import { proceduralStrategies } from "@praxis/memory/schema";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../../db/index.js";
 import type {
+  AssignmentId,
+  ConfidenceBand,
   CourseId,
   CourseStateReader,
   CourseStateSnapshot,
@@ -778,5 +782,245 @@ describe("scoreSessionOutcome — pure function", () => {
     const result = scoreSessionOutcome(events);
     expect(result.delta).toBe(-300);
     expect(result.evidenceCount).toBe(4);
+  });
+});
+
+// ── Confidence signal ─────────────────────────────────────────────────────────
+
+describe("scoreSessionOutcome — confidence modifier", () => {
+  it("empty confidences map → confidenceCount=0, no bonus applied", () => {
+    const events: IndexerContext["events"] = [
+      makeEvent("e1", 0, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
+      makeEvent("e2", 0, {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, value: { correct: true }, tier: "deterministic" },
+      }),
+    ];
+    const result = scoreSessionOutcome(events, new Map());
+    expect(result.delta).toBe(50);
+    expect(result.confidenceCount).toBe(0);
+  });
+
+  it("all-certain confidence on 1-correct session → bonus ≤ +40", () => {
+    const events: IndexerContext["events"] = [
+      makeEvent("e1", 0, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
+      makeEvent("e2", 0, {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, value: { correct: true }, tier: "deterministic" },
+      }),
+    ];
+    const confidences = new Map<string, ConfidenceBand>([["item-1", "certain"]]);
+    const result = scoreSessionOutcome(events, confidences);
+    // base delta = +50 (1 correct); bonus = certain(1.0) * 20 = 20; total = 70
+    expect(result.delta).toBe(70);
+    expect(result.confidenceCount).toBe(1);
+  });
+
+  it("all-guessed confidence → bonus near 0", () => {
+    const events: IndexerContext["events"] = [
+      makeEvent("e1", 0, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
+      makeEvent("e2", 0, {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, value: { correct: true }, tier: "deterministic" },
+      }),
+    ];
+    const confidences = new Map<string, ConfidenceBand>([["item-1", "guessed"]]);
+    const result = scoreSessionOutcome(events, confidences);
+    // guessed=0, so bonus = 0; total = 50
+    expect(result.delta).toBe(50);
+    expect(result.confidenceCount).toBe(1);
+  });
+
+  it("mixed confidence → average applied correctly", () => {
+    // 2 items: "certain"=1.0 and "guessed"=0 → mean=0.5, bonus=Math.round(0.5*20)=10
+    const events: IndexerContext["events"] = [
+      makeEvent("e1", 0, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
+      makeEvent("e2", 0, {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, value: { correct: true }, tier: "deterministic" },
+      }),
+    ];
+    const confidences = new Map<string, ConfidenceBand>([
+      ["item-1", "certain"],
+      ["item-2", "guessed"],
+    ]);
+    const result = scoreSessionOutcome(events, confidences);
+    // mean = (1.0 + 0) / 2 = 0.5 → bonus = round(0.5 * 20) = 10; total = 50 + 10 = 60
+    expect(result.delta).toBe(60);
+    expect(result.confidenceCount).toBe(2);
+  });
+
+  it("bonus is capped at +40 even with high-confidence items", () => {
+    // 5 "certain" items: mean=1.0, bonus = min(40, 1.0*20) = 20 (not > 40)
+    const confidences = new Map<string, ConfidenceBand>(
+      Array.from({ length: 5 }, (_, i) => [`item-${i}`, "certain"] as [string, ConfidenceBand]),
+    );
+    const events: IndexerContext["events"] = [
+      makeEvent("e1", 0, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
+      makeEvent("e2", 0, {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, value: { correct: true }, tier: "deterministic" },
+      }),
+    ];
+    const result = scoreSessionOutcome(events, confidences);
+    // base = 50, bonus = min(40, 1.0*20) = 20; total = 70
+    expect(result.delta).toBe(70);
+    expect(result.confidenceCount).toBe(5);
+  });
+});
+
+// ── ProceduralIndexer.readConfidences integration ─────────────────────────────
+
+describe("ProceduralIndexer — confidence signal via sessionAssignmentId", () => {
+  const CONF_ASSIGNMENT_ID = brandId<"AssignmentId">("assignment-conf-test");
+
+  /**
+   * Seed concept graph, course, assignment, and a response with a confidence
+   * value so the indexer can read it via the assignment FK chain.
+   */
+  function seedAssignmentWithConfidence(
+    db: ReturnType<typeof openDb>["db"],
+    assignmentId: AssignmentId,
+    itemId: string,
+    confidence: ConfidenceBand,
+  ): void {
+    // 1. Seed concept graph (required by courses FK — no FK in schema but needed by curriculum)
+    db.insert(conceptGraphs)
+      .values({
+        id: "cg-conf-test",
+        source: "extracted",
+        name: "CG",
+        version: "1",
+        createdAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [conceptGraphs.id],
+        set: { name: "CG" },
+      })
+      .run();
+
+    // 2. Seed course
+    db.insert(courses)
+      .values({
+        id: COURSE_ID,
+        studentId: STUDENT_ID,
+        title: "Test",
+        subject: "math",
+        gradeLevel: "9",
+        sourceJson: { kind: "authored", authorRole: "teacher" },
+        conceptGraphId: "cg-conf-test",
+        thresholdsJson: { conceptMastery: 0.7, examPass: 0.7, allowRetake: true, decayDays: 14 },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [courses.id],
+        set: { updatedAt: new Date() },
+      })
+      .run();
+
+    // 3. Seed assignment
+    db.insert(assignments)
+      .values({
+        id: assignmentId,
+        courseId: COURSE_ID,
+        kind: "quiz",
+        title: "Confidence Test Quiz",
+        itemsJson: [
+          {
+            id: itemId,
+            kind: "single-choice",
+            prompt: "Q?",
+            options: ["A", "B"],
+            correctOptionIndex: 0,
+          },
+        ],
+        conceptIdsJson: [],
+        assignedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [assignments.id],
+        set: { title: "Confidence Test Quiz" },
+      })
+      .run();
+
+    // 4. Seed response with confidence
+    db.insert(assignmentResponses)
+      .values({
+        assignmentId,
+        itemId,
+        response: "0",
+        confidence,
+        recordedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [assignmentResponses.assignmentId, assignmentResponses.itemId],
+        set: { confidence, recordedAt: new Date() },
+      })
+      .run();
+  }
+
+  it("reads confidence values when sessionAssignmentId resolves to an assignment", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+    seedAssignmentWithConfidence(db, CONF_ASSIGNMENT_ID, "q1", "certain");
+
+    const indexer = new ProceduralIndexer({
+      db,
+      log: MOCK_LOG,
+      sessionCourseId: () => COURSE_ID,
+      sessionAssignmentId: () => CONF_ASSIGNMENT_ID,
+      courseStateReader: makeCourseStateReader(),
+      pedagogyPack: makePackService(),
+    });
+
+    const ctx = makeCtx([
+      makeEvent("e1", 0, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
+      makeEvent("e2", 0, {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, value: { correct: true }, tier: "deterministic" },
+      }),
+    ]);
+
+    await indexer.run(ctx);
+
+    const row = getRow(db);
+    expect(row).toBeDefined();
+    // base = +50, bonus = certain(1.0)*20 = 20 → total = 70
+    expect(row?.preferenceMilli).toBe(70);
+  });
+
+  it("without sessionAssignmentId dep, confidenceCount=0 and delta unchanged", async () => {
+    const { db } = openDb({ path: dbCtx.dbPath });
+
+    const indexer = new ProceduralIndexer({
+      db,
+      log: MOCK_LOG,
+      sessionCourseId: () => COURSE_ID,
+      // no sessionAssignmentId
+      courseStateReader: makeCourseStateReader(),
+      pedagogyPack: makePackService(),
+    });
+
+    const ctx = makeCtx([
+      makeEvent("e1", 0, { type: "tool_call", toolName: "grade_math", args: {}, callId: "c1" }),
+      makeEvent("e2", 0, {
+        type: "tool_result",
+        callId: "c1",
+        result: { ok: true, value: { correct: true }, tier: "deterministic" },
+      }),
+    ]);
+
+    await indexer.run(ctx);
+
+    const row = getRow(db);
+    expect(row).toBeDefined();
+    // No confidence dep → no bonus → base delta only
+    expect(row?.preferenceMilli).toBe(50);
   });
 });

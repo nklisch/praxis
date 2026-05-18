@@ -6,10 +6,11 @@
  *  - workRubric items show the "partial credit available" badge and work textarea.
  *  - Radio buttons appear for single-choice items.
  *  - disabled prop disables all inputs.
+ *  - Confidence band renders when onConfidenceChange is provided.
  */
-import type { AssignmentItem } from "@praxis/core/types";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import type { AssignmentItem, ConfidenceBand } from "@praxis/core/types";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AssignmentItemCard } from "../components/assignment-item-card.js";
 
 afterEach(() => {
@@ -152,5 +153,88 @@ describe("AssignmentItemCard", () => {
     expect(radios[0]?.checked).toBe(false);
     expect(radios[1]?.checked).toBe(true);
     expect(radios[2]?.checked).toBe(false);
+  });
+});
+
+describe("AssignmentItemCard — confidence band", () => {
+  it("does NOT render the confidence band when onConfidenceChange is absent", () => {
+    const item = makeItem({ kind: "short-answer", acceptedAnswers: ["4"] });
+    render(<AssignmentItemCard item={item} {...defaultProps} />);
+    // fieldset is rendered as a "group" role; none should be present without the prop
+    expect(screen.queryByText(/confidence in this answer/i)).toBeNull();
+    expect(screen.queryByText("guessed")).toBeNull();
+  });
+
+  it("renders 4 confidence pips when onConfidenceChange is provided", () => {
+    const item = makeItem({ kind: "short-answer", acceptedAnswers: ["4"] });
+    render(
+      <AssignmentItemCard
+        item={item}
+        {...defaultProps}
+        confidence={null}
+        onConfidenceChange={() => {}}
+      />,
+    );
+    // The fieldset legend should be visible
+    expect(screen.getByText(/confidence in this answer/i)).toBeDefined();
+    expect(screen.getByRole("button", { name: "guessed" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "unsure" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "pretty sure" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "certain" })).toBeDefined();
+  });
+
+  it("selected pip has aria-pressed=true, others false", () => {
+    const item = makeItem({ kind: "short-answer", acceptedAnswers: ["4"] });
+    render(
+      <AssignmentItemCard
+        item={item}
+        {...defaultProps}
+        confidence={"pretty_sure" as ConfidenceBand}
+        onConfidenceChange={() => {}}
+      />,
+    );
+    expect(
+      (screen.getByRole("button", { name: "pretty sure" }) as HTMLButtonElement).getAttribute(
+        "aria-pressed",
+      ),
+    ).toBe("true");
+    expect(
+      (screen.getByRole("button", { name: "guessed" }) as HTMLButtonElement).getAttribute(
+        "aria-pressed",
+      ),
+    ).toBe("false");
+  });
+
+  it("calls onConfidenceChange with the selected band value", () => {
+    const item = makeItem({ kind: "single-choice", options: ["A", "B"], correctOptionIndex: 0 });
+    const onConfidenceChange = vi.fn();
+    render(
+      <AssignmentItemCard
+        item={item}
+        {...defaultProps}
+        confidence={null}
+        onConfidenceChange={onConfidenceChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "certain" }));
+    expect(onConfidenceChange).toHaveBeenCalledWith("certain");
+  });
+
+  it("confidence pips are disabled when disabled=true", () => {
+    const item = makeItem({ kind: "short-answer", acceptedAnswers: ["4"] });
+    render(
+      <AssignmentItemCard
+        item={item}
+        {...defaultProps}
+        confidence={null}
+        onConfidenceChange={() => {}}
+        disabled={true}
+      />,
+    );
+    const pips = ["guessed", "unsure", "pretty sure", "certain"];
+    for (const name of pips) {
+      expect((screen.getByRole("button", { name }) as HTMLButtonElement).disabled).toBe(true);
+    }
   });
 });

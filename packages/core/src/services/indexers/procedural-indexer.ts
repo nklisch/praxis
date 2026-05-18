@@ -6,14 +6,22 @@
  * suggestedStrategy, validates against the pedagogy pack, and upserts
  * (studentId, strategyId) with loss aversion and a per-session [-300, +300] cap.
  *
+ * Confidence signal: when the session has a bound assignment (quiz mode), the
+ * indexer reads assignment_responses.confidence to compute a confidence-accuracy
+ * alignment signal. Mismatches (e.g. "certain" but incorrect) amplify the
+ * negative delta; matches (e.g. "certain" and correct) add a small bonus.
+ *
  * Heuristic v1 — deterministic, no LLM call. See the feature design in
  * `.work/active/features/epic-phase-18-procedural-memory.md` for rationale.
  */
 
+import { assignmentResponses } from "@praxis/artifacts/schema";
 import { proceduralStrategies } from "@praxis/memory/schema";
 import { and, eq } from "drizzle-orm";
 import type { PraxisDb } from "../../db/index.js";
 import type {
+  AssignmentId,
+  ConfidenceBand,
   CourseStateReader,
   Indexer,
   IndexerContext,
@@ -29,6 +37,12 @@ export interface ProceduralIndexerDeps {
   log: Logger;
   /** Resolves the courseId for a given sessionId. Returns null if no course bound. */
   sessionCourseId: (sessionId: string) => string | null;
+  /**
+   * Resolves the assignmentId bound to a session, if any.
+   * Used to fetch per-item confidence values for quiz sessions.
+   * Optional — when absent, confidence signals are not read.
+   */
+  sessionAssignmentId?: (sessionId: string) => string | null;
   /** Reads the active course's current lesson + its suggestedStrategy. */
   courseStateReader: CourseStateReader;
   /** Validates that the lesson's suggestedStrategy is a known strategy id. */
@@ -43,6 +57,11 @@ export interface SessionOutcome {
   delta: number;
   /** Count of episodic events that contributed to the score. */
   evidenceCount: number;
+  /**
+   * Count of confidence-band responses read from the assignment, if any.
+   * Zero when no assignment is bound or no confidence values were recorded.
+   */
+  confidenceCount: number;
 }
 
 export class ProceduralIndexer implements Indexer {
@@ -76,8 +95,11 @@ export class ProceduralIndexer implements Indexer {
       return;
     }
 
-    // 3. Score the session's outcome from episodic events.
-    const score = scoreSessionOutcome(ctx.events);
+    // 3. Read per-item confidence values from the assignment, if available.
+    const confidencesByItemId = this.readConfidences(ctx.sessionId);
+
+    // 4. Score the session's outcome from episodic events + confidence signals.
+    const score = scoreSessionOutcome(ctx.events, confidencesByItemId);
 
     // No-signal case: skip without writing (net=0 produces no information).
     if (score.delta === 0) {
@@ -88,8 +110,35 @@ export class ProceduralIndexer implements Indexer {
       return;
     }
 
-    // 4. Apply the preference delta and upsert.
+    // 5. Apply the preference delta and upsert.
     this.applyDelta(ctx.studentId, strategyId, score);
+  }
+
+  /**
+   * Read per-item confidence values from the session's bound assignment.
+   * Returns an empty map when no assignment is bound or the dep is absent.
+   */
+  private readConfidences(sessionId: string): Map<string, ConfidenceBand> {
+    const result = new Map<string, ConfidenceBand>();
+    const resolver = this.deps.sessionAssignmentId;
+    if (!resolver) return result;
+
+    const rawAssignmentId = resolver(sessionId);
+    if (!rawAssignmentId) return result;
+
+    const assignmentId = brandId<"AssignmentId">(rawAssignmentId) as AssignmentId;
+    const rows = this.deps.db
+      .select({ itemId: assignmentResponses.itemId, confidence: assignmentResponses.confidence })
+      .from(assignmentResponses)
+      .where(eq(assignmentResponses.assignmentId, assignmentId))
+      .all();
+
+    for (const row of rows) {
+      if (row.confidence !== null && row.confidence !== undefined) {
+        result.set(row.itemId, row.confidence as ConfidenceBand);
+      }
+    }
+    return result;
   }
 
   private applyDelta(studentId: StudentId, strategyId: StrategyId, score: SessionOutcome): void {
@@ -150,13 +199,29 @@ export class ProceduralIndexer implements Indexer {
  * - Bounded: returned delta is clamped to [-300, +300] per session so
  *   one outlier session can't dominate the running preference.
  *
+ * Confidence modifier (quiz mode only):
+ * When `confidencesByItemId` is non-empty, aggregate confidence is used as
+ * a small additive bonus. The modifier is +confidenceMean * 20 milli (capped
+ * at +40), added after the session cap. This rewards consistent self-assessment
+ * calibration (students who know they know something) without overriding the
+ * primary correctness-based delta.
+ *
+ * confidenceMean: average of per-item confidence values mapped as
+ *   guessed=0, unsure=0.33, pretty_sure=0.67, certain=1.0
+ * The modifier is independent of correctness — it rewards engagement with the
+ * confidence signal itself, not just right answers. Future tuning can weight
+ * confidence-accuracy alignment differently.
+ *
  * Note: active-path tools (`update_mastery`, `record_misconception`) are not
  * among the tool names read here, so there is no double-counting concern in v1.
  * If new tools are added that write to memory directly, revisit this list.
  *
  * Exported for unit-test coverage of the pure scoring logic.
  */
-export function scoreSessionOutcome(events: IndexerContext["events"]): SessionOutcome {
+export function scoreSessionOutcome(
+  events: IndexerContext["events"],
+  confidencesByItemId: Map<string, ConfidenceBand> = new Map(),
+): SessionOutcome {
   // Build callId → toolName index from tool_call events.
   const toolNames = new Map<string, string>();
   for (const { event } of events) {
@@ -203,5 +268,28 @@ export function scoreSessionOutcome(events: IndexerContext["events"]): SessionOu
   // Bound per-session contribution to limit single-session influence.
   delta = Math.max(-300, Math.min(300, delta));
 
-  return { delta, evidenceCount };
+  // Confidence modifier: reward engagement with the self-assessment signal.
+  // Maps confidence levels to numeric values and applies a small additive bonus.
+  let confidenceCount = 0;
+  if (confidencesByItemId.size > 0) {
+    const CONFIDENCE_VALUE: Record<ConfidenceBand, number> = {
+      guessed: 0,
+      unsure: 0.33,
+      pretty_sure: 0.67,
+      certain: 1.0,
+    };
+    let sum = 0;
+    for (const band of confidencesByItemId.values()) {
+      sum += CONFIDENCE_VALUE[band];
+      confidenceCount++;
+    }
+    if (confidenceCount > 0) {
+      const mean = sum / confidenceCount;
+      // Additive bonus: +mean * 20, max +40 milli — small nudge, doesn't dominate.
+      const bonus = Math.round(Math.min(40, mean * 20));
+      delta += bonus;
+    }
+  }
+
+  return { delta, evidenceCount, confidenceCount };
 }

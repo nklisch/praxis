@@ -6,6 +6,7 @@ import type {
   AssignmentItem,
   AssignmentResponse,
   AssignmentSubmissionResult,
+  ConfidenceBand,
   Course,
   CourseSummary,
   DraftCourseState,
@@ -1529,6 +1530,8 @@ export interface AssignmentService {
     response: string;
     /** Optional shown work; only meaningful for items with workRubric. */
     work?: string;
+    /** Confidence band — formative self-assessment signal per quiz item. Optional. */
+    confidence?: ConfidenceBand;
   }): Promise<void>;
 
   /** Read all in-progress responses for an assignment (for resume). */
