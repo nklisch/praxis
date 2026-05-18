@@ -1,7 +1,7 @@
 ---
 id: refactor-loadorthrow-tabs-service
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -128,3 +128,13 @@ None required. Grep of `packages/core/src/services/__tests__/` and `tests/` foun
 - `pnpm biome check packages/core/src/services/tabs-service.ts` — clean after auto-format.
 - `pnpm vitest run packages/core/src/services/__tests__/tabs-service.test.ts` — 25/25 passed.
 - `grep -n 'throw new Error.*not found after' packages/core/src/services/tabs-service.ts` — 0 results.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean adoption of the canonical `load-or-throw` pattern across 4 post-mutation sites. The kind-narrowing closure for `open()` / `openDocument()` (`return t && t.kind === "session" ? t : null`) preserves type safety inside the `loadOrThrow` contract — neat. Error message format shifted to uniform helper format (intentional per story spec; verified no test depends on prior bespoke strings). Tests 25/25 pass unmodified.
