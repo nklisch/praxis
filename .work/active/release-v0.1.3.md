@@ -209,3 +209,16 @@ Test gate carryovers (15):
 
 - **gate-security** (2026-05-18) — 1 new finding (Medium=1), 4 already-tracked skipped
   - `gate-security-engine-baseurl-url-validator-scheme-allowlist` (Medium)
+- **gate-tests** (2026-05-18) — 12 new findings (Critical=2, High=4, Medium=4, Low=2), 15 already-tracked skipped
+  - `gate-tests-document-scopes-passagerange-untested` (Critical)
+  - `gate-tests-spawn-from-passage-service-untested` (Critical)
+  - `gate-tests-snapshot-restore-schema-drift-branch` (High)
+  - `gate-tests-spawn-from-passage-inverted-range` (High)
+  - `gate-tests-migration-0023-bootstrap-mode-rename` (High)
+  - `gate-tests-toolcall-entry-revert-correlation-collision` (High)
+  - `gate-tests-engine-session-manager-isolation` (Medium)
+  - `gate-tests-drafts-client-stream-channel-name` (Medium)
+  - `gate-tests-set-annotations-inverted-range-classification` (Medium)
+  - `gate-tests-migration-0024-config-key-rename` (Medium)
+  - `gate-tests-snapshot-restore-un-revert-edges` (Low, backlog)
+  - `gate-tests-course-start-drafting-wire-identifier` (Low, backlog)
