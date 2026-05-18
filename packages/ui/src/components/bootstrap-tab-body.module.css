@@ -1,58 +1,70 @@
-/* Bootstrap tab body — split-pane: chat left, outline right */
+/* Bootstrap tab body — Canvas + Side Chat (mode-course-create.html mock) */
 
+/* Two-column grid: flexible draft canvas on the left, fixed chat panel on the right. */
 .container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 420px;
   flex: 1;
   overflow: hidden;
   height: 100%;
 }
 
-/* Left chat pane — ~60% */
-.chatPane {
-  flex: 3;
+/* ── Draft canvas (left) ─────────────────────────────────────────────────────── */
+
+.draftCanvas {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
-  border-right: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
 }
 
-/* Right outline pane — ~40% */
-.outlinePane {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-  background: var(--color-bg-secondary, #1a1a1a);
-}
-
-.outlineHeader {
-  padding: 0.5rem 1rem;
+.canvasHeader {
+  padding: 14px 22px 10px;
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   flex-shrink: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.outlineTitle {
-  font-size: 0.65rem;
-  font-weight: 700;
+.canvasKicker {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-secondary, #aaa);
-  /* Allow the title to shrink if the header row gets crowded. */
+  color: var(--color-text-tertiary, #777);
   flex-shrink: 0;
 }
 
-/* "Add documents" ghost button — sits in the outline header between the title
-   and the budget field. Grows to fill available space so the header stays
-   balanced without pushing the budget field off-screen. */
-.addDocsBtn {
+.canvasTitle {
+  font: 500 italic 18px / 1.2 var(--font-display, serif);
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary, inherit);
+}
+
+.canvasTitleEmpty {
+  font: 500 italic 18px / 1.2 var(--font-display, serif);
+  flex: 1;
+  color: var(--color-text-secondary, #aaa);
+}
+
+.draftBadge {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-warning, #f59e0b);
+  color: var(--color-text-inverse, #fff);
+  flex-shrink: 0;
+}
+
+/* "Add documents" ghost button — nestled after the title in the canvas header. */
+.addDocsBtn {
   padding: 0.15rem 0.5rem;
   font-size: 0.65rem;
   font-weight: 600;
@@ -64,8 +76,7 @@
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
   transition:
     color 0.15s,
     border-color 0.15s;
@@ -76,6 +87,135 @@
   border-color: var(--color-accent, #7aa2f7);
 }
 
+.canvasScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 22px 20px;
+  min-height: 0;
+}
+
+.canvasEmpty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-secondary, #aaa);
+  font: italic 14px / 1.5 var(--font-serif, serif);
+}
+
+/* ── Unit list ─────────────────────────────────────────────────────────────── */
+
+.unitList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.unitBlock {
+  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 14px;
+}
+
+.unitHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+}
+
+.unitNum {
+  font: italic 16px / 1 var(--font-display, serif);
+  color: var(--color-text-tertiary, #777);
+  min-width: 2ch;
+  flex-shrink: 0;
+}
+
+.unitTitle {
+  font: 500 italic 15px / 1.2 var(--font-display, serif);
+  flex: 1;
+  color: var(--color-text-primary, inherit);
+}
+
+.unitMeta {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #777);
+  padding: 3px 6px;
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
+  border-radius: var(--radius-full, 9999px);
+  flex-shrink: 0;
+}
+
+/* ── Lesson rows ─────────────────────────────────────────────────────────────── */
+
+.unitLessons {
+  padding: 6px 0 0 20px;
+}
+
+/* Flat lesson list — no units. */
+.lessonList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lessonRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+  font: italic 12px / 1.7 var(--font-serif, serif);
+  color: var(--color-text-secondary, #aaa);
+}
+
+.lessonLabel {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  color: var(--color-text-tertiary, #777);
+  min-width: 3ch;
+  flex-shrink: 0;
+}
+
+.lessonTitle {
+  flex: 1;
+  color: var(--color-text-primary, inherit);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.lessonAssess {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Canvas "add" hint at the bottom of the unit list. */
+.canvasAddHint {
+  padding: 10px 12px;
+  border: 1px dashed var(--color-border-strong, rgba(255, 255, 255, 0.2));
+  border-radius: var(--radius-md, 8px);
+  text-align: center;
+  font: italic 13px / 1 var(--font-serif, serif);
+  color: var(--color-text-tertiary, #777);
+}
+
+/* ── Chat panel (right) ──────────────────────────────────────────────────────── */
+
+.chatPanel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-primary, transparent);
+}
+
+/* ── Budget field ────────────────────────────────────────────────────────────── */
+
 .budgetField {
   display: flex;
   align-items: center;
@@ -85,6 +225,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-text-secondary, #aaa);
+  flex-shrink: 0;
 }
 
 .budgetInput {
@@ -107,41 +248,4 @@
 
 .budgetInput:disabled {
   opacity: 0.5;
-}
-
-/*
- * Wrapper for <SubAgentPanel> at the bottom of the right outline pane.
- * flex-shrink:0 means expanding/collapsing the panel only resizes this row —
- * the .draftScroll area above absorbs/releases space via its flex:1.
- * Padding matches .draftScroll horizontal rhythm.
- */
-.subAgentRow {
-  flex-shrink: 0;
-  padding: 0 1rem 0.75rem;
-}
-
-/*
- * Scrollable middle region of the right outline pane. Takes all remaining
- * vertical space between the header and the sub-agent panel so that:
- *   - DraftCard can grow long without pushing SubAgentPanel off-screen.
- *   - Collapsing/expanding the sub-agent panel only affects the panel row;
- *     the draft area doesn't shift — it always fills `flex: 1`.
- */
-.draftScroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 1rem 0.5rem;
-  min-height: 0;
-}
-
-.outlinePlaceholder {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  text-align: center;
-  color: var(--color-text-secondary, #aaa);
-  font-size: 0.85rem;
-  line-height: 1.5;
 }

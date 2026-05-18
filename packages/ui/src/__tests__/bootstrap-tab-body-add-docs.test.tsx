@@ -16,8 +16,8 @@ import { PraxisClientProvider } from "../context/client-context.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 // Mock heavy sub-components to keep test fast and focused.
-vi.mock("../components/chat-tab-body.js", () => ({
-  TeachChatTabBody: () => <div data-testid="chat-pane" />,
+vi.mock("../components/authoring-chat-pane.js", () => ({
+  AuthoringChatPane: () => <div data-testid="authoring-chat-pane" />,
 }));
 vi.mock("../components/draft-card.js", () => ({
   DraftCard: () => <div data-testid="draft-card" />,
@@ -29,9 +29,6 @@ vi.mock("../hooks/use-bootstrap-budget.js", () => ({
   BOOTSTRAP_BUDGET_MIN: 5,
   BOOTSTRAP_BUDGET_MAX: 200,
   useBootstrapBudget: () => ({ maxSteps: 100, saving: false, setMaxSteps: vi.fn() }),
-}));
-vi.mock("../hooks/use-current-sub-agent.js", () => ({
-  useCurrentSubAgent: () => null,
 }));
 
 // Import after mocks (Vitest hoists vi.mock calls).

@@ -1,67 +1,71 @@
 /**
- * Bootstrap modality tab body.
+ * Bootstrap mode tab body — Canvas + Side Chat layout.
  *
- * Two-pane layout: chat on the left (~60%) for tutor conversation; a draft
- * course outline on the right (~40%) that updates live as the course-design sub-agent
- * builds units, lessons, concepts, edges, and assessments.
+ * Two-column layout per the locked mode-course-create.html mock:
+ *   - Left (flex 1): draft canvas — live preview of units, lessons, and
+ *     assessment plan as the course-design sub-agent builds the draft.
+ *     Subscribes to `client.drafts.events()` via `useDrafts`.
+ *   - Right (420px): `<AuthoringChatPane>` — the parent-agent chat surface
+ *     where the user steers the draft.  Tool calls and sub-agent blocks render
+ *     inline (via the pane's own rendering layer — no extra wiring here).
  *
- * The right pane subscribes to `client.drafts.events()` via the `useDrafts`
- * hook. The bootstrap service emits a `started` event from `initDraft` and
- * an `updated` event from every mutator, so the outline reflects each tool
- * call as it lands rather than waiting for `course.show_draft` to fire.
+ * The canvas renders `ProposedUnit` groups with their lessons when the
+ * explorer has produced unit scaffolding; it falls back to a flat lesson list
+ * for pre-Phase-16 explorers.  `<LessonAssessmentPills>` decorates each lesson
+ * row when proposed assessments are available.
  *
- * The outline header also exposes the user's tool-call budget for the course-design sub-agent.
- * Edits persist via ConfigService and are read server-side at the
- * start of the next exploration — no restart required.
+ * The "Add documents" affordance lives in the canvas header and opens
+ * `<LibraryDocumentPicker>` scoped to the current session.
  */
-import type { SessionTabSummary } from "@praxis/core/types";
+import type {
+  ProposedLesson,
+  ProposedLessonAssessmentEntry,
+  ProposedUnit,
+  SessionTabSummary,
+} from "@praxis/core/types";
 import { type ChangeEvent, type JSX, useEffect, useState } from "react";
 import {
   BOOTSTRAP_BUDGET_MAX,
   BOOTSTRAP_BUDGET_MIN,
   useBootstrapBudget,
 } from "../hooks/use-bootstrap-budget.js";
-import { useCurrentSubAgent } from "../hooks/use-current-sub-agent.js";
 import { useDrafts } from "../hooks/use-drafts.js";
+import { AuthoringChatPane } from "./authoring-chat-pane.js";
 import styles from "./bootstrap-tab-body.module.css";
-import { TeachChatTabBody } from "./chat-tab-body.js";
-import { DraftCard } from "./draft-card.js";
+import { LessonAssessmentPills } from "./lesson-assessment-pills.js";
 import { LibraryDocumentPicker } from "./library-document-picker.js";
-import { SubAgentPanel } from "./sub-agent-panel.js";
+import { SessionHead } from "./session-head.js";
 
 export interface BootstrapTabBodyProps {
   tab: SessionTabSummary;
 }
 
 /**
- * Split-pane bootstrap body: chat on left, live outline on right. The outline
- * renders the most recently mutated draft via `<DraftCard>`. While the
- * explorer hasn't yet called `draft_init`, the placeholder copy persists.
+ * Bootstrap mode body: draft canvas on left, authoring chat on right.
+ *
+ * The canvas updates in real time via the draft stream.  The chat pane is
+ * `<AuthoringChatPane mode="bootstrap">` which handles tool-call entries and
+ * inline sub-agent blocks — no additional wiring needed here.
  */
 export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
   const { current } = useDrafts();
-  const currentSubAgent = useCurrentSubAgent();
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  const proposed = current?.proposed ?? null;
 
   return (
     <div className={styles.container}>
-      {/* Left: existing chat body (reused in full) */}
-      <div className={styles.chatPane}>
-        <TeachChatTabBody tab={tab} />
-      </div>
-
-      {/* Session-scope library picker: opened from the outline header button. */}
-      {pickerOpen && (
-        <LibraryDocumentPicker
-          scope={{ kind: "session", id: tab.sessionId }}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-
-      {/* Right: live draft outline — driven by the bootstrap-drafts stream. */}
-      <aside className={styles.outlinePane} aria-label="Course outline">
-        <div className={styles.outlineHeader}>
-          <span className={styles.outlineTitle}>course outline</span>
+      {/* Left: draft canvas — live outline driven by the bootstrap-drafts stream. */}
+      <div className={styles.draftCanvas}>
+        <SessionHead modeId="bootstrap" title={tab.title} />
+        <div className={styles.canvasHeader}>
+          <span className={styles.canvasKicker}>¶ draft course</span>
+          {proposed ? (
+            <span className={styles.canvasTitle}>{proposed.title}</span>
+          ) : (
+            <span className={styles.canvasTitleEmpty}>course outline</span>
+          )}
+          {proposed && <span className={styles.draftBadge}>draft</span>}
           <button
             type="button"
             className={styles.addDocsBtn}
@@ -72,33 +76,155 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
           </button>
           <BudgetField />
         </div>
-        {/* Scrollable draft area — flex:1 so it fills all space between the
-            header and the sub-agent panel. SubAgentPanel sits below as a
-            flex-shrink:0 row so hiding/showing it only affects its own row. */}
-        <div className={styles.draftScroll}>
-          {current ? (
-            <DraftCard proposed={current.proposed} />
+
+        <div className={styles.canvasScroll} data-testid="draft-canvas-scroll">
+          {proposed ? (
+            <DraftCanvas proposed={proposed} />
           ) : (
-            <div className={styles.outlinePlaceholder}>
+            <div className={styles.canvasEmpty}>
               <p>the outline will appear here as the tutor builds the course.</p>
             </div>
           )}
         </div>
-        {/* Sub-agent transcript panel wrapper — flex-shrink:0 anchors the panel
-            row at the bottom of the outline pane so expanding/collapsing it
-            only affects this row, not the draft scroll area above. */}
-        <div className={styles.subAgentRow}>
-          <SubAgentPanel parentCallId={currentSubAgent} />
-        </div>
-      </aside>
+      </div>
+
+      {/* Right: authoring chat — parent-agent steer interface. */}
+      <div className={styles.chatPanel}>
+        <AuthoringChatPane mode="bootstrap" sessionId={tab.sessionId} />
+      </div>
+
+      {/* Session-scope library picker — opened from canvas header. */}
+      {pickerOpen && (
+        <LibraryDocumentPicker
+          scope={{ kind: "session", id: tab.sessionId }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
+// ── Draft canvas ──────────────────────────────────────────────────────────────
+
+interface DraftCanvasProps {
+  proposed: NonNullable<ReturnType<typeof useDrafts>["current"]>["proposed"];
+}
+
 /**
- * Editable numeric input for the course-design sub-agent tool-call budget. Local
- * input state lets the user type freely; commits on blur or Enter. Clamped
- * client-side and again server-side by Zod.
+ * Renders the live draft preview.
+ *
+ * When the explorer has produced unit scaffolding (`proposedUnits` is
+ * non-empty), renders units as titled blocks with their lesson rows inside.
+ * Falls back to a flat lesson list for pre-Phase-16 explorers.
+ */
+function DraftCanvas({ proposed }: DraftCanvasProps): JSX.Element {
+  const units = proposed.proposedUnits ?? [];
+  const allLessons = proposed.proposedLessons;
+  const allAssessments = proposed.proposedLessonAssessments ?? [];
+
+  if (units.length > 0) {
+    return (
+      <div className={styles.unitList}>
+        {units.map((unit, idx) => (
+          <UnitBlock
+            key={unit.draftUnitId}
+            unit={unit}
+            index={idx + 1}
+            allLessons={allLessons}
+            allAssessments={allAssessments}
+          />
+        ))}
+        <div className={styles.canvasAddHint}>+ add a unit · or steer via chat →</div>
+      </div>
+    );
+  }
+
+  // Flat fallback: no units yet — render a flat lesson list.
+  return (
+    <div className={styles.lessonList}>
+      {allLessons.map((lesson, idx) => (
+        <LessonRow
+          key={lesson.draftLessonId}
+          lesson={lesson}
+          index={idx + 1}
+          assessments={allAssessments.filter((a) => a.draftLessonId === lesson.draftLessonId)}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Unit block ────────────────────────────────────────────────────────────────
+
+interface UnitBlockProps {
+  unit: ProposedUnit;
+  index: number;
+  allLessons: ProposedLesson[];
+  allAssessments: ProposedLessonAssessmentEntry[];
+}
+
+function UnitBlock({ unit, index, allLessons, allAssessments }: UnitBlockProps): JSX.Element {
+  // Resolve lessons that belong to this unit, in order.
+  const lessons = unit.draftLessonIds
+    .map((id) => allLessons.find((l) => l.draftLessonId === id))
+    .filter((l): l is ProposedLesson => l != null);
+
+  return (
+    <div className={styles.unitBlock} data-testid="unit-block">
+      <div className={styles.unitHead}>
+        <span className={styles.unitNum}>{index}.</span>
+        <span className={styles.unitTitle}>{unit.name}</span>
+        <span className={styles.unitMeta}>
+          {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
+          {unit.summative ? ` · ${unit.summative.kind}-after` : ""}
+        </span>
+      </div>
+      <div className={styles.unitLessons}>
+        {lessons.map((lesson, i) => (
+          <LessonRow
+            key={lesson.draftLessonId}
+            lesson={lesson}
+            index={i + 1}
+            assessments={allAssessments.filter((a) => a.draftLessonId === lesson.draftLessonId)}
+            unitIndex={index}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Lesson row ────────────────────────────────────────────────────────────────
+
+interface LessonRowProps {
+  lesson: ProposedLesson;
+  index: number;
+  assessments: ProposedLessonAssessmentEntry[];
+  /** When rendering within a unit, prefix the label as U.L. */
+  unitIndex?: number;
+}
+
+function LessonRow({ lesson, index, assessments, unitIndex }: LessonRowProps): JSX.Element {
+  const label = unitIndex != null ? `${unitIndex}.${index}` : String(index);
+  return (
+    <div className={styles.lessonRow} data-testid="lesson-row">
+      <span className={styles.lessonLabel}>{label}</span>
+      <span className={styles.lessonTitle}>{lesson.title}</span>
+      {assessments.length > 0 && (
+        <span className={styles.lessonAssess}>
+          <LessonAssessmentPills assessments={assessments} />
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Budget field ──────────────────────────────────────────────────────────────
+
+/**
+ * Editable numeric input for the course-design sub-agent tool-call budget.
+ * Local input state lets the user type freely; commits on blur or Enter.
+ * Clamped client-side and again server-side by Zod.
  */
 function BudgetField(): JSX.Element {
   const { maxSteps, saving, setMaxSteps } = useBootstrapBudget();
@@ -114,7 +240,6 @@ function BudgetField(): JSX.Element {
     if (Number.isFinite(parsed)) {
       void setMaxSteps(parsed);
     } else if (maxSteps !== null) {
-      // Reset to the last good value if the user typed garbage.
       setDraft(String(maxSteps));
     }
   };

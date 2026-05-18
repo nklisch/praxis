@@ -1,34 +1,33 @@
 /**
- * Layout regression test for BootstrapTabBody.
+ * Layout regression tests for BootstrapTabBody — Canvas + Side Chat shape.
  *
- * Specifically guards against the vertical-space collapse bug:
- * when the sub-agents panel is hidden, its space must be fully
- * reclaimed by the draft scroll area.
+ * Guards the two-column structure (draft canvas left, authoring chat right)
+ * introduced by the course-create tab body rebuild.
  *
- * The fix introduces two structural wrappers in the right outline pane:
- *   .draftScroll  — flex:1 scrollable area that always fills available height
- *   .subAgentRow  — flex-shrink:0 anchor at the bottom for SubAgentPanel
- *
- * jsdom has no real layout engine, so these tests verify the DOM structure
- * and CSS-module class names, not computed heights. The class-name assertions
- * are the machine-checkable proxy for the layout invariant.
+ * jsdom has no real layout engine, so these tests verify DOM structure and
+ * CSS-module class names as proxies for the layout invariants.
  */
 import type { SessionTabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
-// Heavy sub-components — mock to isolate layout concerns.
-vi.mock("../components/chat-tab-body.js", () => ({
-  TeachChatTabBody: () => <div data-testid="chat-pane" />,
+// Mutable draft state for parameterising useDrafts in tests.
+let _mockCurrentDraft: unknown = null;
+
+// Mock heavy sub-components to isolate layout concerns.
+vi.mock("../components/authoring-chat-pane.js", () => ({
+  AuthoringChatPane: ({ mode }: { mode: string }) => (
+    <div data-testid="authoring-chat-pane" data-mode={mode} />
+  ),
 }));
 vi.mock("../components/draft-card.js", () => ({
   DraftCard: () => <div data-testid="draft-card" />,
 }));
 vi.mock("../hooks/use-drafts.js", () => ({
-  useDrafts: () => ({ current: null }),
+  useDrafts: () => ({ current: _mockCurrentDraft }),
 }));
 vi.mock("../hooks/use-bootstrap-budget.js", () => ({
   BOOTSTRAP_BUDGET_MIN: 5,
@@ -36,10 +35,14 @@ vi.mock("../hooks/use-bootstrap-budget.js", () => ({
   useBootstrapBudget: () => ({ maxSteps: 100, saving: false, setMaxSteps: vi.fn() }),
 }));
 
-// Import BootstrapTabBody AFTER mocks (Vitest hoists vi.mock calls).
+// Import after mocks (Vitest hoists vi.mock calls).
 const { BootstrapTabBody } = await import("../components/bootstrap-tab-body.js");
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  // Reset to no-draft state between tests.
+  _mockCurrentDraft = null;
+});
 
 function makeTab(overrides: Partial<SessionTabSummary> = {}): SessionTabSummary {
   return {
@@ -56,17 +59,15 @@ function makeTab(overrides: Partial<SessionTabSummary> = {}): SessionTabSummary 
   };
 }
 
-function renderBootstrap(subAgentCallId: string | null) {
-  // Mock useCurrentSubAgent inside the module via the hook's own module.
-  vi.doMock("../hooks/use-current-sub-agent.js", () => ({
-    useCurrentSubAgent: () => subAgentCallId,
-  }));
-
+function renderBootstrap() {
   const client = makeFakeClient({
     subAgent: {
       list: vi.fn().mockResolvedValue([]),
       events: vi.fn(async function* () {}),
     } as unknown as ReturnType<typeof makeFakeClient>["subAgent"],
+    author: {
+      listConfiguratorActions: vi.fn().mockResolvedValue([]),
+    } as unknown as ReturnType<typeof makeFakeClient>["author"],
   });
 
   return render(
@@ -76,50 +77,105 @@ function renderBootstrap(subAgentCallId: string | null) {
   );
 }
 
-describe("BootstrapTabBody — outline pane layout structure", () => {
-  it("draftScroll wrapper exists and encloses the draft area", () => {
-    const { container } = renderBootstrap(null);
-    // CSS modules mangle class names; look for the substring "draftScroll" in
-    // any class. This class carries flex:1 + overflow-y:auto — the key layout rule.
-    const draftScrollEl = Array.from(container.querySelectorAll("*")).find((el) =>
-      Array.from(el.classList).some((c) => /draftScroll/.test(c)),
-    );
-    expect(draftScrollEl, "draftScroll wrapper must exist in outline pane").toBeTruthy();
+describe("BootstrapTabBody — Canvas + Side Chat layout", () => {
+  it("renders the draft canvas scroll region", () => {
+    const { getByTestId } = renderBootstrap();
+    expect(getByTestId("draft-canvas-scroll")).toBeTruthy();
   });
 
-  it("subAgentRow wrapper exists and encloses the SubAgentPanel slot", () => {
-    const { container } = renderBootstrap(null);
-    // subAgentRow carries flex-shrink:0 — ensures the panel row never steals
-    // space from the draft scroll area.
-    const subAgentRowEl = Array.from(container.querySelectorAll("*")).find((el) =>
-      Array.from(el.classList).some((c) => /subAgentRow/.test(c)),
-    );
-    expect(subAgentRowEl, "subAgentRow wrapper must exist in outline pane").toBeTruthy();
+  it("mounts AuthoringChatPane in bootstrap mode", () => {
+    renderBootstrap();
+    const pane = screen.getByTestId("authoring-chat-pane");
+    expect(pane).toBeTruthy();
+    expect(pane.getAttribute("data-mode")).toBe("bootstrap");
   });
 
-  it("subAgentRow is a sibling of draftScroll, not a descendant", () => {
-    const { container } = renderBootstrap(null);
-    const draftScrollEl = Array.from(container.querySelectorAll("*")).find((el) =>
-      Array.from(el.classList).some((c) => /draftScroll/.test(c)),
+  it("canvas scroll and chat panel are siblings (not nested)", () => {
+    const { getByTestId, container } = renderBootstrap();
+    const canvasScroll = getByTestId("draft-canvas-scroll");
+
+    // Find chatPanel by class substring.
+    const chatPanel = Array.from(container.querySelectorAll("*")).find((el) =>
+      Array.from(el.classList).some((c) => /chatPanel/.test(c)),
     );
-    const subAgentRowEl = Array.from(container.querySelectorAll("*")).find((el) =>
-      Array.from(el.classList).some((c) => /subAgentRow/.test(c)),
-    );
-    expect(draftScrollEl).toBeTruthy();
-    expect(subAgentRowEl).toBeTruthy();
-    // subAgentRow must NOT be inside draftScroll — if it were, the panel's
-    // height would be included in the scrollable region rather than anchored
-    // below it, causing the space-reservation bug.
-    expect(draftScrollEl?.contains(subAgentRowEl ?? null)).toBe(false);
+    expect(chatPanel, "chatPanel must exist").toBeTruthy();
+
+    // They should share the same parent — the grid container.
+    expect(canvasScroll.parentElement).not.toBeNull();
+    // chatPanel is not inside draftCanvas, and canvasScroll is not inside chatPanel.
+    expect(chatPanel?.contains(canvasScroll)).toBe(false);
+    expect(canvasScroll.contains(chatPanel ?? null)).toBe(false);
   });
 
-  it("subAgentRow renders nothing visible when no sub-agent is active", () => {
-    const { container } = renderBootstrap(null);
-    const subAgentRowEl = Array.from(container.querySelectorAll("*")).find((el) =>
-      Array.from(el.classList).some((c) => /subAgentRow/.test(c)),
-    );
-    // When parentCallId === null, SubAgentPanel returns null — so subAgentRow
-    // has no child elements (empty wrapper = no reserved height in real layout).
-    expect(subAgentRowEl?.childElementCount).toBe(0);
+  it("renders empty-state copy when no draft is present", () => {
+    renderBootstrap();
+    expect(screen.getByText(/the outline will appear here/i)).toBeTruthy();
+  });
+
+  it("renders the budget field", () => {
+    renderBootstrap();
+    expect(screen.getByRole("spinbutton", { name: /course-design budget/i })).toBeTruthy();
+  });
+});
+
+describe("BootstrapTabBody — draft canvas with units", () => {
+  it("renders unit blocks and lesson rows when draft has units", () => {
+    // Set draft state via the shared mutable ref consumed by the useDrafts mock.
+    _mockCurrentDraft = {
+      draftId: "d1",
+      proposed: {
+        title: "Calculus I",
+        subject: "Mathematics",
+        gradeLevel: "University",
+        thresholds: {},
+        proposedConcepts: [],
+        proposedEdges: [],
+        proposedLessons: [
+          {
+            draftLessonId: "l1",
+            title: "Limits",
+            conceptNames: [],
+            references: [],
+            suggestedStrategy: "direct",
+            estimatedMinutes: 60,
+          },
+        ],
+        proposedUnits: [
+          {
+            draftUnitId: "u1",
+            name: "Unit 1",
+            draftLessonIds: ["l1"],
+          },
+        ],
+        proposedLessonAssessments: [],
+      },
+    };
+
+    const { getAllByTestId } = renderBootstrap();
+
+    const unitBlocks = getAllByTestId("unit-block");
+    expect(unitBlocks.length).toBe(1);
+    const lessonRows = getAllByTestId("lesson-row");
+    expect(lessonRows.length).toBe(1);
+  });
+
+  it("shows course title in canvas header when draft is present", () => {
+    _mockCurrentDraft = {
+      draftId: "d2",
+      proposed: {
+        title: "Biology 101",
+        subject: "Biology",
+        gradeLevel: "High School",
+        thresholds: {},
+        proposedConcepts: [],
+        proposedEdges: [],
+        proposedLessons: [],
+        proposedUnits: [],
+        proposedLessonAssessments: [],
+      },
+    };
+
+    renderBootstrap();
+    expect(screen.getByText("Biology 101")).toBeTruthy();
   });
 });
