@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep
 kind: feature
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -296,3 +296,18 @@ parallel wave (3 agents, disjoint files, zero file-overlap conflicts).
 
 - All 3 configure tabs follow the canonical `useResource` pattern.
 - The skipped files (page-image-panel, pdf-renderer, attributed-preview-pane, note-editor-page, tabs-context) are explicitly documented as out-of-scope with rationale, so future refactor passes don't re-discover them as false positives.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (aggregate)
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Aggregate lens findings**:
+- **Design alignment**: the original 10+ components estimate was over-broad; the design correction during refactor-design dropped it to 3 configure tabs with justified rationale for each skip. Implementation matched the corrected scope exactly.
+- **Foundation-doc alignment**: no foundation-doc claims about UI component state-management internals.
+- **Breaking changes**: none — every component renders identical loading/error/data UX. Public component props unchanged.
+- **Capability completeness**: all 3 configure tabs now use the canonical `useResource` pattern; the 5 skipped files are documented with rationale so future refactor passes don't re-flag them as false positives.
+
+**Notes**: Modest but real consolidation (~64 LoC removed). The bigger win is consistency — configure tabs now look like the rest of the codebase's data-loading patterns instead of inlining the setLoading/setError/try/catch/finally idiom.
