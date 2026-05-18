@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-cross-tab-state
 kind: feature
-stage: drafting
+stage: implementing
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -58,7 +58,109 @@ backend data.
 - `.mockups/screens/.../-configure/option-5.html` — "N unsaved across
   M surfaces" save bar in the sub-surface tab strip
 
-<!-- The design pass will decide whether to extract a generic
-DirtyStateTracker primitive (likely yes; cross-tab dirty tracking
-recurs in workspace too) and the system-event card composition
-contract. -->
+## Design decisions
+
+- **Extract a generic `DirtyStateTracker` hook**, since the pattern
+  recurs (configure surface AND workspace AND course-create).
+- **Parent-child rendering reads directly from existing session
+  shape.** `Tab.sessionId` is already there; the renderer pulls the
+  matching session and asks whether `parentSessionId` is set. No new
+  IPC channel.
+- **`system_note` card lives as a new sibling component** rendered by
+  `MessageList`'s event-type switch — not a Message variant.
+- **No schema changes.** All three additions consume backend state
+  that already exists.
+
+## Architectural choice
+
+Three discrete UI additions sharing one feature ship — they all land
+in the chat-shell area and consume already-existing data:
+
+1. `useDirtyState(key)` + `<DirtyStateProvider>` aggregating across
+   keys for "N unsaved across M surfaces."
+2. Parent-child tab UI: extends `<TabStrip>` to read
+   `session.parentSessionId` and surface the "from {parentMode}" pill
+   + "calling back" pulse on parent tabs when a child emits
+   `system_note`.
+3. `<SystemNoteCard>` rendered by `MessageList` on `system_note`
+   events. Composition: kicker (child mode + glyph), body (mastery
+   delta summary), footer ("review the assignment →" link).
+
+## Implementation Units
+
+### Unit 1: `useDirtyState` hook + provider
+
+**Files**: `packages/ui/src/hooks/use-dirty-state.ts` (new),
+`packages/ui/src/contexts/dirty-state-provider.tsx` (new)
+
+```ts
+export function useDirtyState(key: string): {
+  isDirty: boolean;
+  markDirty: () => void;
+  markClean: () => void;
+};
+
+export function useDirtyAggregate(): {
+  dirtyCount: number;
+  surfaceCount: number;
+};
+```
+
+Wrap configure (and other multi-surface roots) in
+`<DirtyStateProvider>`. Save bar reads `useDirtyAggregate()` and
+shows the "N unsaved across M surfaces" string when
+`surfaceCount > 0`.
+
+### Unit 2: Parent-child tab decoration
+
+**Files**: `packages/ui/src/components/tab-strip.{tsx,module.css}`
+(modified)
+
+- "from {parentMode}" pill on child tabs whose session has
+  `parentSessionId`.
+- Parent tab pulses for ~2s when a child session emits a
+  `system_note`. CSS keyframe animation; restartable on rapid-fire.
+- Clicking the pulse focuses the parent tab.
+
+### Unit 3: `<SystemNoteCard>`
+
+**Files**: `packages/ui/src/components/system-note-card.{tsx,module.css}`
+(new), `packages/ui/src/components/message-list.tsx` (modified)
+
+`MessageList` adds a branch for `system_note` events; renders the
+card instead of an invisible default.
+
+### Unit 4: Tests
+
+- Hook + provider tests via `@testing-library/react`.
+- Tab-strip tests using `makeFakeClient` overrides for
+  parent-child session fixtures.
+- `SystemNoteCard` snapshot + interaction tests.
+
+## Implementation Order
+
+Two independent stories (can run in parallel):
+
+1. `epic-backend-fills-for-redesign-cross-tab-state-dirty-tracker` —
+   Unit 1 only.
+2. `epic-backend-fills-for-redesign-cross-tab-state-parent-child-and-system-note` —
+   Units 2 + 3.
+
+## Acceptance Criteria
+
+- [ ] `useDirtyState(key)` registers/clears; aggregate hook returns
+      correct counts.
+- [ ] Configure save bar renders the "N unsaved across M surfaces"
+      string when multiple tabs are dirty.
+- [ ] Child tabs with `parentSessionId` show "from {parentMode}" pill.
+- [ ] Parent tabs pulse ~2s on `system_note` arrival.
+- [ ] `system_note` events render as `<SystemNoteCard>`, not
+      invisibly.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Risks
+
+- **Pulse animation collision with rapid-fire events.** CSS-only
+  animation; restart via key change. Test the rapid-fire case.
+- **Dirty-state leak on tab unmount.** Provider cleans up keys when
+  consumers unmount; tests cover.
