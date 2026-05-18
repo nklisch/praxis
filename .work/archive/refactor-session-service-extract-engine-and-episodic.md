@@ -1,7 +1,7 @@
 ---
 id: refactor-session-service-extract-engine-and-episodic
 kind: feature
-stage: implementing
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -368,3 +368,86 @@ None. The extraction preserves the public `SessionService` interface; consumers 
 
 - **EpisodicEventRecorder extraction** — explicitly dropped per the design correction above. Inline for-await loop is shorter than the wrapper would be.
 - **Spawn-methods extraction** (`spawnFromAssignment`, `spawnFromNote`, `spawnFromPassage`) — they're cohesive and not god-shaped. Leave as facade methods. A future refactor could extract a `SpawnService` if the methods accrete more logic.
+
+## Implementation Run Summary
+
+Single child story landed cleanly (commit `37893e1`). The
+"EpisodicEventRecorder" half of the original proposal was correctly
+dropped during the design correction; only the `EngineSessionManager`
+extract happened.
+
+| Metric | Before | After |
+|---|---|---|
+| `session-service.ts` LoC | 1084 | 703 (−381) |
+| New `engine-session-manager.ts` | n/a | 512 |
+| `send()` body LoC | 148 | 122 (target was 90 — see review nit) |
+| Public `SessionService` API | unchanged | unchanged |
+
+### Cross-cutting deviations
+
+- **`send()` body landed at 122 LoC**, not the optimistic <90 target.
+  Explanation: the for-await loop with abort-cascade + subagent-interrupt
+  + interrupt-episodic-write is ~50 LoC by itself; the target didn't
+  account for that. Responsibility separation is the actual win — the
+  engine-lifecycle code that used to live inline is now a single
+  `engineManager.acquire(...)` call. Documented in story review.
+- **2 helpers moved with `openActive`**: `resolveResumeEngineSessionId`
+  and `recordEngineSessionId` were only used by `openActive`, so they
+  moved into the manager. Clean encapsulation.
+- **`ActiveEntry.turnInFlight` mutation pattern preserved**: the
+  manager exposes `ActiveEntry` as a type so the facade can still
+  mutate `turnInFlight` directly during the for-await loop. Alternative
+  would be `markTurnStart/End` methods on the manager — the simpler
+  path was chosen (preserve direct field access).
+
+### Verification status
+
+- **Typecheck**: baseline preserved
+- **Tests**: 1060 core tests pass unmodified, including engine-session-lifecycle
+  and episodic-append-ordering pattern coverage
+- **Lint (biome)**: clean
+- **FakeEngine test seam**: `deps.engineFactory` threads through
+  `SessionServiceImpl` → `EngineSessionManager`; verified by all
+  engineFactory-using tests passing unmodified
+- **Hot-path behavior**: engine-swap-detection and close-then-reopen
+  preserved; tests covering swap behavior pass
+
+### What's now possible
+
+- `EngineSessionManager` is testable in isolation. Future tests for
+  swap-detection edge cases can target the manager directly without
+  spinning up the full `SessionServiceImpl`.
+- Adding a new engine-lifecycle concern (e.g., reconnect-on-network-loss,
+  graceful drain on shutdown) lands in `engine-session-manager.ts` rather
+  than threading through `send()`.
+- The `send()` method is now structurally readable: pre-flight → acquire
+  → record user message → for-await events → post-turn schedule. Each
+  concern is a labeled block.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (aggregate)
+
+**Blockers**: none
+**Important**: none
+**Nits**: see child story (the send-body LoC miss is acknowledged and
+acceptable).
+
+**Aggregate lens findings**:
+- **Design alignment**: design correction during refactor-design honestly
+  dropped the "EpisodicEventRecorder" half (would have been a wrapper
+  around a 5-line loop body with session-specific interrupt logic). The
+  remaining EngineSessionManager extract delivered the intended
+  responsibility separation.
+- **Foundation-doc alignment**: `engine-session-lifecycle` and
+  `episodic-append-ordering` pattern docs are still accurate — the
+  manager preserves the lifecycle shape; the facade preserves the
+  ordering invariant.
+- **Breaking changes**: none. Public `SessionService` interface unchanged.
+- **Capability completeness**: engine-swap, history-seeding, indexer
+  scheduling all preserved. Hot path verified by extensive tests.
+
+**Notes**: Smaller delivery than originally scoped — but honestly so. The
+"second module" was over-engineering; one focused extract is the right
+shape. The visible `send()` body is materially clearer even though it's
+still 122 lines (the irreducible loop-body complexity dominates).
