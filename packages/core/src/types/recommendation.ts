@@ -59,3 +59,13 @@ export type Recommendation =
 export interface RecommendationService {
   next(input: { studentId: StudentId; limit?: number }): Promise<Recommendation[]>;
 }
+
+// ─── Recommendations (client-side) ───────────────────────────────────────────
+
+/**
+ * Workbench recommendation engine — renderer-side surface.
+ * Returns the priority-ordered "what's next" list for the front door.
+ */
+export interface RecommendationsClientApi {
+  next(input?: { limit?: number }): Promise<Recommendation[]>;
+}

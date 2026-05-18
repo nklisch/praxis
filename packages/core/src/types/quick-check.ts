@@ -83,3 +83,15 @@ export interface QuickCheckService {
   /** Subscribe to pending/resolved events. Returns an unsubscribe function. */
   subscribe(listener: QuickCheckListener): () => void;
 }
+
+// ─── Phase 17: QuickCheckClientApi ───────────────────────────────────────────
+
+/**
+ * Phase 17: Client-side quick check API.
+ * The renderer subscribes to `events()` to know when a quick check is pending,
+ * and calls `resolve()` when the student submits an answer.
+ */
+export interface QuickCheckClientApi {
+  events(): AsyncIterable<QuickCheckEvent>;
+  resolve(input: { callId: string; answer: QuickCheckAnswer }): Promise<void>;
+}

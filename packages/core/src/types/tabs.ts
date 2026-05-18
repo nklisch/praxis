@@ -116,3 +116,29 @@ export interface TabsService {
   /** Rename a tab. Used by Library context menu. */
   rename(tabId: TabId, title: string): Promise<TabSummary>;
 }
+
+// ─── TabsClientApi ────────────────────────────────────────────────────────────
+
+/**
+ * Client-facing tabs API. Differs from the server-side TabsService by dropping
+ * the `studentId` parameters — the server resolves the active student from
+ * the IPC context. Client code stays clean: `client.tabs.listOpen()` not
+ * `client.tabs.listOpen(brandId<"StudentId">("") as StudentId)`.
+ */
+export interface TabsClientApi {
+  listOpen(): Promise<TabSummary[]>;
+  list(opts?: { limit?: number; includeClosed?: boolean }): Promise<TabSummary[]>;
+  get(tabId: TabId): Promise<TabSummary | null>;
+  /** Open a session-bound tab. Returns a SessionTabSummary (kind = "session"). */
+  open(input: { sessionId: SessionId; courseTitle?: string }): Promise<TabSummary>;
+  /**
+   * Open a document-bound tab. Returns a DocumentTabSummary (kind = "document").
+   * The `title` is stored on the tab row at open time (filename, truncated to ~40 chars)
+   * so re-opens don't need a document fetch.
+   */
+  openDocument(input: { documentId: DocumentId; title: string }): Promise<DocumentTabSummary>;
+  reopen(tabId: TabId): Promise<TabSummary>;
+  close(tabId: TabId): Promise<void>;
+  touch(tabId: TabId): Promise<void>;
+  rename(tabId: TabId, title: string): Promise<TabSummary>;
+}

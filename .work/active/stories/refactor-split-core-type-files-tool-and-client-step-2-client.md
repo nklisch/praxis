@@ -1,7 +1,7 @@
 ---
 id: refactor-split-core-type-files-tool-and-client-step-2-client
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-split-core-type-files-tool-and-client
 depends_on: [refactor-split-core-type-files-tool-and-client-step-1-tool]
@@ -162,3 +162,57 @@ No new tests. Existing tests pass unmodified.
 ## Design-flaw escape hatch
 
 Same as Step 1 — if a client API's supporting types are entangled with types in another domain, adapt the destination map and document.
+
+## Implementation notes
+
+### Per-destination type count
+
+| Destination | Types moved |
+|---|---|
+| `notes.ts` | `NotesClient` (1) |
+| `flashcards.ts` | `FlashcardsClient` (1) |
+| `artifacts.ts` | `ArtifactsClientSurface`, `ProgressSnapshot`, `PackSummaryClient`, `ImportedPackClient`, `PacksClient` (5) |
+| `ingestion.ts` | `IngestionClient`, `DocumentsClient`, `DocumentSummary`, `DocumentDetail` (4) |
+| `lock-service.ts` | `LockClient` (1) |
+| `citation.ts` | `CitationsClientApi`, `DocumentCitationRecord` (2) |
+| `library-service.ts` | `LibraryClientApi` (1) |
+| `recommendation.ts` | `RecommendationsClientApi` (1) |
+| `quick-check.ts` | `QuickCheckClientApi` (1) |
+| `subagent.ts` | `SubAgentClientApi` (1) |
+| `tabs.ts` | `TabsClientApi` (1) |
+| `sketches.ts` | `SketchClientApi` (1) |
+| `concept-map-service.ts` | `ConceptMapClientApi` (1) |
+| `document-scopes.ts` | `DocumentScopesClientApi` (1) |
+| NEW `client-memory.ts` | `MemoryService` (client-side) (1) |
+| NEW `config-service.ts` | `ConfigService`, `EngineConfigSnapshot`, `CourseCreateConfigSnapshot` (3) |
+| NEW `session-client.ts` | `SessionService`, `SessionHandle`, `SessionEndSummary`, `SessionSummary`, `CreateCourseInput`, `FileRef`, `BootstrapOpts` (7) |
+| NEW `assignments-client.ts` | `AssignmentsClient` (1) |
+| NEW `authoring-client.ts` | `AuthoringClient` (1) |
+| NEW `shell-client.ts` | `ShellClient` (1) |
+| NEW `update-client.ts` | `UpdateClientApi` (1) |
+
+**Total: ~37 types/interfaces moved across 21 destinations**
+
+### Final client.ts LoC
+76 LoC (was 944). Contains only the `PraxisClient` aggregate interface.
+
+### New files created
+`client-memory.ts`, `config-service.ts`, `session-client.ts`, `assignments-client.ts`, `authoring-client.ts`, `shell-client.ts`, `update-client.ts` (7 new files)
+
+### Direct-client.ts importers fixed
+- `packages/core/src/services/documents-service.ts` — updated `DocumentDetail` and `DocumentSummary` imports from `../types/client.js` → `../types/ingestion.js`
+
+### Design adaptations from destination map
+
+1. **`ProgressSnapshot` collision**: `artifacts.ts` imported `ProgressSnapshot` from `client.ts`. Moving `ArtifactsClientSurface` (which uses `ProgressSnapshot`) and `ProgressSnapshot` together into `artifacts.ts` removed the circular import. The import line `import type { ProgressSnapshot } from "./client.js"` was removed from `artifacts.ts`.
+
+2. **`MemoryService` barrel collision**: Adding `export type * from "./client-memory.js"` to the barrel would have shadowed the server-side `MemoryService` from `memory.ts`. Instead, `client-memory.ts` is NOT exported via wildcard — only the alias `export type { MemoryService as MemoryClientService }` is surfaced. This matches the pre-existing barrel comment intention exactly.
+
+3. **Explicit export blocks**: Several per-domain files (`sketches.ts`, `tabs.ts`, `subagent.ts`, `quick-check.ts`, `recommendation.ts`, `concept-map-service.ts`) use explicit named export blocks (not wildcard) in the barrel. Each was updated to include the new client API type alongside the existing names.
+
+4. **`CreateCourseInput`, `FileRef`, `BootstrapOpts`**: These supporting types for `AuthoringClient.bootstrap()` were placed in `session-client.ts` (they relate to session creation flow), and `authoring-client.ts` imports them from there. Matches the destination map intent.
+
+### Baseline confirmation
+- 3 pre-existing typecheck errors in UI files (chat-tab-body.tsx, chat.tsx, notes-list.tsx) — unchanged
+- All 420 test files pass (4499 tests), 23 skipped — unchanged
+- `pnpm biome check packages/core/src/types/` — clean (0 errors)

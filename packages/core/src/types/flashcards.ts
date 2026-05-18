@@ -95,3 +95,33 @@ export interface FlashcardsService {
   /** Total count of cards currently due (`nextReviewAt <= now`). */
   dueCount(input: { studentId: StudentId }): Promise<number>;
 }
+
+// ─── Phase 12: FlashcardsClient (client-side) ────────────────────────────────
+
+/** Client-side FlashcardsClient. */
+export interface FlashcardsClient {
+  create(input: {
+    front: string;
+    back: string;
+    conceptId?: ConceptId;
+    source?: { kind: "authored" | "extracted" | "user-created"; ref?: string };
+  }): Promise<Flashcard>;
+
+  update(input: {
+    flashcardId: FlashcardId;
+    patch: Partial<Pick<Flashcard, "front" | "back" | "conceptId">>;
+  }): Promise<Flashcard>;
+
+  get(flashcardId: FlashcardId): Promise<Flashcard | null>;
+
+  list(input?: { conceptId?: ConceptId; due?: boolean; limit?: number }): Promise<Flashcard[]>;
+
+  delete(flashcardId: FlashcardId): Promise<void>;
+
+  review(input: {
+    flashcardId: FlashcardId;
+    rating: Rating;
+  }): Promise<{ flashcard: Flashcard; nextReviewAt: Timestamp }>;
+
+  dueCount(): Promise<number>;
+}

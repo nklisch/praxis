@@ -107,3 +107,15 @@ export interface SubAgentRegistry {
    */
   interruptAllForSession(parentSessionId: SessionId): void;
 }
+
+// ─── SubAgentClientApi ────────────────────────────────────────────────────────
+
+/**
+ * Agent-transparency: client-side sub-agent API.
+ * The renderer subscribes to `events()` to receive step-level transparency
+ * events from active sub-agent runs. Optionally filter to one parentCallId.
+ */
+export interface SubAgentClientApi {
+  events(input?: { parentCallId?: string }): AsyncIterable<SubAgentEvent>;
+  list(): Promise<readonly SubAgentItem[]>;
+}

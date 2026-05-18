@@ -241,3 +241,36 @@ export interface NotesService {
    */
   getAnnotations(input: { studentId: StudentId; noteId: NoteId }): Promise<Annotation[]>;
 }
+
+// ─── Phase 12: NotesClient (client-side) ─────────────────────────────────────
+
+/**
+ * Client-side NotesClient (no studentId on methods; resolved server-side via
+ * getOrCreateDefaultStudentId in IPC handlers).
+ */
+export interface NotesClient {
+  create(input: {
+    format: "cornell" | "feynman" | "outline" | "free" | "sketch";
+    body: NoteBody;
+    context?: NoteContext;
+  }): Promise<Note>;
+
+  update(input: { noteId: NoteId; body: NoteBody }): Promise<Note>;
+
+  get(noteId: NoteId): Promise<Note | null>;
+
+  list(input?: {
+    courseId?: CourseId;
+    lessonId?: LessonId;
+    format?: "cornell" | "feynman" | "outline" | "free";
+    limit?: number;
+  }): Promise<Note[]>;
+
+  delete(noteId: NoteId): Promise<void>;
+
+  /** Replace all annotations on a note (validates ranges). */
+  setAnnotations(input: { noteId: NoteId; annotations: Annotation[] }): Promise<void>;
+
+  /** Return all annotations for a note; [] when none exist. */
+  getAnnotations(noteId: NoteId): Promise<Annotation[]>;
+}

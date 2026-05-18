@@ -1,4 +1,3 @@
-import type { ProgressSnapshot } from "./client.js";
 import type { Timestamp, TldrawSnapshot } from "./common.js";
 import type { GateView, GradeReader, MasteryReader } from "./gate.js";
 import type {
@@ -985,6 +984,110 @@ export interface ArtifactsService {
 
 // Re-export gate ports so callers can import from artifacts.ts (was previously exported from tool.ts).
 export type { GateView, GradeReader, MasteryReader };
+
+// ─── ProgressSnapshot ────────────────────────────────────────────────────────
+
+export interface ProgressSnapshot {
+  studentId: StudentId;
+  courseProgress: Array<{
+    courseId: CourseId;
+    masteredConceptCount: number;
+    inProgressConceptCount: number;
+    lockedConceptCount: number;
+    nextRecommended?: { kind: "lesson" | "quiz" | "review"; id: string };
+  }>;
+  recentUnlocks: Array<{ gateId: GateId; at: Timestamp }>;
+}
+
+// ─── Phase 6: ArtifactsClientSurface ─────────────────────────────────────────
+
+/**
+ * Client-side artifacts surface — read-only UI interface.
+ * Phase 6: courses() returns CourseSummary[] (cheaper list view);
+ * full Course is fetched per-id via course(id). Added lessons(courseId).
+ *
+ * Note: this is the client-facing interface. The server-side service
+ * (ArtifactsService in tool.ts) has studentId parameters since the server
+ * handles multi-tenant concerns. The client always operates as the default
+ * student (single-student v1).
+ */
+export interface ArtifactsClientSurface {
+  course(id: CourseId): Promise<Course | null>;
+  /** Returns summaries for the list view. Full Course fetched per-id via course(id). */
+  courses(): Promise<CourseSummary[]>;
+  lessons(courseId: CourseId): Promise<Lesson[]>;
+  /** Phase 16: Return units for a course, ordered by orderIndex. */
+  units(courseId: CourseId): Promise<Unit[]>;
+  /** Phase 16: Return scheduled assessments for a single lesson. */
+  lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]>;
+  gates(courseId: CourseId): Promise<Gate[]>;
+  progress(): Promise<ProgressSnapshot>;
+  flashcards(opts?: { conceptId?: ConceptId; due?: boolean }): Promise<Flashcard[]>;
+  notes(opts?: { courseId?: CourseId }): Promise<Note[]>;
+
+  /** Phase 9: Enriched gate views for a course (read-only, includes progress %). */
+  gateView(courseId: CourseId): Promise<GateView[]>;
+
+  /** Phase 9: Trigger gate evaluation for a course (manual or automated). */
+  evaluateGates(courseId: CourseId): Promise<{ unlockedGateIds: GateId[] }>;
+
+  /** Phase 9: Mark all unlock events for a course as viewed (clears badge). */
+  markGatesViewed(courseId: CourseId): Promise<void>;
+
+  /** Phase 9: Count of unviewed unlock events for a course. */
+  newlyUnlockedCount(courseId: CourseId): Promise<number>;
+
+  /**
+   * Phase 10: Return the full concept list for a course.
+   * Concept ids are prefixed for canonical packs and UUIDs for extracted courses.
+   */
+  concepts(courseId: CourseId): Promise<
+    Array<{
+      id: string;
+      graphId: string;
+      name: string;
+      description: string;
+      aliases: string[];
+      standardsTags: string[];
+    }>
+  >;
+}
+
+// ─── Phase 10: PacksClient ────────────────────────────────────────────────────
+
+export interface PackSummaryClient {
+  id: string;
+  version: string;
+  name: string;
+  subject: string;
+  gradeLevel: string;
+  conceptCount: number;
+  edgeCount: number;
+  imported: boolean;
+}
+
+export interface ImportedPackClient {
+  packId: string;
+  version: string;
+  conceptGraphId: string;
+  importedAt: number;
+}
+
+/**
+ * Client-side interface for the packs IPC surface.
+ * The server-side PackImportServiceImpl is in @praxis/curriculum/packs.
+ */
+export interface PacksClient {
+  /** List all available pack JSONs in the packs directory. */
+  listAvailable(): Promise<PackSummaryClient[]>;
+  /** List all imported packs for this install. */
+  listImported(): Promise<ImportedPackClient[]>;
+  /**
+   * Import a pack by its id. Idempotent — re-importing the same version
+   * returns the existing record without re-writing DB rows.
+   */
+  import(packId: string): Promise<ImportedPackClient>;
+}
 
 // ─── Phase 8: AssignmentService (server-side) ─────────────────────────────────
 // NOTE: The client-side AssignmentsClient lives in @praxis/client/services/assignments-client.ts

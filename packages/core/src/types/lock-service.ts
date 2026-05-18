@@ -1,3 +1,13 @@
+/** Phase 11: Client-side lock interface. */
+export interface LockClient {
+  isSet(): Promise<boolean>;
+  isUnlocked(): Promise<boolean>;
+  setLockCode(code: string): Promise<void>;
+  unlock(code: string): Promise<{ ok: boolean }>;
+  lock(): Promise<void>;
+  clearLock(currentCode: string): Promise<void>;
+}
+
 // ─── Phase 11: LockService ───────────────────────────────────────────────────
 
 /** Server-side lock service — local code-gating. */

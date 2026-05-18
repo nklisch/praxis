@@ -115,3 +115,54 @@ export interface ConceptMapService {
     studentId: StudentId,
   ): Promise<{ conceptMapId: ConceptMapId; originalSketchNoteId: NoteId; nodeCount: number }>;
 }
+
+// ─── Phase 15b: ConceptMapClientApi ──────────────────────────────────────────
+
+/**
+ * Phase 15b: Client-facing concept map API. Drops `studentId` — server resolves
+ * the active student from the single-student v1 install context.
+ */
+export interface ConceptMapClientApi {
+  create(input: { courseId: CourseId; title: string }): Promise<ConceptMapDrawing>;
+  get(id: ConceptMapId): Promise<ConceptMapDrawing | null>;
+  list(input: { courseId: CourseId }): Promise<ConceptMapSummary[]>;
+  rename(id: ConceptMapId, title: string): Promise<ConceptMapDrawing>;
+  delete(id: ConceptMapId): Promise<void>;
+  updateScene(input: {
+    id: ConceptMapId;
+    scene: TldrawSnapshot;
+    conceptLinks: ConceptLink[];
+  }): Promise<ConceptMapDrawing>;
+  listVersions(id: ConceptMapId): Promise<ConceptMapVersion[]>;
+  /**
+   * Update the three-state link status on a single concept-map node.
+   * Returns the updated ConceptMapDrawing.
+   */
+  setNodeLink(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: string | null;
+    state: "linked" | "best_guess" | "unlinked";
+  }): Promise<ConceptMapDrawing>;
+  /**
+   * Compute the downstream ripple summary for hypothetically linking
+   * `elementId` → `candidateId` (canonical concept id) on the given map.
+   */
+  computeRipples(input: {
+    mapId: ConceptMapId;
+    elementId: string;
+    candidateId: ConceptId;
+  }): Promise<RippleSummary>;
+
+  /**
+   * Convert a sketch note (format: "sketch") into a new concept-map artifact.
+   * The original sketch note is preserved. Returns the new concept map id,
+   * the original note id, and the extracted node count (for the confirmation UI).
+   *
+   * The conversion is recorded as an undoable configurator action — use
+   * `authoring.restoreAction(actionId)` within the 24h window to delete the map.
+   */
+  convertFromSketch(input: {
+    sketchNoteId: NoteId;
+  }): Promise<{ conceptMapId: ConceptMapId; originalSketchNoteId: NoteId; nodeCount: number }>;
+}

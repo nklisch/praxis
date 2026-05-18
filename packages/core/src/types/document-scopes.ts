@@ -96,3 +96,47 @@ export interface DocumentScopesService {
     source: DocumentScopeSource;
   }): Promise<{ promoted: DocumentId[] }>;
 }
+
+// ─── Phase 16: DocumentScopesClientApi ───────────────────────────────────────
+
+/**
+ * Phase 16: Client-facing polymorphic scope ↔ document attachment API.
+ * The studentId is resolved server-side from the single-student v1 install context.
+ */
+export interface DocumentScopesClientApi {
+  /**
+   * Documents in the student's library that are effectively orphaned:
+   * either no scope rows at all, or all scope rows point at deleted parents.
+   * The studentId is resolved server-side from the v1 single-student context.
+   */
+  listOrphaned(): Promise<DocumentScopeAttachment[]>;
+
+  /**
+   * List all documents attached to a scope, as enriched summaries.
+   * Returns an empty array when no documents are attached.
+   */
+  listForScope(scope: DocumentScope): Promise<DocumentScopeAttachment[]>;
+
+  /**
+   * Attach a library document to a scope. Idempotent — re-attaching an
+   * already-attached document returns `{ attached: false }`.
+   */
+  attach(input: {
+    scope: DocumentScope;
+    documentId: DocumentId;
+    source?: DocumentScopeSource;
+  }): Promise<{ attached: boolean }>;
+
+  /**
+   * Detach a document from a scope. Idempotent — detaching an unlinked doc
+   * returns `{ detached: false }`.
+   */
+  detach(input: { scope: DocumentScope; documentId: DocumentId }): Promise<{ detached: boolean }>;
+
+  /**
+   * List every scope a document is currently attached to. Used by
+   * `useDerivedScope` to resolve the primary scope when a document tab is
+   * active. Order matches insertion order in the scopes table.
+   */
+  listScopesForDocument(documentId: DocumentId): Promise<DocumentScope[]>;
+}
