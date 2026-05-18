@@ -149,7 +149,9 @@ function renderGatesTab({
       newlyUnlockedCount: vi.fn().mockResolvedValue(0),
     } as unknown as ReturnType<typeof makeFakeClient>["artifacts"],
     author: {
-      getCourseSummary: vi.fn().mockResolvedValue({ course: null, lessons: [], gates: [], concepts: [] }),
+      getCourseSummary: vi
+        .fn()
+        .mockResolvedValue({ course: null, lessons: [], gates: [], concepts: [] }),
       updateGate,
     } as unknown as ReturnType<typeof makeFakeClient>["author"],
   });
@@ -253,6 +255,41 @@ describe("GatesTab — inspector strip wiring", () => {
         expect.objectContaining({
           gate: expect.objectContaining({ id: GATE_ID }),
           pendingMinScore: null,
+        }),
+      );
+    });
+  });
+});
+
+describe("GatesTab — inspector strip pendingMinScore", () => {
+  it("passes the user-typed value as pendingMinScore to setSelectedGate after threshold edit", async () => {
+    const onSetSelectedGate = vi.fn();
+    renderGatesTab({ onSetSelectedGate });
+
+    // Open the inspector by clicking the gate row button in GatesReadingView.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Inspect gate/i })).toBeDefined();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Inspect gate/i }));
+
+    // Inspector should now be open.
+    await waitFor(() => {
+      expect(screen.getByText("Gate Inspector")).toBeDefined();
+    });
+
+    // Clear prior calls so we only capture the post-edit call.
+    onSetSelectedGate.mockClear();
+
+    // Edit the mastery threshold input to 85 (i.e. 0.85 as a fraction).
+    const input = screen.getByRole("spinbutton", { name: /Mastery threshold/i });
+    fireEvent.change(input, { target: { value: "85" } });
+
+    // The context should receive pendingMinScore = 0.85 (not 0.7 which is the saved value).
+    await waitFor(() => {
+      expect(onSetSelectedGate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gate: expect.objectContaining({ id: GATE_ID }),
+          pendingMinScore: 0.85,
         }),
       );
     });

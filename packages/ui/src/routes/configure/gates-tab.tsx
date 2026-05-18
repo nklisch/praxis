@@ -49,8 +49,11 @@ interface GatesTabProps {
  * may want to correlate canvas interactions with the active configure session.
  */
 export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
-  const { selectedCourseId, setSelectedCourseId, setSelectedGate: setContextSelectedGate } =
-    useConfigureState();
+  const {
+    selectedCourseId,
+    setSelectedCourseId,
+    setSelectedGate: setContextSelectedGate,
+  } = useConfigureState();
 
   // Register this tab with the cross-tab dirty tracker.
   // markDirty is called when the user edits a threshold in GateInspector;
@@ -79,6 +82,10 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
   // in GateInspector (which edits the field) but hasn't confirmed the save.
   const [dirtyGateIds, setDirtyGateIds] = useState<ReadonlySet<GateId>>(new Set());
 
+  // Maps a dirty gate's id to the user-typed minScore (0–1) so the inspector
+  // strip can show the pending value alongside the saved value.
+  const [pendingScores, setPendingScores] = useState<ReadonlyMap<GateId, number>>(new Map());
+
   // Keep context inspector strip in sync with the local selection + dirty state.
   useEffect(() => {
     if (!selectedGate) {
@@ -87,13 +94,11 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
     }
     setContextSelectedGate({
       gate: selectedGate,
-      pendingMinScore: dirtyGateIds.has(selectedGate.id)
-        ? selectedGate.successCriteria.kind === "mastery-threshold"
-          ? selectedGate.successCriteria.minScore
-          : null
-        : null,
+      // Use the user-typed pending value so the inspector strip can show the
+      // before/after diff. Falls back to null when no edit has been made yet.
+      pendingMinScore: pendingScores.get(selectedGate.id) ?? null,
     });
-  }, [selectedGate, dirtyGateIds, setContextSelectedGate]);
+  }, [selectedGate, pendingScores, setContextSelectedGate]);
 
   // Propagate aggregate dirty state to the cross-tab tracker.
   useEffect(() => {
@@ -140,9 +145,14 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
       const base = prev ?? { lessons: [], gateViews: [], gates: [] };
       return { ...base, gates: base.gates.map((g) => (g.id === updated.id ? updated : g)) };
     });
-    // Clear this gate's dirty flag — save confirmed.
+    // Clear this gate's dirty flag and pending score — save confirmed.
     setDirtyGateIds((prev) => {
       const next = new Set(prev);
+      next.delete(updated.id);
+      return next;
+    });
+    setPendingScores((prev) => {
+      const next = new Map(prev);
       next.delete(updated.id);
       return next;
     });
@@ -161,18 +171,29 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
       next.delete(gateId);
       return next;
     });
+    setPendingScores((prev) => {
+      const next = new Map(prev);
+      next.delete(gateId);
+      return next;
+    });
     setSelectedGate(null);
     loadData();
   };
 
   /**
    * Called by GateInspector when the user changes a threshold value in the form.
-   * We mark this gate dirty immediately so the edge label turns warning-coloured.
+   * Marks the gate dirty (for the warning-coloured edge) and records the pending
+   * value (for the inspector strip's before/after display).
    */
-  const handleGateThresholdEdit = useCallback((gateId: GateId) => {
+  const handleGateThresholdEdit = useCallback((gateId: GateId, newMinScore: number) => {
     setDirtyGateIds((prev) => {
       const next = new Set(prev);
       next.add(gateId);
+      return next;
+    });
+    setPendingScores((prev) => {
+      const next = new Map(prev);
+      next.set(gateId, newMinScore);
       return next;
     });
   }, []);
@@ -198,6 +219,7 @@ export function GatesTab({ sessionId: _sessionId }: GatesTabProps) {
                 setSelectedGate(null);
                 setContextSelectedGate(null);
                 setDirtyGateIds(new Set());
+                setPendingScores(new Map());
               }}
               disabled={coursesLoading}
             >

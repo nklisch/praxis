@@ -1,7 +1,7 @@
 ---
 id: configure-gates-inspector-strip-pending-minscore
 kind: story
-stage: implementing
+stage: review
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -59,3 +59,15 @@ Add a test: edit the threshold field → verify inspector strip shows
 - `packages/ui/src/routes/configure/gates-tab.tsx`
 - `packages/ui/src/routes/configure.tsx` (GateInspectorStrip)
 - `packages/ui/src/__tests__/configure-gates-tab.test.tsx`
+
+## Implementation notes
+
+Three-part fix:
+
+1. **`gate-inspector.tsx`** — `onThresholdEdit` signature extended from `(gateId: GateId) => void` to `(gateId: GateId, newMinScore: number) => void`. The `onChange` handler now computes `Number(e.target.value) / 100` and passes it as the second argument.
+
+2. **`gates-tab.tsx`** — Added `pendingScores: ReadonlyMap<GateId, number>` state alongside the existing `dirtyGateIds` set. `handleGateThresholdEdit` now accepts and stores `newMinScore` in that map. The `useEffect` that writes `SelectedGateState` to context now reads `pendingScores.get(selectedGate.id) ?? null` instead of always returning the saved `minScore`. `pendingScores` is cleared symmetrically with `dirtyGateIds` on save, delete, and course change.
+
+3. **`configure-gates-tab.test.tsx`** — New `describe("GatesTab — inspector strip pendingMinScore")` test: opens the inspector via GatesReadingView, edits the threshold input to 85, asserts `setSelectedGate` is called with `pendingMinScore: 0.85` (not the saved 0.7). All 15 tests pass.
+
+No changes to `configure.tsx` were needed — `GateInspectorStrip` was already correct; the bug was entirely in how `pendingMinScore` was populated upstream.

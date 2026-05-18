@@ -18,10 +18,10 @@ export interface GateInspectorProps {
   onClose: () => void;
   /**
    * Called when the user edits the mastery threshold field (before saving).
-   * The parent can use this to mark the corresponding edge dirty immediately,
-   * so the gate graph shows a warning-coloured edge for pending changes.
+   * Passes the new value (0–1) so the parent can record the pending score for
+   * the inspector strip's before/after display, and mark the edge dirty.
    */
-  onThresholdEdit?: (gateId: GateId) => void;
+  onThresholdEdit?: (gateId: GateId, newMinScore: number) => void;
 }
 
 function formatCriteria(criteria: SuccessCriteria): string {
@@ -155,9 +155,10 @@ export function GateInspector({
                 className={styles.input}
                 value={minScore}
                 onChange={(e) => {
-                setMinScore(e.target.value);
-                onThresholdEdit?.(gate.id);
-              }}
+                  setMinScore(e.target.value);
+                  const parsed = Number(e.target.value) / 100;
+                  if (!Number.isNaN(parsed)) onThresholdEdit?.(gate.id, parsed);
+                }}
                 min={0}
                 max={100}
                 step={5}
