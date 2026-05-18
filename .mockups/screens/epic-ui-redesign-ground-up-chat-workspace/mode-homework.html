@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mode body — Homework</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-bg-tertiary); border: 1px solid var(--color-border); }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tint-homework); }
+
+    .surface { display: grid; grid-template-columns: 200px 1fr 300px; min-height: calc(100vh - 100px); max-width: 1400px; margin: 0 auto; }
+
+    /* Left page nav — paginated items */
+    aside.pages { border-right: 1px solid var(--color-border); padding: 24px 16px; overflow-y: auto; }
+    aside.pages h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    .page-row { display: flex; align-items: baseline; gap: 8px; padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; font: 13px/1.4 var(--font-serif); margin-bottom: 2px; }
+    .page-row:hover { background: var(--color-bg-tertiary); }
+    .page-row.current { background: color-mix(in oklab, var(--tint-homework) 14%, var(--color-bg-secondary)); border-left: 2px solid var(--tint-homework); padding-left: 8px; }
+    .page-row .num { font: 600 11px/1 var(--font-mono); color: var(--color-text-tertiary); min-width: 2ch; }
+    .page-row .title { flex: 1; font-style: italic; }
+    .page-row .status { font: 600 9px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 5px; border-radius: var(--radius-full); }
+    .page-row .status.done { background: var(--color-success); color: var(--color-text-inverse); }
+    .page-row .status.skip { background: var(--color-warning); color: var(--color-text-inverse); }
+    .page-row .status.flagged { background: var(--color-danger); color: var(--color-text-inverse); }
+    .page-row .status.empty { color: var(--color-text-tertiary); background: var(--color-bg-tertiary); }
+
+    main.hw { padding: 28px 32px; }
+    .head { padding-bottom: 14px; border-bottom: 1px solid var(--color-border); margin-bottom: 22px; display: flex; align-items: baseline; gap: 14px; }
+    .head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; align-items: center; gap: 8px; }
+    .head .kicker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tint-homework); }
+    .head h1 { font: 500 italic 24px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .head h1 em { font-weight: 600; }
+    .head .progress { font: 12px/1 var(--font-mono); color: var(--color-text-tertiary); display: flex; gap: 8px; align-items: center; }
+    .head .progress .bar { width: 80px; height: 3px; background: var(--color-bg-tertiary); }
+    .head .progress .bar .fill { height: 100%; background: var(--tint-homework); width: 45%; }
+
+    .mode-rule { background: color-mix(in oklab, var(--tint-homework) 7%, var(--color-bg-secondary)); border-left: 2px solid var(--tint-homework); padding: 8px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font: italic 12px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 18px; }
+    .mode-rule em { font-weight: 500; color: var(--color-text-primary); }
+
+    .item-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 28px 32px; margin-bottom: 16px; }
+    .item-card .item-meta { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 12px; display: flex; gap: 12px; align-items: baseline; }
+    .item-card .item-meta .type-pill { font: 600 9px/1 var(--font-mono); padding: 3px 7px; background: color-mix(in oklab, var(--tint-homework) 18%, transparent); color: var(--tint-homework); border-radius: var(--radius-full); }
+    .item-card .item-meta .points { color: var(--color-text-secondary); font-weight: 700; }
+    .item-card .item-meta .concept { color: var(--color-text-tertiary); font-style: italic; font-family: var(--font-serif); text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 400; }
+    .item-card .prompt { font: 500 italic 22px/1.4 var(--font-display); margin-bottom: 8px; }
+    .item-card .prompt em { font-weight: 600; }
+    .item-card .stem { font: 15px/1.7 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 22px; }
+    .item-card .stem em { font-style: italic; }
+
+    /* Free-response area — show work */
+    .work-area { background: var(--color-bg-primary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 0; margin-bottom: 14px; min-height: 220px; display: grid; grid-template-rows: auto 1fr; }
+    .work-area .work-head { padding: 10px 16px; border-bottom: 1px solid var(--color-border); display: flex; gap: 14px; align-items: baseline; font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .work-area .work-head .tabs { display: flex; gap: 4px; }
+    .work-area .work-head .tabs button { font: 600 9px/1 var(--font-mono); padding: 4px 8px; border-radius: var(--radius-full); background: transparent; border: 0; cursor: pointer; color: var(--color-text-secondary); letter-spacing: 0.08em; }
+    .work-area .work-head .tabs button.active { background: var(--color-accent); color: var(--color-text-inverse); }
+    .work-area .work-head .spacer { flex: 1; }
+    .work-area .work-head .saved { color: var(--color-success); font-weight: 600; }
+    .work-area textarea { width: 100%; height: 100%; border: 0; background: transparent; padding: 14px 18px; font: 15px/1.7 var(--font-serif); resize: none; outline: none; color: var(--color-text-primary); }
+    .work-area textarea.show-work { font-family: var(--font-mono); font-size: 13px; }
+
+    /* Ask-for-clarification chip (homework-mode rule: agent answers item-meaning, not solutions) */
+    .ask-row { padding: 10px 14px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); margin-top: 10px; display: flex; gap: 10px; align-items: baseline; font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .ask-row .glyph { color: var(--color-accent); font-family: var(--font-serif); font-style: italic; }
+    .ask-row em { color: var(--color-text-primary); font-weight: 500; }
+    .ask-row button { margin-left: auto; font: 500 11px/1 var(--font-sans); padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: var(--color-bg-secondary); color: var(--color-text-primary); }
+
+    .actions { margin-top: 16px; display: flex; gap: 8px; align-items: center; }
+    .actions button { font: 500 13px/1 var(--font-sans); padding: 9px 14px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+    .actions .flag { color: var(--color-warning); border-color: var(--color-warning); }
+
+    /* Right rail — submit + reference */
+    aside.rail { border-left: 1px solid var(--color-border); padding: 24px 22px; }
+    aside.rail h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    aside.rail .submit-card { background: color-mix(in oklab, var(--tint-homework) 14%, var(--color-bg-secondary)); border: 1px solid var(--tint-homework); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px; }
+    aside.rail .submit-card .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tint-homework); margin-bottom: 8px; }
+    aside.rail .submit-card .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font: 13px/1.5 var(--font-serif); }
+    aside.rail .submit-card .v { font: 600 12px/1 var(--font-mono); color: var(--color-text-primary); letter-spacing: 0.04em; }
+    aside.rail .submit-card button { width: 100%; margin-top: 12px; font: 500 13px/1 var(--font-sans); padding: 12px 16px; border-radius: var(--radius-sm); cursor: pointer; border: 0; background: var(--tint-homework); color: var(--color-text-inverse); }
+    aside.rail .submit-card button.secondary { background: transparent; color: var(--color-text-primary); border: 1px solid var(--color-border-strong); }
+    aside.rail .submit-card .hint { font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-top: 8px; }
+    aside.rail .submit-card .hint em { color: var(--color-text-secondary); }
+
+    aside.rail .ref-doc { padding: 8px 10px; background: var(--color-bg-secondary); border-radius: var(--radius-sm); font: 13px/1.5 var(--font-serif); cursor: pointer; }
+    aside.rail .ref-doc em { font-style: italic; }
+    aside.rail .ref-doc .meta { font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); margin-top: 4px; letter-spacing: 0.04em; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Mode body — Homework</strong>
+    <span>Mode tint: indigo (❦). Paginated multi-item batch. Agent answers item-meaning questions but never solutions; full feedback delayed until submission. Per-item save state; flag-and-skip; final submit gates the whole set.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">❦</span>Homework · L2.3</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab"><span class="dot"></span>Homework · L2.3</span>
+    </div>
+  </header>
+
+  <div class="surface">
+    <aside class="pages">
+      <h3>Items · 15 total</h3>
+      <div class="page-row"><span class="num">1</span><span class="title">power rule warm-up</span><span class="status done">✓</span></div>
+      <div class="page-row"><span class="num">2</span><span class="title">composite — sin(x²)</span><span class="status done">✓</span></div>
+      <div class="page-row"><span class="num">3</span><span class="title">composite — e^{3x}</span><span class="status done">✓</span></div>
+      <div class="page-row"><span class="num">4</span><span class="title">composite — ln(...)</span><span class="status done">✓</span></div>
+      <div class="page-row"><span class="num">5</span><span class="title">word: shadow rate</span><span class="status done">✓</span></div>
+      <div class="page-row"><span class="num">6</span><span class="title">word: balloon</span><span class="status skip">skip</span></div>
+      <div class="page-row current"><span class="num">7</span><span class="title">word: ladder</span><span class="status">·</span></div>
+      <div class="page-row"><span class="num">8</span><span class="title">multi-step composite</span><span class="status flagged">flag</span></div>
+      <div class="page-row"><span class="num">9</span><span class="title">implicit hint</span><span class="status empty">—</span></div>
+      <div class="page-row"><span class="num">10</span><span class="title">show-work · cos²(x)</span><span class="status empty">—</span></div>
+      <div class="page-row"><span class="num">11</span><span class="title">show-work · (3x+1)⁵</span><span class="status empty">—</span></div>
+      <div class="page-row"><span class="num">12</span><span class="title">multi-step rates</span><span class="status empty">—</span></div>
+      <div class="page-row"><span class="num">13</span><span class="title">interpretation</span><span class="status empty">—</span></div>
+      <div class="page-row"><span class="num">14</span><span class="title">find-the-error</span><span class="status empty">—</span></div>
+      <div class="page-row"><span class="num">15</span><span class="title">reflection · pick one</span><span class="status empty">—</span></div>
+    </aside>
+
+    <main class="hw">
+      <header class="head">
+        <div class="kicker"><span class="dot"></span>❦ Homework · L2.3 · chain rule practice</div>
+        <h1>Practice set · <em>chain rule</em></h1>
+        <div class="progress">7 / 15 · ~18 min<div class="bar"><div class="fill"></div></div></div>
+      </header>
+
+      <div class="mode-rule">
+        <em>This is homework mode.</em> Praxis can clarify what an item <em>asks for</em> — but won't reveal a solution. Full feedback comes after you submit the whole set. Save and come back anytime.
+      </div>
+
+      <div class="item-card">
+        <div class="item-meta">
+          <span>item 7 / 15</span>
+          <span class="type-pill">word problem · multi-step</span>
+          <span class="points">3 pts</span>
+          <span class="concept">chain rule · related rates</span>
+        </div>
+        <div class="prompt">A <em>10 ft ladder</em> rests against a wall</div>
+        <div class="stem">The bottom slides away from the wall at <em>2 ft/sec</em>. How fast is the top sliding down when the bottom is <em>6 ft</em> from the wall?<br><br>Set up the relationship between x (distance from wall) and y (height on wall), then differentiate both sides with respect to time. Show your work; the rubric awards 1 pt for setup, 1 pt for differentiation, 1 pt for the numerical answer.</div>
+
+        <div class="work-area">
+          <div class="work-head">
+            <span>Your work</span>
+            <div class="tabs">
+              <button>typed</button>
+              <button class="active">show-work</button>
+              <button>sketch</button>
+            </div>
+            <span class="spacer"></span>
+            <span class="saved">✓ saved 8s ago</span>
+          </div>
+          <textarea class="show-work">x² + y² = 10²   ← pythagoras setup, x = horiz, y = vert
+2x(dx/dt) + 2y(dy/dt) = 0   ← differentiated both sides wrt t
+solve for dy/dt:
+dy/dt = -(x/y)(dx/dt)
+at x=6: y = √(100 - 36) = 8
+dy/dt = -(6/8)(2) = -1.5 ft/s   ← top sliding DOWN at 1.5 ft/s</textarea>
+        </div>
+
+        <div class="ask-row">
+          <span class="glyph">§</span>
+          <span>Stuck on what the item is asking? <em>Praxis will clarify the prompt</em> — not the solution.</span>
+          <button>Ask about this item</button>
+        </div>
+
+        <div class="actions">
+          <button>← Previous</button>
+          <button class="flag">⚑ Flag for review</button>
+          <button>Skip — fill later</button>
+          <button class="primary">Save &amp; next →</button>
+          <span style="margin-left: auto; font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary);">— ⌘→ next · ⌘← prev · ⌘F flag</span>
+        </div>
+      </div>
+    </main>
+
+    <aside class="rail">
+      <div class="submit-card">
+        <div class="label">⁂ Submit the set</div>
+        <div class="stat-row"><span>Answered</span><span class="v">5 / 15</span></div>
+        <div class="stat-row"><span>Skipped</span><span class="v">1</span></div>
+        <div class="stat-row"><span>Flagged</span><span class="v">1</span></div>
+        <div class="stat-row"><span>Empty</span><span class="v">8</span></div>
+        <button class="secondary">Save &amp; close · finish later</button>
+        <button disabled style="opacity: 0.45; cursor: not-allowed; background: var(--tint-homework);">Submit (8 empty)</button>
+        <div class="hint"><em>Submission triggers grading + tutor walkthrough</em> of any items you missed. You can re-do as many times as the lesson allows.</div>
+      </div>
+
+      <h3>Reference · this lesson</h3>
+      <div class="ref-doc">
+        <em>Stewart 8e · §3.5 chain rule</em>
+        <div class="meta">p. 197-202 · cited in this lesson</div>
+      </div>
+      <div class="ref-doc" style="margin-top: 6px;">
+        <em>Your note · "Chain rule — nested rates"</em>
+        <div class="meta">cornell · 2 days ago</div>
+      </div>
+
+      <h3 style="margin-top: 20px;">Concepts in this set</h3>
+      <div style="font: 12px/1.6 var(--font-serif); color: var(--color-text-secondary);">
+        ❦ chain rule (12 items)<br/>
+        ❦ related rates (3 items)
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

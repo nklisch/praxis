@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mode body — Course-create (in-session view)</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .running-head { padding: 12px 32px 8px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-bg-tertiary); border: 1px solid var(--color-border); }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tint-bootstrap); }
+
+    /* Two-column layout: draft on left · chat on right (mirrors course-create flow but as resumable session view) */
+    .surface { display: grid; grid-template-columns: 1fr 420px; flex: 1; overflow: hidden; }
+
+    .draft { padding: 22px 28px; overflow-y: auto; }
+    .draft-head { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 12px; }
+    .draft-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .draft-head h2 { font: 500 italic 22px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .draft-head h2 em { font-weight: 600; }
+    .draft-head .badge { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: var(--radius-full); background: var(--color-warning); color: var(--color-text-inverse); }
+
+    .draft-meta-row { padding: 8px 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); font: italic 12px/1.55 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 14px; display: flex; gap: 12px; align-items: baseline; }
+    .draft-meta-row em { color: var(--color-text-primary); font-weight: 500; }
+    .draft-meta-row a { color: var(--color-accent); text-decoration: none; margin-left: auto; }
+
+    .unit-block { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 10px; }
+    .unit-block.changed { border-color: var(--color-warning); }
+    .unit-head { display: flex; gap: 10px; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    .unit-head .num { font: italic 16px/1 var(--font-display); color: var(--color-text-tertiary); min-width: 2ch; }
+    .unit-head .title { font: 500 italic 15px/1.2 var(--font-display); flex: 1; }
+    .unit-head .title em { font-weight: 600; }
+    .unit-head .meta { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); padding: 3px 6px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); }
+    .unit-head .meta.changed { background: var(--color-warning); color: var(--color-text-inverse); }
+
+    .lessons { padding: 6px 0 0 22px; font: italic 12px/1.7 var(--font-serif); color: var(--color-text-secondary); }
+    .lessons .lesson { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; }
+    .lessons .lesson em { font-weight: 500; color: var(--color-text-primary); }
+    .lessons .lesson .assess { margin-left: auto; font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; font-style: normal; }
+
+    /* Chat side (the in-session conversation with Praxis as drafter) */
+    .chat { display: flex; flex-direction: column; border-left: 1px solid var(--color-border); background: var(--color-bg-primary); }
+    .chat-head { padding: 14px 18px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 10px; background: color-mix(in oklab, var(--tint-bootstrap) 8%, var(--color-bg-secondary)); }
+    .chat-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tint-bootstrap); display: flex; align-items: center; gap: 8px; }
+    .chat-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-bootstrap); }
+    .chat-head h3 { font: 500 italic 17px/1.2 var(--font-display); margin: 0 0 2px; flex: 1; }
+    .chat-head h3 em { font-weight: 600; }
+
+    .messages { flex: 1; overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; display: flex; gap: 6px; align-items: baseline; }
+    .turn .speaker .when { color: var(--color-text-tertiary); font-weight: 400; }
+    .turn.agent .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 12px 14px; font: 14px/1.6 var(--font-serif); }
+    .turn.agent .bubble em { font-style: italic; }
+    .turn.agent .bubble p:not(:last-child) { margin: 0 0 8px; }
+    .turn.user { display: flex; flex-direction: column; align-items: flex-end; }
+    .turn.user .speaker { text-align: right; }
+    .turn.user .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 10px 14px; font: italic 14px/1.55 var(--font-serif); max-width: 92%; }
+
+    .tool-call { margin: 6px 0; background: var(--color-bg-secondary); border: 1px solid var(--color-warning); border-radius: var(--radius-sm); padding: 10px 13px; }
+    .tool-call .head { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-warning); margin-bottom: 6px; }
+    .tool-call .summary { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); }
+    .tool-call .summary em { font-weight: 600; color: var(--color-accent); }
+    .tool-call .actions { display: flex; gap: 4px; margin-top: 8px; }
+    .tool-call .actions button { font: 500 10px/1 var(--font-sans); padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .tool-call .actions button.primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); }
+
+    .composer { padding: 12px 18px 16px; border-top: 1px solid var(--color-border); flex-shrink: 0; }
+    .composer-field { display: flex; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 9px 11px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 13px/1.5 var(--font-serif); resize: none; outline: none; min-height: 20px; color: var(--color-text-primary); font-style: italic; }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 5px 10px; font: 500 11px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
+    .composer .hint { font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-top: 6px; }
+    .composer .hint em { color: var(--color-accent); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Mode body — Course-create</strong>
+    <span>The in-session view (distinct from the entry flow). Configurator returns to a paused course-create session — draft on left, steering chat on right. <em>No named agent</em> — Praxis is the drafter; chat is the configurator's steering surface. Drop-in resumable.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Course create · Stewart 8e</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab"><span class="dot"></span>Course create · Stewart 8e</span>
+    </div>
+  </header>
+
+  <div class="surface">
+    <div class="draft">
+      <div class="draft-head">
+        <span class="kicker">¶ draft course</span>
+        <h2><em>Calculus I</em> · drafting</h2>
+        <span class="badge">draft</span>
+      </div>
+
+      <div class="draft-meta-row">
+        Started <em>3 days ago</em> · last edit <em>1 min ago</em> · paused once · steered <em>4 times</em> via chat → <a>see full history</a>
+      </div>
+
+      <div class="unit-block">
+        <div class="unit-head"><span class="num">1.</span><span class="title"><em>Limits</em></span><span class="meta">3 lessons</span></div>
+        <div class="lessons">
+          <div class="lesson">1.1 · Intuitive limits<span class="assess">qc · quiz-after</span></div>
+          <div class="lesson">1.2 · ε-δ<span class="assess">qc · hw</span></div>
+          <div class="lesson">1.3 · One-sided / infinite<span class="assess">2 qc · quiz</span></div>
+        </div>
+      </div>
+
+      <div class="unit-block changed">
+        <div class="unit-head"><span class="num">2.</span><span class="title"><em>Differentiation</em> · core rules</span><span class="meta changed">5 lessons · changed</span></div>
+        <div class="lessons">
+          <div class="lesson">2.1 · Derivative as rate<span class="assess">ready · qc · quiz</span></div>
+          <div class="lesson">2.2 · Sum / product / quotient<span class="assess">ready · 2 qc · hw · quiz</span></div>
+          <div class="lesson">2.3 · <em>The chain rule</em><span class="assess">ready · qc · hw · quiz</span></div>
+          <div class="lesson">2.4 · Implicit differentiation<span class="assess">ready · 2 qc · hw</span></div>
+          <div class="lesson">2.5 · Higher-order<span class="assess">ready · qc · quiz</span></div>
+        </div>
+      </div>
+
+      <div class="unit-block">
+        <div class="unit-head"><span class="num">3.</span><span class="title"><em>Applications</em></span><span class="meta">2 lessons</span></div>
+        <div class="lessons">
+          <div class="lesson">3.1 · Related rates<span class="assess">2 qc · hw</span></div>
+          <div class="lesson">3.2 · Optimisation<span class="assess">qc · quiz</span></div>
+        </div>
+      </div>
+
+      <div class="unit-block">
+        <div class="unit-head"><span class="num">4.</span><span class="title"><em>Integration</em></span><span class="meta">2 lessons · midterm before</span></div>
+        <div class="lessons">
+          <div class="lesson">4.1 · Antiderivatives<span class="assess">qc · hw</span></div>
+          <div class="lesson">4.2 · <em>FTC</em><span class="assess">2 qc · quiz</span></div>
+        </div>
+      </div>
+
+      <div style="padding: 12px; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); text-align: center; font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); margin-top: 4px;">+ add a unit · or steer via chat →</div>
+    </div>
+
+    <aside class="chat">
+      <div class="chat-head">
+        <div class="kicker"><span class="dot"></span>¶ Drafting</div>
+        <h3>Steer the <em>draft</em></h3>
+      </div>
+
+      <div class="messages">
+        <div class="turn agent">
+          <div class="speaker">Praxis<span class="when">· 3 days ago</span></div>
+          <div class="bubble">Draft is ready. 4 units, 12 lessons, full assessment plan with readiness on unit 2 and a midterm. Want to confirm, or keep steering?</div>
+        </div>
+        <div class="turn user">
+          <div class="speaker">You<span class="when">· 3 days ago</span></div>
+          <div class="bubble">Save the draft, I'll come back to it.</div>
+        </div>
+        <div class="turn agent">
+          <div class="speaker">Praxis<span class="when">· 3 days ago</span></div>
+          <div class="bubble">Saved. You can reopen this tab any time — the draft and the conversation are preserved together.</div>
+        </div>
+        <div class="turn user">
+          <div class="speaker">You<span class="when">· just now</span></div>
+          <div class="bubble">Add a homework set to <em>L4.2 (FTC)</em> — students should practice before the final.</div>
+        </div>
+        <div class="turn agent">
+          <div class="speaker">Praxis<span class="when">· just now</span></div>
+          <div class="bubble">
+            <p>Good call — FTC is the climb. Adding now.</p>
+          </div>
+          <div class="tool-call">
+            <div class="head">tool · course.draft_add_lesson_assessment</div>
+            <div class="summary"><em>L4.2 · practice homework</em> · 12 items · timing: <em>interleaved</em> · purpose: practice</div>
+            <div class="actions">
+              <button class="primary">Keep</button>
+              <button>Tweak</button>
+              <button>Remove</button>
+            </div>
+          </div>
+          <div class="bubble">Added — visible on L4.2 in the draft on the left. Anything else, or ready to confirm?</div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-field">
+          <textarea rows="1" placeholder="steer · or 'confirm and open the course'"></textarea>
+          <button class="submit">Send ↵</button>
+        </div>
+        <div class="hint">— <em>Praxis drafts; you steer.</em> Drafts persist as their own session — pause and resume anytime.</div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

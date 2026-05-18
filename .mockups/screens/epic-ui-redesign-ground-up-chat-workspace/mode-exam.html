@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mode body — Exam</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    /* Exam mode chrome is reduced — no other tabs visible, dimmed nav, sober colors */
+    .running-head { padding: 12px 32px 8px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; opacity: 0.4; pointer-events: none; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--tint-exam); opacity: 1; pointer-events: auto; }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .exam-mode-strip { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--tint-exam); padding: 4px 10px; background: color-mix(in oklab, var(--tint-exam) 12%, transparent); border-radius: var(--radius-full); display: flex; align-items: center; gap: 8px; }
+    .running-head .exam-mode-strip .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-exam); animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .running-head .timer { font: 600 14px/1 var(--font-mono); color: var(--color-text-primary); letter-spacing: 0.04em; padding: 6px 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); border: 1px solid var(--color-border-strong); }
+    .running-head .timer.warn { background: color-mix(in oklab, var(--color-warning) 18%, transparent); border-color: var(--color-warning); color: var(--color-warning); }
+
+    .surface { display: grid; grid-template-columns: 1fr 280px; min-height: calc(100vh - 100px); max-width: 1200px; margin: 0 auto; }
+
+    main.exam { padding: 32px 36px; }
+    .head { padding-bottom: 14px; border-bottom: 1px solid var(--color-border); margin-bottom: 24px; }
+    .head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--tint-exam); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .head .kicker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tint-exam); }
+    .head h1 { font: 500 italic 28px/1.15 var(--font-display); margin: 0; }
+    .head h1 em { font-weight: 600; }
+    .head .deck { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; }
+
+    .mode-rule { background: color-mix(in oklab, var(--tint-exam) 10%, var(--color-bg-secondary)); border: 1px solid var(--tint-exam); padding: 12px 16px; border-radius: var(--radius-sm); font: italic 13px/1.6 var(--font-serif); color: var(--color-text-primary); margin-bottom: 24px; }
+    .mode-rule .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tint-exam); font-style: normal; margin-bottom: 6px; }
+    .mode-rule em { font-weight: 600; }
+
+    .item-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 32px 36px; margin-bottom: 16px; }
+    .item-card .item-meta { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 14px; display: flex; gap: 12px; align-items: baseline; }
+    .item-card .item-meta .type-pill { font: 600 9px/1 var(--font-mono); padding: 3px 7px; background: color-mix(in oklab, var(--tint-exam) 16%, transparent); color: var(--tint-exam); border-radius: var(--radius-full); }
+    .item-card .item-meta .points { color: var(--color-text-secondary); font-weight: 700; }
+
+    .item-card .prompt { font: 500 italic 22px/1.4 var(--font-display); margin-bottom: 10px; }
+    .item-card .prompt em { font-weight: 600; }
+    .item-card .stem { font: 15px/1.7 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 20px; }
+    .item-card .stem em { font-style: italic; }
+
+    /* Free-response answer area */
+    .answer-area { background: var(--color-bg-primary); border: 1.5px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 0; min-height: 280px; display: grid; grid-template-rows: auto 1fr; }
+    .answer-area .head { padding: 10px 14px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 12px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0; }
+    .answer-area .head .saved { color: var(--color-success); margin-left: auto; }
+    .answer-area textarea { width: 100%; height: 100%; border: 0; background: transparent; padding: 16px 20px; font: 15px/1.7 var(--font-serif); resize: none; outline: none; color: var(--color-text-primary); }
+
+    /* Rubric — visible in exam mode (pre-committed, auditable) */
+    .rubric-card { background: var(--color-bg-tertiary); border-radius: var(--radius-sm); padding: 14px 16px; margin-top: 14px; }
+    .rubric-card h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    .rubric-card .crit-row { display: flex; gap: 12px; align-items: baseline; padding: 6px 0; font: 13px/1.5 var(--font-serif); border-bottom: 1px dashed var(--color-border); }
+    .rubric-card .crit-row:last-child { border-bottom: none; }
+    .rubric-card .crit-row .weight { font: 600 11px/1 var(--font-mono); color: var(--color-text-secondary); min-width: 4ch; letter-spacing: 0.04em; }
+    .rubric-card .crit-row .crit { flex: 1; }
+    .rubric-card .crit-row em { font-style: italic; font-weight: 500; }
+
+    /* Action row — strict subset */
+    .actions { margin-top: 20px; display: flex; gap: 8px; align-items: center; }
+    .actions button { font: 500 13px/1 var(--font-sans); padding: 10px 16px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); }
+    .actions button.primary { background: var(--tint-exam); color: var(--color-text-inverse); border-color: var(--tint-exam); }
+    .actions .clar-pill { font: 500 11px/1 var(--font-sans); padding: 8px 12px; border: 1px solid var(--color-text-tertiary); background: transparent; color: var(--color-text-secondary); border-radius: var(--radius-sm); cursor: pointer; }
+    .actions .clar-pill::before { content: '? '; font-weight: 600; }
+
+    /* Right rail — item index + strict tools */
+    aside.rail { border-left: 1px solid var(--color-border); padding: 24px 22px; background: var(--color-bg-primary); }
+    aside.rail h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+
+    .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 4px; }
+    .item-grid .ix { width: 100%; aspect-ratio: 1; border-radius: var(--radius-sm); background: var(--color-bg-secondary); border: 1px solid var(--color-border); font: 600 11px/1 var(--font-mono); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-tertiary); }
+    .item-grid .ix.done { background: var(--color-text-primary); color: var(--color-bg-primary); border-color: var(--color-text-primary); }
+    .item-grid .ix.current { background: var(--tint-exam); color: var(--color-text-inverse); border-color: var(--tint-exam); box-shadow: 0 0 0 2px color-mix(in oklab, var(--tint-exam) 30%, transparent); }
+    .item-grid .ix.flagged { background: var(--color-warning); color: var(--color-text-inverse); border-color: var(--color-warning); }
+
+    .tools-allowed { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 12px 14px; margin: 14px 0; }
+    .tools-allowed h4 { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 8px; }
+    .tools-allowed .row { font: italic 12px/1.5 var(--font-serif); color: var(--color-text-secondary); padding: 3px 0; }
+    .tools-allowed .row.no { color: var(--color-text-tertiary); text-decoration: line-through; }
+    .tools-allowed .row em { font-weight: 500; color: var(--color-text-primary); }
+
+    aside.rail .submit-strip { background: color-mix(in oklab, var(--tint-exam) 12%, var(--color-bg-secondary)); border: 1px solid var(--tint-exam); border-radius: var(--radius-md); padding: 14px 16px; margin-top: 16px; }
+    aside.rail .submit-strip h4 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tint-exam); margin: 0 0 8px; }
+    aside.rail .submit-strip .row { display: flex; justify-content: space-between; padding: 3px 0; font: 12px/1.5 var(--font-serif); }
+    aside.rail .submit-strip .v { font: 600 11px/1 var(--font-mono); color: var(--color-text-primary); letter-spacing: 0.04em; }
+    aside.rail .submit-strip button { width: 100%; margin-top: 10px; background: var(--tint-exam); color: var(--color-text-inverse); border: 0; padding: 11px 14px; border-radius: var(--radius-sm); font: 500 13px/1 var(--font-sans); cursor: pointer; }
+    aside.rail .submit-strip .hint { font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Mode body — Exam</strong>
+    <span>Mode tint: crimson (†). Chrome reduced (other nav dimmed/disabled). Exam-mode strip + timer in the header. Strict tool subset (clarification only). Pre-committed rubrics visible per free-response. No after-the-fact feedback during the exam.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">†</span>Exam · Unit 2</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+    <div class="exam-mode-strip"><span class="pulse"></span>† Exam · proctored</div>
+    <div class="timer warn">26:14 left</div>
+  </header>
+
+  <div class="surface">
+    <main class="exam">
+      <header class="head">
+        <div class="kicker"><span class="dot"></span>† Unit 2 exam · Differentiation</div>
+        <h1>Unit <em>2</em> exam</h1>
+        <div class="deck">16 items · 45 min total · pre-committed rubric per free-response · auto-submit at 45 min</div>
+      </header>
+
+      <div class="mode-rule">
+        <div class="label">⁂ exam mode is on</div>
+        Tutor unavailable. <em>Only the clarification tool</em> is enabled — it rephrases a confusing prompt without revealing method or answer. No after-the-fact feedback during the exam; full grade summary lands after submit. Your work is saved every keystroke.
+      </div>
+
+      <div class="item-card">
+        <div class="item-meta">
+          <span>item 9 / 16</span>
+          <span class="type-pill">free response · rubric</span>
+          <span class="points">8 pts</span>
+        </div>
+        <div class="prompt">Explain <em>why</em> the chain rule is the right tool here</div>
+        <div class="stem">A balloon's volume changes with its radius according to V = (4/3)πr³, and the radius is growing at a constant rate. Write a one-paragraph explanation, in plain words, of why we use the <em>chain rule</em> to compute the rate at which volume changes over time — rather than another rule. Do not derive; <em>explain</em>.</div>
+
+        <div class="answer-area">
+          <div class="head">
+            <span>Your answer</span>
+            <span class="saved">✓ saved 3s ago</span>
+          </div>
+          <textarea>Volume responds to radius — that's the geometry rule, dV/dr = 4πr². Radius responds to time — that's the physics rule, dr/dt = constant. The chain rule is the right tool because the two rates are nested: volume doesn't change with respect to time directly, it changes because radius does, and radius changes with time. The chain rule says how a rate composed of two stacked rates works: multiply them. Neither the sum rule nor the product rule applies because we're not adding two functions of t or multiplying two functions of t — we have one function (V) that depends on another function (r) that depends on t.</textarea>
+        </div>
+
+        <div class="rubric-card">
+          <h3>⁂ rubric · pre-committed · 4 criteria · weighted sum to 8 pts</h3>
+          <div class="crit-row"><span class="weight">2 pt</span><span class="crit"><em>Identifies the nesting</em> — names that V depends on r which depends on t</span></div>
+          <div class="crit-row"><span class="weight">2 pt</span><span class="crit"><em>Distinguishes from sum / product rules</em> — explains why the alternatives don't apply</span></div>
+          <div class="crit-row"><span class="weight">2 pt</span><span class="crit"><em>Names the multiplication</em> — that stacked rates multiply, not add</span></div>
+          <div class="crit-row"><span class="weight">2 pt</span><span class="crit"><em>Plain-language quality</em> — explanation is comprehensible to a non-expert</span></div>
+          <div style="font: italic 11px/1.5 var(--font-serif); color: var(--color-text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border);">
+            rubric agent scores per-criterion (0-10) with rationale; final score is the deterministic weighted sum. Visible to you after submit.
+          </div>
+        </div>
+
+        <div class="actions">
+          <button>← Previous</button>
+          <button class="clar-pill">ask the clarification tool</button>
+          <button>⚑ Flag · come back</button>
+          <button class="primary">Save &amp; next →</button>
+        </div>
+      </div>
+    </main>
+
+    <aside class="rail">
+      <h3>Items · 16 total</h3>
+      <div class="item-grid">
+        <span class="ix done">1</span><span class="ix done">2</span><span class="ix done">3</span><span class="ix done">4</span>
+        <span class="ix done">5</span><span class="ix flagged">6</span><span class="ix done">7</span><span class="ix done">8</span>
+        <span class="ix current">9</span><span class="ix">10</span><span class="ix">11</span><span class="ix">12</span>
+        <span class="ix">13</span><span class="ix">14</span><span class="ix">15</span><span class="ix">16</span>
+      </div>
+      <div style="font: 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; margin-top: 8px;">8 done · 1 current · 7 ahead · 1 flagged</div>
+
+      <div class="tools-allowed">
+        <h4>† tools allowed in exam</h4>
+        <div class="row"><em>clarification</em> — rephrase a confusing prompt</div>
+        <div class="row"><em>assignment.show / read_grade</em></div>
+        <div class="row"><em>sketch.read</em> — for visual items</div>
+        <div class="row no">grade_math · tutor · retrieve_from_documents · hints</div>
+      </div>
+
+      <div class="submit-strip">
+        <h4>⁂ submit</h4>
+        <div class="row"><span>Answered</span><span class="v">8 / 16</span></div>
+        <div class="row"><span>Flagged</span><span class="v">1</span></div>
+        <div class="row"><span>Empty</span><span class="v">7</span></div>
+        <button>Submit (early)</button>
+        <div class="hint"><em>Auto-submit at 45:00 elapsed.</em> Once submitted, grading runs and the tutor narrates results in the parent teach tab.</div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

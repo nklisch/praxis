@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mode body — Study skills</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
+    .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-bg-tertiary); border: 1px solid var(--color-border); }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tint-study-skills); }
+
+    .workspace { display: grid; grid-template-columns: 220px 1fr 300px; min-height: calc(100vh - 100px); max-width: 1320px; margin: 0 auto; }
+
+    aside.left { border-right: 1px solid var(--color-border); padding: 20px 16px; }
+    aside.left h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    .session-step { padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 4px; font: italic 13px/1.4 var(--font-serif); color: var(--color-text-secondary); display: flex; gap: 8px; align-items: baseline; }
+    .session-step.done { color: var(--color-text-secondary); }
+    .session-step.done::before { content: '✓'; color: var(--color-success); font: 600 10px/1 var(--font-mono); font-style: normal; }
+    .session-step.current { background: color-mix(in oklab, var(--tint-study-skills) 14%, var(--color-bg-secondary)); color: var(--color-text-primary); border-left: 2px solid var(--tint-study-skills); }
+    .session-step.current::before { content: '◐'; color: var(--tint-study-skills); font: 600 10px/1 var(--font-mono); font-style: normal; }
+    .session-step.pending { color: var(--color-text-tertiary); }
+    .session-step.pending::before { content: '·'; color: var(--color-text-tertiary); font: 600 10px/1 var(--font-mono); }
+    .session-step em { color: var(--color-text-primary); font-weight: 500; }
+
+    main.session { display: flex; flex-direction: column; }
+    .head { padding: 20px 32px 12px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: baseline; }
+    .head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; }
+    .head .kicker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tint-study-skills); }
+    .head h1 { font: 500 italic 24px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .head h1 em { font-weight: 600; }
+
+    .messages { flex: 1; padding: 24px 32px; max-width: 780px; margin: 0 auto; width: 100%; }
+
+    .meta-prompt { background: color-mix(in oklab, var(--tint-study-skills) 8%, var(--color-bg-secondary)); border-left: 3px solid var(--tint-study-skills); padding: 18px 22px; border-radius: 0 var(--radius-md) var(--radius-md) 0; margin-bottom: 20px; }
+    .meta-prompt .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tint-study-skills); margin-bottom: 8px; }
+    .meta-prompt h2 { font: 500 italic 22px/1.3 var(--font-display); margin: 0 0 8px; }
+    .meta-prompt h2 em { font-weight: 600; }
+    .meta-prompt .citation { font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed color-mix(in oklab, var(--tint-study-skills) 30%, transparent); }
+
+    .turn { margin-bottom: 18px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .turn.coach .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 18px; font: 15px/1.65 var(--font-serif); }
+    .turn.coach .bubble em { font-style: italic; }
+    .turn.coach .bubble p:not(:last-child) { margin: 0 0 10px; }
+    .turn.student { display: flex; justify-content: flex-end; }
+    .turn.student .wrap { max-width: 75%; }
+    .turn.student .speaker { text-align: right; }
+    .turn.student .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 12px 16px; font: italic 15px/1.6 var(--font-serif); }
+
+    .composer { padding: 14px 32px 20px; border-top: 1px solid var(--color-border); }
+    .composer-inner { max-width: 780px; margin: 0 auto; }
+    .composer-field { display: flex; gap: 10px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 12px 14px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 15px/1.5 var(--font-serif); resize: none; outline: none; min-height: 22px; font-style: italic; color: var(--color-text-primary); }
+    .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 12px; font: 500 13px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
+    .composer .hint { font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-top: 8px; }
+    .composer .hint em { color: var(--color-text-primary); font-weight: 500; }
+
+    aside.right { border-left: 1px solid var(--color-border); padding: 24px 22px; }
+    aside.right h3 { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    aside.right .technique-card { background: color-mix(in oklab, var(--tint-study-skills) 10%, var(--color-bg-secondary)); border: 1px solid var(--tint-study-skills); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px; }
+    aside.right .technique-card .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tint-study-skills); margin-bottom: 6px; }
+    aside.right .technique-card .name { font: 500 italic 16px/1.3 var(--font-display); }
+    aside.right .technique-card .name em { font-weight: 600; }
+    aside.right .technique-card .desc { font: italic 12px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; }
+
+    aside.right .review-queue { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; }
+    aside.right .review-queue h4 { font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 8px; }
+    aside.right .review-queue .row { padding: 5px 0; font: 12px/1.5 var(--font-serif); border-bottom: 1px dashed var(--color-border); display: flex; gap: 8px; align-items: baseline; }
+    aside.right .review-queue .row:last-child { border-bottom: none; }
+    aside.right .review-queue .row em { font-style: italic; }
+    aside.right .review-queue .row .when { margin-left: auto; font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    aside.right .review-queue button { margin-top: 10px; width: 100%; font: 500 12px/1 var(--font-sans); padding: 8px 12px; border-radius: var(--radius-sm); background: var(--tint-study-skills); color: var(--color-text-inverse); border: 0; cursor: pointer; }
+
+    aside.right .pattern-card { background: var(--color-bg-tertiary); padding: 10px 12px; border-radius: var(--radius-sm); margin-top: 14px; font: italic 12px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    aside.right .pattern-card .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; font-style: normal; }
+    aside.right .pattern-card em { color: var(--color-text-primary); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Mode body — Study skills</strong>
+    <span>Mode tint: muted teal (‖). Coach mode for the metacognition surface. Structured reflection (not improvised chat) — explicit prompts from the pedagogy pack. Right rail surfaces the active technique + the review queue + observed patterns.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#" class="active"><span class="glyph">‖</span>Study skills · review</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+    </nav>
+    <div class="open-tabs">
+      <span class="label">Open</span>
+      <span class="tab"><span class="dot"></span>Study skills</span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="left">
+      <h3>Session arc</h3>
+      <div class="session-step done">Open · landed today</div>
+      <div class="session-step done">Last-session retrospect</div>
+      <div class="session-step done">Spaced review · 15 cards</div>
+      <div class="session-step current">Pattern reflection · <em>what worked</em></div>
+      <div class="session-step pending">Plan tomorrow's first session</div>
+      <div class="session-step pending">Close · one-line takeaway</div>
+
+      <h3 style="margin-top: 22px;">Today's stats</h3>
+      <div style="font: 12px/1.6 var(--font-serif); color: var(--color-text-secondary);">
+        ‖ 15 / 15 cards reviewed<br/>
+        ‖ 12 correct · 3 difficult<br/>
+        ‖ ~13 min so far
+      </div>
+    </aside>
+
+    <main class="session">
+      <header class="head">
+        <div class="kicker"><span class="dot"></span>‖ Study skills · daily coach</div>
+        <h1>What <em>worked</em> for you this week?</h1>
+      </header>
+
+      <div class="messages">
+        <div class="meta-prompt">
+          <div class="label">⁂ metacognitive prompt</div>
+          <h2><em>Notice the pattern</em> — pick one thing that landed this week and one thing that didn't.</h2>
+          <div class="citation">— pattern-recognition prompt · pedagogy pack · Schraw 2006</div>
+        </div>
+
+        <div class="turn coach">
+          <div class="speaker">Coach · just now</div>
+          <div class="bubble">
+            <p>I noticed something in your last three sessions. You answered the <em>"why multiply, not add"</em> question about the chain rule in a way that finally landed — and it landed <em>right after</em> you tried to explain it to a 12-year-old in a Feynman note.</p>
+            <p>That's a pattern worth naming. Try this: <em>which strategy helped you most this week</em> — the worked examples, the Feynman explain-to-someone, the spaced flashcards, the sketches, or the quick checks? Just one. And what specifically did it do for you?</p>
+          </div>
+        </div>
+
+        <div class="turn student">
+          <div class="wrap">
+            <div class="speaker">You · 1 min ago</div>
+            <div class="bubble">Feynman, by far. When I had to actually explain the chain rule without using the word "derivative," I realized I'd been faking it for years. The audience pill was the unlock — once I knew Maya was waiting, I couldn't reach for jargon.</div>
+          </div>
+        </div>
+
+        <div class="turn coach">
+          <div class="speaker">Coach · just now</div>
+          <div class="bubble">
+            <p>That's a real observation about <em>your own learning</em>, not just the material. Procedural memory will record this: <em>"Feynman with a named audience" → high payoff for [student id] when concept feels memorized but not understood.</em></p>
+            <p>One follow-up. <em>What didn't work?</em> Same answer pattern — one thing, one specific reason.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <div class="composer-field">
+            <textarea rows="2" placeholder="one thing that didn't land · and why" autofocus></textarea>
+            <button class="submit">Send ↵</button>
+          </div>
+          <div class="hint">— <em>structured reflection</em>, not free chat. Coach holds the arc; prompts come from the pedagogy pack.</div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="right">
+      <div class="technique-card">
+        <div class="label">⁂ active technique</div>
+        <div class="name"><em>Pattern reflection</em></div>
+        <div class="desc">Identify what's working in your own learning, name it explicitly, decide whether to lean in or change. Habit-forming, not skill-forming.</div>
+      </div>
+
+      <h3>Patterns observed</h3>
+      <div class="pattern-card">
+        <div class="label">procedural memory</div>
+        <em>Feynman + named audience</em> · used 3× this week · high mastery delta (avg +0.21)
+      </div>
+      <div class="pattern-card">
+        <div class="label">procedural memory</div>
+        <em>Cornell after teach</em> · used 2× · medium mastery delta · catches gaps
+      </div>
+      <div class="pattern-card">
+        <div class="label">affective</div>
+        Most engaged on <em>worked examples</em> · slight frustration spike on free-response math
+      </div>
+
+      <h3 style="margin-top: 18px;">Coming up</h3>
+      <div class="review-queue">
+        <h4>‖ next review</h4>
+        <div class="row"><em>derivatives basics</em> · 4 cards <span class="when">tomorrow</span></div>
+        <div class="row"><em>chain rule</em> · 6 cards <span class="when">in 2d</span></div>
+        <div class="row"><em>limits</em> · 3 cards <span class="when">in 4d</span></div>
+        <button>plan a session →</button>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

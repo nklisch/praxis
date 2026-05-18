@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mode tab bodies — all modes</title>
+  <style>
+    body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #111; color: #eee; }
+    h1 { padding: 14px 24px 0; margin: 0; font-weight: 500; font-size: 18px; }
+    h1 .meta { color: #8b949e; font-weight: 400; font-size: 13px; margin-left: 10px; }
+    .lede { padding: 0 24px 12px; margin: 4px 0 0; color: #8b949e; font-size: 13px; max-width: 90ch; }
+    .lede em { color: #d8a070; font-style: italic; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; height: calc(100vh - 80px); box-sizing: border-box; }
+    .cell { background: #fff; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+    .cell h2 { margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #222; color: #eee; display: flex; justify-content: space-between; align-items: baseline; }
+    .cell h2 .desc { color: #8b949e; font-weight: 400; font-size: 11px; }
+    .cell h2 a { color: #6cf; text-decoration: none; font-size: 11px; }
+    .cell iframe { border: 0; flex: 1; width: 100%; background: #fff; }
+    .cell.teach h2 { background: #6b3a14; }
+    .cell.quiz h2 { background: #243944; }
+    .cell.homework h2 { background: #232752; }
+    .cell.exam h2 { background: #5a1f1a; }
+    .cell.study h2 { background: #1f3a3a; }
+    .cell.doc h2 { background: #2d2d2d; }
+  </style>
+</head>
+<body>
+  <h1>Mode tab bodies <span class="meta">— all 7 modes within the locked chat-workspace shell</span></h1>
+  <p class="lede">Each tab in the chat-workspace dispatches to a mode-specific body based on <code>session.modeId</code>. Same outer chrome (top nav, side panels per Refined Bubbles); what varies is the per-mode body inside. <em>Course-create</em> replaces "bootstrap"; <em>no named agent</em> — Praxis is the drafter / coach / tutor as appropriate.</p>
+  <div class="grid">
+    <div class="cell teach">
+      <h2>§ Teach — <span class="desc">refined bubbles · tutor scaffolds · chat-workspace Option 4</span><a href="option-4.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-4.html"></iframe>
+    </div>
+    <div class="cell quiz">
+      <h2>‡ Quiz — <span class="desc">item-typed cards · no tutor mid-quiz · confidence band · item rail</span><a href="mode-quiz.html" target="_blank">open ↗</a></h2>
+      <iframe src="mode-quiz.html"></iframe>
+    </div>
+    <div class="cell homework">
+      <h2>❦ Homework — <span class="desc">paginated · work-area · save-and-skip · agent clarifies prompt only · submit gates set</span><a href="mode-homework.html" target="_blank">open ↗</a></h2>
+      <iframe src="mode-homework.html"></iframe>
+    </div>
+    <div class="cell exam">
+      <h2>† Exam — <span class="desc">proctored · chrome reduced · timer · rubric visible · clarification tool only</span><a href="mode-exam.html" target="_blank">open ↗</a></h2>
+      <iframe src="mode-exam.html"></iframe>
+    </div>
+    <div class="cell study">
+      <h2>‖ Study skills — <span class="desc">structured reflection · pedagogy-pack prompts · technique + patterns + review queue</span><a href="mode-study-skills.html" target="_blank">open ↗</a></h2>
+      <iframe src="mode-study-skills.html"></iframe>
+    </div>
+    <div class="cell doc">
+      <h2>† Document — <span class="desc">read-mostly · cited-passage highlights · selection bar · scope-aware ask-Praxis</span><a href="mode-document.html" target="_blank">open ↗</a></h2>
+      <iframe src="mode-document.html"></iframe>
+    </div>
+  </div>
+</body>
+</html>
