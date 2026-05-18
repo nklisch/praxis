@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-first-run-flow
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -113,3 +113,15 @@ Avoided compound CSS selectors (which trigger biome's
 element in JSX rather than `.actionsWithBack .skipButton { margin-left: auto }`.
 The compound hover selector for `.courseCardArrow` is placed after the
 base `.courseCardArrow` declaration so the cascade order is correct.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: `epic-ui-redesign-ground-up-app-shell-first-run-flow-engine-select-label` — the engine `<select>` and API key `<input>` fields were changed from `<label>` wrappers to `<div>` + `<span>` (to separate label styling from field layout). The `<span className={styles.fieldLabel}>` is not a `<label>`, so the selects/inputs lose their programmatic accessible-name association. Screen readers that rely on `<label for>` or wrapping label won't announce the field name. Parked in backlog.
+**Nits**:
+- `.courseCardLabel` has `composes: editorial from global` (italic serif) + `font-weight: semibold` — the weight override takes effect depending on the global `editorial` class specificity; visually intentional per mock.
+- `StepProgress` is `aria-hidden="true"` — correct, decorative.
+
+**Notes**: Structural rebuild is clean. Shell + wordmark + StepProgress continuity across steps matches the locked mock. Token adoption (mono kicker labels, muted brick accent, italic serif titles) is thorough. Three test assertions correctly updated for new badge text. The `actionsSpacer` JSX hack is slightly inelegant but correct and biome-clean.

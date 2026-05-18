@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -264,3 +264,13 @@ Stories largely parallel. Sequencing notes:
 ## Children complete (2026-05-18)
 
 All 10 child stories at `stage: done`. Feature advanced `implementing → review`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none (the cornell nested-interactive finding was triaged to backlog during child review; the chat-to-workspace `format` hardcode and `SavedNoteToast.noteId` dead prop were noted as nits during child review)
+**Nits**: (see individual child review sections)
+
+**Notes**: All 10 implementation units delivered per brief. Each child story was individually reviewed and approved (some with inline blocker fixes: catalogue search-box remount, outline cursor-reset, concept-map tool-id swap). Cross-cutting aggregate check: design-system token adoption consistent across all editors; sketch ↔ concept-map distinction is correctly surfaced via the inline notice + convert bridge; ask-tutor and inline-panel cross-feature integrations land cleanly against the session-open and spawn-from-note patterns. Capability completeness confirmed end-to-end.

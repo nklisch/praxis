@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces-session-open-flow-polish
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-discovery-surfaces
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -79,3 +79,15 @@ no IPC round-trip.
 - `chat-tab-body-scroll-restore.test.tsx` — 5 tests: key scoping, debounced
   save, no-crash on missing stored value, key-per-session-id invariant, scroll
   handler attachment.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `scrollSaveTimerRef` has no `useEffect` cleanup on unmount — the null guard on `container` in the callback already prevents any crash, so this is a no-op safety concern only.
+- The two `biome-ignore` suppression comments on `useEffect` deps arrays are correct and include clear explanations.
+
+**Notes**: Three independent polish features each cleanly implemented. Tab slide-in uses the max-width trick correctly (avoids `width: auto` animation limit). Resumed banner self-dismisses via CSS `animation-fill-mode: forwards` and the parent state toggle — no memory leak. Scroll restore correctly defers via `requestAnimationFrame` to let layout settle. Test coverage is behavioral (not implementation-detail), and the 18 tests cover all edge cases.
