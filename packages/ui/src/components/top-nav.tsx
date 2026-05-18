@@ -4,8 +4,8 @@ import styles from "./top-nav.module.css";
 
 /**
  * App-shell running head — top horizontal nav per the locked "Index" design
- * (option-3.html). Renders: wordmark · five surface links · right slot (tabs
- * strip + theme toggle are mounted by sibling stories).
+ * (option-3.html). Renders: wordmark · five surface links · tabs slot ·
+ * theme slot (at the far right edge).
  *
  * Five surface links and their typographic glyphs:
  *   § Library     → /
@@ -16,14 +16,17 @@ import styles from "./top-nav.module.css";
  *
  * Active state: accent hairline-underline on the active link.
  *
- * `tabsSlot` — content rendered in the right slot, between the surface nav
- * and the right edge. Story 4 mounts `<TabStrip>` here as italic deck lines.
+ * `tabsSlot` — content rendered between the surface nav and the right edge.
+ *   Story 4 mounts `<TabStrip>` here as italic deck lines.
+ * `themeSlot` — content rendered at the far right edge of the running head.
+ *   Story 3 mounts `<ThemeToggle>` here.
  */
 export interface TopNavProps {
   tabsSlot?: ReactNode;
+  themeSlot?: ReactNode;
 }
 
-export function TopNav({ tabsSlot }: TopNavProps) {
+export function TopNav({ tabsSlot, themeSlot }: TopNavProps) {
   return (
     <header className={styles.runningHead}>
       <span className={styles.wordmark}>
@@ -86,8 +89,10 @@ export function TopNav({ tabsSlot }: TopNavProps) {
           Configure
         </Link>
       </nav>
-      {/* Right slot — tabs strip (Story 4) + theme toggle (Story 3) mount here */}
+      {/* Tabs slot — TabStrip (Story 4) mounts here */}
       {tabsSlot !== undefined && <div className={styles.rightSlot}>{tabsSlot}</div>}
+      {/* Theme slot — ThemeToggle mounts at the far right edge */}
+      {themeSlot !== undefined && <div className={styles.themeSlot}>{themeSlot}</div>}
     </header>
   );
 }

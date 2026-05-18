@@ -9,6 +9,7 @@ import {
 import { OnboardingFlow } from "./components/onboarding-flow.js";
 import { StatusStrip } from "./components/status-strip.js";
 import { TabStrip } from "./components/tab-strip.js";
+import { ThemeToggle } from "./components/theme-toggle.js";
 import { TopNav } from "./components/top-nav.js";
 import { UpdateBanner } from "./components/update-banner.js";
 import { useFirstRun } from "./hooks/use-first-run.js";
@@ -58,6 +59,7 @@ function RootLayout() {
             }}
           />
         }
+        themeSlot={<ThemeToggle />}
       />
       <StatusStrip />
       <main className={styles.main}>

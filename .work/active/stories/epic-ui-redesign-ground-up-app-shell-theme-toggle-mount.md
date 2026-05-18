@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-theme-toggle-mount
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -11,7 +11,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Theme toggle — mount in the running head
@@ -34,6 +34,27 @@ the running head per the locked Index mock.
 
 ## Acceptance criteria
 
-- [ ] Theme toggle visible at the right edge of the running head.
-- [ ] Layout matches the locked mock.
-- [ ] All quality checks green.
+- [x] Theme toggle visible at the right edge of the running head.
+- [x] Layout matches the locked mock.
+- [x] All quality checks green.
+
+## Implementation notes
+
+Added a `themeSlot?: ReactNode` prop to `<TopNav>` alongside the existing
+`tabsSlot` prop. This keeps the two slots distinct — the mock places the
+theme toggle as a separate element at the true right edge, not nested inside
+the tabs strip.
+
+CSS: a new `.themeSlot` class in `top-nav.module.css` mirrors the mock's
+`.theme-toggle` (border-left separator, baseline-aligned flex). The nav's
+`flex: 1` expansion naturally pushes both slots to the right without needing
+`margin-left: auto` on the slots.
+
+`router.tsx` mounts `<ThemeToggle />` as `themeSlot` on `<TopNav>` in
+`RootLayout`. The component is self-contained (calls `useTheme` internally) —
+no extra props or wiring needed.
+
+Tests: three new cases in `top-nav.test.tsx` assert (a) the three toggle
+buttons render when `themeSlot` is provided, (b) they sit inside the
+`<header>` (role=banner), and (c) they are absent when `themeSlot` is omitted.
+All 12 TopNav tests and 7 ThemeToggle tests pass.

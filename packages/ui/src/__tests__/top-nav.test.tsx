@@ -7,9 +7,11 @@
  * - All five glyph ornaments render.
  * - Active link receives the linkActive CSS class via activeProps.
  * - nav element has accessible aria-label.
+ * - themeSlot content renders inside the running head.
  */
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ThemeToggle } from "../components/theme-toggle.js";
 import { TopNav } from "../components/top-nav.js";
 
 afterEach(() => cleanup());
@@ -120,5 +122,25 @@ describe("TopNav", () => {
     render(<TopNav />);
     const libraryLink = screen.getByRole("link", { name: /Library/i });
     expect(libraryLink.className).not.toMatch(/linkActive/);
+  });
+
+  it("renders ThemeToggle buttons when themeSlot is provided", () => {
+    render(<TopNav themeSlot={<ThemeToggle />} />);
+    // ThemeToggle renders 3 buttons: auto · light · dark
+    expect(screen.getByRole("button", { name: "auto" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "light" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "dark" })).toBeDefined();
+  });
+
+  it("ThemeToggle sits inside the running head when themeSlot is provided", () => {
+    render(<TopNav themeSlot={<ThemeToggle />} />);
+    const header = screen.getByRole("banner");
+    const autoBtn = screen.getByRole("button", { name: "auto" });
+    expect(header.contains(autoBtn)).toBe(true);
+  });
+
+  it("does not render theme toggle buttons when themeSlot is absent", () => {
+    render(<TopNav />);
+    expect(screen.queryByRole("button", { name: "auto" })).toBeNull();
   });
 });

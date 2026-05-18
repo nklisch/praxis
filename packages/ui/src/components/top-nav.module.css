@@ -64,13 +64,22 @@
   color: var(--color-accent);
 }
 
-/* Right slot — holds tabs strip (Story 4) and theme toggle (Story 3).
- * Left border visually separates it from the nav links, matching the mock. */
+/* Right slot — holds tabs strip (Story 4).
+ * Left border visually separates it from the nav links, matching the mock.
+ * nav has flex:1, so it pushes slots naturally to the right. */
 .rightSlot {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-left: auto;
+  padding-left: 24px;
+  border-left: 1px solid var(--color-border);
+}
+
+/* Theme slot — holds ThemeToggle (Story 3) at the far right edge.
+ * Follows rightSlot (or nav when tabsSlot is absent) with its own border. */
+.themeSlot {
+  display: flex;
+  align-items: baseline;
   padding-left: 24px;
   border-left: 1px solid var(--color-border);
 }
