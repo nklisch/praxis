@@ -101,11 +101,12 @@ export function CourseCreateRoute() {
   const handleStart = useCallback(async () => {
     setStarting(true);
     try {
+      const trimmedContext = context.trim();
       await openSessionInTab({
         client,
         navigate,
         startOpts: { modeId: "bootstrap" },
-        initialMessage: context.trim() || undefined,
+        ...(trimmedContext !== "" && { initialMessage: trimmedContext }),
       });
     } finally {
       setStarting(false);
