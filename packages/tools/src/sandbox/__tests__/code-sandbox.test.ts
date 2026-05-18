@@ -1,7 +1,7 @@
 import type { CodeSandbox, ToolContext } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";
-import { codeSandboxInput, codeSandboxTool } from "../code-sandbox.js";
+import { createCodeSandboxTool } from "../code-sandbox.js";
 
 function makeEmptyPedagogyPackService() {
   return {
@@ -24,6 +24,9 @@ const mockSandbox: CodeSandbox = {
     durationMs: 5,
   }),
 };
+
+const codeSandboxTool = createCodeSandboxTool(mockSandbox);
+const codeSandboxInput = codeSandboxTool.input;
 
 const mockCtx: ToolContext = {
   studentId: brandId<"StudentId">("student-1"),

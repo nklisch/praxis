@@ -1,7 +1,7 @@
 ---
 id: cleanup-delete-deprecated-code-sandbox-exports
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -81,6 +81,15 @@ remains as the sole export, consumed by `services.ts`.
 - [ ] `pnpm test` passes
 - [ ] `grep -n '@deprecated' packages/tools/src/sandbox/code-sandbox.ts` returns 0 results
 - [ ] File LoC reduced by ~50 lines
+
+## Implementation notes
+
+- **Discovery gap resolved**: The story claimed zero external consumers, but the test file `packages/tools/src/sandbox/__tests__/code-sandbox.test.ts` imported `codeSandboxInput` and `codeSandboxTool` directly from `../code-sandbox.js`. These were internal to the same package (not external via `@praxis/tools`), but were live consumers of the deprecated exports.
+- **Test migration**: Replaced `import { codeSandboxInput, codeSandboxTool }` with `import { createCodeSandboxTool }`. Added two derived constants at module scope: `const codeSandboxTool = createCodeSandboxTool(mockSandbox)` and `const codeSandboxInput = codeSandboxTool.input`. All 12 tests pass unchanged.
+- **Lines deleted from `code-sandbox.ts`**: Lines 80–125 (the two-line comment block + `codeSandboxInput` export + `codeSandboxTool` export + handler) — 46 lines removed. File reduced from 126 to 78 lines.
+- **Barrel check**: `packages/tools/src/sandbox/index.ts` and `packages/tools/src/index.ts` do not re-export `codeSandboxInput` or `codeSandboxTool` — no barrel changes needed.
+- **Verification grep (post-deletion)**: Remaining references to `codeSandboxTool`/`codeSandboxInput` are all local variable uses (factory-derived in test, factory closure in source, local in `services.ts`) — zero imports of the deprecated module-level exports.
+- **Build/test status**: `@praxis/tools` typecheck and all 12 sandbox tests green. Pre-existing failures in `@praxis/desktop` (3 typecheck errors in UI files) and one flaky `@praxis/ui` test (`use-fragment-overrides`) are unrelated and reproduce without these changes.
 
 ## Risk
 
