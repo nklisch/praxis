@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-note-annotations-and-filters
 kind: feature
-stage: drafting
+stage: implementing
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -62,5 +62,111 @@ spaced-review scheduler (assumed); per-format note editor rewrites
 - `.mockups/screens/.../-workspace/option-3.html` — Catalogue with
   filter rail
 
-<!-- Two distinct sub-features inside one ship; the design pass will
-either keep them together or recommend splitting. -->
+## Design decisions
+
+- **Keep two sub-features in one ship but split into two stories.**
+  They both touch the workspace data layer but are conceptually
+  separable (annotations write, filters read) and ship cleaner as
+  independent waves.
+- **Annotations land on `notes` as a new JSON column.** Storing them
+  alongside the body keeps the read path one-query and matches the
+  existing `linksJson` / `sketchSceneJson` pattern. No new table.
+- **Search uses SQLite FTS5, not LIKE.** Open-ended student text needs
+  ranking and tokenizer flexibility. New virtual table `notes_fts`
+  (and `flashcards_fts`) synced via triggers.
+- **Originating session id becomes a dedicated indexed column** on
+  `notes` (today it's only in `contextJson`). Filter queries get O(log)
+  instead of JSON scans.
+- **"Orphan" is a derived predicate.** Notes/flashcards with neither a
+  `course_id` link (via `linksJson`) nor a `concept_id` are orphaned.
+  No new storage; the filter is a SQL query.
+
+## Architectural choice
+
+Two parallel sub-features:
+
+**Sub-feature A — Note annotations.** Schema column + `NotesService`
+methods `setAnnotations(noteId, annotations)` and
+`getAnnotations(noteId)`. Annotation type:
+`{ rangeStart: number; rangeEnd: number; text: string; severity: "soft" | "load_bearing" }`.
+
+**Sub-feature B — Catalogue search + filters.** Adds session-id column
+to `notes`, FTS5 virtual table(s), and a `LibraryService` (or extension
+of artifacts) aggregating the four saved filters: `from-session`,
+`orphan`, `due`, `recent`.
+
+## Implementation Units
+
+### Unit 1: Annotation schema + service (Story A)
+
+- `packages/artifacts/src/schema.ts` — add
+  `annotationsJson: text("annotations_json", { mode: "json" })`
+  nullable on `notes`.
+- Migration via `pnpm db:generate`.
+- `Annotation` type in `packages/core/src/types/notes.ts`.
+- `NotesService.setAnnotations(noteId, annotations[])` and
+  `.getAnnotations(noteId)` methods.
+
+### Unit 2: Session-id column + backfill (Story B)
+
+- `packages/artifacts/src/schema.ts` — add
+  `sessionId: text("session_id")` (nullable, indexed) on `notes`.
+- Migration with backfill SQL using `json_extract(context_json,
+  '$.sessionId')` to populate existing rows.
+
+### Unit 3: FTS5 + search/filter API (Story B)
+
+- Migration creating `notes_fts` (FTS5 virtual table over `body`) and
+  `flashcards_fts` (FTS5 over `front` + `back`), plus triggers to
+  keep them in sync (INSERT / UPDATE / DELETE).
+- `NotesService.search({ query, sessionId?, orphan?, dueOnly?, recentWindowMs? })`
+  and `FlashcardsService.search(...)`.
+- New `LibraryService` (or methods on artifacts) composing the four
+  saved filters across both tables.
+
+### Unit 4: IPC + client (split per story)
+
+- A: `praxis.notes.setAnnotations`, `praxis.notes.getAnnotations`.
+- B: `praxis.library.search` (combined notes + flashcards).
+- All envelope-wrapped; client methods peel.
+
+### Unit 5: Tests
+
+- A: annotation round-trip tests in `notes-service.test.ts`.
+- B: per-filter tests + FTS-trigger tests + IPC harness tests.
+
+## Implementation Order
+
+Two parallel stories:
+
+1. `epic-backend-fills-for-redesign-note-annotations-and-filters-annotations` —
+   Units 1 + IPC (A) + tests.
+2. `epic-backend-fills-for-redesign-note-annotations-and-filters-search-and-filters` —
+   Units 2 + 3 + IPC (B) + tests.
+
+They share `notes-service.ts` but their methods don't overlap — safe
+to run in parallel.
+
+## Acceptance Criteria
+
+Aggregate (per-story criteria in the story bodies):
+
+- [ ] Annotations persist on notes; round-trip via the service API.
+- [ ] FTS5-backed search returns ranked results for note + flashcard
+      bodies.
+- [ ] All four saved filters return correct sets against seeded
+      fixtures.
+- [ ] All quality checks green.
+
+## Risks
+
+- **FTS5 triggers may run during heavy ingest.** Acceptable for
+  expected note volume; if it becomes a hot path, switch to
+  application-managed updates in `NotesService`.
+- **`sessionId` backfill correctness.** Test the migration on a copy
+  of dev data before shipping. If `contextJson` doesn't carry
+  `sessionId` for older rows, leave them as NULL; the filter handles
+  it gracefully.
+- **Annotation range stability**: ranges become stale when the body
+  is edited. v1 accepts this; story body documents the limitation
+  and the editor can recompute or re-anchor in a follow-up.
