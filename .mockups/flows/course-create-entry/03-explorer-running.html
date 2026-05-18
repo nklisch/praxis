@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>course-create · 3/5 · explorer running · steer via chat</title>
+  <title>course-create · 3/5 · drafting · chat-primary with sub-agent inline</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
   <style>
     .flow-meta { position: sticky; top: 0; z-index: 100; background: #0d1117; color: #c9d1d9; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
@@ -11,6 +11,7 @@
     .flow-meta .center { font-weight: 600; }
     .annot { padding: 10px 24px; background: var(--color-accent-muted); border-bottom: 1px solid var(--color-accent); font: italic 13px/1.5 var(--font-serif); color: var(--color-text-primary); display: flex; gap: 12px; align-items: baseline; }
     .annot .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+    .annot code { font-family: var(--font-mono); font-size: 12px; background: var(--color-bg-tertiary); padding: 1px 5px; border-radius: 3px; }
     body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
     .running-head { padding: 12px 32px 8px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
@@ -22,91 +23,83 @@
     .running-head .open-tabs { display: flex; align-items: baseline; gap: 8px; padding-left: 24px; border-left: 1px solid var(--color-border); }
     .running-head .open-tabs .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
     .running-head .open-tabs .tab { font: italic 13px/1 var(--font-serif); display: flex; align-items: baseline; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-bg-tertiary); border: 1px solid var(--color-border); }
-    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tint-bootstrap); animation: pulse 1.4s ease-in-out infinite; }
+    .running-head .open-tabs .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tint-bootstrap); }
+
+    /* Canvas + Side Chat — same shape as configure mode Option 5 */
+    .surface { display: grid; grid-template-columns: 1fr 420px; flex: 1; overflow: hidden; }
+
+    .draft { padding: 20px 28px; overflow-y: auto; border-right: 1px solid var(--color-border); }
+    .draft-head { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 12px; }
+    .draft-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .draft-head h2 { font: 500 italic 22px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .draft-head h2 em { font-weight: 600; }
+    .draft-head .live { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); display: flex; align-items: center; gap: 6px; }
+    .draft-head .live .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-    /* Three columns: activity stream · draft · chat with explorer */
-    .workspace { display: grid; grid-template-columns: 280px 1fr 360px; flex: 1; overflow: hidden; }
+    .draft-meta-row { padding: 8px 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); font: italic 12px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 14px; }
+    .draft-meta-row em { color: var(--color-text-primary); font-weight: 500; }
 
-    /* Compacted activity stream (was full width before, now narrower) */
-    .activity { padding: 20px 22px; border-right: 1px solid var(--color-border); overflow-y: auto; background: var(--color-bg-primary); }
-    .activity-head { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); }
-    .activity-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-    .activity-head .kicker .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); animation: pulse 1.4s ease-in-out infinite; }
-    .activity-head h2 { font: 500 italic 18px/1.2 var(--font-display); margin: 0 0 2px; }
-    .activity-head h2 em { font-weight: 600; }
-    .activity-head .meta { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .unit-block { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 10px; }
+    .unit-block.in-progress { border-color: var(--color-accent); }
+    .unit-block.pending { border: 1px dashed var(--color-border-strong); opacity: 0.55; }
+    .unit-block.complete { border-color: var(--color-success); }
+    .unit-head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+    .unit-head .num { font: italic 16px/1 var(--font-display); color: var(--color-text-tertiary); min-width: 2ch; }
+    .unit-head .title { font: 500 italic 15px/1.2 var(--font-display); flex: 1; }
+    .unit-head .title em { font-weight: 600; }
+    .unit-head .meta { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); padding: 3px 6px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); }
+    .unit-block.in-progress .unit-head .meta { background: var(--color-accent); color: var(--color-text-inverse); }
+    .unit-block.complete .unit-head .meta { background: var(--color-success); color: var(--color-text-inverse); }
+    .lessons { margin-top: 6px; padding-left: 22px; font: italic 12px/1.7 var(--font-serif); color: var(--color-text-secondary); }
+    .lessons .lesson em { font-weight: 500; color: var(--color-text-primary); }
 
-    .activity-stream { font: 13px/1.5 var(--font-serif); }
-    .agent-line { padding: 6px 12px; border-left: 2px solid var(--color-border); margin-left: 4px; margin-bottom: 4px; position: relative; font-size: 12px; }
-    .agent-line.completed { color: var(--color-text-secondary); }
-    .agent-line.completed::before { content: '✓'; position: absolute; left: -7px; top: 8px; width: 12px; height: 12px; background: var(--color-success); color: var(--color-text-inverse); border-radius: 50%; font: 600 8px/12px var(--font-mono); text-align: center; }
-    .agent-line.running { border-left-color: var(--color-accent); background: var(--color-accent-muted); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--color-text-primary); }
-    .agent-line.running::before { content: '◐'; position: absolute; left: -7px; top: 8px; width: 12px; height: 12px; background: var(--color-accent); color: var(--color-text-inverse); border-radius: 50%; font: 600 8px/12px var(--font-mono); text-align: center; animation: spin 1.2s linear infinite; display: inline-block; }
-    .agent-line .turn-num { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); }
-    .agent-line em { font-style: italic; font-weight: 500; color: var(--color-text-primary); }
-    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-
-    .activity-stats { margin-top: 16px; padding: 12px 14px; background: var(--color-bg-tertiary); border-radius: var(--radius-sm); }
-    .activity-stats .row { display: flex; justify-content: space-between; padding: 4px 0; font: 12px/1.4 var(--font-serif); border-bottom: 1px dashed var(--color-border); }
-    .activity-stats .row:last-child { border-bottom: none; }
-    .activity-stats .row .v { font: 600 11px/1 var(--font-mono); color: var(--color-text-primary); letter-spacing: 0.04em; }
-
-    /* Draft column (center) */
-    .draft { padding: 20px 24px; overflow-y: auto; background: var(--color-bg-primary); }
-    .draft-head { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
-    .draft-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
-    .draft-head h2 { font: 500 italic 22px/1.2 var(--font-display); margin: 0; }
-    .draft-head h2 em { font-weight: 600; }
-
-    .draft-unit { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 10px; }
-    .draft-unit.complete { border-color: var(--color-success); }
-    .draft-unit.in-progress { border-color: var(--color-accent); }
-    .draft-unit.just-changed { border-color: var(--color-warning); animation: changed-flash 1.6s ease-out; }
-    @keyframes changed-flash { 0% { box-shadow: 0 0 0 0 var(--color-warning); } 100% { box-shadow: 0 0 0 6px transparent; } }
-    .draft-unit.pending { border: 1px dashed var(--color-border-strong); opacity: 0.55; }
-
-    .draft-unit .head { display: flex; align-items: baseline; gap: 10px; }
-    .draft-unit .num { font: italic 16px/1 var(--font-display); color: var(--color-text-tertiary); min-width: 2ch; }
-    .draft-unit .title { font: 500 italic 15px/1.2 var(--font-display); flex: 1; }
-    .draft-unit .title em { font-weight: 600; }
-    .draft-unit .meta { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); padding: 3px 6px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); }
-    .draft-unit.complete .meta { background: var(--color-success); color: var(--color-text-inverse); }
-    .draft-unit.in-progress .meta { background: var(--color-accent); color: var(--color-text-inverse); }
-    .draft-unit.just-changed .meta { background: var(--color-warning); color: var(--color-text-inverse); }
-    .draft-unit .lessons { margin-top: 6px; padding-left: 20px; font: italic 12px/1.6 var(--font-serif); color: var(--color-text-secondary); }
-    .draft-unit .lesson { padding: 2px 0; display: flex; align-items: baseline; gap: 8px; }
-    .draft-unit .lesson em { font-weight: 500; color: var(--color-text-primary); }
-    .draft-unit .lesson .assess { margin-left: auto; font: 9px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; font-style: normal; text-transform: uppercase; }
-    .draft-unit .lesson .assess em { color: var(--color-warning); font-weight: 600; font-family: var(--font-serif); text-transform: none; letter-spacing: 0; }
-
-    /* Chat with explorer (right) */
-    .chat { display: flex; flex-direction: column; background: var(--color-bg-primary); border-left: 1px solid var(--color-border); }
-    .chat-head { padding: 14px 18px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 10px; background: var(--color-accent-muted); }
-    .chat-head .glyph { font: italic 18px/1 var(--font-display); color: var(--color-accent); }
-    .chat-head .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 2px; }
-    .chat-head h2 { font: 500 italic 17px/1.2 var(--font-display); margin: 0; flex: 1; padding-bottom: 2px; }
+    /* Chat surface (primary) */
+    .chat { display: flex; flex-direction: column; background: var(--color-bg-primary); }
+    .chat-head { padding: 14px 18px; border-bottom: 1px solid var(--color-border); display: flex; align-items: baseline; gap: 10px; background: var(--color-bg-secondary); }
+    .chat-head .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 2px; }
+    .chat-head h3 { font: 500 italic 17px/1.2 var(--font-display); margin: 0; flex: 1; }
+    .chat-head h3 em { font-weight: 600; }
+    .chat-head .session-meta { font: 600 9px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 6px; background: var(--color-bg-tertiary); border-radius: var(--radius-full); }
 
     .messages { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
     .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 5px; display: flex; align-items: baseline; gap: 6px; }
     .turn .speaker .when { color: var(--color-text-tertiary); font-weight: 400; }
-    .turn.agent .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 11px 14px; font: 14px/1.6 var(--font-serif); }
-    .turn.agent .bubble em { font-style: italic; }
-    .turn.agent .bubble p:not(:last-child) { margin: 0 0 6px; }
+    .turn.tutor .bubble { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 11px 14px; font: 14px/1.6 var(--font-serif); }
+    .turn.tutor .bubble em { font-style: italic; }
+    .turn.tutor .bubble p:not(:last-child) { margin: 0 0 6px; }
     .turn.user { display: flex; flex-direction: column; align-items: flex-end; }
     .turn.user .speaker { text-align: right; }
     .turn.user .bubble { background: var(--color-bg-tertiary); border-radius: var(--radius-md); padding: 9px 13px; font: italic 14px/1.55 var(--font-serif); max-width: 92%; }
 
-    .tool-call { margin: 4px 0; background: var(--color-bg-secondary); border: 1px solid var(--color-warning); border-radius: var(--radius-sm); padding: 8px 12px; }
-    .tool-call .head { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-warning); margin-bottom: 4px; }
-    .tool-call .summary { font: italic 12px/1.5 var(--font-serif); color: var(--color-text-primary); }
-    .tool-call .summary em { font-weight: 600; }
+    /* Tool entry (immediate execution; revert affordance only) */
+    .tool-entry { margin: 4px 0; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+    .tool-entry .head { padding: 8px 12px; display: flex; align-items: center; gap: 8px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .tool-entry .head .verdict { color: var(--color-success); font-weight: 700; font-size: 12px; }
+    .tool-entry .head .name { color: var(--color-text-primary); font-weight: 600; }
+    .tool-entry .head .summary { font-family: var(--font-serif); font-style: italic; text-transform: none; letter-spacing: 0; color: var(--color-text-secondary); font-weight: 400; flex: 1; font-size: 12px; }
+    .tool-entry .head .revert { color: var(--color-text-tertiary); font: italic 11px/1 var(--font-serif); text-transform: none; letter-spacing: 0; padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border); background: transparent; }
+    .tool-entry .head .revert:hover { color: var(--color-warning); border-color: var(--color-warning); }
 
-    /* Quick steering suggestions */
-    .suggestions { padding: 8px 14px; background: color-mix(in oklab, var(--color-accent) 8%, var(--color-bg-secondary)); border-radius: var(--radius-sm); margin: 6px 0; }
-    .suggestions .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 6px; }
-    .suggestions .chip { display: inline-block; font: italic 12px/1.4 var(--font-serif); padding: 4px 10px; background: var(--color-bg-primary); border: 1px solid var(--color-accent); border-radius: var(--radius-full); margin: 2px 4px 2px 0; cursor: pointer; color: var(--color-text-primary); }
-    .suggestions .chip:hover { background: var(--color-accent); color: var(--color-text-inverse); }
+    /* Sub-agent block — for course.start_exploration. Renders inline; updates live. */
+    .sub-agent-block { background: var(--color-bg-secondary); border-left: 3px solid var(--color-accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 14px; margin: 6px 0; }
+    .sub-agent-block .sa-head { display: flex; align-items: baseline; gap: 8px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 8px; }
+    .sub-agent-block .sa-head .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: pulse 1.4s ease-in-out infinite; }
+    .sub-agent-block .sa-head .phase { color: var(--color-text-secondary); font-weight: 400; font-style: italic; font-family: var(--font-serif); text-transform: none; letter-spacing: 0; font-size: 12px; margin-left: auto; }
+    .sub-agent-block .sa-progress { font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-bottom: 8px; }
+    .sub-agent-block .sa-progress em { color: var(--color-text-primary); font-weight: 500; }
+    .sub-agent-block .sa-steps { font: 11px/1.6 var(--font-mono); color: var(--color-text-secondary); letter-spacing: 0.02em; max-height: 140px; overflow-y: auto; padding: 8px 10px; background: var(--color-bg-primary); border-radius: var(--radius-sm); border: 1px solid var(--color-border); }
+    .sub-agent-block .sa-step { padding: 2px 0; display: flex; gap: 8px; align-items: baseline; }
+    .sub-agent-block .sa-step.done { color: var(--color-text-secondary); }
+    .sub-agent-block .sa-step.done::before { content: '✓'; color: var(--color-success); font-weight: 700; min-width: 12px; }
+    .sub-agent-block .sa-step.running { color: var(--color-accent); }
+    .sub-agent-block .sa-step.running::before { content: '◐'; color: var(--color-accent); animation: spin 1.2s linear infinite; display: inline-block; min-width: 12px; }
+    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+    .sub-agent-block .sa-step em { font-style: italic; font-family: var(--font-serif); font-weight: 500; color: var(--color-text-primary); letter-spacing: 0; }
+    .sub-agent-block .sa-foot { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border); font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); }
+    .sub-agent-block .sa-foot em { color: var(--color-text-secondary); }
+    .sub-agent-block .sa-foot button { font: 500 10px/1 var(--font-sans); padding: 5px 9px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); margin-left: auto; }
 
     .composer { padding: 12px 18px 16px; border-top: 1px solid var(--color-border); flex-shrink: 0; }
     .composer-field { display: flex; gap: 8px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 9px 11px; }
@@ -114,182 +107,193 @@
     .composer-field textarea::placeholder { color: var(--color-text-tertiary); }
     .composer-field .submit { background: var(--color-accent); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 5px 10px; font: 500 11px/1 var(--font-sans); cursor: pointer; align-self: flex-end; }
     .composer .hint { font: italic 11px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-top: 6px; }
-    .composer .hint em { color: var(--color-accent); font-weight: 500; }
+    .composer .hint em { color: var(--color-text-primary); font-weight: 500; }
   </style>
 </head>
 <body>
   <header class="flow-meta">
     <a href="02-upload-docs.html">← prev</a>
-    <span class="center">course-create · step 3/5 · explorer running · steer via chat</span>
+    <span class="center">course-create · step 3/5 · chat with Praxis · explorer runs as inline sub-agent</span>
     <a href="04-draft-ready.html">next →</a>
   </header>
-  <div class="annot"><span class="label">⁂ step 3</span><span>Three columns. <em>Left:</em> Praxis's activity stream (every turn, every tool call). <em>Center:</em> the draft taking shape. <em>Right:</em> chat with Praxis — the configurator can <em>steer</em> via natural language ("re-look at ch. 3 as one unit", "add a readiness quiz before each lesson"). Praxis responds with reasoning + tool calls; canvas updates live.</span></div>
+  <div class="annot"><span class="label">⁂ step 3 · re-mocked</span><span>This is just a <em>bootstrap-mode session</em>. The chat is the parent-agent surface; the draft is the artifact being built (canvas on the left). <em>The explorer is a sub-agent</em> the parent calls via <code>course.start_exploration</code> — its steps render <em>inline in the chat</em> as a live SubAgentBlock. Same shape as configure mode (Canvas + Side Chat), different artifact. No "steering" framing — it's just chat with Praxis at any time.</span></div>
 
   <header class="running-head">
     <span class="wordmark"><em>Praxis</em></span>
     <nav>
       <a href="#"><span class="glyph">§</span>Library</a>
-      <a href="#" class="active"><span class="glyph">¶</span>Drafting</a>
+      <a href="#" class="active"><span class="glyph">¶</span>Create a course · Stewart 8e</a>
       <a href="#"><span class="glyph">‡</span>Concept maps</a>
       <a href="#"><span class="glyph">‖</span>Progress</a>
     </nav>
     <div class="open-tabs">
       <span class="label">Open</span>
-      <span class="tab"><span class="dot"></span>Drafting</span>
+      <span class="tab"><span class="dot"></span>Create course · Stewart 8e</span>
     </div>
   </header>
 
-  <div class="workspace">
-    <div class="activity">
-      <div class="activity-head">
-        <div class="kicker"><span class="pulse"></span>¶ Praxis · turn 22</div>
-        <h2>Reading <em>Stewart 8e</em></h2>
-        <div class="meta">~2 min remaining</div>
-      </div>
-
-      <div class="activity-stream">
-        <div class="agent-line completed">
-          <div class="turn-num">t 1-4</div>
-          Outline · 14 chapters · candidate units identified
-        </div>
-        <div class="agent-line completed">
-          <div class="turn-num">t 5-9</div>
-          Drafted <em>"Limits"</em> · 3 lessons · 2 quick checks
-        </div>
-        <div class="agent-line completed">
-          <div class="turn-num">t 10-13</div>
-          Drafted <em>"Differentiation"</em> · 5 lessons inc. chain rule
-        </div>
-        <div class="agent-line completed">
-          <div class="turn-num">t 14</div>
-          Mapped <em>17 concepts</em> to canonical graph
-        </div>
-        <div class="agent-line completed">
-          <div class="turn-num">t 15-17</div>
-          Drafted <em>"Applications"</em> · related rates + opt
-        </div>
-        <div class="agent-line completed">
-          <div class="turn-num">t 18-20</div>
-          Re-drafted unit 3 boundary <em>(per your request)</em>
-        </div>
-        <div class="agent-line completed">
-          <div class="turn-num">t 21</div>
-          Added <em>readiness quiz</em> before each lesson in unit 2
-        </div>
-        <div class="agent-line running">
-          <div class="turn-num">t 22 · running</div>
-          Drafting <em>"Integration"</em> · reading ch. 5-6
-        </div>
-      </div>
-
-      <div class="activity-stats">
-        <div class="row"><span>Units</span><span class="v">3 · 1 in progress</span></div>
-        <div class="row"><span>Lessons</span><span class="v">10</span></div>
-        <div class="row"><span>Quick checks</span><span class="v">10</span></div>
-        <div class="row"><span>Assignments</span><span class="v">5 readiness</span></div>
-        <div class="row"><span>Concepts</span><span class="v">17</span></div>
-      </div>
-    </div>
-
+  <div class="surface">
     <div class="draft">
       <div class="draft-head">
-        <div class="kicker">⁂ draft course shape</div>
-        <h2><em>Calculus I</em></h2>
+        <span class="kicker">¶ draft course</span>
+        <h2><em>Calculus I</em> · taking shape</h2>
+        <span class="live"><span class="pulse"></span>live · auto-refresh</span>
+      </div>
+      <div class="draft-meta-row">
+        Auto-renders the latest <em>show_draft</em> tool result · the parent calls <em>edit_draft</em> as you chat
       </div>
 
-      <div class="draft-unit complete">
-        <div class="head"><span class="num">1.</span><span class="title"><em>Limits</em></span><span class="meta">3 lessons</span></div>
+      <div class="unit-block complete">
+        <div class="unit-head"><span class="num">1.</span><span class="title"><em>Limits</em></span><span class="meta">3 lessons</span></div>
         <div class="lessons">
-          <div class="lesson">1.1 · <em>Intuitive limits</em><span class="assess">1 check</span></div>
-          <div class="lesson">1.2 · ε-δ definition<span class="assess">1 check</span></div>
-          <div class="lesson">1.3 · One-sided / infinite<span class="assess">2 check</span></div>
+          <div class="lesson">1.1 · <em>Intuitive limits</em></div>
+          <div class="lesson">1.2 · ε-δ definition</div>
+          <div class="lesson">1.3 · One-sided / infinite</div>
         </div>
       </div>
 
-      <div class="draft-unit just-changed">
-        <div class="head"><span class="num">2.</span><span class="title"><em>Differentiation</em> · core rules</span><span class="meta">5 lessons · per-lesson readiness</span></div>
+      <div class="unit-block complete">
+        <div class="unit-head"><span class="num">2.</span><span class="title"><em>Differentiation</em> · core rules</span><span class="meta">5 lessons</span></div>
         <div class="lessons">
-          <div class="lesson">2.1 · Derivative as rate<span class="assess"><em>1 readiness</em> · 1 check</span></div>
-          <div class="lesson">2.2 · Sum/prod/quot rules<span class="assess"><em>1 readiness</em> · 2 check</span></div>
-          <div class="lesson">2.3 · <em>The chain rule</em><span class="assess"><em>1 readiness</em> · 1 check</span></div>
-          <div class="lesson">2.4 · Implicit diff<span class="assess"><em>1 readiness</em> · 2 check</span></div>
-          <div class="lesson">2.5 · Higher-order<span class="assess"><em>1 readiness</em> · 1 check</span></div>
+          <div class="lesson">2.1 · Derivative as rate</div>
+          <div class="lesson">2.2 · Sum / prod / quot</div>
+          <div class="lesson">2.3 · <em>The chain rule</em></div>
+          <div class="lesson">2.4 · Implicit diff</div>
+          <div class="lesson">2.5 · Higher-order</div>
         </div>
       </div>
 
-      <div class="draft-unit complete">
-        <div class="head"><span class="num">3.</span><span class="title"><em>Applications</em></span><span class="meta">2 lessons</span></div>
+      <div class="unit-block complete">
+        <div class="unit-head"><span class="num">3.</span><span class="title"><em>Applications</em></span><span class="meta">2 lessons · per your steer</span></div>
         <div class="lessons">
-          <div class="lesson">3.1 · Related rates<span class="assess">2 check</span></div>
-          <div class="lesson">3.2 · Optimisation<span class="assess">1 check</span></div>
+          <div class="lesson">3.1 · Related rates <em>· moved here from unit 2</em></div>
+          <div class="lesson">3.2 · Optimisation</div>
         </div>
       </div>
 
-      <div class="draft-unit in-progress">
-        <div class="head"><span class="num">4.</span><span class="title"><em>Integration</em> · drafting…</span><span class="meta">in progress</span></div>
+      <div class="unit-block in-progress">
+        <div class="unit-head"><span class="num">4.</span><span class="title"><em>Integration</em> · drafting now</span><span class="meta">in progress</span></div>
+        <div class="lessons">
+          <div class="lesson">4.1 · Antiderivatives</div>
+          <div class="lesson" style="opacity: 0.55;">4.2 · <em>FTC</em> · drafting…</div>
+        </div>
+      </div>
+
+      <div class="unit-block pending">
+        <div class="unit-head"><span class="num">5.</span><span class="title">— remaining chapters may yield a 5th unit</span><span class="meta">pending</span></div>
       </div>
     </div>
 
     <aside class="chat">
       <div class="chat-head">
-        <span class="glyph">¶</span>
         <div style="flex: 1;">
-          <div class="label">chat with Praxis</div>
-          <h2>Steer the draft</h2>
+          <div class="kicker">¶ bootstrap session</div>
+          <h3><em>Praxis</em> · drafting Calculus I</h3>
         </div>
+        <span class="session-meta">parent agent · 12 tool calls</span>
       </div>
 
       <div class="messages">
-        <div class="turn agent">
-          <div class="speaker">¶ Praxis<span class="when">· turn 5</span></div>
-          <div class="bubble">I've drafted a Limits unit (3 lessons, 2 quick checks each). Want me to continue chapter by chapter, or do you want to weigh in on the unit boundaries first?</div>
-        </div>
         <div class="turn user">
-          <div class="speaker">You<span class="when">· ~3 min ago</span></div>
-          <div class="bubble">Keep going, but treat chapter 3 (related rates) as part of an Applications unit, not Differentiation. They're really about modelling.</div>
+          <div class="speaker">You<span class="when">· 3 min ago</span></div>
+          <div class="bubble">Draft me a Calc I course from Stewart 8e + my syllabus. I'm an adult learner returning after a decade.</div>
         </div>
-        <div class="turn agent">
-          <div class="speaker">¶ Praxis<span class="when">· turn 18</span></div>
+
+        <div class="turn tutor">
+          <div class="speaker">Praxis<span class="when">· 3 min ago</span></div>
           <div class="bubble">
-            <p>Agreed — that's a cleaner pedagogical split. Re-drafting now.</p>
+            <p>Good — I'll explore the document and propose a unit structure. You can interject anytime; I'll respond and re-draft as we go.</p>
           </div>
-          <div class="tool-call">
-            <div class="head">tool · course.draft_replace_unit</div>
-            <div class="summary">Moved related rates from Diff (unit 2) → Applications (unit 3). Diff is now <em>"core rules"</em> only.</div>
+
+          <div class="tool-entry">
+            <div class="head">
+              <span class="verdict">✓</span>
+              <span class="name">course.draft_init</span>
+              <span class="summary">created empty draft · <em>"Calculus I"</em></span>
+              <button class="revert">↶ revert</button>
+            </div>
+          </div>
+
+          <div class="tool-entry">
+            <div class="head">
+              <span class="verdict" style="color: var(--color-accent);">◐</span>
+              <span class="name">course.start_exploration</span>
+              <span class="summary">multi-turn drafting sub-agent · in progress</span>
+              <button class="revert">↶ cancel</button>
+            </div>
+            <div class="sub-agent-block">
+              <div class="sa-head">
+                <span class="pulse"></span>
+                ¶ sub-agent · explorer · turn 22 of ~24
+                <span class="phase">reading ch. 5-6 · drafting Integration</span>
+              </div>
+              <div class="sa-progress">3 units done · <em>10 lessons drafted</em> · 17 concepts mapped · 1 in progress · ~2 min remaining</div>
+              <div class="sa-steps">
+                <div class="sa-step done">t 1-4 · outline · <em>14 chapters identified</em></div>
+                <div class="sa-step done">t 5-9 · drafted <em>Limits</em></div>
+                <div class="sa-step done">t 10-13 · drafted <em>Differentiation</em></div>
+                <div class="sa-step done">t 14 · mapped 17 concepts</div>
+                <div class="sa-step done">t 15-17 · drafted <em>Applications</em> (per steer)</div>
+                <div class="sa-step done">t 18-20 · re-drafted unit 3 boundary</div>
+                <div class="sa-step done">t 21 · added readiness on unit 2</div>
+                <div class="sa-step running">t 22 · drafting <em>Integration</em>…</div>
+              </div>
+              <div class="sa-foot">
+                <em>via SubAgentRegistry · publishes step_started / step_settled events</em>
+                <button>↗ expand full stream</button>
+              </div>
+            </div>
           </div>
         </div>
+
         <div class="turn user">
           <div class="speaker">You<span class="when">· 1 min ago</span></div>
-          <div class="bubble">Also — the student is rusty. Add a <em>readiness quiz before every lesson</em> in unit 2 so they can self-check the prereq.</div>
+          <div class="bubble">Treat ch. 3 (related rates) as part of an Applications unit, not Differentiation.</div>
         </div>
-        <div class="turn agent">
-          <div class="speaker">¶ Praxis<span class="when">· turn 21</span></div>
+
+        <div class="turn tutor">
+          <div class="speaker">Praxis<span class="when">· 50s ago</span></div>
           <div class="bubble">
-            <p>Good call — readiness checks fit unit 2 especially since each rule assumes the prior. Adding now; check the draft on the left.</p>
+            <p>Cleaner pedagogical split. Re-drafted — Differentiation is now core rules only, Applications takes related rates.</p>
           </div>
-          <div class="tool-call">
-            <div class="head">tool · course.draft_add_lesson_assessments</div>
-            <div class="summary">Added <em>5 readiness quizzes</em> · timing: before · purpose: readiness · ~3 items each</div>
+          <div class="tool-entry">
+            <div class="head">
+              <span class="verdict">✓</span>
+              <span class="name">course.edit_draft</span>
+              <span class="summary">moved <em>related rates</em>: unit 2 → unit 3</span>
+              <button class="revert">↶ revert</button>
+            </div>
           </div>
+        </div>
+
+        <div class="turn user">
+          <div class="speaker">You<span class="when">· 20s ago</span></div>
+          <div class="bubble">Add a readiness quiz before every lesson in unit 2 — student is rusty.</div>
+        </div>
+
+        <div class="turn tutor">
+          <div class="speaker">Praxis<span class="when">· just now</span></div>
           <div class="bubble">
-            <p>You can see them in the draft now — orange "1 readiness" pills on each lesson in unit 2. Anything else before I finish unit 4?</p>
+            <p>Done — visible on each lesson in unit 2.</p>
           </div>
-          <div class="suggestions">
-            <div class="label">⁂ suggestions for you</div>
-            <span class="chip">+ unit exam after each unit</span>
-            <span class="chip">+ practice homework for L2.3 (chain rule)</span>
-            <span class="chip">+ midterm after unit 2</span>
-            <span class="chip">no more — finish drafting</span>
+          <div class="tool-entry">
+            <div class="head">
+              <span class="verdict">✓</span>
+              <span class="name">course.draft_add_lesson_assessments</span>
+              <span class="summary">+5 readiness quizzes · timing: <em>before</em> · purpose: <em>readiness</em></span>
+              <button class="revert">↶ revert</button>
+            </div>
           </div>
+          <div class="bubble">Explorer is still drafting unit 4 (FTC). Anything else, or wait for it to finish?</div>
         </div>
       </div>
 
       <div class="composer">
         <div class="composer-field">
-          <textarea rows="1" placeholder="steer Praxis · or click a suggestion above"></textarea>
+          <textarea rows="1" placeholder="chat with Praxis · any time, even while the sub-agent runs"></textarea>
           <button class="submit">Send ↵</button>
         </div>
-        <div class="hint"><em>You can change anything later in configure.</em> Steering now is faster than editing after.</div>
+        <div class="hint">— <em>this is the bootstrap-mode session.</em> Same parent-agent pattern as configure mode; different artifact. Tool calls execute immediately; <em>↶ revert</em> restores from the pre-call snapshot.</div>
       </div>
     </aside>
   </div>

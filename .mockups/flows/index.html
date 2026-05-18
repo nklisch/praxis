@@ -58,7 +58,7 @@
     </div>
     <div class="flow">
       <h2>create-a-course</h2>
-      <div class="lede">5 steps · library CTA → upload docs → watch Praxis draft units live + steer via chat → review &amp; confirm full assessment plan → course materializes with first session open.<br><strong>Shows:</strong> the new-course onramp; how a course comes into being from raw material; the drafting activity as observable; the configurator steering Praxis via chat. <em>(Internal code names "bootstrap" / "explorer" no longer surface in UI; backend rename parked as substrate item.)</em></div>
+      <div class="lede">5 steps · library CTA → upload docs → bootstrap-mode chat with Praxis (explorer sub-agent renders inline as a SubAgentBlock) → review draft + full assessment plan → course materializes with first session open.<br><strong>Shows:</strong> the new-course onramp using the <em>existing parent/sub-agent pattern</em> — bootstrap-mode parent agent + <code>course.start_exploration</code> sub-agent (already shipped) + tool-call rendering with immediate execute + ↶ revert. Same shape as configure mode. <em>(Internal code names "bootstrap"/"explorer" no longer surface in UI; backend rename parked.)</em></div>
       <iframe src="course-create-entry/index.html"></iframe>
       <div class="meta"><span>5 steps · course-create-entry</span><a href="course-create-entry/index.html">open flow ↗</a></div>
     </div>

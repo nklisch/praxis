@@ -87,11 +87,16 @@ What lands:
     a gate node's `node.mastery_floor`, `edge.mastery_floor`,
     `node.adaptive_routing`.
   - **Side chat panel (380px) on the right** is the conversational
-    configurator (Option 3's direction kept) — talking to the agent
-    drives edits via tool calls; each tool call surfaces as a
-    reviewable diff in chat (keep / tweak / revert) with a **cross-link
-    back to the canvas** ("↗ in graph", "↗ open prompts") so the
-    student sees where the change landed
+    configurator — already shipped as `ConfigureChatPane`
+    (`packages/ui/src/components/configure-chat-pane.tsx`). Talking to
+    the parent agent drives edits via existing authoring tools
+    (`packages/tools/src/authoring/{course,gate,lesson,prompt}/`).
+    Tool calls **execute immediately** and surface as "what was done"
+    entries with **↶ revert** as the undo affordance (restore from
+    pre-call snapshot). Cross-links back to the canvas
+    ("↗ in graph", "↗ open prompts"). **No pre-execution staging or
+    approval gate** — the Keep/Tweak/Revert framing in earlier mock
+    revisions was wrong; the architecture is direct-call-with-undo.
   - Composer at the bottom of the chat panel; quick-action hints
     underneath ("+ undo last", "+ show diff", "+ preview as student")
 - Considered: Four Books (tabbed surfaces), Editor + Live Preview

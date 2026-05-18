@@ -116,7 +116,7 @@
 <body>
   <header class="mock-meta">
     <strong>Option 5 — Canvas + Side Chat</strong>
-    <span>Artifact in the middle (the actual gate graph / course tree / prompt fragments / memory inspector — switch with tabs). Configurator chat as a 380px side panel. Tool-call diffs cross-link back to the canvas.</span>
+    <span>Artifact in the middle (gate graph / course tree / prompt fragments / memory inspector). Parent-agent chat as a 380px side panel — <em>this is what `ConfigureChatPane` already runs</em>; the configurator parent agent + authoring tools already exist. Tool calls execute immediately and surface as "what was done" entries with <em>↶ revert</em> (restore from snapshot). Cross-link back to the canvas. Bootstrap mode subsumes this same shape with the draft as the canvas.</span>
   </header>
 
   <header class="running-head">
@@ -258,7 +258,7 @@
               <div class="added">+ concrete → name → formal</div>
             </div>
             <div class="actions">
-              <button class="primary">Keep</button><button>Tweak</button><button class="danger">Revert</button>
+              <button class="danger">↶ revert</button>
               <span class="canvas-link">↗ open prompts</span>
             </div>
           </div>
@@ -266,7 +266,7 @@
             <div class="head">tool · prompt.update</div>
             <div class="summary"><em>teach.formality</em>: 5 → 3 (socratic-leaning)</div>
             <div class="actions">
-              <button class="primary">Keep</button><button>Tweak</button><button class="danger">Revert</button>
+              <button class="danger">↶ revert</button>
               <span class="canvas-link">↗ open prompts</span>
             </div>
           </div>
@@ -286,7 +286,7 @@
             <div class="head">tool · gate.update <span style="margin-left: auto; font-family: var(--font-serif); font-style: italic; font-weight: 500; color: var(--color-text-secondary); text-transform: none; letter-spacing: 0; font-size: 12px;">visible in canvas →</span></div>
             <div class="summary"><em>edge.L3→L4.mastery_floor</em>: 0.70 → <em>0.85</em></div>
             <div class="actions">
-              <button class="primary">Keep</button><button>Tweak</button><button class="danger">Revert</button>
+              <button class="danger">↶ revert</button>
               <span class="canvas-link">↗ in graph</span>
             </div>
           </div>

@@ -124,9 +124,14 @@ index at
   passages highlighted; floating selection-bar on selection
   (note · ask · cite · flashcard); scope-aware "ask Praxis" affordance.
 - **¶ Course-create** (`mode-course-create.html`) — the **in-session**
-  view (distinct from the course-create entry flow). Draft on left,
-  steering chat on right; resumable across sessions. **Replaces what
-  was formerly called "Bootstrap" mode** — see backend rename below.
+  view. Same shape as configure mode (Canvas + Side Chat) because the
+  configure-mode parent agent + tool-calling pattern is identical;
+  only the artifact differs. Chat is just the parent-agent chat; tool
+  calls execute immediately, with `↶ revert` as the undo affordance
+  (restore from pre-call snapshot). Explorer is a sub-agent the parent
+  invokes via `course.start_exploration` — renders inline in the chat
+  as a `<SubAgentBlock>` with live step events. **Replaces what was
+  formerly called "Bootstrap" mode** — see backend rename below.
 
 ### Naming rename (UI surfaces)
 

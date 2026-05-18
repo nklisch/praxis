@@ -87,7 +87,7 @@
 <body>
   <header class="mock-meta">
     <strong>Mode body — Course-create</strong>
-    <span>The in-session view (distinct from the entry flow). Configurator returns to a paused course-create session — draft on left, steering chat on right. <em>No named agent</em> — Praxis is the drafter; chat is the configurator's steering surface. Drop-in resumable.</span>
+    <span>In-session view. <em>Same shape as configure mode</em> (Canvas + Side Chat) because bootstrap mode "subsumes bootstrap" — the parent agent + tool-calling pattern is identical; only the artifact differs. Chat is just the parent-agent chat (no "steering" surface); tool calls execute immediately with <em>↶ revert</em> as the undo affordance. Drop-in resumable.</span>
   </header>
 
   <header class="running-head">
@@ -188,9 +188,7 @@
             <div class="head">tool · course.draft_add_lesson_assessment</div>
             <div class="summary"><em>L4.2 · practice homework</em> · 12 items · timing: <em>interleaved</em> · purpose: practice</div>
             <div class="actions">
-              <button class="primary">Keep</button>
-              <button>Tweak</button>
-              <button>Remove</button>
+              <button class="danger">↶ revert</button>
             </div>
           </div>
           <div class="bubble">Added — visible on L4.2 in the draft on the left. Anything else, or ready to confirm?</div>
