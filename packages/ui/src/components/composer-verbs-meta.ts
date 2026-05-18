@@ -12,7 +12,7 @@
  */
 export const VERBS_BY_MODE: Readonly<Record<string, ReadonlyArray<string>>> = {
   teach: ["explain", "quiz me on", "let me try", "show your work", "slower", "go deeper"],
-  bootstrap: ["what should we cover", "add this", "remove that", "what's next"],
+  "course-create": ["what should we cover", "add this", "remove that", "what's next"],
   quiz: ["I'm stuck", "give me a nudge", "explain this"],
   homework: ["clarify wording", "show your work", "flag for review"],
   exam: ["ask for clarification", "next problem"],

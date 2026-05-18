@@ -206,7 +206,7 @@ describe("useDerivedScope", () => {
     const tab = makeSessionTab({
       id: brandId<"TabId">("tab-boot"),
       sessionId: brandId<"SessionId">("session-boot"),
-      modeId: "bootstrap",
+      modeId: "course-create",
     });
     setTabs([tab], tab.id);
 
@@ -221,7 +221,7 @@ describe("useDerivedScope", () => {
     const tab = makeSessionTab({
       id: brandId<"TabId">("tab-boot2"),
       sessionId: brandId<"SessionId">("session-boot2"),
-      modeId: "bootstrap",
+      modeId: "course-create",
     });
     setTabs([tab], tab.id);
 
@@ -237,7 +237,7 @@ describe("useDerivedScope", () => {
     const tab = makeSessionTab({
       id: brandId<"TabId">("tab-boot3"),
       sessionId: brandId<"SessionId">("session-boot3"),
-      modeId: "bootstrap",
+      modeId: "course-create",
     });
     setTabs([tab], tab.id);
 
@@ -402,7 +402,7 @@ describe("useDerivedScope", () => {
     const tab = makeSessionTab({
       id: brandId<"TabId">("tab-boot-stable"),
       sessionId: brandId<"SessionId">("session-boot-stable"),
-      modeId: "bootstrap",
+      modeId: "course-create",
     });
     setTabs([tab], tab.id);
 

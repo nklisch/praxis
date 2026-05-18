@@ -111,7 +111,7 @@ export const startDraftingTool: ToolDefinition<typeof InputSchema, typeof Output
       await ctx.services.documentScopes.attachMany({
         scope: { kind: "session", id: ctx.sessionId },
         documentIds: args.documentIds.map((id) => brandId<"DocumentId">(id)),
-        source: "bootstrap",
+        source: "course-create",
       });
     }
 

@@ -145,7 +145,7 @@ describe("openSessionInTab", () => {
     await openSessionInTab({
       client,
       navigate,
-      startOpts: { modeId: "bootstrap" },
+      startOpts: { modeId: "course-create" },
     });
 
     const arg = openFn.mock.calls[0]?.[0];
@@ -209,7 +209,7 @@ describe("openSessionInTab", () => {
     // biome-ignore lint/suspicious/noExplicitAny: overwriting session for spy purposes
     (client.session as any).send = sendFn;
 
-    await openSessionInTab({ client, navigate, startOpts: { modeId: "bootstrap" } });
+    await openSessionInTab({ client, navigate, startOpts: { modeId: "course-create" } });
 
     // Allow any microtasks to flush
     await Promise.resolve();
@@ -229,7 +229,7 @@ describe("openSessionInTab", () => {
     await openSessionInTab({
       client,
       navigate,
-      startOpts: { modeId: "bootstrap" },
+      startOpts: { modeId: "course-create" },
       initialMessage: "   ",
     });
 
@@ -257,7 +257,7 @@ describe("openSessionInTab", () => {
     await openSessionInTab({
       client,
       navigate,
-      startOpts: { modeId: "bootstrap" },
+      startOpts: { modeId: "course-create" },
       initialMessage: message,
     });
 
@@ -281,7 +281,7 @@ describe("openSessionInTab", () => {
     await openSessionInTab({
       client,
       navigate,
-      startOpts: { modeId: "bootstrap" },
+      startOpts: { modeId: "course-create" },
       initialMessage: rawMessage,
     });
 
@@ -313,7 +313,7 @@ describe("openSessionInTab", () => {
     const result = await openSessionInTab({
       client,
       navigate,
-      startOpts: { modeId: "bootstrap" },
+      startOpts: { modeId: "course-create" },
       initialMessage: "hello",
     });
 

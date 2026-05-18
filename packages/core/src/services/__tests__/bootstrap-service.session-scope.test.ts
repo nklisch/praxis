@@ -134,7 +134,7 @@ describe("confirmDraft — promoteScope path", () => {
     expect(documentScopes.promoteScope).toHaveBeenCalledWith(
       expect.objectContaining({
         from: { kind: "session", id: SESSION_ID },
-        source: "bootstrap",
+        source: "course-create",
       }),
     );
     // attachMany should NOT have been called (promotion path replaces it).

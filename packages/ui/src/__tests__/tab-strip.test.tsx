@@ -62,7 +62,7 @@ describe("TabStrip", () => {
     const tab2 = makeTab({
       id: brandId<"TabId">("t2"),
       title: "calc · bootstrap",
-      modeId: "bootstrap",
+      modeId: "course-create",
       sortOrder: 1,
     });
     renderStrip({ tabs: [tab1, tab2] });

@@ -106,7 +106,7 @@ describe("useActiveBootstrapSession", () => {
       makeSessionTab({
         id: brandId<"TabId">("tab-boot"),
         sessionId: bootSession,
-        modeId: "bootstrap",
+        modeId: "course-create",
       }),
     ]);
     const { result } = renderHook(() => useActiveBootstrapSession());
@@ -121,13 +121,13 @@ describe("useActiveBootstrapSession", () => {
       makeSessionTab({
         id: brandId<"TabId">("tab-boot-1"),
         sessionId: firstBoot,
-        modeId: "bootstrap",
+        modeId: "course-create",
         sortOrder: 1,
       }),
       makeSessionTab({
         id: brandId<"TabId">("tab-boot-2"),
         sessionId: secondBoot,
-        modeId: "bootstrap",
+        modeId: "course-create",
         sortOrder: 2,
       }),
     ]);

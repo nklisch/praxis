@@ -17,7 +17,7 @@ export interface AssessmentPillEntry {
  *
  * Schema purposes: "readiness" | "practice" | "checkpoint"
  * Mock pills:
- *   readiness  → READY (sage / tint-bootstrap)
+ *   readiness  → READY (sage / tint-course-create)
  *   practice   → HW    (indigo / tint-homework)
  *   checkpoint → QUIZ  (slate  / tint-quiz)
  */
@@ -68,7 +68,7 @@ export type LessonAssessmentPillsProps = PropsWithData | PropsWithId;
  * Renders nothing when the lesson has no assessments.
  *
  * Colour mapping:
- *   READY → sage (--tint-bootstrap)
+ *   READY → sage (--tint-course-create)
  *   HW    → indigo (--tint-homework)
  *   QUIZ  → slate (--tint-quiz)
  */

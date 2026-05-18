@@ -265,7 +265,7 @@ describe("ChatRoute shell", () => {
     const tab2 = makeTab({
       id: brandId<"TabId">("tab-2"),
       title: "calc · bootstrap",
-      modeId: "bootstrap",
+      modeId: "course-create",
       sortOrder: 1,
       lastSeenAt: (Date.now() - 1_000) as Timestamp,
     });

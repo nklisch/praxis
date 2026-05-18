@@ -568,7 +568,7 @@ export class BootstrapServiceImpl implements BootstrapService {
         await this.deps.documentScopes.promoteScope({
           from: { kind: "session", id: d.sessionId },
           to: { kind: "course", id: result.courseId },
-          source: "bootstrap",
+          source: "course-create",
         });
       } catch (err) {
         this.deps.log.warn("confirmDraft.promoteScope_failed", {
@@ -584,7 +584,7 @@ export class BootstrapServiceImpl implements BootstrapService {
         await this.deps.documentScopes.attachMany({
           scope: { kind: "course", id: result.courseId },
           documentIds: d.documentIds,
-          source: "bootstrap",
+          source: "course-create",
         });
       } catch (err) {
         this.deps.log.warn("confirmDraft.attachMany_failed", {

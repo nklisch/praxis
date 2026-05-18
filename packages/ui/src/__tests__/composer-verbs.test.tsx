@@ -12,9 +12,9 @@ describe("getVerbsForMode", () => {
     expect(verbs.length).toBeGreaterThan(0);
   });
 
-  it("returns the bootstrap verb set for modeId 'bootstrap'", () => {
-    const verbs = getVerbsForMode("bootstrap");
-    expect(verbs).toEqual(VERBS_BY_MODE.bootstrap);
+  it("returns the course-create verb set for modeId 'course-create'", () => {
+    const verbs = getVerbsForMode("course-create");
+    expect(verbs).toEqual(VERBS_BY_MODE["course-create"]);
     expect(verbs.length).toBeGreaterThan(0);
   });
 
@@ -53,11 +53,11 @@ describe("ComposerVerbs", () => {
     expect(buttons).toHaveLength(teachVerbs.length);
   });
 
-  it("renders one chip per verb for the 'bootstrap' mode", () => {
-    render(<ComposerVerbs modeId="bootstrap" onPrefill={vi.fn()} />);
+  it("renders one chip per verb for the 'course-create' mode", () => {
+    render(<ComposerVerbs modeId="course-create" onPrefill={vi.fn()} />);
 
-    const bootstrapVerbs = VERBS_BY_MODE.bootstrap;
-    for (const verb of bootstrapVerbs) {
+    const courseCreateVerbs = VERBS_BY_MODE["course-create"];
+    for (const verb of courseCreateVerbs) {
       expect(screen.getByRole("button", { name: verb })).toBeDefined();
     }
   });

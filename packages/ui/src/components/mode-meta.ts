@@ -28,7 +28,7 @@ const META: Record<string, ModeMeta> = {
     ornament: "§",
     tint: "#d4a373",
   },
-  bootstrap: {
+  "course-create": {
     name: "course design",
     deck: "shaping a new course together",
     ornament: "¶",

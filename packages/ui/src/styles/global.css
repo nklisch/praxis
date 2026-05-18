@@ -51,7 +51,7 @@
    * ───────────────────────────────────────────────────────────────── */
 
   --tint-teach: #c97a1a; /* warm amber */
-  --tint-bootstrap: #5f7e3a; /* sage */
+  --tint-course-create: #5f7e3a; /* sage */
   --tint-quiz: #4a5e6e; /* slate */
   --tint-homework: #3a3e75; /* indigo */
   --tint-exam: #9b3a2c; /* brick (shares accent register — exam is the high-stakes mode) */
@@ -173,7 +173,7 @@
     --color-info: #82a8c4;
 
     --tint-teach: #e0a060;
-    --tint-bootstrap: #93b878;
+    --tint-course-create: #93b878;
     --tint-quiz: #8aa0b0;
     --tint-homework: #8a8eb8;
     --tint-exam: #e8967d;
@@ -209,7 +209,7 @@
   --color-info: #82a8c4;
 
   --tint-teach: #e0a060;
-  --tint-bootstrap: #93b878;
+  --tint-course-create: #93b878;
   --tint-quiz: #8aa0b0;
   --tint-homework: #8a8eb8;
   --tint-exam: #e8967d;

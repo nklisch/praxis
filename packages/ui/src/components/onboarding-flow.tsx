@@ -342,7 +342,7 @@ function CourseStep({
       // Inline the start → (optional pre-seed send) → tabs.open → navigate
       // sequence so we can inject a canonical-pack message for algebra and
       // biology before the user lands in the chat.
-      const handle = await client.session.start({ modeId: "bootstrap" });
+      const handle = await client.session.start({ modeId: "course-create" });
 
       const preSeedMessage = PRESEED_MESSAGES[path];
       if (preSeedMessage !== null) {
@@ -379,7 +379,7 @@ function CourseStep({
         <CourseCard
           label={COPY.onboarding.courseAlgebraLabel}
           desc={COPY.onboarding.courseAlgebraBody}
-          dotVariant="bootstrap"
+          dotVariant="course-create"
           busy={busy === "algebra"}
           disabled={busy !== null && busy !== "algebra"}
           onStart={() => handleStart("algebra")}
@@ -387,7 +387,7 @@ function CourseStep({
         <CourseCard
           label={COPY.onboarding.courseBiologyLabel}
           desc={COPY.onboarding.courseBiologyBody}
-          dotVariant="bootstrap"
+          dotVariant="course-create"
           busy={busy === "biology"}
           disabled={busy !== null && busy !== "biology"}
           onStart={() => handleStart("biology")}
@@ -437,7 +437,7 @@ function CourseCard({
 }: {
   label: string;
   desc: string;
-  dotVariant: "bootstrap" | "neutral";
+  dotVariant: "course-create" | "neutral";
   busy: boolean;
   disabled: boolean;
   onStart: () => void;

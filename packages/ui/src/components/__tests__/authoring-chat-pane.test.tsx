@@ -3,7 +3,7 @@
  *
  * Verifies:
  * - Renders the mode-specific header label for "configure".
- * - Renders the mode-specific header label for "bootstrap".
+ * - Renders the mode-specific header label for "course-create".
  * - Shows "Starting session…" status when sessionId is null.
  * - Shows "Ready" status when sessionId is present and not streaming.
  * - Shows the mode-specific empty-state hint when no messages are present.
@@ -50,7 +50,7 @@ describe("AuthoringChatPane", () => {
     const client = makeClient();
     const { container } = render(
       <Wrapper client={client}>
-        <AuthoringChatPane mode="bootstrap" sessionId={SESSION_ID} />
+        <AuthoringChatPane mode="course-create" sessionId={SESSION_ID} />
       </Wrapper>,
     );
     expect(container.textContent).toContain("Course-design assistant");
@@ -92,7 +92,7 @@ describe("AuthoringChatPane", () => {
     const client = makeClient();
     const { container } = render(
       <Wrapper client={client}>
-        <AuthoringChatPane mode="bootstrap" sessionId={SESSION_ID} />
+        <AuthoringChatPane mode="course-create" sessionId={SESSION_ID} />
       </Wrapper>,
     );
     expect(container.textContent).toContain("Steer the draft");

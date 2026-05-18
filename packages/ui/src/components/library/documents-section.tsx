@@ -325,7 +325,7 @@ export function DocumentsSection({
                   }
                 >
                   <option value="any">Any source</option>
-                  <option value="bootstrap">Bootstrap</option>
+                  <option value="course-create">Course create</option>
                   <option value="manual">Manual</option>
                   <option value="ingestion">Ingestion</option>
                 </select>

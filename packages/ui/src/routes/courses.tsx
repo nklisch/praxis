@@ -17,7 +17,7 @@ export function CoursesRoute() {
 
   const handleNewCourse = async () => {
     try {
-      const handle = await client.session.start({ modeId: "bootstrap" });
+      const handle = await client.session.start({ modeId: "course-create" });
       await navigate({ to: "/", search: { sessionId: handle.sessionId } });
     } catch (_err) {
       // Navigate to chat anyway; the session error will surface there.
@@ -27,7 +27,7 @@ export function CoursesRoute() {
 
   const handleResumeDraft = async (draft: DraftCourseState) => {
     try {
-      const handle = await client.session.start({ modeId: "bootstrap" });
+      const handle = await client.session.start({ modeId: "course-create" });
       await navigate({ to: "/", search: { sessionId: handle.sessionId } });
       // Seed the bootstrap conversation so the model picks up the draftId.
       // The model already knows the resume-via-course.start_drafting(draftId)

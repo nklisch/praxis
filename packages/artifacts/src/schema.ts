@@ -276,7 +276,7 @@ export const documentScopes = sqliteTable(
     scopeId: text("scope_id").notNull(),
     attachedAt: integer("attached_at", { mode: "timestamp_ms" }).notNull(),
     source: text("source", {
-      enum: ["bootstrap", "manual", "ingestion"],
+      enum: ["course-create", "manual", "ingestion"],
     }).notNull(),
     /**
      * Optional passage range for session-scoped documents opened via

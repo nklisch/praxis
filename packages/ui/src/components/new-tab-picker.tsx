@@ -7,13 +7,13 @@ import { getModeMeta } from "./mode-meta.js";
 import styles from "./new-tab-picker.module.css";
 
 /** Modes available to open from the picker (ordered for display). */
-const PICKER_MODES = ["teach", "bootstrap", "quiz", "homework", "exam", "configure"] as const;
+const PICKER_MODES = ["teach", "course-create", "quiz", "homework", "exam", "configure"] as const;
 type PickerMode = (typeof PICKER_MODES)[number];
 
 /** Modes that accept a course context. */
 const COURSE_MODES: ReadonlySet<PickerMode> = new Set([
   "teach",
-  "bootstrap",
+  "course-create",
   "quiz",
   "homework",
   "exam",

@@ -105,7 +105,7 @@ export function CourseCreateRoute() {
       await openSessionInTab({
         client,
         navigate,
-        startOpts: { modeId: "bootstrap" },
+        startOpts: { modeId: "course-create" },
         ...(trimmedContext !== "" && { initialMessage: trimmedContext }),
       });
     } finally {

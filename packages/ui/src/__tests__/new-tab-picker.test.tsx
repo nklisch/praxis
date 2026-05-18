@@ -140,7 +140,7 @@ describe("NewTabPicker", () => {
     const client = makeClient();
     renderPicker({ client });
 
-    // Labels use getModeMeta(mode).name — "bootstrap" renders as "course design".
+    // Labels use getModeMeta(mode).name — "course-create" renders as "course design".
     const modeLabels = ["teach", "course design", "quiz", "homework", "exam", "configure"];
     for (const label of modeLabels) {
       expect(screen.getByRole("radio", { name: label })).toBeDefined();

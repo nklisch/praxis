@@ -65,7 +65,7 @@ const ERASER = { id: "eraser", glyph: "⌫", label: "Eraser" } as const;
 const COLOR_SWATCHES = [
   { id: "black", cssVar: "var(--color-text-primary)", label: "Black" },
   { id: "accent", cssVar: "var(--color-accent)", label: "Accent (brick)" },
-  { id: "bootstrap", cssVar: "var(--tint-bootstrap)", label: "Sage" },
+  { id: "course-create", cssVar: "var(--tint-course-create)", label: "Sage" },
   { id: "teach", cssVar: "var(--tint-teach)", label: "Amber" },
   { id: "quiz", cssVar: "var(--tint-quiz)", label: "Slate" },
 ] as const;

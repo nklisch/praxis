@@ -61,7 +61,7 @@ function makeClient(opts?: {
       active: vi.fn().mockResolvedValue(null),
       start: vi.fn().mockResolvedValue({
         sessionId: brandId<"SessionId">("s1"),
-        modeId: "bootstrap",
+        modeId: "course-create",
         startedAt: Date.now() as Timestamp,
       } satisfies SessionHandle),
       end: vi.fn().mockResolvedValue({
@@ -77,7 +77,7 @@ function makeClient(opts?: {
         kind: "session",
         id: brandId<"TabId">("tab-1"),
         sessionId: brandId<"SessionId">("s1"),
-        modeId: "bootstrap",
+        modeId: "course-create",
         title: "test tab",
         sortOrder: 0,
         openedAt: Date.now() as Timestamp,
@@ -120,7 +120,7 @@ function makeClientWithSend(sendSpy?: ReturnType<typeof vi.fn>): PraxisClient {
       active: vi.fn().mockResolvedValue(null),
       start: vi.fn().mockResolvedValue({
         sessionId: brandId<"SessionId">("s1"),
-        modeId: "bootstrap",
+        modeId: "course-create",
         startedAt: Date.now() as Timestamp,
       } satisfies SessionHandle),
       end: vi.fn().mockResolvedValue({
@@ -136,7 +136,7 @@ function makeClientWithSend(sendSpy?: ReturnType<typeof vi.fn>): PraxisClient {
         kind: "session",
         id: brandId<"TabId">("tab-1"),
         sessionId: brandId<"SessionId">("s1"),
-        modeId: "bootstrap",
+        modeId: "course-create",
         title: "test tab",
         sortOrder: 0,
         openedAt: Date.now() as Timestamp,
@@ -168,7 +168,7 @@ describe("CourseCreateRoute — context textarea forwarding", () => {
     });
 
     await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
 
     // Allow microtasks to flush so any fire-and-forget would have fired.
@@ -190,7 +190,7 @@ describe("CourseCreateRoute — context textarea forwarding", () => {
     });
 
     await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
 
     // Allow microtasks to flush so any fire-and-forget would have fired.
@@ -214,7 +214,7 @@ describe("CourseCreateRoute — context textarea forwarding", () => {
     });
 
     await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
 
     // The fire-and-forget send is async — wait for it to be called.

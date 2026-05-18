@@ -9,7 +9,7 @@ export type ScopeKind = "course" | "session";
  */
 export type DocumentScope = { kind: "course"; id: CourseId } | { kind: "session"; id: SessionId };
 
-export type DocumentScopeSource = "bootstrap" | "manual" | "ingestion";
+export type DocumentScopeSource = "course-create" | "manual" | "ingestion";
 
 /**
  * Enriched row joining documents + document_scopes (for tool/UI output).

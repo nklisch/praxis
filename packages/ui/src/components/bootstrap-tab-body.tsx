@@ -55,7 +55,7 @@ export interface BootstrapTabBodyProps {
  * Bootstrap mode body: draft canvas on left, authoring chat on right.
  *
  * The canvas updates in real time via the draft stream.  The chat pane is
- * `<AuthoringChatPane mode="bootstrap">` which handles tool-call entries and
+ * `<AuthoringChatPane mode="course-create">` which handles tool-call entries and
  * inline sub-agent blocks — no additional wiring needed here.
  */
 export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
@@ -116,7 +116,7 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
     <div className={styles.container}>
       {/* Left: draft canvas — live outline driven by the bootstrap-drafts stream. */}
       <div className={styles.draftCanvas}>
-        <SessionHead modeId="bootstrap" title={tab.title} />
+        <SessionHead modeId="course-create" title={tab.title} />
         <div className={styles.canvasHeader}>
           <span className={styles.canvasKicker}>¶ draft course</span>
           {proposed ? (
@@ -152,7 +152,7 @@ export function BootstrapTabBody({ tab }: BootstrapTabBodyProps): JSX.Element {
         {/* chatPaneWrap takes flex: 1 so the confirm card stays anchored below. */}
         <div className={styles.chatPaneWrap}>
           <AuthoringChatPane
-            mode="bootstrap"
+            mode="course-create"
             sessionId={tab.sessionId}
             {...(confirming && {
               prefillMessage: "Please confirm the draft and open the course.",

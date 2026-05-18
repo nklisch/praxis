@@ -526,7 +526,7 @@ export function ChatTabBody({ tab, onNoteOpen, hasSessionNote }: ChatTabBodyProp
       return <HomeworkTabBody tab={tab} />;
     case "exam":
       return <ExamTabBody tab={tab} />;
-    case "bootstrap":
+    case "course-create":
       return <BootstrapTabBody tab={tab} />;
     case "study-skills":
       return <StudySkillsTabBody tab={tab} />;

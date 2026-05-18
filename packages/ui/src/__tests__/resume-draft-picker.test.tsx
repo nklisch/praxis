@@ -5,7 +5,7 @@
  * `resume-draft-picker-test-and-keyboard-nav`:
  *   - renders null when no drafts;
  *   - one row per draft;
- *   - click triggers `session.start({ modeId: "bootstrap" })` then
+ *   - click triggers `session.start({ modeId: "course-create" })` then
  *     `session.send` with the chosen draftId in the message body;
  *   - arrow keys move focus between rows when the listbox is open; Enter
  *     selects the focused row.
@@ -153,7 +153,7 @@ describe("<ResumeDraftPicker>", () => {
     const drafts = [makeDraft("draft-7", "Resumable")];
     const start = vi.fn().mockResolvedValue({
       sessionId: brandId<"SessionId">("session-x") as SessionId,
-      modeId: "bootstrap",
+      modeId: "course-create",
       startedAt: Date.now() as Timestamp,
     } satisfies SessionHandle);
     const send = vi.fn(async function* () {});
@@ -164,7 +164,7 @@ describe("<ResumeDraftPicker>", () => {
     );
 
     async function handleResume(draft: DraftCourseState) {
-      const handle = await client.session.start({ modeId: "bootstrap" });
+      const handle = await client.session.start({ modeId: "course-create" });
       const stream = client.session.send(handle.sessionId, `Please resume draft ${draft.draftId}`);
       for await (const _ of stream) {
         /* drain */
@@ -181,7 +181,7 @@ describe("<ResumeDraftPicker>", () => {
     fireEvent.click(screen.getByText("Resumable"));
 
     await waitFor(() => {
-      expect(start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+      expect(start).toHaveBeenCalledWith({ modeId: "course-create" });
       expect(send).toHaveBeenCalledTimes(1);
     });
     // Second arg of session.send must contain the draftId.

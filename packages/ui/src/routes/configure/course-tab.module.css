@@ -97,9 +97,9 @@
 }
 
 .pillReady {
-  background: color-mix(in oklab, var(--tint-bootstrap, #8b9c6e) 22%, transparent);
-  color: var(--tint-bootstrap, #8b9c6e);
-  border: 1px solid var(--tint-bootstrap, #8b9c6e);
+  background: color-mix(in oklab, var(--tint-course-create, #8b9c6e) 22%, transparent);
+  color: var(--tint-course-create, #8b9c6e);
+  border: 1px solid var(--tint-course-create, #8b9c6e);
 }
 
 .pillHome {

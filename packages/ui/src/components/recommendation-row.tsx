@@ -79,7 +79,7 @@ function describeRec(rec: Recommendation): RecDisplay {
         kicker: "course design",
         title: "Continue course draft",
         ctaLabel: "Review draft →",
-        dotColor: "var(--tint-bootstrap, #a3b18a)",
+        dotColor: "var(--tint-course-create, #a3b18a)",
         isSecondary: true,
       };
     case "quick_check":

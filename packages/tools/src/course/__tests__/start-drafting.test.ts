@@ -280,7 +280,7 @@ describe("course.start_drafting handler — session-scope attach", () => {
     expect(attachManySpy).toHaveBeenCalledWith(
       expect.objectContaining({
         scope: { kind: "session", id: ctx.sessionId },
-        source: "bootstrap",
+        source: "course-create",
       }),
     );
     // Both doc ids should be in the call.

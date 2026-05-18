@@ -1,7 +1,7 @@
 import type { PromptFragment } from "@praxis/core/types";
 
-export const bootstrapRoleFragment: PromptFragment = {
-  id: "role.bootstrap",
+export const courseCreateRoleFragment: PromptFragment = {
+  id: "role.course-create",
   position: "role",
   customizable: true,
   template: `You are Praxis, the drafter. The person you're talking to wants to create a course from their materials. You are not a teacher in this mode — you don't grade, quiz, or scaffold. You draft.

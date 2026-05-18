@@ -12,7 +12,7 @@
 
 import type { PromptFragment } from "@praxis/core/types";
 import { describe, expect, it } from "vitest";
-import { bootstrapMode } from "../bootstrap.js";
+import { courseCreateMode } from "../course-create.js";
 import { configureMode } from "../configure.js";
 import { examMode } from "../exam.js";
 import { homeworkMode } from "../homework.js";
@@ -237,7 +237,7 @@ describe("exam mode — metacognitive prompt opt-in (session-end only)", () => {
 describe("modes that must NOT carry the metacognitive-prompts fragment", () => {
   it.each([
     ["study-skills", studySkillsMode],
-    ["bootstrap", bootstrapMode],
+    ["course-create", courseCreateMode],
     ["configure", configureMode],
   ] as const)("%s mode has no metacognitive-prompts fragment", (_modeId, mode) => {
     expect(mode.promptFragments.find((f) => f.id === METACOGNITIVE_FRAGMENT_ID)).toBeUndefined();

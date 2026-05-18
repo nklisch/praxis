@@ -9,18 +9,18 @@ import { SubAgentBlock } from "./sub-agent-block.js";
 import { ToolCallEntry } from "./tool-call-entry.js";
 
 /** Mode ids that mount an authoring chat pane. */
-export type AuthoringModeId = "configure" | "bootstrap";
+export type AuthoringModeId = "configure" | "course-create";
 
 /** Labels shown in the pane header per mode. */
 const MODE_LABEL: Record<AuthoringModeId, string> = {
   configure: "Configure assistant",
-  bootstrap: "Course-design assistant",
+  "course-create": "Course-design assistant",
 };
 
 /** Empty-state hint text per mode. */
 const MODE_EMPTY_STATE: Record<AuthoringModeId, string> = {
   configure: "Ask me to edit courses, lessons, gates, or customize prompts.",
-  bootstrap: "Steer the draft — or say 'confirm and open the course'.",
+  "course-create": "Steer the draft — or say 'confirm and open the course'.",
 };
 
 export interface AuthoringChatPaneProps {

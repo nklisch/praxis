@@ -47,7 +47,7 @@ import { FsSketchStore } from "@praxis/core/sketch";
 import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import {
-  bootstrapMode,
+  courseCreateMode,
   configureMode,
   examMode,
   homeworkMode,
@@ -523,7 +523,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
 
   const modes = new Map([
     [teachMode.id, teachMode],
-    [bootstrapMode.id, bootstrapMode], // ← Phase 6
+    [courseCreateMode.id, courseCreateMode], // ← Phase 6
     [quizMode.id, quizMode], // ← Phase 8
     [homeworkMode.id, homeworkMode], // ← Phase 8
     [examMode.id, examMode], // ← Phase 8

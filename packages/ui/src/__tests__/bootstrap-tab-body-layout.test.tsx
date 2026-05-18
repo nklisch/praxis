@@ -60,8 +60,8 @@ function makeTab(overrides: Partial<SessionTabSummary> = {}): SessionTabSummary 
     kind: "session",
     id: brandId<"TabId">("tab-1"),
     sessionId: brandId<"SessionId">("session-1"),
-    modeId: "bootstrap",
-    title: "bootstrap",
+    modeId: "course-create",
+    title: "course-create",
     sortOrder: 0,
     openedAt: (Date.now() - 10_000) as Timestamp,
     lastSeenAt: (Date.now() - 5_000) as Timestamp,
@@ -103,7 +103,7 @@ describe("BootstrapTabBody — Canvas + Side Chat layout", () => {
     renderBootstrap();
     const pane = screen.getByTestId("authoring-chat-pane");
     expect(pane).toBeTruthy();
-    expect(pane.getAttribute("data-mode")).toBe("bootstrap");
+    expect(pane.getAttribute("data-mode")).toBe("course-create");
   });
 
   it("canvas scroll and chat panel are siblings (not nested)", () => {

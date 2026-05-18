@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { bootstrapRoleFragment } from "../bootstrap-role.js";
-import { bootstrapToolsFragment } from "../bootstrap-tools.js";
+import { courseCreateRoleFragment } from "../course-create-role.js";
+import { courseCreateToolsFragment } from "../course-create-tools.js";
 import { configureToolsFragment } from "../configure-tools.js";
 
-describe("bootstrap fragments — no time-estimate claims", () => {
+describe("course-create fragments — no time-estimate claims", () => {
   for (const [name, frag] of [
-    ["bootstrapRoleFragment", bootstrapRoleFragment],
-    ["bootstrapToolsFragment", bootstrapToolsFragment],
+    ["courseCreateRoleFragment", courseCreateRoleFragment],
+    ["courseCreateToolsFragment", courseCreateToolsFragment],
     ["configureToolsFragment", configureToolsFragment],
   ] as const) {
     describe(name, () => {
@@ -23,21 +23,21 @@ describe("bootstrap fragments — no time-estimate claims", () => {
   }
 });
 
-describe("bootstrapRoleFragment — structural-progress guidance", () => {
+describe("courseCreateRoleFragment — structural-progress guidance", () => {
   it("forbids promising a specific duration", () => {
-    expect(bootstrapRoleFragment.template).toContain("Do NOT promise a specific duration");
+    expect(courseCreateRoleFragment.template).toContain("Do NOT promise a specific duration");
   });
   it("directs the model to describe progress in structural terms", () => {
-    expect(bootstrapRoleFragment.template).toContain("structural terms");
+    expect(courseCreateRoleFragment.template).toContain("structural terms");
   });
   it("gives a Unit-N-of-M style example", () => {
-    expect(bootstrapRoleFragment.template).toMatch(/Unit \d+ of \d+/);
+    expect(courseCreateRoleFragment.template).toMatch(/Unit \d+ of \d+/);
   });
 });
 
-describe("bootstrapToolsFragment + configureToolsFragment — ETA rule in tool catalogue", () => {
-  it("bootstrapToolsFragment instructs not to quote ETAs", () => {
-    expect(bootstrapToolsFragment.template).toContain("do not quote ETAs");
+describe("courseCreateToolsFragment + configureToolsFragment — ETA rule in tool catalogue", () => {
+  it("courseCreateToolsFragment instructs not to quote ETAs", () => {
+    expect(courseCreateToolsFragment.template).toContain("do not quote ETAs");
   });
   it("configureToolsFragment instructs not to quote ETAs", () => {
     expect(configureToolsFragment.template).toContain("do not quote ETAs");

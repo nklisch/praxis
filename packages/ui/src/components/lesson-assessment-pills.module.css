@@ -4,7 +4,7 @@
  * Each pill is a mono-kicker label with a subdued timing suffix.
  * Colours mirror the locked mock (tab-course.html) exactly:
  *
- *   READY  → sage    (tint-bootstrap bg tint + tint text)
+ *   READY  → sage    (tint-course-create bg tint + tint text)
  *   HW     → indigo  (tint-homework  bg tint + tint text)
  *   QUIZ   → slate   (tint-quiz      bg tint + tint text)
  *
@@ -44,8 +44,8 @@
 
 /* READY — readiness before lesson — sage/bootstrap tint */
 .ready {
-  background: color-mix(in oklab, var(--tint-bootstrap, #5f7e3a) 18%, transparent);
-  color: var(--tint-bootstrap, #5f7e3a);
+  background: color-mix(in oklab, var(--tint-course-create, #5f7e3a) 18%, transparent);
+  color: var(--tint-course-create, #5f7e3a);
 }
 
 /* HW — practice homework, interleaved — indigo/homework tint */

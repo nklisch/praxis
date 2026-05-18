@@ -33,7 +33,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--tint-bootstrap, #a0c4ff);
+  background: var(--tint-course-create, #a0c4ff);
   flex-shrink: 0;
 }
 

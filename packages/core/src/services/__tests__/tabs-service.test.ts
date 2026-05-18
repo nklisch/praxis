@@ -55,7 +55,7 @@ describe("generateTitle", () => {
   });
 
   it("bootstrap with no course → course design · new course", () => {
-    expect(generateTitle({ modeId: "bootstrap" })).toBe("course design · new course");
+    expect(generateTitle({ modeId: "course-create" })).toBe("course design · new course");
   });
 
   it("quiz with no course → quiz · session", () => {
@@ -75,7 +75,7 @@ describe("generateTitle", () => {
   });
 
   it("bootstrap with courseTitle → courseTitle · course design", () => {
-    expect(generateTitle({ modeId: "bootstrap", courseTitle: "Biology" })).toBe(
+    expect(generateTitle({ modeId: "course-create", courseTitle: "Biology" })).toBe(
       "biology · course design",
     );
   });

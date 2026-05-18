@@ -10,6 +10,6 @@ import { useTabs } from "./use-tabs.js";
  */
 export function useActiveBootstrapSession(): SessionId | null {
   const { openTabs } = useTabs();
-  const tab = openTabs.find((t) => t.kind === "session" && t.modeId === "bootstrap");
+  const tab = openTabs.find((t) => t.kind === "session" && t.modeId === "course-create");
   return tab && tab.kind === "session" ? tab.sessionId : null;
 }

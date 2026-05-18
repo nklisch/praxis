@@ -69,7 +69,7 @@ function insertSession(
     .values({
       id: sessionId,
       studentId,
-      modeId: "bootstrap",
+      modeId: "course-create",
       engineId: "claude-code",
       startedAt: new Date(),
     })
@@ -123,7 +123,7 @@ describe("DocumentScopesServiceImpl", () => {
       const result = await service.attach({
         scope: { kind: "session", id: SESSION_A },
         documentId: DOC_1,
-        source: "bootstrap",
+        source: "course-create",
       });
       expect(result.attached).toBe(true);
 
@@ -174,7 +174,7 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "session", id: SESSION_A },
         documentId: DOC_1,
-        source: "bootstrap",
+        source: "course-create",
       });
 
       const courseIds = await service.listForScope({ kind: "course", id: COURSE_X });
@@ -252,7 +252,7 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "session", id: SESSION_A },
         documentId: DOC_1,
-        source: "bootstrap",
+        source: "course-create",
       });
 
       await service.detach({
@@ -282,7 +282,7 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "course", id: COURSE_X },
         documentId: DOC_2,
-        source: "bootstrap",
+        source: "course-create",
       });
 
       const detailed = await service.listForScopeDetailed({ kind: "course", id: COURSE_X });
@@ -295,7 +295,7 @@ describe("DocumentScopesServiceImpl", () => {
       // source field is present
       const sources = detailed.map((d) => d.source);
       expect(sources).toContain("manual");
-      expect(sources).toContain("bootstrap");
+      expect(sources).toContain("course-create");
     });
 
     it("returns empty array for scope with no attachments", async () => {
@@ -340,7 +340,7 @@ describe("DocumentScopesServiceImpl", () => {
       const result = await service.attachMany({
         scope: { kind: "course", id: COURSE_X },
         documentIds: [DOC_1, DOC_2, DOC_3],
-        source: "bootstrap",
+        source: "course-create",
       });
       expect(result.newlyAttached).toHaveLength(3);
       expect(result.newlyAttached).toContain(DOC_1);
@@ -364,7 +364,7 @@ describe("DocumentScopesServiceImpl", () => {
       const result = await service.attachMany({
         scope: { kind: "course", id: COURSE_X },
         documentIds: [DOC_1, DOC_2],
-        source: "bootstrap",
+        source: "course-create",
       });
 
       // Only DOC_2 is newly attached
@@ -396,7 +396,7 @@ describe("DocumentScopesServiceImpl", () => {
       const result = await service.attachMany({
         scope: { kind: "session", id: SESSION_A },
         documentIds: [DOC_1, DOC_2],
-        source: "bootstrap",
+        source: "course-create",
       });
       expect(result.newlyAttached).toHaveLength(2);
 
@@ -427,7 +427,7 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "session", id: SESSION_A },
         documentId: DOC_1,
-        source: "bootstrap",
+        source: "course-create",
       });
 
       const scopes = await service.listScopesForDocument(DOC_1);
@@ -453,7 +453,7 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "session", id: SESSION_A },
         documentId: DOC_2,
-        source: "bootstrap",
+        source: "course-create",
       });
 
       const scopesDoc1 = await service.listScopesForDocument(DOC_1);
@@ -472,13 +472,13 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attachMany({
         scope: { kind: "session", id: SESSION_A },
         documentIds: [DOC_1, DOC_2],
-        source: "bootstrap",
+        source: "course-create",
       });
 
       const result = await service.promoteScope({
         from: { kind: "session", id: SESSION_A },
         to: { kind: "course", id: COURSE_X },
-        source: "bootstrap",
+        source: "course-create",
       });
       expect(result.promoted).toHaveLength(2);
       expect(result.promoted).toContain(DOC_1);
@@ -499,20 +499,20 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "session", id: SESSION_A },
         documentId: DOC_1,
-        source: "bootstrap",
+        source: "course-create",
       });
 
       await service.promoteScope({
         from: { kind: "session", id: SESSION_A },
         to: { kind: "course", id: COURSE_X },
-        source: "bootstrap",
+        source: "course-create",
       });
 
       // Second promote — DOC_1 already in the course scope
       const second = await service.promoteScope({
         from: { kind: "session", id: SESSION_A },
         to: { kind: "course", id: COURSE_X },
-        source: "bootstrap",
+        source: "course-create",
       });
       expect(second.promoted).toHaveLength(0);
 
@@ -530,7 +530,7 @@ describe("DocumentScopesServiceImpl", () => {
       const result = await service.promoteScope({
         from: { kind: "session", id: SESSION_A },
         to: { kind: "course", id: COURSE_X },
-        source: "bootstrap",
+        source: "course-create",
       });
       expect(result.promoted).toHaveLength(0);
     });
@@ -555,14 +555,14 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "course", id: brandId<"CourseId">("ghost-course") as CourseId },
         documentId: DOC_1,
-        source: "bootstrap",
+        source: "course-create",
       });
 
       const orphaned = await service.listOrphaned(STUDENT_A);
       expect(orphaned).toHaveLength(1);
       expect(orphaned[0]?.documentId).toBe(DOC_1);
       // Source comes from the dangling scope row
-      expect(orphaned[0]?.source).toBe("bootstrap");
+      expect(orphaned[0]?.source).toBe("course-create");
     });
 
     it("returns a document whose only scope row points at a deleted session", async () => {
@@ -605,7 +605,7 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "session", id: SESSION_A },
         documentId: DOC_1,
-        source: "bootstrap",
+        source: "course-create",
       });
 
       const orphaned = await service.listOrphaned(STUDENT_A);
@@ -621,7 +621,7 @@ describe("DocumentScopesServiceImpl", () => {
       await service.attach({
         scope: { kind: "session", id: brandId<"SessionId">("ghost-session") as SessionId },
         documentId: DOC_1,
-        source: "bootstrap",
+        source: "course-create",
       });
       // One live scope row
       await service.attach({

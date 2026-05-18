@@ -36,7 +36,7 @@ function generateTitle(opts: { modeId: string; courseTitle?: string }): string {
     return `${opts.courseTitle.toLowerCase()} · ${displayName}`;
   }
   if (opts.modeId === "teach") return `${displayName} · new chat`;
-  if (opts.modeId === "bootstrap") return `${displayName} · new course`;
+  if (opts.modeId === "course-create") return `${displayName} · new course`;
   return `${displayName} · session`;
 }
 

@@ -41,7 +41,7 @@ import type {
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import {
-  bootstrapMode,
+  courseCreateMode,
   configureMode,
   examMode,
   homeworkMode,
@@ -206,7 +206,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
 
   const modes = new Map([
     [teachMode.id, teachMode],
-    [bootstrapMode.id, bootstrapMode],
+    [courseCreateMode.id, courseCreateMode],
     [quizMode.id, quizMode],
     [homeworkMode.id, homeworkMode],
     [examMode.id, examMode],

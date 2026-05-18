@@ -1,5 +1,5 @@
 import type { Mode } from "@praxis/core/types";
-import { bootstrapMode } from "./bootstrap.js";
+import { courseCreateMode } from "./course-create.js";
 import { configureMode } from "./configure.js";
 import { examMode } from "./exam.js";
 import { homeworkMode } from "./homework.js";
@@ -9,7 +9,7 @@ import { teachMode } from "./teach.js";
 
 const MODE_REGISTRY: ReadonlyMap<string, Mode> = new Map([
   [teachMode.id, teachMode],
-  [bootstrapMode.id, bootstrapMode],
+  [courseCreateMode.id, courseCreateMode],
   [quizMode.id, quizMode],
   [homeworkMode.id, homeworkMode],
   [examMode.id, examMode],
@@ -31,7 +31,7 @@ export function listModes(): readonly Mode[] {
   return [...MODE_REGISTRY.values()];
 }
 
-export { bootstrapMode } from "./bootstrap.js";
+export { courseCreateMode } from "./course-create.js";
 export { configureMode } from "./configure.js"; // ← Phase 11
 export { examMode } from "./exam.js";
 export { homeworkMode } from "./homework.js";

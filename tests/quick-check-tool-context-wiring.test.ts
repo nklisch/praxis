@@ -35,7 +35,7 @@ import type {
   QuickCheckEvent,
   ToolRegistry,
 } from "@praxis/core/types";
-import { bootstrapMode } from "@praxis/curriculum/modes";
+import { courseCreateMode } from "@praxis/curriculum/modes";
 import { askStudentQuestionTool } from "@praxis/tools/dialog";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "./helpers/db-setup.js";
@@ -97,7 +97,7 @@ describe("QuickCheckService wiring into ToolContext", () => {
     });
 
     const engine = new CapturingEngine();
-    const modes = new Map([[bootstrapMode.id, bootstrapMode]]);
+    const modes = new Map([[courseCreateMode.id, courseCreateMode]]);
 
     // Minimum stub for toolServices. openActive only consults the fields it
     // copies into ToolContext.services; we deliberately wire `quickCheck` —
@@ -128,7 +128,7 @@ describe("QuickCheckService wiring into ToolContext", () => {
 
     // start() eagerly calls openActive(), which builds the ToolContext and
     // hands the resulting registry to engine.open().
-    const handle = await svc.start({ modeId: bootstrapMode.id });
+    const handle = await svc.start({ modeId: courseCreateMode.id });
     expect(engine.capturedTools).not.toBeNull();
 
     // Drive dispatch through the SAME registry the engine adapter would use.

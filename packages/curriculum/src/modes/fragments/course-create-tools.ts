@@ -1,7 +1,7 @@
 import type { PromptFragment } from "@praxis/core/types";
 
-export const bootstrapToolsFragment: PromptFragment = {
-  id: "tools.bootstrap",
+export const courseCreateToolsFragment: PromptFragment = {
+  id: "tools.course-create",
   position: "tools",
   customizable: false,
   template: `Tools available in drafting mode:

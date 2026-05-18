@@ -423,7 +423,7 @@ describe("LibraryRoute — Workbench", () => {
     fireEvent.click(screen.getByRole("button", { name: /Review draft/i }));
 
     await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
   });
 });

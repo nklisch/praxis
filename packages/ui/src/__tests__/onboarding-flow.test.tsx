@@ -182,7 +182,7 @@ describe("OnboardingFlow", () => {
 
     fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(startSpy).toHaveBeenCalledWith({ modeId: "bootstrap" });
+    expect(startSpy).toHaveBeenCalledWith({ modeId: "course-create" });
   });
 
   describe("pre-seed messages on canonical course cards", () => {

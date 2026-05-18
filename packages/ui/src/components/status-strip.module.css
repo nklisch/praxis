@@ -69,7 +69,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--tint-bootstrap);
+  background: var(--tint-course-create);
   display: inline-block;
   flex-shrink: 0;
   animation: praxis-strip-pulse 2s ease-in-out infinite;
@@ -139,7 +139,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: var(--status-strip-progress, 0%);
-  background: var(--tint-bootstrap);
+  background: var(--tint-course-create);
   transition: width 240ms ease-out;
 }
 

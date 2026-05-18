@@ -78,7 +78,7 @@ export function LibraryRoute() {
         await openSessionInTab({
           client,
           navigate,
-          startOpts: { modeId: "bootstrap" },
+          startOpts: { modeId: "course-create" },
           courseTitle: packName,
         });
       } finally {
@@ -129,7 +129,7 @@ export function LibraryRoute() {
           await openSessionInTab({
             client,
             navigate,
-            startOpts: { modeId: "bootstrap" },
+            startOpts: { modeId: "course-create" },
           });
           break;
         }

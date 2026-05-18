@@ -8,69 +8,69 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { bootstrapRoleFragment } from "../bootstrap-role.js";
-import { bootstrapToolsFragment } from "../bootstrap-tools.js";
+import { courseCreateRoleFragment } from "../course-create-role.js";
+import { courseCreateToolsFragment } from "../course-create-tools.js";
 import { configureRoleFragment } from "../configure-role.js";
 import { configureToolsFragment } from "../configure-tools.js";
 
 // ── Bootstrap role — drafter posture ───────────────────────────────────────
 
-describe("bootstrapRoleFragment — drafter posture", () => {
+describe("courseCreateRoleFragment — drafter posture", () => {
   it("identifies Praxis as the drafter", () => {
-    expect(bootstrapRoleFragment.template).toContain("drafter");
+    expect(courseCreateRoleFragment.template).toContain("drafter");
   });
 
   it("uses the 'Praxis drafts; you steer' tag line", () => {
-    expect(bootstrapRoleFragment.template).toContain("Praxis drafts");
+    expect(courseCreateRoleFragment.template).toContain("Praxis drafts");
   });
 
   it("instructs liberal authoring-tool calls without asking permission", () => {
-    expect(bootstrapRoleFragment.template).toContain("don't ask permission");
+    expect(courseCreateRoleFragment.template).toContain("don't ask permission");
   });
 
   it("mentions that authoring tools execute immediately", () => {
-    expect(bootstrapRoleFragment.template).toContain("executes immediately");
+    expect(courseCreateRoleFragment.template).toContain("executes immediately");
   });
 
   it("mentions ↶ revert as the undo affordance", () => {
-    expect(bootstrapRoleFragment.template).toContain("revert");
+    expect(courseCreateRoleFragment.template).toContain("revert");
   });
 
   it("describes when to invoke course.start_drafting as a sub-agent", () => {
-    expect(bootstrapRoleFragment.template).toContain("sub-agent");
-    expect(bootstrapRoleFragment.template).toContain("course.start_drafting");
+    expect(courseCreateRoleFragment.template).toContain("sub-agent");
+    expect(courseCreateRoleFragment.template).toContain("course.start_drafting");
   });
 
   it("does not use the word 'explorer' for the sub-agent from the user's perspective", () => {
     // The term 'explorer' must not appear as a user-visible agent name.
     // The tool name 'start_drafting' is fine — that is a code identifier.
-    const withoutToolRefs = bootstrapRoleFragment.template.replace(/course\.start_drafting/g, "");
+    const withoutToolRefs = courseCreateRoleFragment.template.replace(/course\.start_drafting/g, "");
     expect(withoutToolRefs).not.toMatch(/\bexplorer\b/i);
   });
 
   it("instructs immediate tool calls on directives with brief post-call confirmation", () => {
-    expect(bootstrapRoleFragment.template).toContain("Act on chat directives immediately");
-    expect(bootstrapRoleFragment.template).toContain("call the relevant authoring tool now");
+    expect(courseCreateRoleFragment.template).toContain("Act on chat directives immediately");
+    expect(courseCreateRoleFragment.template).toContain("call the relevant authoring tool now");
   });
 });
 
 // ── Bootstrap tools — drafter posture ──────────────────────────────────────
 
-describe("bootstrapToolsFragment — drafter posture", () => {
+describe("courseCreateToolsFragment — drafter posture", () => {
   it("mentions ↶ revert for course.edit_draft", () => {
-    expect(bootstrapToolsFragment.template).toContain("revert");
+    expect(courseCreateToolsFragment.template).toContain("revert");
   });
 
   it("describes course.start_drafting as a sub-agent (not 'explorer')", () => {
-    expect(bootstrapToolsFragment.template).toContain("sub-agent");
+    expect(courseCreateToolsFragment.template).toContain("sub-agent");
   });
 
   it("instructs liberal authoring-tool calls", () => {
-    expect(bootstrapToolsFragment.template).toContain("Act on chat directives immediately");
+    expect(courseCreateToolsFragment.template).toContain("Act on chat directives immediately");
   });
 
   it("does not use the word 'explorer' in user-visible description (outside tool name)", () => {
-    const withoutToolRefs = bootstrapToolsFragment.template.replace(/course\.start_drafting/g, "");
+    const withoutToolRefs = courseCreateToolsFragment.template.replace(/course\.start_drafting/g, "");
     expect(withoutToolRefs).not.toMatch(/\bexplorer\b/i);
   });
 });

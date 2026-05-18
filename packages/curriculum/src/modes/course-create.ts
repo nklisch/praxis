@@ -1,6 +1,6 @@
 import type { Mode } from "@praxis/core/types";
-import { bootstrapRoleFragment } from "./fragments/bootstrap-role.js";
-import { bootstrapToolsFragment } from "./fragments/bootstrap-tools.js";
+import { courseCreateRoleFragment } from "./fragments/course-create-role.js";
+import { courseCreateToolsFragment } from "./fragments/course-create-tools.js";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
 import { postambleFragment } from "./fragments/postamble.js";
@@ -8,34 +8,34 @@ import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";
 
 /**
- * Bootstrap mode — conversational course-authoring.
+ * Course-create mode — conversational course-authoring.
  *
  * The student drops materials into Praxis (via Phase 5 ingestion), then opens
- * a bootstrap session to propose, refine, and confirm a course outline.
+ * a course-create session to propose, refine, and confirm a course outline.
  * This mode is available without lock; Phase 11's `configure` mode subsumes it
  * (lock-gated, with full gate / prompt / memory editors).
  *
  * Tool names: the 6 draft-authoring tools + retrieve_from_documents for ad-hoc
  * lookup while authoring. Navigation tools (what_can_i_teach, etc.) are NOT
- * included — no confirmed course exists at bootstrap time.
+ * included — no confirmed course exists at course-create time.
  */
-export const bootstrapMode: Mode = {
-  id: "bootstrap",
+export const courseCreateMode: Mode = {
+  id: "course-create",
   label: "Design a course",
   displayName: "course design",
   description: "Conversational mode for designing a new course from your materials.",
   requiredRole: "student",
   promptFragments: [
     preambleFragment,
-    bootstrapRoleFragment,
+    courseCreateRoleFragment,
     principlesFragment,
-    bootstrapToolsFragment,
-    courseContextFragmentDefault, // always the fallback — no active course in bootstrap
+    courseCreateToolsFragment,
+    courseContextFragmentDefault, // always the fallback — no active course in course-create
     constraintsFragment,
     postambleFragment,
   ],
   toolNames: [
-    // Library tools (attach_document omitted — bootstrap sessions have no courseId; persistDraft handles attachment at confirm time)
+    // Library tools (attach_document omitted — course-create sessions have no courseId; persistDraft handles attachment at confirm time)
     "course.list_library_documents",
     // Canonical packs (Phase 10) — unchanged
     "course.list_canonical_packs",

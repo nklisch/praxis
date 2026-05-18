@@ -41,8 +41,8 @@ export function pickPrimaryScope(scopes: ReadonlyArray<DocumentScope>): Document
  *    The user is browsing or studying within a course; the sidebar shows
  *    that course's attached documents.
  *
- * 2. **Active tab has `modeId === "bootstrap"`** → `{ kind: "session", id }`.
- *    The bootstrap explorer is active; show the exploration session's documents.
+ * 2. **Active tab has `modeId === "course-create"`** → `{ kind: "session", id }`.
+ *    The course-create session is active; show the exploration session's documents.
  *
  * 3. **Active tab is a document tab (`kind === "document"`)** → that document's
  *    primary scope, resolved via `documentScopes.listScopesForDocument`. Course
@@ -86,7 +86,7 @@ export function useDerivedScope(): DerivedScope {
       kind = "course";
       id = rawId;
     }
-  } else if (activeTab && activeTab.kind === "session" && activeTab.modeId === "bootstrap") {
+  } else if (activeTab && activeTab.kind === "session" && activeTab.modeId === "course-create") {
     kind = "session";
     id = activeTab.sessionId;
   } else if (activeTab && activeTab.kind === "document") {

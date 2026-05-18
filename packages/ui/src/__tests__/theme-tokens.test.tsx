@@ -107,7 +107,7 @@ describe("global.css theme tokens", () => {
     const css = readGlobalCss();
     const tints = [
       "--tint-teach",
-      "--tint-bootstrap",
+      "--tint-course-create",
       "--tint-quiz",
       "--tint-homework",
       "--tint-exam",

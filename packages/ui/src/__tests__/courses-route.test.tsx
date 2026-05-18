@@ -38,7 +38,7 @@ function makeClient(
     active: vi.fn().mockResolvedValue(null),
     start: vi.fn().mockResolvedValue({
       sessionId: brandId<"SessionId">("s1"),
-      modeId: "bootstrap",
+      modeId: "course-create",
       startedAt: Date.now() as Timestamp,
     } satisfies SessionHandle),
     end: vi.fn().mockResolvedValue({
@@ -129,7 +129,7 @@ describe("CoursesRoute", () => {
     fireEvent.click(screen.getByRole("button", { name: /\+ New course/i }));
 
     await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "bootstrap" });
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
   });
 });
