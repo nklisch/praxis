@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces-course-create-ingestion-status-fix
 kind: story
-stage: implementing
+stage: review
 tags: [bug, ui]
 parent: epic-ui-redesign-ground-up-discovery-surfaces
 depends_on: []
@@ -71,7 +71,51 @@ case when a student triggers the browse button and picks exactly one file
 
 ## Acceptance criteria
 
-- [ ] After picking files via the browse button, each file transitions to
+- [x] After picking files via the browse button, each file transitions to
       `"ready"` or `"error"` once batch ingestion completes.
-- [ ] Visual badge matches mock: `"indexing"` during, `"ready"` after.
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+- [x] Visual badge matches mock: `"indexing"` during, `"ready"` after.
+- [x] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+
+### Root cause (two issues found)
+
+**Issue 1 — missing `batch_summary` branch** (the stated bug): the `useEffect`
+that syncs `ingestion.state` into `attachedFiles` only handled `"ingesting"`,
+`"done"`, and `"error"`. `startPickBatch` never transitions to `"done"` — it
+goes to `"batch_summary"`. So batch files were permanently stuck at `"indexing"`.
+
+**Issue 2 — React batching** (found during fix): React 18 batches all the
+intermediate `setState("ingesting", ...)` calls from the batch loop with the
+final `setState("batch_summary")` into one flush. This means the effect only
+ever runs once, when the state is already `"batch_summary"`, with an empty
+`attachedFiles` list (no `"ingesting"` transitions were rendered). A naive
+`prev.map(f => ...)` against an empty list would do nothing.
+
+**Issue 3 — infinite re-render risk** (pre-existing): the `useEffect` depended
+on `[ingestion]` — the full result object — which is a new reference on every
+render. Any `setAttachedFiles` call would re-trigger the effect, potentially
+looping. Fixed by depending on `ingestionState` (= `ingestion.state`) only.
+
+### Fix applied
+
+- Changed `useEffect` dependency from `[ingestion]` to `[ingestionState]`
+  (`ingestion.state` pulled to a stable ref before the effect).
+- Added a `"batch_summary"` branch that **upserts** all batch results into
+  `attachedFiles` via a `Map`. Since intermediate `"ingesting"` renders may
+  have been batched away, we add any missing files at this point rather than
+  assuming they're already present. Per-item status is set directly from
+  `result.outcome.ok`.
+- Used spread `...(result.outcome.ok && { documentId: ... })` to satisfy
+  `exactOptionalPropertyTypes: true` (no `undefined` assignment to optional
+  property).
+
+### Tests added
+
+`packages/ui/src/__tests__/course-create-route.test.tsx` — 3 cases:
+1. All-ok batch → all files "ready".
+2. Mixed batch → ok file "ready", failed file "error".
+3. All-error batch → all files "error".
+
+All use `await act(async () => { click() })` to flush the async promise chain
+from `startPickBatch` before asserting with `waitFor`.

@@ -44,30 +44,51 @@ export function CourseCreateRoute() {
   );
 
   // Sync ingestion state into the attachedFiles list.
+  // Depend only on ingestion.state (not the whole ingestion object) so the
+  // effect doesn't re-run on every render due to the inline object reference.
+  const ingestionState = ingestion.state;
   useEffect(() => {
-    const { state } = ingestion;
-    if (state.status === "ingesting") {
+    if (ingestionState.status === "ingesting") {
       setAttachedFiles((prev) => {
-        const existing = prev.find((f) => f.filename === state.filename);
+        const existing = prev.find((f) => f.filename === ingestionState.filename);
         if (existing) return prev; // already tracking
-        return [...prev, { path: "", filename: state.filename, status: "indexing" }];
+        return [...prev, { path: "", filename: ingestionState.filename, status: "indexing" }];
       });
-    } else if (state.status === "done") {
-      // Mark the most recently ingesting file as ready.
+    } else if (ingestionState.status === "done") {
+      // Mark the most recently ingesting file as ready (single-file path).
       setAttachedFiles((prev) =>
         prev.map((f) => {
           if (f.status === "indexing") {
-            return { ...f, status: "ready" as const, documentId: state.documentId };
+            return { ...f, status: "ready" as const, documentId: ingestionState.documentId };
           }
           return f;
         }),
       );
-    } else if (state.status === "error") {
+    } else if (ingestionState.status === "batch_summary") {
+      // Batch path: upsert each result into the attached files list.
+      // Note: React may batch the intermediate "ingesting" setState calls
+      // with the final "batch_summary" one, meaning files might not have
+      // been added to the list yet when this handler runs. We therefore
+      // add any missing files here rather than assuming they're already present.
+      setAttachedFiles((prev) => {
+        const byFilename = new Map(prev.map((f) => [f.filename, f]));
+        for (const result of ingestionState.results) {
+          const existing = byFilename.get(result.filename);
+          byFilename.set(result.filename, {
+            path: existing?.path ?? "",
+            filename: result.filename,
+            status: result.outcome.ok ? ("ready" as const) : ("error" as const),
+            ...(result.outcome.ok && { documentId: result.outcome.documentId }),
+          });
+        }
+        return Array.from(byFilename.values());
+      });
+    } else if (ingestionState.status === "error") {
       setAttachedFiles((prev) =>
         prev.map((f) => (f.status === "indexing" ? { ...f, status: "error" as const } : f)),
       );
     }
-  }, [ingestion]);
+  }, [ingestionState]);
 
   const handleBrowse = useCallback(async () => {
     await ingestion.startPickBatch("files");
