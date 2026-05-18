@@ -1,7 +1,7 @@
 ---
 id: refactor-session-service-extract-engine-and-episodic-step-1-engine-manager
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-session-service-extract-engine-and-episodic
 depends_on: []
@@ -295,3 +295,15 @@ satisfied (703 lines).
 - `pnpm --filter @praxis/core typecheck`: green
 - `pnpm --filter @praxis/core test`: 86 files, 1060 tests, all passed
 - `pnpm biome check session-service.ts engine-session-manager.ts`: clean (no errors)
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `send()` body landed at 122 LoC vs the < 90 target. The agent's note explains why — the for-await loop with abort cascade + subagent-interrupt + interrupt episodic write is ~50 LoC on its own, so the optimistic estimate didn't survive contact with the code. Responsibility separation is the actual win (engine-lifecycle now a single `acquire()` call instead of 37 inline lines); the absolute LoC target was aspirational. Acceptable.
+- Two private helpers (`resolveResumeEngineSessionId`, `recordEngineSessionId`) moved into the manager since only `openActive` used them. Clean.
+
+**Notes**: Surgical extraction on a hot path delivered well. session-service.ts dropped 1084→703 LoC; `EngineSessionManager` at 512 LoC contains the engine-lifecycle code in isolation. `ActiveEntry` fields preserved verbatim including the mutable `turnInFlight` field (judgment call to expose the type rather than wrap with markTurnStart/markTurnEnd methods — the simpler path). FakeEngine test seam preserved. All `engine-session-lifecycle` and `episodic-append-ordering` patterns verified by 1060 passing tests, all unmodified. Per-facade-method routing (start/send/end/notifySession/shutdown) is consistent.
