@@ -1,6 +1,6 @@
 ---
 id: refactor-note-body-schema-restore-discriminated-union
-stage: review
+stage: done
 created: 2026-05-18
 tags: [refactor, perf]
 ---
@@ -46,3 +46,13 @@ The `OutlineBodySchema` intermediate was deleted from both files — it only exi
 `parseNoteBody` in `packages/core/src/types/notes.ts` already handles both shapes at runtime; no change needed there as stated in the brief.
 
 All 19 notes-body tests and all 1060 core package tests pass. Pre-existing typecheck and lint failures (in unrelated UI files) are unchanged.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: The merged outline branch now accepts `{ kind: "outline" }` with neither `rows` nor `root` through Zod (both fields are optional), whereas the old two-branch `z.union` required one or the other. This is benign — `NoteBodySchema` is used only for LLM output validation (`fromSessionSummary`), not for DB reads, and `parseNoteBody` enforces the at-least-one-field constraint downstream. The TS type `NoteBody` already allowed both fields to be absent, so Zod and TS are now congruent rather than Zod being accidentally stricter.
+
+**Notes**: Change is well-scoped. Both `NoteBodySchema` definitions (tools and core) restored to `z.discriminatedUnion`. `OutlineBodySchema` intermediary correctly removed. JSDoc on `OutlineNodeSchema` in `notes-service.ts` corrected (old comment was mis-attributed). No foundation-doc drift; no breaking changes to public API. No tests required — the structural change is purely in the Zod schema construction; behavioral coverage already exists via the 1060 passing tests.
