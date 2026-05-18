@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-feynman
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on:
@@ -65,3 +65,15 @@ Consumes annotations API from sibling story.
 - `packages/ui/src/components/note-editor-feynman.module.css` — full rewrite with review-mode + margin-note styles
 - `packages/ui/src/__tests__/note-editor-feynman.test.tsx` — expanded test suite (7→16 tests)
 - `packages/ui/src/routes/workspace/note-editor-page.tsx` — threads `noteId` to feynman; fixes conditional-spread pattern for both cornell and feynman
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `buildSegments` is a plain inner function called every render (not `useMemo`). Fine for typical note lengths; no correctness issue.
+- `noteId as unknown as NoteId` cast at line 189 of `note-editor-page.tsx` is slightly inconsistent with the `as any as NoteId` used at line 47 in the same file. Both work identically; worth unifying someday but no urgency.
+
+**Notes**: Two-pass design matches locked variant D (`note-feynman-editor-d-two-pass.html`) — pill-style mode toggle, clean writing surface in pass 1, selection-based margin-note popover in pass 2 with soft (yellow) / load_bearing (red) severity. `buildSegments` sweep handles overlapping annotations gracefully (first wins). `handlePopoverSave` uses optimistic local state update before API call. `exactOptionalPropertyTypes` fix via conditional spread is correct and cleans up a pre-existing regression on the cornell call-site too. `fieldset` with `aria-label` (no `legend`) is valid for Biome's `useSemanticElements` rule. 16 tests pass; all 1307 UI tests pass; lint clean. Pre-existing `notes-list.tsx` typecheck error in `@praxis/desktop` is unrelated to this story (present before this commit and introduced in the catalogue-rebuild story).

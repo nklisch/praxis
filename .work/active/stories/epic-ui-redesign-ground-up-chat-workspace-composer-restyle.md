@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-composer-restyle
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -67,3 +67,14 @@ Landed per the locked Refined Bubbles mock (option-4.html):
   hint strip presence, send-button disabled/enabled state, Enter submit,
   Shift+Enter no-submit, whitespace-only no-submit, and disabled prop.
   All 9 pass. Existing `composer-verbs.test.tsx` (13 tests) unaffected.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The `sendButton:disabled` rule sits above the hover rule in the CSS; minor ordering preference, no functional impact.
+
+**Notes**: Implementation is pixel-faithful to option-4.html mock — textarea `font: 16px/1.5 var(--font-serif); font-style: italic`, submit button `background: var(--color-accent); border-radius: var(--radius-sm); padding: 6px 12px; font: 500 13px/1 var(--font-sans); align-self: flex-end`, hints strip `font: 11px/1 var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; padding-top: 6px` all match mock CSS exactly. Send button transition changed from `opacity` to `background-color` — cleaner. Hint text moved to `COPY.composer.hints` following the editorial-ui-primitives pattern. 9 tests cover all behavioural contracts. All 1307 UI tests pass; lint clean on changed files.
