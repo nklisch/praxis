@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat-authoring-pane
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-drafter-configurator-chat
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore-ipc]
@@ -35,6 +35,16 @@ course-create surfaces.
       consumers untouched).
 - [x] Tests cover both mounts.
 - [x] All quality checks green.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `configure-chat-pane.module.css` is now dead CSS (no longer imported anywhere); it was intentionally left to avoid stale-build-cache import errors per the implementation notes. Safe to delete in a follow-up cleanup if desired.
+
+**Notes**: Clean extraction. `AuthoringChatPane` is well-scoped with `AuthoringModeId = "configure" | "bootstrap"`, mode-keyed lookup tables for label and empty-state copy, and no unnecessary new props (the `artifactId` omission is correctly documented). `ConfigureChatPane` is a proper thin wrapper at 18 lines. All 11 tests pass; changed files are lint-clean; typecheck errors are pre-existing in unrelated files.
 
 ## Implementation notes
 
