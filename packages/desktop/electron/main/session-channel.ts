@@ -5,7 +5,6 @@ import type {
   Logger,
   NoteId,
   SessionId,
-  StudentId,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
@@ -13,6 +12,7 @@ import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 import { registerGeneratorStream } from "./stream-handler.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the session service.
@@ -106,7 +106,7 @@ export function registerSessionHandlers(
   handle(
     "praxis.session.spawnFromNote",
     handleEnvelope("praxis.session.spawnFromNote", log, SpawnFromNoteSchema, async (opts) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.session.spawnFromNote({
         studentId,
         noteId: brandId<"NoteId">(opts.noteId) as NoteId,
@@ -128,7 +128,7 @@ export function registerSessionHandlers(
   handle(
     "praxis.session.spawnFromPassage",
     handleEnvelope("praxis.session.spawnFromPassage", log, SpawnFromPassageSchema, async (opts) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.session.spawnFromPassage({
         studentId,
         documentId: brandId<"DocumentId">(opts.documentId) as DocumentId,

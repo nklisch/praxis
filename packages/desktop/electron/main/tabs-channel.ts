@@ -1,9 +1,9 @@
-import type { DocumentId, Logger, SessionId, StudentId, TabId } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import type { DocumentId, Logger, SessionId, TabId } from "@praxis/core/types";
 import { z } from "zod";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the tabs service.
@@ -27,7 +27,7 @@ export function registerTabsHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.tabs.listOpen",
     wrapEnvelope("praxis.tabs.listOpen", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.tabs.listOpen(studentId);
     }),
   );
@@ -44,7 +44,7 @@ export function registerTabsHandlers(services: Services, log: Logger): void {
         })
         .optional(),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.tabs.list(
           studentId,
           opts !== undefined
@@ -75,7 +75,7 @@ export function registerTabsHandlers(services: Services, log: Logger): void {
         courseTitle: z.string().optional(),
       }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.tabs.open({
           studentId,
           sessionId: opts.sessionId as SessionId,
@@ -95,7 +95,7 @@ export function registerTabsHandlers(services: Services, log: Logger): void {
         title: z.string().min(1, "title"),
       }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.tabs.openDocument({
           studentId,
           documentId: opts.documentId as DocumentId,

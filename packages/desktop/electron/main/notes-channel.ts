@@ -1,8 +1,9 @@
-import type { ConceptId, CourseId, LessonId, Logger, NoteId, StudentId } from "@praxis/core/types";
+import type { ConceptId, CourseId, LessonId, Logger, NoteId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the notes service.
@@ -35,7 +36,7 @@ export function registerNotesHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.notes.create",
     handleEnvelope("praxis.notes.create", log, noteCreateSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.notes.create({
         studentId,
         format: input.format,
@@ -72,7 +73,7 @@ export function registerNotesHandlers(services: Services, log: Logger): void {
       log,
       z.object({ noteId: z.string().min(1, "noteId"), body: z.unknown() }),
       async (input) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.notes.update({
           studentId,
           noteId: brandId<"NoteId">(input.noteId) as NoteId,
@@ -86,7 +87,7 @@ export function registerNotesHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.notes.get",
     handleEnvelope("praxis.notes.get", log, noteIdSchema, async (noteId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.notes.get({ studentId, noteId: brandId<"NoteId">(noteId) as NoteId });
     }),
   );
@@ -103,7 +104,7 @@ export function registerNotesHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.notes.list",
     handleEnvelope("praxis.notes.list", log, noteListSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.notes.list({
         studentId,
         ...(input?.courseId !== undefined && {
@@ -121,7 +122,7 @@ export function registerNotesHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.notes.delete",
     handleEnvelope("praxis.notes.delete", log, noteIdSchema, async (noteId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.notes.delete({ studentId, noteId: brandId<"NoteId">(noteId) as NoteId });
     }),
   );
@@ -141,7 +142,7 @@ export function registerNotesHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.notes.setAnnotations",
     handleEnvelope("praxis.notes.setAnnotations", log, setAnnotationsSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.notes.setAnnotations({
         studentId,
         noteId: brandId<"NoteId">(input.noteId) as NoteId,
@@ -153,7 +154,7 @@ export function registerNotesHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.notes.getAnnotations",
     handleEnvelope("praxis.notes.getAnnotations", log, noteIdSchema, async (noteId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.notes.getAnnotations({
         studentId,
         noteId: brandId<"NoteId">(noteId) as NoteId,

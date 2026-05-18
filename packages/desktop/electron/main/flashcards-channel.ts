@@ -1,9 +1,10 @@
-import type { ConceptId, Logger, StudentId } from "@praxis/core/types";
+import type { ConceptId, Logger } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the flashcards service.
@@ -37,7 +38,7 @@ export function registerFlashcardsHandlers(services: Services, log: Logger): voi
   handle(
     "praxis.flashcards.create",
     handleEnvelope("praxis.flashcards.create", log, flashcardCreateSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.flashcards.create({
         studentId,
         front: input.front,
@@ -62,7 +63,7 @@ export function registerFlashcardsHandlers(services: Services, log: Logger): voi
   handle(
     "praxis.flashcards.update",
     handleEnvelope("praxis.flashcards.update", log, flashcardUpdateSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.flashcards.update({
         studentId,
         flashcardId: brandId<"FlashcardId">(input.flashcardId),
@@ -80,7 +81,7 @@ export function registerFlashcardsHandlers(services: Services, log: Logger): voi
   handle(
     "praxis.flashcards.get",
     handleEnvelope("praxis.flashcards.get", log, flashcardIdSchema, async (flashcardId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.flashcards.get({
         studentId,
         flashcardId: brandId<"FlashcardId">(flashcardId),
@@ -99,7 +100,7 @@ export function registerFlashcardsHandlers(services: Services, log: Logger): voi
   handle(
     "praxis.flashcards.list",
     handleEnvelope("praxis.flashcards.list", log, flashcardListSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.flashcards.list({
         studentId,
         ...(input?.conceptId !== undefined && {
@@ -114,7 +115,7 @@ export function registerFlashcardsHandlers(services: Services, log: Logger): voi
   handle(
     "praxis.flashcards.delete",
     handleEnvelope("praxis.flashcards.delete", log, flashcardIdSchema, async (flashcardId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.flashcards.delete({
         studentId,
         flashcardId: brandId<"FlashcardId">(flashcardId),
@@ -130,7 +131,7 @@ export function registerFlashcardsHandlers(services: Services, log: Logger): voi
   handle(
     "praxis.flashcards.review",
     handleEnvelope("praxis.flashcards.review", log, flashcardReviewSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.flashcards.review({
         studentId,
         flashcardId: brandId<"FlashcardId">(input.flashcardId),
@@ -142,7 +143,7 @@ export function registerFlashcardsHandlers(services: Services, log: Logger): voi
   handle(
     "praxis.flashcards.dueCount",
     wrapEnvelope("praxis.flashcards.dueCount", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.flashcards.dueCount({ studentId });
     }),
   );

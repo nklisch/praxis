@@ -1,8 +1,9 @@
-import type { Logger, SessionId, StudentId } from "@praxis/core/types";
+import type { Logger, SessionId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the library search service.
@@ -28,7 +29,7 @@ export function registerLibraryHandlers(services: Services, log: Logger): void {
   handle(
     "praxis.library.search",
     handleEnvelope("praxis.library.search", log, librarySearchSchema, async (input) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.library.search({
         studentId,
         ...(input?.query !== undefined && { query: input.query }),

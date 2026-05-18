@@ -1,9 +1,10 @@
-import type { EpisodicEvent, Logger, SessionId, StudentId } from "@praxis/core/types";
+import type { EpisodicEvent, Logger, SessionId } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 import { registerGeneratorStream } from "./stream-handler.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the memory service.
@@ -32,7 +33,7 @@ export function registerMemoryHandlers(
   handle(
     "praxis.memory.studentModel",
     wrapEnvelope("praxis.memory.studentModel", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       const model = await services.memory.studentModel(studentId);
       // Maps don't survive JSON.stringify — serialize conceptMastery as entries array.
       return {
@@ -45,7 +46,7 @@ export function registerMemoryHandlers(
   handle(
     "praxis.memory.misconceptions",
     wrapEnvelope("praxis.memory.misconceptions", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.memory.misconceptions(studentId);
     }),
   );
@@ -53,7 +54,7 @@ export function registerMemoryHandlers(
   handle(
     "praxis.memory.procedural",
     wrapEnvelope("praxis.memory.procedural", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       const model = await services.memory.procedural(studentId);
       return {
         ...model,
@@ -65,7 +66,7 @@ export function registerMemoryHandlers(
   handle(
     "praxis.memory.affective",
     wrapEnvelope("praxis.memory.affective", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.memory.affective(studentId);
     }),
   );
@@ -73,7 +74,7 @@ export function registerMemoryHandlers(
   handle(
     "praxis.memory.export",
     wrapEnvelope("praxis.memory.export", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       const exported = await services.memory.export(studentId);
       // Serialize Maps as entries arrays for IPC transport.
       return {
@@ -93,7 +94,7 @@ export function registerMemoryHandlers(
   handle(
     "praxis.memory.delete",
     wrapEnvelope("praxis.memory.delete", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.memory.delete({ studentId, confirm: true });
     }),
   );
@@ -114,7 +115,7 @@ export function registerMemoryHandlers(
     { handle, on },
     {
       iterate: ([opts], _signal) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.memory.episodic({
           studentId,
           ...(opts.sessionId !== undefined && {

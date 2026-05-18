@@ -11,11 +11,11 @@
  *   - Resolves the default student id from `services.getDefaultStudentId()`.
  */
 
-import type { Logger, Recommendation, StudentId } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import type { Logger, Recommendation } from "@praxis/core/types";
 import { z } from "zod";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 const nextInputSchema = z.object({ limit: z.number().int().positive().optional() }).optional();
 
@@ -29,7 +29,7 @@ export function registerRecommendationsHandlers(services: Services, log: Logger)
       log,
       nextInputSchema,
       async (input): Promise<Recommendation[]> => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.recommendations.next({
           studentId,
           ...(input?.limit !== undefined && { limit: input.limit }),

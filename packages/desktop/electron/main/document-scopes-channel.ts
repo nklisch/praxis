@@ -3,12 +3,12 @@ import type {
   DocumentScope,
   DocumentScopeSource,
   Logger,
-  StudentId,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * Register IPC handlers for the polymorphic scope ↔ document attachment service.
@@ -26,7 +26,7 @@ export function registerDocumentScopesHandlers(services: Services, log: Logger):
   handle(
     "praxis.documentScopes.listOrphaned",
     wrapEnvelope("praxis.documentScopes.listOrphaned", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.documentScopes.listOrphaned(studentId);
     }),
   );

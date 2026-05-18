@@ -1,8 +1,8 @@
-import type { Logger, SketchId, StudentId } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import type { Logger, SketchId } from "@praxis/core/types";
 import { z } from "zod";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the sketches service.
@@ -25,7 +25,7 @@ export function registerSketchesHandlers(services: Services, log: Logger): void 
   handle(
     "praxis.sketches.put",
     handleEnvelope("praxis.sketches.put", log, sketchPutSchema, async (opts) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       const image = Buffer.from(opts.imageBase64, "base64");
       return services.sketches.put({
         studentId,

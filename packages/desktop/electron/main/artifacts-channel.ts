@@ -1,9 +1,10 @@
-import type { Logger, StudentId } from "@praxis/core/types";
+import type { Logger } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the artifacts service.
@@ -31,7 +32,7 @@ export function registerArtifactsHandlers(services: Services, log: Logger): void
   handle(
     "praxis.artifacts.courses",
     wrapEnvelope("praxis.artifacts.courses", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.artifacts.courses(studentId);
     }),
   );
@@ -96,7 +97,7 @@ export function registerArtifactsHandlers(services: Services, log: Logger): void
   handle(
     "praxis.artifacts.progress",
     wrapEnvelope("praxis.artifacts.progress", log, async () => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.artifacts.progress(studentId);
     }),
   );
@@ -106,7 +107,7 @@ export function registerArtifactsHandlers(services: Services, log: Logger): void
   handle(
     "praxis.artifacts.gateView",
     handleEnvelope("praxis.artifacts.gateView", log, courseIdSchema, async (courseId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.artifacts.gateView({
         studentId,
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
@@ -118,7 +119,7 @@ export function registerArtifactsHandlers(services: Services, log: Logger): void
   handle(
     "praxis.artifacts.evaluateGates",
     handleEnvelope("praxis.artifacts.evaluateGates", log, courseIdSchema, async (courseId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.artifacts.evaluateAndPersistGates({
         studentId,
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
@@ -130,7 +131,7 @@ export function registerArtifactsHandlers(services: Services, log: Logger): void
   handle(
     "praxis.artifacts.markGatesViewed",
     handleEnvelope("praxis.artifacts.markGatesViewed", log, courseIdSchema, async (courseId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.artifacts.markGatesViewed({
         studentId,
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
@@ -142,7 +143,7 @@ export function registerArtifactsHandlers(services: Services, log: Logger): void
   handle(
     "praxis.artifacts.newlyUnlockedCount",
     handleEnvelope("praxis.artifacts.newlyUnlockedCount", log, courseIdSchema, async (courseId) => {
-      const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+      const studentId = getStudentId(services);
       return services.artifacts.newlyUnlockedCount({
         studentId,
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough

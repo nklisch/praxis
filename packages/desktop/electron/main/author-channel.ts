@@ -6,7 +6,6 @@ import type {
   LessonId,
   Logger,
   MisconceptionId,
-  StudentId,
   SuccessCriteria,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
@@ -14,6 +13,7 @@ import { z } from "zod";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the authoring service.
@@ -431,7 +431,7 @@ export function registerAuthorHandlers(services: Services, log: Logger): void {
       }),
       async (input) => {
         await requireUnlocked();
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.authoring.resetConcept({
           studentId,
           conceptId: brandId<"ConceptId">(input.conceptId) as ConceptId,
@@ -468,7 +468,7 @@ export function registerAuthorHandlers(services: Services, log: Logger): void {
       z.object({ targetPath: z.string().min(1, "targetPath") }),
       async (input) => {
         await requireUnlocked();
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.authoring.exportMemory({ studentId, targetPath: input.targetPath });
       },
     ),
@@ -485,7 +485,7 @@ export function registerAuthorHandlers(services: Services, log: Logger): void {
       }),
       async (input) => {
         await requireUnlocked();
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.authoring.deleteAllMemory({
           studentId,
           reason: input.reason,

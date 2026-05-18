@@ -5,13 +5,13 @@ import type {
   CourseId,
   Logger,
   NoteId,
-  StudentId,
   TldrawSnapshot,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { getStudentId } from "./student-id.js";
 
 /**
  * IPC handlers for the conceptMaps service.
@@ -41,7 +41,7 @@ export function registerConceptMapsHandlers(services: Services, log: Logger): vo
         title: z.string().min(1, "title"),
       }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.conceptMaps.create({
           studentId,
           courseId: opts.courseId as CourseId,
@@ -67,7 +67,7 @@ export function registerConceptMapsHandlers(services: Services, log: Logger): vo
       log,
       z.object({ courseId: z.string().min(1, "courseId") }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.conceptMaps.list({
           studentId,
           courseId: opts.courseId as CourseId,
@@ -178,7 +178,7 @@ export function registerConceptMapsHandlers(services: Services, log: Logger): vo
       log,
       z.object({ sketchNoteId: z.string().min(1, "sketchNoteId") }),
       async (opts) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId()) as StudentId;
+        const studentId = getStudentId(services);
         return services.conceptMaps.convertFromSketch(opts.sketchNoteId as NoteId, studentId);
       },
     ),
