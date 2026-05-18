@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -249,3 +249,20 @@ Cross-feature dependencies (per parent epic) handled via per-story
 ## Children complete (2026-05-18)
 
 All 9 child stories advanced to `stage: done`. Feature advanced to `stage: review`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Pre-existing typecheck error in `packages/ui/src/routes/workspace/notes-list.tsx` (from `workspace-catalogue-rebuild`, not introduced here) — not attributable to this feature.
+
+**Notes**: All 9 child stories individually reviewed and approved prior to this feature review. Aggregate review confirms:
+- Three-column layout (`chat.tsx`) correctly implements documents left / session center / concepts+sidekick right per Option 4 mock, with `useResizableWidth` and distinct storage keys for both side panels.
+- `tab-body-isolation` pattern preserved: all tab bodies mount simultaneously, inactive ones use `display:none` inline on the wrapper div. Test coverage in `chat-route.test.tsx` verifies this.
+- `SessionHead` carries the correct anatomy (kicker dot, glyph, italic title, optional progress bar with ARIA attributes).
+- `ToolCallDisclosure` uses native `<details>` with verdict glyph, tool name, result preview, and full I/O expansion — mode-agnostic and wired into `TeachChatTabBody`.
+- `SubAgentBlock` wired inline beneath originating turns.
+- Per-mode tab bodies (Quiz, Homework, Exam, StudySkills, Document) all present and backed by tests.
+- `ChatTabBody` dispatcher is exhaustive across `tab.kind` and `tab.modeId`; no dead paths.
