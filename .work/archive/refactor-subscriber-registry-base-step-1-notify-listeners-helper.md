@@ -1,7 +1,7 @@
 ---
 id: refactor-subscriber-registry-base-step-1-notify-listeners-helper
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-subscriber-registry-base
 depends_on: []
@@ -187,3 +187,14 @@ Critical to preserve:
 - `pnpm --filter @praxis/core typecheck` — green
 - `pnpm vitest run` on all 4 service test files — 55 tests passed
 - `pnpm biome check` on 5 changed files — no fixes needed
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none (the scope expansion below was caught and tracked)
+**Nits**:
+- The quick-check-service silently-swallow → observable-by-default change is a small behavior-improvement deviation from "pure refactor" scope. Parked as `idea-wire-logger-into-quick-check-service` so the actual observability win lands when the wiring follow-up runs. With the NOOP fallback in place, production behavior today is unchanged.
+
+**Notes**: Tight 5-file change. Helper landed cleanly in `db-helpers.ts` (the natural home next to `loadOrThrow`). Per-service emit body shrunk to 1 line (subagent's 6 lines is filter-extraction + helper call — appropriately concise). All 4 services' prior log-key strings preserved by passing the matching component string (or new uniform string where there was no log before). Listener-error isolation contract preserved. 55 tests pass unmodified. Public API surface unchanged.
