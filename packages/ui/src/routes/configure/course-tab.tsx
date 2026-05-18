@@ -5,6 +5,7 @@ import { usePraxisClient } from "../../context/client-context.js";
 import { useConfigureState } from "../../hooks/use-configure-state.js";
 import { useCourses } from "../../hooks/use-courses.js";
 import { useDirtyState } from "../../hooks/use-dirty-state.js";
+import { useResource } from "../../hooks/use-resource.js";
 import styles from "./course-tab.module.css";
 
 interface CourseTabProps {
@@ -224,13 +225,6 @@ export function CourseTab({ sessionId: _sessionId }: CourseTabProps) {
   useDirtyState("configure.course");
   const { courses, loading: coursesLoading, error: coursesError } = useCourses();
 
-  // ── Data ─────────────────────────────────────────────────────────────────
-
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   // ── Selection ────────────────────────────────────────────────────────────
 
   const [selectedLessonId, setSelectedLessonId] = useState<LessonId | null>(null);
@@ -242,35 +236,18 @@ export function CourseTab({ sessionId: _sessionId }: CourseTabProps) {
 
   // ── Load ─────────────────────────────────────────────────────────────────
 
-  const loadCourse = useCallback(async () => {
-    if (!selectedCourseId) {
-      setUnits([]);
-      setLessons([]);
-      setSelectedLessonId(null);
-      setSelectedLesson(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const [fetchedUnits, fetchedLessons] = await Promise.all([
-        client.artifacts.units(selectedCourseId),
-        client.artifacts.lessons(selectedCourseId),
-      ]);
-      setUnits(fetchedUnits);
-      setLessons(fetchedLessons);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, selectedCourseId, setSelectedLesson]);
+  const loadCourse = useCallback(async (): Promise<[Unit[], Lesson[]]> => {
+    if (!selectedCourseId) return [[], []];
+    return Promise.all([
+      client.artifacts.units(selectedCourseId),
+      client.artifacts.lessons(selectedCourseId),
+    ]);
+  }, [client, selectedCourseId]);
 
-  useEffect(() => {
-    loadCourse();
-  }, [loadCourse]);
+  const { data, loading, error, setData } = useResource(loadCourse);
+  const [units = [], lessons = []] = data ?? [];
 
-  // Clear inspector selection when course changes.
+  // Clear inspector selection when course changes — separate side effect, not part of the load.
   // biome-ignore lint/correctness/useExhaustiveDependencies: selectedCourseId is the trigger — we want to clear selection whenever it changes, even though it's not read in the body
   useEffect(() => {
     setSelectedLessonId(null);
@@ -298,28 +275,33 @@ export function CourseTab({ sessionId: _sessionId }: CourseTabProps) {
     setDragTargetUnitId(unitId);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>, targetUnitId: string) => {
-    e.preventDefault();
-    setDragTargetUnitId(null);
-    const srcId = draggingUnitIdRef.current;
-    draggingUnitIdRef.current = null;
-    if (!srcId || srcId === targetUnitId) return;
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, targetUnitId: string) => {
+      e.preventDefault();
+      setDragTargetUnitId(null);
+      const srcId = draggingUnitIdRef.current;
+      draggingUnitIdRef.current = null;
+      if (!srcId || srcId === targetUnitId) return;
 
-    setUnits((prev) => {
-      const srcIdx = prev.findIndex((u) => u.id === srcId);
-      const tgtIdx = prev.findIndex((u) => u.id === targetUnitId);
-      if (srcIdx === -1 || tgtIdx === -1) return prev;
-      const next = [...prev];
-      // splice(srcIdx, 1) always returns 1 element since srcIdx !== -1 was checked above
-      // biome-ignore lint/style/noNonNullAssertion: splice returns 1 element because srcIdx was validated above
-      const removed = next.splice(srcIdx, 1)[0]!;
-      next.splice(tgtIdx, 0, removed);
-      // Persist reorder — no server-side unit-reorder endpoint in v1;
-      // the visual order is updated locally. A future story will call
-      // client.author.reorderUnits when the IPC channel is available.
-      return next;
-    });
-  }, []);
+      setData((prev) => {
+        const prevUnits = prev?.[0] ?? [];
+        const prevLessons = prev?.[1] ?? [];
+        const srcIdx = prevUnits.findIndex((u) => u.id === srcId);
+        const tgtIdx = prevUnits.findIndex((u) => u.id === targetUnitId);
+        if (srcIdx === -1 || tgtIdx === -1) return prev ?? [[], []];
+        const next = [...prevUnits];
+        // splice(srcIdx, 1) always returns 1 element since srcIdx !== -1 was checked above
+        // biome-ignore lint/style/noNonNullAssertion: splice returns 1 element because srcIdx was validated above
+        const removed = next.splice(srcIdx, 1)[0]!;
+        next.splice(tgtIdx, 0, removed);
+        // Persist reorder — no server-side unit-reorder endpoint in v1;
+        // the visual order is updated locally. A future story will call
+        // client.author.reorderUnits when the IPC channel is available.
+        return [next, prevLessons];
+      });
+    },
+    [setData],
+  );
 
   // ── Build lesson map ──────────────────────────────────────────────────────
 

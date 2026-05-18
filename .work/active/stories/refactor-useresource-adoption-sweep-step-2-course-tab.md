@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep-step-2-course-tab
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: refactor-useresource-adoption-sweep
 depends_on: []
@@ -121,3 +121,15 @@ Pre-existing baseline: 3 typecheck errors in UI files, ~524 lint errors in `.moc
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Implementation notes
+
+**Loader shape**: `useCallback(async (): Promise<[Unit[], Lesson[]]>)` returning early with `[[], []]` when no course is selected, otherwise `Promise.all([units, lessons])`. Destructured as `const [units = [], lessons = []] = data ?? []`.
+
+**Parent-state side effect**: `setSelectedLessonId(null)` and `setSelectedLesson(null)` were already separated into their own `useEffect` keyed on `[selectedCourseId, setSelectedLesson]` in the original file. The conversion removed the duplicated clears from the old `loadCourse` early-return branch and removed the now-redundant `useEffect(() => { loadCourse(); }, [loadCourse])` mount trigger (useResource owns that).
+
+**Drag-reorder setUnits migration**: `handleDrop` previously called `setUnits(prev => ...)` to optimistically reorder the local unit list. After removing the standalone `units` state, this was migrated to `setData(prev => [reorderedUnits, prevLessons])` using the `setData` returned by `useResource`. Added `setData` to `handleDrop`'s dependency array per biome's `useExhaustiveDependencies` rule.
+
+**LoC delta**: -18 net (56 deleted, 38 inserted) — within the expected ~15-20 range.
+
+**Baseline confirmation**: `pnpm --filter @praxis/ui typecheck` clean, `pnpm biome check` clean, `pnpm --filter @praxis/ui test` 155 files / 1600 tests all passed.
