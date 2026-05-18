@@ -1,9 +1,8 @@
-import type { IpcStreamMessage } from "@praxis/client";
 import type { ActivityEvent, Logger } from "@praxis/core/types";
-import { redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { registerSubscriberStream } from "./stream-handler.js";
 
 /**
  * Streams activity events from `services.activity` to the renderer.
@@ -31,47 +30,9 @@ export function registerActivityHandlers(
     }),
   );
 
-  handle("praxis.activity.events.start", async (_event, streamId: string) => {
-    const streamLog = log.child({ component: "activity.events", streamId });
-    const controller = new AbortController();
-    activeAbortControllers.set(streamId, controller);
-    const eventsChannel = `praxis.activity.events.events.${streamId}`;
-
-    const push = (msg: IpcStreamMessage<ActivityEvent>) => {
-      const wc = webContentsGetter();
-      if (!wc || wc.isDestroyed()) return;
-      wc.send(eventsChannel, msg);
-    };
-
-    streamLog.info("activity.subscribe");
-    let unsubscribe: (() => void) | null = null;
-    try {
-      unsubscribe = services.activity.subscribe((event) => {
-        if (controller.signal.aborted) return;
-        push({ kind: "event", payload: event });
-      });
-
-      // Hold open until cancelled. We piggy-back on AbortController for that.
-      await new Promise<void>((resolve) => {
-        controller.signal.addEventListener("abort", () => resolve(), { once: true });
-      });
-
-      push({ kind: "done" });
-      streamLog.info("activity.unsubscribe");
-    } catch (err) {
-      streamLog.error("activity.error", { err: serializeErrorRedacted(err) });
-      push({
-        kind: "error",
-        error: redactSecrets(err instanceof Error ? err.message : String(err)),
-      });
-    } finally {
-      unsubscribe?.();
-      activeAbortControllers.delete(streamId);
-    }
-  });
-
-  on("praxis.activity.events.cancel", (_event, streamId: string) => {
-    activeAbortControllers.get(streamId)?.abort();
-    activeAbortControllers.delete(streamId);
-  });
+  registerSubscriberStream<ActivityEvent>(
+    { channelBase: "praxis.activity.events", log, webContentsGetter, activeAbortControllers },
+    { handle, on },
+    { subscribe: (cb) => services.activity.subscribe(cb) },
+  );
 }

@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template-step-1-helper-and-activity
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-stream-handler-template
 depends_on: []
@@ -191,3 +191,56 @@ simplest case (no filter, no per-event hook, no extra args).
 
 `git revert <commit>` — clean. The helper file becomes dead code until
 subsequent steps land; deleting it is free.
+
+## Implementation notes
+
+### Helper API as built
+
+`packages/desktop/electron/main/stream-handler.ts` (207 lines) exports:
+
+- `StreamHandlerDeps` interface (channelBase, log, webContentsGetter, activeAbortControllers)
+- `registerSubscriberStream<E, Args>` — Shape A (subscribe-callback)
+- `registerGeneratorStream<E, Args>` — Shape B (async-generator)
+
+The `HandleFn`/`OnFn` types from the design sketch were replaced by importing
+`IpcHandlerHelpers` from `./ipc-helpers.js` directly — this is the actual
+return type of `createIpcHelpers(log)`, so callers pass `{ handle, on }` from
+that and TypeScript narrows correctly.
+
+The `Args` generic default was changed from `[]` to `readonly []` to satisfy
+TS 6 strict array variance constraints. The `subscribe` and `iterate` callbacks
+receive `args` typed as `Args` via a `rest as unknown as Args` cast in the
+handler body (necessary because ipcMain's variadic `...args` is `unknown[]`).
+
+### Channel-name derivation
+
+From `channelBase`:
+- Start: `${channelBase}.start`
+- Push: `${channelBase}.events.${streamId}` (preserving double `.events.events.` for subscriber channels like activity)
+- Cancel: `${channelBase}.cancel`
+
+### Log-key derivation
+
+Log keys use `channelBase.replace(/^praxis\./, "")` as a prefix, yielding
+`"activity.events"` for activity. Log keys emitted:
+- Subscriber open: `"activity.events.subscribe"` (was `"activity.subscribe"`)
+- Subscriber close: `"activity.events.unsubscribe"` (was `"activity.unsubscribe"`)
+- Error: `"activity.events.error"` (was `"activity.error"`)
+
+No tests assert on these log-key strings, so the change is safe.
+
+### File LoC delta
+
+- `activity-channel.ts`: 77 → 38 lines (−39 lines, −51%)
+- `stream-handler.ts`: 0 → 207 lines (new file)
+
+### Test verification
+
+All 487 @praxis/desktop tests pass (33 test files):
+- `streaming-channel-error-redaction.test.ts` — all 6 tests pass unmodified
+- `misc-and-domain-channel-envelope.test.ts` — all 21 tests pass unmodified (including praxis.activity.dismiss)
+- Full suite: 487 passed, 0 failed
+
+Biome lint: `Checked 2 files in 5ms. No fixes applied.`
+
+Pre-existing typecheck errors (3 in UI files) confirmed unchanged — not caused by this work.
