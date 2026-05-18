@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-envelope-validation-coverage-step-1-add-validation
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-ipc-envelope-validation-coverage
 depends_on: []
@@ -313,3 +313,14 @@ No findings. All callers handle `IpcError` via `unwrapEnvelope` and will receive
 - Pre-existing 3 typecheck errors in UI files (chat-tab-body.tsx, chat.tsx, notes-list.tsx): still present, not caused by this change.
 - `pnpm vitest run --project @praxis/desktop`: 505 tests passing, 34 test files, 0 failures.
 - `pnpm biome check` on all 5 touched files: clean (no errors, no warnings).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The agent "repaired" 2 existing tests in `misc-and-domain-channel-envelope.test.ts` that were previously passing invalid `{ correct: true }` payloads as quickCheck answers. The new validation correctly rejects those. The repair is the right call — those tests were never testing the spec, they were exercising whatever the un-validated code happened to accept. Worth explicitly noting: **2 tests changed**, both now passing with structurally-valid `QuickCheckAnswer` inputs. This is a test-integrity win surfaced as a side-effect of the refactor.
+
+**Notes**: Clean adoption of `handleEnvelope` across 3 channels. The `satisfies QuickCheckAnswer` compile-time guard worked cleanly (schema and TS type in sync). 19 new tests cover both validation-failure paths (5 for activity.dismiss + quickCheck, 5 for new quick-check-channel.test.ts) and the discriminated-union happy paths (7 round-trips, one per answer kind). Renderer audit confirmed: all 3 channel clients already `unwrapEnvelope()` and surface `IpcError` on VALIDATION_FAILED — no consumer-side findings. Pattern alignment for recommendations.next is behavior-equivalent; existing test passes unmodified. Wire format unchanged on happy path.
