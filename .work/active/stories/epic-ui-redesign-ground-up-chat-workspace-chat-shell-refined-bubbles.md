@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-chat-workspace-chat-shell-refined-bubbles
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-chat-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -111,3 +111,25 @@ stays mounted — only the CSS visibility is toggled externally. Tests verified.
 - `packages/ui/src/components/__tests__/message-bubble-refined.test.tsx` (new)
 - `packages/ui/src/components/__tests__/chat-tab-body-session-head.test.tsx` (new)
 - `packages/ui/src/__tests__/chat-route.test.tsx` (3 test query updates)
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `styles.streaming` is referenced in `message.tsx:63` but has no matching
+`.streaming` rule in `message.module.css`. This is pre-existing (predates this story
+by several commits) — in test environments the CSS module mock stubs the name so the
+test passes, but at runtime the class attribute receives the literal string
+`"undefined"` when streaming. The cursor + eased-stream mechanism still works
+correctly (cursor element is shown via a separate `{streaming && ...}` conditional),
+so the missing class has no visible behavioral impact. Leaving as a nit; a follow-up
+story can add the class or remove the dead reference.
+
+**Notes**: Implementation matches the locked Refined Bubbles mock cleanly. All 25
+tests added by the story are well-structured and cover the behavioral contract
+(not implementation details). The `--head-tint` CSS variable pattern for the kicker
+dot is consistent with `ModeHeader`. `tab-body-isolation` is correctly left to the
+parent. Typecheck failures in `@praxis/desktop` (`courses-section.tsx`,
+`note-editor-page.tsx`) are pre-existing and unrelated to this story.
