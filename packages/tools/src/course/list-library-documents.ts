@@ -26,7 +26,7 @@ const OutputSchema = z.object({
 export const listLibraryDocumentsTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.list_library_documents",
   description:
-    "List ALL documents in the student's library, with flags showing which are already attached to the active course (`attachedToCurrentCourse`) and which are scoped to the current bootstrap session (`attachedToCurrentSession`). Use this when the user wants to add a previously-ingested document to the current course, or to see what's available across the library. In bootstrap mode (no course yet), attachedToCurrentCourse is always false. attachedToCurrentSession is true for documents the active bootstrap exploration is reading.",
+    "List ALL documents in the student's library, with flags showing which are already attached to the active course (`attachedToCurrentCourse`) and which are scoped to the current drafting session (`attachedToCurrentSession`). Use this when the user wants to add a previously-ingested document to the current course, or to see what's available across the library. In course-create mode (no course yet), attachedToCurrentCourse is always false. attachedToCurrentSession is true for documents the drafter is reading from.",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",

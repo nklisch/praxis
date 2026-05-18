@@ -56,7 +56,7 @@ const InputSchema = z.object({
     .optional()
     .describe(
       "Optional per-call cap on tool-call steps for the drafter agent. " +
-        "Capped server-side by the user-set bootstrap budget (defaults to 200). " +
+        "Capped server-side by the user-set drafter budget (defaults to 200). " +
         "Omit to use the user's configured budget. Provide a smaller number only " +
         "when you've narrowed scope (e.g. a single chapter) and want to fail fast.",
     ),

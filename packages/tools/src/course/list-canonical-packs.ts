@@ -26,7 +26,7 @@ const OutputSchema = z.object({
 export const listCanonicalPacksTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
   name: "course.list_canonical_packs",
   description:
-    "List available canonical knowledge packs (curated concept graphs for specific subjects). Use this in bootstrap mode when the student names a subject — if a matching pack exists, you can offer it as an alternative to extracting concepts from documents. If a pack's 'imported' field is true, it is ready to use with course.use_canonical_pack.",
+    "List available canonical knowledge packs (curated concept graphs for specific subjects). Use this in course-create mode when the student names a subject — if a matching pack exists, you can offer it as an alternative to having the drafter extract concepts from documents. If a pack's 'imported' field is true, it is ready to use with course.use_canonical_pack.",
   input: InputSchema,
   output: OutputSchema,
   tier: "grounded",

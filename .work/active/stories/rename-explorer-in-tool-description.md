@@ -1,7 +1,7 @@
 ---
 id: rename-explorer-in-tool-description
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -38,3 +38,36 @@ phrasing shift may subtly alter how the model selects/uses the tool.
    phrasing — full audit grep across `packages/tools/src/*/`.
 3. Spot-check one or two drafter/configurator sessions after the rename to
    verify the tool is still selected as expected.
+
+## Implementation notes
+
+### What landed
+
+Four model-facing strings updated across three files in `packages/tools/src/course/`:
+
+1. **`use-canonical-pack.ts:25`** — primary target. "running the bootstrap explorer" → "having the drafter build one from the student's materials"; "building from their own materials" → "authoring concepts and lessons from scratch".
+
+2. **`list-canonical-packs.ts:29`** — audit find. "in bootstrap mode" → "in course-create mode"; "alternative to extracting concepts from documents" → "alternative to having the drafter extract concepts from documents".
+
+3. **`list-library-documents.ts:29`** — audit find. "bootstrap session" → "drafting session"; "In bootstrap mode" → "In course-create mode"; "active bootstrap exploration is reading" → "drafter is reading from".
+
+4. **`start-drafting.ts:59`** — audit find. "user-set bootstrap budget" → "user-set drafter budget" (inside the `maxSteps` `.describe()` string).
+
+### Audit findings
+
+Grep across `packages/tools/src/*/` for "explorer" and "bootstrap":
+
+- `ctx.services.bootstrap` — service property name (runtime identifier, not user-facing). Not changed; the service is named `bootstrap` throughout `ServiceDeps` and it's not a model-facing string.
+- `list-library-documents.ts` lines 16–19, `start-drafting.ts` lines 105–147 — code comments (not sent to model). Not changed; left for a separate comment-sweep if desired.
+- `list-library-documents.ts:133` test comment "explorer sub-agent mode" — test file comment, not model-facing. Left as-is.
+- `start-drafting.ts:162` activity label "exploring" — runtime UI string for the activity rail strip, not a tool description. Left as-is.
+- No other model-facing `.describe()` or `description:` strings contained stale "explorer" or "bootstrap" phrasing.
+
+### Verification
+
+- `pnpm --filter @praxis/tools build` — clean
+- `pnpm --filter @praxis/tools typecheck` — clean
+- `pnpm lint` (workspace) — 529 pre-existing errors in mockups; zero new errors in `packages/tools`
+- `pnpm vitest run packages/tools/src` — 567 passed, 22 skipped (slow-test gates), 0 failures
+
+`pnpm --filter @praxis/tools test` errors with "non-existing directory: tests" — pre-existing infra issue (no `tests/` dir in the package); tests run fine via the workspace runner.
