@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat-tool-call-entry
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-drafter-configurator-chat
 depends_on:
@@ -82,3 +82,13 @@ to the audit table, this can be simplified to a direct join.
 (branded number). The prop on `ToolCallEntry` is typed accordingly.
 The desktop package's `exactOptionalPropertyTypes: true` required
 explicit conditional spreading to avoid type errors.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `buildCallIdToActionMap()` is re-computed on every render (no `useMemo`). For authoring sessions with small item counts this is fine; worth memoizing if pane render frequency increases. The runtime casts `(entry as { callId: string })` and `(a as { firstSeenAt?: number })` inside `buildCallIdToActionMap` are redundant — the discriminated union already types these fields on the `tool-entry` branch.
+
+**Notes**: Component correctly handles all four `RestoreResult.reason` values. `Modal` primitive used correctly with `ariaLabel` and `maxWidth`. `isRestored` logic correctly combines the `restoredAt` prop (server state) and `localRestored` (optimistic local state) with no double-show issue. 12 tests cover all props, all verdict states, all modal flows (open / cancel / confirm), and both success + error outcomes.
