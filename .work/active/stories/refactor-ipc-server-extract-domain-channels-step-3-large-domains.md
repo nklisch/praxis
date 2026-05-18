@@ -1,7 +1,7 @@
 ---
 id: refactor-ipc-server-extract-domain-channels-step-3-large-domains
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-ipc-server-extract-domain-channels
 depends_on: [refactor-ipc-server-extract-domain-channels-step-2-medium-domains]
@@ -145,3 +145,54 @@ If session-channel's streaming move surfaces an unexpected dependency on
 something in the ipc-server.ts closure (e.g., a particular log child,
 shared schema, or AbortController lifecycle assumption), document and
 adapt. If it can't be cleanly extracted, append `## Implementation discovery`, set stage back to `drafting`, commit `revisit: ...`.
+
+## Implementation notes
+
+### Domains extracted
+
+- **`artifacts-channel.ts`** (168 LoC): 12 handlers, all non-streaming.
+  `courseIdSchema` moved here (only used by artifacts now). `LessonId` and
+  `CourseId` type imports not needed (all casts use `as any`). Fixed
+  `lessonAssessments` biome-ignore placement (comment must be on the line
+  directly before the line with `any`, not across a line break).
+
+- **`author-channel.ts`** (537 LoC): 25 handlers, all non-streaming.
+  `requireUnlocked()` closure defined locally (same pattern as config-channel
+  in step 2). `previewPrompt` god-function moved verbatim. `LessonId` added to
+  top-level type imports (previously inline). `Timestamp` kept as inline import
+  for `listConfiguratorActions` (matches original ipc-server.ts pattern).
+
+- **`session-channel.ts`** (180 LoC): 7 invoke handlers + 1 streaming channel
+  (`praxis.session.send`). `registerGeneratorStream` with `activeAbortControllers`
+  passed through. No closure dependencies on ipc-server.ts — clean seam.
+  Streaming cancel (`praxis.session.send.cancel`) registered via `on` inside
+  `registerGeneratorStream`; cleanup in ipc-server.ts `removeAllListeners` call
+  continues to handle teardown (no regression — prior domain files also don't
+  clean up individually).
+
+### `getStudentId` regressions this step
+
+11 total inline `brandId<"StudentId">(services.getDefaultStudentId()) as StudentId`
+across the 3 new files (6 in artifacts, 3 in author, 2 in session). Future
+`student-id.ts` helper can consolidate all inlines across steps 1-3.
+
+### `registeredChannels` tracking removal
+
+The original ipc-server.ts tracked inline handles in `registeredChannels[]` and
+called `ipcMain.removeHandler(channel)` in cleanup. After steps 1-2, all the
+already-extracted domain channels were NOT tracked (domain files don't use the
+tracking wrapper). With this step, no inline handles remain, so
+`registeredChannels` was simply removed. Cleanup only calls `removeAllListeners`
+for streaming cancel channels — same as before for those channels.
+
+### Final ipc-server.ts state
+
+**183 LoC** — pure orchestration. Imports, `IpcHandlerResult` interface,
+`registerIpcHandlers` function body with 22 `register*Handlers(...)` calls plus
+the cleanup closure and `return`.
+
+### Baseline confirmation
+
+- Pre-existing typecheck: 3 errors in UI files (unchanged)
+- Lint: clean on all 4 new/modified files
+- Tests: 493 tests across 31 files, all pass
