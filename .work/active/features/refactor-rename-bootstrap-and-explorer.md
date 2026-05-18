@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-bootstrap-and-explorer
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, naming, curriculum, tools]
 parent: null
 depends_on: []
@@ -467,3 +467,54 @@ dependencies — earlier steps touch files that later steps rename.
   "bootstrap" in their ids. Historical substrate records.
 - Renaming `docs/designs/phase-16-bootstrap-explorer.md`. Historical phase
   design doc.
+
+## Implementation Run Summary
+
+All 5 child stories implemented and advanced to `stage: review`. Total of
+5 implementation commits plus 1 follow-up typecheck fix on `course-create.tsx`.
+
+| Step | Story | Commit | Notes |
+|------|-------|--------|-------|
+| 1 | `refactor-rename-step-1-explorer-to-drafter` | `b39a4bf` | Internal Explorer → Drafter rename: 4 file renames, 4 exported-symbol renames, 11 log keys, ~6 callers/comments updated |
+| 2 | `refactor-rename-step-2-tool-rename` | `ccc28f4` | `course.start_exploration` → `course.start_drafting`: 2 file renames, `startExplorationTool` → `startDraftingTool`, ~31 files with the string flip; also fixed a latent `exactOptionalPropertyTypes` violation exposed by the rename |
+| 3 | `refactor-rename-step-3-mode-id` | `7c9b2e4` | Mode-id atomic flip — `"bootstrap"` → `"course-create"` (HYPHEN, not underscore; matches `study-skills` precedent). 6 file renames, 3 symbol renames, ~60 production + ~22 test files flipped, `--tint-bootstrap` → `--tint-course-create` across 10 files, `drizzle/0023_rename-bootstrap-mode-to-course-create.sql` migration |
+| 4 | `refactor-rename-step-4-service-and-ipc` | `6db4fa0` | `BootstrapService` → `CourseCreateService`, directory + IPC channel + config_kv key rename. ~93 files changed; new `drizzle/0024_rename-bootstrap-config-key.sql` migration. IPC domain uses camelCase (`praxis.courseCreate.drafts.events.*`) to match existing IPC conventions |
+| 5 | `refactor-rename-step-5-foundation-docs` | `c6aebf3` | Rolled docs forward — VISION, SPEC, ARCHITECTURE, CURRICULUM, UX, ROADMAP, ONBOARDING, CONTRACT, v1-ship-checklist, CLAUDE.md, `.claude/rules/patterns.md`. Zero "previously" violations. Category-B preserved: a few CS-sense "bootstrap" usages and the actual code discriminator value `"bootstrapped"`. |
+
+### Naming-convention decisions made during implementation
+
+- **Mode-id storage value**: `"course-create"` (hyphen) — overrides the design's `"course_create"` to match the `study-skills` mode-id convention and the `/course-create` route path.
+- **`config_kv` key value**: `"course-create"` (matches mode id).
+- **IPC channel domain segment**: `courseCreate` (camelCase) — matches existing IPC conventions like `praxis.config.bootstrapConfig`.
+- **TypeScript identifiers**: PascalCase types/classes (`CourseCreateService`), camelCase functions/RPC (`courseCreateConfig`), SCREAMING_SNAKE_CASE constants (`COURSE_CREATE_CONFIG_KEY`).
+- **File and directory names**: kebab-case throughout.
+
+### Cross-cutting deviations
+
+- **Drizzle `tabs` table**: Step 3's design proposed `UPDATE tabs SET mode_id = …`, but the `tabs` table has no `mode_id` column (it joins to `sessions` for that). The migration correctly omitted that statement.
+- **`client.author.bootstrap()`**: the architecture-diagram line was REMOVED rather than renamed; the method remains a placeholder that throws, and the `createCourse` placeholder is already documented.
+- **Step 1 touched `start-exploration.ts`** (caller of `runConceptExplorer`) — Step 2 then renamed that file. No conflict because the file rename came strictly after Step 1's edits to it.
+
+### Verification status
+
+- **Typecheck**: baseline preserved (3 pre-existing `exactOptionalPropertyTypes` errors in `chat-tab-body.tsx`, `chat.tsx`, `notes-list.tsx`). Zero new errors introduced.
+- **Tests**: 4481 passing, 23 skipped (slow tests behind `PRAXIS_RUN_SLOW_TESTS=1`), 0 failures.
+- **Lint**: baseline preserved (524 errors, all in `.mockups/**.html` files).
+- **DB migrations**: `0023` (mode_id backfill) and `0024` (config_kv key rename) both apply cleanly to scratch DB.
+- **Final residual checks** (all return zero results outside `.work/`, `.mockups/`, `docs/designs/`, `docs/refactors/`, build artifacts):
+  - `BootstrapService|BootstrapConfig|BOOTSTRAP_CONFIG_KEY|BootstrapTabBody|useActiveBootstrapSession|useBootstrapBudget`
+  - `praxis\.bootstrap\.` (IPC)
+  - `@praxis/curriculum/bootstrap` (import path)
+  - `*bootstrap*` filenames in `packages/`
+  - `tint-bootstrap` (CSS)
+  - `start_exploration|startExplorationTool`
+  - `runConceptExplorer|EXPLORER_SYSTEM_PROMPT`
+  - "bootstrap mode|bootstrap session|bootstrap explorer|bootstrap agent|the explorer" in `docs/` and `CLAUDE.md`
+
+### Out of scope (kept as-is — pre-existing, separate concerns)
+
+- 3 pre-existing typecheck errors in UI (chat-tab-body, chat route, notes-list). Tech debt unrelated to this refactor.
+- 524 pre-existing lint errors in `.mockups/**.html`. Mockup-file lint debt.
+- Historical `.work/archive/`, `.work/releases/`, `docs/designs/`, migration SQL — substrate / phase history.
+- The electron `bootstrap()` lifecycle function in `packages/desktop/electron/main/index.ts` (generic CS usage).
+
