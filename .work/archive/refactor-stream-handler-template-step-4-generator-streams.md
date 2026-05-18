@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template-step-4-generator-streams
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-stream-handler-template
 depends_on: [refactor-stream-handler-template-step-1-helper-and-activity]
@@ -195,3 +195,15 @@ Zero test modifications. All 475 desktop main tests pass unmodified, including:
 `services.session.send` returns `AsyncIterable<unknown>` cleanly. No design
 flaw discovered. `services.memory.episodic` returns `AsyncIterable<EpisodicEvent>`
 cleanly. Both channel conversions proceeded without needing the escape hatch.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Observability fields dropped (`messageLength`, `errorCount`) per design. Intentional, documented, recoverable via log aggregation.
+- Split into 3 commits (ingest, session.send+memory.episodic, story transition) per the per-channel-rollback recommendation in the story body. Clean isolation.
+
+**Notes**: Three Shape B adoptions. ipc-server.ts dropped 75 LoC across its two streaming blocks; ingest-channel.ts dropped 42 LoC. The `services.session.send` and `services.memory.episodic` return types satisfied `AsyncIterable<E>` cleanly — no shape mismatch. The signal cascade works for both producers that accept it (session.send, ingest) and the one that doesn't (memory.episodic — relies on the helper's internal `signal.aborted` check between events). Critical streaming tests all pass: `streaming-channel-error-redaction.test.ts` (6), `ipc-server.envelope-migration.test.ts` (26), `ipc-server.cancel.test.ts` (3). Cancel semantics preserved on the hot tutor-session path.
