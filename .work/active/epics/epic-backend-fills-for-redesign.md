@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign
 kind: epic
-stage: review
+stage: done
 tags: []
 parent: null
 depends_on: []
@@ -167,6 +167,16 @@ time.
 ## Children complete (2026-05-18)
 
 All 8 child features at `stage: done`. Epic advanced `implementing → review`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All 8 child features reviewed and approved individually during implementation. Aggregate review confirms: the brief's promise of eighteen capability gaps resolved across eight features is delivered end-to-end. Decomposition held — the two feature-bundles (`note-annotations-and-filters`, `ui-completion-bundle`) shipped as coherent units. The critical-path dependency (`snapshot-restore` → `drafter-configurator-chat`) resolved cleanly; snapshot-restore was approved first, the revert affordance landed in drafter-configurator-chat as designed. Foundation-doc alignment: `ARCHITECTURE.md` references `RecommendationServiceImpl`, `SubAgentRegistry`, `StatusStrip`, and `TopNav` correctly; `ArtifactSnapshotService` was explicitly reviewed and deemed above the architecture doc's layer of abstraction (not a drift). Epic delivers its brief. Advancing to done.
 
 ## What this epic does NOT cover
 

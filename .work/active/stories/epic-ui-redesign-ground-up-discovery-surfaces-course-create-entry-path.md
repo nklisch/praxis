@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces-course-create-entry-path
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-discovery-surfaces
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -96,3 +96,19 @@ renders `BootstrapTabBody` without explicitly overriding `drafts` doesn't throw.
 `client.bootstrap.confirmDraft`. Confirmation flows through the agent chat
 (`course.confirm_draft` tool) so the action appears in the transcript and the
 agent can add context. The UI only sends a message; the agent closes the loop.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- **Batch ingestion status never transitions to "ready"** — `course-create.tsx` syncs ingestion state from `useIngestion` but only handles `status === "done"`, which is emitted by the single-file `startPick` path. The browse button calls `startPickBatch("files")`, which emits `ingesting` per file then `batch_summary` when all complete — `"done"` is never emitted. Result: files attached via the browse button stay stuck at "indexing" forever and never show "ready". Visual feedback is broken for the primary file-attachment path. The flow still works (CTA is not gated on "ready"), but the per-file status display does not match the locked mock. Parked as `epic-ui-redesign-ground-up-discovery-surfaces-course-create-ingestion-status-fix`.
+- **Context textarea value is collected but never passed to the session** — `context` state is captured and displayed but not forwarded to `openSessionInTab` or as an initial message to the bootstrap session. The locked mock annotation says it "improves Praxis's draft". Whether this is an intentional scope cut (agent can infer from document content) or an oversight is not documented in the implementation notes. Parked as a backlog item for explicit decision.
+
+**Nits**:
+- `CourseCreateRoute` component has no unit tests despite "Tests cover each route transition" being implementation step 6. The library-CTA navigation test and confirm-card tests cover the bookends; the upload screen itself (drop zone interaction, `handleStart`, `handleRemove`) is untested. Not blocking given the overall flow is covered, but leaves a gap.
+- `prefillMessage` guard uses content equality (`sentPrefillRef.current === prefillMessage`) rather than a stable identity — if the same confirmation message is used twice in the same session, the second click would be silently dropped. Acceptable given "Confirm and open" is a one-shot action per draft session.
+
+**Notes**: Core flow is solid — CTA → navigate → upload screen → bootstrap session → confirm card → prefill → finalization → teach session. The `prefillMessage` / `onPrefillSent` pattern in `AuthoringChatPane` is clean and correctly guarded against double-send. The `materializingRef` guard on the finalization `useEffect` prevents double-open on rapid events. The design decision to route confirmation through the agent (rather than a direct `client.bootstrap.confirmDraft`) is reasonable and documented. Two important-level findings filed as items; neither blocks the primary happy path.

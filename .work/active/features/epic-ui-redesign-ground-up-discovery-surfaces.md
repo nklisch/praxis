@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -10,7 +10,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Discovery Surfaces — Library, Progress Map, Concept-Maps Index

@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on: [epic-ui-redesign-ground-up-design-system]
@@ -170,3 +170,35 @@ the new chrome).
   modal interaction; status strip only surfaces inline updates.
 - **First-run flow mock pass** is an additional design step; the
   story can be deferred without blocking the rest.
+
+## Children complete (2026-05-18)
+
+Seven child stories at `stage: done`:
+- `root-layout-top-nav` (archived) — Approve (pass 2)
+- `status-strip` (archived) — Approve with comments
+- `tabs-strip` — Approve (pass 2)
+- `tabs-strip-fix-ux-doc-drift` — Approve
+- `theme-toggle-mount` — Approve
+- `first-run-flow` — Approve with comments
+- `root-layout-top-nav-doc-drift` — Approve
+
+One child parked to backlog (non-blocking):
+- `first-run-flow-engine-select-label` — a11y fix for onboarding engine picker
+  fields; parked at `stage: implementing` in `.work/backlog/`. Not a blocker
+  for feature delivery; the flow works and is visually correct.
+
+Feature advanced `implementing → review`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- **`first-run-flow-engine-select-label` remains open** — the engine `<select>` and API key `<input>` in `OnboardingFlow`'s `EngineStep` lost their programmatic label association when `<label>` wrappers were replaced with `<div>` + `<span>` for mono-kicker styling. The item is in backlog at `stage: implementing` with a clear fix path (`htmlFor` + `id`). Should be resolved before the next a11y audit. Tracked in `epic-ui-redesign-ground-up-app-shell-first-run-flow-engine-select-label`.
+
+**Nits**:
+- Feature acceptance criteria checkboxes remain unchecked in the feature body; individual story reviews confirm all criteria are met in code. Minor documentation gap only.
+
+**Notes**: All seven stories were individually reviewed and approved (two required two passes to clear foundation-doc drift blockers — both cleared cleanly by companion doc-drift stories). The aggregate feature delivers: top horizontal nav (five surface links + tabsSlot), near-invisible status strip (ambient progress, fades when idle), italic deck-line tabs strip in the running head, theme toggle (auto/light/dark, `data-theme` on `<html>`, persisted), and first-run flow rebuild (welcome → engine picker → course picker, Studio Quiet tokens, step-progress indicator). No cross-cutting concerns visible across the seven stories. `ActivityRail` removal from `RootLayout` was correctly handled: it was removed in the root-layout-top-nav story, and both `ARCHITECTURE.md` and `UX.md` were rolled forward by dedicated doc-drift stories. Feature is clean to advance to done.
