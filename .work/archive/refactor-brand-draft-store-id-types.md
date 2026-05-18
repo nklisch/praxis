@@ -1,7 +1,7 @@
 ---
 id: refactor-brand-draft-store-id-types
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -122,3 +122,14 @@ is the point).
 - `packages/core/src/services/__tests__/course-create-service.units.test.ts` — added `DraftId` import; branded 3 `store.load(draftId)` calls
 
 **Baseline confirmed:** typecheck passes (0 new errors beyond pre-existing 3 UI-file errors); 52/52 tests pass across 5 affected test files; biome lint clean on all changed files; `grep 'draftId: string\|courseId: string'` returns 0 results in target files.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The per-site `brandId<"DraftId">(input.draftId) as DraftId` cast at every `store.load()` call could be tidied by branding once at the top of each method that uses `input.draftId` more than once. The current per-site pattern matches the existing codebase convention (`flashcards-service.ts:66`) — acceptable as-is; left as a style preference for a future cleanup if the cast verbosity becomes noisy.
+
+**Notes**: Type safety improved at the port boundary (`DraftStore` interface + `SqliteDraftStore` impl + `draft-stream.ts` discriminated union). Callers in `course-create-service.ts` reapply the brand at each call (string → DraftId at the trust boundary), which is the established pattern when methods receive raw-string inputs from IPC. 5 test files updated to brand literal-string test ids. 52/52 tests pass; typecheck clean (no new errors beyond pre-existing UI baseline). The tightened port surface will catch real type drift in any future caller that forgets to brand a draft id — that's the value.
