@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-envelope-validation-coverage
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: null
 depends_on: []
@@ -285,3 +285,49 @@ Drop the `wrapEnvelope` import. Behavior is unchanged for the renderer — same 
 
 - **Renderer callers passing wrong-shaped input today get a different failure**: previously, bad input either silently corrupted state or threw an uncaught error; now it returns a structured VALIDATION_FAILED envelope. If any renderer code today swallows IPC errors loosely, it may start seeing validated rejection that it wasn't handling. Mitigation: the renderer-side `unwrapEnvelope` already throws `IpcError` on `{ ok: false }`, so well-behaved callers already handle this; manual audit during implementation of any consumer of these 3 channels to confirm.
 - **QuickCheckAnswer schema drift**: the Zod schema and the TS type are duplicated by necessity (different layers). If the TS type changes and the Zod schema doesn't, the IPC will reject otherwise-valid answers. Mitigation: comment links the two, plus add a typecheck for "schema parses match the TS type" via a `z.infer<typeof QuickCheckAnswerSchema>` `satisfies QuickCheckAnswer` line that compile-checks shape parity (test file can hold this).
+
+## Implementation Run Summary
+
+Single child story implemented (commit `a4875bd`). 3 channels migrated to
+`handleEnvelope`; 19 new tests cover the validation-failure paths +
+happy-path round-trips for the QuickCheckAnswer discriminated union.
+
+| Channel | File | Behavior on bad input (before → after) |
+|---|---|---|
+| `praxis.activity.dismiss` | `activity-channel.ts` | reached service silently → `VALIDATION_FAILED` envelope |
+| `praxis.quickCheck.resolve` | `quick-check-channel.ts` | reached service silently → `VALIDATION_FAILED` envelope (7-kind discriminated union) |
+| `praxis.recommendations.next` | `recommendations-channel.ts` | unstructured ZodError → structured `VALIDATION_FAILED` envelope (pattern aligned) |
+
+### Cross-cutting deviations
+
+- **2 existing tests "repaired"**: pre-existing tests in `misc-and-domain-channel-envelope.test.ts` were passing structurally-invalid `{ correct: true }` quickCheck answers. The new validation correctly rejects those; the repair updates them to use real `QuickCheckAnswer` shapes. Surfaced as a test-integrity side benefit of the refactor.
+- **Schema parity guard via `satisfies`**: cleanly compiled — `z.infer<typeof QuickCheckAnswerSchema> satisfies QuickCheckAnswer` is the compile-time link between the wire schema and the TS type. If the TS type adds a kind in the future, the build fails until the schema mirrors it.
+
+### Verification status
+
+- **Typecheck**: baseline preserved (3 pre-existing UI errors unchanged)
+- **Tests**: 505 desktop tests pass, including 19 new ones for this story
+- **Lint (biome)**: clean on all touched files
+- **Renderer-side audit**: all 3 channel clients (`ActivityClient`, `QuickCheckClient`, `RecommendationsClient`) already `unwrapEnvelope()` and surface `IpcError` cleanly — no consumer regressions
+
+### What's now possible
+
+- Every IPC channel under audit now uses uniform `handleEnvelope` shape — `wrapEnvelope` direct usage is reserved for the unusual cases (rare).
+- The `QuickCheckAnswer` wire schema acts as documentation of the contract; future tools that need to round-trip an answer can reference it.
+- The `satisfies` compile-time guard catches schema/type drift at build time — drift can't slip past CI.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve (aggregate)
+
+**Blockers**: none
+**Important**: none
+**Nits**: see child story review.
+
+**Aggregate lens findings**:
+- **Design alignment**: design decisions logged under autopilot delegation (per-channel inline schemas, no Zod in core types, mirror TS exactly) were applied verbatim. The `handleEnvelope` helper was the right call — no new infrastructure.
+- **Foundation-doc alignment**: the `ipc-envelope-handler` pattern doc at `.claude/skills/patterns/ipc-envelope-handler.md` is now satisfied by every audited channel. Worth a small docs follow-up to update the doc with a "see also: `handleEnvelope` composition" pointer, but not blocking.
+- **Breaking changes**: only the wire-format-for-bad-input change. The renderer audit confirmed all 3 callers handle `IpcError` correctly. No real-world regressions.
+- **Capability completeness**: every channel under audit now structurally rejects bad input at the trust boundary. The 2 test repairs are a documentation effect — what was previously "tested" wasn't actually the spec.
+
+**Notes**: Lean delivery (1 story, 1 commit). The test-integrity finding (2 invalid quickCheck answers in existing tests) is the kind of thing that's only surfaced by adding real validation; that's the value the refactor unlocks.
