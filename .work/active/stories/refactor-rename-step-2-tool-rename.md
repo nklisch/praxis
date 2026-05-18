@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-2-tool-rename
 kind: story
-stage: review
+stage: done
 tags: [refactor, naming, tools]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: [refactor-rename-step-1-explorer-to-drafter]
@@ -187,3 +187,13 @@ grep -rn '"course\.start_drafting"' packages/ --include="*.ts" --include="*.tsx"
 - `packages/ui/src/routes/chat.tsx:244` — same
 - `packages/ui/src/routes/workspace/notes-list.tsx:125` — `resultCount: number | undefined`
 - Lint errors in `.mockups/**.html` — 524 total (pre-existing mockup lint debt)
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Wire-level atomicity preserved — tool-name string flips across tool definition, label registry, both mode `toolNames` arrays, three prompt fragments, posture and toolnames tests (including the regex `/course\.start_exploration/g` → `/course\.start_drafting/g`), Zod field descriptions, sub-agent-block UI dispatch, and 11 ancillary files with comments/JSDoc. `startExplorationTool` → `startDraftingTool` symbol rename caught by tsc. Two adjacent improvements landed cleanly: a `tsconfig.electron.json` path entry for `@praxis/tools/course/start-drafting` (needed for `tsgo` Bundler resolution when no cached `.d.ts` exists), and a fix for a latent `exactOptionalPropertyTypes` violation exposed by the rename. Pre-existing historical episodic events retain the old tool name — correct audit behavior. Tests pass; typecheck baseline preserved.
