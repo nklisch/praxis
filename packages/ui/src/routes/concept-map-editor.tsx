@@ -74,7 +74,7 @@ const TOOL_GROUPS: readonly (readonly ToolDef[])[] = [
     { id: "select", glyph: "↘", label: "select", title: "Select (V)" },
     { id: "text", glyph: "T", label: "node", title: "Concept node (T)" },
     { id: "arrow", glyph: "⟶", label: "edge", title: "Edge (A)" },
-    { id: "eraser", glyph: "✎", label: "text", title: "Free text" },
+    { id: "text", glyph: "✎", label: "text", title: "Free text" },
   ],
   [
     { id: "draw", glyph: "✎", label: "pen", title: "Sketch / pen (P)" },

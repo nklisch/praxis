@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-concept-map-editor-restyle
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on:
@@ -105,3 +105,16 @@ label via `shapeUtil.getText` and stores `{ shapeId, label }` in
   (`exactOptionalPropertyTypes` mismatches) — pre-existing.
 - `tool-call-entry.test.tsx`: duplicate text element — pre-existing
   untracked file failing before this story landed.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments (bug fixed inline)
+
+**Blockers**: none (1 blocker fixed inline — see notes)
+**Important**: none
+**Nits**: `undrawnConcepts` slice is hardcoded to `slice(0, 8)` — fine for now but worth a "show all" affordance when the count grows.
+
+**Notes**: One correctness bug found and fixed inline:
+- `TOOL_GROUPS` line 77 had `id: "eraser"` for the "Free text" entry — clicking that button activated the eraser tool. Fixed to `id: "text"`. Both "Concept node" and "Free text" now call `setCurrentTool("text")`; the UI distinction is labeling only, matching tldraw's single text-tool reality.
+
+Layout matches brief: three-column `56px | 1fr | 320px`, left tools rail with 7 tools in three groups, canvas with `ConceptLinkOverlay` + legend, right hints panel permanently visible. `RipplesPanel` correctly wired with `elementId` + `activeCandidateId`. Selected-node tracking via `editor.store.listen` + `getSelectedShapeIds()` is correct and debounced-safe. Candidate matching memoized via `useMemo`. 12 tests cover layout, rename flow, version count, `RipplesPanel` mount.
