@@ -1,10 +1,13 @@
 /* ── Composer ─────────────────────────────────────────────────────────────── */
+/* Restyle per locked Refined Bubbles mock (option-4.html).
+ * Italic serif textarea · accent send button · mono hint strip below. */
 
 .composerWrapper {
   display: flex;
   flex-direction: column;
+  padding: 16px 32px 24px;
   border-top: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary);
   flex-shrink: 0;
 }
 
@@ -13,10 +16,12 @@
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.25s ease;
+  margin-bottom: 0;
 }
 
 .sketchOpen {
   max-height: 400px; /* 320px canvas + action row + padding */
+  margin-bottom: 10px;
 }
 
 /* Sketch-attached indicator bar */
@@ -24,9 +29,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.25rem 1rem;
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  padding: 0.25rem 0;
+  margin-bottom: 6px;
   font-size: 0.8rem;
   color: var(--color-accent);
 }
@@ -46,30 +50,34 @@
   opacity: 1;
 }
 
-/* The actual form row */
+/* The composer field — card background with strong border, flex row */
 .form {
   display: flex;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  gap: 10px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
 }
 
+/* Italic serif textarea — no inner border, transparent bg */
 .input {
   flex: 1;
-  background: var(--color-bg-primary);
+  border: 0;
+  background: transparent;
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-  resize: none;
-  font-family: inherit;
+  font-family: var(--font-serif);
+  font-size: 16px;
   line-height: 1.5;
+  font-style: italic;
+  resize: none;
   outline: none;
-  transition: border-color 0.15s;
+  min-height: 22px;
 }
 
-.input:focus {
-  border-color: var(--color-accent);
+.input::placeholder {
+  color: var(--color-text-tertiary);
+  font-style: italic;
 }
 
 .input:disabled {
@@ -77,7 +85,7 @@
   cursor: not-allowed;
 }
 
-/* Button group — sketch toggle + send */
+/* Button group — sketch toggle + send, aligned to bottom of flex */
 .buttonGroup {
   display: flex;
   flex-direction: column;
@@ -86,16 +94,25 @@
   justify-content: flex-end;
 }
 
+/* Accent send button */
 .sendButton {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: var(--radius-md);
-  padding: 0.5rem 1.25rem;
-  font-weight: 600;
-  transition: opacity 0.15s;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color 0.15s;
+  align-self: flex-end;
+}
+
+.sendButton:not(:disabled):hover {
+  background: var(--color-accent-hover);
 }
 
 .sendButton:disabled {
@@ -103,8 +120,15 @@
   cursor: not-allowed;
 }
 
-.sendButton:not(:disabled):hover {
-  opacity: 0.85;
+/* Mono hint strip */
+.hints {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding-top: 6px;
 }
 
 /* "✎ Sketch" toggle button */
@@ -112,7 +136,7 @@
   background: transparent;
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: 0.3rem 0.6rem;
   font-size: 0.9rem;
   cursor: pointer;

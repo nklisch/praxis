@@ -59,7 +59,8 @@ export const COPY = {
     unknown: "Something didn't go through. Try again, or tell me what you saw.",
   },
   composer: {
-    placeholder: "Type a message… (Enter to send, Shift+Enter for newline)",
+    placeholder: "answer · or ask the tutor a question",
+    hints: "enter send · shift+enter newline · ⌘⇧k sketch",
     sketchToggleAriaLabel: "Open sketch input",
     sketchSubmitButton: "Submit sketch",
     sketchCancelButton: "Cancel",

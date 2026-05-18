@@ -123,10 +123,11 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
             </button>
           )}
           <button type="submit" className={styles.sendButton} disabled={disabled || !value.trim()}>
-            Send
+            Send ↵
           </button>
         </div>
       </form>
+      <div className={styles.hints}>{COPY.composer.hints}</div>
     </div>
   );
 });
