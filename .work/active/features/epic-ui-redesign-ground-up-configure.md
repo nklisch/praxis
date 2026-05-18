@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -220,3 +220,13 @@ Story 6 independent.
 ## Children complete (2026-05-18)
 
 All 6 child stories at `stage: done`. Feature advanced `implementing → review`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none (all important findings were triaged at child-story level into backlog items)
+**Nits**: none
+
+**Notes**: All six child stories delivered and approved. The Canvas + Side Chat Option 5 decomposition was fully realized: shell rebuild, four sub-surface canvases (course / gates / prompts / memory), and entry-flow polish. Three important findings from child reviews are already tracked as backlog items — `configure-tab-button-change-dot-test-coverage`, `configure-gates-inspector-strip-pending-minscore`, `configure-memory-tab-local-empty-state`, and `fix-configure-prompt-tab-dirty-key-mismatch`. Feature delivered its brief: configurator-facing authoring surfaces in the Canvas + Side Chat layout with `AuthoringChatPane` on the right, per the locked Option 5 mock. Foundation docs not affected. Parent epic (`epic-ui-redesign-ground-up`) has 4 of 6 features still active — not ready to advance.

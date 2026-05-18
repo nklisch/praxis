@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace
 kind: feature
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -10,7 +10,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Workspace — Notes, Flashcards, Sketch, Review
@@ -254,9 +254,13 @@ Stories largely parallel. Sequencing notes:
 
 ## Acceptance Criteria
 
-- [ ] Catalogue renders + filters work end-to-end.
-- [ ] All five note-format editors match their locked mocks.
-- [ ] Concept-map editor renders three-state + canonical hints panel.
-- [ ] Inline-panel infrastructure surfaces from the chat composer.
-- [ ] Ask-tutor-from-note button spawns sessions per the locked flow.
-- [ ] All quality checks green.
+- [x] Catalogue renders + filters work end-to-end.
+- [x] All five note-format editors match their locked mocks.
+- [x] Concept-map editor renders three-state + canonical hints panel.
+- [x] Inline-panel infrastructure surfaces from the chat composer.
+- [x] Ask-tutor-from-note button spawns sessions per the locked flow.
+- [x] All quality checks green.
+
+## Children complete (2026-05-18)
+
+All 10 child stories at `stage: done`. Feature advanced `implementing → review`.

@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat-course-create-tab-body
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-drafter-configurator-chat
 depends_on:
@@ -42,12 +42,12 @@ Re-shape `bootstrap-tab-body.tsx` to mount Canvas (draft preview) +
 
 ## Acceptance criteria
 
-- [ ] Course-create mode renders Canvas + Side Chat layout per the
+- [x] Course-create mode renders Canvas + Side Chat layout per the
       mock.
-- [ ] Tool calls render via `<ToolCallEntry>` with revert when
+- [x] Tool calls render via `<ToolCallEntry>` with revert when
       `actionId` available.
-- [ ] Sub-agent block renders inline.
-- [ ] All quality checks green.
+- [x] Sub-agent block renders inline.
+- [x] All quality checks green.
 
 ## Implementation notes
 
@@ -83,3 +83,16 @@ Tests rewritten in `bootstrap-tab-body-layout.test.tsx` to guard:
 - canvas title shows when draft present
 
 All 1551 UI tests pass; lint clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `DraftCanvas` passes `proposed` typed as `NonNullable<ReturnType<typeof useDrafts>["current"]>["proposed"]` — this is a deeply nested inferred type. A named `ProposedDraft` alias would be cleaner (the types it destructures — `ProposedUnit`, `ProposedLesson`, `ProposedLessonAssessmentEntry` — are already imported, so the parent type exists conceptually).
+- `unit.summative ? \`${unit.summative.kind}-after\` : ""` emits an empty string in the `<span className={styles.unitMeta}>` when no summative — the span renders with orphan whitespace. A conditional render (`{unit.summative && ...}`) would be cleaner, but harmless.
+- `_mockCurrentDraft` is a module-level mutable in the test file. This is an established pattern in the test suite for parameterising mocked hooks and is explicitly reset in `afterEach` — acceptable.
+
+**Notes**: Layout matches the locked mock: `draftCanvas` (flex 1) left + `chatPanel` (420px) right. `<AuthoringChatPane mode="bootstrap">` is correctly passed `sessionId`, which the pane uses for IPC session scoping — no extra wiring needed as documented. `DraftCanvas` handles both the units path (`proposedUnits.length > 0`) and the flat fallback cleanly. `LessonAssessmentPills` decorates lesson rows when assessments are present. Tests guard all structural and behavioral acceptance criteria (7 layout tests + unit/lesson path). Acceptance criteria all met. Advancing to `stage: done`.

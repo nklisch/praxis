@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Drafter & Configurator chat surfaces
@@ -130,13 +130,13 @@ revert IPC. Internal sequencing:
 
 ## Acceptance Criteria
 
-- [ ] `AuthoringChatPane` mounts under both configure and course-create.
-- [ ] Tool calls render as `<ToolCallEntry>` with revert button when
+- [x] `AuthoringChatPane` mounts under both configure and course-create.
+- [x] Tool calls render as `<ToolCallEntry>` with revert button when
       `actionId` available.
-- [ ] `<SubAgentBlock>` renders inline marginalia with live step events.
-- [ ] Course-create mode renders Canvas + Side Chat.
-- [ ] Parent prompts updated; no named "explorer" agent surfaces.
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+- [x] `<SubAgentBlock>` renders inline marginalia with live step events.
+- [x] Course-create mode renders Canvas + Side Chat.
+- [x] Parent prompts updated; no named "explorer" agent surfaces.
+- [x] `pnpm typecheck && pnpm lint && pnpm test` green.
 
 ## Risks
 
@@ -145,3 +145,7 @@ revert IPC. Internal sequencing:
 - **Sub-agent step-event channel** may not exist. If
   `SubAgentRegistry` doesn't publish events on a subscribable
   channel today, add it as part of Story 3.
+
+## Children complete (2026-05-18)
+
+All 5 child stories at `stage: done`. Feature advanced `implementing → review`.

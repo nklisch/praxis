@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-review-session-flow
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -38,6 +38,19 @@ the locked direction. If absent, run `/ux-ui-design:flows` first.
 - [x] Flow walks through queue → cards → end.
 - [x] Session-end summary surfaces.
 - [x] All quality checks green.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `handleOutcome` tallies `"easy"` rating under `gotCount` but the `easy` outcome is never reachable — no button emits `"easy"`. The branch is dead code. Safe to remove in a cleanup pass.
+- The `setTimeout` durations (250ms, 220ms) are magic numbers; a CSS-variable or named constant would make them easier to tune if the fade duration changes.
+- `aria-live="polite"` is on the progress text span but the progress bar already has a proper `role="progressbar"` with `aria-valuenow`/`min`/`max`. Both are fine; the live region is belt-and-suspenders for screen readers.
+
+**Notes**: State machine is clean — three phases (`queue` | `reviewing` | `done`) with no ambiguous transitions. Queue snapshot on `handleStart` correctly isolates the session from mid-session background refreshes. Fire-and-forget `reviewCard` with a caught rejection is the right pattern (UI must not block on an API call the user can't retry). `CardSurface key={card.id}` reset is idiomatic. Tests cover all three phases and the core interaction path (8 tests in 3 describe blocks). Foundation docs not affected.
 
 ## Implementation notes
 
