@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-quiz-confidence
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -120,3 +120,37 @@ confidence *after* typing starts but *before* the debounce fires, the timer will
 `recordResponse` without the confidence field and the upsert will set `confidence = null`,
 silently overwriting the value that `recordConfidence` already persisted. Fix: use a
 `useRef` to always read the current confidences inside the timer callback.
+
+## Implementation notes (re-implementation)
+
+### Stale-closure fix — `confidencesRef`
+
+Root cause: `recordResponse` was listed in its own `useCallback` dep array with `confidences`.
+When `recordConfidence` updated local state, React re-created `recordResponse` with a new
+`confidences` Map — but the already-scheduled `setTimeout` callback still held a closure over
+the *old* Map. `oldConfidences.get(itemId)` returned `undefined`, so the debounce upsert sent
+`confidence = null`, overwriting the value that `recordConfidence` had just persisted.
+
+Fix applied in `packages/ui/src/hooks/use-assignment.ts`:
+- Added `confidencesRef = useRef(confidences)` after the `confidences` derivation.
+- Added `useEffect(() => { confidencesRef.current = confidences; }, [confidences])` to keep
+  the ref in sync on every render.
+- In the `setTimeout` callback, replaced `confidences.get(itemId)` with
+  `confidencesRef.current.get(itemId)` — the timer now always reads the live value.
+- Removed `confidences` from `recordResponse`'s `useCallback` dependency array (no longer
+  needed; the ref removes the closure dependency).
+
+### Regression test
+
+New test file: `packages/ui/src/__tests__/use-assignment.test.tsx`
+
+Three debounce tests (all using `vi.useFakeTimers()` + `act`):
+1. **Primary regression**: `recordResponse` → `recordConfidence("certain")` → advance 1100ms →
+   asserts debounce call includes `confidence: "certain"`.
+2. **No-confidence path**: `recordResponse` with no confidence selection → advance 1100ms →
+   asserts debounce call has no `confidence` key.
+3. **Inverse path**: `recordResponse` → advance 1100ms (debounce fires first) →
+   `recordConfidence("pretty_sure")` → asserts immediate persist includes `confidence: "pretty_sure"`.
+
+Three loading tests also added covering initial load, confidence hydration from `getResponses`,
+and the `assignmentId === undefined` early-return path. All 6 tests green.

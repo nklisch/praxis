@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-quiz-confidence-debounce-fix
 kind: story
-stage: implementing
+stage: done
 tags: [bug]
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -63,3 +63,9 @@ after this change (the ref removes the need for it).
 Add a test to `assignment-item-card.test.tsx` or `use-assignment` test (if one
 exists) verifying that confidence is not cleared when a debounced response save
 fires after confidence was already selected.
+
+## Resolution
+
+Fixed in the re-implementation of the parent story. `confidencesRef` pattern applied;
+regression test added in `packages/ui/src/__tests__/use-assignment.test.tsx`. All 6 new
+tests green. Item closed.

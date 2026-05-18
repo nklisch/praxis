@@ -84,6 +84,14 @@ export function useAssignment(assignmentId: AssignmentId | undefined): UseAssign
   const work = data?.work ?? new Map<string, string>();
   const confidences = data?.confidences ?? new Map<string, ConfidenceBand>();
 
+  // Ref that always points at the latest confidences Map so that debounce
+  // callbacks — which close over the ref, not the value — read the current
+  // selection even after React re-creates `recordResponse` mid-flight.
+  const confidencesRef = useRef(confidences);
+  useEffect(() => {
+    confidencesRef.current = confidences;
+  }, [confidences]);
+
   // Cleanup debounce timers on unmount
   useEffect(() => {
     return () => {
@@ -118,8 +126,9 @@ export function useAssignment(assignmentId: AssignmentId | undefined): UseAssign
 
       const timer = setTimeout(() => {
         if (!assignmentId) return;
-        // Include the current confidence value if already selected.
-        const currentConfidence = confidences.get(itemId);
+        // Read from the ref so we always see the confidence value as it stands
+        // at fire-time, not at timer-creation time (stale-closure guard).
+        const currentConfidence = confidencesRef.current.get(itemId);
         client.assignments
           .recordResponse({
             assignmentId,
@@ -136,7 +145,7 @@ export function useAssignment(assignmentId: AssignmentId | undefined): UseAssign
 
       debounceTimers.current.set(itemId, timer);
     },
-    [client, assignmentId, setData, confidences],
+    [client, assignmentId, setData],
   );
 
   const recordConfidence = useCallback(
