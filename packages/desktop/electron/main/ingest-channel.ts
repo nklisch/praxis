@@ -1,14 +1,13 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import type { IpcStreamMessage } from "@praxis/client";
 import { getOrCreateDefaultStudentId } from "@praxis/core/services";
-import type { IngestionRequest, Logger } from "@praxis/core/types";
-import { redactSecrets, serializeErrorRedacted } from "@praxis/core/types";
+import type { IngestionEvent, IngestionRequest, Logger } from "@praxis/core/types";
 import type { IngestorRegistry } from "@praxis/tools/runtime/ingestion";
 import { dialog } from "electron";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
+import { registerGeneratorStream } from "./stream-handler.js";
 
 /**
  * Recursively walk a directory and return all files whose extension is in
@@ -152,61 +151,23 @@ export function registerIngestHandlers(
   );
 
   // Start ingestion stream
-  handle(
-    "praxis.ingest.start",
-    async (_event, streamId: string, req: Omit<IngestionRequest, "studentId">) => {
-      const streamLog = log.child({ component: "ingest", streamId });
-      const controller = new AbortController();
-      activeAbortControllers.set(streamId, controller);
-      const eventsChannel = `praxis.ingest.events.${streamId}`;
-      const t0 = performance.now();
-      let eventCount = 0;
-
-      const push = (msg: IpcStreamMessage<unknown>) => {
-        const wc = webContentsGetter();
-        if (!wc || wc.isDestroyed()) return;
-        wc.send(eventsChannel, msg);
-      };
-
-      streamLog.info("ingest.start");
-      try {
+  registerGeneratorStream<IngestionEvent, [Omit<IngestionRequest, "studentId">]>(
+    {
+      channelBase: "praxis.ingest",
+      log,
+      webContentsGetter,
+      activeAbortControllers,
+    },
+    { handle, on },
+    {
+      iterate: ([req], signal) => {
         const studentId = getOrCreateDefaultStudentId(
           // SessionServiceImpl holds the db in deps — access it via a known path
           (services.session as unknown as { deps: { db: import("@praxis/core/db").PraxisDb } }).deps
             .db,
         );
-
-        const fullReq: IngestionRequest = { ...req, studentId };
-
-        const stream = services.ingestion.ingest(fullReq, controller.signal);
-        for await (const event of stream) {
-          if (controller.signal.aborted) break;
-          eventCount++;
-          push({ kind: "event", payload: event });
-        }
-        push({ kind: "done" });
-        streamLog.info("ingest.done", {
-          durationMs: Math.round(performance.now() - t0),
-          eventCount,
-        });
-      } catch (err) {
-        streamLog.error("ingest.error", {
-          durationMs: Math.round(performance.now() - t0),
-          eventCount,
-          err: serializeErrorRedacted(err),
-        });
-        push({
-          kind: "error",
-          error: redactSecrets(err instanceof Error ? err.message : String(err)),
-        });
-      } finally {
-        activeAbortControllers.delete(streamId);
-      }
+        return services.ingestion.ingest({ ...req, studentId }, signal);
+      },
     },
   );
-
-  on("praxis.ingest.cancel", (_event, streamId: string) => {
-    activeAbortControllers.get(streamId)?.abort();
-    activeAbortControllers.delete(streamId);
-  });
 }
