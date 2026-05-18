@@ -1,14 +1,14 @@
 ---
 id: epic-backend-fills-for-redesign
 kind: epic
-stage: implementing
+stage: review
 tags: []
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Backend fills for the UI redesign
@@ -163,6 +163,10 @@ system as it IS, not as it WILL be. No roll-forward at scope time.
 Each child feature rolls foundation docs forward as it ships, via
 the `gate-docs` quality gate at `/agile-workflow:release-deploy`
 time.
+
+## Children complete (2026-05-18)
+
+All 8 child features at `stage: done`. Epic advanced `implementing → review`.
 
 ## What this epic does NOT cover
 

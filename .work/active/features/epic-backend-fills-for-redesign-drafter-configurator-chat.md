@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-drafter-configurator-chat
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore]
@@ -149,3 +149,13 @@ revert IPC. Internal sequencing:
 ## Children complete (2026-05-18)
 
 All 5 child stories at `stage: done`. Feature advanced `implementing → review`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All five child stories were individually reviewed and approved in the same session. Aggregate review confirms: `AuthoringChatPane` is correctly mounted under both `configure` and `bootstrap` modes; `ToolCallEntry` renders with ↶ revert via `restoreAction`; `SubAgentBlock` renders inline marginalia with live step events from the existing IPC channel; `bootstrap-tab-body` delivers Canvas + Side Chat per the locked mock; prompt fragments remove "explorer" as a user-visible agent name and adopt drafter/configurator posture. No foundation-doc drift — ARCHITECTURE.md's `SubAgentBlock` reference remains accurate; `ConfigureChatPane` was not a named architecture component. All acceptance criteria met. Feature advancing to `stage: done`; parent epic advancing `implementing → review`.
