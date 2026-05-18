@@ -7,6 +7,7 @@ import type {
   ConceptMapId,
   CourseId,
   DocumentId,
+  EpisodicEvent,
   GateId,
   GateTarget,
   LessonId,
@@ -38,6 +39,7 @@ import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
 import { registerRecommendationsHandlers } from "./recommendations-channel.js";
 import type { Services } from "./services.js";
+import { registerGeneratorStream } from "./stream-handler.js";
 import { registerSubAgentHandlers } from "./subagent-channel.js";
 
 /**
@@ -195,59 +197,20 @@ export function registerIpcHandlers(
   // Streaming: client invokes `praxis.session.send.start` with streamId + args.
   // Server pushes IpcStreamMessage<EngineEvent> on `praxis.session.send.events.<streamId>`.
   // Client can cancel via `praxis.session.send.cancel` with the streamId.
-  handle(
-    "praxis.session.send.start",
-    async (_event, streamId: string, sessionId: string, message: string) => {
-      const streamLog = log.child({ component: "session.send", streamId, sessionId });
-      const controller = new AbortController();
-      activeAbortControllers.set(streamId, controller);
-      const eventsChannel = `praxis.session.send.events.${streamId}`;
-      const t0 = performance.now();
-      let eventCount = 0;
-      let errorCount = 0;
-
-      const push = (msg: IpcStreamMessage<unknown>) => {
-        const wc = webContentsGetter();
-        if (!wc || wc.isDestroyed()) return;
-        wc.send(eventsChannel, msg);
-      };
-
-      streamLog.info("session.send.start", { messageLength: message.length });
-      try {
+  registerGeneratorStream<unknown, [sessionId: string, message: string]>(
+    {
+      channelBase: "praxis.session.send",
+      log,
+      webContentsGetter,
+      activeAbortControllers,
+    },
+    { handle, on },
+    {
+      iterate: ([sessionId, message], signal) =>
         // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-        const stream = services.session.send(sessionId as any, message, controller.signal);
-        for await (const event of stream) {
-          if (controller.signal.aborted) break;
-          eventCount++;
-          if (event.type === "error") errorCount++;
-          push({ kind: "event", payload: event });
-        }
-        push({ kind: "done" });
-        streamLog.info("session.send.done", {
-          durationMs: Math.round(performance.now() - t0),
-          eventCount,
-          errorCount,
-        });
-      } catch (err) {
-        streamLog.error("session.send.error", {
-          durationMs: Math.round(performance.now() - t0),
-          eventCount,
-          err: serializeErrorRedacted(err),
-        });
-        push({
-          kind: "error",
-          error: redactSecrets(err instanceof Error ? err.message : String(err)),
-        });
-      } finally {
-        activeAbortControllers.delete(streamId);
-      }
+        services.session.send(sessionId as any, message, signal),
     },
   );
-
-  on("praxis.session.send.cancel", (_event, streamId: string) => {
-    activeAbortControllers.get(streamId)?.abort();
-    activeAbortControllers.delete(streamId);
-  });
 
   // ── Config ───────────────────────────────────────────────────────────────
 
@@ -613,66 +576,30 @@ export function registerIpcHandlers(
   // Streaming: praxis.memory.episodic.start(streamId, opts) invokes the handler.
   // Events are pushed on praxis.memory.episodic.events.<streamId>.
   // Client cancels via praxis.memory.episodic.cancel with the streamId.
-  handle(
-    "praxis.memory.episodic.start",
-    async (
-      _event,
-      streamId: string,
-      opts: { sessionId?: string; range?: { fromMs: number; toMs: number } },
-    ) => {
-      const streamLog = log.child({ component: "memory.episodic", streamId });
-      const controller = new AbortController();
-      activeAbortControllers.set(streamId, controller);
-      const eventsChannel = `praxis.memory.episodic.events.${streamId}`;
-      const t0 = performance.now();
-      let eventCount = 0;
-
-      const push = (msg: IpcStreamMessage<unknown>) => {
-        const wc = webContentsGetter();
-        if (!wc || wc.isDestroyed()) return;
-        wc.send(eventsChannel, msg);
-      };
-
-      streamLog.info("memory.episodic.start");
-      try {
+  registerGeneratorStream<
+    EpisodicEvent,
+    [{ sessionId?: string; range?: { fromMs: number; toMs: number } }]
+  >(
+    {
+      channelBase: "praxis.memory.episodic",
+      log,
+      webContentsGetter,
+      activeAbortControllers,
+    },
+    { handle, on },
+    {
+      iterate: ([opts], _signal) => {
         const studentId = getStudentId();
-        const stream = services.memory.episodic({
+        return services.memory.episodic({
           studentId,
           ...(opts.sessionId !== undefined && {
             sessionId: brandId<"SessionId">(opts.sessionId),
           }),
           ...(opts.range !== undefined && { range: opts.range }),
         });
-        for await (const event of stream) {
-          if (controller.signal.aborted) break;
-          eventCount++;
-          push({ kind: "event", payload: event });
-        }
-        push({ kind: "done" });
-        streamLog.info("memory.episodic.done", {
-          durationMs: Math.round(performance.now() - t0),
-          eventCount,
-        });
-      } catch (err) {
-        streamLog.error("memory.episodic.error", {
-          durationMs: Math.round(performance.now() - t0),
-          eventCount,
-          err: serializeErrorRedacted(err),
-        });
-        push({
-          kind: "error",
-          error: redactSecrets(err instanceof Error ? err.message : String(err)),
-        });
-      } finally {
-        activeAbortControllers.delete(streamId);
-      }
+      },
     },
   );
-
-  on("praxis.memory.episodic.cancel", (_event, streamId: string) => {
-    activeAbortControllers.get(streamId)?.abort();
-    activeAbortControllers.delete(streamId);
-  });
 
   // ── Assignments ──────────────────────────────────────────────────────────────
 
