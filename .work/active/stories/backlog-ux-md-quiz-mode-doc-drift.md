@@ -1,7 +1,7 @@
 ---
 id: backlog-ux-md-quiz-mode-doc-drift
 kind: story
-stage: implementing
+stage: review
 tags: [docs]
 parent: null
 depends_on: []
@@ -35,3 +35,14 @@ Update `docs/UX.md` to reflect the current design:
 Found during review of
 `epic-ui-redesign-ground-up-chat-workspace-quiz-tab-body` (2026-05-18).
 Rolling-foundation rule: foundation docs describe the system as it is NOW.
+
+## Implementation notes
+
+- Replaced the "agent visible as a side strip / `?`-key" description in `docs/UX.md`
+  § "quiz (flashcard rhythm)" with an accurate description of the redesigned layout:
+  two-column grid (center item card + right item-status rail), mode-rule banner,
+  confidence band per item, and final-submit gate before tutor feedback.
+- Updated the "Mode-specific differences" bullet in § "Answer submission" to drop
+  the `Space`-key reference and describe the "Submit answer" / final submit gate flow.
+- ASCII layout diagram redrawn to show the dot-grid rail and next-item ghost.
+- No production code changed; docs-only.

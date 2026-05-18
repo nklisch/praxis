@@ -237,23 +237,35 @@ A nearly-blank canvas with a single open prompt. As the student and agent talk t
 
 #### quiz (flashcard rhythm)
 
-One item at a time, large display typography, keyboard-driven (`Space` = next, `1`–`4` = confidence rating after answering). The agent is visible as a side strip the student can summon for explanation between cards. No long chat scroll; review feels rhythmic.
+One item at a time; the center column shows the current item card with a ghost preview of the next item below it. A **mode-rule banner** at the top of the center column explains the policy in-surface: no tutor scaffolding during the quiz — the tutor is held for after-quiz narration. No long chat scroll; review feels rhythmic.
+
+**Right rail** — a 280 px item-status grid: one numbered dot per item, color-coded by state (upcoming / current / answered / skipped). An item-kinds summary and a progress line (`N answered · M skipped · K ahead`) appear below the dot grid.
+
+**Confidence band** — rendered below the answer area on each item card via `AssignmentItemCard`. The student rates `1`–`4` before moving on; this lets the system distinguish "I knew it" from "I guessed."
+
+**Navigation** — "Submit answer" advances to the next unanswered item; "Skip for now" parks the current item. When all items are answered or skipped, a "Ready to submit" gate appears with a final submit button. Feedback on each item appears only after the full quiz is submitted; the tutor then narrates the misses in the linked teach session.
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│  ‡  QUIZ                                  3 of 12         │
-│ ─────────────────────────────────────────────────────  ── │
-│                                                           │
-│       What is the derivative of ln(x)?                    │
-│                                                           │
-│                                                           │
-│       [ show answer ]                                     │
-│                                                           │
-│       confidence:    1   2   3   4                        │
-│                      ░   ░   ░   ░                        │
-│                                                           │
-│ ── space: next   ·   1-4: rate   ·   ?: ask the tutor ─── │
-└───────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┬────────────────────┐
+│  ‡  quiz · algebra-3         item 3/12  │  Items             │
+│ ──────────────────────────────────────  │  ● ● ▶ ○ ○ ○ ○ ○  │
+│                                         │  ○ ○ ○ ○           │
+│  ┌ This is quiz mode. No tutor          │  3 answered ·      │
+│  │ scaffolding during the quiz —        │  9 ahead           │
+│  └ tutor returns after you submit. ───  │                    │
+│                                         │  Item kinds        │
+│    What is the derivative of ln(x)?     │  ‡ 8 single-choice │
+│                                         │  ‡ 4 numerical     │
+│    [ answer input ]                     │                    │
+│                                         │  Quiz mode ·       │
+│    confidence:  1  2  3  4              │  no time limit     │
+│                                         │                    │
+│    [Skip for now]  [Submit answer ↵]    │                    │
+│                                         │                    │
+│  ┌ item 4/12 · next ─────────────────   │                    │
+│  │  Solve for …                         │                    │
+│  └───────────────────────────────────   │                    │
+└─────────────────────────────────────────┴────────────────────┘
 ```
 
 #### homework (paginated problem set)
@@ -437,7 +449,7 @@ Submission is no longer its own surface; it's an affordance that lives inside th
 
 **Mode-specific differences:**
 
-- In **quiz** the rhythm is one-card-at-a-time; submission is `Space` to confirm + `1`–`4` to rate confidence.
+- In **quiz** the rhythm is one-item-at-a-time; "Submit answer" confirms the current item and advances to the next; `1`–`4` rates confidence per item; a final submit gate sends the full set and unlocks tutor feedback.
 - In **homework** submission is per-problem with auto-save; the chat side-rail is available for explanation but won't solve the problem.
 - In **exam** submission is per-problem with no live feedback; the agent is restricted to clarifying ambiguous wording (no method help, no hints).
 
