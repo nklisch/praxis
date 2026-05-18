@@ -5,7 +5,7 @@ stage: done
 tags: [bug, ui]
 parent: epic-ui-redesign-ground-up-discovery-surfaces
 depends_on: []
-release_binding: null
+release_binding: v0.1.3
 gate_origin: null
 created: 2026-05-18
 updated: 2026-05-18

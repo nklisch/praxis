@@ -7,7 +7,7 @@ parent: epic-ui-redesign-ground-up-configure
 depends_on:
   - epic-ui-redesign-ground-up-configure-canvas-side-chat-shell
   - epic-backend-fills-for-redesign-ui-completion-bundle-lesson-assessment-render
-release_binding: null
+release_binding: v0.1.3
 gate_origin: null
 created: 2026-05-17
 updated: 2026-05-18

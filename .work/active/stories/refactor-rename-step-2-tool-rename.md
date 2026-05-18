@@ -5,7 +5,7 @@ stage: done
 tags: [refactor, naming, tools]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: [refactor-rename-step-1-explorer-to-drafter]
-release_binding: null
+release_binding: v0.1.3
 gate_origin: null
 created: 2026-05-18
 updated: 2026-05-18

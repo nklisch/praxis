@@ -5,7 +5,7 @@ stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-drafter-configurator-chat
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore-ipc]
-release_binding: null
+release_binding: v0.1.3
 gate_origin: null
 created: 2026-05-17
 updated: 2026-05-18

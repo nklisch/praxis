@@ -7,7 +7,7 @@ parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
   - epic-ui-redesign-ground-up-design-system-token-swap
   - epic-ui-redesign-ground-up-app-shell-root-layout-top-nav
-release_binding: null
+release_binding: v0.1.3
 gate_origin: null
 created: 2026-05-17
 updated: 2026-05-18

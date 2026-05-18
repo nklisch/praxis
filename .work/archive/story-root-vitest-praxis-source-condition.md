@@ -5,7 +5,7 @@ stage: done
 tags: [testing, tooling, dx]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: v0.1.3
 gate_origin: null
 created: 2026-05-12
 updated: 2026-05-17

@@ -1,8 +1,14 @@
 ---
 id: fix-chat-right-panel-storage-key-collision
+kind: story
 stage: done
-created: 2026-05-18
 tags: [ui, bug]
+parent: null
+depends_on: []
+release_binding: v0.1.3
+gate_origin: null
+created: 2026-05-18
+updated: 2026-05-18
 ---
 
 `ChatRoute`'s right-column panel (`ChatRightPanel`) was given `storageKey:

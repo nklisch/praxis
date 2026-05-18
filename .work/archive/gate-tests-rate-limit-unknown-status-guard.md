@@ -5,7 +5,7 @@ stage: done
 tags: [testing]
 parent: null
 depends_on: [feature-rate-limit-error-structured-fields]
-release_binding: null
+release_binding: v0.1.3
 gate_origin: tests
 created: 2026-05-14
 updated: 2026-05-17

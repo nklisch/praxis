@@ -1,8 +1,14 @@
 ---
 id: fix-ripples-panel-color-error-legacy-token
+kind: story
 stage: done
-created: 2026-05-17
 tags: [ui, bug]
+parent: null
+depends_on: []
+release_binding: v0.1.3
+gate_origin: null
+created: 2026-05-17
+updated: 2026-05-18
 ---
 
 `packages/ui/src/components/ripples-panel.module.css` line 100 uses the legacy
