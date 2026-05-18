@@ -4,7 +4,12 @@ import Database from "better-sqlite3";
 import { type BetterSQLite3Database, drizzle } from "drizzle-orm/better-sqlite3";
 import { type Schema, schema } from "./all-schemas.js";
 import { resolveDbPath } from "./paths.js";
-import { initConceptEmbeddingStore, initFtsStore, initVectorStore } from "./vector-init.js";
+import {
+  initArtifactsFtsStore,
+  initConceptEmbeddingStore,
+  initFtsStore,
+  initVectorStore,
+} from "./vector-init.js";
 
 export type PraxisDb = BetterSQLite3Database<Schema>;
 
@@ -42,6 +47,9 @@ export function openDb(opts: OpenDbOptions = {}): {
     initVectorStore(sqlite);
     initFtsStore(sqlite);
     initConceptEmbeddingStore(sqlite);
+    // NOTE: initArtifactsFtsStore is NOT called here — it requires the notes
+    // and flashcards tables to already exist (content= FTS5 linked tables).
+    // It is called in runMigrations() after Drizzle migrations complete.
   }
 
   if (!opts.path) cached = { sqlite, db, path };
@@ -59,7 +67,12 @@ export function closeDb(): void {
 export type { Schema } from "./all-schemas.js";
 export { schema } from "./all-schemas.js";
 export { resolveDbPath } from "./paths.js";
-export { initConceptEmbeddingStore, initFtsStore, initVectorStore } from "./vector-init.js";
+export {
+  initArtifactsFtsStore,
+  initConceptEmbeddingStore,
+  initFtsStore,
+  initVectorStore,
+} from "./vector-init.js";
 // Expose the better-sqlite3 instance type so root-tier tests can reference it
 // from @praxis/core/db without adding a root-level @types/better-sqlite3 dep.
 // `Database` (the CJS namespace) has the instance interface at Database.Database;

@@ -12,6 +12,9 @@ export { ClaudeAuthServiceImpl } from "./claude-auth.js";
 // Phase 12: Notes service + Flashcards service
 export type { FlashcardsServiceDeps } from "./flashcards-service.js";
 export { FlashcardsServiceImpl } from "./flashcards-service.js";
+// Library service (FTS5 search + saved filters)
+export type { LibraryServiceDeps } from "./library-service.js";
+export { LibraryServiceImpl } from "./library-service.js";
 export type { NotesServiceDeps } from "./notes-service.js";
 export { NoteBodySchema, NotesServiceImpl } from "./notes-service.js";
 export { FROM_SESSION_SUMMARY_PROMPT } from "./notes-session-summary-prompt.js";
@@ -53,6 +56,9 @@ export {
 } from "./assignment-service.js";
 export type { BootstrapServiceDeps } from "./bootstrap-service.js";
 export { BootstrapServiceImpl } from "./bootstrap-service.js";
+// Document citations service
+export type { CitationsService, CitationsServiceDeps } from "./citations-service.js";
+export { CitationsServiceImpl } from "./citations-service.js";
 // Phase 15b: Concept-link fuzzy matcher
 export type { ConceptMatch } from "./concept-link-matcher.js";
 export { matchConceptByLabel } from "./concept-link-matcher.js";
@@ -63,9 +69,6 @@ export { ConceptMapServiceImpl } from "./concept-map-service.js";
 export type { ConceptMapSnapshotterDeps } from "./concept-map-snapshotter.js";
 export { ConceptMapSnapshotter } from "./concept-map-snapshotter.js";
 export { ConfigServiceImpl } from "./config-service.js";
-// Document citations service
-export type { CitationsServiceDeps, CitationsService } from "./citations-service.js";
-export { CitationsServiceImpl } from "./citations-service.js";
 // Phase 16: Document scopes service (polymorphic scope ↔ document attachment)
 export type { DocumentScopesServiceDeps, PassageRange } from "./document-scopes-service.js";
 export { DocumentScopesServiceImpl } from "./document-scopes-service.js";

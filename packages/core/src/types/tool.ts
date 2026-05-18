@@ -338,6 +338,50 @@ export interface FlashcardsService {
 // Re-export FsrsScheduler, FsrsState, Rating so callers can import from tool.ts.
 export type { FsrsScheduler, FsrsState, Rating };
 
+// ─── LibraryService ───────────────────────────────────────────────────────────
+
+/** A matched note summary returned by LibraryService.search. */
+export interface NoteLibraryHit {
+  kind: "note";
+  id: NoteId;
+  studentId: StudentId;
+  format: string;
+  body: string | null;
+  sessionId: string | null;
+  /** Raw links_json array. */
+  linksJson: unknown;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** A matched flashcard summary returned by LibraryService.search. */
+export interface FlashcardLibraryHit {
+  kind: "flashcard";
+  id: FlashcardId;
+  studentId: StudentId;
+  front: string;
+  back: string;
+  conceptId: string | null;
+  nextReviewAt: Timestamp | null;
+}
+
+export type LibraryHit = NoteLibraryHit | FlashcardLibraryHit;
+
+export interface LibrarySearchInput {
+  studentId: StudentId;
+  query?: string;
+  sessionId?: SessionId;
+  orphan?: boolean;
+  dueOnly?: boolean;
+  recentWindowMs?: number;
+  limit?: number;
+}
+
+/** Server-side LibraryService. */
+export interface LibraryService {
+  search(input: LibrarySearchInput): Promise<LibraryHit[]>;
+}
+
 // ─── Phase 11: LockService ───────────────────────────────────────────────────
 
 /** Server-side lock service — local code-gating. */

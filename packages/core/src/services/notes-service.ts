@@ -102,6 +102,7 @@ export class NotesServiceImpl implements NotesService {
       .values({
         id,
         studentId: input.studentId,
+        sessionId: input.context?.sessionId ?? null,
         contextJson: input.context ?? {},
         format: input.format,
         body: serializeNoteBody(input.body),

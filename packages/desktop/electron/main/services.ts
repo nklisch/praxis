@@ -25,6 +25,7 @@ import {
   FlashcardsServiceImpl,
   getOrCreateDefaultStudentId,
   IndexerOrchestratorImpl,
+  LibraryServiceImpl,
   LockServiceImpl,
   MasteryIndexer,
   MemoryServiceImpl,
@@ -170,6 +171,8 @@ export interface Services {
   pedagogyPack: PedagogyPackServiceImpl;
   /** Workbench recommendation engine — priority-ordered "what's next" queue. */
   recommendations: RecommendationServiceImpl;
+  /** Catalogue search + FTS5 filters across notes and flashcards. */
+  library: LibraryServiceImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: WorkerEmbeddingService; // exposed so main can preload it
@@ -484,6 +487,9 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     scheduler: fsrsScheduler,
   });
 
+  // Library service — FTS5 search + saved filters across notes and flashcards.
+  const libraryService = new LibraryServiceImpl({ db, sqlite });
+
   // Workbench recommendation engine — aggregates sessions, cards, mastery, drafts.
   // Reuses the shared draftStore constructed above alongside BootstrapServiceImpl.
   const recommendationsService = new RecommendationServiceImpl({
@@ -642,6 +648,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     subAgent: subAgentRegistry,
     quickCheck: quickCheckService, // ← Phase 17
     recommendations: recommendationsService,
+    library: libraryService,
     ingestorRegistry,
     pyodide,
     embeddings,

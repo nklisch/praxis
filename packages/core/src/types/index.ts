@@ -26,6 +26,7 @@ export type {
   FlashcardsClient,
   ImportedPackClient,
   IngestionClient,
+  LibraryClientApi,
   LockClient,
   MemoryService as MemoryClientService,
   NotesClient,

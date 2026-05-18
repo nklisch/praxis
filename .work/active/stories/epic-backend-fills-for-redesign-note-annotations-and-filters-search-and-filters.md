@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-note-annotations-and-filters-search-and-filters
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-note-annotations-and-filters
 depends_on: []
@@ -98,3 +98,12 @@ See parent feature
 - Per-format note editor rewrites — separate feature.
 - Note re-anchoring on body edits — separate concern.
 - Searching across documents (`documents` table) — out of v1 scope.
+
+## Implementation notes
+
+- `session_id` added to `notes` schema with migration `drizzle/0022_wise_hydra.sql`; backfill via `json_extract(context_json, '$.sessionId')` included in the migration.
+- `initArtifactsFtsStore()` in `packages/core/src/db/vector-init.ts` creates `notes_fts` and `flashcards_fts` FTS5 content= tables with porter/unicode61 tokeniser and 6 triggers (ai/ad/au for each). Called from `runMigrations()` after `drizzleMigrate()` — NOT from `openDb()` — because `content=` FTS5 tables require the backing table to already exist.
+- `LibraryServiceImpl` in `packages/core/src/services/library-service.ts` dispatches to Drizzle (filter-only path) or raw `sqlite.prepare()` (FTS path) for each of notes and flashcards. `dueOnly` short-circuits to `[]` for notes (they have no `nextReviewAt`); `sessionId` short-circuits to `[]` for flashcards (no session column).
+- IPC channel `praxis.library.search` envelope-wrapped with optional Zod schema: `{ query, sessionId, orphan, dueOnly, recentWindowMs, limit }`. Empty-string `query` → `VALIDATION_FAILED`.
+- Client: `praxisClient.library.search(input)` in `packages/client/src/services/library-client.ts`.
+- 16 service-layer tests + 5 IPC envelope tests; all green.

@@ -103,6 +103,71 @@ export function initFtsStore(sqlite: Database.Database): void {
 }
 
 /**
+ * Create FTS5 virtual tables for notes and flashcards (if not already
+ * present), together with the triggers that keep them in sync on INSERT,
+ * UPDATE, and DELETE.
+ *
+ * `notes_fts` indexes the `body` column (JSON-encoded NoteBody string).
+ * `flashcards_fts` indexes `front` + `back`.
+ *
+ * Both tables use the content-rowid linked-table syntax so the FTS data stays
+ * authoritative even if rows are bulk-deleted (the 'delete' command works
+ * through the triggers).
+ *
+ * Tokenizer: `porter unicode61` — same as document_chunks_fts for consistency.
+ */
+export function initArtifactsFtsStore(sqlite: Database.Database): void {
+  sqlite.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+      body,
+      content='notes',
+      content_rowid='rowid',
+      tokenize = 'porter unicode61'
+    );
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS flashcards_fts USING fts5(
+      front,
+      back,
+      content='flashcards',
+      content_rowid='rowid',
+      tokenize = 'porter unicode61'
+    );
+
+    CREATE TRIGGER IF NOT EXISTS notes_ai
+    AFTER INSERT ON notes BEGIN
+      INSERT INTO notes_fts(rowid, body) VALUES (new.rowid, new.body);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS notes_ad
+    AFTER DELETE ON notes BEGIN
+      INSERT INTO notes_fts(notes_fts, rowid, body) VALUES ('delete', old.rowid, old.body);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS notes_au
+    AFTER UPDATE ON notes BEGIN
+      INSERT INTO notes_fts(notes_fts, rowid, body) VALUES ('delete', old.rowid, old.body);
+      INSERT INTO notes_fts(rowid, body) VALUES (new.rowid, new.body);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS flashcards_ai
+    AFTER INSERT ON flashcards BEGIN
+      INSERT INTO flashcards_fts(rowid, front, back) VALUES (new.rowid, new.front, new.back);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS flashcards_ad
+    AFTER DELETE ON flashcards BEGIN
+      INSERT INTO flashcards_fts(flashcards_fts, rowid, front, back) VALUES ('delete', old.rowid, old.front, old.back);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS flashcards_au
+    AFTER UPDATE ON flashcards BEGIN
+      INSERT INTO flashcards_fts(flashcards_fts, rowid, front, back) VALUES ('delete', old.rowid, old.front, old.back);
+      INSERT INTO flashcards_fts(rowid, front, back) VALUES (new.rowid, new.front, new.back);
+    END;
+  `);
+}
+
+/**
  * Load the sqlite-vec native extension into the given SQLite connection.
  *
  * Uses `createRequire` (ESM-compatible) instead of bare `require()`, which

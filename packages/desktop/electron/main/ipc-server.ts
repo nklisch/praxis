@@ -1397,19 +1397,14 @@ export function registerIpcHandlers(
 
   handle(
     "praxis.notes.setAnnotations",
-    handleEnvelope(
-      "praxis.notes.setAnnotations",
-      log,
-      setAnnotationsSchema,
-      async (input) => {
-        const studentId = brandId<"StudentId">(services.getDefaultStudentId());
-        return services.notes.setAnnotations({
-          studentId,
-          noteId: brandId<"NoteId">(input.noteId),
-          annotations: input.annotations,
-        });
-      },
-    ),
+    handleEnvelope("praxis.notes.setAnnotations", log, setAnnotationsSchema, async (input) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.notes.setAnnotations({
+        studentId,
+        noteId: brandId<"NoteId">(input.noteId),
+        annotations: input.annotations,
+      });
+    }),
   );
 
   handle(
@@ -1544,6 +1539,37 @@ export function registerIpcHandlers(
     wrapEnvelope("praxis.flashcards.dueCount", log, async () => {
       const studentId = brandId<"StudentId">(services.getDefaultStudentId());
       return services.flashcards.dueCount({ studentId });
+    }),
+  );
+
+  // ── Library search (FTS5 + saved filters) ────────────────────────────────────
+
+  const librarySearchSchema = z
+    .object({
+      query: z.string().min(1).optional(),
+      sessionId: z.string().min(1).optional(),
+      orphan: z.boolean().optional(),
+      dueOnly: z.boolean().optional(),
+      recentWindowMs: z.number().int().positive().optional(),
+      limit: z.number().int().positive().optional(),
+    })
+    .optional();
+
+  handle(
+    "praxis.library.search",
+    handleEnvelope("praxis.library.search", log, librarySearchSchema, async (input) => {
+      const studentId = brandId<"StudentId">(services.getDefaultStudentId());
+      return services.library.search({
+        studentId,
+        ...(input?.query !== undefined && { query: input.query }),
+        ...(input?.sessionId !== undefined && {
+          sessionId: brandId<"SessionId">(input.sessionId),
+        }),
+        ...(input?.orphan !== undefined && { orphan: input.orphan }),
+        ...(input?.dueOnly !== undefined && { dueOnly: input.dueOnly }),
+        ...(input?.recentWindowMs !== undefined && { recentWindowMs: input.recentWindowMs }),
+        ...(input?.limit !== undefined && { limit: input.limit }),
+      });
     }),
   );
 

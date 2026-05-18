@@ -67,7 +67,7 @@ import type { Recommendation } from "./recommendation.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
 import type { DocumentTabSummary, TabId, TabSummary } from "./tabs.js";
-import type { FragmentOverride } from "./tool.js";
+import type { FragmentOverride, LibraryHit, LibrarySearchInput } from "./tool.js";
 
 export interface PraxisClient {
   session: SessionService;
@@ -117,6 +117,8 @@ export interface PraxisClient {
   recommendations: RecommendationsClientApi;
   /** Document citations — record and list per-document passage citations. */
   citations: CitationsClientApi;
+  /** Catalogue search + saved filters across notes and flashcards. */
+  library: LibraryClientApi;
 }
 
 /**
@@ -904,4 +906,21 @@ export interface CitationsClientApi {
   }): Promise<DocumentCitationRecord>;
 
   listByDocument(documentId: DocumentId): Promise<DocumentCitationRecord[]>;
+}
+
+// ─── Library (search + filters) ───────────────────────────────────────────────
+
+/**
+ * Client-facing library search API. The studentId is resolved server-side
+ * from the single-student v1 install context, so it is omitted here.
+ */
+export interface LibraryClientApi {
+  /**
+   * Full-text search + saved filter across notes and flashcards.
+   *
+   * Filters compose with AND. No filter → all results (capped by limit).
+   * When `query` is set, FTS5 BM25 ranking is applied. `studentId` is
+   * resolved server-side.
+   */
+  search(input: Omit<LibrarySearchInput, "studentId">): Promise<LibraryHit[]>;
 }

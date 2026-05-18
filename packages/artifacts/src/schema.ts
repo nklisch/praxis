@@ -196,6 +196,13 @@ export const notes = sqliteTable(
   {
     id: text("id").primaryKey(),
     studentId: text("student_id").notNull(),
+    /**
+     * Originating session id — dedicated indexed column for the "from this
+     * session" filter. Backfilled from context_json.sessionId on migration.
+     * Null for notes created before this column was added or notes not tied
+     * to a session.
+     */
+    sessionId: text("session_id"),
     contextJson: text("context_json", { mode: "json" }).notNull(),
     format: text("format", {
       enum: ["cornell", "feynman", "free", "outline", "sketch"],
@@ -209,6 +216,7 @@ export const notes = sqliteTable(
   },
   (t) => ({
     studentIdx: index("notes_student_idx").on(t.studentId),
+    sessionIdx: index("notes_session_idx").on(t.sessionId),
   }),
 );
 

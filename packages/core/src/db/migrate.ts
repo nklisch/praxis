@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import type Database from "better-sqlite3";
 import { migrate as drizzleMigrate } from "drizzle-orm/better-sqlite3/migrator";
-import { openDb } from "./index.js";
+import { initArtifactsFtsStore, openDb } from "./index.js";
 
 export interface MigrateOptions {
   path?: string;
@@ -20,6 +20,11 @@ export function runMigrations(opts: MigrateOptions = {}): { applied: number; pat
   const { db, path, sqlite } = openDb(dbOpts);
   const folder = opts.migrationsFolder ?? join(process.cwd(), "drizzle");
   drizzleMigrate(db, { migrationsFolder: folder });
+
+  // Post-migration: initialize FTS5 virtual tables for notes + flashcards.
+  // Called here (not in openDb) because FTS5 content= tables require the
+  // backing tables (notes, flashcards) to already exist.
+  initArtifactsFtsStore(sqlite);
 
   // Phase 17 data migration: rename kind:"multiple-choice" → "single-choice"
   // inside assignments.items_json blobs.

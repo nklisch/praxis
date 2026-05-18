@@ -12,6 +12,7 @@ import { DocumentsClient } from "./services/documents-client.js";
 import { DraftsClient } from "./services/drafts-client.js";
 import { FlashcardsClient } from "./services/flashcards-client.js";
 import { IngestClient } from "./services/ingest-client.js";
+import { LibraryClient } from "./services/library-client.js";
 import { LockClientImpl } from "./services/lock-client.js";
 import { MemoryClient } from "./services/memory-client.js";
 import { NotesClient } from "./services/notes-client.js";
@@ -58,5 +59,6 @@ export function createPraxisClient(transport: ClientTransport): PraxisClient {
     subAgent: new SubAgentClient(transport),
     recommendations: new RecommendationsClient(transport),
     citations: new CitationsClient(transport),
+    library: new LibraryClient(transport),
   };
 }
