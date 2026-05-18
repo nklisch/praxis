@@ -388,6 +388,81 @@ describe("ChatRoute shell", () => {
     expect(screen.queryByText(/Document viewer coming soon/i)).toBeNull();
   });
 
+  // ── Three-column layout (epic-ui-redesign-ground-up-chat-workspace-side-panels-restyle) ──
+
+  it("renders three-column layout: docs panel, workspace center, right panel", async () => {
+    const client = makeTestClient({}, []);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      // Left column: docs panel with aria-label
+      expect(screen.getByRole("complementary", { name: /documents/i })).toBeDefined();
+      // Right column: concepts + sidekick panel
+      expect(screen.getByRole("complementary", { name: /concepts and sidekick/i })).toBeDefined();
+    });
+  });
+
+  it("docs panel and right panel both render resize handles with separator role", async () => {
+    const client = makeTestClient({}, []);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      // Two separators: docs (right edge) + sidekick (left edge)
+      const separators = screen.getAllByRole("separator");
+      expect(separators.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it("docs panel has aria-label 'Documents' in global scope", async () => {
+    const client = makeTestClient({}, []);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      const docsPanel = screen.getByRole("complementary", { name: /^documents$/i });
+      expect(docsPanel).toBeDefined();
+    });
+  });
+
+  it("right panel renders 'Concepts active' and 'Sidekick' sections", async () => {
+    const client = makeTestClient({}, []);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      expect(screen.getByText(/concepts active/i)).toBeDefined();
+      expect(screen.getByText(/sidekick/i)).toBeDefined();
+    });
+  });
+
+  it("docs resize handle uses storage key praxis.panel.documents.width", async () => {
+    // Seed a persisted width so the panel renders at that width.
+    window.localStorage.setItem("praxis.panel.documents.width", "260");
+    const client = makeTestClient({}, []);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      const docsPanel = screen.getByRole("complementary", { name: /^documents$/i });
+      // Width should reflect the persisted value from localStorage.
+      expect((docsPanel as HTMLElement).style.width).toBe("260px");
+    });
+
+    window.localStorage.removeItem("praxis.panel.documents.width");
+  });
+
+  it("sidekick resize handle uses storage key praxis.panel.sidekick.width", async () => {
+    // Seed a persisted width so the panel renders at that width.
+    window.localStorage.setItem("praxis.panel.sidekick.width", "300");
+    const client = makeTestClient({}, []);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      const rightPanel = screen.getByRole("complementary", { name: /concepts and sidekick/i });
+      // Width should reflect the persisted value from localStorage.
+      expect((rightPanel as HTMLElement).style.width).toBe("300px");
+    });
+
+    window.localStorage.removeItem("praxis.panel.sidekick.width");
+  });
+
   // ── Regression: scoped docs sidebar stability (bug-chat-documents-sidebar-flicker) ───
   //
   // Root cause: useDerivedScope() returned a fresh object literal on every

@@ -2,6 +2,7 @@ import type { TabId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
+import { ChatRightPanel } from "../components/chat-right-panel.js";
 import { ChatTabBody } from "../components/chat-tab-body.js";
 import { DocumentList } from "../components/document-list.js";
 import { EmptyState } from "../components/empty-state.js";
@@ -115,23 +116,37 @@ export function ChatRoute() {
     }
   }, [activeTabId, loading]);
 
-  // Persisted user-resizable width for the documents sidebar. Per-device
-  // (localStorage); zero IPC round-trip on read = no flash-of-default-width.
-  // See feature epic-editorial-polish-pass-resizable-panels.
-  const { width: sidebarWidth, handleProps: sidebarHandleProps } = useResizableWidth({
-    storageKey: "praxis.panel.chat-documents.width",
-    defaultWidth: 220,
-    minWidth: 160,
-    maxWidth: 480,
+  // Left column: persisted user-resizable width for the documents sidebar.
+  // Per-device (localStorage); zero IPC round-trip on read = no flash.
+  // Storage key uses the new per-mock convention (240px default per Option 4).
+  const { width: docsWidth, handleProps: docsHandleProps } = useResizableWidth({
+    storageKey: "praxis.panel.documents.width",
+    defaultWidth: 240,
+    minWidth: 180,
+    maxWidth: 320,
     side: "right",
+  });
+
+  // Right column: persisted user-resizable width for the concepts + sidekick panel.
+  // Sits on the right edge — handle is on the left side of the panel.
+  const { width: sidekickWidth, handleProps: sidekickHandleProps } = useResizableWidth({
+    storageKey: "praxis.panel.sidekick.width",
+    defaultWidth: 280,
+    minWidth: 220,
+    maxWidth: 380,
+    side: "left",
   });
 
   return (
     <div className={styles.layout}>
-      {/* Documents sidebar — scope-aware: shows docs for the active context */}
-      <aside className={styles.sidebar} style={{ width: `${sidebarWidth}px` }}>
-        <div className={styles.sidebarHeader}>
-          <span className={styles.sidebarTitle}>
+      {/* ── Left column: documents panel ──────────────────────────────── */}
+      <aside
+        className={styles.docsPanel}
+        style={{ width: `${docsWidth}px` }}
+        aria-label="Documents"
+      >
+        <div className={styles.panelHeader}>
+          <span className={styles.panelKicker}>
             {scope.kind === "course"
               ? "Course Documents"
               : scope.kind === "session"
@@ -139,7 +154,7 @@ export function ChatRoute() {
                 : "Documents"}
           </span>
         </div>
-        <div className={styles.sidebarContent}>
+        <div className={styles.panelContent}>
           {/* Only show the add-document affordance in the global (all) view;
               scoped views use the library picker or course doc-picker instead. */}
           {!isScoped && <AddDocumentButton ingestion={ingestion} />}
@@ -160,9 +175,9 @@ export function ChatRoute() {
         </div>
       </aside>
 
-      <ResizeHandle side="right" {...sidebarHandleProps} />
+      <ResizeHandle side="right" {...docsHandleProps} />
 
-      {/* Main workspace area — tab strip is in the running head, not here */}
+      {/* ── Center column: tab bodies ─────────────────────────────────── */}
       <div className={styles.workspace}>
         {/* All tab bodies mounted; inactive ones display:none to preserve state. */}
         {openTabs.map((t) => (
@@ -182,6 +197,11 @@ export function ChatRoute() {
           />
         )}
       </div>
+
+      {/* ── Right column: concepts + sidekick ─────────────────────────── */}
+      <ResizeHandle side="left" {...sidekickHandleProps} />
+
+      <ChatRightPanel style={{ width: `${sidekickWidth}px` }} />
 
       {showPicker && (
         <NewTabPicker
