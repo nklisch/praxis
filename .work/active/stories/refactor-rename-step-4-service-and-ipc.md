@@ -1,7 +1,7 @@
 ---
 id: refactor-rename-step-4-service-and-ipc
 kind: story
-stage: review
+stage: done
 tags: [refactor, naming, ipc, db-migration]
 parent: refactor-rename-bootstrap-and-explorer
 depends_on: [refactor-rename-step-3-mode-id]
@@ -241,3 +241,25 @@ UPDATE config_kv SET key = 'bootstrap' WHERE key = 'course_create';
 ```
 
 In production this is a one-way door; ship-forward is the rollback path.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+
+Largest mechanical step lands cleanly. 93 files touched; tsc enforces atomicity across every rename. Sanity checks all green:
+
+- **IPC channel agreement**: main-side `course-create-drafts-channel.ts` registers `praxis.courseCreate.drafts.events.{start,events.<id>,cancel}` and renderer-side `drafts-client.ts:8` `streamBase` matches. Single-bundled-app install-time atomicity holds.
+- **Migration 0024**: `UPDATE config_kv SET key = 'course-create' WHERE key = 'bootstrap'` — value matches Step 3's mode-id `course-create` (hyphen), so the same key serves both as the mode discriminator and the config_kv row key. Coherent.
+- **Naming-convention decisions documented**: `course-create` (hyphen) for storage values, `courseCreate` (camelCase) for IPC channel segments, `CourseCreate*` PascalCase for types/classes, `courseCreate*` camelCase for functions/RPC, `COURSE_CREATE_CONFIG_KEY` SCREAMING_SNAKE_CASE for the constant name, kebab-case for files and the renamed directory.
+- **Package.json exports update**: `"./bootstrap"` → `"./course-create"` subpath flipped; all importers of `@praxis/curriculum/bootstrap` flipped to `@praxis/curriculum/course-create` (post-flip grep returns zero).
+- **No leftover bootstrap-* filenames** in `packages/` (verified via `find … -name "*bootstrap*"`).
+
+The IPC channel rename is the wire-level concern; since Praxis ships as a single bundled Electron app, there's no rolling-deploy window where main and renderer could disagree. The `config_kv` migration is forward-only — rollback path documented in the story body.
+
+Workspace tests pass (4481); typecheck baseline preserved (3 pre-existing errors unchanged); lint baseline preserved.
