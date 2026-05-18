@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-ask-tutor-from-note
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on:
@@ -57,3 +57,14 @@ Per the locked `note-to-tutor-brief` flow:
 - `teach.ts`: fragment added after `behaviorInCourseFragmentDefault.teach`.
 - `packages/curriculum/src/modes/fragments/__tests__/note-brief-awareness.test.ts`: 9 tests (shape + template content + teach-mode inclusion).
 - `packages/curriculum/src/__tests__/teach-mode.test.ts`: updated fragment count assertion (10 → 11) and added id assertion for `context.note-brief-awareness`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `CLAUDE.md` "Where the big pieces live" still only references `spawnFromAssignment`, not `spawnFromNote` or `spawnFromPassage`. Pre-existing gap — not introduced here.
+
+**Notes**: Narrowly-scoped and correct. The `noteBriefAwarenessFragment` is at `position: "context"` which is a valid slot in `FRAGMENT_ORDER`. The `<note-cue>` / `<note-body>` tags documented in the fragment match exactly what `spawnFromNote` injects in `session-service.ts`. The `note.update` tool referenced in the fragment is in `teach.ts` `toolNames`. 9 tests cover shape + content assertions + teach-mode inclusion. No foundation-doc drift.
