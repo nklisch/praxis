@@ -1,11 +1,19 @@
 ---
-id: idea-consolidate-normalize-concept-name-helper
-kind: idea
+id: consolidate-normalize-concept-name-helper
+kind: story
+stage: implementing
 tags: [refactor]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
 created: 2026-05-18
+updated: 2026-05-18
 ---
 
 # Consolidate `normalizeConceptName` between course-create-service and draft-validator
+
+## Brief
 
 The `refactor-course-create-service-extract-modules` feature (commit
 `cda3f6c`) extracted `validateProposed` into
@@ -15,7 +23,9 @@ concept-name checks, the helper was duplicated into `draft-validator.ts`
 alongside its original home in `course-create-service.ts` (where
 `applyEdit` still uses it).
 
-Mild DRY violation. Trivial to consolidate when convenient:
+Mild DRY violation. Trivial to consolidate.
+
+## Implementation plan
 
 1. Create `packages/core/src/services/course-create/helpers.ts` exporting
    `normalizeConceptName`.
