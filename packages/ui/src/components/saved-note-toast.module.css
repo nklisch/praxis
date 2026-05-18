@@ -1,0 +1,94 @@
+/*
+ * SavedNoteToast — bottom-right confirmation toast after inline note save.
+ * Matches the locked chat-to-workspace-note flow mock (step 4/5).
+ */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 60;
+  background: var(--color-bg-inverse, #1a1a18);
+  color: var(--color-text-inverse, #f5f4f0);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  max-width: 340px;
+  animation: toast-in 320ms ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glyph {
+  font: italic 18px / 1 var(--font-display, serif);
+  color: var(--color-accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.text {
+  font: italic 13px / 1.45 var(--font-serif, serif);
+  flex: 1;
+  min-width: 0;
+}
+
+.text strong {
+  font-weight: 600;
+  font-style: normal;
+}
+
+.text em {
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.workspaceLink {
+  color: var(--color-accent);
+  text-decoration: none;
+  font: italic 12px / 1 var(--font-serif, serif);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.workspaceLink:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dismissBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s;
+}
+
+.dismissBtn:hover {
+  color: rgba(255, 255, 255, 0.8);
+}

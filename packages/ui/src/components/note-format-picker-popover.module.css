@@ -1,0 +1,210 @@
+/*
+ * NoteFormatPickerPopover — anchored popover that rises above the composer.
+ * Matches the locked chat-to-workspace-note flow mock (step 2/5).
+ *
+ * The popover is positioned by the parent (ComposerVerbs) via absolute/fixed
+ * placement; this file styles the interior only.
+ */
+
+/* ── Backdrop overlay ──────────────────────────────────────────────────── */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: transparent;
+}
+
+/* ── Popover shell ─────────────────────────────────────────────────────── */
+
+.popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  padding: 18px 20px 16px;
+  /* Animate in from slightly below */
+  animation: popover-in 180ms ease-out;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Downward-pointing caret aligns to the "+ note" button */
+.popover::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  background: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-strong);
+  transform: rotate(45deg);
+}
+
+/* ── Header row ────────────────────────────────────────────────────────── */
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headGlyph {
+  font: italic 16px / 1 var(--font-display, serif);
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.headTitle {
+  font: 500 italic 18px / 1.2 var(--font-display, serif);
+  color: var(--color-text-primary);
+  flex: 1;
+  margin: 0;
+}
+
+.escBadge {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  padding: 3px 6px;
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* ── Format list ───────────────────────────────────────────────────────── */
+
+.formatListLabel {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: 8px;
+}
+
+.formatList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Format row ────────────────────────────────────────────────────────── */
+
+.formatRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+
+.formatRow:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-primary);
+}
+
+.formatRowSuggested {
+  border-color: var(--color-accent) !important;
+  background: var(--color-accent-muted) !important;
+}
+
+/* Keyboard shortcut number badge */
+.numBadge {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  padding: 3px 6px;
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.formatRowSuggested .numBadge {
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #fff);
+}
+
+.formatName {
+  font: 500 italic 14px / 1.2 var(--font-display, serif);
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+}
+
+.formatDesc {
+  font: italic 12px / 1.4 var(--font-serif, serif);
+  color: var(--color-text-tertiary);
+  flex: 1;
+}
+
+.suggestedBadge {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  padding: 3px 6px;
+  border-radius: var(--radius-full, 999px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #fff);
+  flex-shrink: 0;
+}
+
+/* ── Alt action (open in full workspace) ───────────────────────────────── */
+
+.orDivider {
+  text-align: center;
+  padding: 6px 0;
+  font: italic 12px / 1 var(--font-serif, serif);
+  color: var(--color-text-tertiary);
+}
+
+.altAction {
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font: italic 13px / 1.4 var(--font-serif, serif);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.altAction:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}

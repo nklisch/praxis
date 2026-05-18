@@ -1,4 +1,4 @@
-import type { TabId } from "@praxis/core/types";
+import type { NoteId, SessionId, TabId } from "@praxis/core/types";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
@@ -6,8 +6,11 @@ import { ChatRightPanel } from "../components/chat-right-panel.js";
 import { ChatTabBody } from "../components/chat-tab-body.js";
 import { DocumentList } from "../components/document-list.js";
 import { EmptyState } from "../components/empty-state.js";
+import { InlineNotePanel } from "../components/inline-note-panel.js";
 import { NewTabPicker } from "../components/new-tab-picker.js";
+import type { InlineNoteFormat } from "../components/note-format-picker-popover.js";
 import { ResizeHandle } from "../components/resize-handle.js";
+import { SavedNoteToast } from "../components/saved-note-toast.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useAssignmentIssuedSpawn } from "../hooks/use-assignment-issued-spawn.js";
 import { useDerivedScope } from "../hooks/use-derived-scope.js";
@@ -18,6 +21,19 @@ import { useResource } from "../hooks/use-resource.js";
 import { useTabs } from "../hooks/use-tabs.js";
 import { COPY } from "../lib/copy.js";
 import styles from "./chat.module.css";
+
+/** State for the inline note panel in the chat right column. */
+interface InlineNotePanelState {
+  format: InlineNoteFormat;
+  sessionId: SessionId;
+}
+
+/** State for the saved-note toast shown after a successful save. */
+interface SavedToastState {
+  noteId: NoteId;
+  noteTitle: string;
+  formatLabel: string;
+}
 
 /**
  * Chat workspace shell — owns the documents sidebar, new-tab picker, and
@@ -40,6 +56,45 @@ export function ChatRoute() {
 
   const { openTabs, activeTabId, openTab, switchTo, loading } = useTabs();
   const [showPicker, setShowPicker] = useState(false);
+
+  // ── Inline note panel state ──────────────────────────────────────────────
+  // When open, the right column shows InlineNotePanel instead of ChatRightPanel.
+  const [inlineNotePanel, setInlineNotePanel] = useState<InlineNotePanelState | null>(null);
+  const [savedToast, setSavedToast] = useState<SavedToastState | null>(null);
+  // Track whether this session has at least one saved note (dot indicator).
+  const [hasSessionNote, setHasSessionNote] = useState(false);
+
+  // Open the inline note panel for the active session.
+  const handleNoteOpen = useCallback(
+    (format: InlineNoteFormat) => {
+      const activeTab = openTabs.find((t) => t.id === activeTabId);
+      if (!activeTab || activeTab.kind !== "session") return;
+      setInlineNotePanel({ format, sessionId: activeTab.sessionId as unknown as SessionId });
+    },
+    [openTabs, activeTabId],
+  );
+
+  // Called when the inline panel saves a note.
+  const handleNoteSaved = useCallback(
+    (noteId: NoteId) => {
+      setInlineNotePanel(null);
+      setHasSessionNote(true);
+      // The panel doesn't know the title; we use a default for the toast.
+      setSavedToast({
+        noteId,
+        noteTitle: "Note",
+        formatLabel: inlineNotePanel?.format ?? "cornell",
+      });
+    },
+    [inlineNotePanel],
+  );
+
+  // Close the panel when the active tab changes (different session).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — fire on active tab switch
+  useEffect(() => {
+    setInlineNotePanel(null);
+    setHasSessionNote(false);
+  }, [activeTabId]);
 
   // Phase 16: auto-spawn quiz/homework/exam tabs when the tutor authors an
   // assignment. Mounted here (once per workspace) so it fires regardless of
@@ -186,7 +241,11 @@ export function ChatRoute() {
             style={{ display: t.id === activeTabId ? "contents" : "none" }}
             className={styles.tabBodyMount}
           >
-            <ChatTabBody tab={t} />
+            <ChatTabBody
+              tab={t}
+              onNoteOpen={t.id === activeTabId ? handleNoteOpen : undefined}
+              hasSessionNote={t.id === activeTabId ? hasSessionNote : undefined}
+            />
           </div>
         ))}
 
@@ -198,10 +257,20 @@ export function ChatRoute() {
         )}
       </div>
 
-      {/* ── Right column: concepts + sidekick ─────────────────────────── */}
+      {/* ── Right column: inline note panel OR concepts + sidekick ──────── */}
       <ResizeHandle side="left" {...sidekickHandleProps} />
 
-      <ChatRightPanel style={{ width: `${sidekickWidth}px` }} />
+      {inlineNotePanel ? (
+        <InlineNotePanel
+          format={inlineNotePanel.format}
+          sessionId={inlineNotePanel.sessionId}
+          onSaved={handleNoteSaved}
+          onDismiss={() => setInlineNotePanel(null)}
+          style={{ width: `${sidekickWidth}px` }}
+        />
+      ) : (
+        <ChatRightPanel style={{ width: `${sidekickWidth}px` }} />
+      )}
 
       {showPicker && (
         <NewTabPicker
@@ -211,6 +280,16 @@ export function ChatRoute() {
             setShowPicker(false);
             navigate({ to: "/chat/$tabId", params: { tabId: newTabId } });
           }}
+        />
+      )}
+
+      {/* ── Saved-note toast ────────────────────────────────────────────── */}
+      {savedToast && (
+        <SavedNoteToast
+          noteId={savedToast.noteId}
+          noteTitle={savedToast.noteTitle}
+          formatLabel={savedToast.formatLabel}
+          onDismiss={() => setSavedToast(null)}
         />
       )}
     </div>

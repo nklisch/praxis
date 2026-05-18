@@ -1,0 +1,200 @@
+/*
+ * InlineNotePanel — slides in from the right, temporarily replaces the
+ * concepts panel in the chat workspace.
+ *
+ * Matches the locked chat-to-workspace-note flow mock (step 3/5).
+ */
+
+/* ── Outer panel ───────────────────────────────────────────────────────── */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-left: 2px solid var(--color-accent);
+  background: var(--color-bg-secondary);
+  /* Slide in from right */
+  animation: slide-in 280ms ease-out;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ── Panel header ──────────────────────────────────────────────────────── */
+
+.panelHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-accent-muted);
+  flex-shrink: 0;
+}
+
+.headGlyph {
+  font: italic 16px / 1 var(--font-display, serif);
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.headKicker {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  flex: 1;
+}
+
+.headSpacer {
+  flex: 1;
+}
+
+.popOutBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.popOutBtn:hover {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.escBadge {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  padding: 3px 6px;
+  background: var(--color-bg-primary);
+  border-radius: 3px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.08em;
+}
+
+/* ── Panel body (scrollable) ───────────────────────────────────────────── */
+
+.panelBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.titleInput {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: 500 italic 22px / 1.2 var(--font-display, serif);
+  color: var(--color-text-primary);
+  outline: none;
+  margin-bottom: 6px;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.titleInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.linkLine {
+  font: italic 12px / 1.4 var(--font-serif, serif);
+  color: var(--color-text-tertiary);
+  margin-bottom: 18px;
+}
+
+.linkLine strong {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+/* ── Panel footer ──────────────────────────────────────────────────────── */
+
+.panelFoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  flex-shrink: 0;
+}
+
+.savingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-success);
+}
+
+.savingDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.keepGoingHint {
+  font: italic 11px / 1.4 var(--font-serif, serif);
+  color: var(--color-text-tertiary);
+  flex: 1;
+  min-width: 0;
+}
+
+.saveBtn {
+  font: 500 11px / 1 var(--font-sans, sans-serif);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #fff);
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+  flex-shrink: 0;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: var(--color-accent-hover, var(--color-accent));
+  opacity: 0.9;
+}
+
+.saveBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dismissBtn {
+  font: 500 11px / 1 var(--font-sans, sans-serif);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+
+.dismissBtn:hover {
+  background: var(--color-bg-tertiary);
+}

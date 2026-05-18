@@ -27,6 +27,7 @@ import { DocumentTabBody } from "./document-tab-body.js";
 import { ExamTabBody } from "./exam-tab-body.js";
 import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
+import type { InlineNoteFormat } from "./note-format-picker-popover.js";
 import { PageImagePanel } from "./page-image-panel.js";
 import { QuickCheckCard } from "./quick-check-card.js";
 import { QuizTabBody } from "./quiz-tab-body.js";
@@ -41,6 +42,13 @@ import { ToolCallDisclosure } from "./tool-call-disclosure.js";
 
 export interface ChatTabBodyProps {
   tab: TabSummary;
+  /**
+   * Passed to TeachChatTabBody → ComposerVerbs. Fires with the chosen format
+   * when the student picks from the inline note-picker popover.
+   */
+  onNoteOpen?: (format: InlineNoteFormat) => void;
+  /** Whether a note already exists for this session. */
+  hasSessionNote?: boolean;
 }
 
 /**
@@ -76,6 +84,19 @@ function ExamLockdownGate({
   return null;
 }
 
+export interface TeachChatTabBodyProps extends SessionChatTabBodyProps {
+  /**
+   * When provided, renders a "+ note" button in the verb rail.
+   * Fires with the chosen format when the student picks one from the popover.
+   */
+  onNoteOpen?: (format: InlineNoteFormat) => void;
+  /**
+   * Whether a note already exists for this session (adds a dot indicator to
+   * the "+ note" button).
+   */
+  hasSessionNote?: boolean;
+}
+
 /**
  * Teach-mode (and default) tab body. Holds the message log, composer, auth
  * banner, and mode header for a single open tab. Each instance has its own
@@ -87,7 +108,11 @@ function ExamLockdownGate({
  *
  * Exported so BootstrapTabBody can embed it in the left pane.
  */
-export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element {
+export function TeachChatTabBody({
+  tab,
+  onNoteOpen,
+  hasSessionNote,
+}: TeachChatTabBodyProps): JSX.Element {
   const client = usePraxisClient();
   const parentChild = useParentChildOptional();
 
@@ -363,6 +388,8 @@ export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element 
             setComposerValue((prev) => (prev ? `${prev} ${seed}` : seed));
             composerTextareaRef.current?.focus();
           }}
+          {...(onNoteOpen !== undefined && { onNoteOpen })}
+          {...(hasSessionNote !== undefined && { hasSessionNote })}
         />
         {isStreaming && (
           <div className={styles.stopRow}>
@@ -414,7 +441,7 @@ export function TeachChatTabBody({ tab }: SessionChatTabBodyProps): JSX.Element 
  * inactive ones are hidden via display:none in the parent (chat.tsx). The
  * dispatcher itself does not manage visibility — that remains in the parent.
  */
-export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
+export function ChatTabBody({ tab, onNoteOpen, hasSessionNote }: ChatTabBodyProps): JSX.Element {
   // Document tabs have no session; route to the document viewer.
   if (tab.kind === "document") {
     return <DocumentTabBody tab={tab} />;
@@ -433,6 +460,6 @@ export function ChatTabBody({ tab }: ChatTabBodyProps): JSX.Element {
     case "study-skills":
       return <StudySkillsTabBody tab={tab} />;
     default:
-      return <TeachChatTabBody tab={tab} />;
+      return <TeachChatTabBody tab={tab} onNoteOpen={onNoteOpen} hasSessionNote={hasSessionNote} />;
   }
 }

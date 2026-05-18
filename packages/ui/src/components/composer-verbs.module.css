@@ -42,3 +42,27 @@
   opacity: 0.32;
   cursor: not-allowed;
 }
+
+/* ── "+ note" button + popover anchor ──────────────────────────────────── */
+
+.notePickerAnchor {
+  position: relative;
+  margin-left: auto; /* push to the right end of the rail */
+}
+
+/* The note chip inherits .chip styles but adds a subtle glyph accent */
+.noteChip {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+}
+
+/* When a note already exists for this session */
+.noteChipHasNote {
+  color: var(--color-accent);
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-style: italic;
+  letter-spacing: 0;
+}
