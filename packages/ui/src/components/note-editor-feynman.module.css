@@ -19,7 +19,7 @@
 
 .modeBtn {
   padding: 8px 18px;
-  font: 500 italic 14px/1 var(--font-display, inherit);
+  font: 500 italic 14px / 1 var(--font-display, inherit);
   color: var(--color-text-secondary, #aaa);
   cursor: pointer;
   border-radius: var(--radius-full, 999px);
@@ -205,7 +205,7 @@
   background: var(--color-accent-muted, rgba(99, 102, 241, 0.08));
   border-left: 3px solid var(--color-accent, #6366f1);
   border-radius: 0 4px 4px 0;
-  font: italic 0.875rem/1.5 var(--font-serif, inherit);
+  font: italic 0.875rem / 1.5 var(--font-serif, inherit);
   color: var(--color-text-primary, inherit);
 }
 
@@ -225,7 +225,7 @@
 }
 
 .annotationBody {
-  font: 1rem/1.85 var(--font-serif, inherit);
+  font: 1rem / 1.85 var(--font-serif, inherit);
   color: var(--color-text-primary, inherit);
   cursor: text;
   user-select: text;
@@ -277,7 +277,7 @@
 }
 
 .popoverSelected {
-  font: italic 0.8rem/1.4 var(--font-serif, inherit);
+  font: italic 0.8rem / 1.4 var(--font-serif, inherit);
   color: var(--color-text-secondary, #aaa);
   border-left: 2px solid var(--color-border, rgba(255, 255, 255, 0.2));
   padding-left: 8px;
@@ -389,7 +389,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font: italic 0.8rem/1.5 var(--font-serif, inherit);
+  font: italic 0.8rem / 1.5 var(--font-serif, inherit);
   padding-top: 12px;
 }
 
@@ -397,7 +397,7 @@
   padding: 10px 14px;
   border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.2));
   border-radius: 4px;
-  font: italic 0.78rem/1.4 var(--font-serif, inherit);
+  font: italic 0.78rem / 1.4 var(--font-serif, inherit);
   color: var(--color-text-tertiary, #888);
   text-align: center;
 }
@@ -430,7 +430,7 @@
 }
 
 .marginLabel {
-  font: 600 9px/1 var(--font-mono, monospace);
+  font: 600 9px / 1 var(--font-mono, monospace);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 4px;

@@ -1,12 +1,14 @@
 import {
   conceptProgress,
   courses,
+  courseUnits,
   documents,
   gates as gatesTable,
   gateUnlockEvents,
   lessonAssessments as lessonAssessmentsTable,
   lessonProgress,
   lessons,
+  lessonUnits,
 } from "@praxis/artifacts/schema";
 import { GateEvaluatorImpl } from "@praxis/curriculum/gates";
 import { concepts } from "@praxis/curriculum/schema";
@@ -44,6 +46,8 @@ import type {
   SuccessCriteria,
   ThresholdConfig,
   Timestamp,
+  Unit,
+  UnitId,
   VisibilityWindow,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
@@ -93,6 +97,43 @@ export class ArtifactsServiceImpl implements ArtifactsService, CourseStateReader
       .orderBy(asc(lessons.orderIndex))
       .all();
     return rows.map(rowToLesson);
+  }
+
+  async units(courseId: CourseId): Promise<Unit[]> {
+    const unitRows = this.deps.db
+      .select()
+      .from(courseUnits)
+      .where(eq(courseUnits.courseId, courseId))
+      .orderBy(asc(courseUnits.orderIndex))
+      .all();
+
+    // For each unit, collect its lesson IDs from the join table, preserving lesson order.
+    const result: Unit[] = await Promise.all(
+      unitRows.map(async (u) => {
+        const memberRows = this.deps.db
+          .select({ lessonId: lessonUnits.lessonId })
+          .from(lessonUnits)
+          .innerJoin(lessons, eq(lessonUnits.lessonId, lessons.id))
+          .where(eq(lessonUnits.unitId, u.id))
+          .orderBy(asc(lessons.orderIndex))
+          .all();
+        const unit: Unit = {
+          id: brandId<"UnitId">(u.id) as UnitId,
+          courseId: brandId<"CourseId">(u.courseId) as CourseId,
+          name: u.name,
+          orderIndex: u.orderIndex,
+          lessonIds: memberRows.map((r) => brandId<"LessonId">(r.lessonId) as LessonId),
+        };
+        if (u.summary != null) unit.summary = u.summary;
+        if (u.summativeAssignmentId != null) {
+          unit.summativeAssignmentId = brandId<"AssignmentId">(
+            u.summativeAssignmentId,
+          ) as AssignmentId;
+        }
+        return unit;
+      }),
+    );
+    return result;
   }
 
   async lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]> {

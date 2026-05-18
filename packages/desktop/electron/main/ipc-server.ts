@@ -445,6 +445,17 @@ export function registerIpcHandlers(
   );
 
   handle(
+    "praxis.artifacts.units",
+    handleEnvelope(
+      "praxis.artifacts.units",
+      log,
+      courseIdSchema,
+      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
+      async (courseId) => services.artifacts.units(brandId<"CourseId">(courseId) as any),
+    ),
+  );
+
+  handle(
     "praxis.artifacts.lessonAssessments",
     handleEnvelope(
       "praxis.artifacts.lessonAssessments",

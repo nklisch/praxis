@@ -46,7 +46,7 @@
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--color-border);
   gap: var(--space-2);
-  font: var(--font-size-sm)/var(--line-height-base) var(--font-serif);
+  font: var(--font-size-sm) / var(--line-height-base) var(--font-serif);
   cursor: default;
 }
 
@@ -81,7 +81,7 @@
 /* ── Sidekick note ────────────────────────────────────────────────── */
 
 .sidekickNote {
-  font: italic var(--font-size-sm)/var(--line-height-base) var(--font-serif);
+  font: italic var(--font-size-sm) / var(--line-height-base) var(--font-serif);
   color: var(--color-text-secondary);
   padding: var(--space-2) var(--space-3);
   background: var(--color-bg-tertiary);
@@ -92,7 +92,7 @@
 /* ── Placeholder ─────────────────────────────────────────────────── */
 
 .placeholder {
-  font: italic var(--font-size-sm)/var(--line-height-base) var(--font-serif);
+  font: italic var(--font-size-sm) / var(--line-height-base) var(--font-serif);
   color: var(--color-text-tertiary);
   margin: 0;
 }

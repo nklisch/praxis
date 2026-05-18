@@ -186,12 +186,64 @@
 
 /* ── Inspector strip below the canvas ────────────────────────────────────────── */
 
-/* Empty placeholder for now; per-tab canvas stories will populate this */
 .inspectorStrip {
   flex-shrink: 0;
   min-height: 48px;
   border-top: 1px solid var(--color-border, #e0e0e0);
   background: var(--color-bg-secondary, #fafafa);
+  padding: 12px 24px;
+}
+
+/* Empty / placeholder state */
+.inspectorEmpty {
+  font: italic 12px/1.4 var(--font-serif, serif);
+  color: var(--color-text-tertiary, #aaa);
+}
+
+/* Header label: "L2.3 · the chain rule lesson" */
+.inspectorLabel {
+  font: 600 10px/1 var(--font-mono, monospace);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #aaa);
+  margin-bottom: 8px;
+}
+
+/* Lesson heading */
+.inspectorTitle {
+  font: 500 italic 16px/1.2 var(--font-display, var(--font-serif, serif));
+  margin: 0 0 10px;
+}
+
+.inspectorTitle em {
+  font-weight: 600;
+}
+
+/* Fields grid */
+.inspectorFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.inspectorField {
+  background: var(--color-bg-primary, #fff);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-sm, 4px);
+  padding: 8px 12px;
+}
+
+.inspectorFieldKey {
+  font: 600 10px/1.4 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #aaa);
+  margin-bottom: 3px;
+}
+
+.inspectorFieldVal {
+  font: 13px/1.4 var(--font-serif, serif);
+  color: var(--color-text-primary);
 }
 
 /* ── Side chat panel (380px) ─────────────────────────────────────────────────── */

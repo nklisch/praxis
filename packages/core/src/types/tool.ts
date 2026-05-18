@@ -22,6 +22,7 @@ import type {
   Reference,
   SuccessCriteria,
   ThresholdConfig,
+  Unit,
 } from "./artifacts.js";
 import type { ProgressSnapshot } from "./client.js";
 import type { Logger, TimeRange, Timestamp } from "./common.js";
@@ -555,6 +556,8 @@ export interface ArtifactsService {
   course(id: CourseId): Promise<Course | null>;
   courses(studentId: StudentId): Promise<CourseSummary[]>;
   lessons(courseId: CourseId): Promise<Lesson[]>;
+  /** Phase 16: Return units for a course, ordered by orderIndex. */
+  units(courseId: CourseId): Promise<Unit[]>;
   /** Phase 16: Return scheduled assessments for a single lesson. */
   lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]>;
   gates(courseId: CourseId): Promise<Gate[]>;

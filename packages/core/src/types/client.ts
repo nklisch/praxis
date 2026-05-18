@@ -24,6 +24,7 @@ import type {
   RippleSummary,
   SuccessCriteria,
   ThresholdConfig,
+  Unit,
 } from "./artifacts.js";
 import type { TimeRange, Timestamp, TldrawSnapshot } from "./common.js";
 import type { ConfiguratorActionRow, RestoreResult } from "./configurator.js";
@@ -427,6 +428,8 @@ export interface ArtifactsClientSurface {
   /** Returns summaries for the list view. Full Course fetched per-id via course(id). */
   courses(): Promise<CourseSummary[]>;
   lessons(courseId: CourseId): Promise<Lesson[]>;
+  /** Phase 16: Return units for a course, ordered by orderIndex. */
+  units(courseId: CourseId): Promise<Unit[]>;
   /** Phase 16: Return scheduled assessments for a single lesson. */
   lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]>;
   gates(courseId: CourseId): Promise<Gate[]>;

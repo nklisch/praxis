@@ -6,6 +6,7 @@ import { getRouteMeta } from "../components/route-meta.js";
 import { UnlockModal } from "../components/unlock-modal.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { DirtyStateProvider } from "../contexts/dirty-state-provider.js";
+import type { SelectedLessonState } from "../hooks/use-configure-state.js";
 import { ConfigureStateContext } from "../hooks/use-configure-state.js";
 import { useDirtyAggregate, useDirtyStateObserver } from "../hooks/use-dirty-state.js";
 import { useLock } from "../hooks/use-lock.js";
@@ -77,14 +78,57 @@ function ConfigureSaveBar() {
 }
 
 /**
- * Inspector strip below the canvas — empty placeholder for this story.
- * Per-tab canvases will populate this with selected-node fields in their
- * own implementation stories.
+ * Inspector strip below the canvas — shows the selected lesson's editable fields
+ * when a lesson is selected in the Course tab canvas. Empty when nothing is selected.
  */
-function InspectorStrip() {
+function InspectorStrip({ selectedLesson }: { selectedLesson: SelectedLessonState | null }) {
+  if (!selectedLesson) {
+    return (
+      <div className={styles.inspectorStrip} data-testid="inspector-strip">
+        <span className={styles.inspectorEmpty}>Select a lesson to inspect its fields</span>
+      </div>
+    );
+  }
+
+  const { lesson, unitIndex, lessonIndex } = selectedLesson;
+  const label = `L${unitIndex}.${lessonIndex} · ${lesson.title}`;
+
   return (
-    <div className={styles.inspectorStrip} data-testid="inspector-strip" aria-hidden="true">
-      {/* Populated by per-tab canvas stories */}
+    <div className={styles.inspectorStrip} data-testid="inspector-strip">
+      <div className={styles.inspectorLabel}>{label}</div>
+      <h3 className={styles.inspectorTitle}>
+        Lesson{" "}
+        <em>
+          {unitIndex}.{lessonIndex}
+        </em>{" "}
+        — {lesson.title}
+      </h3>
+      <div className={styles.inspectorFields}>
+        <div className={styles.inspectorField}>
+          <div className={styles.inspectorFieldKey}>lesson.title</div>
+          <div className={styles.inspectorFieldVal}>{lesson.title}</div>
+        </div>
+        {lesson.conceptIds.length > 0 && (
+          <div className={styles.inspectorField}>
+            <div className={styles.inspectorFieldKey}>lesson.concepts</div>
+            <div className={styles.inspectorFieldVal}>
+              {lesson.conceptIds.length} concept{lesson.conceptIds.length !== 1 ? "s" : ""}
+            </div>
+          </div>
+        )}
+        {lesson.estimatedMinutes != null && (
+          <div className={styles.inspectorField}>
+            <div className={styles.inspectorFieldKey}>lesson.estimatedMinutes</div>
+            <div className={styles.inspectorFieldVal}>{lesson.estimatedMinutes} min</div>
+          </div>
+        )}
+        {lesson.suggestedStrategy != null && (
+          <div className={styles.inspectorField}>
+            <div className={styles.inspectorFieldKey}>lesson.suggestedStrategy</div>
+            <div className={styles.inspectorFieldVal}>{lesson.suggestedStrategy}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -118,6 +162,7 @@ export function ConfigureRoute() {
   const { isSet, isUnlocked, loading: lockLoading, refresh: refreshLock } = useLock();
   const [activeTab, setActiveTab] = useState<ConfigureTab>("course");
   const [selectedCourseId, setSelectedCourseId] = useState<CourseId | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<SelectedLessonState | null>(null);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const meta = getRouteMeta("configure");
 
@@ -212,7 +257,15 @@ export function ConfigureRoute() {
 
   return (
     <DirtyStateProvider>
-      <ConfigureStateContext.Provider value={{ selectedCourseId, setSelectedCourseId }}>
+      <ConfigureStateContext.Provider
+        value={{
+          selectedCourseId,
+          setSelectedCourseId,
+          selectedLesson,
+          setSelectedLesson,
+          clearSelectedLesson: () => setSelectedLesson(null),
+        }}
+      >
         <div className={styles.workspace}>
           {/* ── Sub-surface tab strip ───────────────────────────────────── */}
           <div className={styles.tabBar} role="tablist" aria-label="Configure surfaces">
@@ -288,8 +341,8 @@ export function ConfigureRoute() {
                 </div>
               </div>
 
-              {/* Inspector strip: empty placeholder — filled by per-tab canvas stories */}
-              <InspectorStrip />
+              {/* Inspector strip: shows the selected node from the active canvas */}
+              <InspectorStrip selectedLesson={selectedLesson} />
             </div>
 
             {/* Right panel: shared configure chat (380px) */}

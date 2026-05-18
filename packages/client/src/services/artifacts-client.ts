@@ -13,6 +13,7 @@ import type {
   LessonId,
   Note,
   ProgressSnapshot,
+  Unit,
 } from "@praxis/core/types";
 import { type IpcEnvelope, unwrapEnvelope } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
@@ -67,6 +68,14 @@ export class ArtifactsClient implements ArtifactsClientSurface {
   async lessons(courseId: CourseId): Promise<Lesson[]> {
     const result = await this.transport.invoke<IpcEnvelope<Lesson[]> | Lesson[]>(
       C.lessons,
+      courseId,
+    );
+    return unwrapEnvelope(result);
+  }
+
+  async units(courseId: CourseId): Promise<Unit[]> {
+    const result = await this.transport.invoke<IpcEnvelope<Unit[]> | Unit[]>(
+      "praxis.artifacts.units",
       courseId,
     );
     return unwrapEnvelope(result);

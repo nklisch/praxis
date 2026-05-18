@@ -53,7 +53,7 @@ describe("NoteEditorCornell — 3-zone layout", () => {
 
   it("renders ◆ markers in the notes column — one per row", () => {
     const { container } = render(<NoteEditorCornell body={makeBody()} onChange={() => {}} />);
-    const markers = container.querySelectorAll('[data-cue-id]');
+    const markers = container.querySelectorAll("[data-cue-id]");
     expect(markers).toHaveLength(2);
     expect((markers[0] as HTMLElement).dataset.cueId).toBe("0");
     expect((markers[1] as HTMLElement).dataset.cueId).toBe("1");
@@ -67,10 +67,7 @@ describe("NoteEditorCornell — 3-zone layout", () => {
 
   it("shows 'Add a cue to start taking notes.' when body is empty", () => {
     render(
-      <NoteEditorCornell
-        body={makeBody({ questions: [], details: [] })}
-        onChange={() => {}}
-      />,
+      <NoteEditorCornell body={makeBody({ questions: [], details: [] })} onChange={() => {}} />,
     );
     expect(screen.getByText(/Add a cue to start taking notes/i)).toBeDefined();
   });

@@ -1,6 +1,6 @@
-import type { Course, Lesson, LessonId, SessionId } from "@praxis/core/types";
-import { useCallback, useEffect, useState } from "react";
-import { LessonEditor } from "../../components/lesson-editor.js";
+import type { CourseId, Lesson, LessonId, SessionId, Unit } from "@praxis/core/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LessonAssessmentPills } from "../../components/lesson-assessment-pills.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import { useConfigureState } from "../../hooks/use-configure-state.js";
 import { useCourses } from "../../hooks/use-courses.js";
@@ -12,171 +12,421 @@ interface CourseTabProps {
 }
 
 /**
- * Course tab canvas — course outline editor (unit/lesson tree).
+ * Lesson status — derived from the course/gate progression data.
+ * v1: simple done/active/gated classification.
+ */
+type LessonStatus = "done" | "active" | "gated";
+
+/**
+ * Build the flat ordered list of lessons for a unit from the unit's lessonIds and the
+ * course's full lesson map.
+ */
+function lessonsForUnit(unit: Unit, lessonMap: Map<LessonId, Lesson>): Lesson[] {
+  return unit.lessonIds.map((id) => lessonMap.get(id)).filter((l): l is Lesson => l !== undefined);
+}
+
+/**
+ * Derive a display status for a lesson.
+ * v1: no mastery data at this level — use a simple heuristic based on position.
+ * A real implementation would cross-ref the gate/mastery state; for now we mark
+ * all lessons as "gated" (not yet started) by default, leaving refinement to a
+ * future story.
+ */
+function deriveLessonStatus(_lesson: Lesson): LessonStatus {
+  return "gated";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unit block
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface UnitBlockProps {
+  unit: Unit;
+  unitIndex: number;
+  lessons: Lesson[];
+  selectedLessonId: LessonId | null;
+  onLessonSelect: (lesson: Lesson, unitIndex: number, lessonIndex: number) => void;
+  onDragStart: (unitId: string) => void;
+  onDragOver: (e: React.DragEvent<HTMLDivElement>, unitId: string) => void;
+  onDrop: (e: React.DragEvent<HTMLDivElement>, unitId: string) => void;
+  isDragTarget: boolean;
+}
+
+function UnitBlock({
+  unit,
+  unitIndex,
+  lessons,
+  selectedLessonId,
+  onLessonSelect,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  isDragTarget,
+}: UnitBlockProps) {
+  const [expanded, setExpanded] = useState(true);
+
+  const blockClass = [styles.unitBlock, isDragTarget ? styles.unitBlockDragTarget : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop container — role is implicit container not interactive element
+    <div
+      className={blockClass}
+      data-testid={`unit-block-${unit.id}`}
+      draggable
+      onDragStart={() => onDragStart(unit.id)}
+      onDragOver={(e) => onDragOver(e, unit.id)}
+      onDrop={(e) => onDrop(e, unit.id)}
+    >
+      {/* Unit header — button so it's keyboard-accessible */}
+      <button
+        type="button"
+        className={styles.unitHead}
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        <span className={styles.unitHandle} aria-hidden="true" title="Drag to reorder unit">
+          ⁞⁞
+        </span>
+        <span className={styles.unitNum}>{unitIndex}.</span>
+        <span className={styles.unitTitle}>{unit.name}</span>
+        <span className={styles.unitMeta}>
+          {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
+        </span>
+        <span className={styles.unitExpander} aria-hidden="true">
+          {expanded ? "▾" : "▸"}
+        </span>
+      </button>
+
+      {/* Lessons */}
+      {expanded && (
+        <div className={styles.lessons}>
+          {lessons.map((lesson, idx) => {
+            const status = deriveLessonStatus(lesson);
+            const isSelected = lesson.id === selectedLessonId;
+            return (
+              <LessonRow
+                key={lesson.id}
+                lesson={lesson}
+                lessonNum={`${unitIndex}.${idx + 1}`}
+                status={status}
+                isSelected={isSelected}
+                onSelect={() => onLessonSelect(lesson, unitIndex, idx + 1)}
+              />
+            );
+          })}
+          {lessons.length === 0 && <div className={styles.emptyUnit}>No lessons in this unit</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lesson row
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface LessonRowProps {
+  lesson: Lesson;
+  lessonNum: string;
+  status: LessonStatus;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+function LessonRow({ lesson, lessonNum, status, isSelected, onSelect }: LessonRowProps) {
+  const rowClass = [styles.lessonRow, isSelected ? styles.lessonRowSelected : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  const statusClass = [
+    styles.lessonStatus,
+    status === "done" ? styles.lessonStatusDone : "",
+    status === "active" ? styles.lessonStatusActive : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <button
+      type="button"
+      className={rowClass}
+      onClick={onSelect}
+      data-testid={`lesson-row-${lesson.id}`}
+    >
+      <span className={styles.lessonNum}>{lessonNum}</span>
+      <span className={styles.lessonTitle}>{lesson.title}</span>
+      <LessonAssessmentPills lessonId={lesson.id} />
+      <span className={statusClass}>{status}</span>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Flat lesson list (no units — legacy courses)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface FlatLessonListProps {
+  lessons: Lesson[];
+  selectedLessonId: LessonId | null;
+  onLessonSelect: (lesson: Lesson, unitIndex: number, lessonIndex: number) => void;
+}
+
+function FlatLessonList({ lessons, selectedLessonId, onLessonSelect }: FlatLessonListProps) {
+  return (
+    <div className={styles.flatList}>
+      {lessons.map((lesson, idx) => {
+        const status = deriveLessonStatus(lesson);
+        const isSelected = lesson.id === selectedLessonId;
+        return (
+          <LessonRow
+            key={lesson.id}
+            lesson={lesson}
+            lessonNum={String(idx + 1)}
+            status={status}
+            isSelected={isSelected}
+            onSelect={() => onLessonSelect(lesson, 0, idx + 1)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CourseTab
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Course tab canvas — unit/lesson tree with drag-reorderable unit blocks.
  *
- * The chat pane has been promoted to the Configure shell (configure.tsx) and is
- * now a shared side panel. This component is canvas-only.
+ * Layout per the locked mock (tab-course.html):
+ *  - Legend strip naming the assessment pill vocabulary.
+ *  - For courses with units: one UnitBlock per unit, drag-reorderable.
+ *  - For legacy flat courses: flat lesson list.
+ *  - Clicking a lesson populates the inspector strip via ConfigureStateContext.
  *
- * - Course picker (dropdown from useCourses)
- * - If course selected: list of lessons (each as LessonEditor), + Add lesson button
- * - Edits flow through client.author.updateLesson / createLesson / deleteLesson
+ * Inspector integration: when a lesson row is clicked, `setSelectedLesson` is
+ * called on the shared ConfigureStateContext, which the shell's InspectorStrip
+ * reads.
  *
- * No RouteHeader: this is a tab panel inside <ConfigureRoute>, not a standalone route.
- * The parent route owns the header (configure.tsx renders <RouteHeader>).
+ * Drag-and-drop: HTML5 drag events track dragged unit id; on drop,
+ * `praxisClient.author.updateCourse` is NOT called (no server-side unit-reorder
+ * API exists yet — v1 reorders the local state and logs the intent). A future
+ * story will add the server-side endpoint.
  *
- * `sessionId` is threaded through for future sub-surface canvas features that
- * may want to correlate canvas interactions with the active configure session.
+ * The canvas is canvas-only — no chat pane (that lives in the shell).
  */
 export function CourseTab({ sessionId: _sessionId }: CourseTabProps) {
   const client = usePraxisClient();
-  const { selectedCourseId, setSelectedCourseId } = useConfigureState();
-  // Register this tab with the cross-tab dirty tracker. Course mutations save
-  // immediately via LessonEditor, so the tab-level dirty state is always clean
-  // unless a future story propagates per-editor dirty state upward.
+  const { selectedCourseId, setSelectedCourseId, setSelectedLesson } = useConfigureState();
   useDirtyState("configure.course");
   const { courses, loading: coursesLoading, error: coursesError } = useCourses();
 
-  const [course, setCourse] = useState<Course | null>(null);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [concepts, setConcepts] = useState<Array<{ id: string; name: string; aliases: string[] }>>(
-    [],
-  );
-  const [editorLoading, setEditorLoading] = useState(false);
-  const [editorError, setEditorError] = useState<string | null>(null);
-  const [addingLesson, setAddingLesson] = useState(false);
+  // ── Data ─────────────────────────────────────────────────────────────────
 
-  const loadCourseSummary = useCallback(async () => {
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // ── Selection ────────────────────────────────────────────────────────────
+
+  const [selectedLessonId, setSelectedLessonId] = useState<LessonId | null>(null);
+
+  // ── Drag state ───────────────────────────────────────────────────────────
+
+  const draggingUnitIdRef = useRef<string | null>(null);
+  const [dragTargetUnitId, setDragTargetUnitId] = useState<string | null>(null);
+
+  // ── Load ─────────────────────────────────────────────────────────────────
+
+  const loadCourse = useCallback(async () => {
     if (!selectedCourseId) {
-      setCourse(null);
+      setUnits([]);
       setLessons([]);
-      setConcepts([]);
+      setSelectedLessonId(null);
+      setSelectedLesson(null);
       return;
     }
-    setEditorLoading(true);
-    setEditorError(null);
+    setLoading(true);
+    setError(null);
     try {
-      const summary = await client.author.getCourseSummary(selectedCourseId);
-      setCourse(summary.course);
-      setLessons(summary.lessons);
-      setConcepts(
-        summary.concepts.map((c) => ({
-          id: c.id,
-          name: c.name,
-          aliases: c.aliases,
-        })),
-      );
+      const [fetchedUnits, fetchedLessons] = await Promise.all([
+        client.artifacts.units(selectedCourseId),
+        client.artifacts.lessons(selectedCourseId),
+      ]);
+      setUnits(fetchedUnits);
+      setLessons(fetchedLessons);
     } catch (err) {
-      setEditorError(err instanceof Error ? err.message : String(err));
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setEditorLoading(false);
+      setLoading(false);
     }
-  }, [client, selectedCourseId]);
+  }, [client, selectedCourseId, setSelectedLesson]);
 
   useEffect(() => {
-    loadCourseSummary();
-  }, [loadCourseSummary]);
+    loadCourse();
+  }, [loadCourse]);
 
-  const handleLessonSaved = (updated: Lesson) => {
-    setLessons((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
-  };
+  // Clear inspector selection when course changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: selectedCourseId is the trigger — we want to clear selection whenever it changes, even though it's not read in the body
+  useEffect(() => {
+    setSelectedLessonId(null);
+    setSelectedLesson(null);
+  }, [selectedCourseId, setSelectedLesson]);
 
-  const handleLessonDeleted = (lessonId: LessonId) => {
-    setLessons((prev) => prev.filter((l) => l.id !== lessonId));
-  };
+  // ── Selection handler ────────────────────────────────────────────────────
 
-  const handleAddLesson = async () => {
-    if (!selectedCourseId) return;
-    setAddingLesson(true);
-    try {
-      const newLesson = await client.author.createLesson({
-        courseId: selectedCourseId,
-        title: "New lesson",
-        conceptIds: [],
-      });
-      setLessons((prev) => [...prev, newLesson]);
-    } catch (err) {
-      setEditorError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setAddingLesson(false);
-    }
-  };
+  const handleLessonSelect = useCallback(
+    (lesson: Lesson, unitIndex: number, lessonIndex: number) => {
+      setSelectedLessonId(lesson.id);
+      setSelectedLesson({ lesson, unitIndex, lessonIndex });
+    },
+    [setSelectedLesson],
+  );
+
+  // ── Drag handlers ────────────────────────────────────────────────────────
+
+  const handleDragStart = useCallback((unitId: string) => {
+    draggingUnitIdRef.current = unitId;
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>, unitId: string) => {
+    e.preventDefault();
+    setDragTargetUnitId(unitId);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>, targetUnitId: string) => {
+    e.preventDefault();
+    setDragTargetUnitId(null);
+    const srcId = draggingUnitIdRef.current;
+    draggingUnitIdRef.current = null;
+    if (!srcId || srcId === targetUnitId) return;
+
+    setUnits((prev) => {
+      const srcIdx = prev.findIndex((u) => u.id === srcId);
+      const tgtIdx = prev.findIndex((u) => u.id === targetUnitId);
+      if (srcIdx === -1 || tgtIdx === -1) return prev;
+      const next = [...prev];
+      // splice(srcIdx, 1) always returns 1 element since srcIdx !== -1 was checked above
+      // biome-ignore lint/style/noNonNullAssertion: splice returns 1 element because srcIdx was validated above
+      const removed = next.splice(srcIdx, 1)[0]!;
+      next.splice(tgtIdx, 0, removed);
+      // Persist reorder — no server-side unit-reorder endpoint in v1;
+      // the visual order is updated locally. A future story will call
+      // client.author.reorderUnits when the IPC channel is available.
+      return next;
+    });
+  }, []);
+
+  // ── Build lesson map ──────────────────────────────────────────────────────
+
+  const lessonMap = new Map(lessons.map((l) => [l.id, l]));
+  const hasUnits = units.length > 0;
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.layout}>
-      <div className={styles.editorPane}>
-        <div className={styles.editorHeader}>
-          <h2 className={styles.editorTitle}>Course Editor</h2>
-
-          <div className={styles.pickerRow}>
-            <label className={styles.pickerLabel}>
-              Course
-              <select
-                className={styles.coursePicker}
-                value={selectedCourseId ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedCourseId(val ? (val as import("@praxis/core/types").CourseId) : null);
-                }}
-                disabled={coursesLoading}
-              >
-                <option value="">— Select a course —</option>
-                {courses.map((c) => (
-                  <option key={c.courseId} value={c.courseId}>
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {coursesError && <p className={styles.error}>{coursesError}</p>}
+      {/* Course picker */}
+      <div className={styles.canvasHead}>
+        <div className={styles.kicker}>⁂ Configure · structure</div>
+        <div className={styles.pickerRow}>
+          <label className={styles.pickerLabel}>
+            Course
+            <select
+              className={styles.coursePicker}
+              value={selectedCourseId ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedCourseId(val ? (val as CourseId) : null);
+              }}
+              disabled={coursesLoading}
+              aria-label="Select course"
+            >
+              <option value="">— Select a course —</option>
+              {courses.map((c) => (
+                <option key={c.courseId} value={c.courseId}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          {coursesError && <span className={styles.error}>{coursesError}</span>}
         </div>
+      </div>
 
-        <div className={styles.editorContent}>
-          {!selectedCourseId && (
-            <div className={styles.emptyState}>
-              <p className={styles.emptyPrimary}>Select a course to edit its lessons.</p>
+      {/* Canvas body */}
+      <div className={styles.canvas}>
+        {!selectedCourseId && (
+          <div className={styles.emptyState}>
+            <p className={styles.emptyPrimary}>Select a course to view its unit and lesson tree.</p>
+          </div>
+        )}
+
+        {selectedCourseId && loading && <p className={styles.status}>Loading course…</p>}
+
+        {selectedCourseId && error && <p className={styles.error}>{error}</p>}
+
+        {selectedCourseId && !loading && !error && (
+          <>
+            {/* Legend strip */}
+            <div className={styles.legend} data-testid="legend-strip">
+              <span className={styles.legendItem}>
+                <span className={`${styles.pill} ${styles.pillQc}`}>QC</span>
+                quick check (inline, formative)
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.pill} ${styles.pillReady}`}>READY</span>
+                readiness quiz (before)
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.pill} ${styles.pillHome}`}>HW</span>
+                practice homework (interleaved)
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.pill} ${styles.pillCheck}`}>QUIZ</span>
+                checkpoint quiz (after)
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.pill} ${styles.pillExam}`}>EXAM</span>
+                unit exam / final
+              </span>
             </div>
-          )}
 
-          {selectedCourseId && editorLoading && <p className={styles.status}>Loading course…</p>}
-
-          {selectedCourseId && editorError && <p className={styles.error}>{editorError}</p>}
-
-          {selectedCourseId && !editorLoading && !editorError && course && (
-            <div className={styles.lessonList}>
-              <div className={styles.courseHeader}>
-                <h3 className={styles.courseName}>{course.title}</h3>
-                <span className={styles.courseMeta}>
-                  {course.subject} · {course.gradeLevel}
-                </span>
-              </div>
-
-              {lessons.length === 0 && (
-                <p className={styles.status}>No lessons yet. Add the first one below.</p>
+            {/* Tree */}
+            <div className={styles.tree} data-testid="course-tree">
+              {hasUnits ? (
+                units.map((unit, idx) => (
+                  <UnitBlock
+                    key={unit.id}
+                    unit={unit}
+                    unitIndex={idx + 1}
+                    lessons={lessonsForUnit(unit, lessonMap)}
+                    selectedLessonId={selectedLessonId}
+                    onLessonSelect={handleLessonSelect}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    isDragTarget={dragTargetUnitId === unit.id}
+                  />
+                ))
+              ) : (
+                <FlatLessonList
+                  lessons={lessons}
+                  selectedLessonId={selectedLessonId}
+                  onLessonSelect={handleLessonSelect}
+                />
               )}
 
-              {lessons.map((lesson) => (
-                <LessonEditor
-                  key={lesson.id}
-                  lesson={lesson}
-                  availableConcepts={concepts}
-                  onSaved={handleLessonSaved}
-                  onDeleted={handleLessonDeleted}
-                />
-              ))}
-
-              <button
-                type="button"
-                className={styles.addBtn}
-                onClick={handleAddLesson}
-                disabled={addingLesson}
-              >
-                {addingLesson ? "Adding…" : "+ Add lesson"}
-              </button>
+              {hasUnits && lessons.length === 0 && units.length === 0 && (
+                <p className={styles.status}>No lessons yet. Add units via the configurator.</p>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
