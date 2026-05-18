@@ -1,0 +1,57 @@
+/* Theme toggle — 3-button segmented control in the app-shell running head.
+ * Matches the locked option-3.html mock: mono kicker font, accent underline
+ * on active. Uses editorial tokens only. */
+
+.toggle {
+  composes: editorial from global;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.legend {
+  /* Visually hidden — fieldset legend for accessibility, hidden from view */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.btn {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  transition: color 0.1s ease;
+}
+
+.btn:hover {
+  color: var(--color-text-primary);
+}
+
+.btnActive {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.sep {
+  color: var(--color-text-secondary);
+  opacity: 0.4;
+  user-select: none;
+}

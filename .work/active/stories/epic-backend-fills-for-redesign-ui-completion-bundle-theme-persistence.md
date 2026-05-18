@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-theme-persistence
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -59,3 +59,34 @@ updated: 2026-05-17
       when `"auto"`).
 - [ ] Toggle UI renders in the app shell.
 - [ ] All quality checks green.
+
+## Implementation notes
+
+Delivered `useTheme` hook and `<ThemeToggle>` component (hook + component
+story only — mounting in the app shell is handled by the sibling
+`-theme-toggle-mount` story).
+
+**`packages/ui/src/hooks/use-theme.ts`**
+- `ThemePref = "auto" | "light" | "dark"`, storage key `praxis.theme.preference`.
+- Initial pref read and `applyToDocument` called synchronously inside the
+  `useState` initializer so the attribute is set before first paint where
+  possible.
+- `useEffect([pref])` keeps `data-theme` in sync whenever pref changes.
+- `setPref` writes localStorage then updates state; `applyToDocument` is
+  called via the effect for clean separation.
+- `localStorage` access wrapped in try/catch for SSR / restricted contexts.
+
+**`packages/ui/src/components/theme-toggle.tsx` + `.module.css`**
+- `<fieldset>` + visually-hidden `<legend>` for semantic grouping (Biome
+  `useSemanticElements` rule).
+- 3 `<button type="button">` with `aria-pressed`, separated by `·` spans.
+- Active button highlighted via `--color-accent` underline + colour, matching
+  the locked option-3.html mock exactly.
+- Tokens: `var(--font-mono)`, `var(--letter-spacing-kicker)`,
+  `var(--color-text-secondary)`, `var(--color-accent)`.
+
+**Tests** — 14 tests, all green:
+- `use-theme.test.ts` (7): default auto, mount attribute removal, setPref
+  light/dark/auto, storage roundtrip, restore on mount.
+- `theme-toggle.test.tsx` (7): 3 buttons, aria-pressed default, click dark,
+  click light, click auto to clear, localStorage persistence, separator glyphs.
