@@ -1,7 +1,7 @@
 ---
 id: refactor-stream-handler-template-step-1-helper-and-activity
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-stream-handler-template
 depends_on: []
@@ -244,3 +244,14 @@ All 487 @praxis/desktop tests pass (33 test files):
 Biome lint: `Checked 2 files in 5ms. No fixes applied.`
 
 Pre-existing typecheck errors (3 in UI files) confirmed unchanged — not caused by this work.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Log-key shape changed for subscriber channels: `activity.subscribe` → `activity.events.subscribe` (and the same shift for `subAgent` / `course-create.drafts` in steps 2-3). Derived from `channelBase` with leading `"praxis."` stripped. No tests assert on these strings, so this is not a test regression — but if any downstream log dashboards or alerts key on the prior short names, they need updating. Mentioned in feature-level run summary too.
+
+**Notes**: Helper is well-structured — private `setupStream<E>` primitive owns the common scaffolding (controller register/teardown, push w/ WebContents-alive guard, child log), and the two public factories (`registerSubscriberStream`, `registerGeneratorStream`) wrap the inner subscribe/iterate body with try/catch/finally. API deviated from the design sketch in two pragmatic ways, both improvements: (1) `IpcHandlerHelpers` is imported from `ipc-helpers.js` rather than redefining `HandleFn`/`OnFn` (avoids duplicate type def); (2) `Args extends readonly unknown[] = readonly []` satisfies TS 6 strict array variance. Activity-channel adoption is faithful (77→38 LoC, -51%); wire format preserved including the load-bearing double `.events.events.<id>` push target. 487/487 desktop tests pass unmodified.
