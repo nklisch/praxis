@@ -1,4 +1,3 @@
-import type { IpcStreamMessage } from "@praxis/client";
 import { EngineConfigSchema, EngineIdSchema } from "@praxis/core/config";
 import type {
   AssignmentId,
@@ -21,26 +20,28 @@ import type {
   TabId,
   TldrawSnapshot,
 } from "@praxis/core/types";
-import {
-  brandId,
-  isAllowedExternalUrl,
-  redactSecrets,
-  serializeErrorRedacted,
-} from "@praxis/core/types";
-import { app, ipcMain } from "electron";
+import { brandId } from "@praxis/core/types";
+import { ipcMain } from "electron";
 import { z } from "zod";
 import { registerActivityHandlers } from "./activity-channel.js";
+import { registerAuthHandlers } from "./auth-channel.js";
 import { registerCitationsHandlers } from "./citations-channel.js";
 import { registerCourseCreateDraftsHandlers } from "./course-create-drafts-channel.js";
 import { registerDocumentScopesHandlers } from "./document-scopes-channel.js";
+import { registerDocumentsHandlers } from "./documents-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
+import { registerLibraryHandlers } from "./library-channel.js";
+import { registerLockHandlers } from "./lock-channel.js";
+import { registerPacksHandlers } from "./packs-channel.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
 import { registerRecommendationsHandlers } from "./recommendations-channel.js";
 import type { Services } from "./services.js";
+import { registerShellHandlers } from "./shell-channel.js";
 import { registerGeneratorStream } from "./stream-handler.js";
 import { registerSubAgentHandlers } from "./subagent-channel.js";
+import { registerUpdateHandlers } from "./update-channel.js";
 
 /**
  * Register all IPC handlers for the Praxis services.
@@ -311,58 +312,6 @@ export function registerIpcHandlers(
     wrapEnvelope("praxis.config.markFirstRunComplete", log, async () =>
       services.config.markFirstRunComplete(),
     ),
-  );
-
-  // ── Update check (manual-download flow) ──────────────────────────────────
-
-  handle(
-    "praxis.update.checkLatest",
-    wrapEnvelope("praxis.update.checkLatest", log, async () => {
-      return services.update.checkLatest(app.getVersion());
-    }),
-  );
-
-  // ── Documents ────────────────────────────────────────────────────────────
-
-  handle(
-    "praxis.documents.list",
-    wrapEnvelope("praxis.documents.list", log, async () => services.documents.list()),
-  );
-
-  handle(
-    "praxis.documents.get",
-    handleEnvelope(
-      "praxis.documents.get",
-      log,
-      z.string().min(1, "documentId"),
-      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-      async (documentId) => services.documents.get(documentId as any),
-    ),
-  );
-
-  handle(
-    "praxis.documents.delete",
-    handleEnvelope(
-      "praxis.documents.delete",
-      log,
-      z.string().min(1, "documentId"),
-      // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
-      async (documentId) => services.documents.delete(documentId as any),
-    ),
-  );
-
-  const pageImageSchema = z.object({
-    documentId: z.string().min(1, "documentId"),
-    page: z.number().int().nonnegative(),
-  });
-
-  handle(
-    "praxis.documents.pageImage",
-    handleEnvelope("praxis.documents.pageImage", log, pageImageSchema, async (payload) => {
-      const buffer = await services.documents.pageImage(payload);
-      // Encode as base64 for IPC transport — Electron IPC can't send raw Buffers reliably
-      return buffer ? buffer.toString("base64") : null;
-    }),
   );
 
   // ── Ingestion (streamed + non-streamed) ──────────────────────────────────
@@ -690,66 +639,6 @@ export function registerIpcHandlers(
       // (e.g., "<graphId>:algebra-1.real-numbers") — consumers must treat as opaque strings.
       // biome-ignore lint/suspicious/noExplicitAny: branded string passthrough
       async (courseId) => services.artifacts.concepts(brandId<"CourseId">(courseId) as any),
-    ),
-  );
-
-  // ── Phase 10: Packs ──────────────────────────────────────────────────────────
-
-  handle(
-    "praxis.packs.listAvailable",
-    wrapEnvelope("praxis.packs.listAvailable", log, async () =>
-      services.packs.listAvailablePacks(),
-    ),
-  );
-
-  handle(
-    "praxis.packs.listImported",
-    wrapEnvelope("praxis.packs.listImported", log, async () => services.packs.listImportedPacks()),
-  );
-
-  handle(
-    "praxis.packs.import",
-    handleEnvelope("praxis.packs.import", log, z.string().min(1, "packId"), async (packId) =>
-      services.packs.importPack(packId),
-    ),
-  );
-
-  // ── Phase 11: Lock ───────────────────────────────────────────────────────────
-  // Lock handlers are NOT guarded by requireUnlocked — they control the lock.
-
-  handle(
-    "praxis.lock.isSet",
-    wrapEnvelope("praxis.lock.isSet", log, async () => services.lock.isSet()),
-  );
-
-  handle(
-    "praxis.lock.isUnlocked",
-    wrapEnvelope("praxis.lock.isUnlocked", log, async () => services.lock.isUnlocked()),
-  );
-
-  handle(
-    "praxis.lock.setLockCode",
-    handleEnvelope("praxis.lock.setLockCode", log, z.string().min(1, "code"), async (code) =>
-      services.lock.setLockCode({ code }),
-    ),
-  );
-
-  handle(
-    "praxis.lock.unlock",
-    handleEnvelope("praxis.lock.unlock", log, z.string().min(1, "code"), async (code) =>
-      services.lock.unlock({ code }),
-    ),
-  );
-
-  handle(
-    "praxis.lock.lock",
-    wrapEnvelope("praxis.lock.lock", log, async () => services.lock.lock()),
-  );
-
-  handle(
-    "praxis.lock.clearLock",
-    handleEnvelope("praxis.lock.clearLock", log, z.string().min(1, "code"), async (currentCode) =>
-      services.lock.clearLock({ currentCode }),
     ),
   );
 
@@ -1496,93 +1385,6 @@ export function registerIpcHandlers(
     }),
   );
 
-  // ── Library search (FTS5 + saved filters) ────────────────────────────────────
-
-  const librarySearchSchema = z
-    .object({
-      query: z.string().min(1).optional(),
-      sessionId: z.string().min(1).optional(),
-      orphan: z.boolean().optional(),
-      dueOnly: z.boolean().optional(),
-      recentWindowMs: z.number().int().positive().optional(),
-      limit: z.number().int().positive().optional(),
-    })
-    .optional();
-
-  handle(
-    "praxis.library.search",
-    handleEnvelope("praxis.library.search", log, librarySearchSchema, async (input) => {
-      const studentId = getStudentId();
-      return services.library.search({
-        studentId,
-        ...(input?.query !== undefined && { query: input.query }),
-        ...(input?.sessionId !== undefined && {
-          sessionId: brandId<"SessionId">(input.sessionId),
-        }),
-        ...(input?.orphan !== undefined && { orphan: input.orphan }),
-        ...(input?.dueOnly !== undefined && { dueOnly: input.dueOnly }),
-        ...(input?.recentWindowMs !== undefined && { recentWindowMs: input.recentWindowMs }),
-        ...(input?.limit !== undefined && { limit: input.limit }),
-      });
-    }),
-  );
-
-  // ── Claude auth ──────────────────────────────────────────────────────────────
-
-  handle(
-    "praxis.auth.claude.status",
-    wrapEnvelope("praxis.auth.claude.status", log, async () => services.claudeAuth.status()),
-  );
-
-  // Streaming login flow. Renderer subscribes to events.<streamId> first,
-  // then invokes start. Cancel via .cancel with the streamId.
-  handle("praxis.auth.claude.login.start", async (_event, streamId: string) => {
-    const streamLog = log.child({ component: "auth.claude.login", streamId });
-    const controller = new AbortController();
-    activeAbortControllers.set(streamId, controller);
-    const eventsChannel = `praxis.auth.claude.login.events.${streamId}`;
-    const t0 = performance.now();
-    let eventCount = 0;
-
-    const push = (msg: IpcStreamMessage<unknown>) => {
-      const wc = webContentsGetter();
-      if (!wc || wc.isDestroyed()) return;
-      wc.send(eventsChannel, msg);
-    };
-
-    streamLog.info("auth.claude.login.start");
-    try {
-      const stream = services.claudeAuth.login({ signal: controller.signal });
-      for await (const event of stream) {
-        if (controller.signal.aborted) break;
-        eventCount++;
-        push({ kind: "event", payload: event });
-      }
-      push({ kind: "done" });
-      streamLog.info("auth.claude.login.done", {
-        durationMs: Math.round(performance.now() - t0),
-        eventCount,
-      });
-    } catch (err) {
-      streamLog.error("auth.claude.login.error", {
-        durationMs: Math.round(performance.now() - t0),
-        eventCount,
-        err: serializeErrorRedacted(err),
-      });
-      push({
-        kind: "error",
-        error: redactSecrets(err instanceof Error ? err.message : String(err)),
-      });
-    } finally {
-      activeAbortControllers.delete(streamId);
-    }
-  });
-
-  on("praxis.auth.claude.login.cancel", (_event, streamId: string) => {
-    activeAbortControllers.get(streamId)?.abort();
-    activeAbortControllers.delete(streamId);
-  });
-
   // ── Phase 14: Tabs ───────────────────────────────────────────────────────────
 
   const tabIdSchema = z.string().min(1, "tabId");
@@ -1960,20 +1762,33 @@ export function registerIpcHandlers(
 
   registerRecommendationsHandlers(services, log);
 
+  // ── Claude auth ──────────────────────────────────────────────────────────────
+
+  registerAuthHandlers(services, webContentsGetter, activeAbortControllers, log);
+
+  // ── Documents ────────────────────────────────────────────────────────────────
+
+  registerDocumentsHandlers(services, log);
+
+  // ── Library search ────────────────────────────────────────────────────────────
+
+  registerLibraryHandlers(services, log);
+
+  // ── Lock ──────────────────────────────────────────────────────────────────────
+
+  registerLockHandlers(services, log);
+
+  // ── Packs ─────────────────────────────────────────────────────────────────────
+
+  registerPacksHandlers(services, log);
+
   // ── Shell helpers ─────────────────────────────────────────────────────────────
 
-  handle(
-    "praxis.shell.openExternal",
-    handleEnvelope(
-      "praxis.shell.openExternal",
-      log,
-      z.string().min(1, "url").refine(isAllowedExternalUrl, "url must be http(s)"),
-      async (url) => {
-        const { shell } = await import("electron");
-        await shell.openExternal(url);
-      },
-    ),
-  );
+  registerShellHandlers(services, log);
+
+  // ── Update check ──────────────────────────────────────────────────────────────
+
+  registerUpdateHandlers(services, log);
 
   const cleanup = () => {
     for (const channel of registeredChannels) {

@@ -1,7 +1,7 @@
 ---
 id: refactor-ipc-server-extract-domain-channels-step-1-small-domains
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-ipc-server-extract-domain-channels
 depends_on: []
@@ -127,3 +127,46 @@ If a domain has handlers that share state in a way that's hard to thread
 through (e.g., a closure over a per-`registerIpcHandlers` local variable),
 flag it and consider passing the state as an additional parameter to the
 register function. If the design genuinely doesn't work, append `## Implementation discovery`, set stage back to `drafting`, commit `revisit: ...`.
+
+## Implementation notes
+
+### Per-domain extraction summary
+
+| Domain | File | Handlers moved |
+|---|---|---|
+| `auth` | `auth-channel.ts` | 3 (`praxis.auth.claude.status`, `.login.start` stream, `.login.cancel`) |
+| `shell` | `shell-channel.ts` | 1 (`praxis.shell.openExternal`) |
+| `update` | `update-channel.ts` | 1 (`praxis.update.checkLatest`) |
+| `lock` | `lock-channel.ts` | 6 (`isSet`, `isUnlocked`, `setLockCode`, `unlock`, `lock`, `clearLock`) |
+| `library` | `library-channel.ts` | 1 (`praxis.library.search`) |
+| `documents` | `documents-channel.ts` | 4 (`list`, `get`, `delete`, `pageImage`) |
+| `packs` | `packs-channel.ts` | 3 (`listAvailable`, `listImported`, `import`) |
+
+**Total: 19 handlers moved** across 7 new files.
+
+### `getStudentId` inline regression
+
+- `library-channel.ts`: 1 occurrence inlines `brandId<"StudentId">(services.getDefaultStudentId()) as StudentId`
+- All other extracted domains don't use `studentId`
+- Future cleanup: a shared `student-id.ts` helper (or exporting `getStudentId` from ipc-server.ts) would clean this up
+
+### Shared schema duplications
+
+None. The `librarySearchSchema` was local to the library block and moved cleanly into `library-channel.ts`. The `pageImageSchema` was local to the documents block and moved into `documents-channel.ts`. No shared schemas duplicated.
+
+### Auth domain note
+
+The `auth` channel has a manual streaming handler (`praxis.auth.claude.login.start`) that predates the `registerGeneratorStream` helper (it uses a bespoke `for await` push loop). The handler was moved verbatim. `registerAuthHandlers` accepts `webContentsGetter` and `activeAbortControllers` because of this streaming endpoint.
+
+### Final ipc-server.ts LoC
+
+- Before: 1996 LoC
+- After: 1811 LoC
+- Reduction: 185 lines
+
+### Baseline confirmation
+
+- 3 pre-existing UI typecheck errors (chat-tab-body.tsx, chat.tsx, notes-list.tsx) — unchanged
+- Pre-existing biome suppression warning in ipc-server.ts (`suppressions/unused` at the `lessonAssessments` handler) — unchanged
+- All 31 electron/main test files (493 tests) pass unmodified
+- All critical tests pass: `streaming-channel-error-redaction`, `ipc-server.envelope-migration`, `ipc-server.cancel`, `misc-and-domain-channel-envelope`
