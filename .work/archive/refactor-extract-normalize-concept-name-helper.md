@@ -1,7 +1,7 @@
 ---
 id: refactor-extract-normalize-concept-name-helper
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -90,3 +90,14 @@ validation paths thoroughly.
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Commits landed out of order (`020f29d` stage transition before `1ced879` code change). Final state is correct; verification was clean; minor procedural quirk only. Next time prefer a single commit per implement skill convention.
+
+**Notes**: Discovery undercounted the call sites (estimated 7; actual 24). Agent verified every site was a concept-name normalization before swap — none were false positives. Final grep: 26 occurrences = 1 definition + 25 uses (the auto-formatter split one line which produced an additional reference). 37 tests pass. Helper is file-private as specified — future course-create-service split (`refactor-course-create-service-extract-modules`) can promote it into the extracted `DraftValidator` naturally.
