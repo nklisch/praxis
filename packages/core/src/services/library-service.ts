@@ -199,7 +199,7 @@ export class LibraryServiceImpl implements LibraryService {
     const params: any[] = [query, studentId];
 
     if (dueOnly) {
-      sqlStr += ` AND (fc.next_review_at IS NULL OR fc.next_review_at <= ?)`;
+      sqlStr += ` AND fc.next_review_at IS NOT NULL AND fc.next_review_at <= ?`;
       params.push(now);
     }
 

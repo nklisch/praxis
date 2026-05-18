@@ -1,14 +1,14 @@
 ---
 id: library-service-dueonly-fts-null-inconsistency
 kind: story
-stage: implementing
+stage: review
 tags: [bug]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # LibraryService dueOnly: FTS path treats NULL nextReviewAt as due, non-FTS path does not
@@ -54,3 +54,25 @@ it does NOT appear in `dueOnly: true` results (both with and without `query`).
 
 - `packages/core/src/services/library-service.ts` line 202
 - `packages/core/src/services/__tests__/library-service.test.ts` (add test case)
+
+## Implementation notes
+
+Changed the FTS `dueOnly` SQL fragment in `LibraryServiceImpl.#ftsSearchFlashcards` from:
+
+```sql
+AND (fc.next_review_at IS NULL OR fc.next_review_at <= ?)
+```
+
+to:
+
+```sql
+AND fc.next_review_at IS NOT NULL AND fc.next_review_at <= ?
+```
+
+This aligns the FTS path with the non-FTS path (`lte(flashcards.nextReviewAt, ...)`) and the rest of the codebase (`FlashcardsServiceImpl.list`, `dueCount`) — NULL means "not yet scheduled", not "due now".
+
+Added two regression tests in a new `"dueOnly NULL nextReviewAt consistency (FTS vs non-FTS)"` describe block:
+1. Non-FTS path: confirms NULL `nextReviewAt` card is excluded from `dueOnly: true` results.
+2. FTS path: confirms NULL `nextReviewAt` card is excluded from `dueOnly: true, query: "..."` results.
+
+All 18 tests pass. Pre-existing typecheck/lint warnings in the file are unchanged.

@@ -181,6 +181,34 @@ describe("dueOnly filter", () => {
   });
 });
 
+// ── dueOnly + FTS NULL consistency ───────────────────────────────────────────
+
+describe("dueOnly NULL nextReviewAt consistency (FTS vs non-FTS)", () => {
+  it("excludes flashcard with NULL nextReviewAt from dueOnly (non-FTS path)", async () => {
+    const svc = makeService();
+
+    insertFlashcard({ id: "fc-null-nofts", studentId: STUDENT_A, nextReviewAt: null });
+
+    const hits = await svc.search({ studentId: STUDENT_A, dueOnly: true });
+    expect(hits.map((h) => h.id)).not.toContain("fc-null-nofts");
+  });
+
+  it("excludes flashcard with NULL nextReviewAt from dueOnly+query (FTS path)", async () => {
+    const svc = makeService();
+
+    insertFlashcard({
+      id: "fc-null-fts",
+      studentId: STUDENT_A,
+      front: "unique cellulose fiber question",
+      back: "plant cell walls",
+      nextReviewAt: null,
+    });
+
+    const hits = await svc.search({ studentId: STUDENT_A, dueOnly: true, query: "cellulose" });
+    expect(hits.map((h) => h.id)).not.toContain("fc-null-fts");
+  });
+});
+
 // ── recentWindowMs filter ─────────────────────────────────────────────────────
 
 describe("recentWindowMs filter", () => {
