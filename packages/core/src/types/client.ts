@@ -62,6 +62,7 @@ import type { ComposedSystemPromptWithAttribution } from "./prompt-attribution.j
 import type { QuickCheckAnswer, QuickCheckEvent } from "./quick-check.js";
 import type { Recommendation } from "./recommendation.js";
 import type { SketchId, SketchSummary } from "./sketches.js";
+import type { Recommendation } from "./recommendation.js";
 import type { SubAgentEvent, SubAgentItem } from "./subagent.js";
 import type { DocumentTabSummary, TabId, TabSummary } from "./tabs.js";
 import type { FragmentOverride } from "./tool.js";

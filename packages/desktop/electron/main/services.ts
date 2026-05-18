@@ -42,6 +42,7 @@ import {
   VisionServiceImpl,
 } from "@praxis/core/services";
 import { FsSketchStore } from "@praxis/core/sketch";
+import { SqliteDraftStore } from "@praxis/core/services";
 import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import {

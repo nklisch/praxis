@@ -16,14 +16,14 @@ export const configureToolsFragment: PromptFragment = {
   customizable: false,
   template: `Tools available in configure mode:
 
-── Course authoring (from bootstrap) ──
+── Course authoring ──
 - course.list_library_documents — see all ingested materials (with attached-to-course flag)
 - course.list_course_documents — see documents attached to the active course
 - course.attach_document — attach a library document to the active course
 - course.detach_document — detach a document from the active course
-- course.start_exploration — run the concept-explorer on selected documents (runs as a background agent; duration varies — do not quote ETAs to the student)
+- course.start_exploration — spawn the document-reading sub-agent on selected documents to produce a course draft (runs as a background sub-agent; duration varies — do not quote ETAs to the configurator). Use this when the configurator wants Praxis to read documents and draft from them.
 - course.show_draft — render the current draft
-- course.edit_draft — apply a single edit to the draft
+- course.edit_draft — apply a single edit to the draft; executes immediately and is revertable via ↶ revert
 - course.confirm_draft — persist the draft as a course; documents auto-attached
 - course.discard_draft — drop a draft and start over
 - course.list_canonical_packs — list curated packs; filter by subject id
@@ -35,19 +35,19 @@ export const configureToolsFragment: PromptFragment = {
 - retrieve_from_documents — search ingested materials
 
 ── Course editing ──
-- course.edit — update course title, subject, grade level, or thresholds
-- lesson.create — add a new lesson to a course
-- lesson.edit — update lesson title, concepts, references, strategy, or estimated time
+- course.edit — update course title, subject, grade level, or thresholds; executes immediately and is revertable via ↶ revert
+- lesson.create — add a new lesson to a course; executes immediately and is revertable via ↶ revert
+- lesson.edit — update lesson title, concepts, references, strategy, or estimated time; executes immediately and is revertable via ↶ revert
 - lesson.delete — remove a lesson (requires reason; confirms cascade to gates)
-- gate.create — add a new gate with guards, prerequisites, and success criteria
-- gate.edit — update gate guards, prerequisites, or success criteria
+- gate.create — add a new gate with guards, prerequisites, and success criteria; executes immediately and is revertable via ↶ revert
+- gate.edit — update gate guards, prerequisites, or success criteria; executes immediately and is revertable via ↶ revert
 - gate.delete — remove a gate (requires reason)
 - gate.override — force a gate to "overridden" state with a documented reason
 
 ── Prompt customization ──
-- prompt.override_fragment — set a custom override for a specific (modeId, fragmentId) pair
+- prompt.override_fragment — set a custom override for a specific (modeId, fragmentId) pair; executes immediately and is revertable via ↶ revert
 - prompt.clear_fragment — remove a custom override and restore the default
-- prompt.set_style — apply the three style sliders (socratic, verbosity, formality)
+- prompt.set_style — apply the three style sliders (socratic, verbosity, formality); executes immediately and is revertable via ↶ revert
 
 ── Memory management ──
 - memory.reset_concept — reset a concept to initial BKT state (reason required)
@@ -56,6 +56,7 @@ export const configureToolsFragment: PromptFragment = {
 - memory.delete_all — wipe all student memory (requires confirmation + reason)
 
 Workflow rules:
+- Act on unambiguous directives immediately — call the relevant authoring tool without asking permission first. Execute, then confirm briefly in chat.
 - Always confirm before calling lesson.delete, gate.delete, or memory.delete_all.
 - After course.show_draft or course.start_exploration, the structured outline appears in the right-side panel automatically. Do NOT re-narrate the outline in chat — instead, summarise it in one sentence (e.g., "8 units, 26 lessons — outline is on the right") and ask what to do next.
 - Keep chat for decisions, questions, and short next-step nudges. The outline panel is the canonical view of the course structure; do not reproduce it in text.
