@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-tabs-strip
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -113,3 +113,16 @@ only the tab bodies, sidebar, and `NewTabPicker`.
 Doc-drift sibling `epic-ui-redesign-ground-up-app-shell-tabs-strip-fix-ux-doc-drift`
 cleared the foundation-doc blocker (UX.md tab strip section). No code changes
 needed in this story. Re-advanced to review for verdict pass 2.
+
+## Review (2026-05-18) — pass 2
+
+**Verdict**: Approve
+
+**Blockers**: none — the UX.md tab-strip section was fully rolled forward by the sibling fix story; placement (running head / `<TopNav tabsSlot>`), typography (italic 13 px serif), CSS dot ornament, active hairline, and parent-child decoration all accurately described.
+
+**Important**: none
+
+**Nits**:
+- AC bullet `[x] Active / held / closed states distinguishable` slightly overclaims — "held" is a mockup concept not in `TabSummary` or CSS. Minor; not blocking.
+
+**Notes**: Code quality high. No new blockers since pass 1. Advancing to done.
