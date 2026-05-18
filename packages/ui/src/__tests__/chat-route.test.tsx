@@ -1,19 +1,18 @@
 /**
  * Tests for the ChatRoute shell (Phase 14 multi-tab refactor).
  *
- * ChatRoute is now the tab-workspace shell: it owns the tab strip, documents
- * sidebar, new-tab picker, and renders all open ChatTabBody instances with
- * display:none for inactive ones. Session-acquisition logic moved into
- * ChatTabBody — the shell itself does not call session.start.
+ * ChatRoute owns the documents sidebar, new-tab picker, and renders all open
+ * ChatTabBody instances with display:none for inactive ones. The tab strip
+ * has moved to the running head (<TopNav tabsSlot>) — tab-strip interactions
+ * are covered in tab-strip.test.tsx and tab-strip-parent-child.test.tsx.
+ * Session-acquisition logic lives in ChatTabBody — the shell itself does not
+ * call session.start.
  *
  * Tests verify:
  * - EmptyTabsState renders when no tabs are open
- * - TabStrip renders when tabs are present
  * - "Open a session" in EmptyTabsState mounts NewTabPicker
- * - "+" in TabStrip mounts NewTabPicker
- * - Switching tabs calls tabs.touch
- * - Closing the active tab shifts focus to the next most-recent tab
  * - Per-tab body mounts for each open tab (display:none for inactive)
+ * - Scoped sidebar does not re-fetch when the tabs context emits an update
  */
 import type {
   DocumentDetail,
@@ -25,9 +24,11 @@ import type {
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TabStrip } from "../components/tab-strip.js";
 import { AuthProvider } from "../context/auth-context.js";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { TabsProvider } from "../context/tabs-context.js";
+import { useTabs } from "../hooks/use-tabs.js";
 import { ChatRoute } from "../routes/chat.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
@@ -180,6 +181,39 @@ function renderWithClient(client: PraxisClient) {
   );
 }
 
+/**
+ * Renders ChatRoute alongside a TabStrip (connected via the shared TabsProvider)
+ * to simulate the running-head + workspace layout for tests that need to click
+ * tab buttons. The tab strip has moved to the running head in production, so
+ * tests that exercise tab switching must include it explicitly.
+ */
+function renderWithTabStrip(client: PraxisClient) {
+  function ShellWithTabs() {
+    const { openTabs, activeTabId, closeTab, switchTo } = useTabs();
+    return (
+      <>
+        <TabStrip
+          tabs={openTabs}
+          activeTabId={activeTabId}
+          onSwitch={switchTo}
+          onClose={closeTab}
+          onNew={vi.fn()}
+        />
+        <ChatRoute />
+      </>
+    );
+  }
+  return render(
+    <PraxisClientProvider client={client}>
+      <AuthProvider>
+        <TabsProvider>
+          <ShellWithTabs />
+        </TabsProvider>
+      </AuthProvider>
+    </PraxisClientProvider>,
+  );
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe("ChatRoute shell", () => {
@@ -210,17 +244,6 @@ describe("ChatRoute shell", () => {
     });
   });
 
-  it("renders TabStrip when tabs are open", async () => {
-    const tab = makeTab({ title: "algebra · teach" });
-    const client = makeTestClient({}, [tab]);
-    renderWithClient(client);
-
-    await waitFor(() => {
-      // getAllByText: the title now appears in both the TabStrip and the SessionHead h1.
-      expect(screen.getAllByText("algebra · teach").length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
   it("clicking 'Open a session' in EmptyTabsState shows NewTabPicker", async () => {
     const client = makeTestClient({}, []);
     renderWithClient(client);
@@ -237,23 +260,7 @@ describe("ChatRoute shell", () => {
     });
   });
 
-  it("clicking '+' in the TabStrip shows NewTabPicker", async () => {
-    const tab = makeTab();
-    const client = makeTestClient({}, [tab]);
-    renderWithClient(client);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /open new session/i })).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /open new session/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("dialog", { name: /open new session/i })).toBeDefined();
-    });
-  });
-
-  it("renders one tab body container per open tab", async () => {
+  it("renders one tab body container per open tab (chat bodies visible)", async () => {
     const tab1 = makeTab({ id: brandId<"TabId">("tab-1"), title: "algebra · teach" });
     const tab2 = makeTab({
       id: brandId<"TabId">("tab-2"),
@@ -266,65 +273,9 @@ describe("ChatRoute shell", () => {
     renderWithClient(client);
 
     await waitFor(() => {
-      // getAllByText: the title appears in both the TabStrip and the SessionHead h1.
+      // Chat bodies render session heads with their titles (not the tab strip).
       expect(screen.getAllByText("algebra · teach").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("calc · bootstrap").length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  it("clicking the close button on a tab calls tabs.close", async () => {
-    const tab = makeTab({ title: "algebra · teach" });
-    const client = makeTestClient({}, [tab]);
-    renderWithClient(client);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText("Close algebra · teach")).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByLabelText("Close algebra · teach"));
-
-    await waitFor(() => {
-      expect(client.tabs.close).toHaveBeenCalledWith(tab.id);
-    });
-  });
-
-  it("clicking a tab calls tabs.touch", async () => {
-    const tab1 = makeTab({
-      id: brandId<"TabId">("tab-1"),
-      title: "algebra · teach",
-      lastSeenAt: (Date.now() - 10_000) as Timestamp,
-    });
-    const tab2 = makeTab({
-      id: brandId<"TabId">("tab-2"),
-      title: "calc · bootstrap",
-      modeId: "bootstrap",
-      sortOrder: 1,
-      lastSeenAt: (Date.now() - 1_000) as Timestamp,
-    });
-    const client = makeTestClient({}, [tab1, tab2]);
-    renderWithClient(client);
-
-    await waitFor(() => {
-      // getAllByText: the title appears in both the TabStrip and the SessionHead h1.
-      expect(screen.getAllByText("algebra · teach").length).toBeGreaterThanOrEqual(1);
-    });
-
-    // Click the tab button (not the close button inside it)
-    const tabButton = screen.getByRole("tab", { name: /algebra · teach/i });
-    fireEvent.click(tabButton);
-
-    await waitFor(() => {
-      expect(client.tabs.touch).toHaveBeenCalledWith(tab1.id);
-    });
-  });
-
-  it("renders the TabStrip with a '+' new-tab button", async () => {
-    const tab = makeTab();
-    const client = makeTestClient({}, [tab]);
-    renderWithClient(client);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /open new session/i })).toBeDefined();
     });
   });
 
@@ -529,7 +480,7 @@ describe("ChatRoute shell", () => {
       } as PraxisClient["documentScopes"],
     });
 
-    renderWithClient(client);
+    renderWithTabStrip(client);
 
     // Wait for the initial scoped-docs fetch to complete.
     await waitFor(() => {
@@ -540,7 +491,10 @@ describe("ChatRoute shell", () => {
     // then after tabs.touch resolves sets openTabs to a new array reference
     // ({...t, lastSeenAt: ...} for tab2). This re-renders all useTabs()
     // consumers including useDerivedScope in ChatRoute.
-    const tab2Button = screen.getByRole("tab", { name: /chemistry · teach/i });
+    // The tab strip is rendered by renderWithTabStrip (simulating the running head).
+    // Use getAllByRole + [0] to pick the first match (strip tab button) in case
+    // multiple elements share the role="tab" name.
+    const [tab2Button] = screen.getAllByRole("tab", { name: /chemistry · teach/i });
     fireEvent.click(tab2Button);
 
     // Let React flush the state updates from switchTo / openTabs change.

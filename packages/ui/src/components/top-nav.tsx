@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import styles from "./top-nav.module.css";
 
 /**
@@ -14,8 +15,15 @@ import styles from "./top-nav.module.css";
  *   ⁂ Configure   → /configure
  *
  * Active state: accent hairline-underline on the active link.
+ *
+ * `tabsSlot` — content rendered in the right slot, between the surface nav
+ * and the right edge. Story 4 mounts `<TabStrip>` here as italic deck lines.
  */
-export function TopNav() {
+export interface TopNavProps {
+  tabsSlot?: ReactNode;
+}
+
+export function TopNav({ tabsSlot }: TopNavProps) {
   return (
     <header className={styles.runningHead}>
       <span className={styles.wordmark}>
@@ -79,7 +87,7 @@ export function TopNav() {
         </Link>
       </nav>
       {/* Right slot — tabs strip (Story 4) + theme toggle (Story 3) mount here */}
-      <div className={styles.rightSlot} />
+      {tabsSlot !== undefined && <div className={styles.rightSlot}>{tabsSlot}</div>}
     </header>
   );
 }

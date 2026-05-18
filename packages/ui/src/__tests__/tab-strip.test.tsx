@@ -71,11 +71,19 @@ describe("TabStrip", () => {
     expect(screen.getByText("calc · bootstrap")).toBeDefined();
   });
 
-  it("renders the mode ornament for each tab", () => {
-    const tab = makeTab({ modeId: "teach" }); // teach ornament = §
-    renderStrip({ tabs: [tab] });
+  it("renders the coloured dot ornament for each tab (no text glyph)", () => {
+    // The ornament is now a CSS-dot span (empty, styled via background-color)
+    // rather than a Unicode glyph. Verify the ornament span is present in the DOM.
+    const tab = makeTab({ modeId: "teach" });
+    const { container } = renderStrip({ tabs: [tab] });
 
-    expect(screen.getByText("§")).toBeDefined();
+    // The ornament span has aria-hidden="true" and no text content.
+    const ornamentSpans = container.querySelectorAll('[class*="ornament"]');
+    expect(ornamentSpans.length).toBeGreaterThan(0);
+    // Each ornament span should be empty (no glyph text).
+    for (const span of ornamentSpans) {
+      expect(span.textContent).toBe("");
+    }
   });
 
   it("marks the active tab with aria-selected=true", () => {
@@ -148,5 +156,34 @@ describe("TabStrip", () => {
 
     const buttons = screen.getAllByRole("button");
     expect(buttons).toHaveLength(1);
+  });
+
+  // ── Deck-line typography contract ───────────────────────────────────────────
+
+  it("renders the 'Open' kicker label when there are tabs", () => {
+    const tab = makeTab();
+    const { container } = renderStrip({ tabs: [tab] });
+
+    // The "Open" kicker is a span with class openLabel — it's aria-hidden
+    // so look it up via the DOM, not by role.
+    const label = container.querySelector('[class*="openLabel"]');
+    expect(label).not.toBeNull();
+    expect(label?.textContent?.trim()).toBe("Open");
+  });
+
+  it("does not render the 'Open' kicker label when there are no tabs", () => {
+    const { container } = renderStrip({ tabs: [] });
+
+    const label = container.querySelector('[class*="openLabel"]');
+    expect(label).toBeNull();
+  });
+
+  it("renders tab titles using the .title span", () => {
+    const tab = makeTab({ title: "algebra · teach" });
+    const { container } = renderStrip({ tabs: [tab] });
+
+    const titleSpan = container.querySelector('[class*="title"]');
+    expect(titleSpan).not.toBeNull();
+    expect(titleSpan?.textContent).toBe("algebra · teach");
   });
 });

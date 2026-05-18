@@ -26,6 +26,11 @@ export function TabStrip({
 
   return (
     <div className={styles.strip} role="tablist" aria-label="Open sessions">
+      {tabs.length > 0 && (
+        <span className={styles.openLabel} aria-hidden="true">
+          Open
+        </span>
+      )}
       {tabs.map((tab) => {
         // Document tabs have no modeId — getModeMeta handles undefined gracefully.
         const meta = getModeMeta(tab.kind === "session" ? tab.modeId : undefined);
@@ -74,9 +79,8 @@ export function TabStrip({
             }}
             title={tab.title}
           >
-            <span className={styles.ornament} aria-hidden="true">
-              {meta.ornament}
-            </span>
+            {/* Coloured mode-tint dot — the deck-line dot ornament per option-3.html */}
+            <span className={styles.ornament} aria-hidden="true" />
             <span className={styles.title}>{tab.title}</span>
 
             {/* Child tab: "from {parentMode}" pill */}

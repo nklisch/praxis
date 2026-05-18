@@ -1,89 +1,107 @@
+/* ── Tab strip — italic deck-line typography in the running head ───────────
+ * Locked to option-3.html ("The Index"): open tabs render as italic serif
+ * text next to the primary nav. Coloured dot ornament + tab title, middle-dot
+ * separator between adjacent tabs.  "Open" kicker labels the group.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
 .strip {
   display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-primary);
-  padding: 0 0.5rem;
+  align-items: baseline;
+  gap: 0;
+}
+
+/* "Open" kicker label before the first tab */
+.openLabel {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: var(--letter-spacing-kicker, 0.08em);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-right: 8px;
+  user-select: none;
+}
+
+/* Dot separator between adjacent tabs — rendered via ::before on all but the
+   first tab so no extra DOM node is needed. */
+.tab + .tab::before {
+  content: "·";
+  font: italic 13px / 1 var(--font-serif);
+  color: var(--color-text-tertiary);
+  margin: 0 4px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .tab {
-  display: grid;
-  /* ornament | title | from-pill (optional) | pulse-dot (optional) | close */
-  grid-template-columns: auto 1fr auto auto auto;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.65rem 0.55rem;
-  position: relative;
+  /* dot | title | from-pill (optional) | pulse-dot (optional) | close */
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0;
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
+  font: italic 13px / 1 var(--font-serif);
+  border-bottom: 1px solid transparent;
+  transition:
+    color 0.15s ease,
+    border-bottom-color 0.15s ease;
+  position: relative;
   border-radius: 0;
-}
-
-.tab::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 1px;
-  background: transparent;
-  transition: background-color 0.18s ease;
 }
 
 .tab:hover:not(.active) {
   color: var(--color-text-primary);
 }
 
+/* Active tab: text goes primary + accent hairline underline */
 .active {
   color: var(--color-text-primary);
+  border-bottom-color: var(--mode-tint, var(--color-accent));
 }
 
-.active::after {
-  background-color: var(--mode-tint, var(--color-accent));
-}
-
+/* Mode-tint dot ornament — matches option-3.html .dot */
 .ornament {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  line-height: 1;
-  color: var(--mode-tint, var(--color-text-secondary));
-  transform: translateY(-1px);
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--mode-tint, var(--color-text-tertiary));
+  flex-shrink: 0;
+  /* Align to mid-cap: shift down to sit on the baseline-adjacent midpoint */
+  vertical-align: middle;
+  margin-bottom: 1px;
 }
 
 .title {
-  composes: editorial from global;
-  font-size: 0.92rem;
-  letter-spacing: 0;
-  text-transform: none;
+  font: italic 13px / 1 var(--font-serif);
   color: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 16ch;
+  max-width: 18ch;
 }
 
 .close {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  padding: 0 0.15rem;
+  padding: 0 0.1rem;
   border-radius: 2px;
   opacity: 0;
   transition:
     opacity 0.12s ease,
     color 0.12s ease;
   cursor: pointer;
+  line-height: 1;
+  vertical-align: baseline;
 }
 
 .tab:hover .close,
 .active .close {
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
 .close:hover {
@@ -93,14 +111,16 @@
 
 .newButton {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
   background: transparent;
   border: none;
-  padding: 0.45rem 0.75rem;
+  padding: 0 0 0 10px;
   cursor: pointer;
   border-radius: 0;
-  position: relative;
+  line-height: 1;
+  vertical-align: baseline;
+  transition: color 0.15s ease;
 }
 
 .newButton:hover {
@@ -112,19 +132,20 @@
 /**
  * "from {parentMode}" pill rendered on child session tabs.
  * Shown to the right of the tab title when the session has a parentSessionId.
+ * Non-italic (mono) to contrast with the surrounding italic deck-line text.
  */
 .fromPill {
-  composes: editorial from global;
-  font-size: 0.6rem;
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 0.58rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 1px 4px;
   background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
   border-radius: 2px;
   color: var(--color-text-tertiary, #666);
-  font-style: normal;
   flex-shrink: 0;
-  align-self: center;
+  vertical-align: middle;
 }
 
 /**
@@ -154,12 +175,13 @@
 }
 
 .pulseDot {
+  display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--color-success, #93b878);
   flex-shrink: 0;
-  align-self: center;
+  vertical-align: middle;
   animation: tabPulse 2s ease-out forwards;
   cursor: pointer;
 }

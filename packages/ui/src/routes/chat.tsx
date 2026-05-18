@@ -7,7 +7,6 @@ import { DocumentList } from "../components/document-list.js";
 import { EmptyState } from "../components/empty-state.js";
 import { NewTabPicker } from "../components/new-tab-picker.js";
 import { ResizeHandle } from "../components/resize-handle.js";
-import { TabStrip } from "../components/tab-strip.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useAssignmentIssuedSpawn } from "../hooks/use-assignment-issued-spawn.js";
 import { useDerivedScope } from "../hooks/use-derived-scope.js";
@@ -20,16 +19,17 @@ import { COPY } from "../lib/copy.js";
 import styles from "./chat.module.css";
 
 /**
- * Chat workspace shell — owns the tab strip, documents sidebar, and new-tab
- * picker. All open tab bodies are mounted at once; inactive ones are hidden via
- * display:none so their message logs and in-flight streams survive tab switches.
+ * Chat workspace shell — owns the documents sidebar, new-tab picker, and
+ * renders all open ChatTabBody instances with display:none for inactive ones.
+ * The tab strip has moved to the running head (<TopNav tabsSlot>); this
+ * shell no longer renders it.
  *
  * Handles both /chat (bare) and /chat/$tabId routes. When tabId param is
  * present, syncs it to the active tab; when activeTabId changes (e.g. closing
  * a tab), navigates to /chat/$tabId for the new active tab.
  *
- * No RouteHeader: this is a full-screen workspace shell (sidebar + tab strip +
- * chat bodies). It is a structural container, not a library/list route — it has
+ * No RouteHeader: this is a full-screen workspace shell (sidebar + chat
+ * bodies). It is a structural container, not a library/list route — it has
  * no persistent page title or kicker that RouteHeader would provide.
  */
 export function ChatRoute() {
@@ -37,7 +37,7 @@ export function ChatRoute() {
   // strict: false handles both /chat and /chat/$tabId without throwing
   const { tabId } = useParams({ strict: false }) as { tabId?: string };
 
-  const { openTabs, activeTabId, openTab, closeTab, switchTo, loading } = useTabs();
+  const { openTabs, activeTabId, openTab, switchTo, loading } = useTabs();
   const [showPicker, setShowPicker] = useState(false);
 
   // Phase 16: auto-spawn quiz/homework/exam tabs when the tutor authors an
@@ -162,16 +162,8 @@ export function ChatRoute() {
 
       <ResizeHandle side="right" {...sidebarHandleProps} />
 
-      {/* Main workspace area */}
+      {/* Main workspace area — tab strip is in the running head, not here */}
       <div className={styles.workspace}>
-        <TabStrip
-          tabs={openTabs}
-          activeTabId={activeTabId}
-          onSwitch={switchTo}
-          onClose={closeTab}
-          onNew={() => setShowPicker(true)}
-        />
-
         {/* All tab bodies mounted; inactive ones display:none to preserve state. */}
         {openTabs.map((t) => (
           <div

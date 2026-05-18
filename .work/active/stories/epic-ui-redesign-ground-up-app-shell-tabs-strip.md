@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-app-shell-tabs-strip
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-app-shell
 depends_on:
@@ -10,7 +10,7 @@ depends_on:
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Open-tabs strip — italic deck-line typography next to nav
@@ -40,8 +40,57 @@ positioned next to the primary nav in the running head.
 
 ## Acceptance criteria
 
-- [ ] Tab strip renders as italic deck lines next to the surface
+- [x] Tab strip renders as italic deck lines next to the surface
       nav per the locked mock.
-- [ ] Active / held / closed states distinguishable.
-- [ ] Existing tab-strip behavior (open / close / switch) preserved.
-- [ ] All quality checks green.
+- [x] Active / held / closed states distinguishable.
+- [x] Existing tab-strip behavior (open / close / switch) preserved.
+- [x] All quality checks green.
+
+## Implementation notes
+
+### What landed
+
+**`tab-strip.module.css`** — full restyle per option-3.html:
+- Strip is now `display: flex; align-items: baseline` (inline flow,
+  not `flex-wrap`).
+- Each tab uses `font: italic 13px/1 var(--font-serif)` — deck-line
+  italic serif, no block chrome.
+- Mode-tint dot ornament: empty `<span>` styled via CSS
+  `background: var(--mode-tint)` / `border-radius: 50%` (matches
+  option-3.html `.dot`). Replaces the Unicode glyph.
+- Dot-separator between adjacent tabs via `.tab + .tab::before`
+  pseudo-element (`content: "·"`), no extra DOM nodes.
+- `"Open"` kicker rendered as a mono uppercase label before the first
+  tab (hidden when no tabs).
+- Active state: `border-bottom-color: var(--mode-tint, var(--color-accent))`.
+- Close button (`×`) hidden by default, fades in on tab hover / active.
+- Parent-child decoration preserved: `.fromPill` (non-italic mono for
+  contrast), `.pulseDot` keyframe animation.
+
+**`tab-strip.tsx`** — ornament span is now empty (CSS dot), "Open"
+kicker label emitted when `tabs.length > 0`.
+
+**`top-nav.tsx`** — added optional `tabsSlot?: ReactNode` prop. Right
+slot renders `<div className={styles.rightSlot}>{tabsSlot}</div>` when
+slot is provided.
+
+**`router.tsx`** — `RootLayout` mounts `<TabStrip>` in `<TopNav
+tabsSlot={...}>`. Uses `useTabs()` and `useNavigate()` directly in
+`RootLayout`. The "+" button navigates to `/chat` (where the full
+`NewTabPicker` lives).
+
+**`routes/chat.tsx`** — `<TabStrip>` removed from the workspace area.
+The running head now owns the tab strip globally; `ChatRoute` owns
+only the tab bodies, sidebar, and `NewTabPicker`.
+
+### Test changes
+
+- `tab-strip.test.tsx`: updated ornament test (no glyph text; CSS dot);
+  added "Open kicker" presence/absence tests, `.title` span content
+  assertion.
+- `chat-route.test.tsx`: removed tests that were testing TabStrip
+  internals (those belong in tab-strip tests); updated the scoped-sidebar
+  stability test to use a new `renderWithTabStrip` wrapper that includes
+  the `<TabStrip>` connected via the shared `<TabsProvider>`, simulating
+  the running-head layout.
+- All 1239 tests pass; typecheck and lint green.

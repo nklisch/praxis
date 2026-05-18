@@ -4,12 +4,15 @@ import {
   createRouter,
   Outlet,
   redirect,
+  useNavigate,
 } from "@tanstack/react-router";
 import { OnboardingFlow } from "./components/onboarding-flow.js";
 import { StatusStrip } from "./components/status-strip.js";
+import { TabStrip } from "./components/tab-strip.js";
 import { TopNav } from "./components/top-nav.js";
 import { UpdateBanner } from "./components/update-banner.js";
 import { useFirstRun } from "./hooks/use-first-run.js";
+import { useTabs } from "./hooks/use-tabs.js";
 import styles from "./router.module.css";
 import { ChatRoute } from "./routes/chat.js";
 import { ConceptMapEditorRoute } from "./routes/concept-map-editor.js";
@@ -27,6 +30,8 @@ import { WorkspaceRoute } from "./routes/workspace.js";
 
 function RootLayout() {
   const { loading, isFirstRun, complete } = useFirstRun();
+  const { openTabs, activeTabId, closeTab, switchTo } = useTabs();
+  const navigate = useNavigate();
 
   if (loading) return null;
 
@@ -41,7 +46,19 @@ function RootLayout() {
   return (
     <div className={styles.layout}>
       <UpdateBanner />
-      <TopNav />
+      <TopNav
+        tabsSlot={
+          <TabStrip
+            tabs={openTabs}
+            activeTabId={activeTabId}
+            onSwitch={switchTo}
+            onClose={closeTab}
+            onNew={() => {
+              void navigate({ to: "/chat" });
+            }}
+          />
+        }
+      />
       <StatusStrip />
       <main className={styles.main}>
         <Outlet />
