@@ -13,6 +13,7 @@ import type {
   LessonId,
   MisconceptionId,
   Reference,
+  RestoreResult,
   StrategyId,
   SuccessCriteria,
   ThresholdConfig,
@@ -333,6 +334,16 @@ export class AuthoringClientImpl implements AuthoringClient {
     const result = await this.transport.invoke<
       IpcEnvelope<ConfiguratorActionRow[]> | ConfiguratorActionRow[]
     >(`${C}.listConfiguratorActions`, input);
+    return unwrapEnvelope(result);
+  }
+
+  // ── Snapshot restore ──────────────────────────────────────────────────────
+
+  async restoreAction(input: { actionId: string }): Promise<RestoreResult> {
+    const result = await this.transport.invoke<IpcEnvelope<RestoreResult> | RestoreResult>(
+      `${C}.restoreAction`,
+      input,
+    );
     return unwrapEnvelope(result);
   }
 }

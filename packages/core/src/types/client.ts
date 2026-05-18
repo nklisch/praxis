@@ -26,7 +26,7 @@ import type {
   ThresholdConfig,
 } from "./artifacts.js";
 import type { TimeRange, Timestamp, TldrawSnapshot } from "./common.js";
-import type { ConfiguratorActionRow } from "./configurator.js";
+import type { ConfiguratorActionRow, RestoreResult } from "./configurator.js";
 import type {
   DocumentScope,
   DocumentScopeAttachment,
@@ -613,6 +613,14 @@ export interface AuthoringClient {
     fromTs?: Timestamp;
     limit?: number;
   }): Promise<ConfiguratorActionRow[]>;
+
+  // ── Snapshot restore ──────────────────────────────────────────────────────
+  /**
+   * Restore an artifact to its pre-mutation state for the given action id.
+   * Returns a `RestoreResult` — either success with the entity kind that was
+   * restored, or a failure reason (no_snapshot / already_restored / schema_drift).
+   */
+  restoreAction(input: { actionId: string }): Promise<RestoreResult>;
 }
 
 /** Phase 11: Client-side lock interface. */

@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-snapshot-restore-ipc
 kind: story
-stage: implementing
+stage: review
 tags: []
 parent: epic-backend-fills-for-redesign-snapshot-restore
 depends_on: [epic-backend-fills-for-redesign-snapshot-restore-capture-and-restore]
@@ -106,3 +106,44 @@ must exist.
 - Bulk restore / restore-multiple-at-once — not in design.
 - Restore history endpoint beyond what `listConfiguratorActions`
   already surfaces.
+
+## Implementation notes
+
+### Files changed
+
+- `packages/core/src/types/configurator.ts` — `ConfiguratorActionRow` extended
+  with optional `restoredAt?: Timestamp | null` and `originalActionId?: string`.
+- `packages/core/src/types/client.ts` — `AuthoringClient` interface gains
+  `restoreAction(input: { actionId: string }): Promise<RestoreResult>`;
+  `RestoreResult` import added.
+- `packages/core/src/services/authoring-service.ts` — `listConfiguratorActions`
+  now left-joins `configurator_snapshots` to populate `restoredAt` on action
+  rows where a snapshot exists; `originalActionId` surfaced from `actionJson`
+  for restore-kind rows.
+- `packages/desktop/electron/main/ipc-server.ts` — registered
+  `praxis.author.restoreAction` channel via `handleEnvelope` with
+  `z.object({ actionId: z.string().min(1) })` Zod validation; delegates to
+  `services.authoring.restoreAction` behind `requireUnlocked`.
+- `packages/client/src/services/authoring-client.ts` — `AuthoringClientImpl`
+  gains `restoreAction` method invoking `praxis.author.restoreAction` and peeling
+  the envelope with `unwrapEnvelope`.
+
+### Tests added
+
+- `packages/desktop/electron/main/__tests__/authoring-channel-restore.test.ts`
+  (8 cases): valid actionId → ok, no_snapshot, already_restored, missing
+  actionId (VALIDATION_FAILED), empty actionId (VALIDATION_FAILED), service
+  throws (INTERNAL), locked state (INTERNAL without service call), handler
+  registration.
+- `packages/client/src/__tests__/authoring-restore-client.test.ts`
+  (7 cases): success envelope peel, no_snapshot passthrough,
+  already_restored passthrough, VALIDATION_FAILED IpcError, IpcError.code
+  verification, INTERNAL IpcError, correct channel+payload forwarding.
+
+### Key decision
+
+`listConfiguratorActions` uses a LEFT JOIN so non-snapshotted action kinds
+(memory.export, memory.delete_all) continue to return rows without `restoredAt`.
+Only rows with a matching `configurator_snapshots` row get the field populated;
+`undefined` (absent key) indicates no snapshot, `null` indicates snapshot exists
+but not yet restored, and a `Timestamp` indicates restored.

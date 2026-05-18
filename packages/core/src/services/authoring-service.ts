@@ -435,19 +435,52 @@ export class AuthoringServiceImpl implements AuthoringService {
       input?.fromTs !== undefined ? gte(configuratorActions.ts, new Date(input.fromTs)) : undefined;
 
     const rows = this.deps.db
-      .select()
+      .select({
+        id: configuratorActions.id,
+        configuratorId: configuratorActions.configuratorId,
+        ts: configuratorActions.ts,
+        actionJson: configuratorActions.actionJson,
+        snapshotRestoredAt: configuratorSnapshots.restoredAt,
+      })
       .from(configuratorActions)
+      .leftJoin(configuratorSnapshots, eq(configuratorSnapshots.actionId, configuratorActions.id))
       .where(whereClause)
       .orderBy(desc(configuratorActions.ts))
       .limit(limit)
       .all();
 
-    return rows.map((r) => ({
-      id: r.id,
-      configuratorId: r.configuratorId as ConfiguratorId,
-      ts: r.ts.getTime() as Timestamp,
-      action: r.actionJson as ConfiguratorAction,
-    }));
+    return rows.map((r) => {
+      const action = r.actionJson as ConfiguratorAction;
+      // Build the base row without optional snapshot fields.
+      const row: ConfiguratorActionRow = {
+        id: r.id,
+        configuratorId: r.configuratorId as ConfiguratorId,
+        ts: r.ts.getTime() as Timestamp,
+        action,
+      };
+
+      // `snapshotRestoredAt` is null when the join found a snapshot row whose
+      // restoredAt column is NULL (not yet restored), and undefined/null when
+      // there is no snapshot row at all (non-snapshotted action kinds). In
+      // either case where there IS a snapshot row (not undefined), surface the
+      // restoredAt field. We distinguish "no snapshot row" (undefined from
+      // left-join) from "snapshot row present but restoredAt=null" by checking
+      // whether we got a non-undefined result from the join.
+      // Drizzle left-join returns null for missing rows, not undefined — but
+      // we guard both to be safe.
+      if (r.snapshotRestoredAt !== undefined) {
+        // A snapshot row exists for this action.
+        row.restoredAt = r.snapshotRestoredAt
+          ? (r.snapshotRestoredAt.getTime() as Timestamp)
+          : null;
+      }
+
+      // For restore-kind rows, surface originalActionId from the action payload.
+      if (action.kind === "restore") {
+        row.originalActionId = action.originalActionId;
+      }
+      return row;
+    });
   }
 
   // ─── Restore ───────────────────────────────────────────────────────────────

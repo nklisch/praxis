@@ -1275,6 +1275,19 @@ export function registerIpcHandlers(
     ),
   );
 
+  handle(
+    "praxis.author.restoreAction",
+    handleEnvelope(
+      "praxis.author.restoreAction",
+      log,
+      z.object({ actionId: z.string().min(1, "actionId is required") }),
+      async (input) => {
+        await requireUnlocked();
+        return services.authoring.restoreAction({ actionId: input.actionId });
+      },
+    ),
+  );
+
   // ── Phase 12: Notes ──────────────────────────────────────────────────────────
 
   const noteCreateSchema = z.object({

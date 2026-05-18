@@ -45,6 +45,18 @@ export interface ConfiguratorActionRow {
   configuratorId: ConfiguratorId;
   ts: Timestamp;
   action: ConfiguratorAction;
+  /**
+   * Set when this action's snapshot has been consumed by a restoreAction call.
+   * Null or absent when the snapshot has not been restored (or the action kind
+   * is not snapshottable, e.g. memory.export / memory.delete_all).
+   */
+  restoredAt?: Timestamp | null;
+  /**
+   * For restore-kind action rows: the id of the original action that was
+   * reversed. Carried from inside `actionJson` for convenience.
+   * Absent on non-restore rows.
+   */
+  originalActionId?: string;
 }
 
 // ─── Snapshot / restore domain types ─────────────────────────────────────────
