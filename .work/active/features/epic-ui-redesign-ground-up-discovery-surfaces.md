@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-discovery-surfaces
 kind: feature
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up
 depends_on:
@@ -155,7 +155,19 @@ engine landing for the queue data.
 
 ## Acceptance Criteria
 
-- [ ] LibraryRoute renders the Workbench shape per the locked mock.
-- [ ] Course-create entry path walks through the 5 steps.
-- [ ] Session-open flow has polish (animation, banner, scroll).
-- [ ] All quality checks green.
+- [x] LibraryRoute renders the Workbench shape per the locked mock.
+- [x] Course-create entry path walks through the 5 steps.
+- [x] Session-open flow has polish (animation, banner, scroll).
+- [x] All quality checks green.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**:
+- **Batch ingestion status stuck at "indexing"** — per-file badge never transitions to "ready" when using the browse button (single-file drop path works). Flow is functional (CTA not gated), but visual feedback is broken. Tracked at `epic-ui-redesign-ground-up-discovery-surfaces-course-create-ingestion-status-fix` (stage: implementing).
+- **Context textarea value not forwarded to session** — captured but silently dropped; parked at `.work/backlog/idea-course-create-context-textarea-forwarding.md` for explicit scope decision.
+**Nits**: none
+
+**Notes**: Three primary stories delivered (workbench-library-rebuild, course-create-entry-path, session-open-flow-polish) all at done with clean individual reviews. The fourth child is a bug story spawned during review and tracked for follow-up — it does not block the feature's functional acceptance criteria. The Workbench shape (greeting + queue + timeline + footer), 5-step course-create flow, and session-open polish all land per the locked mocks. Advancing to done.

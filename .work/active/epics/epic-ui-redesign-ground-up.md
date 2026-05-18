@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up
 kind: epic
-stage: implementing
+stage: review
 tags: [ui]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # UI Redesign — Ground-Up
