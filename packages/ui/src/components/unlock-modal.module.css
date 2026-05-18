@@ -1,96 +1,134 @@
+/* ─── Ornament ──────────────────────────────────────────────────────────────── */
+
 .ornament {
   font-family: var(--font-display);
   font-size: 1.75rem;
   line-height: 1;
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   user-select: none;
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-2);
 }
+
+/* ─── Kicker ────────────────────────────────────────────────────────────────── */
 
 .kicker {
   font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.24em;
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-3);
 }
+
+/* ─── Title ─────────────────────────────────────────────────────────────────── */
 
 .title {
   composes: editorial from global;
-  margin: 0 0 0.5rem;
-  font-size: 1.35rem;
-  font-weight: 400;
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
 }
 
+/* ─── Description ───────────────────────────────────────────────────────────── */
+
 .description {
-  margin: 0 0 1.25rem;
-  color: var(--color-text-secondary, #666);
-  font-size: 0.9rem;
+  margin: 0 0 var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
 }
+
+/* ─── Form ──────────────────────────────────────────────────────────────────── */
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
+/* ─── Input ─────────────────────────────────────────────────────────────────── */
+
 .input {
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 4px;
-  font-size: 1rem;
-  letter-spacing: 0.15em;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  letter-spacing: 0.2em;
   width: 100%;
-  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+  letter-spacing: normal;
+  font-family: var(--font-sans);
 }
 
 .input:focus {
-  outline: 2px solid var(--color-accent, #4a90e2);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--color-accent);
+  background: var(--color-bg-secondary);
 }
 
+/* ─── Error ─────────────────────────────────────────────────────────────────── */
+
 .error {
-  color: var(--color-danger, #d32f2f);
-  font-size: 0.875rem;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
   margin: 0;
 }
+
+/* ─── Actions ───────────────────────────────────────────────────────────────── */
 
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .cancelBtn {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 4px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: transparent;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
-.cancelBtn:hover {
-  background: var(--color-border, #e0e0e0);
+.cancelBtn:hover:not(:disabled) {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border-strong);
 }
 
 .unlockBtn {
-  padding: 0.5rem 1.25rem;
+  padding: var(--space-2) var(--space-6);
   border: none;
-  border-radius: 4px;
-  background: var(--color-accent, #4a90e2);
-  color: #fff; /* intentional literal: button text always white regardless of theme */
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #fff; /* intentional literal: accent button text always white regardless of theme */
   cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: background 0.15s;
 }
 
 .unlockBtn:hover:not(:disabled) {
-  opacity: 0.9;
+  background: var(--color-accent-hover);
 }
 
 .unlockBtn:disabled,

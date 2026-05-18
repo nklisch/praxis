@@ -3,45 +3,156 @@
 /**
  * Fills whatever space the workspace editorBody slot gives it.
  * The parent note-editor-page.module.css sizes .editorBody; we just expand.
+ *
+ * Surface layout (per locked mock note-sketch-editor.html):
+ *   [tools rail 56px] | [canvas]
+ *
+ * The tools rail renders on the left. The canvas area holds the tldraw editor
+ * plus an absolute-positioned inline notice strip at top-center.
  */
 .editorWrapper {
   flex: 1;
   width: 100%;
-  min-height: 0; /* allow flex children to shrink */
-  display: flex;
-  flex-direction: column;
-  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  overflow: hidden;
 }
 
-/* ── Sketch toolbar overlay ──────────────────────────────────────────────── */
+/* ── Tools rail ──────────────────────────────────────────────────────────── */
 
-.toolbar {
+.toolsRail {
+  border-right: 1px solid var(--color-border);
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-primary);
+  /* Reset nav defaults */
+  margin: 0;
+  list-style: none;
+}
+
+.toolBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm, 3px);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.75rem;
-  background: var(--color-bg-secondary, #f8f8f8);
-  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font: italic var(--font-size-lg, 18px) / 1 var(--font-display, serif);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  transition:
+    background 0.1s ease,
+    color 0.1s ease;
+}
+
+.toolBtn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.toolBtnActive {
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
+}
+
+.toolSep {
+  height: 1px;
+  width: 28px;
+  background: var(--color-border);
+  border: 0;
+  margin: 6px 0;
   flex-shrink: 0;
 }
 
-.convertBtn {
-  font-size: 0.78rem;
-  font-weight: 500;
-  padding: 0.28rem 0.7rem;
-  border: 1px solid var(--color-accent, #4a6fa5);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-accent, #4a6fa5);
+.colorSwatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   cursor: pointer;
-  transition:
-    background 0.12s ease,
-    color 0.12s ease;
+  border: 2px solid transparent;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color 0.1s ease;
+}
+
+.colorSwatchActive {
+  border-color: var(--color-accent);
+}
+
+/* ── Canvas area ─────────────────────────────────────────────────────────── */
+
+.canvasArea {
+  position: relative;
+  background: var(--color-bg-primary);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Inline notice strip ─────────────────────────────────────────────────── */
+
+/**
+ * Floats above the canvas, centered at the top.
+ * Tells the student this is a sketch (not a concept map) and offers
+ * the "convert ↗" link when onConvertToConceptMap is provided.
+ * pointer-events: none on the strip itself so it doesn't block canvas
+ * interaction; the button inside re-enables pointer events.
+ */
+.noticeStrip {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 8px 14px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full, 9999px);
+  font: italic var(--font-size-xs, 12px) / 1.4 var(--font-serif, serif);
+  color: var(--color-text-secondary);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.noticeGlyph {
+  color: var(--color-text-tertiary);
+  font-style: normal;
+}
+
+.noticeText {
+  pointer-events: auto;
+}
+
+.noticeEmphasis {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+/* Inline convert link styled as italic accent text — matches mock's .convert-link */
+.convertBtn {
+  font: italic var(--font-size-xs, 12px) / 1 var(--font-serif, serif);
+  color: var(--color-accent);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.1s ease;
 }
 
 .convertBtn:hover {
-  background: var(--color-accent, #4a6fa5);
-  color: #fff;
+  color: var(--color-accent-hover, var(--color-accent));
 }
 
 /* ── Convert confirmation modal content ─────────────────────────────────── */
@@ -53,28 +164,28 @@
 }
 
 .convertTitle {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: var(--font-size-lg, 18px);
+  font-weight: var(--font-weight-semibold, 600);
   margin: 0;
 }
 
 .convertBody {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm, 14px);
   margin: 0;
-  line-height: 1.55;
-  color: var(--color-text, #222);
+  line-height: var(--line-height-base, 1.55);
+  color: var(--color-text-primary);
 }
 
 .convertNote {
-  font-size: 0.82rem;
+  font-size: var(--font-size-xs, 12px);
   margin: 0;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
   line-height: 1.45;
 }
 
 .convertError {
-  font-size: 0.85rem;
-  color: var(--color-error, #c0392b);
+  font-size: var(--font-size-sm, 14px);
+  color: var(--color-danger, var(--color-accent));
   margin: 0;
 }
 
@@ -86,12 +197,12 @@
 }
 
 .cancelBtn {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm, 14px);
   padding: 0.4rem 0.9rem;
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 3px);
   background: transparent;
-  color: var(--color-text, #222);
+  color: var(--color-text-primary);
   cursor: pointer;
 }
 
@@ -101,13 +212,13 @@
 }
 
 .confirmBtn {
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: var(--font-size-sm, 14px);
+  font-weight: var(--font-weight-medium, 500);
   padding: 0.4rem 0.9rem;
-  border: 1px solid var(--color-accent, #4a6fa5);
-  border-radius: 4px;
-  background: var(--color-accent, #4a6fa5);
-  color: #fff;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm, 3px);
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #fff);
   cursor: pointer;
 }
 

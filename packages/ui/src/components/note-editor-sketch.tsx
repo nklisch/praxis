@@ -9,9 +9,14 @@
  * Vision OCR for sketch notes is deferred to Phase 15.x.
  *
  * Phase 15b (sketch-bridge): adds "↗ convert to concept map" button in the
- * toolbar overlay. When clicked, shows a confirmation modal with the candidate
- * node count + label warning. On confirm, calls `onConvertToConceptMap` and
- * the parent navigates to the new map.
+ * inline notice strip. When clicked, shows a confirmation modal with the
+ * candidate node count + label warning. On confirm, calls
+ * `onConvertToConceptMap` and the parent navigates to the new map.
+ *
+ * Layout (per locked mock .mockups/screens/epic-ui-redesign-ground-up-workspace/note-sketch-editor.html):
+ *   surface = [tools-rail 56px] [canvas]
+ *   tools-rail: Select / Pen / Highlight / Text / Arrow / Shape / sep / Eraser / sep / color swatches
+ *   canvas: absolute-positioned inline notice strip at top-center; tldraw fills below
  */
 import type { NoteId } from "@praxis/core/types";
 import { useCallback, useRef, useState } from "react";
@@ -33,7 +38,7 @@ export interface NoteEditorSketchProps {
   /**
    * Phase 15b: called when the user confirms the sketch → concept-map conversion.
    * The parent performs the IPC call and navigates to the new map.
-   * If absent, the convert button is not shown.
+   * If absent, the convert link in the notice strip is not shown.
    */
   onConvertToConceptMap?: () => Promise<void>;
 }
@@ -42,6 +47,33 @@ export interface NoteEditorSketchProps {
 type ConvertModalState =
   | { open: false }
   | { open: true; converting: boolean; error: string | null };
+
+// ── Tool definitions ──────────────────────────────────────────────────────────
+
+const TOOLS = [
+  { id: "select", glyph: "↘", label: "Select" },
+  { id: "pen", glyph: "✎", label: "Pen" },
+  { id: "highlight", glyph: "▢", label: "Highlight" },
+  { id: "text", glyph: "¶", label: "Text" },
+  { id: "arrow", glyph: "⟶", label: "Arrow" },
+  { id: "shape", glyph: "○", label: "Shape" },
+] as const;
+
+const ERASER = { id: "eraser", glyph: "⌫", label: "Eraser" } as const;
+
+/** Color swatches matching tldraw's built-in palette; CSS vars map to design tokens. */
+const COLOR_SWATCHES = [
+  { id: "black", cssVar: "var(--color-text-primary)", label: "Black" },
+  { id: "accent", cssVar: "var(--color-accent)", label: "Accent (brick)" },
+  { id: "bootstrap", cssVar: "var(--tint-bootstrap)", label: "Sage" },
+  { id: "teach", cssVar: "var(--tint-teach)", label: "Amber" },
+  { id: "quiz", cssVar: "var(--tint-quiz)", label: "Slate" },
+] as const;
+
+type ToolId = (typeof TOOLS)[number]["id"] | "eraser";
+type SwatchId = (typeof COLOR_SWATCHES)[number]["id"];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function NoteEditorSketch({
   noteId: _noteId,
@@ -52,6 +84,10 @@ export function NoteEditorSketch({
   const sketchHandleRef = useRef<SketchCanvasHandle>(null);
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [convertModal, setConvertModal] = useState<ConvertModalState>({ open: false });
+
+  // Active tool and color swatch (display-only — tldraw manages its own internal tool state)
+  const [activeTool, setActiveTool] = useState<ToolId>("select");
+  const [activeSwatch, setActiveSwatch] = useState<SwatchId>("black");
 
   const handleChange = useCallback(
     (snapshot: unknown) => {
@@ -92,26 +128,84 @@ export function NoteEditorSketch({
 
   return (
     <div className={styles.editorWrapper}>
-      {onConvertToConceptMap && (
-        <div className={styles.toolbar}>
+      {/* ── Tools rail ───────────────────────────────────────────────────── */}
+      <nav className={styles.toolsRail} aria-label="Drawing tools">
+        {TOOLS.map((tool) => (
           <button
+            key={tool.id}
             type="button"
-            className={styles.convertBtn}
-            onClick={handleConvertClick}
-            title="Convert sketch to concept map"
+            className={`${styles.toolBtn} ${activeTool === tool.id ? styles.toolBtnActive : ""}`}
+            title={tool.label}
+            aria-label={tool.label}
+            aria-pressed={activeTool === tool.id}
+            onClick={() => setActiveTool(tool.id)}
           >
-            ↗ convert to concept map
+            {tool.glyph}
           </button>
+        ))}
+
+        <hr className={styles.toolSep} />
+
+        <button
+          type="button"
+          className={`${styles.toolBtn} ${activeTool === ERASER.id ? styles.toolBtnActive : ""}`}
+          title={ERASER.label}
+          aria-label={ERASER.label}
+          aria-pressed={activeTool === ERASER.id}
+          onClick={() => setActiveTool(ERASER.id)}
+        >
+          {ERASER.glyph}
+        </button>
+
+        <hr className={styles.toolSep} />
+
+        {COLOR_SWATCHES.map((swatch) => (
+          <button
+            key={swatch.id}
+            type="button"
+            className={`${styles.colorSwatch} ${activeSwatch === swatch.id ? styles.colorSwatchActive : ""}`}
+            style={{ background: swatch.cssVar }}
+            title={swatch.label}
+            aria-label={swatch.label}
+            aria-pressed={activeSwatch === swatch.id}
+            onClick={() => setActiveSwatch(swatch.id)}
+          />
+        ))}
+      </nav>
+
+      {/* ── Canvas area ──────────────────────────────────────────────────── */}
+      <div className={styles.canvasArea}>
+        {/* Inline notice strip — floats above the canvas, centered at the top */}
+        <div className={styles.noticeStrip} role="note" aria-label="Sketch surface notice">
+          <span className={styles.noticeGlyph}>✎</span>
+          <span className={styles.noticeText}>
+            <em className={styles.noticeEmphasis}>Sketch</em> — a free drawing surface. No canonical
+            concept linking here
+            {onConvertToConceptMap && (
+              <>
+                {"; for that, "}
+                <button
+                  type="button"
+                  className={styles.convertBtn}
+                  onClick={handleConvertClick}
+                  title="Convert sketch to concept map"
+                >
+                  convert to a concept map ↗
+                </button>
+              </>
+            )}
+          </span>
         </div>
-      )}
 
-      <SketchCanvas
-        variant="full"
-        initialSnapshot={initialSnapshot}
-        onChange={handleChange}
-        handleRef={sketchHandleRef}
-      />
+        <SketchCanvas
+          variant="full"
+          initialSnapshot={initialSnapshot}
+          onChange={handleChange}
+          handleRef={sketchHandleRef}
+        />
+      </div>
 
+      {/* ── Convert confirmation modal ───────────────────────────────────── */}
       {convertModal.open && (
         <Modal
           onClose={handleConvertCancel}

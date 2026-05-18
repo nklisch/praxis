@@ -98,7 +98,9 @@ function InspectorStrip({
   }
   return (
     <div className={styles.inspectorStrip} data-testid="inspector-strip">
-      <span className={styles.inspectorEmpty}>Select a lesson or gate node to inspect its fields</span>
+      <span className={styles.inspectorEmpty}>
+        Select a lesson or gate node to inspect its fields
+      </span>
     </div>
   );
 }
@@ -136,7 +138,7 @@ function GateInspectorStrip({ selectedGate }: { selectedGate: SelectedGateState 
             <div className={styles.inspectorFieldKey}>edge.mastery_floor</div>
             <div className={styles.inspectorFieldVal}>
               {hasPendingChange ? (
-                <em>{pendingMinScore !== null ? (pendingMinScore * 100).toFixed(0) + "%" : ""}</em>
+                <em>{pendingMinScore !== null ? `${(pendingMinScore * 100).toFixed(0)}%` : ""}</em>
               ) : (
                 `${(savedMinScore * 100).toFixed(0)}%`
               )}
@@ -232,7 +234,7 @@ function LessonInspectorStrip({ selectedLesson }: { selectedLesson: SelectedLess
  */
 export function ConfigureRoute() {
   const client = usePraxisClient();
-  const { isSet, isUnlocked, loading: lockLoading, refresh: refreshLock } = useLock();
+  const { isSet, isUnlocked, loading: lockLoading, refresh: refreshLock, lock } = useLock();
   const [activeTab, setActiveTab] = useState<ConfigureTab>("course");
   const [selectedCourseId, setSelectedCourseId] = useState<CourseId | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<SelectedLessonState | null>(null);
@@ -364,6 +366,17 @@ export function ConfigureRoute() {
                     ? "Configure session active"
                     : COPY.loading.starting}
               </span>
+              {isSet && isUnlocked && (
+                <button
+                  type="button"
+                  className={styles.lockBtn}
+                  onClick={() => lock()}
+                  title="Lock the configure surface"
+                  aria-label="Lock configure"
+                >
+                  lock
+                </button>
+              )}
             </div>
           </div>
 

@@ -13,57 +13,47 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  background: var(--color-bg-primary, #fafafa);
+  background: var(--color-bg-primary);
 }
 
 .lockedCard {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  background: var(--color-bg-secondary, #fff);
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: 12px;
-  padding: 3rem 2.5rem;
+  gap: var(--space-4);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-12) var(--space-8);
   max-width: 400px;
   width: 100%;
   text-align: center;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
-.lockIcon {
-  font-size: 3rem;
-  line-height: 1;
-}
-
-.lockedTitle {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 700;
-}
-
 .lockedDesc {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-text-secondary, #666);
-  line-height: 1.5;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-base);
 }
 
 .unlockBtn {
-  padding: 0.65rem 2rem;
+  padding: var(--space-2) var(--space-8);
   border: none;
-  border-radius: 6px;
-  background: var(--color-accent, #4a90e2);
-  color: #fff; /* intentional literal: button text always white regardless of theme */
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #fff; /* intentional literal: accent button text always white regardless of theme */
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-top: 0.5rem;
-  transition: opacity 0.15s;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  margin-top: var(--space-2);
+  transition: background 0.15s;
 }
 
 .unlockBtn:hover {
-  opacity: 0.9;
+  background: var(--color-accent-hover);
 }
 
 /* ── Workspace (unlocked) — Canvas + Side Chat shell ────────────────────────── */
@@ -150,6 +140,30 @@
   color: var(--color-text-secondary, #999);
 }
 
+/* Re-lock button — visible in tab bar when session is unlocked and a lock code is set */
+.lockBtn {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.lockBtn:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
 /* ── Main surface grid: canvas column + side chat ────────────────────────────── */
 
 /* Option 5 layout: center canvas takes remaining space; right chat panel is 380px */
@@ -196,13 +210,13 @@
 
 /* Empty / placeholder state */
 .inspectorEmpty {
-  font: italic 12px/1.4 var(--font-serif, serif);
+  font: italic 12px / 1.4 var(--font-serif, serif);
   color: var(--color-text-tertiary, #aaa);
 }
 
 /* Header label: "L2.3 · the chain rule lesson" */
 .inspectorLabel {
-  font: 600 10px/1 var(--font-mono, monospace);
+  font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary, #aaa);
@@ -211,7 +225,7 @@
 
 /* Lesson heading */
 .inspectorTitle {
-  font: 500 italic 16px/1.2 var(--font-display, var(--font-serif, serif));
+  font: 500 italic 16px / 1.2 var(--font-display, var(--font-serif, serif));
   margin: 0 0 10px;
 }
 
@@ -234,7 +248,7 @@
 }
 
 .inspectorFieldKey {
-  font: 600 10px/1.4 var(--font-mono, monospace);
+  font: 600 10px / 1.4 var(--font-mono, monospace);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-tertiary, #aaa);
@@ -242,7 +256,7 @@
 }
 
 .inspectorFieldVal {
-  font: 13px/1.4 var(--font-serif, serif);
+  font: 13px / 1.4 var(--font-serif, serif);
   color: var(--color-text-primary);
 }
 
@@ -259,7 +273,7 @@
 }
 
 .inspectorFieldOld {
-  font: 11px/1.4 var(--font-mono, monospace);
+  font: 11px / 1.4 var(--font-mono, monospace);
   color: var(--color-text-tertiary, #aaa);
   text-decoration: line-through;
   margin-top: 2px;
