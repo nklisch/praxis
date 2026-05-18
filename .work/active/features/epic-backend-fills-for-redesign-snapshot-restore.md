@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-snapshot-restore
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -480,3 +480,13 @@ Both child stories reached `stage: done`. Feature advanced to `stage: review`.
 
 - `epic-backend-fills-for-redesign-snapshot-restore-capture-and-restore` — done
 - `epic-backend-fills-for-redesign-snapshot-restore-ipc` — done (blocker fixed inline: left-join null-guard in `listConfiguratorActions`)
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Both child stories were individually approved; the only blocker found across the full delivery (Drizzle left-join `undefined` vs `null` in `listConfiguratorActions`) was fixed inline during Story B's review and is confirmed present in the current codebase. Design alignment is complete: all six design units (schema, types, `SnapshotCapturer`, `AuthoringServiceImpl` wiring, `restoreAction`, IPC + client) are implemented and tested. `ConfiguratorAction` union extension and `ConfiguratorActionRow` optional fields are additive and non-breaking. `restoreAction` is gated behind `requireUnlocked` — correct trust boundary. Foundation docs (ARCHITECTURE.md artifact lifecycle and tool dispatch sections) describe the layer above the audit/snapshot mechanism and are not invalidated. Feature delivers the brief end-to-end.
