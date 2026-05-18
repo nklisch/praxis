@@ -1,7 +1,7 @@
 ---
 id: refactor-split-core-type-files-tool-and-client-step-2-client
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-split-core-type-files-tool-and-client
 depends_on: [refactor-split-core-type-files-tool-and-client-step-1-tool]
@@ -216,3 +216,15 @@ Same as Step 1 — if a client API's supporting types are entangled with types i
 - 3 pre-existing typecheck errors in UI files (chat-tab-body.tsx, chat.tsx, notes-list.tsx) — unchanged
 - All 420 test files pass (4499 tests), 23 skipped — unchanged
 - `pnpm biome check packages/core/src/types/` — clean (0 errors)
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `ProgressSnapshot` moved to `artifacts.ts` instead of staying in the client-side cluster — sensible deviation to break a circular import. Documented in the agent's notes.
+- `client-memory.ts` is intentionally NOT wildcard-re-exported in the barrel to avoid `MemoryService` name collision; only the aliased `MemoryClientService` re-export is surfaced. Documented; consistent with the prior collision-workaround intent.
+
+**Notes**: Mirror of Step 1's shape. client.ts 944→76 LoC. 37 types moved across 21 destinations. Only 1 direct-client.ts importer (`documents-service.ts`) needed fixing. 420 test files pass; baseline typecheck preserved. The `PraxisClient` aggregate now composes per-domain client interfaces from their natural homes.
