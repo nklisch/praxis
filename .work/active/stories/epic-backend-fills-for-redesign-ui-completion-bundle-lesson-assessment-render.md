@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-lesson-assessment-render
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -49,6 +49,21 @@ configure Course tab and the course-create draft panel.
 ## Out of scope
 
 - Editing assessments inline. v1 is read-only render.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**:
+- Missing `.catch()` on the `FetchingPills` IPC call → `lesson-assessment-pills-add-catch-on-fetch` (backlog)
+
+**Nits**:
+- Pills are placed inside the `styles.field` div in `lesson-editor.tsx` (after the title label). Slightly odd semantics but harmless; field container provides the right margin.
+- The `use-resource-hook` pattern could technically apply to `FetchingPills`, but since pills are decorative and the loading state renders nothing, the inline `useEffect` + cancellation flag is the lighter-weight choice here.
+
+**Notes**: All packages touched by this story typecheck and test clean. Pre-existing typecheck failures in `@praxis/desktop` (duplicate `SqliteDraftStore`, `exactOptionalPropertyTypes` in `courses-section.tsx` and `note-editor-page.tsx`) are not caused by this story. The `AssessmentPillEntry` dual-mode prop design is well-executed. Tests are thorough (16 passing).
 
 ## Implementation notes
 
