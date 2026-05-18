@@ -1,7 +1,7 @@
 ---
 id: refactor-ipc-server-extract-domain-channels-step-2-medium-domains
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-ipc-server-extract-domain-channels
 depends_on: [refactor-ipc-server-extract-domain-channels-step-1-small-domains]
@@ -146,3 +146,15 @@ None. All schemas in these 8 domains were exclusive to their respective domains 
 - Pre-existing biome suppression warning (lessonAssessments) preserved.
 - All 31 test files, 493 tests passing.
 - Biome clean on all 8 new channel files (1 format fix applied to notes-channel.ts).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Per-domain getStudentId regression counts in the implementation notes (config: 0, memory: 6, notes: 7, flashcards: 7, tabs: 5, sketches: 1, conceptMaps: 4) sum to 30, not the headline "9" — minor inconsistency in the note. Doesn't affect correctness; the regressions are tracked for the future shared helper either way.
+- `config-channel.ts` defines its own local `requireUnlocked()` — same as the author section in ipc-server.ts. Once step 3 lands, both will live in their own channel files; consider whether a shared `require-unlocked.ts` helper consolidates them. Out of scope for this step.
+
+**Notes**: Massive mechanical refactor executed cleanly. 8 new channel files, 59 handlers. ipc-server.ts down 839 LoC (-46%). Memory's streaming endpoint moved cleanly to memory-channel.ts using the established activity-channel.ts pattern. Critical cancel + streaming + envelope tests all pass unmodified. Pattern from step 1 mirrored faithfully.
