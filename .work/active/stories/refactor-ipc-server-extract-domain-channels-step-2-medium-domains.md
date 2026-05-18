@@ -1,7 +1,7 @@
 ---
 id: refactor-ipc-server-extract-domain-channels-step-2-medium-domains
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-ipc-server-extract-domain-channels
 depends_on: [refactor-ipc-server-extract-domain-channels-step-1-small-domains]
@@ -102,3 +102,47 @@ Same as Step 1. Critical to verify the memory.episodic streaming path:
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Implementation notes
+
+### Per-domain summary
+
+| Domain | File | Handlers |
+|---|---|---|
+| config | `config-channel.ts` | 12 handlers (isLocked, setLockCode, unlock, selectedEngine, setSelectedEngine, engineConfig, engineConfig.reveal, setEngineConfig, courseCreateConfig, setCourseCreateConfig, firstRunCompleted, markFirstRunComplete) |
+| memory | `memory-channel.ts` | 6 non-streaming + 1 streaming (studentModel, misconceptions, procedural, affective, export, delete, episodic stream) |
+| assignments | `assignments-channel.ts` | 5 handlers (get, list, recordResponse, getResponses, submit) |
+| notes | `notes-channel.ts` | 7 handlers (create, update, get, list, delete, setAnnotations, getAnnotations) |
+| flashcards | `flashcards-channel.ts` | 7 handlers (create, update, get, list, delete, review, dueCount) |
+| tabs | `tabs-channel.ts` | 9 handlers (listOpen, list, get, open, openDocument, reopen, close, touch, rename) |
+| sketches | `sketches-channel.ts` | 3 handlers (put, get, getSummary) |
+| conceptMaps | `concept-maps-channel.ts` | 10 handlers (create, get, list, rename, delete, updateScene, listVersions, setNodeLink, computeRipples, convertFromSketch) |
+
+**Total**: 8 new channel files, 59 handlers extracted.
+
+### getStudentId regressions
+
+9 inline regressions across the 8 domains (config: 0, memory: 6, assignments: 0, notes: 7, flashcards: 7, tabs: 5, sketches: 1, conceptMaps: 4). Each uses `brandId<"StudentId">(services.getDefaultStudentId()) as StudentId` directly. A future shared helper can consolidate.
+
+### config: requireUnlocked
+
+config-channel.ts defines its own local `requireUnlocked()` (closes over `services.lock`), mirroring the pattern. The author section in ipc-server.ts retains its own `requireUnlocked`.
+
+### Shared schema duplications
+
+None. All schemas in these 8 domains were exclusive to their respective domains after the move.
+
+### Memory streaming verification
+
+`praxis.memory.episodic.start/.cancel` streaming path tested and passing: `ipc-server.cancel.test.ts` (3/3), `streaming-channel-error-redaction.test.ts` (6/6), `memory-channel-envelope.test.ts` (16/16).
+
+### ipc-server.ts LoC delta
+
+1811 (end of step 1) → 972 (end of step 2) — reduction of 839 lines.
+
+### Baseline confirmation
+
+- Pre-existing typecheck errors (3 in UI files) preserved — not introduced by this step.
+- Pre-existing biome suppression warning (lessonAssessments) preserved.
+- All 31 test files, 493 tests passing.
+- Biome clean on all 8 new channel files (1 format fix applied to notes-channel.ts).

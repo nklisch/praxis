@@ -1,12 +1,8 @@
-import { EngineConfigSchema, EngineIdSchema } from "@praxis/core/config";
 import type {
   AssignmentId,
   ConceptId,
-  ConceptLink,
-  ConceptMapId,
   CourseId,
   DocumentId,
-  EpisodicEvent,
   GateId,
   GateTarget,
   LessonId,
@@ -14,33 +10,38 @@ import type {
   MisconceptionId,
   NoteId,
   SessionId,
-  SketchId,
   StudentId,
   SuccessCriteria,
-  TabId,
-  TldrawSnapshot,
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { ipcMain } from "electron";
 import { z } from "zod";
 import { registerActivityHandlers } from "./activity-channel.js";
+import { registerAssignmentsHandlers } from "./assignments-channel.js";
 import { registerAuthHandlers } from "./auth-channel.js";
 import { registerCitationsHandlers } from "./citations-channel.js";
+import { registerConceptMapsHandlers } from "./concept-maps-channel.js";
+import { registerConfigHandlers } from "./config-channel.js";
 import { registerCourseCreateDraftsHandlers } from "./course-create-drafts-channel.js";
 import { registerDocumentScopesHandlers } from "./document-scopes-channel.js";
 import { registerDocumentsHandlers } from "./documents-channel.js";
+import { registerFlashcardsHandlers } from "./flashcards-channel.js";
 import { registerIngestHandlers } from "./ingest-channel.js";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import { registerLibraryHandlers } from "./library-channel.js";
 import { registerLockHandlers } from "./lock-channel.js";
+import { registerMemoryHandlers } from "./memory-channel.js";
+import { registerNotesHandlers } from "./notes-channel.js";
 import { registerPacksHandlers } from "./packs-channel.js";
 import { registerQuickCheckHandlers } from "./quick-check-channel.js";
 import { registerRecommendationsHandlers } from "./recommendations-channel.js";
 import type { Services } from "./services.js";
 import { registerShellHandlers } from "./shell-channel.js";
+import { registerSketchesHandlers } from "./sketches-channel.js";
 import { registerGeneratorStream } from "./stream-handler.js";
 import { registerSubAgentHandlers } from "./subagent-channel.js";
+import { registerTabsHandlers } from "./tabs-channel.js";
 import { registerUpdateHandlers } from "./update-channel.js";
 
 /**
@@ -215,104 +216,7 @@ export function registerIpcHandlers(
 
   // ── Config ───────────────────────────────────────────────────────────────
 
-  handle(
-    "praxis.config.isLocked",
-    wrapEnvelope("praxis.config.isLocked", log, async () => services.config.isLocked()),
-  );
-
-  handle(
-    "praxis.config.setLockCode",
-    handleEnvelope("praxis.config.setLockCode", log, z.string().min(1, "code"), async (code) =>
-      services.config.setLockCode(code),
-    ),
-  );
-
-  handle(
-    "praxis.config.unlock",
-    handleEnvelope("praxis.config.unlock", log, z.string().min(1, "code"), async (code) =>
-      services.config.unlock(code),
-    ),
-  );
-
-  handle(
-    "praxis.config.selectedEngine",
-    wrapEnvelope("praxis.config.selectedEngine", log, async () => services.config.selectedEngine()),
-  );
-
-  handle(
-    "praxis.config.setSelectedEngine",
-    handleEnvelope("praxis.config.setSelectedEngine", log, EngineIdSchema, async (engineId) =>
-      services.config.setSelectedEngine(engineId),
-    ),
-  );
-
-  handle(
-    "praxis.config.engineConfig",
-    wrapEnvelope("praxis.config.engineConfig", log, async () => {
-      await requireUnlocked();
-      return services.config.engineConfig();
-    }),
-  );
-
-  // Phase: IPC trust-boundary hardening — separate "reveal" channel so the
-  // steady-state `engineConfig()` read never sees the decrypted apiKey.
-  handle(
-    "praxis.config.engineConfig.reveal",
-    wrapEnvelope("praxis.config.engineConfig.reveal", log, async () => {
-      await requireUnlocked();
-      return services.config.revealApiKey();
-    }),
-  );
-
-  handle(
-    "praxis.config.setEngineConfig",
-    handleEnvelope("praxis.config.setEngineConfig", log, EngineConfigSchema, async (cfg) => {
-      await requireUnlocked();
-      // The service writes to disk; `hasApiKey` is a derived display flag
-      // — set it from the validated public input so the snapshot shape
-      // matches even though the service strips it before persistence.
-      const hasApiKey = cfg.apiKey !== undefined && cfg.apiKey.length > 0;
-      return services.config.setEngineConfig({
-        engineId: cfg.engineId,
-        hasApiKey,
-        ...(cfg.model !== undefined && { model: cfg.model }),
-        ...(cfg.baseUrl !== undefined && { baseUrl: cfg.baseUrl }),
-        ...(cfg.effort !== undefined && { effort: cfg.effort }),
-        ...(cfg.apiKey !== undefined && { apiKey: cfg.apiKey }),
-      });
-    }),
-  );
-
-  handle(
-    "praxis.config.courseCreateConfig",
-    wrapEnvelope("praxis.config.courseCreateConfig", log, async () =>
-      services.config.courseCreateConfig(),
-    ),
-  );
-
-  handle(
-    "praxis.config.setCourseCreateConfig",
-    handleEnvelope(
-      "praxis.config.setCourseCreateConfig",
-      log,
-      z.object({ maxSteps: z.number().int().positive() }),
-      async (cfg) => services.config.setCourseCreateConfig(cfg),
-    ),
-  );
-
-  handle(
-    "praxis.config.firstRunCompleted",
-    wrapEnvelope("praxis.config.firstRunCompleted", log, async () =>
-      services.config.firstRunCompleted(),
-    ),
-  );
-
-  handle(
-    "praxis.config.markFirstRunComplete",
-    wrapEnvelope("praxis.config.markFirstRunComplete", log, async () =>
-      services.config.markFirstRunComplete(),
-    ),
-  );
+  registerConfigHandlers(services, log);
 
   // ── Ingestion (streamed + non-streamed) ──────────────────────────────────
 
@@ -453,179 +357,11 @@ export function registerIpcHandlers(
 
   // ── Memory ───────────────────────────────────────────────────────────────────
 
-  handle(
-    "praxis.memory.studentModel",
-    wrapEnvelope("praxis.memory.studentModel", log, async () => {
-      const studentId = getStudentId();
-      const model = await services.memory.studentModel(studentId);
-      // Maps don't survive JSON.stringify — serialize conceptMastery as entries array.
-      return {
-        ...model,
-        conceptMastery: [...model.conceptMastery.entries()],
-      };
-    }),
-  );
-
-  handle(
-    "praxis.memory.misconceptions",
-    wrapEnvelope("praxis.memory.misconceptions", log, async () => {
-      const studentId = getStudentId();
-      return services.memory.misconceptions(studentId);
-    }),
-  );
-
-  handle(
-    "praxis.memory.procedural",
-    wrapEnvelope("praxis.memory.procedural", log, async () => {
-      const studentId = getStudentId();
-      const model = await services.memory.procedural(studentId);
-      return {
-        ...model,
-        strategies: [...model.strategies.entries()],
-      };
-    }),
-  );
-
-  handle(
-    "praxis.memory.affective",
-    wrapEnvelope("praxis.memory.affective", log, async () => {
-      const studentId = getStudentId();
-      return services.memory.affective(studentId);
-    }),
-  );
-
-  handle(
-    "praxis.memory.export",
-    wrapEnvelope("praxis.memory.export", log, async () => {
-      const studentId = getStudentId();
-      const exported = await services.memory.export(studentId);
-      // Serialize Maps as entries arrays for IPC transport.
-      return {
-        ...exported,
-        studentModel: {
-          ...exported.studentModel,
-          conceptMastery: [...exported.studentModel.conceptMastery.entries()],
-        },
-        procedural: {
-          ...exported.procedural,
-          strategies: [...exported.procedural.strategies.entries()],
-        },
-      };
-    }),
-  );
-
-  handle(
-    "praxis.memory.delete",
-    wrapEnvelope("praxis.memory.delete", log, async () => {
-      const studentId = getStudentId();
-      return services.memory.delete({ studentId, confirm: true });
-    }),
-  );
-
-  // Streaming: praxis.memory.episodic.start(streamId, opts) invokes the handler.
-  // Events are pushed on praxis.memory.episodic.events.<streamId>.
-  // Client cancels via praxis.memory.episodic.cancel with the streamId.
-  registerGeneratorStream<
-    EpisodicEvent,
-    [{ sessionId?: string; range?: { fromMs: number; toMs: number } }]
-  >(
-    {
-      channelBase: "praxis.memory.episodic",
-      log,
-      webContentsGetter,
-      activeAbortControllers,
-    },
-    { handle, on },
-    {
-      iterate: ([opts], _signal) => {
-        const studentId = getStudentId();
-        return services.memory.episodic({
-          studentId,
-          ...(opts.sessionId !== undefined && {
-            sessionId: brandId<"SessionId">(opts.sessionId),
-          }),
-          ...(opts.range !== undefined && { range: opts.range }),
-        });
-      },
-    },
-  );
+  registerMemoryHandlers(services, webContentsGetter, activeAbortControllers, log);
 
   // ── Assignments ──────────────────────────────────────────────────────────────
 
-  const assignmentInputSchema = z.object({ assignmentId: z.string().min(1, "assignmentId") });
-
-  handle(
-    "praxis.assignments.get",
-    handleEnvelope("praxis.assignments.get", log, assignmentInputSchema, async ({ assignmentId }) =>
-      services.assignments.get({
-        assignmentId: brandId<"AssignmentId">(assignmentId) as AssignmentId,
-      }),
-    ),
-  );
-
-  const assignmentListSchema = z.object({
-    courseId: z.string().min(1, "courseId"),
-    kind: z.enum(["quiz", "homework", "exam"]).optional(),
-  });
-
-  handle(
-    "praxis.assignments.list",
-    handleEnvelope("praxis.assignments.list", log, assignmentListSchema, async (input) =>
-      services.assignments.list({
-        courseId: brandId<"CourseId">(input.courseId) as CourseId,
-        ...(input.kind !== undefined && { kind: input.kind }),
-      }),
-    ),
-  );
-
-  const recordResponseSchema = z.object({
-    assignmentId: z.string().min(1, "assignmentId"),
-    itemId: z.string().min(1, "itemId"),
-    response: z.string(),
-    work: z.string().optional(),
-    sketchId: z.string().optional(),
-    confidence: z.enum(["guessed", "unsure", "pretty_sure", "certain"]).optional(),
-  });
-
-  handle(
-    "praxis.assignments.recordResponse",
-    handleEnvelope("praxis.assignments.recordResponse", log, recordResponseSchema, async (input) =>
-      services.assignments.recordResponse({
-        assignmentId: brandId<"AssignmentId">(input.assignmentId) as AssignmentId,
-        itemId: input.itemId,
-        response: input.response,
-        ...(input.work !== undefined && { work: input.work }),
-        ...(input.sketchId !== undefined && { sketchId: input.sketchId }),
-        ...(input.confidence !== undefined && { confidence: input.confidence }),
-      }),
-    ),
-  );
-
-  handle(
-    "praxis.assignments.getResponses",
-    handleEnvelope(
-      "praxis.assignments.getResponses",
-      log,
-      assignmentInputSchema,
-      async ({ assignmentId }) =>
-        services.assignments.getResponses({
-          assignmentId: brandId<"AssignmentId">(assignmentId) as AssignmentId,
-        }),
-    ),
-  );
-
-  handle(
-    "praxis.assignments.submit",
-    handleEnvelope(
-      "praxis.assignments.submit",
-      log,
-      assignmentInputSchema,
-      async ({ assignmentId }) =>
-        services.assignments.submit({
-          assignmentId: brandId<"AssignmentId">(assignmentId) as AssignmentId,
-        }),
-    ),
-  );
+  registerAssignmentsHandlers(services, log);
 
   // ── Phase 10: Concepts (read-only) ──────────────────────────────────────────
 
@@ -1120,391 +856,15 @@ export function registerIpcHandlers(
 
   // ── Phase 12: Notes ──────────────────────────────────────────────────────────
 
-  const noteCreateSchema = z.object({
-    format: z.enum(["cornell", "feynman", "outline", "free"]),
-    body: z.unknown(),
-    context: z
-      .object({
-        courseId: z.string().optional(),
-        lessonId: z.string().optional(),
-        sessionId: z.string().optional(),
-        conceptIds: z.array(z.string()).optional(),
-      })
-      .optional(),
-  });
-
-  handle(
-    "praxis.notes.create",
-    handleEnvelope("praxis.notes.create", log, noteCreateSchema, async (input) => {
-      const studentId = getStudentId();
-      return services.notes.create({
-        studentId,
-        format: input.format,
-        // biome-ignore lint/suspicious/noExplicitAny: NoteBody validated inside service
-        body: input.body as any,
-        ...(input.context !== undefined && {
-          context: {
-            ...(input.context.courseId !== undefined && {
-              courseId: brandId<"CourseId">(input.context.courseId),
-            }),
-            ...(input.context.lessonId !== undefined && {
-              lessonId: brandId<"LessonId">(input.context.lessonId),
-            }),
-            ...(input.context.sessionId !== undefined && {
-              sessionId: input.context.sessionId,
-            }),
-            ...(input.context.conceptIds !== undefined && {
-              conceptIds: input.context.conceptIds.map((id) => brandId<"ConceptId">(id)),
-            }),
-          },
-        }),
-      });
-    }),
-  );
-
-  const noteIdSchema = z.string().min(1, "noteId");
-  const flashcardIdSchema = z.string().min(1, "flashcardId");
-
-  handle(
-    "praxis.notes.update",
-    handleEnvelope(
-      "praxis.notes.update",
-      log,
-      z.object({ noteId: z.string().min(1, "noteId"), body: z.unknown() }),
-      async (input) => {
-        const studentId = getStudentId();
-        return services.notes.update({
-          studentId,
-          noteId: brandId<"NoteId">(input.noteId),
-          // biome-ignore lint/suspicious/noExplicitAny: NoteBody validated inside service
-          body: input.body as any,
-        });
-      },
-    ),
-  );
-
-  handle(
-    "praxis.notes.get",
-    handleEnvelope("praxis.notes.get", log, noteIdSchema, async (noteId) => {
-      const studentId = getStudentId();
-      return services.notes.get({ studentId, noteId: brandId<"NoteId">(noteId) });
-    }),
-  );
-
-  const noteListSchema = z
-    .object({
-      courseId: z.string().optional(),
-      lessonId: z.string().optional(),
-      format: z.enum(["cornell", "feynman", "outline", "free"]).optional(),
-      limit: z.number().int().positive().optional(),
-    })
-    .optional();
-
-  handle(
-    "praxis.notes.list",
-    handleEnvelope("praxis.notes.list", log, noteListSchema, async (input) => {
-      const studentId = getStudentId();
-      return services.notes.list({
-        studentId,
-        ...(input?.courseId !== undefined && {
-          courseId: brandId<"CourseId">(input.courseId),
-        }),
-        ...(input?.lessonId !== undefined && {
-          lessonId: brandId<"LessonId">(input.lessonId),
-        }),
-        ...(input?.format !== undefined && { format: input.format }),
-        ...(input?.limit !== undefined && { limit: input.limit }),
-      });
-    }),
-  );
-
-  handle(
-    "praxis.notes.delete",
-    handleEnvelope("praxis.notes.delete", log, noteIdSchema, async (noteId) => {
-      const studentId = getStudentId();
-      return services.notes.delete({ studentId, noteId: brandId<"NoteId">(noteId) });
-    }),
-  );
-
-  const annotationSchema = z.object({
-    rangeStart: z.number().int().nonnegative(),
-    rangeEnd: z.number().int().nonnegative(),
-    text: z.string(),
-    severity: z.enum(["soft", "load_bearing"]),
-  });
-
-  const setAnnotationsSchema = z.object({
-    noteId: z.string().min(1, "noteId"),
-    annotations: z.array(annotationSchema),
-  });
-
-  handle(
-    "praxis.notes.setAnnotations",
-    handleEnvelope("praxis.notes.setAnnotations", log, setAnnotationsSchema, async (input) => {
-      const studentId = getStudentId();
-      return services.notes.setAnnotations({
-        studentId,
-        noteId: brandId<"NoteId">(input.noteId),
-        annotations: input.annotations,
-      });
-    }),
-  );
-
-  handle(
-    "praxis.notes.getAnnotations",
-    handleEnvelope("praxis.notes.getAnnotations", log, noteIdSchema, async (noteId) => {
-      const studentId = getStudentId();
-      return services.notes.getAnnotations({ studentId, noteId: brandId<"NoteId">(noteId) });
-    }),
-  );
+  registerNotesHandlers(services, log);
 
   // ── Phase 12: Flashcards ─────────────────────────────────────────────────────
 
-  const flashcardCreateSchema = z.object({
-    front: z.string().min(1, "front"),
-    back: z.string().min(1, "back"),
-    conceptId: z.string().optional(),
-    source: z
-      .object({
-        kind: z.enum(["authored", "extracted", "user-created"]),
-        ref: z.string(),
-      })
-      .optional(),
-  });
-
-  handle(
-    "praxis.flashcards.create",
-    handleEnvelope("praxis.flashcards.create", log, flashcardCreateSchema, async (input) => {
-      const studentId = getStudentId();
-      return services.flashcards.create({
-        studentId,
-        front: input.front,
-        back: input.back,
-        ...(input.conceptId !== undefined && {
-          conceptId: brandId<"ConceptId">(input.conceptId),
-        }),
-        ...(input.source !== undefined && { source: input.source }),
-      });
-    }),
-  );
-
-  const flashcardUpdateSchema = z.object({
-    flashcardId: z.string().min(1, "flashcardId"),
-    patch: z.object({
-      front: z.string().optional(),
-      back: z.string().optional(),
-      conceptId: z.string().optional(),
-    }),
-  });
-
-  handle(
-    "praxis.flashcards.update",
-    handleEnvelope("praxis.flashcards.update", log, flashcardUpdateSchema, async (input) => {
-      const studentId = getStudentId();
-      return services.flashcards.update({
-        studentId,
-        flashcardId: brandId<"FlashcardId">(input.flashcardId),
-        patch: {
-          ...(input.patch.front !== undefined && { front: input.patch.front }),
-          ...(input.patch.back !== undefined && { back: input.patch.back }),
-          ...(input.patch.conceptId !== undefined && {
-            conceptId: brandId<"ConceptId">(input.patch.conceptId),
-          }),
-        },
-      });
-    }),
-  );
-
-  handle(
-    "praxis.flashcards.get",
-    handleEnvelope("praxis.flashcards.get", log, flashcardIdSchema, async (flashcardId) => {
-      const studentId = getStudentId();
-      return services.flashcards.get({
-        studentId,
-        flashcardId: brandId<"FlashcardId">(flashcardId),
-      });
-    }),
-  );
-
-  const flashcardListSchema = z
-    .object({
-      conceptId: z.string().optional(),
-      due: z.boolean().optional(),
-      limit: z.number().int().positive().optional(),
-    })
-    .optional();
-
-  handle(
-    "praxis.flashcards.list",
-    handleEnvelope("praxis.flashcards.list", log, flashcardListSchema, async (input) => {
-      const studentId = getStudentId();
-      return services.flashcards.list({
-        studentId,
-        ...(input?.conceptId !== undefined && {
-          conceptId: brandId<"ConceptId">(input.conceptId),
-        }),
-        ...(input?.due !== undefined && { due: input.due }),
-        ...(input?.limit !== undefined && { limit: input.limit }),
-      });
-    }),
-  );
-
-  handle(
-    "praxis.flashcards.delete",
-    handleEnvelope("praxis.flashcards.delete", log, flashcardIdSchema, async (flashcardId) => {
-      const studentId = getStudentId();
-      return services.flashcards.delete({
-        studentId,
-        flashcardId: brandId<"FlashcardId">(flashcardId),
-      });
-    }),
-  );
-
-  const flashcardReviewSchema = z.object({
-    flashcardId: z.string().min(1, "flashcardId"),
-    rating: z.enum(["again", "hard", "good", "easy"]),
-  });
-
-  handle(
-    "praxis.flashcards.review",
-    handleEnvelope("praxis.flashcards.review", log, flashcardReviewSchema, async (input) => {
-      const studentId = getStudentId();
-      return services.flashcards.review({
-        studentId,
-        flashcardId: brandId<"FlashcardId">(input.flashcardId),
-        rating: input.rating,
-      });
-    }),
-  );
-
-  handle(
-    "praxis.flashcards.dueCount",
-    wrapEnvelope("praxis.flashcards.dueCount", log, async () => {
-      const studentId = getStudentId();
-      return services.flashcards.dueCount({ studentId });
-    }),
-  );
+  registerFlashcardsHandlers(services, log);
 
   // ── Phase 14: Tabs ───────────────────────────────────────────────────────────
 
-  const tabIdSchema = z.string().min(1, "tabId");
-
-  handle(
-    "praxis.tabs.listOpen",
-    wrapEnvelope("praxis.tabs.listOpen", log, async () => {
-      const studentId = getStudentId();
-      return services.tabs.listOpen(studentId);
-    }),
-  );
-
-  handle(
-    "praxis.tabs.list",
-    handleEnvelope(
-      "praxis.tabs.list",
-      log,
-      z
-        .object({
-          limit: z.number().int().positive().optional(),
-          includeClosed: z.boolean().optional(),
-        })
-        .optional(),
-      async (opts) => {
-        const studentId = getStudentId();
-        return services.tabs.list(
-          studentId,
-          opts !== undefined
-            ? {
-                ...(opts.limit !== undefined && { limit: opts.limit }),
-                ...(opts.includeClosed !== undefined && { includeClosed: opts.includeClosed }),
-              }
-            : undefined,
-        );
-      },
-    ),
-  );
-
-  handle(
-    "praxis.tabs.get",
-    handleEnvelope("praxis.tabs.get", log, tabIdSchema, async (tabId) => {
-      return services.tabs.get(tabId as TabId);
-    }),
-  );
-
-  handle(
-    "praxis.tabs.open",
-    handleEnvelope(
-      "praxis.tabs.open",
-      log,
-      z.object({
-        sessionId: z.string().min(1, "sessionId"),
-        courseTitle: z.string().optional(),
-      }),
-      async (opts) => {
-        const studentId = getStudentId();
-        return services.tabs.open({
-          studentId,
-          sessionId: opts.sessionId as SessionId,
-          ...(opts.courseTitle !== undefined && { courseTitle: opts.courseTitle }),
-        });
-      },
-    ),
-  );
-
-  handle(
-    "praxis.tabs.openDocument",
-    handleEnvelope(
-      "praxis.tabs.openDocument",
-      log,
-      z.object({
-        documentId: z.string().min(1, "documentId"),
-        title: z.string().min(1, "title"),
-      }),
-      async (opts) => {
-        const studentId = getStudentId();
-        return services.tabs.openDocument({
-          studentId,
-          documentId: opts.documentId as DocumentId,
-          title: opts.title,
-        });
-      },
-    ),
-  );
-
-  handle(
-    "praxis.tabs.reopen",
-    handleEnvelope("praxis.tabs.reopen", log, tabIdSchema, async (tabId) => {
-      return services.tabs.reopen(tabId as TabId);
-    }),
-  );
-
-  handle(
-    "praxis.tabs.close",
-    handleEnvelope("praxis.tabs.close", log, tabIdSchema, async (tabId) => {
-      return services.tabs.close(tabId as TabId);
-    }),
-  );
-
-  handle(
-    "praxis.tabs.touch",
-    handleEnvelope("praxis.tabs.touch", log, tabIdSchema, async (tabId) => {
-      return services.tabs.touch(tabId as TabId);
-    }),
-  );
-
-  handle(
-    "praxis.tabs.rename",
-    handleEnvelope(
-      "praxis.tabs.rename",
-      log,
-      z.object({
-        tabId: z.string().min(1, "tabId"),
-        title: z.string().min(1, "title"),
-      }),
-      async (opts) => {
-        return services.tabs.rename(opts.tabId as TabId, opts.title);
-      },
-    ),
-  );
+  registerTabsHandlers(services, log);
 
   // ── Phase 14: Session list (archive) ─────────────────────────────────────────
 
@@ -1531,208 +891,11 @@ export function registerIpcHandlers(
 
   // ── Phase 15a: Sketches ──────────────────────────────────────────────────────
 
-  const sketchPutSchema = z.object({
-    snapshot: z.unknown(),
-    imageBase64: z.string().min(1, "imageBase64"),
-    width: z.number().int().nonnegative(),
-    height: z.number().int().nonnegative(),
-  });
-
-  handle(
-    "praxis.sketches.put",
-    handleEnvelope("praxis.sketches.put", log, sketchPutSchema, async (opts) => {
-      const studentId = getStudentId();
-      const image = Buffer.from(opts.imageBase64, "base64");
-      return services.sketches.put({
-        studentId,
-        snapshot: opts.snapshot,
-        image,
-        width: opts.width,
-        height: opts.height,
-      });
-    }),
-  );
-
-  const sketchIdSchema = z.string().min(1, "sketchId");
-
-  handle(
-    "praxis.sketches.get",
-    handleEnvelope("praxis.sketches.get", log, sketchIdSchema, async (sketchId) => {
-      const sketch = await services.sketches.get(sketchId as SketchId);
-      // Encode image as base64 for IPC transport — Electron IPC can't send raw Buffers reliably.
-      return {
-        id: sketch.id,
-        snapshot: sketch.snapshot,
-        width: sketch.width,
-        height: sketch.height,
-        createdAt: sketch.createdAt,
-        imageBase64: sketch.image.toString("base64"),
-      };
-    }),
-  );
-
-  handle(
-    "praxis.sketches.getSummary",
-    handleEnvelope("praxis.sketches.getSummary", log, sketchIdSchema, async (sketchId) => {
-      return services.sketches.getSummary(sketchId as SketchId);
-    }),
-  );
+  registerSketchesHandlers(services, log);
 
   // ── Phase 15b: Concept maps ──────────────────────────────────────────────────
 
-  handle(
-    "praxis.conceptMaps.create",
-    handleEnvelope(
-      "praxis.conceptMaps.create",
-      log,
-      z.object({
-        courseId: z.string().min(1, "courseId"),
-        title: z.string().min(1, "title"),
-      }),
-      async (opts) => {
-        const studentId = getStudentId();
-        return services.conceptMaps.create({
-          studentId,
-          courseId: opts.courseId as CourseId,
-          title: opts.title,
-        });
-      },
-    ),
-  );
-
-  const conceptMapIdSchema = z.string().min(1, "id");
-
-  handle(
-    "praxis.conceptMaps.get",
-    handleEnvelope("praxis.conceptMaps.get", log, conceptMapIdSchema, async (id) => {
-      return services.conceptMaps.get(id as ConceptMapId);
-    }),
-  );
-
-  handle(
-    "praxis.conceptMaps.list",
-    handleEnvelope(
-      "praxis.conceptMaps.list",
-      log,
-      z.object({ courseId: z.string().min(1, "courseId") }),
-      async (opts) => {
-        const studentId = getStudentId();
-        return services.conceptMaps.list({
-          studentId,
-          courseId: opts.courseId as CourseId,
-        });
-      },
-    ),
-  );
-
-  handle(
-    "praxis.conceptMaps.rename",
-    handleEnvelope(
-      "praxis.conceptMaps.rename",
-      log,
-      z.object({
-        id: z.string().min(1, "id"),
-        title: z.string().min(1, "title"),
-      }),
-      async (opts) => {
-        return services.conceptMaps.rename(opts.id as ConceptMapId, opts.title);
-      },
-    ),
-  );
-
-  handle(
-    "praxis.conceptMaps.delete",
-    handleEnvelope("praxis.conceptMaps.delete", log, conceptMapIdSchema, async (id) => {
-      return services.conceptMaps.delete(id as ConceptMapId);
-    }),
-  );
-
-  const conceptMapUpdateSceneSchema = z.object({
-    id: z.string().min(1, "id"),
-    scene: z.unknown(),
-    conceptLinks: z.array(z.unknown()),
-  });
-
-  handle(
-    "praxis.conceptMaps.updateScene",
-    handleEnvelope(
-      "praxis.conceptMaps.updateScene",
-      log,
-      conceptMapUpdateSceneSchema,
-      async (opts) =>
-        services.conceptMaps.updateScene({
-          id: opts.id as ConceptMapId,
-          scene: opts.scene as TldrawSnapshot,
-          conceptLinks: opts.conceptLinks as ConceptLink[],
-        }),
-    ),
-  );
-
-  handle(
-    "praxis.conceptMaps.listVersions",
-    handleEnvelope("praxis.conceptMaps.listVersions", log, conceptMapIdSchema, async (id) => {
-      return services.conceptMaps.listVersions(id as ConceptMapId);
-    }),
-  );
-
-  const conceptMapSetNodeLinkSchema = z.object({
-    mapId: z.string().min(1, "mapId"),
-    elementId: z.string().min(1, "elementId"),
-    candidateId: z.string().nullable(),
-    state: z.enum(["linked", "best_guess", "unlinked"]),
-  });
-
-  handle(
-    "praxis.conceptMaps.setNodeLink",
-    handleEnvelope(
-      "praxis.conceptMaps.setNodeLink",
-      log,
-      conceptMapSetNodeLinkSchema,
-      async (opts) =>
-        services.conceptMaps.setNodeLink({
-          mapId: opts.mapId as ConceptMapId,
-          elementId: opts.elementId,
-          candidateId: opts.candidateId,
-          state: opts.state,
-        }),
-    ),
-  );
-
-  const conceptMapComputeRipplesSchema = z.object({
-    mapId: z.string().min(1, "mapId"),
-    elementId: z.string().min(1, "elementId"),
-    candidateId: z.string().min(1, "candidateId"),
-  });
-
-  handle(
-    "praxis.conceptMaps.computeRipples",
-    handleEnvelope(
-      "praxis.conceptMaps.computeRipples",
-      log,
-      conceptMapComputeRipplesSchema,
-      async (opts) =>
-        services.conceptMaps.computeRipples({
-          mapId: opts.mapId as ConceptMapId,
-          elementId: opts.elementId,
-          candidateId: opts.candidateId as ConceptId,
-        }),
-    ),
-  );
-
-  // ── Phase 15b: Sketch → concept-map conversion ────────────────────────────────
-
-  handle(
-    "praxis.conceptMaps.convertFromSketch",
-    handleEnvelope(
-      "praxis.conceptMaps.convertFromSketch",
-      log,
-      z.object({ sketchNoteId: z.string().min(1, "sketchNoteId") }),
-      async (opts) => {
-        const studentId = getStudentId();
-        return services.conceptMaps.convertFromSketch(opts.sketchNoteId as NoteId, studentId);
-      },
-    ),
-  );
+  registerConceptMapsHandlers(services, log);
 
   // ── Activity rail ─────────────────────────────────────────────────────────────
 
