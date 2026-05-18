@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-workbench-engine
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign
 depends_on: []
@@ -178,3 +178,21 @@ Single story:
 - **Mock copy may evolve.** Treat the mockup strings as the spec;
   if they shift after this lands, refresh in a follow-up story
   rather than chasing them in flight.
+
+## Review (2026-05-17)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Single child story `epic-backend-fills-for-redesign-workbench-engine-recommendation-service`
+landed cleanly at `stage: done`. All acceptance criteria met: five collectors aggregate into a
+priority-sorted list with scores and reason strings matching the design spec; `limit` is respected
+and tie-break is deterministic by recency; IPC channel `praxis.recommendations.next` is
+envelope-wrapped and tested (6 harness tests); client surface added to `PraxisClient`; 36
+service tests + 6 IPC harness tests all green. Foundation-doc drift addressed: `docs/ARCHITECTURE.md`
+`@praxis/core` entry updated to list `RecommendationServiceImpl`. `DraftStore` shared instance
+correctly injected into both `BootstrapServiceImpl` and `RecommendationServiceImpl`. No
+blockers, no important findings.
