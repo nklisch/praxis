@@ -1,7 +1,7 @@
 ---
 id: configure-memory-tab-local-empty-state
 kind: story
-stage: review
+stage: done
 tags: [ui, patterns]
 parent: null
 depends_on: []
@@ -42,3 +42,13 @@ and "never re-implement."
 - Added 5 new keys under `COPY.empty` in `copy.ts`: `memorySemanticEmpty`, `memoryMisconceptionsEmpty`, `memoryProceduralEmpty`, `memoryAffectiveEmpty`, `memoryEpisodicEmpty`. Each combines the former `primary` + `hint` strings into a single sentence.
 - All 5 call sites now use `<EmptyState message={COPY.empty.memoryXxxEmpty} compact />` — `compact` mode is appropriate since these render inside constrained pane sections, not full-screen routes.
 - All 18 existing memory-tab tests pass. Lint shows no errors in changed files (pre-existing errors in mockup HTML files and unrelated source files are unchanged).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: The orphaned CSS classes `.emptyState`, `.emptyPrimary`, `.emptyHint` remain in `memory-tab.module.css`. They are dead code but harmless; a future CSS cleanup pass can remove them.
+
+**Notes**: The local `EmptyState` function is fully removed from `memory-tab.tsx`. All 5 call sites use the shared `<EmptyState>` editorial primitive with `compact` mode and dedicated `COPY.empty.*` keys. Copy strings correctly fold the old `primary` + `hint` sentences into natural single-sentence messages. All 1591 UI tests pass. Patterns compliance confirmed (`editorial-ui-primitives`).

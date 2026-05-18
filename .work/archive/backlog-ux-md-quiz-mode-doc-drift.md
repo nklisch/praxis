@@ -1,7 +1,7 @@
 ---
 id: backlog-ux-md-quiz-mode-doc-drift
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: null
 depends_on: []
@@ -46,3 +46,13 @@ Rolling-foundation rule: foundation docs describe the system as it is NOW.
   the `Space`-key reference and describe the "Submit answer" / final submit gate flow.
 - ASCII layout diagram redrawn to show the dot-grid rail and next-item ghost.
 - No production code changed; docs-only.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All three required changes landed cleanly. The "side strip / `?`-key" and `Space`-to-advance references are gone; the ASCII diagram reflects the two-column layout with the dot-grid rail; the "Mode-specific differences" answer-submission bullet now describes the Submit-answer / final-submit gate flow. No stale references remain. Foundation-doc drift is resolved. Docs-only change; no tests required.

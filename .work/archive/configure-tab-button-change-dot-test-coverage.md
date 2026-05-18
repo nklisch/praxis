@@ -1,7 +1,7 @@
 ---
 id: configure-tab-button-change-dot-test-coverage
 kind: story
-stage: review
+stage: done
 tags: [ui, test]
 parent: null
 depends_on: []
@@ -85,3 +85,13 @@ regression) was left intact as the primary positive test for Prompt.
 
 Total: 24 tests in hook file (was 13), 12 in configure-route (was 9).
 All tests green; `pnpm typecheck` and `pnpm lint` pass on changed files.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: The "unmounting the observer does NOT clear the dirty key" test in the `describe("useDirtyStateObserver")` block has a long inline comment explaining that the provider-isolation constraint prevents a fully-direct assertion. The test documents the limitation honestly, and the `describe("useDirtyStateObserver — does not clobber owner on unmount")` block covers the real guard via the `SharedHarness` pattern. No action needed.
+
+**Notes**: 11 new `useDirtyStateObserver` unit tests cover the full behavioral contract: starts-false, reflects-dirty/clean, cross-key independence, observer does not clobber owner on unmount (including the aggregate-stays-1 guard), and provider guard. The 3 integration tests cover: no-dot-when-clean baseline, cross-tab isolation (Prompt dirty does not contaminate Course/Gates/Memory), and the existing positive Prompt-dot test. All 1591 UI tests pass. Scope count matches (24 = 13 + 11; 12 = 9 + 3).
