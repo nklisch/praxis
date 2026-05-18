@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-cornell
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -68,3 +68,16 @@ exist.
 count, summary band, empty-state, all data mutations, cue↔marker
 scrollIntoView calls, active-class toggling, and spawn button behaviour.
 `scrollIntoView` mocked via `beforeEach` since jsdom doesn't implement it.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+
+**Important**: `epic-ui-redesign-ground-up-workspace-note-editor-cornell-fix-nested-interactive` — `<textarea>` nested inside `<button>` at `note-editor-cornell.tsx` lines 116–139 is invalid HTML per spec (button content model forbids interactive content descendants). Browsers handle it, but screen readers and parsers may behave inconsistently. The `e.stopPropagation()` workaround keeps it functional but the pattern should be refactored; parked in backlog.
+
+**Nits**:
+- `activeCueIdx` is not reset when the active row is deleted — the orphaned active state is invisible (no row at that index) and the scroll silently no-ops, but clearing `activeCueIdx` on `removeRow` would be cleaner.
+
+**Notes**: 3-zone grid, cue↔marker scroll bridging, active-state styling, and summary band all land cleanly per the locked mock. Test coverage is thorough — 17 cases across zone rendering, data mutations, navigation, and spawn behavior. Token usage is excellent (no hardcoded values). Approved.
