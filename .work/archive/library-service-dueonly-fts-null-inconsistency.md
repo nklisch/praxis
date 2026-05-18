@@ -1,7 +1,7 @@
 ---
 id: library-service-dueonly-fts-null-inconsistency
 kind: story
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
@@ -76,3 +76,13 @@ Added two regression tests in a new `"dueOnly NULL nextReviewAt consistency (FTS
 2. FTS path: confirms NULL `nextReviewAt` card is excluded from `dueOnly: true, query: "..."` results.
 
 All 18 tests pass. Pre-existing typecheck/lint warnings in the file are unchanged.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Single-line SQL fix — removes `IS NULL OR` from the FTS `dueOnly` clause and adds an explicit `IS NOT NULL` guard, bringing the FTS path in line with the non-FTS Drizzle `lte` behavior and `FlashcardsServiceImpl` conventions. Both regression tests are correctly scoped: they use distinct card IDs, unique FTS search terms, and assert via `not.toContain`. The `insertFlashcard` helper already accepts `nextReviewAt: null`. No foundation-doc drift. Advancing to done.

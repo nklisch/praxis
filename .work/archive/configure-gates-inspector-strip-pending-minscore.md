@@ -1,7 +1,7 @@
 ---
 id: configure-gates-inspector-strip-pending-minscore
 kind: story
-stage: review
+stage: done
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -71,3 +71,14 @@ Three-part fix:
 3. **`configure-gates-tab.test.tsx`** — New `describe("GatesTab — inspector strip pendingMinScore")` test: opens the inspector via GatesReadingView, edits the threshold input to 85, asserts `setSelectedGate` is called with `pendingMinScore: 0.85` (not the saved 0.7). All 15 tests pass.
 
 No changes to `configure.tsx` were needed — `GateInspectorStrip` was already correct; the bug was entirely in how `pendingMinScore` was populated upstream.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The `onChange` guard `if (!Number.isNaN(parsed))` silently swallows empty-string or non-numeric input without calling `onThresholdEdit`. This is defensively correct — the inspector strip just won't update mid-keystroke if the field is cleared — but it means typing "8" then "85" only fires for valid intermediate values. Acceptable for the UI goal.
+
+**Notes**: Three-part fix is clean and minimal. `pendingScores` is symmetrically cleared on save, delete, and course change. The regression test correctly distinguishes the edited value (0.85) from the saved value (0.7) and asserts via `setSelectedGate`. No foundation-doc drift. No security surface. Advancing to done.

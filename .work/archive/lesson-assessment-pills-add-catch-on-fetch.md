@@ -1,7 +1,7 @@
 ---
 id: lesson-assessment-pills-add-catch-on-fetch
 kind: story
-stage: review
+stage: done
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -48,3 +48,13 @@ Triaged from review of `epic-backend-fills-for-redesign-ui-completion-bundle-les
 ## Implementation notes
 
 Applied the `.catch(() => {})` pattern matching the codebase convention (canonical-hints-overlay, ripples-panel, nav). One-line addition at `packages/ui/src/components/lesson-assessment-pills.tsx:93`. All 1576 UI tests pass; lint and typecheck have no new errors introduced by this change (pre-existing failures are unrelated).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: One-line fix that closes an unhandled rejection on a fire-and-forget IPC call. Matches the established codebase convention exactly. No tests required — the change is a defensive guard on a decorative UI element with no behavioral observable to test. Advancing to done.
