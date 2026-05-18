@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-quiz-confidence
 kind: story
-stage: review
+stage: implementing
 tags: []
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -98,3 +98,25 @@ updated: 2026-05-17
 - Indexer: 5 new cases in `procedural-indexer.test.ts` — confidence modifier logic in `scoreSessionOutcome`
   plus integration test via `seedAssignmentWithConfidence` (seeds FK chain: conceptGraph → course → assignment → response).
 - All 3898 tests pass.
+
+## Review (2026-05-17)
+
+**Verdict**: Request changes
+
+**Blockers**: debounce timer silently clears confidence after selection
+  → Item: `epic-backend-fills-for-redesign-ui-completion-bundle-quiz-confidence-debounce-fix`
+
+**Important**: none
+
+**Nits**:
+- `assignment-service.ts` inlines the `"guessed" | "unsure" | "pretty_sure" | "certain"` union
+  literal in `recordResponse`'s parameter type rather than using the `ConfidenceBand` type alias
+  already imported from `@praxis/core/types`. Minor; no behavioral impact.
+
+**Notes**: The overall shape is correct — schema, write path, UI band, indexer signal,
+and test coverage are all solid. One data-integrity bug: the 1-second debounce timer in
+`recordResponse` captures a stale `confidences` closure. If the student selects a
+confidence *after* typing starts but *before* the debounce fires, the timer will call
+`recordResponse` without the confidence field and the upsert will set `confidence = null`,
+silently overwriting the value that `recordConfidence` already persisted. Fix: use a
+`useRef` to always read the current confidences inside the timer callback.
