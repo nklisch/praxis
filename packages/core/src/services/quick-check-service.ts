@@ -8,6 +8,7 @@
  * Subscriber notifications mirror ActivityRegistryImpl's EventEmitter pattern.
  */
 import type { AssignmentItem } from "../types/artifacts.js";
+import type { Logger } from "../types/common.js";
 import type { SessionId } from "../types/ids.js";
 import type {
   QuickCheckAnswer,
@@ -15,6 +16,15 @@ import type {
   QuickCheckListener,
   QuickCheckService,
 } from "../types/quick-check.js";
+import { notifyListeners } from "./db-helpers.js";
+
+const NOOP_LOGGER: Logger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  child: () => NOOP_LOGGER,
+};
 
 interface PendingEntry {
   resolve: (answer: QuickCheckAnswer) => void;
@@ -26,6 +36,11 @@ interface PendingEntry {
 export class QuickCheckServiceImpl implements QuickCheckService {
   private readonly pending = new Map<string, PendingEntry>();
   private readonly listeners = new Set<QuickCheckListener>();
+  private readonly log: Logger;
+
+  constructor(log?: Logger) {
+    this.log = log ?? NOOP_LOGGER;
+  }
 
   await(input: {
     callId: string;
@@ -88,12 +103,6 @@ export class QuickCheckServiceImpl implements QuickCheckService {
   // ── Private ──────────────────────────────────────────────────────────────────
 
   private emit(event: QuickCheckEvent): void {
-    for (const listener of this.listeners) {
-      try {
-        listener(event);
-      } catch {
-        // Listeners must not throw; swallow to keep the service stable.
-      }
-    }
+    notifyListeners(this.listeners, event, this.log, "quick-check-service");
   }
 }

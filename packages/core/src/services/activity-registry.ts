@@ -10,6 +10,7 @@ import type {
   Logger,
   Timestamp,
 } from "../types/index.js";
+import { notifyListeners } from "./db-helpers.js";
 
 const DEFAULT_LINGER_MS = 4_000;
 const DEFAULT_FAILED_LINGER_MS = 10_000;
@@ -215,12 +216,6 @@ export class ActivityRegistryImpl implements ActivityRegistry {
   }
 
   private emit(event: ActivityEvent): void {
-    for (const listener of this.listeners) {
-      try {
-        listener(event);
-      } catch (err) {
-        this.deps.log.warn("activity.listener_threw", { err: String(err) });
-      }
-    }
+    notifyListeners(this.listeners, event, this.deps.log, "activity");
   }
 }

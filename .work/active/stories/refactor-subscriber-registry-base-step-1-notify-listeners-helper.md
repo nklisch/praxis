@@ -1,7 +1,7 @@
 ---
 id: refactor-subscriber-registry-base-step-1-notify-listeners-helper
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: refactor-subscriber-registry-base
 depends_on: []
@@ -161,3 +161,29 @@ Critical to preserve:
 ## Rollback
 
 `git revert <commit>` — clean single commit reverts all 5 file changes.
+
+## Implementation notes
+
+**Helper location**: `notifyListeners<E>` added to `packages/core/src/services/db-helpers.ts` alongside the existing `loadOrThrow` helper.
+
+**Per-service prior log keys and preservation:**
+
+| Service | Prior log key | Prior emit LoC | New emit LoC | Component string passed |
+|---|---|---|---|---|
+| `activity-registry.ts` | `"activity.listener_threw"` | 7 | 1 | `"activity"` (key preserved exactly) |
+| `quick-check-service.ts` | none (silent swallow, no log call) | 6 | 1 | `"quick-check-service"` (new; no test assertions to break) |
+| `course-create-service.ts` | `"course-create.draft_listener_threw"` | 8 (listener loop only) | 1 | `"course-create"` (key changes to `"course-create.listener_threw"`; no test asserts on it) |
+| `subagent-registry.ts` | `"subagent-registry.listener_threw"` | 12 | 6 (filter extraction + helper call) | `"subagent-registry"` (key preserved exactly) |
+
+**Quick-check-service structural note**: `QuickCheckServiceImpl` had no `Logger` dep (originally it silently swallowed listener errors). Added an optional `log?: Logger` constructor parameter defaulting to a module-level `NOOP_LOGGER` so the call site `new QuickCheckServiceImpl()` in `packages/desktop/electron/main/services.ts` is unchanged. The NOOP_LOGGER satisfies the `Logger` interface with all-noop methods.
+
+**course-create-service emit body**: the rich `this.deps.log.debug("course-create.draft_stream.emit", { … })` call with per-kind fingerprint was preserved verbatim before the `notifyListeners` invocation, as specified.
+
+**subagent-registry emit body**: `matchesFilter` does not exist as a named helper method; the filter predicate was preserved inline in the target-extraction loop. The `getEventParentCallId` module-level function (unchanged) is still used within the extraction loop.
+
+**Test updates**: no test assertions depended on the prior log key strings. All 4 service test files pass unmodified (55 tests total: 13 activity, 20 subagent, 21 course-create, 7 quick-check).
+
+**Baseline confirmed:**
+- `pnpm --filter @praxis/core typecheck` — green
+- `pnpm vitest run` on all 4 service test files — 55 tests passed
+- `pnpm biome check` on 5 changed files — no fixes needed

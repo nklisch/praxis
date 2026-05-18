@@ -27,3 +27,26 @@ export async function loadOrThrow<T>(
   }
   return row;
 }
+
+/**
+ * Fan out an event to a collection of subscribers with per-listener error
+ * isolation. A throwing listener is logged with `${component}.listener_threw`
+ * and does NOT prevent later listeners from receiving the event.
+ *
+ * Use inside a service's private `emit(event)` method to consolidate the
+ * shared listener-loop scaffolding.
+ */
+export function notifyListeners<E>(
+  listeners: Iterable<(event: E) => void>,
+  event: E,
+  log: Logger,
+  component: string,
+): void {
+  for (const listener of listeners) {
+    try {
+      listener(event);
+    } catch (err) {
+      log.warn(`${component}.listener_threw`, { err: String(err) });
+    }
+  }
+}

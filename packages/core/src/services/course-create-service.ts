@@ -41,6 +41,7 @@ import type {
   UnitListEntry,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
+import { notifyListeners } from "./db-helpers.js";
 import { type DraftStore, SqliteDraftStore } from "./draft-store.js";
 
 /** Normalize a concept name for case-insensitive set/map membership checks. */
@@ -145,13 +146,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
         reason: event.reason,
       }),
     });
-    for (const listener of this.listeners) {
-      try {
-        listener(event);
-      } catch (err) {
-        this.deps.log.warn("course-create.draft_listener_threw", { err: String(err) });
-      }
-    }
+    notifyListeners(this.listeners, event, this.deps.log, "course-create");
   }
 
   /**

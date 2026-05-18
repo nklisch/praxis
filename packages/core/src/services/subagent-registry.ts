@@ -10,6 +10,7 @@ import type {
   SubAgentStep,
   Timestamp,
 } from "../types/index.js";
+import { notifyListeners } from "./db-helpers.js";
 
 const DEFAULT_LINGER_MS = 30_000;
 
@@ -204,6 +205,7 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
   }
 
   private emit(event: SubAgentEvent): void {
+    const targets: SubAgentListener[] = [];
     for (const { listener, filter } of this.listenerEntries) {
       // Apply filter: skip events that don't match the subscribed parentCallId.
       if (filter?.parentCallId !== undefined) {
@@ -213,12 +215,9 @@ export class SubAgentRegistryImpl implements SubAgentRegistry {
         }
         // snapshot events are pre-filtered in subscribe(); don't double-filter them here.
       }
-      try {
-        listener(event);
-      } catch (err) {
-        this.deps.log.warn("subagent-registry.listener_threw", { err: String(err) });
-      }
+      targets.push(listener);
     }
+    notifyListeners(targets, event, this.deps.log, "subagent-registry");
   }
 }
 
