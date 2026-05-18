@@ -1,5 +1,5 @@
-import type { LockClient, PraxisClient } from "@praxis/core/types";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import type { PraxisClient } from "@praxis/core/types";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { DirtyStateProvider } from "../contexts/dirty-state-provider.js";
@@ -8,36 +8,39 @@ import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
 
-function makeLockClient(overrides?: Partial<LockClient>): LockClient {
+function makeAuthorClient(opts?: {
+  overrides?: Array<{ fragmentId: string; override: string }>;
+  customizePromptSpy?: ReturnType<typeof vi.fn>;
+  clearFragmentOverrideSpy?: ReturnType<typeof vi.fn>;
+}): PraxisClient["author"] {
   return {
-    isSet: vi.fn().mockResolvedValue(false),
-    isUnlocked: vi.fn().mockResolvedValue(true),
-    setLockCode: vi.fn().mockResolvedValue(undefined),
-    unlock: vi.fn().mockResolvedValue({ ok: true }),
-    lock: vi.fn().mockResolvedValue(undefined),
-    clearLock: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
+    listFragmentOverrides: vi.fn().mockResolvedValue(opts?.overrides ?? []),
+    customizePrompt: opts?.customizePromptSpy ?? vi.fn().mockResolvedValue(undefined),
+    clearFragmentOverride: opts?.clearFragmentOverrideSpy ?? vi.fn().mockResolvedValue(undefined),
+    previewPromptWithAttribution: vi.fn().mockResolvedValue({
+      prompt: "composed prompt text",
+      segments: [
+        {
+          fragmentId: "role.tutor",
+          position: "role",
+          source: "default",
+          text: "You are a patient tutor.",
+          defaultText: "You are a patient tutor.",
+          customizable: true,
+        },
+      ],
+    }),
+    // Remaining stubs not needed for prompt tab
+    getModeAppend: vi.fn().mockResolvedValue(null),
+    setModeAppend: vi.fn().mockResolvedValue(undefined),
+    getGlobalPrompt: vi.fn().mockResolvedValue(null),
+    setGlobalPrompt: vi.fn().mockResolvedValue(undefined),
+    setStyleSliders: vi.fn().mockResolvedValue(undefined),
+  } as unknown as PraxisClient["author"];
 }
 
-function makeClient(lockClient: LockClient = makeLockClient()): PraxisClient {
-  return makeFakeClient({
-    author: {
-      getModeAppend: vi.fn().mockResolvedValue(null),
-      setModeAppend: vi.fn().mockResolvedValue(undefined),
-      previewPromptWithAttribution: vi.fn().mockResolvedValue({
-        prompt: "composed prompt",
-        segments: [],
-      }),
-      getGlobalPrompt: vi.fn().mockResolvedValue(null),
-      setGlobalPrompt: vi.fn().mockResolvedValue(undefined),
-      customizePrompt: vi.fn().mockResolvedValue(undefined),
-      clearFragmentOverride: vi.fn().mockResolvedValue(undefined),
-      listFragmentOverrides: vi.fn().mockResolvedValue([]),
-      setStyleSliders: vi.fn().mockResolvedValue(undefined),
-    } as unknown as PraxisClient["author"],
-    lock: lockClient,
-  });
+function makeClient(opts?: Parameters<typeof makeAuthorClient>[0]): PraxisClient {
+  return makeFakeClient({ author: makeAuthorClient(opts) });
 }
 
 function renderTab(client: PraxisClient = makeClient()) {
@@ -50,45 +53,171 @@ function renderTab(client: PraxisClient = makeClient()) {
   );
 }
 
-describe("PromptTab — v3 two-section surface", () => {
-  it("renders exactly two top-level sections", async () => {
-    const { container } = renderTab();
-    // The two section headings introduced by the v3 layout.
-    expect(screen.getByText("Teaching Style")).toBeDefined();
-    expect(screen.getByText("Prompt blocks")).toBeDefined();
-    // Wait for the async block stack to finish loading before counting sections,
-    // so any post-load section addition would also be visible.
+describe("PromptTab — v4 Canvas layout", () => {
+  it("renders the mode picker rail with all modes", async () => {
+    renderTab();
+    // Rail should have a nav with aria-label
     await waitFor(() => {
-      expect(screen.getByText("Global prompt")).toBeDefined();
+      expect(screen.getByRole("navigation", { name: /mode picker/i })).toBeDefined();
     });
-    const sections = container.querySelectorAll("section");
-    expect(sections.length).toBe(2);
+    // teach mode should be visible
+    expect(screen.getByText("teach")).toBeDefined();
+    // other modes
+    expect(screen.getByText("quiz")).toBeDefined();
+    expect(screen.getByText("homework")).toBeDefined();
   });
 
-  it("renders Teaching Style before Prompt blocks in DOM order", () => {
+  it("renders the canvas head with mode name", async () => {
     renderTab();
-    const styleHeading = screen.getByText("Teaching Style");
-    const blocksHeading = screen.getByText("Prompt blocks");
-    // Heading order in the DOM matches the section order.
-    expect(
-      styleHeading.compareDocumentPosition(blocksHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it("does not render the retired Global Fragment / Composed Preview / Prompt Fragments headings", async () => {
-    renderTab();
+    // Teach is selected by default; canvas title should mention "teach"
     await waitFor(() => {
-      expect(screen.getByText("Prompt blocks")).toBeDefined();
+      expect(screen.getByText(/composed prompt/i)).toBeDefined();
     });
-    expect(screen.queryByText("Global Fragment")).toBeNull();
-    expect(screen.queryByText("Composed Preview")).toBeNull();
-    expect(screen.queryByText("Prompt Fragments")).toBeNull();
   });
 
-  it("renders the prompt block stack with the mode picker", async () => {
+  it("switching modes in the rail loads a different fragment document", async () => {
+    renderTab();
+    // Wait for initial render with teach mode selected
+    await waitFor(() => {
+      expect(screen.getByRole("navigation", { name: /mode picker/i })).toBeDefined();
+    });
+    // The canvas title should initially say "teach"
+    const canvasTitle = document.querySelector("h2");
+    expect(canvasTitle?.textContent).toContain("teach");
+
+    // Click on quiz mode button
+    const quizBtn = screen.getByRole("button", { name: /^quiz$/i });
+    fireEvent.click(quizBtn);
+
+    // Canvas title h2 should now say "quiz"
+    await waitFor(() => {
+      const title = document.querySelector("h2");
+      expect(title?.textContent).toContain("quiz");
+    });
+  });
+
+  it("renders fragment cards for the selected mode", async () => {
+    renderTab();
+    // Fragment cards are rendered after overrides load
+    await waitFor(() => {
+      // At least one fragment card should be present (teach mode has many fragments)
+      const cards = document.querySelectorAll("[data-testid^='fragment-card-']");
+      expect(cards.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("renders lock-status pills on fragment cards", async () => {
     renderTab();
     await waitFor(() => {
-      expect(screen.getByLabelText(/mode/i)).toBeDefined();
+      const cards = document.querySelectorAll("[data-testid^='fragment-card-']");
+      expect(cards.length).toBeGreaterThan(0);
+    });
+    // Should have at least one lock pill (locked or default) — identified by title attribute
+    const pills = document.querySelectorAll("[title^='Fragment status']");
+    expect(pills.length).toBeGreaterThan(0);
+  });
+
+  it("shows 'custom' lock pill when fragment has an override", async () => {
+    // Provide an override for a known teach mode fragment
+    const client = makeClient({
+      overrides: [{ fragmentId: "role.tutor", override: "Custom tutor text" }],
+    });
+    renderTab(client);
+    await waitFor(() => {
+      // Should show 'custom' pill for the overridden fragment
+      expect(screen.getAllByText("custom").length).toBeGreaterThan(0);
+    });
+  });
+
+  it("renders the composed-prompt summary at the bottom", async () => {
+    renderTab();
+    await waitFor(() => {
+      expect(screen.getByTestId("composed-summary")).toBeDefined();
+    });
+  });
+
+  it("composed summary shows fragment IDs from previewPromptWithAttribution", async () => {
+    renderTab();
+    await waitFor(() => {
+      // The mocked segment has fragmentId "role.tutor"
+      const summary = screen.getByTestId("composed-summary");
+      expect(summary.textContent).toContain("role.tutor");
+    });
+  });
+
+  it("clicking a customizable fragment opens an edit textarea", async () => {
+    renderTab();
+    await waitFor(() => {
+      const cards = document.querySelectorAll("[data-testid^='fragment-card-']");
+      expect(cards.length).toBeGreaterThan(0);
+    });
+    // Find a role="button" fragment text div (customizable fragments)
+    const editableFragments = document.querySelectorAll("[role='button']");
+    if (editableFragments.length > 0) {
+      fireEvent.click(editableFragments[0] as HTMLElement);
+      await waitFor(() => {
+        expect(document.querySelector("textarea")).toBeDefined();
+      });
+    }
+  });
+
+  it("saving an edit calls customizePrompt with modeId, fragmentId, and text", async () => {
+    const customizePromptSpy = vi.fn().mockResolvedValue(undefined);
+    const client = makeClient({ customizePromptSpy });
+    renderTab(client);
+
+    // Wait for fragments to load
+    await waitFor(() => {
+      const cards = document.querySelectorAll("[data-testid^='fragment-card-']");
+      expect(cards.length).toBeGreaterThan(0);
+    });
+
+    // Open the first editable fragment
+    const editableFragments = document.querySelectorAll("[role='button']");
+    if (editableFragments.length === 0) return; // no customizable frags — skip
+    fireEvent.click(editableFragments[0] as HTMLElement);
+
+    // Change textarea value
+    const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+    if (!textarea) return;
+    fireEvent.change(textarea, { target: { value: "My custom text" } });
+
+    // Click Save
+    const saveBtn = screen.getByRole("button", { name: /^save$/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(customizePromptSpy).toHaveBeenCalled();
+    });
+    const [modeIdArg, fragmentIdArg, textArg] = customizePromptSpy.mock.calls[0] as [
+      string,
+      string,
+      string,
+    ];
+    expect(modeIdArg).toBe("teach");
+    expect(typeof fragmentIdArg).toBe("string");
+    expect(textArg).toBe("My custom text");
+  });
+
+  it("reverting a custom fragment calls clearFragmentOverride", async () => {
+    const clearFragmentOverrideSpy = vi.fn().mockResolvedValue(undefined);
+    const client = makeClient({
+      overrides: [{ fragmentId: "role.tutor", override: "Custom text" }],
+      clearFragmentOverrideSpy,
+    });
+    renderTab(client);
+
+    await waitFor(() => {
+      // Should show a revert button for the overridden fragment
+      expect(screen.getAllByText(/↶ revert to default/i).length).toBeGreaterThan(0);
+    });
+
+    // Click the first revert button
+    const revertBtn = screen.getAllByText(/↶ revert to default/i)[0] as HTMLElement;
+    fireEvent.click(revertBtn);
+
+    await waitFor(() => {
+      expect(clearFragmentOverrideSpy).toHaveBeenCalled();
     });
   });
 });

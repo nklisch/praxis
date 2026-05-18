@@ -222,9 +222,9 @@ describe("ConfigureRoute", () => {
     });
 
     // Tab-body isolation: all panels mount at once; content from hidden panels
-    // is still in the DOM (just display:none). Teaching Style is from PromptTab
-    // which mounts even when Course is the active tab.
-    expect(screen.getByText("Teaching Style")).toBeDefined();
+    // is still in the DOM (just display:none). PromptTab's mode picker rail
+    // (with "Modes" label) mounts even when Course is the active tab.
+    expect(screen.getByText("Modes")).toBeDefined();
   });
 
   it("starts a configure session when unlocked", async () => {
@@ -261,11 +261,12 @@ describe("ConfigureRoute", () => {
       expect(screen.getByRole("button", { name: "Course" })).toBeDefined();
     });
 
-    // Click Prompt tab
+    // Click Prompt tab — the canvas kicker "⁂ Configure · prompts" becomes visible.
+    // (PromptTab already mounts due to tab-body-isolation; clicking Prompt makes it active.)
     fireEvent.click(screen.getByRole("button", { name: "Prompt" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Teaching Style")).toBeDefined();
+      expect(screen.getByRole("navigation", { name: /mode picker/i })).toBeDefined();
     });
   });
 });

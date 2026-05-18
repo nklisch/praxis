@@ -1,73 +1,422 @@
-/* Outer wrapper — full editorial column width, no narrow constraint. */
-.layout {
-  display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-  padding: 1.5rem 2rem;
-  overflow-y: auto;
+/* ── Top-level layout: mode rail + canvas ──────────────────────────────── */
+
+.promptCanvas {
+  display: grid;
+  grid-template-columns: 200px 1fr;
   height: 100%;
-  box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* ── Sections ──────────────────────────────────────────────────────────── */
+/* ── Mode picker rail ───────────────────────────────────────────────────── */
 
-.section {
+.modeRail {
+  border-right: 1px solid var(--color-border);
+  padding: 20px 0;
+  background: var(--color-bg-primary);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 }
 
-.sectionTitle {
+.modeRailLabel {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #999);
+  padding: 0 20px 10px;
+}
+
+.modeBtn {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  border: none;
+  border-left: 2px solid transparent;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+}
+
+.modeBtn:hover {
+  background: var(--color-bg-tertiary, #f5f5f5);
+}
+
+.modeBtnActive {
+  border-left-color: var(--color-accent, #4a90e2);
+  background: var(--color-accent-muted, rgba(74, 144, 226, 0.08));
+}
+
+.modeGlyph {
+  font-family: var(--font-serif, Georgia, serif);
+  font-style: italic;
+  color: var(--color-text-tertiary, #999);
+  font-size: 14px;
+}
+
+.modeBtnActive .modeGlyph {
+  color: var(--color-accent, #4a90e2);
+}
+
+.modeName {
+  font: 500 italic 14px / 1.2 var(--font-display, Georgia, serif);
+  color: var(--color-text-secondary, #555);
+  flex: 1;
+}
+
+.modeBtnActive .modeName {
+  color: var(--color-text-primary, #222);
+}
+
+.changeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-warning, #f5a623);
+  flex-shrink: 0;
+}
+
+/* ── Canvas area ────────────────────────────────────────────────────────── */
+
+.canvasBody {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg-primary);
+}
+
+.canvasHead {
+  padding: 20px 32px 12px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.canvasKicker {
+  font: 600 11px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #555);
+  white-space: nowrap;
+}
+
+.canvasTitle {
+  font: 500 italic 22px / 1.15 var(--font-display, Georgia, serif);
   margin: 0;
-  font-size: 1.05rem;
+  flex: 1;
+}
+
+.canvasTitle em {
   font-weight: 600;
-  color: var(--color-text-primary);
 }
 
-.sectionDesc {
-  margin: 0;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary, #666);
-  max-width: 72ch;
+.canvasTitleGlyph {
+  font-style: normal;
+  color: var(--color-text-tertiary, #999);
 }
 
-/* ── Style sliders ───────────────────────────────────────────────────── */
+.canvasScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px 40px;
+}
 
-.sliderForm {
+/* ── Fragment document ──────────────────────────────────────────────────── */
+
+.fragmentDocument {
+  max-width: 760px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
 }
 
-.error {
+/* ── Fragment card ──────────────────────────────────────────────────────── */
+
+.frag {
+  background: var(--color-bg-secondary, #fafafa);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+
+.fragLocked {
+  background: var(--color-bg-tertiary, #f5f5f5);
+}
+
+.fragChanged {
+  border-color: var(--color-warning, #f5a623);
+}
+
+.fragHead {
+  padding: 12px 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fragPos {
+  font: italic 16px / 1 var(--font-display, Georgia, serif);
+  color: var(--color-text-tertiary, #999);
+  min-width: 3ch;
+  text-align: right;
+}
+
+.fragId {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #555);
+}
+
+.fragName {
+  font: 500 italic 15px / 1.2 var(--font-display, Georgia, serif);
+  flex: 1;
+  color: var(--color-text-primary, #222);
+}
+
+/* ── Lock-status pills ───────────────────────────────────────────────────── */
+
+.lockPill {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--color-bg-tertiary, #f5f5f5);
+  color: var(--color-text-tertiary, #999);
+  white-space: nowrap;
+}
+
+.lockCustom {
+  background: var(--color-warning, #f5a623);
+  color: var(--color-text-inverse, #fff);
+}
+
+.lockDefault {
+  background: var(--color-bg-tertiary, #f5f5f5);
+  color: var(--color-text-tertiary, #999);
+}
+
+.lockLocked {
+  background: var(--color-bg-tertiary, #f5f5f5);
+  color: var(--color-text-tertiary, #999);
+}
+
+/* ── Fragment body ──────────────────────────────────────────────────────── */
+
+.fragBody {
+  padding: 14px 20px 16px;
+}
+
+.fragText {
+  font: 15px / 1.65 var(--font-serif, Georgia, serif);
+  color: var(--color-text-primary, #222);
+  white-space: pre-wrap;
+}
+
+/* Button variant for editable (customizable) fragments */
+.fragTextBtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: 15px / 1.65 var(--font-serif, Georgia, serif);
+  color: var(--color-text-primary, #222);
+  white-space: pre-wrap;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm, 4px);
+  transition: background 0.1s;
+}
+
+.fragTextBtn:hover {
+  background: var(--color-bg-tertiary, #f5f5f5);
+}
+
+.fragTextOverride {
+  background: var(--color-accent-muted, rgba(74, 144, 226, 0.08));
+  padding: 4px 6px;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.fragTextLocked {
+  color: var(--color-text-secondary, #555);
+}
+
+.placeholder {
+  color: var(--color-text-tertiary, #999);
+  font-style: italic;
+  padding: 8px 12px;
+  background: var(--color-bg-primary);
+  border-left: 2px solid var(--color-border);
+  border-radius: 0 var(--radius-sm, 4px) var(--radius-sm, 4px) 0;
+  display: block;
+}
+
+/* ── Inline edit ────────────────────────────────────────────────────────── */
+
+.editArea {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font: 14px / 1.6 var(--font-serif, Georgia, serif);
+  border: 1px solid var(--color-border-strong, #999);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary, #222);
+  resize: vertical;
+}
+
+.editTextarea:focus {
+  outline: 2px solid var(--color-accent, #4a90e2);
+  outline-offset: 1px;
+}
+
+.editActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.fragError {
   color: var(--color-danger, #d32f2f);
   font-size: 0.875rem;
   margin: 0;
 }
 
-.success {
-  color: var(--color-success, #2e7d32);
-  font-size: 0.875rem;
-  margin: 0;
+.saveBtn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-accent, #4a90e2);
+  color: var(--color-text-inverse, #fff);
+  font: 500 12px / 1 var(--font-sans, system-ui);
+  cursor: pointer;
 }
 
-.saveBtn {
-  align-self: flex-start;
-  padding: 0.5rem 1.25rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--color-accent, #4a90e2);
-  color: #fff; /* intentional literal: button text always white regardless of theme */
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .saveBtn:hover:not(:disabled) {
   opacity: 0.9;
 }
 
-.saveBtn:disabled {
+.cancelBtn {
+  padding: 5px 14px;
+  border: 1px solid var(--color-border-strong, #999);
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  color: var(--color-text-primary, #222);
+  font: 500 12px / 1 var(--font-sans, system-ui);
+  cursor: pointer;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: var(--color-bg-tertiary, #f5f5f5);
+}
+
+/* ── Fragment controls (knob strip) ─────────────────────────────────────── */
+
+.fragControls {
+  padding: 8px 0 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font: 11px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+}
+
+.fragControlsSpacer {
+  flex: 1;
+}
+
+.revertBtn {
+  font: italic 11px / 1 var(--font-serif, Georgia, serif);
+  color: var(--color-danger, #d32f2f);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+}
+
+.revertBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.revertBtn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+/* ── Composed-prompt summary ────────────────────────────────────────────── */
+
+.composedSummary {
+  margin-top: 8px;
+  padding: 16px 20px;
+  background: var(--color-bg-tertiary, #f5f5f5);
+  border-radius: var(--radius-md, 8px);
+  font: italic 13px / 1.5 var(--font-serif, Georgia, serif);
+  color: var(--color-text-secondary, #555);
+}
+
+.composedSummaryLabel {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #999);
+  font-style: normal;
+  margin-bottom: 8px;
+}
+
+.composedLoading {
+  color: var(--color-text-tertiary, #999);
+  font-style: italic;
+}
+
+.composedEmpty {
+  color: var(--color-text-tertiary, #999);
+}
+
+.composedOrder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.composedSegmentRef {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.composedFragId {
+  font: 600 11px / 1 var(--font-mono, monospace);
+  color: var(--color-text-primary, #222);
+  font-style: normal;
+}
+
+.composedSourceBadge {
+  font: italic 11px / 1 var(--font-serif, Georgia, serif);
+  color: var(--color-text-tertiary, #999);
+}
+
+.composedArrow {
+  color: var(--color-text-tertiary, #999);
+  font-style: normal;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
 }

@@ -1,14 +1,14 @@
 ---
 id: epic-ui-redesign-ground-up-configure-prompts-tab-canvas
 kind: story
-stage: implementing
+stage: review
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on: [epic-ui-redesign-ground-up-configure-canvas-side-chat-shell]
 release_binding: null
 gate_origin: null
 created: 2026-05-17
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 # Configure Prompts tab canvas — composed fragment document
@@ -37,7 +37,59 @@ Rebuild Prompts tab canvas per `tab-prompts.html`:
 
 ## Acceptance criteria
 
-- [ ] Prompts tab matches the locked mock.
-- [ ] Mode picker + fragment editing works.
-- [ ] Composed-prompt preview surfaces.
-- [ ] All quality checks green.
+- [x] Prompts tab matches the locked mock.
+- [x] Mode picker + fragment editing works.
+- [x] Composed-prompt preview surfaces.
+- [x] All quality checks green.
+
+## Implementation notes
+
+Rebuilt `packages/ui/src/routes/configure/prompt-tab.tsx` as a v4 canvas
+surface per the locked `tab-prompts.html` mock.
+
+**Left rail (`ModePickerRail`, ~200px)**: Lists all registered modes from
+`listModes()` with typographic glyphs (§ ‡ ❦ †…). Active mode is
+highlighted with accent left-border. Calls `setSelectedModeId` on click;
+passes `dirtyModes` set for change-dot display (cross-mode dirty tracking
+deferred — single-mode dirty state wires through `useDirtyState` in the
+fragment document).
+
+**Canvas (`FragmentDocument`)**: Ordered `PromptFragment[]` for the selected
+mode. Each fragment renders as a `FragmentCard` with:
+- Position number (01., 02., …)
+- Fragment ID and humanised name in the header
+- Lock-status pill (`locked` / `default` / `custom`) — colour-coded amber for
+  custom, muted grey for locked/default; derived from `PromptFragment.customizable`
+  + override presence
+- View mode: locked fragments show plain text; customizable fragments render as
+  a `<button>` (click-to-edit); custom fragments get the accent-muted background
+  highlight
+- Edit mode (inline): expands to `<textarea>` + Save / Cancel / Revert buttons;
+  Save calls `client.author.customizePrompt`; Revert calls
+  `client.author.clearFragmentOverride`; both refresh overrides and repreview
+- Dirty state: `useDirtyState("configure.prompts")` is marked dirty when any
+  override is present; cleared when none
+
+**Composed-prompt summary (`ComposedSummary`)**: Renders at the bottom of the
+canvas via `previewPromptWithAttribution`. Shows fragment IDs in render order
+with italic source badges (`override`, `append`, `global`) for non-default
+segments. Refreshes after every save/clear.
+
+**Key routing decisions**:
+- Used `key={selectedModeId}` on `FragmentDocument` so the component re-mounts
+  on mode switch — cleanly resets loading state and overrides without extra
+  orchestration.
+- Dropped the old v3 two-section layout (Teaching Style + Prompt blocks) in
+  favour of the mode-rail + canvas pattern. Existing `StyleSliderForm` and
+  `PromptBlockStack` components are no longer used by this route (they remain
+  in the tree for other consumers).
+- `configure.tsx` passes no props to `<PromptTab />` — mode selection is
+  entirely internal.
+
+**Tests** (`src/__tests__/configure-prompt-tab.test.tsx`): 11 tests covering
+mode picker render, mode switching, fragment card render, lock-status pills,
+custom pill when override present, composed summary render + content, click-to-
+edit open, save → `customizePrompt`, revert → `clearFragmentOverride`.
+Updated `configure-route.test.tsx` (2 tests) to reflect the new v4 layout
+identifiers ("Modes" label for tab-body-isolation, mode picker nav for tab
+switch).
