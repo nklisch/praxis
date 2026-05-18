@@ -294,4 +294,51 @@ describe("ConfigureRoute", () => {
       expect(promptBtn.querySelector('[title="unsaved changes"]')).not.toBeNull();
     });
   });
+
+  it("tab buttons show NO change-dot when their dirty key is clean", async () => {
+    // No overrides returned → no tab marks dirty → no change-dots anywhere.
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient);
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Course" })).toBeDefined();
+    });
+
+    // Wait for any async dirty-state effects to settle.
+    await waitFor(() => {
+      for (const name of ["Course", "Gates", "Prompt", "Memory"]) {
+        const btn = screen.getByRole("button", { name });
+        expect(btn.querySelector('[title="unsaved changes"]')).toBeNull();
+      }
+    });
+  });
+
+  it("cross-tab independence: Prompt dirty does NOT light dots on Course, Gates, or Memory", async () => {
+    // Mark only the Prompt surface dirty (via listFragmentOverrides returning data).
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient);
+
+    (client.author.listFragmentOverrides as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { fragmentId: "teach.system.role", override: "custom text" },
+    ]);
+
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Prompt" })).toBeDefined();
+    });
+
+    // Wait for Prompt's dot to appear.
+    await waitFor(() => {
+      const promptBtn = screen.getByRole("button", { name: "Prompt" });
+      expect(promptBtn.querySelector('[title="unsaved changes"]')).not.toBeNull();
+    });
+
+    // Other tabs must still be clean — no cross-contamination.
+    for (const name of ["Course", "Gates", "Memory"]) {
+      const btn = screen.getByRole("button", { name });
+      expect(btn.querySelector('[title="unsaved changes"]')).toBeNull();
+    }
+  });
 });
