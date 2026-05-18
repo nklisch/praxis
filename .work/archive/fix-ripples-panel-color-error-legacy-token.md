@@ -1,6 +1,6 @@
 ---
 id: fix-ripples-panel-color-error-legacy-token
-stage: review
+stage: done
 created: 2026-05-17
 tags: [ui, bug]
 ---
@@ -31,3 +31,13 @@ appear in `global.css` — it is a guard, not a token usage, and was left unchan
 
 `pnpm test` — 4455 passed, 23 skipped. Pre-existing typecheck and lint failures are
 unrelated to this change.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Change is exactly scoped. Both CSS files updated correctly — `ripples-panel.module.css` (primary target) and `course-create.module.css` (opportunistic find during acceptance grep). Fallback literal updated from `#ef4444` to `#a32721` in both. The surviving `--color-error:` hit in `theme-tokens.test.tsx` is the guard string in the `forbidden` array — deliberately left, correct. Acceptance criterion (`grep` returns zero hits against non-test source) passes. No tests needed for a CSS token rename.

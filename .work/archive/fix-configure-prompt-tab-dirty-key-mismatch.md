@@ -1,7 +1,7 @@
 ---
 id: fix-configure-prompt-tab-dirty-key-mismatch
 kind: story
-stage: review
+stage: done
 tags: [ui, bug]
 parent: null
 depends_on: []
@@ -59,3 +59,13 @@ non-empty array, which causes `FragmentDocument`'s `useEffect` to call `markDirt
 appears inside the Prompt tab button.
 
 All 1576 UI tests pass; no new lint or typecheck errors introduced.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fix is correct. Option 2 (update TABS array to `"configure.prompts"`) is the right choice — the writer in `FragmentDocument` uses the plural key and that is now the single source of truth. The regression test correctly exercises the actual dirty-state flow: mocks `listFragmentOverrides` to return a non-empty array, waits for the change-dot span to appear in the Prompt tab button. Design alignment is clean; `ConfigureSaveBar` aggregate path was already correct and remains unaffected.

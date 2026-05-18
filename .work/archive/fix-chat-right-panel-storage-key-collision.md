@@ -1,6 +1,6 @@
 ---
 id: fix-chat-right-panel-storage-key-collision
-stage: review
+stage: done
 created: 2026-05-18
 tags: [ui, bug]
 ---
@@ -44,3 +44,13 @@ Origin: review of `epic-ui-redesign-ground-up-chat-workspace-side-panels-restyle
 - Quiz/homework sidekick key (`praxis.panel.sidekick.width`) left untouched.
 - All 14 chat-route tests pass; pre-existing typecheck/lint failures are
   unrelated to this change (confirmed by stash-and-recheck).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Minimal, correct fix. `chat.tsx` line 188 uses the new `"praxis.panel.chat-right.width"` key; test description and both `localStorage` call sites updated to match. The quiz/homework sidekick key (`praxis.panel.sidekick.width`) is now absent from production source entirely — confirmed by grep — which is correct: those panels apparently don't use `useResizableWidth` with that key in the current codebase, so there is no residual collision risk. Storage key follows the `praxis.panel.<panel-id>.width` convention documented in `use-resizable-width.ts`.
