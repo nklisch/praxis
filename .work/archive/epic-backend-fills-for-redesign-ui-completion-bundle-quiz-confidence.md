@@ -1,7 +1,7 @@
 ---
 id: epic-backend-fills-for-redesign-ui-completion-bundle-quiz-confidence
 kind: story
-stage: review
+stage: done
 tags: []
 parent: epic-backend-fills-for-redesign-ui-completion-bundle
 depends_on: []
@@ -154,3 +154,25 @@ Three debounce tests (all using `vi.useFakeTimers()` + `act`):
 
 Three loading tests also added covering initial load, confidence hydration from `getResponses`,
 and the `assignmentId === undefined` early-return path. All 6 tests green.
+
+## Review (2026-05-17) — pass 2
+
+**Verdict**: Approve
+
+**Blockers**: none
+
+**Important**: none
+
+**Nits**:
+- `assignment-service.ts` lines 473/479 still use the inline `"guessed" | "unsure" | "pretty_sure" | "certain"` union literal
+  instead of the `ConfidenceBand` type alias. Same nit as pass 1 — no behavioral impact.
+
+**Notes**: The `confidencesRef` fix is correct and complete. `useRef` is initialized at construction
+with the current `confidences` value, the `useEffect` keeps it in sync on every render, and the
+timer callback reads `confidencesRef.current` at fire-time. The 1000ms async gap guarantees the
+effect always runs before the timer fires. Three targeted regression tests in
+`packages/ui/src/__tests__/use-assignment.test.tsx` exercise the exact failure scenario plus both
+inverse paths; all pass. The `submit` flush loop (lines 190–203) reads `confidences` directly from
+its closure but `confidences` is in `submit`'s `useCallback` dep array (line 221), so that is
+unaffected and correct. Bounce count: 1 total (this is pass 2 = first bounce resolved). Item
+advanced to `done`.
