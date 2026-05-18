@@ -63,3 +63,30 @@ references via `<link rel="stylesheet" href="../../design-system/tokens.css">`.
 Downstream surface mocks (`app-shell`, `chat-workspace`,
 `discovery-surfaces`, `workspace`, `configure`) inherit these tokens by
 linking `<link rel="stylesheet" href="../../design-system/tokens.css">`.
+
+### Post-lock additions
+
+- **Theme override mechanism added** during the app-shell pass. `tokens.css`
+  now resolves dark mode via two paths: `@media (prefers-color-scheme: dark)`
+  for system-follow (default), and `:root[data-theme="dark"]` (or `"light"`)
+  for explicit user toggle. The app-shell mock surfaces a 3-state toggle
+  (auto · light · dark) at the right edge of the running head.
+
+### Design alignment · done
+
+All downstream surface mocks have successfully linked and rendered against
+`tokens.css` — no missing tokens reported during the surface design passes
+(chat-workspace, discovery, workspace, configure). The token vocabulary
+held: bg-primary/secondary/tertiary/inverse, text 4-level, accent +
+hover + muted, status 4, mode tints 7, font-serif/sans/mono, font-size
+scale, weights, line-heights, spacing 8pt scale, radius scale.
+
+### Implementation outlook
+
+Implementation work (single story when this advances to `stage:implementing`):
+swap `packages/ui/src/styles/global.css` to consume `tokens.css`-shaped
+variables; rename CSS variables in the codebase to match the locked
+vocabulary; preserve the existing `--tint-*` per-mode tokens (renamed
+internally as needed). Backend rename of mode id `bootstrap` →
+`course_create` will affect `--tint-bootstrap` → `--tint-course-create`
+when it lands — tracked in `.work/backlog/idea-rename-bootstrap-and-explorer.md`.

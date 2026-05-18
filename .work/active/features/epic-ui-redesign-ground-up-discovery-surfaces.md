@@ -93,6 +93,48 @@ What lands:
   cards), Single Map (library is the spatial graph) — in
   `.mockups/screens/.../option-{1,2,3}.html`
 
-The session-open and bootstrap-entry flows spawn as child stories
+The session-open and course-create-entry flows spawn as child stories
 during implementation; the workbench's "Resume" / "Review draft" CTA
 patterns set the visual entry to those flows.
+
+### Naming rename (UI surfaces)
+
+The "bootstrap" CTA in earlier mock revisions is now **"+ Create a
+course"** in the Workbench footer (highlighted card when student has
+documents but no fitting course). The flow folder was renamed
+`bootstrap-entry/` → `course-create-entry/`. Backend rename parked
+at `.work/backlog/idea-rename-bootstrap-and-explorer.md`.
+
+### Flows landing here
+
+- **session-loop** step 1 (`.mockups/flows/session-loop/01-workbench.html`)
+  — the locked Workbench surface in action; "Resume" CTA highlighted
+  with glow + pulse arrow; queue refreshes at session end (step 5).
+- **course-create-entry** (`.mockups/flows/course-create-entry/`) —
+  5 steps from the Workbench "Create a course" CTA through document
+  upload → drafting (with steering chat) → draft review (full
+  assessment plan visible with timing + purpose) → course materialized
+  with first session tab pre-opened. **Steering chat added** during
+  iteration — configurator drives Praxis's drafting via natural
+  language ("add a midterm after unit 2"); each tool call surfaces
+  as a reviewable diff. **Assessment plan visibility added** in step
+  4 to reflect the architectural reality: `LessonAssessment` carries
+  `timing` (before / interleaved / after) and `purpose` (readiness /
+  practice / checkpoint), unit exams + midterm + final all mocked
+  with per-mode pills (qc / readiness / homework / quiz / exam).
+
+The session-open flow is implicit in session-loop steps 1-3 (Workbench
+→ tab opens → mid-session) but warrants its own focused 2-3 step
+mock when ready.
+
+### Implementation outlook
+
+Likely implementation stories:
+
+- **Story:** rebuild `LibraryRoute` as the Workbench (what's-next
+  queue + lately timeline + footer cards)
+- **Story:** course-create entry path — library CTA, upload screen,
+  drafting page (with steering chat surface), draft-ready page,
+  materialize handoff
+- **Story:** session-open flow polishing — tab-slide-in animation,
+  "resumed" banner, scroll restoration

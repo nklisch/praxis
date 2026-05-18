@@ -78,3 +78,48 @@ The first-run / onboarding flow will spawn as a child story in this
 feature's implementation pass and produce a `.mockups/flows/first-run/`
 deliverable then. Top-nav choice doesn't constrain the first-run flow,
 so flow design is deferred to implementation time.
+
+### Theme toggle (added during the design pass)
+
+Mid-design, the requirement for a light/dark/auto toggle surfaced. The
+toggle ended up as a small 3-state segmented control at the right edge
+of the running head, using mono kicker type:
+
+```
+auto · light · dark
+```
+
+Drives `data-theme` attribute on `<html>`. `tokens.css` was extended
+(in the design-system feature) to support the explicit override path
+in addition to the existing `@media (prefers-color-scheme: dark)`
+system-follow path. Visible in all four app-shell option mocks plus
+every downstream surface mock that inherits the shell.
+
+### Design alignment · done
+
+- Locked Option 3 — The Index (top horizontal nav, near-invisible status
+  strip) inherited by every downstream surface mock; chrome is consistent
+  across the seven mode tab bodies (chat-workspace), Workbench
+  (discovery), Catalogue (workspace), Canvas + Side Chat (configure).
+- Status strip pattern proves out the ambient-progress replacement for the
+  legacy `<ActivityRail>` — work that's running surfaces inline; idle
+  state fades to invisible.
+- Tab strip lives in the running head as italic deck lines next to the
+  primary nav (`Open · Calc · L3 · Quiz · deriv`). Open/held/closed
+  states are visible in the session-loop and assignment-spawn flows.
+
+### Implementation outlook
+
+Implementation stories spawn at `stage:implementing`. Likely shape:
+
+- **Story:** swap `RootLayout` from left-rail to top-nav (Index shape)
+- **Story:** drop the blocking-modal `<ActivityRail>` mount; build the
+  near-invisible status strip pattern
+- **Story:** add the theme toggle (auto / light / dark) with
+  `data-theme` override; store user preference; wire to `tokens.css`
+- **Story:** first-run flow rework (after a flow mock pass)
+- **Story:** open-tabs italic deck-line strip in the running head
+
+The bootstrap → course-create rename will affect the open-tabs strip
+example data ("Bootstrap · new" → "Create course") — covered by the
+parked backend rename item.

@@ -161,3 +161,64 @@ child stories pick the editor library per format when each lands:
   undo/redo, inline formatting, slash commands, autosave debouncing
 - **Sketch**: tldraw (already in the project)
 - **Concept map**: tldraw + `ConceptLinkOverlay` + `CanonicalHintsOverlay`
+
+### Sketch vs concept-map distinction (architectural)
+
+The Sketch editor includes an **inline notice + `↗ convert to concept
+map` bridge** at the top, surfacing the architectural distinction:
+sketches are free drawing surfaces with no canonical-concept linking;
+concept maps are structured graphs whose nodes link to canonical
+concepts (drives BKT mastery, misconception machinery). The
+`sketch-to-concept-map` flow (below) walks the conversion explicitly,
+preserving the original sketch alongside the new concept map.
+
+### Flows landing here
+
+- **chat-to-workspace-note** (`.mockups/flows/chat-to-workspace-note/`)
+  — mid-session insight capture from chat-workspace; format-picker
+  popover (Cornell suggested first, numbered shortcuts) → inline
+  Cornell panel slides in → saved + linked to lesson → later visible
+  in the Catalogue with a "from this session" filter. Cross-feature
+  integration from `chat-workspace`.
+- **note-to-tutor-brief** (`.mockups/flows/note-to-tutor-brief/`) —
+  the back-flow: note in workspace → "ask the tutor to brief from
+  this note" CTA → new teach session opens quoting the note's
+  unanswered cue → conversation closes the loop and offers to update
+  the note's cue with the just-earned answer. Workspace ↔ chat
+  integration via the briefed-session pattern.
+- **concept-map-link** (`.mockups/flows/concept-map-link/`) — the
+  finer component: draw a new node → Praxis's best-guess link
+  surfaces (`?` amber badge) → hover candidate (ghost edges preview
+  in canvas) → confirm → ripples surface (concept count +1, tutor
+  reference, notes re-tagged). The three node states
+  (linked ✓ / best-guess ? / unlinked) carry the visual contract
+  between agent suggestion and student confirmation.
+- **sketch-to-concept-map** (`.mockups/flows/sketch-to-concept-map/`)
+  — the primitive bridge: sketch editor with the `↗ Convert` pill
+  glowing → confirmation modal (what changes, reversibility called
+  out) → conversion in motion (sketch fades to 32%, nodes pop in
+  with `?` badges, hints panel slides in) → it's a concept map; the
+  original sketch is saved alongside (toast links back).
+
+### Implementation outlook
+
+Likely implementation stories:
+
+- **Story:** rebuild `notes-list.tsx` as the Catalogue (search + filter
+  rail + grid of artifact-typed cards)
+- **Story per format:** rewrite each note-format editor
+  - Cornell (3-zone with cue-anchor markers)
+  - Feynman (two-pass mode toggle + margin-anchored gap notes)
+  - Outline (keyboard-first, hierarchical bullets + checkbox)
+  - Free (typewriter page + slash-command + drift tags)
+  - Sketch (free canvas + `↗ convert to concept map` bridge)
+- **Story:** concept-map editor — refactor existing
+  `concept-map-editor.tsx` to match the canonical-hints panel mock
+  (three-state nodes, candidate cards, ghost-edge preview on hover,
+  ripple-surface on confirm)
+- **Story:** review-session flow (still deferred — mock when ready)
+- **Story:** chat-to-workspace inline-panel infrastructure (panel
+  slides in from right, replaces concepts panel temporarily,
+  format-picker popover)
+- **Story:** ask-tutor-from-note brief preparation surface +
+  briefed-session opening pattern

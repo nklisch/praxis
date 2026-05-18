@@ -136,3 +136,53 @@ The chat panel and inspector pattern are identical across tabs; only
 the canvas representation changes shape per subsurface. Save bar in
 the sub-surface tab strip summarises cross-surface dirty state ("N
 unsaved across M surfaces").
+
+### Course tab shows the full assessment plan
+
+The Course tab canvas was extended to surface `LessonAssessment`
+records with their `timing` (before / interleaved / after) and `purpose`
+(readiness / practice / checkpoint), plus unit exams and midterms.
+Per-lesson assessment pills are color-coded by mode:
+
+- **QC** (quick check, inline / formative · grey)
+- **READY** (readiness quiz · before · sage)
+- **HW** (practice homework · interleaved · indigo)
+- **QUIZ** (checkpoint quiz · after · slate)
+- **EXAM** (unit exam / final · crimson)
+
+Each unit block ends with a unit-exam row when present; midterms
+display as a special row in the receiving unit's head. Legend strip
+at top of the canvas names the vocabulary. This matches the
+architectural reality (Phase 16 — `LessonAssessment` table, `Unit`
+optional summative, `Course.assessmentPlan`) and replaces the earlier
+mock's understatement ("1 check" per lesson). Same scaffolding visible
+in the course-create-entry flow's draft-ready step.
+
+### Naming rename (UI surfaces)
+
+The Prompts tab's mode picker no longer lists "bootstrap" — it lists
+**course-create**. The Configurator chat references the artifact
+(course / draft / gate / prompt / projection), not a named agent.
+Backend rename (mode id, agent class, tool names) parked at
+`.work/backlog/idea-rename-bootstrap-and-explorer.md`.
+
+### Implementation outlook
+
+Likely implementation stories:
+
+- **Story:** rebuild `configure.tsx` route as Canvas + Side Chat
+  (sub-surface tab strip + canvas + side chat panel + inspector strip)
+- **Story per subsurface:** rebuild each tab's canvas to its native
+  visualization
+  - Course tab — unit/lesson tree with lesson_assessments pills
+  - Gates tab — React Flow polish with edge-label thresholds and
+    warning-coloured unsaved-change edges
+  - Prompts tab — composed prompt fragment document (mode picker
+    rail + ordered fragments with per-fragment lock status + knobs)
+  - Memory tab — projection tabs (semantic / misconceptions /
+    procedural / affective / episodic) with table + cards per
+    projection
+- **Story:** Configurator chat infrastructure — the agentic loop that
+  emits tool-call diffs into the chat as reviewable patches
+  (keep / tweak / revert / cross-link to canvas)
+- **Story:** configure-entry / unlock flow polishing
