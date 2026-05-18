@@ -1116,16 +1116,32 @@ Prompt fragments: preamble, role.configure (customizable), principles, tools.con
 
 ## Phase 12 additive changes
 
-### `NoteBody` — new discriminated union (`packages/core/src/types/notes.ts`)
+### `NoteBody` — discriminated union (`packages/core/src/types/notes.ts`)
 
 ```typescript
 type NoteBody =
   | { kind: "cornell"; questions: string[]; details: string[]; summary: string }
   | { kind: "feynman"; explanation: string; followUps: string[] }
-  | { kind: "outline"; root: OutlineNode }
-  | { kind: "free"; text: string };
+  /**
+   * Outline body — exactly one of `rows`/`root` is present:
+   *   rows: OutlineRow[]  — flat-list (keyboard-first editor, preferred).
+   *   root: OutlineNode   — legacy recursive tree (migrated to rows on first editor load).
+   */
+  | { kind: "outline"; rows?: OutlineRow[]; root?: OutlineNode }
+  | { kind: "free"; text: string }
+  | { kind: "sketch"; snapshot: unknown };
 
 interface OutlineNode { text: string; children: OutlineNode[]; }
+
+/** Flat bullet row in the keyboard-first outline editor. */
+interface OutlineRow {
+  id: string;
+  text: string;
+  /** 1 = top-level heroic; 4 = muted-italic aside. */
+  level: 1 | 2 | 3 | 4;
+  isCheckbox?: boolean;
+  checked?: boolean;
+}
 ```
 
 Runtime helpers exported from `@praxis/core/types`: `parseNoteBody(format, bodyJson)`, `serializeNoteBody(body)`.

@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-workspace-note-editor-outline
 kind: story
-stage: review
+stage: implementing
 tags: [ui]
 parent: epic-ui-redesign-ground-up-workspace
 depends_on: [epic-ui-redesign-ground-up-design-system-token-swap]
@@ -75,3 +75,30 @@ existing stored notes remain readable.
 drag-handle reorder, Enter sibling creation, and legacy body migration.
 
 **Quality**: `pnpm typecheck && pnpm lint && pnpm test` all green.
+
+## Review findings (2026-05-18)
+
+**Stage set back to: implementing**
+
+### Blockers
+
+1. **`dangerouslySetInnerHTML` cursor reset** (`packages/ui/src/components/note-editor-outline.tsx` line 446): `dangerouslySetInnerHTML={{ __html: escapeHtml(row.text) }}` on the `contentEditable` div resets the cursor whenever the user types `&`, `<`, `>`, or `"`. `escapeHtml` produces a different string than the raw DOM content, React detects the diff and overwrites the node, losing the selection. Fix: set initial text via `ref` only on mount (`el.textContent = row.text` when `!el.textContent`); remove `dangerouslySetInnerHTML` and `escapeHtml`. Tracked in `.work/active/stories/fix-outline-editor-contenteditable-cursor-reset.md`.
+
+2. **`CONTRACT.md` drift** (`docs/CONTRACT.md` line 1125): outlined `NoteBody` still showed the old `root`-only shape. Fixed inline — updated to show the new dual-optional shape plus `OutlineRow` definition.
+
+### Important
+
+3. **`z.discriminatedUnion` → `z.union` regression** (`packages/core/src/services/notes-service.ts` line 79, `packages/tools/src/notes/schema.ts` line 37): dropping to `z.union` for the entire `NoteBodySchema` to handle two same-kind outline shapes is a minor performance regression (O(n) vs O(1) scan). The outline ambiguity can instead be modeled as a single branch with both fields optional, restoring `z.discriminatedUnion`. Tracked in `.work/backlog/refactor-note-body-schema-restore-discriminated-union.md`.
+
+### Nits
+
+- `normaliseBody(body)` called twice in `useState` initializer (lines 104–105). Cache the result in one call.
+- The `useState` comment "React does not control contentEditable value" is partially misleading — React does reconcile `dangerouslySetInnerHTML`; the comment is only true after the blocker fix removes it.
+
+## Review (2026-05-18)
+
+**Verdict**: Request changes
+
+**Blockers**: `fix-outline-editor-contenteditable-cursor-reset`, `CONTRACT.md` drift (fixed inline)
+**Important**: `refactor-note-body-schema-restore-discriminated-union`
+**Nits**: double `normaliseBody` call in useState; stale comment about contentEditable control
