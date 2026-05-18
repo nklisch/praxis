@@ -1,7 +1,7 @@
 ---
 id: epic-ui-redesign-ground-up-configure-course-tab-canvas
 kind: story
-stage: review
+stage: done
 tags: [ui]
 parent: epic-ui-redesign-ground-up-configure
 depends_on:
@@ -76,3 +76,15 @@ Rebuild Course tab canvas per `tab-course.html`:
 - Lesson status (`done` / `active` / `gated`) is hardcoded to `gated` in v1 — no mastery/gate data is available at this render layer. A future story can cross-ref gate state.
 - Unit reorder is local-state only — the server needs a `updateUnitOrder` endpoint. v1 preserves the visual feedback; the intent is logged in code comments.
 - The `dist/` of `@praxis/core` and `@praxis/client` must be rebuilt after adding new interface methods. The `moduleResolution: Bundler` in the UI's tsconfig uses compiled `.d.ts` files from referenced projects (not source), so `pnpm --filter @praxis/core run build && pnpm --filter @praxis/client run build` was required during development.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `use-configure-state.ts` re-exports `LessonId` at line 42 but no caller imports it from this module — dead re-export. Safe to remove in a cleanup pass.
+- `FetchingPills` unhandled rejection on `lessonAssessments()` fetch (line 90, `lesson-assessment-pills.tsx`) already tracked in `.work/backlog/lesson-assessment-pills-add-catch-on-fetch.md`.
+
+**Notes**: `units()` IPC chain is complete and follows the `ipc-envelope-handler` pattern. `exactOptionalPropertyTypes` is handled correctly with conditional property assignment. Inspector strip wiring through `ConfigureStateContext` is clean. 12 tests cover all acceptance criteria. Advancing to `stage: done`.
