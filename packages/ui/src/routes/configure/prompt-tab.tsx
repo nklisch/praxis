@@ -5,6 +5,7 @@ import { LoadingState } from "../../components/loading-state.js";
 import { usePraxisClient } from "../../context/client-context.js";
 import { useDirtyState } from "../../hooks/use-dirty-state.js";
 import { useFragmentOverrides } from "../../hooks/use-fragment-overrides.js";
+import { useResource } from "../../hooks/use-resource.js";
 import styles from "./prompt-tab.module.css";
 
 // ---------------------------------------------------------------------------
@@ -338,9 +339,6 @@ function FragmentDocument({ modeId }: FragmentDocumentProps): JSX.Element {
   const overrides = useFragmentOverrides(modeId);
   const { markDirty, markClean } = useDirtyState("configure.prompts");
 
-  const [composedSegments, setComposedSegments] = useState<readonly ComposedSegment[]>([]);
-  const [composedLoading, setComposedLoading] = useState(false);
-
   // Derived: ordered fragments for the mode
   const mode = useMemo(() => requireMode(modeId), [modeId]);
   const fragments = useMemo(() => mode.promptFragments, [mode]);
@@ -362,30 +360,17 @@ function FragmentDocument({ modeId }: FragmentDocumentProps): JSX.Element {
   // Stable refresh reference to avoid effect dependency churn
   const { refresh: refreshOverrides } = overrides;
 
-  // Refresh composed preview — called after save/clear
-  const refreshComposed = useCallback(async () => {
-    const result = await client.author.previewPromptWithAttribution({ modeId });
-    setComposedSegments(result.segments);
-  }, [client, modeId]);
-
-  // Load composition preview on mount and when modeId changes
-  useEffect(() => {
-    let cancelled = false;
-    setComposedLoading(true);
-    void (async () => {
-      try {
-        const result = await client.author.previewPromptWithAttribution({ modeId });
-        if (!cancelled) setComposedSegments(result.segments);
-      } catch {
-        // silent — keep stale
-      } finally {
-        if (!cancelled) setComposedLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [client, modeId]);
+  // Load composition preview on mount and when modeId changes (useResource owns the effect)
+  const composedLoader = useCallback(
+    () => client.author.previewPromptWithAttribution({ modeId }),
+    [client, modeId],
+  );
+  const {
+    data: composedData,
+    loading: composedLoading,
+    refresh: refreshComposed,
+  } = useResource(composedLoader);
+  const composedSegments: readonly ComposedSegment[] = composedData?.segments ?? [];
 
   const handleSave = useCallback(
     async (fragmentId: string, text: string) => {

@@ -1,7 +1,7 @@
 ---
 id: refactor-useresource-adoption-sweep-step-3-prompt-tab
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: refactor-useresource-adoption-sweep
 depends_on: []
@@ -89,3 +89,46 @@ Pre-existing baseline: 3 typecheck errors in UI files, ~524 `.mockups/**.html` l
 ## Rollback
 
 `git revert <commit>` — clean.
+
+## Implementation notes
+
+### Async operation inventory and classification
+
+`FragmentCard` component (per-fragment inline state):
+- `useEffect` syncing `draft` to `currentText` — NOT async, derived state sync, no change
+- `handleSave` — **mutation** (save button handler); owns `[saving, setSaving]` and `[error, setError]` local to the card; kept inline
+- `handleRevert` — **mutation** (revert/clear button handler); shares same local `[saving/reverting, error]` state; kept inline
+
+`FragmentDocument` component:
+- `useEffect` + `setComposedLoading` / `setComposedSegments` (lines 372–388) — **load-on-mount + load-on-modeId-change** → converted to `useResource`
+- `refreshComposed` useCallback — imperative refresh called after save/clear → replaced by `refresh` from `useResource`
+- `handleSave` — **mutation** (customizePrompt → refreshOverrides → refreshComposed); kept inline
+- `handleClear` — **mutation** (clearFragmentOverride → refreshOverrides → refreshComposed); kept inline
+- `overrides` state (`useFragmentOverrides`) — already an encapsulated hook, no change
+
+### State splits
+
+No state split was needed. The composed preview state (`composedSegments`, `composedLoading`) was separate from all mutation state; no shared `[error, setError]` between load and mutation existed at the `FragmentDocument` level. The `FragmentCard`-level error is purely per-mutation (save/revert) and was not affected.
+
+### What changed
+
+- Removed: `useState<readonly ComposedSegment[]>([])` for composedSegments
+- Removed: `useState(false)` for composedLoading
+- Removed: `useCallback` for `refreshComposed` (manual fetch + setState)
+- Removed: `useEffect` (lines 372–388) — the manual load-on-mount with cancellation token
+- Added: `import { useResource }` from `../../hooks/use-resource.js`
+- Added: `composedLoader` useCallback wrapping `client.author.previewPromptWithAttribution({ modeId })`, deps `[client, modeId]`
+- Added: `useResource(composedLoader)` — provides `composedData`, `composedLoading`, `refreshComposed`
+- Added: `composedSegments` derived as `composedData?.segments ?? []`
+- `handleSave` and `handleClear` now call `refresh` from `useResource` (same semantics)
+
+### File LoC delta
+
+Before: 491 lines. After: 477 lines. Delta: −14 lines.
+
+### Baseline confirmation
+
+- `pnpm --filter @praxis/ui typecheck`: green (0 new errors)
+- `pnpm --filter @praxis/ui test`: 1600/1600 passed (155 test files)
+- `pnpm biome check packages/ui/src/routes/configure/prompt-tab.tsx`: clean (no fixes applied)
+- Pre-existing baseline (3 typecheck errors in other UI files, 524 mockup lint errors, flaky use-fragment-overrides test): unchanged
