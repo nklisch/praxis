@@ -1,7 +1,7 @@
 ---
 id: refactor-ipc-server-extract-domain-channels-step-1-small-domains
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: refactor-ipc-server-extract-domain-channels
 depends_on: []
@@ -170,3 +170,15 @@ The `auth` channel has a manual streaming handler (`praxis.auth.claude.login.sta
 - Pre-existing biome suppression warning in ipc-server.ts (`suppressions/unused` at the `lessonAssessments` handler) — unchanged
 - All 31 electron/main test files (493 tests) pass unmodified
 - All critical tests pass: `streaming-channel-error-redaction`, `ipc-server.envelope-migration`, `ipc-server.cancel`, `misc-and-domain-channel-envelope`
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- The `auth` channel's manual streaming handler (`praxis.auth.claude.login.start`) was moved verbatim — pre-dates the `registerGeneratorStream` helper. A future follow-up could migrate it to the helper for consistency. Not blocking; documented in the agent's notes.
+- `getStudentId` regression in `library-channel.ts` (1 inline brand cast). A future shared `student-id.ts` helper would consolidate this — relevant especially once steps 2 + 3 add more `getStudentId` regressions.
+
+**Notes**: Clean mechanical extraction. 7 new channel files, 19 handlers moved, 0 wire-format changes. All 493 electron/main tests pass unmodified, including the critical envelope + cancel + streaming tests. The pattern from already-extracted channels (citations, recommendations) was followed faithfully.
