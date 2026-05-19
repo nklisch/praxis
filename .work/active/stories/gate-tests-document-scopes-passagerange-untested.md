@@ -1,7 +1,7 @@
 ---
 id: gate-tests-document-scopes-passagerange-untested
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -97,3 +97,13 @@ path leaves `passageRangeJson` null; `getPassageRange` returns `null` for
 missing row or null JSON).
 
 All 35 tests pass; `pnpm --filter @praxis/core typecheck` clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 4 tests added exercising real DocumentScopesServiceImpl with real DB. Spec matches exactly. Store, upsert, null-on-no-range, null-on-no-row all covered. Test integrity verified — no tautological assertions, no mocking of the service under test.
