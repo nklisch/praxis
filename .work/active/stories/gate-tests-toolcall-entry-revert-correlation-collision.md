@@ -1,7 +1,7 @@
 ---
 id: gate-tests-toolcall-entry-revert-correlation-collision
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -89,3 +89,13 @@ Asserts exactly 2 revert buttons appear — the third entry renders without a re
 is stable and preserves the order the events appear in the episodic stream. If two events had different
 non-zero `firstSeenAt` values (which can't happen in history replay), the sort would use those instead.
 This is the expected behavior and matches the implementation notes in the story.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Two UI tests exercise real AuthoringChatPane correlation logic through click-through-revert-button assertions. Test 1 verifies a-1/a-2 mapping by clicking each button and confirming restoreAction calls. Test 2 verifies 3 entries with 2 actions yields exactly 2 revert buttons. Behavioral invariant is pinned without mocking the correlation function. No tautological assertions.
