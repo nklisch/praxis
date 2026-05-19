@@ -6,7 +6,7 @@ export interface UseDraftsResult {
   /** Currently-live drafts (i.e. not finalized, not discarded, not expired). */
   drafts: readonly DraftCourseState[];
   /**
-   * The draft most recently mutated — convenient for the bootstrap right-pane
+   * The draft most recently mutated — convenient for the course-create right-pane
    * outline, which only needs to render the active draft. Null until the
    * drafter fires its first `draft_init`.
    */
@@ -14,7 +14,7 @@ export interface UseDraftsResult {
 }
 
 /**
- * Subscribe to the bootstrap draft stream for the lifetime of the component.
+ * Subscribe to the course-create drafts stream for the lifetime of the component.
  * Returns the current set of live drafts and a `current` shortcut to the
  * most recently mutated one.
  *

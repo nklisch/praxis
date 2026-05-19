@@ -11,11 +11,11 @@ import { principlesFragment } from "./fragments/principles.js";
  * Configure mode — gated authoring and configuration surface.
  *
  * Requires the lock to be unlocked before session.start (enforced in
- * SessionServiceImpl.start for modeId === "configure"). Bootstrap mode
+ * SessionServiceImpl.start for modeId === "configure"). Course-create mode
  * intentionally does NOT require unlock — first-run authoring is lock-free.
  *
- * Tool set: bootstrap mode's full tool set + all authoring tools + all
- * configure-mode memory tools. This mode subsumes bootstrap mode.
+ * Tool set: course-create mode's full tool set + all authoring tools + all
+ * configure-mode memory tools. This mode subsumes course-create mode.
  *
  * uiSurface: "configure" — the /configure route with Course/Gates/Prompt/Memory tabs.
  */

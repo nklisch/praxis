@@ -4,7 +4,7 @@
  * The gate predicate in stream.ts is `timeout > 0 && isFinite(timeout)`:
  * only schedule a SIGTERM timer when a positive, finite timeout is provided.
  * Passing 0 or Infinity disables the timer entirely — the contract that lets
- * the bootstrap explorer run long textbook reads without a wall-clock kill.
+ * the drafter run long textbook reads without a wall-clock kill.
  *
  * These tests verify:
  *   1. timeout:0 — no timer scheduled, proc.kill never called

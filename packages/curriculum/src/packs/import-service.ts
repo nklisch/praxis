@@ -196,7 +196,7 @@ export class PackImportServiceImpl {
   }
 
   /**
-   * Find a pack manifest by subject id. Used by the bootstrap-mode flow to
+   * Find a pack manifest by subject id. Used by the course-create-mode flow to
    * detect available packs when the student names a subject.
    */
   async findPackBySubject(subject: string): Promise<PackSummary | null> {

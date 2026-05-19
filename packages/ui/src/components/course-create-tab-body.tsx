@@ -114,7 +114,7 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
 
   return (
     <div className={styles.container}>
-      {/* Left: draft canvas — live outline driven by the bootstrap-drafts stream. */}
+      {/* Left: draft canvas — live outline driven by the course-create drafts stream. */}
       <div className={styles.draftCanvas}>
         <SessionHead modeId="course-create" title={tab.title} />
         <div className={styles.canvasHeader}>

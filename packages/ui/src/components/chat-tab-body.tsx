@@ -54,7 +54,7 @@ export interface ChatTabBodyProps {
 
 /**
  * Props for session-mode-specific tab bodies (teach, quiz, homework, exam,
- * bootstrap, study-skills). These bodies require a session-bound tab and
+ * course-create, study-skills). These bodies require a session-bound tab and
  * access `tab.sessionId`, `tab.modeId`, etc. directly.
  */
 export interface SessionChatTabBodyProps {
@@ -506,7 +506,7 @@ export function TeachChatTabBody({
 /**
  * Top-level tab body dispatcher. Routes each tab to the component that
  * matches its modeId. Teach mode (and unknown modes) use TeachChatTabBody.
- * Quiz, homework, exam, and bootstrap each have their own modality body.
+ * Quiz, homework, exam, and course-create each have their own modality body.
  *
  * Per the tab-body-isolation pattern, all open instances mount simultaneously;
  * inactive ones are hidden via display:none in the parent (chat.tsx). The

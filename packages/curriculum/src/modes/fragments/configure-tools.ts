@@ -4,7 +4,7 @@ import type { PromptFragment } from "@praxis/core/types";
  * Tools fragment for configure mode.
  *
  * Lists all tools available to the configurator agent. Configure mode subsumes
- * bootstrap mode's tools (course authoring) plus adds authoring/editing tools
+ * course-create mode's tools (course authoring) plus adds authoring/editing tools
  * for courses, lessons, gates, prompts, and memory management.
  *
  * This fragment is NOT customizable — tool availability must not be overridden

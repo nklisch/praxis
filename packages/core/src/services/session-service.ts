@@ -61,8 +61,8 @@ export class SessionServiceImpl implements SessionService {
     const mode = this.requireMode(opts.modeId);
 
     // Phase 11: configure mode requires the lock to be unlocked.
-    // Bootstrap mode is intentionally NOT gated — configurators can bootstrap
-    // without unlocking (first-run authoring before a lock is even set).
+    // Course-create mode is intentionally NOT gated — configurators can create
+    // courses without unlocking (first-run authoring before a lock is even set).
     if (opts.modeId === "configure") {
       const unlocked = await this.deps.lockService.isUnlocked();
       if (!unlocked) {

@@ -18,7 +18,7 @@ export interface SessionTabSummary {
   readonly courseId?: string;
   /**
    * Phase 16: the assignment bound to this session, if any.
-   * Present for quiz / homework / exam sessions; absent for teach / bootstrap.
+   * Present for quiz / homework / exam sessions; absent for teach / course-create.
    */
   readonly assignmentId?: string;
   readonly sortOrder: number;

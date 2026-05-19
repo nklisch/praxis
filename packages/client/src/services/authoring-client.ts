@@ -33,7 +33,7 @@ const C = "praxis.author" as const;
  *   2. Audit-log write after every successful mutation.
  *
  * Phase 3 surface methods (createCourse, editGate, bootstrap) are intentionally
- * not wired here — those flows use bootstrap mode tools or the agent loop.
+ * not wired here — those flows use course-create mode tools or the agent loop.
  * They throw to surface misuse loudly.
  *
  * Channel convention: praxis.author.{method}
@@ -46,7 +46,7 @@ export class AuthoringClientImpl implements AuthoringClient {
   createCourse(): Promise<Course> {
     return Promise.reject(
       new Error(
-        "createCourse: use bootstrap mode (course.start_drafting flow) or course.use_canonical_pack. Phase 11 AuthoringClient does not expose this directly.",
+        "createCourse: use course-create mode (course.start_drafting flow) or course.use_canonical_pack. Phase 11 AuthoringClient does not expose this directly.",
       ),
     );
   }
@@ -62,7 +62,7 @@ export class AuthoringClientImpl implements AuthoringClient {
   bootstrap(): Promise<never> {
     return Promise.reject(
       new Error(
-        "bootstrap: use bootstrap mode agent loop or course.use_canonical_pack. Phase 11 AuthoringClient does not expose this directly.",
+        "bootstrap: use course-create mode agent loop or course.use_canonical_pack. Phase 11 AuthoringClient does not expose this directly.",
       ),
     );
   }

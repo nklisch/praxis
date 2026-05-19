@@ -31,7 +31,7 @@ export interface CourseCreateService {
   initDraft(input: {
     studentId: StudentId;
     /**
-     * Phase 16 (bootstrap-session-scoped-attachment): the parent bootstrap
+     * Phase 16 (course-create-session-scoped-attachment): the parent course-create
      * session id (S1). Pass `ctx.parentSessionId ?? ctx.sessionId` from the
      * draft_init tool handler. Stored on the draft so confirmDraft can promote
      * session-scope document rows to course-scope.
@@ -92,7 +92,7 @@ export interface CourseCreateService {
 
   /**
    * Build a compact DraftSummary from the live draft state. Returns null if
-   * the draft is gone (expired or never existed). Used by the explore agent
+   * the draft is gone (expired or never existed). Used by the drafter
    * to surface partial progress to the tutor without forcing a separate
    * "finalize" ritual, and by the tutor's UI to render quick metrics.
    */

@@ -923,7 +923,7 @@ describe("runConceptDrafter — subAgentHandle emissions", () => {
     // Verifies the per-unit progress signal introduced to replace the static
     // "drafting an outline" label for the full build-out. Each successful
     // draft_add_unit call must update the sub-agent label to "unit N drafted"
-    // so the bootstrap tab shows live structural progress.
+    // so the course-create tab shows live structural progress.
     const { db } = openDb({ path: dbCtx.dbPath });
     const bootstrap = makeCourseCreateService(db);
     const { handle, setLabelCalls } = makeFakeHandle();

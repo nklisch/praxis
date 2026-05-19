@@ -1,6 +1,6 @@
 /**
  * Unit tests for course.draft_add_unit tool handler.
- * Verifies ok/not-ok shapes, draftId resolution, and delegation to bootstrap service.
+ * Verifies ok/not-ok shapes, draftId resolution, and delegation to course-create service.
  */
 import type { CourseCreateService } from "@praxis/core/types";
 import { describe, expect, it, vi } from "vitest";

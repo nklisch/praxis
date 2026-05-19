@@ -1,5 +1,5 @@
 /**
- * Tests for bootstrap-session-scoped-attachment feature.
+ * Tests for course-create-session-scoped-attachment feature.
  *
  * Covers:
  *  - initDraft stores sessionId on the draft

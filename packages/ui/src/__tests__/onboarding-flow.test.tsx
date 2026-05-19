@@ -7,7 +7,7 @@
  * - Back returns to the previous step.
  * - Skip on any step calls onComplete.
  * - Engine step writes engine config when continuing.
- * - Course-card click marks complete and opens a bootstrap session.
+ * - Course-card click marks complete and opens a course-create session.
  * - Sign-in button renders only for claude-code engine.
  * - Sign-in button opens ClaudeAuthModal on click.
  * - Button label reflects signed-in state.
@@ -170,7 +170,7 @@ describe("OnboardingFlow", () => {
     await waitFor(() => expect(setEngineConfigSpy).toHaveBeenCalledTimes(1));
   });
 
-  it("course card click marks complete and opens a bootstrap session", async () => {
+  it("course card click marks complete and opens a course-create session", async () => {
     const startSpy = vi.fn();
     const onComplete = vi.fn(async () => undefined);
     const client = buildClient({ startSpy });

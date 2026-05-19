@@ -177,7 +177,7 @@ const noteEditorRoute = createRoute({
 });
 
 // Course-create entry flow — step 2: upload/material screen.
-// Library "Create a course" CTA navigates here before opening a bootstrap session.
+// Library "Create a course" CTA navigates here before opening a course-create session.
 const courseCreateRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/course-create",

@@ -69,7 +69,7 @@ export function LibraryRoute() {
     await navigate({ to: "/course-create" });
   }, [navigate]);
 
-  /** "Use this pack" — import pack then bootstrap. */
+  /** "Use this pack" — import pack then open a course-create session. */
   const handleUsePack = useCallback(
     async (packId: string, packName: string) => {
       setImporting(packId);
@@ -125,7 +125,7 @@ export function LibraryRoute() {
           break;
         }
         case "resume_draft": {
-          // Re-open the bootstrap session that produced this draft
+          // Re-open the course-create session that produced this draft
           await openSessionInTab({
             client,
             navigate,

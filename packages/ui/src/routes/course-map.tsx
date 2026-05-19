@@ -338,7 +338,7 @@ export function CourseMapRoute() {
       <div className={styles.canvasContainer}>
         {nodes.length === 0 ? (
           <div className={styles.empty}>
-            <p>No concepts yet. Run a bootstrap session to populate the course.</p>
+            <p>No concepts yet. Run a course-create session to populate the course.</p>
           </div>
         ) : (
           <ReactFlow

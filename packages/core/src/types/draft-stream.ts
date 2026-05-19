@@ -3,7 +3,7 @@ import type { CourseId } from "./ids.js";
 import type { DraftId } from "./recommendation.js";
 
 /**
- * Discriminated event streamed from the bootstrap service to the renderer
+ * Discriminated event streamed from the course-create service to the renderer
  * each time a draft is created, mutated, persisted, or dropped.
  *
  * Modeled on `ActivityEvent` — `snapshot` is sent first so a fresh
@@ -31,7 +31,7 @@ export type DraftStreamListener = (event: DraftStreamEvent) => void;
 
 /**
  * Renderer-side client for the draft stream. `events()` opens a persistent
- * subscription. Multiple consumers are safe but redundant — the bootstrap
+ * subscription. Multiple consumers are safe but redundant — the course-create
  * tab body is the only intended renderer.
  */
 export interface DraftStreamClient {

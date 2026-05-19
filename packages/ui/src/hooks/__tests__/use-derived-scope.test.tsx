@@ -9,8 +9,8 @@
  * context for each scenario without a full router or client setup.
  *
  * Branches exercised:
- *   1. Course route + non-bootstrap session tab → { kind: "course", id }
- *   2. Bootstrap session tab is active          → { kind: "session", id }
+ *   1. Course route + non-course-create session tab → { kind: "course", id }
+ *   2. Course-create session tab is active          → { kind: "session", id }
  *   3. Active document tab                      → { kind: "all" } (pending listScopesForDocument)
  *   4. No relevant context                      → { kind: "all" } (default)
  *
@@ -199,9 +199,9 @@ describe("useDerivedScope", () => {
     });
   });
 
-  // ── Branch 2: bootstrap tab ──────────────────────────────────────────────────
+  // ── Branch 2: course-create tab ──────────────────────────────────────────────
 
-  it("branch 2: returns session scope when bootstrap tab is active", () => {
+  it("branch 2: returns session scope when course-create tab is active", () => {
     clearRoute();
     const tab = makeSessionTab({
       id: brandId<"TabId">("tab-boot"),
@@ -215,7 +215,7 @@ describe("useDerivedScope", () => {
     expect(result.current).toEqual({ kind: "session", id: "session-boot" });
   });
 
-  it("branch 2: bootstrap tab on a non-course route wins over branch 4 default", () => {
+  it("branch 2: course-create tab on a non-course route wins over branch 4 default", () => {
     // Library route — no course match.
     mockMatches = [{ routeId: "/library", params: {} }];
     const tab = makeSessionTab({
@@ -230,9 +230,9 @@ describe("useDerivedScope", () => {
     expect(result.current).toEqual({ kind: "session", id: "session-boot2" });
   });
 
-  it("branch 2: bootstrap tab on course route — branch 1 fires first (course wins)", () => {
+  it("branch 2: course-create tab on course route — branch 1 fires first (course wins)", () => {
     // Branch 1 fires before branch 2 — course scope is returned even when the
-    // active session tab is bootstrap. The sidebar follows the route context first.
+    // active session tab is course-create. The sidebar follows the route context first.
     setCourseRoute("course-priority");
     const tab = makeSessionTab({
       id: brandId<"TabId">("tab-boot3"),
@@ -343,7 +343,7 @@ describe("useDerivedScope", () => {
     expect(result.current).toEqual({ kind: "all" });
   });
 
-  it("branch 4: returns all when on the chat route with a non-bootstrap teach tab", () => {
+  it("branch 4: returns all when on the chat route with a non-course-create teach tab", () => {
     mockMatches = [{ routeId: "/chat/$tabId", params: { tabId: "tab-1" } }];
     const tab = makeSessionTab({ modeId: "teach" });
     setTabs([tab], tab.id);
@@ -397,7 +397,7 @@ describe("useDerivedScope", () => {
     expect(second).toEqual({ kind: "course", id: "course-b" });
   });
 
-  it("reference-stability: bootstrap session branch returns a stable reference across re-renders", () => {
+  it("reference-stability: course-create session branch returns a stable reference across re-renders", () => {
     clearRoute();
     const tab = makeSessionTab({
       id: brandId<"TabId">("tab-boot-stable"),

@@ -118,7 +118,7 @@ describe("CoursesRoute", () => {
     });
   });
 
-  it("New course button calls session.start with modeId: bootstrap", async () => {
+  it("New course button calls session.start with modeId: course-create", async () => {
     const client = makeClient([]);
     renderRoute(client);
 

@@ -44,7 +44,7 @@ export interface ServiceDeps {
   toolDefinitions: ReadonlyArray<ToolDefinition<z.ZodType, z.ZodType>>;
   /**
    * Concrete tool services injected into ToolContext for handlers.
-   * Phase 6 adds artifacts, bootstrap, courseState. Phase 7 adds memory.
+   * Phase 6 adds artifacts, course-create service, courseState. Phase 7 adds memory.
    */
   toolServices: {
     sympy: SymPyService;
@@ -92,8 +92,8 @@ export interface ServiceDeps {
     engineResolver: () => Engine;
     /**
      * Resolves the user-tunable course-create config (currently just `maxSteps` —
-     * the explore agent's tool-call budget). Read at call time so a UI change
-     * applies to the next exploration. Optional so tests that don't exercise
+     * the drafter's tool-call budget). Read at call time so a UI change
+     * applies to the next drafting run. Optional so tests that don't exercise
      * the course-create path don't have to wire it.
      */
     courseCreateConfigResolver?: () => { maxSteps: number };

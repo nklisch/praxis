@@ -304,7 +304,7 @@ function EngineStep({
 type CoursePath = "algebra" | "biology" | "syllabus";
 
 /**
- * Pre-seed messages injected into the bootstrap session after `session.start`
+ * Pre-seed messages injected into the course-create session after `session.start`
  * resolves. null means no pre-seed (syllabus path — user supplies their own
  * context). Pack ids ("algebra-1", "biology") match the canonical JSON
  * manifests in packages/curriculum/packs/.
@@ -333,9 +333,9 @@ function CourseStep({
     setBusy(path);
     setError(null);
     try {
-      // For v1, every course path opens a fresh bootstrap session — the
-      // bootstrap-mode agent handles canonical-pack import or syllabus
-      // exploration based on the user's first message. The labels guide the
+      // For v1, every course path opens a fresh course-create session — the
+      // course-create-mode agent handles canonical-pack import or syllabus
+      // drafting based on the user's first message. The labels guide the
       // user toward the right initial prompt.
       await onComplete();
 

@@ -364,7 +364,7 @@ export interface AssignmentServiceDeps {
   enableApproachFeedback?: boolean;
   /**
    * Phase 16: callback port to notify the parent teach-mode session after
-   * submission. Optional — tests and bootstrap-mode grading omit it. When
+   * submission. Optional — tests and course-create-mode grading omit it. When
    * wired, `services.ts` provides a closure that calls
    * `sessionService.notifySession(...)`.
    *

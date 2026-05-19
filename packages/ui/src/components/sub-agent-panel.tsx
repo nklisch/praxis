@@ -18,7 +18,7 @@ export interface SubAgentPanelProps {
  *
  * Uses `useSubAgent(parentCallId)` to subscribe to live events; shows ALL
  * steps (no 8-step cap). Uses a simple scrollable list; a virtualized list
- * would be warranted at 50+ steps, but the bootstrap budget caps steps at
+ * would be warranted at 50+ steps, but the course-create budget caps steps at
  * ≤200 and the panel is already off-screen by default, so the simpler form
  * is sufficient for v1.
  */

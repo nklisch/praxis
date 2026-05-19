@@ -133,7 +133,7 @@ export async function runConceptDrafter(
   // We also pin `courseDocumentIds` to the drafter's `documentIds` so that
   // retrieval tools (specifically `retrieve_from_documents`) hard-scope to
   // exactly the documents the tutor passed in. Without this, retrieval falls
-  // back to "search the whole student library" in bootstrap mode (no course in
+  // back to "search the whole student library" in course-create mode (no course in
   // scope yet), which can leak chunks from unrelated documents the student
   // happens to have uploaded. The fence is enforced server-side; the model
   // doesn't need to remember to pass documentIds on every call.
@@ -258,7 +258,7 @@ export async function runConceptDrafter(
             drafterLog.info("drafter.draft_init_captured", { draftId });
           }
           // Per-unit progress label: each successful draft_add_unit call updates
-          // the sub-agent label so the bootstrap tab shows "unit N drafted"
+          // the sub-agent label so the course-create tab shows "unit N drafted"
           // instead of a static "drafting an outline" for the full run.
           if (settledToolName === "course.draft_add_unit") {
             unitsAdded++;
@@ -334,7 +334,7 @@ export async function runConceptDrafter(
     input.log.warn("drafter.exhausted_budget", { err: engineErrorMessage });
   }
 
-  // Build the summary from live draft state via the bootstrap service. We
+  // Build the summary from live draft state via the course-create service. We
   // reach in through the base context's services bag — the drafter's
   // ToolContext shares the same service references as the calling tutor's.
   const summary = await summarizeFromContext(input.baseContext, draftId);
@@ -431,9 +431,9 @@ function fingerprintResult(result: {
 }
 
 /**
- * Look up the bootstrap service via the drafter's base context (which carries
+ * Look up the course-create service via the drafter's base context (which carries
  * the same services bag the tutor uses) and return a DraftSummary. Returns
- * null if the draft is gone or the bootstrap service isn't wired (e.g. test
+ * null if the draft is gone or the course-create service isn't wired (e.g. test
  * stubs that skip it).
  */
 async function summarizeFromContext(

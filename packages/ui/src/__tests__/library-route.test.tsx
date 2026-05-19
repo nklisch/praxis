@@ -6,7 +6,7 @@
  * - What's-next queue renders recommendation rows (and empty state)
  * - Lately timeline renders session entries grouped by day
  * - Footer cards render (packs / concept maps / documents)
- * - "+ Create a course" CTA triggers bootstrap session
+ * - "+ Create a course" CTA triggers course-create session
  * - Timeline session click calls tabs.open (or switchTo if open)
  * - Recommendation CTA clicks dispatch to correct surface
  */
@@ -413,7 +413,7 @@ describe("LibraryRoute — Workbench", () => {
     });
   });
 
-  it("resume_draft rec: clicking CTA opens bootstrap session", async () => {
+  it("resume_draft rec: clicking CTA opens course-create session", async () => {
     const client = makeClient({ recommendations: [DRAFT_REC] });
     renderRoute(client);
 

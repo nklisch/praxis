@@ -145,7 +145,7 @@ describe("AuthoringChatPane", () => {
     expect(container.textContent).toContain("Configure assistant");
   });
 
-  it("renders 'Course-design assistant' header for bootstrap mode", () => {
+  it("renders 'Course-design assistant' header for course-create mode", () => {
     const client = makeClient();
     const { container } = render(
       <Wrapper client={client}>
@@ -187,7 +187,7 @@ describe("AuthoringChatPane", () => {
     );
   });
 
-  it("shows bootstrap empty-state hint for bootstrap mode", () => {
+  it("shows course-create empty-state hint for course-create mode", () => {
     const client = makeClient();
     const { container } = render(
       <Wrapper client={client}>

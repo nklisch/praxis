@@ -2,7 +2,7 @@
  * ScriptedEngine — a fake Engine that drives tool calls from a pre-defined script.
  *
  * Each step in the script is a `{ toolName, args }` object. The scripted engine
- * yields synthetic `tool_call` events that the explorer's registry dispatches,
+ * yields synthetic `tool_call` events that the drafter's registry dispatches,
  * then re-injects the `tool_result` back into the stream, simulating how a real
  * looped engine (Claude Code) would drive the multi-step loop.
  *

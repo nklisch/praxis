@@ -740,8 +740,8 @@ export interface DraftCourseState {
   lastTouchedAt: Timestamp;
   expiresAt: Timestamp;
   /**
-   * Phase 16 (bootstrap-session-scoped-attachment): the parent bootstrap session
-   * id (S1 — the tutor session that invoked start_drafting, NOT the drafter
+   * Phase 16 (course-create-session-scoped-attachment): the parent course-create
+   * session id (S1 — the tutor session that invoked start_drafting, NOT the drafter
    * sub-agent's own session). Stored here so confirmDraft can promote
    * session-scope document rows to course-scope via documentScopes.promoteScope.
    *

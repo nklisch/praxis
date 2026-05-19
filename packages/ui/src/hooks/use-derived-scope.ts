@@ -10,7 +10,7 @@ import { useTabs } from "./use-tabs.js";
  *
  * - `{ kind: "course", id }` — user is in a course route and the active tab
  *   is a session (teach, quiz, etc.) or there is no active tab.
- * - `{ kind: "session", id }` — the active tab is a bootstrap session.
+ * - `{ kind: "session", id }` — the active tab is a course-create session.
  * - `{ kind: "all" }` — library route, document tab with no scopes attached,
  *   no relevant context, or the default.
  */

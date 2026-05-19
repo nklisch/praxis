@@ -14,7 +14,7 @@ export const courses = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
     /**
-     * Phase 16: serialized AssessmentPlan. Null for courses bootstrapped
+     * Phase 16: serialized AssessmentPlan. Null for courses created
      * before Phase 16. Written by persistDraft when the drafter produces a
      * plan; immutable after that except through configure-mode tooling.
      */
@@ -60,7 +60,7 @@ export const assignments = sqliteTable(
     gradeJson: text("grade_json", { mode: "json" }),
     /**
      * Phase 16: the teach-mode session that authored this assignment via
-     * assignment.create. Null for bootstrap-time scheduled assessments or
+     * assignment.create. Null for course-create-time scheduled assessments or
      * configurator-authored assessments without an active session.
      * On submit, this is the target for the system_note notification.
      */
@@ -265,7 +265,7 @@ export const documentScopes = sqliteTable(
      * adding a new kind only requires service-layer changes plus a UI
      * surface. Current kinds: 'course' (attached to a course),
      * 'session' (attached to a specific session, typically a
-     * bootstrap exploration that hasn't been confirmed into a course).
+     * course-create drafting run that hasn't been confirmed into a course).
      */
     scopeKind: text("scope_kind", { enum: ["course", "session"] }).notNull(),
     /**

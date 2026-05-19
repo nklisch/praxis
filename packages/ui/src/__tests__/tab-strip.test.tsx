@@ -61,14 +61,14 @@ describe("TabStrip", () => {
     const tab1 = makeTab({ id: brandId<"TabId">("t1"), title: "algebra · teach" });
     const tab2 = makeTab({
       id: brandId<"TabId">("t2"),
-      title: "calc · bootstrap",
+      title: "calc · course-create",
       modeId: "course-create",
       sortOrder: 1,
     });
     renderStrip({ tabs: [tab1, tab2] });
 
     expect(screen.getByText("algebra · teach")).toBeDefined();
-    expect(screen.getByText("calc · bootstrap")).toBeDefined();
+    expect(screen.getByText("calc · course-create")).toBeDefined();
   });
 
   it("renders the coloured dot ornament for each tab (no text glyph)", () => {

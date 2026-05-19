@@ -6,8 +6,8 @@
  *   - When ctx.callId is absent (undefined), subAgent.start() must NOT be called.
  *
  * Uses a real CourseCreateServiceImpl with an in-memory temp DB and an inline
- * scripted engine — the same approach used by the explorer unit tests in
- * packages/curriculum/src/bootstrap/__tests__/explorer.test.ts.
+ * scripted engine — the same approach used by the drafter unit tests in
+ * packages/curriculum/src/course-create/__tests__/drafter.test.ts.
  */
 
 import { openDb } from "@praxis/core/db";
@@ -64,7 +64,7 @@ function makeCourseCreateService(db: ReturnType<typeof openDb>["db"]) {
 
 /**
  * Minimal spy SubAgentRegistry. Tracks whether `start()` was called and
- * returns a no-op handle when it is (so the explorer can call finish() etc.
+ * returns a no-op handle when it is (so the drafter can call finish() etc.
  * without errors).
  */
 function makeSpySubAgentRegistry() {
@@ -92,7 +92,7 @@ function makeSpySubAgentRegistry() {
 
 /**
  * Minimal inline engine that drives a single draft_init call then stops.
- * Same pattern as the inline engines in the explorer tests.
+ * Same pattern as the inline engines in the drafter tests.
  */
 function makeMinimalScriptedEngine(): Engine {
   return {
@@ -240,7 +240,7 @@ describe("course.start_drafting handler — sub-agent registration guard", () =>
 describe("course.start_drafting handler — session-scope attach", () => {
   const dbCtx = useTempDb();
 
-  it("attaches documentIds to session scope before spawning the explorer", async () => {
+  it("attaches documentIds to session scope before spawning the drafter", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     const bootstrap = makeCourseCreateService(db);
     const engine = makeMinimalScriptedEngine();

@@ -8,11 +8,11 @@ export interface DraftCardProps {
 }
 
 /**
- * Renders the structured draft a student can scan during bootstrap mode.
+ * Renders the structured draft a student can scan during course-create mode.
  * Displayed inline in chat when the agent calls `course.show_draft`.
  *
  * Kept generic: accepts { proposed: ProposedCourse } so configure mode
- * (Phase 11) can reuse this without baking bootstrap-specific text in.
+ * (Phase 11) can reuse this without baking course-create-specific text in.
  */
 export function DraftCard({ proposed: p }: DraftCardProps) {
   return (

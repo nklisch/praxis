@@ -113,7 +113,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   private emit(event: DraftStreamEvent): void {
     // Debug-level visibility into the draft stream. Lets us verify from logs
     // that the service is firing events even when the renderer isn't visibly
-    // updating — pairs with `bootstrap.drafts.forward` in the IPC channel
+    // updating — pairs with `course-create.drafts.forward` in the IPC channel
     // so the chain service -> IPC -> renderer is end-to-end traceable.
     this.deps.log.debug("course-create.draft_stream.emit", {
       eventKind: event.kind,
@@ -152,7 +152,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
    * Phase 16: create a new draft up-front (before the drafter has any concepts
    * to add). Used by the drafter's draft_init tool.
    *
-   * `sessionId` is the PARENT bootstrap session id (S1 — the tutor session that
+   * `sessionId` is the PARENT course-create session id (S1 — the tutor session that
    * invoked start_drafting). It is stored on the draft so that confirmDraft
    * can promote session-scope document rows to course-scope. Pass
    * `ctx.parentSessionId ?? ctx.sessionId` from the calling tool handler.
@@ -514,7 +514,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   /**
    * Validate and persist the draft as a real course. Validation issues are
    * returned as data (`{ ok: false, issues }`) so the tutor can surface them to
-   * the student and the explore agent can fix and retry without a separate
+   * the student and the drafter can fix and retry without a separate
    * "finalize" ritual.
    *
    * Throws only on lifecycle errors (draft expired, owner mismatch) — those are
@@ -547,9 +547,9 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     });
 
     // Phase 16: attach source documents to the new course.
-    // When the draft carries a sessionId (bootstrap-session-scoped-attachment
+    // When the draft carries a sessionId (course-create-session-scoped-attachment
     // feature), promote the session-scope rows to course-scope — both survive so
-    // the audit trail of "which docs this bootstrap session pulled in" is
+    // the audit trail of "which docs this course-create session pulled in" is
     // preserved. For legacy drafts without sessionId, fall back to the original
     // attachMany path.
     if (d.sessionId !== undefined) {

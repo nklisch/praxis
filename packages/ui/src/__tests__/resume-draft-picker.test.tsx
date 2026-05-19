@@ -147,7 +147,7 @@ describe("<ResumeDraftPicker>", () => {
     await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
   });
 
-  it("click flow triggers session.start({modeId:'bootstrap'}) and session.send with the chosen draftId", async () => {
+  it("click flow triggers session.start({modeId:'course-create'}) and session.send with the chosen draftId", async () => {
     // Acceptance-criteria-literal test: emulate the route's handleResumeDraft
     // inline so the picker's onResume drives a real session.start + send.
     const drafts = [makeDraft("draft-7", "Resumable")];

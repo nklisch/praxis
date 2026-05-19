@@ -185,7 +185,7 @@ export interface DocumentsSectionProps {
  * filter bar (file type, source, date range) above the document list.
  *
  * - "This course" tab is only visible when a courseId is provided.
- * - "This session" tab is only visible when a bootstrap session tab is open.
+ * - "This session" tab is only visible when a course-create session tab is open.
  * - Filter changes are client-side projections; they do not trigger re-fetches.
  * - Switching tabs resets all filters.
  */
@@ -197,7 +197,7 @@ export function DocumentsSection({
 }: DocumentsSectionProps) {
   const client = usePraxisClient();
   const navigate = useNavigate();
-  const activeBootstrapSessionId = useActiveCourseCreateSession();
+  const activeCourseCreateSessionId = useActiveCourseCreateSession();
 
   const [activeTab, setActiveTab] = useState<LibraryTab>("all");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -205,10 +205,10 @@ export function DocumentsSection({
   const visibleTabs = useMemo<LibraryTab[]>(() => {
     const tabs: LibraryTab[] = ["all"];
     if (courseId) tabs.push("course");
-    if (activeBootstrapSessionId) tabs.push("session");
+    if (activeCourseCreateSessionId) tabs.push("session");
     tabs.push("orphaned");
     return tabs;
-  }, [courseId, activeBootstrapSessionId]);
+  }, [courseId, activeCourseCreateSessionId]);
 
   // If the active tab is no longer in the visible set (e.g., session closed), reset.
   useEffect(() => {
@@ -227,7 +227,7 @@ export function DocumentsSection({
     data: rawDocs,
     loading: tabLoading,
     error: tabError,
-  } = useTabDocuments(activeTab, documents, loading, courseId ?? null, activeBootstrapSessionId);
+  } = useTabDocuments(activeTab, documents, loading, courseId ?? null, activeCourseCreateSessionId);
 
   // Distinct mimeTypes from current tab's data — for the filter select.
   const mimeTypeOptions = useMemo<string[]>(() => {

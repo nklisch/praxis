@@ -90,7 +90,7 @@ export interface ToolContext {
    */
   signal?: AbortSignal;
   /**
-   * Phase 16 (bootstrap-session-scoped-attachment): set by sub-agent harnesses
+   * Phase 16 (course-create-session-scoped-attachment): set by sub-agent harnesses
    * to the PARENT session's id. For top-level sessions this is undefined.
    *
    * Threading chain:
@@ -157,11 +157,11 @@ export interface ToolServices {
    */
   engineResolver: () => Engine;
   /**
-   * Resolves user-tunable bootstrap config (currently just `maxSteps` —
-   * the explore agent's tool-call budget). Read at call time so UI changes
-   * take effect on the next exploration without a restart. Used by
+   * Resolves user-tunable course-create config (currently just `maxSteps` —
+   * the drafter's tool-call budget). Read at call time so UI changes
+   * take effect on the next drafting run without a restart. Used by
    * `course.start_drafting`. Optional so test stubs that don't exercise
-   * the bootstrap path don't need to wire it.
+   * the course-create path don't need to wire it.
    */
   courseCreateConfigResolver?: () => { maxSteps: number };
   /**

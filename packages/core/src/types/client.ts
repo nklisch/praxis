@@ -56,8 +56,8 @@ export interface PraxisClient {
   /** Activity rail — subscribe to ambient progress events from long-running work. */
   activity: ActivityClient;
   /**
-   * Bootstrap-mode live draft stream. Yields snapshot + per-mutation events as
-   * the explore agent builds a course outline. The bootstrap tab body
+   * Course-create mode live draft stream. Yields snapshot + per-mutation events as
+   * the drafter builds a course outline. The course-create tab body
    * subscribes to render the right-pane outline live.
    */
   drafts: DraftStreamClient;

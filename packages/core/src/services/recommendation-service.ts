@@ -43,7 +43,7 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 /** 7 days in ms */
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Default mastery gate threshold (mirrors the 0.7 value set in course bootstrapping). */
+/** Default mastery gate threshold (mirrors the 0.7 value set in course creation). */
 const DEFAULT_MASTERY_THRESHOLD = 0.7;
 
 // ── Deps ──────────────────────────────────────────────────────────────────────

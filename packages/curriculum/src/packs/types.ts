@@ -8,7 +8,7 @@ export interface PackManifest {
   version: string;
   /** Display name. */
   name: string;
-  /** Subject id used for bootstrap-mode auto-detect, e.g., "math.algebra-1". */
+  /** Subject id used for course-create-mode auto-detect, e.g., "math.algebra-1". */
   subject: string;
   /** Grade level — `GradeBand`. */
   gradeLevel: string;

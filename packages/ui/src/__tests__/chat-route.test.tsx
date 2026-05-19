@@ -264,7 +264,7 @@ describe("ChatRoute shell", () => {
     const tab1 = makeTab({ id: brandId<"TabId">("tab-1"), title: "algebra · teach" });
     const tab2 = makeTab({
       id: brandId<"TabId">("tab-2"),
-      title: "calc · bootstrap",
+      title: "calc · course-create",
       modeId: "course-create",
       sortOrder: 1,
       lastSeenAt: (Date.now() - 1_000) as Timestamp,
@@ -275,7 +275,7 @@ describe("ChatRoute shell", () => {
     await waitFor(() => {
       // Chat bodies render session heads with their titles (not the tab strip).
       expect(screen.getAllByText("algebra · teach").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText("calc · bootstrap").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("calc · course-create").length).toBeGreaterThanOrEqual(1);
     });
   });
 

@@ -42,7 +42,7 @@ export const COPY = {
     libraryDocumentsOrphanedEmpty: "No orphaned documents — your library is tidy.",
     libraryDocumentsFiltered: "No documents match these filters.",
     /** Course concepts list — shown when the course has no concepts yet. */
-    concepts: "No concepts yet. Run a bootstrap session to populate the course with concepts.",
+    concepts: "No concepts yet. Run a course-create session to populate the course with concepts.",
     /** Memory tab — per-projection empty states */
     memorySemanticEmpty:
       "No mastery data yet. Start a teach session to begin tracking concept mastery.",

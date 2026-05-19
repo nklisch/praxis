@@ -26,7 +26,7 @@ export type * from "./conversation.js";
 export type * from "./course-create-service.js";
 export type * from "./course-state.js";
 export type * from "./document-scopes.js";
-// Bootstrap mode: live draft-stream events surfaced to the renderer.
+// Course-create mode: live draft-stream events surfaced to the renderer.
 export type * from "./draft-stream.js";
 export type * from "./engine.js";
 export { engineError } from "./engine.js"; // runtime helper — not re-exported by `export type *`

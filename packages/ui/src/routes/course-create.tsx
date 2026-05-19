@@ -3,7 +3,7 @@
  *
  * Located at `/course-create`. The library "Create a course" CTA navigates
  * here instead of opening a session directly, so the student can attach
- * source material and add optional context before the bootstrap session
+ * source material and add optional context before the course-create session
  * opens.
  *
  * Per the locked `.mockups/flows/course-create-entry/02-upload-docs.html`:
@@ -13,7 +13,7 @@
  *   - "Start Praxis →" CTA (enabled as soon as any file is attached or
  *     can always start — students don't have to wait for indexing)
  *
- * On "Start Praxis →", opens a bootstrap session and navigates to it via
+ * On "Start Praxis →", opens a course-create session and navigates to it via
  * `openSessionInTab`.
  */
 import { useNavigate } from "@tanstack/react-router";

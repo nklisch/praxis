@@ -17,7 +17,7 @@ export function behaviorInCourseFragmentId(modeId: InCourseBehaviorModeId): stri
  * and cite its assessment plan / concept dependencies.
  *
  * Each mode-addendum story (teach, quiz, homework, exam, study-skills)
- * implements one branch of this dispatcher. Bootstrap and configure modes
+ * implements one branch of this dispatcher. Course-create and configure modes
  * are intentionally NOT included — they have their own contracts and no
  * notion of an "active course context".
  *

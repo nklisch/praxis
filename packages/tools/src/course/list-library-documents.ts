@@ -13,10 +13,10 @@ const OutputSchema = z.object({
       hasPageImages: z.boolean(),
       attachedToCurrentCourse: z.boolean(),
       /**
-       * True when the document is attached to the current bootstrap session's
-       * scope. Always false outside bootstrap mode (where no session-scope rows
+       * True when the document is attached to the current course-create session's
+       * scope. Always false outside course-create mode (where no session-scope rows
        * exist for this session). Useful for the drafter to see which library
-       * docs the active bootstrap session is reading from.
+       * docs the active course-create session is reading from.
        */
       attachedToCurrentSession: z.boolean(),
     }),
@@ -36,8 +36,8 @@ export const listLibraryDocumentsTool: ToolDefinition<typeof InputSchema, typeof
     const courseAttached = new Set(ctx.courseDocumentIds ?? []);
 
     // Session scope: look up which docs are session-attached in the current session.
-    // In bootstrap mode, parentSessionId is set by the drafter harness to the
-    // tutor session (S1) — that's the scope owner. In non-bootstrap sessions,
+    // In course-create mode, parentSessionId is set by the drafter harness to the
+    // tutor session (S1) — that's the scope owner. In non-course-create sessions,
     // parentSessionId is undefined; fall back to sessionId (which also has no
     // session-scope rows in a normal tutor session, so the set will be empty).
     const sessionScopeId = ctx.parentSessionId ?? ctx.sessionId;

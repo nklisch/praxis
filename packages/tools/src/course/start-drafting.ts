@@ -102,7 +102,7 @@ export const startDraftingTool: ToolDefinition<typeof InputSchema, typeof Output
   tier: "model-derived",
   effects: ["artifact.mutate", "external.code-exec"],
   async handler(args, ctx: ToolContext) {
-    // Session-scope attach (idempotent): record that this bootstrap session
+    // Session-scope attach (idempotent): record that this course-create session
     // "owns" these documents for the duration of the drafting run. The session-
     // scope rows are promoted to course-scope by confirmDraft, and persist
     // afterwards for audit. Re-running start_drafting with the same docs

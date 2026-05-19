@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-bootstrap-explorer-stale-comment-sweep
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -92,3 +92,42 @@ to confirm zero residual occurrences outside the load-bearing set.
 The `curriculum/src/modes/fragments/__tests__/drafter-configurator-posture.test.ts`
 file legitimately uses `explorer` in assertion strings (it enforces that the
 word doesn't appear in user-visible copy) — LEAVE IT.
+
+## Implementation notes (2026-05-18)
+
+**Files touched: 53** (33 source, 20 test/fixture files)
+
+Packages covered: `@praxis/artifacts`, `@praxis/claude-cli-sdk`, `@praxis/client`,
+`@praxis/core` (services, types), `@praxis/curriculum` (modes, drafter, packs, brief),
+`@praxis/engines`, `@praxis/tools`, `@praxis/ui` (components, hooks, routes, tests).
+
+**Leave-intact identifiers confirmed present:**
+- `services.bootstrap` field key on `ServiceDeps` / `Services` — preserved
+- `BootstrapOpts` type — preserved
+- `kind: "bootstrapped"` discriminator value — preserved
+- `bootstrap` key in `ServiceDeps.toolServices` — preserved
+- `bootstrapEngineResolver`, `bootstrapConfigResolver` — preserved
+- Historical docs (`docs/designs/phase-16-bootstrap-explorer.md`) — not touched
+- `drafter-configurator-posture.test.ts` — not touched
+
+**Post-edit grep confirms zero stale references** outside the documented
+exception list (`tests/helpers/`, `docs/designs/`, `drafter-configurator-posture.test.ts`,
+load-bearing identifiers, `/dist/`).
+
+**Tests:** No test failures. 425 test files passed (3 skipped due to
+`PRAXIS_RUN_SLOW_TESTS` gate). No test assertions were asserting on the old copy
+string — the renamed `copy.ts:concepts` field wasn't tested by literal value.
+
+**Extra finds beyond the story's cluster:** 10 additional stale occurrences
+found and fixed in files not listed in the cluster:
+- `packages/curriculum/src/packs/import-service.ts` — bootstrap-mode auto-detect comment
+- `packages/curriculum/src/packs/types.ts` — bootstrap-mode JSDoc in PackManifest
+- `packages/core/src/services/__tests__/course-create-service.session-scope.test.ts` — test module docstring
+- `packages/claude-cli-sdk/src/cli/__tests__/stream-timeout.test.ts` — "bootstrap explorer" in regression comment
+- `packages/ui/src/__tests__/courses-route.test.tsx`, `resume-draft-picker.test.tsx`, `chat-route.test.tsx`, `tab-strip.test.tsx` — test description strings and tab title fixtures
+- `packages/ui/src/components/sub-agent-panel.tsx` — "bootstrap budget" comment
+- `packages/ui/src/routes/courses.tsx` — "bootstrap conversation" comment
+- `packages/ui/src/routes/library.tsx:72` — inline JSDoc comment on `handleUsePack`
+
+**Log-key cross-reference fixed:** `course-create-service.ts:116` now correctly
+references `course-create.drafts.forward` instead of `bootstrap.drafts.forward`.

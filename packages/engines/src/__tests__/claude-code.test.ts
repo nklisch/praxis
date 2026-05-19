@@ -159,10 +159,10 @@ describe("ClaudeCodeEngine — lifecycle", () => {
 
   // Regression: the SDK has a per-turn wall-clock timeout (10 min default)
   // that kills the subprocess with SIGTERM when a turn takes too long. The
-  // bootstrap explorer reads large textbook bundles and regularly exceeds this.
+  // drafter reads large textbook bundles and regularly exceeds this.
   // Praxis disables the wall-clock timer by passing timeout:0 and instead bounds
   // turns via maxSteps + AbortSignal. If this assertion fails, long-running
-  // turns (especially bootstrap) will produce opaque CLITimeoutErrors.
+  // turns (especially course-create) will produce opaque CLITimeoutErrors.
   it("open() passes timeout:0 to createConversation to disable the SDK wall-clock kill", async () => {
     const { createConversation } = await import("@praxis/claude-cli-sdk");
     const { ClaudeCodeEngine } = await import("../claude-code/adapter.js");

@@ -229,7 +229,7 @@ export class EngineSessionManager {
         overrides = new Map([[fragment.id, fragment.template]]);
 
         // Course-aware mode-prompts: inject the per-mode behavior addendum
-        // when the active mode is in the in-course set. Bootstrap / configure
+        // when the active mode is in the in-course set. Course-create / configure
         // are excluded — they have their own contracts and no notion of an
         // active course.
         const inCourseModes: ReadonlySet<string> = new Set<string>([
@@ -360,7 +360,7 @@ export class EngineSessionManager {
         documentScopes: this.deps.toolServices.documentScopes,
         // Phase 16: engine resolver — used by tools that spawn isolated agent sessions.
         engineResolver: this.deps.toolServices.engineResolver,
-        // Bootstrap budget resolver — read by course.start_drafting.
+        // Course-create config resolver — read by course.start_drafting.
         ...(this.deps.toolServices.courseCreateConfigResolver !== undefined && {
           courseCreateConfigResolver: this.deps.toolServices.courseCreateConfigResolver,
         }),

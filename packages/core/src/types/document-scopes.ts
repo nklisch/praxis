@@ -5,7 +5,7 @@ export type ScopeKind = "course" | "session";
 /**
  * A scope owns a set of documents. A document can belong to multiple
  * scopes simultaneously — e.g., attached to a course AND remembered as
- * having been ingested during a specific bootstrap session.
+ * having been ingested during a specific course-create session.
  */
 export type DocumentScope = { kind: "course"; id: CourseId } | { kind: "session"; id: SessionId };
 
@@ -86,7 +86,7 @@ export interface DocumentScopesService {
 
   /**
    * Promote every document in `from` into `to` (idempotent per row).
-   * Used by bootstrap-session-scoped-attachment when a draft is
+   * Used by course-create-session-scoped-attachment when a draft is
    * confirmed — session-scope rows promote to course-scope while the
    * session rows persist for audit. Source rows are NOT removed.
    */
