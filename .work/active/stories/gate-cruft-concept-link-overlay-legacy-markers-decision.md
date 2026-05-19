@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-concept-link-overlay-legacy-markers-decision
 kind: story
-stage: drafting
+stage: implementing
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -33,15 +33,18 @@ The `markers.map(...)` render block at line 383 is still active, rendered
 alongside the three-state glyph markers.
 
 ## Removal
-Decide:
-- (a) The § marker rendering is genuinely unused/legacy in practice. Then
-  delete the state declaration (116-117), the effect that populates it
-  (206-223), and the render block (382-388).
-- (b) It is still load-bearing for the user-visible affordance. Then
-  reword the comment to remove "legacy — kept for backwards compat" and
-  describe what the § markers are for in the current behavior.
 
-Either path: Praxis convention forbids `// backwards compat` framing — the
-comment must change. Likely surgical decision: trace any place that adds to
-`markers` in real flows (concept-map tab interactions) and confirm visibility
-in the current UI. Outcome may be a tiny commit either way.
+**Design decision (2026-05-18)**: dead — delete the path.
+
+- Remove the `MarkerState` interface (line 12-17 or wherever it's defined).
+- Remove `const [markers, setMarkers] = useState<MarkerState[]>([])` (line 116-117).
+- Remove the effect that populates `setMarkers` (line 206-223).
+- Remove the `markers.map(...)` render block (line 382-388).
+- Trim any local helpers reachable only by the deleted block.
+- Run `pnpm typecheck && pnpm lint && pnpm test` to confirm no
+  unintentional cascades.
+
+If the deletion uncovers a user-visible regression in concept-map link
+rendering (caught by manual smoke or existing UI tests), revert and
+re-classify; otherwise treat the path as dead per the gate-cruft finding.
+

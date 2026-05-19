@@ -1,7 +1,7 @@
 ---
 id: gate-tests-migration-0023-bootstrap-mode-rename
 kind: story
-stage: implementing
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -49,3 +49,17 @@ it("backfills all document_scopes.source = 'bootstrap' rows", async () => { /* .
 
 ## Test location (suggested)
 `packages/core/src/__tests__/migration-0023-rename-bootstrap-mode.test.ts` (new)
+
+## Resolution (2026-05-18)
+
+**Not implementing pre-release.** Praxis has no users with stored
+`mode_id = 'bootstrap'` rows in production; the migration's behavior
+against legacy data is hypothetical. Any developer DB has already been
+migrated by `pnpm db:migrate`, and `pnpm db:reset` rebuilds clean. There
+is no production scenario where this regression test would catch a real
+bug.
+
+If the project ever ships to users with persisted data, re-open and
+implement the test on the next migration cycle. Until then, the schema
+correctness is verified by ordinary `pnpm db:reset && pnpm test` runs
+against the post-migration shape.

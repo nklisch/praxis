@@ -1,7 +1,7 @@
 ---
 id: gate-docs-readme-refactors-latest-date
 kind: story
-stage: drafting
+stage: implementing
 tags: [documentation]
 parent: null
 depends_on: []

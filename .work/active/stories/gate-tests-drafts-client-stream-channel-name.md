@@ -1,7 +1,7 @@
 ---
 id: gate-tests-drafts-client-stream-channel-name
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []

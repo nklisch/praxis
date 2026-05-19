@@ -1,7 +1,7 @@
 ---
 id: gate-tests-set-annotations-inverted-range-classification
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing]
 parent: null
 depends_on: []
@@ -45,10 +45,23 @@ it("setAnnotations returns VALIDATION_FAILED for inverted range (rangeStart >= r
 });
 ```
 
-Plus the schema refine: add
-`.refine(a => a.rangeStart < a.rangeEnd, { message: "rangeStart must be < rangeEnd" })`
-on the annotation entry schema in `notes-channel.ts`.
+**Design decision (2026-05-18)**: schema-level only — single source of
+truth at the IPC boundary. Delete the redundant service-layer throw and
+its unit test.
+
+Concrete edits:
+- `packages/desktop/electron/main/notes-channel.ts`: add
+  `.refine(a => a.rangeStart < a.rangeEnd, { message: "rangeStart must be < rangeEnd" })`
+  on the annotation entry schema in `SetAnnotationsSchema`.
+- `packages/core/src/services/notes-service.ts`: remove the
+  `rangeStart >= rangeEnd` throw guard inside `setAnnotations` — the
+  schema is now the boundary.
+- `packages/core/src/services/__tests__/notes-service.test.ts:320`:
+  delete the `setAnnotations rejects rangeStart >= rangeEnd` test (no
+  longer reachable through normal call paths).
+- `packages/desktop/electron/main/__tests__/notes-flashcards-channel-envelope.test.ts`:
+  add the `VALIDATION_FAILED for inverted range` IPC envelope test.
 
 ## Test location (suggested)
 `packages/desktop/electron/main/__tests__/notes-flashcards-channel-envelope.test.ts`
-plus `packages/desktop/electron/main/notes-channel.ts` schema
+plus the schema in `packages/desktop/electron/main/notes-channel.ts`

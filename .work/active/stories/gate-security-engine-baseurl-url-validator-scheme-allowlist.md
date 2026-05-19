@@ -1,7 +1,7 @@
 ---
 id: gate-security-engine-baseurl-url-validator-scheme-allowlist
 kind: story
-stage: drafting
+stage: implementing
 tags: [security]
 parent: null
 depends_on: []
@@ -49,10 +49,23 @@ That helper is used for `praxis.shell.openExternal` and
 `UpdateFeedSchema.downloadUrl` but is NOT applied to `baseUrl`.
 
 ## Remediation direction
-Replace `z.string().url()` on both `EngineConfigSchema.baseUrl` and
-`EngineConfigStoredSchema.baseUrl` with a `.refine(...)` that delegates to
-`isAllowedExternalUrl` (or its equivalent — restrict scheme to `http:`/`https:`
-and reject control chars/whitespace). Apply identically to both definitions so
-`setEngineConfig` and stored-row reads stay aligned. Add a regression test in
-`packages/core/src/config/__tests__/schema.test.ts` covering `file://`,
-`javascript:`, `data:`, and an embedded-CR variant.
+
+**Design decision (2026-05-18)**: sanitize-at-load for the stored-side path,
+fail-fast for the renderer-facing input.
+
+- `EngineConfigSchema.baseUrl` (renderer-facing input via `setEngineConfig`):
+  add `.refine(v => isAllowedExternalUrl(v), ...)` so invalid baseUrls
+  are rejected at the IPC boundary with `VALIDATION_FAILED`.
+- `EngineConfigStoredSchema.baseUrl`: leave the schema permissive on read
+  to avoid locking users out, but the read path
+  (`ConfigServiceImpl.engineConfig()` or wherever stored rows are
+  materialized) calls `isAllowedExternalUrl` on the parsed `baseUrl` and,
+  if it rejects, drops the field and logs `config.engine_baseurl_dropped`
+  with `{ engineId, reason: "scheme_not_allowed" }`. The engine then falls
+  back to the provider default.
+
+Add regression tests in
+`packages/core/src/config/__tests__/schema.test.ts` and the equivalent
+service file covering: `file://`, `javascript:`, `data:`, embedded-CR,
+plain `https://api.example.com`. Verify the renderer-side rejects and the
+load-side sanitizes-and-logs.

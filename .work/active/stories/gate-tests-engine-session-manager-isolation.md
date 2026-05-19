@@ -1,7 +1,7 @@
 ---
 id: gate-tests-engine-session-manager-isolation
 kind: story
-stage: drafting
+stage: implementing
 tags: [testing, refactor]
 parent: null
 depends_on: []

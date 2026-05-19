@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-ingest-pickfile-back-compat-comment
 kind: story
-stage: drafting
+stage: implementing
 tags: [cleanup]
 parent: null
 depends_on: []

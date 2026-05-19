@@ -1,7 +1,7 @@
 ---
 id: gate-tests-migration-0024-config-key-rename
 kind: story
-stage: drafting
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -45,3 +45,15 @@ it("is idempotent — running twice on an already-migrated DB does not throw", a
 
 ## Test location (suggested)
 `packages/core/src/__tests__/migration-0024-rename-bootstrap-config-key.test.ts` (new)
+
+## Resolution (2026-05-18)
+
+**Not implementing pre-release.** Same reasoning as
+`gate-tests-migration-0023-bootstrap-mode-rename`: no users with stored
+`config_kv` rows keyed `bootstrap` exist in production, so the
+`bootstrap → course-create` rename has no legacy-data path to verify.
+Developer DBs have already been migrated; `pnpm db:reset` rebuilds clean.
+
+If the project ever ships to users with persisted data, re-open and
+implement the test. Until then, current schema correctness is verified by
+ordinary `pnpm db:reset && pnpm test` runs.
