@@ -386,7 +386,7 @@ Ingestion is offline batch work, not in the agent's hot path. Long-running inges
 
 ## Document scoping
 
-Documents are linked to **scopes** via the `document_scopes` table — a polymorphic join with rows `(document_id, scope_kind, scope_id, source, attached_at)`. Scope kinds start with `course` and `session`; the primitive is extensible (lesson, unit, etc.) without schema migration. A document can belong to multiple scopes simultaneously, enabling patterns like "a document attached to a course is also remembered as having been ingested during a specific course-create session."
+Documents are linked to **scopes** via the `document_scopes` table — a polymorphic join with rows `(document_id, scope_kind, scope_id, source, attached_at, passage_range)`. Scope kinds start with `course` and `session`; the primitive is extensible (lesson, unit, etc.) without schema migration. A document can belong to multiple scopes simultaneously, enabling patterns like "a document attached to a course is also remembered as having been ingested during a specific course-create session." The optional `passageRange` (character offsets) stores a per-row text range used by the document viewer to render passage markers and by `SessionService.spawnFromPassage` to scope a child session to a specific passage.
 
 The drafter reads from session-scoped documents during a drafting run and promotes them to course-scope when the user confirms the draft. Manual attachments from the configure surface go directly to course-scope. The `retrieve_from_documents` tool (and the `document.*` tools) takes a scope argument and queries documents linked to that scope.
 

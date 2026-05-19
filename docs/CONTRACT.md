@@ -863,6 +863,30 @@ interface SessionService {
     parentSessionId: SessionId;
   }): Promise<SessionHandle>;
   /**
+   * Open a new teach session pre-loaded with a note's cue context.
+   * `studentId` may be omitted — the service resolves it via getOrCreateDefaultStudentId.
+   * `cueId` is the string-encoded index of the cue (e.g. "0", "1"); if omitted, uses
+   * the note's first cue. The opening message wraps cue + body in structured XML tags
+   * so the tutor starts the conversation with the right context.
+   */
+  spawnFromNote(input: {
+    studentId?: StudentId;
+    noteId: NoteId;
+    cueId?: string;
+  }): Promise<SessionHandle>;
+  /**
+   * Open a new teach session scoped to a passage in a document.
+   * `studentId` may be omitted — the service resolves it via getOrCreateDefaultStudentId.
+   * The passage text is injected into the opening message wrapped in `<passage>` tags.
+   * The document is attached to the session with the passage range so the document
+   * viewer can render a `†` marker on the cited range.
+   */
+  spawnFromPassage(input: {
+    studentId?: StudentId;
+    documentId: DocumentId;
+    range: { startOffset: number; endOffset: number };
+  }): Promise<SessionHandle>;
+  /**
    * Phase 16: inject a `system_note` event into a running session's event
    * stream. Used by AssignmentService to notify the teach-mode tutor when
    * a child assignment is submitted.

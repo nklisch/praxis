@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-spawn-and-passagerange
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -70,3 +70,10 @@ CLAUDE.md "Document scopes" bullet:
 
 Apply rolling-foundation: replace assertions in place; describe the
 present.
+
+## Implementation notes (2026-05-18)
+
+- **CONTRACT.md**: Added `spawnFromNote` and `spawnFromPassage` signatures to the `SessionService` interface block, placed between `spawnFromAssignment` and `notifySession`. Signatures verified against `packages/core/src/types/session-client.ts` (canonical client surface) and `packages/core/src/services/session-service.ts` (implementation). Both methods accept an optional `studentId?: StudentId` that falls back to `getOrCreateDefaultStudentId`. `spawnFromNote` takes `noteId: NoteId` and optional `cueId?: string`; `spawnFromPassage` takes `documentId: DocumentId` and `range: { startOffset: number; endOffset: number }`.
+- **ARCHITECTURE.md**: Extended the `document_scopes` row shape tuple in the Document scoping section to include `passage_range` and appended one sentence describing the `passageRange` field's consumers (document viewer passage markers, `SessionService.spawnFromPassage`).
+- **CLAUDE.md**: Appended a sentence to the Document scopes bullet describing the optional `passageRange` row field (`{ startOffset, endOffset }`), the `attach`/`getPassageRange` API surface, and its two consumers.
+- `pnpm lint` passes — docs-only changes, no code modified.
