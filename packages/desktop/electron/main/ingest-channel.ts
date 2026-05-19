@@ -71,7 +71,7 @@ export function registerIngestHandlers(
 ): void {
   const { handle, on } = createIpcHelpers(log);
 
-  // File picker (single-file, kept for back-compat with existing callers)
+  // Single-file picker — used by the document-import affordance.
   handle(
     "praxis.ingest.pickFile",
     wrapEnvelope("praxis.ingest.pickFile", log, async () => {

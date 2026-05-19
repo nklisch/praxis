@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-ingest-pickfile-back-compat-comment
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -40,3 +40,9 @@ channel. The "kept for back-compat" framing is wrong.
 Replace the comment with a neutral description ("Single-file picker — used by
 the document-import flow.") or delete the explanatory comment entirely.
 Praxis convention (CLAUDE.md) forbids `// kept for back-compat` framing.
+
+## Implementation notes (2026-05-18)
+
+`packages/desktop/electron/main/ingest-channel.ts:74`: replaced
+`// File picker (single-file, kept for back-compat with existing callers)`
+with `// Single-file picker — used by the document-import affordance.`.

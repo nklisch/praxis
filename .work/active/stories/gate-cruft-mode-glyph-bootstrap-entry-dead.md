@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-mode-glyph-bootstrap-entry-dead
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -40,3 +40,8 @@ const MODE_GLYPHS: Record<string, string> = {
 Delete the `bootstrap: "¶"` line. No mode with `modeId === "bootstrap"` exists
 in the codebase after the rename — only `"course-create"` is registered. The
 lookup `MODE_GLYPHS[modeId]` will never hit this key.
+
+## Implementation notes (2026-05-18)
+
+One-line delete in `packages/ui/src/routes/configure/prompt-tab.tsx:20`.
+`course-create` retains the `¶` glyph; no lookup site changes.

@@ -17,7 +17,6 @@ const MODE_GLYPHS: Record<string, string> = {
   quiz: "‡",
   homework: "❦",
   exam: "†",
-  bootstrap: "¶",
   "study-skills": "‖",
   configure: "⁂",
   "course-create": "¶",

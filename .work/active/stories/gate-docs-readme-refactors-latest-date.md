@@ -1,7 +1,7 @@
 ---
 id: gate-docs-readme-refactors-latest-date
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -31,3 +31,9 @@ post-phase-14-UI plan is the latest.
 ## Required edit
 Either update the parenthetical to `(latest: post-phase-14-UI)` or drop it
 entirely — the directory's filename date prefix already conveys recency.
+
+## Implementation notes (2026-05-18)
+
+Dropped the parenthetical entirely. The filename date prefix
+(`2026-04-...`, `2026-05-...`) already conveys recency without anyone
+needing to update the README on every refactor doc.
