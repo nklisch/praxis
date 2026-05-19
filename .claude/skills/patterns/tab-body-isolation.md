@@ -6,7 +6,7 @@ tab's React state — message log, composer value, in-flight streams — across 
 
 ## Rationale
 
-The chat workspace supports multiple concurrent sessions (teach, bootstrap, quiz, etc.)
+The chat workspace supports multiple concurrent sessions (teach, course-create, quiz, etc.)
 in parallel tabs. If inactive tabs were unmounted and remounted, the student would lose
 their in-progress message logs, and any background streams would abort. CSS hide keeps
 everything alive. The trade-off: memory scales with open tabs, but the per-tab state
@@ -100,8 +100,8 @@ hook in the shell owns the state.
 
 - Simple navigation patterns (Library, Settings) — those are separate routes; the shell
   unmounts and remounts correctly
-- Phase 16 modality bodies — quiz/exam/homework/bootstrap each have their own tab body
-  component (`QuizTabBody`, `ExamTabBody`, `HomeworkTabBody`, `BootstrapTabBody`) dispatched
+- Phase 16 modality bodies — quiz/exam/homework/course-create each have their own tab body
+  component (`QuizTabBody`, `ExamTabBody`, `HomeworkTabBody`, `CourseCreateTabBody`) dispatched
   by `session.modeId` in `packages/ui/src/components/chat-tab-body.tsx`; the `display:none`
   pattern applies to the tab wrapper, not to switching modality bodies within a tab
 

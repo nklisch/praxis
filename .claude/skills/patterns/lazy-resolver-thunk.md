@@ -4,7 +4,7 @@ Cross-service dependencies that need late binding are passed as zero-arg (or sin
 
 ## Rationale
 
-Two reasons keep recurring. First, the active engine config is user-tunable and can change at any moment from the UI; capturing an `Engine` instance at service construction would leak a stale engine after a swap. Resolving fresh per call (`engineResolver: () => Engine`) makes swaps take effect on the next operation without a service restart. Second, the dep graph has acyclic ordering constraints — `BootstrapServiceImpl` needs an Engine, but the engine factory needs a config that lives in the DB; threading a resolver thunk lets both be wired at the same level of `buildServices` without circular references. The same shape is used for course lookup (`sessionCourseId: (id) => string | null`) — it lets indexers stay decoupled from `SessionService` while still being able to attribute a session to a course.
+Two reasons keep recurring. First, the active engine config is user-tunable and can change at any moment from the UI; capturing an `Engine` instance at service construction would leak a stale engine after a swap. Resolving fresh per call (`engineResolver: () => Engine`) makes swaps take effect on the next operation without a service restart. Second, the dep graph has acyclic ordering constraints — `CourseCreateServiceImpl` needs an Engine, but the engine factory needs a config that lives in the DB; threading a resolver thunk lets both be wired at the same level of `buildServices` without circular references. The same shape is used for course lookup (`sessionCourseId: (id) => string | null`) — it lets indexers stay decoupled from `SessionService` while still being able to attribute a session to a course.
 
 ## Examples
 
@@ -18,7 +18,7 @@ const bootstrapEngineResolver = () => {
   return createEngine({ config: engineConfig, deps: { log } });
 };
 
-const bootstrapService = new BootstrapServiceImpl({
+const bootstrapService = new CourseCreateServiceImpl({
   db,
   log,
   engineResolver: bootstrapEngineResolver,
@@ -47,7 +47,7 @@ bootstrapConfigResolver?: () => { maxSteps: number };
 sessionCourseId: (sessionId: string) => string | null;
 ```
 
-`bootstrapConfigResolver` is wired in `services.ts:523` as `() => readBootstrapConfig(db)` — read at call time so a UI tweak applies to the very next exploration.
+`bootstrapConfigResolver` is wired in `services.ts:523` as `() => readBootstrapConfig(db)` — read at call time so a UI tweak applies to the very next drafting run.
 
 ## When to Use
 

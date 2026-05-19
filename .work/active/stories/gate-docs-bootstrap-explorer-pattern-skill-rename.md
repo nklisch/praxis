@@ -1,7 +1,7 @@
 ---
 id: gate-docs-bootstrap-explorer-pattern-skill-rename
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -63,3 +63,19 @@ Note: load-bearing identifiers that intentionally retained the
   `bootstrapEngineResolver`, `bootstrapConfigResolver`) as-is.
 
 Apply rolling-foundation: replace assertions in place.
+
+## Implementation notes (2026-05-18)
+
+All four pattern skills updated in place with surgical edits:
+
+- `mode-prompt-fragment-composition.md:75` — `bootstrap` → `course-create` in the seven-mode cluster list.
+- `tab-body-isolation.md:9` — `bootstrap` → `course-create` in the rationale enumeration.
+- `tab-body-isolation.md:103-106` — `BootstrapTabBody` → `CourseCreateTabBody` in the modality-bodies list.
+- `batch-tool-per-item-results.md:7` — "bootstrap explorer agent" → "drafter agent".
+- `lazy-resolver-thunk.md:7` — `BootstrapServiceImpl` → `CourseCreateServiceImpl` in rationale.
+- `lazy-resolver-thunk.md:21` — `new BootstrapServiceImpl({` → `new CourseCreateServiceImpl({` in Example 1 code snippet.
+- `lazy-resolver-thunk.md:50` — "the very next exploration" → "the very next drafting run" in Example 3 prose.
+
+Load-bearing identifiers left intact: `bootstrapService` (local variable), `services.bootstrap` (field key), `bootstrapEngineResolver`, `bootstrapConfigResolver`, `readBootstrapConfig`.
+
+Post-edit grep confirmed zero stale references matching `Bootstrap(Service|TabBody)|bootstrap explorer|next exploration`.

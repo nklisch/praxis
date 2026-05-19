@@ -72,7 +72,7 @@ export function composeSystemPrompt(input: ComposeSystemPromptInput): string {
 }
 ```
 
-20 fragment files exist under `packages/curriculum/src/modes/fragments/`; 7 modes (teach, quiz, homework, exam, study-skills, configure, bootstrap) compose them. Some fragments are factories (`metacognitivePromptsFragment(input)`) when they need parameterization at compose time.
+20 fragment files exist under `packages/curriculum/src/modes/fragments/`; 7 modes (teach, quiz, homework, exam, study-skills, configure, course-create) compose them. Some fragments are factories (`metacognitivePromptsFragment(input)`) when they need parameterization at compose time.
 
 ## user-global and user-append semantics
 

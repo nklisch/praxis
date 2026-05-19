@@ -4,7 +4,7 @@ A "batch" course-mutation tool takes an array of items, processes each independe
 
 ## Rationale
 
-The bootstrap explorer agent has a tight step budget (`maxSteps`, default 200). Calling one tool per concept / edge / lesson burns steps fast. The batch tools collapse N service calls into one model step while preserving per-item observability — failures don't abort the rest, and the model sees each item's outcome in the result so it can correct on the next call. This shape is distinct from the documented `tool-dispatch-pipeline` (which describes registry → handler → ToolResult) and from `discriminated-union-dispatch` (which describes the `kind` switch inside a single-shape tool). It is a Zod-output convention plus a handler loop.
+The drafter agent has a tight step budget (`maxSteps`, default 200). Calling one tool per concept / edge / lesson burns steps fast. The batch tools collapse N service calls into one model step while preserving per-item observability — failures don't abort the rest, and the model sees each item's outcome in the result so it can correct on the next call. This shape is distinct from the documented `tool-dispatch-pipeline` (which describes registry → handler → ToolResult) and from `discriminated-union-dispatch` (which describes the `kind` switch inside a single-shape tool). It is a Zod-output convention plus a handler loop.
 
 ## Examples
 
