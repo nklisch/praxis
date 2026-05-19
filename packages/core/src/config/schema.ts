@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isAllowedExternalUrl } from "../types/url-allowlist.js";
 import {
   isVisionCapable,
   requiresVisionModelValidation,
@@ -52,7 +53,12 @@ export const EngineConfigSchema = z
     /** Provider API key (decrypted form, in-memory only). Read paths return this. */
     apiKey: z.string().optional(),
     /** Override the provider base URL (Codex baseUrl, Ollama host, etc.). */
-    baseUrl: z.string().url().optional(),
+    baseUrl: z
+      .string()
+      .optional()
+      .refine((v) => v === undefined || isAllowedExternalUrl(v), {
+        message: "baseUrl must be a plain http(s) URL",
+      }),
     /** Reasoning effort hint (Claude Code, Codex). */
     effort: z.enum(["minimal", "low", "medium", "high", "xhigh"]).optional(),
   })

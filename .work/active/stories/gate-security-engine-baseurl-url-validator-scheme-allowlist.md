@@ -1,7 +1,7 @@
 ---
 id: gate-security-engine-baseurl-url-validator-scheme-allowlist
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: null
 depends_on: []
@@ -69,3 +69,35 @@ Add regression tests in
 service file covering: `file://`, `javascript:`, `data:`, embedded-CR,
 plain `https://api.example.com`. Verify the renderer-side rejects and the
 load-side sanitizes-and-logs.
+
+## Implementation notes (2026-05-18)
+
+### Changes made
+
+**`packages/core/src/config/schema.ts`**
+- Added import for `isAllowedExternalUrl` from `../types/url-allowlist.js`.
+- `EngineConfigSchema.baseUrl`: replaced `z.string().url().optional()` with
+  `z.string().optional().refine(v => v === undefined || isAllowedExternalUrl(v), { message: "baseUrl must be a plain http(s) URL" })`.
+  Rejects `file://`, `javascript:`, `data:`, and any URL with embedded C0/whitespace.
+- `EngineConfigStoredSchema.baseUrl`: left as `z.string().url().optional()` (permissive — stays safe for legacy rows).
+
+**`packages/core/src/config/engine-config.ts`**
+- Added import for `isAllowedExternalUrl`.
+- In `readEngineConfig`, where `inMemoryStored.baseUrl` is assigned from the stored row,
+  added a guard: if `isAllowedExternalUrl(stored.baseUrl)` returns false, the field is
+  omitted (drops to `undefined`) and `log?.warn("config.engine_baseurl_dropped", { engineId, reason: "scheme_not_allowed" })` is emitted.
+
+**`packages/core/src/config/__tests__/schema.test.ts`** (new file)
+- 7 tests covering `EngineConfigSchema.baseUrl`:
+  - Accepts `https://` and `http://` URLs and `undefined`.
+  - Rejects `file:///etc/passwd`, `javascript:alert(1)`, `data:text/html,foo`, and `https://...` with embedded `\r\n`.
+
+**`packages/core/src/services/__tests__/config-service.baseurl-sanitize.test.ts`** (new file)
+- 3 tests for the sanitize-on-load path:
+  - Stored `file:///etc/passwd` → `engineConfig()` returns `baseUrl: undefined`.
+  - Warning `config.engine_baseurl_dropped` fires with `{ engineId, reason: "scheme_not_allowed" }` (verified via `recordingLogger`).
+  - Stored `https://api.example.com` passes through unchanged; no warning.
+
+### Verification
+
+All 89 `@praxis/core` test files pass (1077 tests). Typecheck and lint clean.

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import type { PraxisDb } from "../db/index.js";
 import { configKv } from "../schema.js";
 import type { Logger, SecretStorage } from "../types/index.js";
+import { isAllowedExternalUrl } from "../types/url-allowlist.js";
 import {
   DEFAULT_ENGINE_CONFIG,
   type EngineConfig,
@@ -89,7 +90,17 @@ export function readEngineConfig(
   if (stored) {
     if (stored.engineId !== undefined) inMemoryStored.engineId = stored.engineId;
     if (stored.model !== undefined) inMemoryStored.model = stored.model;
-    if (stored.baseUrl !== undefined) inMemoryStored.baseUrl = stored.baseUrl;
+    if (stored.baseUrl !== undefined) {
+      if (isAllowedExternalUrl(stored.baseUrl)) {
+        inMemoryStored.baseUrl = stored.baseUrl;
+      } else {
+        log?.warn("config.engine_baseurl_dropped", {
+          engineId: stored.engineId,
+          reason: "scheme_not_allowed",
+        });
+        // Drop the field — engine falls back to provider default.
+      }
+    }
     if (stored.effort !== undefined) inMemoryStored.effort = stored.effort;
     if (resolvedApiKey !== undefined) inMemoryStored.apiKey = resolvedApiKey;
   }
