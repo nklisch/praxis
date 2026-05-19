@@ -1,7 +1,7 @@
 ---
 id: gate-tests-drafts-client-stream-channel-name
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -55,3 +55,13 @@ Created `packages/client/src/__tests__/drafts-client.test.ts` with two focused t
 2. **Argument shape** — asserts the second positional arg to `transport.stream` is `undefined`, matching the `DraftsClient.events()` call signature `this.transport.stream(C.streamBase, undefined)`.
 
 No issues discovered — the rename was already complete on both sides. The `@praxis/client` package has no `vitest.config.ts` of its own; tests run via the root `vitest.config.ts` projects array (`packages/*` glob picks it up). Tests verified to run cleanly via `pnpm vitest run --project @praxis/client`. Typecheck (`tsgo --noEmit`) and biome check both clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Wire-contract pin test is the appropriate shape here — a transport mock guards channel name drift, not service behavior. The two assertions (channel name and undefined second arg) directly cover the renamed wire-protocol contract. Transport mock is minimal and correct.
