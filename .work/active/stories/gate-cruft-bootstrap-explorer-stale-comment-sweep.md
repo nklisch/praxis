@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-bootstrap-explorer-stale-comment-sweep
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -131,3 +131,13 @@ found and fixed in files not listed in the cluster:
 
 **Log-key cross-reference fixed:** `course-create-service.ts:116` now correctly
 references `course-create.drafts.forward` instead of `bootstrap.drafts.forward`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 53 files swept, all stale `bootstrap`/`explorer` references replaced. Spot-checked: copy.ts user-visible string fixed, documents-section.tsx variable renamed correctly, load-bearing identifiers (services.bootstrap, BootstrapOpts, kind:"bootstrapped", bootstrapEngineResolver) confirmed preserved. The drafter-configurator-posture.test.ts correctly left untouched. 425 test files passed.
