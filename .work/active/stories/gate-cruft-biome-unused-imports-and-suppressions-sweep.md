@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-biome-unused-imports-and-suppressions-sweep
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -102,3 +102,13 @@ Seven suppressions were mis-targeted: the `biome-ignore` comment was above an ex
 
 ### Commit
 `f6cfc92` — implement: gate-cruft-biome-unused-imports-and-suppressions-sweep (35 files, 88+/107-)
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All 11 unused imports removed, 6 variables prefixed with `_`, and 7 mis-targeted suppressions relocated. Spot-checked library-service.ts (stmt extraction correct), concept-maps-channel.ts (brandId removal), db/index.ts (initArtifactsFtsStore removal), config-client.test.ts (malformedPayload extraction). Verification logs confirm clean biome + typecheck + 4525 passing tests.
