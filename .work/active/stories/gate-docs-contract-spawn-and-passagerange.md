@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-spawn-and-passagerange
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -77,3 +77,13 @@ present.
 - **ARCHITECTURE.md**: Extended the `document_scopes` row shape tuple in the Document scoping section to include `passage_range` and appended one sentence describing the `passageRange` field's consumers (document viewer passage markers, `SessionService.spawnFromPassage`).
 - **CLAUDE.md**: Appended a sentence to the Document scopes bullet describing the optional `passageRange` row field (`{ startOffset, endOffset }`), the `attach`/`getPassageRange` API surface, and its two consumers.
 - `pnpm lint` passes — docs-only changes, no code modified.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: CONTRACT.md signatures for spawnFromNote and spawnFromPassage verified against actual types (session-client.ts lines 872, 884). ARCHITECTURE.md passage_range field added at line 389. CLAUDE.md passageRange sentence appended to Document scopes bullet. All three docs read in present tense with correct type shapes.
