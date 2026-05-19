@@ -127,12 +127,14 @@ export function registerNotesHandlers(services: Services, log: Logger): void {
     }),
   );
 
-  const annotationSchema = z.object({
-    rangeStart: z.number().int().nonnegative(),
-    rangeEnd: z.number().int().nonnegative(),
-    text: z.string(),
-    severity: z.enum(["soft", "load_bearing"]),
-  });
+  const annotationSchema = z
+    .object({
+      rangeStart: z.number().int().nonnegative(),
+      rangeEnd: z.number().int().nonnegative(),
+      text: z.string(),
+      severity: z.enum(["soft", "load_bearing"]),
+    })
+    .refine((a) => a.rangeStart < a.rangeEnd, { message: "rangeStart must be < rangeEnd" });
 
   const setAnnotationsSchema = z.object({
     noteId: z.string().min(1, "noteId"),

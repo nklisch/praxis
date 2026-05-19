@@ -639,6 +639,20 @@ describe("praxis.notes.setAnnotations — envelope wiring", () => {
       error: { code: "INTERNAL" },
     });
   });
+
+  it("returns VALIDATION_FAILED for inverted range (rangeStart >= rangeEnd)", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.notes.setAnnotations");
+    const result = await handler?.(
+      {},
+      { noteId: "n-1", annotations: [{ rangeStart: 5, rangeEnd: 3, text: "x", severity: "soft" }] },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.notes.setAnnotations).not.toHaveBeenCalled();
+  });
 });
 
 // ── praxis.notes.getAnnotations — string-payload envelope ─────────────────────

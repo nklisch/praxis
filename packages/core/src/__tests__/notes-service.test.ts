@@ -317,23 +317,6 @@ describe("NotesServiceImpl", () => {
       expect(result).toEqual([]);
     });
 
-    it("setAnnotations rejects rangeStart >= rangeEnd", async () => {
-      const { db } = openDb({ path: dbCtx.dbPath });
-      const svc = makeService(db);
-      const note = await svc.create({
-        studentId: STUDENT_ID,
-        format: "free",
-        body: { kind: "free", text: "validation" },
-      });
-      await expect(
-        svc.setAnnotations({
-          studentId: STUDENT_ID,
-          noteId: note.id,
-          annotations: [{ rangeStart: 5, rangeEnd: 3, text: "bad", severity: "soft" }],
-        }),
-      ).rejects.toThrow("Invalid annotation range");
-    });
-
     it("setAnnotations rejects negative rangeStart", async () => {
       const { db } = openDb({ path: dbCtx.dbPath });
       const svc = makeService(db);
@@ -347,23 +330,6 @@ describe("NotesServiceImpl", () => {
           studentId: STUDENT_ID,
           noteId: note.id,
           annotations: [{ rangeStart: -1, rangeEnd: 5, text: "bad", severity: "soft" }],
-        }),
-      ).rejects.toThrow("Invalid annotation range");
-    });
-
-    it("setAnnotations rejects equal rangeStart and rangeEnd", async () => {
-      const { db } = openDb({ path: dbCtx.dbPath });
-      const svc = makeService(db);
-      const note = await svc.create({
-        studentId: STUDENT_ID,
-        format: "free",
-        body: { kind: "free", text: "validation" },
-      });
-      await expect(
-        svc.setAnnotations({
-          studentId: STUDENT_ID,
-          noteId: note.id,
-          annotations: [{ rangeStart: 3, rangeEnd: 3, text: "bad", severity: "soft" }],
         }),
       ).rejects.toThrow("Invalid annotation range");
     });

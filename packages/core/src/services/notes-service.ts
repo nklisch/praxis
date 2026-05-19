@@ -211,12 +211,11 @@ export class NotesServiceImpl implements NotesService {
         !Number.isInteger(ann.rangeStart) ||
         !Number.isInteger(ann.rangeEnd) ||
         ann.rangeStart < 0 ||
-        ann.rangeEnd < 0 ||
-        ann.rangeStart >= ann.rangeEnd
+        ann.rangeEnd < 0
       ) {
         throw new Error(
           `Invalid annotation range [${ann.rangeStart}, ${ann.rangeEnd}): ` +
-            "rangeStart and rangeEnd must be non-negative integers with rangeStart < rangeEnd.",
+            "rangeStart and rangeEnd must be non-negative integers.",
         );
       }
     }
