@@ -1,7 +1,7 @@
 ---
 id: gate-tests-set-annotations-inverted-range-classification
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -81,3 +81,13 @@ Followed the single-source-of-truth design exactly.
 - `packages/desktop/electron/main/__tests__/notes-flashcards-channel-envelope.test.ts`: Added `"returns VALIDATION_FAILED for inverted range (rangeStart >= rangeEnd)"` test; asserts `{ ok: false, error: { code: "VALIDATION_FAILED" } }` and that the service was never called.
 
 **Verification:** 21/21 core tests pass; 28/28 desktop envelope tests pass. Typechecks clean for both packages (pre-existing `session-service.ts` TS error in desktop is unrelated to this change).
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Single-source-of-truth design executed cleanly. Schema .refine on annotationSchema at IPC boundary. IPC test verifies VALIDATION_FAILED and confirms service not called. Service-layer inverted-range tests correctly deleted (condition removed). Remaining service-layer tests (negative rangeStart, non-integer) stay and pass — their corresponding guards remain.
