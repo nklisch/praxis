@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-ingest-pickfile-back-compat-comment
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -46,3 +46,13 @@ Praxis convention (CLAUDE.md) forbids `// kept for back-compat` framing.
 `packages/desktop/electron/main/ingest-channel.ts:74`: replaced
 `// File picker (single-file, kept for back-compat with existing callers)`
 with `// Single-file picker — used by the document-import affordance.`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Single-line comment replacement exactly as specified. Batched with two other trivial items in commit ab72ab4. Comment now correctly reflects current usage.
