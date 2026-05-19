@@ -1,7 +1,7 @@
 ---
 id: release-v0.1.3
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
@@ -242,3 +242,20 @@ Test gate carryovers (15):
   - `gate-tests-migration-0024-config-key-rename` (Medium → resolved pre-release: no production data to migrate)
   - `gate-tests-snapshot-restore-un-revert-edges` (Low, backlog)
   - `gate-tests-course-start-drafting-wire-identifier` (Low, backlog)
+
+## Shipped (2026-05-18)
+
+- **Date shipped**: 2026-05-18
+- **Mapping**: tag-based (annotated git tag `v0.1.3`)
+- **Total items shipped**: 191 (2 epics, 28 features, 161 stories) bound + this release file
+- **Items left in backlog** (Low-priority gate findings, do not gate ship):
+  - `gate-tests-snapshot-restore-un-revert-edges` (Low)
+  - `gate-tests-course-start-drafting-wire-identifier` (Low)
+  - `idea-citation-schema-inverted-range-refine` (follow-up parked during ship)
+- **Gate finding totals**:
+  - gate-security: 1 new (Medium: baseUrl) + 4 carry-overs landed
+  - gate-tests: 12 new (2 Crit, 4 High, 4 Med, 2 Low) + 15 carry-overs landed; 2 migration-regression items closed pre-release ("no production data" rationale)
+  - gate-cruft: 18 raw findings consolidated into 6 focused sweep items
+  - gate-docs: 20 raw findings consolidated into 6 focused doc/pattern-skill items
+  - gate-patterns: 2 new patterns codified (`streaming-ipc-channel-helpers`, `notify-listeners-helper`), 2 inconsistencies in existing pattern skills resolved
+- **Pre-existing typecheck baseline carried forward**: `packages/desktop/electron/main/services.ts:42` `IndexerOrchestrator | undefined` mismatch — predates v0.1.3, tracked separately in the typecheck-baseline workstream.

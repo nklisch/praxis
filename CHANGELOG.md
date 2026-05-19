@@ -5,6 +5,290 @@ All notable changes to Praxis are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.1.3 — 2026-05-18
+
+Two parallel epics — a ground-up UI redesign against a swapped editorial
+token system, and the backend completion bundle that fills the new
+surfaces — land together with a sweep of structural refactors. The mode
+formerly called `bootstrap` is now `course-create`; the agent formerly
+called the `explorer` is now the `drafter`; `course.start_exploration`
+is now `course.start_drafting`. Behind the rename, `ipc-server.ts` is
+split into per-domain channel modules, the engine session loop is
+extracted out of `SessionServiceImpl` into a dedicated
+`EngineSessionManager`, every streaming channel is factored onto two
+shared helpers, every fanout service shares one listener-loop helper,
+and `useResource` is now adopted across the configure tabs.
+
+The release also lands the standard quality-gate sweeps (security,
+tests, cruft, docs, patterns), with two new pattern skills codified —
+`streaming-ipc-channel-helpers` and `notify-listeners-helper` — and one
+new security hardening (`EngineConfig.baseUrl` scheme allowlist with
+sanitize-on-load for legacy rows).
+
+### Features
+
+- **UI redesign, ground-up** — full app-shell rebuild (running-head
+  `<TopNav>`, mounted ambient-progress `<StatusStrip>`, first-run flow,
+  theme toggle, tabs strip), chat workspace (refined message bubbles,
+  composer restyle, quiz / homework / exam / study-skills / document tab
+  bodies, tool-call disclosure block, restyled side panels), workspace
+  surfaces (catalogue rebuild, concept-map editor restyle, Cornell /
+  Feynman / outline / free / sketch note editors, ask-tutor-from-note,
+  chat-to-workspace inline panel, review-session flow), configure canvas
+  (entry flow, course / gates / memory / prompts canvas tabs,
+  canvas-side chat shell), and discovery surfaces (course-create entry
+  path, session-open flow polish, workbench library rebuild,
+  course-create ingestion status fix). The design-system token swap
+  underpins everything.
+- **Document viewer + spawn-from-passage** — citation tools persist
+  `passageRange` on `document_scopes` rows, the viewer renders passage
+  markers + a selection bar, and `SessionService.spawnFromPassage` opens
+  a teach session scoped to the selected text. Same shape applies to
+  spawn-from-note for note-driven teach sessions.
+- **Drafter / configurator chat** — authoring pane gained an inline
+  `<ToolCallEntry>` with per-call revert wired to `restoreAction`, a
+  sub-agent block inline in the message thread, parent prompt updates
+  reflected immediately, and a course-create tab body that consumes the
+  draft stream cleanly.
+- **Snapshot / restore** — every configurator action now captures a
+  snapshot row so the new `restoreAction` IPC + UI can roll an edit
+  back; the new `restore` action itself snapshots, enabling un-revert.
+- **Cross-tab state primitives** — parent-child session linkage (a child
+  assignment session injects a `system_note` event into its parent
+  tutor session on submit), dirty-tracker for tabbed editors, and the
+  spawn-from-note path landing the same `system_note` semantics.
+- **Concept-map ↔ sketch bridge** — convert a sketch to a concept map
+  with three-state ripples and an editing flow.
+- **Note annotations and filters** — per-character-range annotations
+  with severity, plus saved search/filter combinations.
+- **UI completion bundle** — theme persistence, exam timer, quiz
+  confidence debounce fix, spawn-from-note, create-course CTA from the
+  catalogue, lesson-assessment render.
+- **Workbench engine recommendation** — `RecommendationService` surfaces
+  the suggested engine per session-shape (course-create vs teach vs
+  configure vs grading-heavy modes) so the engine picker shows a
+  default rather than blank.
+- **Inline drafts list** — `feature-list-in-progress-drafts` makes the
+  course-create surface enumerate in-flight drafts so a user picking up
+  mid-flow sees options instead of a blank slate.
+- **Reattach-docs mid-session** — a teach session can attach additional
+  documents after open via `praxis.session.reattachDocuments`, scoped
+  per-session, with the document scope service handling upsert
+  semantics.
+- **Deep mode-prompt course alignment** — the per-mode
+  `course-context` fragment now also threads in the current lesson's
+  concepts and the active mastery state so the tutor's opening turn is
+  aware of where the student is in the course graph.
+
+### Fixes
+
+- **CLI crash on no-session resume** — opening a session whose stored
+  engine id no longer resolves to a registered engine no longer crashes
+  the CLI; it falls back to the project default and logs the swap.
+- **Outline editor contenteditable cursor reset** — typing in the
+  outline editor no longer jumps the caret back to the start on
+  controlled re-render.
+- **Audit log render flicker** — the audit log loop no longer re-mounts
+  on every tick.
+- **Chat documents-sidebar flicker** — same loop-induced re-mount fixed
+  in the chat documents sidebar.
+- **Question card persists after answer** — the quiz / homework
+  question card unmounts on answer so the next question takes its
+  place cleanly.
+- **Sub-agents panel collapse** — sub-agent subscriptions release on
+  panel collapse instead of leaking.
+- **Chat right-panel storage-key collision** — `<ChatRightPanel>` got
+  its own resize storage key instead of sharing the quiz/homework key
+  with a different clamp range.
+- **Configure prompt-tab dirty key mismatch** — the prompt-config tab
+  reads/writes the same dirty key so unsaved-changes detection works
+  again.
+- **Ripples-panel legacy-token color error** — the ripples panel uses
+  the renamed `--color-danger` token instead of the dropped
+  `--color-error`.
+- **Library service due-only FTS null inconsistency** — `dueOnly`
+  filtering no longer drops rows that legitimately have null
+  next-review timestamps.
+- **Lesson-assessment pills fetch catch** — the lesson assessment pills
+  surface no longer crashes on a fetch reject.
+- **Configure gates inspector pending minscore strip** — the gate
+  inspector no longer shows a phantom pending min-score row.
+- **Configure memory-tab local empty state** — the memory tab renders
+  a proper empty state on a fresh project instead of the loading state
+  in perpetuity.
+- **Configure-tab button change-dot test coverage** — the dirty-dot
+  indicator on configure-tab buttons has tests.
+- **Document-tab-body lint cleanup** — biome-flagged residue in the
+  document tab body cleared.
+- **Mode-glyph dead bootstrap entry** — the `bootstrap: "¶"` lookup row
+  in `MODE_GLYPHS` is gone — no mode id maps to that key anymore.
+
+### Refactor
+
+- **`bootstrap → course-create` and `explorer → drafter` rename** —
+  five-step atomic rename across modes, the tool registry
+  (`course.start_drafting`), services, IPC channels
+  (`praxis.courseCreate.drafts.events.*`), and foundation docs. The
+  user-facing surface flips cleanly; load-bearing internal identifiers
+  (`services.bootstrap` field key, `BootstrapOpts` type,
+  `kind: "bootstrapped"`, `bootstrapEngineResolver`,
+  `bootstrapConfigResolver`) are retained by design to keep the diff
+  bounded. A wide stale-comment sweep across 53 files clears residue
+  from JSDoc, log-key cross-references, test-helper docs, and user
+  copy.
+- **`ipc-server.ts` per-domain extraction** — the 3500-line
+  `ipc-server.ts` is now a 183-line composition root that invokes 25+
+  `register*Handlers` calls. Every cohesive IPC domain lives in its
+  own `<domain>-channel.ts`. A new `per-domain-channel-module`
+  pattern documents the shape.
+- **Engine session loop extraction** — `SessionServiceImpl` is now a
+  thin orchestrator that owns turn orchestration (recordUserMessage →
+  yield → for-await engine events → append episodic); engine session
+  lifecycle (open / acquire / send / close, swap detection,
+  native-resume, prior-turn seeding, mode-tool filtering, additional-
+  fragment composition) lives in `EngineSessionManager` at
+  `packages/core/src/services/session/engine-session-manager.ts`.
+- **Streaming IPC channel helpers** — `registerSubscriberStream`
+  (callback-subscribe) and `registerGeneratorStream` (`AsyncIterable`)
+  factories in `stream-handler.ts` own the `.start` / `.events.<id>` /
+  `.cancel` triplet. Seven streaming channels (activity, sub-agent,
+  course-create-drafts, quick-check, session.send, ingest, memory) now
+  use them instead of ~60 lines of inline boilerplate each. New
+  pattern: `streaming-ipc-channel-helpers`.
+- **Subscriber-registry base** — `notifyListeners(listeners, event,
+  log, component)` in `services/db-helpers.ts` is the shared per-
+  listener `try/catch` fanout loop used by four services (activity,
+  quick-check, sub-agent, course-create). New pattern:
+  `notify-listeners-helper`.
+- **`@praxis/core/types` split** — `core/src/types.ts` is split along
+  tool and client boundaries into focused files; the umbrella module
+  preserves the existing import paths.
+- **`useResource` adoption sweep** — three configure tabs (memory,
+  course, prompt) migrated from inlined `useEffect + try/catch` blocks
+  to the `useResource(loader)` hook.
+- **`CourseCreateServiceImpl` module extraction** — the drafter loop
+  (engine adapter glue, tool dispatch threading, draft persistence,
+  parent-session notification) is split into modules under
+  `services/course-create/` with `CourseCreateServiceImpl` as the thin
+  composition root.
+- **IPC envelope validation coverage** — every schema-validated IPC
+  channel now uses the new `handleEnvelope(channel, log, schema, fn)`
+  helper composed from `wrapEnvelope + withSchema`. 121 call sites
+  across 19 channel files.
+- **`getStudentId()` helper sharing** — 44 inline regressions across
+  12 channel files collapsed onto a single helper. `StudentId` /
+  `Services` import type-only per the verbatimModuleSyntax rule.
+- **`loadOrThrow` adoption** — concept-map and tabs services migrated
+  off inline `if-null-throw` blocks to the shared helper, restoring
+  the uniform `"<entity> not found after <op>: <id>"` error format.
+- **`normalizeConceptName` helper** — extracted, then consolidated to
+  a single home after a follow-up surfaced duplication.
+- **`defaultStudentId` helper** — extracted out of multiple callers.
+- **`previewPrompt` god-function split** — preview composition broken
+  into landable pieces.
+- **`brandId<"DraftId">` adoption** — draft-store id types brand-
+  tightened.
+- **`NoteBodySchema` discriminated-union restore** — the schema is
+  back to `z.discriminatedUnion("kind", ...)` after a brief
+  performance-motivated detour through `z.union`.
+- **`explorer` rename in tool descriptions** — the `course.*` tool
+  descriptions that still mentioned the `explorer` agent flipped to
+  the `drafter`.
+- **Stale explorer-comment cleanup sweep** — sibling to the wider
+  bootstrap/explorer sweep.
+- **`deprecated code sandbox exports` cleanup** — old isolated-vm
+  carry-overs deleted.
+
+### Security
+
+- **`EngineConfig.baseUrl` scheme allowlist** — the renderer-facing
+  `EngineConfigSchema.baseUrl` now refuses `file://`, `javascript:`,
+  `data:`, and embedded-CR URIs via `isAllowedExternalUrl`. The
+  stored-side schema stays permissive but the load path sanitizes —
+  invalid `baseUrl` rows are dropped with a
+  `config.engine_baseurl_dropped` warn rather than locking the user
+  out.
+- **Embedded image-store path guard** — the page-image store guard is
+  now applied to the embedded-image extraction path in the PPTX
+  ingestor.
+- **SDK per-turn timeout disabled, defense-in-depth** — the
+  Claude Code adapter passes `timeout: 0` and bounds turns via
+  `maxSteps + AbortSignal`. A regression test asserts the disable is
+  preserved.
+- **Tool-bridge socket permissions and token** — the local Unix
+  socket the tool-bridge uses for MCP fan-out now restricts socket
+  permissions and requires a per-session token so a co-located
+  process can't intercept tool traffic.
+- **`ipc-server` raw-invoke residuals** — 13 raw `invoke` channels
+  that bypassed the envelope redactor now run through the
+  redacted-error path.
+
+### Documentation
+
+- **Foundation docs rolled forward** — CLAUDE.md, ARCHITECTURE.md,
+  CONTRACT.md, UX.md, README.md, and `.claude/rules/patterns.md`
+  updated to describe the present:
+  `EngineSessionManager.openActive` (not `SessionServiceImpl`),
+  `<StatusStrip>` as the mounted ambient-progress surface (not
+  "planned"), `course-create` mode and `drafter` agent (not
+  `bootstrap` / `explorer`), `passageRange` on `document_scopes` rows,
+  `spawnFromNote` / `spawnFromPassage` on the `SessionService`
+  interface.
+- **Pattern skills refreshed** — five pattern skills updated for the
+  ipc-server extraction (`per-domain-channel-module`,
+  `ipc-channel-convention`, `ipc-envelope-handler` adds
+  `handleEnvelope`, `subscriber-fanout-stream` reflects the helper-
+  based form, plus engine-session-lifecycle Example 3 for
+  `EngineSessionManager`). Three pattern skills updated for the
+  bootstrap → course-create rename
+  (`mode-prompt-fragment-composition`, `tab-body-isolation`,
+  `lazy-resolver-thunk`).
+- **Two new pattern skills** — `streaming-ipc-channel-helpers`
+  documents the `registerSubscriberStream` / `registerGeneratorStream`
+  factories; `notify-listeners-helper` documents the shared
+  listener-loop with per-listener error isolation.
+
+### Internal
+
+- **Quality gates** — five-stage sweep with results:
+  - **gate-security** — 1 new finding (Medium: baseUrl allowlist), 4
+    carry-overs already tracked.
+  - **gate-tests** — 12 coverage gaps closed (2 Critical, 4 High,
+    4 Medium, 2 Low; the two migration-regression items were closed
+    pre-release on the "no production data yet" rationale). 15 prior
+    test-gate carry-overs landed.
+  - **gate-cruft** — 18 raw findings consolidated into 6 focused
+    items: mode-glyph dead entry, the bootstrap/explorer 53-file
+    stale-comment sweep, the biome unused-imports/suppressions/
+    variables sweep, the ipc-server-cancel test scaffolding cleanup,
+    the ingest-pickfile comment, the concept-link-overlay legacy
+    marker deletion.
+  - **gate-docs** — 20 raw findings consolidated into 6 focused
+    items covering all the foundation-doc and pattern-skill drift
+    above.
+  - **gate-patterns** — 2 new patterns codified, 2 inconsistencies
+    in existing pattern skills tracked and resolved.
+- **`feature-rate-limit-error-structured-fields`** — adapter-level
+  rate-limit errors now expose `retryAt`, `windowType`, and
+  `provider` as structured fields on the error envelope, in addition
+  to the human-readable message landed in v0.1.2.
+- **Configure-context textarea forwarding** — the configure surface
+  forwards keyboard context into the underlying textarea so paste-
+  and-replace works from the configure shell.
+- **Course-buildout progress signals** — the buildout pipeline emits
+  intermediate progress events so the activity rail surfaces the
+  per-stage state.
+- **Root vitest praxis-source condition** — `tests/` runs against the
+  source condition correctly via the workspace config.
+- **`wire-logger-into-quick-check-service`** — quick-check service
+  takes its logger via `ServiceDeps` so per-turn logs are correctly
+  tagged.
+- **`investigate-flaky-use-fragment-overrides-test`** — flaky test
+  diagnosed and stabilized.
+- **`fix-exactoptional-typecheck-baseline`** — `exactOptionalPropertyTypes`-driven
+  typecheck baseline normalized after the bundle's many small surface
+  shifts.
+
 ## v0.1.2 — 2026-05-17
 
 Largest release since v0.1.0. Eight epics clustered out of the v0.1.1 backlog
