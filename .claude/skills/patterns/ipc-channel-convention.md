@@ -8,26 +8,42 @@ Electron's `ipcMain.handle` is Promise-based (single response). Streaming requir
 
 ## Examples
 
-### Example 1: IPC server — registering all channels
-**File**: `packages/desktop/electron/main/ipc-server.ts:81`
+### Example 1: Per-domain channel module — session handlers
+**File**: `packages/desktop/electron/main/session-channel.ts:34`
 ```typescript
-// Non-streaming channels (invoke → single Promise response):
-handle("praxis.session.active", async () => services.session.active());
-handle("praxis.session.start",  async (_e, opts) => services.session.start(opts));
-handle("praxis.session.end",    async (_e, sessionId) => services.session.end(sessionId));
+export function registerSessionHandlers(
+  services: Services,
+  webContentsGetter: () => Electron.WebContents | null,
+  activeAbortControllers: Map<string, AbortController>,
+  log: Logger,
+): void {
+  const { handle, on } = createIpcHelpers(log);
 
-// Streaming: .start invoke → per-stream events channel → .cancel invoke
-handle("praxis.session.send.start", async (_e, args: { streamId, args: { sessionId, message } }) => {
-  const eventsChannel = `praxis.session.send.events.${args.streamId}`;
-  // ... iterate services.session.send(...) and push via webContents.send(eventsChannel, ...)
-});
-ipcMain.on("praxis.session.send.cancel", (_e, streamId) => {
-  activeStreams.get(streamId)?.abort();
-});
+  // Non-streaming channels (invoke → single Promise response, envelope-wrapped):
+  handle(
+    "praxis.session.active",
+    wrapEnvelope("praxis.session.active", log, async () => services.session.active()),
+  );
+  handle(
+    "praxis.session.start",
+    handleEnvelope("praxis.session.start", log, sessionStartSchema, async (opts) =>
+      services.session.start({ modeId: opts.modeId, /* ... */ }),
+    ),
+  );
+  handle(
+    "praxis.session.end",
+    handleEnvelope("praxis.session.end", log, z.string().min(1), async (sessionId) =>
+      services.session.end(sessionId as SessionId),
+    ),
+  );
 
-// Config channels:
-handle("praxis.config.engineConfig",    async () => services.config.engineConfig());
-handle("praxis.config.setEngineConfig", async (_e, { config }) => services.config.setEngineConfig(config));
+  // Streaming: .start invoke → per-stream events channel → .cancel on
+  registerGeneratorStream<unknown, [sessionId: string, message: string]>(
+    { channelBase: "praxis.session.send", log, webContentsGetter, activeAbortControllers },
+    { handle, on },
+    { iterate: ([sessionId, message], signal) => services.session.send(sessionId as SessionId, message, signal) },
+  );
+}
 ```
 
 ### Example 2: Client transport — subscribe before invoke (race-free)
@@ -69,7 +85,7 @@ const C = {
 
 ## When to Use
 
-- Adding a new domain: follow `praxis.{newDomain}.{action}` naming; register in `ipc-server.ts` + add constants in `services/{newDomain}-client.ts`
+- Adding a new domain: follow `praxis.{newDomain}.{action}` naming; create a new `<newDomain>-channel.ts` exporting `registerNewDomainHandlers(services, …, log)` and add a single `registerNewDomainHandlers(…)` call to `ipc-server.ts`; add channel name constants in `packages/client/src/services/{newDomain}-client.ts`
 - Streaming result: split into `.start` / `.events.<streamId>` / `.cancel` — never try to stream via a single `ipcMain.handle` Promise
 
 ## When NOT to Use

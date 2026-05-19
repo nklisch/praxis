@@ -4,7 +4,7 @@ Each domain that owns a cohesive set of IPC channels exposes a `registerXxxHandl
 
 ## Rationale
 
-Before this pattern, all 60+ channel registrations lived in one `ipc-server.ts` function. Splitting by domain (activity, subagent, bootstrap-drafts, quick-check, document-scopes, ingest) gives three concrete wins: (1) each channel module is independently testable with the `vi.mock("electron")` + handler-capture pattern; (2) the cleanup list in `ipc-server` stays short — the streaming channels each manage their own `activeAbortControllers` entries; (3) cross-cutting concerns (timing, logging, error redaction) live in `createIpcHelpers` so every channel gets them uniformly without ceremony. The `subscriber-fanout-stream` pattern reaches across all of these; this pattern names the module-file shape that hosts each instance of it.
+Before this pattern, all 60+ channel registrations lived in one `ipc-server.ts` function. Splitting by domain (activity, subagent, course-create-drafts, quick-check, document-scopes, ingest) gives three concrete wins: (1) each channel module is independently testable with the `vi.mock("electron")` + handler-capture pattern; (2) the cleanup list in `ipc-server` stays short — the streaming channels each manage their own `activeAbortControllers` entries; (3) cross-cutting concerns (timing, logging, error redaction) live in `createIpcHelpers` so every channel gets them uniformly without ceremony. The `subscriber-fanout-stream` pattern reaches across all of these; this pattern names the module-file shape that hosts each instance of it.
 
 ## Examples
 
@@ -53,17 +53,17 @@ export function registerDocumentScopesHandlers(services: Services, log: Logger):
 
 ### Example 3: `ipc-server.ts` as composition root delegating to `register*Handlers`
 
-**File**: `packages/desktop/electron/main/ipc-server.ts:1291`
+**File**: `packages/desktop/electron/main/ipc-server.ts:60-122`
 
 ```typescript
 registerActivityHandlers(services, webContentsGetter, activeAbortControllers, log);
 registerSubAgentHandlers(services, webContentsGetter, activeAbortControllers, log);
-registerBootstrapDraftsHandlers(services, webContentsGetter, activeAbortControllers, log);
+registerCourseCreateDraftsHandlers(services, webContentsGetter, activeAbortControllers, log);
 registerQuickCheckHandlers(services, webContentsGetter, activeAbortControllers, log);
 registerDocumentScopesHandlers(services, log);
 ```
 
-Other instances: `subagent-channel.ts:18`, `bootstrap-drafts-channel.ts:20`, `quick-check-channel.ts:16`, `ingest-channel.ts:65`.
+Other instances: `subagent-channel.ts:18`, `course-create-drafts-channel.ts:19`, `quick-check-channel.ts:16`, `ingest-channel.ts:65`.
 
 ## When to Use
 
