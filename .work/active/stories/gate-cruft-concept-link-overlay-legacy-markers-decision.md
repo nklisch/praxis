@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-concept-link-overlay-legacy-markers-decision
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -72,4 +72,14 @@ Verification passed:
 - `pnpm biome check` on all touched files — clean
 - `pnpm --filter @praxis/ui test` — 155 test files, 1599 tests, all passed
 - `grep -rn "MarkerState|setMarkers|linkedMarker"` across packages — zero results
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: MarkerState interface, useState hook, useEffect populator, and markers.map() JSX block all cleanly deleted. ShapeBoundsScreen also removed (surfaced by lint). CSS .linkedMarker class removed. Test for the deleted path removed (appropriate — no path to test). Zero residual references confirmed. 1599 UI tests pass.
 
