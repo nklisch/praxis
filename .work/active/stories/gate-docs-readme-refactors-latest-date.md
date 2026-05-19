@@ -1,7 +1,7 @@
 ---
 id: gate-docs-readme-refactors-latest-date
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -37,3 +37,13 @@ entirely — the directory's filename date prefix already conveys recency.
 Dropped the parenthetical entirely. The filename date prefix
 (`2026-04-...`, `2026-05-...`) already conveys recency without anyone
 needing to update the README on every refactor doc.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Parenthetical `(latest: post-phase-12)` dropped from README.md line 252. Verified — line no longer contains any "latest:" text. Self-documenting via filename dates is the better convention.

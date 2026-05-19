@@ -1,7 +1,7 @@
 ---
 id: gate-docs-status-strip-no-longer-planned
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -65,3 +65,13 @@ Three foundation docs updated in place (rolling-forward; no hedging prose added)
 - **docs/UX.md** (line 5): Dropped `planned` qualifier from the status-strip description. Now reads: `<StatusStrip>` mounted directly beneath `<TopNav>` at the router root — a near-invisible surface surfacing ambient background work without blocking navigation; the standalone `<ActivityRail>` component is retained but unused.
 
 - **docs/ARCHITECTURE.md** (lines 13–16, diagram annotation): Replaced the parenthetical describing the rail as unmounted with a precise annotation. Now reads: `<StatusStrip>` is the live ambient-progress surface beneath `<TopNav>`; `<ActivityRail>` is retained but unused.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: "(planned)" dropped from CLAUDE.md, UX.md, and ARCHITECTURE.md. All three docs verified — present tense, no hedging prose. CLAUDE.md now correctly states ActivityRail "retained but unused." Rolling-foundation discipline maintained.
