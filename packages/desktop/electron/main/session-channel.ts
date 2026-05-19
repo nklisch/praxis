@@ -117,10 +117,14 @@ export function registerSessionHandlers(
 
   const SpawnFromPassageSchema = z.object({
     documentId: z.string().min(1, "documentId"),
-    range: z.object({
-      startOffset: z.number().int().nonnegative(),
-      endOffset: z.number().int().nonnegative(),
-    }),
+    range: z
+      .object({
+        startOffset: z.number().int().nonnegative(),
+        endOffset: z.number().int().nonnegative(),
+      })
+      .refine((r) => r.endOffset >= r.startOffset, {
+        message: "endOffset must be >= startOffset",
+      }),
   });
 
   // Open a teach session scoped to a document passage.

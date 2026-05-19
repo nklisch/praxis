@@ -1,7 +1,7 @@
 ---
 id: gate-tests-spawn-from-passage-inverted-range
 kind: story
-stage: implementing
+stage: review
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -52,3 +52,20 @@ on the inner range object in `SpawnFromPassageSchema`.
 ## Test location (suggested)
 `packages/desktop/electron/main/__tests__/spawn-from-note-channel-envelope.test.ts`
 and `packages/desktop/electron/main/session-channel.ts` schema
+
+## Implementation notes (2026-05-18)
+
+### Changes made
+
+1. **`packages/desktop/electron/main/session-channel.ts`** — Added `.refine((r) => r.endOffset >= r.startOffset, { message: "endOffset must be >= startOffset" })` on the inner range object in `SpawnFromPassageSchema` (around line 125). Used `>=` (not `>`) because `startOffset == endOffset` is a zero-length point-in-text cursor position and is not inherently nonsensical at the schema boundary; the service already handles that gracefully.
+
+2. **`packages/desktop/electron/main/__tests__/spawn-from-note-channel-envelope.test.ts`** — Added test "returns VALIDATION_FAILED when endOffset < startOffset" in the existing `praxis.session.spawnFromPassage — envelope wiring` describe block. The test hits the registered handler via the real IPC harness with `{ startOffset: 50, endOffset: 10 }` and asserts `{ ok: false, error: { code: "VALIDATION_FAILED" } }`. Total test count: 13 tests, all pass.
+
+### Implementation discovery
+
+**Citation schema asymmetry (do not fix here — scope creep).** The `recordCitation` schema in `packages/desktop/electron/main/citations-channel.ts` (lines 17–24) only validates `int().nonnegative()` on `startOffset` and `endOffset` — it does **not** have a `.refine` for inverted ranges (`endOffset < startOffset`). The citations channel test at line 161 only tests for "negative startOffset" (i.e., the `nonnegative()` constraint) and never tests the inverted-range case. This is an analogous validation gap. A follow-up story should add the same `endOffset >= startOffset` refine to `recordSchema` in `citations-channel.ts` and a corresponding test to `citations-channel-envelope.test.ts`.
+
+### Verification
+
+- `pnpm vitest run packages/desktop/electron/main/__tests__/spawn-from-note-channel-envelope.test.ts` → 13/13 pass
+- `pnpm --filter @praxis/desktop typecheck` → pre-existing error in `session-service.ts:42` (`IndexerOrchestrator | undefined` not assignable) exists on main before this change; no new errors introduced
