@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-ipc-envelope-handler-add-handleenvelope
 kind: story
-stage: review
+stage: done
 tags: [refactor, documentation]
 parent: null
 depends_on: []
@@ -54,3 +54,13 @@ Changes made to `.claude/skills/patterns/ipc-envelope-handler.md`:
 - Rewrote Example 2 title to "No-input channel (raw `wrapEnvelope`)" and updated file path from `ipc-server.ts:209` to `config-channel.ts:66`
 - Updated Example 4 to show both `handleEnvelope` (from `ipc-helpers.ts:54`) and `wrapEnvelope` signatures side by side with usage guidance
 - The Rationale, When to Use, When NOT to Use, and Common Violations sections are unchanged and remain accurate
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: "Preferred form: handleEnvelope" subsection added at line 9. Examples 1 and 2 updated to config-channel.ts locations. handleEnvelope signature shown at line 84 matches ipc-helpers.ts:54. The common violation "Using wrapEnvelope directly" is clearly documented. The 121 call-site dominance pattern is well-motivated.
