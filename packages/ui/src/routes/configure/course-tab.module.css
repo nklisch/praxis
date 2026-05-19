@@ -17,7 +17,7 @@
 }
 
 .kicker {
-  font: 600 11px/1 var(--font-mono, monospace);
+  font: 600 11px / 1 var(--font-mono, monospace);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font: 600 11px/1 var(--font-mono, monospace);
+  font: 600 11px / 1 var(--font-mono, monospace);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
@@ -44,7 +44,7 @@
   padding: 6px 10px;
   border: 1px solid var(--color-border-strong, var(--color-border));
   border-radius: var(--radius-sm, 4px);
-  font: 14px/1.4 var(--font-serif, serif);
+  font: 14px / 1.4 var(--font-serif, serif);
   font-style: italic;
   min-width: 220px;
   background: var(--color-bg-secondary);
@@ -69,7 +69,7 @@
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
-  font: italic 12px/1.4 var(--font-serif, serif);
+  font: italic 12px / 1.4 var(--font-serif, serif);
   color: var(--color-text-secondary);
 }
 
@@ -81,7 +81,7 @@
 
 /* Shared pill base */
 .pill {
-  font: 600 9px/1 var(--font-mono, monospace);
+  font: 600 9px / 1 var(--font-mono, monospace);
   padding: 3px 6px;
   border-radius: var(--radius-full, 999px);
   letter-spacing: 0.06em;
@@ -172,7 +172,7 @@
 
 .unitHandle {
   color: var(--color-text-tertiary);
-  font: italic 14px/1 var(--font-display, var(--font-serif, serif));
+  font: italic 14px / 1 var(--font-display, var(--font-serif, serif));
   cursor: grab;
   padding: 0 4px;
   flex-shrink: 0;
@@ -183,7 +183,7 @@
 }
 
 .unitNum {
-  font: italic 20px/1 var(--font-display, var(--font-serif, serif));
+  font: italic 20px / 1 var(--font-display, var(--font-serif, serif));
   color: var(--color-text-tertiary);
   min-width: 2.5ch;
   text-align: right;
@@ -191,13 +191,13 @@
 }
 
 .unitTitle {
-  font: 500 italic 18px/1.2 var(--font-display, var(--font-serif, serif));
+  font: 500 italic 18px / 1.2 var(--font-display, var(--font-serif, serif));
   flex: 1;
   min-width: 0;
 }
 
 .unitMeta {
-  font: 600 10px/1 var(--font-mono, monospace);
+  font: 600 10px / 1 var(--font-mono, monospace);
   color: var(--color-text-tertiary);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -218,7 +218,7 @@
 
 .emptyUnit {
   padding: 8px 0;
-  font: italic 13px/1.4 var(--font-serif, serif);
+  font: italic 13px / 1.4 var(--font-serif, serif);
   color: var(--color-text-tertiary);
 }
 
@@ -267,14 +267,14 @@
 }
 
 .lessonNum {
-  font: italic 13px/1 var(--font-display, var(--font-serif, serif));
+  font: italic 13px / 1 var(--font-display, var(--font-serif, serif));
   color: var(--color-text-tertiary);
   text-align: right;
   flex-shrink: 0;
 }
 
 .lessonTitle {
-  font: italic 14px/1.4 var(--font-serif, serif);
+  font: italic 14px / 1.4 var(--font-serif, serif);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -283,7 +283,7 @@
 
 /* Lesson status badges */
 .lessonStatus {
-  font: 600 9px/1 var(--font-mono, monospace);
+  font: 600 9px / 1 var(--font-mono, monospace);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 3px 6px;
@@ -308,7 +308,7 @@
 .status {
   padding: 0 32px;
   color: var(--color-text-secondary, #888);
-  font: italic 14px/1.5 var(--font-serif, serif);
+  font: italic 14px / 1.5 var(--font-serif, serif);
 }
 
 .error {
@@ -324,6 +324,6 @@
 
 .emptyPrimary {
   color: var(--color-text-secondary, #666);
-  font: italic 15px/1.5 var(--font-serif, serif);
+  font: italic 15px / 1.5 var(--font-serif, serif);
   margin: 0;
 }

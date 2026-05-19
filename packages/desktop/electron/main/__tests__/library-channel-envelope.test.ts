@@ -59,7 +59,6 @@ function makeServices(libraryOverrides: LibraryOverrides = {}) {
       : vi.fn().mockResolvedValue([]),
   };
 
-  // biome-ignore lint/suspicious/noExplicitAny: partial stub — only library exercised
   return {
     session: {
       active: vi.fn().mockResolvedValue(null),
@@ -229,6 +228,7 @@ function makeServices(libraryOverrides: LibraryOverrides = {}) {
     documentScopes: { list: vi.fn().mockResolvedValue([]), attach: vi.fn(), detach: vi.fn() },
     ingestorRegistry: { supported: vi.fn().mockReturnValue([]) },
     getDefaultStudentId: () => "student-1",
+    // biome-ignore lint/suspicious/noExplicitAny: partial stub — only library exercised
   } as any;
 }
 

@@ -87,7 +87,8 @@ function FetchingPills({ lessonId }: { lessonId: LessonId }) {
 
   useEffect(() => {
     let cancelled = false;
-    void client.artifacts.lessonAssessments(lessonId)
+    void client.artifacts
+      .lessonAssessments(lessonId)
       .then((rows) => {
         if (!cancelled) setAssessments(rows);
       })

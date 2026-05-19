@@ -20,11 +20,11 @@
 
 import { courses as coursesTable, notes as notesTable } from "@praxis/artifacts/schema";
 import { conceptGraphs, concepts as conceptsTable } from "@praxis/curriculum/schema";
-import { configuratorActions, configuratorSnapshots } from "../../schema.js";
 import { v7 as uuidv7 } from "uuid";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { openDb } from "../../db/index.js";
+import { configuratorActions, configuratorSnapshots } from "../../schema.js";
 import type {
   ConceptId,
   ConfiguratorId,

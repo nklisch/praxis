@@ -1,8 +1,8 @@
 import type { Mode } from "@praxis/core/types";
-import { courseCreateRoleFragment } from "./fragments/course-create-role.js";
-import { courseCreateToolsFragment } from "./fragments/course-create-tools.js";
 import { constraintsFragment } from "./fragments/constraints.js";
 import { courseContextFragmentDefault } from "./fragments/course-context.js";
+import { courseCreateRoleFragment } from "./fragments/course-create-role.js";
+import { courseCreateToolsFragment } from "./fragments/course-create-tools.js";
 import { postambleFragment } from "./fragments/postamble.js";
 import { preambleFragment } from "./fragments/preamble.js";
 import { principlesFragment } from "./fragments/principles.js";

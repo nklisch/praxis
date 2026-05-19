@@ -184,8 +184,7 @@ export function NoteEditorCornell({ body, onChange, onSpawnFromCue }: NoteEditor
 
           <div className={styles.notesList}>
             {Array.from({ length: rowCount }, (_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: notes indexed by position
-              <div
+              <div // biome-ignore lint/suspicious/noArrayIndexKey: notes indexed by position
                 key={i}
                 ref={(el) => {
                   if (el) markerRefs.current.set(i, el);

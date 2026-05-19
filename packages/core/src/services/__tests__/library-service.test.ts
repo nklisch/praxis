@@ -20,7 +20,7 @@ import { openDb } from "@praxis/core/db";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
-import type { FlashcardId, NoteId, SessionId, StudentId, Timestamp } from "../../types/index.js";
+import type { FlashcardId, NoteId, SessionId, StudentId } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { LibraryServiceImpl } from "../library-service.js";
 

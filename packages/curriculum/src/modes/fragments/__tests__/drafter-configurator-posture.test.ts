@@ -8,10 +8,10 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { courseCreateRoleFragment } from "../course-create-role.js";
-import { courseCreateToolsFragment } from "../course-create-tools.js";
 import { configureRoleFragment } from "../configure-role.js";
 import { configureToolsFragment } from "../configure-tools.js";
+import { courseCreateRoleFragment } from "../course-create-role.js";
+import { courseCreateToolsFragment } from "../course-create-tools.js";
 
 // ── Bootstrap role — drafter posture ───────────────────────────────────────
 
@@ -44,7 +44,10 @@ describe("courseCreateRoleFragment — drafter posture", () => {
   it("does not use the word 'explorer' for the sub-agent from the user's perspective", () => {
     // The term 'explorer' must not appear as a user-visible agent name.
     // The tool name 'start_drafting' is fine — that is a code identifier.
-    const withoutToolRefs = courseCreateRoleFragment.template.replace(/course\.start_drafting/g, "");
+    const withoutToolRefs = courseCreateRoleFragment.template.replace(
+      /course\.start_drafting/g,
+      "",
+    );
     expect(withoutToolRefs).not.toMatch(/\bexplorer\b/i);
   });
 
@@ -70,7 +73,10 @@ describe("courseCreateToolsFragment — drafter posture", () => {
   });
 
   it("does not use the word 'explorer' in user-visible description (outside tool name)", () => {
-    const withoutToolRefs = courseCreateToolsFragment.template.replace(/course\.start_drafting/g, "");
+    const withoutToolRefs = courseCreateToolsFragment.template.replace(
+      /course\.start_drafting/g,
+      "",
+    );
     expect(withoutToolRefs).not.toMatch(/\bexplorer\b/i);
   });
 });

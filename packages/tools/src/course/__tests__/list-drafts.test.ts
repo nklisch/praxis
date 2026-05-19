@@ -89,11 +89,11 @@ describe("toDraftListing — projection", () => {
         proposedConcepts: Array.from({ length: 8 }, (_, i) => ({ name: `C${i}` })) as any,
         // biome-ignore lint/suspicious/noExplicitAny: shape narrowed elsewhere
         proposedLessons: Array.from({ length: 10 }, (_, i) => ({ title: `L${i}` })) as any,
-        // biome-ignore lint/suspicious/noExplicitAny: shape narrowed elsewhere
         proposedUnits: Array.from({ length: 4 }, (_, i) => ({
           title: `U${i}`,
           // biome-ignore lint/suspicious/noExplicitAny: shape narrowed elsewhere
           summative: { id: `s${i}` } as any,
+          // biome-ignore lint/suspicious/noExplicitAny: shape narrowed elsewhere
         })) as any,
         // biome-ignore lint/suspicious/noExplicitAny: shape narrowed elsewhere
         proposedLessonAssessments: [{ id: "la1" } as any],

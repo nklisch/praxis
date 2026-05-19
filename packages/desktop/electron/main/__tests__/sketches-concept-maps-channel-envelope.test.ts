@@ -278,7 +278,11 @@ function makeServices(
       : vi.fn().mockResolvedValue({ conceptCountDelta: 0, notesRetagged: 0, tutorRefsAffected: 0 }),
     convertFromSketch: conceptMapsOverrides.convertFromSketch
       ? vi.fn().mockImplementation(conceptMapsOverrides.convertFromSketch)
-      : vi.fn().mockResolvedValue({ conceptMapId: "cm-new-1", originalSketchNoteId: "note-1", nodeCount: 3 }),
+      : vi.fn().mockResolvedValue({
+          conceptMapId: "cm-new-1",
+          originalSketchNoteId: "note-1",
+          nodeCount: 3,
+        }),
   };
 
   const activity = {

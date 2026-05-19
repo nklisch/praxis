@@ -46,7 +46,7 @@ describe("ResumedBanner", () => {
 
   it("includes the session title in the aria-label on the banner", () => {
     const { container } = render(<ResumedBanner title="Chain rule" />);
-    const banner = container.querySelector('[aria-label]');
+    const banner = container.querySelector("[aria-label]");
     expect(banner?.getAttribute("aria-label")).toContain("Chain rule");
   });
 

@@ -9,9 +9,9 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { configureToolsFragment } from "../configure-tools.js";
 import { courseCreateRoleFragment } from "../course-create-role.js";
 import { courseCreateToolsFragment } from "../course-create-tools.js";
-import { configureToolsFragment } from "../configure-tools.js";
 
 describe("courseCreateToolsFragment — outline-panel restraint", () => {
   it("mentions the right-side panel after course.show_draft / course.start_drafting", () => {

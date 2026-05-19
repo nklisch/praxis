@@ -1,6 +1,6 @@
 import type { Mode } from "@praxis/core/types";
-import { courseCreateMode } from "./course-create.js";
 import { configureMode } from "./configure.js";
+import { courseCreateMode } from "./course-create.js";
 import { examMode } from "./exam.js";
 import { homeworkMode } from "./homework.js";
 import { quizMode } from "./quiz.js";
@@ -31,8 +31,8 @@ export function listModes(): readonly Mode[] {
   return [...MODE_REGISTRY.values()];
 }
 
-export { courseCreateMode } from "./course-create.js";
 export { configureMode } from "./configure.js"; // ← Phase 11
+export { courseCreateMode } from "./course-create.js";
 export { examMode } from "./exam.js";
 export { homeworkMode } from "./homework.js";
 export { quizMode } from "./quiz.js";

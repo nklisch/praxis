@@ -13,7 +13,6 @@
  */
 
 import type { ChildProcess } from "node:child_process";
-import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CLITimeoutError } from "../../errors.js";

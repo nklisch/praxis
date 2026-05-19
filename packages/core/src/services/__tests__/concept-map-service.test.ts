@@ -1,7 +1,7 @@
 import { notes as notesTable } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
 import { configuratorSnapshots } from "@praxis/core/schema";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import type {
   ConceptId,
@@ -39,7 +39,7 @@ const COURSE_X = brandId<"CourseId">("course-x") as CourseId;
 const COURSE_Y = brandId<"CourseId">("course-y") as CourseId;
 const SESSION_1 = brandId<"SessionId">("session-1") as SessionId;
 
-const SCENE_EMPTY = {} as TldrawSnapshot;
+const _SCENE_EMPTY = {} as TldrawSnapshot;
 const SCENE_A = {
   shapes: { "shape:1": { type: "text", text: "hello" } },
 } as unknown as TldrawSnapshot;

@@ -7,7 +7,6 @@ import type {
   NoteId,
   TldrawSnapshot,
 } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
 import { z } from "zod";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";

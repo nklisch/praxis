@@ -108,7 +108,7 @@ describe("LessonAssessmentPills — purpose grouping correctness", () => {
     const { container } = render(
       <LessonAssessmentPills assessments={[practice(), readiness(), checkpoint()]} />,
     );
-    const pills = container.querySelectorAll(
+    const _pills = container.querySelectorAll(
       "[class*='stack'] span:first-child ~ span, [class*='stack'] > span",
     );
     // Just verify three pills are rendered

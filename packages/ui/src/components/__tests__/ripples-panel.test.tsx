@@ -8,7 +8,7 @@
  * - Shows error hint when computeRipples throws.
  */
 
-import type { ConceptId, ConceptMapId, RippleSummary, Timestamp } from "@praxis/core/types";
+import type { ConceptId, ConceptMapId, RippleSummary } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";

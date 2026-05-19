@@ -202,10 +202,9 @@ describe("praxis.subAgent.events.* — interrupt fanout observability", () => {
       const registry = new SubAgentRegistryImpl({
         log: makeFakeLogger() as ReturnType<typeof makeFakeLogger>,
         now: () => 1_000_000,
-        // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
-        setTimeout: vi.fn((fn: () => void, delay: number) =>
-          globalThis.setTimeout(fn, delay),
-        ) as any,
+        setTimeout:
+          // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
+          vi.fn((fn: () => void, delay: number) => globalThis.setTimeout(fn, delay)) as any,
       });
 
       const log = makeFakeLogger();

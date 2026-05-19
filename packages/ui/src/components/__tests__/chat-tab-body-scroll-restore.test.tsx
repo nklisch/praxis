@@ -10,7 +10,7 @@
 import type { EpisodicEvent, PraxisClient, TabSummary, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeFakeClient } from "../../__tests__/helpers/fake-client.js";
 import { AuthProvider } from "../../context/auth-context.js";
 import { PraxisClientProvider } from "../../context/client-context.js";
@@ -116,7 +116,7 @@ describe("TeachChatTabBody — scroll restoration", () => {
       // This tests that scrollTop is written under the right key.
       const storedKey = "praxis.session.session-abc.scroll";
       // A scroll event with scrollTop=0 still writes 0 — key exists
-      const stored = localStorage.getItem(storedKey);
+      const _stored = localStorage.getItem(storedKey);
       // stored may be null if messagesEl.scrollTop was 0 and the debounce fired,
       // but the key pattern is the observable behaviour we care about.
       // At a minimum the element is present and no crash occurred.

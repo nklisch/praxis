@@ -1,9 +1,4 @@
-import type {
-  DocumentId,
-  DocumentScope,
-  DocumentScopeSource,
-  Logger,
-} from "@praxis/core/types";
+import type { DocumentId, DocumentScope, DocumentScopeSource, Logger } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers } from "./ipc-helpers.js";

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { configureToolsFragment } from "../configure-tools.js";
 import { courseCreateRoleFragment } from "../course-create-role.js";
 import { courseCreateToolsFragment } from "../course-create-tools.js";
-import { configureToolsFragment } from "../configure-tools.js";
 
 describe("course-create fragments — no time-estimate claims", () => {
   for (const [name, frag] of [

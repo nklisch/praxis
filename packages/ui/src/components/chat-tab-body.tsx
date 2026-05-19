@@ -220,7 +220,6 @@ export function TeachChatTabBody({
   const resumedDetectedRef = useRef(false);
   const [showResumedBanner, setShowResumedBanner] = useState(false);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fire once on first non-empty history load
   useEffect(() => {
     if (resumedDetectedRef.current) return;
     if (items.length === 0) return;

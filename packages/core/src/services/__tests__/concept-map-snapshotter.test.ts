@@ -16,7 +16,6 @@ import type {
   IndexerContext,
   SessionId,
   StudentId,
-  Timestamp,
   TldrawSnapshot,
 } from "../../types/index.js";
 import { brandId } from "../../types/index.js";

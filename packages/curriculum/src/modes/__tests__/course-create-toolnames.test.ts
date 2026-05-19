@@ -5,8 +5,8 @@
  * (no courseId, no confirmed course) and verifies the expected tool set.
  */
 import { describe, expect, it } from "vitest";
-import { courseCreateMode } from "../course-create.js";
 import { configureMode } from "../configure.js";
+import { courseCreateMode } from "../course-create.js";
 
 describe("courseCreateMode.toolNames — excluded tools", () => {
   it("does NOT include course.attach_document (course-create sessions have no courseId; handler throws)", () => {

@@ -17,7 +17,6 @@ import type {
   LibraryService,
   NoteId,
   NoteLibraryHit,
-  SessionId,
   StudentId,
   Timestamp,
 } from "../types/index.js";
@@ -128,10 +127,8 @@ export class LibraryServiceImpl implements LibraryService {
     params.push(limit);
 
     // biome-ignore lint/suspicious/noExplicitAny: raw sqlite row
-    let hits = this.deps.sqlite
-      .prepare<any[], any>(sqlStr)
-      .all(...params)
-      .map(rawRowToNoteHit);
+    const stmt = this.deps.sqlite.prepare<any[], any>(sqlStr);
+    let hits = stmt.all(...params).map(rawRowToNoteHit);
 
     if (orphan) {
       hits = hits.filter(isOrphanNote);
@@ -207,10 +204,8 @@ export class LibraryServiceImpl implements LibraryService {
     params.push(limit);
 
     // biome-ignore lint/suspicious/noExplicitAny: raw sqlite row
-    let hits = this.deps.sqlite
-      .prepare<any[], any>(sqlStr)
-      .all(...params)
-      .map(rawRowToFlashcardHit);
+    const stmt = this.deps.sqlite.prepare<any[], any>(sqlStr);
+    let hits = stmt.all(...params).map(rawRowToFlashcardHit);
 
     if (orphan) {
       hits = hits.filter(isOrphanFlashcard);

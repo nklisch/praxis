@@ -8,7 +8,6 @@
  */
 import type {
   Assignment,
-  AssignmentId,
   PraxisClient,
   SessionTabSummary,
   TabSummary,

@@ -16,8 +16,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
 import { DirtyStateProvider } from "../contexts/dirty-state-provider.js";
-import { ConfigureStateContext } from "../hooks/use-configure-state.js";
 import type { SelectedLessonState } from "../hooks/use-configure-state.js";
+import { ConfigureStateContext } from "../hooks/use-configure-state.js";
 import { CourseTab } from "../routes/configure/course-tab.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
@@ -99,7 +99,9 @@ function renderCourseTab({
       concepts: vi.fn().mockResolvedValue([]),
     },
     author: {
-      getCourseSummary: vi.fn().mockResolvedValue({ course: null, lessons: [], gates: [], concepts: [] }),
+      getCourseSummary: vi
+        .fn()
+        .mockResolvedValue({ course: null, lessons: [], gates: [], concepts: [] }),
     } as unknown as typeof client.author,
   });
 
@@ -129,9 +131,7 @@ describe("CourseTab — empty state", () => {
     renderCourseTab({ courseId: null, units: [], lessons: [] });
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Select a course to view its unit and lesson tree/i),
-      ).toBeDefined();
+      expect(screen.getByText(/Select a course to view its unit and lesson tree/i)).toBeDefined();
     });
   });
 });

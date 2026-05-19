@@ -12,8 +12,8 @@
 
 import type { PromptFragment } from "@praxis/core/types";
 import { describe, expect, it } from "vitest";
-import { courseCreateMode } from "../course-create.js";
 import { configureMode } from "../configure.js";
+import { courseCreateMode } from "../course-create.js";
 import { examMode } from "../exam.js";
 import { homeworkMode } from "../homework.js";
 import { quizMode } from "../quiz.js";

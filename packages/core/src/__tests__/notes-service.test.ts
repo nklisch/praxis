@@ -155,7 +155,7 @@ describe("NotesServiceImpl", () => {
         format: "free",
         body: { kind: "free", text: "first" },
       });
-      const note2 = await svc.create({
+      const _note2 = await svc.create({
         studentId,
         format: "free",
         body: { kind: "free", text: "second" },

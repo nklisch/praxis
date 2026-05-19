@@ -4,12 +4,7 @@ import Database from "better-sqlite3";
 import { type BetterSQLite3Database, drizzle } from "drizzle-orm/better-sqlite3";
 import { type Schema, schema } from "./all-schemas.js";
 import { resolveDbPath } from "./paths.js";
-import {
-  initArtifactsFtsStore,
-  initConceptEmbeddingStore,
-  initFtsStore,
-  initVectorStore,
-} from "./vector-init.js";
+import { initConceptEmbeddingStore, initFtsStore, initVectorStore } from "./vector-init.js";
 
 export type PraxisDb = BetterSQLite3Database<Schema>;
 

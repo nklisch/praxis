@@ -50,9 +50,10 @@ function makeMode(id = "teach") {
  * Build a fake EngineSession. The `closeSpy` is exposed so tests can assert
  * on how many times close() was called and whether it was awaited.
  */
-function makeFakeHandle(
-  opts: { closeRejects?: boolean } = {},
-): { handle: EngineSession; closeSpy: ReturnType<typeof vi.fn> } {
+function makeFakeHandle(opts: { closeRejects?: boolean } = {}): {
+  handle: EngineSession;
+  closeSpy: ReturnType<typeof vi.fn>;
+} {
   const closeSpy = opts.closeRejects
     ? vi.fn().mockRejectedValue(new Error("simulated close failure"))
     : vi.fn().mockResolvedValue(undefined);
@@ -70,9 +71,10 @@ function makeFakeHandle(
  * Build a fake Engine that returns the supplied handle on `open()`.
  * `openSpy` records every call so tests can assert on open-call count.
  */
-function makeFakeEngine(
-  handle: EngineSession,
-): { engine: Engine; openSpy: ReturnType<typeof vi.fn> } {
+function makeFakeEngine(handle: EngineSession): {
+  engine: Engine;
+  openSpy: ReturnType<typeof vi.fn>;
+} {
   const openSpy = vi.fn().mockImplementation(async (opts: EngineOpenOptions) => {
     opts.onEngineSessionReady?.("fake-engine-session-id");
     return handle;
@@ -243,11 +245,9 @@ describe("EngineSessionManager.acquire", () => {
     // Swap — should not throw despite the close() rejection.
     let newEntry: Awaited<ReturnType<typeof manager.acquire>> | undefined;
     await expect(
-      manager
-        .acquire({ sessionId, currentEngineId: "eng-B", mode, studentId })
-        .then((e) => {
-          newEntry = e;
-        }),
+      manager.acquire({ sessionId, currentEngineId: "eng-B", mode, studentId }).then((e) => {
+        newEntry = e;
+      }),
     ).resolves.toBeUndefined();
 
     // close() was attempted.

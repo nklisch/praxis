@@ -9,7 +9,7 @@
  * rejects `apiKeyEncrypted`).
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ConfigClient } from "../services/config-client.js";
 import { IpcError } from "../transport/envelope.js";
 import type { ClientTransport } from "../transport/types.js";
@@ -46,14 +46,9 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
 
     const client = new ConfigClient(transport);
 
-    await expect(
-      // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
-      client.setEngineConfig({
-        engineId: "claude-code",
-        hasApiKey: false,
-        apiKeyEncrypted: "c29tZWJsb2I=",
-      } as any),
-    ).rejects.toThrow(IpcError);
+    // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
+    const malformedPayload1 = { engineId: "claude-code", hasApiKey: false, apiKeyEncrypted: "c29tZWJsb2I=" } as any;
+    await expect(client.setEngineConfig(malformedPayload1)).rejects.toThrow(IpcError);
   });
 
   it("IpcError.code is 'VALIDATION_FAILED' on the thrown error", async () => {
@@ -68,14 +63,11 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
 
     const client = new ConfigClient(transport);
 
+    // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
+    const malformedPayload2 = { engineId: "claude-code", hasApiKey: false, apiKeyEncrypted: "c29tZWJsb2I=" } as any;
     let thrown: unknown;
     try {
-      // biome-ignore lint/suspicious/noExplicitAny: simulating a malformed renderer payload
-      await client.setEngineConfig({
-        engineId: "claude-code",
-        hasApiKey: false,
-        apiKeyEncrypted: "c29tZWJsb2I=",
-      } as any);
+      await client.setEngineConfig(malformedPayload2);
     } catch (err) {
       thrown = err;
     }
@@ -89,7 +81,7 @@ describe("ConfigClient.setEngineConfig — envelope failure propagation", () => 
 
   it("strips hasApiKey from the wire payload before invoking the channel", async () => {
     const invokedArgs: unknown[] = [];
-    const transport = makeTransport((channel, ...args) => {
+    const transport = makeTransport((_channel, ...args) => {
       invokedArgs.push(...args);
       return { ok: true, value: undefined };
     });
