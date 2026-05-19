@@ -662,6 +662,80 @@ describe("DocumentScopesServiceImpl", () => {
     });
   });
 
+  describe("attach with passageRange", () => {
+    it("stores passageRange JSON on session-scoped attach", async () => {
+      const { service, db: drizzle } = makeService();
+      insertDocument(drizzle, DOC_1);
+
+      await service.attach({
+        scope: { kind: "session", id: SESSION_A },
+        documentId: DOC_1,
+        source: "manual",
+        passageRange: { startOffset: 100, endOffset: 200 },
+      });
+
+      const range = await service.getPassageRange({
+        scope: { kind: "session", id: SESSION_A },
+        documentId: DOC_1,
+      });
+      expect(range).toEqual({ startOffset: 100, endOffset: 200 });
+    });
+
+    it("upsert path: re-attaching with a new range updates the existing row", async () => {
+      const { service, db: drizzle } = makeService();
+      insertDocument(drizzle, DOC_1);
+
+      await service.attach({
+        scope: { kind: "session", id: SESSION_A },
+        documentId: DOC_1,
+        source: "manual",
+        passageRange: { startOffset: 0, endOffset: 50 },
+      });
+      await service.attach({
+        scope: { kind: "session", id: SESSION_A },
+        documentId: DOC_1,
+        source: "manual",
+        passageRange: { startOffset: 100, endOffset: 200 },
+      });
+
+      const range = await service.getPassageRange({
+        scope: { kind: "session", id: SESSION_A },
+        documentId: DOC_1,
+      });
+      expect(range).toEqual({ startOffset: 100, endOffset: 200 });
+    });
+
+    it("getPassageRange returns null when scope row has no range (standard attach)", async () => {
+      const { service, db: drizzle } = makeService();
+      insertDocument(drizzle, DOC_1);
+
+      await service.attach({
+        scope: { kind: "session", id: SESSION_A },
+        documentId: DOC_1,
+        source: "manual",
+      });
+
+      expect(
+        await service.getPassageRange({
+          scope: { kind: "session", id: SESSION_A },
+          documentId: DOC_1,
+        }),
+      ).toBeNull();
+    });
+
+    it("getPassageRange returns null when no scope row exists", async () => {
+      const { service } = makeService();
+
+      const DOC_UNKNOWN = brandId<"DocumentId">("doc-unknown") as DocumentId;
+      expect(
+        await service.getPassageRange({
+          scope: { kind: "session", id: SESSION_A },
+          documentId: DOC_UNKNOWN,
+        }),
+      ).toBeNull();
+    });
+  });
+
   describe("FK cascade on document delete", () => {
     it("deleting a document removes its document_scopes rows", async () => {
       const { service, db: drizzle } = makeService();
