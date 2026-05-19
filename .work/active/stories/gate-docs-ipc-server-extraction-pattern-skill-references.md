@@ -1,7 +1,7 @@
 ---
 id: gate-docs-ipc-server-extraction-pattern-skill-references
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -78,3 +78,13 @@ Apply rolling-foundation: replace assertions in place.
 - `ipc-channel-convention.md`: replaced Example 1 (which pointed at `ipc-server.ts:81` with inline session/config registrations) with a representative handler block from `session-channel.ts:34` showing `registerSessionHandlers`; updated "Adding a new domain" guidance to direct readers to create a `<newDomain>-channel.ts` and add one `register*Handlers` call to `ipc-server.ts` instead of adding inline to `ipc-server.ts`.
 - Did not touch `ipc-envelope-handler.md` or `subscriber-fanout-stream.md` (owned by other in-flight stories).
 - Verification: `grep -n -E "bootstrap-drafts|ipc-server\.ts:1291|ipc-server\.ts:81"` returns zero matches across both files.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: per-domain-channel-module.md and ipc-channel-convention.md updated correctly. bootstrap-drafts → course-create-drafts throughout. ipc-envelope-handler.md and subscriber-fanout-stream.md deferred to their dedicated pattern inconsistency stories (gate-patterns-inconsistency-*), which is appropriate scope separation.
