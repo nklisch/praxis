@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-mode-glyph-bootstrap-entry-dead
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -45,3 +45,13 @@ lookup `MODE_GLYPHS[modeId]` will never hit this key.
 
 One-line delete in `packages/ui/src/routes/configure/prompt-tab.tsx:20`.
 `course-create` retains the `¶` glyph; no lookup site changes.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: `bootstrap: "¶"` entry deleted. Confirmed `course-create: "¶"` remains. Single-line change, no cascade. Batched in commit ab72ab4 with two other trivial items.
