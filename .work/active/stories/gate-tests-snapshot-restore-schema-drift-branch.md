@@ -1,7 +1,7 @@
 ---
 id: gate-tests-snapshot-restore-schema-drift-branch
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -51,3 +51,15 @@ it("returns schema_drift when stored schemaVersion does not match current", asyn
 
 ## Test location (suggested)
 `packages/core/src/services/__tests__/snapshot-restore.test.ts`
+
+## Implementation notes (2026-05-18)
+
+Added one test under a new `describe("restoreAction — schema_drift guard")` block in
+`packages/core/src/services/__tests__/snapshot-restore.test.ts`.
+
+- Added `import { configuratorActions, configuratorSnapshots } from "../../schema.js"` to the test file (the only new import needed).
+- The test inserts a `configuratorActions` row and a paired `configuratorSnapshots` row whose `snapshotJson.schemaVersion` is `0` (current `SNAPSHOT_SCHEMA_VERSION` is `1`, defined in `packages/core/src/services/snapshot-capturer.ts:26`).
+- Calls `authoring.restoreAction({ actionId })` against the real `AuthoringServiceImpl` with a real migrated SQLite (via `useTempDb()`).
+- Asserts `result` deep-equals `{ ok: false, reason: "schema_drift" }`.
+
+Implementation discovery: none — the existing implementation at `authoring-service.ts:506-508` already returns the correct shape. The test passed on the first run. All 25 tests pass; typecheck is clean.

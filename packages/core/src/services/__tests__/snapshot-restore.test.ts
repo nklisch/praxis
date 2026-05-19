@@ -20,6 +20,7 @@
 
 import { courses as coursesTable, notes as notesTable } from "@praxis/artifacts/schema";
 import { conceptGraphs, concepts as conceptsTable } from "@praxis/curriculum/schema";
+import { configuratorActions, configuratorSnapshots } from "../../schema.js";
 import { v7 as uuidv7 } from "uuid";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
@@ -689,6 +690,40 @@ describe("restoreAction — un-revert", () => {
 
     // After un-revert, title should be "Mutated Title" again.
     expect((await artifacts.course(COURSE_ID))?.title).toBe("Mutated Title");
+  });
+});
+
+// ── Guard: schema_drift ────────────────────────────────────────────────────────
+
+describe("restoreAction — schema_drift guard", () => {
+  it("returns schema_drift when stored schemaVersion does not match current", async () => {
+    const { db, authoring } = services;
+
+    const actionId = "schema-drift-test-action";
+
+    // Insert a configurator_actions row (kind can be anything auditable).
+    db.insert(configuratorActions)
+      .values({
+        id: actionId,
+        configuratorId: "default",
+        ts: new Date(),
+        actionJson: { kind: "course.edit", courseId: COURSE_ID, patch: { title: "Drifted" } },
+      })
+      .run();
+
+    // Insert a snapshot whose schemaVersion is intentionally stale (0 ≠ current 1).
+    db.insert(configuratorSnapshots)
+      .values({
+        actionId,
+        entityKind: "course",
+        entityKeyJson: COURSE_ID,
+        snapshotJson: { schemaVersion: 0, data: { title: "Original Course Title" } },
+        restoredAt: null,
+      })
+      .run();
+
+    const result = await authoring.restoreAction({ actionId });
+    expect(result).toEqual({ ok: false, reason: "schema_drift" });
   });
 });
 
