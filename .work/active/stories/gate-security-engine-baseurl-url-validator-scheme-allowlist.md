@@ -1,7 +1,7 @@
 ---
 id: gate-security-engine-baseurl-url-validator-scheme-allowlist
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -101,3 +101,13 @@ load-side sanitizes-and-logs.
 ### Verification
 
 All 89 `@praxis/core` test files pass (1077 tests). Typecheck and lint clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Renderer-facing EngineConfigSchema.baseUrl now refines with isAllowedExternalUrl — rejects file://, javascript:, data:, embedded-CR at IPC boundary. Load-path sanitizes with drop+warn. 7 schema tests and 3 service tests exercise real ConfigServiceImpl with tempDb. Tests are not tautological — seedRawEngineConfig bypasses write-side validation to correctly test the read path. All 4 attack vectors covered. Stored schema remains permissive as designed to avoid locking out legacy installs.
