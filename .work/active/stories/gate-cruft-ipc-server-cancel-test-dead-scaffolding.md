@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-ipc-server-cancel-test-dead-scaffolding
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -58,3 +58,13 @@ tracking. All 3 tests in the file pass. Pre-existing typecheck failure in
 `session-service.ts` (unrelated `IndexerOrchestrator` type mismatch) and
 biome warnings on `capturedSignal!` in the first test are not introduced by
 this change.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All 5 dead identifiers and the fakeSend function deleted. Replacement comment is accurate and concise. The retained trackingSend approach is the correct implementation. 3 tests pass.
