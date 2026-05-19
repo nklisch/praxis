@@ -1,7 +1,7 @@
 ---
 id: gate-tests-spawn-from-passage-inverted-range
 kind: story
-stage: review
+stage: done
 tags: [testing, security]
 parent: null
 depends_on: []
@@ -69,3 +69,13 @@ and `packages/desktop/electron/main/session-channel.ts` schema
 
 - `pnpm vitest run packages/desktop/electron/main/__tests__/spawn-from-note-channel-envelope.test.ts` → 13/13 pass
 - `pnpm --filter @praxis/desktop typecheck` → pre-existing error in `session-service.ts:42` (`IndexerOrchestrator | undefined` not assignable) exists on main before this change; no new errors introduced
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Schema refine added (endOffset >= startOffset) to SpawnFromPassageSchema. IPC test confirms VALIDATION_FAILED with startOffset:50/endOffset:10. The citation schema asymmetry follow-up is noted and appropriately deferred (out of scope for this story). 13/13 tests pass.

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-spawn-from-passage-service-untested
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -87,3 +87,13 @@ Created `packages/core/src/services/__tests__/session-service.spawn-from-passage
 - `FakeEngine` injected via `engineFactory` to make `start()` + `send()` work without a live LLM
 - `noopLockService()` + `inMemorySecretStorage()` from `tests/helpers/mocks.ts`
 - `insertDocumentWithChunks` helper inserts a `documents` row + N `documentChunks` rows in chunk-index order
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 4 tests exercise real SessionServiceImpl + real DocumentScopesServiceImpl + FakeEngine via injection seam. Happy path verifies modeId:teach + passageRange stored. Document-not-found (unknown id) and (wrong student) covered. Out-of-bounds range behavior documented (verbatim storage) — honest discovery, not a defect. No tautological assertions.
