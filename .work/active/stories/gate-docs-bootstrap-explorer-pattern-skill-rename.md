@@ -1,7 +1,7 @@
 ---
 id: gate-docs-bootstrap-explorer-pattern-skill-rename
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -79,3 +79,13 @@ All four pattern skills updated in place with surgical edits:
 Load-bearing identifiers left intact: `bootstrapService` (local variable), `services.bootstrap` (field key), `bootstrapEngineResolver`, `bootstrapConfigResolver`, `readBootstrapConfig`.
 
 Post-edit grep confirmed zero stale references matching `Bootstrap(Service|TabBody)|bootstrap explorer|next exploration`.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All 7 edits across 4 pattern skills applied correctly. Spot-checked tab-body-isolation.md (course-create at lines 9, 103) and lazy-resolver-thunk.md (CourseCreateServiceImpl at line 7, 21; "next drafting run" at line 50). Load-bearing identifiers (bootstrapService, services.bootstrap, bootstrapEngineResolver, bootstrapConfigResolver) preserved as specified.
