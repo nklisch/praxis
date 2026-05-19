@@ -1,7 +1,7 @@
 ---
 id: gate-tests-engine-session-manager-isolation
 kind: story
-stage: review
+stage: done
 tags: [testing, refactor]
 parent: null
 depends_on: []
@@ -66,3 +66,13 @@ Setup details:
 - `toolServices` stub is minimal (`noopDocumentScopes` for `listForScope`; everything else `as any`) — only the document-scopes read path is hit during `openActive` without a `courseId`.
 
 All 4 tests pass; `pnpm --filter @praxis/core typecheck` clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Real EngineSessionManager exercised via fake engine factory (correct injection seam). 4 tests cover all 3 acquire() branches (idempotent, swap, close-failure) and closeAll cleanup. Close-failure test uses recordingLogger to verify the warn message — not tautological. No mocking of the SUT.
