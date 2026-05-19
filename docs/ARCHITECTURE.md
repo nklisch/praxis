@@ -11,9 +11,9 @@ Praxis is **an agent harness specialized for tutoring**. The tutor is always a m
                 │                  UI Surfaces                │
                 │  (chat workspace, progress map, configure)  │
                 │     <TopNav> + <StatusStrip> at router root │
-                │     (ambient background work via status     │
-                │      strip beneath running head; rail       │
-                │      component exists but is not mounted)   │
+                │     (<StatusStrip> is the live ambient-     │
+                │      progress surface beneath <TopNav>;     │
+                │      <ActivityRail> is retained but unused) │
                 │                [@praxis/ui]                 │
                 └─────────────────────────────────────────────┘
                                       ▲

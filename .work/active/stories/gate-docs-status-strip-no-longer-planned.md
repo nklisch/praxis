@@ -1,7 +1,7 @@
 ---
 id: gate-docs-status-strip-no-longer-planned
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -55,3 +55,13 @@ but is unmounted.
 
 Apply rolling-foundation: no "previously planned" prose, no "in v0.1.x"
 notes. Replace assertions in place.
+
+## Implementation notes (2026-05-18)
+
+Three foundation docs updated in place (rolling-forward; no hedging prose added):
+
+- **CLAUDE.md** (line 111, UI shell bullet): Dropped `(planned)` parenthetical and the `(or, until that lands, the \`useActivity()\` hook directly)` caveat. Now reads: `<StatusStrip>` is mounted directly beneath `<TopNav>` at the router root; long-running services inject `ActivityRegistry` via `ServiceDeps.activity` and producers render through the strip via `ActivityHandle`; the standalone `<ActivityRail>` component is retained but unused.
+
+- **docs/UX.md** (line 5): Dropped `planned` qualifier from the status-strip description. Now reads: `<StatusStrip>` mounted directly beneath `<TopNav>` at the router root — a near-invisible surface surfacing ambient background work without blocking navigation; the standalone `<ActivityRail>` component is retained but unused.
+
+- **docs/ARCHITECTURE.md** (lines 13–16, diagram annotation): Replaced the parenthetical describing the rail as unmounted with a precise annotation. Now reads: `<StatusStrip>` is the live ambient-progress surface beneath `<TopNav>`; `<ActivityRail>` is retained but unused.

@@ -2,7 +2,7 @@
 
 The user-facing surfaces of Praxis. `ARCHITECTURE.md` describes what the UI is (a Vite + React + TanStack Router SPA talking to `@praxis/core` over a transport); this document describes what it *does* and what it *feels like* to use.
 
-The UI has two top-level surfaces: **student** (the learning experience) and **configure** (authoring and tuning). They share the same SPA; the lock code controls which is accessible. The chrome is a top horizontal running head (`<TopNav>`) with a near-invisible status strip directly beneath it (`<StatusStrip>`, planned) that surfaces ambient background work (ingestion, indexing, grading) without blocking navigation. The `<ActivityRail>` component exists in the codebase but is no longer mounted; the status strip pattern replaces it.
+The UI has two top-level surfaces: **student** (the learning experience) and **configure** (authoring and tuning). They share the same SPA; the lock code controls which is accessible. The chrome is a top horizontal running head (`<TopNav>`) with `<StatusStrip>` mounted directly beneath it at the router root — a near-invisible surface that floats ambient background work (ingestion, indexing, grading) without blocking navigation. The standalone `<ActivityRail>` component is retained in the codebase but unused.
 
 ## Surface map
 
