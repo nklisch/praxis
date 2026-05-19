@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-subscriber-fanout-stream-skill-rewrite
 kind: story
-stage: review
+stage: done
 tags: [refactor, documentation]
 parent: null
 depends_on: []
@@ -65,3 +65,13 @@ Also updated:
   violation for custom channels.
 - Fixed stale "bootstrap drafts" / `praxis.bootstrap.drafts.events.*` channel
   names throughout; `services.bootstrap` field key preserved by intent.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Example 2 replaced with 12-line registerSubscriberStream call from course-create-drafts-channel.ts. Rationale updated to point to streaming-ipc-channel-helpers. Common violations updated — inline boilerplate violation replaces the now-obsolete wc.isDestroyed()/signal.aborted bullets. All stale "bootstrap drafts" channel names replaced. Four-layer architecture description preserved.
