@@ -1,7 +1,7 @@
 ---
 id: gate-patterns-inconsistency-subscriber-fanout-stream-skill-rewrite
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, documentation]
 parent: null
 depends_on: []
@@ -43,3 +43,25 @@ Note: there is a related gate-docs item
 (`gate-docs-ipc-server-extraction-pattern-skill-references`) that addresses
 the file-path/channel-name drift in Example 2; this item is specifically
 about replacing the inline-boilerplate form with the helper call.
+
+## Implementation notes (2026-05-18)
+
+Replaced Example 2 in `.claude/skills/patterns/subscriber-fanout-stream.md`:
+- Old: ~40-line inline boilerplate (`bootstrap-drafts-channel.ts`, channel
+  `praxis.bootstrap.drafts.events.*`) showing manual AbortController setup,
+  push closure with `isDestroyed()` check, hold-open Promise, separate cancel
+  handler.
+- New: 12-line `registerSubscriberStream<DraftStreamEvent>` call sourced from
+  `course-create-drafts-channel.ts:27` (channel `praxis.courseCreate.drafts.events`).
+
+Also updated:
+- Rationale paragraph: clarified that the `*-channel.ts` fanout layer uses
+  `registerSubscriberStream` / `registerGeneratorStream`, with cross-reference
+  to `streaming-ipc-channel-helpers.md`.
+- Trailing summary sentence: noted all channel-layer fanout uses the helper.
+- Common Violations: replaced the now-obsolete `wc.isDestroyed()` /
+  `controller.signal.aborted` bullets (helper handles both) with a single
+  "inline boilerplate instead of helper" violation and a "skipping *.cancel"
+  violation for custom channels.
+- Fixed stale "bootstrap drafts" / `praxis.bootstrap.drafts.events.*` channel
+  names throughout; `services.bootstrap` field key preserved by intent.

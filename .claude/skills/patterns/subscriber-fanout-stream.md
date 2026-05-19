@@ -6,7 +6,9 @@ A service exposes `subscribe(listener[, filter?]) → unsubscribe`, an Electron 
 
 ## Rationale
 
-Three pieces of state in Praxis are pushed from the main process to every renderer subscription whenever they change: long-running activity items (the activity rail), live bootstrap drafts (the bootstrap right pane), and pending quick checks (chat surface). All three follow the exact same shape because the requirements are identical: many transient items, multiple potential consumers, late-joiners must see current state. The pattern factors that into four cooperating layers so a new "live state" stream is mostly mechanical to add. The existing `ipc-channel-convention` covers the channel naming; this pattern is the layered subscribe-fanout shape that sits on top.
+Three pieces of state in Praxis are pushed from the main process to every renderer subscription whenever they change: long-running activity items (the activity rail), live course-create drafts (the right pane), and pending quick checks (chat surface). All three follow the exact same shape because the requirements are identical: many transient items, multiple potential consumers, late-joiners must see current state. The pattern factors that into four cooperating layers so a new "live state" stream is mostly mechanical to add. The existing `ipc-channel-convention` covers the channel naming; this pattern is the layered subscribe-fanout shape that sits on top.
+
+The `*-channel.ts` fanout layer (layer 2) is implemented via `registerSubscriberStream` from `packages/desktop/electron/main/stream-handler.ts` — it encapsulates the AbortController lifecycle, WebContents-alive push guard, envelope emission, error redaction, and companion `*.cancel` handler. See [streaming-ipc-channel-helpers](streaming-ipc-channel-helpers.md) for the full helper reference.
 
 ## Examples
 
@@ -22,35 +24,24 @@ subscribe(listener: ActivityListener): () => void {
 }
 ```
 
-### Example 2: Bootstrap drafts channel — main-process fanout with AbortController hold-open
-**File**: `packages/desktop/electron/main/bootstrap-drafts-channel.ts:28`
+### Example 2: Course-create drafts channel — main-process fanout via helper
+**File**: `packages/desktop/electron/main/course-create-drafts-channel.ts:27`
 ```typescript
-handle("praxis.bootstrap.drafts.events.start", async (_event, streamId: string) => {
-  const controller = new AbortController();
-  activeAbortControllers.set(streamId, controller);
-  const eventsChannel = `praxis.bootstrap.drafts.events.events.${streamId}`;
-  const push = (msg: IpcStreamMessage<DraftStreamEvent>) => {
-    const wc = webContentsGetter();
-    if (!wc || wc.isDestroyed()) return;
-    wc.send(eventsChannel, msg);
-  };
-
-  let unsubscribe: (() => void) | null = null;
-  try {
-    unsubscribe = services.bootstrap.subscribe((event) => {
-      if (controller.signal.aborted) return;
-      push({ kind: "event", payload: event });
-    });
-    await new Promise<void>((resolve) => {
-      controller.signal.addEventListener("abort", () => resolve(), { once: true });
-    });
-    push({ kind: "done" });
-  } finally {
-    unsubscribe?.();
-    activeAbortControllers.delete(streamId);
-  }
-});
+registerSubscriberStream<DraftStreamEvent>(
+  {
+    channelBase: "praxis.courseCreate.drafts.events",
+    log,
+    webContentsGetter,
+    activeAbortControllers,
+  },
+  { handle, on },
+  {
+    subscribe: (cb) => services.bootstrap.subscribe(cb),
+  },
+);
 ```
+
+`registerSubscriberStream` (from `stream-handler.ts`) handles the AbortController lifecycle, WebContents-alive push guard, `{kind:"event"|"done"|"error"}` envelope emission, and companion `*.cancel` handler. See [streaming-ipc-channel-helpers](streaming-ipc-channel-helpers.md) for the full signature and all call sites.
 
 ### Example 3: useDrafts — UI hook folds events into a local Map → setState array
 **File**: `packages/ui/src/hooks/use-drafts.ts:29`
@@ -88,7 +79,7 @@ useEffect(() => {
 }, [client]);
 ```
 
-The other two end-to-end instances are `services.activity` → `activity-channel.ts` → `activity-client.ts` → `useActivity` (`packages/ui/src/hooks/use-activity.ts:22`), and `services.quickCheck` → `quick-check-channel.ts` → `quick-check-client.ts` → `useQuickCheckBridge` (`packages/ui/src/hooks/use-quick-check-bridge.ts:38`).
+The other two end-to-end instances are `services.activity` → `activity-channel.ts` → `activity-client.ts` → `useActivity` (`packages/ui/src/hooks/use-activity.ts:22`), and `services.quickCheck` → `quick-check-channel.ts` → `quick-check-client.ts` → `useQuickCheckBridge` (`packages/ui/src/hooks/use-quick-check-bridge.ts:38`). All channel-layer fanout uses `registerSubscriberStream`.
 
 ## When to Use
 
@@ -103,5 +94,5 @@ The other two end-to-end instances are `services.activity` → `activity-channel
 ## Common Violations
 
 - Forgetting to send `snapshot` on subscribe — fresh subscribers see an empty list until the next mutation, which can be minutes
-- Pushing without checking `wc.isDestroyed()` — Electron throws if the WebContents is gone
-- Forgetting `controller.signal.aborted` guard inside the listener — events keep being pushed after cancel, racing with cleanup
+- Inlining AbortController / push / finally boilerplate in a new channel instead of calling `registerSubscriberStream` — the helper handles the `wc.isDestroyed()` check, `signal.aborted` guard, envelope emission, error redaction, and `*.cancel` registration
+- Skipping the `*.cancel` handler when rolling a custom channel — without it the AbortController is never aborted and the hold-open Promise never resolves, leaking the subscription for the renderer's lifetime
