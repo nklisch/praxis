@@ -1,7 +1,7 @@
 ---
 id: gate-tests-toolcall-entry-revert-correlation-collision
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -62,3 +62,30 @@ n-th-by-time assumption entirely.
 
 ## Test location (suggested)
 `packages/ui/src/components/__tests__/authoring-chat-pane.test.tsx`
+
+## Implementation notes (2026-05-18)
+
+Added two tests to `packages/ui/src/components/__tests__/authoring-chat-pane.test.tsx` in a new
+`describe("AuthoringChatPane — revert correlation (same-kind tool calls)")` block.
+
+**Approach**: Tests feed pre-settled episodic events (via a mock `client.memory.episodic` async
+generator) and a matching list of `ConfiguratorActionRow` objects (via `client.author.listConfiguratorActions`).
+`AuthoringChatPane` calls `loadHistory` on mount, which runs the events through `episodicToItems` —
+this creates `tool-entry` items with `firstSeenAt: 0`. The `buildCallIdToActionMap` function then
+zips the sorted `tool-entry` items (by `firstSeenAt` asc, stable at 0 → preserves episodic order)
+against the sorted action rows (by `ts` asc).
+
+**Test 1 — correlation in time order**: Two `lesson.create` tool_call/tool_result pairs in episodic
+order; two action rows with ascending `ts`. After history loads, both revert buttons appear. Clicking
+the first and confirming calls `restoreAction({ actionId: "a-1" })`; clicking the second calls
+`restoreAction({ actionId: "a-2" })`. This directly exercises the real correlation path through the
+component (no mocking of `buildCallIdToActionMap`).
+
+**Test 2 — no actionId for excess entries**: Three `lesson.create` entries, only two action rows.
+Asserts exactly 2 revert buttons appear — the third entry renders without a revert button.
+
+**Discovery**: No bugs found. The correlation works correctly as documented. The only subtlety:
+`episodicToItems` sets `firstSeenAt: 0` for all history entries, so the sort in `buildCallIdToActionMap`
+is stable and preserves the order the events appear in the episodic stream. If two events had different
+non-zero `firstSeenAt` values (which can't happen in history replay), the sort would use those instead.
+This is the expected behavior and matches the implementation notes in the story.
