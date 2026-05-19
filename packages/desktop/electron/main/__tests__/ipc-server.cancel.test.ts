@@ -209,40 +209,8 @@ describe("praxis.session.send.cancel → AbortSignal propagation", () => {
     const streamIdA = "stream-A";
     const streamIdB = "stream-B";
 
-    let capturedSignalA: AbortSignal | undefined;
-    let capturedSignalB: AbortSignal | undefined;
-    let resolveA!: () => void;
-    let resolveB!: () => void;
-    const cancelledA = new Promise<void>((r) => {
-      resolveA = r;
-    });
-    const cancelledB = new Promise<void>((r) => {
-      resolveB = r;
-    });
-
-    // A single fakeSend that parks until the signal fires, capturing the signal.
-    async function* fakeSend(
-      id: string,
-      _msg: string,
-      signal: AbortSignal,
-    ): AsyncIterable<EngineEvent> {
-      yield { type: "model_message", content: "partial", partial: true };
-      await new Promise<void>((resolve) => {
-        if (signal.aborted) resolve();
-        else signal.addEventListener("abort", () => resolve(), { once: true });
-      });
-      if (id === streamIdA) {
-        capturedSignalA = signal;
-        resolveA();
-      } else {
-        capturedSignalB = signal;
-        resolveB();
-      }
-    }
-
-    // We need two separate call sites that forward the sessionId-as-id trick.
-    // The real ipc handler forwards `sessionId` not `streamId` to session.send,
-    // so we need a different approach — track by call order instead.
+    // Track signals by call order — the IPC handler forwards `sessionId` not
+    // `streamId` to session.send, so we track by call order instead.
     const signals: AbortSignal[] = [];
     async function* trackingSend(
       _id: string,

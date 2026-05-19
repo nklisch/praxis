@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-ipc-server-cancel-test-dead-scaffolding
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -47,3 +47,14 @@ only uses `trackingSend` and the `signals: AbortSignal[]` array.
 Delete lines 212-241 (the leftover variables + `fakeSend` function + the
 comment at line 243 which explicitly describes the discarded approach).
 Re-run the test file to confirm green.
+
+## Implementation notes (2026-05-18)
+
+Deleted the dead block (`capturedSignalA`, `capturedSignalB`, `resolveA`,
+`resolveB`, `cancelledA`, `cancelledB`, the `fakeSend` async generator, and
+the companion comment) from lines 212-243. Replaced the discarded-approach
+comment with a concise note explaining why `trackingSend` uses call-order
+tracking. All 3 tests in the file pass. Pre-existing typecheck failure in
+`session-service.ts` (unrelated `IndexerOrchestrator` type mismatch) and
+biome warnings on `capturedSignal!` in the first test are not introduced by
+this change.
