@@ -1,7 +1,7 @@
 ---
 id: gate-tests-drafts-client-stream-channel-name
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -45,3 +45,13 @@ it("opens streams against praxis.courseCreate.drafts.events (not legacy praxis.b
 
 ## Test location (suggested)
 `packages/client/src/__tests__/drafts-client.test.ts` (new)
+
+## Implementation notes (2026-05-18)
+
+Created `packages/client/src/__tests__/drafts-client.test.ts` with two focused tests:
+
+1. **Channel name pin** — asserts `transport.stream` is called with `"praxis.courseCreate.drafts.events"` (not the legacy `praxis.bootstrap.*` prefix). Confirmed the constant `C.streamBase` in `drafts-client.ts` already holds the correct post-rename value.
+
+2. **Argument shape** — asserts the second positional arg to `transport.stream` is `undefined`, matching the `DraftsClient.events()` call signature `this.transport.stream(C.streamBase, undefined)`.
+
+No issues discovered — the rename was already complete on both sides. The `@praxis/client` package has no `vitest.config.ts` of its own; tests run via the root `vitest.config.ts` projects array (`packages/*` glob picks it up). Tests verified to run cleanly via `pnpm vitest run --project @praxis/client`. Typecheck (`tsgo --noEmit`) and biome check both clean.
