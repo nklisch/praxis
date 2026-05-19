@@ -53,14 +53,6 @@ export interface ConceptLinkOverlayProps {
   onLink: (link: ConceptLink) => void;
 }
 
-/** Resolved screen-space bounding rect for a tldraw shape. */
-interface ShapeBoundsScreen {
-  x: number;
-  y: number;
-  maxX: number;
-  maxY: number;
-}
-
 interface TypeaheadState {
   shapeId: string;
   screenX: number;
@@ -90,12 +82,6 @@ interface GhostEdge {
   y2: number;
 }
 
-interface MarkerState {
-  shapeId: string;
-  screenX: number;
-  screenY: number;
-}
-
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: ConceptLinkOverlayProps) {
@@ -112,9 +98,6 @@ export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: Concept
 
   // Ghost edge for the currently hovered best_guess node.
   const [ghostEdge, setGhostEdge] = useState<GhostEdge | null>(null);
-
-  // § markers for linked shapes (legacy — kept for backwards compat).
-  const [markers, setMarkers] = useState<MarkerState[]>([]);
 
   // Fetch canonical concepts on mount.
   useEffect(() => {
@@ -201,26 +184,6 @@ export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: Concept
 
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editorRef, map.conceptLinks]);
-
-  // Update § markers whenever conceptLinks change.
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor || map.conceptLinks.length === 0) {
-      setMarkers([]);
-      return;
-    }
-
-    const nextMarkers: MarkerState[] = [];
-    for (const link of map.conceptLinks) {
-      // elementId is a tldraw shape id string; cast to TLShapeId branded type.
-      const bounds = editor.getShapePageBounds(link.elementId as TLShapeId);
-      if (bounds) {
-        const screenPt = editor.pageToScreen({ x: bounds.maxX, y: bounds.y });
-        nextMarkers.push({ shapeId: link.elementId, screenX: screenPt.x - 8, screenY: screenPt.y });
-      }
-    }
-    setMarkers(nextMarkers);
   }, [editorRef, map.conceptLinks]);
 
   // Compute three-state glyph markers (✓ / ?) whenever conceptLinks change.
@@ -376,19 +339,6 @@ export function ConceptLinkOverlay({ map, editorRef, courseId, onLink }: Concept
           role="img"
         >
           {glyph.glyph}
-        </span>
-      ))}
-
-      {/* § markers for already-linked shapes (legacy support) */}
-      {markers.map((marker) => (
-        <span
-          key={marker.shapeId}
-          className={styles.linkedMarker}
-          style={{ left: marker.screenX, top: marker.screenY }}
-          aria-hidden="true"
-          title="Linked to canonical concept"
-        >
-          §
         </span>
       ))}
     </div>

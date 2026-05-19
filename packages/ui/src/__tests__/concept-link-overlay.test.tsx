@@ -2,18 +2,11 @@
  * Tests for <ConceptLinkOverlay />.
  *
  * Verifies: concepts are fetched, typeahead appears on label match,
- * clicking a suggestion fires onLink, already-linked concepts are filtered,
- * and § markers are rendered for linked shapes.
+ * clicking a suggestion fires onLink, and already-linked concepts are filtered.
  *
  * Uses a ref-based editor mock that allows us to trigger store.listen callbacks.
  */
-import type {
-  ConceptId,
-  ConceptLink,
-  ConceptMapDrawing,
-  CourseId,
-  Timestamp,
-} from "@praxis/core/types";
+import type { ConceptId, ConceptLink, ConceptMapDrawing, Timestamp } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createRef, type RefObject } from "react";
@@ -315,25 +308,5 @@ describe("<ConceptLinkOverlay />", () => {
     // The typeahead may not show at all if all matches are filtered.
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByText("Linear Equations")).toBeNull();
-  });
-
-  it("renders § markers for linked shapes", async () => {
-    const linkedLink: ConceptLink = {
-      elementId: "shape:linked-one",
-      conceptId: "c-slope" as ConceptId,
-      confidence: 1.0,
-    };
-    const map = makeMap([linkedLink]);
-
-    // getShapePageBounds returns bounds for the linked shape.
-    fakeEditor.getShapePageBounds.mockReturnValue({ x: 100, y: 200, maxX: 200, maxY: 250 });
-
-    renderOverlay({ map });
-
-    await waitFor(() => {
-      // The § marker should be present — one linked shape.
-      const markers = screen.queryAllByTitle("Linked to canonical concept");
-      expect(markers.length).toBe(1);
-    });
   });
 });

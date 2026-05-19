@@ -103,18 +103,6 @@
   flex-shrink: 0;
 }
 
-/* § ornament marker near a linked shape's top-right corner */
-.linkedMarker {
-  position: absolute;
-  pointer-events: none;
-  font-size: 0.75rem;
-  color: var(--color-accent, #6366f1);
-  line-height: 1;
-  user-select: none;
-  /* Slight drop shadow so it's visible over light shapes */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-
 /* ✓ glyph for confirmed canonical link */
 .linkedGlyph {
   position: absolute;
