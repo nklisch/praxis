@@ -1,7 +1,7 @@
 ---
 id: gate-tests-snapshot-restore-schema-drift-branch
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -63,3 +63,13 @@ Added one test under a new `describe("restoreAction — schema_drift guard")` bl
 - Asserts `result` deep-equals `{ ok: false, reason: "schema_drift" }`.
 
 Implementation discovery: none — the existing implementation at `authoring-service.ts:506-508` already returns the correct shape. The test passed on the first run. All 25 tests pass; typecheck is clean.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Test inserts a real stale snapshot (schemaVersion: 0 ≠ current 1) and exercises real AuthoringServiceImpl via real tempDb. Assertion matches spec exactly. Not tautological — the test would fail if the schema drift guard were removed from authoring-service.ts.
