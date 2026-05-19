@@ -55,21 +55,30 @@ async *send(userMessage: string, signal?: AbortSignal): AsyncIterable<EngineEven
 
 `send(userMessage, signal?)` accepts an optional `AbortSignal` and wires it to the adapter's SDK abort mechanism. When the signal fires mid-turn, the adapter terminates its internal loop and `SessionServiceImpl.send` yields a synthetic `{ type: "interrupted", reason: "user_cancel" }` event as the final event for the turn (no `final` follows). Adapter-initiated aborts (e.g. an SDK-level error path that calls `conv.abort()` without a client-side signal) surface as `reason: "engine_abort"`. All three engine adapters implement this; tests stub it out via `FakeEngine`.
 
-### Example 3: `SessionServiceImpl.openActive` — framework-side lifecycle management
-**File**: `packages/core/src/services/session-service.ts`
+### Example 3: `EngineSessionManager.openActive` — framework-side lifecycle management
+**File**: `packages/core/src/services/session/engine-session-manager.ts:149`
 ```typescript
-private async openActive(args: { sessionId, engineId, mode, studentId, priorTurns }): Promise<ActiveEntry> {
+// EngineSessionManager owns the activeSessions map and all lifecycle logic.
+// acquire() is the hot path: get-or-create-and-swap; openActive() is called
+// by acquire() when no entry exists and by start() for brand-new sessions.
+
+async openActive(args: { sessionId, engineId, mode, studentId, priorTurns }): Promise<ActiveEntry> {
   const engine = factory(engineConfig, { log });
+  // ...compose systemPrompt, filter tools by mode.toolNames, resolve resumeId...
   const handle = await engine.open({
     systemPrompt,
     tools,
-    ...(args.priorTurns.length > 0 && { priorTurns: args.priorTurns }),
+    ...(resumeId !== undefined
+      ? { resumeEngineSessionId: resumeId }   // same-engine: native resume
+      : args.priorTurns.length > 0
+        ? { priorTurns: args.priorTurns }     // engine swap: text-splice
+        : {}),
   });
-  const entry: ActiveEntry = { sessionId, engineId, mode, handle, engine };
-  this.active.set(args.sessionId, entry);
+  const entry: ActiveEntry = { sessionId, engineId, mode, handle, engine, turnInFlight: false };
+  this.activeSessions.set(args.sessionId, entry);
   return entry;
 }
-// On engine swap: await entry.handle.close(); this.active.delete(sessionId);
+// acquire() detects engine swap: await entry.handle.close(); this.activeSessions.delete(sessionId);
 ```
 
 ## When to Use

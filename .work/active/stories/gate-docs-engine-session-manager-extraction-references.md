@@ -1,7 +1,7 @@
 ---
 id: gate-docs-engine-session-manager-extraction-references
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -77,3 +77,15 @@ performed inside `EngineSessionManager.openActive`.
 
 Apply rolling-foundation: replace assertions in place. Don't add
 "previously" prose.
+
+## Implementation notes (2026-05-18)
+
+All five doc files updated to cite `EngineSessionManager.openActive` instead of `SessionServiceImpl.openActive`.
+
+- **CLAUDE.md** — "Engine session loop" bullet expanded to describe the division of labor: `engine-session-manager.ts` owns lifecycle (`acquire`/`openActive`/`activeSessions` map, engine-swap, native-resume, prior-turn seeding, mode-tool filtering, additional-fragment composition); `session-service.ts` is the `SessionService` entry point owning turn orchestration and delegating to the manager.
+- **docs/CONTRACT.md** — Both stale references updated: line ~322 (`additionalFragments` paragraph) and line ~1081 (`PromptCustomizationService` section), both renamed to `EngineSessionManager.openActive`.
+- **`.claude/rules/patterns.md`** — `mode-tool-scoping` entry updated; file path added inline.
+- **`.claude/skills/patterns/mode-tool-scoping.md`** — Preamble updated; Example 2 renamed and file path updated to `engine-session-manager.ts:386` (verified against actual line 386).
+- **`.claude/skills/patterns/engine-session-lifecycle.md`** — Example 3 renamed, file path updated to `engine-session-manager.ts:149`, code snippet updated to show `activeSessions` map, native-resume / text-splice branching, and `turnInFlight` field in `ActiveEntry`.
+
+Post-edit grep confirmed zero remaining `SessionServiceImpl.openActive` occurrences across all five files.

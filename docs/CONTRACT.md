@@ -319,7 +319,7 @@ interface PromptFragment {
 }
 ```
 
-**User-authored fragments**: `user-global` carries the cross-mode global prompt stored at `config_kv.prompt.global_fragment`; `user-append` carries the per-mode append stored in the `mode_prompt_appends` table. Both are injected via `additionalFragments` by `SessionServiceImpl.openActive` through `PromptCustomizationService.getEffectiveAdditionalFragments(modeId)`. Order within the composed prompt is enforced by `FRAGMENT_ORDER` — user-authored slots sit between `constraints` and `postamble` so they can amend the system's behavior without overriding load-bearing constraints.
+**User-authored fragments**: `user-global` carries the cross-mode global prompt stored at `config_kv.prompt.global_fragment`; `user-append` carries the per-mode append stored in the `mode_prompt_appends` table. Both are injected via `additionalFragments` by `EngineSessionManager.openActive` through `PromptCustomizationService.getEffectiveAdditionalFragments(modeId)`. Order within the composed prompt is enforced by `FRAGMENT_ORDER` — user-authored slots sit between `constraints` and `postamble` so they can amend the system's behavior without overriding load-bearing constraints.
 
 ## Artifact schemas
 
@@ -1078,7 +1078,7 @@ interface AuthoringService {
 - **Global fragment** — `config_kv` row at key `prompt.global_fragment`, value `{ text: string }`. Applied across every mode.
 - **Per-mode append** — row in the `mode_prompt_appends` table keyed by `mode_id`. Applied only to the named mode.
 
-`SessionServiceImpl.openActive` calls `promptCustomization.getEffectiveAdditionalFragments(modeId)` to produce `{ id, position, template, customizable: false }` records, then passes them to `composeSystemPrompt(...)` as `additionalFragments`. Writes go through `AuthoringServiceImpl.setGlobalPrompt` / `setModeAppend`, which append a `prompt.set_global` or `prompt.set_mode_append` `ConfiguratorAction` audit row carrying **only the character count** of the text — never the content itself — so secrets pasted into a prompt do not leak into the audit log.
+`EngineSessionManager.openActive` calls `promptCustomization.getEffectiveAdditionalFragments(modeId)` to produce `{ id, position, template, customizable: false }` records, then passes them to `composeSystemPrompt(...)` as `additionalFragments`. Writes go through `AuthoringServiceImpl.setGlobalPrompt` / `setModeAppend`, which append a `prompt.set_global` or `prompt.set_mode_append` `ConfiguratorAction` audit row carrying **only the character count** of the text — never the content itself — so secrets pasted into a prompt do not leak into the audit log.
 
 ### `LockService` — new client surface (Phase 11)
 

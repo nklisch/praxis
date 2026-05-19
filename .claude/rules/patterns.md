@@ -12,7 +12,7 @@ Detailed examples for each pattern are in `.claude/skills/patterns/{slug}.md`. R
 
 ## Configuration and data patterns
 - **config-kv-store**: `config_kv` table stores app-wide key/value config as JSON; read merges stored + defaults + env overrides; write via `onConflictDoUpdate` → [config-kv-store.md]
-- **mode-tool-scoping**: `mode.toolNames` filters `ServiceDeps.toolDefinitions` in `SessionServiceImpl.openActive`; `toolNames === []` means all tools (backward compat); always keep `toolNames` and prompt fragment in sync → [mode-tool-scoping.md]
+- **mode-tool-scoping**: `mode.toolNames` filters `ServiceDeps.toolDefinitions` in `EngineSessionManager.openActive` (`packages/core/src/services/session/engine-session-manager.ts`); `toolNames === []` means all tools (backward compat); always keep `toolNames` and prompt fragment in sync → [mode-tool-scoping.md]
 - **service-deps-injection**: `ServiceDeps` is the single DI container; `engineFactory?: fn` is the test injection seam for `FakeEngine`; `toolServices: { sympy, sandbox }` populated in `buildServices` → [service-deps-injection.md]
 - **lazy-resolver-thunk**: For deps that must be late-bound (user-tunable config, runtime swaps, acyclic ordering, narrow lookup-by-id), declare the dep as `() => T` or `(id) => T | null` and call it per-use; never capture the result at construction → [lazy-resolver-thunk.md]
 - **load-or-throw**: After `.insert/update/delete().run()`, call `loadOrThrow(() => this.get(...), { entity, op, id, log })` to round-trip — never inline the if-null-throw; uniform error format `"<entity> not found after <op>: <id>"` → [load-or-throw.md]

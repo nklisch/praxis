@@ -1,6 +1,6 @@
 # Pattern: Mode-Based Tool Scoping
 
-A `Mode`'s `toolNames: string[]` field declares which tools are available in that mode. `SessionServiceImpl` filters `ServiceDeps.toolDefinitions` by this list before constructing `InProcessToolRegistry`. If `toolNames === []`, all available tools are registered (backward compat).
+A `Mode`'s `toolNames: string[]` field declares which tools are available in that mode. `EngineSessionManager.openActive` filters `ServiceDeps.toolDefinitions` by this list before constructing `InProcessToolRegistry`. If `toolNames === []`, all available tools are registered (backward compat).
 
 ## Rationale
 
@@ -23,8 +23,8 @@ export const teachMode: Mode = {
 };
 ```
 
-### Example 2: `SessionServiceImpl.openActive` — filtering and registry construction
-**File**: `packages/core/src/services/session-service.ts:680`
+### Example 2: `EngineSessionManager.openActive` — filtering and registry construction
+**File**: `packages/core/src/services/session/engine-session-manager.ts:386`
 ```typescript
 const enabledNames = new Set(args.mode.toolNames);
 const enabledTools =
