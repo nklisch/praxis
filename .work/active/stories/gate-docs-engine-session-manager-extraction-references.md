@@ -1,7 +1,7 @@
 ---
 id: gate-docs-engine-session-manager-extraction-references
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -89,3 +89,13 @@ All five doc files updated to cite `EngineSessionManager.openActive` instead of 
 - **`.claude/skills/patterns/engine-session-lifecycle.md`** — Example 3 renamed, file path updated to `engine-session-manager.ts:149`, code snippet updated to show `activeSessions` map, native-resume / text-splice branching, and `turnInFlight` field in `ActiveEntry`.
 
 Post-edit grep confirmed zero remaining `SessionServiceImpl.openActive` occurrences across all five files.
+
+## Review (2026-05-18)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All 5 doc files updated. Spot-checked: CLAUDE.md line 106 (EngineSessionManager lifecycle bullet), CONTRACT.md lines 322 and 1081 (both EngineSessionManager.openActive). Pattern skill files also verified. Zero residual SessionServiceImpl.openActive occurrences.
