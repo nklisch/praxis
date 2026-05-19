@@ -1,7 +1,7 @@
 ---
 id: gate-tests-spawn-from-passage-service-untested
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -63,3 +63,27 @@ it("clamps an out-of-bounds endOffset to document length (no crash, opens sessio
 
 ## Test location (suggested)
 `packages/core/src/services/__tests__/session-service.spawn-from-passage.test.ts` (new)
+
+## Implementation notes (2026-05-18)
+
+Created `packages/core/src/services/__tests__/session-service.spawn-from-passage.test.ts` with 4 tests covering:
+
+1. **Happy path** — seeds a student + document with two chunks, calls `spawnFromPassage`, verifies `handle.modeId === "teach"` and that `documentScopes.getPassageRange` returns the exact range passed.
+
+2. **Document not found (unknown id)** — bogus `documentId` rejects with `/Document not found/`.
+
+3. **Document not found (wrong student)** — document exists but owned by a different `studentId`; query finds nothing and rejects with `/Document not found/`.
+
+4. **Out-of-bounds endOffset** — confirms the session opens without error (no crash). 
+
+### Implementation discovery: range stored verbatim, not clamped
+
+`spawnFromPassage` clamps the range only for extracting `passageText` (the opening message body). The `passageRange` stored in `document_scopes` via `documentScopes.attach(...)` is `input.range` verbatim. Test 4 asserts `range === { startOffset: 0, endOffset: 999 }` — i.e. the original out-of-bounds value is stored. This is the current behavior; the document viewer is responsible for clamping on display. No defect raised — the behavior is consistent with the code comment "clamp to document bounds" applying only to text extraction.
+
+### Setup pattern
+
+- Real `SessionServiceImpl` + real (temp) DB via `useTempDb()`
+- Real `DocumentScopesServiceImpl` wired into `toolServices.documentScopes` (other fields stub-cast via `as any`)
+- `FakeEngine` injected via `engineFactory` to make `start()` + `send()` work without a live LLM
+- `noopLockService()` + `inMemorySecretStorage()` from `tests/helpers/mocks.ts`
+- `insertDocumentWithChunks` helper inserts a `documents` row + N `documentChunks` rows in chunk-index order
