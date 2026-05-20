@@ -15,7 +15,7 @@
   border-left: 2px solid var(--color-accent);
   background: var(--color-bg-secondary);
   /* Slide in from right */
-  animation: slide-in 280ms ease-out;
+  animation: slide-in var(--dur-quick) var(--ease-standard);
 }
 
 @keyframes slide-in {

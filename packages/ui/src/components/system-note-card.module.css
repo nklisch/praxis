@@ -25,7 +25,7 @@
   border-left: 3px solid var(--color-success);
   border-radius: 0 6px 6px 0;
   margin: 0.5rem 0;
-  animation: noteArrive 600ms ease-out;
+  animation: noteArrive var(--dur-ambient) var(--ease-standard);
 }
 
 .glyph {

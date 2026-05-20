@@ -25,7 +25,7 @@
   flex-shrink: 0;
   /* Push dot to center vertically relative to baseline text */
   align-self: center;
-  animation: praxis-subagent-pulse 1.4s ease-in-out infinite;
+  animation: praxis-subagent-pulse var(--dur-pulse) var(--ease-linear) infinite;
 }
 
 @keyframes praxis-subagent-pulse {
@@ -150,7 +150,7 @@
 /* Step running icon — spinning ◐ */
 .stepRunning .stepIcon {
   display: inline-block;
-  animation: praxis-subagent-spin 1.2s linear infinite;
+  animation: praxis-subagent-spin var(--dur-pulse) linear infinite;
 }
 
 @keyframes praxis-subagent-spin {

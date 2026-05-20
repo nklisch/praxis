@@ -37,7 +37,7 @@
 
 .live {
   margin-left: 0.2em;
-  animation: praxis-reasoning-pulse 1.4s ease-in-out infinite;
+  animation: praxis-reasoning-pulse var(--dur-pulse) var(--ease-linear) infinite;
 }
 
 @keyframes praxis-reasoning-pulse {

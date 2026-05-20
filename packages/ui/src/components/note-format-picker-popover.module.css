@@ -30,7 +30,7 @@
   box-shadow: 0 20px 60px color-mix(in srgb, var(--color-text-primary) 18%, transparent);
   padding: var(--space-4) var(--space-6) var(--space-4);
   /* Animate in from slightly below */
-  animation: popover-in 180ms ease-out;
+  animation: popover-in var(--dur-quick) var(--ease-standard);
 }
 
 @keyframes popover-in {

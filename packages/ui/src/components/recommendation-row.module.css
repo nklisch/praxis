@@ -2,9 +2,10 @@
 
 .row {
   display: flex;
-  /* design-system-exception: 14px row gap + padding between --space-3 (12px) and --space-4 (16px); no token equivalent */
+  /* design-system-exception: 14px row gap between --space-3 (12px) and --space-4 (16px); no token equivalent */
   gap: 14px;
   align-items: flex-start;
+  /* design-system-exception: 14px row padding matching gap above; no token equivalent */
   padding: 14px 0;
   border-bottom: 1px solid var(--color-border);
   cursor: default;

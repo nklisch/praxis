@@ -17,7 +17,7 @@
   gap: var(--space-3);
   align-items: flex-start;
   max-width: 340px;
-  animation: toast-in 320ms ease-out;
+  animation: toast-in var(--dur-quick) var(--ease-standard);
 }
 
 @keyframes toast-in {

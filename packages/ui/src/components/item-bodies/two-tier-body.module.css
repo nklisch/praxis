@@ -36,7 +36,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn var(--dur-quick) var(--ease-standard);
 }
 
 @keyframes fadeIn {

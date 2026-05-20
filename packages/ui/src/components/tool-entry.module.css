@@ -32,14 +32,16 @@
   border-radius: 50%;
   background: currentColor;
   opacity: 0.25;
-  animation: praxis-tool-entry-pulse 1.2s ease-in-out infinite;
+  animation: praxis-tool-entry-pulse var(--dur-pulse) var(--ease-linear) infinite;
 }
 
 .dots > span:nth-child(2) {
+  /* design-system-exception: 0.15s stagger offset for dot 2; proportional timing with no token equivalent */
   animation-delay: 0.15s;
 }
 
 .dots > span:nth-child(3) {
+  /* design-system-exception: 0.3s stagger offset for dot 3; 2× dot-2 delay; no token equivalent */
   animation-delay: 0.3s;
 }
 

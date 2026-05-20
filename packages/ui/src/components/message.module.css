@@ -79,7 +79,7 @@
 .cursor {
   display: inline-block;
   margin-left: 0.1em;
-  animation: blink 1s step-start infinite;
+  animation: blink var(--dur-pulse) step-start infinite;
 }
 
 .cursor::before {

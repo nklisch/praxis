@@ -37,7 +37,7 @@
   border-radius: 50%;
   background: var(--color-accent);
   opacity: 0.8;
-  animation: pulse 1s ease-in-out infinite;
+  animation: pulse var(--dur-pulse) var(--ease-linear) infinite;
 }
 
 @keyframes pulse {

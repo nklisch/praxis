@@ -44,7 +44,7 @@
   height: 7px;
   border-radius: 50%;
   background: var(--tint-exam);
-  animation: examPulse 1.6s ease-in-out infinite;
+  animation: examPulse var(--dur-pulse) var(--ease-linear) infinite;
   flex-shrink: 0;
 }
 

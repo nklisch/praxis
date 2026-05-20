@@ -13,7 +13,7 @@
   flex-direction: column;
   overflow: hidden;
   /* Slide in from the right */
-  animation: slideIn 0.18s ease-out;
+  animation: slideIn var(--dur-quick) var(--ease-standard);
 }
 
 @keyframes slideIn {

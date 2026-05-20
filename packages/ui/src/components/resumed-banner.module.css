@@ -45,6 +45,7 @@
   /* Self-contained: positioned inline in the message flow, not overlaid. */
   align-self: center;
   /* Animation: fast-in, hold, fade-out over 3s total. */
+  /* design-system-exception: 3s banner lifecycle (fast reveal + pause + fade-out) cannot map to a single dur-* token */
   animation: bannerReveal 3s ease-out forwards;
   /* Prevent it from getting in the way of the layout while faded. */
   pointer-events: none;

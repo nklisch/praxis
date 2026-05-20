@@ -29,7 +29,7 @@
   font-size: 0.85rem;
   font-style: italic;
   color: var(--praxis-rail-fg);
-  animation: praxis-rail-in 220ms ease-out;
+  animation: praxis-rail-in var(--dur-quick) var(--ease-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {

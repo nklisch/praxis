@@ -70,7 +70,7 @@
 .live {
   composes: editorial from global;
   opacity: 0.8;
-  animation: praxis-subagent-panel-pulse 1.6s ease-in-out infinite;
+  animation: praxis-subagent-panel-pulse var(--dur-pulse) var(--ease-linear) infinite;
 }
 
 @keyframes praxis-subagent-panel-pulse {

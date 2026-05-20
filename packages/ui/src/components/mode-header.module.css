@@ -187,15 +187,18 @@
 
 .openingDot {
   display: inline-block;
-  animation: openingPulse 1.4s ease-in-out infinite;
+  animation: openingPulse var(--dur-pulse) var(--ease-linear) infinite;
 }
 .openingDot:nth-child(1) {
+  /* design-system-exception: 0s stagger start — no token for zero delay */
   animation-delay: 0s;
 }
 .openingDot:nth-child(2) {
+  /* design-system-exception: 0.18s stagger offset — proportional to dur-quick/~9; no token equivalent */
   animation-delay: 0.18s;
 }
 .openingDot:nth-child(3) {
+  /* design-system-exception: 0.36s stagger offset — 2× the nth-child(2) delay; no token equivalent */
   animation-delay: 0.36s;
 }
 

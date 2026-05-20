@@ -155,7 +155,7 @@
 }
 
 .tabNew {
-  animation: tabSlideIn 200ms ease-out forwards;
+  animation: tabSlideIn var(--dur-quick) var(--ease-standard) forwards;
   overflow: hidden;
 }
 
@@ -214,7 +214,7 @@
   background: var(--color-success);
   flex-shrink: 0;
   vertical-align: middle;
-  animation: tabPulse 2s ease-out forwards;
+  animation: tabPulse var(--dur-pulse) var(--ease-standard) forwards;
   cursor: pointer;
 }
 
