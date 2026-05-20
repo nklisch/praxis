@@ -1,14 +1,14 @@
 ---
 id: epic-component-library-codify-and-sharpen
 kind: epic
-stage: implementing
+stage: done
 tags: []
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-05-20
 ---
 
 # Component library: codify and sharpen
@@ -171,3 +171,55 @@ deliverables ARE the mockup artifacts (`components.html`,
 tier — the surfaces that will eventually consume the contract are
 already mocked elsewhere (see `.mockups/adoption-report.md`); this
 epic locks the contract those mocks link.
+
+## Review (2026-05-20)
+
+**Children complete**: both child features at `stage: done`.
+
+- `epic-component-library-codify-and-sharpen-contract` (done) — produced
+  `.mockups/design-system/components.css` + `components.html` and
+  `motion.css` + `motion.html`. Sharpening locked to Option 1
+  (codify-as-is); motion attitude locked to Option 1 (Productive).
+- `epic-component-library-codify-and-sharpen-sweep` (done) — applied
+  the contract across 136 CSS modules in `packages/ui/src/`. Final
+  drift state: 0 rgba, 0 hex, 0 cubic-bezier, 19 bare-px and 20
+  bare-duration values remaining (all behind `design-system-exception`
+  inline comments). Lint guard `pnpm lint:css-contract` wired into
+  `pnpm lint` so the contract holds going forward. 1628/1628 UI tests
+  green.
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: A follow-up worth tracking: the production composer's
+`.composerWrapper` / `.form` structure diverges from the tier-2
+`.composer` 3-column grid in the contract. Either restructure
+production or relax the contract selector — flagged in the sweep
+feature's review and worth a small grooming pass.
+
+**Notes**: Epic delivered as briefed end-to-end. The three intertwined
+outcomes — codify, sharpen, migrate — all land in this arc:
+- **Codify**: `tokens.css` + `components.css` + `motion.css` are now
+  the canonical authoring location for color, type, spacing, radii,
+  the two-tier component contract, and the motion vocabulary.
+- **Sharpen**: Option 1 sharpening (codify-as-is, tighter consistency)
+  and Productive motion locked after side-by-side comparison gates.
+  The Studio Quiet voice is now expressed uniformly across every
+  surface.
+- **Migrate**: the sweep applied the contract to every UI file in one
+  focused pass, with the lint guard preventing regression.
+
+The capability the brief promised — every CSS module in
+`packages/ui/src/` reaching the design system via tier-1 primitive
+classes, the editorial CSS utility, or a tier-2 widget class; every
+raw color/spacing value resolving to `var(--token)`; every bespoke
+transition adopting a motion token — is verifiable end-to-end.
+`pnpm lint:css-contract` exits 0 on HEAD; 1628/1628 UI tests pass.
+
+What's now possible: future UI work authored against the locked
+`.mockups/design-system/` contract is automatically verified by CI on
+every push. Designers can sketch in HTML mocks knowing the production
+code can be rebuilt from the same tokens + primitives. The earlier
+~262 raw value count and ~150 unadopted files are no longer drifting;
+each new contribution either composes a primitive or is flagged.

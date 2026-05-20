@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-3-tab-bodies
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: [epic-component-library-codify-and-sharpen-sweep-step-1-document-viewer]
@@ -157,3 +157,13 @@ One `/* design-system-exception */` comment added at the top of `course-create-t
 - `pnpm vitest run packages/ui`: **157 files, 1628 tests, all passed**
 - `pnpm build`: **passed** (desktop bundle built successfully)
 - `pnpm biome check` on 7 files: **clean (7 files, no fixes)**
+
+## Review (2026-05-20)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 171 bare-px + 4 rgba cleared across the seven highest-traffic student-facing surfaces, with zero new inline exceptions added. Editorial composition adopted on 6/7 content shells; the course-create exception is well-reasoned (authoring canvas, not prose). The ±4px shifts on `.main` paddings (28px → 32px) are within the documented acceptable range and don't shift the visual layout perceptibly.

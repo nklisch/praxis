@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-7-lint-guard
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: [epic-component-library-codify-and-sharpen-sweep-step-2-item-bodies, epic-component-library-codify-and-sharpen-sweep-step-3-tab-bodies, epic-component-library-codify-and-sharpen-sweep-step-4-composer-library-auth, epic-component-library-codify-and-sharpen-sweep-step-5-components-other, epic-component-library-codify-and-sharpen-sweep-step-6-routes]
@@ -184,3 +184,13 @@ like `border-color 0.15s,` that the single-line grep didn't see).
   tokens (mostly `0.15s → var(--dur-quick)`).
 
 Both gates close: `pnpm lint:css-contract` exit 0, all UI tests green.
+
+## Review (2026-05-20)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: none
+**Nits**: The scope expansion (bare-`Nms` → bare-duration in any unit + multi-line declaration handling) added two passes of work — first the seconds migration, then the continuation-line gap fix. Both surfaced during post-wave verification rather than upfront. Going forward, a sweep story body's verification grep should match the exact pattern the guard will enforce — that's the lesson worth carrying.
+
+**Notes**: The guard ships as a 167-LoC zero-dependency Node script with 28 unit cases (4 added during the continuation-line fix). Caught the lone `#fff` slip in feynman before the autopilot run completed. ~257 bare-second values across two passes (122 single-line + 135 multi-line continuation) migrated cleanly with zero new exceptions added. The `lint:biome && lint:css-contract` chain in `pnpm lint` means the contract holds on every push. `.work/CONVENTIONS.md` documents the exception convention.

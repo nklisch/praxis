@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-4-composer-library-auth
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: [epic-component-library-codify-and-sharpen-sweep-step-1-document-viewer]
@@ -158,3 +158,13 @@ Three classes renamed to match the tier-2 contract:
 - `pnpm biome check` (touched files): **clean (info only — `useLiteralKeys` on `styles["composer__sketch-button"]` in template literal; not an error)**
 - rgba count across 14 files: **0**
 - bare-px in p/m/g count: **1** (documented exception: `margin-bottom: -1px` in `documents-section.module.css`)
+
+## Review (2026-05-20)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: none
+**Nits**: The composer wrapper (`.composerWrapper` / `.form` / `.buttonGroup`) intentionally diverges from the tier-2 `.composer` grid contract — the implementation note explains the structural mismatch clearly. Worth flagging at the contract level eventually: the showcase composer is a 3-column grid, the production composer is a flex-column with a form row; either restructure production or relax the contract. Not blocking — divergence is documented inline.
+
+**Notes**: Three composer classes renamed to align with the contract (`.composer__input`, `.composer__send`, `.composer__sketch-button`) and the matching `composer.tsx` references updated in the same commit. Library widgets already adopted; minor cleanup landed. Onboarding/auth surfaces zero-visual-diff as required. The single bare-px exception (`-1px` tab-indicator overlap trick) is structural — no token applies.

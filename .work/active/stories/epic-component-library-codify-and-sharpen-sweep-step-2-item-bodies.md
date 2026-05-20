@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-2-item-bodies
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: [epic-component-library-codify-and-sharpen-sweep-step-1-document-viewer]
@@ -154,3 +154,13 @@ No regression: `pnpm vitest run packages/ui` → 157 files, 1628 tests, all pass
 - `pnpm vitest run packages/ui` → **157 files, 1628 tests, all passed**
 - `pnpm build` → **passed**
 - `pnpm biome check packages/ui/src/components/item-bodies` → **clean (17 files, no fixes)**
+
+## Review (2026-05-20)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: 21 status-tint rgba migrations cleanly land on Studio Quiet semantic tokens via `color-mix`. The decision to skip soft-token shorthands (`--color-success-soft` etc.) and keep the `color-mix(... N%, transparent)` formula visible at the call site is the right call for a 8-12% wash that varies semantically — the percentage carries pedagogical meaning. Editorial composition correctly skipped on every interaction-control surface.

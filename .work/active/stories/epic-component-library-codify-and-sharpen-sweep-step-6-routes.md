@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-6-routes
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: [epic-component-library-codify-and-sharpen-sweep-step-1-document-viewer]
@@ -173,3 +173,13 @@ Both are structural CSS positioning values, not spacing tokens. No token exists 
 - `pnpm biome check` on all 14 touched CSS files: **clean (no errors)**
 - rgba count in scope: **0** (was 23)
 - bare-px in p/m/g count in scope: **2** (was 207; 2 structural -1px optical bleeds with documented inline exceptions)
+
+## Review (2026-05-20)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Configure-tabs (`.projectionTabs`, `.tabBar`) intentionally diverge from the contract's `.tabs` primitive — divergence is well-reasoned and documented. The opportunistic biome fixes (duplicate `border-bottom`, unnecessary `!important`) are within-scope cleanup.
+
+**Notes**: 23 rgba + 207 bare-px cleared across 20 route files. Per-sub-batch commits (configure/, top-level, workspace/) make per-area rollback cheap. Editorial composition correctly limited to surfaces that actually render prose (library greeting, course-create heading, workspace note editor) — not blanket-applied. Two structural `-1px` optical bleeds remain as documented exceptions.

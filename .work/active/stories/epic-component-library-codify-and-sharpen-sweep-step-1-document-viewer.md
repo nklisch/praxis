@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-1-document-viewer
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: []
@@ -133,3 +133,13 @@ example).
 ## Rollback
 
 `git revert <commit>` — single-area scope, no cross-file dependencies.
+
+## Review (2026-05-20)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Proof slice delivered as scoped. The translation table was the explicit downstream deliverable — every other sweep story referenced it. Two new tokens (`--space-0-5: 2px`, `--space-1-5: 6px`) cleanly extend the spacing scale without breaking the 8pt baseline rhythm. `color-mix` adoption verified in Electron 41. 1628/1628 UI tests green; final lint guard catches no drift in this scope.

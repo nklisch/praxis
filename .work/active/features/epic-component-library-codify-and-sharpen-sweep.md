@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen
 depends_on: [epic-component-library-codify-and-sharpen-contract]
@@ -546,3 +546,19 @@ Workspace lint pre-existing errors (522) unchanged.
 - New `--dur-medium` / `--dur-strip-width` tokens were considered but
   not added — the existing `--dur-quick` / `--dur-ambient` / `--ease-*`
   vocabulary covered every adoption after testing in dev.
+
+## Review (2026-05-20)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: The two-pass migration (single-line seconds then multi-line continuation) is documented in the cross-cutting deviations and step-7's body. Both lessons are captured for future sweeps.
+
+**Notes**:
+- All 7 child stories reviewed and at `stage: done`.
+- The composer wrapper's intentional structural divergence from the tier-2 `.composer` grid contract (flagged in step-4's review) is worth revisiting in a follow-up: either restructure the production composer to a 3-column grid, or relax the contract's `.composer` selector to match. Not in scope here; noted for future grooming.
+- Capability completeness verified end-to-end: every CSS module in `packages/ui/src/` either composes a contract primitive or carries a documented exception; the guard CI step (`pnpm lint:css-contract`) holds the line going forward. The 1628/1628 UI tests pass throughout — no behavioral regressions from the migration.
+- Foundation alignment intact: the `docs/UX.md` "Design-system contract" paragraph (already rolled forward during the contract feature's review) accurately describes the shipped contract.
+
+What's now possible: every future PR that touches `packages/ui/src/` is automatically held to the Studio Quiet contract. Designers and engineers can author mockups and production code against the same `tokens.css` + `components.css` + `motion.css` triple, and CI catches drift on first push.

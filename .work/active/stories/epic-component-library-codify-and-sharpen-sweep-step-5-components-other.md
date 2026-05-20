@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-5-components-other
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: [epic-component-library-codify-and-sharpen-sweep-step-1-document-viewer]
@@ -157,3 +157,13 @@ human eye misses, and themed sub-commits make per-family rollback cheap.
 ## Rollback
 
 Per-themed-commit revert.
+
+## Review (2026-05-20)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none
+**Important**: none
+**Nits**: One hex literal (`#fff` in `note-editor-feynman.module.css:355`) slipped past the agent's grep gate and was fixed inline by the orchestrator post-wave — flagged as a verification gap, not a blocker. The lint guard in step-7 now catches this category going forward, so the same kind of leak can't recur.
+
+**Notes**: Seven themed sub-commits land 85 files cleanly: 80 rgba migrated, 164 bare-px tokenized, 2 bare-ms transitions adopt the motion contract. The themed commit structure is the right shape for review and per-family rollback. The 14 remaining bare-px values all carry well-justified `design-system-exception` comments (outline indent hierarchy, glyph offsets, optical bleeds).
