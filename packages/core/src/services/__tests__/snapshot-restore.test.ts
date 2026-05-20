@@ -691,6 +691,72 @@ describe("restoreAction — un-revert", () => {
     // After un-revert, title should be "Mutated Title" again.
     expect((await artifacts.course(COURSE_ID))?.title).toBe("Mutated Title");
   });
+
+  it("un-revert is idempotent — restoring the same restore-action twice returns already_restored on second call", async () => {
+    const { authoring, artifacts } = services;
+
+    // 1. Mutate: change course title.
+    await authoring.updateCourse({ courseId: COURSE_ID, patch: { title: "Mutated Title" } });
+    const allActions1 = await authoring.listConfiguratorActions();
+    const originalActionId = allActions1[0]!.id;
+
+    // 2. Restore (revert): entity returns to "Original Course Title".
+    await authoring.restoreAction({ actionId: originalActionId });
+
+    // 3. Find the restore-action row.
+    const allActions2 = await authoring.listConfiguratorActions();
+    const restoreActionRow = allActions2[0]!;
+    expect(restoreActionRow.action.kind).toBe("restore");
+    const restoreActionId = restoreActionRow.id;
+
+    // 4. Un-revert (first call): should succeed and reapply "Mutated Title".
+    const firstUnRevert = await authoring.restoreAction({ actionId: restoreActionId });
+    expect(firstUnRevert).toEqual({ ok: true, restoredEntity: "course", entityKey: COURSE_ID });
+    expect((await artifacts.course(COURSE_ID))?.title).toBe("Mutated Title");
+
+    // 5. Un-revert again (second call on the same restore-action): the restore-action's
+    //    snapshot row was marked restoredAt on the first call, so this must return
+    //    already_restored without mutating the entity again.
+    const secondUnRevert = await authoring.restoreAction({ actionId: restoreActionId });
+    expect(secondUnRevert).toEqual({ ok: false, reason: "already_restored" });
+
+    // Entity state must be unchanged after the second (rejected) call.
+    expect((await artifacts.course(COURSE_ID))?.title).toBe("Mutated Title");
+  });
+
+  it("un-revert after an intermediate edit re-applies the snapshot captured at revert time, not current state", async () => {
+    const { authoring, artifacts } = services;
+
+    // 1. Mutate A1: change course title from "Original Course Title" to "A1 Title".
+    await authoring.updateCourse({ courseId: COURSE_ID, patch: { title: "A1 Title" } });
+    const allActions1 = await authoring.listConfiguratorActions();
+    const a1Id = allActions1[0]!.id;
+
+    // 2. Restore A1 (revert): entity returns to "Original Course Title".
+    //    The restore action captures the pre-restore state ("A1 Title") as its own
+    //    snapshot, enabling a future un-revert to reapply it.
+    await authoring.restoreAction({ actionId: a1Id });
+    expect((await artifacts.course(COURSE_ID))?.title).toBe("Original Course Title");
+
+    // 3. Find the restore-action row (R1).
+    const allActions2 = await authoring.listConfiguratorActions();
+    const r1Row = allActions2[0]!;
+    expect(r1Row.action.kind).toBe("restore");
+    const r1Id = r1Row.id;
+
+    // 4. Intermediate edit A2: another mutation on the same entity.
+    await authoring.updateCourse({ courseId: COURSE_ID, patch: { title: "A2 Title" } });
+    expect((await artifacts.course(COURSE_ID))?.title).toBe("A2 Title");
+
+    // 5. Un-revert R1: restoring the restore-action re-applies the state captured
+    //    at the moment of the revert ("A1 Title"), NOT the current state ("A2 Title").
+    //    The un-revert only knows about the snapshot it holds; it does not merge with A2.
+    const unRevertResult = await authoring.restoreAction({ actionId: r1Id });
+    expect(unRevertResult).toEqual({ ok: true, restoredEntity: "course", entityKey: COURSE_ID });
+
+    // The entity is now at the state A1 produced, overwriting A2's change.
+    expect((await artifacts.course(COURSE_ID))?.title).toBe("A1 Title");
+  });
 });
 
 // ── Guard: schema_drift ────────────────────────────────────────────────────────
