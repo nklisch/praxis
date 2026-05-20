@@ -51,3 +51,29 @@ gates_for_release: [security, tests, cruft, docs, patterns]
 All five gates run on every `/release-deploy` in this order. Each gate
 produces items rather than blocking the release; the release ships when all
 items at the current `release_binding` reach `stage: done`.
+
+## Design-system exceptions
+
+CSS modules in `packages/ui/src/` must adhere to the design-system
+contract — every color uses `var(--color-*)`, every spacing in
+`padding`/`margin`/`gap` uses `var(--space-*)`, every easing uses
+`var(--ease-*)`, every duration uses `var(--dur-*)` or `var(--t-*)`.
+
+`pnpm lint:css-contract` enforces the contract.
+
+Exceptions to the contract — for values that genuinely cannot map to a
+token (negative-margin overlap tricks, structural pixel offsets,
+glyph-grid measurements) — are allowed with an inline comment:
+
+```css
+/* design-system-exception: <reason> */
+padding-left: 28px;
+```
+
+The comment can sit on the same line as the value or on the line
+directly above. Reasons should be concrete; "no token applies" is
+acceptable shorthand if the structural use is obvious.
+
+The legacy form `/* intentional literal: <reason> */` (used by sweep
+steps 2–6 before this guard shipped) is also recognized as an exception
+marker. New code should use `/* design-system-exception: */`.
