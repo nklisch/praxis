@@ -1,7 +1,7 @@
 ---
 id: story-fix-onboarding-course-card-flash
 kind: story
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
@@ -88,3 +88,16 @@ Adjacent issues observed but **not** bundled:
   are being consolidated elsewhere.
 - Workspace lint shows 522 pre-existing errors unrelated to this surface.
   Both files I touched lint clean.
+
+## Review (2026-05-19)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**:
+- Root-cause fix: handleStart reorder moves `await onComplete()` after the full session.start → preseed → tabs.open → navigate chain (commit `85e4de8`).
+- Two regression tests guard both behaviors — ordering (`["session.start", "tabs.open", "onComplete"]`) and error-recovery (no flag flip on `session.start` rejection). Both pass alongside the 19 existing tests in the suite (21/21 green).
+- No foundation-doc drift; no breaking changes; touched files lint clean.
