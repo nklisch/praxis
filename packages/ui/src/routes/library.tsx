@@ -7,6 +7,7 @@ import type {
 } from "@praxis/core/types";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
+import { AddDocumentButton } from "../components/add-document-button.js";
 import { getModeMeta } from "../components/mode-meta.js";
 import { RecommendationRow } from "../components/recommendation-row.js";
 import { usePraxisClient } from "../context/client-context.js";
@@ -44,9 +45,6 @@ export function LibraryRoute() {
     await refreshDocuments();
     await refresh();
   });
-  // Keep ingestion warm so the hook doesn't get tree-shaken; it registers
-  // listeners on the transport that we rely on for background progress.
-  void ingestion;
 
   // ── Session open helpers ────────────────────────────────────────────────────
 
@@ -336,16 +334,7 @@ export function LibraryRoute() {
                     .map((d) => d.filename)
                     .join(" · ")}
             </div>
-            <button
-              type="button"
-              className={styles.footerCardLink}
-              onClick={async () => {
-                const picked = await client.ingest.pickFile();
-                if (!picked) return;
-              }}
-            >
-              + attach a document ↗
-            </button>
+            <AddDocumentButton ingestion={ingestion} />
           </div>
         </div>
       </div>

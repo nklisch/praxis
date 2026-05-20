@@ -167,6 +167,7 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
     } as unknown as PraxisClient["documents"],
     ingest: {
       pickFile: vi.fn().mockResolvedValue(null),
+      pickPaths: vi.fn().mockResolvedValue([]),
       start: vi.fn(async function* () {}) as unknown as PraxisClient["ingest"]["start"],
       isAvailable: vi.fn().mockReturnValue(false),
     },
@@ -354,10 +355,25 @@ describe("LibraryRoute — Workbench", () => {
     });
   });
 
-  it("renders Documents footer card", async () => {
+  it("renders Documents footer card with Upload button", async () => {
     renderRoute(makeClient());
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /\+ attach a document/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /\+ Add documents/i })).toBeDefined();
+    });
+  });
+
+  it("clicking Upload button invokes client.ingest.pickPaths with mode 'files'", async () => {
+    const client = makeClient();
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /\+ Add documents/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /\+ Add documents/i }));
+
+    await waitFor(() => {
+      expect(client.ingest.pickPaths).toHaveBeenCalledWith({ mode: "files" });
     });
   });
 
