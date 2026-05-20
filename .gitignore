@@ -46,9 +46,3 @@ drizzle/meta/_journal.bak
 # Claude Code: per-machine session artefacts
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
-
-# Antigravity / Agents
-.agents/
-.antigravitycli/
-.work/
-
