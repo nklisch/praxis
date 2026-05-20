@@ -333,15 +333,11 @@ function CourseStep({
     setBusy(path);
     setError(null);
     try {
-      // For v1, every course path opens a fresh course-create session — the
-      // course-create-mode agent handles canonical-pack import or syllabus
-      // drafting based on the user's first message. The labels guide the
-      // user toward the right initial prompt.
-      await onComplete();
-
-      // Inline the start → (optional pre-seed send) → tabs.open → navigate
-      // sequence so we can inject a canonical-pack message for algebra and
-      // biology before the user lands in the chat.
+      // Order matters: do all session work first, then flip the first-run
+      // flag last. Calling onComplete before session.start unmounts the
+      // OnboardingFlow mid-flight — the user briefly sees the Library before
+      // the chat tab opens, and if session.start throws they're stranded
+      // there with no error and no retry path.
       const handle = await client.session.start({ modeId: "course-create" });
 
       const preSeedMessage = PRESEED_MESSAGES[path];
@@ -363,6 +359,7 @@ function CourseStep({
 
       const tab = await client.tabs.open({ sessionId: handle.sessionId });
       await navigate({ to: "/chat/$tabId", params: { tabId: tab.id } });
+      await onComplete();
     } catch {
       setError(COPY.onboarding.couldNotStart);
       setBusy(null);

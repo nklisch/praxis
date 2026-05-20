@@ -185,6 +185,75 @@ describe("OnboardingFlow", () => {
     expect(startSpy).toHaveBeenCalledWith({ modeId: "course-create" });
   });
 
+  // Regression guard: calling onComplete BEFORE session.start unmounts the
+  // OnboardingFlow (RootLayout swaps to main layout because isFirstRun flips
+  // false), so the user briefly sees the Library between the onboarding
+  // closing and the chat tab appearing. Worse, if session.start fails the
+  // user is stranded in the Library with no error and no retry. Session work
+  // must complete first; onComplete fires last.
+  it("course card runs session work before onComplete (no library flash)", async () => {
+    const callOrder: string[] = [];
+    const onComplete = vi.fn(async () => {
+      callOrder.push("onComplete");
+    });
+    const client = makeFakeClient({
+      config: {
+        engineConfig: vi.fn().mockResolvedValue({ engineId: "direct.anthropic" }),
+        setEngineConfig: vi.fn(),
+        firstRunCompleted: vi.fn().mockResolvedValue(false),
+        markFirstRunComplete: vi.fn(),
+      } as unknown as PraxisClient["config"],
+      session: {
+        start: vi.fn(async () => {
+          callOrder.push("session.start");
+          return { sessionId: "sess-1" };
+        }),
+        send: vi.fn(() => ({
+          [Symbol.asyncIterator]() {
+            return { next: async () => ({ value: undefined as never, done: true as const }) };
+          },
+        })),
+      } as unknown as PraxisClient["session"],
+      tabs: {
+        open: vi.fn(async () => {
+          callOrder.push("tabs.open");
+          return { id: "tab-1" };
+        }),
+      } as unknown as PraxisClient["tabs"],
+      claudeAuth: {
+        status: vi.fn().mockResolvedValue({ loggedIn: false }),
+      } as unknown as PraxisClient["claudeAuth"],
+    });
+
+    renderFlow({ client, onComplete });
+    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
+    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
+
+    fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+
+    expect(callOrder).toEqual(["session.start", "tabs.open", "onComplete"]);
+  });
+
+  // Regression guard: if session.start throws, the user must remain in
+  // onboarding with the error visible so they can retry — onComplete must
+  // not have fired (otherwise the onboarding has already unmounted).
+  it("course card does not mark complete if session.start fails", async () => {
+    const onComplete = vi.fn(async () => undefined);
+    const client = buildClient({ startRejects: true });
+    renderFlow({ client, onComplete });
+    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.engineTitle)).toBeDefined());
+    fireEvent.click(screen.getByText(COPY.onboarding.continueLabel));
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.courseTitle)).toBeDefined());
+
+    fireEvent.click(screen.getByText(COPY.onboarding.courseAlgebraLabel));
+    await waitFor(() => expect(screen.getByText(COPY.onboarding.couldNotStart)).toBeDefined());
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
   describe("pre-seed messages on canonical course cards", () => {
     async function goToCourseStep(client: PraxisClient) {
       const onComplete = vi.fn(async () => undefined);
