@@ -95,14 +95,14 @@
 
 .option:hover:not(:disabled) {
   border-color: var(--color-accent);
-  background: rgba(96, 165, 250, 0.06);
+  background: color-mix(in srgb, var(--color-info) 6%, transparent);
 }
 
 /* Option button — selected */
 .optionSelected {
   composes: option;
   border-color: var(--color-accent);
-  background: rgba(96, 165, 250, 0.12);
+  background: color-mix(in srgb, var(--color-info) 12%, transparent);
 }
 
 fieldset:disabled .option,
