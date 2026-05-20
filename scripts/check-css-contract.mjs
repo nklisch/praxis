@@ -132,6 +132,20 @@ function* walkCssModules(dir) {
   }
 }
 
+// ─── Multi-line declaration helpers ──────────────────────────────────────────
+
+/**
+ * Regex that matches the start of a transition/animation declaration.
+ * Captures the colon position implicitly — the value starts after the `:`.
+ */
+const DURATION_PROP_START_RE = /(^|[{;\s])(transition|transition-duration|animation|animation-duration)(-\w+)?\s*:/i;
+
+/**
+ * Regex for a bare duration value (no `var(--` prefix).
+ * Used to check individual continuation lines.
+ */
+const BARE_DURATION_RE = /\b\d+(\.\d+)?(ms|s)\b/;
+
 // ─── Scan a single file ───────────────────────────────────────────────────────
 
 /**
@@ -148,7 +162,9 @@ function scanFile(filePath) {
     const line = lines[i];
     const lineNo = i + 1; // 1-indexed
 
+    // ── Rules other than bare-duration: single-line scan (unchanged) ──────────
     for (const rule of RULES) {
+      if (rule.id === "bare-duration") continue; // handled below
       const col = rule.test(line, prevLine);
       if (col === -1) continue;
 
@@ -163,6 +179,82 @@ function scanFile(filePath) {
         description: rule.description,
         snippet: line.trim().slice(0, 100),
       });
+    }
+
+    // ── bare-duration: handles both single-line and multi-line declarations ───
+    //
+    // A "multi-line transition" looks like either:
+    //   transition:
+    //     color 0.15s,         ← value is entirely on continuation lines
+    //     border-color 0.15s;
+    //
+    // or:
+    //   transition: color 0.15s,   ← first value on the declaration line
+    //     border-color 0.15s;
+    //
+    // In both cases we detect the property start on the current line, check
+    // the first-value fragment (if any), then walk subsequent lines if the
+    // declaration is not yet terminated (no `;` or `}` seen yet).
+    const strippedLine = stripComments(line);
+    const propMatch = DURATION_PROP_START_RE.exec(strippedLine);
+    if (propMatch) {
+      const colonIdx = propMatch.index + propMatch[0].length - 1;
+      const valueFragment = strippedLine.slice(colonIdx + 1);
+      const hasException = EXCEPTION_RE.test(line) || EXCEPTION_RE.test(prevLine);
+
+      // Check first-value fragment on the declaration line itself.
+      if (!hasException) {
+        const durMatch = BARE_DURATION_RE.exec(valueFragment);
+        if (durMatch && !valueFragment.includes("var(--")) {
+          violations.push({
+            file: filePath,
+            line: lineNo,
+            col: strippedLine.indexOf(durMatch[0], colonIdx) + 1,
+            rule: "bare-duration",
+            description: "Bare duration in transition/animation — use var(--dur-*) or var(--t-*) instead",
+            snippet: line.trim().slice(0, 100),
+          });
+        }
+      }
+
+      // Determine if the declaration continues on subsequent lines.
+      // It does when the current line has no `;` after the colon (value not terminated yet).
+      const afterColon = valueFragment.trimEnd();
+      const declarationTerminated = afterColon.endsWith(";") || afterColon.endsWith("}");
+
+      if (!declarationTerminated) {
+        // Walk continuation lines until we hit the terminating `;` or `}`.
+        let j = i + 1;
+        while (j < lines.length) {
+          const contLine = lines[j];
+          const contStripped = stripComments(contLine);
+          const contTrimmed = contStripped.trim();
+
+          // A blank line or block-close means the declaration ended abnormally.
+          if (contTrimmed === "" || contTrimmed.startsWith("}")) break;
+
+          // Check this continuation line for a bare duration (unless excepted).
+          if (!hasException) {
+            const contDurMatch = BARE_DURATION_RE.exec(contStripped);
+            if (contDurMatch && !contStripped.includes("var(--")) {
+              violations.push({
+                file: filePath,
+                line: j + 1, // 1-indexed
+                col: contStripped.indexOf(contDurMatch[0]) + 1,
+                rule: "bare-duration",
+                description: "Bare duration in transition/animation — use var(--dur-*) or var(--t-*) instead",
+                snippet: contLine.trim().slice(0, 100),
+              });
+            }
+          }
+
+          // Once the semicolon (or closing brace) appears, the declaration ends.
+          const trimmedEnd = contStripped.trimEnd();
+          if (trimmedEnd.endsWith(";") || trimmedEnd.endsWith("}")) break;
+
+          j++;
+        }
+      }
     }
 
     prevLine = line;

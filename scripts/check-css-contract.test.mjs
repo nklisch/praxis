@@ -237,3 +237,58 @@ describe("mixed file", () => {
     expect(violations).toHaveLength(3);
   });
 });
+
+// ─── Multi-line transition declarations ──────────────────────────────────────
+
+describe("bare-duration rule — multi-line transition declarations", () => {
+  it("flags bare durations on continuation lines (two violations)", () => {
+    const css = `
+.x {
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+`;
+    const violations = scanFile(writeFixture(css));
+    const found = violations.filter((v) => v.rule === "bare-duration");
+    expect(found).toHaveLength(2);
+    expect(found[0].line).toBe(4); // color 0.15s line
+    expect(found[1].line).toBe(5); // border-color 0.15s line
+  });
+
+  it("does NOT flag when continuation lines use var(-- tokens", () => {
+    const css = `
+.x {
+  transition:
+    color var(--dur-quick),
+    border-color var(--dur-quick);
+}
+`;
+    const violations = scanFile(writeFixture(css));
+    expect(violations.filter((v) => v.rule === "bare-duration")).toHaveLength(0);
+  });
+
+  it("suppresses all continuation-line violations when exception is on the declaration line", () => {
+    const css = `
+.x {
+  /* design-system-exception: explicit 250ms feel needed for handoff */
+  transition: opacity 0.25s;
+}
+`;
+    const violations = scanFile(writeFixture(css));
+    expect(violations.filter((v) => v.rule === "bare-duration")).toHaveLength(0);
+  });
+
+  it("suppresses all continuation-line violations when exception precedes multi-line declaration", () => {
+    const css = `
+.x {
+  /* design-system-exception: explicit timing on dismissal */
+  transition:
+    opacity 0.25s,
+    transform 0.25s;
+}
+`;
+    const violations = scanFile(writeFixture(css));
+    expect(violations.filter((v) => v.rule === "bare-duration")).toHaveLength(0);
+  });
+});
