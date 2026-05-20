@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Praxis components — sharpening comparison</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  /* Showcase chrome — not part of the contract; review-only. */
+  html, body { min-height: 100vh; }
+  body { padding-bottom: var(--space-16); }
+
+  .showcase-meta {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--color-bg-primary) 92%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-3) var(--space-6);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  .showcase-meta__title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--font-size-lg);
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+  .showcase-meta__title small {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-kicker);
+    color: var(--color-text-secondary);
+  }
+  main { max-width: 72rem; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .anchor-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-12);
+  }
+  .anchor-nav a {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-kicker);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+  }
+  .anchor-nav a:hover { color: var(--color-text-primary); }
+
+  .section { margin-bottom: var(--space-16); }
+  .section > h2 {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--font-size-2xl);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-2);
+  }
+  .section > .lede {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-6);
+    max-width: 56ch;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+  }
+  .row--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .row--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .row--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .cell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .cell__label {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-kicker);
+    color: var(--color-text-tertiary);
+  }
+  .cell__demo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--color-bg-primary);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+    min-height: 6em;
+  }
+  .cell__demo--block { display: block; }
+  .cell__demo--col { gap: var(--space-3); }
+
+  .swatch-line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .swatch-line:first-child { border-top: none; }
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+  .swatch--accent { background: var(--color-accent); }
+  .swatch--text { background: var(--color-text-primary); }
+  .swatch--surface { background: var(--color-bg-secondary); }
+  .swatch--sunken { background: var(--color-bg-tertiary); }
+
+  /* Mode tint dot */
+  .mode-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    vertical-align: middle;
+  }
+</style>
+</head>
+
+<body>
+
+<header class="showcase-meta">
+  <h1 class="showcase-meta__title">
+    Praxis components
+    <small>· studio quiet · sharpening: codify-as-is · locked 2026-05-19</small>
+  </h1>
+</header>
+
+<main>
+
+<nav class="anchor-nav" aria-label="Section nav">
+  <a href="#about">About</a>
+  <a href="#marks">Marks</a>
+  <a href="#heads">Heads</a>
+  <a href="#actions">Actions</a>
+  <a href="#forms">Forms</a>
+  <a href="#surfaces">Surfaces</a>
+  <a href="#feedback">Feedback</a>
+  <a href="#overlays">Overlays</a>
+  <a href="#nav">Nav</a>
+  <a href="#data">Data</a>
+  <a href="#tier2">Tier-2 widgets</a>
+</nav>
+
+<section class="section" id="about">
+  <h2>About this showcase</h2>
+  <p class="lede">
+    The locked component contract for Praxis. Tier-1 editorial primitives
+    + the broad 6-pack tier-2 domain widgets, every component in every
+    state. <em>Sharpening: codify-as-is, tighter consistency</em> — hairlines
+    where they already live, primary accent used freely on the dominant
+    action of every surface, status colors paired with badge chrome,
+    2px-border tab indicator on the active tab. Downstream mocks link
+    this stylesheet; production CSS modules adopt these classes during
+    the migration sweep feature.
+  </p>
+</section>
+
+<section class="section" id="marks">
+  <h2>Marks</h2>
+  <p class="lede">Editorial typographic vocabulary — utilities composed everywhere.</p>
+  <div class="row row--3">
+    <div class="cell">
+      <span class="cell__label">.editorial-kicker</span>
+      <div class="cell__demo">
+        <span class="editorial-kicker">Library · 47 items</span>
+        <span class="editorial-kicker"><span class="mode-dot" style="background:var(--tint-teach)"></span>Teach mode</span>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.editorial-deck</span>
+      <div class="cell__demo">
+        <p class="editorial-deck">A quiet space for studying alongside an AI tutor.</p>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.ornament</span>
+      <div class="cell__demo">
+        <div><span class="ornament ornament--xl">§</span> <span class="ornament ornament--xl">¶</span> <span class="ornament ornament--xl">†</span> <span class="ornament ornament--xl">‡</span> <span class="ornament ornament--xl">❦</span> <span class="ornament ornament--xl">⁂</span></div>
+        <div style="color:var(--color-text-secondary)">Inline ornament marker: this is a sentence with a · marker mid-flow.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="heads">
+  <h2>Heads</h2>
+  <p class="lede">Section heads and route header — the standing chrome of every editorial surface.</p>
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.section-head</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="section-head">
+          <p class="section-head__deck"><span class="editorial-kicker">Courses</span></p>
+          <h3 class="section-head__title">your library</h3>
+          <p class="section-head__deck">Three courses; one in progress.</p>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.section-rule</span>
+      <div class="cell__demo cell__demo--block">
+        <p>Above the rule, prose flowing as normal.</p>
+        <hr class="section-rule">
+        <p>Below the rule, a new editorial section begins.</p>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="cell">
+      <span class="cell__label">.route-header</span>
+      <div class="cell__demo cell__demo--block" style="padding: 0">
+        <div class="route-header" style="padding: var(--space-6); margin: 0">
+          <span class="route-header__ornament">§</span>
+          <span class="route-header__kicker">Library</span>
+          <h2 class="route-header__title">your library</h2>
+          <p class="route-header__deck">Three courses; one in progress.</p>
+          <div class="route-header__actions">
+            <button class="btn btn-secondary btn--sm">Filter</button>
+            <button class="btn btn-primary btn--sm">+ New course</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="actions">
+  <h2>Actions</h2>
+  <p class="lede">.btn — primary / secondary / ghost / link / danger, with sizes and states.</p>
+
+  <div class="row row--3">
+    <div class="cell">
+      <span class="cell__label">Variants</span>
+      <div class="cell__demo">
+        <div><button class="btn btn-primary">Primary action</button></div>
+        <div><button class="btn btn-secondary">Secondary</button></div>
+        <div><button class="btn btn-ghost">Ghost</button></div>
+        <div><button class="btn btn-link">Link button</button></div>
+        <div><button class="btn btn-danger">Danger</button></div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">States</span>
+      <div class="cell__demo">
+        <div><button class="btn btn-primary">Default</button></div>
+        <div><button class="btn btn-primary" style="background:var(--color-accent-hover)">Hover-ish</button></div>
+        <div><button class="btn btn-primary" disabled>Disabled</button></div>
+        <div><button class="btn btn-secondary" disabled>Disabled · secondary</button></div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">Sizes</span>
+      <div class="cell__demo">
+        <div><button class="btn btn-primary btn--sm">Small</button></div>
+        <div><button class="btn btn-primary">Default</button></div>
+        <div><button class="btn btn-primary btn--lg">Large</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="forms">
+  <h2>Forms</h2>
+  <p class="lede">Field wrapper plus input, textarea, select, checkbox.</p>
+
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.field with .input</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="field">
+          <label class="field__label" for="ex-input">Course name</label>
+          <input class="input" id="ex-input" type="text" placeholder="Algebra 1, for my afternoon block">
+          <span class="field__helper">Shown in the library list.</span>
+        </div>
+        <div class="field">
+          <label class="field__label" for="ex-error">Required</label>
+          <input class="input input--error" id="ex-error" type="text" value="">
+          <span class="field__error">This field can't be empty.</span>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.textarea / .select / .checkbox</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="field">
+          <label class="field__label" for="ex-ta">Notes</label>
+          <textarea class="textarea" id="ex-ta" placeholder="Anything else worth knowing about this course…"></textarea>
+        </div>
+        <div class="field">
+          <label class="field__label" for="ex-sel">Mode</label>
+          <select class="select" id="ex-sel">
+            <option>Teach</option><option>Quiz</option><option>Homework</option><option>Exam</option>
+          </select>
+        </div>
+        <label class="checkbox">
+          <input class="checkbox__input" type="checkbox" checked>
+          <span class="checkbox__label">Send me a summary at the end of each session</span>
+        </label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="surfaces">
+  <h2>Surfaces</h2>
+  <p class="lede">.card — default and interactive.</p>
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.card</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="card">
+          <div class="card__head">
+            <h3 class="card__title">An ordinary card</h3>
+            <span class="editorial-kicker">3 items</span>
+          </div>
+          <div class="card__body">
+            A surface that earns its place — used when content needs an explicit
+            container rather than relying on whitespace alone.
+          </div>
+          <div class="card__foot">
+            <button class="btn btn-ghost btn--sm">Discard</button>
+            <button class="btn btn-primary btn--sm">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.card--interactive</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="card card--interactive" tabindex="0">
+          <div class="card__head">
+            <h3 class="card__title">Click me</h3>
+            <span class="ornament">↗</span>
+          </div>
+          <div class="card__body">
+            Hover or focus to see the affordance. Used in library rows,
+            course cards, navigable lists.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="feedback">
+  <h2>Feedback</h2>
+  <p class="lede">Empty / error / loading. No toasts (Praxis is anti-notification).</p>
+  <div class="row row--3">
+    <div class="cell">
+      <span class="cell__label">.empty-state</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="empty-state">
+          <div class="empty-state__ornament">¶</div>
+          <h3 class="empty-state__title">no documents yet</h3>
+          <p class="empty-state__body">Bring me something to teach you.</p>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.error-message</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="error-message">
+          <span class="error-message__ornament">‡</span>
+          <div class="error-message__body">
+            <h3 class="error-message__title">Couldn't reach the engine.</h3>
+            <p class="error-message__detail">network/timeout · retry in 4s</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.loading-state</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="loading-state">thinking</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="overlays">
+  <h2>Overlays</h2>
+  <p class="lede">.modal (with header / body / footer) · .dropdown.</p>
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.modal (mock-rendered inline, no backdrop)</span>
+      <div class="cell__demo cell__demo--block" style="background: color-mix(in srgb, var(--color-bg-inverse) 35%, transparent); padding: var(--space-6); border-radius: 0">
+        <div class="modal" style="max-width: 360px; margin: 0 auto">
+          <div class="modal__head">
+            <h3 class="modal__title">Discard draft?</h3>
+            <button class="modal__close" aria-label="Close">×</button>
+          </div>
+          <div class="modal__body">
+            <p style="margin: 0">Once discarded, the draft can't be recovered.</p>
+          </div>
+          <div class="modal__foot">
+            <button class="btn btn-ghost btn--sm">Cancel</button>
+            <button class="btn btn-danger btn--sm">Discard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.dropdown (open)</span>
+      <div class="cell__demo cell__demo--block" style="min-height: 14em">
+        <div class="dropdown" style="display: inline-block">
+          <button class="btn btn-secondary">Open menu ▾</button>
+          <div class="dropdown__menu" style="position: static; margin-top: var(--space-1)">
+            <button class="dropdown__item">Rename</button>
+            <button class="dropdown__item">Duplicate</button>
+            <button class="dropdown__item">Move to folder</button>
+            <hr class="dropdown__divider">
+            <button class="dropdown__item" style="color: var(--color-danger)">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="nav">
+  <h2>Nav</h2>
+  <p class="lede">.tabs — used in configure and inline pickers.</p>
+  <div class="row">
+    <div class="cell">
+      <span class="cell__label">.tabs</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="tabs">
+          <button class="tab tab--active"><span class="ornament">§</span> Course</button>
+          <button class="tab"><span class="ornament">‡</span> Gates <span class="tab__dirty"></span></button>
+          <button class="tab"><span class="ornament">⁂</span> Prompt</button>
+          <button class="tab"><span class="ornament">❦</span> Memory</button>
+        </div>
+        <p style="margin: 0; color: var(--color-text-secondary)">Course panel content lives here.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="data">
+  <h2>Data display</h2>
+  <p class="lede">.badge · .pill · .skeleton · .progress · .step-dots.</p>
+  <div class="row row--4">
+    <div class="cell">
+      <span class="cell__label">.badge</span>
+      <div class="cell__demo">
+        <div><span class="badge">Draft</span></div>
+        <div><span class="badge badge--success">Ready</span></div>
+        <div><span class="badge badge--warning">Pending</span></div>
+        <div><span class="badge badge--danger">Failed</span></div>
+        <div><span class="badge badge--info">Note</span></div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.pill</span>
+      <div class="cell__demo">
+        <div><span class="pill">algebra · unit 3</span></div>
+        <div><span class="pill">15 cards due</span></div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.skeleton</span>
+      <div class="cell__demo">
+        <div class="skeleton" style="height: 14px; width: 70%"></div>
+        <div class="skeleton" style="height: 14px; width: 50%"></div>
+        <div class="skeleton" style="height: 14px; width: 60%"></div>
+      </div>
+    </div>
+    <div class="cell">
+      <span class="cell__label">.progress / .step-dots</span>
+      <div class="cell__demo">
+        <div class="progress"><span class="progress__fill" style="width: 64%"></span></div>
+        <div class="step-dots">
+          <span class="step-dot step-dot--done"></span>
+          <span class="step-dot step-dot--done"></span>
+          <span class="step-dot step-dot--active"></span>
+          <span class="step-dot"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="tier2">
+  <h2>Tier-2 widgets · domain pack</h2>
+  <p class="lede">
+    The broad 6-pack: composer, assignment-item-card, assignment-card, prompt-block,
+    concept-link-overlay, claude-auth-modal. These compose from tier-1 primitives
+    and stand in for the heavily-reused domain shapes downstream mocks reach for.
+  </p>
+
+  <div class="row row--2">
+    <div class="cell">
+      <span class="cell__label">.composer</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="composer">
+          <div class="composer__verbs">
+            <button class="composer-verb composer-verb--active">teach</button>
+            <button class="composer-verb">quiz me</button>
+            <button class="composer-verb">explain</button>
+            <button class="composer-verb">go deeper</button>
+          </div>
+          <button class="composer__sketch-button" aria-label="Sketch">✎</button>
+          <textarea class="composer__input" placeholder="Ask the tutor anything…"></textarea>
+          <button class="composer__send" aria-label="Send">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cell">
+      <span class="cell__label">.assignment-item-card</span>
+      <div class="cell__demo cell__demo--block">
+        <article class="assignment-item-card">
+          <div class="assignment-item-card__meta">
+            <span class="assignment-item-card__num">02 / 08</span>
+            <span class="assignment-item-card__type">multiple-choice</span>
+            <span class="assignment-item-card__concept">linear inequalities</span>
+          </div>
+          <p class="assignment-item-card__prompt">If 3x − 7 ≥ 11, which of the following is true?</p>
+          <div class="assignment-item-card__options">
+            <label class="checkbox"><input class="checkbox__input" type="radio" name="q2"><span class="checkbox__label">x ≥ 6</span></label>
+            <label class="checkbox"><input class="checkbox__input" type="radio" name="q2"><span class="checkbox__label">x ≤ 6</span></label>
+            <label class="checkbox"><input class="checkbox__input" type="radio" name="q2"><span class="checkbox__label">x > 6</span></label>
+            <label class="checkbox"><input class="checkbox__input" type="radio" name="q2"><span class="checkbox__label">x ≥ 18 / 3</span></label>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="cell">
+      <span class="cell__label">.assignment-item-card · answered</span>
+      <div class="cell__demo cell__demo--block">
+        <article class="assignment-item-card assignment-item-card--answered">
+          <div class="assignment-item-card__meta">
+            <span class="assignment-item-card__num">02 / 08</span>
+            <span class="assignment-item-card__type">multiple-choice</span>
+            <span class="assignment-item-card__concept">linear inequalities</span>
+            <span class="assignment-item-card__answered-mark assignment-item-card__answered-mark--correct">answered</span>
+          </div>
+          <p class="assignment-item-card__prompt">If 3x − 7 ≥ 11, which of the following is true?</p>
+          <div class="assignment-item-card__options" style="color: var(--color-text-secondary)">
+            <div><span class="checkbox__label" style="font-style: italic">x ≥ 6 — your answer</span></div>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="cell">
+      <span class="cell__label">.assignment-card</span>
+      <div class="cell__demo cell__demo--block">
+        <article class="assignment-card">
+          <span class="assignment-card__ornament">❦</span>
+          <span class="assignment-card__kicker">Homework · due fri</span>
+          <h3 class="assignment-card__title">unit 3 — linear systems</h3>
+          <span class="assignment-card__status">
+            <span class="step-dot step-dot--active" style="background:var(--color-warning)"></span>
+            3 / 8
+          </span>
+        </article>
+      </div>
+    </div>
+
+    <div class="cell">
+      <span class="cell__label">.prompt-block</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="prompt-block">
+          <div class="prompt-block__head">
+            <span class="prompt-block__label"><span class="ornament">⁂</span> Persona fragment <span class="prompt-block__dirty"></span></span>
+            <button class="btn btn-link btn--sm">reset</button>
+          </div>
+          <div class="prompt-block__body">You are a patient tutor who teaches by asking sharp, well-aimed questions before giving an explanation.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cell">
+      <span class="cell__label">.concept-link-overlay</span>
+      <div class="cell__demo cell__demo--block">
+        <div class="concept-link-overlay">
+          <div class="concept-link-overlay__head">
+            <span class="concept-link-overlay__kicker">your node · candidates</span>
+          </div>
+          <h3 class="concept-link-overlay__title">"slope of a line"</h3>
+          <div class="concept-link-overlay__candidates">
+            <button class="concept-candidate concept-candidate--chosen">
+              <span class="concept-candidate__name">slope (canonical)</span>
+              <span class="concept-candidate__confidence">0.94</span>
+              <p class="concept-candidate__def">The rate of change of a line, rise over run.</p>
+            </button>
+            <button class="concept-candidate">
+              <span class="concept-candidate__name">linear function</span>
+              <span class="concept-candidate__confidence">0.72</span>
+              <p class="concept-candidate__def">A function whose graph is a straight line.</p>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cell">
+      <span class="cell__label">.claude-auth-modal</span>
+      <div class="cell__demo cell__demo--block" style="background: color-mix(in srgb, var(--color-bg-inverse) 35%, transparent); padding: var(--space-6); border-radius: 0">
+        <div class="claude-auth-modal" style="margin: 0 auto">
+          <div class="claude-auth-modal__head">
+            <h3 class="claude-auth-modal__title">Sign in to Claude Code</h3>
+            <span class="claude-auth-modal__kicker">Step 2 of 3</span>
+          </div>
+          <p class="claude-auth-modal__body">
+            Open the URL below in your browser and approve the request. We'll detect
+            the success automatically.
+          </p>
+          <div class="claude-auth-modal__url">https://claude.ai/login?return_to=praxis://auth/callback</div>
+          <div class="claude-auth-modal__status">waiting for browser…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+
+</body>
+</html>

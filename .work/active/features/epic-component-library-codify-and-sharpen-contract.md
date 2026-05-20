@@ -101,15 +101,15 @@ re-pitching; the sharpening pass refines within the locked direction.
   claude-auth-modal. Selected by usage frequency + distinct shape
   criteria; library-section dropped to tier-1 since it's a section
   primitive, not a domain widget.
-- **Sharpening intensity**: comparison gate — `/ux-ui-design:components`
-  runs in comparison mode producing two variants in the showcase:
-  Option 1 (codify-as-is, tighter consistency) and Option 2 (push
-  restraint — more whitespace, fewer hairlines, ornament-first status,
-  brick accent restricted to single-purpose CTAs). User picks after
-  reviewing both rendered side-by-side. Option 3 (Literary push) was
-  considered but felt too far for the codify pass; can be revisited as
-  a separate epic if Option 2 lands and the appetite for further
-  sharpening remains.
+- **Sharpening intensity**: locked to Option 1 — codify-as-is, tighter
+  consistency. Comparison gate ran 2026-05-19 with Options 1 and 2
+  side-by-side in the showcase; user picked Option 1 after iterating
+  on the assignment-item-card left hang (settled at `--space-6`).
+  Hairlines stay where they already live; primary accent used freely
+  on the dominant action of every surface; status colors paired with
+  the badge chrome; 2px-border tab indicator on the active tab.
+  Option 2 (push restraint — ornament-first status, fewer hairlines,
+  restricted accent) and Option 3 (Literary push) were not chosen.
 - **Motion attitude**: comparison gate — `/ux-ui-design:motion` runs
   in comparison mode producing two variants in the showcase: Option 1
   (Productive — 120–180ms feel, ease-out dominant, "get out of the
