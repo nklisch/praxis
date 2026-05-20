@@ -169,3 +169,18 @@ files mutated.
 - `pnpm vitest run packages/ui` → 1628/1628 pass
 - `pnpm build` → clean
 - All Phase A acceptance gates → 0 violations each
+
+### Phase A.2 — Multi-line transition follow-up
+
+Post-wave verification found 146 bare-second values surviving inside
+multi-line `transition:` / `animation:` declarations (continuation lines
+like `border-color 0.15s,` that the single-line grep didn't see).
+
+- Guard fixed: `scripts/check-css-contract.mjs` now accumulates
+  continuation lines for `transition` / `animation` declarations and
+  runs the bare-duration regex against the joined value. Two added
+  test cases anchor the multi-line behavior + multi-line exception.
+- Sweep fixed: 146 continuation-line values migrated to the motion
+  tokens (mostly `0.15s → var(--dur-quick)`).
+
+Both gates close: `pnpm lint:css-contract` exit 0, all UI tests green.
