@@ -1,6 +1,7 @@
 import type { CourseId, SessionHandle } from "@praxis/core/types";
 import { useEffect, useRef, useState } from "react";
 import { AuthoringChatPane } from "../components/authoring-chat-pane.js";
+import { Modal } from "../components/modal.js";
 import { RouteHeader } from "../components/route-header.js";
 import { getRouteMeta } from "../components/route-meta.js";
 import { UnlockModal } from "../components/unlock-modal.js";
@@ -246,11 +247,14 @@ export function ConfigureRoute() {
   const [session, setSession] = useState<SessionHandle | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const sessionStartedRef = useRef(false);
+  // "Clear / restart" confirmation modal state
+  const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
 
   const isLocked = isSet && !isUnlocked;
   const isAccessible = !lockLoading && !isLocked;
 
-  // Start configure session when accessible (React 19 Strict Mode double-mount safe).
+  // Reuse-or-spawn: attach to an existing active configure session if one
+  // exists, otherwise start a fresh one (React 19 Strict Mode double-mount safe).
   // session is used only in the cleanup to call session.end; adding it to deps would
   // cause the effect to re-run on every session state update, creating duplicate sessions.
   // biome-ignore lint/correctness/useExhaustiveDependencies: session accessed only in cleanup — intentional stale closure for end-on-unmount
@@ -260,12 +264,18 @@ export function ConfigureRoute() {
     let cancelled = false;
     sessionStartedRef.current = false;
 
-    async function startSession() {
+    async function attachOrStartSession() {
       if (sessionStartedRef.current) return;
       sessionStartedRef.current = true;
       try {
-        const handle = await client.session.start({ modeId: "configure" });
-        if (!cancelled) setSession(handle);
+        const existing = await client.session.active({ modeId: "configure" });
+        if (cancelled) return;
+        if (existing) {
+          setSession(existing);
+          return;
+        }
+        const fresh = await client.session.start({ modeId: "configure" });
+        if (!cancelled) setSession(fresh);
       } catch (err) {
         if (!cancelled) {
           setSessionError(err instanceof Error ? err.message : String(err));
@@ -273,7 +283,7 @@ export function ConfigureRoute() {
       }
     }
 
-    startSession();
+    attachOrStartSession();
 
     return () => {
       cancelled = true;
@@ -284,6 +294,23 @@ export function ConfigureRoute() {
     };
     // isAccessible is the trigger; session ref tracks single-start
   }, [isAccessible, client]);
+
+  /**
+   * End the current configure session and start a fresh one.
+   * Invoked from the "Clear / restart" confirm modal.
+   */
+  async function handleClearRestart() {
+    if (!session) return;
+    try {
+      await client.session.end(session.sessionId);
+      const fresh = await client.session.start({ modeId: "configure" });
+      setSession(fresh);
+    } catch (err) {
+      setSessionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConfirmRestartOpen(false);
+    }
+  }
 
   if (lockLoading) {
     return (
@@ -366,6 +393,16 @@ export function ConfigureRoute() {
                     ? "Configure session active"
                     : COPY.loading.starting}
               </span>
+              {session && (
+                <button
+                  type="button"
+                  className={styles.clearRestartBtn}
+                  onClick={() => setConfirmRestartOpen(true)}
+                  title="End the current configure session and start a fresh one"
+                >
+                  Clear / restart
+                </button>
+              )}
               {isSet && isUnlocked && (
                 <button
                   type="button"
@@ -440,6 +477,35 @@ export function ConfigureRoute() {
             </aside>
           </div>
         </div>
+
+        {/* ── "Clear / restart" confirmation modal ──────────────────────────── */}
+        {confirmRestartOpen && (
+          <Modal onClose={() => setConfirmRestartOpen(false)} ariaLabel="Restart configure session">
+            <div className={styles.confirmRestartBody}>
+              <h2 className={styles.confirmRestartHeading}>Restart configure session?</h2>
+              <p className={styles.confirmRestartDesc}>
+                This ends the current configure session and starts a fresh one. The cleared session
+                can&apos;t be reopened.
+              </p>
+              <div className={styles.confirmRestartActions}>
+                <button
+                  type="button"
+                  className={styles.cancelButton}
+                  onClick={() => setConfirmRestartOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  onClick={() => void handleClearRestart()}
+                >
+                  Restart
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </ConfigureStateContext.Provider>
     </DirtyStateProvider>
   );

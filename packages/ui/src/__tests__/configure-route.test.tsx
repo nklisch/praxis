@@ -227,12 +227,44 @@ describe("ConfigureRoute", () => {
     expect(screen.getByText("Modes")).toBeDefined();
   });
 
-  it("starts a configure session when unlocked", async () => {
+  // --- Reuse-or-spawn mount path ---
+
+  it("reuses an existing active configure session (does NOT call start)", async () => {
+    const existingHandle: SessionHandle = {
+      sessionId: brandId<"SessionId">("existing-configure-session"),
+      modeId: "configure",
+      startedAt: Date.now() as Timestamp,
+    };
     const lockClient = makeLockClient();
-    const client = makeClient(lockClient);
+    const client = makeClient(lockClient, {
+      active: vi.fn().mockResolvedValue(existingHandle),
+      start: vi.fn().mockResolvedValue(existingHandle),
+    });
     renderRoute(client);
 
     await waitFor(() => {
+      expect(client.session.active).toHaveBeenCalledWith({ modeId: "configure" });
+    });
+
+    // start must NOT have been called — existing session was reused
+    expect(client.session.start).not.toHaveBeenCalled();
+
+    // session status text confirms a session is active
+    await waitFor(() => {
+      expect(screen.getByText("Configure session active")).toBeDefined();
+    });
+  });
+
+  it("spawns a fresh session when no existing active configure session (active returns null)", async () => {
+    const lockClient = makeLockClient();
+    // active returns null → spawn-fresh path
+    const client = makeClient(lockClient, {
+      active: vi.fn().mockResolvedValue(null),
+    });
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(client.session.active).toHaveBeenCalledWith({ modeId: "configure" });
       expect(client.session.start).toHaveBeenCalledWith({ modeId: "configure" });
     });
   });
@@ -249,6 +281,120 @@ describe("ConfigureRoute", () => {
       expect(screen.getByText("CONFIGURE")).toBeDefined();
     });
 
+    expect(client.session.start).not.toHaveBeenCalled();
+  });
+
+  // --- "Clear / restart" control ---
+
+  it("shows 'Clear / restart' button once a session is active", async () => {
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient);
+    renderRoute(client);
+
+    // Wait for the session to become active
+    await waitFor(() => {
+      expect(screen.getByText("Configure session active")).toBeDefined();
+    });
+
+    expect(screen.getByRole("button", { name: /clear \/ restart/i })).toBeDefined();
+  });
+
+  it("opens confirm modal when 'Clear / restart' is clicked", async () => {
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient);
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /clear \/ restart/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /clear \/ restart/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: /restart configure session/i })).toBeDefined();
+    });
+  });
+
+  it("confirms restart: calls end then start, closes modal", async () => {
+    const sessionId1 = brandId<"SessionId">("configure-session-1");
+    const sessionId2 = brandId<"SessionId">("configure-session-2");
+    const freshHandle: SessionHandle = {
+      sessionId: sessionId2,
+      modeId: "configure",
+      startedAt: Date.now() as Timestamp,
+    };
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient, {
+      active: vi.fn().mockResolvedValue(null),
+      end: vi.fn().mockResolvedValue({
+        sessionId: sessionId1,
+        endedAt: Date.now() as Timestamp,
+        unlockedGates: [],
+        newMisconceptions: 0,
+      }),
+      start: vi
+        .fn()
+        .mockResolvedValueOnce({
+          sessionId: sessionId1,
+          modeId: "configure",
+          startedAt: Date.now() as Timestamp,
+        } satisfies SessionHandle)
+        .mockResolvedValueOnce(freshHandle),
+    });
+    renderRoute(client);
+
+    // Wait for the initial session to be active
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /clear \/ restart/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /clear \/ restart/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: /restart configure session/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^restart$/i }));
+
+    await waitFor(() => {
+      expect(client.session.end).toHaveBeenCalledWith(sessionId1);
+      expect(client.session.start).toHaveBeenLastCalledWith({ modeId: "configure" });
+    });
+
+    // Modal should be closed
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /restart configure session/i })).toBeNull();
+    });
+  });
+
+  it("cancels restart: does not call end or start (beyond initial mount)", async () => {
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient, {
+      active: vi.fn().mockResolvedValue(null),
+    });
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /clear \/ restart/i })).toBeDefined();
+    });
+
+    // Clear the call count so we only track post-open interactions
+    (client.session.end as ReturnType<typeof vi.fn>).mockClear();
+    (client.session.start as ReturnType<typeof vi.fn>).mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: /clear \/ restart/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: /restart configure session/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /restart configure session/i })).toBeNull();
+    });
+
+    expect(client.session.end).not.toHaveBeenCalled();
     expect(client.session.start).not.toHaveBeenCalled();
   });
 
