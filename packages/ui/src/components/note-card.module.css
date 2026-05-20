@@ -22,7 +22,7 @@
   letter-spacing: 0.05em;
   padding: 0.1rem 0.45rem;
   border-radius: 4px;
-  background: rgba(99, 102, 241, 0.2);
+  background: color-mix(in srgb, var(--color-info) 20%, transparent);
   color: var(--color-accent);
 }
 
@@ -80,7 +80,7 @@
 }
 
 .summaryBox {
-  background: rgba(99, 102, 241, 0.06);
+  background: color-mix(in srgb, var(--color-info) 6%, transparent);
   border-left: 3px solid var(--color-accent);
   border-radius: 0 6px 6px 0;
   padding: 0.5rem 0.75rem;

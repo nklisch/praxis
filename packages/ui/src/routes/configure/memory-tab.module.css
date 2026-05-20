@@ -11,7 +11,7 @@
 /* ── Canvas head ─────────────────────────────────────────────────────────────── */
 
 .canvasHead {
-  padding: 20px 32px 12px;
+  padding: 20px var(--space-8) var(--space-3);
   flex-shrink: 0;
 }
 
@@ -23,7 +23,7 @@
   letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .canvasTitle {
@@ -46,22 +46,22 @@
   font-size: var(--font-size-sm);
   line-height: var(--line-height-base);
   color: var(--color-text-secondary);
-  margin: 6px 0 0;
+  margin: var(--space-1-5) 0 0;
   max-width: 70ch;
 }
 
 /* ── Projection tab strip ────────────────────────────────────────────────────── */
 
 .projectionTabs {
-  padding: 12px 32px 0;
+  padding: var(--space-3) var(--space-8) 0;
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
 .projectionTab {
-  padding: 8px 14px;
+  padding: var(--space-2) 14px;
   font-family: var(--font-display);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
@@ -74,7 +74,7 @@
   margin-bottom: -1px;
   cursor: pointer;
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   align-items: baseline;
   transition: color 0.12s;
 }
@@ -100,7 +100,7 @@
 /* ── Pane ────────────────────────────────────────────────────────────────────── */
 
 .pane {
-  padding: 24px 32px 32px;
+  padding: var(--space-6) var(--space-8) var(--space-8);
   flex: 1;
   min-height: 0;
 }
@@ -113,7 +113,7 @@
   text-transform: uppercase;
   color: var(--color-text-secondary);
   margin: 0 0 14px;
-  padding-bottom: 8px;
+  padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -201,7 +201,7 @@
   min-width: 4ch;
   text-align: right;
   display: inline-block;
-  margin-left: 8px;
+  margin-left: var(--space-2);
   vertical-align: middle;
 }
 
@@ -210,7 +210,7 @@
 .conceptsTable {
   display: grid;
   grid-template-columns: 1fr auto auto auto;
-  gap: 0 16px;
+  gap: 0 var(--space-4);
 }
 
 .conceptsRow {
@@ -218,7 +218,7 @@
 }
 
 .conceptsRow > * {
-  padding: 10px 0;
+  padding: var(--space-3) 0;
   border-bottom: 1px dashed var(--color-border);
 }
 
@@ -230,7 +230,7 @@
   text-transform: uppercase;
   color: var(--color-text-tertiary);
   border-bottom: 1px solid var(--color-border) !important;
-  padding-bottom: 8px !important;
+  padding-bottom: var(--space-2) !important;
 }
 
 .conceptName {
@@ -243,7 +243,7 @@
 .masteryBarWrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 170px;
 }
 
@@ -281,7 +281,7 @@
 .miscCards {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .miscCard {
@@ -289,7 +289,7 @@
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-danger);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  padding: 16px 20px;
+  padding: var(--space-4) 20px;
 }
 
 .miscCardCleared {
@@ -300,8 +300,8 @@
 .miscCardHead {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .miscId {
@@ -325,7 +325,7 @@
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: var(--font-weight-semibold);
-  padding: 3px 6px;
+  padding: 3px var(--space-1-5);
   border-radius: var(--radius-full);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -343,7 +343,7 @@
   font-size: 15px;
   line-height: 1.5;
   color: var(--color-text-primary);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .miscEvidence {
@@ -353,8 +353,8 @@
   line-height: 1.5;
   color: var(--color-text-secondary);
   border-left: 2px solid var(--color-border);
-  padding-left: 12px;
-  margin: 0 0 8px;
+  padding-left: var(--space-3);
+  margin: 0 0 var(--space-2);
 }
 
 .miscQuote {
@@ -366,20 +366,20 @@
   font-size: 11px;
   color: var(--color-text-tertiary);
   letter-spacing: 0.04em;
-  margin-left: 8px;
+  margin-left: var(--space-2);
 }
 
 .miscActions {
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  gap: var(--space-1-5);
+  margin-top: var(--space-2);
 }
 
 .miscBtn {
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: var(--font-weight-medium);
-  padding: 5px 10px;
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid var(--color-border-strong);
@@ -401,15 +401,15 @@
 .proceduralList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .proceduralRow {
   display: grid;
   grid-template-columns: 1fr auto auto auto;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
   border-bottom: 1px dashed var(--color-border);
 }
 
@@ -422,7 +422,7 @@
 .strategyPref {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 160px;
 }
 
@@ -450,9 +450,9 @@
 .affectiveBaseline {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin-bottom: 20px;
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -465,13 +465,13 @@
   letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .affectBarRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .affectBarLabel {
@@ -485,14 +485,14 @@
 .affectiveSamples {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 
 .affectSampleRow {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  padding: 6px 0;
+  gap: var(--space-3);
+  padding: var(--space-1-5) 0;
   border-bottom: 1px dashed var(--color-border);
   font-size: 13px;
 }
@@ -533,7 +533,7 @@
 .episodicRow {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 7px 0;
   border-bottom: 1px dashed var(--color-border);
   font-size: 13px;

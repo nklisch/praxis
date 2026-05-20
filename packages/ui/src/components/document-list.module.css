@@ -13,7 +13,7 @@
   gap: 0.5rem;
   padding: 0.5rem 0.6rem;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--color-bg-secondary) 4%, transparent);
   border: 1px solid transparent;
   transition: border-color 0.15s;
 }
@@ -42,7 +42,7 @@
 .badge {
   font-size: 0.7rem;
   color: var(--color-accent);
-  background: rgba(99, 102, 241, 0.12);
+  background: color-mix(in srgb, var(--color-info) 12%, transparent);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   align-self: flex-start;

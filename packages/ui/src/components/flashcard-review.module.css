@@ -130,37 +130,37 @@
 
 /* Rating colour palette */
 .ratingAgain {
-  background: rgba(239, 68, 68, 0.18);
+  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
   color: var(--color-danger);
 }
 
 .ratingAgain:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.3);
+  background: color-mix(in srgb, var(--color-danger) 30%, transparent);
 }
 
 .ratingHard {
-  background: rgba(245, 158, 11, 0.18);
+  background: color-mix(in srgb, var(--color-warning) 18%, transparent);
   color: var(--color-warning);
 }
 
 .ratingHard:hover:not(:disabled) {
-  background: rgba(245, 158, 11, 0.3);
+  background: color-mix(in srgb, var(--color-warning) 30%, transparent);
 }
 
 .ratingGood {
-  background: rgba(34, 197, 94, 0.18);
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
   color: var(--color-success);
 }
 
 .ratingGood:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.3);
+  background: color-mix(in srgb, var(--color-success) 30%, transparent);
 }
 
 .ratingEasy {
-  background: rgba(99, 102, 241, 0.18);
+  background: color-mix(in srgb, var(--color-info) 18%, transparent);
   color: var(--color-accent);
 }
 
 .ratingEasy:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.3);
+  background: color-mix(in srgb, var(--color-info) 30%, transparent);
 }
