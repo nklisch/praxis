@@ -230,7 +230,11 @@ export function useStreamedSend(
   }, []);
 
   const cancelPending = useCallback((pendingId: string): void => {
-    setPendingQueue((prev) => prev.filter((p) => p.id !== pendingId));
+    setPendingQueue((prev) => {
+      const next = prev.filter((p) => p.id !== pendingId);
+      pendingQueueRef.current = next;
+      return next;
+    });
     setItems((prev) =>
       prev.filter((it) => !(it.kind === "pending-message" && it.id === pendingId)),
     );
@@ -403,8 +407,6 @@ export function useStreamedSend(
         if (event.type === "model_message") {
           // Close any open reasoning block — text begins.
           closeReasoningBlock();
-          // First model_message of this segment — we're no longer just thinking.
-          setThinking(false);
 
           // Lazily open a bubble on the first model_message of this "run".
           if (currentAssistantId === null) {
@@ -416,6 +418,12 @@ export function useStreamedSend(
           } else {
             // Final non-partial — this is the assembled content for the turn.
             activeBubbleContent = event.content;
+          }
+
+          // Phase 17: Only hide the thinking indicator once we actually have
+          // content to show (prevents the "empty bubble" blink while easing starts).
+          if (activeBubbleContent.length > 0) {
+            setThinking(false);
           }
           // Capture both id and content as local consts so the setItems closure
           // doesn't close over mutable variables — by the time React flushes

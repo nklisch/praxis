@@ -65,6 +65,12 @@ export function useEasedStream(raw: string, options?: UseEasedStreamOptions): st
     // Start the rAF loop.
     isLoopRunning.current = true;
 
+    // Phase 17: Release the first character immediately so the UI doesn't
+    // show an empty bubble for 1-2 frames while waiting for the rAF delta.
+    if (displayedLen.current === 0 && raw.length > 0) {
+      displayedLen.current = 1;
+    }
+
     const tick = (timestamp: number) => {
       if (lastTimestamp.current === null) {
         lastTimestamp.current = timestamp;

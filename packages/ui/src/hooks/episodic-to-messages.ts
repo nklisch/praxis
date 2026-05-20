@@ -173,6 +173,23 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         });
         break;
 
+      case "thinking": {
+        // Find if we have an open reasoning block to append to, or create a new one.
+        // We reuse nextId("asst") for reasoning blocks to keep IDs unique.
+        const lastItem = items[items.length - 1];
+        if (lastItem?.kind === "thinking" && lastItem.streaming) {
+          lastItem.content += event.content;
+        } else {
+          items.push({
+            kind: "thinking",
+            id: nextId("asst"),
+            content: event.content,
+            streaming: true, // will be sealed at turn boundary or next model_message
+          });
+        }
+        break;
+      }
+
       case "model_message": {
         // Lazily open a bubble on the first model_message.
         if (currentAssistantId === null) openBubble();
@@ -195,6 +212,16 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
           // Non-partial seals this bubble; next model_message opens a new one.
           closeBubble();
         }
+        // Also close any open reasoning block (look back to find it).
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          if (it?.kind === "thinking") {
+            it.streaming = false;
+            break;
+          }
+          // Optimization: if we hit a user message, we've gone too far.
+          if (it?.kind === "message" && it.role === "user") break;
+        }
         break;
       }
 
@@ -206,7 +233,15 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         pendingByCallId.set(callId, toolName);
 
         const label = getToolLabel(toolName);
-        if (!label.hidden) {
+        if (label.spawnsSubAgent === true) {
+          // Promote to sub-agent block.
+          items.push({
+            kind: "sub-agent",
+            callId,
+            toolName,
+            status: "in_flight",
+          });
+        } else if (!label.hidden) {
           // Push as settled immediately — history is settled by definition.
           // firstSeenAt is set to 0 for historical items (no pacing needed).
           // input is populated at tool_call time; output is populated at tool_result.
@@ -218,6 +253,15 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
             input: event.args,
           };
           items.push({ kind: "tool-entry", ...toolEntry });
+        }
+        // Also close any open reasoning block (look back to find it).
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          if (it?.kind === "thinking") {
+            it.streaming = false;
+            break;
+          }
+          if (it?.kind === "message" && it.role === "user") break;
         }
         break;
       }
@@ -245,6 +289,15 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
                 errorMessage: result.error.message,
               };
             }
+            break;
+          }
+          if (item?.kind === "sub-agent" && item.callId === callId) {
+            const result = event.result;
+            items[i] = {
+              ...item,
+              status: "settled",
+              ...(result.ok === false && { errored: true }),
+            };
             break;
           }
         }
@@ -310,8 +363,17 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
 
       case "interrupted":
         // interrupted terminates the turn (user cancel); close any open bubble.
-        // The UI sibling story will add a visible cancellation indicator.
         closeBubble();
+        items.push({ kind: "cancel-marker", id: nextId("asst") });
+        // Also close any open reasoning block (look back to find it).
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          if (it?.kind === "thinking") {
+            it.streaming = false;
+            break;
+          }
+          if (it?.kind === "message" && it.role === "user") break;
+        }
         break;
     }
   }
