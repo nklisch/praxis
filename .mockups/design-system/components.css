@@ -725,7 +725,7 @@ body {
   background: linear-gradient(
     90deg,
     var(--color-bg-tertiary) 0%,
-    var(--color-border) 50%,
+    var(--color-border-strong) 50%,
     var(--color-bg-tertiary) 100%
   );
   background-size: 200% 100%;

@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-contract
 kind: feature
-stage: implementing
+stage: review
 tags: []
 parent: epic-component-library-codify-and-sharpen
 depends_on: []
@@ -110,14 +110,18 @@ re-pitching; the sharpening pass refines within the locked direction.
   the badge chrome; 2px-border tab indicator on the active tab.
   Option 2 (push restraint — ornament-first status, fewer hairlines,
   restricted accent) and Option 3 (Literary push) were not chosen.
-- **Motion attitude**: comparison gate — `/ux-ui-design:motion` runs
-  in comparison mode producing two variants in the showcase: Option 1
-  (Productive — 120–180ms feel, ease-out dominant, "get out of the
-  way") and Option 3 (Calm-tech — 250–400ms feel, designed pauses,
-  ceremonial). User picks after reviewing both. Option 2 (Standard)
-  was skipped as too generic; Option 4 (Mostly-static) reads as a
-  subset of either chosen direction's reduced-motion fallback, so it
-  doesn't need a separate showcase.
+- **Motion attitude**: locked to Option 1 — Productive. Comparison gate
+  ran 2026-05-19 with Productive and Calm-tech side-by-side in the
+  showcase; user picked Productive after also iterating on Calm-tech's
+  hold-beat (briefly tried 50ms and 100ms in Productive before settling
+  on 0ms — focus appears immediately on modal arrival). Snap-to-final
+  easing dominant (all of emphasized/standard/productive/decelerate
+  collapse to `cubic-bezier(0, 0, 0.2, 1)`); `--dur-quick` at 160ms;
+  `--dur-instant` at 80ms; `--dur-ambient` at 480ms; `--dur-pulse` at
+  1400ms; `--hold-beat` at 0ms. Skeleton shimmer at 1.6s (decoupled
+  from --dur-ambient; its own breathing pace). Indeterminate progress
+  bounces between edges at --dur-pulse. Reduced-motion collapses all
+  durations to 0ms and all curves to linear.
 
 ## Architectural choice
 
@@ -244,3 +248,60 @@ brick accent is restricted, the paragraph should reflect that).
   locked.
 - New `.mockups/screens/` or `.mockups/flows/` artifacts — surfaces
   consume the contract but aren't produced here.
+
+## Implementation notes
+
+- 2026-05-19 — Both units delivered.
+  - **Unit 1 (components)** — `.mockups/design-system/components.css`
+    + `components.html` written. Tier-1 set: editorial primitives
+    (Modal/RouteHeader/EmptyState/LoadingState/ErrorMessage refined +
+    ornament/editorial-kicker/editorial-deck/section-head/section-rule
+    extracted) plus common slots (btn / field / input / textarea /
+    select / checkbox / card / modal-backdrop / dropdown / tabs / badge
+    / pill / skeleton / progress / step-dots). Tier-2 broad 6-pack:
+    composer family (with verbs + sketch-button + send) ·
+    assignment-item-card (with answered variant) · assignment-card ·
+    prompt-block · concept-link-overlay · claude-auth-modal.
+    Sharpening locked to Option 1 (codify-as-is) after side-by-side
+    review. Iteration: assignment-item-card left hang ended at
+    `--space-6` (tried `--space-8`, pulled back); padding-left reset
+    on the option-1 variant was removed so the hang survives the
+    top/bottom-rule treatment. Folded the variant scaffolding into the
+    base; no toggle remaining in the showcase. Skeleton shimmer
+    contrast bumped from `--color-border` to `--color-border-strong`
+    as the middle gradient stop so the shimmer is visible (previous
+    pair was effectively the same color).
+  - **Unit 2 (motion)** — `.mockups/design-system/motion.css` +
+    `motion.html` written. Six named curves (emphasized / standard /
+    productive / decelerate / accelerate / linear), four durations
+    (instant / quick / ambient / pulse), plus `--hold-beat` (0ms in
+    Productive) and `--t-*` transition helpers. Three keyframes
+    (motion-fade-in/-out, motion-rise-in/-out, motion-skeleton-shimmer,
+    motion-editorial-ellipsis, motion-progress-bounce). Reduced-motion
+    fallback collapses every value to 0ms / linear. Productive locked
+    after side-by-side review. Folded the variant scaffolding into
+    `:root`; no toggle remaining. Skill's optional channels
+    (springs/Disney/stepped/Lottie) deliberately omitted with reasons
+    captured in the file header.
+- Foundation alignment: the existing `docs/UX.md` "Design-system
+  contract" paragraph (rolled forward at scope time) still accurately
+  names the two-tier `.mockups/design-system/` contract; no further
+  doc rolls needed at this stage.
+
+## Acceptance criteria (final)
+
+Unit 1 (components):
+- [x] Every tier-1 primitive renders in every state
+- [x] All 6 tier-2 widgets render with realistic content + variants
+- [x] Showcase had a side-by-side sharpening comparison; user picked
+- [x] Every color / spacing / radius is `var(--token)`
+- [x] Sharpening variant CSS removed from `components.css` post-gate
+
+Unit 2 (motion):
+- [x] Named curves defined for locked attitude (Productive)
+- [x] Doherty-coupled duration scale defined (instant / quick / ambient)
+- [x] `--dur-pulse` token defined for breathing/scanning motion
+- [x] `--hold-beat` defined (0ms in Productive)
+- [x] `prefers-reduced-motion` fallback — all durations 0ms, curves linear
+- [x] Showcase had a side-by-side attitude comparison; user picked
+- [x] Attitude variant CSS removed from `motion.css` post-gate
