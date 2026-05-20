@@ -176,6 +176,13 @@
       "when": 1747958400000,
       "tag": "0024_rename-bootstrap-config-key",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1779235200000,
+      "tag": "0025_configure_session_cleanup",
+      "breakpoints": true
     }
   ]
 }

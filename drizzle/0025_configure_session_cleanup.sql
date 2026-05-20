@@ -1,0 +1,25 @@
+-- Hard-delete legacy configure sessions before the reuse-per-student behavior
+-- ships. Configure sessions are authoring scratchpads with no preserved-history
+-- value; a clean slate matches the new model where one configure session per
+-- student is reused across all configure-route mounts.
+--
+-- FK cascade audit:
+--   episodic_events.session_id → sessions.id  ON DELETE CASCADE  (handled by SQLite)
+--   tabs.session_id             → sessions.id  ON DELETE CASCADE  (handled by SQLite)
+--
+--   notes.session_id            — plain text column, no FK; orphaned rows are
+--                                 acceptable (the column is a soft filter, not a
+--                                 hard reference; configure sessions produce no notes)
+--   document_citations.citing_session_id — no FK by design; configure sessions
+--                                 do not produce document citations
+--   document_scopes.scope_id   — polymorphic, no FK by design; "orphaned rows by
+--                                 design" per schema comment
+--   assignments.parent_session_id — no FK; configure sessions do not spawn
+--                                 assignment children
+--   sessions.parent_session_id — self-referential plain text; configure sessions
+--                                 are not spawned as children of other sessions
+--
+-- No explicit child deletes are needed: both FK-bearing child tables cascade,
+-- and the non-FK columns are intentionally left as soft references.
+
+DELETE FROM sessions WHERE mode_id = 'configure';
