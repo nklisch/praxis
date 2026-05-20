@@ -62,11 +62,14 @@ Ollama under `direct.*`.
 ### Selecting Gemini
 
 - `EngineConfig.engineId = "direct.google"`
-- `EngineConfig.model = "gemini-3-pro-preview" | "gemini-2.5-pro" | "gemini-2.5-flash" | …`
-  - Default in `providers.ts` is `gemini-2.5-flash`; bump this when Gemini 3
-    Pro leaves preview.
-- Env: `GOOGLE_GENERATIVE_AI_API_KEY` set in the Praxis process before
-  `createEngine`.
+- `EngineConfig.model` overrides the default. Current model status:
+  - **`gemini-3.5-flash`** — GA 2026-05-19 (I/O 2026). **Default in `providers.ts`.** Outperforms 3.1 Pro on Terminal-Bench 2.1 / GDPval-AA / MCP Atlas, ~4× faster than other frontier models.
+  - **`gemini-3.5-pro`** — Ships June 2026. Listed in the vision allow-list for forward-compat; users can opt in via `EngineConfig.model` the day it lands.
+  - **`gemini-3.1-pro-preview`** — GA despite the `-preview` suffix (Feb 2026 release). Recommended Pro tier until `gemini-3.5-pro` lands.
+  - **`gemini-3-pro-preview`** — DISCONTINUED 2026-03-26. Do not add to allow-lists.
+  - Older `gemini-2.5-*` / `gemini-2.0-*` / `gemini-1.5-*` remain in the allow-list for backward compat with persisted user configs.
+- Env: `GOOGLE_GENERATIVE_AI_API_KEY` set in the Praxis process before `createEngine`.
+- Allow-list + default-vision-model SSOT: `packages/core/src/config/vision-models.ts`. The substring regex `/gemini-\d+\.\d+-(pro|flash|ultra)/i` is the forward-compat fallback that admits unreleased `gemini-X.Y-(pro|flash|ultra)` variants without an SSOT edit.
 
 ### Caveats
 

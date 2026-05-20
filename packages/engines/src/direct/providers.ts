@@ -10,7 +10,12 @@ export type DirectProvider = "anthropic" | "openai" | "google" | "ollama";
 const DEFAULT_MODELS: Record<DirectProvider, string> = {
   anthropic: "claude-sonnet-4-5",
   openai: "gpt-4o",
-  google: "gemini-2.5-flash",
+  // Gemini 3.5 Flash went GA at I/O 2026 (2026-05-19) and outperforms
+  // gemini-3.1-pro on Terminal-Bench 2.1, GDPval-AA, and MCP Atlas while
+  // running ~4x faster. Pro tier for Gemini 3.5 ships next month — until
+  // then `gemini-3.1-pro-preview` (GA despite the "preview" in the id) is
+  // the recommended Pro override via EngineConfig.model.
+  google: "gemini-3.5-flash",
   ollama: "llama3.2",
 };
 

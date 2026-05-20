@@ -37,6 +37,16 @@ export const VISION_MODELS: Record<string, ReadonlyArray<string>> = {
     "o4-mini",
   ],
   "direct.google": [
+    // 3.5 family — gemini-3.5-flash went GA at I/O 2026 (2026-05-19);
+    // gemini-3.5-pro ships next month and is listed here for forward-compat
+    // so users can opt in via EngineConfig.model the day it lands.
+    "gemini-3.5-flash",
+    "gemini-3.5-pro",
+    // 3.1 Pro — GA despite the "preview" suffix in the official id
+    // (see https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview).
+    "gemini-3.1-pro-preview",
+    // Older generations retained for backward compat with persisted configs.
+    // gemini-3-pro-preview was discontinued 2026-03-26 — intentionally omitted.
     "gemini-2.5-pro",
     "gemini-2.5-flash",
     "gemini-2.0-pro",
@@ -62,7 +72,7 @@ export const VISION_MODELS: Record<string, ReadonlyArray<string>> = {
 export const DEFAULT_VISION_MODEL: Record<string, string> = {
   "direct.anthropic": "claude-sonnet-4-5",
   "direct.openai": "gpt-4o",
-  "direct.google": "gemini-2.5-flash",
+  "direct.google": "gemini-3.5-flash",
   "direct.ollama": "llava",
 } as const;
 
