@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen
 depends_on: [epic-component-library-codify-and-sharpen-contract]
@@ -475,3 +475,74 @@ no existing files are mutated.
    - `step-5-components-other` (broadest file set + 4 bare-ms transitions)
    - `step-6-routes` (route shells + configure / workspace)
 3. `step-7-lint-guard` — enforcement, depends on all five area sweeps
+
+## Implementation summary (2026-05-20)
+
+All seven child stories delivered and advanced to `stage: review`. Final
+drift state across `packages/ui/src/` (136 CSS modules):
+
+| Drift category | Before | After | Notes |
+|---|---|---|---|
+| rgba / rgb literals | 132 | 0 | All migrated to `color-mix(in srgb, var(--color-*) α%, transparent)` or direct token references |
+| Hex color literals | 1 | 0 | The lone `#fff` in `note-editor-feynman.module.css` swapped for `var(--color-text-inverse)` |
+| Bare-px in `padding`/`margin`/`gap` | 558 | 19 | All remaining 19 carry `design-system-exception` inline comments (outline indents, sub-pixel optical bleeds, glyph-grid measurements) |
+| Bare-`ms` transitions (`240ms`, etc.) | 4 | 0 | Migrated to `var(--t-quick)` / `var(--dur-quick) var(--ease-emphasized)` |
+| Bare-seconds transitions (`0.15s`, etc.) | ~257 | 20 | The original audit grep missed seconds entirely; surfaced during post-wave verification. Single-line (122) migrated during step-7 Phase A; multi-line (135) migrated during step-7 Phase A.2 follow-up. The 20 remaining carry `design-system-exception` comments (animation stagger offsets, banner 3s lifecycle) |
+| `cubic-bezier(...)` literals | 0 | 0 | None in the codebase before or after |
+| `composes: editorial from global` adoption | 33/136 | ~50/136 | Up only where the surface renders editorial prose; interaction-control surfaces (forms, DnD, canvases) deliberately don't compose (decisions documented per file in story bodies) |
+
+New tokens added during the sweep (contract-refinement loops):
+- `--space-0-5: 2px` and `--space-1-5: 6px` in `tokens.css` (step-1 proof slice)
+
+Motion contract used unchanged — no new `--dur-*` or `--ease-*` tokens
+needed.
+
+The contract is enforced by `scripts/check-css-contract.mjs`, wired into
+`pnpm lint` (chain `pnpm lint:biome && pnpm lint:css-contract`). The
+guard catches:
+- hex color literals
+- bare-px in `padding`/`margin`/`gap`
+- `cubic-bezier(...)` literals
+- bare durations (`Nms` or `Ns`) inside `transition` / `animation`
+  declarations (including multi-line declarations across continuation lines)
+
+Exceptions are allowed via `/* design-system-exception: <reason> */` on
+the same or preceding line. Documented in `.work/CONVENTIONS.md`.
+
+`pnpm lint:css-contract` exits 0 on `HEAD`. 1628/1628 UI tests pass.
+Workspace lint pre-existing errors (522) unchanged.
+
+### Per-story landings
+
+- **step-1 (document-viewer)** — proof slice; locked the per-token
+  translation table downstream slices reused. 5 files, 1 rgba + 5 px
+  cleared. Added 2 micro-spacing tokens.
+- **step-2 (item-bodies)** — 4 files mutated (2 already clean), 21
+  rgba migrated to `color-mix` with semantic tokens. No new tokens.
+- **step-3 (tab-bodies)** — 7 files, 171 bare-px + 4 rgba cleared.
+  6/7 compose editorial; course-create deliberately doesn't.
+- **step-4 (composer + library + onboarding/auth)** — 14 files (7
+  mutated), 11 bare-px + 3 rgba cleared. 3 composer classes renamed
+  to match the tier-2 contract selectors (`.composer__input` etc.).
+- **step-5 (components-other)** — 85 files, 80 rgba + 164 bare-px +
+  2 bare-ms transitions cleared across 7 themed sub-commits.
+- **step-6 (routes)** — 20 files (excludes `routes/settings.module.css`,
+  step-4 owns it), 23 rgba + 207 bare-px cleared.
+- **step-7 (lint guard)** — ~257 bare-seconds transitions migrated
+  (122 single-line + 135 multi-line via a post-wave follow-up that
+  also fixed the guard's continuation-line handling), guard script +
+  4 sub-commits of tests + CI wiring landed, `.work/CONVENTIONS.md`
+  appended.
+
+### Cross-cutting deviations
+
+- The original parent feature spec said "bare-`ms` transition-duration";
+  the sweep broadened scope to bare-seconds as well after the wave-3
+  audit found ~250 instances. The broadening is conservative — same
+  semantic drift, just different unit notation.
+- The guard initially missed multi-line `transition:` declarations; a
+  follow-up pass landed the state-machine continuation-line scanner
+  before the feature advanced.
+- New `--dur-medium` / `--dur-strip-width` tokens were considered but
+  not added — the existing `--dur-quick` / `--dur-ambient` / `--ease-*`
+  vocabulary covered every adoption after testing in dev.
