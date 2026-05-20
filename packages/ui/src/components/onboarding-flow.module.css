@@ -138,8 +138,8 @@
   cursor: pointer;
   letter-spacing: 0.01em;
   transition:
-    background 0.1s,
-    border-color 0.1s;
+    background var(--dur-instant),
+    border-color var(--dur-instant);
 }
 
 .primaryButton:hover:not(:disabled) {
@@ -270,8 +270,8 @@
   white-space: nowrap;
   flex-shrink: 0;
   transition:
-    background 0.1s,
-    border-color 0.1s;
+    background var(--dur-instant),
+    border-color var(--dur-instant);
 }
 
 .signinButton:hover {

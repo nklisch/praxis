@@ -43,8 +43,8 @@
   font-family: inherit;
   cursor: pointer;
   transition:
-    background 0.1s,
-    color 0.1s;
+    background var(--dur-instant),
+    color var(--dur-instant);
 }
 
 .toggleBtn:hover {

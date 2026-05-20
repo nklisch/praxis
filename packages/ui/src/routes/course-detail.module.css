@@ -83,8 +83,8 @@
   font-weight: 600;
   cursor: pointer;
   transition:
-    background 0.15s,
-    opacity 0.15s;
+    background var(--dur-quick),
+    opacity var(--dur-quick);
 }
 
 .mapBtn:hover {
@@ -250,8 +250,8 @@
   text-align: left;
   cursor: pointer;
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .conceptMapLink:hover {
@@ -298,8 +298,8 @@
   font-weight: 600;
   cursor: pointer;
   transition:
-    background 0.15s,
-    opacity 0.15s;
+    background var(--dur-quick),
+    opacity var(--dur-quick);
 }
 
 .newMapBtn:hover {

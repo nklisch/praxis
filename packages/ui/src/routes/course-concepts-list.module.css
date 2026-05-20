@@ -149,8 +149,8 @@
   border: 1px solid var(--color-border);
   border-radius: 6px;
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .conceptItem:hover {

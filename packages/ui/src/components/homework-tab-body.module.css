@@ -147,8 +147,8 @@
   color: var(--color-text-primary);
   border-left: 2px solid transparent;
   transition:
-    background 0.12s,
-    border-color 0.12s;
+    background var(--dur-quick),
+    border-color var(--dur-quick);
 }
 
 .pageRow:hover {
@@ -319,8 +319,8 @@
   color: var(--color-text-secondary);
   letter-spacing: 0.08em;
   transition:
-    background 0.12s,
-    color 0.12s;
+    background var(--dur-quick),
+    color var(--dur-quick);
 }
 
 .workTab:hover {

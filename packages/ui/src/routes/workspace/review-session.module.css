@@ -118,8 +118,8 @@
   padding: var(--space-2) var(--space-4);
   cursor: pointer;
   transition:
-    border-color 0.15s,
-    color 0.15s;
+    border-color var(--dur-quick),
+    color var(--dur-quick);
   margin-top: var(--space-2);
   font-family: var(--font-sans);
 }
@@ -360,8 +360,8 @@
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition:
-    opacity 0.15s,
-    filter 0.15s;
+    opacity var(--dur-quick),
+    filter var(--dur-quick);
   text-align: center;
 }
 

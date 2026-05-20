@@ -18,10 +18,10 @@
   overflow: hidden;
   opacity: 0;
   transition:
-    max-height 180ms ease-out,
-    opacity 180ms ease-out,
-    padding 180ms ease-out,
-    border-color 180ms ease-out;
+    max-height var(--dur-quick) ease-out,
+    opacity var(--dur-quick) ease-out,
+    padding var(--dur-quick) ease-out,
+    border-color var(--dur-quick) ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {

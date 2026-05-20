@@ -35,8 +35,8 @@
   padding: 0.55rem 1rem;
   cursor: pointer;
   transition:
-    color 0.15s,
-    border-color 0.15s;
+    color var(--dur-quick),
+    border-color var(--dur-quick);
   margin-bottom: -1px; /* design-system-exception: optical tab-strip border bleed; structural, not a spacing-scale value */
   font-family: inherit;
 }

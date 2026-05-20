@@ -53,9 +53,9 @@
   padding: 0.25rem 0.65rem;
   cursor: pointer;
   transition:
-    color 0.15s,
-    border-color 0.15s,
-    background 0.15s;
+    color var(--dur-quick),
+    border-color var(--dur-quick),
+    background var(--dur-quick);
   font-family: inherit;
 }
 
@@ -213,8 +213,8 @@
   cursor: pointer;
   padding: 0 0.75rem;
   transition:
-    color 0.15s,
-    background 0.15s;
+    color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .deleteBtn:hover:not(:disabled) {

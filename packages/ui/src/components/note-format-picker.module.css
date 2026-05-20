@@ -53,8 +53,8 @@
   gap: 0.7rem;
   align-items: flex-start;
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color var(--dur-quick),
+    background var(--dur-quick);
   font-family: inherit;
 }
 

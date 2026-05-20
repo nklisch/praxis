@@ -136,8 +136,8 @@
   padding: 0 var(--space-0-5);
   text-shadow: none;
   transition:
-    background 0.1s,
-    border-color 0.1s;
+    background var(--dur-instant),
+    border-color var(--dur-instant);
 }
 
 .bestGuessGlyph:hover {

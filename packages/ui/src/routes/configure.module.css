@@ -86,8 +86,8 @@
   color: var(--color-text-secondary);
   border-bottom: 2px solid transparent;
   transition:
-    color 0.15s,
-    border-color 0.15s;
+    color var(--dur-quick),
+    border-color var(--dur-quick);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -153,9 +153,9 @@
   letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
   transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
+    background var(--dur-quick),
+    color var(--dur-quick),
+    border-color var(--dur-quick);
 }
 
 .clearRestartBtn:hover {
@@ -177,9 +177,9 @@
   letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
   transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
+    background var(--dur-quick),
+    color var(--dur-quick),
+    border-color var(--dur-quick);
 }
 
 .lockBtn:hover {
@@ -351,8 +351,8 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   transition:
-    background 0.15s,
-    color 0.15s;
+    background var(--dur-quick),
+    color var(--dur-quick);
 }
 
 .cancelButton:hover {

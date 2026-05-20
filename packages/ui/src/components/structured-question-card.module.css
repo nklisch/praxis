@@ -89,8 +89,8 @@
   flex-direction: column;
   gap: 0.15rem;
   transition:
-    border-color 0.1s,
-    background 0.1s;
+    border-color var(--dur-instant),
+    background var(--dur-instant);
 }
 
 .option:hover:not(:disabled) {

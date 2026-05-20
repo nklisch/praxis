@@ -23,9 +23,9 @@
   touch-action: none;
   cursor: grab;
   transition:
-    border-color 0.12s,
-    background 0.12s,
-    opacity 0.12s;
+    border-color var(--dur-quick),
+    background var(--dur-quick),
+    opacity var(--dur-quick);
 }
 
 .orderItem:hover:not(.disabled) {
@@ -92,8 +92,8 @@
   font-size: 0.6rem;
   cursor: pointer;
   transition:
-    color 0.1s,
-    border-color 0.1s;
+    color var(--dur-instant),
+    border-color var(--dur-instant);
   padding: 0;
   line-height: 1;
 }

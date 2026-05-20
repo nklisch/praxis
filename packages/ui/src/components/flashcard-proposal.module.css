@@ -97,8 +97,8 @@
   padding: 0.3rem 0.75rem;
   cursor: pointer;
   transition:
-    color 0.15s,
-    border-color 0.15s;
+    color var(--dur-quick),
+    border-color var(--dur-quick);
   white-space: nowrap;
 }
 

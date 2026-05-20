@@ -239,9 +239,9 @@
   cursor: pointer;
   color: var(--color-text-secondary);
   transition:
-    background 0.12s,
-    border-color 0.12s,
-    color 0.12s;
+    background var(--dur-quick),
+    border-color var(--dur-quick),
+    color var(--dur-quick);
   line-height: 1.2;
 }
 

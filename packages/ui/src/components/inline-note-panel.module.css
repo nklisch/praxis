@@ -70,8 +70,8 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   transition:
-    background 0.12s,
-    color 0.12s;
+    background var(--dur-quick),
+    color var(--dur-quick);
 }
 
 .popOutBtn:hover {
@@ -168,8 +168,8 @@
   background: var(--color-accent);
   color: var(--color-text-inverse);
   transition:
-    background 0.12s,
-    border-color 0.12s;
+    background var(--dur-quick),
+    border-color var(--dur-quick);
   flex-shrink: 0;
 }
 

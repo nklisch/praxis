@@ -152,9 +152,9 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition:
-    color 0.15s,
-    border-color 0.15s,
-    background 0.15s;
+    color var(--dur-quick),
+    border-color var(--dur-quick),
+    background var(--dur-quick);
   white-space: nowrap;
   line-height: 1;
 }

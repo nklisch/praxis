@@ -14,8 +14,8 @@
   cursor: pointer;
   text-align: left;
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color var(--dur-quick),
+    background var(--dur-quick);
   gap: 1rem;
 }
 

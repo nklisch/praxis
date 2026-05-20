@@ -69,8 +69,8 @@
   color: var(--color-text-secondary);
 
   transition:
-    background 0.1s ease,
-    color 0.1s ease;
+    background var(--dur-instant) ease,
+    color var(--dur-instant) ease;
   line-height: 1;
 }
 

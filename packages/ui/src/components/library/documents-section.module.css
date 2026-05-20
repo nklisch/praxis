@@ -36,8 +36,8 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   transition:
-    color 0.1s,
-    border-color 0.1s;
+    color var(--dur-instant),
+    border-color var(--dur-instant);
 }
 
 .tabButton:hover {

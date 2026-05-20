@@ -182,8 +182,8 @@
   border: none;
   color: var(--color-text-secondary);
   transition:
-    background 0.1s,
-    color 0.1s;
+    background var(--dur-instant),
+    color var(--dur-instant);
 }
 
 .tool:hover {

@@ -29,9 +29,9 @@
   background: transparent;
   border: none;
   transition:
-    background 0.15s,
-    color 0.15s,
-    box-shadow 0.15s;
+    background var(--dur-quick),
+    color var(--dur-quick),
+    box-shadow var(--dur-quick);
 }
 
 .modeBtnActive {
@@ -142,8 +142,8 @@
   align-self: flex-start;
   margin-top: 0.25rem;
   transition:
-    color 0.15s,
-    background 0.15s;
+    color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .spawnBtn:hover {
@@ -162,8 +162,8 @@
   align-self: flex-start;
   margin-top: 0.25rem;
   transition:
-    color 0.15s,
-    background 0.15s;
+    color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .removeBtn:hover {
@@ -183,8 +183,8 @@
   border-radius: 6px;
   margin-top: 0.25rem;
   transition:
-    background 0.15s,
-    border-color 0.15s;
+    background var(--dur-quick),
+    border-color var(--dur-quick);
 }
 
 .addBtn:hover {
@@ -297,8 +297,8 @@
   cursor: pointer;
   border: 1px solid transparent;
   transition:
-    background 0.12s,
-    border-color 0.12s;
+    background var(--dur-quick),
+    border-color var(--dur-quick);
 }
 
 .severitySoft {
@@ -374,8 +374,8 @@
   font-size: 0.82rem;
   cursor: pointer;
   transition:
-    background 0.12s,
-    color 0.12s;
+    background var(--dur-quick),
+    color var(--dur-quick);
 }
 
 .popoverCancel:hover {

@@ -317,8 +317,8 @@
   border-radius: var(--radius-sm, 3px);
   line-height: 1;
   transition:
-    color 0.15s,
-    background 0.15s;
+    color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .spawnBtn:hover {
@@ -335,8 +335,8 @@
   border-radius: var(--radius-sm, 3px);
   line-height: 1;
   transition:
-    color 0.15s,
-    background 0.15s;
+    color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .removeBtn:hover {

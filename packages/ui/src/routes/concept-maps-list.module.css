@@ -77,8 +77,8 @@
   text-align: left;
   cursor: pointer;
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .mapLink:hover {

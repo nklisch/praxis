@@ -14,8 +14,8 @@
   max-width: 160px;
   cursor: pointer;
   transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+    border-color var(--dur-quick),
+    box-shadow var(--dur-quick);
   text-align: center;
 }
 

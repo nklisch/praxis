@@ -102,8 +102,8 @@
   white-space: nowrap;
   flex-shrink: 0;
   transition:
-    background 0.15s,
-    opacity 0.15s;
+    background var(--dur-quick),
+    opacity var(--dur-quick);
 }
 
 .attachBtn:hover:not(:disabled) {
@@ -134,8 +134,8 @@
   cursor: pointer;
   white-space: nowrap;
   transition:
-    background 0.15s,
-    opacity 0.15s;
+    background var(--dur-quick),
+    opacity var(--dur-quick);
   margin-top: 0.2rem;
 }
 

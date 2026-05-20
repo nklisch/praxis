@@ -41,8 +41,8 @@
   cursor: grab;
   user-select: none;
   transition:
-    border-color 0.12s,
-    background 0.12s;
+    border-color var(--dur-quick),
+    background var(--dur-quick);
   position: relative;
   z-index: 1;
 }
@@ -85,8 +85,8 @@
   display: flex;
   align-items: center;
   transition:
-    border-color 0.12s,
-    background 0.12s;
+    border-color var(--dur-quick),
+    background var(--dur-quick);
 }
 
 .rightItem.over {

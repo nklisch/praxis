@@ -377,9 +377,9 @@
   color: var(--color-text-tertiary);
   cursor: pointer;
   transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+    background var(--dur-quick),
+    border-color var(--dur-quick),
+    color var(--dur-quick);
   padding: 0;
 }
 

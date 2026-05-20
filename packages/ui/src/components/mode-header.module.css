@@ -153,8 +153,8 @@
   height: 1px;
   background: var(--color-border);
   transition:
-    background-color 0.18s ease,
-    transform 0.18s ease;
+    background-color var(--dur-quick) ease,
+    transform var(--dur-quick) ease;
   transform-origin: left;
 }
 

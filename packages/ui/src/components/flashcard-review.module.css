@@ -103,8 +103,8 @@
   cursor: pointer;
   font-family: inherit;
   transition:
-    opacity 0.15s,
-    border-color 0.15s;
+    opacity var(--dur-quick),
+    border-color var(--dur-quick);
   min-width: 3.5rem;
 }
 
