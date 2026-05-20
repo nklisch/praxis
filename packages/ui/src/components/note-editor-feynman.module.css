@@ -352,7 +352,7 @@
   padding: var(--space-1-5) var(--space-4);
   border-radius: 4px;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-inverse);
   border: none;
   font-size: 0.82rem;
   font-weight: 600;
