@@ -454,3 +454,102 @@ describe("useIngestion — batch flow (startPickBatch)", () => {
     expect(onDone).toHaveBeenCalledTimes(2);
   });
 });
+
+// ─── startBatchWithPaths tests ────────────────────────────────────────────────
+
+describe("useIngestion — startBatchWithPaths", () => {
+  it("empty paths array is a no-op — stays idle, never calls backend", async () => {
+    const startFn = vi.fn();
+    const client = makeClient({
+      startFn: startFn as unknown as PraxisClient["ingest"]["start"],
+    });
+
+    const { result } = renderHook(() => useIngestion(), { wrapper: wrapper(client) });
+
+    await act(async () => {
+      await result.current.startBatchWithPaths([]);
+    });
+
+    expect(result.current.state.status).toBe("idle");
+    expect(startFn).not.toHaveBeenCalled();
+  });
+
+  it("startBatchWithPaths(['/a.pdf', '/b.txt']) calls client.ingest.start for each path", async () => {
+    const paths = ["/docs/a.txt", "/docs/b.txt"];
+
+    let callCount = 0;
+    const startFn = vi.fn().mockImplementation(() => {
+      callCount++;
+      return makeDoneStream(`doc-${callCount}`);
+    });
+
+    const client = makeClient({
+      startFn: startFn as unknown as PraxisClient["ingest"]["start"],
+    });
+
+    const { result } = renderHook(() => useIngestion(), { wrapper: wrapper(client) });
+
+    await act(async () => {
+      await result.current.startBatchWithPaths(paths);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.status).toBe("batch_summary");
+    });
+
+    expect(startFn).toHaveBeenCalledTimes(2);
+    const firstReq = startFn.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(firstReq.filePath).toBe("/docs/a.txt");
+    const secondReq = startFn.mock.calls[1]?.[0] as Record<string, unknown>;
+    expect(secondReq.filePath).toBe("/docs/b.txt");
+  });
+
+  it("opts.scope is forwarded through startBatchWithPaths to client.ingest.start", async () => {
+    const startFn = vi.fn().mockReturnValue(makeDoneStream());
+    const client = makeClient({
+      startFn: startFn as unknown as PraxisClient["ingest"]["start"],
+    });
+
+    const { result } = renderHook(
+      () => useIngestion(undefined, { scope: { kind: "course", id: COURSE_ID } }),
+      { wrapper: wrapper(client) },
+    );
+
+    await act(async () => {
+      await result.current.startBatchWithPaths(["/docs/a.txt"]);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.status).toBe("batch_summary");
+    });
+
+    expect(startFn).toHaveBeenCalledOnce();
+    const req = startFn.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(req.scope).toEqual({ kind: "course", id: COURSE_ID });
+  });
+
+  it("onDone fires once per successful file in startBatchWithPaths", async () => {
+    const onDone = vi.fn();
+    let callCount = 0;
+    const startFn = vi.fn().mockImplementation(() => {
+      callCount++;
+      return makeDoneStream(`doc-${callCount}`);
+    });
+
+    const client = makeClient({
+      startFn: startFn as unknown as PraxisClient["ingest"]["start"],
+    });
+
+    const { result } = renderHook(() => useIngestion(onDone), { wrapper: wrapper(client) });
+
+    await act(async () => {
+      await result.current.startBatchWithPaths(["/docs/a.txt", "/docs/b.txt"]);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.status).toBe("batch_summary");
+    });
+
+    expect(onDone).toHaveBeenCalledTimes(2);
+  });
+});

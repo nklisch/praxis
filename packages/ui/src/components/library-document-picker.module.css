@@ -32,7 +32,7 @@
 .list {
   list-style: none;
   padding: 0;
-  margin: 0 0 1rem;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -113,6 +113,71 @@
 .attachBtn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.pickerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.uploadBtn {
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  padding: 0.28rem 0.65rem;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
+  margin-top: 0.2rem;
+}
+
+.uploadBtn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.uploadBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.listArea {
+  position: relative;
+  margin: 0 0 1rem;
+}
+
+.emptyDropZone {
+  position: relative;
+  min-height: 2rem;
+  margin: 0 0 1rem;
+}
+
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(99, 102, 241, 0.12);
+  border: 2px dashed var(--color-accent);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  /* Allow the parent div to still receive the drop event */
+  pointer-events: none;
+}
+
+.dropOverlay p {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  margin: 0;
 }
 
 .footer {

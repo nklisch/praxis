@@ -44,6 +44,12 @@ export interface UseIngestionResult {
   /** Multi-file or folder pick-and-ingest batch. */
   startPickBatch: (mode: "files" | "folder") => Promise<void>;
   /**
+   * Ingest a list of file paths directly (bypassing the OS dialog). Useful
+   * for drag-and-drop flows where paths come from Electron's File.path.
+   * No-op when paths is empty.
+   */
+  startBatchWithPaths: (paths: string[]) => Promise<void>;
+  /**
    * Called by PickerTierModal to confirm the ingestor tier and kick off
    * ingestion. Resolves the internal deferred so the batch loop can advance.
    */
@@ -286,7 +292,91 @@ export function useIngestion(
     [ingestOneWithResult, runIngestion],
   );
 
-  // ── Batch loop ───────────────────────────────────────────────────────────────
+  // ── Batch loop (shared by startPickBatch and startBatchWithPaths) ────────────
+
+  /**
+   * Core batch runner: given a list of file paths, runs them through the
+   * tier-selection + ingestion pipeline. Callers are responsible for resetting
+   * refs and setting initial state before calling this.
+   */
+  const _startBatch = useCallback(
+    async (paths: string[]) => {
+      if (paths.length === 0) return;
+
+      const queue: PendingFile[] = paths.map((p) => {
+        const filename = p.split(/[\\/]/).pop() ?? p;
+        return { filePath: p, filename, mimeType: mimeTypeFromPath(p) };
+      });
+
+      const results: BatchResult[] = [];
+
+      // Set up a cancel escape hatch: a promise that resolves with partial
+      // results when cancelBatch() is called mid-loop.
+      let cancelResolve!: (partial: BatchResult[]) => void;
+      const cancelPromise = new Promise<BatchResult[]>((resolve) => {
+        cancelResolve = resolve;
+      });
+      batchCancelRef.current = { resolve: cancelResolve };
+
+      for (let i = 0; i < queue.length; i++) {
+        if (cancelRequestedRef.current) break;
+
+        const file = queue[i];
+        if (!file) continue;
+        const batch = { current: i + 1, total: queue.length };
+
+        if (file.mimeType === "application/pdf") {
+          // Show tier selection modal with batch context.
+          setState({
+            status: "tier_selection",
+            filePath: file.filePath,
+            filename: file.filename,
+            mimeType: file.mimeType,
+            batch,
+          });
+
+          // Create a deferred that confirmTier (or skip) will resolve.
+          tierResultRef.current = null;
+          const { promise, resolve, reject } = Promise.withResolvers<void>();
+          tierDeferredRef.current = { promise, resolve, reject };
+
+          // Race against cancel.
+          await Promise.race([promise, cancelPromise]);
+
+          // Clean up the deferred.
+          tierDeferredRef.current = null;
+
+          if (cancelRequestedRef.current) break;
+
+          const tierResult = tierResultRef.current;
+          if (tierResult !== null) {
+            // confirmTier or skip produced a result directly.
+            results.push(tierResult);
+            tierResultRef.current = null;
+            continue;
+          }
+
+          // Should not reach here in normal flow — treat as skip.
+          results.push({
+            filePath: file.filePath,
+            filename: file.filename,
+            outcome: { ok: false, message: "Tier selection cancelled" },
+          });
+        } else {
+          // Non-PDF: ingest immediately.
+          setState({ status: "ingesting", filename: file.filename, batch });
+          const result = await ingestOneWithResult(file);
+          results.push(result);
+        }
+      }
+
+      batchCancelRef.current = null;
+
+      // Transition to batch_summary with whatever results we have.
+      setState({ status: "batch_summary", results });
+    },
+    [ingestOneWithResult],
+  );
 
   const startPickBatch = useCallback(
     async (mode: "files" | "folder") => {
@@ -301,83 +391,32 @@ export function useIngestion(
           setState({ status: "idle" });
           return;
         }
-
-        const queue: PendingFile[] = paths.map((p) => {
-          const filename = p.split(/[\\/]/).pop() ?? p;
-          return { filePath: p, filename, mimeType: mimeTypeFromPath(p) };
-        });
-
-        const results: BatchResult[] = [];
-
-        // Set up a cancel escape hatch: a promise that resolves with partial
-        // results when cancelBatch() is called mid-loop.
-        let cancelResolve!: (partial: BatchResult[]) => void;
-        const cancelPromise = new Promise<BatchResult[]>((resolve) => {
-          cancelResolve = resolve;
-        });
-        batchCancelRef.current = { resolve: cancelResolve };
-
-        for (let i = 0; i < queue.length; i++) {
-          if (cancelRequestedRef.current) break;
-
-          const file = queue[i];
-          if (!file) continue;
-          const batch = { current: i + 1, total: queue.length };
-
-          if (file.mimeType === "application/pdf") {
-            // Show tier selection modal with batch context.
-            setState({
-              status: "tier_selection",
-              filePath: file.filePath,
-              filename: file.filename,
-              mimeType: file.mimeType,
-              batch,
-            });
-
-            // Create a deferred that confirmTier (or skip) will resolve.
-            tierResultRef.current = null;
-            const { promise, resolve, reject } = Promise.withResolvers<void>();
-            tierDeferredRef.current = { promise, resolve, reject };
-
-            // Race against cancel.
-            await Promise.race([promise, cancelPromise]);
-
-            // Clean up the deferred.
-            tierDeferredRef.current = null;
-
-            if (cancelRequestedRef.current) break;
-
-            const tierResult = tierResultRef.current;
-            if (tierResult !== null) {
-              // confirmTier or skip produced a result directly.
-              results.push(tierResult);
-              tierResultRef.current = null;
-              continue;
-            }
-
-            // Should not reach here in normal flow — treat as skip.
-            results.push({
-              filePath: file.filePath,
-              filename: file.filename,
-              outcome: { ok: false, message: "Tier selection cancelled" },
-            });
-          } else {
-            // Non-PDF: ingest immediately.
-            setState({ status: "ingesting", filename: file.filename, batch });
-            const result = await ingestOneWithResult(file);
-            results.push(result);
-          }
-        }
-
-        batchCancelRef.current = null;
-
-        // Transition to batch_summary with whatever results we have.
-        setState({ status: "batch_summary", results });
+        await _startBatch(paths);
       } catch (err) {
         setState({ status: "error", message: errString(err) });
       }
     },
-    [client, ingestOneWithResult],
+    [client, _startBatch],
+  );
+
+  /**
+   * Ingest a list of paths directly (bypassing the OS dialog). Paths come
+   * from Electron's File.path on drag-and-drop. No-op when paths is empty.
+   * Respects opts.scope for auto-attach, same as startPickBatch.
+   */
+  const startBatchWithPaths = useCallback(
+    async (paths: string[]) => {
+      if (paths.length === 0) return;
+      cancelRequestedRef.current = false;
+      tierDeferredRef.current = null;
+      tierResultRef.current = null;
+      try {
+        await _startBatch(paths);
+      } catch (err) {
+        setState({ status: "error", message: errString(err) });
+      }
+    },
+    [_startBatch],
   );
 
   // ── skipCurrentFile ──────────────────────────────────────────────────────────
@@ -426,5 +465,14 @@ export function useIngestion(
     setState({ status: "idle" });
   }, []);
 
-  return { state, startPick, startPickBatch, confirmTier, skipCurrentFile, dismiss, cancelBatch };
+  return {
+    state,
+    startPick,
+    startPickBatch,
+    startBatchWithPaths,
+    confirmTier,
+    skipCurrentFile,
+    dismiss,
+    cancelBatch,
+  };
 }
