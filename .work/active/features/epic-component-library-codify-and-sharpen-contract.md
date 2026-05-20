@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-contract
 kind: feature
-stage: review
+stage: done
 tags: []
 parent: epic-component-library-codify-and-sharpen
 depends_on: []
@@ -305,3 +305,18 @@ Unit 2 (motion):
 - [x] `prefers-reduced-motion` fallback — all durations 0ms, curves linear
 - [x] Showcase had a side-by-side attitude comparison; user picked
 - [x] Attitude variant CSS removed from `motion.css` post-gate
+
+## Review (2026-05-19)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none (one foundation-doc drift fixed inline — see Notes)
+**Important**: none
+**Nits**:
+- A handful of micro-element pixel values (`14px` checkbox glyph, `6px` step-dot, `5px` select-chevron art, `1px` hairlines, `2px` focus outlines and tab indicator) sit outside the `var(--space-*)` scale. They're glyph-grid / border-width measurements, not spacing — and the design explicitly calls out `2px` indicators and hairline borders. No drift; flagged here for visibility only.
+- `motion.css` defines `--ease-emphasized`, `--ease-standard`, `--ease-productive`, and `--ease-decelerate` as the same `cubic-bezier(0,0,0.2,1)`. Intentional under the Productive attitude (snap-to-final dominant), called out in the file header.
+
+**Notes**:
+- Foundation roll-forward applied in this review: `docs/UX.md` "Design-system contract" paragraph named tier-2 widgets as `ArtifactCard, AssignmentCard, CitationChip` — three of which weren't in the actual shipped set. Updated to enumerate the real tier-1 primitives (editorial marks, heads, btn, field/input/textarea/select/checkbox, card, empty-state, error-message, loading-state, modal, dropdown, tabs, badge, pill, skeleton, progress, step-dots) and tier-2 widgets (composer family, assignment-item-card, assignment-card, prompt-block, concept-link-overlay, claude-auth-modal), and to note the motion attitude is locked to Productive.
+- Tokens-only discipline holds: zero hex/rgb/named colors anywhere in `components.css` or `motion.css`; every color is `var(--color-*)`. All meaningful spacing uses `var(--space-*)`.
+- Acceptance criteria for both units check out against the shipped files.
