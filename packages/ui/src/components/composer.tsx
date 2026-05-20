@@ -68,10 +68,12 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
   };
 
   return (
-    <div className={styles.composerWrapper}>
+    <div className={styles.composer}>
       {/* Inline sketch expansion — animates open/close via max-height */}
       {sketchEnabled && (
-        <div className={`${styles.sketchContainer} ${sketchOpen ? styles.sketchOpen : ""}`}>
+        <div
+          className={`${styles["composer__sketch-container"]} ${sketchOpen ? styles["composer__sketch-container--open"] : ""}`}
+        >
           {sketchOpen && (
             <ComposerSketch onCaptured={handleSketchCaptured} onCancel={handleSketchCancel} />
           )}
@@ -80,11 +82,11 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
 
       {/* Sketch-attached indicator */}
       {capturedSketchId && (
-        <div className={styles.sketchAttached}>
+        <div className={styles["composer__sketch-attached"]}>
           <span>✓ Sketch attached</span>
           <button
             type="button"
-            className={styles.sketchDetachBtn}
+            className={styles["composer__sketch-detach"]}
             onClick={() => setCapturedSketchId(undefined)}
             aria-label="Remove attached sketch"
           >
@@ -93,7 +95,7 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
         </div>
       )}
 
-      <form className={styles.form} onSubmit={handleSubmit}>
+      <form className={styles.composer__form} onSubmit={handleSubmit}>
         <textarea
           ref={ref}
           className={styles.composer__input}
@@ -109,11 +111,11 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
           rows={3}
           disabled={disabled}
         />
-        <div className={styles.buttonGroup}>
+        <div className={styles.composer__buttons}>
           {sketchEnabled && (
             <button
               type="button"
-              className={`${styles["composer__sketch-button"]} ${sketchOpen ? styles.sketchToggleActive : ""}`}
+              className={`${styles["composer__sketch-button"]} ${sketchOpen ? styles["composer__sketch-button--active"] : ""}`}
               onClick={() => setSketchOpen((prev) => !prev)}
               disabled={disabled || capturedSketchId !== undefined}
               aria-label={COPY.composer.sketchToggleAriaLabel}
@@ -131,7 +133,7 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
           </button>
         </div>
       </form>
-      <div className={styles.hints}>{COPY.composer.hints}</div>
+      <div className={styles.composer__hints}>{COPY.composer.hints}</div>
     </div>
   );
 });

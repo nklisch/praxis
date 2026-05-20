@@ -21,7 +21,10 @@
  *     nav: .tabs
  *     data: .badge  .pill  .skeleton  .progress  .step-dots
  *   Tier 2 — domain widgets (broad 6-pack):
- *     .composer (+ .composer-verbs, .composer-sketch-button, .composer-input)
+ *     .composer (+ .composer__form, .composer__input, .composer__buttons,
+ *       .composer__sketch-button, .composer__sketch-container, .composer__send,
+ *       .composer__hints) — flex-column shell holding an optional sketch
+ *       expansion slot, the form row, and a trailing hint strip
  *     .assignment-item-card
  *     .assignment-card
  *     .prompt-block
@@ -773,48 +776,80 @@ body {
 
 /* ─── Tier 2: composer ───────────────────────────────────────────────── */
 
+/* Flex-column shell describing the production composer
+ * (`packages/ui/src/components/composer.module.css`):
+ *
+ *   .composer
+ *   ├── .composer__sketch-container          (optional sketch expansion)
+ *   ├── .composer__form (flex row)
+ *   │   ├── .composer__input  (textarea)
+ *   │   └── .composer__buttons (flex column)
+ *   │       ├── .composer__sketch-button
+ *   │       └── .composer__send
+ *   └── .composer__hints                     (mono hint strip)
+ *
+ * The verbs row is a separate sibling widget (.composer-verbs in
+ * packages/ui/src/components/composer-verbs.module.css), not a child
+ * of .composer — the parent layout mounts both.
+ */
 .composer {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: var(--space-3);
-  align-items: end;
+  display: flex;
+  flex-direction: column;
   padding: var(--space-4);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
-.composer__verbs {
-  grid-column: 1 / -1;
+
+/* Optional sketch expansion slot — collapsed by default; the `--open`
+ * modifier reveals an inline canvas above the form via max-height. */
+.composer__sketch-container {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--dur-quick) var(--ease-standard);
+}
+.composer__sketch-container--open {
+  max-height: 400px;
+  margin-bottom: var(--space-3);
+}
+
+/* Form row — flex row holding the textarea and the vertical button stack. */
+.composer__form {
   display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
-  flex-wrap: wrap;
+  gap: var(--space-3);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
 }
-.composer-verb {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-kicker);
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-.composer-verb:hover {
-  border-color: var(--color-border-strong);
+
+.composer__input {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
   color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  resize: none;
+  padding: var(--space-2) 0;
+  min-height: 2.4em;
+  max-height: 8em;
+  outline: none;
 }
-.composer-verb[aria-pressed="true"],
-.composer-verb--active {
-  background: var(--color-accent-muted);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+.composer__input::placeholder {
+  color: var(--color-text-tertiary);
+  font-style: italic;
 }
+
+.composer__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
 .composer__sketch-button {
   background: transparent;
   border: 1px solid var(--color-border);
@@ -832,24 +867,12 @@ body {
   border-color: var(--color-border-strong);
   color: var(--color-text-primary);
 }
-.composer__input {
-  font-family: var(--font-body);
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-base);
-  color: var(--color-text-primary);
-  background: transparent;
-  border: none;
-  resize: none;
-  padding: var(--space-2) 0;
-  min-height: 2.4em;
-  max-height: 8em;
-  width: 100%;
-  outline: none;
+.composer__sketch-button--active {
+  background: var(--color-accent-muted);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
-.composer__input::placeholder {
-  color: var(--color-text-tertiary);
-  font-style: italic;
-}
+
 .composer__send {
   background: var(--color-text-primary);
   color: var(--color-bg-secondary);
@@ -867,6 +890,17 @@ body {
   background: var(--color-text-tertiary);
   border-color: var(--color-text-tertiary);
   cursor: not-allowed;
+}
+
+/* Mono hint strip beneath the form row. */
+.composer__hints {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  letter-spacing: var(--letter-spacing-kicker);
+  text-transform: uppercase;
+  padding-top: var(--space-3);
 }
 
 /* ─── Tier 2: assignment-item-card ───────────────────────────────────── */

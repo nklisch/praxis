@@ -518,15 +518,15 @@
       <span class="cell__label">.composer</span>
       <div class="cell__demo cell__demo--block">
         <div class="composer">
-          <div class="composer__verbs">
-            <button class="composer-verb composer-verb--active">teach</button>
-            <button class="composer-verb">quiz me</button>
-            <button class="composer-verb">explain</button>
-            <button class="composer-verb">go deeper</button>
-          </div>
-          <button class="composer__sketch-button" aria-label="Sketch">✎</button>
-          <textarea class="composer__input" placeholder="Ask the tutor anything…"></textarea>
-          <button class="composer__send" aria-label="Send">↑</button>
+          <div class="composer__sketch-container"><!-- optional expansion slot --></div>
+          <form class="composer__form">
+            <textarea class="composer__input" placeholder="Ask the tutor anything…"></textarea>
+            <div class="composer__buttons">
+              <button type="button" class="composer__sketch-button" aria-label="Sketch">✎</button>
+              <button type="submit" class="composer__send" aria-label="Send">↑</button>
+            </div>
+          </form>
+          <div class="composer__hints">Enter to send · Shift+Enter for newline</div>
         </div>
       </div>
     </div>

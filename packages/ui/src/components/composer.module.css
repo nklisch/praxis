@@ -1,14 +1,10 @@
 /* ── Composer ─────────────────────────────────────────────────────────────── */
-/* Restyle per locked Refined Bubbles mock (option-4.html).
- * Italic serif textarea · accent send button · mono hint strip below. */
+/* Class names align with the tier-2 .composer contract in
+ * .mockups/design-system/components.css. The contract describes the
+ * shape rendered here: a flex-column shell with an optional sketch
+ * expansion slot, a flex form row, and a trailing mono hint strip. */
 
-/* Contract note: the tier-2 contract defines `.composer` as a 3-column grid.
- * This module uses a flex-column wrapper (composerWrapper) that hosts a form
- * row (.form) plus optional sketch expansion and a hints strip. The outer
- * wrapper is intentionally NOT renamed to .composer to avoid replicating the
- * grid contract that would change layout. Divergence documented here. */
-
-.composerWrapper {
+.composer {
   display: flex;
   flex-direction: column;
   padding: var(--space-4) var(--space-8) var(--space-6);
@@ -18,20 +14,20 @@
 }
 
 /* Sketch expansion area — max-height transition for smooth open/close. */
-.sketchContainer {
+.composer__sketch-container {
   max-height: 0;
   overflow: hidden;
   transition: max-height var(--dur-quick) var(--ease-standard);
   margin-bottom: 0;
 }
 
-.sketchOpen {
+.composer__sketch-container--open {
   max-height: 400px; /* 320px canvas + action row + padding */
   margin-bottom: var(--space-3);
 }
 
 /* Sketch-attached indicator bar */
-.sketchAttached {
+.composer__sketch-attached {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -41,7 +37,7 @@
   color: var(--color-accent);
 }
 
-.sketchDetachBtn {
+.composer__sketch-detach {
   background: none;
   border: none;
   color: inherit;
@@ -52,14 +48,12 @@
   opacity: 0.7;
 }
 
-.sketchDetachBtn:hover {
+.composer__sketch-detach:hover {
   opacity: 1;
 }
 
-/* The composer field — card background with strong border, flex row.
- * Aligns with contract's .composer surface but uses flex (not grid) because
- * the sketch toggle sits in a nested column group, not a flat grid column. */
-.form {
+/* The composer field — card background with strong border, flex row. */
+.composer__form {
   display: flex;
   gap: var(--space-3);
   background: var(--color-bg-secondary);
@@ -68,8 +62,7 @@
   padding: var(--space-3) 14px; /* design-system-exception: 14px — asymmetric horizontal pad matches mock; nearest token --space-3 (12px) or --space-4 (16px); visual diff at 14px is meaningful so keeping bare value */
 }
 
-/* Italic serif textarea — no inner border, transparent bg.
- * Aligns with contract's .composer__input (renamed from .input). */
+/* Italic serif textarea — no inner border, transparent bg. */
 .composer__input {
   flex: 1;
   border: 0;
@@ -95,7 +88,7 @@
 }
 
 /* Button group — sketch toggle + send, aligned to bottom of flex */
-.buttonGroup {
+.composer__buttons {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -103,8 +96,7 @@
   justify-content: flex-end;
 }
 
-/* Accent send button.
- * Aligns with contract's .composer__send (renamed from .sendButton). */
+/* Accent send button. */
 .composer__send {
   background: var(--color-accent);
   color: var(--color-text-inverse);
@@ -131,7 +123,7 @@
 }
 
 /* Mono hint strip */
-.hints {
+.composer__hints {
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1;
@@ -141,8 +133,7 @@
   padding-top: var(--space-1-5);
 }
 
-/* "✎ Sketch" toggle button.
- * Aligns with contract's .composer__sketch-button (renamed from .sketchToggleBtn). */
+/* "✎ Sketch" toggle button. */
 .composer__sketch-button {
   background: transparent;
   color: var(--color-text-secondary);
@@ -169,7 +160,7 @@
   cursor: not-allowed;
 }
 
-.sketchToggleActive {
+.composer__sketch-button--active {
   color: var(--color-accent);
   border-color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
