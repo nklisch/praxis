@@ -110,7 +110,9 @@
    * Spacing scale (8pt baseline)
    * ───────────────────────────────────────────────────────────────── */
 
+  --space-0-5: 2px; /* tight chip / inline-label padding */
   --space-1: 4px;
+  --space-1-5: 6px; /* table-cell vertical padding, tab-indicator drift */
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;

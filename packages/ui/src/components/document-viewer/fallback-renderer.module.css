@@ -8,8 +8,7 @@
 }
 
 .message {
-  font-family: var(--font-serif);
-  font-style: italic;
+  composes: editorial from global;
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
