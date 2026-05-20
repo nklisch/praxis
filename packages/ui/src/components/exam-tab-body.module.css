@@ -17,8 +17,8 @@
 .kicker {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 10px 32px 8px;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-8) var(--space-2);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   background: var(--color-bg-primary);
@@ -30,12 +30,12 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--tint-exam);
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2);
   background: color-mix(in oklab, var(--tint-exam) 12%, transparent);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* Pulsing dot inside the exam strip */
@@ -62,7 +62,7 @@
 .timer {
   font: 600 14px / 1 var(--font-mono);
   letter-spacing: 0.04em;
-  padding: 6px 12px;
+  padding: var(--space-1-5) var(--space-3);
   border-radius: var(--radius-sm);
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border-strong);
@@ -85,7 +85,7 @@
 /* ─── Auto-submit notice bar ─────────────────────────────────────────────────── */
 
 .autoSubmitNotice {
-  padding: 6px 32px;
+  padding: var(--space-1-5) var(--space-8);
   background: color-mix(in oklab, var(--color-warning) 14%, transparent);
   border-bottom: 1px solid var(--color-warning);
   font: 500 12px / 1.4 var(--font-sans);
@@ -106,15 +106,16 @@
 /* ─── Main exam content ──────────────────────────────────────────────────────── */
 
 .examMain {
-  padding: 32px 36px;
+  composes: editorial from global;
+  padding: var(--space-8) var(--space-8);
   overflow-y: auto;
 }
 
 /* Exam running head */
 .examHead {
-  padding-bottom: 14px;
+  padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .examKicker {
@@ -122,10 +123,10 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--tint-exam);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .examKickerDot {
@@ -146,7 +147,7 @@
 .examDeck {
   font: italic 13px / 1.5 var(--font-serif);
   color: var(--color-text-secondary);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 /* ─── Mode rule banner ───────────────────────────────────────────────────────── */
@@ -154,11 +155,11 @@
 .modeRule {
   background: color-mix(in oklab, var(--tint-exam) 10%, var(--color-bg-secondary));
   border: 1px solid var(--tint-exam);
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   font: italic 13px / 1.6 var(--font-serif);
   color: var(--color-text-primary);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .modeRuleLabel {
@@ -167,7 +168,7 @@
   text-transform: uppercase;
   color: var(--tint-exam);
   font-style: normal;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
 }
 
 /* ─── Assignment wrap ────────────────────────────────────────────────────────── */
@@ -179,9 +180,9 @@
 /* ─── Per-item rubric section ────────────────────────────────────────────────── */
 
 .rubricSection {
-  margin-top: 32px;
+  margin-top: var(--space-8);
   border-top: 1px solid var(--color-border);
-  padding-top: 24px;
+  padding-top: var(--space-6);
   max-width: 800px;
 }
 
@@ -190,15 +191,15 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-4);
 }
 
 .rubricItem {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-6);
 }
 
 .rubricItemMeta {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .rubricItemPrompt {
@@ -210,7 +211,7 @@
 .rubricCard {
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);
-  padding: 14px 16px;
+  padding: var(--space-4) var(--space-4);
 }
 
 .rubricHeading {
@@ -218,19 +219,19 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-2);
 }
 
 .rubricCriteria {
   border-top: 1px dashed var(--color-border);
-  padding-top: 4px;
+  padding-top: var(--space-1);
 }
 
 .critRow {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: baseline;
-  padding: 6px 0;
+  padding: var(--space-1-5) 0;
   font: 13px / 1.5 var(--font-serif);
   border-bottom: 1px dashed var(--color-border);
 }
@@ -255,8 +256,8 @@
 .rubricHint {
   font: italic 11px / 1.5 var(--font-serif);
   color: var(--color-text-tertiary);
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
   border-top: 1px dashed var(--color-border);
 }
 
@@ -264,9 +265,9 @@
 
 .clarificationWrap {
   position: relative;
-  margin-top: 24px;
+  margin-top: var(--space-6);
   max-width: 800px;
-  min-height: 48px;
+  min-height: var(--space-12);
 }
 
 /* ─── No-assignment placeholder ──────────────────────────────────────────────── */
@@ -285,7 +286,7 @@
 
 .rail {
   border-left: 1px solid var(--color-border);
-  padding: 24px 22px;
+  padding: var(--space-6) var(--space-6);
   background: var(--color-bg-primary);
   overflow-y: auto;
 }
@@ -295,8 +296,8 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin: 0 0 12px;
-  padding-bottom: 6px;
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-1-5);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -304,7 +305,7 @@
 .itemGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .ix {
@@ -345,7 +346,7 @@
   font: 11px / 1.4 var(--font-mono);
   color: var(--color-text-tertiary);
   letter-spacing: 0.04em;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 /* Tools allowed panel */
@@ -353,8 +354,8 @@
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  margin: 14px 0;
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-4) 0;
 }
 
 .toolsAllowedHeading {
@@ -362,13 +363,13 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .toolRow {
   font: italic 12px / 1.5 var(--font-serif);
   color: var(--color-text-secondary);
-  padding: 3px 0;
+  padding: var(--space-1) 0;
 }
 
 .toolRowNo {
@@ -382,8 +383,8 @@
   background: color-mix(in oklab, var(--tint-exam) 12%, var(--color-bg-secondary));
   border: 1px solid var(--tint-exam);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  margin-top: 16px;
+  padding: var(--space-4) var(--space-4);
+  margin-top: var(--space-4);
 }
 
 .submitStripHeading {
@@ -391,13 +392,13 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--tint-exam);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .submitRow {
   display: flex;
   justify-content: space-between;
-  padding: 3px 0;
+  padding: var(--space-1) 0;
   font: 12px / 1.5 var(--font-serif);
   color: var(--color-text-secondary);
 }
@@ -410,11 +411,11 @@
 
 .submitBtn {
   width: 100%;
-  margin-top: 10px;
+  margin-top: var(--space-2);
   background: var(--tint-exam);
   color: var(--color-text-inverse);
   border: 0;
-  padding: 11px 14px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   font: 500 13px / 1 var(--font-sans);
   cursor: pointer;
@@ -429,7 +430,7 @@
 .submitHint {
   font: italic 11px / 1.4 var(--font-serif);
   color: var(--color-text-tertiary);
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 /* ─── Nav dimming — applied via exam-mode class on document.documentElement ──── */

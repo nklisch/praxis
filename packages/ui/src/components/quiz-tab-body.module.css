@@ -16,7 +16,7 @@
   display: flex;
   align-items: baseline;
   gap: 1rem;
-  padding: 14px 32px 10px;
+  padding: var(--space-4) var(--space-8) var(--space-2);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   background: var(--color-bg-primary);
@@ -25,7 +25,7 @@
 .kicker {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font: 600 11px / 1 var(--font-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -73,7 +73,7 @@
 .headProgress {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-left: auto;
 }
 
@@ -112,7 +112,8 @@
 /* ── Main (center) column ──────────────────────────────────────────────────── */
 
 .main {
-  padding: 28px 32px;
+  composes: editorial from global;
+  padding: var(--space-8) var(--space-8);
   overflow-y: auto;
 }
 
@@ -121,11 +122,11 @@
 .modeRule {
   background: color-mix(in oklab, var(--tint-quiz) 8%, var(--color-bg-secondary));
   border-left: 2px solid var(--tint-quiz);
-  padding: 8px 14px;
+  padding: var(--space-2) var(--space-4);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font: italic 12px / 1.5 var(--font-serif);
   color: var(--color-text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .modeRule em {
@@ -139,14 +140,14 @@
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 32px 36px;
-  margin-bottom: 16px;
+  padding: var(--space-8) var(--space-8);
+  margin-bottom: var(--space-4);
 }
 
 /* Ghost / preview of the next item */
 .itemCardGhost {
   opacity: 0.5;
-  padding: 14px 18px;
+  padding: var(--space-4) var(--space-4);
   pointer-events: none;
 }
 
@@ -155,12 +156,12 @@
 .itemMeta {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--space-3);
   font: 600 11px / 1 var(--font-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .itemNum {
@@ -170,7 +171,7 @@
 
 .typePill {
   font: 600 9px / 1 var(--font-mono);
-  padding: 3px 7px;
+  padding: var(--space-1) var(--space-2);
   background: color-mix(in oklab, var(--tint-quiz) 18%, transparent);
   color: var(--tint-quiz);
   border-radius: var(--radius-full);
@@ -198,16 +199,16 @@
 /* ── Item action bar ──────────────────────────────────────────────────────── */
 
 .actions {
-  margin-top: 24px;
+  margin-top: var(--space-6);
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
   flex-wrap: wrap;
 }
 
 .actionBtn {
   font: 500 13px / 1 var(--font-sans);
-  padding: 9px 16px;
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid var(--color-border-strong);
@@ -244,12 +245,12 @@
 /* ── Ready-to-submit panel ────────────────────────────────────────────────── */
 
 .readyHead {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-6);
 }
 
 .readyTitle {
   font: 500 italic 22px / 1.2 var(--font-display);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   color: var(--color-text-primary);
 }
 
@@ -272,20 +273,20 @@
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 32px 36px;
-  margin-bottom: 16px;
+  padding: var(--space-8) var(--space-8);
+  margin-bottom: var(--space-4);
 }
 
 .submittedScore {
   font: 500 italic 26px / 1.2 var(--font-display);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   color: var(--color-text-primary);
 }
 
 .submittedSub {
   font: italic 13px / 1.5 var(--font-serif);
   color: var(--color-text-secondary);
-  margin: 0 0 24px;
+  margin: 0 0 var(--space-6);
 }
 
 .reviewList {
@@ -326,7 +327,7 @@
 
 .rail {
   border-left: 1px solid var(--color-border);
-  padding: 28px 22px;
+  padding: var(--space-8) var(--space-6);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -338,13 +339,13 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin: 0 0 12px;
-  padding-bottom: 6px;
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-1-5);
   border-bottom: 1px solid var(--color-border);
 }
 
 .railHeadSpaced {
-  margin-top: 22px;
+  margin-top: var(--space-6);
 }
 
 /* ── Item status dot grid ───────────────────────────────────────────────────── */
@@ -369,7 +370,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  margin: 0 5px 5px 0;
+  margin: 0 var(--space-1) var(--space-1) 0;
   border: 1px solid var(--color-border-strong);
   background: var(--color-bg-secondary);
   font: 600 11px / 1 var(--font-mono);
@@ -413,7 +414,7 @@
   font: 11px / 1.4 var(--font-mono);
   color: var(--color-text-tertiary);
   letter-spacing: 0.04em;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   margin-bottom: 0;
 }
 
@@ -422,7 +423,7 @@
 .kindList {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 
 .kindRow {
@@ -433,8 +434,8 @@
 /* ── Rail timing note ─────────────────────────────────────────────────────── */
 
 .railTiming {
-  margin-top: 12px;
-  padding: 8px 10px;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-2);
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);
   font: italic 12px / 1.5 var(--font-serif);

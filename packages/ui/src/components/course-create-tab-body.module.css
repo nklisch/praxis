@@ -1,4 +1,7 @@
 /* Bootstrap tab body — Canvas + Side Chat (mode-course-create.html mock) */
+/* design-system-exception: .container does not compose editorial — course-create is a
+ * structured authoring canvas (unit list, lesson rows, confirm card), not a prose
+ * reading surface. The chat panel within is handled by AuthoringChatPane directly. */
 
 /* Two-column grid: flexible draft canvas on the left, fixed chat panel on the right. */
 .container {
@@ -19,12 +22,12 @@
 }
 
 .canvasHeader {
-  padding: 14px 22px 10px;
+  padding: var(--space-4) var(--space-6) var(--space-2);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -56,7 +59,7 @@
   font: 600 9px / 1 var(--font-mono, monospace);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 3px 8px;
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full, 9999px);
   background: var(--color-warning);
   color: var(--color-text-inverse);
@@ -90,7 +93,7 @@
 .canvasScroll {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 22px 20px;
+  padding: var(--space-4) var(--space-6) var(--space-6);
   min-height: 0;
 }
 
@@ -110,21 +113,21 @@
 .unitList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .unitBlock {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 8px);
-  padding: 10px 14px;
+  padding: var(--space-2) var(--space-4);
 }
 
 .unitHead {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding-bottom: 6px;
+  gap: var(--space-2);
+  padding-bottom: var(--space-1-5);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -146,7 +149,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  padding: 3px 6px;
+  padding: var(--space-1) var(--space-1-5);
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-full, 9999px);
   flex-shrink: 0;
@@ -155,21 +158,21 @@
 /* ── Lesson rows ─────────────────────────────────────────────────────────────── */
 
 .unitLessons {
-  padding: 6px 0 0 20px;
+  padding: var(--space-1-5) 0 0 var(--space-6);
 }
 
 /* Flat lesson list — no units. */
 .lessonList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .lessonRow {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 2px 0;
+  gap: var(--space-2);
+  padding: var(--space-0-5) 0;
   font: italic 12px / 1.7 var(--font-serif, serif);
   color: var(--color-text-secondary);
 }
@@ -195,7 +198,7 @@
 
 /* Canvas "add" hint at the bottom of the unit list. */
 .canvasAddHint {
-  padding: 10px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-md, 8px);
   text-align: center;
@@ -269,14 +272,14 @@
 .confirmCard {
   flex-shrink: 0;
   margin: 0;
-  padding: 14px 16px;
+  padding: var(--space-4) var(--space-4);
   background: var(--color-accent-muted);
   border-top: 1px solid var(--color-accent);
 }
 
 .confirmTitle {
   font: 500 italic 15px / 1.2 var(--font-display, serif);
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-1);
   color: var(--color-text-primary, inherit);
 }
 
@@ -287,13 +290,13 @@
 .confirmLede {
   font: italic 12px / 1.5 var(--font-serif, serif);
   color: var(--color-text-secondary);
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-2);
 }
 
 .confirmBtn {
   width: 100%;
   font: 500 13px / 1 var(--font-sans, sans-serif);
-  padding: 10px 14px;
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm, 4px);
   cursor: pointer;
   background: var(--color-accent);

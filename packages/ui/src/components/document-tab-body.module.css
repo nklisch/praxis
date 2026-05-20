@@ -79,6 +79,7 @@
 /* ── Scrolling body ─────────────────────────────────────────────────────────── */
 
 .body {
+  composes: editorial from global;
   flex: 1 1 auto;
   overflow-y: auto;
   padding: var(--space-6) var(--space-8) var(--space-16);
@@ -153,14 +154,14 @@
 }
 
 .readingColumn li {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .readingColumn code {
   font-family: var(--font-mono);
   font-size: 0.875em;
   background: var(--color-bg-tertiary);
-  padding: 1px 5px;
+  padding: var(--space-0-5) var(--space-1);
   border-radius: var(--radius-sm);
 }
 
@@ -259,7 +260,7 @@
   cursor: pointer;
   position: relative;
   transition: background 0.15s ease;
-  padding: 0 3px;
+  padding: 0 var(--space-1);
 }
 
 .citationMark:hover {
@@ -272,7 +273,7 @@
   vertical-align: super;
   color: var(--color-accent);
   font-weight: var(--font-weight-semibold);
-  margin-right: 1px;
+  margin-right: var(--space-0-5);
   user-select: none;
   pointer-events: none;
 }
