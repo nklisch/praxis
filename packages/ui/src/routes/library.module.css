@@ -19,7 +19,7 @@
 /* ── Greeting ───────────────────────────────────────────────────────────────── */
 
 .greeting {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .greetingKicker {
@@ -55,8 +55,8 @@
 .workbench {
   display: grid;
   grid-template-columns: 3fr 2fr;
-  gap: 20px; /* design-system-exception: 20px sits between --space-4 (16px) and --space-6 (24px); intentional grid gutter */
-  margin-bottom: 20px; /* design-system-exception: same 20px visual gap below workbench */
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 
 /* ── Column panels ──────────────────────────────────────────────────────────── */
@@ -101,7 +101,7 @@
 
 .timeline {
   position: relative;
-  padding-left: 22px; /* design-system-exception: 22px aligns with the timeline dot (11px radius) plus gutter; no token match */
+  padding-left: var(--space-6);
 }
 
 .timeline::before {
@@ -119,7 +119,7 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  margin: var(--space-4) 0 var(--space-2) -22px; /* design-system-exception: negative margin matches timeline indent above */
+  margin: var(--space-4) 0 var(--space-2) -24px; /* design-system-exception: negative margin counter-indents to match the timeline padding-left: --space-6 (24px) */
   padding-bottom: var(--space-1-5);
   border-bottom: 1px dashed var(--color-border);
 }
@@ -141,7 +141,7 @@
 .timelineEntry::before {
   content: "";
   position: absolute;
-  left: -21px; /* design-system-exception: optical alignment with the 1px timeline rule at left:5px */
+  left: -23px; /* design-system-exception: optical alignment with the 1px timeline rule; negative offset counters 24px padding-left */
   top: var(--space-2);
   width: 11px;
   height: 11px;
@@ -160,7 +160,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 3px; /* design-system-exception: 3px sub-pixel kicker margin; --space-1 (4px) shifts weight noticeably */
+  margin-bottom: var(--space-1);
 }
 
 .timelineTitle {
@@ -218,7 +218,7 @@
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 6px);
-  padding: var(--space-4) 20px; /* design-system-exception: 20px horizontal padding; between --space-4 (16px) and --space-6 (24px) */
+  padding: var(--space-4) var(--space-6);
   display: flex;
   flex-direction: column;
 }

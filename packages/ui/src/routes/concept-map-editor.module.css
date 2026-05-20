@@ -28,7 +28,7 @@
   padding: var(--space-3) var(--space-6);
   display: flex;
   align-items: center;
-  gap: 14px; /* design-system-exception: 14px sits between --space-3 (12px) and --space-4 (16px); matches editor-strip visual balance */
+  gap: var(--space-3);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }

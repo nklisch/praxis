@@ -71,12 +71,11 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  margin-bottom: -1px; /* design-system-exception: optical bleed to overlap tab-strip border; not a spacing-scale value */
   cursor: pointer;
   display: flex;
   gap: var(--space-1-5);
   align-items: baseline;
-  margin-bottom: -1px; /* design-system-exception: optical bleed to overlap tab-strip border; not a spacing-scale value */
   transition: color 0.12s;
 }
 
@@ -230,8 +229,8 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  border-bottom: 1px solid var(--color-border) !important;
-  padding-bottom: var(--space-2) !important;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
 }
 
 .conceptName {
@@ -452,8 +451,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1-5);
-  margin-bottom: 20px; /* design-system-exception: 20px sits between --space-4 (16px) and --space-6 (24px); intentional visual breathing room before next section */
-  padding: 14px var(--space-4); /* design-system-exception: 14px sits between --space-3 (12px) and --space-4 (16px); kept for card-inset balance */
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) var(--space-4);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);

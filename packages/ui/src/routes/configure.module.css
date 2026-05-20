@@ -276,7 +276,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 3px; /* design-system-exception: 3px sub-pixel label margin; nearest token --space-1 (4px) shifts visual weight noticeably */
+  margin-bottom: var(--space-1);
 }
 
 .inspectorFieldVal {

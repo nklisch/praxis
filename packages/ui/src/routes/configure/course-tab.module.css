@@ -67,7 +67,7 @@
   background: var(--color-bg-tertiary, var(--color-bg-secondary));
   border-radius: var(--radius-sm, 4px);
   display: flex;
-  gap: 14px; /* design-system-exception: 14px sits between --space-3 (12px) and --space-4 (16px); matches visual balance of legend strip */
+  gap: var(--space-3);
   flex-wrap: wrap;
   font: italic 12px / 1.4 var(--font-serif, serif);
   color: var(--color-text-secondary);
@@ -154,7 +154,6 @@
   align-items: baseline;
   gap: var(--space-3);
   cursor: pointer;
-  border-bottom: 1px solid var(--color-border);
   user-select: none;
   /* Reset button defaults */
   background: transparent;
@@ -237,7 +236,6 @@
   gap: var(--space-3);
   align-items: baseline;
   padding: var(--space-2) 0;
-  border-bottom: 1px dashed var(--color-border);
   cursor: pointer;
   border-radius: var(--radius-sm, 4px);
   /* Reset button defaults */

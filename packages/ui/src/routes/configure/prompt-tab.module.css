@@ -11,7 +11,7 @@
 
 .modeRail {
   border-right: 1px solid var(--color-border);
-  padding: 20px 0; /* design-system-exception: 20px outer rail padding has no exact token; nearest --space-6 (24px) is too large */
+  padding: var(--space-6) 0;
   background: var(--color-bg-primary);
   overflow-y: auto;
   display: flex;
