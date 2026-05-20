@@ -45,10 +45,10 @@ export class SessionServiceImpl implements SessionService {
       secretStorage: deps.secretStorage,
       toolDefinitions: deps.toolDefinitions,
       toolServices: deps.toolServices,
-      indexerOrchestrator: deps.indexerOrchestrator,
-      activity: deps.activity,
-      subAgent: deps.subAgent,
-      promptCustomization: deps.promptCustomization,
+      ...(deps.indexerOrchestrator !== undefined && { indexerOrchestrator: deps.indexerOrchestrator }),
+      ...(deps.activity !== undefined && { activity: deps.activity }),
+      ...(deps.subAgent !== undefined && { subAgent: deps.subAgent }),
+      ...(deps.promptCustomization !== undefined && { promptCustomization: deps.promptCustomization }),
       ...(deps.engineFactory !== undefined && { engineFactory: deps.engineFactory }),
     });
   }
