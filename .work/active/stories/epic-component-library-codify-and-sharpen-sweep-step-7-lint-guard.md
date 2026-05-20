@@ -4,12 +4,7 @@ kind: story
 stage: implementing
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
-depends_on:
-  - epic-component-library-codify-and-sharpen-sweep-step-2-item-bodies
-  - epic-component-library-codify-and-sharpen-sweep-step-3-tab-bodies
-  - epic-component-library-codify-and-sharpen-sweep-step-4-composer-library-auth
-  - epic-component-library-codify-and-sharpen-sweep-step-5-components-other
-  - epic-component-library-codify-and-sharpen-sweep-step-6-routes
+depends_on: [epic-component-library-codify-and-sharpen-sweep-step-2-item-bodies, epic-component-library-codify-and-sharpen-sweep-step-3-tab-bodies, epic-component-library-codify-and-sharpen-sweep-step-4-composer-library-auth, epic-component-library-codify-and-sharpen-sweep-step-5-components-other, epic-component-library-codify-and-sharpen-sweep-step-6-routes]
 release_binding: null
 gate_origin: refactor-design
 created: 2026-05-20
