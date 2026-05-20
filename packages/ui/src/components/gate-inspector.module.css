@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--color-bg-secondary, #fff);
-  border-left: 1px solid var(--color-border, #e0e0e0);
+  background: var(--color-bg-secondary);
+  border-left: 1px solid var(--color-border);
   min-width: 280px;
   max-width: 340px;
 }
@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -28,14 +28,14 @@
   border: none;
   cursor: pointer;
   font-size: 1rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
   padding: 0.2rem;
   border-radius: 4px;
   line-height: 1;
 }
 
 .closeBtn:hover {
-  background: var(--color-border, #e0e0e0);
+  background: var(--color-border);
 }
 
 .body {
@@ -59,7 +59,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
 }
 
 .stateText,
@@ -79,12 +79,12 @@
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.8rem;
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
 }
 
 .input {
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 0.9rem;
   width: 100%;
@@ -92,12 +92,12 @@
 }
 
 .input:focus {
-  outline: 2px solid var(--color-accent, #4a90e2);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
 .error {
-  color: var(--color-danger, #d32f2f);
+  color: var(--color-danger);
   font-size: 0.8rem;
   margin: 0;
 }
@@ -115,7 +115,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  background: var(--color-border, #f0f0f0);
+  background: var(--color-border);
   padding: 0.3rem 0.5rem;
   border-radius: 3px;
 }
@@ -139,7 +139,7 @@
   flex-direction: column;
   gap: 0.5rem;
   margin-top: auto;
-  border-top: 1px solid var(--color-border, #e0e0e0);
+  border-top: 1px solid var(--color-border);
   padding-top: 0.75rem;
 }
 
@@ -153,7 +153,7 @@
   padding: 0.4rem 0.9rem;
   border: none;
   border-radius: 4px;
-  background: var(--color-accent, #4a90e2);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   cursor: pointer;
   font-size: 0.85rem;
@@ -165,31 +165,31 @@
 
 .overrideBtn {
   padding: 0.4rem 0.8rem;
-  border: 1px solid var(--color-accent, #4a90e2);
+  border: 1px solid var(--color-accent);
   border-radius: 4px;
   background: transparent;
-  color: var(--color-accent, #4a90e2);
+  color: var(--color-accent);
   cursor: pointer;
   font-size: 0.8rem;
 }
 
 .overrideBtn:hover:not(:disabled) {
-  background: var(--color-accent, #4a90e2);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
 }
 
 .deleteBtn {
   padding: 0.4rem 0.8rem;
-  border: 1px solid var(--color-danger, #d32f2f);
+  border: 1px solid var(--color-danger);
   border-radius: 4px;
   background: transparent;
-  color: var(--color-danger, #d32f2f);
+  color: var(--color-danger);
   cursor: pointer;
   font-size: 0.8rem;
 }
 
 .deleteBtn:hover:not(:disabled) {
-  background: var(--color-danger, #d32f2f);
+  background: var(--color-danger);
   color: #fff; /* intentional literal: button text always white regardless of theme */
 }
 

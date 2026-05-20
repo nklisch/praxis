@@ -24,6 +24,7 @@ import { Composer } from "./composer.js";
 import { ComposerVerbs } from "./composer-verbs.js";
 import { CourseCreateTabBody } from "./course-create-tab-body.js";
 import { DocumentTabBody } from "./document-tab-body.js";
+import { EmptyState } from "./empty-state.js";
 import { ExamTabBody } from "./exam-tab-body.js";
 import { HomeworkTabBody } from "./homework-tab-body.js";
 import { MessageBubble } from "./message.js";
@@ -313,7 +314,7 @@ export function TeachChatTabBody({
       <div ref={messagesContainerRef} className={styles.messages} onScroll={handleScroll}>
         {showResumedBanner && <ResumedBanner title={tab.title} />}
         {items.length === 0 && (
-          <p className={styles.emptyState}>Start a conversation with your tutor.</p>
+          <EmptyState message="Start a conversation with your tutor." />
         )}
         {items.map((item) => {
           if (item.kind === "tool-entry") {

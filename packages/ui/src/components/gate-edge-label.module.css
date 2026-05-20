@@ -32,8 +32,8 @@
   font-size: 0.68rem;
   max-width: 140px;
   text-align: center;
-  background: var(--color-bg-secondary, rgba(20, 20, 30, 0.92));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   backdrop-filter: blur(4px);
   cursor: default;
 }
@@ -51,14 +51,14 @@
 /* Dirty label: warning border + warning-tinted background */
 .label.dirty {
   border-color: var(--color-warning);
-  background: var(--color-accent-muted, rgba(168, 106, 10, 0.08));
+  background: var(--color-accent-muted);
 }
 
 /* Mastery threshold — monospace kicker above the summary text */
 .threshold {
   font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.1em;
-  color: var(--color-text-tertiary, #aaa);
+  color: var(--color-text-tertiary);
 }
 
 .label.dirty .threshold {
@@ -75,7 +75,7 @@
 }
 
 .label.locked .summaryText {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .label.dirty .summaryText {
@@ -91,7 +91,7 @@
 
 .lockReason {
   font-size: 0.62rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-style: italic;
   word-break: break-word;
   hyphens: auto;

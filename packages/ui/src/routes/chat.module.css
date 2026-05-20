@@ -127,7 +127,7 @@
   padding: 0.6rem 1rem;
   background: rgba(255, 200, 50, 0.15);
   border-top: 1px solid rgba(255, 200, 50, 0.35);
-  color: var(--color-text-primary, #1a1a1a);
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   flex-shrink: 0;
 }
@@ -135,8 +135,8 @@
 .authBannerButton {
   padding: 0.3rem 0.75rem;
   border-radius: 4px;
-  border: 1px solid var(--color-accent, #2563eb);
-  background: var(--color-accent, #2563eb);
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   cursor: pointer;
   font-size: 0.85rem;
@@ -149,13 +149,13 @@
 .authBannerButtonSecondary {
   padding: 0.3rem 0.75rem;
   border-radius: 4px;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   background: transparent;
-  color: var(--color-text-primary, #1a1a1a);
+  color: var(--color-text-primary);
   cursor: pointer;
   font-size: 0.85rem;
 }
 
 .authBannerButtonSecondary:hover {
-  background: var(--color-border, #e0e0e0);
+  background: var(--color-border);
 }

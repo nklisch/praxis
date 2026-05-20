@@ -1,8 +1,8 @@
 /* RipplesPanel — downstream consequence summary for a link confirmation candidate. */
 
 .panel {
-  background: var(--color-bg-secondary, #1a1a1a);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   min-width: 200px;
@@ -26,7 +26,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
 }
 
 /* Animated loading dot */
@@ -35,7 +35,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   opacity: 0.8;
   animation: pulse 1s ease-in-out infinite;
 }
@@ -71,20 +71,20 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .statValue {
   font-size: 1.35rem;
   font-weight: 700;
-  color: var(--color-text-primary, #f0f0f0);
+  color: var(--color-text-primary);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
 .statMuted {
-  color: var(--color-text-tertiary, #555);
+  color: var(--color-text-tertiary);
 }
 
 /* ── Hint messages ── */
@@ -93,9 +93,9 @@
 .errorHint {
   margin: 0.5rem 0 0;
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
 }
 
 .errorHint {
-  color: var(--color-danger, #a32721);
+  color: var(--color-danger);
 }

@@ -44,18 +44,18 @@
 
 /* READY — readiness before lesson — sage/bootstrap tint */
 .ready {
-  background: color-mix(in oklab, var(--tint-course-create, #5f7e3a) 18%, transparent);
-  color: var(--tint-course-create, #5f7e3a);
+  background: color-mix(in oklab, var(--tint-course-create) 18%, transparent);
+  color: var(--tint-course-create);
 }
 
 /* HW — practice homework, interleaved — indigo/homework tint */
 .home {
-  background: color-mix(in oklab, var(--tint-homework, #3a3e75) 18%, transparent);
-  color: var(--tint-homework, #3a3e75);
+  background: color-mix(in oklab, var(--tint-homework) 18%, transparent);
+  color: var(--tint-homework);
 }
 
 /* QUIZ — checkpoint after lesson — slate/quiz tint */
 .check {
-  background: color-mix(in oklab, var(--tint-quiz, #4a5e6e) 18%, transparent);
-  color: var(--tint-quiz, #4a5e6e);
+  background: color-mix(in oklab, var(--tint-quiz) 18%, transparent);
+  color: var(--tint-quiz);
 }

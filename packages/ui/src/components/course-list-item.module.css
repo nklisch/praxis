@@ -8,8 +8,8 @@
   justify-content: space-between;
   width: 100%;
   padding: 0.85rem 1rem;
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
@@ -20,8 +20,8 @@
 }
 
 .btn:hover {
-  border-color: var(--color-accent, #6366f1);
-  background: var(--color-accent-muted, rgba(99, 102, 241, 0.06));
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
 }
 
 .main {
@@ -42,7 +42,7 @@
 
 .meta {
   font-size: 0.78rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .stats {
@@ -55,13 +55,13 @@
 
 .progress {
   font-size: 0.78rem;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   font-weight: 600;
 }
 
 .lessonCount {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 /* Phase 9: newly-unlocked badge */

@@ -404,9 +404,9 @@
 
 /* Skipped: muted warning tone */
 .dotSkipped {
-  background: color-mix(in oklab, var(--color-warning, #ca8a04) 60%, transparent);
+  background: color-mix(in oklab, var(--color-warning) 60%, transparent);
   color: var(--color-text-inverse);
-  border-color: var(--color-warning, #ca8a04);
+  border-color: var(--color-warning);
 }
 
 .railSummaryText {

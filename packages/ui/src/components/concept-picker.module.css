@@ -89,7 +89,7 @@
 }
 
 .option.active {
-  background: var(--color-bg-tertiary, rgba(0, 0, 0, 0.05));
+  background: var(--color-bg-tertiary);
 }
 
 .option.selected {

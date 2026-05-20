@@ -2,7 +2,7 @@
 
 .panel {
   margin-top: 1rem;
-  border-top: 1px solid var(--color-border, rgba(128, 128, 128, 0.2));
+  border-top: 1px solid var(--color-border);
   padding-top: 0.5rem;
 }
 

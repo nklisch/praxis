@@ -20,7 +20,7 @@
 .cancelBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
   padding: 0.2rem 0.5rem;
@@ -43,8 +43,8 @@
 
 .formatCard {
   width: 100%;
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.85rem 1rem;
   cursor: pointer;
@@ -59,7 +59,7 @@
 }
 
 .formatCard:hover {
-  border-color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
   background: rgba(99, 102, 241, 0.06);
 }
 
@@ -83,6 +83,6 @@
 
 .description {
   font-size: 0.8rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   line-height: 1.45;
 }

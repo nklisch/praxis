@@ -154,7 +154,7 @@
 
 .formatRowSuggested .numBadge {
   background: var(--color-accent);
-  color: var(--color-text-inverse, #fff);
+  color: var(--color-text-inverse);
 }
 
 .formatName {
@@ -176,7 +176,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   background: var(--color-accent);
-  color: var(--color-text-inverse, #fff);
+  color: var(--color-text-inverse);
   flex-shrink: 0;
 }
 

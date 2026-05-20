@@ -18,13 +18,13 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   transition: background 0.12s;
   border: 1px solid transparent;
 }
 
 .optionLabel:hover:not(.disabled):not(.correct):not(.incorrect) {
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg-tertiary);
 }
 
 .optionLabel.disabled {
@@ -33,7 +33,7 @@
 }
 
 .optionInput {
-  accent-color: var(--color-accent, #60a5fa);
+  accent-color: var(--color-accent);
   flex-shrink: 0;
 }
 
@@ -55,10 +55,10 @@
 .numericInput {
   width: 100%;
   padding: 0.4rem 0.6rem;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   transition: border-color 0.15s;
   box-sizing: border-box;
@@ -67,7 +67,7 @@
 .textInput:focus,
 .numericInput:focus {
   outline: none;
-  border-color: var(--color-accent, #60a5fa);
+  border-color: var(--color-accent);
 }
 
 .textInput:disabled,
@@ -93,9 +93,9 @@
 
 .accessToggleBtn {
   font-size: 0.7rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   background: none;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   padding: 0.15rem 0.4rem;
   cursor: pointer;
@@ -105,6 +105,6 @@
 }
 
 .accessToggleBtn:hover {
-  color: var(--color-text-primary, #e5e5e5);
-  border-color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
 }

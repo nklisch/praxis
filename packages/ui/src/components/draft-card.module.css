@@ -1,6 +1,6 @@
 .card {
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.85rem 1rem;
   font-size: 0.85rem;
@@ -22,11 +22,11 @@
 .meta {
   margin: 0;
   font-size: 0.78rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .section {
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--color-border);
   padding-top: 0.5rem;
   margin-top: 0.5rem;
 }
@@ -34,7 +34,7 @@
 .sectionSummary {
   cursor: pointer;
   font-weight: 600;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   font-size: 0.82rem;
   user-select: none;
   list-style: none;
@@ -82,7 +82,7 @@ details:not([open]) .sectionSummary::before {
 }
 
 .conceptItem {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
 }
 

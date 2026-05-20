@@ -7,13 +7,13 @@
 
 .intro {
   font-size: 0.84rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .card {
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.7rem 0.85rem;
   display: flex;
@@ -41,7 +41,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .sideText {
@@ -54,7 +54,7 @@
 
 .divider {
   width: 1px;
-  background: var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-border);
   align-self: stretch;
   flex-shrink: 0;
 }
@@ -67,7 +67,7 @@
 }
 
 .addBtn {
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   border-radius: 6px;
@@ -90,8 +90,8 @@
 
 .skipBtn {
   background: transparent;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
-  color: var(--color-text-secondary, #aaa);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   border-radius: 6px;
   font-size: 0.82rem;
   padding: 0.3rem 0.75rem;
@@ -104,18 +104,18 @@
 
 .skipBtn:hover {
   color: var(--color-text-primary, inherit);
-  border-color: var(--color-text-secondary, #aaa);
+  border-color: var(--color-text-secondary);
 }
 
 .empty {
   padding: 0.75rem;
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
 }
 
 .emptyText {
   margin: 0;
   font-size: 0.86rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }

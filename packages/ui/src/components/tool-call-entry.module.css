@@ -88,14 +88,14 @@
   font: 500 10px / 1 var(--font-sans, system-ui);
   padding: 3px 8px;
   border-radius: var(--radius-sm, 3px);
-  border: 1px solid var(--color-danger, #d32f2f);
-  color: var(--color-danger, #d32f2f);
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
   letter-spacing: 0.04em;
   transition: background 0.12s;
 }
 
 .revertButton:hover {
-  background: color-mix(in oklab, var(--color-danger, #d32f2f) 10%, transparent);
+  background: color-mix(in oklab, var(--color-danger) 10%, transparent);
 }
 
 .revertButton:focus-visible {
@@ -187,9 +187,9 @@
   padding: 7px 14px;
   border-radius: var(--radius-sm, 3px);
   cursor: pointer;
-  border: 1px solid var(--color-danger, #d32f2f);
-  background: var(--color-danger, #d32f2f);
-  color: var(--color-text-inverse, #fff);
+  border: 1px solid var(--color-danger);
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
 }
 
 .confirmButton:hover {

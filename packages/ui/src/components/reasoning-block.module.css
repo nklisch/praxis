@@ -60,7 +60,7 @@
 .body {
   margin-top: 0.35rem;
   padding: 0.4rem 0.75rem;
-  border-left: 2px solid var(--color-border, rgba(128, 128, 128, 0.25));
+  border-left: 2px solid var(--color-border);
 }
 
 .bodyText {

@@ -6,17 +6,17 @@
   width: 100%;
   padding: 0.5rem 0.75rem;
   background: transparent;
-  border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.2));
+  border: 1px dashed var(--color-border);
   border-radius: 6px;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .button:hover:not(:disabled) {
-  border-color: var(--color-accent, #6366f1);
-  color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .button:disabled {

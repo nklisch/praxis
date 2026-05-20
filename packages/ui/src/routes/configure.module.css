@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
 }
 
 /* ── Locked state ────────────────────────────────────────────────────────────── */
@@ -71,10 +71,10 @@
   display: flex;
   align-items: center;
   gap: 0.15rem;
-  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  border-bottom: 1px solid var(--color-border);
   padding: 0 1rem;
   flex-shrink: 0;
-  background: var(--color-bg-secondary, #fff);
+  background: var(--color-bg-secondary);
 }
 
 .tabBtn {
@@ -83,7 +83,7 @@
   cursor: pointer;
   padding: 0.7rem 1rem;
   font-size: 0.9rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
   border-bottom: 2px solid transparent;
   transition:
     color 0.15s,
@@ -95,12 +95,12 @@
 }
 
 .tabBtn:hover {
-  color: var(--color-text-primary, #333);
+  color: var(--color-text-primary);
 }
 
 .tabActive {
-  color: var(--color-accent, #4a90e2);
-  border-bottom-color: var(--color-accent, #4a90e2);
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
 }
 
 /* Change-dot: small orange indicator on tabs with unsaved state */
@@ -109,7 +109,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-warning, #c97c10);
+  background: var(--color-warning);
   flex-shrink: 0;
 }
 
@@ -128,16 +128,16 @@
 .saveBarMessage {
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--color-warning, #c97c10);
-  background: var(--color-warning-bg, #fff7e6);
-  border: 1px solid var(--color-warning-border, #f5c06e);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
   border-radius: 4px;
   padding: 0.2rem 0.6rem;
 }
 
 .sessionStatus {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #999);
+  color: var(--color-text-secondary);
 }
 
 /* Re-lock button — visible in tab bar when session is unlocked and a lock code is set */
@@ -182,7 +182,7 @@
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  border-right: 1px solid var(--color-border, #e0e0e0);
+  border-right: 1px solid var(--color-border);
 }
 
 /* Tab panels area — expands to fill available vertical space */
@@ -203,15 +203,15 @@
 .inspectorStrip {
   flex-shrink: 0;
   min-height: 48px;
-  border-top: 1px solid var(--color-border, #e0e0e0);
-  background: var(--color-bg-secondary, #fafafa);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
   padding: 12px 24px;
 }
 
 /* Empty / placeholder state */
 .inspectorEmpty {
   font: italic 12px / 1.4 var(--font-serif, serif);
-  color: var(--color-text-tertiary, #aaa);
+  color: var(--color-text-tertiary);
 }
 
 /* Header label: "L2.3 · the chain rule lesson" */
@@ -219,7 +219,7 @@
   font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-text-tertiary, #aaa);
+  color: var(--color-text-tertiary);
   margin-bottom: 8px;
 }
 
@@ -241,8 +241,8 @@
 }
 
 .inspectorField {
-  background: var(--color-bg-primary, #fff);
-  border: 1px solid var(--color-border, #e0e0e0);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, 4px);
   padding: 8px 12px;
 }
@@ -251,7 +251,7 @@
   font: 600 10px / 1.4 var(--font-mono, monospace);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-text-tertiary, #aaa);
+  color: var(--color-text-tertiary);
   margin-bottom: 3px;
 }
 
@@ -262,19 +262,19 @@
 
 /* Changed field: warning border + muted accent background + before/after old value */
 .inspectorFieldChanged {
-  background: var(--color-accent-muted, #f0e3df);
-  border-color: var(--color-warning, #a86a0a);
+  background: var(--color-accent-muted);
+  border-color: var(--color-warning);
 }
 
 .inspectorFieldChanged .inspectorFieldVal em {
   font-style: italic;
   font-weight: 600;
-  color: var(--color-accent, #9b3a2c);
+  color: var(--color-accent);
 }
 
 .inspectorFieldOld {
   font: 11px / 1.4 var(--font-mono, monospace);
-  color: var(--color-text-tertiary, #aaa);
+  color: var(--color-text-tertiary);
   text-decoration: line-through;
   margin-top: 2px;
 }
@@ -286,5 +286,5 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--color-bg-primary, #fff);
+  background: var(--color-bg-primary);
 }

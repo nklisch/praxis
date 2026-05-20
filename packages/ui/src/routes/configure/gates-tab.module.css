@@ -18,7 +18,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -34,12 +34,12 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
 }
 
 .coursePicker {
   padding: 0.35rem 0.6rem;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 0.875rem;
   min-width: 180px;
@@ -47,13 +47,13 @@
 
 .status {
   padding: 1rem;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
 }
 
 .error {
   padding: 1rem;
-  color: var(--color-danger, #d32f2f);
+  color: var(--color-danger);
   font-size: 0.875rem;
 }
 
@@ -62,7 +62,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   padding: 2rem;
 }

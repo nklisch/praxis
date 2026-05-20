@@ -19,7 +19,7 @@
 }
 
 .item:hover {
-  border-color: var(--color-border, rgba(255, 255, 255, 0.1));
+  border-color: var(--color-border);
 }
 
 .info {
@@ -41,7 +41,7 @@
 
 .badge {
   font-size: 0.7rem;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   background: rgba(99, 102, 241, 0.12);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
@@ -50,13 +50,13 @@
 
 .meta {
   font-size: 0.7rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .deleteBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 1.1rem;
   cursor: pointer;
   padding: 0.1rem 0.3rem;
@@ -73,7 +73,7 @@
 .status,
 .empty {
   font-size: 0.82rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   padding: 0.5rem;
   text-align: center;
 }

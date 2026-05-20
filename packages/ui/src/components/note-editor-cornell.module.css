@@ -26,7 +26,7 @@
   display: grid;
   grid-template-columns: 240px 1fr;
   grid-template-rows: 1fr auto;
-  border: 1px solid var(--color-border-strong, #c4c1b5);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md, 6px);
   overflow: hidden;
   min-height: 480px;
@@ -40,17 +40,17 @@
   font: 600 var(--font-size-xs, 12px) / 1 var(--font-mono, monospace);
   letter-spacing: var(--letter-spacing-kicker, 0.1em);
   text-transform: uppercase;
-  color: var(--color-text-tertiary, #a09e96);
+  color: var(--color-text-tertiary);
   margin-bottom: var(--space-4, 16px);
   padding-bottom: var(--space-2, 8px);
-  border-bottom: 1px solid var(--color-border, #e3e1d8);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   gap: var(--space-1, 4px);
 }
 
 .markerGlyph {
-  color: var(--color-accent, #9b3a2c);
+  color: var(--color-accent);
   font-family: var(--font-serif, serif);
   font-style: normal;
   font-size: 11px;
@@ -64,8 +64,8 @@
   grid-column: 1;
   grid-row: 1;
   padding: var(--space-6, 24px) var(--space-4, 16px) var(--space-4, 16px);
-  border-right: 1px solid var(--color-border-strong, #c4c1b5);
-  background: var(--color-bg-tertiary, #ebe9e2);
+  border-right: 1px solid var(--color-border-strong);
+  background: var(--color-bg-tertiary);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -82,7 +82,7 @@
 }
 
 .cueItem {
-  border-bottom: 1px dashed var(--color-border, #e3e1d8);
+  border-bottom: 1px dashed var(--color-border);
   padding-bottom: var(--space-2, 8px);
   margin-bottom: var(--space-2, 8px);
 }
@@ -106,12 +106,12 @@
 }
 
 .cueButton:hover {
-  background: var(--color-accent-muted, #f0e3df);
+  background: var(--color-accent-muted);
 }
 
 .cueButtonActive {
-  background: var(--color-accent-muted, #f0e3df);
-  box-shadow: inset 2px 0 0 var(--color-accent, #9b3a2c);
+  background: var(--color-accent-muted);
+  box-shadow: inset 2px 0 0 var(--color-accent);
 }
 
 /* The textarea inside the cue div — stopPropagation on click keeps the outer
@@ -121,7 +121,7 @@
   width: 100%;
   background: transparent;
   border: none;
-  color: var(--color-text-primary, #1a1a18);
+  color: var(--color-text-primary);
   font: italic var(--font-size-sm, 14px) / 1.5 var(--font-serif, serif);
   padding: var(--space-3, 12px) var(--space-1, 4px);
   resize: none;
@@ -134,7 +134,7 @@
 }
 
 .cueTextarea::placeholder {
-  color: var(--color-text-tertiary, #a09e96);
+  color: var(--color-text-tertiary);
   font-style: italic;
 }
 
@@ -151,13 +151,13 @@
   border: none;
   padding: var(--space-3, 12px) 0;
   font: italic var(--font-size-sm, 14px) / 1 var(--font-serif, serif);
-  color: var(--color-text-tertiary, #a09e96);
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: color 0.15s;
 }
 
 .addCueBtn:hover {
-  color: var(--color-accent, #9b3a2c);
+  color: var(--color-accent);
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -168,7 +168,7 @@
   grid-column: 2;
   grid-row: 1;
   padding: var(--space-6, 24px) var(--space-6, 24px) var(--space-4, 16px);
-  background: var(--color-bg-secondary, #ffffff);
+  background: var(--color-bg-secondary);
   overflow-y: auto;
 }
 
@@ -187,7 +187,7 @@
 }
 
 .notesEntryActive {
-  background: var(--color-accent-muted, #f0e3df);
+  background: var(--color-accent-muted);
 }
 
 /* The ◆ marker button positioned at the left edge */
@@ -198,7 +198,7 @@
   background: transparent;
   border: none;
   padding: 0;
-  color: var(--color-accent, #9b3a2c);
+  color: var(--color-accent);
   font-size: 11px;
   font-family: var(--font-serif, serif);
   cursor: pointer;
@@ -212,7 +212,7 @@
 }
 
 .cueMarker:focus-visible {
-  outline: 2px solid var(--color-accent, #9b3a2c);
+  outline: 2px solid var(--color-accent);
   border-radius: 2px;
 }
 
@@ -222,7 +222,7 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm, 3px);
-  color: var(--color-text-primary, #1a1a18);
+  color: var(--color-text-primary);
   font: var(--font-size-base, 16px) / var(--line-height-loose, 1.75) var(--font-serif, serif);
   padding: var(--space-2, 8px) var(--space-3, 12px);
   resize: vertical;
@@ -232,17 +232,17 @@
 
 .detailTextarea:focus {
   outline: none;
-  border-color: var(--color-border-strong, #c4c1b5);
-  background: var(--color-bg-primary, #f5f4f0);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-primary);
 }
 
 .detailTextarea::placeholder {
-  color: var(--color-text-tertiary, #a09e96);
+  color: var(--color-text-tertiary);
 }
 
 .emptyNotes {
   font: italic var(--font-size-sm, 14px) / 1.5 var(--font-serif, serif);
-  color: var(--color-text-tertiary, #a09e96);
+  color: var(--color-text-tertiary);
   margin: 0;
   padding: var(--space-4, 16px) 0;
 }
@@ -254,8 +254,8 @@
 .summaryBand {
   grid-column: 1 / -1;
   padding: var(--space-4, 16px) var(--space-6, 24px) var(--space-6, 24px);
-  border-top: 1px solid var(--color-border-strong, #c4c1b5);
-  background: var(--color-bg-primary, #f5f4f0);
+  border-top: 1px solid var(--color-border-strong);
+  background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
   gap: var(--space-2, 8px);
@@ -265,7 +265,7 @@
   font: 600 var(--font-size-xs, 12px) / 1 var(--font-mono, monospace);
   letter-spacing: var(--letter-spacing-kicker, 0.1em);
   text-transform: uppercase;
-  color: var(--color-text-tertiary, #a09e96);
+  color: var(--color-text-tertiary);
   display: flex;
   align-items: center;
   gap: var(--space-1, 4px);
@@ -273,7 +273,7 @@
 }
 
 .summaryGlyph {
-  color: var(--color-accent, #9b3a2c);
+  color: var(--color-accent);
   font-family: var(--font-serif, serif);
   font-style: italic;
   font-size: 13px;
@@ -284,7 +284,7 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm, 3px);
-  color: var(--color-text-primary, #1a1a18);
+  color: var(--color-text-primary);
   font: italic var(--font-size-base, 16px) / 1.7 var(--font-serif, serif);
   padding: var(--space-2, 8px) var(--space-3, 12px);
   resize: vertical;
@@ -294,12 +294,12 @@
 
 .summaryTextarea:focus {
   outline: none;
-  border-color: var(--color-border-strong, #c4c1b5);
-  background: var(--color-bg-secondary, #ffffff);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-secondary);
 }
 
 .summaryTextarea::placeholder {
-  color: var(--color-text-tertiary, #a09e96);
+  color: var(--color-text-tertiary);
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -309,7 +309,7 @@
 .spawnBtn {
   background: transparent;
   border: none;
-  color: var(--color-accent, #9b3a2c);
+  color: var(--color-accent);
   font-size: 0.85rem;
   cursor: pointer;
   padding: var(--space-1, 4px) var(--space-1, 4px);
@@ -321,13 +321,13 @@
 }
 
 .spawnBtn:hover {
-  background: var(--color-accent-muted, #f0e3df);
+  background: var(--color-accent-muted);
 }
 
 .removeBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #5f5d57);
+  color: var(--color-text-secondary);
   font-size: 1.05rem;
   cursor: pointer;
   padding: var(--space-1, 4px) var(--space-1, 4px);
@@ -339,6 +339,6 @@
 }
 
 .removeBtn:hover {
-  color: var(--color-danger, #a32721);
+  color: var(--color-danger);
   background: rgba(163, 39, 33, 0.08);
 }

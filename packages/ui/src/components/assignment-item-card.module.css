@@ -2,9 +2,9 @@
 
 .itemCard {
   padding: 0.75rem;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
+  background: var(--color-bg-tertiary);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -22,15 +22,15 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .itemKind {
   font-size: 0.7rem;
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.08));
-  color: var(--color-text-secondary, #aaa);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -47,7 +47,7 @@
 .prompt {
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -63,7 +63,7 @@
 .answerLabel {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 /* ── Input controls ─────────────────────────────────────────────────────────── */
@@ -72,10 +72,10 @@
 .mathInput {
   width: 100%;
   padding: 0.4rem 0.6rem;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   transition: border-color 0.15s;
   box-sizing: border-box;
@@ -88,7 +88,7 @@
 .textInput:focus,
 .mathInput:focus {
   outline: none;
-  border-color: var(--color-accent, #60a5fa);
+  border-color: var(--color-accent);
 }
 
 .textInput:disabled,
@@ -101,10 +101,10 @@
 .codeInput {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   font-size: 0.875rem;
   resize: vertical;
   transition: border-color 0.15s;
@@ -119,7 +119,7 @@
 .workInput:focus,
 .codeInput:focus {
   outline: none;
-  border-color: var(--color-accent, #60a5fa);
+  border-color: var(--color-accent);
 }
 
 .workInput:disabled,
@@ -131,10 +131,10 @@
 .freeResponseInput {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   resize: vertical;
   transition: border-color 0.15s;
@@ -143,7 +143,7 @@
 
 .freeResponseInput:focus {
   outline: none;
-  border-color: var(--color-accent, #60a5fa);
+  border-color: var(--color-accent);
 }
 
 .freeResponseInput:disabled {
@@ -170,12 +170,12 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   transition: background 0.12s;
 }
 
 .optionLabel:hover:not(.disabled) {
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg-tertiary);
 }
 
 .optionLabel.disabled {
@@ -184,7 +184,7 @@
 }
 
 .optionInput {
-  accent-color: var(--color-accent, #60a5fa);
+  accent-color: var(--color-accent);
 }
 
 /* ── Math answer wrapper ─────────────────────────────────────────────────────── */
@@ -205,7 +205,7 @@
   padding-right: 0;
   padding-bottom: 0;
   border: none;
-  border-top: 1px dashed var(--color-border, rgba(255, 255, 255, 0.1));
+  border-top: 1px dashed var(--color-border);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -216,7 +216,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-text-tertiary, #666);
+  color: var(--color-text-tertiary);
   /* fieldset legend inherits float; reset it */
   float: none;
   padding: 0;
@@ -231,13 +231,13 @@
 
 .confidencePip {
   padding: 0.3rem 0.65rem;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
   font-size: 0.75rem;
   font-style: italic;
   cursor: pointer;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   transition:
     background 0.12s,
     border-color 0.12s,
@@ -246,9 +246,9 @@
 }
 
 .confidencePip:hover:not(:disabled) {
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.1));
-  border-color: var(--color-accent, #60a5fa);
-  color: var(--color-text-primary, #e5e5e5);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
 .confidencePip:disabled {
@@ -257,7 +257,7 @@
 }
 
 .confidencePipSelected {
-  background: var(--color-accent, #60a5fa);
-  color: var(--color-text-inverse, #fff);
-  border-color: var(--color-accent, #60a5fa);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-color: var(--color-accent);
 }

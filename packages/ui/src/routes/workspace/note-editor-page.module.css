@@ -10,14 +10,14 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
 .backBtn {
   background: transparent;
   border: none;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -46,12 +46,12 @@
   padding: 0.1rem 0.45rem;
   border-radius: 4px;
   background: rgba(99, 102, 241, 0.2);
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
 }
 
 .updated {
   font-size: 0.78rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .editorBody {
@@ -65,12 +65,12 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-top: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
 .saveBtn {
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   border-radius: 6px;
@@ -94,7 +94,7 @@
 
 .status {
   padding: 2rem 1.5rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   margin: 0;
 }

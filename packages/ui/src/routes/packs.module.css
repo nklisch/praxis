@@ -24,11 +24,11 @@
 .subtitle {
   margin: 0;
   font-size: 0.88rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .status {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -57,7 +57,7 @@
 
 .emptyHint {
   font-size: 0.88rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   max-width: 40ch;
   margin: 0;
   line-height: 1.5;
@@ -82,14 +82,14 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1rem;
-  background: var(--color-bg-secondary, #1e1e2e);
-  border: 1px solid var(--color-border, #2e2e3e);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   transition: border-color 0.15s;
 }
 
 .card:hover {
-  border-color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
 }
 
 .cardMain {
@@ -114,7 +114,7 @@
 
 .packVersion {
   font-size: 0.78rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -137,12 +137,12 @@
 
 .metaItem {
   font-size: 0.8rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .metaSep {
   font-size: 0.8rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   opacity: 0.5;
 }
 
@@ -151,7 +151,7 @@
 }
 
 .importBtn {
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   padding: 0.4rem 0.9rem;

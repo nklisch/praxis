@@ -1,6 +1,6 @@
 .card {
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 1rem 1.1rem;
   font-size: 0.9rem;
@@ -17,7 +17,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   margin-bottom: 0.3rem;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .showAnswerBtn {
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   border-radius: 6px;
@@ -68,7 +68,7 @@
 }
 
 .back {
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-top: 1px solid var(--color-border);
   padding-top: 0.6rem;
 }
 
@@ -158,7 +158,7 @@
 
 .ratingEasy {
   background: rgba(99, 102, 241, 0.18);
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
 }
 
 .ratingEasy:hover:not(:disabled) {

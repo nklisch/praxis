@@ -63,7 +63,7 @@
 .feedbackText {
   margin: 0;
   line-height: 1.5;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   white-space: pre-wrap;
 }
 
@@ -76,13 +76,13 @@
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   user-select: none;
   outline: none;
 }
 
 .perCriterion summary:hover {
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
 }
 
 .criterionList {
@@ -96,7 +96,7 @@
 
 .criterionRow {
   padding: 0.35rem 0.5rem;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
+  background: var(--color-bg-tertiary);
   border-radius: 4px;
   display: grid;
   grid-template-areas:
@@ -110,14 +110,14 @@
 .criterionName {
   grid-area: name;
   font-weight: 600;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   align-self: center;
 }
 
 .criterionScore {
   grid-area: score;
   font-weight: 700;
-  color: var(--color-accent, #60a5fa);
+  color: var(--color-accent);
   align-self: center;
   white-space: nowrap;
 }
@@ -125,14 +125,14 @@
 .criterionSource {
   grid-area: source;
   font-size: 0.7rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   align-self: center;
 }
 
 .criterionRationale {
   grid-area: rationale;
   margin: 0;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
@@ -141,6 +141,6 @@
   display: block;
   margin-top: 0.3rem;
   font-size: 0.7rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-style: italic;
 }

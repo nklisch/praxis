@@ -64,6 +64,6 @@
 
 .error {
   font-size: 0.8rem;
-  color: var(--color-danger, #f87171);
+  color: var(--color-danger);
   margin: 0;
 }

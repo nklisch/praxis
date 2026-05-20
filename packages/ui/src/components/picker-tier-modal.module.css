@@ -3,7 +3,7 @@
   font-size: 0.75rem;
   font-family: var(--font-mono);
   letter-spacing: 0.05em;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
 }
 
@@ -16,7 +16,7 @@
 .filename {
   margin: 0 0 1rem;
   font-size: 0.85rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   word-break: break-all;
 }
 
@@ -37,7 +37,7 @@
 .hint {
   display: block;
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   margin-top: 0.2rem;
 }
 
@@ -58,28 +58,28 @@
 
 .skipBtn {
   background: transparent;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.2));
-  color: var(--color-text-secondary, #aaa);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .skipBtn:hover {
-  border-color: var(--color-text-secondary, #aaa);
+  border-color: var(--color-text-secondary);
   color: var(--color-text-primary, inherit);
 }
 
 .cancelBtn {
   background: transparent;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.2));
-  color: var(--color-text-secondary, #aaa);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .cancelBtn:hover {
-  border-color: var(--color-text-secondary, #aaa);
+  border-color: var(--color-text-secondary);
   color: var(--color-text-primary, inherit);
 }
 
 .confirmBtn {
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   border: 1px solid transparent;
   color: #fff; /* intentional literal: button text always white regardless of theme */
 }

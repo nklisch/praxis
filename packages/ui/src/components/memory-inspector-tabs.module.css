@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  border-bottom: 1px solid var(--color-border);
   padding: 0 0.75rem;
   flex-shrink: 0;
   flex-wrap: wrap;
@@ -21,7 +21,7 @@
   cursor: pointer;
   padding: 0.6rem 0.75rem;
   font-size: 0.875rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
   border-bottom: 2px solid transparent;
   transition:
     color 0.15s,
@@ -30,19 +30,19 @@
 }
 
 .tabBtn:hover {
-  color: var(--color-text-primary, #333);
+  color: var(--color-text-primary);
 }
 
 .tabBtn.active {
-  color: var(--color-accent, #4a90e2);
-  border-bottom-color: var(--color-accent, #4a90e2);
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
   font-weight: 500;
 }
 
 .comingSoon {
   margin-left: auto;
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-style: italic;
   padding: 0.5rem 0;
 }
@@ -54,12 +54,12 @@
 }
 
 .status {
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
 }
 
 .error {
-  color: var(--color-danger, #d32f2f);
+  color: var(--color-danger);
   font-size: 0.875rem;
 }
 
@@ -70,13 +70,13 @@
 
 .emptyPrimary {
   font-weight: 500;
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
   margin: 0 0 0.5rem;
 }
 
 .emptyHint {
   font-size: 0.875rem;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -90,17 +90,17 @@
 .table th {
   text-align: left;
   padding: 0.4rem 0.5rem;
-  border-bottom: 2px solid var(--color-border, #e0e0e0);
+  border-bottom: 2px solid var(--color-border);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
 }
 
 .table td {
   padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--color-border, #f0f0f0);
+  border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
 }
 
@@ -117,7 +117,7 @@
   display: inline-block;
   width: 80px;
   height: 8px;
-  background: var(--color-border, #e0e0e0);
+  background: var(--color-border);
   border-radius: 4px;
   overflow: hidden;
   margin-right: 0.4rem;
@@ -127,23 +127,23 @@
 .masteryFill {
   display: block;
   height: 100%;
-  background: var(--color-accent, #4a90e2);
+  background: var(--color-accent);
   border-radius: 4px;
 }
 
 .resetBtn {
   padding: 0.2rem 0.5rem;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   background: transparent;
   font-size: 0.75rem;
   cursor: pointer;
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
 }
 
 .resetBtn:hover {
-  border-color: var(--color-danger, #d32f2f);
-  color: var(--color-danger, #d32f2f);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 /* Misconceptions list */
@@ -157,7 +157,7 @@
 }
 
 .miscItem {
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.75rem;
   display: flex;
@@ -201,7 +201,7 @@
 .clearBtn {
   align-self: flex-start;
   padding: 0.25rem 0.6rem;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   background: transparent;
   font-size: 0.8rem;
@@ -209,7 +209,7 @@
 }
 
 .clearBtn:hover {
-  background: var(--color-border, #e0e0e0);
+  background: var(--color-border);
 }
 
 /* Audit log */
@@ -229,23 +229,23 @@
   padding: 0.4rem 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
-  border-bottom: 1px solid var(--color-border, #f0f0f0);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .auditKind {
   font-family: monospace;
   font-weight: 600;
-  color: var(--color-accent, #4a90e2);
+  color: var(--color-accent);
   flex-shrink: 0;
 }
 
 .auditTs {
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
 .auditReason {
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
   font-style: italic;
   overflow: hidden;
   text-overflow: ellipsis;

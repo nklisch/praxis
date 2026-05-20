@@ -22,7 +22,7 @@
   font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
   padding: 0 20px 10px;
 }
 
@@ -40,40 +40,40 @@
 }
 
 .modeBtn:hover {
-  background: var(--color-bg-tertiary, #f5f5f5);
+  background: var(--color-bg-tertiary);
 }
 
 .modeBtnActive {
-  border-left-color: var(--color-accent, #4a90e2);
-  background: var(--color-accent-muted, rgba(74, 144, 226, 0.08));
+  border-left-color: var(--color-accent);
+  background: var(--color-accent-muted);
 }
 
 .modeGlyph {
   font-family: var(--font-serif, Georgia, serif);
   font-style: italic;
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
   font-size: 14px;
 }
 
 .modeBtnActive .modeGlyph {
-  color: var(--color-accent, #4a90e2);
+  color: var(--color-accent);
 }
 
 .modeName {
   font: 500 italic 14px / 1.2 var(--font-display, Georgia, serif);
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
   flex: 1;
 }
 
 .modeBtnActive .modeName {
-  color: var(--color-text-primary, #222);
+  color: var(--color-text-primary);
 }
 
 .changeDot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-warning, #f5a623);
+  background: var(--color-warning);
   flex-shrink: 0;
 }
 
@@ -99,7 +99,7 @@
   font: 600 11px / 1 var(--font-mono, monospace);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
@@ -115,7 +115,7 @@
 
 .canvasTitleGlyph {
   font-style: normal;
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
 }
 
 .canvasScrollArea {
@@ -136,18 +136,18 @@
 /* ── Fragment card ──────────────────────────────────────────────────────── */
 
 .frag {
-  background: var(--color-bg-secondary, #fafafa);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 8px);
   overflow: hidden;
 }
 
 .fragLocked {
-  background: var(--color-bg-tertiary, #f5f5f5);
+  background: var(--color-bg-tertiary);
 }
 
 .fragChanged {
-  border-color: var(--color-warning, #f5a623);
+  border-color: var(--color-warning);
 }
 
 .fragHead {
@@ -160,7 +160,7 @@
 
 .fragPos {
   font: italic 16px / 1 var(--font-display, Georgia, serif);
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
   min-width: 3ch;
   text-align: right;
 }
@@ -169,13 +169,13 @@
   font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
 }
 
 .fragName {
   font: 500 italic 15px / 1.2 var(--font-display, Georgia, serif);
   flex: 1;
-  color: var(--color-text-primary, #222);
+  color: var(--color-text-primary);
 }
 
 /* ── Lock-status pills ───────────────────────────────────────────────────── */
@@ -186,24 +186,24 @@
   text-transform: uppercase;
   padding: 3px 6px;
   border-radius: var(--radius-full, 999px);
-  background: var(--color-bg-tertiary, #f5f5f5);
-  color: var(--color-text-tertiary, #999);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
   white-space: nowrap;
 }
 
 .lockCustom {
-  background: var(--color-warning, #f5a623);
-  color: var(--color-text-inverse, #fff);
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
 }
 
 .lockDefault {
-  background: var(--color-bg-tertiary, #f5f5f5);
-  color: var(--color-text-tertiary, #999);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
 }
 
 .lockLocked {
-  background: var(--color-bg-tertiary, #f5f5f5);
-  color: var(--color-text-tertiary, #999);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
 }
 
 /* ── Fragment body ──────────────────────────────────────────────────────── */
@@ -214,7 +214,7 @@
 
 .fragText {
   font: 15px / 1.65 var(--font-serif, Georgia, serif);
-  color: var(--color-text-primary, #222);
+  color: var(--color-text-primary);
   white-space: pre-wrap;
 }
 
@@ -224,7 +224,7 @@
   width: 100%;
   text-align: left;
   font: 15px / 1.65 var(--font-serif, Georgia, serif);
-  color: var(--color-text-primary, #222);
+  color: var(--color-text-primary);
   white-space: pre-wrap;
   background: transparent;
   border: none;
@@ -235,21 +235,21 @@
 }
 
 .fragTextBtn:hover {
-  background: var(--color-bg-tertiary, #f5f5f5);
+  background: var(--color-bg-tertiary);
 }
 
 .fragTextOverride {
-  background: var(--color-accent-muted, rgba(74, 144, 226, 0.08));
+  background: var(--color-accent-muted);
   padding: 4px 6px;
   border-radius: var(--radius-sm, 4px);
 }
 
 .fragTextLocked {
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
 }
 
 .placeholder {
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
   font-style: italic;
   padding: 8px 12px;
   background: var(--color-bg-primary);
@@ -271,15 +271,15 @@
   box-sizing: border-box;
   padding: 10px 12px;
   font: 14px / 1.6 var(--font-serif, Georgia, serif);
-  border: 1px solid var(--color-border-strong, #999);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm, 4px);
   background: var(--color-bg-primary);
-  color: var(--color-text-primary, #222);
+  color: var(--color-text-primary);
   resize: vertical;
 }
 
 .editTextarea:focus {
-  outline: 2px solid var(--color-accent, #4a90e2);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
@@ -290,7 +290,7 @@
 }
 
 .fragError {
-  color: var(--color-danger, #d32f2f);
+  color: var(--color-danger);
   font-size: 0.875rem;
   margin: 0;
 }
@@ -299,8 +299,8 @@
   padding: 5px 14px;
   border: none;
   border-radius: var(--radius-sm, 4px);
-  background: var(--color-accent, #4a90e2);
-  color: var(--color-text-inverse, #fff);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
   font: 500 12px / 1 var(--font-sans, system-ui);
   cursor: pointer;
 }
@@ -316,16 +316,16 @@
 
 .cancelBtn {
   padding: 5px 14px;
-  border: 1px solid var(--color-border-strong, #999);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm, 4px);
   background: transparent;
-  color: var(--color-text-primary, #222);
+  color: var(--color-text-primary);
   font: 500 12px / 1 var(--font-sans, system-ui);
   cursor: pointer;
 }
 
 .cancelBtn:hover:not(:disabled) {
-  background: var(--color-bg-tertiary, #f5f5f5);
+  background: var(--color-bg-tertiary);
 }
 
 /* ── Fragment controls (knob strip) ─────────────────────────────────────── */
@@ -345,7 +345,7 @@
 
 .revertBtn {
   font: italic 11px / 1 var(--font-serif, Georgia, serif);
-  color: var(--color-danger, #d32f2f);
+  color: var(--color-danger);
   cursor: pointer;
   background: transparent;
   border: none;
@@ -366,28 +366,28 @@
 .composedSummary {
   margin-top: 8px;
   padding: 16px 20px;
-  background: var(--color-bg-tertiary, #f5f5f5);
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-md, 8px);
   font: italic 13px / 1.5 var(--font-serif, Georgia, serif);
-  color: var(--color-text-secondary, #555);
+  color: var(--color-text-secondary);
 }
 
 .composedSummaryLabel {
   font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
   font-style: normal;
   margin-bottom: 8px;
 }
 
 .composedLoading {
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
   font-style: italic;
 }
 
 .composedEmpty {
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
 }
 
 .composedOrder {
@@ -405,17 +405,17 @@
 
 .composedFragId {
   font: 600 11px / 1 var(--font-mono, monospace);
-  color: var(--color-text-primary, #222);
+  color: var(--color-text-primary);
   font-style: normal;
 }
 
 .composedSourceBadge {
   font: italic 11px / 1 var(--font-serif, Georgia, serif);
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
 }
 
 .composedArrow {
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary);
   font-style: normal;
   font-family: var(--font-mono, monospace);
   font-size: 11px;

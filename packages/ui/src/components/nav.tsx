@@ -44,7 +44,7 @@ function DueBadge() {
  */
 export function Nav() {
   return (
-    <nav className={styles.nav}>
+    <nav className={styles.nav} aria-label="Main navigation">
       <div className={styles.wordmark}>
         <span className={styles.wordmarkOrnament} aria-hidden="true">
           §

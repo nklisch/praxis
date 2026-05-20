@@ -11,8 +11,8 @@
 .typeahead {
   position: absolute;
   pointer-events: all;
-  background: var(--color-bg-secondary, #1a1a1a);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   min-width: 220px;
@@ -27,7 +27,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.75rem 0.35rem;
-  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--color-border);
 }
 
 .typeaheadLabel {
@@ -35,13 +35,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
 }
 
 .dismissBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
@@ -83,7 +83,7 @@
 }
 
 .typeaheadOrnament {
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   font-size: 0.85rem;
   flex-shrink: 0;
 }
@@ -99,7 +99,7 @@
 
 .typeaheadConfidence {
   font-size: 0.72rem;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
@@ -110,7 +110,7 @@
   cursor: default;
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--color-success, #22c55e);
+  color: var(--color-success);
   line-height: 1;
   user-select: none;
   background: rgba(34, 197, 94, 0.15);
@@ -127,7 +127,7 @@
   cursor: help;
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--color-warning, #f59e0b);
+  color: var(--color-warning);
   line-height: 1;
   user-select: none;
   background: rgba(245, 158, 11, 0.15);
@@ -152,7 +152,7 @@
 
 /* Dashed ghost edge line suggesting a would-be canonical connection */
 .ghostEdge {
-  stroke: var(--color-warning, #f59e0b);
+  stroke: var(--color-warning);
   stroke-width: 1.5;
   stroke-dasharray: 6 4;
   opacity: 0.55;
@@ -160,6 +160,6 @@
 
 /* Ghost edge endpoint dot */
 .ghostEdgeDot {
-  fill: var(--color-warning, #f59e0b);
+  fill: var(--color-warning);
   opacity: 0.55;
 }

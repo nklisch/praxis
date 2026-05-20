@@ -27,13 +27,13 @@
 
 .body {
   margin: 0 0 1rem;
-  color: var(--color-text-primary, #1a1a1a);
+  color: var(--color-text-primary);
 }
 
 .urlNote {
   margin: 0 0 0.5rem;
   font-size: 0.85rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
 }
 
 .url {
@@ -42,7 +42,7 @@
   padding: 0.5rem;
   font-family: monospace;
   font-size: 0.8rem;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   resize: vertical;
   box-sizing: border-box;
@@ -73,9 +73,9 @@
 }
 
 .primary {
-  background: var(--color-accent, #2563eb);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
-  border-color: var(--color-accent, #2563eb);
+  border-color: var(--color-accent);
 }
 
 .primary:hover {
@@ -84,10 +84,10 @@
 
 .secondary {
   background: transparent;
-  color: var(--color-text-primary, #1a1a1a);
-  border-color: var(--color-border, #e0e0e0);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
 }
 
 .secondary:hover {
-  background: var(--color-border, #e0e0e0);
+  background: var(--color-border);
 }

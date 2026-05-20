@@ -1,9 +1,9 @@
 /* ── Structured-question card ────────────────────────────────────────────────── */
 
 .card {
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
+  background: var(--color-bg-tertiary);
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -17,7 +17,7 @@
 .tag {
   composes: editorial from global;
   font-size: 0.68rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   letter-spacing: 0.04em;
   display: flex;
   align-items: center;
@@ -25,13 +25,13 @@
 }
 
 .tagOrnament {
-  color: var(--color-accent, #60a5fa);
+  color: var(--color-accent);
   font-style: normal;
 }
 
 /* Per-question fieldset */
 .question {
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   padding: 0.6rem 0.75rem 0.75rem;
   margin: 0;
@@ -51,7 +51,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-accent, #60a5fa);
+  color: var(--color-accent);
   padding: 0 0.25rem;
   line-height: 1;
 }
@@ -60,7 +60,7 @@
 .prompt {
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -79,10 +79,10 @@
   width: 100%;
   text-align: left;
   padding: 0.4rem 0.65rem;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   font-size: 0.85rem;
   cursor: pointer;
   display: flex;
@@ -94,14 +94,14 @@
 }
 
 .option:hover:not(:disabled) {
-  border-color: var(--color-accent, #60a5fa);
+  border-color: var(--color-accent);
   background: rgba(96, 165, 250, 0.06);
 }
 
 /* Option button — selected */
 .optionSelected {
   composes: option;
-  border-color: var(--color-accent, #60a5fa);
+  border-color: var(--color-accent);
   background: rgba(96, 165, 250, 0.12);
 }
 
@@ -117,7 +117,7 @@ fieldset:disabled .optionSelected {
 
 .optionDesc {
   font-size: 0.78rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
@@ -131,7 +131,7 @@ fieldset:disabled .optionSelected {
 
 .submit {
   padding: 0.3rem 0.75rem;
-  background: var(--color-accent, #60a5fa);
+  background: var(--color-accent);
   border: none;
   border-radius: 4px;
   color: #fff; /* intentional literal: button text always white regardless of theme */

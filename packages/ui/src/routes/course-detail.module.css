@@ -17,7 +17,7 @@
 .backBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
   padding: 0;
@@ -46,7 +46,7 @@
 .meta {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 /* Actions section — structured for Phase 11 (configure mode adds more buttons here). */
@@ -57,7 +57,7 @@
 }
 
 .startBtn {
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   padding: 0.5rem 1.25rem;
@@ -75,8 +75,8 @@
 /* Phase 9: "View progress map" button — secondary style, same height as startBtn */
 .mapBtn {
   background: transparent;
-  color: var(--color-accent, #6366f1);
-  border: 1px solid var(--color-accent, #6366f1);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
   padding: 0.5rem 1.25rem;
   border-radius: 6px;
   font-size: 0.9rem;
@@ -105,12 +105,12 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
 .emptyLessons {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -130,15 +130,15 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.65rem 0.85rem;
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
 }
 
 .lessonIndex {
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   white-space: nowrap;
   padding-top: 0.1rem;
   min-width: 5rem;
@@ -159,11 +159,11 @@
 
 .lessonMeta {
   font-size: 0.78rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .status {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -194,8 +194,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.85rem;
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
 }
 
@@ -211,7 +211,7 @@
 
 .documentMeta {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   padding-left: 0.5rem;
   flex-shrink: 0;
@@ -244,8 +244,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.55rem 0.85rem;
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   text-align: left;
   cursor: pointer;
@@ -255,7 +255,7 @@
 }
 
 .conceptMapLink:hover {
-  border-color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
   background: rgba(99, 102, 241, 0.06);
 }
 
@@ -273,13 +273,13 @@
 
 .conceptMapVersions {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .divergenceBadge {
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   background: rgba(99, 102, 241, 0.12);
   border: 1px solid rgba(99, 102, 241, 0.3);
   padding: 0.12rem 0.4rem;
@@ -290,8 +290,8 @@
 .newMapBtn {
   align-self: flex-start;
   background: transparent;
-  color: var(--color-accent, #6366f1);
-  border: 1px solid var(--color-accent, #6366f1);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
   padding: 0.35rem 0.85rem;
   border-radius: 5px;
   font-size: 0.8rem;

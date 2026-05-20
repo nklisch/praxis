@@ -19,10 +19,10 @@
   padding: 0.875rem 1rem;
   background: color-mix(
     in oklab,
-    var(--color-success, #93b878) 8%,
-    var(--color-bg-secondary, #1a1f2e)
+    var(--color-success) 8%,
+    var(--color-bg-secondary)
   );
-  border-left: 3px solid var(--color-success, #93b878);
+  border-left: 3px solid var(--color-success);
   border-radius: 0 6px 6px 0;
   margin: 0.5rem 0;
   animation: noteArrive 600ms ease-out;
@@ -32,7 +32,7 @@
   font-family: var(--font-display, serif);
   font-size: 1.125rem;
   line-height: 1;
-  color: var(--color-success, #93b878);
+  color: var(--color-success);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -53,7 +53,7 @@
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-success, #93b878);
+  color: var(--color-success);
 }
 
 .kickerOrnament {
@@ -61,7 +61,7 @@
   font-style: italic;
   font-size: 0.85rem;
   line-height: 1;
-  color: var(--color-success, #93b878);
+  color: var(--color-success);
 }
 
 .kickerText {
@@ -71,7 +71,7 @@
 .summary {
   font-size: 0.875rem;
   line-height: 1.5;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -79,7 +79,7 @@
 }
 
 .summary strong {
-  color: var(--color-text-primary, #e5e5e5);
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
@@ -91,7 +91,7 @@
   font-family: inherit;
   font-size: inherit;
   font-style: italic;
-  color: var(--color-accent, #60a5fa);
+  color: var(--color-accent);
   cursor: pointer;
   line-height: inherit;
   text-decoration: none;

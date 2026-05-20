@@ -1,6 +1,6 @@
 .card {
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.75rem 1rem;
   font-size: 0.85rem;
@@ -17,7 +17,7 @@
 
 .index {
   font-weight: 700;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   font-size: 0.78rem;
 }
 
@@ -27,12 +27,12 @@
 }
 
 .section {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.78rem;
 }
 
 .page {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.78rem;
   margin-left: auto;
 }
@@ -47,8 +47,8 @@
 
 .viewPageBtn {
   background: transparent;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
-  color: var(--color-accent, #6366f1);
+  border: 1px solid var(--color-border);
+  color: var(--color-accent);
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
   font-size: 0.78rem;
@@ -57,7 +57,7 @@
 }
 
 .viewPageBtn:hover {
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   border-color: transparent;
 }

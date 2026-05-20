@@ -10,8 +10,8 @@
 
 .panel {
   width: min(540px, 90vw);
-  background: var(--color-bg-primary, #1a1a2e);
-  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-primary);
+  border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -22,7 +22,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -34,7 +34,7 @@
 .closeBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 1.4rem;
   cursor: pointer;
   padding: 0 0.25rem;
@@ -57,7 +57,7 @@
 .status,
 .error {
   text-align: center;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   margin-top: 2rem;
   font-size: 0.9rem;
 }

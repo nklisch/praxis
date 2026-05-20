@@ -6,9 +6,9 @@
   position: sticky; /* sticks to bottom of layout */
   bottom: 0;
   width: 100%;
-  background: var(--praxis-rail-bg, rgba(20, 20, 20, 0.95));
+  background: var(--praxis-rail-bg);
   backdrop-filter: blur(6px);
-  border-top: 1px solid var(--praxis-rail-border, rgba(255, 255, 255, 0.06));
+  border-top: 1px solid var(--praxis-rail-border);
   padding: 0.5rem 1.25rem;
   z-index: 50;
 }
@@ -28,7 +28,7 @@
   gap: 0.5rem;
   font-size: 0.85rem;
   font-style: italic;
-  color: var(--praxis-rail-fg, rgba(232, 232, 232, 0.62));
+  color: var(--praxis-rail-fg);
   animation: praxis-rail-in 220ms ease-out;
 }
 
@@ -39,18 +39,18 @@
 }
 
 .rowDone {
-  color: var(--praxis-rail-fg-done, rgba(232, 232, 232, 0.38));
+  color: var(--praxis-rail-fg-done);
 }
 
 .rowFailed {
-  color: var(--praxis-rail-fg-failed, rgba(240, 120, 100, 0.82));
+  color: var(--praxis-rail-fg-failed);
 }
 
 .glyph {
   font-family: var(--font-mono);
   font-style: normal;
   font-size: 0.9em;
-  color: var(--praxis-rail-glyph, rgba(232, 232, 232, 0.42));
+  color: var(--praxis-rail-glyph);
   width: 1ch;
   flex-shrink: 0;
 }
@@ -65,7 +65,7 @@
 
 .detail {
   font-size: 0.78rem;
-  color: var(--praxis-rail-fg-detail, rgba(232, 232, 232, 0.38));
+  color: var(--praxis-rail-fg-detail);
   flex-shrink: 1;
   min-width: 0;
   white-space: nowrap;
@@ -77,7 +77,7 @@
   position: relative;
   height: 1px;
   flex: 0 1 8rem;
-  background: var(--praxis-rail-bar-track, rgba(255, 255, 255, 0.08));
+  background: var(--praxis-rail-bar-track);
 }
 
 .bar::after {
@@ -85,7 +85,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: var(--praxis-activity-progress, 0%);
-  background: var(--praxis-rail-bar-fill, rgba(255, 255, 255, 0.32));
+  background: var(--praxis-rail-bar-fill);
   transition: width 240ms ease-out;
 }
 

@@ -1,6 +1,6 @@
 .card {
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.85rem 1rem;
   font-size: 0.88rem;
@@ -23,12 +23,12 @@
   padding: 0.1rem 0.45rem;
   border-radius: 4px;
   background: rgba(99, 102, 241, 0.2);
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
 }
 
 .timestamp {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   margin-left: auto;
 }
 
@@ -67,7 +67,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   margin-bottom: 0.15rem;
 }
 
@@ -76,12 +76,12 @@
   line-height: 1.5;
   color: var(--color-text-primary, inherit);
   padding: 0.25rem 0;
-  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid var(--color-border);
 }
 
 .summaryBox {
   background: rgba(99, 102, 241, 0.06);
-  border-left: 3px solid var(--color-accent, #6366f1);
+  border-left: 3px solid var(--color-accent);
   border-radius: 0 6px 6px 0;
   padding: 0.5rem 0.75rem;
 }
@@ -107,7 +107,7 @@
 }
 
 .followUps {
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--color-border);
   padding-top: 0.4rem;
 }
 
@@ -115,7 +115,7 @@
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   list-style: none;
   padding: 0.15rem 0;
   user-select: none;

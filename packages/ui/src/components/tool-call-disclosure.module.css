@@ -120,7 +120,7 @@
   color: var(--color-text-secondary);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  background: var(--color-bg-tertiary, rgba(0, 0, 0, 0.04));
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm, 3px);
   padding: 6px 10px;
   margin: 0;

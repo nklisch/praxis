@@ -12,13 +12,13 @@
 
 .status {
   padding: 1.5rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
 .error {
   padding: 1.5rem;
-  color: var(--color-danger, #ef4444);
+  color: var(--color-danger);
   font-size: 0.9rem;
 }
 
@@ -68,14 +68,14 @@
   padding: 6px 12px;
   border-radius: var(--radius-sm, 4px);
   cursor: pointer;
-  border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.2));
+  border: 1px solid var(--color-border-strong);
   background: transparent;
   color: var(--color-text-primary);
   transition: border-color 0.15s;
 }
 
 .actionBtn:hover {
-  border-color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
@@ -91,8 +91,8 @@
   flex: 1;
   max-width: 360px;
   padding: 0.35rem 0.6rem;
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-accent, #6366f1);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm, 4px);
   color: var(--color-text-primary);
   font: italic 18px / 1 var(--font-display, var(--font-serif));
@@ -104,7 +104,7 @@
 }
 
 .renameSaveBtn {
-  background: var(--color-accent, #6366f1);
+  background: var(--color-accent);
   color: #fff; /* intentional literal: button text always white regardless of theme */
   border: none;
   padding: 0.35rem 0.8rem;
@@ -187,18 +187,18 @@
 }
 
 .tool:hover {
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
 }
 
 .toolActive {
-  background: var(--color-accent-muted, rgba(99, 102, 241, 0.15));
-  color: var(--color-accent, #6366f1);
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
 }
 
 .toolActive:hover {
-  background: var(--color-accent-muted, rgba(99, 102, 241, 0.2));
-  color: var(--color-accent, #6366f1);
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
 }
 
 .toolGlyph {
@@ -245,7 +245,7 @@
 }
 
 .legendPill {
-  background: var(--color-bg-secondary, rgba(20, 20, 20, 0.88));
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   padding: 4px 8px;
   border-radius: var(--radius-sm, 4px);
@@ -266,15 +266,15 @@
 }
 
 .legendLinked .legendDot {
-  background: var(--color-success, #22c55e);
+  background: var(--color-success);
 }
 
 .legendSuggested .legendDot {
-  background: var(--color-warning, #f59e0b);
+  background: var(--color-warning);
 }
 
 .legendUnlinked .legendDot {
-  background: var(--color-text-tertiary, #555);
+  background: var(--color-text-tertiary);
 }
 
 /* ── Right hints panel ────────────────────────────────────────────────────── */
@@ -313,7 +313,7 @@
 
 /* Selection card */
 .selectionCard {
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 6px);
   padding: 12px 14px;
@@ -353,12 +353,12 @@
 }
 
 .candidate:hover {
-  border-color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
 }
 
 .candidateChosen {
-  border-color: var(--color-warning, #f59e0b);
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.03));
+  border-color: var(--color-warning);
+  background: var(--color-bg-secondary);
 }
 
 .candidateHead {
@@ -392,7 +392,7 @@
 }
 
 .confirmBtn {
-  background: var(--color-success, #22c55e);
+  background: var(--color-success);
   color: #fff; /* intentional literal: always white regardless of theme */
   border: none;
   padding: 7px 16px;
@@ -408,7 +408,7 @@
 
 /* "Make it your own" escape hatch */
 .ownConceptBox {
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
+  background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm, 4px);
   padding: 10px 12px;
 }
@@ -423,8 +423,8 @@
 
 .ownConceptInput {
   width: 100%;
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.18));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm, 4px);
   padding: 6px 10px;
   font: italic 12px / 1.4 var(--font-serif);
@@ -438,7 +438,7 @@
 }
 
 .ownConceptInput:focus {
-  border-color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
@@ -468,7 +468,7 @@
 }
 
 .undrawnItem:hover {
-  border-color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
 }
 
 .undrawnName {
@@ -479,7 +479,7 @@
 .undrawnAdd {
   font: 600 10px / 1 var(--font-mono, monospace);
   letter-spacing: 0.06em;
-  color: var(--color-accent, #6366f1);
+  color: var(--color-accent);
   opacity: 0;
   transition: opacity 0.12s;
   white-space: nowrap;

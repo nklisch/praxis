@@ -20,7 +20,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.84rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .stat {
@@ -46,8 +46,8 @@
 
 .filterBtn {
   background: transparent;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  color: var(--color-text-secondary, #aaa);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   border-radius: 20px;
   font-size: 0.8rem;
   padding: 0.25rem 0.65rem;
@@ -61,12 +61,12 @@
 
 .filterBtn.active {
   background: rgba(99, 102, 241, 0.15);
-  border-color: var(--color-accent, #6366f1);
-  color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .status {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -97,7 +97,7 @@
 
 .emptyHint {
   font-size: 0.88rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   max-width: 44ch;
   margin: 0;
   line-height: 1.5;
@@ -117,15 +117,15 @@
 .cardItem {
   display: flex;
   align-items: stretch;
-  background: var(--color-bg-secondary, #1e1e2e);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
   transition: border-color 0.15s;
 }
 
 .cardItem:hover {
-  border-color: var(--color-accent, #6366f1);
+  border-color: var(--color-accent);
 }
 
 .cardItem.isDue {
@@ -173,16 +173,16 @@
 
 .nextReview {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .reps {
   font-size: 0.75rem;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .cardBack {
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--color-border);
   padding-top: 0.5rem;
   margin-top: 0.5rem;
 }
@@ -192,7 +192,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   display: block;
   margin-bottom: 0.2rem;
 }
@@ -207,8 +207,8 @@
 .deleteBtn {
   background: transparent;
   border: none;
-  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-  color: var(--color-text-secondary, #aaa);
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
   font-size: 1.1rem;
   cursor: pointer;
   padding: 0 0.75rem;

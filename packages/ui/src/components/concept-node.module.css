@@ -8,8 +8,8 @@
   gap: 0.2rem;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  border: 2px solid var(--color-border, rgba(255, 255, 255, 0.2));
-  background: var(--color-bg-secondary, rgba(30, 30, 40, 0.9));
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-secondary);
   min-width: 110px;
   max-width: 160px;
   cursor: pointer;
@@ -39,8 +39,8 @@
 
 /* not-started: neutral gray */
 .not-started {
-  border-color: var(--color-border, rgba(255, 255, 255, 0.2));
-  background: var(--color-bg-secondary, rgba(30, 30, 40, 0.9));
+  border-color: var(--color-border);
+  background: var(--color-bg-secondary);
 }
 
 /* locked: muted gray with reduced opacity — clearly inactive */
@@ -62,13 +62,13 @@
 }
 
 .locked .name {
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .conceptId {
   font-size: 0.6rem;
   font-family: var(--font-mono, ui-monospace, "SF Mono", monospace);
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
   line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -78,7 +78,7 @@
 .score {
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary, #aaa);
+  color: var(--color-text-secondary);
 }
 
 .mastered .score {
@@ -101,6 +101,6 @@
 .handle {
   width: 8px;
   height: 8px;
-  background: var(--color-border, rgba(255, 255, 255, 0.3));
+  background: var(--color-border);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
