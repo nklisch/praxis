@@ -14,14 +14,18 @@ import type { Services } from "./services.js";
 export function registerCitationsHandlers(services: Services, log: Logger): void {
   const { handle } = createIpcHelpers(log);
 
-  const recordSchema = z.object({
-    documentId: z.string().min(1, "documentId"),
-    citingSessionId: z.string().min(1, "citingSessionId"),
-    citingTurnId: z.string().optional(),
-    startOffset: z.number().int().nonnegative(),
-    endOffset: z.number().int().nonnegative(),
-    citedText: z.string().optional(),
-  });
+  const recordSchema = z
+    .object({
+      documentId: z.string().min(1, "documentId"),
+      citingSessionId: z.string().min(1, "citingSessionId"),
+      citingTurnId: z.string().optional(),
+      startOffset: z.number().int().nonnegative(),
+      endOffset: z.number().int().nonnegative(),
+      citedText: z.string().optional(),
+    })
+    .refine((r) => r.endOffset >= r.startOffset, {
+      message: "endOffset must be >= startOffset",
+    });
 
   handle(
     "praxis.citations.record",

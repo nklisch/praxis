@@ -171,6 +171,32 @@ describe("praxis.citations.record — envelope wiring", () => {
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
+  it("returns VALIDATION_FAILED when endOffset < startOffset (inverted range)", async () => {
+    const log = makeSpyLogger();
+    registerCitationsHandlers(makeServices(), log);
+
+    const handler = handlers.get("praxis.citations.record");
+    const result = await handler?.(
+      {},
+      { documentId: "doc-1", citingSessionId: "sess-1", startOffset: 50, endOffset: 10 },
+    );
+
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+
+  it("accepts endOffset === startOffset (zero-length range is valid)", async () => {
+    const log = makeSpyLogger();
+    registerCitationsHandlers(makeServices(), log);
+
+    const handler = handlers.get("praxis.citations.record");
+    const result = await handler?.(
+      {},
+      { documentId: "doc-1", citingSessionId: "sess-1", startOffset: 20, endOffset: 20 },
+    );
+
+    expect(result).toMatchObject({ ok: true });
+  });
+
   it("returns INTERNAL (never rejects) when service throws", async () => {
     const log = makeSpyLogger();
     registerCitationsHandlers(
