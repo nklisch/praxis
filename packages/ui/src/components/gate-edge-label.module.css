@@ -10,7 +10,7 @@
 }
 
 .edge.locked {
-  stroke: rgba(150, 150, 160, 0.5);
+  stroke: color-mix(in srgb, var(--color-text-tertiary) 50%, transparent);
   stroke-dasharray: 6 3;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .label.locked {
-  border-color: rgba(150, 150, 160, 0.3);
+  border-color: color-mix(in srgb, var(--color-text-tertiary) 30%, transparent);
   opacity: 0.9;
 }
 

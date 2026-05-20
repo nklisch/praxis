@@ -78,7 +78,7 @@
 }
 
 .ghost:hover {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: color-mix(in srgb, var(--color-info) 50%, transparent);
 }
 
 .ghost:hover .addBtn {
