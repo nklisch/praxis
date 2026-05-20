@@ -34,7 +34,7 @@
   line-height: 1;
   color: var(--color-success);
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: var(--space-0-5);
 }
 
 .body {

@@ -45,7 +45,7 @@
 .segment {
   display: inline;
   border-radius: 2px;
-  padding: 0 2px;
+  padding: 0 var(--space-0-5);
 }
 
 /* default — unchanged; no decoration needed */
@@ -78,7 +78,7 @@
 .diff {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -89,6 +89,6 @@
 .diffHeader {
   font-size: 0.875rem;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   color: var(--color-text-secondary, var(--text-secondary));
 }

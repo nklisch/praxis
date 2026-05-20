@@ -4,8 +4,8 @@
   background: var(--color-bg-secondary);
   border-left: 3px solid var(--color-accent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  padding: 10px 13px;
-  margin: 6px 0;
+  padding: var(--space-3) var(--space-3);
+  margin: var(--space-1-5) 0;
 }
 
 /* ── Header row ───────────────────────────────────────────────────────────── */
@@ -13,7 +13,7 @@
 .head {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 /* Pulsing live dot — shown while sub-agent is running */
@@ -88,6 +88,7 @@
 
 .toggle {
   display: block;
+  /* design-system-exception: 7px top margin for visual rhythm; no token equivalent */
   margin-top: 7px;
   background: none;
   border: none;
@@ -106,7 +107,8 @@
 
 .steps {
   list-style: none;
-  margin: 6px 0 0;
+  margin: var(--space-1-5) 0 0;
+  /* design-system-exception: 7px/9px asymmetric padding for compact step list; no token equivalent */
   padding: 7px 9px;
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -121,8 +123,9 @@
 .step {
   display: flex;
   align-items: baseline;
+  /* design-system-exception: 7px gap for step icon-label pair; no token equivalent */
   gap: 7px;
-  padding: 1px 0;
+  padding: var(--space-0-5) 0;
 }
 
 .stepDone {

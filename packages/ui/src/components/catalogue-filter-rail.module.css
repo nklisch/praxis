@@ -7,7 +7,7 @@
 }
 
 .group {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .groupLabel {
@@ -15,15 +15,15 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin: 0 0 10px;
-  padding-bottom: 6px;
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-1-5);
   border-bottom: 1px solid var(--color-border);
 }
 
 .pillRow {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
   /* reset fieldset defaults */
   border: none;
   padding: 0;
@@ -31,10 +31,10 @@
 }
 
 .pill {
-  padding: 6px 0;
+  padding: var(--space-1-5) 0;
   font: var(--font-size-sm) / 1.4 var(--font-serif);
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: baseline;
   cursor: pointer;
   color: var(--color-text-secondary);

@@ -6,7 +6,7 @@
   composes: editorial from global;
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--space-1);
   font: 600 10px / 1 var(--font-mono);
   letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
@@ -21,6 +21,7 @@
   width: 1px;
   height: 1px;
   padding: 0;
+  /* design-system-exception: -1px visually-hidden clip pattern (accessibility standard) */
   margin: -1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
@@ -32,7 +33,7 @@
   background: transparent;
   border: 0;
   border-bottom: 1px solid transparent;
-  padding: 2px 4px;
+  padding: var(--space-0-5) var(--space-1);
   cursor: pointer;
   color: var(--color-text-secondary);
   font: inherit;
