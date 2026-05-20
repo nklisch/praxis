@@ -60,7 +60,7 @@
 }
 
 .filterBtn.active {
-  background: rgba(99, 102, 241, 0.15);
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
@@ -129,7 +129,7 @@
 }
 
 .cardItem.isDue {
-  border-color: rgba(245, 158, 11, 0.4);
+  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
 }
 
 .cardBtn {
@@ -165,7 +165,7 @@
 .dueBadge {
   font-size: 0.7rem;
   font-weight: 700;
-  background: rgba(245, 158, 11, 0.2);
+  background: color-mix(in srgb, var(--color-warning) 20%, transparent);
   color: var(--color-warning);
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
@@ -219,7 +219,7 @@
 
 .deleteBtn:hover:not(:disabled) {
   color: var(--color-danger);
-  background: rgba(248, 113, 113, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
 .deleteBtn:disabled {
