@@ -43,10 +43,10 @@ export class SessionClient implements SessionService {
     return unwrapEnvelope(result);
   }
 
-  async active(): Promise<SessionHandle | null> {
+  async active(opts?: { modeId?: string }): Promise<SessionHandle | null> {
     const result = await this.transport.invoke<
       IpcEnvelope<SessionHandle | null> | SessionHandle | null
-    >(`${CHANNEL}.active`);
+    >(`${CHANNEL}.active`, opts);
     return unwrapEnvelope(result);
   }
 

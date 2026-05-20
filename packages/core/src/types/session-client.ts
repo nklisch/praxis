@@ -20,7 +20,7 @@ export interface SessionService {
   }): Promise<SessionHandle>;
   send(sessionId: SessionId, message: string, signal?: AbortSignal): AsyncIterable<EngineEvent>;
   end(sessionId: SessionId): Promise<SessionEndSummary>;
-  active(): Promise<SessionHandle | null>;
+  active(opts?: { modeId?: string }): Promise<SessionHandle | null>;
   /**
    * Phase 14: List sessions for the student, ordered by startedAt descending.
    * Used by the Library archive section and tab-restoration logic.

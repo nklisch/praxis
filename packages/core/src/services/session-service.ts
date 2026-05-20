@@ -290,12 +290,19 @@ export class SessionServiceImpl implements SessionService {
     };
   }
 
-  async active(): Promise<SessionHandle | null> {
+  async active(opts?: { modeId?: string }): Promise<SessionHandle | null> {
     const studentId = getOrCreateDefaultStudentId(this.deps.db);
+    const predicates: ReturnType<typeof eq>[] = [
+      eq(sessions.studentId, studentId),
+      isNull(sessions.endedAt),
+    ];
+    if (opts?.modeId !== undefined) {
+      predicates.push(eq(sessions.modeId, opts.modeId));
+    }
     const row = this.deps.db
       .select()
       .from(sessions)
-      .where(and(eq(sessions.studentId, studentId), isNull(sessions.endedAt)))
+      .where(and(...predicates))
       .orderBy(desc(sessions.startedAt))
       .get();
     if (!row) return null;

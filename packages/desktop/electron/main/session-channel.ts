@@ -8,7 +8,6 @@ import type {
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { z } from "zod";
-import { wrapEnvelope } from "./ipc-error-envelope.js";
 import { createIpcHelpers, handleEnvelope } from "./ipc-helpers.js";
 import type { Services } from "./services.js";
 import { registerGeneratorStream } from "./stream-handler.js";
@@ -44,9 +43,17 @@ export function registerSessionHandlers(
     parentSessionId: z.string().min(1, "parentSessionId"),
   });
 
+  const sessionActiveSchema = z.object({ modeId: z.string().optional() }).optional();
+
   handle(
     "praxis.session.active",
-    wrapEnvelope("praxis.session.active", log, async () => services.session.active()),
+    handleEnvelope("praxis.session.active", log, sessionActiveSchema, async (opts) =>
+      services.session.active(
+        opts !== undefined
+          ? { ...(opts.modeId !== undefined && { modeId: opts.modeId }) }
+          : undefined,
+      ),
+    ),
   );
 
   const sessionStartSchema = z.object({

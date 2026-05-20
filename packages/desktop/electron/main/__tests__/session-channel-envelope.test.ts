@@ -53,7 +53,7 @@ function makeFakeLogger() {
 
 function makeServices(
   overrides: {
-    sessionActive?: () => Promise<unknown>;
+    sessionActive?: (opts?: unknown) => Promise<unknown>;
     sessionEnd?: (sessionId: unknown) => Promise<unknown>;
     sessionSpawnFromAssignment?: (opts: unknown) => Promise<unknown>;
   } = {},
@@ -304,7 +304,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-// ── praxis.session.active — no-payload envelope ───────────────────────────────
+// ── praxis.session.active — optional modeId filter envelope ──────────────────
 
 describe("praxis.session.active — envelope wiring", () => {
   it("resolves with { ok: true, value: null } when no active session", async () => {
@@ -315,7 +315,8 @@ describe("praxis.session.active — envelope wiring", () => {
     const handler = handlers.get("praxis.session.active");
     expect(handler).toBeDefined();
 
-    // wrapEnvelope (no schema): handler receives only the event; inner fn takes no args.
+    // handleEnvelope with optional schema: handler receives (event, payload?).
+    // Omitting payload → undefined → accepted by z.object({...}).optional().
     const result = await handler?.({});
     expect(result).toMatchObject({ ok: true, value: null });
   });
@@ -590,5 +591,70 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
     const envelope = result as { ok: false; error: { message: string } };
     expect(envelope.error.message).not.toContain("/home/user/.praxis");
     expect(envelope.error.message).not.toContain("dev.db");
+  });
+});
+
+// ── praxis.session.active — modeId payload variants ──────────────────────────
+
+describe("praxis.session.active — modeId filter payload", () => {
+  it("forwards { modeId: 'configure' } to the service and returns the handle", async () => {
+    const handle = { sessionId: "sess-cfg-1", modeId: "configure", startedAt: 1000 };
+    const log = makeFakeLogger();
+    const services = makeServices({
+      sessionActive: async (opts: unknown) => {
+        // Verify the modeId was forwarded.
+        if ((opts as { modeId?: string } | undefined)?.modeId === "configure") return handle;
+        return null;
+      },
+    });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.active");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { modeId: "configure" });
+    expect(result).toMatchObject({ ok: true, value: handle });
+    expect(services.session.active).toHaveBeenCalledWith({ modeId: "configure" });
+  });
+
+  it("accepts omitted payload (undefined) and calls service with undefined", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.active");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, undefined);
+    expect(result).toMatchObject({ ok: true, value: null });
+    // Service called with undefined (no modeId filter)
+    expect(services.session.active).toHaveBeenCalledWith(undefined);
+  });
+
+  it("returns VALIDATION_FAILED when modeId is not a string (e.g. number)", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.active");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { modeId: 42 });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.session.active).not.toHaveBeenCalled();
+  });
+
+  it("accepts an empty object payload (modeId omitted) and calls service with {}", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.active");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, {});
+    expect(result).toMatchObject({ ok: true, value: null });
+    // Called with {} — modeId not provided so service uses no filter
+    expect(services.session.active).toHaveBeenCalledWith({});
   });
 });
