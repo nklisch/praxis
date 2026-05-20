@@ -89,7 +89,7 @@ export function MemoryTab() {
   } = useResource<AffectiveModel | null>(loadAffective);
 
   // ── Episodic ──────────────────────────────────────────────────────────────
-  const [episodicEvents, setEpisodicEvents] = useState<EpisodicEvent[]>([]);
+  const [episodicEvents, setEpisodicEvents] = useState<EpisodicEvent[] | null>(null);
   const [episodicLoading, setEpisodicLoading] = useState(false);
   const [episodicError, setEpisodicError] = useState<string | null>(null);
   const episodicAbortRef = useRef<AbortController | null>(null);
@@ -121,10 +121,10 @@ export function MemoryTab() {
 
   // Episodic loads lazily when tab is activated
   useEffect(() => {
-    if (activeProjection === "episodic" && episodicEvents.length === 0 && !episodicLoading) {
+    if (activeProjection === "episodic" && episodicEvents === null && !episodicLoading) {
       loadEpisodic();
     }
-  }, [activeProjection, episodicEvents.length, episodicLoading, loadEpisodic]);
+  }, [activeProjection, episodicEvents, episodicLoading, loadEpisodic]);
 
   // Cleanup episodic stream on unmount
   useEffect(() => {
@@ -150,7 +150,7 @@ export function MemoryTab() {
   // Counts for projection tab badges
   const activeMiscCount = misconceptions.filter((m) => m.status === "active").length;
   const proceduralCount = procedural ? procedural.strategies.size : 0;
-  const episodicCount = episodicEvents.length;
+  const episodicCount = episodicEvents?.length ?? 0;
 
   return (
     <div className={styles.layout}>
@@ -231,7 +231,11 @@ export function MemoryTab() {
           <AffectivePane model={affective} loading={affectiveLoading} error={affectiveError} />
         )}
         {activeProjection === "episodic" && (
-          <EpisodicPane events={episodicEvents} loading={episodicLoading} error={episodicError} />
+          <EpisodicPane
+            events={episodicEvents ?? []}
+            loading={episodicLoading}
+            error={episodicError}
+          />
         )}
       </div>
 
