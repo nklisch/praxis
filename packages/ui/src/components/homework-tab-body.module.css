@@ -96,7 +96,7 @@
   height: 100%;
   background: var(--tint-homework);
   border-radius: 2px;
-  transition: width 0.3s ease;
+  transition: width var(--dur-quick) var(--ease-emphasized);
 }
 
 /* ── Three-column surface grid ──────────────────────────────────────────────  */
@@ -418,7 +418,7 @@
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   flex-shrink: 0;
-  transition: border-color 0.12s;
+  transition: border-color var(--dur-quick);
 }
 
 .askBtn:hover {
@@ -443,7 +443,7 @@
   border: 1px solid var(--color-border-strong);
   background: transparent;
   color: var(--color-text-primary);
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .actionBtn:hover:not(:disabled) {
@@ -596,7 +596,7 @@
   border: 1px solid var(--color-border-strong);
   background: transparent;
   color: var(--color-text-primary);
-  transition: border-color 0.12s;
+  transition: border-color var(--dur-quick);
 }
 
 .submitSecondaryBtn:hover {
@@ -613,7 +613,7 @@
   border: none;
   background: var(--tint-homework);
   color: var(--color-text-inverse);
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .submitPrimaryBtn:hover:not(:disabled) {

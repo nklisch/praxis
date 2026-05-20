@@ -52,7 +52,7 @@
   border: none;
   padding: 0.3rem 0;
   position: relative;
-  transition: color 0.18s ease;
+  transition: color var(--dur-quick) var(--ease-standard);
 }
 
 .cta::after {
@@ -63,7 +63,7 @@
   bottom: 0;
   height: 1px;
   background: var(--color-border);
-  transition: background-color 0.18s ease;
+  transition: background-color var(--dur-quick) var(--ease-standard);
 }
 
 .cta:hover {
@@ -86,7 +86,7 @@
   border: none;
   padding: 0.15rem 0;
   position: relative;
-  transition: color 0.18s ease;
+  transition: color var(--dur-quick) var(--ease-standard);
   cursor: pointer;
 }
 
@@ -98,7 +98,7 @@
   bottom: 0;
   height: 1px;
   background: transparent;
-  transition: background-color 0.18s ease;
+  transition: background-color var(--dur-quick) var(--ease-standard);
 }
 
 .createCta:hover {

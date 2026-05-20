@@ -25,7 +25,7 @@
   border: none;
   text-align: left;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--dur-quick) var(--ease-standard);
 }
 
 .itemButton:hover {

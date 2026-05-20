@@ -265,7 +265,7 @@
   text-align: left;
   margin-top: var(--space-1-5);
   align-self: flex-start;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--dur-quick) var(--ease-standard);
 }
 
 .footerCardLink:hover {

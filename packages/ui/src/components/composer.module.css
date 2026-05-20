@@ -21,7 +21,7 @@
 .sketchContainer {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.25s ease;
+  transition: max-height var(--dur-quick) var(--ease-standard);
   margin-bottom: 0;
 }
 
@@ -117,7 +117,7 @@
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color var(--dur-quick);
   align-self: flex-end;
 }
 

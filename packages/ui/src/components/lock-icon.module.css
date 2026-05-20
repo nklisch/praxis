@@ -6,7 +6,7 @@
   padding: 0.25rem 0.4rem;
   border-radius: 4px;
   line-height: 1;
-  transition: background 0.15s;
+  transition: background var(--dur-quick);
   color: inherit;
 }
 

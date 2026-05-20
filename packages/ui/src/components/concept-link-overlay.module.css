@@ -52,7 +52,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 3px;
-  transition: color 0.1s;
+  transition: color var(--dur-instant);
 }
 
 .dismissBtn:hover {
@@ -75,7 +75,7 @@
   border: none;
   text-align: left;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--dur-instant);
 }
 
 .typeaheadItem:hover {

@@ -45,7 +45,7 @@
   height: 7px;
   border-radius: var(--radius-full);
   background: var(--color-border-strong);
-  transition: background 0.15s;
+  transition: background var(--dur-quick);
 }
 
 .dotActive {
@@ -314,7 +314,7 @@
   color: inherit;
   text-align: left;
   overflow: hidden;
-  transition: border-color 0.1s;
+  transition: border-color var(--dur-instant);
 }
 
 .courseCard:hover:not(:disabled) {
@@ -387,7 +387,7 @@
   color: var(--color-text-tertiary);
   padding: 0 var(--space-4);
   opacity: 0;
-  transition: opacity 0.1s;
+  transition: opacity var(--dur-instant);
   align-self: center;
   line-height: 1;
   flex-shrink: 0;

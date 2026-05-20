@@ -49,7 +49,7 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   margin-top: var(--space-2);
-  transition: background 0.15s;
+  transition: background var(--dur-quick);
 }
 
 .unlockBtn:hover {
@@ -370,7 +370,7 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  transition: background 0.15s;
+  transition: background var(--dur-quick);
 }
 
 .confirmButton:hover {

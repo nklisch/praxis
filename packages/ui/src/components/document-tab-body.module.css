@@ -259,7 +259,7 @@
   border-radius: 2px;
   cursor: pointer;
   position: relative;
-  transition: background 0.15s ease;
+  transition: background var(--dur-quick) var(--ease-standard);
   padding: 0 var(--space-1);
 }
 

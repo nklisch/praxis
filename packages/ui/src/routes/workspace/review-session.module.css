@@ -98,7 +98,7 @@
   font-weight: var(--font-weight-semibold);
   padding: var(--space-3) var(--space-6);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--dur-quick);
   margin-top: var(--space-2);
   font-family: var(--font-sans);
 }
@@ -202,7 +202,7 @@
   line-height: 1;
   border-radius: var(--radius-sm);
   font-family: var(--font-sans);
-  transition: color 0.12s;
+  transition: color var(--dur-quick);
 }
 
 .exitLink:hover {
@@ -220,7 +220,7 @@
   height: 100%;
   background: var(--color-accent);
   border-radius: var(--radius-full);
-  transition: width 0.3s ease;
+  transition: width var(--dur-quick) var(--ease-emphasized);
 }
 
 /* ── Card stage ───────────────────────────────────────────────────────────── */
@@ -238,7 +238,7 @@
 .cardWrap {
   width: 100%;
   max-width: 600px;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-quick) var(--ease-standard);
 }
 
 .cardVisible {
@@ -304,7 +304,7 @@
   padding: var(--space-2) var(--space-6);
   cursor: pointer;
   font-family: var(--font-sans);
-  transition: background 0.15s;
+  transition: background var(--dur-quick);
 }
 
 .revealBtn:hover {

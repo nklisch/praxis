@@ -76,7 +76,7 @@
   cursor: pointer;
   flex-shrink: 0;
   align-self: center;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--dur-quick) var(--ease-standard);
 }
 
 .action:hover {

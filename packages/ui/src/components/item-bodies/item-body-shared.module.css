@@ -19,7 +19,7 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--color-text-primary);
-  transition: background 0.12s;
+  transition: background var(--dur-quick);
   border: 1px solid transparent;
 }
 
@@ -60,7 +60,7 @@
   border-radius: 4px;
   color: var(--color-text-primary);
   font-size: 0.9rem;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
   box-sizing: border-box;
 }
 

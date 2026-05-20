@@ -49,7 +49,7 @@
   font-weight: 600;
   padding: 0.45rem 1rem;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .showAnswerBtn:hover:not(:disabled) {

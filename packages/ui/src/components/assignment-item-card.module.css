@@ -77,7 +77,7 @@
   border-radius: 4px;
   color: var(--color-text-primary);
   font-size: 0.9rem;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
   box-sizing: border-box;
 }
 
@@ -107,7 +107,7 @@
   color: var(--color-text-primary);
   font-size: 0.875rem;
   resize: vertical;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
   box-sizing: border-box;
 }
 
@@ -137,7 +137,7 @@
   color: var(--color-text-primary);
   font-size: 0.9rem;
   resize: vertical;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
   box-sizing: border-box;
 }
 
@@ -171,7 +171,7 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--color-text-primary);
-  transition: background 0.12s;
+  transition: background var(--dur-quick);
 }
 
 .optionLabel:hover:not(.disabled) {

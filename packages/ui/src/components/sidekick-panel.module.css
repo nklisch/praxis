@@ -5,7 +5,7 @@
   flex-direction: column;
   width: 0;
   overflow: hidden;
-  transition: width 0.2s ease;
+  transition: width var(--dur-quick) var(--ease-emphasized);
   border-left: none;
   background: var(--color-bg-secondary);
   flex-shrink: 0;

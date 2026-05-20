@@ -302,7 +302,7 @@
   background: var(--color-accent);
   color: var(--color-text-inverse);
   border: 1px solid var(--color-accent);
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .confirmBtn:hover {

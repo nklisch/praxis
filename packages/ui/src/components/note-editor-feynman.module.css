@@ -86,7 +86,7 @@
   padding: 0.6rem 0.75rem;
   resize: vertical;
   font-family: inherit;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
   box-sizing: border-box;
 }
 
@@ -121,7 +121,7 @@
   padding: 0.4rem 0.6rem;
   resize: vertical;
   font-family: inherit;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
   box-sizing: border-box;
 }
 
@@ -357,7 +357,7 @@
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.12s;
+  transition: opacity var(--dur-quick);
 }
 
 .popoverSave:disabled {
@@ -457,7 +457,7 @@
   line-height: 1;
   padding: var(--space-0-5) var(--space-1);
   border-radius: 3px;
-  transition: opacity 0.12s;
+  transition: opacity var(--dur-quick);
 }
 
 .marginDelete:hover {

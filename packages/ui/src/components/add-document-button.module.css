@@ -11,7 +11,7 @@
   color: var(--color-text-secondary);
   font-size: 0.82rem;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: var(--t-quick);
 }
 
 .button:hover:not(:disabled) {

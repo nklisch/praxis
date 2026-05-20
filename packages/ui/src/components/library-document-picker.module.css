@@ -193,7 +193,7 @@
   border-radius: 5px;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color var(--dur-quick);
 }
 
 .closeBtn:hover {

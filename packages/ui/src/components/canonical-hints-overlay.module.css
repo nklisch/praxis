@@ -74,7 +74,7 @@
   border: 1px dashed var(--color-border);
   border-radius: 5px;
   background: transparent;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
 }
 
 .ghost:hover {
@@ -103,7 +103,7 @@
   cursor: pointer;
   text-align: left;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
   white-space: nowrap;
 }
 

@@ -91,7 +91,7 @@
   border: 1px solid var(--color-danger);
   color: var(--color-danger);
   letter-spacing: 0.04em;
-  transition: background 0.12s;
+  transition: background var(--dur-quick);
 }
 
 .revertButton:hover {

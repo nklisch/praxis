@@ -84,7 +84,7 @@
   border-radius: 4px;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
   background: var(--color-accent);
   border: 1px solid transparent;
   color: #fff; /* intentional literal: button text always white regardless of theme */

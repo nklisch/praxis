@@ -62,7 +62,7 @@
   font-size: var(--font-size-base);
   letter-spacing: 0.2em;
   width: 100%;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
 }
 
 .input::placeholder {
@@ -124,7 +124,7 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  transition: background 0.15s;
+  transition: background var(--dur-quick);
 }
 
 .unlockBtn:hover:not(:disabled) {

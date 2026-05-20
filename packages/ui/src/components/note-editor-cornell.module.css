@@ -102,7 +102,7 @@
   cursor: pointer;
   text-align: left;
   border-radius: var(--radius-sm, 3px);
-  transition: background 0.12s;
+  transition: background var(--dur-quick);
 }
 
 .cueButton:hover {
@@ -153,7 +153,7 @@
   font: italic var(--font-size-sm, 14px) / 1 var(--font-serif, serif);
   color: var(--color-text-tertiary);
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color var(--dur-quick);
 }
 
 .addCueBtn:hover {
@@ -184,7 +184,7 @@
   /* design-system-exception: 22px offset matches the absolute-positioned ◆ marker width; no token equivalent */
   padding-left: 22px;
   border-radius: var(--radius-sm, 3px);
-  transition: background 0.12s;
+  transition: background var(--dur-quick);
 }
 
 .notesEntryActive {
@@ -205,7 +205,7 @@
   cursor: pointer;
   line-height: 1;
   opacity: 0.7;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .cueMarker:hover {
@@ -228,7 +228,7 @@
   padding: var(--space-2, 8px) var(--space-3, 12px);
   resize: vertical;
   box-sizing: border-box;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
 }
 
 .detailTextarea:focus {
@@ -290,7 +290,7 @@
   padding: var(--space-2, 8px) var(--space-3, 12px);
   resize: vertical;
   box-sizing: border-box;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
 }
 
 .summaryTextarea:focus {

@@ -83,7 +83,7 @@
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .submitBtn:hover:not(:disabled) {

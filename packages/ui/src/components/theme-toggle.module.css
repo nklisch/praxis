@@ -39,7 +39,7 @@
   font: inherit;
   letter-spacing: inherit;
   text-transform: inherit;
-  transition: color 0.1s ease;
+  transition: color var(--dur-instant) var(--ease-standard);
 }
 
 .btn:hover {

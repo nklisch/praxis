@@ -76,7 +76,7 @@
   display: flex;
   gap: var(--space-1-5);
   align-items: baseline;
-  transition: color 0.12s;
+  transition: color var(--dur-quick);
 }
 
 .projectionTab:hover {

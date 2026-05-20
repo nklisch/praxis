@@ -269,7 +269,7 @@
   color: var(--color-text-inverse);
   border: 0;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .reviewPlanBtn:hover {

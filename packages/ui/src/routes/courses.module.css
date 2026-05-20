@@ -30,7 +30,7 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .newCourseBtn:hover {

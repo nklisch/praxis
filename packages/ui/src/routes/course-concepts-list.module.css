@@ -23,7 +23,7 @@
   padding: 0;
   text-align: left;
   width: fit-content;
-  transition: color 0.15s;
+  transition: color var(--dur-quick);
 }
 
 .backBtn:hover {
@@ -53,7 +53,7 @@
   font-size: 0.875rem;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
   /* Remove the browser's default search-input cancel button — we render our own. */
   appearance: none;
 }
@@ -87,7 +87,7 @@
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 50%;
-  transition: color 0.15s;
+  transition: color var(--dur-quick);
 }
 
 .clearBtn:hover {

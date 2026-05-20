@@ -120,7 +120,7 @@
   border-radius: 0;
   line-height: 1;
   vertical-align: baseline;
-  transition: color 0.15s ease;
+  transition: color var(--dur-quick) var(--ease-standard);
 }
 
 .newButton:hover {

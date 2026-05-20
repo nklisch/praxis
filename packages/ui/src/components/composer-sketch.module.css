@@ -29,7 +29,7 @@
   padding: 0.35rem 0.85rem;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .cancelBtn:hover:not(:disabled) {
@@ -50,7 +50,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .submitBtn:hover:not(:disabled) {

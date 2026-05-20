@@ -68,7 +68,7 @@
   color: var(--color-text-secondary);
   padding: 0.4rem 0;
   position: relative;
-  transition: color 0.18s ease;
+  transition: color var(--dur-quick) var(--ease-standard);
 }
 
 .links a:hover {

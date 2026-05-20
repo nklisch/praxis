@@ -15,7 +15,7 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--color-bg-secondary) 4%, transparent);
   border: 1px solid transparent;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
 }
 
 .item:hover {
@@ -63,7 +63,7 @@
   border-radius: 3px;
   flex-shrink: 0;
   line-height: 1;
-  transition: color 0.15s;
+  transition: color var(--dur-quick);
 }
 
 .deleteBtn:hover {

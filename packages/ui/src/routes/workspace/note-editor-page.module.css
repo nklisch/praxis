@@ -24,7 +24,7 @@
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-family: inherit;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .backBtn:hover {
@@ -79,7 +79,7 @@
   font-weight: 600;
   padding: 0.45rem 1.2rem;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
   font-family: inherit;
   margin-left: auto;
 }

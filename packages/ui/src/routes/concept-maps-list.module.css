@@ -27,7 +27,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-quick);
 }
 
 .newMapBtn:hover {
@@ -43,7 +43,7 @@
   padding: 0;
   text-align: left;
   width: fit-content;
-  transition: color 0.15s;
+  transition: color var(--dur-quick);
 }
 
 .backBtn:hover {

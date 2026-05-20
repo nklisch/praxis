@@ -79,7 +79,7 @@
   border: 2px solid transparent;
   padding: 0;
   flex-shrink: 0;
-  transition: border-color 0.1s ease;
+  transition: border-color var(--dur-instant) var(--ease-standard);
 }
 
 .colorSwatchActive {
@@ -148,7 +148,7 @@
   padding: 0;
   cursor: pointer;
   pointer-events: auto;
-  transition: color 0.1s ease;
+  transition: color var(--dur-instant) var(--ease-standard);
 }
 
 .convertBtn:hover {

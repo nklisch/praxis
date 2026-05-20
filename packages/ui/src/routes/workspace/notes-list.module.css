@@ -85,7 +85,7 @@
   letter-spacing: 0.04em;
   padding: var(--space-2) var(--space-4);
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background var(--dur-quick);
   text-transform: uppercase;
 }
 

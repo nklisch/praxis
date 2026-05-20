@@ -121,7 +121,7 @@
   border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-quick);
 }
 
 .cardItem:hover {
