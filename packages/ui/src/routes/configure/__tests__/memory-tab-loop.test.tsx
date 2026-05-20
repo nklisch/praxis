@@ -8,7 +8,6 @@ import type { PraxisClient } from "@praxis/core/types";
 
 vi.mock("../../../context/client-context.js");
 vi.mock("../../../hooks/use-dirty-state.js");
-vi.mock("../../../hooks/use-resource.js");
 
 describe("MemoryTab Infinite Loop", () => {
   it("repro: calls episodic stream only once even if empty", async () => {
@@ -27,7 +26,6 @@ describe("MemoryTab Infinite Loop", () => {
     } as unknown as PraxisClient;
 
     vi.mocked(usePraxisClient).mockReturnValue(client);
-    vi.mocked(useResource).mockReturnValue({ data: undefined, loading: false, error: null, refresh: vi.fn() } as any);
 
     render(<MemoryTab />);
 

@@ -40,10 +40,13 @@ export function MemoryTab() {
   // ── Semantic (concept mastery) ───────────────────────────────────────────
   const [resetTarget, setResetTarget] = useState<ConceptId | null>(null);
 
-  const loadMastery = useCallback(async () => {
-    const model = await client.memory.studentModel();
-    return Array.from(model.conceptMastery.entries());
-  }, [client]);
+  const loadMastery = useCallback(
+    async (_signal: AbortSignal) => {
+      const model = await client.memory.studentModel();
+      return Array.from(model.conceptMastery.entries());
+    },
+    [client],
+  );
 
   const {
     data: mastery = [],
@@ -55,9 +58,12 @@ export function MemoryTab() {
   // ── Misconceptions ───────────────────────────────────────────────────────
   const [clearTarget, setClearTarget] = useState<MisconceptionId | null>(null);
 
-  const loadMisconceptions = useCallback(async () => {
-    return client.memory.misconceptions();
-  }, [client]);
+  const loadMisconceptions = useCallback(
+    async (_signal: AbortSignal) => {
+      return client.memory.misconceptions();
+    },
+    [client],
+  );
 
   const {
     data: misconceptions = [],
@@ -67,9 +73,12 @@ export function MemoryTab() {
   } = useResource<Misconception[]>(loadMisconceptions);
 
   // ── Procedural ───────────────────────────────────────────────────────────
-  const loadProcedural = useCallback(async () => {
-    return client.memory.procedural();
-  }, [client]);
+  const loadProcedural = useCallback(
+    async (_signal: AbortSignal) => {
+      return client.memory.procedural();
+    },
+    [client],
+  );
 
   const {
     data: procedural = null,
@@ -78,9 +87,12 @@ export function MemoryTab() {
   } = useResource<ProceduralModel | null>(loadProcedural);
 
   // ── Affective ─────────────────────────────────────────────────────────────
-  const loadAffective = useCallback(async () => {
-    return client.memory.affective();
-  }, [client]);
+  const loadAffective = useCallback(
+    async (_signal: AbortSignal) => {
+      return client.memory.affective();
+    },
+    [client],
+  );
 
   const {
     data: affective = null,
@@ -89,49 +101,31 @@ export function MemoryTab() {
   } = useResource<AffectiveModel | null>(loadAffective);
 
   // ── Episodic ──────────────────────────────────────────────────────────────
-  const [episodicEvents, setEpisodicEvents] = useState<EpisodicEvent[] | null>(null);
-  const [episodicLoading, setEpisodicLoading] = useState(false);
-  const [episodicError, setEpisodicError] = useState<string | null>(null);
-  const episodicAbortRef = useRef<AbortController | null>(null);
-
-  const loadEpisodic = useCallback(async () => {
-    episodicAbortRef.current?.abort();
-    const ac = new AbortController();
-    episodicAbortRef.current = ac;
-
-    setEpisodicLoading(true);
-    setEpisodicError(null);
-    const collected: EpisodicEvent[] = [];
-    try {
-      for await (const evt of client.memory.episodic({})) {
-        if (ac.signal.aborted) break;
-        collected.push(evt);
-        // Cap at 200 for display — the full episodic log can be large
-        if (collected.length >= 200) break;
+  const loadEpisodic = useCallback(
+    async (signal: AbortSignal) => {
+      const collected: EpisodicEvent[] = [];
+      try {
+        for await (const evt of client.memory.episodic({})) {
+          if (signal.aborted) break;
+          collected.push(evt);
+          // Cap at 200 for display — the full episodic log can be large
+          if (collected.length >= 200) break;
+        }
+        return collected;
+      } catch (err) {
+        // useResource handles error state, but we need to re-throw for it to see it
+        throw err;
       }
-      if (!ac.signal.aborted) setEpisodicEvents(collected);
-    } catch (err) {
-      if (!ac.signal.aborted) {
-        setEpisodicError(err instanceof Error ? err.message : String(err));
-      }
-    } finally {
-      if (!ac.signal.aborted) setEpisodicLoading(false);
-    }
-  }, [client]);
+    },
+    [client],
+  );
 
   // Episodic loads lazily when tab is activated
-  useEffect(() => {
-    if (activeProjection === "episodic" && episodicEvents === null && !episodicLoading) {
-      loadEpisodic();
-    }
-  }, [activeProjection, episodicEvents, episodicLoading, loadEpisodic]);
-
-  // Cleanup episodic stream on unmount
-  useEffect(() => {
-    return () => {
-      episodicAbortRef.current?.abort();
-    };
-  }, []);
+  const {
+    data: episodicEvents = [],
+    loading: episodicLoading,
+    error: episodicError,
+  } = useResource<EpisodicEvent[]>(loadEpisodic, { enabled: activeProjection === "episodic" });
 
   const handleResetConcept = async (reason: string) => {
     if (!resetTarget) return;

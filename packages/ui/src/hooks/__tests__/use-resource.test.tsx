@@ -128,4 +128,45 @@ describe("useResource", () => {
     // After load completes, data is the loaded value
     expect(result.current.data).toEqual(["loaded"]);
   });
+
+  it("does not load when enabled is false", async () => {
+    const loader = vi.fn<() => Promise<string[]>>().mockResolvedValue(["item"]);
+    const { result } = renderHook(() => useResource(loader, { enabled: false }));
+
+    expect(result.current.loading).toBe(false);
+    expect(loader).not.toHaveBeenCalled();
+    expect(result.current.data).toBeUndefined();
+  });
+
+  it("loads when enabled becomes true", async () => {
+    const loader = vi.fn<() => Promise<string[]>>().mockResolvedValue(["item"]);
+    const { result, rerender } = renderHook(({ enabled }) => useResource(loader, { enabled }), {
+      initialProps: { enabled: false },
+    });
+
+    expect(loader).not.toHaveBeenCalled();
+
+    rerender({ enabled: true });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual(["item"]);
+  });
+
+  it("aborts in-flight request on unmount", async () => {
+    let signalRef: AbortSignal | undefined;
+    const loader = vi.fn((signal: AbortSignal) => {
+      signalRef = signal;
+      return new Promise<string[]>(() => {}); // never resolves
+    });
+
+    const { unmount } = renderHook(() => useResource(loader));
+
+    expect(signalRef).toBeDefined();
+    expect(signalRef?.aborted).toBe(false);
+
+    unmount();
+
+    expect(signalRef?.aborted).toBe(true);
+  });
 });
