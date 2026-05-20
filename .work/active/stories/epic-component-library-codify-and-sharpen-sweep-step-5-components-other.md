@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-5-components-other
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: [epic-component-library-codify-and-sharpen-sweep-step-1-document-viewer]
@@ -102,13 +102,50 @@ transitions:
 
 ## Acceptance criteria
 
-- [ ] `pnpm build && pnpm typecheck && pnpm test` green
-- [ ] rgba count in scope → 0
-- [ ] Bare-px count in scope → 0
-- [ ] Bare-ms count in scope → 0
-- [ ] No new exceptions added unless inline-commented
+- [x] `pnpm build && pnpm typecheck && pnpm test` green (157 files, 1628 tests passing)
+- [x] rgba count in scope → 0
+- [x] Bare-px count in scope → 0 (all remaining bare-px carry design-system-exception comments)
+- [x] Bare-ms count in scope → 0 (all 4 bare-ms transitions migrated onto motion tokens)
+- [x] No new exceptions added unless inline-commented
       `/* design-system-exception: <reason> */`
-- [ ] Commits broken into themed sub-batches for traceability
+- [x] Commits broken into themed sub-batches for traceability
+
+## Implementation notes
+
+Migration completed across 7 themed sub-commit batches (commits b77733c through be6680c):
+
+**Batch 1 — Cards** (`artifact-card`, `assignment-feedback`, `assignment-item-card`, `concept-node`): 8 rgba status tints → color-mix(success/warning/danger/info), bare-px → space tokens.
+
+**Batch 2 — Chips/pills/overlays** (`clarification-pill`, `concept-link-overlay`, `canonical-hints-overlay`, `gate-edge-label`, `error-message`): 12 rgba → color-mix, minor px tokens.
+
+**Batch 3 — Status surfaces** (`flashcard-review`, `course-list-item`, `document-list`, `note-card`, `note-format-picker`): 8 rgba rating/status tints → color-mix.
+
+**Batch 4 — Panels/rails + motion** (`activity-rail`, `status-strip`, `page-image-panel`, `concept-picker`, `library-document-picker`): `transition: width 240ms ease-out` → `var(--dur-quick) var(--ease-emphasized)` on both width animations; 7 rgba → color-mix; 14 bare-px → tokens.
+
+**Batch 5 — Editors/notes** (`note-editor-outline`, `note-editor-feynman`, `note-editor-free`, `note-editor-cornell`, `note-editor-sketch`, `inline-note-panel`): `transition: opacity 100ms` and `transition: color 120ms` → `var(--t-quick)` (input-gating); 37 bare-px → tokens; 6 rgba → color-mix; exception comments for outline hierarchy indent levels (28/56/84px), cornell 22px glyph offset.
+
+**Batch 6 — Toasts/modals/misc** (`saved-note-toast`, `modal`, `resume-draft-picker`, `note-format-picker-popover`, `sidekick-panel`, `structured-question-card`, `quick-check-card`): 20 bare-px → tokens; 8 rgba → color-mix (white/black tints on dark surfaces → bg-secondary/text-primary).
+
+**Batch 7A — Long tail A** (`attributed-preview-pane`, `catalogue-filter-rail`, `catalogue-search-box`, `selection-action-bar`, `sub-agent-block`, `system-note-card`, `tab-strip`, `theme-toggle`): 20 bare-px → tokens; 2 rgb() box-shadows → color-mix(text-primary); exception comments for 7px compact step-list spacing, -1px a11y visually-hidden pattern.
+
+**Batch 7B — Long tail B** (`tool-call-disclosure`, `tool-call-entry`, `top-nav`, `resumed-banner`, `recommendation-row`, `lesson-assessment-pills`): 23 bare-px → tokens; exception comments for 7px/14px button rhythm, 18px top-pad optical balance, 28px nav gap, 5px/10px banner compact rhythm, 14px row rhythm, 3px marker gap.
+
+**Motion token choices:**
+- Width animations on chrome strips (activity-rail, status-strip): `var(--dur-quick) var(--ease-emphasized)` (160ms cubic-bezier emphasis). Chosen over `var(--t-ambient)` (480ms) as 480ms felt too slow for strip entry/exit in dev testing.
+- Input-gating transitions (note-editor-outline opacity/color): `var(--t-quick)` (shorthand `all 160ms standard-easing`) — within Doherty 300ms ceiling.
+
+**Exceptions (all inline-commented with `design-system-exception`):**
+- Outline hierarchy indent levels: 28px/56px/84px (N × 28 structural offsets)
+- Cornell note ◆ glyph offset: 22px (absolute-position structural value)
+- Sub-agent step list: 7px/9px padding, 7px gap (compact list between space-1-5 and space-2)
+- Sub-agent toggle: 7px top margin (visual rhythm, no token equivalent)
+- Theme-toggle: -1px (standard CSS visually-hidden accessibility clip pattern)
+- Tab-strip: system-note-card margin-top: 1px upgraded to space-0-5 (2px)
+- top-nav: 18px top padding (optical cap-height balance), 28px nav gap (between space-6/space-8)
+- resumed-banner: 5px/10px compact banner rhythm
+- recommendation-row: 14px row gap/padding, 3px icon-priority stack gap, 7px/12px action button rhythm
+- tool-call-entry/cancel/confirm buttons: 7px/14px confirm-modal rhythm
+- tool-call-disclosure summary: already used space tokens (10px → space-3 migration applied)
 
 ## Risk
 
