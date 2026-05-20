@@ -14,4 +14,7 @@ fragments the experience. Second piece: whatever text the user types into
 this landing's prompt should be sent as the first message immediately on
 arrival in the course-design view (pre-seed and start the conversation in
 one click), instead of leaving them with an empty chat they have to
-re-type into.
+re-type into. Third piece: the landing should expose the four-step arc as a
+visible progress trail — `material · create · confirm · open` — so the user
+understands the journey from picking source material through arriving at
+the live course.
