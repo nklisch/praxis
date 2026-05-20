@@ -17,4 +17,10 @@ one click), instead of leaving them with an empty chat they have to
 re-type into. Third piece: the landing should expose the four-step arc as a
 visible progress trail — `material · create · confirm · open` — so the user
 understands the journey from picking source material through arriving at
-the live course.
+the live course. Fourth piece: the "material" step needs a way to select a
+pack — currently there's no pack-picker surface anywhere in the app since
+the redesign, so the canonical packs (algebra-1, biology, etc.) are
+unreachable except via the onboarding course cards. Bringing pack selection
+into the material step (alongside upload, paste, and "from syllabus") gives
+the landing a single coherent source-selector and restores parity with the
+pre-redesign flow.
