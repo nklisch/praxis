@@ -88,7 +88,7 @@
 }
 
 .mapBtn:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
 .lessonsSection {
@@ -256,7 +256,7 @@
 
 .conceptMapLink:hover {
   border-color: var(--color-accent);
-  background: rgba(99, 102, 241, 0.06);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 
 .conceptMapTitle {
@@ -280,8 +280,8 @@
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-accent);
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
   padding: 0.12rem 0.4rem;
   border-radius: 4px;
   white-space: nowrap;
@@ -303,5 +303,5 @@
 }
 
 .newMapBtn:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }

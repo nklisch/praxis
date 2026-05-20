@@ -9,7 +9,7 @@
 }
 
 .body {
-  padding: 28px 32px 64px;
+  padding: var(--space-8) var(--space-8) var(--space-16);
   max-width: 1320px;
   margin: 0 auto;
   width: 100%;
@@ -19,7 +19,7 @@
 /* ── Greeting ───────────────────────────────────────────────────────────────── */
 
 .greeting {
-  margin-bottom: 28px;
+  margin-bottom: var(--space-8);
 }
 
 .greetingKicker {
@@ -27,14 +27,14 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .greetingTitle {
   composes: editorial from global;
   font-size: 2rem;
   line-height: 1.2;
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
 }
 
 .greetingCount {
@@ -55,8 +55,8 @@
 .workbench {
   display: grid;
   grid-template-columns: 3fr 2fr;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 20px; /* design-system-exception: 20px sits between --space-4 (16px) and --space-6 (24px); intentional grid gutter */
+  margin-bottom: 20px; /* design-system-exception: same 20px visual gap below workbench */
 }
 
 /* ── Column panels ──────────────────────────────────────────────────────────── */
@@ -65,7 +65,7 @@
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 6px);
-  padding: 20px 24px;
+  padding: 20px var(--space-6); /* design-system-exception: 20px vertical padding; between --space-4 and --space-6 */
   min-width: 0;
 }
 
@@ -74,12 +74,12 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  margin: 0 0 16px;
-  padding-bottom: 12px;
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .columnGlyph {
@@ -94,22 +94,22 @@
   composes: editorial from global;
   font-size: 0.9rem;
   color: var(--color-text-secondary);
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 /* ── Lately timeline ─────────────────────────────────────────────────────────── */
 
 .timeline {
   position: relative;
-  padding-left: 22px;
+  padding-left: 22px; /* design-system-exception: 22px aligns with the timeline dot (11px radius) plus gutter; no token match */
 }
 
 .timeline::before {
   content: "";
   position: absolute;
   left: 5px;
-  top: 4px;
-  bottom: 4px;
+  top: var(--space-1);
+  bottom: var(--space-1);
   width: 1px;
   background: var(--color-border);
 }
@@ -119,8 +119,8 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  margin: 14px 0 8px -22px;
-  padding-bottom: 6px;
+  margin: var(--space-4) 0 var(--space-2) -22px; /* design-system-exception: negative margin matches timeline indent above */
+  padding-bottom: var(--space-1-5);
   border-bottom: 1px dashed var(--color-border);
 }
 
@@ -129,20 +129,20 @@
 }
 
 .timelineEntry {
-  padding: 4px 0 14px;
+  padding: var(--space-1) 0 var(--space-4);
   position: relative;
   cursor: pointer;
 }
 
 .timelineEntry:last-child {
-  padding-bottom: 4px;
+  padding-bottom: var(--space-1);
 }
 
 .timelineEntry::before {
   content: "";
   position: absolute;
-  left: -21px;
-  top: 8px;
+  left: -21px; /* design-system-exception: optical alignment with the 1px timeline rule at left:5px */
+  top: var(--space-2);
   width: 11px;
   height: 11px;
   border-radius: 50%;
@@ -160,7 +160,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 3px;
+  margin-bottom: 3px; /* design-system-exception: 3px sub-pixel kicker margin; --space-1 (4px) shifts weight noticeably */
 }
 
 .timelineTitle {
@@ -173,11 +173,11 @@
 .timelineMeta {
   font: 12px / 1.4 var(--font-mono);
   color: var(--color-text-tertiary);
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   letter-spacing: 0.04em;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
 }
 
 .timelineModeDot {
@@ -194,16 +194,16 @@
   text-transform: uppercase;
   color: var(--color-accent);
   border: 1px solid var(--color-accent);
-  padding: 1px 4px;
+  padding: var(--space-0-5) var(--space-1);
   border-radius: 2px;
-  margin-left: 4px;
+  margin-left: var(--space-1);
 }
 
 .timelineEmpty {
   composes: editorial from global;
   font-size: 0.88rem;
   color: var(--color-text-secondary);
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 
 /* ── Footer row ─────────────────────────────────────────────────────────────── */
@@ -211,14 +211,14 @@
 .footerRow {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .footerCard {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 6px);
-  padding: 16px 20px;
+  padding: var(--space-4) 20px; /* design-system-exception: 20px horizontal padding; between --space-4 (16px) and --space-6 (24px) */
   display: flex;
   flex-direction: column;
 }
@@ -228,10 +228,10 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .footerCardGlyph {
@@ -245,13 +245,13 @@
   composes: editorial from global;
   font-size: 1.75rem;
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .footerCardDetail {
   font: 13px / 1.4 var(--font-serif);
   color: var(--color-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   flex: 1;
 }
 
@@ -263,7 +263,7 @@
   padding: 0;
   cursor: pointer;
   text-align: left;
-  margin-top: 6px;
+  margin-top: var(--space-1-5);
   align-self: flex-start;
   transition: opacity 0.15s ease;
 }

@@ -37,7 +37,7 @@
   transition:
     color 0.15s,
     border-color 0.15s;
-  margin-bottom: -1px;
+  margin-bottom: -1px; /* design-system-exception: optical tab-strip border bleed; structural, not a spacing-scale value */
   font-family: inherit;
 }
 

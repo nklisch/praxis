@@ -28,7 +28,7 @@
   max-width: 400px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 }
 
 .lockedDesc {
@@ -229,7 +229,7 @@
   min-height: 48px;
   border-top: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
-  padding: 12px 24px;
+  padding: var(--space-3) var(--space-6);
 }
 
 /* Empty / placeholder state */
@@ -244,13 +244,13 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 /* Lesson heading */
 .inspectorTitle {
   font: 500 italic 16px / 1.2 var(--font-display, var(--font-serif, serif));
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-3);
 }
 
 .inspectorTitle em {
@@ -261,14 +261,14 @@
 .inspectorFields {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .inspectorField {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, 4px);
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
 }
 
 .inspectorFieldKey {
@@ -276,7 +276,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 3px;
+  margin-bottom: 3px; /* design-system-exception: 3px sub-pixel label margin; nearest token --space-1 (4px) shifts visual weight noticeably */
 }
 
 .inspectorFieldVal {
@@ -300,7 +300,7 @@
   font: 11px / 1.4 var(--font-mono, monospace);
   color: var(--color-text-tertiary);
   text-decoration: line-through;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 
 /* ── Side chat panel (380px) ─────────────────────────────────────────────────── */

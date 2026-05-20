@@ -25,10 +25,10 @@
 /* ── Editor strip ────────────────────────────────────────────────────────── */
 
 .editorStrip {
-  padding: 12px 24px;
+  padding: var(--space-3) var(--space-6);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 14px; /* design-system-exception: 14px sits between --space-3 (12px) and --space-4 (16px); matches editor-strip visual balance */
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
@@ -59,13 +59,13 @@
 
 .editorActions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   flex-shrink: 0;
 }
 
 .actionBtn {
   font: 500 12px / 1 var(--font-sans, system-ui);
-  padding: 6px 12px;
+  padding: var(--space-1-5) var(--space-3);
   border-radius: var(--radius-sm, 4px);
   cursor: pointer;
   border: 1px solid var(--color-border-strong);
@@ -100,7 +100,7 @@
 
 .renameInput:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
 .renameSaveBtn {
@@ -146,11 +146,11 @@
 
 .toolsRail {
   border-right: 1px solid var(--color-border);
-  padding: 12px 0;
+  padding: var(--space-3) 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-0-5);
   background: var(--color-bg-primary);
   overflow-y: auto;
 }
@@ -159,15 +159,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-0-5);
   width: 100%;
-  padding: 2px 0;
+  padding: var(--space-0-5) 0;
 }
 
 .toolGroup + .toolGroup {
   border-top: 1px solid var(--color-border);
-  padding-top: 6px;
-  margin-top: 4px;
+  padding-top: var(--space-1-5);
+  margin-top: var(--space-1);
 }
 
 .tool {
@@ -208,7 +208,7 @@
 
 .toolMeta {
   margin-top: auto;
-  padding-bottom: 12px;
+  padding-bottom: var(--space-3);
   font: 600 9px / 1 var(--font-mono, monospace);
   letter-spacing: 0.08em;
   color: var(--color-text-tertiary);
@@ -236,10 +236,10 @@
 /* Legend pills in top-left of canvas */
 .canvasLegend {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: var(--space-3);
+  left: var(--space-3);
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   pointer-events: none;
   z-index: 10;
 }
@@ -247,14 +247,14 @@
 .legendPill {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm, 4px);
   font: 11px / 1 var(--font-mono, monospace);
   letter-spacing: 0.04em;
   color: var(--color-text-secondary);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
   backdrop-filter: blur(4px);
 }
 
@@ -281,18 +281,18 @@
 
 .hintsPanel {
   border-left: 1px solid var(--color-border);
-  padding: 14px 16px;
+  padding: var(--space-4) var(--space-4);
   overflow-y: auto;
   background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .hintSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .hintSectionTitle {
@@ -300,8 +300,8 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin: 0 0 8px;
-  padding-bottom: 6px;
+  margin: 0 0 var(--space-2);
+  padding-bottom: var(--space-1-5);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -316,7 +316,7 @@
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 6px);
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .selectionKicker {
@@ -324,7 +324,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
 }
 
 .selectionTitle {
@@ -338,13 +338,13 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-1);
 }
 
 .candidate {
   width: 100%;
   text-align: left;
-  padding: 10px 12px;
+  padding: var(--space-3) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, 4px);
   cursor: pointer;
@@ -364,7 +364,7 @@
 .candidateHead {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .candidateName {
@@ -383,7 +383,7 @@
 .candidateDefinition {
   font: 11px / 1.5 var(--font-serif);
   color: var(--color-text-secondary);
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 /* Confirm link row */
@@ -395,7 +395,7 @@
   background: var(--color-success);
   color: #fff; /* intentional literal: always white regardless of theme */
   border: none;
-  padding: 7px 16px;
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm, 4px);
   font: 600 12px / 1 var(--font-sans, system-ui);
   cursor: pointer;
@@ -410,7 +410,7 @@
 .ownConceptBox {
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm, 4px);
-  padding: 10px 12px;
+  padding: var(--space-3) var(--space-3);
 }
 
 .ownConceptLabel {
@@ -418,7 +418,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
 }
 
 .ownConceptInput {
@@ -426,7 +426,7 @@
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm, 4px);
-  padding: 6px 10px;
+  padding: var(--space-1-5) var(--space-3);
   font: italic 12px / 1.4 var(--font-serif);
   outline: none;
   color: var(--color-text-primary);
@@ -439,7 +439,7 @@
 
 .ownConceptInput:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
 /* Undrawn canonical concepts list */
@@ -449,7 +449,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .undrawnItem {
@@ -458,8 +458,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-sm, 4px);
   background: transparent;
