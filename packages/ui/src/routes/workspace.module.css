@@ -54,6 +54,8 @@
   flex: 1;
   overflow: hidden;
   position: relative;
+  /* Outer gutter — aligns tab content with RouteHeader / LibrarySection inset. */
+  padding-inline: var(--space-page-gutter);
 }
 
 .loading {

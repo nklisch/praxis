@@ -8,7 +8,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  padding: var(--space-6);
+  padding-block: var(--space-6);
   gap: var(--space-4);
 }
 

@@ -120,6 +120,13 @@
   --space-12: 48px;
   --space-16: 64px;
 
+  /* Page-level outer gutter — matches RouteHeader / LibrarySection horizontal
+   * inset (1.5rem left, 1.75rem right). Use this token at shell / route level
+   * to give content the same breathing-room as editorial primitives.
+   * Shorthand: padding-inline: var(--space-page-gutter-start) var(--space-page-gutter-end).
+   * Or simply: padding-inline: var(--space-page-gutter) for symmetric gutters. */
+  --space-page-gutter: 1.5rem;
+
   /* ─────────────────────────────────────────────────────────────────
    * Radius scale
    * Studio Quiet favors small radii — sharp, architectural shapes
