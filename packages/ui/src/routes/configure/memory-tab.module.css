@@ -76,6 +76,7 @@
   display: flex;
   gap: var(--space-1-5);
   align-items: baseline;
+  margin-bottom: -1px; /* design-system-exception: optical bleed to overlap tab-strip border; not a spacing-scale value */
   transition: color 0.12s;
 }
 
@@ -112,7 +113,7 @@
   letter-spacing: var(--letter-spacing-kicker);
   text-transform: uppercase;
   color: var(--color-text-secondary);
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-4);
   padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--color-border);
 }
@@ -451,8 +452,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1-5);
-  margin-bottom: 20px;
-  padding: 14px var(--space-4);
+  margin-bottom: 20px; /* design-system-exception: 20px sits between --space-4 (16px) and --space-6 (24px); intentional visual breathing room before next section */
+  padding: 14px var(--space-4); /* design-system-exception: 14px sits between --space-3 (12px) and --space-4 (16px); kept for card-inset balance */
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -534,7 +535,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
-  padding: 7px 0;
+  padding: var(--space-2) 0;
   border-bottom: 1px dashed var(--color-border);
   font-size: 13px;
 }
