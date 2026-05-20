@@ -51,7 +51,7 @@
 .error {
   margin: 0 0 1rem;
   padding: 0.5rem 0.75rem;
-  background: rgba(220, 50, 50, 0.12);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
   color: var(--color-danger);
   border-radius: 4px;
 }

@@ -2,10 +2,16 @@
 /* Restyle per locked Refined Bubbles mock (option-4.html).
  * Italic serif textarea · accent send button · mono hint strip below. */
 
+/* Contract note: the tier-2 contract defines `.composer` as a 3-column grid.
+ * This module uses a flex-column wrapper (composerWrapper) that hosts a form
+ * row (.form) plus optional sketch expansion and a hints strip. The outer
+ * wrapper is intentionally NOT renamed to .composer to avoid replicating the
+ * grid contract that would change layout. Divergence documented here. */
+
 .composerWrapper {
   display: flex;
   flex-direction: column;
-  padding: 16px 32px 24px;
+  padding: var(--space-4) var(--space-8) var(--space-6);
   border-top: 1px solid var(--color-border);
   background: var(--color-bg-primary);
   flex-shrink: 0;
@@ -21,7 +27,7 @@
 
 .sketchOpen {
   max-height: 400px; /* 320px canvas + action row + padding */
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
 }
 
 /* Sketch-attached indicator bar */
@@ -30,7 +36,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
   font-size: 0.8rem;
   color: var(--color-accent);
 }
@@ -50,24 +56,27 @@
   opacity: 1;
 }
 
-/* The composer field — card background with strong border, flex row */
+/* The composer field — card background with strong border, flex row.
+ * Aligns with contract's .composer surface but uses flex (not grid) because
+ * the sketch toggle sits in a nested column group, not a flat grid column. */
 .form {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
+  padding: var(--space-3) 14px; /* design-system-exception: 14px — asymmetric horizontal pad matches mock; nearest token --space-3 (12px) or --space-4 (16px); visual diff at 14px is meaningful so keeping bare value */
 }
 
-/* Italic serif textarea — no inner border, transparent bg */
-.input {
+/* Italic serif textarea — no inner border, transparent bg.
+ * Aligns with contract's .composer__input (renamed from .input). */
+.composer__input {
   flex: 1;
   border: 0;
   background: transparent;
   color: var(--color-text-primary);
   font-family: var(--font-serif);
-  font-size: 16px;
+  font-size: var(--font-size-base);
   line-height: 1.5;
   font-style: italic;
   resize: none;
@@ -75,12 +84,12 @@
   min-height: 22px;
 }
 
-.input::placeholder {
+.composer__input::placeholder {
   color: var(--color-text-tertiary);
   font-style: italic;
 }
 
-.input:disabled {
+.composer__input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -94,15 +103,16 @@
   justify-content: flex-end;
 }
 
-/* Accent send button */
-.sendButton {
+/* Accent send button.
+ * Aligns with contract's .composer__send (renamed from .sendButton). */
+.composer__send {
   background: var(--color-accent);
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-sm);
-  padding: 6px 12px;
+  padding: var(--space-1-5) var(--space-3);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
@@ -111,11 +121,11 @@
   align-self: flex-end;
 }
 
-.sendButton:not(:disabled):hover {
+.composer__send:not(:disabled):hover {
   background: var(--color-accent-hover);
 }
 
-.sendButton:disabled {
+.composer__send:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -128,11 +138,12 @@
   color: var(--color-text-tertiary);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding-top: 6px;
+  padding-top: var(--space-1-5);
 }
 
-/* "✎ Sketch" toggle button */
-.sketchToggleBtn {
+/* "✎ Sketch" toggle button.
+ * Aligns with contract's .composer__sketch-button (renamed from .sketchToggleBtn). */
+.composer__sketch-button {
   background: transparent;
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
@@ -148,12 +159,12 @@
   line-height: 1;
 }
 
-.sketchToggleBtn:hover:not(:disabled) {
+.composer__sketch-button:hover:not(:disabled) {
   color: var(--color-accent);
   border-color: var(--color-accent);
 }
 
-.sketchToggleBtn:disabled {
+.composer__sketch-button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }

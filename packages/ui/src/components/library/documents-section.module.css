@@ -32,7 +32,7 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  margin-bottom: -1px; /* design-system-exception: tab-indicator overlap trick — negative margin pulls active tab border over container border-bottom; no spacing token applies */
   color: var(--color-text-secondary);
   cursor: pointer;
   transition:

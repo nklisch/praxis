@@ -96,7 +96,7 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
       <form className={styles.form} onSubmit={handleSubmit}>
         <textarea
           ref={ref}
-          className={styles.input}
+          className={styles.composer__input}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
@@ -113,7 +113,7 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
           {sketchEnabled && (
             <button
               type="button"
-              className={`${styles.sketchToggleBtn} ${sketchOpen ? styles.sketchToggleActive : ""}`}
+              className={`${styles["composer__sketch-button"]} ${sketchOpen ? styles.sketchToggleActive : ""}`}
               onClick={() => setSketchOpen((prev) => !prev)}
               disabled={disabled || capturedSketchId !== undefined}
               aria-label={COPY.composer.sketchToggleAriaLabel}
@@ -122,7 +122,11 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
               ✎
             </button>
           )}
-          <button type="submit" className={styles.sendButton} disabled={disabled || !value.trim()}>
+          <button
+            type="submit"
+            className={styles.composer__send}
+            disabled={disabled || !value.trim()}
+          >
             Send ↵
           </button>
         </div>

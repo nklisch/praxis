@@ -3,8 +3,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 1rem;
-  background: rgba(255, 200, 50, 0.15);
-  border-top: 1px solid rgba(255, 200, 50, 0.35);
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
   color: var(--color-text-primary);
   font-size: 0.9rem;
   flex-shrink: 0;
