@@ -34,7 +34,8 @@
 .banner {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
+  /* design-system-exception: 5px/10px compact banner rhythm; no token equivalent */
   padding: 5px 10px;
   border-radius: var(--radius-md, 4px);
   background: var(--color-bg-secondary);
@@ -85,5 +86,5 @@
   content: "— ";
   font-style: normal;
   color: var(--color-text-tertiary);
-  margin-right: 2px;
+  margin-right: var(--space-0-5);
 }

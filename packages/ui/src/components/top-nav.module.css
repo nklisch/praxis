@@ -5,10 +5,11 @@
  * ──────────────────────────────────────────────────────────────────────────── */
 
 .runningHead {
-  padding: 18px 32px 12px;
+  /* design-system-exception: 18px top padding for running-head cap-height optical balance; no token equivalent */
+  padding: 18px var(--space-8) var(--space-3);
   display: flex;
   align-items: baseline;
-  gap: 32px;
+  gap: var(--space-8);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-primary);
   flex-shrink: 0;
@@ -27,6 +28,7 @@
 .nav {
   display: flex;
   align-items: baseline;
+  /* design-system-exception: 28px nav-link spacing between --space-6 (24px) and --space-8 (32px); no token equivalent */
   gap: 28px;
   flex: 1;
 }
@@ -35,11 +37,11 @@
   text-decoration: none;
   font: 500 14px / 1 var(--font-serif);
   color: var(--color-text-secondary);
-  padding: 4px 0;
+  padding: var(--space-1) 0;
   border-bottom: 1px solid transparent;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-1-5);
   transition: color 0.15s ease;
 }
 
@@ -70,8 +72,8 @@
 .rightSlot {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  padding-left: 24px;
+  gap: var(--space-3);
+  padding-left: var(--space-6);
   border-left: 1px solid var(--color-border);
 }
 
@@ -80,6 +82,6 @@
 .themeSlot {
   display: flex;
   align-items: baseline;
-  padding-left: 24px;
+  padding-left: var(--space-6);
   border-left: 1px solid var(--color-border);
 }

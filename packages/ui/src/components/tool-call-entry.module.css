@@ -7,9 +7,9 @@
 .entry {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin: 4px 0;
-  padding: 8px 12px;
+  gap: var(--space-2);
+  margin: var(--space-1) 0;
+  padding: var(--space-2) var(--space-3);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-left: 2px solid var(--color-border-strong);
@@ -86,7 +86,7 @@
   all: unset;
   cursor: pointer;
   font: 500 10px / 1 var(--font-sans, system-ui);
-  padding: 3px 8px;
+  padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-sm, 3px);
   border: 1px solid var(--color-danger);
   color: var(--color-danger);
@@ -124,7 +124,7 @@
 .revertErrorText {
   display: block;
   width: 100%;
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font: italic 11px / 1.4 var(--font-serif, serif);
   color: var(--color-danger);
 }
@@ -134,7 +134,7 @@
 .confirmBody {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .confirmHeading {
@@ -163,13 +163,14 @@
 
 .confirmActions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .cancelButton {
   font: 500 12px / 1 var(--font-sans, system-ui);
+  /* design-system-exception: 7px/14px confirm-modal button rhythm; no token equivalent */
   padding: 7px 14px;
   border-radius: var(--radius-sm, 3px);
   cursor: pointer;
@@ -184,6 +185,7 @@
 
 .confirmButton {
   font: 500 12px / 1 var(--font-sans, system-ui);
+  /* design-system-exception: 7px/14px confirm-modal button rhythm; no token equivalent */
   padding: 7px 14px;
   border-radius: var(--radius-sm, 3px);
   cursor: pointer;

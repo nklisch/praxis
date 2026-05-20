@@ -2,6 +2,7 @@
 
 .row {
   display: flex;
+  /* design-system-exception: 14px row gap + padding between --space-3 (12px) and --space-4 (16px); no token equivalent */
   gap: 14px;
   align-items: flex-start;
   padding: 14px 0;
@@ -19,8 +20,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* design-system-exception: 3px marker gap for compact icon-priority stack; no token equivalent */
   gap: 3px;
-  padding-top: 4px;
+  padding-top: var(--space-1);
 }
 
 .dot {
@@ -42,7 +44,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .kindKicker {
@@ -62,11 +64,12 @@
 .reason {
   font: italic 12px / 1.4 var(--font-serif);
   color: var(--color-text-tertiary);
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 
 .action {
   font: 500 12px / 1 var(--font-sans);
+  /* design-system-exception: 7px/12px action button rhythm; no token equivalent */
   padding: 7px 12px;
   border-radius: var(--radius-sm, 4px);
   border: 0;

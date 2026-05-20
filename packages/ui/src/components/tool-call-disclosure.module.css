@@ -4,7 +4,7 @@
  */
 
 .disclosure {
-  margin: 10px 0;
+  margin: var(--space-3) 0;
   font-size: 0;
 }
 
@@ -14,8 +14,8 @@
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, 3px);
@@ -91,16 +91,16 @@
   border: 1px solid var(--color-border);
   border-top: none;
   border-radius: 0 0 var(--radius-sm, 3px) var(--radius-sm, 3px);
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .detailSection {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .detailHeading {
@@ -122,7 +122,7 @@
   overflow-wrap: break-word;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm, 3px);
-  padding: 6px 10px;
+  padding: var(--space-1-5) var(--space-3);
   margin: 0;
   max-height: 20rem;
   overflow-y: auto;
