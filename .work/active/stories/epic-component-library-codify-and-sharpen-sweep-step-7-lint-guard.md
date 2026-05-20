@@ -1,7 +1,7 @@
 ---
 id: epic-component-library-codify-and-sharpen-sweep-step-7-lint-guard
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: epic-component-library-codify-and-sharpen-sweep
 depends_on: [epic-component-library-codify-and-sharpen-sweep-step-2-item-bodies, epic-component-library-codify-and-sharpen-sweep-step-3-tab-bodies, epic-component-library-codify-and-sharpen-sweep-step-4-composer-library-auth, epic-component-library-codify-and-sharpen-sweep-step-5-components-other, epic-component-library-codify-and-sharpen-sweep-step-6-routes]
@@ -120,3 +120,52 @@ negatives). Mitigation: the two unit cases anchor both directions.
 
 `git revert <commit>` — script and `package.json` entry; no existing
 files mutated.
+
+## Implementation notes
+
+### Phase A — Bare-seconds transition migration
+
+- **Files touched**: 72 CSS module files across `packages/ui/src/components/` and `packages/ui/src/routes/`
+- **Instances migrated**: 122 bare-seconds `transition:` declarations
+- **Translation applied**:
+  - `0.1s` → `var(--dur-instant)` (80ms) — used for quick hover responses
+  - `0.12s`, `0.15s`, `0.18s`, `0.2s`, `0.25s` → `var(--dur-quick)` (160ms)
+  - `0.3s ease` on width reveals → `var(--dur-quick) var(--ease-emphasized)` matching step-5 pattern
+  - Transitions with `ease` or `ease-out` keywords had the keyword replaced with `var(--ease-standard)` or `var(--ease-emphasized)`
+  - `all 0.15s` patterns → `var(--t-quick)` shorthand (bundles property + duration + easing)
+- **Exceptions added**: 0 — all 122 instances had clean token mappings
+- **Acceptance gates**: all three grep checks return 0
+
+### Phase B — Guard script + CI wiring
+
+- **Script**: `scripts/check-css-contract.mjs` (167 lines) — ESM, zero deps, plain Node
+  - Four rules: `hex-color`, `bare-px-spacing`, `cubic-bezier-literal`, `bare-duration`
+  - Exception support: `/* design-system-exception: */` and `/* intentional literal: */` (legacy sweep marker) on same or preceding line
+  - Inline comment stripping via regex to avoid false positives from commented-out values
+  - Handles both indented declarations (`  padding: 16px`) and inline rules (`.box { padding: 16px; }`)
+  - `--json` flag for CI annotation output; `--check <path>` for targeted scanning
+  - Runtime: ~1ms per file, <100ms total on full workspace
+
+- **Tests**: `scripts/check-css-contract.test.mjs` (24 test cases in vitest)
+  - Clean CSS: 2 cases (no violations)
+  - Each rule: hex-color (3), bare-px-spacing (5), cubic-bezier-literal (1), bare-duration (6)
+  - Exception suppression: 6 cases (same-line, preceding-line, two-lines-above negative case, one per rule type)
+  - Mixed file: 1 case verifying count and rule coverage
+
+- **Additional migrations**: 22 animation bare-duration instances fixed
+  - Pulsing animations (1.2s–2s): → `var(--dur-pulse)`
+  - Entrance animations (180ms–320ms): → `var(--dur-quick)`
+  - One ambient entrance (600ms): → `var(--dur-ambient)`
+  - Stagger delays (0.15s, 0.3s, etc.): added `/* design-system-exception: */` comments (proportional timing, no token equivalent)
+  - Banner lifecycle animation (3s): exception comment (fast-in/pause/fade-out can't map to a single token)
+
+- **CI wiring**: `package.json` `lint` script split into `lint:biome` + `lint:css-contract`, chained
+- **CONVENTIONS.md**: appended design-system-exception section
+
+### Final status
+
+- `pnpm lint:css-contract` → exit 0
+- `pnpm vitest run --project scripts` → 24/24 pass
+- `pnpm vitest run packages/ui` → 1628/1628 pass
+- `pnpm build` → clean
+- All Phase A acceptance gates → 0 violations each
