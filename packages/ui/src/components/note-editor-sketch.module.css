@@ -23,11 +23,11 @@
 
 .toolsRail {
   border-right: 1px solid var(--color-border);
-  padding: 12px 0;
+  padding: var(--space-3) 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   background: var(--color-bg-primary);
   /* Reset nav defaults */
   margin: 0;
@@ -67,7 +67,7 @@
   width: 28px;
   background: var(--color-border);
   border: 0;
-  margin: 6px 0;
+  margin: var(--space-1-5) 0;
   flex-shrink: 0;
 }
 
@@ -107,18 +107,18 @@
  */
 .noticeStrip {
   position: absolute;
-  top: 12px;
+  top: var(--space-3);
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  padding: 8px 14px;
+  padding: var(--space-2) var(--space-4);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full, 9999px);
   font: italic var(--font-size-xs, 12px) / 1.4 var(--font-serif, serif);
   color: var(--color-text-secondary);
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
   white-space: nowrap;
   pointer-events: none;

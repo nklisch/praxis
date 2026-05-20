@@ -12,19 +12,19 @@
   display: flex;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-full, 999px);
-  padding: 3px;
+  padding: var(--space-0-5);
   gap: 0;
   align-self: flex-start;
 }
 
 .modeBtn {
-  padding: 8px 18px;
+  padding: var(--space-2) var(--space-4);
   font: 500 italic 14px / 1 var(--font-display, inherit);
   color: var(--color-text-secondary);
   cursor: pointer;
   border-radius: var(--radius-full, 999px);
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: baseline;
   background: transparent;
   border: none;
@@ -37,7 +37,7 @@
 .modeBtnActive {
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-text-primary) 8%, transparent);
 }
 
 .modeOrnament {
@@ -147,7 +147,7 @@
 }
 
 .spawnBtn:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
 }
 
 .removeBtn {
@@ -168,7 +168,7 @@
 
 .removeBtn:hover {
   color: var(--color-danger);
-  background: rgba(248, 113, 113, 0.1);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
 }
 
 .addBtn {
@@ -188,7 +188,7 @@
 }
 
 .addBtn:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: color-mix(in srgb, var(--color-info) 8%, transparent);
   border-color: var(--color-accent);
 }
 
@@ -201,7 +201,7 @@
 }
 
 .reviewInstructions {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   background: var(--color-accent-muted);
   border-left: 3px solid var(--color-accent);
   border-radius: 0 4px 4px 0;
@@ -216,7 +216,7 @@
 .reviewColumns {
   display: grid;
   grid-template-columns: 1fr 260px;
-  gap: 24px;
+  gap: var(--space-6);
   align-items: start;
 }
 
@@ -230,7 +230,7 @@
   cursor: text;
   user-select: text;
   min-height: 160px;
-  padding: 12px 0;
+  padding: var(--space-3) 0;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -246,7 +246,7 @@
 .highlightSoft {
   background: var(--color-warning);
   color: var(--color-text-inverse);
-  padding: 1px 3px;
+  padding: var(--space-0-5) var(--space-0-5);
   border-radius: 2px;
   cursor: pointer;
 }
@@ -254,7 +254,7 @@
 .highlightStrong {
   background: var(--color-danger);
   color: var(--color-text-inverse);
-  padding: 1px 3px;
+  padding: var(--space-0-5) var(--space-0-5);
   border-radius: 2px;
   cursor: pointer;
 }
@@ -267,30 +267,30 @@
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 12px;
+  padding: var(--space-3);
   min-width: 260px;
   max-width: 320px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--color-text-primary) 20%, transparent);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .popoverSelected {
   font: italic 0.8rem / 1.4 var(--font-serif, inherit);
   color: var(--color-text-secondary);
   border-left: 2px solid var(--color-border);
-  padding-left: 8px;
+  padding-left: var(--space-2);
 }
 
 .popoverSeverityRow {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .severityBtn {
   flex: 1;
-  padding: 6px 10px;
+  padding: var(--space-1-5) var(--space-3);
   border-radius: 4px;
   font-size: 0.78rem;
   font-weight: 600;
@@ -331,7 +331,7 @@
   color: var(--color-text-primary, inherit);
   font-size: 0.875rem;
   line-height: 1.5;
-  padding: 6px 8px;
+  padding: var(--space-1-5) var(--space-2);
   resize: none;
   font-family: inherit;
   box-sizing: border-box;
@@ -344,12 +344,12 @@
 
 .popoverActions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   justify-content: flex-end;
 }
 
 .popoverSave {
-  padding: 6px 14px;
+  padding: var(--space-1-5) var(--space-4);
   border-radius: 4px;
   background: var(--color-accent);
   color: #fff;
@@ -366,7 +366,7 @@
 }
 
 .popoverCancel {
-  padding: 6px 10px;
+  padding: var(--space-1-5) var(--space-3);
   border-radius: 4px;
   background: transparent;
   border: 1px solid var(--color-border);
@@ -379,7 +379,7 @@
 }
 
 .popoverCancel:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--color-bg-secondary) 6%, transparent);
   color: var(--color-text-primary, inherit);
 }
 
@@ -388,13 +388,13 @@
 .marginCol {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   font: italic 0.8rem / 1.5 var(--font-serif, inherit);
-  padding-top: 12px;
+  padding-top: var(--space-3);
 }
 
 .marginEmpty {
-  padding: 10px 14px;
+  padding: var(--space-3) var(--space-4);
   border: 1px dashed var(--color-border);
   border-radius: 4px;
   font: italic 0.78rem / 1.4 var(--font-serif, inherit);
@@ -403,7 +403,7 @@
 }
 
 .marginNote {
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   background: var(--color-warning);
   color: var(--color-text-inverse);
   border-radius: 4px;
@@ -433,7 +433,7 @@
   font: 600 9px / 1 var(--font-mono, monospace);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   opacity: 0.85;
   font-style: normal;
 }
@@ -446,8 +446,8 @@
 
 .marginDelete {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: var(--space-1);
+  right: var(--space-1);
   background: transparent;
   border: none;
   color: inherit;
@@ -455,7 +455,7 @@
   font-size: 1rem;
   cursor: pointer;
   line-height: 1;
-  padding: 2px 4px;
+  padding: var(--space-0-5) var(--space-1);
   border-radius: 3px;
   transition: opacity 0.12s;
 }

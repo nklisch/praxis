@@ -181,7 +181,8 @@
 /* Each notes entry: ◆ marker glyph (absolute left) + detail textarea */
 .notesEntry {
   position: relative;
-  padding-left: 22px; /* space for the ◆ marker */
+  /* design-system-exception: 22px offset matches the absolute-positioned ◆ marker width; no token equivalent */
+  padding-left: 22px;
   border-radius: var(--radius-sm, 3px);
   transition: background 0.12s;
 }
@@ -340,5 +341,5 @@
 
 .removeBtn:hover {
   color: var(--color-danger);
-  background: rgba(163, 39, 33, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }

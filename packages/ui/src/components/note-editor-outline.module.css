@@ -17,11 +17,11 @@
 .keyboardHints {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  padding: 10px 14px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm, 4px);
-  margin-bottom: 28px;
+  margin-bottom: var(--space-8);
   font: var(--font-size-xs) / 1 var(--font-mono);
   letter-spacing: 0.04em;
   color: var(--color-text-secondary);
@@ -30,12 +30,12 @@
 .hintGroup {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .kbd {
   font: var(--font-weight-semibold) 10px / 1 var(--font-mono);
-  padding: 3px 6px;
+  padding: var(--space-0-5) var(--space-1-5);
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: 3px;
@@ -58,8 +58,8 @@
 .bulletRow {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 3px 0;
+  gap: var(--space-2);
+  padding: var(--space-0-5) 0;
   position: relative;
 }
 
@@ -70,7 +70,7 @@
   font-size: 13px;
   cursor: grab;
   opacity: 0;
-  transition: opacity 100ms;
+  transition: opacity var(--t-quick);
   min-width: 1ch;
   user-select: none;
   flex-shrink: 0;
@@ -130,8 +130,8 @@
 
 .text:focus {
   background: var(--color-accent-muted);
-  padding-left: 4px;
-  margin-left: -4px;
+  padding-left: var(--space-1);
+  margin-left: calc(-1 * var(--space-1));
   border-radius: 2px;
 }
 
@@ -153,6 +153,7 @@
 
 /* Level 2 — regular supporting detail */
 .level2 {
+  /* design-system-exception: 28px indent for outline level; no exact token match */
   padding-left: 28px;
 }
 
@@ -163,6 +164,7 @@
 
 /* Level 3 — secondary colour, slightly smaller */
 .level3 {
+  /* design-system-exception: 56px = 2× level-2 indent for outline hierarchy */
   padding-left: 56px;
   color: var(--color-text-secondary);
 }
@@ -173,6 +175,7 @@
 
 /* Level 4 — muted italic asides */
 .level4 {
+  /* design-system-exception: 84px = 3× level-2 indent for outline hierarchy */
   padding-left: 84px;
   color: var(--color-text-tertiary);
 }
@@ -200,18 +203,18 @@
 /* ── New bullet footer ───────────────────────────────────────────────────── */
 
 .newBullet {
-  padding: 12px 0;
+  padding: var(--space-3) 0;
   font: italic var(--font-size-sm) / 1 var(--font-serif);
   color: var(--color-text-tertiary);
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
   cursor: text;
   background: transparent;
   border: none;
   width: 100%;
   text-align: left;
-  transition: color 120ms;
+  transition: color var(--t-quick);
 }
 
 .newBullet:hover {
