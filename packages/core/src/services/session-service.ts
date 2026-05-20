@@ -1,6 +1,6 @@
 import { assignments, documentChunks, documents, notes } from "@praxis/artifacts/schema";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, notInArray } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { readEngineConfig } from "../config/index.js";
 import { appendEpisodic, nextTurnIndex, recordUserMessage } from "../session/episodic.js";
@@ -318,19 +318,28 @@ export class SessionServiceImpl implements SessionService {
     };
   }
 
-  async list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]> {
+  async list(opts?: {
+    includeEnded?: boolean;
+    limit?: number;
+    excludeModeIds?: string[];
+  }): Promise<SessionSummary[]> {
     const studentId = getOrCreateDefaultStudentId(this.deps.db);
     const limit = opts?.limit ?? 100;
     const includeEnded = opts?.includeEnded ?? true;
+    const excludeModeIds = opts?.excludeModeIds ?? [];
 
-    const where = includeEnded
-      ? eq(sessions.studentId, studentId)
-      : and(eq(sessions.studentId, studentId), isNull(sessions.endedAt));
+    const predicates: ReturnType<typeof eq>[] = [eq(sessions.studentId, studentId)];
+    if (!includeEnded) {
+      predicates.push(isNull(sessions.endedAt));
+    }
+    if (excludeModeIds.length > 0) {
+      predicates.push(notInArray(sessions.modeId, excludeModeIds));
+    }
 
     const rows = this.deps.db
       .select()
       .from(sessions)
-      .where(where)
+      .where(and(...predicates))
       .orderBy(desc(sessions.startedAt))
       .limit(limit)
       .all();

@@ -594,6 +594,76 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   });
 });
 
+// ── praxis.session.list — excludeModeIds filter envelope ─────────────────────
+
+describe("praxis.session.list — excludeModeIds filter", () => {
+  it("forwards { excludeModeIds: ['configure'] } to the service", async () => {
+    const log = makeFakeLogger();
+    let capturedOpts: unknown;
+    const services = makeServices();
+    // Override list to capture call args
+    services.session.list = vi.fn().mockImplementation(async (opts: unknown) => {
+      capturedOpts = opts;
+      return [];
+    });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.list");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { excludeModeIds: ["configure"] });
+    expect(result).toMatchObject({ ok: true, value: [] });
+    expect(capturedOpts).toEqual({ excludeModeIds: ["configure"] });
+  });
+
+  it("forwards combined opts { limit, includeEnded, excludeModeIds } to the service", async () => {
+    const log = makeFakeLogger();
+    let capturedOpts: unknown;
+    const services = makeServices();
+    services.session.list = vi.fn().mockImplementation(async (opts: unknown) => {
+      capturedOpts = opts;
+      return [];
+    });
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.list");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.(
+      {},
+      { limit: 10, includeEnded: true, excludeModeIds: ["configure"] },
+    );
+    expect(result).toMatchObject({ ok: true, value: [] });
+    expect(capturedOpts).toEqual({ limit: 10, includeEnded: true, excludeModeIds: ["configure"] });
+  });
+
+  it("returns VALIDATION_FAILED when excludeModeIds contains a non-string (e.g. 42)", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.list");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, { excludeModeIds: [42] });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(services.session.list).not.toHaveBeenCalled();
+  });
+
+  it("accepts undefined payload and calls service with undefined", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.list");
+    expect(handler).toBeDefined();
+
+    const result = await handler?.({}, undefined);
+    expect(result).toMatchObject({ ok: true, value: [] });
+    expect(services.session.list).toHaveBeenCalledWith(undefined);
+  });
+});
+
 // ── praxis.session.active — modeId payload variants ──────────────────────────
 
 describe("praxis.session.active — modeId filter payload", () => {

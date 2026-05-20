@@ -161,8 +161,24 @@ describe("useLibrary", () => {
       expect(client.artifacts.courses).toHaveBeenCalled();
       expect(client.packs.listAvailable).toHaveBeenCalled();
       expect(client.documents.list).toHaveBeenCalled();
-      expect(client.session.list).toHaveBeenCalledWith({ limit: 10, includeEnded: true });
+      expect(client.session.list).toHaveBeenCalledWith({
+        limit: 10,
+        includeEnded: true,
+        excludeModeIds: ["configure"],
+      });
     });
+  });
+
+  it("passes excludeModeIds: ['configure'] to session.list to hide configure sessions", async () => {
+    const client = makeClient();
+    renderHook(() => useLibrary(), { wrapper: wrapper(client) });
+
+    await waitFor(() => {
+      expect(client.session.list).toHaveBeenCalled();
+    });
+
+    const callArgs = (client.session.list as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(callArgs).toMatchObject({ excludeModeIds: ["configure"] });
   });
 
   it("exposes data with all four sections after load", async () => {

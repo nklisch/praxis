@@ -172,6 +172,7 @@ export function registerSessionHandlers(
     .object({
       includeEnded: z.boolean().optional(),
       limit: z.number().int().positive().optional(),
+      excludeModeIds: z.array(z.string()).optional(),
     })
     .optional();
 
@@ -183,6 +184,7 @@ export function registerSessionHandlers(
           ? {
               ...(opts.includeEnded !== undefined && { includeEnded: opts.includeEnded }),
               ...(opts.limit !== undefined && { limit: opts.limit }),
+              ...(opts.excludeModeIds !== undefined && { excludeModeIds: opts.excludeModeIds }),
             }
           : undefined,
       ),

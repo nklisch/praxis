@@ -27,8 +27,14 @@ export interface SessionService {
    *
    * @param opts.includeEnded - when true, includes sessions with endedAt set. Default true.
    * @param opts.limit - default 100.
+   * @param opts.excludeModeIds - when non-empty, sessions whose modeId is in the array are excluded.
+   *   Filtering is applied at the DB layer so that `limit` counts only non-excluded sessions.
    */
-  list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]>;
+  list(opts?: {
+    includeEnded?: boolean;
+    limit?: number;
+    excludeModeIds?: string[];
+  }): Promise<SessionSummary[]>;
   /**
    * Phase 16: open a child session bound to an assignment, deriving the mode
    * from the assignment's kind. The child session's parentSessionId is set to

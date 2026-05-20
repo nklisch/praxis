@@ -50,7 +50,11 @@ export class SessionClient implements SessionService {
     return unwrapEnvelope(result);
   }
 
-  async list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]> {
+  async list(opts?: {
+    includeEnded?: boolean;
+    limit?: number;
+    excludeModeIds?: string[];
+  }): Promise<SessionSummary[]> {
     const result = await this.transport.invoke<IpcEnvelope<SessionSummary[]> | SessionSummary[]>(
       `${CHANNEL}.list`,
       opts,

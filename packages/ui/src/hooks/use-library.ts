@@ -38,7 +38,7 @@ export function useLibrary(): UseLibraryResult {
       client.artifacts.courses(),
       client.packs.listAvailable(),
       client.documents.list(),
-      client.session.list({ limit: 10, includeEnded: true }),
+      client.session.list({ limit: 10, includeEnded: true, excludeModeIds: ["configure"] }),
     ]);
     return { courses, packs, documents, recentSessions };
   }, [client]);
