@@ -27,6 +27,8 @@ import { makeEmptyPedagogyPackService } from "@praxis/curriculum/pedagogy";
 import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
 import { makeToolContext } from "../../../../../tests/helpers/tool-context.js";
+import { InProcessToolRegistry } from "../../registry.js";
+import { COURSE_TOOLS } from "../index.js";
 import { startDraftingTool } from "../start-drafting.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -332,5 +334,36 @@ describe("course.start_drafting handler — session-scope attach", () => {
     expect(attachManySpy).toHaveBeenCalledOnce();
 
     bootstrap.shutdown();
+  });
+});
+
+// ─── Wire-identifier contract tests ──────────────────────────────────────────
+
+describe("course.start_drafting — wire identifier", () => {
+  it("ToolDefinition.name is the wire identifier 'course.start_drafting'", () => {
+    expect(startDraftingTool.name).toBe("course.start_drafting");
+  });
+
+  it("startDraftingTool is not named 'course.start_exploration'", () => {
+    expect(startDraftingTool.name).not.toBe("course.start_exploration");
+  });
+
+  it("COURSE_TOOLS barrel does not contain the old 'course.start_exploration' wire identifier", () => {
+    const barrelNames = COURSE_TOOLS.map((t) => t.name);
+    expect(barrelNames).not.toContain("course.start_exploration");
+  });
+
+  it("registry built from [...COURSE_TOOLS, startDraftingTool] exposes 'course.start_drafting' and not 'course.start_exploration'", () => {
+    // Mirror how services.ts wires the registry in production: COURSE_TOOLS barrel
+    // (which intentionally excludes startDraftingTool) plus startDraftingTool appended.
+    const ctx = makeToolContext();
+    const registry = new InProcessToolRegistry({
+      tools: [...COURSE_TOOLS, startDraftingTool],
+      context: ctx,
+      log: MOCK_LOG,
+    });
+    const names = registry.list().map((t) => t.name);
+    expect(names).toContain("course.start_drafting");
+    expect(names).not.toContain("course.start_exploration");
   });
 });
