@@ -39,14 +39,14 @@
 
 /* Feedback states — correct / incorrect after submission */
 .correct {
-  border-color: rgba(74, 222, 128, 0.5);
-  background: rgba(74, 222, 128, 0.08);
+  border-color: color-mix(in srgb, var(--color-success) 50%, transparent);
+  background: color-mix(in srgb, var(--color-success) 8%, transparent);
   color: var(--color-success);
 }
 
 .incorrect {
-  border-color: rgba(248, 113, 113, 0.5);
-  background: rgba(248, 113, 113, 0.08);
+  border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
   color: var(--color-danger);
 }
 

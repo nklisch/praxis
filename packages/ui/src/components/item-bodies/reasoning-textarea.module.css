@@ -40,7 +40,7 @@
 }
 
 .textarea.empty {
-  border-color: rgba(251, 191, 36, 0.3);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
 }
 
 .textarea:disabled {

@@ -29,7 +29,7 @@
 }
 
 .orderItem:hover:not(.disabled) {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: color-mix(in srgb, var(--color-bg-secondary) 20%, transparent);
 }
 
 .orderItem.dragging {
@@ -39,7 +39,7 @@
 
 .orderItem.over {
   border-color: var(--color-accent);
-  background: rgba(96, 165, 250, 0.06);
+  background: color-mix(in srgb, var(--color-info) 6%, transparent);
 }
 
 .orderItem.disabled {
@@ -48,13 +48,13 @@
 }
 
 .orderItem.correct {
-  border-color: rgba(74, 222, 128, 0.5);
-  background: rgba(74, 222, 128, 0.08);
+  border-color: color-mix(in srgb, var(--color-success) 50%, transparent);
+  background: color-mix(in srgb, var(--color-success) 8%, transparent);
 }
 
 .orderItem.incorrect {
-  border-color: rgba(248, 113, 113, 0.5);
-  background: rgba(248, 113, 113, 0.08);
+  border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
 /* Drag handle */
