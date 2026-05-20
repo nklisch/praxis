@@ -39,9 +39,9 @@
   font-size: 0.65rem;
   padding: 0.1rem 0.4rem;
   border-radius: 3px;
-  background: rgba(251, 191, 36, 0.15);
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
   color: var(--color-warning);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
 }
 
 .prompt {
