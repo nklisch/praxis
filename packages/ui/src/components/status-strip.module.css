@@ -4,12 +4,12 @@
 
 .strip {
   /* Idle: transparent + collapsed so it takes up no visual or layout space */
-  padding: 0 32px;
+  padding: 0 var(--space-8);
   background: transparent;
   border-bottom: 1px solid transparent;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   font: 11px / 1 var(--font-mono);
   color: var(--color-text-tertiary);
@@ -32,7 +32,7 @@
 
 /* Active: expand and reveal */
 .strip.hasWork {
-  padding: 6px 32px;
+  padding: var(--space-1-5) var(--space-8);
   background: var(--color-bg-tertiary);
   border-bottom-color: var(--color-border);
   max-height: 48px;
@@ -44,7 +44,7 @@
 .item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   color: var(--color-text-secondary);
 }
 
@@ -52,7 +52,7 @@
   /* Separator bullet between concurrent items */
   content: "·";
   color: var(--color-text-tertiary);
-  margin-right: 6px;
+  margin-right: var(--space-1-5);
 }
 
 .itemDone {
@@ -140,7 +140,7 @@
   inset: 0 auto 0 0;
   width: var(--status-strip-progress, 0%);
   background: var(--tint-course-create);
-  transition: width 240ms ease-out;
+  transition: width var(--dur-quick) var(--ease-emphasized);
 }
 
 @media (prefers-reduced-motion: reduce) {

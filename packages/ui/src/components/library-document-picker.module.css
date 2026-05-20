@@ -82,8 +82,8 @@
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--color-accent);
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: color-mix(in srgb, var(--color-info) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-info) 30%, transparent);
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
   white-space: nowrap;
@@ -107,7 +107,7 @@
 }
 
 .attachBtn:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.1);
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
 }
 
 .attachBtn:disabled {
@@ -140,7 +140,7 @@
 }
 
 .uploadBtn:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.1);
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
 }
 
 .uploadBtn:disabled {
@@ -162,7 +162,7 @@
 .dropOverlay {
   position: absolute;
   inset: 0;
-  background: rgba(99, 102, 241, 0.12);
+  background: color-mix(in srgb, var(--color-info) 12%, transparent);
   border: 2px dashed var(--color-accent);
   border-radius: 6px;
   display: flex;

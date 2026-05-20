@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
@@ -69,5 +69,5 @@
 .image {
   max-width: 100%;
   border-radius: 4px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-text-primary) 40%, transparent);
 }
