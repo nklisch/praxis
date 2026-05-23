@@ -66,10 +66,14 @@ Out of scope for this feature: quiz/homework/other-mode right-rail
 audits. If similar crowding exists in other modes (quiz/homework have
 their own `SidekickPanel` slide-in chat), file separate fix stories.
 
-## Possible re-scope
+## Design decisions (feature-design --only-questions, 2026-05-23)
 
-This feature could collapse to a single story now that the direction
-is locked. Held as a feature in case the implementation surfaces
-follow-on cleanup (e.g., the resizable width hook key naming, or
-ChatRightPanel's `isMode("course-create")` integration touches the
-inline-note-panel branch). Implementation pass decides.
+- **Substrate shape: collapse to a single story.** Direction is locked
+  (hide in course-create), implementation is ~30 lines (modeId guard +
+  UI test), the feature shell adds no value. Next pass should:
+  1. Spawn `epic-course-create-readiness-sidekick-fit-hide` (story,
+     stage: implementing, parent: epic-course-create-readiness).
+  2. Move this feature file to `.work/archive/` with stage: done and
+     a closure note pointing at the story.
+  Out of scope for this collapse: quiz/homework right-rail audit
+  (file separately if needed).
