@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/concept-maps — Option 1: Editorial TOC</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display, var(--font-serif)); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+
+    main { padding: 40px 32px 80px; max-width: 920px; margin: 0 auto; }
+
+    .head-block { margin-bottom: 56px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+    .head-block .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 12px; display: flex; align-items: baseline; gap: 8px; }
+    .head-block .kicker .ornament { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); }
+    .head-block h1 { font: 500 italic 40px/1.15 var(--font-display, var(--font-serif)); margin: 0 0 12px; }
+    .head-block h1 em { font-weight: 600; }
+    .head-block .deck { font: italic 16px/1.55 var(--font-serif); color: var(--color-text-secondary); max-width: 60ch; }
+
+    /* Course-as-issue sections */
+    .course-issue { margin-bottom: 56px; }
+    .course-issue:last-child { margin-bottom: 0; }
+    .course-issue__head { display: flex; align-items: baseline; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); margin-bottom: 8px; }
+    .course-issue__num { font: 600 italic 18px/1 var(--font-display, var(--font-serif)); color: var(--color-text-tertiary); width: 28px; flex-shrink: 0; }
+    .course-issue__name { font: 500 italic 22px/1.2 var(--font-display, var(--font-serif)); flex: 1; }
+    .course-issue__name em { font-weight: 600; }
+    .course-issue__coverage { font: 11px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--color-text-secondary); }
+    .course-issue__coverage .num { color: var(--color-text-primary); font-weight: 600; }
+    .course-issue__coverage .bar { display: inline-block; width: 64px; height: 3px; background: var(--color-bg-tertiary); margin-left: 8px; vertical-align: 2px; }
+    .course-issue__coverage .bar-fill { display: block; height: 100%; background: var(--color-accent); }
+
+    /* Map rows — numbered, ruled */
+    .map-list { list-style: none; padding: 0; margin: 0; }
+    .map-row { display: grid; grid-template-columns: 32px 1fr auto auto; gap: 16px; align-items: baseline; padding: 14px 4px; border-bottom: 1px solid var(--color-border); cursor: pointer; transition: var(--t-quick, all 160ms); }
+    .map-row:hover { background: var(--color-accent-muted); padding-left: 12px; padding-right: 12px; margin: 0 -8px; }
+    .map-row:last-child { border-bottom: none; }
+    .map-row__num { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+    .map-row__title { font: italic 17px/1.3 var(--font-serif); color: var(--color-text-primary); }
+    .map-row__versions { font: 11px/1 var(--font-mono); color: var(--color-text-secondary); letter-spacing: 0.04em; white-space: nowrap; }
+    .map-row__badge { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; background: var(--color-accent-muted); color: var(--color-accent); border-radius: 2px; white-space: nowrap; }
+    .map-row__badge.empty { visibility: hidden; }
+
+    /* Bottom action */
+    .new-cta { margin-top: 64px; padding-top: 32px; border-top: 1px solid var(--color-border); text-align: center; font: italic 14px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .new-cta a { color: var(--color-accent); text-decoration: none; font-style: normal; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 1 — Editorial TOC</strong>
+    <span>Course-as-issue: each course is a numbered chapter, maps as ruled entries underneath. Long single column. Coverage shown at course level (secondary). Magazine table-of-contents feel.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="head-block">
+      <div class="kicker"><span class="ornament">‡</span> Concept maps</div>
+      <h1>Your <em>concept maps</em></h1>
+      <p class="deck">Eight maps across four courses. Open any map to revise. Each course's mapped-vs-canonical coverage sits in the right margin — gaps are an invitation, not a verdict.</p>
+    </section>
+
+    <section class="course-issue">
+      <div class="course-issue__head">
+        <span class="course-issue__num">i.</span>
+        <span class="course-issue__name"><em>Algebra I</em></span>
+        <span class="course-issue__coverage">5 of 18 concepts mapped <span class="bar"><span class="bar-fill" style="width: 28%"></span></span> <span class="num">28%</span></span>
+      </div>
+      <ul class="map-list">
+        <li class="map-row">
+          <span class="map-row__num">01</span>
+          <span class="map-row__title">Linear functions</span>
+          <span class="map-row__versions">3 versions</span>
+          <span class="map-row__badge">2 discussion points</span>
+        </li>
+        <li class="map-row">
+          <span class="map-row__num">02</span>
+          <span class="map-row__title">Systems of equations</span>
+          <span class="map-row__versions">1 version</span>
+          <span class="map-row__badge empty"></span>
+        </li>
+        <li class="map-row">
+          <span class="map-row__num">03</span>
+          <span class="map-row__title">Quadratics — factoring</span>
+          <span class="map-row__versions">2 versions</span>
+          <span class="map-row__badge">1 discussion point</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="course-issue">
+      <div class="course-issue__head">
+        <span class="course-issue__num">ii.</span>
+        <span class="course-issue__name"><em>Biology</em> — Cells</span>
+        <span class="course-issue__coverage">7 of 12 concepts mapped <span class="bar"><span class="bar-fill" style="width: 58%"></span></span> <span class="num">58%</span></span>
+      </div>
+      <ul class="map-list">
+        <li class="map-row">
+          <span class="map-row__num">01</span>
+          <span class="map-row__title">Cell membrane transport</span>
+          <span class="map-row__versions">5 versions</span>
+          <span class="map-row__badge">1 discussion point</span>
+        </li>
+        <li class="map-row">
+          <span class="map-row__num">02</span>
+          <span class="map-row__title">Mitosis vs Meiosis</span>
+          <span class="map-row__versions">2 versions</span>
+          <span class="map-row__badge empty"></span>
+        </li>
+        <li class="map-row">
+          <span class="map-row__num">03</span>
+          <span class="map-row__title">Photosynthesis carbon cycle</span>
+          <span class="map-row__versions">1 version</span>
+          <span class="map-row__badge empty"></span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="course-issue">
+      <div class="course-issue__head">
+        <span class="course-issue__num">iii.</span>
+        <span class="course-issue__name"><em>Calculus</em> — Limits</span>
+        <span class="course-issue__coverage">8 of 9 concepts mapped <span class="bar"><span class="bar-fill" style="width: 89%"></span></span> <span class="num">89%</span></span>
+      </div>
+      <ul class="map-list">
+        <li class="map-row">
+          <span class="map-row__num">01</span>
+          <span class="map-row__title">Epsilon-delta intuition</span>
+          <span class="map-row__versions">4 versions</span>
+          <span class="map-row__badge empty"></span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="course-issue">
+      <div class="course-issue__head">
+        <span class="course-issue__num">iv.</span>
+        <span class="course-issue__name"><em>World History</em> — Modernity</span>
+        <span class="course-issue__coverage">3 of 22 concepts mapped <span class="bar"><span class="bar-fill" style="width: 14%"></span></span> <span class="num">14%</span></span>
+      </div>
+      <ul class="map-list">
+        <li class="map-row">
+          <span class="map-row__num">01</span>
+          <span class="map-row__title">Industrial Revolution causes</span>
+          <span class="map-row__versions">2 versions</span>
+          <span class="map-row__badge empty"></span>
+        </li>
+        <li class="map-row">
+          <span class="map-row__num">02</span>
+          <span class="map-row__title">Cold War — proxy conflicts</span>
+          <span class="map-row__versions">1 version</span>
+          <span class="map-row__badge empty"></span>
+        </li>
+      </ul>
+    </section>
+
+    <div class="new-cta">
+      To start a new map, open a course and add it from the concept-maps tab. <a href="#">Browse courses ↗</a>
+    </div>
+  </main>
+</body>
+</html>

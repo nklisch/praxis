@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/concept-maps — Option 3: Atlas (Visual Index)</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display, var(--font-serif)); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+
+    main { padding: 32px 32px 80px; max-width: 1240px; margin: 0 auto; }
+
+    .head-bar { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid var(--color-border); margin-bottom: 28px; gap: 24px; flex-wrap: wrap; }
+    .title-block .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 6px; }
+    .title-block h1 { font: 500 italic 28px/1.1 var(--font-display, var(--font-serif)); margin: 0; }
+    .title-block h1 em { font-weight: 600; }
+    .title-block .deck { font: italic 13px/1.4 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; }
+
+    .compact-filter { display: flex; gap: 8px; align-items: baseline; font: 12px/1 var(--font-serif); }
+    .compact-filter .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .compact-filter a { color: var(--color-text-secondary); text-decoration: none; padding: 4px 6px; border-radius: 2px; }
+    .compact-filter a.active { color: var(--color-text-primary); background: var(--color-accent-muted); }
+
+    /* Atlas grid — 3 columns of map "thumbnails" with metadata under */
+    .atlas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .atlas-tile { display: flex; flex-direction: column; cursor: pointer; }
+
+    .atlas-tile__thumb { background: var(--color-bg-secondary); border: 1px solid var(--color-border); aspect-ratio: 4 / 3; padding: 18px; position: relative; transition: var(--t-quick, all 160ms); overflow: hidden; }
+    .atlas-tile:hover .atlas-tile__thumb { border-color: var(--color-accent); }
+    .atlas-tile__thumb svg { width: 100%; height: 100%; }
+    .atlas-tile__thumb .node { fill: var(--color-bg-tertiary); stroke: var(--color-text-tertiary); stroke-width: 1; }
+    .atlas-tile__thumb .node-text { font: 600 9px var(--font-mono); fill: var(--color-text-secondary); text-anchor: middle; }
+    .atlas-tile__thumb .edge { stroke: var(--color-border-strong); stroke-width: 1; fill: none; }
+    .atlas-tile__thumb .accent-node { fill: var(--color-accent-muted); stroke: var(--color-accent); }
+
+    .atlas-tile__thumb .badge-strip { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; }
+    .atlas-tile__thumb .strip-badge { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; background: var(--color-bg-primary); color: var(--color-accent); border-radius: 2px; border: 1px solid var(--color-accent); }
+
+    .atlas-tile__meta { padding: 12px 4px 0; display: flex; flex-direction: column; gap: 4px; }
+    .atlas-tile__course { font: 600 9px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .atlas-tile__title { font: 500 italic 16px/1.25 var(--font-display, var(--font-serif)); color: var(--color-text-primary); }
+    .atlas-tile__title em { font-weight: 600; }
+    .atlas-tile__foot { display: flex; align-items: baseline; gap: 8px; font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; margin-top: 2px; }
+    .atlas-tile__foot .coverage-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); display: inline-block; vertical-align: 1px; margin-right: 4px; }
+    .atlas-tile__foot .coverage-dot.low { background: var(--color-border-strong); }
+    .atlas-tile__foot .coverage-dot.high { background: var(--color-success); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 3 — Atlas (Visual Index)</strong>
+    <span>Maps as artifacts: each tile shows a stylized preview of the map's shape (built-out vs sparse is visually obvious). Metadata under the thumbnail. 3-col grid. The visual is the primary signal; coverage is implied by how dense the tile looks.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="head-bar">
+      <div class="title-block">
+        <div class="kicker">‡ Concept maps · 8 maps · 4 courses</div>
+        <h1>An <em>atlas</em> of your thinking</h1>
+        <p class="deck">Each tile is a small portrait of the map's shape. Click to open.</p>
+      </div>
+      <div class="compact-filter">
+        <span class="label">Show</span>
+        <a href="#" class="active">all</a>
+        <a href="#">algebra</a>
+        <a href="#">biology</a>
+        <a href="#">calculus</a>
+        <a href="#">history</a>
+      </div>
+    </div>
+
+    <div class="atlas">
+
+      <article class="atlas-tile">
+        <div class="atlas-tile__thumb">
+          <div class="badge-strip"><span class="strip-badge">1 discuss</span></div>
+          <svg viewBox="0 0 200 150">
+            <!-- denser map — 8 nodes -->
+            <line class="edge" x1="100" y1="30" x2="60" y2="60" />
+            <line class="edge" x1="100" y1="30" x2="140" y2="60" />
+            <line class="edge" x1="60" y1="60" x2="40" y2="100" />
+            <line class="edge" x1="60" y1="60" x2="90" y2="100" />
+            <line class="edge" x1="140" y1="60" x2="120" y2="100" />
+            <line class="edge" x1="140" y1="60" x2="170" y2="100" />
+            <line class="edge" x1="90" y1="100" x2="120" y2="100" />
+            <line class="edge" x1="40" y1="100" x2="70" y2="135" />
+            <circle class="node accent-node" cx="100" cy="30" r="14"/>
+            <text class="node-text" x="100" y="33">memb</text>
+            <circle class="node" cx="60" cy="60" r="11"/>
+            <circle class="node" cx="140" cy="60" r="11"/>
+            <circle class="node" cx="40" cy="100" r="10"/>
+            <circle class="node" cx="90" cy="100" r="10"/>
+            <circle class="node" cx="120" cy="100" r="10"/>
+            <circle class="node" cx="170" cy="100" r="10"/>
+            <circle class="node" cx="70" cy="135" r="9"/>
+          </svg>
+        </div>
+        <div class="atlas-tile__meta">
+          <span class="atlas-tile__course">Biology — Cells</span>
+          <span class="atlas-tile__title">Cell membrane <em>transport</em></span>
+          <span class="atlas-tile__foot">5 versions · 2h ago · <span class="coverage-dot"></span>58%</span>
+        </div>
+      </article>
+
+      <article class="atlas-tile">
+        <div class="atlas-tile__thumb">
+          <svg viewBox="0 0 200 150">
+            <!-- well-built — 7 nodes in tight cluster -->
+            <line class="edge" x1="100" y1="40" x2="70" y2="75" />
+            <line class="edge" x1="100" y1="40" x2="130" y2="75" />
+            <line class="edge" x1="70" y1="75" x2="50" y2="115" />
+            <line class="edge" x1="70" y1="75" x2="100" y2="115" />
+            <line class="edge" x1="130" y1="75" x2="100" y2="115" />
+            <line class="edge" x1="130" y1="75" x2="150" y2="115" />
+            <circle class="node accent-node" cx="100" cy="40" r="13"/>
+            <text class="node-text" x="100" y="43">ε-δ</text>
+            <circle class="node" cx="70" cy="75" r="10"/>
+            <circle class="node" cx="130" cy="75" r="10"/>
+            <circle class="node" cx="50" cy="115" r="9"/>
+            <circle class="node" cx="100" cy="115" r="9"/>
+            <circle class="node" cx="150" cy="115" r="9"/>
+          </svg>
+        </div>
+        <div class="atlas-tile__meta">
+          <span class="atlas-tile__course">Calculus — Limits</span>
+          <span class="atlas-tile__title">Epsilon-delta <em>intuition</em></span>
+          <span class="atlas-tile__foot">4 versions · yesterday · <span class="coverage-dot high"></span>89%</span>
+        </div>
+      </article>
+
+      <article class="atlas-tile">
+        <div class="atlas-tile__thumb">
+          <div class="badge-strip"><span class="strip-badge">2 discuss</span></div>
+          <svg viewBox="0 0 200 150">
+            <!-- medium — 5 nodes -->
+            <line class="edge" x1="100" y1="45" x2="60" y2="90" />
+            <line class="edge" x1="100" y1="45" x2="140" y2="90" />
+            <line class="edge" x1="60" y1="90" x2="100" y2="125" />
+            <line class="edge" x1="140" y1="90" x2="100" y2="125" />
+            <circle class="node accent-node" cx="100" cy="45" r="13"/>
+            <text class="node-text" x="100" y="48">f(x)</text>
+            <circle class="node" cx="60" cy="90" r="10"/>
+            <circle class="node" cx="140" cy="90" r="10"/>
+            <circle class="node" cx="100" cy="125" r="10"/>
+          </svg>
+        </div>
+        <div class="atlas-tile__meta">
+          <span class="atlas-tile__course">Algebra I</span>
+          <span class="atlas-tile__title">Linear <em>functions</em></span>
+          <span class="atlas-tile__foot">3 versions · 2 days ago · <span class="coverage-dot low"></span>28%</span>
+        </div>
+      </article>
+
+      <article class="atlas-tile">
+        <div class="atlas-tile__thumb">
+          <div class="badge-strip"><span class="strip-badge">1 discuss</span></div>
+          <svg viewBox="0 0 200 150">
+            <!-- medium — 5 nodes, different shape -->
+            <line class="edge" x1="100" y1="35" x2="100" y2="75" />
+            <line class="edge" x1="100" y1="75" x2="60" y2="115" />
+            <line class="edge" x1="100" y1="75" x2="140" y2="115" />
+            <line class="edge" x1="60" y1="115" x2="140" y2="115" />
+            <circle class="node accent-node" cx="100" cy="35" r="12"/>
+            <text class="node-text" x="100" y="38">x²</text>
+            <circle class="node" cx="100" cy="75" r="11"/>
+            <circle class="node" cx="60" cy="115" r="10"/>
+            <circle class="node" cx="140" cy="115" r="10"/>
+          </svg>
+        </div>
+        <div class="atlas-tile__meta">
+          <span class="atlas-tile__course">Algebra I</span>
+          <span class="atlas-tile__title">Quadratics — <em>factoring</em></span>
+          <span class="atlas-tile__foot">2 versions · 3 days ago · <span class="coverage-dot low"></span>28%</span>
+        </div>
+      </article>
+
+      <article class="atlas-tile">
+        <div class="atlas-tile__thumb">
+          <svg viewBox="0 0 200 150">
+            <!-- sparse — 4 nodes in line -->
+            <line class="edge" x1="40" y1="75" x2="90" y2="75" />
+            <line class="edge" x1="90" y1="75" x2="140" y2="75" />
+            <line class="edge" x1="140" y1="75" x2="170" y2="75" />
+            <circle class="node accent-node" cx="40" cy="75" r="13"/>
+            <text class="node-text" x="40" y="78">2n</text>
+            <circle class="node accent-node" cx="170" cy="75" r="13"/>
+            <text class="node-text" x="170" y="78">n²</text>
+            <circle class="node" cx="90" cy="75" r="10"/>
+            <circle class="node" cx="140" cy="75" r="10"/>
+          </svg>
+        </div>
+        <div class="atlas-tile__meta">
+          <span class="atlas-tile__course">Biology — Cells</span>
+          <span class="atlas-tile__title">Mitosis vs <em>Meiosis</em></span>
+          <span class="atlas-tile__foot">2 versions · 5 days ago · <span class="coverage-dot"></span>58%</span>
+        </div>
+      </article>
+
+      <article class="atlas-tile">
+        <div class="atlas-tile__thumb">
+          <svg viewBox="0 0 200 150">
+            <!-- sparse — 3 nodes -->
+            <line class="edge" x1="100" y1="40" x2="60" y2="110" />
+            <line class="edge" x1="100" y1="40" x2="140" y2="110" />
+            <circle class="node accent-node" cx="100" cy="40" r="14"/>
+            <text class="node-text" x="100" y="43">IR</text>
+            <circle class="node" cx="60" cy="110" r="11"/>
+            <circle class="node" cx="140" cy="110" r="11"/>
+          </svg>
+        </div>
+        <div class="atlas-tile__meta">
+          <span class="atlas-tile__course">World History — Modernity</span>
+          <span class="atlas-tile__title">Industrial Revolution <em>causes</em></span>
+          <span class="atlas-tile__foot">2 versions · 1 week ago · <span class="coverage-dot low"></span>14%</span>
+        </div>
+      </article>
+
+      <article class="atlas-tile">
+        <div class="atlas-tile__thumb">
+          <svg viewBox="0 0 200 150">
+            <!-- minimal — 2 nodes -->
+            <line class="edge" x1="80" y1="75" x2="130" y2="75" />
+            <circle class="node accent-node" cx="80" cy="75" r="15"/>
+            <text class="node-text" x="80" y="78">sys</text>
+            <circle class="node" cx="130" cy="75" r="12"/>
+          </svg>
+        </div>
+        <div class="atlas-tile__meta">
+          <span class="atlas-tile__course">Algebra I</span>
+          <span class="atlas-tile__title">Systems of <em>equations</em></span>
+          <span class="atlas-tile__foot">1 version · 2 weeks ago · <span class="coverage-dot low"></span>28%</span>
+        </div>
+      </article>
+
+      <article class="atlas-tile">
+        <div class="atlas-tile__thumb">
+          <svg viewBox="0 0 200 150">
+            <!-- cycle map — 4 nodes in a loop -->
+            <path class="edge" d="M 100 30 L 160 80 L 100 130 L 40 80 Z" />
+            <circle class="node accent-node" cx="100" cy="30" r="13"/>
+            <text class="node-text" x="100" y="33">CO₂</text>
+            <circle class="node" cx="160" cy="80" r="11"/>
+            <circle class="node" cx="100" cy="130" r="11"/>
+            <circle class="node" cx="40" cy="80" r="11"/>
+          </svg>
+        </div>
+        <div class="atlas-tile__meta">
+          <span class="atlas-tile__course">Biology — Cells</span>
+          <span class="atlas-tile__title">Photosynthesis <em>carbon cycle</em></span>
+          <span class="atlas-tile__foot">1 version · 3 weeks ago · <span class="coverage-dot"></span>58%</span>
+        </div>
+      </article>
+
+    </div>
+  </main>
+</body>
+</html>

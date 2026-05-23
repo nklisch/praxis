@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/concept-maps — Option 4: Hub + Recent</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display, var(--font-serif)); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+
+    main { padding: 96px 32px 80px; max-width: 720px; margin: 0 auto; }
+
+    /* Hero — single map invitation */
+    .hero { text-align: left; margin-bottom: 80px; }
+    .hero .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 16px; display: flex; gap: 10px; align-items: baseline; }
+    .hero .kicker .ornament { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 18px; }
+    .hero h1 { font: 500 italic 44px/1.15 var(--font-display, var(--font-serif)); margin: 0 0 18px; }
+    .hero h1 em { font-weight: 600; }
+    .hero .deck { font: italic 17px/1.55 var(--font-serif); color: var(--color-text-secondary); max-width: 50ch; margin-bottom: 40px; }
+
+    .hero-resume { background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: 24px 28px; display: flex; align-items: center; gap: 24px; cursor: pointer; transition: var(--t-quick, all 160ms); }
+    .hero-resume:hover { border-color: var(--color-accent); }
+    .hero-resume .marker { font-family: var(--font-serif); font-style: italic; color: var(--color-accent); font-size: 24px; flex-shrink: 0; }
+    .hero-resume .body { flex: 1; }
+    .hero-resume .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .hero-resume .title { font: 500 italic 22px/1.2 var(--font-display, var(--font-serif)); }
+    .hero-resume .title em { font-weight: 600; }
+    .hero-resume .meta { font: 12px/1.4 var(--font-mono); color: var(--color-text-secondary); margin-top: 4px; letter-spacing: 0.04em; }
+    .hero-resume .arrow { font-family: var(--font-serif); font-style: italic; color: var(--color-text-secondary); font-size: 28px; }
+
+    .hero-actions { margin-top: 24px; display: flex; gap: 24px; align-items: baseline; font: italic 14px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .hero-actions a { color: var(--color-accent); text-decoration: none; font-style: normal; font-weight: 500; }
+    .hero-actions .sep { color: var(--color-text-tertiary); }
+
+    /* Recent — compact rows */
+    .recent { padding-top: 32px; border-top: 1px solid var(--color-border); }
+    .recent__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+    .recent__head .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); }
+    .recent__head .browse { font: italic 12px/1 var(--font-serif); color: var(--color-text-tertiary); text-decoration: none; }
+    .recent__head .browse:hover { color: var(--color-accent); }
+
+    .recent-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; padding: 12px 4px; border-bottom: 1px solid var(--color-border); cursor: pointer; align-items: baseline; transition: var(--t-quick, all 160ms); }
+    .recent-row:hover { background: var(--color-accent-muted); padding-left: 12px; padding-right: 12px; margin: 0 -8px; }
+    .recent-row:last-child { border-bottom: none; }
+    .recent-row__left { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+    .recent-row__title { font: italic 15px/1.3 var(--font-serif); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .recent-row__course { font: 600 9px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); flex-shrink: 0; }
+    .recent-row__right { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; white-space: nowrap; }
+
+    /* Empty-state alternative (shown as a toggle for demo purposes) */
+    .empty-demo { margin-top: 96px; padding: 32px; border: 1px dashed var(--color-border-strong); background: var(--color-bg-tertiary); border-radius: 4px; }
+    .empty-demo .demo-label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 20px; }
+    .empty-demo .empty-hero { text-align: left; }
+    .empty-demo .empty-hero h2 { font: 500 italic 30px/1.2 var(--font-display, var(--font-serif)); margin: 0 0 10px; color: var(--color-text-primary); }
+    .empty-demo .empty-hero .empty-deck { font: italic 15px/1.55 var(--font-serif); color: var(--color-text-secondary); max-width: 50ch; margin-bottom: 24px; }
+    .empty-demo .empty-actions { display: flex; gap: 16px; font: italic 14px/1.4 var(--font-serif); color: var(--color-text-secondary); }
+    .empty-demo .empty-actions a { color: var(--color-accent); text-decoration: none; font-style: normal; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 4 — Hub + Recent</strong>
+    <span>Sparse, action-forward. Top: "resume your last map" as the primary affordance; secondary links to browse and new. Below: 4–5 recent maps as compact rows. Empty state is a first-class consideration (shown inline below). Best for users who have a handful of maps they cycle through.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="kicker"><span class="ornament">‡</span> Concept maps</div>
+      <h1>Pick up where you <em>left off</em>.</h1>
+      <p class="deck">Eight maps across four courses. Your last working session was two hours ago.</p>
+
+      <div class="hero-resume">
+        <span class="marker">↗</span>
+        <div class="body">
+          <div class="label">Resume</div>
+          <div class="title">Cell membrane <em>transport</em></div>
+          <div class="meta">Biology — Cells · v5 · last edit 2h ago · 1 discussion point</div>
+        </div>
+        <span class="arrow">→</span>
+      </div>
+
+      <div class="hero-actions">
+        <a href="#">Browse all 8 maps</a>
+        <span class="sep">·</span>
+        <a href="#">Open a course to start a new map</a>
+      </div>
+    </section>
+
+    <section class="recent">
+      <div class="recent__head">
+        <span class="label">Recent · last four</span>
+        <a href="#" class="browse">browse all ↗</a>
+      </div>
+
+      <div class="recent-row">
+        <div class="recent-row__left">
+          <span class="recent-row__course">Calc · Limits</span>
+          <span class="recent-row__title">Epsilon-delta intuition</span>
+        </div>
+        <span class="recent-row__right">v4 · yesterday</span>
+      </div>
+
+      <div class="recent-row">
+        <div class="recent-row__left">
+          <span class="recent-row__course">Algebra I</span>
+          <span class="recent-row__title">Linear functions</span>
+        </div>
+        <span class="recent-row__right">v3 · 2 days ago</span>
+      </div>
+
+      <div class="recent-row">
+        <div class="recent-row__left">
+          <span class="recent-row__course">Algebra I</span>
+          <span class="recent-row__title">Quadratics — factoring</span>
+        </div>
+        <span class="recent-row__right">v2 · 3 days ago</span>
+      </div>
+
+      <div class="recent-row">
+        <div class="recent-row__left">
+          <span class="recent-row__course">Biology · Cells</span>
+          <span class="recent-row__title">Mitosis vs Meiosis</span>
+        </div>
+        <span class="recent-row__right">v2 · 5 days ago</span>
+      </div>
+    </section>
+
+    <!-- Empty state demo — what this surface looks like for a brand-new user -->
+    <aside class="empty-demo">
+      <div class="demo-label">For comparison · empty state (no maps yet)</div>
+      <div class="empty-hero">
+        <h2>No concept maps <em>yet</em>.</h2>
+        <p class="empty-deck">Concept maps are visual sketches of how ideas connect. Open a course and start one from the concept-maps tab — Praxis will suggest the canonical concepts you might map.</p>
+        <div class="empty-actions">
+          <a href="#">Browse courses</a>
+          <span style="color: var(--color-text-tertiary);">·</span>
+          <a href="#">What is a concept map?</a>
+        </div>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

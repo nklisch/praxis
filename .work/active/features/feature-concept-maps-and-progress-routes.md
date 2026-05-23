@@ -49,10 +49,20 @@ and /documents, never mocking the destinations themselves.
 mocks via `/ux-ui-design:screens` — 4 options each for /concept-maps
 top-nav surface and /progress top-nav surface, picked separately.
 
-Mockup paths once generated:
+## Mockups
 
-- `.mockups/screens/feature-concept-maps-and-progress-routes-concept-maps/`
-- `.mockups/screens/feature-concept-maps-and-progress-routes-progress/`
+- `/concept-maps` index: `.mockups/screens/feature-concept-maps-and-progress-routes-concept-maps/index.html`
+  - **Selected: Option 2 — Swiss Grid Catalog** (2026-05-23)
+  - Flat sortable 2-col card grid. Per-card coverage micro-bar as a
+    primary signal at every map. Filter pills by course (All / Algebra /
+    Biology / Calculus / History) at the top; sort tabs (recent /
+    coverage / course) on the right. Dense, scannable, catalog-like.
+    Coverage surfaces per-map rather than per-course.
+  - Considered: Editorial TOC (course-as-issue, per-course coverage in
+    the right margin), Atlas / Visual Index (thumbnail-first grid showing
+    map shape), Hub + Recent (sparse action-forward with resume hero)
+    — in `.../option-{1,3,4}.html`.
+- `/progress` surface: mockups pending (next /ux-ui-design:screens pass).
 
 ## Design questions for feature-design
 

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/concept-maps — Option 2: Swiss Grid Catalog</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display, var(--font-serif)); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+
+    main { padding: 32px 32px 80px; max-width: 1180px; margin: 0 auto; }
+
+    /* Compact head + control bar */
+    .head-bar { display: grid; grid-template-columns: auto 1fr auto; gap: 32px; align-items: end; padding-bottom: 20px; border-bottom: 1px solid var(--color-border); margin-bottom: 24px; }
+    .title-block .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 6px; }
+    .title-block h1 { font: 500 italic 28px/1.1 var(--font-display, var(--font-serif)); margin: 0; }
+    .title-block h1 em { font-weight: 600; }
+    .title-block .count { font: 13px/1 var(--font-mono); color: var(--color-text-tertiary); margin-top: 6px; letter-spacing: 0.04em; }
+
+    .filter-row { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+    .filter-pill { font: 500 12px/1 var(--font-sans); padding: 6px 12px; background: transparent; color: var(--color-text-secondary); border: 1px solid var(--color-border); border-radius: 2px; cursor: pointer; }
+    .filter-pill.active { background: var(--color-bg-inverse); color: var(--color-text-inverse); border-color: var(--color-bg-inverse); }
+    .filter-pill:hover { border-color: var(--color-border-strong); }
+
+    .sort-row { display: flex; gap: 12px; align-items: baseline; }
+    .sort-row .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .sort-row a { font: italic 12px/1 var(--font-serif); color: var(--color-text-secondary); text-decoration: none; padding-bottom: 2px; border-bottom: 1px solid transparent; }
+    .sort-row a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+
+    /* Card grid */
+    .map-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .map-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: 20px 24px; cursor: pointer; transition: var(--t-quick, all 160ms); display: flex; flex-direction: column; gap: 14px; }
+    .map-card:hover { border-color: var(--color-border-strong); transform: translateY(-1px); }
+
+    .map-card__head { display: flex; align-items: baseline; gap: 12px; justify-content: space-between; }
+    .map-card__course { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .map-card__when { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); }
+
+    .map-card__title { font: 500 italic 22px/1.2 var(--font-display, var(--font-serif)); color: var(--color-text-primary); }
+    .map-card__title em { font-weight: 600; }
+
+    .map-card__meta { display: flex; align-items: baseline; gap: 14px; font: 12px/1.4 var(--font-mono); color: var(--color-text-secondary); letter-spacing: 0.04em; }
+    .map-card__meta .badge { font: 600 9px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; background: var(--color-accent-muted); color: var(--color-accent); border-radius: 2px; }
+
+    /* Coverage micro-bar — primary signal */
+    .map-card__coverage { display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid var(--color-border); }
+    .map-card__coverage-bar { flex: 1; height: 4px; background: var(--color-bg-tertiary); position: relative; }
+    .map-card__coverage-bar > span { display: block; height: 100%; background: var(--color-accent); }
+    .map-card__coverage-label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--color-text-secondary); white-space: nowrap; }
+    .map-card__coverage-label .num { color: var(--color-text-primary); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 2 — Swiss Grid Catalog</strong>
+    <span>Flat sortable card grid. Coverage as a primary per-map signal (micro-bar at the foot of every card). Filter by course; sort by recency / coverage / course. Dense, scannable, catalog-like.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#" class="active"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="head-bar">
+      <div class="title-block">
+        <div class="kicker">‡ Concept maps</div>
+        <h1>Your <em>concept maps</em></h1>
+        <div class="count">8 maps · 4 courses</div>
+      </div>
+      <div class="filter-row">
+        <button class="filter-pill active">All courses</button>
+        <button class="filter-pill">Algebra I · 3</button>
+        <button class="filter-pill">Biology · 3</button>
+        <button class="filter-pill">Calculus · 1</button>
+        <button class="filter-pill">World History · 2</button>
+      </div>
+      <div class="sort-row">
+        <span class="label">Sort</span>
+        <a href="#" class="active">recent</a>
+        <a href="#">coverage</a>
+        <a href="#">course</a>
+      </div>
+    </div>
+
+    <div class="map-grid">
+      <article class="map-card">
+        <div class="map-card__head">
+          <span class="map-card__course">Biology — Cells</span>
+          <span class="map-card__when">2h ago</span>
+        </div>
+        <h3 class="map-card__title">Cell membrane <em>transport</em></h3>
+        <div class="map-card__meta">5 versions <span class="badge">1 discussion</span></div>
+        <div class="map-card__coverage">
+          <div class="map-card__coverage-bar"><span style="width: 58%"></span></div>
+          <div class="map-card__coverage-label"><span class="num">7 / 12</span> · 58% mapped</div>
+        </div>
+      </article>
+
+      <article class="map-card">
+        <div class="map-card__head">
+          <span class="map-card__course">Calculus — Limits</span>
+          <span class="map-card__when">yesterday</span>
+        </div>
+        <h3 class="map-card__title">Epsilon-delta <em>intuition</em></h3>
+        <div class="map-card__meta">4 versions</div>
+        <div class="map-card__coverage">
+          <div class="map-card__coverage-bar"><span style="width: 89%"></span></div>
+          <div class="map-card__coverage-label"><span class="num">8 / 9</span> · 89% mapped</div>
+        </div>
+      </article>
+
+      <article class="map-card">
+        <div class="map-card__head">
+          <span class="map-card__course">Algebra I</span>
+          <span class="map-card__when">2 days ago</span>
+        </div>
+        <h3 class="map-card__title">Linear <em>functions</em></h3>
+        <div class="map-card__meta">3 versions <span class="badge">2 discussion</span></div>
+        <div class="map-card__coverage">
+          <div class="map-card__coverage-bar"><span style="width: 28%"></span></div>
+          <div class="map-card__coverage-label"><span class="num">5 / 18</span> · 28% mapped</div>
+        </div>
+      </article>
+
+      <article class="map-card">
+        <div class="map-card__head">
+          <span class="map-card__course">Algebra I</span>
+          <span class="map-card__when">3 days ago</span>
+        </div>
+        <h3 class="map-card__title">Quadratics — <em>factoring</em></h3>
+        <div class="map-card__meta">2 versions <span class="badge">1 discussion</span></div>
+        <div class="map-card__coverage">
+          <div class="map-card__coverage-bar"><span style="width: 28%"></span></div>
+          <div class="map-card__coverage-label"><span class="num">5 / 18</span> · 28% mapped</div>
+        </div>
+      </article>
+
+      <article class="map-card">
+        <div class="map-card__head">
+          <span class="map-card__course">Biology — Cells</span>
+          <span class="map-card__when">5 days ago</span>
+        </div>
+        <h3 class="map-card__title">Mitosis vs <em>Meiosis</em></h3>
+        <div class="map-card__meta">2 versions</div>
+        <div class="map-card__coverage">
+          <div class="map-card__coverage-bar"><span style="width: 58%"></span></div>
+          <div class="map-card__coverage-label"><span class="num">7 / 12</span> · 58% mapped</div>
+        </div>
+      </article>
+
+      <article class="map-card">
+        <div class="map-card__head">
+          <span class="map-card__course">World History — Modernity</span>
+          <span class="map-card__when">1 week ago</span>
+        </div>
+        <h3 class="map-card__title">Industrial Revolution <em>causes</em></h3>
+        <div class="map-card__meta">2 versions</div>
+        <div class="map-card__coverage">
+          <div class="map-card__coverage-bar"><span style="width: 14%"></span></div>
+          <div class="map-card__coverage-label"><span class="num">3 / 22</span> · 14% mapped</div>
+        </div>
+      </article>
+
+      <article class="map-card">
+        <div class="map-card__head">
+          <span class="map-card__course">Algebra I</span>
+          <span class="map-card__when">2 weeks ago</span>
+        </div>
+        <h3 class="map-card__title">Systems of <em>equations</em></h3>
+        <div class="map-card__meta">1 version</div>
+        <div class="map-card__coverage">
+          <div class="map-card__coverage-bar"><span style="width: 28%"></span></div>
+          <div class="map-card__coverage-label"><span class="num">5 / 18</span> · 28% mapped</div>
+        </div>
+      </article>
+
+      <article class="map-card">
+        <div class="map-card__head">
+          <span class="map-card__course">Biology — Cells</span>
+          <span class="map-card__when">3 weeks ago</span>
+        </div>
+        <h3 class="map-card__title">Photosynthesis <em>carbon cycle</em></h3>
+        <div class="map-card__meta">1 version</div>
+        <div class="map-card__coverage">
+          <div class="map-card__coverage-bar"><span style="width: 58%"></span></div>
+          <div class="map-card__coverage-label"><span class="num">7 / 12</span> · 58% mapped</div>
+        </div>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
