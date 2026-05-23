@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/progress — pick a direction</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    h1 { padding: 14px 24px 0; margin: 0; font-weight: 500; font-size: 18px; }
+    h1 .meta { color: #8b949e; font-weight: 400; font-size: 13px; margin-left: 10px; }
+    .lede { padding: 0 24px 12px; margin: 4px 0 0; color: #8b949e; font-size: 13px; max-width: 100ch; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; height: calc(100vh - 96px); box-sizing: border-box; }
+    .cell { background: #fff; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+    .cell h2 { margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #222; color: #eee; display: flex; justify-content: space-between; align-items: baseline; }
+    .cell h2 .desc { color: #8b949e; font-weight: 400; font-size: 11px; }
+    .cell h2 a { color: #6cf; text-decoration: none; font-size: 11px; }
+    .cell iframe { border: 0; flex: 1; width: 100%; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1>/progress <span class="meta">— pick a direction · feature-concept-maps-and-progress-routes (progress surface)</span></h1>
+  <p class="lede">Four answers to "where do I stand across my courses." All compose Studio Quiet + System Editorial, all respect the Praxis principle of editorial restraint (no badges / streaks / dopamine). What varies: granularity (per-course / concept-cell / event / digest), primary signal (course health / concept mastery / recency / decision-support), and density.</p>
+  <div class="grid">
+    <div class="cell">
+      <h2>Option 1 — <span class="desc">Course-by-Course Review · each course a chapter with you-are-here · stuck-on · recently</span><a href="option-1.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-1.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 2 — <span class="desc">Mastery Heatmap · concept cells, plaster→graphite scale, brick for at-risk · diagnostic, dense</span><a href="option-2.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-2.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 3 — <span class="desc">Timeline / Week-in-Review · chronological events feed + sticky digest sidebar · "what's been"</span><a href="option-3.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-3.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 4 — <span class="desc">Three-Pane Digest · strong / stuck / recent · sparse, "what a tutor would tell you in 60s"</span><a href="option-4.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-4.html"></iframe>
+    </div>
+  </div>
+</body>
+</html>

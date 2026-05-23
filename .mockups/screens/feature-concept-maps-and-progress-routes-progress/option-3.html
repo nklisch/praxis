@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/progress — Option 3: Timeline / Week-in-Review</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display, var(--font-serif)); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+
+    main { padding: 32px 32px 80px; max-width: 920px; margin: 0 auto; display: grid; grid-template-columns: 200px 1fr; gap: 56px; }
+
+    /* Left column: the digest — small numerical rollup */
+    .digest { position: sticky; top: 32px; align-self: start; }
+    .digest .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 14px; display: flex; align-items: baseline; gap: 8px; }
+    .digest .kicker .ornament { font-style: italic; color: var(--color-text-tertiary); }
+    .digest h1 { font: 500 italic 28px/1.1 var(--font-display, var(--font-serif)); margin: 0 0 20px; }
+    .digest h1 em { font-weight: 600; }
+    .digest .stat { padding: 14px 0; border-top: 1px solid var(--color-border); }
+    .digest .stat:last-of-type { border-bottom: 1px solid var(--color-border); }
+    .digest .stat .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .digest .stat .value { font: italic 22px/1 var(--font-display, var(--font-serif)); color: var(--color-text-primary); }
+    .digest .stat .detail { font: 11px/1.4 var(--font-mono); color: var(--color-text-secondary); letter-spacing: 0.04em; margin-top: 4px; }
+    .digest .courses { margin-top: 24px; }
+    .digest .courses .label { font: 600 9px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
+    .digest .course-line { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dotted var(--color-border); font: 12px/1.3 var(--font-serif); color: var(--color-text-secondary); }
+    .digest .course-line:last-child { border-bottom: none; }
+    .digest .course-line em { font-style: italic; color: var(--color-text-primary); }
+    .digest .course-line .pct { font: 600 11px/1 var(--font-mono); color: var(--color-text-tertiary); }
+
+    /* Right column: chronological timeline */
+    .timeline { position: relative; padding-left: 28px; }
+    .timeline::before { content: ''; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 1px; background: var(--color-border); }
+    .timeline-section { font: 600 10px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-secondary); margin: 28px 0 12px -28px; padding-bottom: 6px; border-bottom: 1px dashed var(--color-border); }
+    .timeline-section:first-child { margin-top: 0; }
+
+    .timeline-entry { padding: 10px 0 18px; position: relative; }
+    .timeline-entry::before { content: ''; position: absolute; left: -27px; top: 16px; width: 11px; height: 11px; border-radius: 50%; background: var(--color-bg-primary); border: 1.5px solid var(--color-border-strong); }
+    .timeline-entry.gate::before { background: var(--color-text-primary); border-color: var(--color-text-primary); }
+    .timeline-entry.assignment::before { background: var(--color-accent-muted); border-color: var(--color-accent); }
+    .timeline-entry.misconception::before { background: var(--color-bg-primary); border: 1.5px solid var(--color-accent); }
+    .timeline-entry.session::before { background: var(--color-bg-secondary); }
+
+    .timeline-entry .when { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; display: flex; gap: 10px; align-items: baseline; }
+    .timeline-entry .when .course-tag { color: var(--color-text-secondary); }
+    .timeline-entry .title { font: italic 16px/1.4 var(--font-serif); color: var(--color-text-primary); }
+    .timeline-entry .title em { font-weight: 600; }
+    .timeline-entry .meta { font: 12px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-top: 4px; }
+    .timeline-entry .meta em { font-style: italic; color: var(--color-text-primary); }
+    .timeline-entry .kind { display: inline-block; font: 600 9px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-right: 8px; }
+    .timeline-entry.gate .kind { color: var(--color-text-primary); }
+    .timeline-entry.assignment .kind { color: var(--color-accent); }
+    .timeline-entry.misconception .kind { color: var(--color-accent); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 3 — Timeline / Week-in-Review</strong>
+    <span>Chronological feed of learning events: gate passes, grades, sessions, misconceptions flagged, flashcards due. Left sidebar = small digest (this week's numbers + per-course rollup). Right = the story. Complements Library's "what's-next" with "what's-been". Recency-first; mastery-secondary.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#" class="active"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <aside class="digest">
+      <div class="kicker"><span class="ornament">‖</span> Progress</div>
+      <h1>This <em>fortnight</em>.</h1>
+
+      <div class="stat">
+        <div class="label">Gates passed</div>
+        <div class="value">3</div>
+        <div class="detail">2 calculus · 1 algebra</div>
+      </div>
+
+      <div class="stat">
+        <div class="label">Assignments</div>
+        <div class="value">6</div>
+        <div class="detail">avg 7.8 / 10</div>
+      </div>
+
+      <div class="stat">
+        <div class="label">Session time</div>
+        <div class="value">4h 22m</div>
+        <div class="detail">across 9 sessions</div>
+      </div>
+
+      <div class="courses">
+        <div class="label">Mastery rollup</div>
+        <div class="course-line"><em>Calculus</em><span class="pct">0.78</span></div>
+        <div class="course-line"><em>Algebra I</em><span class="pct">0.62</span></div>
+        <div class="course-line"><em>Biology</em><span class="pct">0.51</span></div>
+        <div class="course-line"><em>History</em><span class="pct">0.34</span></div>
+      </div>
+    </aside>
+
+    <section class="timeline">
+      <div class="timeline-section">Today</div>
+      <article class="timeline-entry session">
+        <div class="when"><span>3:14 pm</span><span class="course-tag">· Calculus</span></div>
+        <p class="title"><span class="kind">Session</span><em>Continuity and discontinuities</em> · 42 min</p>
+        <p class="meta">Worked through 6 worked examples; tutor flagged confusion on jump vs removable.</p>
+      </article>
+
+      <article class="timeline-entry misconception">
+        <div class="when"><span>3:11 pm</span><span class="course-tag">· Calculus</span></div>
+        <p class="title"><span class="kind">Misconception flagged</span>Treating <em>removable discontinuity</em> as undefined.</p>
+        <p class="meta">Praxis will revisit this in the next session and during spaced review.</p>
+      </article>
+
+      <div class="timeline-section">Yesterday</div>
+      <article class="timeline-entry assignment">
+        <div class="when"><span>11:20 am</span><span class="course-tag">· Calculus</span></div>
+        <p class="title"><span class="kind">Quiz</span><em>Limits — algebraic</em> · 9 / 10</p>
+        <p class="meta">Missed: one trick rationalization. Strength: ε-δ definition fully cleared.</p>
+      </article>
+
+      <article class="timeline-entry session">
+        <div class="when"><span>9:48 am</span><span class="course-tag">· Algebra I</span></div>
+        <p class="title"><span class="kind">Session</span><em>Quadratics — factoring</em> · 31 min</p>
+        <p class="meta">Reviewed difference-of-squares, grouping; declined to attempt completing-the-square.</p>
+      </article>
+
+      <div class="timeline-section">Earlier this week</div>
+      <article class="timeline-entry gate">
+        <div class="when"><span>3 days ago</span><span class="course-tag">· Calculus</span></div>
+        <p class="title"><span class="kind">Gate passed</span><em>ε-δ definition</em></p>
+        <p class="meta">Mastery threshold (0.70) cleared on the second attempt; quiz grade contributed.</p>
+      </article>
+
+      <article class="timeline-entry assignment">
+        <div class="when"><span>4 days ago</span><span class="course-tag">· Biology</span></div>
+        <p class="title"><span class="kind">Homework</span><em>Membrane structure short-answer</em> · 7 / 10</p>
+        <p class="meta">Solid on bilayer composition; thin on aquaporin role.</p>
+      </article>
+
+      <article class="timeline-entry misconception">
+        <div class="when"><span>4 days ago</span><span class="course-tag">· Algebra I</span></div>
+        <p class="title"><span class="kind">Misconception flagged</span>Confusing <em>FOIL</em> with the distributive property as separate ideas.</p>
+        <p class="meta">Praxis will scaffold this in the next algebra session.</p>
+      </article>
+
+      <article class="timeline-entry session">
+        <div class="when"><span>5 days ago</span><span class="course-tag">· Biology</span></div>
+        <p class="title"><span class="kind">Session</span><em>Tonicity examples</em> · 22 min</p>
+        <p class="meta">Walked through hypotonic / isotonic / hypertonic on plant cells and red blood cells.</p>
+      </article>
+
+      <div class="timeline-section">Last week</div>
+      <article class="timeline-entry gate">
+        <div class="when"><span>6 days ago</span><span class="course-tag">· Algebra I</span></div>
+        <p class="title"><span class="kind">Gate passed</span><em>Linear factoring</em></p>
+        <p class="meta">Cleared with average mastery 0.74 across the gate's three concepts.</p>
+      </article>
+
+      <article class="timeline-entry session">
+        <div class="when"><span>1 week ago</span><span class="course-tag">· Calculus</span></div>
+        <p class="title"><span class="kind">Session</span><em>Squeeze theorem</em> · 38 min</p>
+        <p class="meta">Worked one classical example and one applied; both correct.</p>
+      </article>
+
+      <article class="timeline-entry session">
+        <div class="when"><span>2 weeks ago</span><span class="course-tag">· History</span></div>
+        <p class="title"><span class="kind">Session</span><em>Scope and scale</em> · 18 min</p>
+        <p class="meta">Course opening — orienting on the period boundaries (1750–1991).</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

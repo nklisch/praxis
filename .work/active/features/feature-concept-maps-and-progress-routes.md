@@ -62,7 +62,19 @@ top-nav surface and /progress top-nav surface, picked separately.
     the right margin), Atlas / Visual Index (thumbnail-first grid showing
     map shape), Hub + Recent (sparse action-forward with resume hero)
     — in `.../option-{1,3,4}.html`.
-- `/progress` surface: mockups pending (next /ux-ui-design:screens pass).
+- `/progress` surface: `.mockups/screens/feature-concept-maps-and-progress-routes-progress/index.html`
+  - **Selected: Option 1 — Course-by-Course Review** (2026-05-23)
+  - Each course is a chapter with three sections in a three-column body:
+    you-are-here (narrative + next gate), stuck-on (3-4 concepts with
+    mastery scores), recently (3 events — sessions / gates / grades).
+    Per-course rollup at the head (mastery percent + micro-bar). Long
+    single column; scales naturally from 1 course to many. Course-health
+    is the primary signal; concept and event data hang underneath.
+  - Considered: Mastery Heatmap (concept-cell grid with monochrome
+    plaster→graphite mastery scale, brick accent for at-risk), Timeline /
+    Week-in-Review (chronological event feed + sticky digest sidebar),
+    Three-Pane Digest (sparse Strong / Stuck / Recent shortlists)
+    — in `.../option-{2,3,4}.html`.
 
 ## Design questions for feature-design
 

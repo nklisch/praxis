@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/progress — Option 1: Course-by-Course Review</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display, var(--font-serif)); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+
+    main { padding: 40px 32px 80px; max-width: 920px; margin: 0 auto; }
+
+    .head-block { margin-bottom: 56px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+    .head-block .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 12px; display: flex; align-items: baseline; gap: 8px; }
+    .head-block .kicker .ornament { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); }
+    .head-block h1 { font: 500 italic 40px/1.15 var(--font-display, var(--font-serif)); margin: 0 0 12px; }
+    .head-block h1 em { font-weight: 600; }
+    .head-block .deck { font: italic 16px/1.55 var(--font-serif); color: var(--color-text-secondary); max-width: 60ch; }
+
+    /* Course panels — each course is a chapter */
+    .course-panel { margin-bottom: 48px; }
+    .course-panel:last-child { margin-bottom: 0; }
+    .course-panel__head { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); margin-bottom: 18px; }
+    .course-panel__num { font: 600 italic 18px/1 var(--font-display, var(--font-serif)); color: var(--color-text-tertiary); }
+    .course-panel__name { font: 500 italic 22px/1.2 var(--font-display, var(--font-serif)); }
+    .course-panel__name em { font-weight: 600; }
+    .course-panel__rollup { font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--color-text-secondary); white-space: nowrap; }
+    .course-panel__rollup .pct { color: var(--color-text-primary); }
+    .course-panel__rollup .bar { display: inline-block; width: 80px; height: 3px; background: var(--color-bg-tertiary); margin-left: 8px; vertical-align: 2px; }
+    .course-panel__rollup .bar-fill { display: block; height: 100%; background: var(--color-text-primary); }
+
+    /* Body of each course panel: three small sections side-by-side */
+    .course-panel__body { display: grid; grid-template-columns: 1.1fr 1fr 1.2fr; gap: 32px; }
+    .panel-section .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; }
+
+    /* Current position — narrative */
+    .position-line { font: italic 14px/1.55 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 6px; }
+    .position-line em { font-style: italic; font-weight: 600; color: var(--color-text-primary); }
+    .position-gate { font: 12px/1.4 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; margin-top: 4px; }
+    .position-gate.held { color: var(--color-accent); }
+
+    /* Where you're stuck — short list */
+    .stuck-list { list-style: none; padding: 0; margin: 0; }
+    .stuck-list li { font: 13px/1.45 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px dotted var(--color-border); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .stuck-list li:last-child { border-bottom: none; }
+    .stuck-list li em { font-style: italic; color: var(--color-text-primary); }
+    .stuck-list .mastery { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); white-space: nowrap; }
+
+    /* Recent — compact event list */
+    .recent-list { list-style: none; padding: 0; margin: 0; }
+    .recent-list li { font: 13px/1.45 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px dotted var(--color-border); }
+    .recent-list li:last-child { border-bottom: none; }
+    .recent-list .when { font: 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; }
+    .recent-list .desc { display: block; margin-top: 2px; }
+    .recent-list em { font-style: italic; color: var(--color-text-primary); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 1 — Course-by-Course Review</strong>
+    <span>Each course is a chapter. Per-course rollup at the top right; below, a three-section body: current position (narrative), where you're stuck (3-4 concepts with mastery), and recent events. Editorial, scales naturally from 1 to many courses, no dopamine surfaces.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#" class="active"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="head-block">
+      <div class="kicker"><span class="ornament">‖</span> Progress</div>
+      <h1>Where you <em>are</em>.</h1>
+      <p class="deck">Four courses in flight. Calculus is in good shape; History needs attention. Each course's "you are here" is below — the gaps are an invitation, not a verdict.</p>
+    </section>
+
+    <article class="course-panel">
+      <header class="course-panel__head">
+        <span class="course-panel__num">i.</span>
+        <h2 class="course-panel__name"><em>Calculus</em> — Limits</h2>
+        <span class="course-panel__rollup">Mastery <span class="pct">0.78</span> <span class="bar"><span class="bar-fill" style="width: 78%"></span></span></span>
+      </header>
+      <div class="course-panel__body">
+        <div class="panel-section">
+          <div class="label">You are here</div>
+          <p class="position-line">Working on <em>continuity and discontinuities</em> — lesson 7 of 9.</p>
+          <p class="position-gate held">Next gate held — needs one more quiz pass.</p>
+        </div>
+        <div class="panel-section">
+          <div class="label">Stuck on</div>
+          <ul class="stuck-list">
+            <li><em>removable vs jump discontinuity</em><span class="mastery">0.41</span></li>
+            <li><em>one-sided limits at infinity</em><span class="mastery">0.52</span></li>
+          </ul>
+        </div>
+        <div class="panel-section">
+          <div class="label">Recently</div>
+          <ul class="recent-list">
+            <li><span class="when">yesterday</span><span class="desc">Quiz <em>limits — algebraic</em> · 9 / 10</span></li>
+            <li><span class="when">3 days ago</span><span class="desc">Gate passed: <em>ε-δ definition</em></span></li>
+            <li><span class="when">1 week ago</span><span class="desc">Session: <em>squeeze theorem</em> · 38 min</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="course-panel">
+      <header class="course-panel__head">
+        <span class="course-panel__num">ii.</span>
+        <h2 class="course-panel__name"><em>Algebra</em> I</h2>
+        <span class="course-panel__rollup">Mastery <span class="pct">0.62</span> <span class="bar"><span class="bar-fill" style="width: 62%"></span></span></span>
+      </header>
+      <div class="course-panel__body">
+        <div class="panel-section">
+          <div class="label">You are here</div>
+          <p class="position-line">Working on <em>quadratics — factoring</em> — lesson 11 of 18.</p>
+          <p class="position-gate">Next gate at lesson 12 (homework + quiz).</p>
+        </div>
+        <div class="panel-section">
+          <div class="label">Stuck on</div>
+          <ul class="stuck-list">
+            <li><em>completing the square</em><span class="mastery">0.28</span></li>
+            <li><em>discriminant interpretation</em><span class="mastery">0.34</span></li>
+            <li><em>factoring by grouping</em><span class="mastery">0.45</span></li>
+          </ul>
+        </div>
+        <div class="panel-section">
+          <div class="label">Recently</div>
+          <ul class="recent-list">
+            <li><span class="when">2 days ago</span><span class="desc">Homework <em>polynomials — multiplication</em> · 7 / 10</span></li>
+            <li><span class="when">4 days ago</span><span class="desc">Misconception flagged: <em>FOIL vs distributive</em></span></li>
+            <li><span class="when">6 days ago</span><span class="desc">Gate passed: <em>linear factoring</em></span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="course-panel">
+      <header class="course-panel__head">
+        <span class="course-panel__num">iii.</span>
+        <h2 class="course-panel__name"><em>Biology</em> — Cells</h2>
+        <span class="course-panel__rollup">Mastery <span class="pct">0.51</span> <span class="bar"><span class="bar-fill" style="width: 51%"></span></span></span>
+      </header>
+      <div class="course-panel__body">
+        <div class="panel-section">
+          <div class="label">You are here</div>
+          <p class="position-line">Working on <em>cell membrane transport</em> — lesson 4 of 12.</p>
+          <p class="position-gate">Next gate at lesson 6 (quiz only).</p>
+        </div>
+        <div class="panel-section">
+          <div class="label">Stuck on</div>
+          <ul class="stuck-list">
+            <li><em>osmosis vs diffusion</em><span class="mastery">0.36</span></li>
+            <li><em>active transport ATP cost</em><span class="mastery">0.48</span></li>
+          </ul>
+        </div>
+        <div class="panel-section">
+          <div class="label">Recently</div>
+          <ul class="recent-list">
+            <li><span class="when">5 days ago</span><span class="desc">Session: <em>tonicity examples</em> · 22 min</span></li>
+            <li><span class="when">1 week ago</span><span class="desc">Flashcards: 12 due, 8 reviewed</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="course-panel">
+      <header class="course-panel__head">
+        <span class="course-panel__num">iv.</span>
+        <h2 class="course-panel__name"><em>World History</em> — Modernity</h2>
+        <span class="course-panel__rollup">Mastery <span class="pct">0.34</span> <span class="bar"><span class="bar-fill" style="width: 34%"></span></span></span>
+      </header>
+      <div class="course-panel__body">
+        <div class="panel-section">
+          <div class="label">You are here</div>
+          <p class="position-line">Started <em>Industrial Revolution causes</em> — lesson 1 of 22.</p>
+          <p class="position-gate">First gate at lesson 4.</p>
+        </div>
+        <div class="panel-section">
+          <div class="label">Stuck on</div>
+          <ul class="stuck-list">
+            <li><em>mercantile-to-industrial transition</em><span class="mastery">0.22</span></li>
+            <li><em>enclosure movement causes</em><span class="mastery">0.18</span></li>
+          </ul>
+        </div>
+        <div class="panel-section">
+          <div class="label">Recently</div>
+          <ul class="recent-list">
+            <li><span class="when">2 weeks ago</span><span class="desc">Session: <em>scope and scale</em> · 18 min</span></li>
+          </ul>
+        </div>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/progress — Option 4: Three-Pane Digest</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display, var(--font-serif)); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+
+    main { padding: 56px 32px 80px; max-width: 1080px; margin: 0 auto; }
+
+    /* Greeting */
+    .greeting { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--color-border); }
+    .greeting .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 12px; display: flex; align-items: baseline; gap: 8px; }
+    .greeting .kicker .ornament { font-style: italic; color: var(--color-text-tertiary); }
+    .greeting h1 { font: 500 italic 36px/1.2 var(--font-display, var(--font-serif)); margin: 0 0 10px; max-width: 30ch; }
+    .greeting h1 em { font-weight: 600; }
+    .greeting .lede { font: italic 16px/1.55 var(--font-serif); color: var(--color-text-secondary); max-width: 60ch; }
+
+    /* Three panes side by side */
+    .panes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; }
+    .pane { background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: 28px 24px; }
+    .pane__kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
+    .pane__title { font: 500 italic 18px/1.25 var(--font-display, var(--font-serif)); margin: 0 0 4px; color: var(--color-text-primary); }
+    .pane__title em { font-weight: 600; }
+    .pane__lede { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
+
+    .pane__list { list-style: none; padding: 0; margin: 0; }
+    .pane__list li { padding: 10px 0; border-bottom: 1px dotted var(--color-border); }
+    .pane__list li:last-child { border-bottom: none; }
+    .pane__list .topic { font: italic 14px/1.4 var(--font-serif); color: var(--color-text-primary); }
+    .pane__list .topic em { font-weight: 600; }
+    .pane__list .meta { font: 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; margin-top: 2px; }
+    .pane__list .meta .course { color: var(--color-text-secondary); margin-right: 8px; }
+
+    /* Footer course rollup */
+    .rollup { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--color-border); }
+    .rollup__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+    .rollup__head .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .rollup__head .all-link { font: italic 12px/1 var(--font-serif); color: var(--color-text-secondary); text-decoration: none; }
+    .rollup__head .all-link:hover { color: var(--color-accent); }
+
+    .rollup__row { display: grid; grid-template-columns: 1fr 100px 60px auto; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--color-border); align-items: baseline; cursor: pointer; }
+    .rollup__row:hover .rollup__name { text-decoration: underline; text-decoration-color: var(--color-accent); text-underline-offset: 4px; }
+    .rollup__row:last-child { border-bottom: none; }
+    .rollup__name { font: italic 16px/1.3 var(--font-serif); color: var(--color-text-primary); }
+    .rollup__name em { font-weight: 600; }
+    .rollup__bar-wrap { height: 4px; background: var(--color-bg-tertiary); position: relative; align-self: center; }
+    .rollup__bar-fill { display: block; height: 100%; background: var(--color-text-primary); }
+    .rollup__pct { font: 600 12px/1 var(--font-mono); color: var(--color-text-secondary); letter-spacing: 0.04em; }
+    .rollup__pct .num { color: var(--color-text-primary); }
+    .rollup__lesson { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 4 — Three-Pane Digest</strong>
+    <span>Sparse. Three short lists side-by-side: Where you're strong / Where you're stuck / What's recent. No charts, no heatmaps, no timeline scroll — just the digest a tutor would tell you in 60 seconds. Course rollup at the foot. Honest, decision-supporting, restrained.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#" class="active"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="greeting">
+      <div class="kicker"><span class="ornament">‖</span> Progress · this fortnight</div>
+      <h1>Calculus is in <em>good shape</em>. History needs you.</h1>
+      <p class="lede">Three gates cleared in two weeks. Six assignments graded (average 7.8 / 10). The shortlist below is what a tutor would say if you asked.</p>
+    </section>
+
+    <section class="panes">
+      <article class="pane">
+        <div class="pane__kicker">Strong</div>
+        <h2 class="pane__title">Where you've <em>arrived</em></h2>
+        <p class="pane__lede">Concepts at mastery 0.75+ in the last two weeks.</p>
+        <ul class="pane__list">
+          <li>
+            <div class="topic"><em>ε-δ definition</em> of a limit</div>
+            <div class="meta"><span class="course">Calculus</span>gate cleared 3d ago · 0.81</div>
+          </li>
+          <li>
+            <div class="topic"><em>Linear factoring</em></div>
+            <div class="meta"><span class="course">Algebra I</span>gate cleared 6d ago · 0.74</div>
+          </li>
+          <li>
+            <div class="topic">Squeeze <em>theorem</em></div>
+            <div class="meta"><span class="course">Calculus</span>0.78</div>
+          </li>
+          <li>
+            <div class="topic"><em>Cell theory</em> &amp; organelles</div>
+            <div class="meta"><span class="course">Biology</span>0.83</div>
+          </li>
+        </ul>
+      </article>
+
+      <article class="pane">
+        <div class="pane__kicker">Stuck</div>
+        <h2 class="pane__title">Where you're <em>stuck</em></h2>
+        <p class="pane__lede">Low mastery on something a gate is waiting on, or a flagged misconception.</p>
+        <ul class="pane__list">
+          <li>
+            <div class="topic"><em>Discontinuity</em> — removable vs jump</div>
+            <div class="meta"><span class="course">Calculus</span>gate-blocking · 0.41</div>
+          </li>
+          <li>
+            <div class="topic"><em>Completing the square</em></div>
+            <div class="meta"><span class="course">Algebra I</span>gate-blocking · 0.28</div>
+          </li>
+          <li>
+            <div class="topic"><em>FOIL vs distributive</em></div>
+            <div class="meta"><span class="course">Algebra I</span>misconception flagged 4d ago</div>
+          </li>
+          <li>
+            <div class="topic"><em>Osmosis vs diffusion</em></div>
+            <div class="meta"><span class="course">Biology</span>0.36</div>
+          </li>
+          <li>
+            <div class="topic"><em>Enclosure movement</em> causes</div>
+            <div class="meta"><span class="course">History</span>0.18</div>
+          </li>
+        </ul>
+      </article>
+
+      <article class="pane">
+        <div class="pane__kicker">Recent</div>
+        <h2 class="pane__title">What just <em>happened</em></h2>
+        <p class="pane__lede">The most recent five events worth surfacing.</p>
+        <ul class="pane__list">
+          <li>
+            <div class="topic">Session — <em>continuity &amp; discontinuities</em></div>
+            <div class="meta"><span class="course">Calculus</span>today · 42 min</div>
+          </li>
+          <li>
+            <div class="topic">Quiz — <em>limits, algebraic</em> · 9 / 10</div>
+            <div class="meta"><span class="course">Calculus</span>yesterday</div>
+          </li>
+          <li>
+            <div class="topic">Gate passed: <em>ε-δ definition</em></div>
+            <div class="meta"><span class="course">Calculus</span>3 days ago</div>
+          </li>
+          <li>
+            <div class="topic">Homework — <em>membrane structure</em> · 7 / 10</div>
+            <div class="meta"><span class="course">Biology</span>4 days ago</div>
+          </li>
+          <li>
+            <div class="topic">Gate passed: <em>linear factoring</em></div>
+            <div class="meta"><span class="course">Algebra I</span>6 days ago</div>
+          </li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="rollup">
+      <header class="rollup__head">
+        <span class="label">Course rollup</span>
+        <a href="#" class="all-link">drill into a course ↗</a>
+      </header>
+
+      <div class="rollup__row">
+        <span class="rollup__name"><em>Calculus</em> — Limits</span>
+        <div class="rollup__bar-wrap"><span class="rollup__bar-fill" style="width: 78%"></span></div>
+        <span class="rollup__pct"><span class="num">0.78</span></span>
+        <span class="rollup__lesson">lesson 7 / 9</span>
+      </div>
+
+      <div class="rollup__row">
+        <span class="rollup__name"><em>Algebra</em> I</span>
+        <div class="rollup__bar-wrap"><span class="rollup__bar-fill" style="width: 62%"></span></div>
+        <span class="rollup__pct"><span class="num">0.62</span></span>
+        <span class="rollup__lesson">lesson 11 / 18</span>
+      </div>
+
+      <div class="rollup__row">
+        <span class="rollup__name"><em>Biology</em> — Cells</span>
+        <div class="rollup__bar-wrap"><span class="rollup__bar-fill" style="width: 51%"></span></div>
+        <span class="rollup__pct"><span class="num">0.51</span></span>
+        <span class="rollup__lesson">lesson 4 / 12</span>
+      </div>
+
+      <div class="rollup__row">
+        <span class="rollup__name"><em>World History</em> — Modernity</span>
+        <div class="rollup__bar-wrap"><span class="rollup__bar-fill" style="width: 34%"></span></div>
+        <span class="rollup__pct"><span class="num">0.34</span></span>
+        <span class="rollup__lesson">lesson 1 / 22</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
