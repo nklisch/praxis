@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/course-create source-picker — Option 1: Tabbed Source Selector</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); }
+
+    .running-head { padding: 14px 32px 10px; display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--color-border); }
+    .running-head .wordmark { font: 500 italic 22px/1 var(--font-display, var(--font-serif)); }
+    .running-head nav { display: flex; align-items: baseline; gap: 24px; flex: 1; }
+    .running-head nav a { text-decoration: none; font: 500 14px/1 var(--font-serif); color: var(--color-text-secondary); padding: 4px 0; border-bottom: 1px solid transparent; display: flex; gap: 6px; }
+    .running-head nav a.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); }
+    .running-head nav a .glyph { font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .running-head nav a.locked { opacity: 0.5; }
+
+    main { padding: 40px 32px 80px; max-width: 820px; margin: 0 auto; }
+
+    .head-block { margin-bottom: 32px; }
+    .head-block .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 12px; display: flex; align-items: baseline; gap: 8px; }
+    .head-block .kicker .ornament { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); }
+    .head-block h1 { font: 500 italic 36px/1.2 var(--font-display, var(--font-serif)); margin: 0 0 10px; }
+    .head-block h1 em { font-weight: 600; }
+    .head-block .deck { font: italic 15px/1.55 var(--font-serif); color: var(--color-text-secondary); max-width: 60ch; }
+
+    /* Stepper */
+    .stepper { display: flex; align-items: baseline; gap: 8px; padding: 12px 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); margin-bottom: 32px; font: 600 11px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .stepper .step.active { color: var(--color-text-primary); }
+    .stepper .sep { color: var(--color-text-tertiary); opacity: 0.5; }
+
+    /* Surface tabs */
+    .source-tabs { display: flex; border-bottom: 1px solid var(--color-border); }
+    .source-tab { font: 500 14px/1 var(--font-serif); padding: 14px 20px 12px; color: var(--color-text-secondary); background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; display: flex; align-items: baseline; gap: 8px; margin-bottom: -1px; transition: var(--t-quick, all 160ms); }
+    .source-tab:hover { color: var(--color-text-primary); }
+    .source-tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-accent); font-weight: 600; }
+    .source-tab .glyph { font-family: var(--font-serif); font-style: italic; color: var(--color-text-tertiary); font-size: 13px; }
+    .source-tab.active .glyph { color: var(--color-accent); }
+    .source-tab .count { font: 600 10px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; }
+
+    /* Source surface */
+    .source-surface { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-top: none; padding: 32px; min-height: 280px; }
+
+    /* Upload surface */
+    .dropzone { text-align: center; padding: 40px 24px; border: 2px dashed var(--color-border-strong); border-radius: 4px; background: var(--color-bg-primary); }
+    .dropzone-ornament { font: italic 36px/1 var(--font-display, var(--font-serif)); color: var(--color-text-tertiary); margin-bottom: 12px; }
+    .dropzone-title { font: 500 italic 22px/1.2 var(--font-display, var(--font-serif)); margin: 0 0 8px; }
+    .dropzone-title em { font-weight: 600; }
+    .dropzone-hint { font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); max-width: 50ch; margin: 0 auto 18px; }
+    .browse-btn { font: 500 13px/1 var(--font-sans); padding: 9px 18px; background: var(--color-bg-inverse); color: var(--color-text-inverse); border: none; border-radius: 2px; cursor: pointer; }
+    .format-pills { display: flex; justify-content: center; gap: 6px; margin-top: 18px; flex-wrap: wrap; }
+    .format-pill { font: 600 10px/1 var(--font-mono); letter-spacing: 0.08em; padding: 4px 8px; background: var(--color-bg-tertiary); color: var(--color-text-secondary); border-radius: 2px; }
+
+    /* Attached files */
+    .attached { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+    .attached-heading { font: 600 10px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 8px; }
+    .file-row { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px dotted var(--color-border); }
+    .file-row:last-child { border-bottom: none; }
+    .file-icon { color: var(--color-text-tertiary); font-style: italic; font-family: var(--font-serif); }
+    .file-name { font: italic 14px/1 var(--font-serif); }
+    .file-status { font: 600 9px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border-radius: 2px; }
+    .file-status.ready { background: var(--color-accent-muted); color: var(--color-accent); }
+    .remove-btn { font: italic 11px/1 var(--font-serif); color: var(--color-text-tertiary); background: transparent; border: none; cursor: pointer; }
+    .remove-btn:hover { color: var(--color-accent); }
+
+    /* Context textarea row */
+    .context-row { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--color-border); }
+    .context-heading { font: 500 italic 18px/1.3 var(--font-display, var(--font-serif)); margin: 0 0 4px; }
+    .context-heading em { font-weight: 600; }
+    .context-optional { font: italic 13px/1 var(--font-serif); color: var(--color-text-tertiary); font-style: italic; }
+    .context-textarea { width: 100%; box-sizing: border-box; font: italic 14px/1.5 var(--font-serif); padding: 12px 14px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 2px; resize: vertical; margin-top: 12px; min-height: 64px; color: var(--color-text-primary); }
+    .context-textarea::placeholder { color: var(--color-text-tertiary); }
+
+    /* Actions */
+    .action-row { margin-top: 28px; display: flex; align-items: baseline; justify-content: flex-end; gap: 14px; }
+    .action-hint { font: italic 12px/1.4 var(--font-serif); color: var(--color-text-secondary); flex: 1; }
+    .add-more-btn { font: 500 13px/1 var(--font-sans); padding: 9px 14px; background: transparent; color: var(--color-text-primary); border: 1px solid var(--color-border-strong); border-radius: 2px; cursor: pointer; }
+    .start-btn { font: 600 14px/1 var(--font-sans); padding: 11px 20px; background: var(--color-accent); color: var(--color-text-inverse); border: none; border-radius: 2px; cursor: pointer; }
+    .start-btn:hover { background: var(--color-accent-hover); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Option 1 — Tabbed Source Selector</strong>
+    <span>Three tabs at the top of the surface: Upload · Pack · Paste. Switching tabs swaps the source-input area. Familiar pattern; one source active at a time; clear hierarchy; scales naturally if more source types ever join.</span>
+  </header>
+
+  <header class="running-head">
+    <span class="wordmark"><em>Praxis</em></span>
+    <nav>
+      <a href="#"><span class="glyph">§</span>Library</a>
+      <a href="#"><span class="glyph">¶</span>Workspace</a>
+      <a href="#"><span class="glyph">‡</span>Concept maps</a>
+      <a href="#"><span class="glyph">‖</span>Progress</a>
+      <a href="#" class="locked"><span class="glyph">⁂</span>Configure</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="head-block">
+      <div class="kicker"><span class="ornament">¶</span> Create a course</div>
+      <h1>Bring me <em>something to teach you</em></h1>
+      <p class="deck">A textbook, a syllabus, a canonical pack, or your lecture notes. Praxis will read it and draft a course shape — units, lessons, and assessment shells — for you to confirm.</p>
+    </section>
+
+    <div class="stepper">
+      <span class="step active">Material</span>
+      <span class="sep">·</span>
+      <span class="step">Create</span>
+      <span class="sep">·</span>
+      <span class="step">Confirm</span>
+      <span class="sep">·</span>
+      <span class="step">Open</span>
+    </div>
+
+    <nav class="source-tabs" role="tablist" aria-label="Source type">
+      <button class="source-tab active" type="button" role="tab" aria-selected="true" data-pane="upload">
+        <span class="glyph">⤓</span> Upload <span class="count">1</span>
+      </button>
+      <button class="source-tab" type="button" role="tab" aria-selected="false" data-pane="pack">
+        <span class="glyph">⌗</span> Pack
+      </button>
+      <button class="source-tab" type="button" role="tab" aria-selected="false" data-pane="paste">
+        <span class="glyph">¶</span> Paste
+      </button>
+    </nav>
+
+    <div class="source-surface" id="pane-upload">
+      <div class="dropzone">
+        <div class="dropzone-ornament">¶</div>
+        <h3 class="dropzone-title">Drop your material <em>here</em></h3>
+        <p class="dropzone-hint">A whole textbook is fine. A syllabus is fine. A mix is best — the more Praxis reads, the better the draft.</p>
+        <button class="browse-btn" type="button">browse files…</button>
+        <div class="format-pills">
+          <span class="format-pill">PDF</span><span class="format-pill">EPUB</span><span class="format-pill">DOCX</span><span class="format-pill">PPTX</span><span class="format-pill">MD</span><span class="format-pill">HTML</span><span class="format-pill">TXT</span>
+        </div>
+      </div>
+
+      <div class="attached">
+        <h4 class="attached-heading">Attached · 1 file</h4>
+        <div class="file-row">
+          <span class="file-icon">†</span>
+          <span class="file-name">precalc_textbook_chapter_3.pdf</span>
+          <span class="file-status ready">ready</span>
+          <button class="remove-btn" type="button">remove</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="context-row">
+      <h3 class="context-heading">Tell Praxis what you're trying to <em>learn</em> <span class="context-optional">— optional but helpful</span></h3>
+      <textarea class="context-textarea" placeholder="e.g. — I'm an adult learner returning to calculus to prep for an actuarial exam. I want to actually understand derivatives this time, not memorize them." rows="3"></textarea>
+    </section>
+
+    <div class="action-row">
+      <span class="action-hint">— starting Praxis doesn't require indexing to finish; it'll work with what's ready now.</span>
+      <button class="add-more-btn" type="button">Add more material</button>
+      <button class="start-btn" type="button">Start Praxis →</button>
+    </div>
+  </main>
+
+  <script>
+    // Demo tab switching — re-renders surface content
+    const PANES = {
+      upload: document.getElementById('pane-upload').innerHTML,
+      pack: `
+        <h3 style="font: 500 italic 22px/1.2 var(--font-display, var(--font-serif)); margin: 0 0 8px;">Pick a <em>canonical pack</em></h3>
+        <p style="font: italic 13px/1.55 var(--font-serif); color: var(--color-text-secondary); margin: 0 0 20px; max-width: 56ch;">A pack is a published concept graph + standards alignment + assessment shells. Praxis drafts your course on top of it. You can edit anything.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <article style="background: var(--color-bg-primary); border: 1px solid var(--color-border); padding: 16px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: baseline; cursor: pointer;">
+            <div>
+              <div style="font: 500 italic 17px/1.25 var(--font-display, var(--font-serif));"><em>Algebra 1</em> (CCSS)</div>
+              <div style="font: 11px/1.4 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); margin-top: 4px;">math.algebra-1 · grades 9–12 · v1.0.0 · 42 concepts · 14 lessons</div>
+            </div>
+            <button style="font: 500 12px/1 var(--font-sans); padding: 8px 14px; background: var(--color-accent); color: var(--color-text-inverse); border: none; border-radius: 2px;">Use this pack</button>
+          </article>
+          <article style="background: var(--color-bg-primary); border: 1px solid var(--color-border); padding: 16px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: baseline; cursor: pointer;">
+            <div>
+              <div style="font: 500 italic 17px/1.25 var(--font-display, var(--font-serif));"><em>Biology</em> (NGSS HS)</div>
+              <div style="font: 11px/1.4 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); margin-top: 4px;">science.biology · grades 9–12 · v1.0.0 · 38 concepts · 12 lessons</div>
+            </div>
+            <button style="font: 500 12px/1 var(--font-sans); padding: 8px 14px; background: transparent; color: var(--color-text-primary); border: 1px solid var(--color-border-strong); border-radius: 2px;">Use this pack</button>
+          </article>
+          <article style="background: var(--color-bg-primary); border: 1px solid var(--color-border); padding: 16px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: baseline; cursor: pointer;">
+            <div>
+              <div style="font: 500 italic 17px/1.25 var(--font-display, var(--font-serif));"><em>Geometry</em> (CCSS)</div>
+              <div style="font: 11px/1.4 var(--font-mono); letter-spacing: 0.04em; color: var(--color-text-secondary); margin-top: 4px;">math.geometry · grades 9–12 · v1.0.0 · 36 concepts · 11 lessons</div>
+            </div>
+            <button style="font: 500 12px/1 var(--font-sans); padding: 8px 14px; background: transparent; color: var(--color-text-primary); border: 1px solid var(--color-border-strong); border-radius: 2px;">Use this pack</button>
+          </article>
+        </div>
+      `,
+      paste: `
+        <h3 style="font: 500 italic 22px/1.2 var(--font-display, var(--font-serif)); margin: 0 0 8px;">Paste your <em>source material</em></h3>
+        <p style="font: italic 13px/1.55 var(--font-serif); color: var(--color-text-secondary); margin: 0 0 20px; max-width: 56ch;">A textbook chapter, lecture notes, a syllabus, an outline — anything Praxis can read. We'll ingest it as a document; it becomes searchable alongside your other course materials.</p>
+        <textarea style="width: 100%; box-sizing: border-box; font: 13px/1.6 var(--font-mono); padding: 14px 16px; background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: 2px; min-height: 240px; color: var(--color-text-primary); resize: vertical;" placeholder="Paste here — anything from a one-page syllabus to an entire chapter. Markdown, plain text, or unformatted prose all work.
+
+Praxis will parse structure as it reads — units, sections, headings, learning objectives — without you having to format anything."></textarea>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 12px;">
+          <span style="font: italic 12px/1.4 var(--font-serif); color: var(--color-text-tertiary);">— pasted text is saved as a document named "untitled-paste · &lt;timestamp&gt;" by default. You can rename it after.</span>
+          <button style="font: 500 12px/1 var(--font-sans); padding: 8px 16px; background: var(--color-bg-inverse); color: var(--color-text-inverse); border: none; border-radius: 2px;">Save as source</button>
+        </div>
+      `
+    };
+
+    document.querySelectorAll('.source-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.source-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        const pane = tab.dataset.pane;
+        document.getElementById('pane-upload').innerHTML = PANES[pane];
+      });
+    });
+  </script>
+</body>
+</html>

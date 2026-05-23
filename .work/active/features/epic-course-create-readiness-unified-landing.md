@@ -104,22 +104,36 @@ align code to create as well so we don't have drift later"):
 
 ## Mockups
 
-Net-new surfaces inside the landing:
+- **Source-picker layout**:
+  `.mockups/screens/epic-course-create-readiness-unified-landing-source-picker/index.html`
+  - **Selected: Option 4 — Pack-First Tabs + Below-Hints (tweaked)**
+    (2026-05-23)
+  - Tabs at top with **Pack as the landing tab** (most first-time users
+    benefit from a zero-effort canonical pack). The Upload tab carries a
+    `create your own` tag — frames it as the bring-your-own-material
+    path for users who already have material. Pack rows are equal-weight
+    (no "our pick" highlight — the landing position is enough signal).
+  - Below the active surface, an italic **"Or —" bar** always names the
+    OTHER two source options as alternative paths. Clicking switches
+    tabs (Option 3's pattern but tab-switching, not modal-opening).
+  - Triple-redundant communication: tabs at top (menu), Pack-as-hero
+    (recommended path), italic alternatives at foot.
+  - Considered: tabbed-with-Upload-landing (option-1), inline-sectioned
+    (option-2), modal-on-CTA (option-3) — in `.../option-{1,2,3}.html`.
 
-- **Pack source option** in the existing source-selector area (currently
-  only file upload is visible).
-- Optional: **"Resume draft" affordance** on the landing if any of the
-  resume paths route through it.
+- **Canonical-truth realignment for existing flow mocks**: the existing
+  `.mockups/flows/course-create-entry/02-upload-docs.html` shows the
+  pre-feature source area (drop zone only). During implementation,
+  update that step to reflect the new source-picker (Pack tab landing
+  + Upload tab with "create your own" + Paste tab + "Or —" bar). The
+  other course-create-entry screens (03-drafter-running through
+  05-course-materialized) are post-landing and don't need re-mocks.
 
-The four-step stepper visualization already exists — just relabel step
-2. Existing flow mock at `.mockups/flows/course-create-entry/` covers
-the post-landing experience (drafting → review → materialize); no flow
-re-mock needed unless feature-design discovers it's stale during
-implementation.
-
-Tier rule: this feature has an epic parent, so `epic-design` Phase 4.6
-is the primary tier for any net-new mocks. They're queued in the
-parent epic's `## UI alignment deferred` section.
+- **Other net-new surfaces in this feature** (no separate mocks needed
+  — composes existing patterns):
+  - Optional "Resume draft" affordance on the landing if any of the
+    resume paths route through it (per Open-for-design notes above).
+  - Stepper label change `Explore → Create` is a one-word edit; no mock.
 
 ## Design decisions (feature-design --only-questions, 2026-05-23)
 

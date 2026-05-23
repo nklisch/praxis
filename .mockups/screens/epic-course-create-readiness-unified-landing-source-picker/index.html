@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>/course-create source-picker — pick a direction</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+    h1 { padding: 14px 24px 0; margin: 0; font-weight: 500; font-size: 18px; }
+    h1 .meta { color: #8b949e; font-weight: 400; font-size: 13px; margin-left: 10px; }
+    .lede { padding: 0 24px 12px; margin: 4px 0 0; color: #8b949e; font-size: 13px; max-width: 100ch; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; height: calc(100vh - 96px); box-sizing: border-box; }
+    .cell { background: #fff; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+    .cell h2 { margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #222; color: #eee; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .cell h2 .desc { color: #8b949e; font-weight: 400; font-size: 11px; flex: 1; }
+    .cell h2 a { color: #6cf; text-decoration: none; font-size: 11px; }
+    .cell.featured h2 { background: #1a3a52; }
+    .cell iframe { border: 0; flex: 1; width: 100%; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1>/course-create source-picker <span class="meta">— pick a direction · epic-course-create-readiness-unified-landing-source-picker</span></h1>
+  <p class="lede">Four answers to "how do Upload + Pack + Paste sit in the /course-create source area." Studio Quiet + System Editorial; same palette across all four. What varies: source-selector pattern and which option is the landing default. Option 4 is the post-feedback refinement combining Option 1's tabs with Option 3's below-the-surface reinforcement and a Pack-as-landing default.</p>
+  <div class="grid">
+    <div class="cell">
+      <h2>Option 1 — <span class="desc">Tabbed selector · Upload landing · Pack &amp; Paste behind tabs · one active at a time</span><a href="option-1.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-1.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 2 — <span class="desc">Inline sectioned · all three sources visible stacked · Upload hero-weight</span><a href="option-2.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-2.html"></iframe>
+    </div>
+    <div class="cell">
+      <h2>Option 3 — <span class="desc">Modal on CTA · drop zone unchanged · "Or pick a pack →" / "Or paste source →" open modals</span><a href="option-3.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-3.html"></iframe>
+    </div>
+    <div class="cell featured">
+      <h2>Option 4 — <span class="desc">Pack-first tabs + below-hints · Pack landing · Upload tagged "create your own" · italic "Or —" bar at foot names the other two tabs</span><a href="option-4.html" target="_blank">open ↗</a></h2>
+      <iframe src="option-4.html"></iframe>
+    </div>
+  </div>
+</body>
+</html>
