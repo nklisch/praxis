@@ -76,13 +76,55 @@ top-nav surface and /progress top-nav surface, picked separately.
     Three-Pane Digest (sparse Strong / Stuck / Recent shortlists)
     — in `.../option-{2,3,4}.html`.
 
-## Design questions for feature-design
+## Design decisions (feature-design --only-questions, 2026-05-23)
 
-- Data model for "list all maps across courses" — does
-  `client.conceptMaps.list` accept a no-courseId variant, or do we
-  aggregate across `client.courses.list` calls in the UI?
-- Progress surface scope: single-student view only (v1) or
-  multi-student-ready shell? Vision says single-student in v1; lean
-  single-student.
-- Canonical-match coverage badge — same surface treatment as the
-  course-detail "concept coverage" affordance, or distinct?
+- **Substrate shape: split into two features.** Different data
+  dependencies (cross-course conceptMap aggregator vs progress rollup),
+  different visual shapes (Swiss grid catalog vs course-by-course
+  review), can ship on independent cadences. Next pass should:
+  1. Spawn `feature-concept-maps-top-nav` (drafting) carrying the
+     Selected-Option-2 Swiss Grid Catalog mock + the conceptMaps data
+     decisions below.
+  2. Spawn `feature-progress-top-nav` (drafting) carrying the
+     Selected-Option-1 Course-by-Course Review mock + the
+     ProgressService decisions below.
+  3. Archive this aggregator feature to `.work/archive/` as
+     superseded-by-split, with closure note pointing at both.
+  Mockup paths stay where they are; the two new features reference
+  them.
+- **Concept-maps cross-course list — data model: extend
+  `client.conceptMaps.list` to accept an optional `courseId`.** When
+  `courseId` is omitted, return all maps across courses. The IPC
+  channel also gains filter / sort options matching the mock affordances
+  (filter by courseId, sort by recent / coverage / course). Server-side
+  filtering and ordering — UI doesn't fan out. Course-scoped variant at
+  `/courses/$courseId/concept-maps` continues to work via the same
+  method.
+- **Progress surface — data sourcing: new `ProgressService` aggregator
+  on the backend.** Single IPC method returns the full /progress
+  payload: per-course rollup (mastery percent + bar), per-course
+  "you-are-here" (current lesson + next gate), per-course "stuck on"
+  (3-4 concepts with mastery), per-course "recently" (3 events:
+  sessions / gates / grades). Server performs the joins. Mirrors the
+  `RecommendationService` pattern from the Workbench.
+- **Canonical-match coverage badge — unify the visualization across
+  surfaces.** Take this as a chance to lock one canonical coverage
+  visualization. The micro-bar pattern from the locked /concept-maps
+  Option 2 mock becomes the standard; update course-detail's
+  concept-coverage affordance to match. Implementation scope includes
+  touching course-detail.tsx (and any other places the legacy
+  affordance appears). Cleaner design-system result; one source of
+  truth.
+
+## Open for feature-design (per new feature, after split)
+
+- Progress surface scope is single-student v1 per VISION.md. Don't
+  build the multi-student shell pre-emptively.
+- ProgressService payload shape — Drizzle query strategy (recursive CTE
+  vs N+1 vs hybrid). Per-course rollup is hot path; profile early.
+- Coverage micro-bar component location — `packages/ui/src/components/`
+  with `coverage-bar.tsx` + module CSS. Used by both the new top-nav
+  and the updated course-detail.
+- Filter/sort URL params on /concept-maps for bookmarkability.
+- Empty-state handling for both surfaces (no courses yet, no maps yet,
+  no progress data yet).
