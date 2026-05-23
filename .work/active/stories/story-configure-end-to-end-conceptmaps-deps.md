@@ -1,7 +1,7 @@
 ---
 id: story-configure-end-to-end-conceptmaps-deps
 kind: story
-stage: implementing
+stage: review
 tags: [tech-debt, typecheck, testing]
 parent: null
 depends_on: []
@@ -42,3 +42,15 @@ surfaced after that fix landed.
 If the test predates the `conceptMaps` field being added to
 `AuthoringServiceDeps`, the setup just needs the missing key — no behavior
 change required.
+
+## Implementation notes
+
+Stub added **inline** in `tests/configure-end-to-end.test.ts` inside `buildServices()`, immediately before the `AuthoringServiceImpl` constructor call. The stub mirrors the `makeStubConceptMaps()` factory in `packages/core/src/__tests__/authoring-service.test.ts` — all methods `vi.fn()` with appropriate resolved defaults.
+
+Threshold check: only the `authoring-service.test.ts` in-tree file and now `configure-end-to-end.test.ts` use a concept-map stub — two usages, below the 3+ threshold for promoting to `tests/helpers/mocks.ts`. Inline is correct.
+
+Verification:
+- `pnpm typecheck`: clean (all packages pass)
+- `pnpm vitest run tests/configure-end-to-end.test.ts`: 4/4 passed
+- `pnpm test`: 430 test files passed, 4609 tests passed
+- Lint errors (610) are pre-existing; none introduced by this change

@@ -194,6 +194,25 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
     previewPromptWithAttribution: vi.fn().mockReturnValue({ prompt: "preview", fragments: [] }),
   };
 
+  const stubConceptMaps = {
+    create: vi.fn().mockResolvedValue({}),
+    get: vi.fn().mockResolvedValue(null),
+    list: vi.fn().mockResolvedValue([]),
+    rename: vi.fn().mockResolvedValue({}),
+    delete: vi.fn().mockResolvedValue(undefined),
+    updateScene: vi.fn().mockResolvedValue({}),
+    listVersions: vi.fn().mockResolvedValue([]),
+    snapshotIfDirty: vi.fn().mockResolvedValue({ snapshotted: false }),
+    setDivergences: vi.fn().mockResolvedValue(undefined),
+    setNodeLink: vi.fn().mockResolvedValue({}),
+    computeRipples: vi
+      .fn()
+      .mockResolvedValue({ conceptCountDelta: 0, notesRetagged: 0, tutorRefsAffected: 0 }),
+    convertFromSketch: vi
+      .fn()
+      .mockResolvedValue({ conceptMapId: "cm-1", originalSketchNoteId: "note-1", nodeCount: 0 }),
+  };
+
   const authoringService = new AuthoringServiceImpl({
     db,
     log: noopLogger(),
@@ -202,6 +221,7 @@ function buildServices(db: ReturnType<typeof openDb>["db"]) {
     configuratorId: () => "default" as ConfiguratorId,
     studentId: () => brandId<"StudentId">(getOrCreateDefaultStudentId(db)),
     promptCustomization: stubPromptCustomization,
+    conceptMaps: stubConceptMaps as unknown as import("@praxis/core/types").ConceptMapService,
   });
 
   const modes = new Map([
