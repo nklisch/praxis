@@ -15,27 +15,52 @@ updated: 2026-05-23
 
 ## Brief
 
-The top-nav `/concept-maps` and `/progress` routes are currently
-placeholder stubs (RouteHeader + nothing else) — full implementations
-were deferred during the UI redesign. Mocks for both surfaces already
-exist in `.mockups/screens/epic-ui-redesign-ground-up-discovery-surfaces/`
-and describe the intended shape.
+The top-nav `/concept-maps` and `/progress` routes are stubs:
 
-Build out the actual surfaces:
+- `packages/ui/src/routes/concept-maps.tsx` — `RouteHeader` only; comment
+  says "Full implementation follows in the concept-maps surface story."
+- `packages/ui/src/routes/progress.tsx` — `RouteHeader` only; "Placeholder
+  registered so the top-nav Progress link resolves as a valid typed
+  route."
+
+Build out the actual surfaces as first-class top-nav destinations:
 
 - **Concept-maps browser / index.** List all maps across courses, open
   the editor on click, surface canonical-match coverage so the author
-  sees which concepts are mapped and which aren't.
+  sees which concepts are mapped and which aren't. (The
+  course-scoped list at `/courses/$courseId/concept-maps` already exists
+  via `concept-maps-list.tsx` — this is the cross-course aggregator.)
 - **Progress surface.** Student-facing mastery / grade summary, gate
   state, recent activity — the at-a-glance view of where the student
   stands across their courses.
 
-Today these features are only reachable indirectly through course detail
-routes — promoting them to first-class top-nav destinations closes the
-discovery gap the redesign opened.
+## Mockup status (2026-05-23 — corrected from original)
 
-## Mockups
+**No existing mocks apply to these surfaces.** The earlier reference to
+`.mockups/screens/epic-ui-redesign-ground-up-discovery-surfaces/` was
+wrong: those 4 options were for the **Library redesign** (which shipped
+in v0.1.3 as the Workbench shape — `library.tsx`), not for /concept-maps
+or /progress. The discovery-surfaces feature explicitly notes "Concept
+maps index" as a list view onto course concept maps — but the chosen
+Option 4 (Workbench) only added small footer cards linking to /concept-maps
+and /documents, never mocking the destinations themselves.
 
-Existing: `.mockups/screens/epic-ui-redesign-ground-up-discovery-surfaces/`
-(from the redesign epic). `feature-design` confirms the existing mocks are
-still the intended shape or proposes refinements.
+**Decision (epic-design --only-questions, 2026-05-23):** generate fresh
+mocks via `/ux-ui-design:screens` — 4 options each for /concept-maps
+top-nav surface and /progress top-nav surface, picked separately.
+
+Mockup paths once generated:
+
+- `.mockups/screens/feature-concept-maps-and-progress-routes-concept-maps/`
+- `.mockups/screens/feature-concept-maps-and-progress-routes-progress/`
+
+## Design questions for feature-design
+
+- Data model for "list all maps across courses" — does
+  `client.conceptMaps.list` accept a no-courseId variant, or do we
+  aggregate across `client.courses.list` calls in the UI?
+- Progress surface scope: single-student view only (v1) or
+  multi-student-ready shell? Vision says single-student in v1; lean
+  single-student.
+- Canonical-match coverage badge — same surface treatment as the
+  course-detail "concept coverage" affordance, or distinct?

@@ -83,39 +83,59 @@ the visible chat surfaces correctly.
   ship the chosen direction. **depends on**: `[]`
   *(feature, stage: drafting)*
 
-### Decomposition risks
+### Decomposition risks (resolved during --only-questions, 2026-05-23)
 
-- **Sidekick-fit is question-shaped.** The deliverable depends on
-  `feature-design` resolving which of three directions to ship. If the
-  answer is "swap for a draft-state inspector," that's a substantial
-  build; if it's "hide," it's a single-story patch. Feature-design will
-  surface the size at draft time.
-- **Unified-landing's pack-picker piece** could expand if the pack
-  selection surface needs more than a simple list (search, preview,
-  inspection). Watch the scope at feature-design.
+- **Sidekick-fit question-shape — resolved.** Direction locked: hide
+  the right rail in course-create. Confirmed problem: `chat.tsx` always
+  renders `ChatRightPanel` (Concepts + Sidekick-placeholder) and
+  course-create's tab body renders its own `AuthoringChatPane` —
+  two right panels compete. Story-sized fix in chat.tsx. See
+  `epic-course-create-readiness-sidekick-fit` body for the locked
+  decision and implementation shape.
+- **Unified-landing pack-picker — sized down.** Validation against
+  `packages/ui/src/routes/course-create.tsx` showed the route already
+  has the hero, drop zone, attached files, context textarea, pre-seed
+  wiring, and the 4-step stepper. Feature reduces to three concrete
+  pieces: reroute 5 bypass entry points, embed pack picker as a
+  source option, rename stepper Step 2 (`Explore` → `Create`) with
+  the code/doc alignment audit. See
+  `epic-course-create-readiness-unified-landing` body for the
+  re-scope.
 
-## UI alignment deferred
+## Design decisions (--only-questions, 2026-05-23)
 
-Phase 4.6 (mockup pass) is skipped because Phase 1.5 short-circuited the
-decomposition — the children pre-existed from `scope`. Net-new surfaces in
-this epic that the design-system principle says should be mocked at the
-epic tier (primary):
+- **Sidekick-fit direction: hide.** Captured in
+  `epic-course-create-readiness-sidekick-fit`. May collapse to a
+  single story at feature-design time.
+- **Unified-landing stepper Step 2: rename `Explore` → `Create`.**
+  Plus code+doc alignment audit per user instruction (find: 1 UI
+  label, 1 frozen phase-design doc, 0 semantic verb usages to
+  change). Captured in
+  `epic-course-create-readiness-unified-landing`.
+- **Unified-landing pack-picker placement: inside `/course-create`.**
+  Pack picker becomes a source option alongside file upload. Open
+  sub-decision deferred to feature-design: does `/packs` collapse
+  into the Library tab (user's lean) or stay standalone?
+- **Sketch → concept-map promotion: closed as already shipped.**
+  Validation revealed the CTA is live in `note-editor-sketch.tsx`
+  with full modal and test coverage. The sibling top-level feature
+  `feature-sketch-to-concept-map-promotion` is archived. Not part of
+  this epic, but logged here because it was identified in the same
+  validation pass.
 
-- **`epic-course-create-readiness-unified-landing`** — the unified landing
-  screen, the four-step progress trail, and the multi-screen
-  `material · create · confirm · open` flow.
-- **`epic-course-create-readiness-sidekick-fit`** — only if the resolved
-  direction is "draft-state inspector".
+## UI alignment status
 
-To run the mockup pass at the epic tier, invoke:
+Phase 4.6 mockup pass: 1 of 2 net-new surfaces require new mocks:
 
-```
-/agile-workflow:epic-design --only-questions epic-course-create-readiness
-```
+- **`epic-course-create-readiness-unified-landing`** — pack source
+  option inside the landing's source-selector area; optional "Resume
+  draft" affordance if any resume paths route through the landing.
+  The existing `.mockups/flows/course-create-entry/` covers the
+  post-landing experience.
+- **`epic-course-create-readiness-sidekick-fit`** — no mock needed.
+  Direction is "hide"; no new surface to design.
 
-Otherwise, each feature's own `feature-design` Phase 4.6 will fall back to
-mocking on the spot — acceptable, but the epic tier is the principle's
-preferred layer for cross-feature visual alignment.
+Mocks queued for `feature-design` on unified-landing.
 
 ## Source ideas (absorbed)
 
