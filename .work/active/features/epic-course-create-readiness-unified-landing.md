@@ -121,15 +121,72 @@ Tier rule: this feature has an epic parent, so `epic-design` Phase 4.6
 is the primary tier for any net-new mocks. They're queued in the
 parent epic's `## UI alignment deferred` section.
 
-## Design questions for feature-design
+## Design decisions (feature-design --only-questions, 2026-05-23)
 
-- Which of the 5 bypass paths route through the landing, and which
-  carry "resume" or "pre-selected pack" affordances directly on the
-  landing?
-- Where does the pack picker sit in the landing's layout — tabbed
-  source selector (Upload / Paste / Pack / Syllabus), inline section,
-  modal-on-CTA?
-- Does `/packs` collapse into the Library tab (user's lean), stay
-  standalone, or get deferred to a separate cleanup?
-- Does the phase-16 design doc get renamed (`bootstrap-create`) or
-  stay as frozen history?
+- **Source options: Upload + Pack + Paste (3, not 4).** "From syllabus"
+  was a stale framing — a syllabus is just a document or pasted text;
+  the agent parses it. No deterministic syllabus parser. Sources
+  shipping in the source-selector:
+  1. Upload (existing — file drop zone + browse)
+  2. Pack (new — pick from canonical packs)
+  3. Paste (new — paste textbook chapter / notes / etc. as source
+     material; distinct from the existing audience/goal context
+     textarea, which stays as-is)
+
+- **Pack picker layout: TBD via mockup pass — kicked off after this
+  decision capture.** Three layouts to evaluate via
+  `/ux-ui-design:screens feature-unified-landing-source-picker`:
+  tabbed source selector / inline section / modal-on-CTA. Once
+  finalized, update the existing `.mockups/flows/course-create-entry/`
+  mocks to align — canonical truth in one place.
+
+- **Onboarding entry path: route through /course-create + slim
+  onboarding down.** Duplication confirmed in
+  `packages/ui/src/components/onboarding-flow.tsx:332-367`
+  (`CourseStep.handleStart`): the step manually does
+  `session.start({ modeId: "course-create" }) → fire-and-forget pre-seed
+  → tabs.open → navigate to /chat/$tabId`. That's exactly what
+  /course-create + pack-picker does, just inlined. Refactor:
+  1. Onboarding's 3 path cards (Algebra / Biology / Syllabus) navigate
+     to /course-create with pack pre-selected (algebra/biology paths) or
+     no source (syllabus path).
+  2. /course-create handles the rest uniformly — pack source pre-attached,
+     "Start Praxis →" sends the same canonical pre-seed message.
+  3. Remove the inline `session.start` + pre-seed dance from
+     `CourseStep.handleStart`; remove the `PRESEED_MESSAGES` constant
+     (the pack-source path inside /course-create owns the pre-seed
+     wording).
+  Onboarding stays as a thin pre-step (3 cards), not a separate flow.
+
+- **/packs disposition: fold into Library tab as a section.** Library
+  route gets a PacksSection. Remove the top-level `/packs` route from
+  `packages/ui/src/router.tsx:155`. Pack picker inside /course-create
+  is the primary source path for "use this pack"; the Library section
+  is the browse-and-discover surface.
+
+## Open for feature-design
+
+- Routing the 5 bypass paths: cold-start paths (`courses.tsx:20`
+  `handleNewCourse`, `library.tsx:79` `handleUsePack`) route through
+  the landing. Resume paths (`courses.tsx:29` `handleResumeDraft`,
+  `library.tsx:130` `resume_draft` rec) skip the landing — re-picking
+  source material is pointless mid-flight. Onboarding routes through
+  per the decision above. Confirm during implementation.
+- Paste source — does it create a document via the existing ingestion
+  path (so it shows in the documents list and is RAG-retrievable), or
+  is it a one-shot context for the drafter only?
+- Pack source-attached state shape — passed via route search params
+  (e.g., `/course-create?pack=algebra-1`), route state, or
+  session-storage one-shot?
+- `docs/designs/phase-16-bootstrap-explorer.md` rename — minor, defer
+  to implementation; either rename to `phase-16-bootstrap-create` or
+  leave as frozen history per the rolling-foundation convention.
+
+## Parked (separate work)
+
+- **Orphan routes/pages audit** — user request during this --only-
+  questions pass: audit all routes registered in
+  `packages/ui/src/router.tsx` against actual inbound navigation links
+  to find pages with no user-reachable path. Parked at
+  `.work/backlog/idea-orphan-routes-audit.md` (or equivalent slug).
+  Not part of this feature's scope.
