@@ -1,7 +1,7 @@
 ---
 id: feature-sketch-to-concept-map-promotion
 kind: feature
-stage: drafting
+stage: done
 tags: [ui, content]
 parent: null
 depends_on: []
@@ -21,23 +21,37 @@ wired into the sketch editor today. Sketches live as a note format;
 concept-maps are managed separately; the connecting affordance ("turn
 this sketch into a concept map") doesn't exist in the UI.
 
-The conversion itself may already have backend pieces (shape recognition,
-canonical linkage in the concept-map editor) — but the entry point is
-missing. Build the CTA: likely a "Promote to concept map" action in the
-sketch note editor that opens the concept-map editor pre-populated with
-the sketch's shapes, so the journey the existing mock describes becomes
-reachable.
+## Closure (2026-05-23)
 
-## Design questions for feature-design
+**Status: closed as already shipped.** Validation against the codebase
+during `epic-design --only-questions` revealed the CTA is live and
+covered by tests — the original brief was stale.
 
-- Confirm what backend pieces already exist (shape recognition, canonical
-  linkage) and what — if anything — needs to ship alongside the CTA.
-- Decide CTA placement and copy in the sketch editor.
-- Decide the navigation behavior: open the new concept-map in a tab,
-  inline-promote into the same tab, or surface a confirmation step
-  first.
+**Evidence:**
 
-## Mockups
+- `packages/ui/src/components/note-editor-sketch.tsx:184-196` — renders
+  the **"convert to a concept map ↗"** button in the inline notice strip
+  when `onConvertToConceptMap` is provided.
+- `packages/ui/src/components/note-editor-sketch.tsx:209-246` —
+  confirmation modal: "Praxis will extract labelled shapes as nodes and
+  arrows as edges. Shapes without text labels will be skipped — the
+  resulting map may be sparse. The original sketch is preserved. You can
+  undo this conversion within 24 hours from the Configure tab."
+- `packages/ui/src/routes/workspace/note-editor-page.tsx:230` — production
+  callsite passes `onConvertToConceptMap: handleConvertToConceptMap`. The
+  CTA is live.
+- `packages/ui/src/components/__tests__/note-editor-sketch-convert.test.tsx`
+  — 7 tests covering button visibility, modal open, cancel, convert,
+  error state, loading state, ESC close.
 
-Existing flow: `.mockups/flows/sketch-to-concept-map/`. `feature-design`
-confirms this is still the intended journey or proposes refinements.
+**Why this slipped through:** the idea was parked
+2026-05-19 (presumably observed in an earlier sketch-editor revision or
+before the Phase-15b sketch-bridge story landed); the convert CTA shipped
+between then and now.
+
+**Future verification** (not part of this feature): if the shipped flow
+diverges materially from `.mockups/flows/sketch-to-concept-map/` once a
+user walks the journey end-to-end, file a fresh fix-story rather than
+re-opening this one.
+
+Archived to `.work/archive/`.
