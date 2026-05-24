@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction-step-3-grading-orchestrator
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-assignment-service-grading-extraction
 depends_on:
@@ -104,3 +104,22 @@ The `ctx.log.info("grader.misconception_detected", ...)` call moves verbatim. Th
 ## Rollback
 Delete `graders/grading-orchestrator.ts` and remove its export from `graders/index.ts`.
 No state was moved out of `AssignmentServiceImpl` yet in this step.
+
+## Implementation notes
+
+Created `packages/core/src/services/graders/grading-orchestrator.ts` (172 lines):
+- `GradingOrchestratorDeps` interface: `{ log, graderServices, enableApproachFeedback? }`
+- `GradingOrchestrator` interface: `gradeAssignment({ assignment, responses, mode }) → Promise<Grade>`
+- `GradingOrchestratorImpl` class: builds `this.registry = buildGraderRegistry()` in constructor,
+  implements `gradeAssignment` with the verbatim grading loop from `submit()` lines 546–654
+- Builds `responseByItemId` Map internally from `responses` array parameter
+- Constructs `GraderContext` internally from `this.deps`
+- workRubric blending (2a), requireReasoning blending (2b), misconception TODO stub (2c), and
+  approach-feedback enrichment (3) all transplanted verbatim with their branching logic intact
+- Phase 17.5 TODO comment preserved on the misconception stub
+- `enableApproachFeedback ?? true` default preserved
+
+Updated `graders/index.ts` to export `GradingOrchestrator`, `GradingOrchestratorDeps` (type),
+and `GradingOrchestratorImpl`.
+
+`pnpm typecheck` clean; all 1164 tests pass (96 files). `assignment-service.ts` untouched.

@@ -1,4 +1,6 @@
 export { enrichWithApproachFeedback } from "./approach-feedback.js";
+export type { GradingOrchestrator, GradingOrchestratorDeps } from "./grading-orchestrator.js";
+export { GradingOrchestratorImpl } from "./grading-orchestrator.js";
 export { blendDeterministicAndWorkRubric } from "./blending.js";
 export { APPROACH_SYSTEM_PROMPT } from "./approach-prompt.js";
 export { CodeGrader } from "./code-grader.js";
