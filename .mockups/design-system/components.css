@@ -1316,10 +1316,15 @@ body {
   margin: 0;
 }
 /* Streaming feel — no cursor. The newest chunk of text fades in over
- * --dur-quick so the eye registers "this just arrived." In production each
- * new token-chunk wraps in this span (briefly) as it streams; once settled
- * the opacity is 1 and the span can be unwrapped. In mocks we wrap the
- * trailing phrase to demonstrate the visual without real streaming.
+ * --dur-ambient (480ms) so the eye registers "this just arrived." Locked
+ * 2026-05-24 after A/B exploration in .mockups/design-system/streaming.html
+ * (chose gentle 480ms opacity-only fade with word chunks; production
+ * streaming hook should release chunks on a ~120ms cadence to match).
+ *
+ * In production each new token-chunk wraps in this span (briefly) as it
+ * streams; once settled the opacity is 1 and the span can be unwrapped.
+ * In mocks we wrap the trailing phrase to demonstrate the visual without
+ * real streaming.
  *
  * The persistent "in-flight" signal stays on the speaker line via
  * .chat-turn__streaming (the pulsing dot + label). The text body itself

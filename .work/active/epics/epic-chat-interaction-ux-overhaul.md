@@ -41,3 +41,19 @@ The rolled-forward UX.md is the locked direction for epic-design / feature-desig
 - `idea-questions-tabbed-display` → child story under `feature-question-panel-rework`
 - `idea-user-question-no-dismiss-on-submit` → child story under `feature-question-panel-rework` (bug)
 - `idea-question-free-answer-and-cancel-path` → child story under `feature-question-panel-rework`
+
+## Design-system decisions (locked 2026-05-24)
+
+These cut across the three child features and are pinned at the epic level so each feature's design pass inherits them.
+
+- **No streaming cursor.** The blinking-caret pattern (`▍`) was removed from the chat-turn body. The persistent "in-flight" signal lives on the speaker line as `.chat-turn__streaming` (pulsing dot + label). The text body itself carries no perpetual animation. Rationale: terminal-style chrome competes with the editorial voice of Studio Quiet; locked Productive motion attitude in `motion.css` rejects perpetual body-text motion.
+- **Streaming feel: per-chunk fade-in.** Each new chunk of arriving text wraps in `.chat-turn__streaming-tail`; the span fades opacity 0 → 1 over `--dur-ambient` (480ms) using `--ease-standard`. Once settled the wrapper can be unwrapped (or just left — opacity 1 is visually neutral). Reads as someone "thinking and writing", per `docs/UX.md` § "Streaming with intercept and easing".
+- **Streaming pace target: ~120ms / word chunk.** The production streaming hook's ring-buffer release schedule should target a ~120ms cadence releasing word-sized chunks (matched against the gentle 480ms fade so chunks visibly settle between releases). A/B explored in `.mockups/design-system/streaming.html` across 7 pace × 7 fade-style combinations on 2026-05-24; this combination chosen as the standing direction.
+- **Unified chat surface across contexts.** Every chat-bearing surface (teach, course-create, configure, future sidebar tutor) wraps content in `.chat-surface` + `--wide` / `--medium` / `--narrow` modifier. Components inside (`.chat-turn`, `.composer`, `.inline-question`, `.action-card`, `.status-strip`) adapt via `@container` queries against the surface — zero per-context overrides. Reference: `.mockups/screens/feature-composer-async-behavior/responsive-showcase.html` and `.mockups/screens/feature-question-panel-rework/responsive-showcase.html`.
+- **In-chat optimistic-dispatch pattern (canonical).** Any in-chat affordance that triggers engine work uses `.action-card` + `.action-pip` (states: pending / success / failed / retrying). Failure surfacing is two-tier: inline at the affordance first, escalating to `.status-strip` after ~30s unattended. Retry uses the same dispatch params (captured at click-time). No squash/overshoot on pip transitions — locked Productive motion attitude. See `.mockups/flows/async-chat-interactions/index.html`.
+
+## Standing design-system artifacts
+
+- `.mockups/design-system/components.css` § Tier-2 chat-surface — every chat primitive, single source of truth
+- `.mockups/design-system/streaming.html` — interactive standardized showcase of the streaming pattern (with the chosen direction marked at top)
+- `.mockups/design-system/components.html` § Chat surface — every chat component in every state, rendered with motion live
