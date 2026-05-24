@@ -1,14 +1,14 @@
 ---
 id: gate-tests-session-active-studentid-isolation
 kind: story
-stage: review
+stage: done
 tags: [testing, sessions]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # `session.active({ modeId })` cross-student isolation not regression-guarded
