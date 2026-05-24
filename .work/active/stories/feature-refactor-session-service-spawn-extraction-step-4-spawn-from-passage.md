@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction-step-4-spawn-from-passage
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-session-service-spawn-extraction
 depends_on: [feature-refactor-session-service-spawn-extraction-step-3-spawn-from-note]
@@ -104,3 +104,14 @@ Imports removed from `session-service.ts` after this step (verify each):
 
 ## Rollback
 Revert spawner additions; restore original bodies in `session-service.ts`.
+
+## Implementation notes
+- Moved `spawnFromPassage` (~95 lines of logic) from `SessionServiceImpl` into `SessionSpawner.spawnFromPassage`. `session-service.ts` body replaced with one-line delegate.
+- Added `documentChunks`, `documents` imports from `@praxis/artifacts/schema` and `asc` from `drizzle-orm` to `session-spawner.ts`. Added `DocumentId` type import.
+- `this.deps.toolServices.documentScopes` guard in original became `if (this.deps.documentScopes)` in spawner (simpler, per story notes). The `biome-ignore` cast on `this.send()` was eliminated — `deps.sendMessage` is fully typed.
+- `MAX_PASSAGE_LENGTH = 100_000` constant was already present as a module-level `const` in `session-spawner.ts` from step 1 prep; the local `const MAX_PASSAGE_LENGTH` declaration in the old service body was removed.
+- Removed `documentChunks`, `documents` from `session-service.ts` artifact imports. `DocumentId` and `NoteId` remain in type imports (still used in delegate method signatures).
+- `asc` remains in `session-service.ts` drizzle-orm import (still used in `list()` for `episodicEvents.ts` ordering).
+- All 1164 core tests pass; `session-service.spawn-from-passage.test.ts` (5 tests) all green.
+- `pnpm typecheck` clean across all 10 workspace packages.
+- Final line count: `session-service.ts` 665 lines; `session-spawner.ts` 329 lines.

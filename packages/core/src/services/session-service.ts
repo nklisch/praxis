@@ -1,6 +1,6 @@
-import { documentChunks, documents } from "@praxis/artifacts/schema";
 import { episodicEvents, sessions } from "@praxis/memory/schema";
 import { and, asc, desc, eq, isNull, notInArray } from "drizzle-orm";
+
 import { v7 as uuidv7 } from "uuid";
 import { readEngineConfig } from "../config/index.js";
 import { appendEpisodic, nextTurnIndex, recordUserMessage } from "../session/episodic.js";
@@ -647,94 +647,7 @@ export class SessionServiceImpl implements SessionService {
     documentId: DocumentId;
     range: { startOffset: number; endOffset: number };
   }): Promise<SessionHandle> {
-    const studentId: StudentId =
-      input.studentId ?? (getOrCreateDefaultStudentId(this.deps.db) as StudentId);
-
-    // Verify the document exists and belongs to this student.
-    const docRow = this.deps.db
-      .select({ id: documents.id, filename: documents.filename })
-      .from(documents)
-      .where(and(eq(documents.id, input.documentId), eq(documents.studentId, studentId)))
-      .get();
-    if (!docRow) {
-      throw new Error(`Document not found: ${input.documentId}`);
-    }
-
-    // Fetch all chunks for the document in order, then join to get the full text.
-    const chunkRows = this.deps.db
-      .select({ text: documentChunks.text })
-      .from(documentChunks)
-      .where(eq(documentChunks.documentId, input.documentId))
-      .orderBy(asc(documentChunks.chunkIndex))
-      .all();
-
-    const fullText = chunkRows.map((c) => c.text).join("\n\n");
-
-    // Extract the passage text from the range — clamp to document bounds,
-    // then cap passage length so a huge offset range can't inject an unbounded
-    // string into the opening message.
-    const MAX_PASSAGE_LENGTH = 100_000;
-    const safeStart = Math.max(0, Math.min(input.range.startOffset, fullText.length));
-    const safeEndUncapped = Math.max(safeStart, Math.min(input.range.endOffset, fullText.length));
-    const safeEnd = Math.min(safeEndUncapped, safeStart + MAX_PASSAGE_LENGTH);
-    if (safeEnd < safeEndUncapped) {
-      this.deps.log.warn("spawn_from_passage.passage_truncated", {
-        documentId: input.documentId,
-        requestedLength: safeEndUncapped - safeStart,
-        cappedLength: MAX_PASSAGE_LENGTH,
-      });
-    }
-    const passageText = fullText.slice(safeStart, safeEnd).trim();
-
-    // Compose the injected opening message.
-    const openingMessage =
-      `I'm studying a document ("${docRow.filename}") and would like to explore a passage with you.\n\n` +
-      (passageText
-        ? `<passage>${passageText}</passage>`
-        : "<passage>[passage text unavailable]</passage>");
-
-    // Start a teach session. _persistImmediately: true — this spawn path injects
-    // an opening message before the student's first turn, so the session has meaning
-    // before the student interacts.
-    const handle = await this.start({ modeId: "teach", _persistImmediately: true });
-
-    // Attach the document to this session with the passage range so the viewer
-    // can render the † marker later.
-    if (this.deps.toolServices.documentScopes) {
-      try {
-        await this.deps.toolServices.documentScopes.attach({
-          scope: { kind: "session", id: handle.sessionId },
-          documentId: input.documentId,
-          source: "manual",
-          passageRange: input.range,
-        });
-      } catch (cause) {
-        this.deps.log.warn("spawn_from_passage.scope_attach_failed", {
-          documentId: input.documentId,
-          sessionId: handle.sessionId,
-          err: cause instanceof Error ? cause.message : String(cause),
-        });
-        // Non-fatal: session still valid; viewer just won't render the marker.
-      }
-    }
-
-    // Inject the passage as the opening user message (fire-and-forget, non-streaming).
-    try {
-      const sessionId = handle.sessionId;
-      // biome-ignore lint/suspicious/noExplicitAny: engine send is async-iterable; drain it
-      const stream = this.send(sessionId as any, openingMessage);
-      for await (const _event of stream) {
-        // Drain; we don't forward events — caller opens the tab and sees history.
-      }
-    } catch (cause) {
-      this.deps.log.warn("spawn_from_passage.opening_turn_failed", {
-        documentId: input.documentId,
-        err: cause instanceof Error ? cause.message : String(cause),
-      });
-      // Non-fatal: session is still valid; tutor just won't have pre-context.
-    }
-
-    return handle;
+    return this.spawner.spawnFromPassage(input);
   }
 
   /** Tear down all active engine sessions. Called on host shutdown. */
