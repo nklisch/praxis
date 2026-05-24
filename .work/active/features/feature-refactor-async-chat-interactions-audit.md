@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-async-chat-interactions-audit
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui, refactor]
 parent: epic-chat-interaction-ux-overhaul
 depends_on: []
@@ -61,3 +61,290 @@ Refactor-design will:
   - `.status-strip` + `--active` + `__pip` / `__label` / `__text` — mock-side mirror of production `<StatusStrip>`
   - Shared keyframes `chat-pulse`, `chat-fade-in`, `chat-rise-in` — compositor-cheap (opacity + translate only), all wrapped in `@media (prefers-reduced-motion: reduce)` opt-out. Note: streaming text uses `.chat-turn__streaming-tail` (fade-in per new chunk) rather than a blinking cursor — the persistent in-flight signal is the pulsing dot on `.chat-turn__streaming`, not a caret on the body text.
 - Pattern skill candidate: `.claude/skills/patterns/optimistic-dispatch.md` — write after the third per-surface refactor lands and the shape is proven (per `Pattern scope` in Design decisions).
+
+## Refactor Overview
+
+The audit (2026-05-24) found **36 sync-await call sites** across the chat-bearing UI, against **1 fire-and-forget** (`client.drafts.events()` streaming subscription). Zero of the canonical `.action-card` / `.action-pip` primitives exist in production code today — they're only in mocks. The single existing `ActivityRegistry` producer is `IndexerOrchestratorImpl`.
+
+The refactor proceeds in seven dependent steps. Step-1 builds the canonical primitives + the shared `useOptimisticAction` hook (everything else uses it). Step-2 generalizes the failure-escalation pattern (from `useFailedEscalation` in `feature-composer-async-behavior`) into a reusable `useActionEscalation`. Steps 3–7 are per-surface refactors against the primitives. Step-8 writes the codified pattern doc once three surfaces have landed and the shape has proven itself.
+
+By priority:
+- **HIGH** — assignment-submit (3 files), course-materialize button (course-create-tab-body)
+- **MEDIUM** — document-attach per-row, selection-bar capture (notes/cite/flashcards)
+- **LOW** — author mutations (prompt edits, lesson updates, gate overrides — less visible to students)
+
+Out-of-scope (handled by sibling features in this epic): composer send (`feature-composer-async-behavior`), structured-question submit (`feature-question-panel-rework`), math render (`feature-math-rendering` in the educational-content epic).
+
+## Refactor Steps
+
+### Step 1: Canonical primitives + `useOptimisticAction` hook
+**Priority**: High
+**Risk**: Low (additive)
+**Files**:
+- `packages/ui/src/components/markdown-content.module.css` (or sibling — the in-chat primitives CSS file): `.action-card`, `.action-pip` (+ `--show`/`--pending`/`--success`/`--failed`/`--retrying` modifiers), `.failure-popover` (+ `__label`/`__reason`/`__actions`)
+- `packages/ui/src/components/action-card.tsx` (NEW): `<ActionCard>` shell composing `__body` + `__action` slots
+- `packages/ui/src/components/action-pip.tsx` (NEW): `<ActionPip state>` indicator
+- `packages/ui/src/components/failure-popover.tsx` (NEW): anchored popover for retry / dismiss
+- `packages/ui/src/hooks/use-optimistic-action.ts` (NEW): the shared hook
+**Story**: `feature-refactor-async-chat-interactions-audit-step-1-canonical-primitives`
+
+```typescript
+// useOptimisticAction.ts
+export type ActionState = "idle" | "pending" | "success" | "failed" | "retrying";
+
+export interface UseOptimisticActionOpts<TParams> {
+  dispatch: (params: TParams) => Promise<void>;
+  onSuccess?(): void;
+  onError?(err: unknown): void;
+  resetSuccessAfterMs?: number;  // default 800ms (pip flashes then vanishes)
+}
+
+export interface UseOptimisticActionResult<TParams> {
+  state: ActionState;
+  errorReason?: string;
+  trigger(params: TParams): void;     // captures params at click-time
+  retry(): void;                       // re-dispatches with captured params
+  dismiss(): void;                     // failed → idle
+}
+
+export function useOptimisticAction<TParams>(
+  opts: UseOptimisticActionOpts<TParams>,
+): UseOptimisticActionResult<TParams>;
+```
+
+**Implementation notes**:
+- Hook captures the dispatch params on `trigger` into a ref so `retry` replays the same params.
+- State machine: `idle → pending → (success | failed)`; `failed → retrying → (success | failed)`.
+- `errorReason` extracted via existing project error-message helper.
+- Components are dumb presentational — state lives in the hook.
+- `<ActionCard>` composes children into `__body` and `__action` slots; styling per the locked mockup at `.mockups/screens/feature-composer-async-behavior/state-failed-retry.html` and `.mockups/flows/async-chat-interactions/03-action-card-pending.html`.
+- `<ActionPip>` is just `<span class="action-pip action-pip--<state>" />` — visibility controlled by `--show`.
+- `<FailurePopover>` anchors to the trigger affordance and shows retry + dismiss actions.
+
+**Acceptance criteria**:
+- [ ] `.action-card`, `.action-pip`, `.failure-popover` CSS in production with token references
+- [ ] Three React components shipped with prop interfaces from mockup conventions
+- [ ] `useOptimisticAction` hook with documented state machine
+- [ ] Hook tests (`__tests__/use-optimistic-action.test.ts`): trigger → pending; success → idle after timeout; failed → state preserved; retry replays captured params
+- [ ] Component tests: per state + click handlers
+- [ ] All motion via tokens (no hardcoded transitions); respects `prefers-reduced-motion`
+
+**Rollback**: pure-additive — revert the new files.
+
+---
+
+### Step 2: `useActionEscalation` — generalize failure escalation
+**Priority**: High
+**Risk**: Low (mirrors existing pattern)
+**Files**:
+- `packages/ui/src/hooks/use-action-escalation.ts` (NEW)
+**Story**: `feature-refactor-async-chat-interactions-audit-step-2-action-escalation`
+
+```typescript
+export function useActionEscalation(opts: {
+  failedActions: ReadonlyArray<{ id: string; label: string; failedAt: number }>;
+  activity?: ActivityRegistryClient | null;
+  thresholdMs?: number;  // default 30_000
+}): void;
+```
+
+**Implementation notes**:
+- Mirrors `useFailedEscalation` from `feature-composer-async-behavior` (Unit 6), but generalized over any optimistic-action failures, not just pending messages.
+- Per-failed-action timer; escalate to activity strip after threshold.
+- The composer's `useFailedEscalation` can become a thin wrapper around `useActionEscalation` post-landing (small follow-on); not part of this story.
+
+**Acceptance criteria**:
+- [ ] Hook implemented matching the documented signature
+- [ ] Tests using `vi.useFakeTimers()` (per slow-test-gating pattern)
+- [ ] Threshold timing, retry-cancels-timer, unmount-cleanup, re-failure-reschedules
+- [ ] No-op when `activity` is undefined
+
+**Rollback**: pure-additive.
+
+---
+
+### Step 3: Assignment submit refactor (HIGH priority — 3 files)
+**Priority**: High
+**Risk**: Medium (assignment submit is critical path; needs careful regression coverage)
+**Files**:
+- `packages/ui/src/components/assignment-card.tsx:71,81`
+- `packages/ui/src/components/quiz-tab-body.tsx:127,135`
+- `packages/ui/src/components/homework-tab-body.tsx:167,175`
+- (and exam-tab-body if structurally identical)
+**Story**: `feature-refactor-async-chat-interactions-audit-step-3-assignment-submit-async`
+
+**Current State**: `handleSubmit` awaits `client.sketches.put()` then awaits `client.assignments.recordResponse()` sequentially. UI frozen for the duration.
+
+**Target State**: `handleSubmit` calls `useOptimisticAction.trigger({ sketchData, response })`. The dispatch function chains the two IPC calls in the background. Submit button shows `<ActionPip>` next to it via the hook's state. On failure, `<FailurePopover>` anchors to the submit button with retry.
+
+**Implementation notes**:
+- One hook instance per assignment-card / tab-body — each owns its dispatch params + state.
+- Preserve any post-submit navigation behavior (e.g., advance to next item) inside `onSuccess` callback.
+- Tests: existing assignment-submit tests update to mock the hook; new test verifies pending-pip appears on click + vanishes on settle.
+
+**Acceptance criteria**:
+- [ ] All three files refactored to use `useOptimisticAction`
+- [ ] Submit button never disables; pip shows in-flight state
+- [ ] Sketch + recordResponse run in background
+- [ ] Existing functionality preserved (test coverage same)
+- [ ] Failure → inline `<FailurePopover>` → retry replays the same dispatch params
+
+**Rollback**: per-file revert (each is independent).
+
+---
+
+### Step 4: Course-materialize confirmation pip
+**Priority**: High
+**Risk**: Medium (affects course-create flow)
+**Files**:
+- `packages/ui/src/components/course-create-tab-body.tsx` (lines 135, 215-227)
+**Story**: `feature-refactor-async-chat-interactions-audit-step-4-course-materialize-pip`
+
+**Current State**: `setConfirming(true)` text change on the button; minimal feedback until `finalized` event arrives via draft-events stream.
+
+**Target State**: Button uses `useOptimisticAction` against the `course.confirm_draft` dispatch flow. Pip stays in pending state until the `finalized` event arrives via existing draft-events stream → `onSuccess` callback opens the teach session.
+
+**Implementation notes**:
+- Wire the success transition from the existing `useEffect` that watches draft-events — when finalized fires, call `actionHook.onSuccess` equivalent (may need a `setSuccess()` method on the hook).
+- If the hook doesn't currently expose a way to externally complete (it currently sets success internally on dispatch resolution), extend the hook with an `externalSettle(state: "success" | "failed", reason?: string)` method.
+
+**Acceptance criteria**:
+- [ ] Confirm button uses `useOptimisticAction` with external-settle wiring
+- [ ] Pending pip shows from click until `finalized` event arrives
+- [ ] Success transition opens session in tab (existing behavior)
+- [ ] Button doesn't disable
+- [ ] Test: simulate finalized event arrival → pip transitions success → session opens
+
+**Rollback**: single-file revert.
+
+---
+
+### Step 5: Document attach per-row pip
+**Priority**: Medium
+**Risk**: Low
+**Files**:
+- `packages/ui/src/components/library-document-picker.tsx:118`
+**Story**: `feature-refactor-async-chat-interactions-audit-step-5-document-attach-pip`
+
+**Current State**: `await client.documentScopes.attach()` per row. Row blocks until attach completes.
+
+**Target State**: One `useOptimisticAction` per row (or a single shared hook keyed by document id). Pip on the attach button; optimistic update to local attached set immediately.
+
+**Implementation notes**:
+- Optimistic update: add doc id to `attachedSet` state on click; if attach fails, remove and show retry.
+- Simpler shape: one `useOptimisticAction` per row, scoped to that row's button.
+
+**Acceptance criteria**:
+- [ ] Per-row attach uses `useOptimisticAction`
+- [ ] Optimistic state shows the doc as attached before dispatch resolves
+- [ ] Pip shows on the attach button per row
+- [ ] Failure → inline retry on the same row
+- [ ] Existing attach behavior preserved on success
+
+**Rollback**: single-file revert.
+
+---
+
+### Step 6: Selection-bar capture (notes / citations / flashcards)
+**Priority**: Medium
+**Risk**: Low
+**Files**:
+- `packages/ui/src/components/document-tab-body.tsx:254, 271, 286`
+**Story**: `feature-refactor-async-chat-interactions-audit-step-6-selection-bar-async`
+
+**Current State**: Three separate `await` calls in the selection action handlers. Selection bar locks during each.
+
+**Target State**: Each selection action uses `useOptimisticAction`. Bar dismisses immediately on click; pip + toast surfaces settle / failure asynchronously via status strip (per the two-tier failure pattern).
+
+**Implementation notes**:
+- The selection bar disappears on click (existing behavior); the pip + escalation happens via `useActionEscalation` for any post-bar failure.
+- Three independent hooks (note / cite / flashcard) — each captures its own dispatch params.
+
+**Acceptance criteria**:
+- [ ] All three selection actions refactored to use `useOptimisticAction`
+- [ ] Selection bar dismisses immediately on click (UI never blocks)
+- [ ] Success silently completes; failure surfaces in status strip after threshold
+- [ ] Existing capture behavior preserved
+
+**Rollback**: single-file revert.
+
+---
+
+### Step 7: Author mutations sweep (prompt / lesson / gate)
+**Priority**: Low
+**Risk**: Medium (cluster of unrelated mutations)
+**Files**:
+- `packages/ui/src/components/prompt-block-stack.tsx` (lines 115, 132, 152, 158, 164)
+- `packages/ui/src/components/lesson-editor.tsx` (lines 44, 64, 66)
+- `packages/ui/src/components/gate-inspector.tsx` (lines 93, 111, 117, 119)
+- `packages/ui/src/components/memory-inspector-tabs.tsx` (lines 32, 51, 74, 81)
+- `packages/ui/src/components/tool-call-entry.tsx` (line 90 — restoreAction)
+- `packages/ui/src/components/attributed-preview-pane.tsx` (line 32)
+**Story**: `feature-refactor-async-chat-interactions-audit-step-7-author-mutations-pip`
+
+**Current State**: Author panel mutations are all sync-await. Editor blocks until mutation completes.
+
+**Target State**: Each mutation uses `useOptimisticAction`. Inline pip on the trigger affordance; failure shows inline retry.
+
+**Implementation notes**:
+- Larger surface but mechanical. Group commits per file to keep diffs reviewable.
+- Configurator surfaces are less visible to students — accept lower priority but include in the audit completion.
+- Verify modal-dismissal semantics: some mutations dismiss the modal on success; preserve that via `onSuccess` callback.
+
+**Acceptance criteria**:
+- [ ] All 6 listed files refactored to use `useOptimisticAction`
+- [ ] Per-mutation pip on the trigger button
+- [ ] Modal-dismissal-on-success preserved where applicable
+- [ ] Failure → inline retry
+- [ ] Existing author tests pass
+
+**Rollback**: per-file revert.
+
+---
+
+### Step 8: Codify the pattern — `optimistic-dispatch.md` skill
+**Priority**: Medium (documentation)
+**Risk**: Low (additive doc)
+**Files**:
+- `.claude/skills/patterns/optimistic-dispatch.md` (NEW)
+- `.claude/rules/patterns.md` (index update)
+**Story**: `feature-refactor-async-chat-interactions-audit-step-8-pattern-doc`
+
+**Implementation notes**:
+- Write after at least 3 per-surface refactors have landed (per the locked design decision) — i.e., after steps 3, 4, 5 are done.
+- Document: when to apply, file:line examples from the landed refactors, the state machine, the escalation policy, the retry semantics, the canonical hook signature.
+- Index update: add entry to `.claude/rules/patterns.md` under a new "Async dispatch patterns" section.
+
+**Acceptance criteria**:
+- [ ] Pattern doc covers signature, when-to-apply, examples, gotchas
+- [ ] Patterns index updated
+- [ ] At least 3 per-surface refactors referenced as canonical examples
+
+**Rollback**: doc-only revert.
+
+---
+
+## Implementation Order
+
+1. **step-1-canonical-primitives** (deps: `[]`)
+2. **step-2-action-escalation** (deps: `[step-1]`)
+3. **step-3-assignment-submit-async** (deps: `[step-1, step-2]`) — HIGH
+4. **step-4-course-materialize-pip** (deps: `[step-1, step-2]`) — HIGH
+5. **step-5-document-attach-pip** (deps: `[step-1, step-2]`) — MED
+6. **step-6-selection-bar-async** (deps: `[step-1, step-2]`) — MED
+7. **step-7-author-mutations-pip** (deps: `[step-1, step-2]`) — LOW
+8. **step-8-pattern-doc** (deps: `[step-3, step-4, step-5]`)
+
+Parallel-friendly after step-1+2 land: steps 3-7 fan out; step-8 waits for 3 surfaces done.
+
+## Risks (cross-step)
+
+- **`useOptimisticAction` hook scope creep**. Easy to over-engineer the state machine. Mitigation: keep the v1 surface minimal (idle / pending / success / failed / retrying); resist queueing or batching features until a surface actually needs them.
+
+- **Coordination with composer feature's `useFailedEscalation`**. Step-2's `useActionEscalation` should subsume the composer's escalation hook. If composer feature lands first, expect a small follow-on cleanup PR; if this lands first, composer feature uses `useActionEscalation` directly. Coordinate via shared file path comments.
+
+- **Per-surface tests need regression coverage**. Each refactored surface's existing tests must continue to pass; ADD a new test asserting "click does NOT lock the affordance." Don't ship a refactor that quietly removes existing assertions.
+
+- **Action-card / failure-popover positioning**. Anchoring the popover to the trigger requires DOM/style coordination. Mitigation: use a small portal helper or a CSS-only anchor (popover API or `position-anchor` if supported in Electron's Chromium version — check first).
+
+- **Author-mutation modal dismissal**. Some mutations currently dismiss the modal on success. Refactor must preserve that via `onSuccess`. Skipping = regression. Mitigation: per-file checklist of modal-dismissal contracts before refactoring.
