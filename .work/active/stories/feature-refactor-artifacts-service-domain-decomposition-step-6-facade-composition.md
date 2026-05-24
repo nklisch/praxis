@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-6-facade-composition
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on:
@@ -155,3 +155,32 @@ constructs `ArtifactsServiceImpl` directly.
 - Build wiring updated: `buildArtifactsServices` constructs 5 sub-services then wires the facade
 - Test wiring updated in 4 unit test files (`artifacts-service.test.ts`, `artifacts-service-writes.test.ts`, `artifacts-service-concepts.test.ts`, `artifacts-service-gates.test.ts`, `snapshot-restore.test.ts`) and 5 integration test files (`gates-end-to-end.test.ts`, `adaptive-routing-end-to-end.test.ts`, `configure-end-to-end.test.ts`, `mastery-end-to-end.test.ts`, `pack-import-end-to-end.test.ts`) plus `scripts/db-gates.ts`
 - All 4796 tests pass (4773 active + 23 skipped)
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: The facade composition is correct and complete.
+
+- `ArtifactsServiceImpl` is a pure delegation facade (222 lines, 79% reduction from 1062).
+  All 28 public methods are one-liner delegations; `getCourseSummary` is correctly retained
+  at the facade as the only cross-domain aggregator (fans out across 4 sub-services in
+  `Promise.all`). `read()` delegates to `CourseStateReaderImpl`.
+- `ArtifactsServiceDeps` changed from `{ db, log, masteryReader, gradeReader }` to
+  `{ courses, lessons, gates, lessonAssessments, courseStateReader }` as designed. Only
+  `build-artifacts-services.ts` in `@praxis/desktop` constructs it — updated correctly.
+- `buildArtifactsServices` construction order is correct: courses → lessons → gates →
+  lessonAssessments → courseStateReader → facade. The `masteryReader`/`gradeReader` deps
+  correctly migrated into `GatesServiceDeps`.
+- The `markConceptStudied` facade signature uses `Parameters<CoursesServiceImpl[...]>[0][...]`
+  and `ReturnType<...>` to stay synchronized with the sub-service without duplicating the
+  type — a sound approach for a facade.
+- 10 files updated (4 unit test files, 5 integration test files, 1 script). All 4773 tests
+  pass (verified by running `pnpm test`). Public `ArtifactsService` interface in
+  `packages/core/src/types/artifacts.ts` unchanged. IPC channel layer untouched.
+- No foundation-doc drift: `docs/ARCHITECTURE.md` describes `@praxis/core` services as the
+  composition root — the decomposition is consistent with that framing.

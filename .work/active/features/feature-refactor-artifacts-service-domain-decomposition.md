@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -142,3 +142,13 @@ Two operations span multiple domain tables:
 
 No other cross-domain transactions exist. All other writes are single-table or
 self-contained within one domain's service.
+
+## Children complete (2026-05-24)
+
+All 6 child stories reviewed and advanced to `done`:
+- step-1-courses-service: done
+- step-2-lessons-service: done
+- step-3-gates-service: done
+- step-4-assessments-service: done (reviewed 2026-05-24)
+- step-5-course-state-reader: done (reviewed 2026-05-24)
+- step-6-facade-composition: done (reviewed 2026-05-24)

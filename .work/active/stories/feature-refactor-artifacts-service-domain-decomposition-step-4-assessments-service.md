@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-4-assessments-service
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -92,3 +92,19 @@ Exported from `packages/core/src/services/index.ts`.
 
 Verification: `pnpm typecheck` passed (all packages clean), `pnpm --filter @praxis/core test`
 passed (96 files, 1164 tests).
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Clean single-method extraction. `LessonAssessmentsServiceImpl` is correctly structured
+with the proper `LessonAssessmentsServiceDeps` interface. The cross-cutting fix removing
+the duplicate `lessonAssessments` from `LessonsServiceImpl` is surgically clean — correct
+imports removed (`lessonAssessmentsTable`, `LessonAssessment`, `LessonAssessmentId`),
+`AssignmentId` correctly retained for `units()`. Export added to `services/index.ts`.
+The 47-line file is appropriately minimal for a single-method boundary establishment.
+All acceptance criteria met.
