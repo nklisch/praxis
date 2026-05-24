@@ -583,4 +583,48 @@ describe("ChatRoute shell", () => {
     // useEffect, and listForScope would be called a second time.
     expect(listForScope).toHaveBeenCalledTimes(1);
   });
+
+  // ── epic-course-create-readiness-sidekick-fit: right-rail mode guard ─────
+
+  it("suppresses ChatRightPanel when the active tab is course-create mode", async () => {
+    const tab = makeTab({
+      id: brandId<"TabId">("tab-cc"),
+      modeId: "course-create",
+      title: "new course · course-create",
+      lastSeenAt: Date.now() as Timestamp,
+    });
+    const client = makeTestClient({}, [tab]);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      // The right panel must NOT be in the DOM for course-create.
+      expect(screen.queryByRole("complementary", { name: /concepts and sidekick/i })).toBeNull();
+    });
+  });
+
+  it("renders ChatRightPanel when the active tab is teach mode", async () => {
+    const tab = makeTab({
+      id: brandId<"TabId">("tab-teach"),
+      modeId: "teach",
+      title: "algebra · teach",
+      lastSeenAt: Date.now() as Timestamp,
+    });
+    const client = makeTestClient({}, [tab]);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      // The right panel MUST render for non-course-create modes.
+      expect(screen.getByRole("complementary", { name: /concepts and sidekick/i })).toBeDefined();
+    });
+  });
+
+  it("renders ChatRightPanel when no tabs are open (empty state)", async () => {
+    const client = makeTestClient({}, []);
+    renderWithClient(client);
+
+    await waitFor(() => {
+      // No active tab → no course-create guard → panel renders normally.
+      expect(screen.getByRole("complementary", { name: /concepts and sidekick/i })).toBeDefined();
+    });
+  });
 });

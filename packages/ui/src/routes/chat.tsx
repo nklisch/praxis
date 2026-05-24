@@ -57,6 +57,11 @@ export function ChatRoute() {
   const { openTabs, activeTabId, openTab, switchTo, loading } = useTabs();
   const [showPicker, setShowPicker] = useState(false);
 
+  // Suppress the right rail when course-create is active — its embedded
+  // AuthoringChatPane replaces the sidekick's role.
+  const activeTab = openTabs.find((t) => t.id === activeTabId);
+  const isCourseCreateMode = activeTab?.kind === "session" && activeTab.modeId === "course-create";
+
   // ── Inline note panel state ──────────────────────────────────────────────
   // When open, the right column shows InlineNotePanel instead of ChatRightPanel.
   const [inlineNotePanel, setInlineNotePanel] = useState<InlineNotePanelState | null>(null);
@@ -258,18 +263,23 @@ export function ChatRoute() {
       </div>
 
       {/* ── Right column: inline note panel OR concepts + sidekick ──────── */}
-      <ResizeHandle side="left" {...sidekickHandleProps} />
+      {/* Hidden when course-create is active — AuthoringChatPane replaces it. */}
+      {!isCourseCreateMode && (
+        <>
+          <ResizeHandle side="left" {...sidekickHandleProps} />
 
-      {inlineNotePanel ? (
-        <InlineNotePanel
-          format={inlineNotePanel.format}
-          sessionId={inlineNotePanel.sessionId}
-          onSaved={handleNoteSaved}
-          onDismiss={() => setInlineNotePanel(null)}
-          style={{ width: `${sidekickWidth}px` }}
-        />
-      ) : (
-        <ChatRightPanel style={{ width: `${sidekickWidth}px` }} />
+          {inlineNotePanel ? (
+            <InlineNotePanel
+              format={inlineNotePanel.format}
+              sessionId={inlineNotePanel.sessionId}
+              onSaved={handleNoteSaved}
+              onDismiss={() => setInlineNotePanel(null)}
+              style={{ width: `${sidekickWidth}px` }}
+            />
+          ) : (
+            <ChatRightPanel style={{ width: `${sidekickWidth}px` }} />
+          )}
+        </>
       )}
 
       {showPicker && (

@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-sidekick-fit-hide
 kind: story
-stage: implementing
+stage: review
 tags: [ui, tutor-ux, course-authoring]
 parent: epic-course-create-readiness
 depends_on: []
@@ -65,3 +65,28 @@ In `packages/ui/src/routes/chat.tsx` (around lines 236-273):
   exists in other modes (quiz/homework have their own `SidekickPanel`
   slide-in chat), file separate stories.
 - Redesigning the right rail in any mode.
+
+## Implementation notes
+
+**Guard location**: `packages/ui/src/routes/chat.tsx` lines 60-62 (the derived
+`isCourseCreateMode` boolean) and lines 265-281 (the conditional render
+wrapping the `ResizeHandle` + `ChatRightPanel` / `InlineNotePanel` block).
+
+**Guard logic**: derives `activeTab` from `openTabs.find(t => t.id === activeTabId)`
+(both already available via `useTabs()`), then checks
+`activeTab?.kind === "session" && activeTab.modeId === "course-create"`. When
+true, the right column (`ResizeHandle` + either `InlineNotePanel` or
+`ChatRightPanel`) is entirely omitted, collapsing the shell to a clean 2-column
+layout: `[docsPanel | workspace]`. The left docs panel and its resize handle are
+unaffected.
+
+**Layout post-guard**: the flex container in `chat.module.css` already distributes
+remaining space via `flex: 1` on the center workspace column, so removing the
+right column requires no CSS changes — the workspace expands naturally.
+
+**Test file updated**: `packages/ui/src/__tests__/chat-route.test.tsx` — three
+new tests appended under the existing `ChatRoute shell` describe block:
+1. suppresses `ChatRightPanel` (aria: "Concepts and sidekick") when active tab
+   has `modeId: "course-create"`
+2. renders `ChatRightPanel` when active tab has `modeId: "teach"`
+3. renders `ChatRightPanel` when no tabs are open (no active tab → no guard)
