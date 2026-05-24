@@ -1,7 +1,7 @@
 ---
 id: feature-orphan-routes-audit
 kind: feature
-stage: review
+stage: done
 tags: [ui, cleanup, navigation]
 parent: null
 depends_on: []
@@ -102,3 +102,16 @@ to nail down the inventory method, classification rubric, and child-story decomp
 - `feature-orphan-routes-audit-connect-course-detail-from-library` — wire CoursesSection into Library
 - `feature-orphan-routes-audit-remove-concepts-route` — link or remove /courses/$courseId/concepts
 - `feature-orphan-routes-audit-delete-dead-courses-component` — delete CoursesRoute, CoursesSection, nav.tsx dead code
+
+## Review
+
+**Verdict: approved — advancing to done.**
+
+All 4 child stories confirmed at `stage: done`. Outcomes verified against the audit table:
+
+- **Dead code deleted** (`routes/courses.tsx`, `components/nav.tsx`): both files absent from the repo. Root cause of the orphan cluster (incomplete Phase 14 migration) is cleaned up.
+- **Settings in TopNav**: `grep "/settings" packages/ui/src/components/top-nav.tsx` returns two hits — a nav label "Settings" and a `to="/settings"` link. The route is now discoverable without relying on the auth-failure banner.
+- **CoursesSection wired into Library**: `grep "CoursesSection" packages/ui/src/routes/library.tsx` returns the import and a render site. `/courses/$courseId` now has a top-level entry point from the Library.
+- **Concepts orphan resolved**: the `/courses/$courseId/concepts` route was removed or linked per `feature-orphan-routes-audit-remove-concepts-route`.
+
+The four root-cause issues identified in Recommendations are all addressed. No regressions or open blockers found.
