@@ -1,5 +1,4 @@
 export { gradeMathInput, gradeMathOutput, gradeMathTool } from "./math/grade-math.js";
-export { type LatexVerifyInput, type LatexVerifyResult, verifyLatex } from "./math/latex-verify.js";
 export { PyodideSymPyService } from "./math/sympy-service.js";
 export {
   type DispatchMeta,

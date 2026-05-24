@@ -1,7 +1,7 @@
 ---
 id: story-refactor-remove-dead-verify-latex-export
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, cleanup]
 parent: null
 depends_on: []
@@ -53,3 +53,6 @@ Pick option 1 unless the implementer has reason to prefer 2.
 ## Risk: Low
 If Phase 13 needs `verifyLatex` before this is reversed, the implementation is one
 re-export line away.
+
+## Implementation notes
+Chose option 1 (conservative): removed the `verifyLatex` re-export lines from `packages/tools/src/index.ts` (line 2) and `packages/tools/src/math/index.ts` (line 2) — one line each. The implementation (`latex-verify.ts`) and its test file remain intact; the test imports from the sibling `./latex-verify.js` directly and continues to pass. `pnpm typecheck` and the latex-verify test suite (4 tests) are green.
