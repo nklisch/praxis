@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-engine-adapter-shared-helpers-close-bridge
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-engine-adapter-shared-helpers
 depends_on: []
@@ -71,3 +71,18 @@ The helper accepts `ToolBridgeHandle | null | undefined` (adapters store `null` 
 - `packages/engines/src/codex/adapter.ts` — same replacement pattern; `serializeError` import retained (still used in `open()` error path)
 
 **Verification**: `pnpm typecheck` green; `pnpm test` 4745 passed; no lint issues on changed files.
+
+## Review
+
+**Verdict: done** — no blockers, no important findings, no nits.
+
+Checklist:
+- Helper signature matches spec: `closeBridgeIfPresent(bridge: ToolBridgeHandle | null | undefined, log: Logger, component: string): Promise<void>` — correct.
+- Early return on falsy bridge — correct (`if (!bridge) return`).
+- `bridge.close()` wrapped in try/catch — correct.
+- `serializeError` applied to caught error — correct, matching inline patterns.
+- Warn key for Claude Code: `"engine.claude-code.tool_bridge_close_failed"` — preserved.
+- Warn key for Codex: `"engine.codex.tool_bridge_close_failed"` — preserved.
+- Both adapters delegate to helper with correct component strings — confirmed.
+- ESM `.js` extension on import — correct.
+- `import type` used for `Logger` and `ToolBridgeHandle` — correct (`verbatimModuleSyntax` compliance).
