@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-5-course-state-reader
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -90,3 +90,12 @@ The `toolServices.courseState` slot now receives the same facade instance
 Medium — `read()` is a complex query (concepts, conceptProgress,
 lessonProgress, gateView). Must verify no behavioral regression via the
 existing `artifacts-service.test.ts` tests that exercise `read()`.
+
+## Implementation notes
+
+Created `/home/nathan/dev/praxis/packages/core/src/services/course-state-reader-impl.ts` (127 lines).
+
+- `CourseStateReaderImpl` implements the `CourseStateReader` port using Option A (inject sub-services directly): `{ db, log, courses: CoursesServiceImpl, lessons: LessonsServiceImpl, gates: GatesServiceImpl }`.
+- The `read()` method is a direct extraction from `ArtifactsServiceImpl.read()` with three call sites substituted: `this.course()` → `this.deps.courses.course()`, `this.lessons()` → `this.deps.lessons.lessons()`, `this.gateView()` → `this.deps.gates.gateView()`. Direct DB reads for `concepts`, `conceptProgress`, and `lessonProgress` are retained in the method body (no sub-service owns these reads for the snapshot use case).
+- All 96 core test files (1164 tests) pass. Typecheck on the new file is clean; pre-existing typecheck noise from Step 4's parallel `lessons-service.ts` changes is unrelated.
+- Step 6 will wire this into `ArtifactsServiceImpl` (facade delegation).
