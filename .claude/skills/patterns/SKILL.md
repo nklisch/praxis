@@ -32,6 +32,15 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 ### Memory and indexer patterns
 - [indexer-class.md](indexer-class.md) — `Indexer` interface (`id`, `schedule: "post-turn" | "session-end"`, `run(ctx)`); orchestrator handles debounce + parallel + error isolation
 - [mode-prompt-fragment-composition.md](mode-prompt-fragment-composition.md) — `Mode` is a list of `PromptFragment` objects; `composeSystemPrompt` sorts by fixed `FRAGMENT_ORDER` and applies overrides; non-customizable overrides throw
+- [one-shot-llm-inference.md](one-shot-llm-inference.md) — background LLM passes (graders, indexers, notes summarization) use `runOneShot(engine, { systemPrompt, tools: { list:[], dispatch: noopDispatch }, maxSteps: 1 }, userMessage)` + for-await accumulator + `extractJsonBlock`
+- [agent-prompt-sidecar.md](agent-prompt-sidecar.md) — each LLM agent ships its system prompt in a sibling `<name>-prompt.ts` file exporting one `NAME_SYSTEM_PROMPT` const
+
+### Service composition patterns
+- [service-facade-sibling-dir.md](service-facade-sibling-dir.md) — services > ~400 LoC split into a `<name>-service.ts` facade + sibling `<name>/` directory of pure helpers, registries, prompt sidecars, and sub-services; barrel re-exports keep imports flat
+- [builder-module-composition.md](builder-module-composition.md) — 9 `build-<domain>-services.ts` modules each export an `<Domain>Services` interface + `build<Domain>Services(deps)` factory; orchestrator wires them in dependency order
+- [ref-cell-bridge.md](ref-cell-bridge.md) — cyclic runtime deps resolved via `let xxxRef: T | undefined` + `setXxxRef(fn)` setter on the earlier builder; orchestrator closes the ref after the second service is constructed
+- [kind-adapter-registry.md](kind-adapter-registry.md) — per-variant logic exposed as `buildXxxRegistry(): Record<Union["kind"], Adapter>`; TS exhaustiveness forces every new union member to register an adapter
+- [row-to-domain-mapper.md](row-to-domain-mapper.md) — per-service `function rowToX(row: typeof tableName.$inferSelect): X` colocated with the service; all read methods funnel rows through it
 
 ### UI data patterns
 - [use-resource-hook.md](use-resource-hook.md) — `useResource(loader)` for load-on-mount + `{ data, loading, error, refresh, setData }`; layer mutations on top
@@ -44,6 +53,7 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [tab-body-isolation.md](tab-body-isolation.md) — all `<ChatTabBody>` instances mounted; `display:none` for inactive — preserves per-tab state across switches
 - [session-tab-open-flow.md](session-tab-open-flow.md) — `openSessionInTab` helper chains `session.start` → `tabs.open` → `navigate`; always use the helper
 - [resizable-side-panel-hook.md](resizable-side-panel-hook.md) — drag-to-resize + per-device persisted width via `useResizableWidth({ storageKey, defaultWidth, minWidth, maxWidth, side })` paired with `<ResizeHandle>`; one storage key per panel
+- [hook-decomposition-setitems-callback.md](hook-decomposition-setitems-callback.md) — complex hooks (`useStreamedSend`, `useIngestion`) split into independent sub-hooks each owning one state slice + imperative API; parent's `setItems` passed in at call time to avoid stale-closure bugs
 
 ### Communication patterns
 - [ipc-channel-convention.md](ipc-channel-convention.md) — `praxis.{domain}.{action}`; streaming adds `.start/.events.<id>/.cancel`

@@ -8,7 +8,7 @@ depends_on: []
 release_binding: v0.1.4
 gate_origin: null
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # Release v0.1.4
@@ -150,3 +150,24 @@ Headline themes:
   channel-envelope tests inline `makeFakeLogger()`; bundle entrenches
   the drift). The `editorial-ui-primitives` Workbench divergence is
   already tracked as the corresponding gate-docs item.
+
+- **gate-patterns (rerun, 2026-05-24)** — full-project sweep per user
+  request "re-run patterns before releasing". Opus discovery scanned
+  ~1,150 TS/TSX files across all 11 packages, surfacing emergent shapes
+  from the post-bind refactor wave (artifacts/assignment/author-channel
+  /buildServices/course-create/engine-adapter/memory/session-spawn
+  /use-ingestion/use-streamed-send decompositions). 8 additional
+  patterns codified: `builder-module-composition`,
+  `service-facade-sibling-dir`, `one-shot-llm-inference`,
+  `agent-prompt-sidecar`, `row-to-domain-mapper`,
+  `hook-decomposition-setitems-callback`, `ref-cell-bridge`,
+  `kind-adapter-registry`. 3 additional inconsistencies flagged as
+  `[refactor]` stories at `stage: drafting` WITHOUT release binding
+  (deferred to a future release so the rerun doesn't add v0.1.4
+  readiness blockers): `gate-patterns-inconsistency-noop-dispatch-duplication`
+  (6 copies of `noopDispatch`),
+  `gate-patterns-inconsistency-require-unlocked-duplication`
+  (7 author/config channels reinvent `requireUnlocked()`),
+  `gate-patterns-inconsistency-builder-positional-deps`
+  (`buildMemoryServices` + `buildEmbeddingsServices` use positional
+  params instead of typed deps object).
