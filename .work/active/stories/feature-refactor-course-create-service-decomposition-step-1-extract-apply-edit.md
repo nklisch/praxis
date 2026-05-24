@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-1-extract-apply-edit
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -49,3 +49,10 @@ Export them for consumption by `course-create-service.ts`.
 ## Risk + Rollback
 Risk: Low — pure functions, no runtime behaviour change.
 Rollback: revert the new file and inline the functions back; one-step revert.
+
+## Implementation notes
+- Created `packages/core/src/services/course-create/draft-mutations.ts` (237 lines).
+- Exported `applyEdit`, `buildSummary`, and `EditResult` interface. The `ok` helper remains unexported (used only inside `applyEdit`).
+- Imports `normalizeConceptName` from `./helpers.js` and `validateProposed` from `./draft-validator.js` as designed.
+- `course-create-service.ts` is NOT modified yet — Step 7 will do all wiring in one pass.
+- `pnpm typecheck` passes (all 10 packages clean). `pnpm --filter @praxis/core test` passes (96 files, 1164 tests).
