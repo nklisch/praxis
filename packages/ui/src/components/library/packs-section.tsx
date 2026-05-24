@@ -11,7 +11,7 @@ export interface PacksSectionProps {
    * 1. `client.packs.import(packId)` to create the course
    * 2. `openSessionInTab` to open a teach tab on the new course
    */
-  onUsePack: (packId: string, packName: string) => void;
+  onUsePack: (packId: string) => void;
   /** Whether a pack import is in flight (optimistic disabled state). */
   importing?: string | null;
 }
@@ -48,7 +48,7 @@ export function PacksSection({ packs, loading, onUsePack, importing }: PacksSect
                     type="button"
                     className={styles.cta}
                     disabled={isImporting}
-                    onClick={() => onUsePack(pack.id, pack.name)}
+                    onClick={() => onUsePack(pack.id)}
                   >
                     {isImporting ? "Importing…" : "Use this pack"}
                   </button>

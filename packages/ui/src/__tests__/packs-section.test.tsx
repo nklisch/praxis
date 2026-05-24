@@ -28,7 +28,7 @@ function renderSection(
   opts: {
     loading?: boolean;
     importing?: string | null;
-    onUsePack?: (id: string, name: string) => void;
+    onUsePack?: (id: string) => void;
   } = {},
 ) {
   const { loading = false, importing = null, onUsePack = vi.fn() } = opts;
@@ -86,14 +86,14 @@ describe("PacksSection", () => {
     expect(screen.queryByRole("button", { name: /Use this pack/i })).toBeNull();
   });
 
-  it("'Use this pack' button calls onUsePack with packId and packName", async () => {
+  it("'Use this pack' button calls onUsePack with packId only", async () => {
     const onUsePack = vi.fn();
     renderSection([makePack({ imported: false })], { onUsePack });
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Use this pack/i })).toBeDefined();
     });
     fireEvent.click(screen.getByRole("button", { name: /Use this pack/i }));
-    expect(onUsePack).toHaveBeenCalledWith("algebra-1", "Algebra 1 (CCSS)");
+    expect(onUsePack).toHaveBeenCalledWith("algebra-1");
   });
 
   it("'Use this pack' button is disabled while that pack is importing", async () => {

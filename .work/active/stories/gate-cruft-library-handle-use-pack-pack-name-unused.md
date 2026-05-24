@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-library-handle-use-pack-pack-name-unused
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup, ui]
 parent: null
 depends_on: []
@@ -45,3 +45,16 @@ Either:
 - Consume `packName` (e.g. for analytics/error copy), or
 - Narrow `PacksSection.onUsePack` to `(packId: string) => void` and
   drop the second arg here. Touches one file beyond the bundle.
+
+## Implementation notes
+
+Chose **Option B**: narrow the interface to `(packId: string) => void`.
+
+Rationale: `library.tsx` is the only consumer of `PacksSection`, so the blast radius is zero outside these two files. Passing `packName` through the prop boundary when nothing uses it is dead data flow — if a future caller needs the name, it can always be recovered from the pack list (already in scope) or added back then. The clean interface is strictly preferable.
+
+Changes applied:
+- `packages/ui/src/components/library/packs-section.tsx`: `onUsePack` prop type narrowed to `(packId: string) => void`; call site drops `pack.name` argument.
+- `packages/ui/src/routes/library.tsx`: `handleUsePack` signature changed from `(packId: string, _packName: string)` to `(packId: string)`.
+- `packages/ui/src/__tests__/packs-section.test.tsx`: updated helper type and assertion to match new signature.
+
+All 1709 `@praxis/ui` tests pass; `pnpm typecheck` clean.

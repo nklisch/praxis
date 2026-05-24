@@ -67,7 +67,7 @@ export function LibraryRoute() {
 
   /** "Use this pack" — import pack then navigate to course-create with pack pre-selected. */
   const handleUsePack = useCallback(
-    async (packId: string, _packName: string) => {
+    async (packId: string) => {
       setImporting(packId);
       try {
         await client.packs.import(packId);
