@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-2-bare-glyph-plugin
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, math, markdown]
 parent: feature-math-rendering
 depends_on: []
@@ -41,3 +41,21 @@ Custom rehype plugin that walks text nodes and wraps bare unicode math glyphs (o
 ## References
 - Parent feature: `.work/active/features/feature-math-rendering.md` § Unit 2
 - Template: `packages/ui/src/lib/rehype-citation-chips.ts`
+
+## Implementation notes (2026-05-24)
+
+### Files created
+- `packages/ui/src/lib/markdown-plugins/rehype-math-glyph-wrap.ts` — plugin + `MATH_GLYPHS` set
+- `packages/ui/src/lib/markdown-plugins/__tests__/rehype-math-glyph-wrap.test.ts` — 35 tests
+
+### Test results
+35 tests pass; full `@praxis/ui` suite (1758 tests, 165 files) unaffected.
+
+### Pattern adherence
+Mirrors `rehype-citation-chips.ts` exactly: `visitParents` → collect `Replacement[]` → splice after walk. Character iteration uses `for (const ch of value)` (Unicode code point safe). Fast short-circuit via `Array.from(value).some(ch => MATH_GLYPHS.has(ch))` skips prose-only text nodes. Ancestor skip list extracted to a `SKIP_TAGS` module-level `Set` (7 tags: `code`, `pre`, `kbd`, `samp`, `math`, `a`, `abbr`).
+
+### Deviations
+None. Plugin is NOT wired into `REHYPE_PLUGINS` (per scope — that's step-5).
+
+### Implementation discovery
+No unexpected HAST node types encountered. The `_mathGlyphSpan` helper in the test file was scaffolded for potential use but ended up unused — biome renamed it with an underscore prefix rather than deleting it, keeping it as reference for test structure.
