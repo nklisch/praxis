@@ -1,14 +1,14 @@
 ---
 id: gate-tests-picker-close-midingestion-no-abort
 kind: story
-stage: review
+stage: done
 tags: [testing, ui]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # Closing the picker modal mid-ingestion not asserted to leave the batch running
@@ -49,3 +49,27 @@ The test is committed as `it.skip(...)` with a detailed comment explaining the r
 **Assertion shape**: async generator `finally`-block flag (`generatorAborted`) asserts the stream was consumed normally (not abandoned mid-flight) after `onClose` + component unmount.
 
 **Verification result**: 19/19 tests pass, 1 skipped (the new test). All existing tests green.
+
+## Review
+
+Verdict: **approved → done**.
+
+The agent added the test correctly as `it.skip(...)` with a detailed comment
+linking to `.work/active/stories/bug-picker-close-aborts-ingestion.md`. The
+skip is the right call: the spec criterion is genuinely violated in current
+code and the agent confirmed it (running without `.skip` produces `expected
+true to be false` on `generatorAborted`). Filing the bug and skipping rather
+than inverting the assertion or deleting the test is exactly the
+test-integrity principle in action.
+
+Bug story: `.work/active/stories/bug-picker-close-aborts-ingestion.md`
+- Root cause clearly identified (unmounting `LibraryDocumentPicker` tears down
+  the `for await` loop inside `useIngestion`, triggering the generator
+  `finally` block mid-stream).
+- Fix direction documented (hoist `useIngestion` to parent; Option 1 preferred
+  as architecturally cleaner).
+- Acceptance criterion is the skipped test itself — unskip when the bug is
+  fixed and it must pass green.
+
+Verified: `pnpm vitest run packages/ui/src/__tests__/library-document-picker.test.tsx`
+→ 19 passed | 1 skipped. All pre-existing tests green.
