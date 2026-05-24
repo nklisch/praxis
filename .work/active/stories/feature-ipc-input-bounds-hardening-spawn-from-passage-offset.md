@@ -1,9 +1,9 @@
 ---
-id: gate-security-spawn-from-passage-offset-cap
+id: feature-ipc-input-bounds-hardening-spawn-from-passage-offset
 kind: story
-stage: backlog
+stage: implementing
 tags: [security]
-parent: null
+parent: feature-ipc-input-bounds-hardening
 depends_on: []
 release_binding: null
 gate_origin: security

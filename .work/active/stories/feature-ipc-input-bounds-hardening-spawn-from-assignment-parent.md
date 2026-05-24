@@ -1,9 +1,9 @@
 ---
-id: gate-security-spawn-from-assignment-parent-validation
+id: feature-ipc-input-bounds-hardening-spawn-from-assignment-parent
 kind: story
-stage: backlog
+stage: implementing
 tags: [security]
-parent: null
+parent: feature-ipc-input-bounds-hardening
 depends_on: []
 release_binding: null
 gate_origin: security
