@@ -1,7 +1,7 @@
 ---
 id: story-course-create-startup-e2e-render-test
 kind: story
-stage: implementing
+stage: review
 tags: [testing, ui]
 parent: null
 depends_on: []
@@ -45,3 +45,24 @@ useTabs).
 - Test drives "Start Praxis →" and asserts the chat tab body mounts and
   renders at least one engine event from the fake client's `session.send`
   stream
+
+## Implementation notes
+
+**Test file**: `packages/ui/src/__tests__/course-create-startup-integration.test.tsx` (246 lines, 2 tests)
+
+**Provider tree** (no useTabs mock — real TabsProvider):
+- `<PraxisClientProvider>` → `<AuthProvider>` → `<TabsProvider>` → `<CourseCreateRoute>` + `<TabBodyShell>`
+
+**`TabBodyShell`**: a thin React component that reads `openTabs` from the real `useTabs()` context and renders `<CourseCreateTabBody>` for any open course-create tabs. This mirrors what `<ChatRoute>` does in production without bringing in ChatRoute's full dependency surface (ChatRightPanel, DocumentList, tldraw, useMatches, useDocuments, useIngestion, etc.).
+
+**What the primary test asserts**:
+1. `client.session.start` called with `{ modeId: "course-create" }`
+2. `client.tabs.open` called with the session id — proves the real `useTabs().openTab` path was taken (not a direct bypass)
+3. `mockNavigate` called with `{ to: "/chat/$tabId" }` — proves the full openSessionInTab flow completed
+4. `"Course-design assistant"` appears in the DOM — proves `CourseCreateTabBody` mounted (TabsProvider state propagated)
+5. The engine response text appears in the DOM — proves: prefill → `session.send` → `model_message` event → rendered in `<AuthoringChatPane>` via `useStreamedSend`
+6. `session.send` called with the exact context text — proves `consumeInitialMessage` returned the prefill
+
+**Regression class caught**: if `openSessionInTab` called `client.tabs.open` directly (bypassing `useTabs().openTab`), `TabsProvider` state would never update, `TabBodyShell` would render nothing, `consumeInitialMessage` would never fire, `session.send` would never be called, and assertion 4–6 would fail.
+
+**Secondary test**: verifies that with empty context, `session.send` is not called on mount (the pane opens silently, waiting for the user to type).
