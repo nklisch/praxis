@@ -5,10 +5,10 @@ stage: done
 tags: [core, ui, sessions, ipc]
 parent: feature-configure-mode-session-hygiene
 depends_on: []
-release_binding: null
+release_binding: v0.1.4
 gate_origin: null
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-05-23
 ---
 
 # Extend `SessionService.list` with `excludeModeIds` + wire library to hide configure sessions

@@ -5,10 +5,10 @@ stage: done
 tags: [ui, sessions]
 parent: feature-configure-mode-session-hygiene
 depends_on: [story-session-active-mode-filter]
-release_binding: null
+release_binding: v0.1.4
 gate_origin: null
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-05-23
 ---
 
 # Configure route reuse on mount + "Clear / restart" control

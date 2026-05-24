@@ -5,10 +5,10 @@ stage: done
 tags: [ui, ux, polish]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: v0.1.4
 gate_origin: null
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-05-23
 ---
 
 # Workspace content hugs panel edges

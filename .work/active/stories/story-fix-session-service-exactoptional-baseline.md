@@ -5,10 +5,10 @@ stage: done
 tags: [tech-debt, typecheck]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: v0.1.4
 gate_origin: null
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-05-23
 ---
 
 # Fix the 4th `exactOptionalPropertyTypes` baseline error in `session-service.ts`

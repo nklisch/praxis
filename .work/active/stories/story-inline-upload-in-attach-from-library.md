@@ -5,10 +5,10 @@ stage: done
 tags: [ui, ingestion]
 parent: feature-streamline-document-attachment-ux
 depends_on: []
-release_binding: null
+release_binding: v0.1.4
 gate_origin: null
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-05-23
 ---
 
 # Inline upload inside the "Attach from Library" picker — drop-zone overlay + "+ Upload" button
