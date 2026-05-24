@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-7-thin-facade-and-barrel
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on:
@@ -81,3 +81,25 @@ Rollback: N/A at this point; each prior step has its own rollback.
 - Type fix: optional-field mismatch when building input objects resolved by destructuring `draftId` out (`const { draftId: _, ...rest } = input`) and passing `rest` directly to mutators
 - `ProposedCourse` and `persistDraftTx` imports removed (no longer needed directly in service)
 - Tests: 4773 passed, 23 skipped (4796 total workspace); core alone: 1164 passed (96 files)
+
+## Review
+
+Verdict: **done**.
+
+**9 mutator methods delegate to draft-mutators**: `addConcept` → `addConceptMutation`, `removeConcept` → `removeConceptMutation`, `addEdge` → `addEdgeMutation`, `addLesson` → `addLessonMutation`, `removeLesson` → `removeLessonMutation`, `addUnit` → `addUnitMutation`, `setAssessmentPlan` → `setAssessmentPlanMutation`, `addLessonAssessment` → `addLessonAssessmentMutation`, `setMetadata` → `setMetadataMutation`. All delegate via result-check pattern (`if (!result.ok) return result`).
+
+**4 query methods delegate to draft-queries**: `listUnits` → `listUnitsQuery`, `listLessonsInUnit` → `listLessonsInUnitQuery`, `getLessonDetail` → `getLessonDetailQuery`, `listDanglingRefs` → `listDanglingRefsQuery`. All load draft first, pass `d.proposed` to query function.
+
+**confirmDraft** delegates to `runConfirmDraft` with `markConfirmedTx` closure; emits `finalized` after. Ownership and validation checks stay in service.
+
+**createCourseFromPack** delegates to `createCourseFromPackFn(input, this.deps.db)` — single line.
+
+**Lifecycle methods inline** (as expected per design): `initDraft`, `subscribe`, `discardDraft`, `showDraft`, `summarize` (thin wrapper over `buildSummary`), `editDraft`, `size`, `shutdown`, `sweepStale`.
+
+**Public interface unchanged**: `CourseCreateService` interface byte-for-byte intact; `export type { Issue }` re-export preserved at line 55.
+
+**Facade size**: 558 lines — within the accepted deviation from the ≤250 target noted in implementation notes (target was pre-extraction estimate; actual facade includes all method signatures + JSDoc + lifecycle code that stays inline).
+
+**Barrel**: exports `runConfirmDraft`, `ConfirmDraftDeps`, `ConfirmDraftContext`, `applyEdit`, `buildSummary`, `EditResult`, `persistDraftTx`, `PersistDraftTxArgs`, `validateProposed`, `Issue`, `normalizeConceptName`, `createCourseFromPack`, `CreateCourseFromPackInput`. Draft-mutators and draft-queries left as internal (only consumed by facade).
+
+**4773 workspace tests pass, 23 skipped (slow-gated).**

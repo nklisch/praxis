@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-6-extract-pack-course-creation
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -93,3 +93,14 @@ handles wiring the delegation.
 
 Verification: `pnpm typecheck` clean (all packages); `pnpm --filter @praxis/core test`
 — 96 test files, 1164 tests, all passed.
+
+## Review
+
+Verdict: **done**.
+
+- `createCourseFromPack` is fully self-contained: all schema imports (`courses`, `lessons`, `gates`, `concepts`), `LESSON_SIZE = 7`, `uuidv7`, `brandId`, `eq`, and `PraxisDb` live in the module — no draft store, no listener, no engine access.
+- Own transaction: `db.transaction(tx => { ... })` wraps all inserts (course row + lesson rows + gate rows) atomically.
+- No external deps beyond `PraxisDb` and schema imports — exactly as designed.
+- `async function createCourseFromPack(input, db)` signature matches spec.
+- Service delegates with a single-line `return createCourseFromPackFn(input, this.deps.db)`.
+- 1164 core tests + 4773 workspace tests pass.

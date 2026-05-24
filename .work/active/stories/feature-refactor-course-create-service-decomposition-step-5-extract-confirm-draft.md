@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-5-extract-confirm-draft
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -88,3 +88,13 @@ Rollback: inline `runConfirmDraft` back into the service method.
 - Document-scope promotion (`promoteScope`/`attachMany`) is post-transaction and non-fatal, preserving the original error-handling semantics.
 - `course-create-service.ts` is NOT modified (Step 7 handles wiring).
 - `pnpm typecheck && pnpm --filter @praxis/core test` pass: 96 test files, 1164 tests.
+
+## Review
+
+Verdict: **done**.
+
+- Transaction atomicity confirmed: `persistDraftTx` and `ctx.markConfirmedTx` both receive the same Drizzle `tx` handle inside a single `db.transaction(tx => { ... })` call in `runConfirmDraft`. If either throws, the entire transaction rolls back atomically.
+- Document-scope promotion (`promoteScope` / `attachMany`) is correctly placed post-transaction in two distinct `try/catch` blocks — non-fatal, logs warn, course persisted regardless.
+- `brandId<"DraftId">(draft.draftId) as DraftId` branding matches the service pattern exactly.
+- `ConfirmDraftDeps` interface matches design spec.
+- 1164 core tests + 4773 workspace tests pass.
