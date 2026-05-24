@@ -1,14 +1,14 @@
 ---
 id: gate-docs-pattern-session-tab-open-flow-library-handleopenintab
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: docs
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # Pattern skill `session-tab-open-flow` cites stale `library.tsx:48-55` / `:67-74` for `handleOpenInTab`
@@ -49,3 +49,9 @@ Replaced stale Example 3 in `.claude/skills/patterns/session-tab-open-flow.md` (
 `resume_draft` case from `handleRecAction` at `packages/ui/src/routes/library.tsx:116-125`.
 The new example shows `openSessionInTab({ client, navigate, openTab, startOpts: { modeId: "course-create" } })`
 inside a switch-case, which is the live pattern. `pnpm typecheck` passes.
+
+## Review
+
+Verdict: **approved** — done.
+
+Cross-checked `packages/ui/src/routes/library.tsx:116-125`. The `resume_draft` case at line 116 matches the pattern doc exactly: `openSessionInTab({ client, navigate, openTab, startOpts: { modeId: "course-create" } })` inside a switch-case inside `handleRecAction`. No discrepancy between the updated doc and the live code. No blockers.
