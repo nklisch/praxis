@@ -1,7 +1,7 @@
 ---
 id: story-fix-tabs-open-unpromoted-session
 kind: story
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
@@ -55,3 +55,15 @@ Inject the `SessionPromotionRegistry` into `TabsServiceImpl` via an optional thu
 - **Adjacent cleanup**: `pnpm exec biome check --write` on `build-workspace-services.ts` converted three pre-existing value-imports of type-only symbols (`ArtifactsServiceImpl`, `MemoryServiceImpl`, `SqliteDraftStore`) to `import type`. They were dormant `useImportType` violations adjacent to the new `type SessionPromotionRegistry` import; folded in to keep the lint output clean for the changed-file set.
 - **Verification**: `pnpm typecheck` and `pnpm test` (4776 passed / 23 skipped / 0 failed) both green. `pnpm exec biome check` on the four changed files is clean.
 - **Adjacent issues parked for separate consideration**: none — the broader 630 lint errors are a pre-existing baseline distinct from this bug's surface area.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fix matches documented root cause precisely. Regression tests cover the right three-case matrix (registry-fallback succeeds; neither-source throws; no-registry-wired throws — preserves legacy contract). Uses the standard `ref-cell-bridge` pattern correctly with thorough doc comments explaining the step-8/step-9 ordering. Read-path closure via `anyRowToSummary` ensures `listOpen` / `list` / `get` all benefit from the same fallback. Adjacent `useImportType` cleanup was scoped to the changed-file set and justified. No foundation-doc drift, no breaking changes, no security surface touched.
+
+What's now possible: UI tab open works for newly-started sessions before they're persisted, fixing the "An internal error occurred" dialog on every session-start → tab.open round-trip.
