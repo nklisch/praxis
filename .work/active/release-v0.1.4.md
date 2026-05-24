@@ -96,3 +96,20 @@ Headline themes:
   deleted; `configure-route` test that was replaced asserts a stronger
   contract than the original (legitimate behavior-change replacement
   per story implementation notes).
+
+- **gate-cruft** (2026-05-23) — 7 findings, 3 High / 2 Medium / 2 Low.
+  Highs (release-blocking, `stage: implementing`):
+  `gate-cruft-use-ingestion-startpick-dead` (dead single-file path —
+  `startPick` + `runIngestion` have zero production callers),
+  `gate-cruft-spawn-from-passage-studentid-phantom-arg` (silently
+  dropped `studentId?` arg on client + service-type),
+  `gate-cruft-use-ingestion-activity-rail-stale-comment` (comment
+  references unused `ActivityRail` instead of `StatusStrip`).
+  Mediums (release-blocking, `stage: drafting`):
+  `gate-cruft-session-service-assignmentid-undefined-defensive`
+  (`!== null && !== undefined` on columns that are never `undefined`,
+  3 sites),
+  `gate-cruft-library-handle-use-pack-pack-name-unused`
+  (`_packName` arg unused; tight interface forces it). Lows parked to
+  backlog: `gate-cruft-library-handle-use-pack-orientation-comment`,
+  `gate-cruft-library-double-fetch-documents`.
