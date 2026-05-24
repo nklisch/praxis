@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing-onboarding-slim
 kind: story
-stage: review
+stage: done
 tags: [ui, onboarding, refactor]
 parent: epic-course-create-readiness-unified-landing
 depends_on: [epic-course-create-readiness-unified-landing-source-picker]
@@ -87,3 +87,20 @@ In `packages/ui/src/components/onboarding-flow.tsx`:
 - All 18 tests green; full suite (436 files, 4672 tests) green.
 
 **Verification**: `pnpm typecheck && pnpm biome check <files> && pnpm test` — all clean.
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Net code reduction — onboarding-flow.tsx loses PRESEED_MESSAGES, the
+busy/error state, and the entire session.start dance, gaining just 3
+navigate calls. CourseStep is now a thin pre-step over the canonical
+/course-create entry. Canonical pack ids verified from JSON files
+(`algebra-1`, `biology`). onComplete ordering reversed cleanly (now
+fires before navigate since there's no session work to protect against).
+Test set restructured appropriately: removed stale pre-seed assertions,
+added card-navigation coverage.
+
+**Blockers**: none
+**Important**: none
+**Nits**: none

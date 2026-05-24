@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing-source-picker
 kind: story
-stage: review
+stage: done
 tags: [ui, ingestion, course-authoring]
 parent: epic-course-create-readiness-unified-landing
 depends_on: []
@@ -158,3 +158,30 @@ line 142 is now `<span className={styles.stepPending}>Create</span>`. Stepper no
 `pnpm typecheck && pnpm test` — all 4674 tests pass; typecheck clean.
 Lint: our changed files clean; existing pre-existing errors in `.mockups/` and
 `packages/claude-cli-sdk/` are not introduced by this story.
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Substantial implementation — establishes 3 net-new IPC contracts
+(writeTempText, pack URL param, source-picker component API), 26 new
+tests, and a clean separation of source kinds. The temp-file IPC for
+paste-to-ingest is the right choice given Electron sandboxing constraints
+on renderer fs access; sanitized filename in os.tmpdir() is appropriate.
+The URL contract (`?pack=<id>`, validateSearch with zod) is sturdy and
+sibling-story-ready (bypass-reroute + onboarding-slim both consumed it
+correctly in Wave 2).
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Temp files in `os.tmpdir()` accumulate until OS cleanup. The volume
+  per paste is small (a few KB typical), but a follow-up cleanup pass
+  could delete tmp files after successful ingestion. Non-urgent.
+- The pack id format conversation surfaced during integration —
+  source-picker reported `"math.algebra-1"` (test fixture), canonical
+  files use `"algebra-1"`. The wiring is correctly parameterized; just
+  worth keeping an eye on if anyone hardcodes a pack id elsewhere.
+
+**Notes**: Zod dep added to packages/ui by the parallel packs-into-library
+story — proper coordination between parallel agents.

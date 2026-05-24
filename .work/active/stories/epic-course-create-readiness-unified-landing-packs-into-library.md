@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing-packs-into-library
 kind: story
-stage: review
+stage: done
 tags: [ui, refactor, navigation]
 parent: epic-course-create-readiness-unified-landing
 depends_on: []
@@ -85,3 +85,19 @@ browse-and-discover surface.
 **Zod dependency**: The sibling story (`source-picker`) added `import { z } from "zod"` and `validateSearch` to `router.tsx` but did not add `zod` to `packages/ui/package.json`. Added `"zod": "4.3.6"` to fix the typecheck failure.
 
 **Verification**: `pnpm typecheck && pnpm test` both green. 158 test files, 1637 tests all pass. Lint errors are pre-existing in `.mockups/` HTML files and other unchanged source files — none in changed files.
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Clean refactor. PacksSection extracted, Library route updated, top-level
+/packs route replaced with redirect, packs.tsx + packs.module.css deleted.
+Inbound-link audit confirmed zero links to /packs outside the redirect.
+Old packs-route test replaced with PacksSection prop-driven tests (10
+covering all states). Zod dependency proactively added to packages/ui to
+support the sibling source-picker story's validateSearch — good cross-
+agent coordination during parallel execution.
+
+**Blockers**: none
+**Important**: none
+**Nits**: none

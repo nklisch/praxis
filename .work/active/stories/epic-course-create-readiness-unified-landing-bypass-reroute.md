@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing-bypass-reroute
 kind: story
-stage: review
+stage: done
 tags: [ui, navigation, course-authoring]
 parent: epic-course-create-readiness-unified-landing
 depends_on: [epic-course-create-readiness-unified-landing-source-picker]
@@ -109,3 +109,17 @@ source-picker story (`validateSearch: z.object({ pack: z.string().optional() })`
 ### Verification
 
 `pnpm typecheck && pnpm test` — green (4672 tests pass, 23 skipped by slow-test gates). Biome clean on changed TS files.
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Surgical reroute pass per the matrix. Cold-start paths (handleNewCourse,
+handleUsePack) now route through /course-create; resume paths preserved
+intact. `handleUsePack` keeps pack import as an idempotent pre-condition
+before navigating with the pack pre-selected. Tests cover the cold-start
+vs resume distinction at both routes.
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
