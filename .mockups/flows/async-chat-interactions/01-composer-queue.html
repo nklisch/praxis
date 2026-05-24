@@ -103,7 +103,7 @@
       if (state.streaming) {
         const t = document.createElement('div');
         t.className = 'chat-turn chat-turn--tutor';
-        t.innerHTML = `<div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming">streaming</span></div><p class="chat-turn__body">Suppose a balloon is being inflated and you track its radius growing at 2 cm/s when it's 5 cm across — how fast is the volume changing right then? Let's set up the relationship first<span class="chat-turn__cursor"></span></p>`;
+        t.innerHTML = `<div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming">streaming</span></div><p class="chat-turn__body">Suppose a balloon is being inflated and you track its radius growing at 2 cm/s when it's 5 cm across — how fast is the volume changing right then? <span class="chat-turn__streaming-tail">Let's set up the relationship first</span></p>`;
         messageList.appendChild(t);
       }
       state.queue.forEach((q, i) => {

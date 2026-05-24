@@ -140,7 +140,7 @@
     function appendTutorFollowup(text) {
       const t = document.createElement('div');
       t.className = 'chat-turn chat-turn--tutor';
-      t.innerHTML = `<div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming">streaming</span></div><p class="chat-turn__body">${text}<span class="chat-turn__cursor"></span></p>`;
+      t.innerHTML = `<div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming">streaming</span></div><p class="chat-turn__body"><span class="chat-turn__streaming-tail">${text}</span></p>`;
       document.getElementById('tutorFollowup').appendChild(t);
     }
 

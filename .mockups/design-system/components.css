@@ -1315,11 +1315,17 @@ body {
 .chat-turn__body {
   margin: 0;
 }
-.chat-turn__cursor::after {
-  content: "▍";
-  color: var(--color-accent);
-  animation: chat-blink 900ms steps(1) infinite;
-  margin-left: 1px;
+/* Streaming feel — no cursor. The newest chunk of text fades in over
+ * --dur-quick so the eye registers "this just arrived." In production each
+ * new token-chunk wraps in this span (briefly) as it streams; once settled
+ * the opacity is 1 and the span can be unwrapped. In mocks we wrap the
+ * trailing phrase to demonstrate the visual without real streaming.
+ *
+ * The persistent "in-flight" signal stays on the speaker line via
+ * .chat-turn__streaming (the pulsing dot + label). The text body itself
+ * carries no perpetual animation. */
+.chat-turn__streaming-tail {
+  animation: chat-fade-in var(--dur-ambient) var(--ease-standard) both;
 }
 
 /* Role variants */
@@ -2004,8 +2010,9 @@ body {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
-@keyframes chat-blink {
-  50% { opacity: 0; }
+@keyframes chat-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes chat-rise-in {
   from { opacity: 0; transform: translateY(-6px); }
@@ -2019,9 +2026,9 @@ body {
   .chat-turn__streaming::before,
   .composer__status--streaming .composer__status__pip,
   .action-pip--pending,
-  .status-strip__pip,
-  .chat-turn__cursor::after { animation: none; }
+  .status-strip__pip { animation: none; }
   .chat-turn--queued,
+  .chat-turn__streaming-tail,
   .thread-chip,
   .failure-popover { animation: none; }
 }
