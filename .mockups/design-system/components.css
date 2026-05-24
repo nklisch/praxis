@@ -1558,30 +1558,41 @@ body {
 .inline-question__choices {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin-bottom: var(--space-3);
-}
-.inline-question__choice {
-  display: flex;
   gap: var(--space-2);
-  align-items: center;
-  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+}
+/* Block layout (not flex) so multi-element text content with <em>, <sup>,
+ * embedded math etc. flows as normal inline content rather than each
+ * inline element becoming its own flex item (which makes dense math
+ * choices break into narrow vertical columns — fixed 2026-05-24).
+ *
+ * The indicator is absolutely positioned in the left padding zone so the
+ * text content can be a mix of text nodes + <em>/<sup>/etc. without
+ * needing a wrapper span around the label content. Padding-left reserves
+ * indicator width + breathing room. */
+.inline-question__choice {
+  display: block;
+  position: relative;
+  padding: var(--space-3) var(--space-3) var(--space-3) calc(16px + var(--space-3) * 2);
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-family: var(--font-body);
   font-size: var(--font-size-sm);
-  line-height: var(--line-height-base);
+  line-height: var(--line-height-loose);
   color: var(--color-text-primary);
   transition: var(--t-quick);
 }
 .inline-question__choice:hover { background: var(--color-bg-tertiary); }
 .inline-question__choice--selected { background: var(--color-accent-muted); }
 .inline-question__indicator {
+  position: absolute;
+  left: var(--space-3);
+  /* Vertical centering on the FIRST text line — line-height-loose × font-size / 2 ≈ 12px,
+   * minus half indicator height (8px) gives a 4px nudge from the top padding. */
+  top: calc(var(--space-3) + 0.45em);
   width: 16px;
   height: 16px;
   border: 1.5px solid var(--color-border-strong);
-  flex-shrink: 0;
-  position: relative;
 }
 .inline-question__indicator--radio { border-radius: 50%; }
 .inline-question__indicator--check { border-radius: var(--radius-sm); }

@@ -46,6 +46,49 @@
 
     .reset { position: fixed; bottom: 20px; right: 20px; padding: 8px 14px; background: var(--color-bg-inverse); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); font: 500 12px/1 var(--font-sans); cursor: pointer; opacity: 0.7; z-index: 50; }
     .reset:hover { opacity: 1; }
+
+    /* Fade-style variants — A/B options layered over .chat-turn__streaming-tail.
+     * These exist only in streaming.html for review; the chosen treatment promotes
+     * to components.css if the user picks something other than the default gentle fade. */
+    .stream-fx--snap .chat-turn__streaming-tail {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    .stream-fx--quick .chat-turn__streaming-tail {
+      animation: chat-fade-in var(--dur-quick) var(--ease-standard) both !important;
+    }
+    .stream-fx--gentle .chat-turn__streaming-tail {
+      /* current default — chat-fade-in var(--dur-ambient) — set explicitly to undo any active variant */
+      animation: chat-fade-in var(--dur-ambient) var(--ease-standard) both !important;
+    }
+    .stream-fx--long .chat-turn__streaming-tail {
+      animation: chat-fade-in 800ms var(--ease-standard) both !important;
+    }
+    .stream-fx--rise .chat-turn__streaming-tail {
+      animation: stream-rise var(--dur-ambient) var(--ease-standard) both !important;
+    }
+    @keyframes stream-rise {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .stream-fx--color .chat-turn__streaming-tail {
+      animation: stream-color var(--dur-ambient) var(--ease-standard) both !important;
+    }
+    @keyframes stream-color {
+      from { opacity: 0; color: var(--color-accent); }
+      to { opacity: 1; color: inherit; }
+    }
+    .stream-fx--blur .chat-turn__streaming-tail {
+      animation: stream-blur var(--dur-ambient) var(--ease-standard) both !important;
+    }
+    @keyframes stream-blur {
+      from { opacity: 0; filter: blur(2px); }
+      to { opacity: 1; filter: blur(0); }
+    }
+
+    .controls-row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+    .controls-row + .controls-row { margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px dashed var(--color-border); }
+    .controls-row__group-label { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); }
   </style>
 </head>
 <body>
@@ -63,7 +106,7 @@
     <h2>Live demo · paced stream <span class="anchor">play</span></h2>
     <p class="deck" style="font-size: var(--font-size-base);">Click <em>play stream</em> to see chunks arrive at the selected pace + chunk size. The streaming badge persists while chunks are still arriving; when the last chunk lands, the badge drops and you're left with a normal settled turn.</p>
 
-    <div class="stage stage--with-controls">
+    <div class="stage stage--with-controls" id="demoStage">
       <div class="demo-thread" id="demoThread">
         <div class="chat-turn chat-turn--student">
           <div class="chat-turn__speaker">You</div>
@@ -72,21 +115,39 @@
         <div id="streamMount"></div>
       </div>
       <div class="stage__controls">
-        <span class="stage__controls__label">pace</span>
-        <select id="paceSelect">
-          <option value="slow">slow · 240ms / chunk</option>
-          <option value="medium" selected>medium · 120ms / chunk</option>
-          <option value="fast">fast · 40ms / chunk</option>
-        </select>
-        <span class="stage__controls__label">chunk</span>
-        <select id="chunkSelect">
-          <option value="char">char-by-char (raw token)</option>
-          <option value="word" selected>word (default)</option>
-          <option value="phrase">phrase (1-2 words)</option>
-          <option value="sentence">sentence</option>
-        </select>
-        <button class="btn btn-primary btn--sm" id="btnPlay">▶ play stream</button>
-        <button class="btn btn-ghost btn--sm" id="btnClear">clear</button>
+        <div class="controls-row">
+          <span class="controls-row__group-label">pace</span>
+          <select id="paceSelect">
+            <option value="very-slow">very slow · 400ms / chunk</option>
+            <option value="slow">slow · 240ms / chunk</option>
+            <option value="medium" selected>medium · 120ms / chunk</option>
+            <option value="brisk">brisk · 60ms / chunk</option>
+            <option value="fast">fast · 40ms / chunk</option>
+            <option value="very-fast">very fast · 20ms / chunk</option>
+            <option value="variable">variable · LLM-burst-like (bursts + pauses)</option>
+          </select>
+          <span class="controls-row__group-label">chunk</span>
+          <select id="chunkSelect">
+            <option value="char">char-by-char (raw token)</option>
+            <option value="word" selected>word</option>
+            <option value="phrase">phrase (1-2 words)</option>
+            <option value="sentence">sentence</option>
+          </select>
+        </div>
+        <div class="controls-row">
+          <span class="controls-row__group-label">fade style</span>
+          <select id="fadeSelect">
+            <option value="snap">snap · no fade, instant</option>
+            <option value="quick">quick · 160ms opacity</option>
+            <option value="gentle" selected>gentle · 480ms opacity (current default)</option>
+            <option value="long">long · 800ms opacity</option>
+            <option value="rise">rise · 480ms opacity + 3px translateY</option>
+            <option value="color">color settle · 480ms opacity + accent → text color</option>
+            <option value="blur">blur · 480ms opacity + 2px blur</option>
+          </select>
+          <button class="btn btn-primary btn--sm" id="btnPlay">▶ play stream</button>
+          <button class="btn btn-ghost btn--sm" id="btnClear">clear</button>
+        </div>
       </div>
     </div>
 
@@ -155,22 +216,32 @@
 
   <script>
     // Live demo paced stream
-    const demoThread = document.getElementById('demoThread');
+    const demoStage = document.getElementById('demoStage');
     const streamMount = document.getElementById('streamMount');
     const paceSelect = document.getElementById('paceSelect');
     const chunkSelect = document.getElementById('chunkSelect');
+    const fadeSelect = document.getElementById('fadeSelect');
     const btnPlay = document.getElementById('btnPlay');
     const btnClear = document.getElementById('btnClear');
 
     const fullText = "That's the most common starting point and it's the one we're going to dismantle. Suppose a balloon is being inflated — how fast is the volume changing right then?";
 
-    const paceMs = { slow: 240, medium: 120, fast: 40 };
+    const paceMs = { 'very-slow': 400, slow: 240, medium: 120, brisk: 60, fast: 40, 'very-fast': 20 };
+
+    function getPaceFn() {
+      const v = paceSelect.value;
+      if (v === 'variable') {
+        // LLM-burst-like: 30ms most of the time, with occasional 200ms pauses
+        return () => (Math.random() < 0.12 ? 200 + Math.random() * 200 : 25 + Math.random() * 30);
+      }
+      const fixed = paceMs[v] || 120;
+      return () => fixed;
+    }
 
     function tokenize(text, mode) {
       if (mode === 'char') return [...text];
       if (mode === 'sentence') return text.split(/(?<=[.!?])\s+/).map((s, i, a) => i < a.length - 1 ? s + ' ' : s);
       if (mode === 'phrase') {
-        // 1-2 word chunks
         const words = text.split(/\s+/);
         const chunks = [];
         for (let i = 0; i < words.length; i += 2) {
@@ -178,9 +249,16 @@
         }
         return chunks;
       }
-      // default: word
       return text.split(/(\s+)/).filter(Boolean);
     }
+
+    function applyFadeStyle() {
+      // Set a single .stream-fx--* class on the stage that scopes the variant CSS.
+      const fx = fadeSelect.value;
+      demoStage.className = 'stage stage--with-controls stream-fx--' + fx;
+    }
+    applyFadeStyle();
+    fadeSelect.addEventListener('change', applyFadeStyle);
 
     let activeRun = null;
 
@@ -191,11 +269,11 @@
 
     function play() {
       clearDemo();
-      const pace = paceMs[paceSelect.value];
+      applyFadeStyle();
+      const paceFn = getPaceFn();
       const mode = chunkSelect.value;
       const chunks = tokenize(fullText, mode);
 
-      // Build the streaming turn shell once
       const turn = document.createElement('div');
       turn.className = 'chat-turn chat-turn--tutor';
       turn.innerHTML = `<div class="chat-turn__speaker">Tutor <span class="chat-turn__when">· just now</span> <span class="chat-turn__streaming" id="liveBadge">streaming</span></div><p class="chat-turn__body" id="liveBody"></p>`;
@@ -205,22 +283,19 @@
       let i = 0;
       function nextChunk() {
         if (i >= chunks.length) {
-          // settle
           const badge = document.getElementById('liveBadge');
           if (badge) badge.remove();
           activeRun = null;
           return;
         }
-        // Settle previous trailing span (remove class so it doesn't re-animate)
         const prev = body.querySelector('.chat-turn__streaming-tail');
         if (prev) prev.classList.remove('chat-turn__streaming-tail');
-        // Append new trailing span
         const tail = document.createElement('span');
         tail.className = 'chat-turn__streaming-tail';
         tail.textContent = chunks[i];
         body.appendChild(tail);
         i++;
-        activeRun = setTimeout(nextChunk, pace);
+        activeRun = setTimeout(nextChunk, paceFn());
       }
       nextChunk();
     }

@@ -35,9 +35,11 @@
 <body>
   <header class="mock-meta">
     <strong>Inline question · responsive showcase (long-content stress test)</strong>
-    <span>realistic dense multi-select · 70-word prompt · 5 choices with 1-4 line wraps · stress-tests where we'd need tool-schema length caps</span>
+    <span>realistic dense multi-select AND a paged set of 4 questions · 3 widths each · layout bug fixed 2026-05-24 (block layout + absolute indicator)</span>
     <a href="index.html">← all states</a>
   </header>
+
+  <h2 style="font-family: var(--font-display); font-style: italic; font-size: 16px; color: #f5f4f0; margin: 16px 24px 0; font-weight: 500;">Row 1 · Single dense multi-select <span style="color: #8d8b82; font-style: normal; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-left: 8px;">stress test · 70-word prompt + 5 choices</span></h2>
 
   <div class="showcase-grid">
     <!-- WIDE -->
@@ -137,29 +139,133 @@
     </div>
   </div>
 
+  <h2 style="font-family: var(--font-display); font-style: italic; font-size: 16px; color: #f5f4f0; margin: 32px 24px 0; font-weight: 500;">Row 2 · Paged set of 4 questions <span style="color: #8d8b82; font-style: normal; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-left: 8px;">tab strip · mixed single + multi · active = #3</span></h2>
+
+  <div class="showcase-grid">
+    <!-- WIDE — paged -->
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">wide</span><span class="frame__label__desc">teach window default</span><span class="frame__label__width">720px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--wide">
+          <div class="inline-question-set">
+            <div class="inline-question-set__head">
+              <span class="inline-question-set__head__label">Questions</span>
+              <div class="tabs"><button class="tab tab--done"><span style="color:var(--color-success);font-weight:700;">✓</span> 1</button><button class="tab tab--done"><span style="color:var(--color-success);font-weight:700;">✓</span> 2</button><button class="tab tab--active"><span style="color:var(--color-accent);font-weight:700;">●</span> 3</button><button class="tab"><span style="color:var(--color-text-tertiary);">○</span> 4</button></div>
+              <span class="inline-question-set__head__progress">3 of 4 · 2 answered</span>
+            </div>
+            <div class="inline-question inline-question--bare">
+              <div class="inline-question__kicker"><span class="inline-question__kicker__glyph">?</span>tutor asked · question 3 <span class="badge badge--info">select all that apply</span></div>
+              <p class="inline-question__prompt">When you write <em>(f ∘ g)'(x) = f'(g(x)) · g'(x)</em>, which of the following statements about <em>(f ∘ g)'</em> are correct? Some are subtle.</p>
+              <div class="inline-question__choices">
+                <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters — <em>(f ∘ g)' ≠ (g ∘ f)'</em> in general</label>
+                <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em>, not at <em>x</em></label>
+                <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>The chain rule is a special case of the product rule</label>
+                <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It generalizes cleanly to three or more nested functions</label>
+              </div>
+              <div class="inline-question__actions">
+                <button class="btn btn-primary">Submit ↵</button>
+                <button class="btn btn-ghost">↑ clarify in chat</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEDIUM — paged -->
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">medium</span><span class="frame__label__desc">course-create panel</span><span class="frame__label__width">560px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--medium">
+          <div class="inline-question-set">
+            <div class="inline-question-set__head">
+              <span class="inline-question-set__head__label">Questions</span>
+              <div class="tabs"><button class="tab tab--done"><span style="color:var(--color-success);font-weight:700;">✓</span> 1</button><button class="tab tab--done"><span style="color:var(--color-success);font-weight:700;">✓</span> 2</button><button class="tab tab--active"><span style="color:var(--color-accent);font-weight:700;">●</span> 3</button><button class="tab"><span style="color:var(--color-text-tertiary);">○</span> 4</button></div>
+              <span class="inline-question-set__head__progress">3 of 4</span>
+            </div>
+            <div class="inline-question inline-question--bare">
+              <div class="inline-question__kicker"><span class="inline-question__kicker__glyph">?</span>tutor asked · question 3 <span class="badge badge--info">select all that apply</span></div>
+              <p class="inline-question__prompt">When you write <em>(f ∘ g)'(x) = f'(g(x)) · g'(x)</em>, which of the following statements about <em>(f ∘ g)'</em> are correct? Some are subtle.</p>
+              <div class="inline-question__choices">
+                <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters — <em>(f ∘ g)' ≠ (g ∘ f)'</em> in general</label>
+                <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em>, not at <em>x</em></label>
+                <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>The chain rule is a special case of the product rule</label>
+                <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It generalizes cleanly to three or more nested functions</label>
+              </div>
+              <div class="inline-question__actions">
+                <button class="btn btn-primary">Submit ↵</button>
+                <button class="btn btn-ghost">↑ clarify in chat</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NARROW — paged -->
+    <div class="frame">
+      <div class="frame__label"><span class="frame__label__pill">narrow</span><span class="frame__label__desc">mobile / sidebar tutor</span><span class="frame__label__width">380px max</span></div>
+      <div class="frame__body">
+        <div class="chat-surface chat-surface--narrow">
+          <div class="inline-question-set">
+            <div class="inline-question-set__head">
+              <span class="inline-question-set__head__label">Questions</span>
+              <div class="tabs"><button class="tab tab--done"><span style="color:var(--color-success);font-weight:700;">✓</span> 1</button><button class="tab tab--done"><span style="color:var(--color-success);font-weight:700;">✓</span> 2</button><button class="tab tab--active"><span style="color:var(--color-accent);font-weight:700;">●</span> 3</button><button class="tab"><span style="color:var(--color-text-tertiary);">○</span> 4</button></div>
+              <span class="inline-question-set__head__progress">3 / 4</span>
+            </div>
+            <div class="inline-question inline-question--bare">
+              <div class="inline-question__kicker"><span class="inline-question__kicker__glyph">?</span>tutor asked · question 3 <span class="badge badge--info">select all that apply</span></div>
+              <p class="inline-question__prompt">When you write <em>(f ∘ g)'(x) = f'(g(x)) · g'(x)</em>, which of the following statements about <em>(f ∘ g)'</em> are correct? Some are subtle.</p>
+              <div class="inline-question__choices">
+                <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span>The order matters — <em>(f ∘ g)' ≠ (g ∘ f)'</em> in general</label>
+                <label class="inline-question__choice inline-question__choice--selected"><span class="inline-question__indicator inline-question__indicator--check"></span><em>f'</em> is evaluated at <em>g(x)</em>, not at <em>x</em></label>
+                <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>The chain rule is a special case of the product rule</label>
+                <label class="inline-question__choice"><span class="inline-question__indicator inline-question__indicator--check"></span>It generalizes cleanly to three or more nested functions</label>
+              </div>
+              <div class="inline-question__actions">
+                <button class="btn btn-primary">Submit ↵</button>
+                <button class="btn btn-ghost">↑ clarify in chat</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="key">
-    <strong>Stress test:</strong> a realistic dense multi-select question. 70-word prompt with embedded math. Five choices ranging from 9 words to 33 words; some wrap to 4 lines at narrow. Free-form has a multi-line placeholder. This is the kind of question that would surface in a graduate-level chain-rule lesson, a textbook problem disambiguation, or a course-create draft review.
+    <strong>2026-05-24 layout fix applied.</strong> <code>.inline-question__choice</code> switched from <code>display: flex</code> to <code>display: block</code> + absolutely-positioned indicator. Previously dense math content (<em>g(0) = e^0 · ln(1)</em> with multiple <em>&lt;em&gt;</em> children interspersed with text) caused each inline element to become its own flex item, breaking choice text into narrow vertical columns. Now text flows as normal block content; indicator anchors top-left of the first line.
     <br><br>
-    <strong>What holds up:</strong>
+    <strong>Row 1 — single dense question.</strong> 70-word prompt + 5 choices ranging 9-33 words. This is the kind of question that would surface in a graduate-level chain-rule lesson, a textbook problem disambiguation, or a course-create draft review.
     <ul>
       <li><strong>Wide</strong>: prompt and choices read cleanly; the <code>3 selected</code> badge sits naturally between Submit and clarify-in-chat. Each choice is 1-2 lines.</li>
-      <li><strong>Medium</strong>: tighter padding (from <code>@container chat (max-width: 599px)</code>) pulls the card inward; choices grow to 2-3 lines but the radio/check indicator stays anchored top-left. Free-form text area scales to width.</li>
-      <li><strong>Narrow</strong>: action row stacks vertically per container query — Submit, the badge, and clarify each get their own row, full width. Choices wrap to 3-4 lines; the prompt is the densest block. Layout doesn't break.</li>
+      <li><strong>Medium</strong>: tighter padding (from <code>@container chat (max-width: 599px)</code>) pulls the card inward; choices grow to 2-3 lines but the indicator stays anchored top-left. Free-form scales to width.</li>
+      <li><strong>Narrow</strong>: action row stacks vertically per container query — Submit, the badge, and clarify each get their own row, full width. Choices wrap to 3-4 lines; the prompt is the densest block.</li>
     </ul>
-    <strong>Where it strains:</strong>
+    <br>
+    <strong>Row 2 — paged set of 4 questions.</strong> One question card wrapping the active question 3 of 4 (multi-select). Tab strip shows status across all four.
     <ul>
-      <li>At <strong>narrow</strong> the long prompt + 5 multi-line choices push the card past 700px tall — significant scroll. Two cards in a paged set would make the chat surface feel overwhelmed.</li>
-      <li>The <code>3 selected</code> badge currently sits in the action row; at narrow it wraps below the primary Submit. Visual is acceptable but feels slightly orphaned. Worth considering whether the selected count belongs in the kicker (top) instead of the actions row (bottom).</li>
-      <li>Math notation (<em>e<sup>2x</sup></em>, etc.) isn't rendered via KaTeX in mocks — production would be richer; the wrap behavior is broadly representative but exact heights will differ.</li>
+      <li><strong>Wide</strong>: tab strip + progress label fit comfortably on one line in the head. Active question body has full breathing room.</li>
+      <li><strong>Medium</strong>: tab strip stays one row; progress shortens to "3 of 4"; head padding tightens. Choices remain single-line for short answers.</li>
+      <li><strong>Narrow</strong>: head still fits on one row (4 tabs is the sweet spot). Beyond 4 tabs the strip would wrap or need horizontal scroll — flag for design pass.</li>
     </ul>
-    <strong>Tool-schema constraints worth adding</strong> (input to <code>feature-question-panel-rework</code> design):
+    <br>
+    <strong>Where this still strains (input to feature-question-panel-rework design):</strong>
     <ul>
-      <li><strong>Prompt max ~50 words</strong> (~300 chars). Beyond this, the tutor should issue an explanatory chat turn before the question card, not stuff context into the prompt itself.</li>
-      <li><strong>Per-choice max ~15 words</strong> (~80 chars). Choices longer than this read like they should be paragraphs, not options — surface the long content in the chat turn, keep choices crisp.</li>
-      <li><strong>Choice count cap: 5</strong> (we already have this implicitly via Miller's 7±2, but worth explicit in the schema).</li>
-      <li><strong>Multi-select hard cap: 6 choices</strong>; beyond that, single-select with a refining follow-up is the right shape — multi-select fatigue is real.</li>
+      <li>At <strong>narrow</strong> a 70-word prompt + 5 multi-line choices pushes the card past 700px tall — significant scroll. Schema caps below would prevent this from being agent-reachable.</li>
+      <li>The <code>3 selected</code> badge in the action row wraps awkwardly at narrow. Worth considering whether the live-selected count belongs in the kicker (top) instead of the actions row (bottom).</li>
+      <li>Math notation isn't rendered via KaTeX in mocks — production rendering will be richer and heights will differ.</li>
+      <li>Beyond ~6 tabs in the paged set the tab strip would need a different chrome (horizontal scroll? compact pagination?). Currently undefined.</li>
     </ul>
-    These caps should be enforced in the <code>ask_student_question</code> Zod schema with descriptive error messages so the agent learns the constraints by reading them, not by repeated rejections.
+    <br>
+    <strong>Tool-schema constraints recommended</strong> (input to <code>feature-question-panel-rework</code> design — consolidated to backlog as <code>idea-inline-question-density-layout-and-schema-caps</code>):
+    <ul>
+      <li><strong>Prompt max ~50 words</strong> (~300 chars). Tutor uses the preceding chat turn for context; the prompt itself is the question, not the setup.</li>
+      <li><strong>Per-choice max ~15 words</strong> (~80 chars). Long reasoning belongs in the chat turn; choices stay crisp.</li>
+      <li><strong>Choice count cap: 5</strong>. Miller's 7±2 with the lower edge for active discrimination.</li>
+      <li><strong>Multi-select hard cap: 6 choices</strong>; beyond that, single-select with a refining follow-up.</li>
+    </ul>
+    Schema errors should be descriptive so the agent learns the constraints by reading them, not by repeated rejections.
   </div>
 </body>
 </html>
