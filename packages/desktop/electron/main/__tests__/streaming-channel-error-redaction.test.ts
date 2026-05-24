@@ -39,6 +39,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
@@ -82,20 +83,6 @@ import { registerQuickCheckHandlers } from "../quick-check-channel.js";
 import { registerSubAgentHandlers } from "../subagent-channel.js";
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function self(): ReturnType<typeof makeFakeLogger> {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 /**
  * Create a fake WebContents that captures every `send(channel, msg)` call.
@@ -413,7 +400,7 @@ describe("streaming channel error redaction", () => {
     });
 
     const { wc, sent } = makeFakeWebContents();
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     registerIpcHandlers(services, () => wc as unknown as Electron.WebContents, log);
 
     const handler = handlers.get("praxis.session.send.start");
@@ -454,7 +441,7 @@ describe("streaming channel error redaction", () => {
     };
 
     const { wc, sent } = makeFakeWebContents();
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const activeAbortControllers = new Map<string, AbortController>();
 
     registerActivityHandlers(
@@ -494,7 +481,7 @@ describe("streaming channel error redaction", () => {
     };
 
     const { wc, sent } = makeFakeWebContents();
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const activeAbortControllers = new Map<string, AbortController>();
 
     registerCourseCreateDraftsHandlers(
@@ -555,7 +542,7 @@ describe("streaming channel error redaction", () => {
     };
 
     const { wc, sent } = makeFakeWebContents();
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const activeAbortControllers = new Map<string, AbortController>();
 
     registerIngestHandlers(
@@ -597,7 +584,7 @@ describe("streaming channel error redaction", () => {
     };
 
     const { wc, sent } = makeFakeWebContents();
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const activeAbortControllers = new Map<string, AbortController>();
 
     registerQuickCheckHandlers(
@@ -635,7 +622,7 @@ describe("streaming channel error redaction", () => {
     };
 
     const { wc, sent } = makeFakeWebContents();
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const activeAbortControllers = new Map<string, AbortController>();
 
     registerSubAgentHandlers(

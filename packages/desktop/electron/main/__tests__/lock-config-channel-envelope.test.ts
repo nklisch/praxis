@@ -19,6 +19,7 @@
  * VALIDATION_FAILED for empty/wrong-type code + INTERNAL for config.unlock).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -43,22 +44,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type LockOverrides = {
   isSet?: () => Promise<unknown>;
@@ -338,7 +323,7 @@ afterEach(() => {
 
 describe("praxis.lock.isSet — envelope wiring", () => {
   it("resolves with { ok: true, value: false } when lock is not set", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -351,7 +336,7 @@ describe("praxis.lock.isSet — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: true } when lock is set", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isSet: async () => true });
     registerIpcHandlers(services, () => null, log);
 
@@ -363,7 +348,7 @@ describe("praxis.lock.isSet — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       isSet: async () => {
         throw new Error("lock state corrupted");
@@ -385,7 +370,7 @@ describe("praxis.lock.isSet — envelope wiring", () => {
 
 describe("praxis.lock.isUnlocked — envelope wiring", () => {
   it("resolves with { ok: true, value: true } when unlocked", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -398,7 +383,7 @@ describe("praxis.lock.isUnlocked — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: false } when locked out", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: async () => false });
     registerIpcHandlers(services, () => null, log);
 
@@ -410,7 +395,7 @@ describe("praxis.lock.isUnlocked — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       isUnlocked: async () => {
         throw new Error("session expired");
@@ -432,7 +417,7 @@ describe("praxis.lock.isUnlocked — envelope wiring", () => {
 
 describe("praxis.lock.lock — envelope wiring", () => {
   it("resolves with { ok: true, value: undefined } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -445,7 +430,7 @@ describe("praxis.lock.lock — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       lock: async () => {
         throw new Error("cannot lock — no code set");
@@ -467,7 +452,7 @@ describe("praxis.lock.lock — envelope wiring", () => {
 
 describe("praxis.config.isLocked — envelope wiring", () => {
   it("resolves with { ok: true, value: false } when not locked", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, {});
     registerIpcHandlers(services, () => null, log);
 
@@ -480,7 +465,7 @@ describe("praxis.config.isLocked — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: true } when config lock is engaged", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { isLocked: async () => true });
     registerIpcHandlers(services, () => null, log);
 
@@ -492,7 +477,7 @@ describe("praxis.config.isLocked — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -517,7 +502,7 @@ describe("praxis.config.isLocked — envelope wiring", () => {
 
 describe("praxis.config.unlock — envelope wiring", () => {
   it("resolves with { ok: true, value: { ok: true } } for a valid code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { unlock: async () => ({ ok: true }) });
     registerIpcHandlers(services, () => null, log);
 
@@ -530,7 +515,7 @@ describe("praxis.config.unlock — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: { ok: false } } for a wrong code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { unlock: async () => ({ ok: false }) });
     registerIpcHandlers(services, () => null, log);
 
@@ -542,7 +527,7 @@ describe("praxis.config.unlock — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty code string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -555,7 +540,7 @@ describe("praxis.config.unlock — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when the payload is not a string (e.g. object)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -568,7 +553,7 @@ describe("praxis.config.unlock — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -593,7 +578,7 @@ describe("praxis.config.unlock — envelope wiring", () => {
 
 describe("praxis.config.selectedEngine — envelope wiring", () => {
   it("resolves with { ok: true, value: 'claude-code' } by default", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -606,7 +591,7 @@ describe("praxis.config.selectedEngine — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -632,7 +617,7 @@ describe("praxis.config.selectedEngine — envelope wiring", () => {
 describe("praxis.config.courseCreateConfig — envelope wiring", () => {
   it("resolves with { ok: true, value: <snapshot> } on success", async () => {
     const snapshot = { maxSteps: 20 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { courseCreateConfig: async () => snapshot });
     registerIpcHandlers(services, () => null, log);
 
@@ -645,7 +630,7 @@ describe("praxis.config.courseCreateConfig — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -670,7 +655,7 @@ describe("praxis.config.courseCreateConfig — envelope wiring", () => {
 
 describe("praxis.config.firstRunCompleted — envelope wiring", () => {
   it("resolves with { ok: true, value: false } on a fresh install", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -683,7 +668,7 @@ describe("praxis.config.firstRunCompleted — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: true } after first run is marked complete", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { firstRunCompleted: async () => true });
     registerIpcHandlers(services, () => null, log);
 
@@ -695,7 +680,7 @@ describe("praxis.config.firstRunCompleted — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -720,7 +705,7 @@ describe("praxis.config.firstRunCompleted — envelope wiring", () => {
 
 describe("praxis.config.markFirstRunComplete — envelope wiring", () => {
   it("resolves with { ok: true } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -733,7 +718,7 @@ describe("praxis.config.markFirstRunComplete — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {

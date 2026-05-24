@@ -17,6 +17,7 @@
  * Test count: 18
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -41,22 +42,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type TabsOverrides = {
   listOpen?: () => Promise<unknown>;
@@ -330,7 +315,7 @@ afterEach(() => {
 
 describe("praxis.tabs.listOpen — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when no tabs are open", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ listOpen: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -344,7 +329,7 @@ describe("praxis.tabs.listOpen — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <tabs> } when tabs are open", async () => {
     const tab = { id: "tab-1", title: "Math 101", sortOrder: 1 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ listOpen: async () => [tab] });
     registerIpcHandlers(services, () => null, log);
 
@@ -356,7 +341,7 @@ describe("praxis.tabs.listOpen — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       listOpen: async () => {
         throw new Error("DB unavailable");
@@ -379,7 +364,7 @@ describe("praxis.tabs.listOpen — envelope wiring", () => {
 describe("praxis.tabs.open — envelope wiring", () => {
   it("resolves with { ok: true, value: <tab> } for a valid payload", async () => {
     const tab = { id: "tab-2", title: "Physics 101", sortOrder: 2 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ open: async () => tab });
     registerIpcHandlers(services, () => null, log);
 
@@ -393,7 +378,7 @@ describe("praxis.tabs.open — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <tab> } when courseTitle is omitted", async () => {
     const tab = { id: "tab-3", title: "Session", sortOrder: 3 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ open: async () => tab });
     registerIpcHandlers(services, () => null, log);
 
@@ -405,7 +390,7 @@ describe("praxis.tabs.open — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when sessionId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -418,7 +403,7 @@ describe("praxis.tabs.open — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when sessionId is an empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -431,7 +416,7 @@ describe("praxis.tabs.open — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       open: async () => {
         throw new Error("session not found");
@@ -453,7 +438,7 @@ describe("praxis.tabs.open — envelope wiring", () => {
 
 describe("praxis.tabs.close — envelope wiring", () => {
   it("resolves with { ok: true } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ close: async () => undefined });
     registerIpcHandlers(services, () => null, log);
 
@@ -466,7 +451,7 @@ describe("praxis.tabs.close — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string tabId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -479,7 +464,7 @@ describe("praxis.tabs.close — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       close: async () => {
         throw new Error("tab already closed");
@@ -502,7 +487,7 @@ describe("praxis.tabs.close — envelope wiring", () => {
 describe("praxis.tabs.get — envelope wiring", () => {
   it("resolves with { ok: true, value: <tab> } for a valid tabId", async () => {
     const tab = { id: "tab-1", title: "Math 101", sortOrder: 1 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ get: async () => tab });
     registerIpcHandlers(services, () => null, log);
 
@@ -515,7 +500,7 @@ describe("praxis.tabs.get — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: null } when tab is not found", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ get: async () => null });
     registerIpcHandlers(services, () => null, log);
 
@@ -527,7 +512,7 @@ describe("praxis.tabs.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string tabId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -545,7 +530,7 @@ describe("praxis.tabs.get — envelope wiring", () => {
 describe("praxis.tabs.reopen — envelope wiring", () => {
   it("resolves with { ok: true, value: <tab> } on success", async () => {
     const tab = { id: "tab-1", title: "Reopened", sortOrder: 5 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ reopen: async () => tab });
     registerIpcHandlers(services, () => null, log);
 
@@ -558,7 +543,7 @@ describe("praxis.tabs.reopen — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string tabId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -575,7 +560,7 @@ describe("praxis.tabs.reopen — envelope wiring", () => {
 
 describe("praxis.tabs.touch — envelope wiring", () => {
   it("resolves with { ok: true } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ touch: async () => undefined });
     registerIpcHandlers(services, () => null, log);
 
@@ -588,7 +573,7 @@ describe("praxis.tabs.touch — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string tabId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -606,7 +591,7 @@ describe("praxis.tabs.touch — envelope wiring", () => {
 describe("praxis.tabs.rename — envelope wiring", () => {
   it("resolves with { ok: true, value: <tab> } for a valid payload", async () => {
     const tab = { id: "tab-1", title: "Renamed Tab", sortOrder: 1 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ rename: async () => tab });
     registerIpcHandlers(services, () => null, log);
 
@@ -619,7 +604,7 @@ describe("praxis.tabs.rename — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when tabId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -632,7 +617,7 @@ describe("praxis.tabs.rename — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when tabId is an empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -645,7 +630,7 @@ describe("praxis.tabs.rename — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       rename: async () => {
         throw new Error("tab not found");
@@ -667,7 +652,7 @@ describe("praxis.tabs.rename — envelope wiring", () => {
 
 describe("praxis.tabs.list — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when called with no opts", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ list: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -681,7 +666,7 @@ describe("praxis.tabs.list — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <tabs> } with valid opts", async () => {
     const tabs = [{ id: "tab-1", title: "Math", sortOrder: 1 }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ list: async () => tabs });
     registerIpcHandlers(services, () => null, log);
 
@@ -693,7 +678,7 @@ describe("praxis.tabs.list — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when limit is not a positive integer", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 

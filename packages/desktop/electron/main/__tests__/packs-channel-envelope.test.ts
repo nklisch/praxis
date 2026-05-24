@@ -14,6 +14,7 @@
  * for import).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -38,22 +39,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type PacksOverrides = {
   listAvailablePacks?: () => Promise<unknown>;
@@ -312,7 +297,7 @@ afterEach(() => {
 
 describe("praxis.packs.listAvailable — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when no packs are available", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -326,7 +311,7 @@ describe("praxis.packs.listAvailable — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <packs> } when packs exist", async () => {
     const packs = [{ id: "biology-1", name: "Biology Foundations", version: "1.0.0" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ listAvailablePacks: async () => packs });
     registerIpcHandlers(services, () => null, log);
 
@@ -338,7 +323,7 @@ describe("praxis.packs.listAvailable — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       listAvailablePacks: async () => {
         throw new Error("packs directory missing");
@@ -360,7 +345,7 @@ describe("praxis.packs.listAvailable — envelope wiring", () => {
 
 describe("praxis.packs.listImported — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when no packs are imported", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -374,7 +359,7 @@ describe("praxis.packs.listImported — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <packs> } when imported packs exist", async () => {
     const imported = [{ id: "biology-1", name: "Biology Foundations", importedAt: 1700000000000 }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ listImportedPacks: async () => imported });
     registerIpcHandlers(services, () => null, log);
 
@@ -386,7 +371,7 @@ describe("praxis.packs.listImported — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       listImportedPacks: async () => {
         throw new Error("DB read error");
@@ -409,7 +394,7 @@ describe("praxis.packs.listImported — envelope wiring", () => {
 describe("praxis.packs.import — envelope wiring", () => {
   it("resolves with { ok: true, value: <imported> } for a valid packId", async () => {
     const imported = { id: "biology-1", name: "Biology Foundations", importedAt: 1700000000000 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ importPack: async () => imported });
     registerIpcHandlers(services, () => null, log);
 
@@ -422,7 +407,7 @@ describe("praxis.packs.import — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty packId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -435,7 +420,7 @@ describe("praxis.packs.import — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when the payload is not a string (e.g. object)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -448,7 +433,7 @@ describe("praxis.packs.import — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       importPack: async () => {
         throw new Error("pack manifest corrupted");
@@ -466,7 +451,7 @@ describe("praxis.packs.import — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       importPack: async () => {
         throw new Error("/home/user/.praxis/dev.db: SQLITE_BUSY: database is locked");

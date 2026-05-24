@@ -16,6 +16,7 @@
  * guard for studentModel, export, and delete).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -40,22 +41,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type MemoryOverrides = {
   studentModel?: () => Promise<unknown>;
@@ -331,7 +316,7 @@ afterEach(() => {
 
 describe("praxis.memory.studentModel — envelope wiring", () => {
   it("resolves with { ok: true, value: <model> } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -345,7 +330,7 @@ describe("praxis.memory.studentModel — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       studentModel: async () => {
         throw new Error("index corrupted");
@@ -363,7 +348,7 @@ describe("praxis.memory.studentModel — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       studentModel: async () => {
         throw new Error("/home/user/.praxis/dev.db: SQLITE_CANTOPEN");
@@ -386,7 +371,7 @@ describe("praxis.memory.studentModel — envelope wiring", () => {
 
 describe("praxis.memory.misconceptions — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when there are no misconceptions", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -399,7 +384,7 @@ describe("praxis.memory.misconceptions — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <list> } when misconceptions exist", async () => {
     const misconceptions = [{ id: "m-1", description: "Confuses multiplication and addition" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ misconceptions: async () => misconceptions });
     registerIpcHandlers(services, () => null, log);
 
@@ -411,7 +396,7 @@ describe("praxis.memory.misconceptions — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       misconceptions: async () => {
         throw new Error("query failed");
@@ -433,7 +418,7 @@ describe("praxis.memory.misconceptions — envelope wiring", () => {
 
 describe("praxis.memory.procedural — envelope wiring", () => {
   it("resolves with { ok: true, value: <model> } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -447,7 +432,7 @@ describe("praxis.memory.procedural — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       procedural: async () => {
         throw new Error("strategy store unavailable");
@@ -470,7 +455,7 @@ describe("praxis.memory.procedural — envelope wiring", () => {
 describe("praxis.memory.affective — envelope wiring", () => {
   it("resolves with { ok: true, value: <model> } on success", async () => {
     const affective = { mood: "curious", frustration: 0.2 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ affective: async () => affective });
     registerIpcHandlers(services, () => null, log);
 
@@ -482,7 +467,7 @@ describe("praxis.memory.affective — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       affective: async () => {
         throw new Error("affective index missing");
@@ -504,7 +489,7 @@ describe("praxis.memory.affective — envelope wiring", () => {
 
 describe("praxis.memory.export — envelope wiring", () => {
   it("resolves with { ok: true, value: <export> } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -519,7 +504,7 @@ describe("praxis.memory.export — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       export: async () => {
         throw new Error("serialization failed");
@@ -537,7 +522,7 @@ describe("praxis.memory.export — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       export: async () => {
         throw new Error("/home/user/.praxis/dev.db: no such table: episodic_events");
@@ -560,7 +545,7 @@ describe("praxis.memory.export — envelope wiring", () => {
 
 describe("praxis.memory.delete — envelope wiring", () => {
   it("resolves with { ok: true, value: undefined } when deletion succeeds", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -573,7 +558,7 @@ describe("praxis.memory.delete — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       delete: async () => {
         throw new Error("cannot delete: active session");
@@ -591,7 +576,7 @@ describe("praxis.memory.delete — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       delete: async () => {
         throw new Error("/home/user/.praxis/dev.db: SQLITE_BUSY");

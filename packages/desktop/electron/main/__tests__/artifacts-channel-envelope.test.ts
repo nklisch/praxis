@@ -21,6 +21,7 @@
  * 1 path-leakage guard).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -45,22 +46,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type ArtifactsOverrides = {
   courses?: () => Promise<unknown>;
@@ -340,7 +325,7 @@ afterEach(() => {
 
 describe("praxis.artifacts.courses — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when no courses exist", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -353,7 +338,7 @@ describe("praxis.artifacts.courses — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <courses> } when courses exist", async () => {
     const courses = [{ id: "c-1", title: "Algebra 1" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ courses: async () => courses });
     registerIpcHandlers(services, () => null, log);
 
@@ -365,7 +350,7 @@ describe("praxis.artifacts.courses — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       courses: async () => {
         throw new Error("DB gone");
@@ -383,7 +368,7 @@ describe("praxis.artifacts.courses — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       courses: async () => {
         throw new Error("/home/user/.praxis/dev.db: SQLITE_CANTOPEN");
@@ -407,7 +392,7 @@ describe("praxis.artifacts.courses — envelope wiring", () => {
 describe("praxis.artifacts.progress — envelope wiring", () => {
   it("resolves with { ok: true, value: <snapshot> } on success", async () => {
     const snapshot = { completedLessons: 3, totalLessons: 10 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ progress: async () => snapshot });
     registerIpcHandlers(services, () => null, log);
 
@@ -419,7 +404,7 @@ describe("praxis.artifacts.progress — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       progress: async () => {
         throw new Error("query failed");
@@ -442,7 +427,7 @@ describe("praxis.artifacts.progress — envelope wiring", () => {
 describe("praxis.artifacts.course — envelope wiring", () => {
   it("resolves with { ok: true, value: <course> } for a valid courseId", async () => {
     const course = { id: "c-1", title: "Algebra 1" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ course: async () => course });
     registerIpcHandlers(services, () => null, log);
 
@@ -455,7 +440,7 @@ describe("praxis.artifacts.course — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: null } when the course is not found", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ course: async () => null });
     registerIpcHandlers(services, () => null, log);
 
@@ -467,7 +452,7 @@ describe("praxis.artifacts.course — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -480,7 +465,7 @@ describe("praxis.artifacts.course — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a non-string courseId (e.g. number)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -492,7 +477,7 @@ describe("praxis.artifacts.course — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for undefined courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -504,7 +489,7 @@ describe("praxis.artifacts.course — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       course: async () => {
         throw new Error("disk I/O error");
@@ -522,7 +507,7 @@ describe("praxis.artifacts.course — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       course: async () => {
         throw new Error("/home/user/.praxis/dev.db: no such table: courses");
@@ -546,7 +531,7 @@ describe("praxis.artifacts.course — envelope wiring", () => {
 describe("praxis.artifacts.lessons — envelope wiring", () => {
   it("resolves with { ok: true, value: <lessons> } for a valid courseId", async () => {
     const lessons = [{ id: "l-1", title: "Intro" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ lessons: async () => lessons });
     registerIpcHandlers(services, () => null, log);
 
@@ -559,7 +544,7 @@ describe("praxis.artifacts.lessons — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -572,7 +557,7 @@ describe("praxis.artifacts.lessons — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for undefined courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -589,7 +574,7 @@ describe("praxis.artifacts.lessons — envelope wiring", () => {
 describe("praxis.artifacts.gates — envelope wiring", () => {
   it("resolves with { ok: true, value: <gates> } for a valid courseId", async () => {
     const gates = [{ id: "g-1", title: "Chapter 1 Gate" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ gates: async () => gates });
     registerIpcHandlers(services, () => null, log);
 
@@ -601,7 +586,7 @@ describe("praxis.artifacts.gates — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -618,7 +603,7 @@ describe("praxis.artifacts.gates — envelope wiring", () => {
 describe("praxis.artifacts.gateView — envelope wiring", () => {
   it("resolves with { ok: true, value: <gateViews> } for a valid courseId", async () => {
     const gateViews = [{ gateId: "g-1", unlocked: true }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ gateView: async () => gateViews });
     registerIpcHandlers(services, () => null, log);
 
@@ -631,7 +616,7 @@ describe("praxis.artifacts.gateView — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -644,7 +629,7 @@ describe("praxis.artifacts.gateView — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       gateView: async () => {
         throw new Error("gate computation failed");
@@ -667,7 +652,7 @@ describe("praxis.artifacts.gateView — envelope wiring", () => {
 describe("praxis.artifacts.evaluateGates — envelope wiring", () => {
   it("resolves with { ok: true, value: <result> } for a valid courseId", async () => {
     const evalResult = { unlockedGateIds: ["g-1", "g-2"] };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ evaluateAndPersistGates: async () => evalResult });
     registerIpcHandlers(services, () => null, log);
 
@@ -680,7 +665,7 @@ describe("praxis.artifacts.evaluateGates — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -697,7 +682,7 @@ describe("praxis.artifacts.evaluateGates — envelope wiring", () => {
 
 describe("praxis.artifacts.markGatesViewed — envelope wiring", () => {
   it("resolves with { ok: true } for a valid courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ markGatesViewed: async () => undefined });
     registerIpcHandlers(services, () => null, log);
 
@@ -710,7 +695,7 @@ describe("praxis.artifacts.markGatesViewed — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a non-string courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -726,7 +711,7 @@ describe("praxis.artifacts.markGatesViewed — envelope wiring", () => {
 
 describe("praxis.artifacts.newlyUnlockedCount — envelope wiring", () => {
   it("resolves with { ok: true, value: <count> } for a valid courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ newlyUnlockedCount: async () => 3 });
     registerIpcHandlers(services, () => null, log);
 
@@ -739,7 +724,7 @@ describe("praxis.artifacts.newlyUnlockedCount — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -756,7 +741,7 @@ describe("praxis.artifacts.newlyUnlockedCount — envelope wiring", () => {
 describe("praxis.artifacts.concepts — envelope wiring", () => {
   it("resolves with { ok: true, value: <concepts> } for a valid courseId", async () => {
     const concepts = [{ id: "algebra-1:unit-1.real-numbers", name: "Real Numbers" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ concepts: async () => concepts });
     registerIpcHandlers(services, () => null, log);
 
@@ -769,7 +754,7 @@ describe("praxis.artifacts.concepts — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -782,7 +767,7 @@ describe("praxis.artifacts.concepts — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for undefined courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -794,7 +779,7 @@ describe("praxis.artifacts.concepts — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       concepts: async () => {
         throw new Error("graph store unavailable");
@@ -812,7 +797,7 @@ describe("praxis.artifacts.concepts — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       concepts: async () => {
         throw new Error("/home/user/.praxis/dev.db: no such table: concept_graph_concepts");

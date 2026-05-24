@@ -7,6 +7,7 @@
  * Test count: 5
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -31,22 +32,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type LibraryOverrides = {
   search?: (input: unknown) => Promise<unknown>;
@@ -258,7 +243,7 @@ describe("praxis.library.search — envelope wiring", () => {
         updatedAt: 0,
       },
     ];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ search: async () => hits });
     registerIpcHandlers(services, () => null, log);
 
@@ -271,7 +256,7 @@ describe("praxis.library.search — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: [] } when no results", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ search: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -281,7 +266,7 @@ describe("praxis.library.search — envelope wiring", () => {
   });
 
   it("resolves with { ok: true } for no-payload (all notes+flashcards)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -291,7 +276,7 @@ describe("praxis.library.search — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when query is an empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -302,7 +287,7 @@ describe("praxis.library.search — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       search: async () => {
         throw new Error("DB locked");

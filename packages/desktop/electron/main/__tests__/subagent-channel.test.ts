@@ -18,6 +18,7 @@
 import { SubAgentRegistryImpl } from "@praxis/core/services";
 import type { SessionId, SubAgentEvent } from "@praxis/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -42,22 +43,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER the mock is in place — Vitest hoists vi.mock() automatically.
 import { registerSubAgentHandlers } from "../subagent-channel.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild(): ReturnType<typeof makeFakeLogger> {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 /**
  * Create a fake WebContents that captures every `send(channel, msg)` call.
@@ -112,13 +97,13 @@ describe("praxis.subAgent.events.* — interrupt fanout observability", () => {
       );
 
       const registry = new SubAgentRegistryImpl({
-        log: makeFakeLogger() as ReturnType<typeof makeFakeLogger>,
+        log: makeSpyLogger(),
         now: () => 1_000_000,
         // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
         setTimeout: fakeSetTimeout as any,
       });
 
-      const log = makeFakeLogger();
+      const log = makeSpyLogger();
       const { wc, sent } = makeFakeWebContents();
       const activeAbortControllers = new Map<string, AbortController>();
 
@@ -200,14 +185,14 @@ describe("praxis.subAgent.events.* — interrupt fanout observability", () => {
 
     try {
       const registry = new SubAgentRegistryImpl({
-        log: makeFakeLogger() as ReturnType<typeof makeFakeLogger>,
+        log: makeSpyLogger(),
         now: () => 1_000_000,
         setTimeout:
           // biome-ignore lint/suspicious/noExplicitAny: fake timer compatibility
           vi.fn((fn: () => void, delay: number) => globalThis.setTimeout(fn, delay)) as any,
       });
 
-      const log = makeFakeLogger();
+      const log = makeSpyLogger();
       const { wc, sent } = makeFakeWebContents();
       const activeAbortControllers = new Map<string, AbortController>();
 

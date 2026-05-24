@@ -33,6 +33,7 @@
  * Test count: ~28
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -57,22 +58,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type AuthoringOverrides = {
   getGlobalPrompt?: () => Promise<unknown>;
@@ -394,7 +379,7 @@ afterEach(() => {
 
 describe("praxis.author.getGlobalPrompt — envelope wiring (no-payload getter)", () => {
   it("resolves with { ok: true, value: null } when no prompt is set", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -407,7 +392,7 @@ describe("praxis.author.getGlobalPrompt — envelope wiring (no-payload getter)"
   });
 
   it("resolves with { ok: true, value: <prompt> } when a prompt is stored", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ getGlobalPrompt: async () => "Be concise." });
     registerIpcHandlers(services, () => null, log);
 
@@ -417,7 +402,7 @@ describe("praxis.author.getGlobalPrompt — envelope wiring (no-payload getter)"
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       getGlobalPrompt: async () => {
         throw new Error("DB read failure");
@@ -437,7 +422,7 @@ describe("praxis.author.getGlobalPrompt — envelope wiring (no-payload getter)"
 
 describe("praxis.author.setGlobalPrompt — envelope wiring (structured payload)", () => {
   it("resolves with { ok: true } when setting a non-null prompt", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -450,7 +435,7 @@ describe("praxis.author.setGlobalPrompt — envelope wiring (structured payload)
   });
 
   it("resolves with { ok: true } when clearing the prompt (text: null)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -461,7 +446,7 @@ describe("praxis.author.setGlobalPrompt — envelope wiring (structured payload)
   });
 
   it("returns VALIDATION_FAILED when the payload is missing the text field", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -472,7 +457,7 @@ describe("praxis.author.setGlobalPrompt — envelope wiring (structured payload)
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       setGlobalPrompt: async () => {
         throw new Error("write failed");
@@ -492,7 +477,7 @@ describe("praxis.author.setGlobalPrompt — envelope wiring (structured payload)
 
 describe("praxis.author.listFragmentOverrides — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when no overrides exist", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -505,7 +490,7 @@ describe("praxis.author.listFragmentOverrides — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when modeId is empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -516,7 +501,7 @@ describe("praxis.author.listFragmentOverrides — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when modeId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -530,7 +515,7 @@ describe("praxis.author.listFragmentOverrides — envelope wiring", () => {
 
 describe("praxis.author.getModeAppend — envelope wiring", () => {
   it("resolves with { ok: true, value: null } when no append is set", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -543,7 +528,7 @@ describe("praxis.author.getModeAppend — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when modeId is empty", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -557,7 +542,7 @@ describe("praxis.author.getModeAppend — envelope wiring", () => {
 
 describe("praxis.author.setModeAppend — envelope wiring", () => {
   it("resolves with { ok: true } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -573,7 +558,7 @@ describe("praxis.author.setModeAppend — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when modeId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -588,7 +573,7 @@ describe("praxis.author.setModeAppend — envelope wiring", () => {
 
 describe("praxis.author.previewPrompt — envelope wiring", () => {
   it("resolves with { ok: true, value: <string> } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ previewPrompt: async () => "you are a tutor" });
     registerIpcHandlers(services, () => null, log);
 
@@ -601,7 +586,7 @@ describe("praxis.author.previewPrompt — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when modeId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -616,7 +601,7 @@ describe("praxis.author.previewPrompt — envelope wiring", () => {
 describe("praxis.author.getCourseSummary — envelope wiring (string payload)", () => {
   it("resolves with { ok: true, value: <summary> } on success", async () => {
     const summary = { course: { id: "course-1" }, lessons: [], gates: [], concepts: [] };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ getCourseSummary: async () => summary });
     registerIpcHandlers(services, () => null, log);
 
@@ -629,7 +614,7 @@ describe("praxis.author.getCourseSummary — envelope wiring (string payload)", 
   });
 
   it("returns VALIDATION_FAILED when courseId is empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -640,7 +625,7 @@ describe("praxis.author.getCourseSummary — envelope wiring (string payload)", 
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       getCourseSummary: async () => {
         throw new Error("course not found");
@@ -660,7 +645,7 @@ describe("praxis.author.getCourseSummary — envelope wiring (string payload)", 
 
 describe("praxis.author.deleteGate — envelope wiring", () => {
   it("resolves with { ok: true } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -673,7 +658,7 @@ describe("praxis.author.deleteGate — envelope wiring", () => {
   });
 
   it("resolves with { ok: true } when reason is omitted (optional field)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -683,7 +668,7 @@ describe("praxis.author.deleteGate — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when gateId is empty", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -694,7 +679,7 @@ describe("praxis.author.deleteGate — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       deleteGate: async () => {
         throw new Error("gate has dependents");
@@ -714,7 +699,7 @@ describe("praxis.author.deleteGate — envelope wiring", () => {
 
 describe("praxis.author.deleteAllMemory — envelope wiring", () => {
   it("resolves with { ok: true } on success with confirm: true", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -727,7 +712,7 @@ describe("praxis.author.deleteAllMemory — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when confirm is false (wrong literal)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -738,7 +723,7 @@ describe("praxis.author.deleteAllMemory — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when reason is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -752,7 +737,7 @@ describe("praxis.author.deleteAllMemory — envelope wiring", () => {
 
 describe("praxis.author.exportMemory — envelope wiring", () => {
   it("resolves with { ok: true, value: { ok: true, bytesWritten } } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       exportMemory: async () => ({ ok: true, bytesWritten: 2048 }),
     });
@@ -767,7 +752,7 @@ describe("praxis.author.exportMemory — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when targetPath is empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -778,7 +763,7 @@ describe("praxis.author.exportMemory — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       exportMemory: async () => {
         throw new Error("disk full");
@@ -798,7 +783,7 @@ describe("praxis.author.exportMemory — envelope wiring", () => {
 
 describe("praxis.author.resetConcept — envelope wiring", () => {
   it("resolves with { ok: true } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -811,7 +796,7 @@ describe("praxis.author.resetConcept — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when reason is empty", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -826,7 +811,7 @@ describe("praxis.author.resetConcept — envelope wiring", () => {
 
 describe("praxis.author.listConfiguratorActions — envelope wiring (optional payload)", () => {
   it("resolves with { ok: true, value: [] } with no payload", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -839,7 +824,7 @@ describe("praxis.author.listConfiguratorActions — envelope wiring (optional pa
   });
 
   it("resolves with { ok: true, value: [] } with limit filter", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -849,7 +834,7 @@ describe("praxis.author.listConfiguratorActions — envelope wiring (optional pa
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       listConfiguratorActions: async () => {
         throw new Error("audit log unavailable");

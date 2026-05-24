@@ -5,6 +5,7 @@
  * module under test; capture handlers from ipcMain.handle; invoke directly.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -28,22 +29,6 @@ vi.mock("electron", () => ({
 }));
 
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 function makeServices(
   overrides: { sessionSpawnFromNote?: (opts: unknown) => Promise<unknown> } = {},
@@ -282,7 +267,7 @@ afterEach(() => {
 describe("praxis.session.spawnFromNote — envelope wiring", () => {
   it("resolves with { ok: true, value: <handle> } for a valid noteId payload", async () => {
     const noteHandle = { sessionId: "sess-note-1", modeId: "teach", startedAt: 0 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionSpawnFromNote: async () => noteHandle });
     registerIpcHandlers(services, () => null, log);
 
@@ -298,7 +283,7 @@ describe("praxis.session.spawnFromNote — envelope wiring", () => {
 
   it("resolves with { ok: true } when optional cueId is provided", async () => {
     const noteHandle = { sessionId: "sess-note-2", modeId: "teach", startedAt: 0 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionSpawnFromNote: async () => noteHandle });
     registerIpcHandlers(services, () => null, log);
 
@@ -311,7 +296,7 @@ describe("praxis.session.spawnFromNote — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a missing noteId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -324,7 +309,7 @@ describe("praxis.session.spawnFromNote — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty noteId string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -334,7 +319,7 @@ describe("praxis.session.spawnFromNote — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a non-object payload", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -344,7 +329,7 @@ describe("praxis.session.spawnFromNote — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionSpawnFromNote: async () => {
         throw new Error("note not found");
@@ -360,7 +345,7 @@ describe("praxis.session.spawnFromNote — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionSpawnFromNote: async () => {
         throw new Error("/home/user/.praxis/dev.db: no such table: notes");
@@ -383,7 +368,7 @@ describe("praxis.session.spawnFromPassage — envelope wiring", () => {
   it("resolves with { ok: true, value: <handle> } for a valid payload", async () => {
     const passageHandle = { sessionId: "sess-passage-1", modeId: "teach", startedAt: 0 };
     const spawnFromPassage = vi.fn().mockResolvedValue(passageHandle);
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     // Patch spawnFromPassage onto the session stub.
     // biome-ignore lint/suspicious/noExplicitAny: test patching
@@ -404,7 +389,7 @@ describe("praxis.session.spawnFromPassage — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for missing documentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -414,7 +399,7 @@ describe("praxis.session.spawnFromPassage — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for missing range", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -424,7 +409,7 @@ describe("praxis.session.spawnFromPassage — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for negative startOffset", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -437,7 +422,7 @@ describe("praxis.session.spawnFromPassage — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when endOffset < startOffset", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -450,7 +435,7 @@ describe("praxis.session.spawnFromPassage — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when endOffset exceeds MAX_PASSAGE_OFFSET (10_000_000)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -464,7 +449,7 @@ describe("praxis.session.spawnFromPassage — envelope wiring", () => {
 
   it("returns INTERNAL (never rejects) when service throws", async () => {
     const spawnFromPassage = vi.fn().mockRejectedValue(new Error("document not found"));
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     // biome-ignore lint/suspicious/noExplicitAny: test patching
     (services.session as any).spawnFromPassage = spawnFromPassage;

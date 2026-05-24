@@ -13,6 +13,7 @@
  * module under test; capture handlers from ipcMain.handle; invoke directly.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -37,22 +38,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type RestoreActionOverride = (input: unknown) => Promise<unknown>;
 type ListConfiguratorActionsOverride = (input?: unknown) => Promise<unknown>;
@@ -317,7 +302,7 @@ afterEach(() => {
 
 describe("praxis.author.restoreAction — envelope wiring", () => {
   it("handler is registered", () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -330,7 +315,7 @@ describe("praxis.author.restoreAction — envelope wiring", () => {
       restoredEntity: "course" as const,
       entityKey: "course-42",
     };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       restoreAction: async () => restoreResult,
     });
@@ -344,7 +329,7 @@ describe("praxis.author.restoreAction — envelope wiring", () => {
   });
 
   it("(b) unknown actionId → envelope ok → RestoreResult.ok = false, reason = 'no_snapshot'", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       restoreAction: async () => ({ ok: false, reason: "no_snapshot" }),
     });
@@ -361,7 +346,7 @@ describe("praxis.author.restoreAction — envelope wiring", () => {
   });
 
   it("(c) already-restored actionId → envelope ok → RestoreResult.ok = false, reason = 'already_restored'", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       restoreAction: async () => ({ ok: false, reason: "already_restored" }),
     });
@@ -377,7 +362,7 @@ describe("praxis.author.restoreAction — envelope wiring", () => {
   });
 
   it("(d) missing actionId → VALIDATION_FAILED envelope via Zod", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -389,7 +374,7 @@ describe("praxis.author.restoreAction — envelope wiring", () => {
   });
 
   it("(d) empty string actionId → VALIDATION_FAILED envelope via Zod", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -401,7 +386,7 @@ describe("praxis.author.restoreAction — envelope wiring", () => {
   });
 
   it("(e) service throws → INTERNAL envelope (never rejects)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       restoreAction: async () => {
         throw new Error("DB write failure during restore");
@@ -417,7 +402,7 @@ describe("praxis.author.restoreAction — envelope wiring", () => {
   });
 
   it("(f) locked state → requireUnlocked throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ isUnlocked: false });
     registerIpcHandlers(services, () => null, log);
 

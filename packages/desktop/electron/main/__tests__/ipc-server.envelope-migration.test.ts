@@ -29,6 +29,7 @@
  *   praxis.artifacts.progress      — migrated (step-3); bare `wrapEnvelope` (no schema)
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // Capture handlers registered via ipcMain.handle so tests can invoke them directly.
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
@@ -54,22 +55,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 /**
  * Build a minimal fake Services bag sufficient for `registerIpcHandlers` to
@@ -342,7 +327,7 @@ afterEach(() => {
 
 describe("praxis.shell.openExternal — envelope wiring", () => {
   it("resolves with { ok: true } for a valid https URL", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -355,7 +340,7 @@ describe("praxis.shell.openExternal — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a non-http URL (file:// blocked by allowlist)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -367,7 +352,7 @@ describe("praxis.shell.openExternal — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a missing URL (empty string)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -379,7 +364,7 @@ describe("praxis.shell.openExternal — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for non-string input (never rejects)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -393,7 +378,7 @@ describe("praxis.shell.openExternal — envelope wiring", () => {
   });
 
   it("is registered and always resolves (not rejects) — confirming wrapEnvelope wiring", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -411,7 +396,7 @@ describe("praxis.shell.openExternal — envelope wiring", () => {
 
 describe("migrated channel internal throw — path leakage guard", () => {
   it("surfaces INTERNAL (never a raw throw) and never leaks a path in the message", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       configSetSelectedEngine: async () => {
         throw new Error("/Users/x/.praxis/dev.db: permission denied");
@@ -436,7 +421,7 @@ describe("migrated channel internal throw — path leakage guard", () => {
   });
 
   it("praxis.config.setSelectedEngine returns { ok: true } when the service succeeds", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -448,7 +433,7 @@ describe("migrated channel internal throw — path leakage guard", () => {
   });
 
   it("praxis.config.setSelectedEngine returns VALIDATION_FAILED for unknown engine id", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -460,7 +445,7 @@ describe("migrated channel internal throw — path leakage guard", () => {
   });
 
   it("praxis.update.checkLatest (no schema) returns { ok: true } envelope on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -475,7 +460,7 @@ describe("migrated channel internal throw — path leakage guard", () => {
   });
 
   it("praxis.update.checkLatest with a service that throws a path surfaces INTERNAL with generic message", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     // Override the update service to throw a path
     services.update = {
@@ -498,7 +483,7 @@ describe("migrated channel internal throw — path leakage guard", () => {
 
 describe("praxis.documents.list — migrated channel (step-2)", () => {
   it("resolves with INTERNAL envelope (never rejects) when the underlying service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       documentsList: async () => {
         throw new Error("DB connection lost");
@@ -521,7 +506,7 @@ describe("praxis.documents.list — migrated channel (step-2)", () => {
 
 describe("praxis.lock.setLockCode — success and validation", () => {
   it("resolves with { ok: true } for a valid non-empty code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -534,7 +519,7 @@ describe("praxis.lock.setLockCode — success and validation", () => {
   });
 
   it("resolves with VALIDATION_FAILED for empty string code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -546,7 +531,7 @@ describe("praxis.lock.setLockCode — success and validation", () => {
   });
 
   it("resolves with VALIDATION_FAILED for numeric code (non-string)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -558,7 +543,7 @@ describe("praxis.lock.setLockCode — success and validation", () => {
   });
 
   it("resolves with VALIDATION_FAILED for undefined code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -574,7 +559,7 @@ describe("praxis.lock.setLockCode — success and validation", () => {
 
 describe("praxis.lock.unlock — success and validation", () => {
   it("resolves with { ok: true, value: { ok: true } } for a valid code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -586,7 +571,7 @@ describe("praxis.lock.unlock — success and validation", () => {
   });
 
   it("resolves with VALIDATION_FAILED for numeric code (non-string)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -598,7 +583,7 @@ describe("praxis.lock.unlock — success and validation", () => {
   });
 
   it("resolves with VALIDATION_FAILED for empty string code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -614,7 +599,7 @@ describe("praxis.lock.unlock — success and validation", () => {
 
 describe("praxis.lock.clearLock — success and validation", () => {
   it("resolves with { ok: true } for a valid non-empty current code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -627,7 +612,7 @@ describe("praxis.lock.clearLock — success and validation", () => {
   });
 
   it("resolves with VALIDATION_FAILED for missing code (undefined)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -639,7 +624,7 @@ describe("praxis.lock.clearLock — success and validation", () => {
   });
 
   it("resolves with VALIDATION_FAILED for empty string code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -655,7 +640,7 @@ describe("praxis.lock.clearLock — success and validation", () => {
 
 describe("praxis.config.setLockCode — success and validation", () => {
   it("resolves with { ok: true } for a valid non-empty code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -668,7 +653,7 @@ describe("praxis.config.setLockCode — success and validation", () => {
   });
 
   it("resolves with VALIDATION_FAILED for empty string code", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -684,7 +669,7 @@ describe("praxis.config.setLockCode — success and validation", () => {
 
 describe("praxis.artifacts.courses — migrated channel (step-3)", () => {
   it("resolves with { ok: true, value: [] } when no courses exist", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -696,7 +681,7 @@ describe("praxis.artifacts.courses — migrated channel (step-3)", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     services.artifacts = {
       ...services.artifacts,
@@ -718,7 +703,7 @@ describe("praxis.artifacts.courses — migrated channel (step-3)", () => {
 
 describe("praxis.artifacts.progress — migrated channel (step-3)", () => {
   it("resolves with { ok: true, value: <snapshot> } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 

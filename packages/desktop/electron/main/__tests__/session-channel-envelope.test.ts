@@ -10,6 +10,7 @@
  * module under test; capture handlers from ipcMain.handle; invoke directly.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -34,22 +35,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 function makeServices(
   overrides: {
@@ -308,7 +293,7 @@ afterEach(() => {
 
 describe("praxis.session.active — envelope wiring", () => {
   it("resolves with { ok: true, value: null } when no active session", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -323,7 +308,7 @@ describe("praxis.session.active — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <handle> } when a session is active", async () => {
     const handle = { id: "sess-1", modeId: "teach" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionActive: async () => handle });
     registerIpcHandlers(services, () => null, log);
 
@@ -335,7 +320,7 @@ describe("praxis.session.active — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionActive: async () => {
         throw new Error("DB gone");
@@ -353,7 +338,7 @@ describe("praxis.session.active — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope with no path leakage when service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionActive: async () => {
         throw new Error("/home/user/.praxis/dev.db: SQLITE_CANTOPEN");
@@ -377,7 +362,7 @@ describe("praxis.session.active — envelope wiring", () => {
 describe("praxis.session.end — envelope wiring", () => {
   it("resolves with { ok: true } for a valid sessionId string", async () => {
     const endSummary = { summary: "ended" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionEnd: async () => endSummary });
     registerIpcHandlers(services, () => null, log);
 
@@ -390,7 +375,7 @@ describe("praxis.session.end — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string sessionId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -403,7 +388,7 @@ describe("praxis.session.end — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a non-string sessionId (e.g. number)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -415,7 +400,7 @@ describe("praxis.session.end — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for undefined sessionId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -427,7 +412,7 @@ describe("praxis.session.end — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionEnd: async () => {
         throw new Error("session already ended");
@@ -445,7 +430,7 @@ describe("praxis.session.end — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionEnd: async () => {
         throw new Error("/home/user/.praxis/dev.db: disk I/O error");
@@ -469,7 +454,7 @@ describe("praxis.session.end — envelope wiring", () => {
 describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   it("resolves with { ok: true, value: <handle> } for a valid payload", async () => {
     const childHandle = { id: "sess-child-1", modeId: "quiz" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionSpawnFromAssignment: async () => childHandle });
     registerIpcHandlers(services, () => null, log);
 
@@ -491,7 +476,7 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a missing assignmentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -504,7 +489,7 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a missing parentSessionId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -516,7 +501,7 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty assignmentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -528,7 +513,7 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a non-object payload", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -540,7 +525,7 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for undefined payload", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -552,7 +537,7 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionSpawnFromAssignment: async () => {
         throw new Error("assignment not found");
@@ -569,7 +554,7 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionSpawnFromAssignment: async () => {
         throw new Error("/home/user/.praxis/dev.db: no such table: sessions");
@@ -598,7 +583,7 @@ describe("praxis.session.spawnFromAssignment — envelope wiring", () => {
 
 describe("praxis.session.list — excludeModeIds filter", () => {
   it("forwards { excludeModeIds: ['configure'] } to the service", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     let capturedOpts: unknown;
     const services = makeServices();
     // Override list to capture call args
@@ -617,7 +602,7 @@ describe("praxis.session.list — excludeModeIds filter", () => {
   });
 
   it("forwards combined opts { limit, includeEnded, excludeModeIds } to the service", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     let capturedOpts: unknown;
     const services = makeServices();
     services.session.list = vi.fn().mockImplementation(async (opts: unknown) => {
@@ -638,7 +623,7 @@ describe("praxis.session.list — excludeModeIds filter", () => {
   });
 
   it("returns VALIDATION_FAILED when excludeModeIds contains a non-string (e.g. 42)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -651,7 +636,7 @@ describe("praxis.session.list — excludeModeIds filter", () => {
   });
 
   it("accepts undefined payload and calls service with undefined", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -669,7 +654,7 @@ describe("praxis.session.list — excludeModeIds filter", () => {
 describe("praxis.session.active — modeId filter payload", () => {
   it("forwards { modeId: 'configure' } to the service and returns the handle", async () => {
     const handle = { sessionId: "sess-cfg-1", modeId: "configure", startedAt: 1000 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionActive: async (opts: unknown) => {
         // Verify the modeId was forwarded.
@@ -688,7 +673,7 @@ describe("praxis.session.active — modeId filter payload", () => {
   });
 
   it("accepts omitted payload (undefined) and calls service with undefined", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -702,7 +687,7 @@ describe("praxis.session.active — modeId filter payload", () => {
   });
 
   it("returns VALIDATION_FAILED when modeId is not a string (e.g. number)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -715,7 +700,7 @@ describe("praxis.session.active — modeId filter payload", () => {
   });
 
   it("accepts an empty object payload (modeId omitted) and calls service with {}", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 

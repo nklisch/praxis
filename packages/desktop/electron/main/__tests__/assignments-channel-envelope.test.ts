@@ -16,6 +16,7 @@
  * assignmentId, INTERNAL on throw, path-leakage guard for submit).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -40,22 +41,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type AssignmentsOverrides = {
   get?: (input: unknown) => Promise<unknown>;
@@ -315,7 +300,7 @@ afterEach(() => {
 describe("praxis.assignments.get — envelope wiring", () => {
   it("resolves with { ok: true, value: <assignment> } for a valid assignmentId", async () => {
     const assignment = { id: "asgn-1", title: "Chapter 1 Quiz", kind: "quiz" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ get: async () => assignment });
     registerIpcHandlers(services, () => null, log);
 
@@ -328,7 +313,7 @@ describe("praxis.assignments.get — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: null } when the assignment is not found", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ get: async () => null });
     registerIpcHandlers(services, () => null, log);
 
@@ -340,7 +325,7 @@ describe("praxis.assignments.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty assignmentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -353,7 +338,7 @@ describe("praxis.assignments.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when assignmentId is missing from the payload", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -366,7 +351,7 @@ describe("praxis.assignments.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when the payload is not an object (e.g. string)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -378,7 +363,7 @@ describe("praxis.assignments.get — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       get: async () => {
         throw new Error("DB read error");
@@ -401,7 +386,7 @@ describe("praxis.assignments.get — envelope wiring", () => {
 describe("praxis.assignments.getResponses — envelope wiring", () => {
   it("resolves with { ok: true, value: <responses> } for a valid assignmentId", async () => {
     const responses = [{ itemId: "item-1", response: "42", work: "2 + 2 = 4" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ getResponses: async () => responses });
     registerIpcHandlers(services, () => null, log);
 
@@ -414,7 +399,7 @@ describe("praxis.assignments.getResponses — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: [] } when no responses exist yet", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ getResponses: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -426,7 +411,7 @@ describe("praxis.assignments.getResponses — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty assignmentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -439,7 +424,7 @@ describe("praxis.assignments.getResponses — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when assignmentId is missing from the payload", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -451,7 +436,7 @@ describe("praxis.assignments.getResponses — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       getResponses: async () => {
         throw new Error("responses table missing");
@@ -474,7 +459,7 @@ describe("praxis.assignments.getResponses — envelope wiring", () => {
 describe("praxis.assignments.submit — envelope wiring", () => {
   it("resolves with { ok: true, value: <result> } for a valid assignmentId", async () => {
     const submissionResult = { score: 85, passed: true, feedback: "Well done" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ submit: async () => submissionResult });
     registerIpcHandlers(services, () => null, log);
 
@@ -487,7 +472,7 @@ describe("praxis.assignments.submit — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty assignmentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -500,7 +485,7 @@ describe("praxis.assignments.submit — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when assignmentId is missing from the payload", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -513,7 +498,7 @@ describe("praxis.assignments.submit — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       submit: async () => {
         throw new Error("grading service unavailable");
@@ -531,7 +516,7 @@ describe("praxis.assignments.submit — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       submit: async () => {
         throw new Error("/home/user/.praxis/dev.db: SQLITE_BUSY: database is locked");

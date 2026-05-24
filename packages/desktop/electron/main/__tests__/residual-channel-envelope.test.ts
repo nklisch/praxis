@@ -18,6 +18,7 @@
  * module under test; capture handlers from ipcMain.handle; invoke directly.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -42,22 +43,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 function makeServices(
   overrides: {
@@ -310,7 +295,7 @@ afterEach(() => {
 describe("praxis.session.start — envelope wiring", () => {
   it("resolves with { ok: true, value: <handle> } for a valid modeId", async () => {
     const handle = { id: "sess-1", modeId: "teach" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionStart: async () => handle });
     registerIpcHandlers(services, () => null, log);
 
@@ -323,7 +308,7 @@ describe("praxis.session.start — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when modeId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -336,7 +321,7 @@ describe("praxis.session.start — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when modeId is an empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -348,7 +333,7 @@ describe("praxis.session.start — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionStart: async () => {
         throw new Error("/home/user/.praxis/engines/init.db: SQLITE_CANTOPEN");
@@ -369,7 +354,7 @@ describe("praxis.session.start — envelope wiring", () => {
 
   it("passes optional courseId and assignmentId through", async () => {
     const handle = { id: "sess-2", modeId: "quiz" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionStart: async () => handle });
     registerIpcHandlers(services, () => null, log);
 
@@ -389,7 +374,7 @@ describe("praxis.session.start — envelope wiring", () => {
 
 describe("praxis.session.list — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when no sessions exist (no opts)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionList: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -402,7 +387,7 @@ describe("praxis.session.list — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <sessions> } when opts are provided", async () => {
     const sessions = [{ id: "sess-1" }, { id: "sess-2" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ sessionList: async () => sessions });
     registerIpcHandlers(services, () => null, log);
 
@@ -412,7 +397,7 @@ describe("praxis.session.list — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when limit is not an integer", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -423,7 +408,7 @@ describe("praxis.session.list — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       sessionList: async () => {
         throw new Error("DB locked");
@@ -443,7 +428,7 @@ describe("praxis.session.list — envelope wiring", () => {
 
 describe("praxis.assignments.list — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } for a valid courseId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ assignmentsList: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -456,7 +441,7 @@ describe("praxis.assignments.list — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when courseId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -467,7 +452,7 @@ describe("praxis.assignments.list — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when kind is invalid", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -477,7 +462,7 @@ describe("praxis.assignments.list — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       assignmentsList: async () => {
         throw new Error("no such table: assignments");
@@ -498,7 +483,7 @@ describe("praxis.assignments.list — envelope wiring", () => {
 describe("praxis.flashcards.create — envelope wiring", () => {
   it("resolves with { ok: true, value: <card> } for a valid payload", async () => {
     const card = { id: "fc-1", front: "Q", back: "A" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ flashcardsCreate: async () => card });
     registerIpcHandlers(services, () => null, log);
 
@@ -511,7 +496,7 @@ describe("praxis.flashcards.create — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when front is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -522,7 +507,7 @@ describe("praxis.flashcards.create — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when front is an empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -532,7 +517,7 @@ describe("praxis.flashcards.create — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       flashcardsCreate: async () => {
         throw new Error("unique constraint violated");
@@ -553,7 +538,7 @@ describe("praxis.flashcards.create — envelope wiring", () => {
 describe("praxis.conceptMaps.updateScene — envelope wiring", () => {
   it("resolves with { ok: true, value: <drawing> } for a valid payload", async () => {
     const drawing = { id: "cm-1", title: "My Map" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ conceptMapsUpdateScene: async () => drawing });
     registerIpcHandlers(services, () => null, log);
 
@@ -566,7 +551,7 @@ describe("praxis.conceptMaps.updateScene — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when id is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -577,7 +562,7 @@ describe("praxis.conceptMaps.updateScene — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when conceptLinks is not an array", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -587,7 +572,7 @@ describe("praxis.conceptMaps.updateScene — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       conceptMapsUpdateScene: async () => {
         throw new Error("version conflict");
@@ -602,7 +587,7 @@ describe("praxis.conceptMaps.updateScene — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       conceptMapsUpdateScene: async () => {
         throw new Error("/home/user/.praxis/dev.db: disk I/O error");

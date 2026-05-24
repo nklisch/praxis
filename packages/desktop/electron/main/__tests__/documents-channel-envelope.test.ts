@@ -10,6 +10,7 @@
  * module under test; capture handlers from ipcMain.handle; invoke directly.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -34,22 +35,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 function makeServices(
   overrides: {
@@ -308,7 +293,7 @@ afterEach(() => {
 
 describe("praxis.documents.list — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when the list is empty", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -322,7 +307,7 @@ describe("praxis.documents.list — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <summaries> } when documents exist", async () => {
     const summaries = [{ id: "doc-1", title: "Lecture 1" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ documentsList: async () => summaries });
     registerIpcHandlers(services, () => null, log);
 
@@ -334,7 +319,7 @@ describe("praxis.documents.list — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       documentsList: async () => {
         throw new Error("DB gone");
@@ -352,7 +337,7 @@ describe("praxis.documents.list — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       documentsList: async () => {
         throw new Error("/home/user/.praxis/dev.db: SQLITE_CANTOPEN");
@@ -376,7 +361,7 @@ describe("praxis.documents.list — envelope wiring", () => {
 describe("praxis.documents.get — envelope wiring", () => {
   it("resolves with { ok: true, value: <detail> } for a valid documentId", async () => {
     const detail = { id: "doc-1", title: "Lecture 1", pages: 10 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ documentsGet: async () => detail });
     registerIpcHandlers(services, () => null, log);
 
@@ -389,7 +374,7 @@ describe("praxis.documents.get — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: null } when the document is not found", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ documentsGet: async () => null });
     registerIpcHandlers(services, () => null, log);
 
@@ -401,7 +386,7 @@ describe("praxis.documents.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string documentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -414,7 +399,7 @@ describe("praxis.documents.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a non-string documentId (e.g. number)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -426,7 +411,7 @@ describe("praxis.documents.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for undefined documentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -438,7 +423,7 @@ describe("praxis.documents.get — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       documentsGet: async () => {
         throw new Error("disk I/O error");
@@ -456,7 +441,7 @@ describe("praxis.documents.get — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       documentsGet: async () => {
         throw new Error("/home/user/.praxis/dev.db: no such table: documents");
@@ -479,7 +464,7 @@ describe("praxis.documents.get — envelope wiring", () => {
 
 describe("praxis.documents.delete — envelope wiring", () => {
   it("resolves with { ok: true, value: undefined } for a valid documentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ documentsDelete: async () => undefined });
     registerIpcHandlers(services, () => null, log);
 
@@ -492,7 +477,7 @@ describe("praxis.documents.delete — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string documentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -505,7 +490,7 @@ describe("praxis.documents.delete — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for a non-string documentId (e.g. number)", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -517,7 +502,7 @@ describe("praxis.documents.delete — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for undefined documentId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -529,7 +514,7 @@ describe("praxis.documents.delete — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       documentsDelete: async () => {
         throw new Error("document in use");
@@ -547,7 +532,7 @@ describe("praxis.documents.delete — envelope wiring", () => {
   });
 
   it("returns INTERNAL with no path leakage when the service throws a path error", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       documentsDelete: async () => {
         throw new Error("/home/user/.praxis/dev.db: disk I/O error");

@@ -18,6 +18,7 @@
  * Test count: 18
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSpyLogger } from "../../../../../tests/helpers/mocks.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: handler args vary per channel
 type Handler = (event: unknown, ...args: any[]) => unknown | Promise<unknown>;
@@ -42,22 +43,6 @@ vi.mock("electron", () => ({
 
 // Import AFTER mock is in place — Vitest hoists vi.mock() automatically.
 import { registerIpcHandlers } from "../ipc-server.js";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeFakeLogger() {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(function makeFakeLoggerChild() {
-      return makeFakeLogger();
-    }),
-    ingestRendererRecord: vi.fn(),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-  };
-}
 
 type SketchesOverrides = {
   get?: (id: unknown) => Promise<unknown>;
@@ -361,7 +346,7 @@ describe("praxis.sketches.get — envelope wiring", () => {
       createdAt: 1000,
       image: Buffer.from("png-data"),
     };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ get: async () => sketch });
     registerIpcHandlers(services, () => null, log);
 
@@ -384,7 +369,7 @@ describe("praxis.sketches.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string sketchId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -397,7 +382,7 @@ describe("praxis.sketches.get — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({
       get: async () => {
         throw new Error("sketch not found");
@@ -420,7 +405,7 @@ describe("praxis.sketches.get — envelope wiring", () => {
 describe("praxis.sketches.getSummary — envelope wiring", () => {
   it("resolves with { ok: true, value: <summary> } for a valid sketchId", async () => {
     const summary = { id: "sketch-1", createdAt: 1000 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ getSummary: async () => summary });
     registerIpcHandlers(services, () => null, log);
 
@@ -433,7 +418,7 @@ describe("praxis.sketches.getSummary — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: null } when sketch has no summary", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({ getSummary: async () => null });
     registerIpcHandlers(services, () => null, log);
 
@@ -445,7 +430,7 @@ describe("praxis.sketches.getSummary — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string sketchId", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -463,7 +448,7 @@ describe("praxis.sketches.getSummary — envelope wiring", () => {
 describe("praxis.conceptMaps.create — envelope wiring", () => {
   it("resolves with { ok: true, value: <map> } for a valid payload", async () => {
     const map = { id: "cm-1", title: "Biology Map", courseId: "course-bio" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { create: async () => map });
     registerIpcHandlers(services, () => null, log);
 
@@ -476,7 +461,7 @@ describe("praxis.conceptMaps.create — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when courseId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -489,7 +474,7 @@ describe("praxis.conceptMaps.create — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when title is an empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -502,7 +487,7 @@ describe("praxis.conceptMaps.create — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -530,7 +515,7 @@ describe("praxis.conceptMaps.create — envelope wiring", () => {
 describe("praxis.conceptMaps.get — envelope wiring", () => {
   it("resolves with { ok: true, value: <map> } for a valid id", async () => {
     const map = { id: "cm-1", title: "Biology Map", courseId: "course-bio" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { get: async () => map });
     registerIpcHandlers(services, () => null, log);
 
@@ -543,7 +528,7 @@ describe("praxis.conceptMaps.get — envelope wiring", () => {
   });
 
   it("resolves with { ok: true, value: null } when map is not found", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { get: async () => null });
     registerIpcHandlers(services, () => null, log);
 
@@ -555,7 +540,7 @@ describe("praxis.conceptMaps.get — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string id", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -572,7 +557,7 @@ describe("praxis.conceptMaps.get — envelope wiring", () => {
 
 describe("praxis.conceptMaps.list — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when no maps exist", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { list: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -586,7 +571,7 @@ describe("praxis.conceptMaps.list — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <maps> } when maps exist", async () => {
     const maps = [{ id: "cm-1", title: "Map 1", courseId: "course-bio" }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { list: async () => maps });
     registerIpcHandlers(services, () => null, log);
 
@@ -599,7 +584,7 @@ describe("praxis.conceptMaps.list — envelope wiring", () => {
 
   it("resolves with { ok: true, value: [] } when called without courseId (cross-course list)", async () => {
     // courseId is now optional — omitting it returns maps across all courses.
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { list: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -612,7 +597,7 @@ describe("praxis.conceptMaps.list — envelope wiring", () => {
   });
 
   it("resolves with sort param forwarded to service", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { list: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -625,7 +610,7 @@ describe("praxis.conceptMaps.list — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when sort value is invalid", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -643,7 +628,7 @@ describe("praxis.conceptMaps.list — envelope wiring", () => {
 describe("praxis.conceptMaps.rename — envelope wiring", () => {
   it("resolves with { ok: true, value: <map> } for a valid payload", async () => {
     const map = { id: "cm-1", title: "New Name" };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { rename: async () => map });
     registerIpcHandlers(services, () => null, log);
 
@@ -656,7 +641,7 @@ describe("praxis.conceptMaps.rename — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when id is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -669,7 +654,7 @@ describe("praxis.conceptMaps.rename — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when title is an empty string", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -682,7 +667,7 @@ describe("praxis.conceptMaps.rename — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -707,7 +692,7 @@ describe("praxis.conceptMaps.rename — envelope wiring", () => {
 
 describe("praxis.conceptMaps.delete — envelope wiring", () => {
   it("resolves with { ok: true } on success", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { delete: async () => undefined });
     registerIpcHandlers(services, () => null, log);
 
@@ -720,7 +705,7 @@ describe("praxis.conceptMaps.delete — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string id", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -733,7 +718,7 @@ describe("praxis.conceptMaps.delete — envelope wiring", () => {
   });
 
   it("returns INTERNAL envelope (never rejects) when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -758,7 +743,7 @@ describe("praxis.conceptMaps.delete — envelope wiring", () => {
 
 describe("praxis.conceptMaps.listVersions — envelope wiring", () => {
   it("resolves with { ok: true, value: [] } when no versions exist", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { listVersions: async () => [] });
     registerIpcHandlers(services, () => null, log);
 
@@ -772,7 +757,7 @@ describe("praxis.conceptMaps.listVersions — envelope wiring", () => {
 
   it("resolves with { ok: true, value: <versions> } when versions exist", async () => {
     const versions = [{ id: "v1", createdAt: 1000 }];
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { listVersions: async () => versions });
     registerIpcHandlers(services, () => null, log);
 
@@ -784,7 +769,7 @@ describe("praxis.conceptMaps.listVersions — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED for an empty string id", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -802,7 +787,7 @@ describe("praxis.conceptMaps.listVersions — envelope wiring", () => {
 describe("praxis.conceptMaps.setNodeLink — envelope wiring", () => {
   it("resolves with { ok: true, value: <map> } for a valid payload", async () => {
     const map = { id: "cm-1", conceptLinks: [{ elementId: "shape:n1", linkState: "linked" }] };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { setNodeLink: async () => map });
     registerIpcHandlers(services, () => null, log);
 
@@ -823,7 +808,7 @@ describe("praxis.conceptMaps.setNodeLink — envelope wiring", () => {
   });
 
   it("resolves with null candidateId for unlinked state", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       { setNodeLink: async () => ({ id: "cm-1", conceptLinks: [] }) },
@@ -844,7 +829,7 @@ describe("praxis.conceptMaps.setNodeLink — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when mapId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -858,7 +843,7 @@ describe("praxis.conceptMaps.setNodeLink — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when state is not a valid enum value", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -877,7 +862,7 @@ describe("praxis.conceptMaps.setNodeLink — envelope wiring", () => {
   });
 
   it("returns INTERNAL when service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -900,7 +885,7 @@ describe("praxis.conceptMaps.setNodeLink — envelope wiring", () => {
 describe("praxis.conceptMaps.computeRipples — envelope wiring", () => {
   it("resolves with { ok: true, value: <ripples> } for a valid payload", async () => {
     const ripples = { conceptCountDelta: 1, notesRetagged: 2, tutorRefsAffected: 0 };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { computeRipples: async () => ripples });
     registerIpcHandlers(services, () => null, log);
 
@@ -920,7 +905,7 @@ describe("praxis.conceptMaps.computeRipples — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when candidateId is empty", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -938,7 +923,7 @@ describe("praxis.conceptMaps.computeRipples — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when elementId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -948,7 +933,7 @@ describe("praxis.conceptMaps.computeRipples — envelope wiring", () => {
   });
 
   it("returns INTERNAL when service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
@@ -975,7 +960,7 @@ describe("praxis.conceptMaps.convertFromSketch — envelope wiring", () => {
       originalSketchNoteId: "note-sketch-1",
       nodeCount: 5,
     };
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices({}, { convertFromSketch: async () => conversionResult });
     registerIpcHandlers(services, () => null, log);
 
@@ -988,7 +973,7 @@ describe("praxis.conceptMaps.convertFromSketch — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when sketchNoteId is empty", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -1001,7 +986,7 @@ describe("praxis.conceptMaps.convertFromSketch — envelope wiring", () => {
   });
 
   it("returns VALIDATION_FAILED when sketchNoteId is missing", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices();
     registerIpcHandlers(services, () => null, log);
 
@@ -1014,7 +999,7 @@ describe("praxis.conceptMaps.convertFromSketch — envelope wiring", () => {
   });
 
   it("returns INTERNAL when the service throws", async () => {
-    const log = makeFakeLogger();
+    const log = makeSpyLogger();
     const services = makeServices(
       {},
       {
