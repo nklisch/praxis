@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-ingestion-batch-extraction-step-1-extract-use-batch-ingestion
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-use-ingestion-batch-extraction
 depends_on: []
@@ -128,3 +128,20 @@ is affected. Rollback: delete the new file.
 - `mimeTypeFromPath` helper duplicated into the new file (Step 2 facade rewrite can deduplicate if desired).
 - Types (`PendingFile`, `BatchResult`, `IngestionState`) imported from `./use-ingestion.js` as specified.
 - `pnpm typecheck` passes clean; `pnpm --filter @praxis/ui test` passes (163 files / 1706 tests); new file is lint-clean (`biome check` reports no issues on the file itself).
+
+## Review
+
+**Verdict: done.**
+
+`use-batch-ingestion.ts` (253 lines, commit `f17cd9d`) is a correct extraction.
+
+Checklist:
+- All four batch refs (`tierDeferredRef`, `tierResultRef`, `cancelRequestedRef`, `batchCancelRef`) are present and owned by the sub-hook.
+- `startBatch` (renamed from `_startBatch`) encapsulates the full queue loop with tier-selection race, partial-result accumulation, and the cancel escape hatch.
+- `confirmTier` is included in `UseBatchIngestionResult` (per the Step 2 design note requiring it there); correctly reads `ingestOneWithResult` from its arg rather than a closure.
+- `skipCurrentFile` uses the `getState()` getter instead of capturing `state` by closure — the stale-closure hazard is correctly eliminated.
+- `cancelBatch` sets `cancelRequestedRef`, unblocks `tierDeferredRef`, and resolves `batchCancelRef` — complete.
+- `resetRefs` resets `cancelRequestedRef`, `tierDeferredRef`, and `tierResultRef` — matches spec exactly.
+- Types (`PendingFile`, `BatchResult`, `IngestionState`) imported from `./use-ingestion.js`; no new types exported from this file — type SSOT preserved.
+- `use-ingestion.ts` is untouched in this step — additive-only, zero consumer impact.
+- `pnpm typecheck` clean, 1706 tests pass.

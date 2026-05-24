@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-ingestion-batch-extraction-step-2-facade-rewrite
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-use-ingestion-batch-extraction
 depends_on: [feature-refactor-use-ingestion-batch-extraction-step-1-extract-use-batch-ingestion]
@@ -153,3 +153,21 @@ confirmed by the existing `skipCurrentFile` test.
 
 **Rollback**: revert `use-ingestion.ts` to the pre-step-2 snapshot; delete
 `use-batch-ingestion.ts`.
+
+## Review
+
+**Verdict: done.**
+
+`use-ingestion.ts` 404 → 230 lines (commit `f8e8953`). Facade rewrite is correct and complete.
+
+Checklist:
+- All four batch refs removed from facade; `stateRef` + `useEffect` mirror added and correctly provides a stable getter `() => stateRef.current` to the sub-hook.
+- `const batch = useBatchIngestion(setState, ingestOneWithResult, () => stateRef.current)` — correct 3-arg delegation.
+- `startPickBatch`: calls `batch.resetRefs()` then `batch.startBatch(paths)` — matches design spec exactly.
+- `startBatchWithPaths`: calls `batch.resetRefs()` then `batch.startBatch(paths)` — correct.
+- `confirmTier`, `skipCurrentFile`, `cancelBatch` re-exported directly from `batch` in return object — public `UseIngestionResult` API is byte-identical.
+- `dismiss` unchanged.
+- `mimeTypeFromPath` and `errString` helpers remain in the facade (type SSOT intact; `use-batch-ingestion.ts` has its own copy of `mimeTypeFromPath` — minor duplication, noted but acceptable per design).
+- Types (`PendingFile`, `BatchResult`, `IngestionState`, `UseIngestionResult`) all remain in `use-ingestion.ts`.
+- Picker-close fix preserved: the public API is unchanged; the hoisting of `useIngestion` to parent components is in call-sites untouched by this refactor. All 20 `library-document-picker.test.tsx` tests pass.
+- 163 test files / 1706 tests pass; `pnpm typecheck` clean across all packages.
