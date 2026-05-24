@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-1-courses-service
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -71,3 +71,20 @@ Export `CoursesServiceImpl` from `packages/core/src/services/index.ts`.
 ## Risk
 
 Low — pure extraction, no logic changes.
+
+## Implementation notes
+
+- Created `packages/core/src/services/courses-service.ts` (262 lines).
+- `CoursesServiceImpl` holds 8 public methods (`course`, `courses`, `progress`,
+  `listDocuments`, `concepts`, `updateCourse`, `markLessonStarted`,
+  `markConceptStudied`) and 2 private helpers (`summarizeCourse`,
+  `findLessonContainingConcept`), all extracted verbatim from
+  `ArtifactsServiceImpl` with only `this.deps` references unchanged.
+- `rowToCourse` row-to-domain helper extracted and exported (needed by facade
+  in step 6 and potentially by `CourseStateReaderImpl` in step 5).
+- `getCourseSummary` was intentionally left out of this service per the feature
+  design — it is a cross-domain aggregation owned by the facade (step 6).
+- Exported `CoursesServiceImpl`, `CoursesServiceDeps`, and `rowToCourse` from
+  `packages/core/src/services/index.ts`.
+- `pnpm typecheck` and `pnpm --filter @praxis/core test` both pass (96 test
+  files, 1164 tests).
