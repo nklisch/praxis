@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-memory-service-bkt-extraction-step-3-mastery-queries
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-memory-service-bkt-extraction
 depends_on:
@@ -128,3 +128,11 @@ is unchanged.
 
 **Rollback**: Delete `mastery-queries.ts` and revert `memory-service.ts` to
 restore the inline methods.
+
+## Implementation notes
+
+- `memory-service.ts`: 632 → 507 lines (−125 lines)
+- `mastery-queries.ts`: 150 lines; exports `MasteryQueriesDeps` interface and `MasteryQueries` class with 5 methods: `studentModel`, `misconceptions`, `getMastery`, `getMisconception`, `read`; file-private `rowToMisconception` helper avoids duplication between `misconceptions` and `getMisconception`
+- `mastery-indexer.ts`: standalone `applySignalsToConcept` export removed (~67 lines deleted); `MasteryIndexer.applySignalsToConcept` instance method converted to one-liner delegating to `applySignalsToConcept` from `../memory/mastery-writes.js`; file shrunk from 374 → 232 lines (−142 lines)
+- `services/index.ts`: `applySignalsToConcept` re-export switched from `./indexers/mastery-indexer.js` → `./memory/mastery-writes.js`; biome import-sort auto-applied
+- All 4773 workspace tests pass (23 slow-gated skipped); typecheck and lint clean on affected files

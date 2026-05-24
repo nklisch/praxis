@@ -10,8 +10,6 @@
  * SKIPPED — those tools write BKT directly; the indexer must not double-apply.
  */
 
-import { studentMastery } from "@praxis/memory/schema";
-import { and, eq } from "drizzle-orm";
 import type { PraxisDb } from "../../db/index.js";
 import type {
   ConceptId,
@@ -24,10 +22,7 @@ import type {
   StudentId,
 } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
-import { type BktState, bktInitial, bktUpdate, DEFAULT_BKT } from "../memory/bkt.js";
-
-/** Maximum evidence event IDs stored per mastery row (FIFO truncation). */
-const MAX_EVIDENCE = 50;
+import { applySignalsToConcept } from "../memory/mastery-writes.js";
 
 /**
  * Active-path tool names that write BKT directly.
@@ -224,150 +219,14 @@ export class MasteryIndexer implements Indexer {
   // ── BKT write ─────────────────────────────────────────────────────────────────
 
   /**
-   * Read the current mastery row (or initialize), fold in signals via bktUpdate,
-   * and upsert with the new state.
-   *
-   * Exported for reuse by the active-path `update_mastery` tool.
+   * Delegates to the canonical `applySignalsToConcept` from mastery-writes.ts.
+   * Single source of truth for BKT application — no logic duplicated here.
    */
   applySignalsToConcept(
     studentId: StudentId,
     conceptId: ConceptId,
     signals: MasterySignal[],
   ): void {
-    if (signals.length === 0) return;
-
-    const existing = this.deps.db
-      .select()
-      .from(studentMastery)
-      .where(and(eq(studentMastery.studentId, studentId), eq(studentMastery.conceptId, conceptId)))
-      .get();
-
-    let state: BktState;
-    let currentEvidence: string[];
-
-    if (existing) {
-      state = {
-        pKnown: existing.pKnown / 1000,
-        uncertainty: existing.uncertainty / 1000,
-      };
-      currentEvidence = existing.evidenceJson as string[];
-    } else {
-      state = bktInitial(DEFAULT_BKT);
-      currentEvidence = [];
-    }
-
-    // Fold signals in order.
-    for (const signal of signals) {
-      state = bktUpdate(state, signal.kind);
-      for (const evId of signal.evidenceEventIds) {
-        currentEvidence.push(evId);
-      }
-    }
-
-    // Cap evidence at MAX_EVIDENCE (FIFO — keep most recent).
-    if (currentEvidence.length > MAX_EVIDENCE) {
-      currentEvidence = currentEvidence.slice(currentEvidence.length - MAX_EVIDENCE);
-    }
-
-    const now = new Date();
-
-    this.deps.db
-      .insert(studentMastery)
-      .values({
-        studentId,
-        conceptId,
-        pKnown: Math.round(state.pKnown * 1000),
-        uncertainty: Math.round(state.uncertainty * 1000),
-        // effectivePKnown stored as the current pKnown at write time (decay applied at read).
-        effectivePKnown: Math.round(state.pKnown * 1000),
-        lastPracticedAt: now,
-        evidenceJson: currentEvidence,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [studentMastery.studentId, studentMastery.conceptId],
-        set: {
-          pKnown: Math.round(state.pKnown * 1000),
-          uncertainty: Math.round(state.uncertainty * 1000),
-          effectivePKnown: Math.round(state.pKnown * 1000),
-          lastPracticedAt: now,
-          evidenceJson: currentEvidence,
-          updatedAt: now,
-        },
-      })
-      .run();
+    applySignalsToConcept(this.deps, studentId, conceptId, signals);
   }
-}
-
-/**
- * Exported helper: apply signals to a concept's mastery row.
- * Reused by the active-path `update_mastery` tool so both paths use the same
- * BKT-application logic (single source of truth for mastery writes).
- */
-export function applySignalsToConcept(
-  deps: Pick<MasteryIndexerDeps, "db">,
-  studentId: StudentId,
-  conceptId: ConceptId,
-  signals: MasterySignal[],
-): void {
-  // Delegate to a minimal inline version so this helper doesn't depend on MasteryIndexer.
-  if (signals.length === 0) return;
-
-  const existing = deps.db
-    .select()
-    .from(studentMastery)
-    .where(and(eq(studentMastery.studentId, studentId), eq(studentMastery.conceptId, conceptId)))
-    .get();
-
-  let state: BktState;
-  let currentEvidence: string[];
-
-  if (existing) {
-    state = {
-      pKnown: existing.pKnown / 1000,
-      uncertainty: existing.uncertainty / 1000,
-    };
-    currentEvidence = existing.evidenceJson as string[];
-  } else {
-    state = bktInitial(DEFAULT_BKT);
-    currentEvidence = [];
-  }
-
-  for (const signal of signals) {
-    state = bktUpdate(state, signal.kind);
-    for (const evId of signal.evidenceEventIds) {
-      currentEvidence.push(evId);
-    }
-  }
-
-  if (currentEvidence.length > MAX_EVIDENCE) {
-    currentEvidence = currentEvidence.slice(currentEvidence.length - MAX_EVIDENCE);
-  }
-
-  const now = new Date();
-
-  deps.db
-    .insert(studentMastery)
-    .values({
-      studentId,
-      conceptId,
-      pKnown: Math.round(state.pKnown * 1000),
-      uncertainty: Math.round(state.uncertainty * 1000),
-      effectivePKnown: Math.round(state.pKnown * 1000),
-      lastPracticedAt: now,
-      evidenceJson: currentEvidence,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [studentMastery.studentId, studentMastery.conceptId],
-      set: {
-        pKnown: Math.round(state.pKnown * 1000),
-        uncertainty: Math.round(state.uncertainty * 1000),
-        effectivePKnown: Math.round(state.pKnown * 1000),
-        lastPracticedAt: now,
-        evidenceJson: currentEvidence,
-        updatedAt: now,
-      },
-    })
-    .run();
 }

@@ -32,10 +32,10 @@ import type {
   StrategyPreference,
   StudentModel,
 } from "../../types/memory.js";
-import { applySignalsToConcept } from "../indexers/mastery-indexer.js";
 import { upsertMisconception as indexerUpsertMisconception } from "../indexers/misconception-indexer.js";
 import { bktInitial } from "./bkt.js";
-import { applyDecay } from "./decay.js";
+import { MasteryQueries } from "./mastery-queries.js";
+import { applySignalsToConcept } from "./mastery-writes.js";
 
 export interface MemoryServiceDeps {
   db: PraxisDb;
@@ -49,85 +49,22 @@ export interface MemoryServiceDeps {
 }
 
 export class MemoryServiceImpl implements MemoryService, MasteryReader {
-  constructor(private readonly deps: MemoryServiceDeps) {}
+  private readonly queries: MasteryQueries;
+
+  constructor(private readonly deps: MemoryServiceDeps) {
+    this.queries = new MasteryQueries({ db: deps.db, decayDaysFor: deps.decayDaysFor });
+  }
 
   // ── studentModel ─────────────────────────────────────────────────────────────
 
-  async studentModel(studentId: StudentId): Promise<StudentModel> {
-    const rows = this.deps.db
-      .select()
-      .from(studentMastery)
-      .where(eq(studentMastery.studentId, studentId))
-      .all();
-
-    const now = Date.now();
-    const conceptMastery = new Map<ConceptId, ConceptMastery>();
-    let latestUpdated: number | null = null;
-
-    for (const row of rows) {
-      const conceptId = brandId<"ConceptId">(row.conceptId);
-      const pKnown = row.pKnown / 1000;
-      const uncertainty = row.uncertainty / 1000;
-      const lastPracticedAt: Timestamp | undefined = row.lastPracticedAt
-        ? (row.lastPracticedAt.getTime() as Timestamp)
-        : undefined;
-
-      const decayDays = this.deps.decayDaysFor(conceptId);
-      const effectivePKnown = applyDecay({
-        pKnown,
-        lastPracticedAt: lastPracticedAt as number | undefined,
-        now,
-        decayDays,
-      });
-
-      const evidence = (row.evidenceJson as string[]).map((id) => brandId<"EventId">(id));
-
-      const masteryEntry: ConceptMastery = {
-        conceptId,
-        pKnown,
-        uncertainty,
-        ...(lastPracticedAt !== undefined && { lastPracticedAt }),
-        effectivePKnown,
-        evidence,
-      };
-      conceptMastery.set(conceptId, masteryEntry);
-
-      const updatedMs = row.updatedAt.getTime();
-      if (latestUpdated === null || updatedMs > latestUpdated) {
-        latestUpdated = updatedMs;
-      }
-    }
-
-    return {
-      studentId,
-      conceptMastery,
-      lastUpdated: (latestUpdated ?? now) as Timestamp,
-    };
+  studentModel(studentId: StudentId): Promise<StudentModel> {
+    return this.queries.studentModel(studentId);
   }
 
   // ── misconceptions ────────────────────────────────────────────────────────────
 
-  async misconceptions(studentId: StudentId): Promise<Misconception[]> {
-    const rows = this.deps.db
-      .select()
-      .from(misconceptions)
-      .where(eq(misconceptions.studentId, studentId))
-      // active first, then by lastObservedAt desc
-      .orderBy(asc(misconceptions.status), desc(misconceptions.lastObservedAt))
-      .all();
-
-    return rows.map((r) => ({
-      id: brandId<"MisconceptionId">(r.id),
-      studentId,
-      conceptId: brandId<"ConceptId">(r.conceptId),
-      description: r.description,
-      errorForm: r.errorForm,
-      remediation: r.remediationJson as { strategyId: StrategyId; rationale: string },
-      evidence: (r.evidenceJson as string[]).map((id) => brandId<"EventId">(id)),
-      status: r.status as "active" | "remediated" | "manually-cleared",
-      firstObservedAt: r.firstObservedAt.getTime() as Timestamp,
-      lastObservedAt: r.lastObservedAt.getTime() as Timestamp,
-    }));
+  misconceptions(studentId: StudentId): Promise<Misconception[]> {
+    return this.queries.misconceptions(studentId);
   }
 
   // ── procedural ────────────────────────────────────────────────────────────────
@@ -448,46 +385,17 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
 
   // ── Snapshot-restore helpers ─────────────────────────────────────────────────
 
-  async getMastery(input: {
+  getMastery(input: {
     studentId: StudentId;
     conceptId: ConceptId;
-  }): Promise<import("../../types/memory.js").ConceptMastery | null> {
-    const row = this.deps.db
-      .select()
-      .from(studentMastery)
-      .where(
-        and(
-          eq(studentMastery.studentId, input.studentId),
-          eq(studentMastery.conceptId, input.conceptId),
-        ),
-      )
-      .get();
-    if (!row) return null;
-
-    const pKnown = row.pKnown / 1000;
-    const uncertainty = row.uncertainty / 1000;
-    const effectivePKnown = row.effectivePKnown / 1000;
-    const lastPracticedAt: import("../../types/common.js").Timestamp | undefined =
-      row.lastPracticedAt
-        ? (row.lastPracticedAt.getTime() as import("../../types/common.js").Timestamp)
-        : undefined;
-    const conceptId = brandId<"ConceptId">(row.conceptId);
-    const evidence = (row.evidenceJson as string[]).map((id) => brandId<"EventId">(id));
-
-    return {
-      conceptId,
-      pKnown,
-      uncertainty,
-      effectivePKnown,
-      ...(lastPracticedAt !== undefined && { lastPracticedAt }),
-      evidence,
-    };
+  }): Promise<ConceptMastery | null> {
+    return this.queries.getMastery(input);
   }
 
   async upsertMastery(input: {
     studentId: StudentId;
     conceptId: ConceptId;
-    mastery: import("../../types/memory.js").ConceptMastery | null;
+    mastery: ConceptMastery | null;
   }): Promise<void> {
     if (input.mastery === null) {
       // Restore "never seen" state by deleting the row.
@@ -530,30 +438,11 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
       .run();
   }
 
-  async getMisconception(
-    misconceptionId: MisconceptionId,
-  ): Promise<import("../../types/memory.js").Misconception | null> {
-    const r = this.deps.db
-      .select()
-      .from(misconceptions)
-      .where(eq(misconceptions.id, misconceptionId))
-      .get();
-    if (!r) return null;
-    return {
-      id: brandId<"MisconceptionId">(r.id),
-      studentId: brandId<"StudentId">(r.studentId),
-      conceptId: brandId<"ConceptId">(r.conceptId),
-      description: r.description,
-      errorForm: r.errorForm,
-      remediation: r.remediationJson as { strategyId: StrategyId; rationale: string },
-      evidence: (r.evidenceJson as string[]).map((id) => brandId<"EventId">(id)),
-      status: r.status as "active" | "remediated" | "manually-cleared",
-      firstObservedAt: r.firstObservedAt.getTime() as import("../../types/common.js").Timestamp,
-      lastObservedAt: r.lastObservedAt.getTime() as import("../../types/common.js").Timestamp,
-    };
+  getMisconception(misconceptionId: MisconceptionId): Promise<Misconception | null> {
+    return this.queries.getMisconception(misconceptionId);
   }
 
-  async upsertMisconception(m: import("../../types/memory.js").Misconception): Promise<void> {
+  async upsertMisconception(m: Misconception): Promise<void> {
     this.deps.db
       .insert(misconceptions)
       .values({
@@ -591,22 +480,8 @@ export class MemoryServiceImpl implements MemoryService, MasteryReader {
    * MasteryReader port implementation. Returns decay-aware effectivePKnown for a
    * concept, or 0 when no record exists. Fail-safe: never throws for unknown concepts.
    */
-  async read(input: { studentId: StudentId; conceptId: ConceptId }): Promise<number> {
-    const row = this.deps.db
-      .select()
-      .from(studentMastery)
-      .where(
-        and(
-          eq(studentMastery.studentId, input.studentId),
-          eq(studentMastery.conceptId, input.conceptId),
-        ),
-      )
-      .get();
-    if (!row) return 0;
-    const pKnown = row.pKnown / 1000;
-    const lastPracticedAt = row.lastPracticedAt?.getTime();
-    const decayDays = this.deps.decayDaysFor(input.conceptId);
-    return applyDecay({ pKnown, lastPracticedAt, now: Date.now(), decayDays });
+  read(input: { studentId: StudentId; conceptId: ConceptId }): Promise<number> {
+    return this.queries.read(input);
   }
 
   // ── delete ─────────────────────────────────────────────────────────────────────

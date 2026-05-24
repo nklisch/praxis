@@ -48,16 +48,6 @@ export { SNAPSHOT_SCHEMA_VERSION, SnapshotCapturer } from "./snapshot-capturer.j
 
 export type { ArtifactsServiceDeps } from "./artifacts-service.js";
 export { ArtifactsServiceImpl } from "./artifacts-service.js";
-export type { CourseStateReaderDeps } from "./course-state-reader-impl.js";
-export { CourseStateReaderImpl } from "./course-state-reader-impl.js";
-export type { CoursesServiceDeps } from "./courses-service.js";
-export { CoursesServiceImpl, rowToCourse } from "./courses-service.js";
-export type { LessonAssessmentsServiceDeps } from "./lesson-assessments-service.js";
-export { LessonAssessmentsServiceImpl } from "./lesson-assessments-service.js";
-export type { LessonsServiceDeps } from "./lessons-service.js";
-export { LessonsServiceImpl } from "./lessons-service.js";
-export type { GatesServiceDeps } from "./gates-service.js";
-export { GatesServiceImpl } from "./gates-service.js";
 export type { AssignmentServiceDeps } from "./assignment-service.js";
 export {
   AssignmentItemSchema,
@@ -79,6 +69,10 @@ export { ConceptMapSnapshotter } from "./concept-map-snapshotter.js";
 export { ConfigServiceImpl } from "./config-service.js";
 export type { CourseCreateServiceDeps } from "./course-create-service.js";
 export { CourseCreateServiceImpl } from "./course-create-service.js";
+export type { CourseStateReaderDeps } from "./course-state-reader-impl.js";
+export { CourseStateReaderImpl } from "./course-state-reader-impl.js";
+export type { CoursesServiceDeps } from "./courses-service.js";
+export { CoursesServiceImpl, rowToCourse } from "./courses-service.js";
 // Phase 16: Document scopes service (polymorphic scope ↔ document attachment)
 export type { DocumentScopesServiceDeps, PassageRange } from "./document-scopes-service.js";
 export { DocumentScopesServiceImpl } from "./document-scopes-service.js";
@@ -88,6 +82,8 @@ export { DocumentsServiceImpl } from "./documents-service.js";
 // durable-drafts: DraftStore port + SQLite adapter
 export type { DraftStore } from "./draft-store.js";
 export { SqliteDraftStore } from "./draft-store.js";
+export type { GatesServiceDeps } from "./gates-service.js";
+export { GatesServiceImpl } from "./gates-service.js";
 // Phase 8: Graders
 export { enrichWithApproachFeedback } from "./graders/approach-feedback.js";
 export { buildGraderRegistry } from "./graders/registry.js";
@@ -101,7 +97,7 @@ export { AffectiveIndexer } from "./indexers/affective-indexer.js";
 export type { ConceptMapDivergenceIndexerDeps } from "./indexers/concept-map-divergence-indexer.js";
 export { ConceptMapDivergenceIndexer } from "./indexers/concept-map-divergence-indexer.js";
 export type { MasteryIndexerDeps } from "./indexers/mastery-indexer.js";
-export { applySignalsToConcept, MasteryIndexer } from "./indexers/mastery-indexer.js";
+export { MasteryIndexer } from "./indexers/mastery-indexer.js";
 export type { MisconceptionIndexerDeps } from "./indexers/misconception-indexer.js";
 export { MisconceptionIndexer, upsertMisconception } from "./indexers/misconception-indexer.js";
 // Phase 7: Memory service + indexers
@@ -113,12 +109,17 @@ export type {
   SessionOutcome,
 } from "./indexers/procedural-indexer.js";
 export { ProceduralIndexer, scoreSessionOutcome } from "./indexers/procedural-indexer.js";
+export type { LessonAssessmentsServiceDeps } from "./lesson-assessments-service.js";
+export { LessonAssessmentsServiceImpl } from "./lesson-assessments-service.js";
+export type { LessonsServiceDeps } from "./lessons-service.js";
+export { LessonsServiceImpl } from "./lessons-service.js";
 // Phase 8: LLM helpers
 export { extractJsonBlock } from "./llm-helpers.js";
 export type { BktParams, BktState } from "./memory/bkt.js";
 export { bktInitial, bktUpdate, DEFAULT_BKT, signalToObservation } from "./memory/bkt.js";
 export type { DecayInput } from "./memory/decay.js";
 export { applyDecay, applyDecayAt } from "./memory/decay.js";
+export { applySignalsToConcept } from "./memory/mastery-writes.js";
 export type { MemoryServiceDeps } from "./memory/memory-service.js";
 export { MemoryServiceImpl } from "./memory/memory-service.js";
 // Per-course progress aggregator
