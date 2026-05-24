@@ -1,7 +1,7 @@
 ---
 id: bug-picker-close-aborts-ingestion
 kind: story
-stage: review
+stage: done
 tags: [bug, ui, ingestion]
 parent: null
 depends_on: []
