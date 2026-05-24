@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Question card · single question · feature-question-panel-rework</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .mock-meta a { color: #6cf; text-decoration: none; margin-left: auto; }
+
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+
+    main.session { max-width: 720px; margin: 0 auto; padding: 48px 48px 80px; }
+    .session-head { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 28px/1.2 var(--font-display); margin: 0; }
+
+    .turn { margin-bottom: 28px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
+    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 10px; }
+
+    /* Question card chassis */
+    .question-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 20px 24px; margin: 24px 0; }
+    .question-card .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; display: flex; gap: 8px; align-items: baseline; }
+    .question-card .kicker .glyph { color: var(--tint-teach); font-style: italic; font-family: var(--font-serif); font-size: 14px; }
+    .question-card .prompt { font: italic 17px/1.5 var(--font-display); margin: 0 0 16px; color: var(--color-text-primary); }
+
+    .choices { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+    .choice { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer; font: 15px/1.4 var(--font-serif); color: var(--color-text-primary); transition: background 120ms ease; }
+    .choice:hover { background: var(--color-bg-tertiary); }
+    .choice .radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--color-border-strong); flex-shrink: 0; position: relative; }
+    .choice.selected .radio { border-color: var(--color-accent); }
+    .choice.selected .radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--color-accent); }
+    .choice.selected { background: var(--color-accent-muted); }
+
+    .free-form { margin: 4px 0 14px; }
+    .free-form label { display: block; font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .free-form textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-tertiary); padding: 10px 12px; font: italic 15px/1.5 var(--font-serif); color: var(--color-text-primary); resize: vertical; min-height: 56px; outline: none; }
+    .free-form textarea::placeholder { color: var(--color-text-tertiary); }
+    .free-form textarea:focus { border-color: var(--color-border-strong); background: var(--color-bg-secondary); }
+
+    .actions { display: flex; gap: 12px; align-items: center; }
+    .btn-primary { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 9px 18px; font: 500 13px/1 var(--font-sans); cursor: pointer; }
+    .btn-text { background: transparent; border: 0; padding: 9px 12px; color: var(--color-text-secondary); font: 500 13px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+    .btn-text:hover { color: var(--color-accent); }
+    .btn-text .glyph { font-family: var(--font-mono); font-size: 12px; }
+    .meta-divider { flex: 1; }
+
+    .state-note { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-border-strong); padding: 10px 14px; margin: 24px 0; font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .state-note strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+    .state-note code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Question card · state-single</strong>
+    <span>one question · radio choices + always-visible free-form + Submit / clarify-in-chat</span>
+    <a href="index.html">← all states</a>
+  </header>
+
+  <main class="session">
+    <header class="session-head">
+      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 of 12 · Calculus I</div>
+      <h1>Why the chain rule <em>actually works</em></h1>
+    </header>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor · just now</div>
+      <p>Before we work the balloon example, let's check your starting intuition.</p>
+    </div>
+
+    <div class="question-card">
+      <div class="kicker"><span class="glyph">?</span>tutor asked</div>
+      <div class="prompt">If the radius of a balloon grows at <em>2 cm/s</em> when r = 5 cm, what's the <em>first</em> thing you'd compute to find dV/dt?</div>
+
+      <div class="choices">
+        <div class="choice"><span class="radio"></span>The volume V at r = 5</div>
+        <div class="choice selected"><span class="radio"></span>The derivative dV/dr at r = 5</div>
+        <div class="choice"><span class="radio"></span>The time t at which r = 5</div>
+        <div class="choice"><span class="radio"></span>The integral of dr/dt from 0 to 5</div>
+      </div>
+
+      <div class="free-form">
+        <label>or, in your own words</label>
+        <textarea placeholder="…something else? sketch the reasoning."></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary">Submit ↵</button>
+        <div class="meta-divider"></div>
+        <button class="btn-text"><span class="glyph">↑</span>clarify in chat</button>
+      </div>
+    </div>
+
+    <div class="state-note">
+      <strong>State:</strong> single-question form. Radio choices stack vertically; one is selected (third). The free-form textarea is always visible below the choices with the prompt <code>or, in your own words</code> — no expand affordance, no Choose/Write toggle. Submit accepts either source; if both are populated the free-form text wins (it's the more specific signal). <code>clarify in chat</code> sits beside Submit as a secondary text button — it dismisses the card and signals the agent to resume normal conversation (see <code>state-clarify-in-chat</code>).
+    </div>
+  </main>
+</body>
+</html>

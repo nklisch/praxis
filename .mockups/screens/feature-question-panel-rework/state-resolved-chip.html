@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Question card · resolved (chat history) · feature-question-panel-rework</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .mock-meta a { color: #6cf; text-decoration: none; margin-left: auto; }
+
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+
+    main.session { max-width: 720px; margin: 0 auto; padding: 48px 48px 80px; }
+    .session-head { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 28px/1.2 var(--font-display); margin: 0; }
+
+    .turn { margin-bottom: 28px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; display: flex; gap: 8px; align-items: baseline; }
+    .turn .speaker .when { color: var(--color-text-tertiary); font-weight: 400; }
+    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 10px; }
+    .turn.tutor p em { font-style: italic; }
+    .turn.tutor .streaming { color: var(--color-accent); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    .turn.tutor .streaming .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .turn.tutor .cursor::after { content: "▍"; color: var(--color-accent); animation: blink 0.9s steps(1) infinite; margin-left: 1px; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Resolved chip — minimal vertical footprint, clickable to expand */
+    .resolved-chip { display: inline-flex; gap: 8px; align-items: baseline; padding: 6px 12px 6px 10px; margin: 4px 0 4px 28px; background: var(--color-bg-tertiary); border-left: 2px solid var(--color-accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font: italic 14px/1.4 var(--font-serif); color: var(--color-text-secondary); cursor: pointer; max-width: fit-content; }
+    .resolved-chip .glyph { font: 600 11px/1 var(--font-mono); color: var(--color-accent); font-style: normal; }
+    .resolved-chip .verb { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); font-style: normal; }
+    .resolved-chip .answer { color: var(--color-text-primary); font-style: italic; }
+    .resolved-chip .answer::before { content: '"'; color: var(--color-text-tertiary); }
+    .resolved-chip .answer::after { content: '"'; color: var(--color-text-tertiary); }
+    .resolved-chip .when { color: var(--color-text-tertiary); font-style: normal; font: 600 10px/1 var(--font-mono); letter-spacing: 0.06em; margin-left: auto; padding-left: 8px; }
+    .resolved-chip .expand { color: var(--color-text-tertiary); font: 600 10px/1 var(--font-mono); font-style: normal; }
+    .resolved-chip:hover { background: var(--color-accent-muted); color: var(--color-text-primary); }
+
+    .state-note { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-border-strong); padding: 10px 14px; margin: 24px 0; font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .state-note strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+    .state-note code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Question card · state-resolved-chip</strong>
+    <span>after submit · card collapses to a one-line chip in chat history · tutor continues immediately without waiting for round-trip-then-grey</span>
+    <a href="index.html">← all states</a>
+  </header>
+
+  <main class="session">
+    <header class="session-head">
+      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 of 12 · Calculus I</div>
+      <h1>Why the chain rule <em>actually works</em></h1>
+    </header>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor <span class="when">· 3 minutes ago</span></div>
+      <p>Before we work the balloon example, let's check your starting intuition. If the radius grows at 2 cm/s when r = 5 cm, what's the <em>first</em> thing you'd compute to find dV/dt?</p>
+    </div>
+
+    <div class="resolved-chip">
+      <span class="glyph">↳</span>
+      <span class="verb">you answered</span>
+      <span class="answer">the derivative dV/dr at r = 5</span>
+      <span class="when">9:42</span>
+      <span class="expand">expand</span>
+    </div>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor <span class="when">· 2 minutes ago</span></div>
+      <p>Exactly — and that's the geometry piece. <em>dV/dr = 4πr²</em> at r = 5 gives 100π. Now we just need to multiply by the rate at which r itself changes, which the problem hands you: 2 cm/s.</p>
+    </div>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor <span class="when">· 1 minute ago</span></div>
+      <p>So dV/dt = (4πr²) · (dr/dt) = (100π)(2) = <em>200π ≈ 628.3 cm³/s</em>. Two rates, one product — that's the chain rule with names attached. Let me make this more vivid with a second case.</p>
+    </div>
+
+    <div class="resolved-chip">
+      <span class="glyph">↳</span>
+      <span class="verb">you answered · question 2</span>
+      <span class="answer">it's the rate of f at the place where g already took us</span>
+      <span class="when">just now</span>
+      <span class="expand">expand</span>
+    </div>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor <span class="when">· just now</span> <span class="streaming"><span class="pulse"></span>streaming</span></div>
+      <p>That's the part that's hard to feel in algebra and easy to feel in pictures. Here's the picture<span class="cursor"></span></p>
+    </div>
+
+    <div class="state-note">
+      <strong>State:</strong> shows the chat history after two questions have been submitted. Each resolved question collapses to a one-line chip: <code>↳ you answered — "&lt;text&gt;" · &lt;time&gt;</code>. Minimal vertical footprint; conversational read flow remains intact. The chip is clickable (hover state shown on the second one) — expand reopens the full card with the chosen answer marked, for if the student wants to revisit. Critically: <em>the tutor's next turn starts streaming immediately after the chip appears</em> — there is no greyed-out wait through the round-trip. The chip itself is just the persistent record of "you answered X"; the next tutor turn is what carries the response.
+    </div>
+  </main>
+</body>
+</html>

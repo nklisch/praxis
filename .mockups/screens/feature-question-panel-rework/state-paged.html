@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Question card · paged (4 in flight) · feature-question-panel-rework</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .mock-meta a { color: #6cf; text-decoration: none; margin-left: auto; }
+
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+
+    main.session { max-width: 720px; margin: 0 auto; padding: 48px 48px 80px; }
+    .session-head { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 28px/1.2 var(--font-display); margin: 0; }
+
+    .turn { margin-bottom: 28px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; }
+    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 10px; }
+
+    /* Question-set card — wraps the tab strip + the active question */
+    .question-set { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin: 24px 0; overflow: hidden; }
+
+    /* Tab strip */
+    .tab-strip { display: flex; gap: 4px; padding: 10px 14px; background: var(--color-bg-tertiary); border-bottom: 1px solid var(--color-border); align-items: center; }
+    .tab-strip .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-right: 8px; }
+    .tab { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: var(--radius-sm); font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--color-text-secondary); cursor: pointer; background: transparent; border: 1px solid transparent; transition: background 100ms ease; }
+    .tab:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+    .tab .num { font-weight: 700; }
+    .tab .marker { font-family: var(--font-mono); font-size: 11px; }
+    .tab.done { color: var(--color-success); }
+    .tab.done .marker { color: var(--color-success); }
+    .tab.active { background: var(--color-bg-secondary); border-color: var(--color-text-primary); color: var(--color-text-primary); }
+    .tab.active .marker { color: var(--color-accent); }
+    .tab.unanswered .marker { color: var(--color-text-tertiary); }
+    .tab-strip .spacer { flex: 1; }
+    .tab-strip .progress { font: italic 12px/1 var(--font-serif); color: var(--color-text-secondary); }
+    .tab-strip .progress strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+
+    /* Active question body */
+    .question-body { padding: 20px 24px; }
+    .question-body .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; display: flex; gap: 8px; align-items: baseline; }
+    .question-body .kicker .glyph { color: var(--tint-teach); font-style: italic; font-family: var(--font-serif); font-size: 14px; }
+    .question-body .prompt { font: italic 17px/1.5 var(--font-display); margin: 0 0 16px; }
+
+    .choices { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+    .choice { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer; font: 15px/1.4 var(--font-serif); }
+    .choice:hover { background: var(--color-bg-tertiary); }
+    .choice .radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--color-border-strong); flex-shrink: 0; position: relative; }
+    .choice.selected .radio { border-color: var(--color-accent); }
+    .choice.selected .radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--color-accent); }
+    .choice.selected { background: var(--color-accent-muted); }
+
+    .free-form { margin: 4px 0 14px; }
+    .free-form label { display: block; font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .free-form textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-tertiary); padding: 10px 12px; font: italic 15px/1.5 var(--font-serif); resize: vertical; min-height: 56px; outline: none; }
+    .free-form textarea::placeholder { color: var(--color-text-tertiary); }
+
+    .actions { display: flex; gap: 12px; align-items: center; }
+    .btn-primary { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 9px 18px; font: 500 13px/1 var(--font-sans); cursor: pointer; }
+    .btn-text { background: transparent; border: 0; padding: 9px 12px; color: var(--color-text-secondary); font: 500 13px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+    .btn-text:hover { color: var(--color-accent); }
+    .btn-text .glyph { font-family: var(--font-mono); font-size: 12px; }
+    .nav-arrows { margin-left: auto; display: inline-flex; gap: 6px; }
+    .nav-arrows button { background: transparent; border: 1px solid var(--color-border-strong); padding: 6px 10px; font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--color-text-secondary); cursor: pointer; border-radius: var(--radius-sm); }
+    .nav-arrows button:hover { color: var(--color-text-primary); border-color: var(--color-text-primary); }
+    .nav-arrows button:disabled { opacity: 0.4; cursor: default; }
+
+    .state-note { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-border-strong); padding: 10px 14px; margin: 24px 0; font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .state-note strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+    .state-note code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Question card · state-paged</strong>
+    <span>4 questions in flight · tab strip [1 ✓] [2 ✓] [● 3] [4 •] · jump by click · prev/next nav</span>
+    <a href="index.html">← all states</a>
+  </header>
+
+  <main class="session">
+    <header class="session-head">
+      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 of 12 · Calculus I</div>
+      <h1>Why the chain rule <em>actually works</em></h1>
+    </header>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor · just now</div>
+      <p>Four quick checks before we move into worked examples. They build on each other — feel free to jump around if one's harder than the others.</p>
+    </div>
+
+    <div class="question-set">
+      <div class="tab-strip">
+        <span class="label">Questions</span>
+        <button class="tab done"><span class="marker">✓</span><span class="num">1</span></button>
+        <button class="tab done"><span class="marker">✓</span><span class="num">2</span></button>
+        <button class="tab active"><span class="marker">●</span><span class="num">3</span></button>
+        <button class="tab unanswered"><span class="marker">○</span><span class="num">4</span></button>
+        <span class="spacer"></span>
+        <span class="progress"><strong>3</strong> of 4 · 2 answered</span>
+      </div>
+
+      <div class="question-body">
+        <div class="kicker"><span class="glyph">?</span>tutor asked · question 3</div>
+        <div class="prompt">When you write <em>(f ∘ g)'(x) = f'(g(x)) · g'(x)</em>, why is the <em>argument of f'</em> still <em>g(x)</em>, not <em>x</em>?</div>
+
+        <div class="choices">
+          <div class="choice"><span class="radio"></span>Because f'(x) and f'(g(x)) are interchangeable</div>
+          <div class="choice selected"><span class="radio"></span>Because f operates on the output of g, so its rate is evaluated at g(x)</div>
+          <div class="choice"><span class="radio"></span>Because g(x) is just shorthand for x in this notation</div>
+          <div class="choice"><span class="radio"></span>Because the product rule rearranges f' to use g(x)</div>
+        </div>
+
+        <div class="free-form">
+          <label>or, in your own words</label>
+          <textarea placeholder="…something else? sketch the reasoning."></textarea>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary">Submit ↵</button>
+          <button class="btn-text"><span class="glyph">↑</span>clarify in chat</button>
+          <div class="nav-arrows">
+            <button>‹ prev</button>
+            <button>next ›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="state-note">
+      <strong>State:</strong> tutor issued 4 structured questions in one turn. Rendered as a paged surface inside one card, with a tab strip at the top: <code>[1 ✓] [2 ✓] [● 3] [4 ○]</code>. Tabs marked ✓ are answered, ● is current, ○ is unanswered. Click any tab to jump (no forced linear walk); arrows at bottom-right offer the linear path for keyboard users. The chat thread above remains visible — paging happens within the card, never occluding the conversation. The card stays mounted until <em>all</em> questions in the set resolve (either submitted or dismissed via <code>clarify in chat</code>); per-question submit collapses just that one question to a chip in the eventual transcript (see <code>state-resolved-chip</code>).
+    </div>
+  </main>
+</body>
+</html>

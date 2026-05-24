@@ -46,5 +46,11 @@ The "choice required" / no-skip framing is removed — cancel-to-clarify replace
 - **Tool-description rule (propagated from foundation)**: `ask_student_question` schema description explicitly forbids "tell me in chat" / "explain in chat" as a structured choice. The `clarify in chat` cancel control owns that path.
 
 ## Mockups
-*To be filled in by the mockup pass paired with this `--only-questions` run.*
-- Screens: `.mockups/screens/feature-question-panel-rework/` — state mocks for single-question / paged tab strip / resolved chip / free-form fallback / clarify-in-chat dismiss states.
+- Inherits design system: `.mockups/design-system/tokens.css`
+- Screens · state mocks at `.mockups/screens/feature-question-panel-rework/`:
+  - `index.html` — navigator (2×2 grid of states)
+  - `state-single.html` — one question; radio choices + always-visible free-form + Submit / clarify-in-chat
+  - `state-paged.html` — 4 questions in flight; tab strip `[1 ✓] [2 ✓] [● 3] [4 ○]`; jump-by-click + prev/next arrows
+  - `state-resolved-chip.html` — chat history view; submitted questions render as one-line chips `↳ you answered — "…"`; tutor continues immediately (no greyed-out wait)
+  - `state-clarify-in-chat.html` — user clicked `clarify in chat`; card dismisses to a neutral-grey chip; agent told to address it conversationally; composer focused
+- Shared interactive feel demo: `.mockups/flows/async-chat-interactions/02-question-submit.html`
