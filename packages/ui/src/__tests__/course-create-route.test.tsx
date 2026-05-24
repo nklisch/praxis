@@ -30,6 +30,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   return {
     ...actual,
     useNavigate: () => vi.fn().mockResolvedValue(undefined),
+    useSearch: () => ({}),
     Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   };
 });
@@ -113,7 +114,13 @@ function makeClient(opts?: {
         opts?.startFn ??
         (vi.fn().mockImplementation(() => makeDoneStream()) as unknown as IngestClient["start"]),
       candidatesFor: vi.fn().mockResolvedValue([]),
+      writeTempText: vi.fn().mockResolvedValue("/tmp/Pasted notes (2026-05-23).txt"),
     } as IngestClient,
+    packs: {
+      listAvailable: vi.fn().mockResolvedValue([]),
+      listImported: vi.fn().mockResolvedValue([]),
+      import: vi.fn().mockResolvedValue({}),
+    } as PraxisClient["packs"],
   });
 }
 
@@ -162,7 +169,13 @@ function makeClientForContext(): PraxisClient {
       isAvailable: () => true,
       start: vi.fn().mockImplementation(() => makeDoneStream()) as unknown as IngestClient["start"],
       candidatesFor: vi.fn().mockResolvedValue([]),
+      writeTempText: vi.fn().mockResolvedValue("/tmp/Pasted notes (2026-05-23).txt"),
     } as IngestClient,
+    packs: {
+      listAvailable: vi.fn().mockResolvedValue([]),
+      listImported: vi.fn().mockResolvedValue([]),
+      import: vi.fn().mockResolvedValue({}),
+    } as PraxisClient["packs"],
   });
 }
 
@@ -270,6 +283,9 @@ describe("CourseCreateRoute — ingestion status sync", () => {
 
     renderRoute(client);
 
+    // Switch to the Upload tab so the "browse files" button is in the DOM.
+    fireEvent.click(screen.getByRole("tab", { name: /upload/i }));
+
     // Trigger the browse button to start a batch pick.
     // Use the async form of act so pending microtasks (promise chains in
     // startPickBatch) are flushed before assertions run.
@@ -302,6 +318,9 @@ describe("CourseCreateRoute — ingestion status sync", () => {
 
     renderRoute(client);
 
+    // Switch to the Upload tab so the "browse files" button is in the DOM.
+    fireEvent.click(screen.getByRole("tab", { name: /upload/i }));
+
     await act(async () => {
       screen.getByRole("button", { name: /browse files/i }).click();
     });
@@ -326,6 +345,9 @@ describe("CourseCreateRoute — ingestion status sync", () => {
     });
 
     renderRoute(client);
+
+    // Switch to the Upload tab so the "browse files" button is in the DOM.
+    fireEvent.click(screen.getByRole("tab", { name: /upload/i }));
 
     await act(async () => {
       screen.getByRole("button", { name: /browse files/i }).click();

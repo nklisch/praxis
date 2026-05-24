@@ -1,43 +1,71 @@
 /**
- * CourseCreateRoute — step 2 of the course-create entry flow.
+ * CourseCreateRoute — material / source-picker step of the course-create entry flow.
  *
  * Located at `/course-create`. The library "Create a course" CTA navigates
  * here instead of opening a session directly, so the student can attach
  * source material and add optional context before the course-create session
  * opens.
  *
- * Per the locked `.mockups/flows/course-create-entry/02-upload-docs.html`:
- *   - Drop zone hero for file selection (single file or batch)
- *   - Attached files list with per-file status (indexing / ready)
+ * Per the locked Option 4 mock
+ * (`.mockups/screens/epic-course-create-readiness-unified-landing-source-picker/option-4.html`):
+ *   - 3-tab source picker: Pack (landing) / Upload (tagged "create your own") / Paste
+ *   - Below the active tab, italic "Or —" bar names the other two tabs as switch links
+ *   - Attached sources list with per-source status (indexing / ready)
  *   - Optional context textarea (audience / goal / notes)
- *   - "Start Praxis →" CTA (enabled as soon as any file is attached or
- *     can always start — students don't have to wait for indexing)
+ *   - "Start Praxis →" CTA
  *
- * On "Start Praxis →", opens a course-create session and navigates to it via
- * `openSessionInTab`.
+ * URL contract: `?pack=<packId>` pre-selects the Pack tab and pre-attaches that
+ * pack as source on mount. Validated via TanStack Router `validateSearch`.
+ *
+ * Stepper: Material · Create · Confirm · Open (step 2 renamed from "Explore").
  */
-import { useNavigate } from "@tanstack/react-router";
+import type { PackSummaryClient } from "@praxis/core/types";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
+import type { SourceTab } from "../components/source-picker.js";
+import { SourcePicker } from "../components/source-picker.js";
 import { usePraxisClient } from "../context/client-context.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
+import { usePacks } from "../hooks/use-packs.js";
 import { useTabs } from "../hooks/use-tabs.js";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import styles from "./course-create.module.css";
 
-interface AttachedFile {
-  path: string;
-  filename: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type AttachedSourceKind = "file" | "pack" | "paste";
+
+interface AttachedSource {
+  /** Unique key for React rendering. */
+  key: string;
+  kind: AttachedSourceKind;
+  label: string;
   status: "indexing" | "ready" | "error";
   documentId?: string;
 }
+
+// ─── Route component ──────────────────────────────────────────────────────────
 
 export function CourseCreateRoute() {
   const navigate = useNavigate();
   const client = usePraxisClient();
   const { openTab } = useTabs();
   const [context, setContext] = useState("");
-  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [attachedSources, setAttachedSources] = useState<AttachedSource[]>([]);
   const [starting, setStarting] = useState(false);
+  const [pasteSubmitting, setPasteSubmitting] = useState(false);
+
+  // ── Search params (typed via validateSearch in router.tsx) ──────────────────
+  const { pack: packParam } = (
+    useSearch as unknown as (opts: { strict: false }) => { pack?: string }
+  )({ strict: false });
+
+  // Active tab: default to "pack", or "pack" if packParam is set.
+  const [activeTab, setActiveTab] = useState<SourceTab>("pack");
+
+  const { packs, loading: packsLoading, error: packsError } = usePacks();
+
+  // ── Ingestion hook (for file upload + paste) ─────────────────────────────────
 
   const ingestion = useIngestion(
     useCallback(() => {
@@ -45,59 +73,127 @@ export function CourseCreateRoute() {
     }, []),
   );
 
-  // Sync ingestion state into the attachedFiles list.
-  // Depend only on ingestion.state (not the whole ingestion object) so the
-  // effect doesn't re-run on every render due to the inline object reference.
+  // Sync ingestion state into attachedSources.
   const ingestionState = ingestion.state;
   useEffect(() => {
     if (ingestionState.status === "ingesting") {
-      setAttachedFiles((prev) => {
-        const existing = prev.find((f) => f.filename === ingestionState.filename);
-        if (existing) return prev; // already tracking
-        return [...prev, { path: "", filename: ingestionState.filename, status: "indexing" }];
+      setAttachedSources((prev) => {
+        const existing = prev.find((s) => s.label === ingestionState.filename);
+        if (existing) return prev;
+        return [
+          ...prev,
+          {
+            key: ingestionState.filename,
+            kind: "file",
+            label: ingestionState.filename,
+            status: "indexing",
+          },
+        ];
       });
     } else if (ingestionState.status === "done") {
-      // Mark the most recently ingesting file as ready (single-file path).
-      setAttachedFiles((prev) =>
-        prev.map((f) => {
-          if (f.status === "indexing") {
-            return { ...f, status: "ready" as const, documentId: ingestionState.documentId };
+      setAttachedSources((prev) =>
+        prev.map((s) => {
+          if (s.status === "indexing") {
+            return { ...s, status: "ready" as const, documentId: ingestionState.documentId };
           }
-          return f;
+          return s;
         }),
       );
     } else if (ingestionState.status === "batch_summary") {
-      // Batch path: upsert each result into the attached files list.
-      // Note: React may batch the intermediate "ingesting" setState calls
-      // with the final "batch_summary" one, meaning files might not have
-      // been added to the list yet when this handler runs. We therefore
-      // add any missing files here rather than assuming they're already present.
-      setAttachedFiles((prev) => {
-        const byFilename = new Map(prev.map((f) => [f.filename, f]));
+      setAttachedSources((prev) => {
+        const byLabel = new Map(prev.map((s) => [s.label, s]));
         for (const result of ingestionState.results) {
-          const existing = byFilename.get(result.filename);
-          byFilename.set(result.filename, {
-            path: existing?.path ?? "",
-            filename: result.filename,
+          const existing = byLabel.get(result.filename);
+          byLabel.set(result.filename, {
+            key: result.filename,
+            kind: existing?.kind ?? ("file" as const),
+            label: result.filename,
             status: result.outcome.ok ? ("ready" as const) : ("error" as const),
             ...(result.outcome.ok && { documentId: result.outcome.documentId }),
           });
         }
-        return Array.from(byFilename.values());
+        return Array.from(byLabel.values());
       });
     } else if (ingestionState.status === "error") {
-      setAttachedFiles((prev) =>
-        prev.map((f) => (f.status === "indexing" ? { ...f, status: "error" as const } : f)),
+      setAttachedSources((prev) =>
+        prev.map((s) => (s.status === "indexing" ? { ...s, status: "error" as const } : s)),
       );
     }
   }, [ingestionState]);
+
+  // ── Pre-select pack from URL param ───────────────────────────────────────────
+
+  useEffect(() => {
+    if (!packParam) return;
+    // Find the matching pack from the list.
+    const targetPack = packs.find((p) => p.id === packParam);
+    if (!targetPack) return;
+    // Pre-attach the pack as a source (status ready — packs don't need ingestion).
+    setAttachedSources((prev) => {
+      const alreadyAttached = prev.find((s) => s.kind === "pack" && s.key === targetPack.id);
+      if (alreadyAttached) return prev;
+      return [
+        ...prev,
+        {
+          key: targetPack.id,
+          kind: "pack",
+          label: targetPack.name,
+          status: "ready",
+        },
+      ];
+    });
+  }, [packParam, packs]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleBrowse = useCallback(async () => {
     await ingestion.startPickBatch("files");
   }, [ingestion]);
 
-  const handleRemove = useCallback((filename: string) => {
-    setAttachedFiles((prev) => prev.filter((f) => f.filename !== filename));
+  const handlePackSelect = useCallback((pack: PackSummaryClient) => {
+    setAttachedSources((prev) => {
+      const alreadyAttached = prev.find((s) => s.kind === "pack" && s.key === pack.id);
+      if (alreadyAttached) return prev;
+      return [
+        ...prev,
+        {
+          key: pack.id,
+          kind: "pack",
+          label: pack.name,
+          status: "ready" as const,
+        },
+      ];
+    });
+  }, []);
+
+  const handlePasteSubmit = useCallback(
+    async (text: string) => {
+      setPasteSubmitting(true);
+      try {
+        const now = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const filename = `Pasted notes (${now}).txt`;
+
+        // Write text to a temp file on the main process, then ingest from that path.
+        const tmpPath = await client.ingest.writeTempText(text, filename);
+
+        // Add optimistic "indexing" entry immediately.
+        const key = `paste-${Date.now()}`;
+        setAttachedSources((prev) => [
+          ...prev,
+          { key, kind: "paste", label: filename, status: "indexing" },
+        ]);
+
+        // Run ingestion via the batch path so the ingestionState sync picks it up.
+        await ingestion.startBatchWithPaths([tmpPath]);
+      } finally {
+        setPasteSubmitting(false);
+      }
+    },
+    [client, ingestion],
+  );
+
+  const handleRemove = useCallback((key: string) => {
+    setAttachedSources((prev) => prev.filter((s) => s.key !== key));
   }, []);
 
   const handleStart = useCallback(async () => {
@@ -116,7 +212,7 @@ export function CourseCreateRoute() {
     }
   }, [client, navigate, openTab, context]);
 
-  const indexingCount = attachedFiles.filter((f) => f.status === "indexing").length;
+  const indexingCount = attachedSources.filter((s) => s.status === "indexing").length;
 
   return (
     <div className={styles.layout}>
@@ -129,75 +225,67 @@ export function CourseCreateRoute() {
           Bring me <em>something to teach you</em>
         </h1>
         <p className={styles.deck}>
-          A textbook, a syllabus, lecture notes, course PDFs. Drop it in; Praxis will read it and
+          A canonical pack, a textbook, a syllabus, or your lecture notes. Praxis will read it and
           draft a course shape — units, lessons, and assessment shells — for you to confirm.
         </p>
       </div>
 
       <div className={styles.surface}>
-        {/* Stepper */}
+        {/* Stepper — step 2 is "Create" (renamed from "Explore") */}
         <div className={styles.stepper}>
           <span className={styles.stepActive}>Material</span>
           <span className={styles.stepSep}>·</span>
-          <span className={styles.stepPending}>Explore</span>
+          <span className={styles.stepPending}>Create</span>
           <span className={styles.stepSep}>·</span>
           <span className={styles.stepPending}>Confirm</span>
           <span className={styles.stepSep}>·</span>
           <span className={styles.stepPending}>Open</span>
         </div>
 
-        {/* Drop zone */}
-        <div className={styles.dropzone}>
-          <div className={styles.dropzoneOrnament}>¶</div>
-          <h3 className={styles.dropzoneTitle}>
-            Drop your material <em>here</em>
-          </h3>
-          <p className={styles.dropzoneHint}>
-            A whole textbook is fine. A syllabus is fine. A mix is best. The more Praxis reads, the
-            better the draft.
-          </p>
-          <button type="button" className={styles.browseBtn} onClick={handleBrowse}>
-            browse files…
-          </button>
-          <div className={styles.formatPills}>
-            {["pdf", "epub", "docx", "pptx", "md", "html", "txt"].map((ext) => (
-              <span key={ext} className={styles.formatPill}>
-                {ext}
-              </span>
-            ))}
-          </div>
-        </div>
+        {/* Source picker — 3-tab: Pack / Upload / Paste */}
+        <SourcePicker
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          packs={packs}
+          packsLoading={packsLoading}
+          packsError={packsError}
+          onPackSelect={handlePackSelect}
+          onBrowse={handleBrowse}
+          onPasteSubmit={handlePasteSubmit}
+          pasteSubmitting={pasteSubmitting}
+        />
 
-        {/* Attached files */}
-        {attachedFiles.length > 0 && (
+        {/* Attached sources */}
+        {attachedSources.length > 0 && (
           <div className={styles.attached}>
             <h3 className={styles.attachedHeading}>
-              Attached · {attachedFiles.length} file{attachedFiles.length !== 1 ? "s" : ""}
+              Attached · {attachedSources.length} source
+              {attachedSources.length !== 1 ? "s" : ""}
             </h3>
-            {attachedFiles.map((file) => (
-              <div key={file.filename} className={styles.fileRow}>
+            {attachedSources.map((source) => (
+              <div key={source.key} className={styles.fileRow}>
                 <span className={styles.fileIcon}>†</span>
-                <span className={styles.fileName}>{file.filename}</span>
+                <span className={styles.fileName}>{source.label}</span>
                 <span
                   className={
-                    file.status === "ready"
+                    source.status === "ready"
                       ? styles.statusReady
-                      : file.status === "error"
+                      : source.status === "error"
                         ? styles.statusError
                         : styles.statusIndexing
                   }
                 >
-                  {file.status === "ready"
+                  {source.status === "ready"
                     ? "ready"
-                    : file.status === "error"
+                    : source.status === "error"
                       ? "error"
                       : "indexing"}
                 </span>
                 <button
                   type="button"
                   className={styles.removeBtn}
-                  onClick={() => handleRemove(file.filename)}
-                  aria-label={`Remove ${file.filename}`}
+                  onClick={() => handleRemove(source.key)}
+                  aria-label={`Remove ${source.label}`}
                 >
                   remove
                 </button>

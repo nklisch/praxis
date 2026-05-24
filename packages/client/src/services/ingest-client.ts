@@ -13,6 +13,7 @@ const C = {
    */
   streamBase: "praxis.ingest",
   candidatesFor: "praxis.ingest.candidatesFor",
+  writeTempText: "praxis.ingest.writeTempText",
 } as const;
 
 /**
@@ -55,6 +56,14 @@ export class IngestClient implements IngestionClient {
     const result = await this.transport.invoke<
       IpcEnvelope<Array<{ id: string; label: string }>> | Array<{ id: string; label: string }>
     >(C.candidatesFor, payload);
+    return unwrapEnvelope(result);
+  }
+
+  async writeTempText(content: string, filename: string): Promise<string> {
+    const result = await this.transport.invoke<IpcEnvelope<string> | string>(C.writeTempText, {
+      content,
+      filename,
+    });
     return unwrapEnvelope(result);
   }
 }

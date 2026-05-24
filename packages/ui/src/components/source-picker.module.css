@@ -1,0 +1,374 @@
+/* SourcePicker — 3-tab source selector for /course-create */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Tab bar ─────────────────────────────────────────────────────────────────── */
+
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  gap: 0;
+}
+
+.tab {
+  font: 500 14px / 1 var(--font-serif, serif);
+  padding: var(--space-4) var(--space-5) var(--space-3);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: -1px;
+  transition: color var(--dur-quick, 160ms);
+}
+
+.tab:hover {
+  color: var(--color-text-primary);
+}
+
+.tabActive {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-accent);
+  font-weight: 600;
+}
+
+.tabGlyph {
+  font-family: var(--font-serif, serif);
+  font-style: italic;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+}
+
+.tabActive .tabGlyph {
+  color: var(--color-accent);
+}
+
+.tabTag {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  padding: 3px var(--space-1-5);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm, 4px);
+  margin-left: var(--space-0-5);
+}
+
+/* ── Surface ─────────────────────────────────────────────────────────────────── */
+
+.surface {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  padding: var(--space-8);
+  min-height: 200px;
+}
+
+/* ── Or — bar ────────────────────────────────────────────────────────────────── */
+
+.altBar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-1) 0;
+  font: italic 13px / 1.5 var(--font-serif, serif);
+  color: var(--color-text-secondary);
+  flex-wrap: wrap;
+}
+
+.altPrefix {
+  font: 600 10px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-style: normal;
+  padding-right: var(--space-1);
+}
+
+.altGroup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.altSep {
+  color: var(--color-text-tertiary);
+}
+
+.altLink {
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: var(--space-1) var(--space-1-5);
+  cursor: pointer;
+  font: italic 13px / 1.4 var(--font-serif, serif);
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1-5);
+  transition:
+    color var(--dur-quick, 160ms),
+    border-color var(--dur-quick, 160ms);
+}
+
+.altLink:hover {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.altGlyph {
+  font-family: var(--font-serif, serif);
+  font-style: italic;
+  color: var(--color-text-tertiary);
+}
+
+.altLink:hover .altGlyph {
+  color: var(--color-accent);
+}
+
+/* ── Pack pane ───────────────────────────────────────────────────────────────── */
+
+.packPane {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.packIntro {
+  font: italic 15px / 1.6 var(--font-serif, serif);
+  color: var(--color-text-secondary);
+  max-width: 60ch;
+  margin: 0 0 var(--space-6);
+}
+
+.packIntro em {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.packStatus {
+  font: italic 13px / 1.5 var(--font-serif, serif);
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+.packError {
+  font: 13px / 1.4 var(--font-sans, sans-serif);
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.packList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+}
+
+.packRow {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  padding: var(--space-4) var(--space-5);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-4);
+  align-items: center;
+  cursor: pointer;
+  transition: border-color var(--dur-quick, 160ms);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.packRow:hover {
+  border-color: var(--color-text-primary);
+}
+
+.packRowMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.packRowName {
+  font: 500 italic 17px / 1.25 var(--font-display, var(--font-serif, serif));
+}
+
+.packRowName em {
+  font-weight: 600;
+}
+
+.packRowMeta {
+  font: 11px / 1.4 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.packUseBtn {
+  font: 500 12px / 1 var(--font-sans, sans-serif);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--dur-quick, 160ms),
+    color var(--dur-quick, 160ms),
+    border-color var(--dur-quick, 160ms);
+  flex-shrink: 0;
+}
+
+.packUseBtn:hover {
+  background: var(--color-bg-inverse, #111);
+  color: var(--color-text-inverse, #fff);
+  border-color: var(--color-bg-inverse, #111);
+}
+
+/* ── Upload / drop zone ──────────────────────────────────────────────────────── */
+
+.dropzone {
+  text-align: center;
+  padding: var(--space-12) var(--space-8);
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-primary);
+}
+
+.dropzoneOrnament {
+  font: italic 48px / 1 var(--font-display, var(--font-serif, serif));
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-4);
+}
+
+.dropzoneTitle {
+  composes: editorial from global;
+  font-size: 1.35rem;
+  margin: 0 0 var(--space-2);
+}
+
+.dropzoneTitle em {
+  font-weight: 600;
+}
+
+.dropzoneHint {
+  font: italic 13px / 1.5 var(--font-serif, serif);
+  color: var(--color-text-secondary);
+  max-width: 50ch;
+  margin: 0 auto var(--space-4);
+}
+
+.browseBtn {
+  font: 500 13px / 1 var(--font-sans, sans-serif);
+  padding: var(--space-3) 18px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: opacity var(--dur-quick, 160ms);
+}
+
+.browseBtn:hover {
+  opacity: 0.9;
+}
+
+.formatPills {
+  display: flex;
+  gap: var(--space-1-5);
+  justify-content: center;
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.formatPill {
+  font: 600 9px / 1 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full, 9999px);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+}
+
+/* ── Paste pane ──────────────────────────────────────────────────────────────── */
+
+.pastePane {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pasteTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: 13px / 1.6 var(--font-mono, monospace);
+  padding: var(--space-4) var(--space-4);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  min-height: 200px;
+  color: var(--color-text-primary);
+  resize: vertical;
+  outline: none;
+}
+
+.pasteTextarea::placeholder {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-serif, serif);
+  font-style: italic;
+}
+
+.pasteTextarea:focus {
+  border-color: var(--color-accent);
+}
+
+.pasteTextarea:disabled {
+  opacity: 0.6;
+}
+
+.pasteFoot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+  gap: var(--space-4);
+}
+
+.pasteHint {
+  font: italic 12px / 1.4 var(--font-serif, serif);
+  color: var(--color-text-tertiary);
+  flex: 1;
+}
+
+.pasteSaveBtn {
+  font: 500 12px / 1 var(--font-sans, sans-serif);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--dur-quick, 160ms);
+  flex-shrink: 0;
+}
+
+.pasteSaveBtn:hover {
+  opacity: 0.9;
+}
+
+.pasteSaveBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

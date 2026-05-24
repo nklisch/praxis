@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing-source-picker
 kind: story
-stage: implementing
+stage: review
 tags: [ui, ingestion, course-authoring]
 parent: epic-course-create-readiness-unified-landing
 depends_on: []
@@ -100,3 +100,61 @@ conflict with the source-picker change (same file: `course-create.tsx`).
 - Bypass-route rerouting (separate story).
 - Onboarding slim-down (separate story).
 - /packs route removal (separate story).
+
+## Implementation notes
+
+### Tab shell location
+`packages/ui/src/components/source-picker.tsx` — new `SourcePicker` component with
+`PackPane` / `UploadPane` / `PastePane` sub-components.
+CSS module: `packages/ui/src/components/source-picker.module.css`.
+Imported and wired into `packages/ui/src/routes/course-create.tsx`.
+
+### Pack id format chosen
+`PackSummaryClient.id` is a dotted string e.g. `"math.algebra-1"` (the canonical
+pack slug from the pack JSON manifest). The URL param contract is
+`/course-create?pack=math.algebra-1`. Sibling stories (bypass-reroute,
+onboarding-slim) should use this exact id format when constructing `?pack=` URLs.
+
+### URL contract validation location
+`packages/ui/src/router.tsx` — `courseCreateRoute` definition now includes:
+```ts
+validateSearch: z.object({ pack: z.string().optional() })
+```
+`z` imported at the top of router.tsx. The search param is read in
+`course-create.tsx` via `useSearch({ strict: false })`.
+
+### Paste-to-ingest approach
+Paste content cannot be written by the renderer process directly (Electron
+sandboxing). The approach chosen: **temp file via main process IPC**.
+
+- New method added to `IngestionClient` interface:
+  `packages/core/src/types/ingestion.ts` — `writeTempText(content, filename): Promise<string>`
+- IPC handler registered in:
+  `packages/desktop/electron/main/ingest-channel.ts` — `praxis.ingest.writeTempText`
+  writes content to `os.tmpdir()/<sanitized-filename>` and returns the absolute path.
+- Client implementation in:
+  `packages/client/src/services/ingest-client.ts` — `writeTempText()` wraps the IPC invoke.
+- The UI calls `client.ingest.writeTempText(text, filename)` then passes the returned
+  path to `ingestion.startBatchWithPaths([tmpPath])` — normal batch ingestion path from
+  there. Filename: `"Pasted notes (YYYY-MM-DD).txt"`.
+
+### Stepper rename location
+`packages/ui/src/routes/course-create.tsx` — the `<span>Explore</span>` at the former
+line 142 is now `<span className={styles.stepPending}>Create</span>`. Stepper now reads
+`Material · Create · Confirm · Open`.
+
+### Test coverage
+- `packages/ui/src/__tests__/source-picker.test.tsx` — 17 tests covering:
+  tab defaults, tab switching, Or-bar content + switching, pack selection,
+  paste submission, empty/loading/error states.
+- `packages/ui/src/__tests__/course-create-source-picker.test.tsx` — 9 tests covering:
+  stepper label, Pack landing tab, URL param pre-selection (match / absent / unknown),
+  paste workflow (writeTempText called + source appears), Or-bar tab switching.
+- `packages/ui/src/__tests__/course-create-route.test.tsx` — 7 existing tests updated:
+  added `useSearch` mock, `packs` mock, `writeTempText` mock; upload-tab tests now
+  switch to Upload tab before clicking "browse files".
+
+### Verification
+`pnpm typecheck && pnpm test` — all 4674 tests pass; typecheck clean.
+Lint: our changed files clean; existing pre-existing errors in `.mockups/` and
+`packages/claude-cli-sdk/` are not introduced by this story.

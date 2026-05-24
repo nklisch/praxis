@@ -1,4 +1,5 @@
-import { readdirSync } from "node:fs";
+import { readdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { getOrCreateDefaultStudentId } from "@praxis/core/services";
 import type { IngestionEvent, IngestionRequest, Logger } from "@praxis/core/types";
@@ -146,6 +147,23 @@ export function registerIngestHandlers(
       async (_event: unknown, payload: { mimeType: string; filename: string }) => {
         const candidates = await ingestorRegistry.candidatesFor(payload);
         return candidates.map((c) => ({ id: c.id, label: c.label }));
+      },
+    ),
+  );
+
+  // Write pasted text to a temp file and return its path.
+  // Used by the Paste source tab: renderer can't write to the filesystem directly,
+  // so it sends content here, and the returned path is fed to client.ingest.start().
+  handle(
+    "praxis.ingest.writeTempText",
+    wrapEnvelope(
+      "praxis.ingest.writeTempText",
+      log,
+      async (_event: unknown, payload: { content: string; filename: string }) => {
+        const safeFilename = payload.filename.replace(/[/\\?%*:|"<>]/g, "_");
+        const tmpPath = path.join(tmpdir(), safeFilename);
+        writeFileSync(tmpPath, payload.content, "utf8");
+        return tmpPath;
       },
     ),
   );

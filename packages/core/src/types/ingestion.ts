@@ -85,6 +85,13 @@ export interface IngestionClient {
   start(req: IngestionRequest): AsyncIterable<IngestionEvent>;
   /** Whether the ingestion IPC channel is available in this context. */
   isAvailable(): boolean;
+  /**
+   * Write raw text content to an OS temp file and return the absolute path.
+   * Used by the Paste source tab: the renderer sends pasted text to the main
+   * process which writes it to tmpdir, then the renderer calls start() with the
+   * returned path. Filename is e.g. "Pasted notes (2026-05-23).txt".
+   */
+  writeTempText(content: string, filename: string): Promise<string>;
 }
 
 export interface DocumentsClient {
