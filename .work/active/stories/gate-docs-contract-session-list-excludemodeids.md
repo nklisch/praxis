@@ -1,7 +1,7 @@
 ---
 id: gate-docs-contract-session-list-excludemodeids
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -43,3 +43,6 @@ list(opts?: {
 Note in the surrounding prose that `excludeModeIds` is filtered
 server-side before `LIMIT`, and that the library catalog uses it to
 hide `configure` sessions.
+
+## Implementation notes
+Expanded the single-line `list(opts?:...)` declaration in `docs/CONTRACT.md` (actual line 1263, ±5 from story's 1258 due to prior sibling edit) into the multi-line form matching `session-client.ts:33-37`, and added a prose sentence explaining that `excludeModeIds` is filtered at the DB layer before `limit` is applied and that the library catalog uses `["configure"]`. `pnpm typecheck` passed with no errors.

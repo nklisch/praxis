@@ -1260,8 +1260,14 @@ interface TabSummary {
 
 ```typescript
 // Added to SessionService
-list(opts?: { includeEnded?: boolean; limit?: number }): Promise<SessionSummary[]>;
+list(opts?: {
+  includeEnded?: boolean;
+  limit?: number;
+  excludeModeIds?: string[];
+}): Promise<SessionSummary[]>;
 ```
+
+`excludeModeIds` is filtered at the DB layer (via `notInArray`) so that `limit` counts only non-excluded sessions. The library catalog passes `excludeModeIds: ["configure"]` to suppress configure sessions from the archive view.
 
 ## Phase 15a / 15b additive changes
 
