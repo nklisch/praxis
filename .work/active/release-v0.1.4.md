@@ -70,3 +70,29 @@ Headline themes:
   citation inverted-range fix has direct test coverage; vitest config
   scope reduction surfaces no env / secret exposure; no `package.json`
   / lockfile delta in bundle (zero supply-chain change).
+
+- **gate-tests** (2026-05-23) — 17 findings, 0 Critical / 4 High /
+  7 Medium / 6 Low. Highs (release-blocking, `stage: implementing`):
+  `gate-tests-configure-cleanup-migration-idempotency`,
+  `gate-tests-sessions-fk-cascade-contract`,
+  `gate-tests-configure-route-unmount-vs-reuse` (bug-or-spec
+  investigation — `session.end` in configure-route unmount appears to
+  contradict the reuse contract),
+  `gate-tests-multi-document-upload-positive-path`. Mediums
+  (release-blocking, `stage: drafting`):
+  `gate-tests-configure-route-race-on-simultaneous-mount`,
+  `gate-tests-configure-route-unmount-cleanup-no-warning`,
+  `gate-tests-session-active-studentid-isolation`,
+  `gate-tests-session-list-excludemodeids-studentid-isolation`,
+  `gate-tests-session-list-includeended-and-excludemodeids`,
+  `gate-tests-picker-close-midingestion-no-abort`,
+  `gate-tests-rework-cancelbatch-weak-oracle`. Lows parked to backlog:
+  `gate-tests-vitest-filter-desktop-ci-smoke`,
+  `gate-tests-session-list-empty-excludemodeids-envelope`,
+  `gate-tests-useingestion-duplicate-paths-spec`,
+  `gate-tests-library-picker-drag-overlay-child-leave-guard`,
+  `gate-tests-workspace-edge-padding-token-presence`,
+  `gate-tests-recordcitation-error-message-text`. No tests silenced or
+  deleted; `configure-route` test that was replaced asserts a stronger
+  contract than the original (legitimate behavior-change replacement
+  per story implementation notes).
