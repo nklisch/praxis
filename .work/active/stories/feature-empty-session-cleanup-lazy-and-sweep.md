@@ -1,7 +1,7 @@
 ---
 id: feature-empty-session-cleanup-lazy-and-sweep
 kind: story
-stage: review
+stage: done
 tags: [core, sessions, ipc, ui, cleanup]
 parent: feature-empty-session-cleanup
 depends_on: [feature-empty-session-cleanup-fk-migration, feature-empty-session-cleanup-registry]
@@ -137,3 +137,30 @@ Per the parent feature body's Unit 3 spec:
 - Any change to the `IndexerOrchestrator` schedule kinds.
 - UI redesign of session-list or tab-list (the sessions just no longer
   appear in them when empty).
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+All 10 work items landed coherently across 5 packages. SessionDiscardedError
+exported from `@praxis/core/types`. `_persistImmediately` kept internal (not
+exposed via IPC schema — correct). Sweep uses plain setInterval registered
+in `buildServices` and cleared in the Electron `before-quit` handler — clean
+shutdown wiring. 7 sweep unit tests + 7 e2e tests cover the integration
+shape, including the concurrent send-vs-discard race specified in the
+parent feature's design decisions. Both `pnpm typecheck` and full test
+suite (4634 tests) pass.
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Sweep cadence/idle defaults (10min / 30min) are baked in code per the
+  design; if these need tuning before any user sees them, expose the
+  config_kv accessors in `pnpm db:show` or an admin surface — non-urgent.
+- The fake-client `discardIfUnpromoted` stub default added in
+  `fake-client.ts` shows the test-helper expansion working as intended
+  (no test breakage; new method auto-stubbed).
+
+**Notes**: The full empty-session-cleanup feature now has all 3 child
+stories done. Parent feature is at `stage: review`; orchestrator's Phase 9
+advancement already fired. Feature review next.

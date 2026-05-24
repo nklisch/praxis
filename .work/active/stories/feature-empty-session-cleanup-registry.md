@@ -1,7 +1,7 @@
 ---
 id: feature-empty-session-cleanup-registry
 kind: story
-stage: review
+stage: done
 tags: [core, sessions, cleanup]
 parent: feature-empty-session-cleanup
 depends_on: []
@@ -106,3 +106,22 @@ export class SessionPromotionRegistryImpl implements SessionPromotionRegistry {
 - `promote`: 4 tests (return value, txFn receives correct state, not-registered error, txFn-throw preserves entry)
 - `discard`: 6 tests (idempotency, no-op for unregistered, engine close called, tab rows deleted, entry removed from map, continues cleanup on engine close failure)
 - `entries`: 2 tests (reflects only unpromoted sessions, empty iterator)
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Clean implementation of the registry contract. ref-cell pattern for the
+`engineSessionManager` thunk mirrors the existing `notifyParentSessionRef`
+approach — consistent with how circular DI is handled elsewhere. 16 tests
+across 4 describe blocks cover all methods, error paths, and idempotency
+properly. Exports properly threaded through `packages/core/src/services/index.ts`.
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- `SessionServiceImpl.engineManager` visibility change from `private` to
+  `readonly` — necessary for the thunk to resolve it, but worth flagging:
+  the registry now depends on a SessionService internal. A cleaner shape
+  would inject EngineSessionManager directly into the registry's deps
+  (it's constructed before SessionService anyway). Not blocking.

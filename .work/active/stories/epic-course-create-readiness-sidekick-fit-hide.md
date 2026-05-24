@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-sidekick-fit-hide
 kind: story
-stage: review
+stage: done
 tags: [ui, tutor-ux, course-authoring]
 parent: epic-course-create-readiness
 depends_on: []
@@ -90,3 +90,20 @@ new tests appended under the existing `ChatRoute shell` describe block:
    has `modeId: "course-create"`
 2. renders `ChatRightPanel` when active tab has `modeId: "teach"`
 3. renders `ChatRightPanel` when no tabs are open (no active tab → no guard)
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Tight, surgical fix exactly per the locked decision. Guard at the chat.tsx
+layout level (not inside tab bodies) respects the `tab-body-isolation` pattern.
+Three new tests cover course-create-suppresses, teach-renders, and no-active-tab-renders.
+Layout collapses cleanly because the center workspace already uses flex:1.
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: When the parent epic (epic-course-create-readiness) reviews, the
+removal of the dedicated feature wrapper (epic-course-create-readiness-sidekick-fit,
+archived) should be noted in the epic body so the decomposition reads cleanly.

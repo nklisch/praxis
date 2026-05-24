@@ -1,7 +1,7 @@
 ---
 id: feature-empty-session-cleanup-fk-migration
 kind: story
-stage: review
+stage: done
 tags: [db, migration, sessions, cleanup]
 parent: feature-empty-session-cleanup
 depends_on: []
@@ -69,3 +69,22 @@ The migration follows the SQLite table-recreation pattern (same approach used in
 - `pnpm typecheck` — clean.
 - `pnpm lint` — pre-existing errors in `.mockups/` HTML files only (592 errors identical before and after; zero new errors in touched files).
 - `pnpm test` — 431 test files, 4618 tests, all passed.
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Migration follows the established SQLite table-recreate pattern (mirrors
+0016_tab-document-kind.sql). Hand-written SQL + manual journal entry —
+appropriate given Drizzle's generator doesn't cleanly produce FK-drop SQL.
+JSDoc comment on schema names the sweep-job owner for orphan cleanup.
+Verification covered fresh-DB migration + post-migration INSERT smoke +
+full test suite (4618 passing).
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Migration is destructive (drops + recreates tabs). Existing users
+get it on next launch via the migration runner; backup is recommended before
+release, but the table-recreate pattern is well-trodden in this codebase.
