@@ -1,7 +1,7 @@
 ---
 id: gate-tests-session-list-excludemodeids-studentid-isolation
 kind: story
-stage: review
+stage: done
 tags: [testing, sessions]
 parent: null
 depends_on: []
