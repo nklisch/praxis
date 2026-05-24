@@ -55,7 +55,8 @@ function makePromoter(db: TestDb, overrides: Partial<UnpromotedSessionState> = {
     engineSessionManager: () =>
       ({
         close: vi.fn().mockResolvedValue(undefined),
-      }) as ReturnType<typeof vi.fn> as never,
+        // biome-ignore lint/suspicious/noExplicitAny: minimal mock; only close() is exercised by the promotion path under test
+      }) as any,
   });
 
   const persistSessionRow = vi.fn((state: UnpromotedSessionState) => {
