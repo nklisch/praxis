@@ -1,7 +1,7 @@
 ---
 id: feature-orphan-routes-audit-remove-concepts-route
 kind: story
-stage: review
+stage: done
 tags: [ui, navigation, cleanup]
 parent: feature-orphan-routes-audit
 depends_on: []
@@ -59,3 +59,13 @@ The `CourseConceptsListRoute` component is fully implemented with grouping by le
 The `mapBtn` class already exists and is the correct secondary action style — no CSS changes needed.
 
 **Verification:** `pnpm --filter @praxis/ui typecheck` clean; `pnpm --filter @praxis/ui test` — 164 files / 1714 tests passed; `pnpm biome check packages/ui/src/routes/course-detail.tsx` — no issues.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Option A (link it) is the right call — the `CourseConceptsListRoute` is a fully-implemented filterable flat-list view that complements the graph-based map. The "All concepts" `<Link>` in `course-detail.tsx` uses the existing `mapBtn` CSS class (matching "View progress map" styling) and `rawCourseId ?? ""` as the param, which is consistent with the pre-existing pattern at lines 112 and 275 of the same file. No new CSS or tests required for a single navigation link addition. All acceptance criteria met.
