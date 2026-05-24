@@ -1,14 +1,14 @@
 ---
 id: gate-cruft-session-service-assignmentid-undefined-defensive
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: cruft
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # Defensive `assignmentId !== null && !== undefined` checks on non-nullable-undefined columns
@@ -61,3 +61,7 @@ Three call sites collapsed in `packages/core/src/services/session-service.ts`:
 3. **Lines 501-508** (now 499-504) — both `row.courseId !== null && row.courseId !== undefined` and `row.assignmentId !== null && row.assignmentId !== undefined` in `list()` return → each collapsed to `!== null`.
 
 TypeScript narrowed correctly in all three cases (no new errors). All 1159 tests pass.
+
+## Review
+
+Schema confirmed: `packages/memory/src/schema.ts` lines 24 and 26 declare `courseId` and `assignmentId` as `text("...")` without `.notNull()` — Drizzle infers `string | null`, never `undefined`. The `!== undefined` arm was unreachable dead code. All three collapse sites are correct and consistent with the existing `courseId` pattern in `start()`. `pnpm --filter @praxis/core typecheck` passes; 1164 tests pass. **Approved.**
