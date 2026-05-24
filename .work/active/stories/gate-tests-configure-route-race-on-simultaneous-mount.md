@@ -1,14 +1,14 @@
 ---
 id: gate-tests-configure-route-race-on-simultaneous-mount
 kind: story
-stage: review
+stage: done
 tags: [testing, ui]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # Two-tab configure-route mount race regression test missing
@@ -52,3 +52,13 @@ The happy-path sequential race: Mount 1 calls `active()` → null → `start()` 
 Documents the known v1 limitation explicitly in test form. Two independent renders fire `active()` simultaneously; both see null; both call `start()`. The test asserts `start` is called exactly twice and includes a comment: if this ever fails (only 1 call), the race has been fixed upstream and the test should be updated to assert once.
 
 **Design insight**: `sessionStartedRef` is a `useRef` local to each component instance, so it only prevents a single mount from double-starting itself — it provides zero cross-instance coordination. Two simultaneous mounts will always race. This is by-design for v1 per the feature's Risks section.
+
+## Review
+
+**Verdict: approved.**
+
+The "accepted limitation" test (Test 2) is not masking a regression. `feature-configure-mode-session-hygiene § Risks` explicitly states:
+
+> "Two configure tabs opened in the same ~50ms window: both `active()` queries return null before either `start()` resolves — duplicate session is accepted for v1. If it becomes observable, add a server-side `acquireOrStart` method that's atomic under SQLite's serializable transaction model."
+
+The test faithfully documents this accepted v1 behaviour and gives a clear comment that if the assertion ever changes to 1 call, the race has been fixed upstream and the test should be updated. No bug filed — the limitation is design-level, not an undocumented defect. Both tests (sequential-remount happy path and simultaneous-mount limitation) are correct regression coverage.
