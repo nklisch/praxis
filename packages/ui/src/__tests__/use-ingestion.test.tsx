@@ -255,14 +255,21 @@ describe("useIngestion — batch flow (startPickBatch)", () => {
     expect(startFn).toHaveBeenCalledTimes(1);
   });
 
-  it("cancelBatch mid-flight transitions to batch_summary with partial results", async () => {
+  it("cancelBatch mid-flight: file 2 never starts, batch_summary has exactly file 1's result", async () => {
+    // Layout: a.txt (non-PDF, ingests immediately) → b.pdf (PDF, pauses at
+    // tier_selection) → c.txt (should never be reached).
+    //
+    // Strategy:
+    //   1. startPickBatch kicks off; a.txt finishes, loop pauses at tier_selection for b.pdf.
+    //   2. cancelBatch() is called — the tier-selection Promise.race unblocks.
+    //   3. The loop checks cancelRequestedRef and breaks; c.txt is never queued.
+    //   4. Batch transitions to batch_summary with only a.txt's result.
+    //
+    // Strong oracle: startFn called exactly once (a.txt only; b.pdf never started).
+    // No results for b.pdf or c.txt.
     const paths = ["/docs/a.txt", "/docs/b.pdf", "/docs/c.txt"];
 
-    let callCount = 0;
-    const startFn = vi.fn().mockImplementation(() => {
-      callCount++;
-      return makeDoneStream(`doc-${callCount}`);
-    });
+    const startFn = vi.fn().mockReturnValue(makeDoneStream("doc-a"));
 
     const client = makeClient({
       pickPaths: paths,
@@ -275,12 +282,12 @@ describe("useIngestion — batch flow (startPickBatch)", () => {
       void result.current.startPickBatch("files");
     });
 
-    // Wait for the first file (a.txt) to ingest and the second (b.pdf) to hit tier_selection.
+    // Wait for a.txt to complete and b.pdf to pause at tier_selection.
     await waitFor(() => {
       expect(result.current.state.status).toBe("tier_selection");
     });
 
-    // Cancel during tier_selection for b.pdf.
+    // Cancel while the loop is blocked waiting for the user to pick a tier for b.pdf.
     act(() => {
       result.current.cancelBatch();
     });
@@ -289,14 +296,15 @@ describe("useIngestion — batch flow (startPickBatch)", () => {
       expect(result.current.state.status).toBe("batch_summary");
     });
 
+    // Strong oracle: exactly one result — a.txt succeeded; b.pdf and c.txt never ran.
     if (result.current.state.status === "batch_summary") {
-      // a.txt succeeded, then cancel was triggered — summary may have 1 or 2
-      // entries depending on how the cancel races with the loop. At minimum,
-      // we know c.txt was never ingested.
-      expect(result.current.state.results.length).toBeLessThanOrEqual(2);
+      const { results } = result.current.state;
+      expect(results).toHaveLength(1);
+      expect(results[0]?.filePath).toBe("/docs/a.txt");
+      expect(results[0]?.outcome.ok).toBe(true);
     }
 
-    // c.txt must not have been ingested (only a.txt was).
+    // b.pdf's ingestion never started (startFn only called for a.txt).
     expect(startFn).toHaveBeenCalledTimes(1);
   });
 

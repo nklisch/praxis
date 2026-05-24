@@ -1,14 +1,14 @@
 ---
 id: gate-tests-rework-cancelbatch-weak-oracle
 kind: story
-stage: implementing
+stage: review
 tags: [testing, refactor]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # `cancelBatch` test has a race-tolerant assertion that hides bugs
@@ -38,3 +38,36 @@ This isolates the race and tightens the oracle.
 
 ## Test location (suggested)
 `packages/ui/src/__tests__/use-ingestion.test.tsx:384-427`
+
+## Implementation notes
+
+Replaced the weak-oracle `cancelBatch` test in
+`packages/ui/src/__tests__/use-ingestion.test.tsx`.
+
+**Old shape:**
+- 3 files: `a.txt` (non-PDF), `b.pdf` (PDF → tier_selection), `c.txt`
+- Cancelled while waiting at tier_selection for `b.pdf`
+- Result assertion: `results.length <= 2` — tautological (0, 1, or 2 all pass)
+- Only load-bearing check was `startFn.toHaveBeenCalledTimes(1)`
+
+**New shape:**
+- Same 3-file layout, same cancel trigger point (tier_selection for `b.pdf`)
+- `startFn` simplified to `mockReturnValue(makeDoneStream("doc-a"))` — no
+  call-count closure needed since `b.pdf` uses the tier-selection path (no
+  `startFn` call until `confirmTier` is invoked, which never happens)
+- After `cancelBatch()` + `batch_summary` transition:
+  - `results.toHaveLength(1)` — exactly one entry
+  - `results[0].filePath === "/docs/a.txt"` — correct file
+  - `results[0].outcome.ok === true` — succeeded
+  - `startFn.toHaveBeenCalledTimes(1)` — b.pdf never started (strong oracle)
+
+**Design-flaw check:** No escape hatch needed. Traced `cancelBatch()` through
+`_startBatch`: for non-PDF files the `await ingestOneWithResult` is not raced
+against the cancel promise — but that path completes before cancel is
+called (a.txt finishes naturally). The cancel fires while the loop is blocked
+on `Promise.race([tierDeferred.promise, cancelPromise])` for b.pdf; both sides
+of that race resolve simultaneously, `cancelRequestedRef` is true → break.
+Result accumulator holds only a.txt's result. No bug found; test passes
+deterministically.
+
+All 164 @praxis/ui test files pass (1711 tests, 1 skipped).
