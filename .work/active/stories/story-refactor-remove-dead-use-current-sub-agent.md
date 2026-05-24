@@ -1,7 +1,7 @@
 ---
 id: story-refactor-remove-dead-use-current-sub-agent
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, cleanup]
 parent: null
 depends_on: []
@@ -43,3 +43,19 @@ re-export site, remove it from any index file too (verify during implementation)
 ## Risk: Low
 Zero consumers verified. If the hook is needed later, `useSubAgent` is the live hook;
 the dead version is recreatable from git history.
+
+## Implementation notes
+
+**Verification command + result:**
+```
+grep -rn "useCurrentSubAgent" packages --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" | grep -v "dist/"
+```
+Result: exactly one line — the definition in `packages/ui/src/hooks/use-current-sub-agent.ts:15`. Zero production or test consumers confirmed.
+
+**Index re-exports:** No `packages/ui/src/hooks/index.ts` or similar file re-exported the hook. Nothing to clean up.
+
+**File deleted:** `packages/ui/src/hooks/use-current-sub-agent.ts` (58 lines). The hook subscribed to `client.subAgent.events()` and called `client.subAgent.list()` to track the most-recently-started running sub-agent's `parentCallId`. It was referenced in JSDoc as used by `<CourseCreateTabBody>` but was never actually imported there.
+
+**Deleted test files:** None — no test file existed for this hook.
+
+**Verification:** `pnpm typecheck && pnpm test --reporter=basic` — 440 test files passed, 4750 tests passed, zero failures.
