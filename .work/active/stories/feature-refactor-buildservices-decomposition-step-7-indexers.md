@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-7-indexers
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -113,3 +113,17 @@ Rollback: revert the new file and restore the inline blocks in `buildServices()`
 - `IndexerServiceDeps` and `IndexerServices` interfaces are exported; the six indexer instances and `conceptMapSnapshotter` are not on the returned slice.
 - Construction order preserved exactly as in `buildServices()`: mastery/misconception → conceptMapConfiguratorId/conceptMapService → snapshotter/divergenceIndexer → affective → procedural → orchestrator.
 - `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both green (520 tests pass).
+
+## Review
+
+**Verdict: done.**
+
+Shape matches the design exactly. Key checks:
+
+- `buildIndexerServices()` exported; returns `IndexerServices` slice with exactly `{ conceptMapService, conceptMapConfiguratorId, indexerOrchestrator }`.
+- `readSessionCourseId` is factory-internal — declared inside `buildIndexerServices`, never exported, passed as a closure to each indexer. Satisfies the acceptance criterion.
+- `conceptMapConfiguratorId` singleton thunk (`() => "default" as ConfiguratorId`) returned on the slice so step-8 workspace and step-9 session assembly share the same identity.
+- Six indexers registered with the orchestrator in correct order: mastery → misconception → affective → procedural → conceptMapSnapshotter → conceptMapDivergenceIndexer.
+- `PraxisDb` used (implementation note correctly flags deviation from brief which said `BetterSQLite3Database`) — this is an improvement, consistent with sibling files.
+- `bootstrapEngineResolver` accepted as dep (passed from step-6 return slice); `conceptMapSnapshotter` and `conceptMapDivergenceIndexer` not on the return — correct.
+- `pnpm typecheck` confirmed green at review time.

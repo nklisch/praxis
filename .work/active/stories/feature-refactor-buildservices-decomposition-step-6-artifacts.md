@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-6-artifacts
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -152,3 +152,18 @@ assignmentService, artifactsService, visionResolver, bootstrapEngineResolver, se
 **`services.ts` untouched**: no changes made to `services.ts` — Step 10 wires and cleans.
 
 `pnpm typecheck && pnpm --filter @praxis/desktop test` green (520 tests pass).
+
+## Review
+
+**Verdict: done.**
+
+Shape matches the design exactly. Key checks:
+
+- `buildArtifactsServices()` is exported from `build-artifacts-services.ts` and returns all members declared in `ArtifactsServices`.
+- `notifyParentSessionRef` is a module-internal `let` inside the factory body — never on the returned object, never exported. The returned `setNotifyParentSession` closure is the only write path, matching the ref-cell pattern specified in the brief.
+- Three engine-resolver closures (`visionResolver`, `bootstrapEngineResolver`, `assignmentEngineResolver`) all close over `db`, `secretStorage`, and `log` from explicit factory parameters — no module-level state.
+- `bootstrapEngineResolver` is surfaced in the return slice so step 7 can reuse it without re-constructing it.
+- Construction ordering enforced by parameter types: `memoryService` required → injected into `ArtifactsServiceImpl`; `assignmentService` constructed before `artifactsService`.
+- `services.ts` is untouched (step 10 wires); no regression to the orchestrator.
+- `PraxisDb` used (not raw `BetterSQLite3Database`) — consistent with sibling factory files.
+- `pnpm typecheck` confirmed green at review time.

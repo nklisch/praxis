@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-8-workspace
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -111,3 +111,18 @@ Rollback: revert the new file and restore the inline blocks in `buildServices()`
 - `dataDir` and `sketchStore` remain local to the factory body — not exported.
 - Used `PraxisDb` / `SqliteDatabase` types from `@praxis/core/db` (matching the pattern established by `build-embeddings-services.ts`).
 - `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both green (34 files, 520 tests).
+
+## Review
+
+**Verdict: done.**
+
+Shape matches the design exactly. Key checks:
+
+- `buildWorkspaceServices()` exported; returns all 11 services declared in `WorkspaceServices` (ingestorRegistry through progressService).
+- `dataDir` and `sketchStore` are local to the factory body — not exported. Satisfies the acceptance criterion.
+- `ingestorRegistry` correctly placed in this factory (depends on both `visionResolver` from step-6 and `embeddedImageStore` from step-4).
+- `bootstrapEngineResolver` added to `WorkspaceServiceDeps` beyond the story brief — this was needed by `NotesServiceImpl.engineResolver` and is a correct, minimal addition.
+- `secretStorage` also on deps (needed by `VisionServiceImpl`) — not in brief but logically required; confirmed harmless addition.
+- `PraxisDb` / `SqliteDatabase` types from `@praxis/core/db` used — matches the established sibling pattern.
+- `app.getPath("userData")` used for `sketchStore` path; the constraint that `app.whenReady()` has resolved at call time is preserved unchanged by the existing `buildServices()` call site.
+- `pnpm typecheck` confirmed green at review time.
