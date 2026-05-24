@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-1-infra
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -85,3 +85,14 @@ export function buildInfraServices(log: MainLogger): InfraServices {
 
 Low — these three services have no initialization side-effects and no inter-dependencies.
 Rollback: revert the file addition and restore the three inline blocks in `buildServices()`.
+
+## Implementation notes
+
+Created `packages/desktop/electron/main/services/build-infra-services.ts` (new subdirectory
+`services/` also created). The file exports `InfraServices` interface and `buildInfraServices(log)`
+factory exactly matching the target state spec. Inline comments from the original `buildServices()`
+blocks were preserved. `services.ts` is not yet modified — wiring deferred to Step 10 per the
+workflow instructions.
+
+Verified: `pnpm typecheck` clean (all 10 packages pass), `pnpm --filter @praxis/desktop test`
+520/520 tests pass. The new file typechecks correctly even though it is not yet imported.
