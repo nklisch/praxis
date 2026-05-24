@@ -35,3 +35,16 @@ The three are independent — none depends on the others — but they share the 
 - **Escape hatches** (structured-question-specific): free-form answer field + explicit `clarify in chat` cancel; tool description forbids "tell me in chat" as a structured choice
 
 The "choice required" / no-skip framing is removed — cancel-to-clarify replaces it as the first-class escape.
+
+## Design decisions
+*(captured 2026-05-24 via `feature-design --only-questions --all`. These lock in directional choices so the full design pass inherits them.)*
+
+- **Paged surface chrome**: Tab strip across the top of the card group when N questions are in flight. Pattern: `[1 ✓] [2 ✓] [● 3] [4 •]` — answered carry `✓`, current carries `●`, unanswered carry `•`. Click any tab to jump (no forced linear walk). Reads as "a related set", emphasizes free navigation, scales beyond two questions cleanly.
+- **Free-form answer field**: Always visible below the structured choices with `or, in your own words...` placeholder. No expand affordance, no segmented Choose/Write toggle. Single Submit handles either source (chosen radio OR free-form text — submit logic prefers free-form when populated, otherwise picks chosen).
+- **`clarify in chat` cancel control**: Secondary text button right of Submit, same row. Reads as an alternative path, not a destructive dismiss. Submitting via `clarify in chat` sends a structured `tool_result` signaling "user wants to discuss this in chat" so the agent resumes normal conversation without thinking it was answered structurally.
+- **Resolved state**: Collapsed summary chip in the chat history — one line: `⤷ you answered — "<answer>" · <time>`. Minimal vertical real estate. Clickable to expand back to full card if user wants to revisit. The full card never lingers post-submit; the chip is the historical record.
+- **Tool-description rule (propagated from foundation)**: `ask_student_question` schema description explicitly forbids "tell me in chat" / "explain in chat" as a structured choice. The `clarify in chat` cancel control owns that path.
+
+## Mockups
+*To be filled in by the mockup pass paired with this `--only-questions` run.*
+- Screens: `.mockups/screens/feature-question-panel-rework/` — state mocks for single-question / paged tab strip / resolved chip / free-form fallback / clarify-in-chat dismiss states.
