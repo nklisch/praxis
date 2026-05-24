@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-1-course
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -103,3 +103,6 @@ export function registerAuthorCourseHandlers(services: Services, log: Logger): v
 
 ## Rollback
 `git revert` the commit for this step; the two handlers remain in `author-channel.ts`.
+
+## Implementation notes
+Created `packages/desktop/electron/main/author-course-channel.ts` (63 lines) exporting `registerAuthorCourseHandlers(services, log)`. Contains a local `requireUnlocked()` guard and the two handlers (`updateCourse`, `getCourseSummary`) extracted verbatim from `author-channel.ts`. Handlers are NOT removed from `author-channel.ts` — that is deferred to step 7. `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both pass (520 tests green).
