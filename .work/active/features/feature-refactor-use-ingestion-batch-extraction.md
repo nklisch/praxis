@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-ingestion-batch-extraction
 kind: feature
-stage: drafting
+stage: implementing
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -49,5 +49,87 @@ top of a shared `ingestOneWithResult` callback. Mirrors the just-shipped
 - Smaller impact than the just-shipped 5 god-files — borderline candidate
 - Discovered by autopilot refactor cadence; flagged as **lower priority**
 
-## Next
-Per-feature design via `/agile-workflow:refactor-design feature-refactor-use-ingestion-batch-extraction`.
+## Refactor Overview
+
+Split `packages/ui/src/hooks/use-ingestion.ts` (~404 lines) into:
+
+- **`use-batch-ingestion.ts`** — new sub-hook owning the batch queue loop, four
+  batch refs, partial-result accumulation, `confirmTier`, `skipCurrentFile`,
+  `cancelBatch`. Accepts `setState`, `ingestOneWithResult`, and a `getState`
+  getter as stable callbacks (mirrors the `useStreamedBubbles(setItems, setThinking)`
+  pattern from the `use-streamed-send` decomposition).
+- **`use-ingestion.ts`** — rewritten as a thin facade: owns `state`/`stateRef`,
+  `ingestOneWithResult`, delegates batch coordination to `useBatchIngestion`, and
+  re-exports `confirmTier`/`skipCurrentFile`/`cancelBatch` from the sub-hook.
+
+Public `UseIngestionResult` API unchanged. All consumers (`chat.tsx`,
+`course-detail.tsx`, `course-create.tsx`, `library.tsx`,
+`library-document-picker.tsx`, `add-document-button.tsx`,
+`add-folder-button.tsx`) keep working without modification.
+
+### Key design decisions
+
+1. **`confirmTier` lives in `useBatchIngestion`** — it needs `tierDeferredRef`
+   (owned by the sub-hook) and `ingestOneWithResult` (passed as an arg), so it's
+   a natural fit there rather than in the facade.
+
+2. **`getState` getter for `skipCurrentFile`** — `skipCurrentFile` reads
+   `state.filePath`/`state.filename` when `state.status === "tier_selection"`.
+   Passing `() => stateRef.current` (a `useEffect`-mirrored ref from the facade)
+   avoids stale-closure capture inside the sub-hook without introducing a dep on
+   the React state object.
+
+3. **`resetRefs()` exposed** — the facade calls this before each
+   `startPickBatch`/`startBatchWithPaths` run (currently inline; centralised into
+   the sub-hook's return value).
+
+4. **Types stay in `use-ingestion.ts`** — `PendingFile`, `BatchResult`,
+   `IngestionState`, `UseIngestionResult` remain in the facade module;
+   `use-batch-ingestion.ts` imports from `./use-ingestion.js`.
+
+## Refactor Steps
+
+### Step 1 — Extract `useBatchIngestion`
+**Priority**: High | **Risk**: Low (additive only)
+
+**Story**: `feature-refactor-use-ingestion-batch-extraction-step-1-extract-use-batch-ingestion`
+
+Create `packages/ui/src/hooks/use-batch-ingestion.ts`. Move:
+- `tierDeferredRef`, `tierResultRef`, `cancelRequestedRef`, `batchCancelRef`
+- `_startBatch` → renamed `startBatch`
+- `confirmTier`
+- `skipCurrentFile` (uses `getState` getter arg instead of captured `state`)
+- `cancelBatch`
+- `resetRefs()` (replaces inline ref resets in `startPickBatch`/`startBatchWithPaths`)
+
+Exports: `UseBatchIngestionResult` interface + `useBatchIngestion` function.
+`use-ingestion.ts` is untouched in this step.
+
+Acceptance: `pnpm typecheck && pnpm lint && pnpm test` pass; new file compiles
+cleanly.
+
+### Step 2 — Rewrite `useIngestion` facade
+**Priority**: High | **Risk**: Low–Medium (logic moved, not rewritten)
+
+**Story**: `feature-refactor-use-ingestion-batch-extraction-step-2-facade-rewrite`
+
+Rewrite `use-ingestion.ts` body:
+- Keep: type definitions, `mimeTypeFromPath`, `errString`, `ingestOneWithResult`,
+  `startPickBatch`, `startBatchWithPaths`, `dismiss`, return object
+- Add: `stateRef` mirror, `const batch = useBatchIngestion(setState, ingestOneWithResult, () => stateRef.current)`
+- Replace: inline batch refs/logic with delegation to `batch.*`
+- Re-export: `confirmTier`, `skipCurrentFile`, `cancelBatch` from `batch`
+
+Target: `use-ingestion.ts` shrinks to ≤150 lines of logic (excluding type block +
+helpers). All existing tests pass without modification.
+
+Acceptance: all `use-ingestion.test.tsx` and `library-document-picker.test.tsx`
+tests pass; `pnpm typecheck && pnpm lint` clean.
+
+## Implementation Order
+
+```
+Step 1 (extract sub-hook)  →  Step 2 (facade rewrite)
+```
+
+Sequential — Step 2 imports from Step 1's new file. No parallelism possible.
