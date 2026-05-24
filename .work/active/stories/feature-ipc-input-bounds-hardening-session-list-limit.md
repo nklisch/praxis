@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-input-bounds-hardening-session-list-limit
 kind: story
-stage: implementing
+stage: review
 tags: [security]
 parent: feature-ipc-input-bounds-hardening
 depends_on: []
@@ -39,3 +39,11 @@ table in one IPC call, and to bound the eventual `NOT IN (?, ?, …)`
 clause. The follow-up `firstEvent` lookup is N round-trips per row
 (already flagged as a TODO in the code comment), so very large `limit`
 values amplify cost.
+
+## Implementation notes
+
+- Added `.max(1000)` to `limit` and `.max(32)` to `excludeModeIds` in `sessionListSchema` in `packages/desktop/electron/main/session-channel.ts`.
+- Added a comment above the schema: `// Bounds: limit ≤ 1000 (avoid full-table IPC dump); excludeModeIds ≤ 32 (bound NOT IN clause).`
+- No tests needed updating — all existing test values are well within bounds (`limit: 10`, `limit: 20`, single-element `excludeModeIds` arrays).
+- Only production caller (`use-library.ts`) uses `limit: 10` — unaffected.
+- Typecheck and all 519 desktop tests pass.

@@ -168,11 +168,12 @@ export function registerSessionHandlers(
 
   // Phase 14: Session list (archive)
 
+  // Bounds: limit ≤ 1000 (avoid full-table IPC dump); excludeModeIds ≤ 32 (bound NOT IN clause).
   const sessionListSchema = z
     .object({
       includeEnded: z.boolean().optional(),
-      limit: z.number().int().positive().optional(),
-      excludeModeIds: z.array(z.string()).optional(),
+      limit: z.number().int().positive().max(1000).optional(),
+      excludeModeIds: z.array(z.string()).max(32).optional(),
     })
     .optional();
 
