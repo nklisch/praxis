@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2 · Question submit · async chat interactions</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+    .flow-nav { display: flex; gap: 16px; align-items: center; padding: 10px 24px; background: #0d1117; color: #c9d1d9; border-bottom: 1px solid #30363d; font: 13px/1.4 system-ui; }
+    .flow-nav .pos { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
+    .flow-nav .title { color: #f5f4f0; font-weight: 500; }
+    .flow-nav .crumbs { color: #8b949e; margin-left: auto; }
+    .flow-nav a { color: #6cf; text-decoration: none; padding: 4px 10px; border: 1px solid #30363d; border-radius: 3px; font-size: 12px; }
+    .flow-nav a:hover { border-color: #6cf; }
+    .instructions { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-accent); padding: 14px 24px; margin: 0; font: italic 14px/1.55 var(--font-serif); color: var(--color-text-secondary); }
+    .instructions strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+    .instructions code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; font-style: normal; }
+
+    main.session { max-width: 720px; margin: 0 auto; padding: 32px 48px 80px; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 26px/1.2 var(--font-display); margin: 0 0 28px; }
+    .turn { margin-bottom: 24px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; display: flex; gap: 8px; align-items: baseline; }
+    .turn .speaker .when { color: var(--color-text-tertiary); font-weight: 400; }
+    .turn .speaker .streaming { color: var(--color-accent); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    .turn .speaker .streaming .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 8px; }
+    .turn.tutor p em { font-style: italic; }
+    .turn.tutor .cursor::after { content: "▍"; color: var(--color-accent); animation: blink 0.9s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .question-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 20px 24px; margin: 18px 0; transition: opacity 200ms ease, transform 200ms ease; }
+    .question-card.dismissed { opacity: 0; transform: translateY(-12px); pointer-events: none; max-height: 0; padding: 0 24px; margin: 0; border-color: transparent; overflow: hidden; }
+    .question-card .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; display: flex; gap: 8px; align-items: baseline; }
+    .question-card .kicker .glyph { color: var(--tint-teach); font-style: italic; font-family: var(--font-serif); font-size: 14px; }
+    .question-card .prompt { font: italic 17px/1.5 var(--font-display); margin: 0 0 16px; }
+    .choices { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+    .choice { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer; font: 15px/1.4 var(--font-serif); transition: background 80ms ease; }
+    .choice:hover { background: var(--color-bg-tertiary); }
+    .choice .radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--color-border-strong); flex-shrink: 0; position: relative; }
+    .choice.selected .radio { border-color: var(--color-accent); }
+    .choice.selected .radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--color-accent); }
+    .choice.selected { background: var(--color-accent-muted); }
+    .free-form { margin: 4px 0 14px; }
+    .free-form label { display: block; font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .free-form textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-tertiary); padding: 10px 12px; font: italic 15px/1.5 var(--font-serif); resize: vertical; min-height: 52px; outline: none; }
+    .actions { display: flex; gap: 12px; align-items: center; }
+    .btn-primary { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 9px 18px; font: 500 13px/1 var(--font-sans); cursor: pointer; }
+    .btn-text { background: transparent; border: 0; padding: 9px 12px; color: var(--color-text-secondary); font: 500 13px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+    .btn-text:hover { color: var(--color-accent); }
+    .btn-text .glyph { font-family: var(--font-mono); font-size: 12px; }
+
+    .resolved-chip { display: inline-flex; gap: 8px; align-items: baseline; padding: 6px 12px 6px 10px; margin: 4px 0 4px 28px; background: var(--color-bg-tertiary); border-left: 2px solid var(--color-accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font: italic 14px/1.4 var(--font-serif); color: var(--color-text-secondary); animation: slide-in 280ms ease-out; }
+    @keyframes slide-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    .resolved-chip .glyph { font: 600 11px/1 var(--font-mono); color: var(--color-accent); font-style: normal; }
+    .resolved-chip .verb { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-tertiary); font-style: normal; }
+    .resolved-chip .answer { color: var(--color-text-primary); font-style: italic; }
+    .resolved-chip .answer::before, .resolved-chip .answer::after { content: '"'; color: var(--color-text-tertiary); }
+    .resolved-chip .when { color: var(--color-text-tertiary); font-style: normal; font: 600 10px/1 var(--font-mono); padding-left: 8px; }
+
+    .reset { position: fixed; bottom: 20px; right: 20px; padding: 8px 14px; background: var(--color-bg-inverse); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); font: 500 12px/1 var(--font-sans); cursor: pointer; opacity: 0.7; }
+    .reset:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="flow-nav">
+    <span class="pos">scenario 2 / 5</span>
+    <span class="title">Structured question · submit dismisses immediately</span>
+    <span class="crumbs">async chat interactions</span>
+    <a href="01-composer-queue.html">← prev</a>
+    <a href="index.html">index</a>
+    <a href="03-materialize-pending.html">next →</a>
+  </div>
+
+  <div class="instructions">
+    <strong>Try it.</strong> Pick an answer below and hit <code>Submit</code>. Watch the card collapse to a chip <em>the moment you click</em> — no round-trip wait, no greyed-out state. The tutor's next turn starts streaming behind it. The tool result (your answer) is still being sent to the model in the background; the UI doesn't wait for it. Refresh or click <code>reset</code> to try again.
+  </div>
+
+  <main class="session">
+    <header class="session-head">
+      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 · Calculus I</div>
+      <h1>Why the chain rule actually works</h1>
+    </header>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor</div>
+      <p>Before we work the balloon example, let's check your starting intuition.</p>
+    </div>
+
+    <div class="question-card" id="qcard">
+      <div class="kicker"><span class="glyph">?</span>tutor asked</div>
+      <div class="prompt">If the radius of a balloon grows at <em>2 cm/s</em> when r = 5 cm, what's the <em>first</em> thing you'd compute to find dV/dt?</div>
+      <div class="choices" id="choices">
+        <div class="choice" data-text="the volume V at r = 5"><span class="radio"></span>The volume V at r = 5</div>
+        <div class="choice" data-text="the derivative dV/dr at r = 5"><span class="radio"></span>The derivative dV/dr at r = 5</div>
+        <div class="choice" data-text="the time t at which r = 5"><span class="radio"></span>The time t at which r = 5</div>
+        <div class="choice" data-text="the integral of dr/dt from 0 to 5"><span class="radio"></span>The integral of dr/dt from 0 to 5</div>
+      </div>
+      <div class="free-form">
+        <label>or, in your own words</label>
+        <textarea id="freeForm" placeholder="…something else? sketch the reasoning."></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn-primary" onclick="submit()">Submit ↵</button>
+        <button class="btn-text" onclick="clarifyInChat()"><span class="glyph">↑</span>clarify in chat</button>
+      </div>
+    </div>
+
+    <div id="chip-mount"></div>
+    <div id="tutor-followup"></div>
+  </main>
+
+  <button class="reset" onclick="location.reload()">↻ reset</button>
+
+  <script>
+    let selected = null;
+    document.querySelectorAll('#choices .choice').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('#choices .choice').forEach(x => x.classList.remove('selected'));
+        el.classList.add('selected');
+        selected = el.dataset.text;
+      });
+    });
+
+    function submit() {
+      const ff = document.getElementById('freeForm').value.trim();
+      const answer = ff || selected;
+      if (!answer) return alert('pick a choice or write a free-form answer');
+      // INSTANT: card collapses now, no waiting
+      document.getElementById('qcard').classList.add('dismissed');
+      const chip = document.createElement('div');
+      chip.className = 'resolved-chip';
+      chip.innerHTML = `<span class="glyph">↳</span><span class="verb">you answered</span><span class="answer">${escape(answer)}</span><span class="when">just now</span>`;
+      document.getElementById('chip-mount').appendChild(chip);
+      // tutor reply starts streaming after a brief beat (simulates engine roundtrip)
+      setTimeout(() => {
+        const t = document.createElement('div');
+        t.className = 'turn tutor';
+        t.innerHTML = `<div class="speaker">Tutor <span class="when">· just now</span> <span class="streaming"><span class="pulse"></span>streaming</span></div><p>Exactly — and that's the geometry piece. <em>dV/dr = 4πr²</em> at r = 5 gives 100π. Now we just need to multiply by the rate at which r itself changes<span class="cursor"></span></p>`;
+        document.getElementById('tutor-followup').appendChild(t);
+      }, 380);
+    }
+
+    function clarifyInChat() {
+      document.getElementById('qcard').classList.add('dismissed');
+      const chip = document.createElement('div');
+      chip.className = 'resolved-chip';
+      chip.style.borderLeftColor = 'var(--color-text-tertiary)';
+      chip.innerHTML = `<span class="glyph" style="color:var(--color-text-tertiary)">↳</span><span class="verb">you asked to discuss in chat</span><span class="when">just now</span>`;
+      document.getElementById('chip-mount').appendChild(chip);
+      setTimeout(() => {
+        const t = document.createElement('div');
+        t.className = 'turn tutor';
+        t.innerHTML = `<div class="speaker">Tutor <span class="when">· just now</span> <span class="streaming"><span class="pulse"></span>streaming</span></div><p>Sure — what's the part that didn't fit? Let's slow down on whichever piece feels off<span class="cursor"></span></p>`;
+        document.getElementById('tutor-followup').appendChild(t);
+      }, 380);
+    }
+
+    function escape(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  </script>
+</body>
+</html>

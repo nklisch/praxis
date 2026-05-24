@@ -44,5 +44,12 @@ Refactor-design will:
 - **Pattern scope**: Establishes a reusable hook/component pair (working name: `useOptimisticAction` + `<PendingIndicator>` / `<FailedIndicator>`) that every catalogued sync-await surface refactors to. Pattern skill written under `.claude/skills/patterns/optimistic-dispatch.md` once the third refactor lands and the shape is proven.
 
 ## Mockups
-*To be filled in by the mockup pass paired with this `--only-questions` run.*
-- Flow: `.mockups/flows/async-chat-interactions/` — fully interactive multi-page flow demonstrating the pattern across 4-5 heterogeneous affordances (composer send-while-streaming, structured-question submit + tutor next turn, materialize-button kick-off, failed dispatch + retry, activity-strip escalation). Each step is clickable; the flow demonstrates how these interactive moments should *feel*, not just look.
+- Inherits design system: `.mockups/design-system/tokens.css`
+- Flow · fully interactive at `.mockups/flows/async-chat-interactions/` (also linked from `.mockups/flows/index.html`):
+  - `index.html` — flow navigator + the canonical-pattern principle box + state-glyph legend
+  - `01-composer-queue.html` — interactive: type, send during streaming, queue grows as ghost bubbles, edit/remove per item, Esc or Stop aborts
+  - `02-question-submit.html` — interactive: pick a choice, Submit, card collapses to a chip instantly; tutor next turn streams behind it; also try `clarify in chat`
+  - `03-materialize-pending.html` — interactive: click a `Generate quiz items` button; pip pulses; result lands in thread; button never disables
+  - `04-failed-retry.html` — interactive: same affordance rigged to fail first time; pip turns to ⚠; click ⚠ for popover with retry; second attempt succeeds
+  - `05-strip-escalation.html` — interactive: dispatch fails; do nothing; after 6s (compressed from production 30s) the activity strip slides down with the failed item; retry / dismiss from the strip
+- Pattern skill candidate: `.claude/skills/patterns/optimistic-dispatch.md` — write after the third per-surface refactor lands and the shape is proven (per `Pattern scope` in Design decisions).

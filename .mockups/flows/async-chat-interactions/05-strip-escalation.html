@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>5 · Strip escalation · async chat interactions</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+    .flow-nav { display: flex; gap: 16px; align-items: center; padding: 10px 24px; background: #0d1117; color: #c9d1d9; border-bottom: 1px solid #30363d; font: 13px/1.4 system-ui; }
+    .flow-nav .pos { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
+    .flow-nav .title { color: #f5f4f0; font-weight: 500; }
+    .flow-nav .crumbs { color: #8b949e; margin-left: auto; }
+    .flow-nav a { color: #6cf; text-decoration: none; padding: 4px 10px; border: 1px solid #30363d; border-radius: 3px; font-size: 12px; }
+    .flow-nav a:hover { border-color: #6cf; }
+    .instructions { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-accent); padding: 14px 24px; margin: 0; font: italic 14px/1.55 var(--font-serif); color: var(--color-text-secondary); }
+    .instructions strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+    .instructions code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; font-style: normal; }
+
+    /* Activity strip mock — sits at the top of the workspace, normally invisible */
+    .activity-strip { background: var(--color-bg-tertiary); border-bottom: 1px solid var(--color-border); padding: 0 24px; display: flex; gap: 16px; align-items: center; font: italic 13px/1.4 var(--font-serif); color: var(--color-text-secondary); max-height: 0; overflow: hidden; transition: max-height 320ms ease, padding 320ms ease; }
+    .activity-strip.active { max-height: 60px; padding: 10px 24px; }
+    .activity-strip .pip { width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); flex-shrink: 0; animation: pip-pulse 1.6s ease-in-out infinite; }
+    @keyframes pip-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+    .activity-strip .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); font-style: normal; }
+    .activity-strip .text { flex: 1; }
+    .activity-strip .text strong { font-style: normal; color: var(--color-text-primary); font-weight: 600; }
+    .activity-strip .retry { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 6px 12px; font: 500 12px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+    .activity-strip .retry .glyph { font-family: var(--font-mono); font-size: 11px; }
+    .activity-strip .dismiss { background: transparent; border: 0; color: var(--color-text-tertiary); font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; padding: 4px 8px; }
+    .activity-strip .dismiss:hover { color: var(--color-text-primary); }
+
+    main.session { max-width: 720px; margin: 0 auto; padding: 32px 48px 80px; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 26px/1.2 var(--font-display); margin: 0 0 28px; }
+    .turn { margin-bottom: 24px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 8px; }
+
+    .materialize-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 18px 22px; margin: 18px 0; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .materialize-card .body { flex: 1; min-width: 200px; }
+    .materialize-card .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .materialize-card .title { font: italic 16px/1.4 var(--font-display); margin: 0; }
+    .action-with-pip { position: relative; display: inline-flex; align-items: center; }
+    .btn-action { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 10px 18px; font: 500 13px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+    .btn-action .glyph { font-family: var(--font-mono); font-size: 13px; }
+
+    .pip { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-left: 10px; font: 700 12px/1 var(--font-mono); transition: background 180ms ease, opacity 180ms ease, transform 180ms ease; opacity: 0; transform: scale(0.6); }
+    .pip.show { opacity: 1; transform: scale(1); }
+    .pip--pending { background: var(--color-text-tertiary); color: transparent; animation: pip-pulse-sm 1.2s ease-in-out infinite; }
+    .pip--pending::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+    @keyframes pip-pulse-sm { 0%, 100% { opacity: 0.5; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.05); } }
+    .pip--failed { background: var(--color-danger); color: #fff; cursor: pointer; }
+    .pip--failed::after { content: "⚠"; }
+
+    .escalation-timer { font: italic 13px/1.4 var(--font-serif); color: var(--color-text-tertiary); margin-left: 16px; }
+    .escalation-timer.escalated { color: var(--color-danger); font-weight: 600; }
+
+    .demo-note { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 18px; margin: 18px 0; font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .demo-note strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+
+    .reset { position: fixed; bottom: 20px; right: 20px; padding: 8px 14px; background: var(--color-bg-inverse); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); font: 500 12px/1 var(--font-sans); cursor: pointer; opacity: 0.7; }
+    .reset:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="flow-nav">
+    <span class="pos">scenario 5 / 5</span>
+    <span class="title">Escalation to the activity strip</span>
+    <span class="crumbs">async chat interactions</span>
+    <a href="04-failed-retry.html">← prev</a>
+    <a href="index.html">index</a>
+  </div>
+
+  <div class="instructions">
+    <strong>Try it.</strong> Click <code>Generate quiz items</code>. The dispatch will fail (rigged). <em>Do not click the warning glyph</em> — just wait. After about 6 seconds (compressed from the production 30s), the activity strip at the top will slide down with the failed item as a persistent banner. Tier 1 (inline) and tier 2 (strip) coexist. From the strip you can <code>retry</code> or <code>dismiss</code>. Clicking the inline ⚠ before the strip appears would have prevented escalation entirely.
+  </div>
+
+  <div class="activity-strip" id="strip">
+    <div class="pip"></div>
+    <div class="label">Activity</div>
+    <div class="text"><strong>1 action failed.</strong> "Generate quiz items" — unattended for <span id="timeAgo">6</span>s. <em>Engine returned <code style="font-family: var(--font-mono); background: var(--color-bg-secondary); padding: 1px 4px; border-radius: 2px; font-style: normal;">503 model_unavailable</code>.</em></div>
+    <button class="retry" onclick="retryFromStrip()"><span class="glyph">↺</span>retry</button>
+    <button class="dismiss" onclick="dismissStrip()">dismiss</button>
+  </div>
+
+  <main class="session">
+    <header class="session-head">
+      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 · Calculus I</div>
+      <h1>Why the chain rule actually works</h1>
+    </header>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor</div>
+      <p>You've worked the balloon case. Ready for a few formative checks? I'll generate four quick items pitched at where your mastery is right now.</p>
+    </div>
+
+    <div class="materialize-card">
+      <div class="body">
+        <div class="label">Quick check</div>
+        <div class="title">Four chain-rule items, pitched to your current mastery</div>
+      </div>
+      <div class="action-with-pip">
+        <button class="btn-action" onclick="dispatch()"><span class="glyph">↑</span>Generate quiz items</button>
+        <span class="pip" id="pip"></span>
+      </div>
+      <div class="escalation-timer" id="timer"></div>
+    </div>
+
+    <div class="demo-note">
+      <strong>Production note:</strong> the escalation threshold is 30s in the real implementation. This demo compresses it to 6s so the interaction is visible without sitting and counting. The threshold is configurable per surface — long-running operations might escalate sooner; instant operations might never escalate.
+    </div>
+  </main>
+
+  <button class="reset" onclick="location.reload()">↻ reset</button>
+
+  <script>
+    const strip = document.getElementById('strip');
+    const pip = document.getElementById('pip');
+    const timer = document.getElementById('timer');
+    const timeAgo = document.getElementById('timeAgo');
+    let escalationTimer = null;
+    let countdownInterval = null;
+    let secondsRemaining = 6;
+    let secondsSinceEscalation = 0;
+    let stripAgeInterval = null;
+
+    function setPip(kind) { pip.className = 'pip show pip--' + kind; }
+    function clearPip() { pip.className = 'pip'; }
+
+    function dispatch() {
+      setPip('pending');
+      timer.textContent = '';
+      strip.classList.remove('active');
+      setTimeout(() => {
+        setPip('failed');
+        // Start escalation timer
+        secondsRemaining = 6;
+        timer.textContent = `inline · escalation in ${secondsRemaining}s`;
+        timer.classList.remove('escalated');
+        countdownInterval = setInterval(() => {
+          secondsRemaining--;
+          if (secondsRemaining > 0) {
+            timer.textContent = `inline · escalation in ${secondsRemaining}s`;
+          }
+        }, 1000);
+        escalationTimer = setTimeout(escalate, 6000);
+      }, 1200);
+    }
+
+    function escalate() {
+      clearInterval(countdownInterval);
+      strip.classList.add('active');
+      timer.textContent = 'escalated to activity strip · still failed inline';
+      timer.classList.add('escalated');
+      // Strip age counter
+      secondsSinceEscalation = 6;
+      timeAgo.textContent = secondsSinceEscalation;
+      stripAgeInterval = setInterval(() => { secondsSinceEscalation++; timeAgo.textContent = secondsSinceEscalation; }, 1000);
+    }
+
+    function dismissStrip() {
+      strip.classList.remove('active');
+      clearInterval(stripAgeInterval);
+      timer.textContent = 'strip dismissed · inline failure still present';
+      timer.classList.remove('escalated');
+    }
+
+    function retryFromStrip() {
+      clearInterval(stripAgeInterval);
+      strip.classList.remove('active');
+      timer.textContent = 'retrying from strip…';
+      timer.classList.remove('escalated');
+      setPip('pending');
+      setTimeout(() => { setPip(''); clearPip(); timer.textContent = 'retry succeeded'; }, 1400);
+    }
+  </script>
+</body>
+</html>

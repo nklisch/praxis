@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>4 · Failed → retry · async chat interactions</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+    .flow-nav { display: flex; gap: 16px; align-items: center; padding: 10px 24px; background: #0d1117; color: #c9d1d9; border-bottom: 1px solid #30363d; font: 13px/1.4 system-ui; }
+    .flow-nav .pos { font: 600 11px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
+    .flow-nav .title { color: #f5f4f0; font-weight: 500; }
+    .flow-nav .crumbs { color: #8b949e; margin-left: auto; }
+    .flow-nav a { color: #6cf; text-decoration: none; padding: 4px 10px; border: 1px solid #30363d; border-radius: 3px; font-size: 12px; }
+    .flow-nav a:hover { border-color: #6cf; }
+    .instructions { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-accent); padding: 14px 24px; margin: 0; font: italic 14px/1.55 var(--font-serif); color: var(--color-text-secondary); }
+    .instructions strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+    .instructions code { font: 13px/1 var(--font-mono); background: var(--color-bg-secondary); padding: 1px 5px; border-radius: 3px; font-style: normal; }
+
+    main.session { max-width: 720px; margin: 0 auto; padding: 32px 48px 80px; }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 26px/1.2 var(--font-display); margin: 0 0 28px; }
+
+    .turn { margin-bottom: 24px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 6px; }
+    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 8px; }
+
+    .materialize-card { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 18px 22px; margin: 18px 0; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .materialize-card .body { flex: 1; min-width: 200px; }
+    .materialize-card .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 4px; }
+    .materialize-card .title { font: italic 16px/1.4 var(--font-display); margin: 0; }
+
+    .action-with-pip { position: relative; display: inline-flex; align-items: center; }
+    .btn-action { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 10px 18px; font: 500 13px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+    .btn-action .glyph { font-family: var(--font-mono); font-size: 13px; }
+
+    .pip { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-left: 10px; font: 700 12px/1 var(--font-mono); transition: background 180ms ease, color 180ms ease, opacity 180ms ease, transform 180ms ease; opacity: 0; transform: scale(0.6); }
+    .pip.show { opacity: 1; transform: scale(1); }
+    .pip--pending { background: var(--color-text-tertiary); color: transparent; animation: pip-pulse 1.2s ease-in-out infinite; cursor: default; }
+    .pip--pending::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+    @keyframes pip-pulse { 0%, 100% { opacity: 0.5; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.05); } }
+    .pip--failed { background: var(--color-danger); color: #fff; cursor: pointer; }
+    .pip--failed::after { content: "⚠"; }
+    .pip--failed { animation: pip-shake 320ms ease; }
+    @keyframes pip-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+    .pip--retrying { background: var(--color-accent); color: #fff; cursor: default; }
+    .pip--retrying::after { content: "↺"; animation: pip-spin 800ms linear infinite; display: inline-block; }
+    @keyframes pip-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+    .pip--success { background: var(--color-success); color: #fff; animation: pip-flash 600ms ease-out; }
+    .pip--success::after { content: "✓"; }
+    @keyframes pip-flash { 0% { transform: scale(0.4); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+    /* Popover that appears below the failed pip when clicked */
+    .failure-popover { position: absolute; top: calc(100% + 8px); left: 0; background: var(--color-bg-secondary); border: 1px solid var(--color-danger); border-left-width: 3px; border-radius: var(--radius-md); padding: 14px 18px; min-width: 320px; z-index: 10; box-shadow: 0 8px 24px rgba(0,0,0,0.08); animation: slide-in 200ms ease-out; }
+    @keyframes slide-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .failure-popover .label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-danger); margin-bottom: 8px; }
+    .failure-popover .reason { font: italic 14px/1.5 var(--font-serif); color: var(--color-text-secondary); margin: 0 0 12px; }
+    .failure-popover .reason code { font: 12px/1 var(--font-mono); background: var(--color-bg-tertiary); padding: 1px 5px; border-radius: 3px; font-style: normal; color: var(--color-text-primary); }
+    .failure-popover .actions { display: flex; gap: 8px; }
+    .failure-popover .btn-retry { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 8px 14px; font: 500 12px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+    .failure-popover .btn-retry .glyph { font-family: var(--font-mono); font-size: 11px; }
+    .failure-popover .btn-dismiss { background: transparent; color: var(--color-text-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 8px 14px; font: 500 12px/1 var(--font-sans); cursor: pointer; }
+
+    .materialized-result { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 18px 22px; margin: 18px 0; animation: slide-in-down 320ms ease-out; }
+    @keyframes slide-in-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .materialized-result .kicker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; }
+    .materialized-result ol { margin: 0; padding-left: 22px; font: 15px/1.6 var(--font-serif); }
+    .materialized-result li em { font-style: italic; }
+
+    .reset { position: fixed; bottom: 20px; right: 20px; padding: 8px 14px; background: var(--color-bg-inverse); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); font: 500 12px/1 var(--font-sans); cursor: pointer; opacity: 0.7; }
+    .reset:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="flow-nav">
+    <span class="pos">scenario 4 / 5</span>
+    <span class="title">Failed dispatch · inline ⚠ → one-click retry</span>
+    <span class="crumbs">async chat interactions</span>
+    <a href="03-materialize-pending.html">← prev</a>
+    <a href="index.html">index</a>
+    <a href="05-strip-escalation.html">next →</a>
+  </div>
+
+  <div class="instructions">
+    <strong>Try it.</strong> Same affordance as scenario 3, but the first attempt is rigged to fail. Click <code>Generate quiz items</code> — the pip will go to <code>⚠</code> after a moment. Click the warning. A popover appears with the error reason and a <code>retry</code> button. Retry uses the exact same dispatch params — no re-input. The next attempt succeeds.
+  </div>
+
+  <main class="session">
+    <header class="session-head">
+      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 · Calculus I</div>
+      <h1>Why the chain rule actually works</h1>
+    </header>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor</div>
+      <p>You've worked the balloon case. Ready for a few formative checks? I'll generate four quick items pitched at where your mastery is right now.</p>
+    </div>
+
+    <div class="materialize-card">
+      <div class="body">
+        <div class="label">Quick check</div>
+        <div class="title">Four chain-rule items, pitched to your current mastery</div>
+      </div>
+      <div class="action-with-pip">
+        <button class="btn-action" onclick="dispatch()"><span class="glyph">↑</span>Generate quiz items</button>
+        <span class="pip" id="pip" onclick="onPipClick()"></span>
+        <div id="popoverMount"></div>
+      </div>
+    </div>
+
+    <div id="resultMount"></div>
+  </main>
+
+  <button class="reset" onclick="location.reload()">↻ reset</button>
+
+  <script>
+    const pip = document.getElementById('pip');
+    const popoverMount = document.getElementById('popoverMount');
+    const resultMount = document.getElementById('resultMount');
+    let attempt = 0;
+    let popover = null;
+
+    function setPip(kind) { pip.className = 'pip show pip--' + kind; }
+    function clearPip() { pip.className = 'pip'; }
+
+    function closePopover() { if (popover) { popover.remove(); popover = null; } }
+
+    function dispatch() {
+      attempt++;
+      closePopover();
+      setPip('pending');
+      setTimeout(() => {
+        if (attempt === 1) {
+          // Rigged failure on first attempt
+          setPip('failed');
+        } else {
+          setPip('success');
+          const r = document.createElement('div');
+          r.className = 'materialized-result';
+          r.innerHTML = `<div class="kicker">Quick check · 4 items · generated on retry · attempt ${attempt}</div><ol><li>Compute <em>d/dx [(3x² + 1)⁵]</em></li><li>If <em>h(x) = sin(x²)</em>, find <em>h'(x)</em></li><li>A pebble dropped into a pond makes a circular ripple expanding at 4 cm/s. How fast is the area changing when r = 10 cm?</li><li>True or false: <em>(f ∘ g ∘ h)' = f'(g(h)) · g'(h) · h'</em></li></ol>`;
+          resultMount.appendChild(r);
+          setTimeout(clearPip, 1100);
+        }
+      }, 1300 + Math.random() * 500);
+    }
+
+    function onPipClick() {
+      if (!pip.classList.contains('pip--failed')) return;
+      if (popover) { closePopover(); return; }
+      popover = document.createElement('div');
+      popover.className = 'failure-popover';
+      popover.innerHTML = `
+        <div class="label">⚠ dispatch failed</div>
+        <p class="reason">Engine returned <code>503 model_unavailable</code> — the upstream model declined the request. Local state preserved; same params can be re-sent.</p>
+        <div class="actions">
+          <button class="btn-retry" onclick="retry()"><span class="glyph">↺</span>retry</button>
+          <button class="btn-dismiss" onclick="dismiss()">dismiss</button>
+        </div>
+      `;
+      popoverMount.appendChild(popover);
+    }
+
+    function retry() {
+      closePopover();
+      setPip('retrying');
+      setTimeout(dispatch, 500);
+    }
+
+    function dismiss() { closePopover(); clearPip(); }
+  </script>
+</body>
+</html>
