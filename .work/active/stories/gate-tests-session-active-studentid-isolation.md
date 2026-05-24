@@ -1,7 +1,7 @@
 ---
 id: gate-tests-session-active-studentid-isolation
 kind: story
-stage: implementing
+stage: review
 tags: [testing, sessions]
 parent: null
 depends_on: []
@@ -38,3 +38,21 @@ it("ignores configure sessions belonging to a different student", async () => {
 
 ## Test location (suggested)
 `packages/core/src/services/__tests__/session-service.active.test.ts`
+
+## Implementation notes
+
+Added two new test cases (8 and 9) to the existing
+`packages/core/src/services/__tests__/session-service.active.test.ts` file:
+
+- **Test 8** — inserts an open configure session for `"other-student"` only;
+  asserts `active({ modeId: "configure" })` returns `null` for the runtime
+  current student (isolation: no bleed-through when the current student has no
+  sessions).
+
+- **Test 9** — inserts open configure sessions for both `"other-student"` and
+  the runtime current student; asserts `active()` returns the current student's
+  own session ID and not the other student's.
+
+The `active()` implementation in `session-service.ts` already correctly filters
+by `studentId` via `getOrCreateDefaultStudentId` — isolation is confirmed
+working. No design flaw found. All 1161 tests pass.

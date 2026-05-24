@@ -193,4 +193,29 @@ describe("SessionServiceImpl.active() — modeId filter", () => {
     const result = await svc.active();
     expect(result?.sessionId).toBe(newestId);
   });
+
+  it("8. ignores configure sessions belonging to a different student", async () => {
+    // Insert an open configure session for a different student — the runtime
+    // current student has no sessions; active() must return null, not bleed
+    // across the student boundary.
+    insertSession(db, { studentId: "other-student", modeId: "configure" });
+    const svc = makeService(db);
+    const result = await svc.active({ modeId: "configure" });
+    expect(result).toBeNull();
+  });
+
+  it("9. returns own session but not another student's session of the same mode", async () => {
+    // Both students have an open configure session; active() for the runtime
+    // current student must return only their own session.
+    const otherId = insertSession(db, {
+      studentId: "other-student",
+      modeId: "configure",
+    });
+    const ownId = insertSession(db, { studentId, modeId: "configure" });
+    const svc = makeService(db);
+    const result = await svc.active({ modeId: "configure" });
+    expect(result).not.toBeNull();
+    expect(result?.sessionId).toBe(ownId);
+    expect(result?.sessionId).not.toBe(otherId);
+  });
 });
