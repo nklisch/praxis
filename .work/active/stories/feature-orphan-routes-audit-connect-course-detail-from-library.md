@@ -1,7 +1,7 @@
 ---
 id: feature-orphan-routes-audit-connect-course-detail-from-library
 kind: story
-stage: implementing
+stage: review
 tags: [ui, navigation]
 parent: feature-orphan-routes-audit
 depends_on: []
@@ -38,3 +38,12 @@ The `CoursesSection` component in `components/library/courses-section.tsx` alrea
 - The courses list renders when the user has at least one course.
 - An empty state is shown when there are no courses (link to create one is fine).
 - `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+
+- Imported `CoursesSection` into `packages/ui/src/routes/library.tsx` and placed it between the greeting block and the two-column workbench.
+- Added `handleOpenCourse` callback that calls `navigate({ to: "/courses/$courseId", params: { courseId } })` — `onOpenInTab` prop name kept (rename deferred to sibling story if desired); the handler navigates rather than opening a tab because course detail has no tab concept.
+- `onCreateCourse` is wired to the existing `handleCreateCourse` (→ `/course-create`), giving the section both a header CTA and an empty-state CTA.
+- Courses data comes from `useLibrary()` which already fetched `data.courses` in parallel with packs/docs/sessions — no new API call needed.
+- Fixed a pre-existing `exactOptionalPropertyTypes` violation in `courses-section.tsx`: replaced explicit `undefined` prop assignments for `headerAction`/`emptyAction` with a conditional spread so optional props are simply omitted when `onCreateCourse` is absent.
+- All 164 UI test files (1714 tests) pass; `pnpm typecheck` clean across all packages.

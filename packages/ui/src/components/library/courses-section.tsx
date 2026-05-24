@@ -30,18 +30,14 @@ export function CoursesSection({
       loading={loading}
       items={courses}
       emptyMessage={COPY.empty.libraryCoursesEmpty}
-      headerAction={
-        onCreateCourse !== undefined ? (
+      {...(onCreateCourse !== undefined && {
+        headerAction: (
           <button type="button" className={styles.createCta} onClick={onCreateCourse}>
             + Create a course
           </button>
-        ) : undefined
-      }
-      emptyAction={
-        onCreateCourse !== undefined
-          ? { label: "+ Create a course", onClick: onCreateCourse }
-          : undefined
-      }
+        ),
+        emptyAction: { label: "+ Create a course", onClick: onCreateCourse },
+      })}
       renderItems={(items) => (
         <ol className={styles.list}>
           {items.map((course) => (

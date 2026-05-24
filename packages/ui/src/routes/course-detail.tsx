@@ -1,6 +1,6 @@
 import type { ConceptMapSummary, CourseId, DocumentScopeAttachment } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
 import { CoverageBar } from "../components/coverage-bar.js";
@@ -184,6 +184,13 @@ export function CourseDetailRoute() {
         >
           View progress map
         </button>
+        <Link
+          to="/courses/$courseId/concepts"
+          params={{ courseId: rawCourseId ?? "" }}
+          className={styles.mapBtn}
+        >
+          All concepts
+        </Link>
         <AddDocumentButton ingestion={ingestion} />
         <button type="button" className={styles.mapBtn} onClick={() => setPickerOpen(true)}>
           Reuse from library

@@ -1,7 +1,7 @@
 ---
 id: feature-orphan-routes-audit-remove-concepts-route
 kind: story
-stage: implementing
+stage: review
 tags: [ui, navigation, cleanup]
 parent: feature-orphan-routes-audit
 depends_on: []
@@ -45,3 +45,17 @@ Option A — link it. The flat-list is a useful accessibility complement to the 
 - `courseConcepts` entry removed from `ROUTE_META`.
 - No broken imports remain.
 - `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+
+**Decision: Option A — Link it.**
+
+The `CourseConceptsListRoute` component is fully implemented with grouping by lesson, search/filter with Escape-key clear, sticky section headers, and empty/loading states. Removing it would discard working code that provides a meaningfully different view from the graph-based concept map: a filterable flat list is far more useful for quickly locating a specific concept by name or description.
+
+**Change made:**
+- Added `Link` import from `@tanstack/react-router` to `packages/ui/src/routes/course-detail.tsx`.
+- Added an "All concepts" `<Link>` button in the actions section of `CourseDetailRoute`, positioned after "View progress map" and styled with the existing `mapBtn` CSS class (same secondary button style).
+
+The `mapBtn` class already exists and is the correct secondary action style — no CSS changes needed.
+
+**Verification:** `pnpm --filter @praxis/ui typecheck` clean; `pnpm --filter @praxis/ui test` — 164 files / 1714 tests passed; `pnpm biome check packages/ui/src/routes/course-detail.tsx` — no issues.

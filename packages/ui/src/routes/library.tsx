@@ -8,6 +8,7 @@ import type {
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { AddDocumentButton } from "../components/add-document-button.js";
+import { CoursesSection } from "../components/library/courses-section.js";
 import { PacksSection } from "../components/library/packs-section.js";
 import { getModeMeta } from "../components/mode-meta.js";
 import { RecommendationRow } from "../components/recommendation-row.js";
@@ -64,6 +65,14 @@ export function LibraryRoute() {
   const handleCreateCourse = useCallback(async () => {
     await navigate({ to: "/course-create" });
   }, [navigate]);
+
+  /** Course card "Continue" — navigate to the course detail sub-tree. */
+  const handleOpenCourse = useCallback(
+    async ({ courseId }: { courseId: CourseId; courseTitle: string }) => {
+      await navigate({ to: "/courses/$courseId", params: { courseId } });
+    },
+    [navigate],
+  );
 
   /** "Use this pack" — import pack then navigate to course-create with pack pre-selected. */
   const handleUsePack = useCallback(
@@ -184,6 +193,14 @@ export function LibraryRoute() {
             what you did recently. Everything else is a click away.
           </p>
         </div>
+
+        {/* ── Courses section ──────────────────────────────────────────────── */}
+        <CoursesSection
+          courses={data?.courses}
+          loading={loading}
+          onOpenInTab={handleOpenCourse}
+          onCreateCourse={handleCreateCourse}
+        />
 
         {/* ── Two-column workbench ─────────────────────────────────────────── */}
         <div className={styles.workbench}>
