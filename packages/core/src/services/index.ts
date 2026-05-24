@@ -50,6 +50,8 @@ export type { ArtifactsServiceDeps } from "./artifacts-service.js";
 export { ArtifactsServiceImpl } from "./artifacts-service.js";
 export type { CoursesServiceDeps } from "./courses-service.js";
 export { CoursesServiceImpl, rowToCourse } from "./courses-service.js";
+export type { LessonAssessmentsServiceDeps } from "./lesson-assessments-service.js";
+export { LessonAssessmentsServiceImpl } from "./lesson-assessments-service.js";
 export type { LessonsServiceDeps } from "./lessons-service.js";
 export { LessonsServiceImpl } from "./lessons-service.js";
 export type { GatesServiceDeps } from "./gates-service.js";

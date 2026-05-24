@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-4-assessments-service
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -75,3 +75,20 @@ it in `CoursesServiceImpl`.
 ## Risk
 
 Low — single-method extraction with no transaction involvement.
+
+## Implementation notes
+
+**Duplication fix applied**: The step-2 agent (commit `cb5dc10`, lessons-service extraction)
+accidentally included `lessonAssessments` in `LessonsServiceImpl`. This step removed it from
+`lessons-service.ts` and placed it in the new `LessonAssessmentsServiceImpl` per the parent
+feature's method assignment table.
+
+Imports cleaned from `lessons-service.ts`: `lessonAssessmentsTable` (schema import),
+`LessonAssessment`, and `LessonAssessmentId` type imports. `AssignmentId` was retained
+because `units()` uses it for `summativeAssignmentId`.
+
+New file: `packages/core/src/services/lesson-assessments-service.ts` (47 lines).
+Exported from `packages/core/src/services/index.ts`.
+
+Verification: `pnpm typecheck` passed (all packages clean), `pnpm --filter @praxis/core test`
+passed (96 files, 1164 tests).

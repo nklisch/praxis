@@ -1,7 +1,6 @@
 import {
   courseUnits,
   gates as gatesTable,
-  lessonAssessments as lessonAssessmentsTable,
   lessonProgress,
   lessons,
   lessonUnits,
@@ -14,8 +13,6 @@ import type {
   ConceptId,
   CourseId,
   Lesson,
-  LessonAssessment,
-  LessonAssessmentId,
   LessonId,
   Logger,
   Reference,
@@ -90,21 +87,6 @@ export class LessonsServiceImpl {
       }),
     );
     return result;
-  }
-
-  async lessonAssessments(lessonId: LessonId): Promise<LessonAssessment[]> {
-    const rows = this.deps.db
-      .select()
-      .from(lessonAssessmentsTable)
-      .where(eq(lessonAssessmentsTable.lessonId, lessonId))
-      .all();
-    return rows.map((r) => ({
-      id: brandId<"LessonAssessmentId">(r.id) as LessonAssessmentId,
-      lessonId: brandId<"LessonId">(r.lessonId) as LessonId,
-      assignmentId: brandId<"AssignmentId">(r.assignmentId) as AssignmentId,
-      timing: r.timing,
-      purpose: r.purpose,
-    }));
   }
 
   // ── Snapshot-restore helpers ─────────────────────────────────────────────
