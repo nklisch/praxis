@@ -48,6 +48,12 @@ export { SNAPSHOT_SCHEMA_VERSION, SnapshotCapturer } from "./snapshot-capturer.j
 
 export type { ArtifactsServiceDeps } from "./artifacts-service.js";
 export { ArtifactsServiceImpl } from "./artifacts-service.js";
+export type { CoursesServiceDeps } from "./courses-service.js";
+export { CoursesServiceImpl, rowToCourse } from "./courses-service.js";
+export type { LessonsServiceDeps } from "./lessons-service.js";
+export { LessonsServiceImpl } from "./lessons-service.js";
+export type { GatesServiceDeps } from "./gates-service.js";
+export { GatesServiceImpl } from "./gates-service.js";
 export type { AssignmentServiceDeps } from "./assignment-service.js";
 export {
   AssignmentItemSchema,

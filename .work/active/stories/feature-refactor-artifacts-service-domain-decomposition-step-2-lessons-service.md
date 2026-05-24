@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-2-lessons-service
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -72,3 +72,12 @@ Export `LessonsServiceImpl` from `packages/core/src/services/index.ts`.
 
 Low — pure extraction. `deleteLesson` cross-table write is unchanged (same
 single transaction).
+
+## Implementation notes
+
+- Created `/home/nathan/dev/praxis/packages/core/src/services/lessons-service.ts` (238 lines).
+- Extracted verbatim: `lessons`, `units`, `lessonAssessments`, `getLesson`, `createLesson`, `updateLesson`, `deleteLesson`, `upsertLesson` (public), `nextLessonOrderIndex` (private), and `rowToLesson` (module-level helper).
+- `deleteLesson` retains the single DB transaction that directly queries `gatesTable` for the JSON guard scan — no GatesServiceImpl call, no circular dep.
+- `LessonsServiceImpl` constructor takes `{ db, log }` only; no MasteryReader or GradeReader needed.
+- Exported `LessonsServiceDeps` and `LessonsServiceImpl` from `packages/core/src/services/index.ts`.
+- `pnpm typecheck` clean; `pnpm --filter @praxis/core test` passed 1164 tests across 96 files.
