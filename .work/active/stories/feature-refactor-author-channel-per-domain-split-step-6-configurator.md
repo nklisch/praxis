@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-6-configurator
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -66,3 +66,11 @@ export function registerAuthorConfiguratorHandlers(services: Services, log: Logg
 
 ## Rollback
 `git revert` the commit for this step; the two handlers remain in `author-channel.ts`.
+
+## Implementation notes
+- Created `/home/nathan/dev/praxis/packages/desktop/electron/main/author-configurator-channel.ts` (64 lines).
+- Handler bodies copied verbatim from `author-channel.ts` lines 498–537.
+- `requireUnlocked()` is local (not exported), per pattern.
+- Inline `import("@praxis/core/types").Timestamp` type cast in `listConfiguratorActions` preserved as-is.
+- `author-channel.ts` and `ipc-server.ts` left unmodified (Step 7 handles wiring and deletion).
+- `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both pass (520 tests).
