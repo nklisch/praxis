@@ -43,6 +43,9 @@ export function makeFakeClient(overrides?: Partial<PraxisClient>): PraxisClient 
     recommendations: {} as PraxisClient["recommendations"],
     citations: {} as PraxisClient["citations"],
     library: {} as PraxisClient["library"],
+    progress: {
+      rollup: async () => [],
+    } as PraxisClient["progress"],
     ...overrides,
   };
 }

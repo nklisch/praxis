@@ -1,0 +1,210 @@
+/* ── Progress Route — Course-by-Course Review ──────────────────────────────── */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.body {
+  padding: var(--space-8) var(--space-8) var(--space-16);
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Chapter (one per course) ───────────────────────────────────────────────── */
+
+.chapter {
+  margin-bottom: var(--space-12);
+}
+
+.chapter:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Chapter header row ─────────────────────────────────────────────────────── */
+
+.chapterHead {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-4);
+  align-items: baseline;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.chapterNum {
+  font: 600 italic 18px / 1 var(--font-display, var(--font-serif));
+  color: var(--color-text-tertiary);
+}
+
+.chapterTitle {
+  font: 500 italic 20px / 1.2 var(--font-display, var(--font-serif));
+  margin: 0;
+}
+
+.masteryRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.masteryLabel {
+  font: 600 11px / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+}
+
+.masteryPct {
+  font: 600 11px / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--color-text-primary);
+}
+
+.masteryBar {
+  width: 72px;
+}
+
+/* ── Three-column body ──────────────────────────────────────────────────────── */
+
+.body3col {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1.2fr;
+  gap: var(--space-8);
+}
+
+@media (max-width: 640px) {
+  .body3col {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}
+
+/* ── Section label ──────────────────────────────────────────────────────────── */
+
+.sectionLabel {
+  font: 600 10px / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: 10px; /* between --space-2 and --space-3 */
+}
+
+/* ── You are here ───────────────────────────────────────────────────────────── */
+
+.positionLine {
+  font: italic 14px / 1.55 var(--font-serif);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-1-5);
+}
+
+.positionLine strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.positionGate {
+  font: 12px / 1.4 var(--font-mono);
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.positionGate strong {
+  color: var(--color-accent);
+}
+
+.positionEmpty {
+  font: italic 13px / 1.45 var(--font-serif);
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+/* ── Stuck on ───────────────────────────────────────────────────────────────── */
+
+.stuckList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stuckItem {
+  font: 13px / 1.45 var(--font-serif);
+  color: var(--color-text-secondary);
+  padding: var(--space-1) 0;
+  border-bottom: 1px dotted var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.stuckItem:last-child {
+  border-bottom: none;
+}
+
+.stuckName {
+  font-style: italic;
+  color: var(--color-text-primary);
+}
+
+.stuckMastery {
+  font: 11px / 1 var(--font-mono);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.stuckEmpty {
+  font: italic 13px / 1.45 var(--font-serif);
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+/* ── Recently ───────────────────────────────────────────────────────────────── */
+
+.recentList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recentItem {
+  font: 13px / 1.45 var(--font-serif);
+  color: var(--color-text-secondary);
+  padding: var(--space-1) 0;
+  border-bottom: 1px dotted var(--color-border);
+}
+
+.recentItem:last-child {
+  border-bottom: none;
+}
+
+.recentWhen {
+  display: block;
+  font: 10px / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.recentDesc {
+  display: block;
+  margin-top: var(--space-0-5);
+}
+
+.recentDesc em {
+  font-style: italic;
+  color: var(--color-text-primary);
+}
+
+.recentEmpty {
+  font: italic 13px / 1.45 var(--font-serif);
+  color: var(--color-text-tertiary);
+  margin: 0;
+}

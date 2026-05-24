@@ -1,7 +1,7 @@
 ---
 id: feature-progress-top-nav-route
 kind: story
-stage: implementing
+stage: review
 tags: [ui, content]
 parent: feature-progress-top-nav
 depends_on: [feature-progress-top-nav-service, feature-concept-maps-top-nav-coverage-bar]
@@ -127,6 +127,30 @@ function CourseChapter({ rollup }: { rollup: CourseProgressRollup }): JSX.Elemen
   the canonical mastery-bar component. Don't duplicate.
 - `formatDistanceToNow` exists in the codebase (search for it in date
   helpers); if not, use a simple inline formatter.
+
+## Implementation notes
+
+**Route component**: `packages/ui/src/routes/progress.tsx` — `ProgressRoute` is the top-level component. It uses `useResource` + `client.progress.rollup()` for data loading. Loading, error, and empty (no courses) states all handled with editorial primitives.
+
+**Sub-components** (co-located in the route file):
+- `CourseChapter` — per-course `<article>` with chapter header (roman numeral index, title, mastery%) and three-column body
+- `YouAreHere` — renders lesson position + next gate; falls back to "No active lesson." when both null
+- `StuckOn` — renders 0–N concept rows with name + mastery decimal; falls back to "No stuck concepts."
+- `Recently` — renders 0–3 event rows with relative timestamp + formatted label + detail; falls back to "No recent activity."
+
+**CoverageBar integration**: `packages/ui/src/routes/progress.tsx:164–170` — `<CoverageBar compact>` inside `.masteryBar` wrapper div inside the chapter header `masteryRow`.
+
+**CSS module**: `packages/ui/src/routes/progress.module.css` — chapter layout, three-column grid (collapses to 1-col below 640px), all sub-component typography following Option 1 mock conventions.
+
+**Relative-time formatter**: `formatRelativeTime(atMs)` inline helper — today / yesterday / N days ago / N weeks ago; mirrors the pattern from `library.tsx:groupSessionsByAge`.
+
+**Empty-state CTA**: links to `/course-create` via `useNavigate()`.
+
+**fake-client.ts**: Added `progress: { rollup: async () => [] }` default stub.
+
+**Tests**: `packages/ui/src/__tests__/progress-route.test.tsx` — 18 tests covering all states (loading, error, empty, multi-course, roman numerals, mastery%, CoverageBar, YouAreHere full/partial/null, StuckOn full/empty, Recently all three event kinds + empty + timestamp rendering).
+
+**Verification**: `pnpm typecheck && pnpm lint && pnpm test` all green (4750 tests passed, 440 files).
 
 ## Out of scope
 
