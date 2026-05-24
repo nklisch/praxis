@@ -1,9 +1,9 @@
 ---
 id: gate-tests-workspace-edge-padding-token-presence
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing, ui]
-parent: null
+parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []
 release_binding: null
 gate_origin: tests

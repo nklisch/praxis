@@ -1,9 +1,9 @@
 ---
 id: gate-tests-vitest-filter-desktop-ci-smoke
 kind: story
-stage: backlog
+stage: implementing
 tags: [testing, infra]
-parent: null
+parent: feature-gate-tests-v0.1.4-coverage-sweep
 depends_on: []
 release_binding: null
 gate_origin: tests
