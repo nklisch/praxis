@@ -1,7 +1,7 @@
 ---
 id: gate-tests-sessions-fk-cascade-contract
 kind: story
-stage: review
+stage: done
 tags: [testing, db]
 parent: null
 depends_on: []
@@ -53,3 +53,13 @@ it("deleting a session cascades to episodic_events and tabs", async () => {
 - `tabs.session_id` → NO FK after migration 0026: tab rows are orphaned (not deleted) when their session is deleted; and a tab row can be inserted with a non-existent `sessionId` without error.
 
 The pre-existing failing test (`empty-session-cleanup-e2e.test.ts`) is unrelated to this story and was failing before this work.
+
+## Review
+
+**Verdict: approved.**
+
+Schema cross-check confirmed: `episodicEvents.session_id` carries `.references(() => sessions.id, { onDelete: "cascade" })` in `packages/memory/src/schema.ts:62`; `tabs.sessionId` has no `.references(...)` call post-migration-0026 (confirmed by reading both `drizzle/0026_drop_tabs_session_fk.sql` and the schema). All 4 tests pass (`pnpm vitest run tests/db/sessions-fk-cascade.test.ts` — 4/4 green, 54 ms).
+
+Agent's correction of the stale story body (which wrongly claimed tabs also cascades) is accurate and well-documented. The distinction from the sibling `configure-cleanup-migration.test.ts` is valid: that test exercises the migration SQL directly; this test exercises the contract for any session deletion through the normal Drizzle delete path. Not duplicated.
+
+No blockers, no important findings, no nits.
