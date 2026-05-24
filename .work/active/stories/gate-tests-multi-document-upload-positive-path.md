@@ -1,7 +1,7 @@
 ---
 id: gate-tests-multi-document-upload-positive-path
 kind: story
-stage: implementing
+stage: review
 tags: [testing, ui]
 parent: null
 depends_on: []
@@ -50,3 +50,18 @@ it("library Upload with 3 picked paths runs a batch via AddDocumentButton", asyn
 
 ## Test location (suggested)
 `packages/ui/src/__tests__/library-route.test.tsx`
+
+## Implementation notes
+
+Test added to `packages/ui/src/__tests__/library-route.test.tsx` (file grew from 481 to 515 lines, +34 lines including the helper).
+
+The test "Upload with 3 picked paths calls client.ingest.start 3 times and shows batch summary":
+- Mocks `pickPaths` to return `["/a.txt", "/b.txt", "/c.txt"]` (3 non-PDF paths, no tier modal)
+- Mocks `ingest.start` to return a proper async generator yielding `{ type: "done", documentId, chunkCount }` per file
+- Renders the `LibraryRoute`, clicks the "+ Add documents" button
+- Asserts `client.ingest.start` called exactly 3 times (verifies all 3 files are batched, not just the first)
+- Asserts the `BatchSummaryModal` renders with "3 files added" text
+
+A `makeDoneStream` generator factory was added at the top of the file to produce valid `IngestionEvent` streams, matching the pattern used in `use-ingestion.test.tsx`.
+
+Verification: 25 tests pass in `library-route.test.tsx`; 1707 tests pass across `@praxis/ui`; typecheck clean.

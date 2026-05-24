@@ -11,6 +11,7 @@
  * - Recommendation CTA clicks dispatch to correct surface
  */
 import type {
+  IngestionEvent,
   PackSummaryClient,
   PraxisClient,
   Recommendation,
@@ -27,6 +28,15 @@ import { LibraryRoute } from "../routes/library.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
+
+// ── Ingestion stream helpers ───────────────────────────────────────────────────
+
+async function* makeDoneStream(
+  documentId = "doc-new",
+  chunkCount = 5,
+): AsyncGenerator<IngestionEvent, void, unknown> {
+  yield { type: "done", documentId, chunkCount } as IngestionEvent;
+}
 
 // ── Mock TanStack Router ───────────────────────────────────────────────────────
 
@@ -376,6 +386,40 @@ describe("LibraryRoute — Workbench", () => {
 
     await waitFor(() => {
       expect(client.ingest.pickPaths).toHaveBeenCalledWith({ mode: "files" });
+    });
+  });
+
+  it("Upload with 3 picked paths calls client.ingest.start 3 times and shows batch summary", async () => {
+    let callCount = 0;
+    const startFn = vi.fn().mockImplementation(() => {
+      callCount++;
+      return makeDoneStream(`doc-${callCount}`, callCount * 3);
+    });
+
+    const client = makeClient();
+    (client.ingest.pickPaths as ReturnType<typeof vi.fn>).mockResolvedValue([
+      "/a.txt",
+      "/b.txt",
+      "/c.txt",
+    ]);
+    (client.ingest.start as ReturnType<typeof vi.fn>).mockImplementation(startFn);
+
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /\+ Add documents/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /\+ Add documents/i }));
+
+    // All 3 files are non-PDF so no tier modal — ingest.start fires once per file.
+    await waitFor(() => {
+      expect(client.ingest.start).toHaveBeenCalledTimes(3);
+    });
+
+    // After all 3 ingest, the batch summary modal should appear.
+    await waitFor(() => {
+      expect(screen.getByText(/3 files added/i)).toBeDefined();
     });
   });
 
