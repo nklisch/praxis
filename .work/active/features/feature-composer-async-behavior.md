@@ -21,3 +21,15 @@ The chat composer locks the send button while the tutor is mid-turn, blocking th
 
 ## Foundation reference
 `docs/UX.md` teach-modality composer section now states: "The composer never locks while the tutor is mid-turn — additional messages typed during an in-flight response queue and dispatch in order behind the active turn, and the send button transforms into a cancel control during in-flight state that aborts the current turn via the engine's AbortSignal path." Feature design fills in the visual treatment (queued-message pill list? send/cancel toggle vs separate buttons? error-on-queued-message handling?).
+
+## Design decisions
+*(captured 2026-05-24 via `feature-design --only-questions --all`. These lock in directional choices so the full design pass inherits them.)*
+
+- **Cancel control shape**: Send button transforms into Stop (`■`) in place during in-flight state — single affordance, swaps between `Send ↑` (idle) and `Stop ■` (in-flight). Familiar ChatGPT/Claude.ai pattern. The composer never disables; only the button's role changes.
+- **Queued message visualization**: Inline ghost bubbles in the chat thread (where the message will eventually appear) with a per-bubble `edit / remove` affordance until dispatch. The faded/italic styling distinguishes queued from sent. Optimistic UI reads forward; per-item cancel is a hard requirement.
+- **Queue failure surfacing**: Failed-to-send badge inline on the originating ghost bubble + one-click retry. Matches the `optimistic + async error` pattern the sibling refactor feature codifies. After ~30s unattended, the activity strip picks up the failure as a persistent notification (escalation tier from the refactor pattern).
+- **Queue depth cap**: Unlimited. Trust the user; cancel is always available. Avoids re-introducing the kind of locked state this epic is removing.
+
+## Mockups
+*To be filled in by the mockup pass paired with this `--only-questions` run.*
+- Screens: `.mockups/screens/feature-composer-async-behavior/` — state mocks for idle / in-flight / queued / failed / retrying composer states.
