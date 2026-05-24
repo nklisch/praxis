@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -198,3 +198,7 @@ that specific machine. The composition step (5) does the final cleanup pass.
    `useState` from the same React instance as `useStreamedSend`. Each
    `ChatTabBody` mount gets its own isolated call stack. Dormant tabs (`display:none`)
    keep their hook state alive exactly as before.
+
+## Children complete (2026-05-24)
+
+All 5 child stories (step-1 through step-5) advanced to `stage: done`. Feature advanced to `stage: review`.

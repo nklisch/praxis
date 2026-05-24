@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-5-compose
 kind: story
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on:
@@ -199,3 +199,13 @@ behavior.
 
 **Rollback:** If integration reveals a behavioral regression, revert this step
 only — the sub-hooks (Steps 1–4) remain in place for the next composition attempt.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All acceptance criteria verified. All 4 sub-hooks (`usePendingQueue`, `useStreamedBubbles`, `useInterstitialLifecycle`, `useReasoningBlocks`) are composed correctly. `send()` calls `bubbles.reset()`, `interstitial.reset()`, and `reasoning.reset()` at turn start before the try block. The `finally` block is flat: 6 sequential delegate calls + one `if (next !== null)` guard — nesting depth 2 as designed. External API shape is preserved: `items`, `isStreaming`, `thinking`, `lastError`, `send`, `cancel`, `cancelPending`, `pendingCount`, `clearMessages`, `loadHistory` — all present, same types. `MIN_INTERSTITIAL_VISIBLE_MS`, inline queue state, bubble state, interstitial Maps, reasoning block tracking are fully removed from `use-streamed-send.ts`. The latent id-collision bug (`msg-` prefix shared between user-message `nextId()` and bubble `nextBubbleId()`) is fixed in `use-streamed-bubbles.ts` by switching to the `bubble-` prefix — this was a real bug discovered during composition and captured correctly. File confirmed at 336 lines; hook body 153 lines (lines 183–336). 1711/1711 UI tests pass.
