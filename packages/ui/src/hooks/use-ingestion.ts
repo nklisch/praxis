@@ -39,8 +39,6 @@ export type IngestionState =
 
 export interface UseIngestionResult {
   state: IngestionState;
-  /** Single-file pick-and-ingest (unchanged from pre-batch). */
-  startPick: () => Promise<void>;
   /** Multi-file or folder pick-and-ingest batch. */
   startPickBatch: (mode: "files" | "folder") => Promise<void>;
   /**
@@ -203,74 +201,6 @@ export function useIngestion(
     [client, onDone, opts?.scope],
   );
 
-  // ── runIngestion (used by single-file startPick path) ───────────────────────
-
-  const runIngestion = useCallback(
-    async (
-      filePath: string,
-      filename: string,
-      mimeType: string,
-      preferIngestorId?: string,
-    ): Promise<void> => {
-      setState({ status: "ingesting", filename });
-
-      try {
-        const req = {
-          filePath,
-          filename,
-          mimeType,
-          studentId: "default",
-          ...(preferIngestorId !== undefined && { preferIngestorId }),
-          ...(opts?.scope !== undefined && { scope: opts.scope }),
-        };
-
-        for await (const event of client.ingest.start(req)) {
-          if (event.type === "done") {
-            setState({
-              status: "done",
-              documentId: event.documentId,
-              chunkCount: event.chunkCount,
-            });
-            onDone?.();
-            return;
-          }
-          if (event.type === "error") {
-            setState({ status: "error", message: event.error.message });
-            return;
-          }
-        }
-      } catch (err) {
-        setState({ status: "error", message: errString(err) });
-      }
-    },
-    [client, onDone, opts?.scope],
-  );
-
-  // ── Single-file startPick (unchanged public API) ─────────────────────────────
-
-  const startPick = useCallback(async () => {
-    setState({ status: "picking" });
-    try {
-      const filePath = await client.ingest.pickFile();
-      if (!filePath) {
-        setState({ status: "idle" });
-        return;
-      }
-
-      const filename = filePath.split(/[\\/]/).pop() ?? filePath;
-      const mimeType = mimeTypeFromPath(filePath);
-
-      if (mimeType === "application/pdf") {
-        setState({ status: "tier_selection", filePath, filename, mimeType });
-        return;
-      }
-
-      await runIngestion(filePath, filename, mimeType, undefined);
-    } catch (err) {
-      setState({ status: "error", message: errString(err) });
-    }
-  }, [client, runIngestion]);
-
   // ── confirmTier ──────────────────────────────────────────────────────────────
 
   const confirmTier = useCallback(
@@ -284,12 +214,9 @@ export function useIngestion(
         const result = await ingestOneWithResult(file, preferIngestorId);
         tierResultRef.current = result;
         deferred.resolve();
-      } else {
-        // Single-file mode (legacy path).
-        await runIngestion(filePath, filename, mimeType, preferIngestorId);
       }
     },
-    [ingestOneWithResult, runIngestion],
+    [ingestOneWithResult],
   );
 
   // ── Batch loop (shared by startPickBatch and startBatchWithPaths) ────────────
@@ -467,7 +394,6 @@ export function useIngestion(
 
   return {
     state,
-    startPick,
     startPickBatch,
     startBatchWithPaths,
     confirmTier,

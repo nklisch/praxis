@@ -4,11 +4,6 @@
  * Verifies:
  * - When opts.scope is provided, client.ingest.start is called with req.scope set.
  * - When opts.scope is absent, client.ingest.start is called without scope.
- * - Initial state is idle.
- * - After startPick → pickFile returns a non-PDF path, ingestion starts immediately.
- * - After a "done" event, state is "done" and onDone fires.
- *
- * Batch flow:
  * - startPickBatch("files") with 3 files runs them sequentially.
  * - Empty pick (user cancelled) → returns to idle.
  * - Mid-batch error → batch continues; error recorded in results.
@@ -69,127 +64,6 @@ function wrapper(client: PraxisClient) {
     <PraxisClientProvider client={client}>{children}</PraxisClientProvider>
   );
 }
-
-// ─── Existing single-file tests ──────────────────────────────────────────────
-
-describe("useIngestion — single-file (startPick)", () => {
-  it("initial state is idle", () => {
-    const client = makeClient();
-    const { result } = renderHook(() => useIngestion(), { wrapper: wrapper(client) });
-    expect(result.current.state.status).toBe("idle");
-  });
-
-  it("when opts.scope is provided, client.ingest.start receives scope on the request", async () => {
-    const startFn = vi.fn().mockReturnValue(makeDoneStream());
-    const client = makeClient({
-      pickFilePath: "/documents/textbook.txt",
-      startFn: startFn as unknown as PraxisClient["ingest"]["start"],
-    });
-
-    const { result } = renderHook(
-      () => useIngestion(undefined, { scope: { kind: "course", id: COURSE_ID } }),
-      { wrapper: wrapper(client) },
-    );
-
-    await act(async () => {
-      await result.current.startPick();
-    });
-
-    await waitFor(() => {
-      expect(result.current.state.status).toBe("done");
-    });
-
-    expect(startFn).toHaveBeenCalledOnce();
-    const req = startFn.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(req.scope).toEqual({ kind: "course", id: COURSE_ID });
-  });
-
-  it("when opts.scope is absent, client.ingest.start receives no scope", async () => {
-    const startFn = vi.fn().mockReturnValue(makeDoneStream());
-    const client = makeClient({
-      pickFilePath: "/documents/textbook.txt",
-      startFn: startFn as unknown as PraxisClient["ingest"]["start"],
-    });
-
-    const { result } = renderHook(() => useIngestion(), { wrapper: wrapper(client) });
-
-    await act(async () => {
-      await result.current.startPick();
-    });
-
-    await waitFor(() => {
-      expect(result.current.state.status).toBe("done");
-    });
-
-    const req = startFn.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(req.scope).toBeUndefined();
-  });
-
-  it("state becomes 'done' with documentId after a done event", async () => {
-    const client = makeClient({ pickFilePath: "/docs/notes.txt" });
-    const { result } = renderHook(() => useIngestion(), { wrapper: wrapper(client) });
-
-    await act(async () => {
-      await result.current.startPick();
-    });
-
-    await waitFor(() => {
-      expect(result.current.state.status).toBe("done");
-    });
-
-    if (result.current.state.status === "done") {
-      expect(result.current.state.documentId).toBe("doc-new");
-    }
-  });
-
-  it("onDone callback fires after successful ingestion", async () => {
-    const onDone = vi.fn();
-    const client = makeClient({ pickFilePath: "/docs/notes.txt" });
-    const { result } = renderHook(() => useIngestion(onDone), { wrapper: wrapper(client) });
-
-    await act(async () => {
-      await result.current.startPick();
-    });
-
-    await waitFor(() => {
-      expect(result.current.state.status).toBe("done");
-    });
-
-    expect(onDone).toHaveBeenCalledOnce();
-  });
-
-  it("dismiss resets state to idle", async () => {
-    const client = makeClient({ pickFilePath: "/docs/notes.txt" });
-    const { result } = renderHook(() => useIngestion(), { wrapper: wrapper(client) });
-
-    await act(async () => {
-      await result.current.startPick();
-    });
-
-    await waitFor(() => {
-      expect(result.current.state.status).toBe("done");
-    });
-
-    act(() => {
-      result.current.dismiss();
-    });
-
-    expect(result.current.state.status).toBe("idle");
-  });
-
-  it("empty pick (user cancelled) returns to idle", async () => {
-    const client = makeClient({ pickFilePath: null });
-    const { result } = renderHook(() => useIngestion(), { wrapper: wrapper(client) });
-
-    await act(async () => {
-      await result.current.startPick();
-    });
-
-    await waitFor(() => {
-      expect(result.current.state.status).toBe("idle");
-    });
-  });
-});
 
 // ─── Batch flow tests ────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-use-ingestion-startpick-dead
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -52,3 +52,17 @@ before raising `tier_selection`.
 - Update `use-ingestion.test.tsx` to drop the
   `describe("useIngestion — single-file (startPick)")` block
   (lines 75-194)
+
+## Implementation notes
+
+- Removed `runIngestion` useCallback (~40 lines) and its section comment from `use-ingestion.ts`
+- Removed `startPick` useCallback (~22 lines) and its section comment from `use-ingestion.ts`
+- Made `confirmTier` unconditional: dropped the `else { // Single-file mode (legacy path) }` branch (~3 lines) and removed `runIngestion` from its deps array
+- Removed `startPick` field from `UseIngestionResult` interface (1 line)
+- Removed `startPick` from hook return object (1 line)
+- Removed `describe("useIngestion — single-file (startPick)")` block from test file (~120 lines, 7 tests)
+- Cleaned up stale JSDoc lines in test file header
+- Pre-check: `grep -rn '\.startPick\b'` on packages/ returned zero production callers — confirmed
+- Post-check: `grep -n 'startPick|runIngestion' use-ingestion.ts` returned zero hits
+- Verification: `pnpm --filter @praxis/ui test --reporter=basic` → 163 test files, 1703 tests, all pass
+- `pnpm --filter @praxis/ui typecheck` → clean
