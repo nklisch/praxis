@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction-step-4-wire-facade
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-assignment-service-grading-extraction
 depends_on:
@@ -110,3 +110,18 @@ the facade owns persistence.
 ## Rollback
 Revert `assignment-service.ts` to pre-step state. `GradingOrchestratorImpl` remains
 harmlessly unused until Step 3 is also reverted.
+
+## Implementation notes
+
+### Before / after metrics
+- `assignment-service.ts`: 725 lines → 338 lines (−387 lines, −53%)
+- No construction sites changed (`build-artifacts-services.ts` and test unchanged)
+- `AssignmentServiceDeps` retains `graderServices` + `enableApproachFeedback` for
+  backward compat (escape hatch applied per story: 2 downstream sites)
+- New optional `orchestrator?: GradingOrchestrator` field added to deps;
+  constructor constructs `GradingOrchestratorImpl` internally when omitted
+- `submit()` reduced to ~35 lines (load → guard → responses → mode → delegate → persist → notify → return)
+- `AssignmentItemSchema` and `validateItems` re-exported from graders/item-schemas.js
+- `GradingOrchestrator`, `GradingOrchestratorDeps`, `GradingOrchestratorImpl` added to `services/index.ts` public surface
+- `pnpm typecheck && pnpm test` green: 4773 tests passed (full workspace)
+- No test changes required

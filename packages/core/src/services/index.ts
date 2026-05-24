@@ -54,6 +54,11 @@ export {
   AssignmentServiceImpl,
   validateItems,
 } from "./assignment-service.js";
+export type {
+  GradingOrchestrator,
+  GradingOrchestratorDeps,
+} from "./graders/grading-orchestrator.js";
+export { GradingOrchestratorImpl } from "./graders/grading-orchestrator.js";
 // Document citations service
 export type { CitationsService, CitationsServiceDeps } from "./citations-service.js";
 export { CitationsServiceImpl } from "./citations-service.js";
