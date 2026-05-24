@@ -1,7 +1,7 @@
 ---
 id: gate-tests-configure-route-unmount-cleanup-no-warning
 kind: story
-stage: implementing
+stage: review
 tags: [testing, ui]
 parent: null
 depends_on: []
@@ -50,3 +50,18 @@ it("unmounting during pending active() does not setState (no React warning)", as
 
 ## Test location (suggested)
 `packages/ui/src/__tests__/configure-route.test.tsx`
+
+## Implementation notes
+
+Added test "unmounting during pending active() does not setState (no React warning)" to
+`packages/ui/src/__tests__/configure-route.test.tsx` inside the existing `describe("ConfigureRoute")` block.
+
+Approach:
+- `vi.spyOn(console, "error")` captures React's unmounted-component state-update warning.
+- `active()` is mocked to return a never-resolving Promise; `unmount()` fires while it is pending.
+- The Promise is then resolved, exercising the post-unmount code path.
+- A `setTimeout(0)` tick drains microtasks before asserting no `/unmounted/i` error was emitted.
+- `consoleError.mockRestore()` cleans up the spy so it does not leak into other tests.
+
+Verification: `pnpm vitest run packages/ui/src/__tests__/configure-route.test.tsx` — 21/21 pass.
+The test passes against the current `cancelled = true` guard; removing that guard would cause it to fail.

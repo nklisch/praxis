@@ -601,6 +601,40 @@ describe("ConfigureRoute", () => {
     unmountB();
   });
 
+  it("unmounting during pending active() does not setState (no React warning)", async () => {
+    // The `cancelled` flag in the useEffect cleanup guards every setSession/setSessionError
+    // call. If it's removed, React (≥18 dev mode) emits a console.error about state updates
+    // on an unmounted component. This test asserts the guard is present and effective.
+    const consoleError = vi.spyOn(console, "error");
+
+    let resolveActive!: (v: SessionHandle | null) => void;
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient, {
+      active: vi.fn().mockReturnValue(new Promise<SessionHandle | null>((r) => { resolveActive = r; })),
+    });
+
+    const { unmount } = renderRoute(client);
+
+    // Unmount while active() is still pending — the cancelled flag must suppress
+    // any subsequent setSession call.
+    unmount();
+
+    // Now resolve active() after unmount — without the cancelled guard this would
+    // call setSession on an unmounted component.
+    resolveActive({
+      sessionId: brandId<"SessionId">("x"),
+      modeId: "configure",
+      startedAt: 0 as Timestamp,
+    } satisfies SessionHandle);
+
+    // Let microtasks and any pending timers flush.
+    await new Promise<void>((r) => setTimeout(r, 0));
+
+    expect(consoleError).not.toHaveBeenCalledWith(expect.stringMatching(/unmounted/i));
+
+    consoleError.mockRestore();
+  });
+
   it("cross-tab independence: Prompt dirty does NOT light dots on Course, Gates, or Memory", async () => {
     // Mark only the Prompt surface dirty (via listFragmentOverrides returning data).
     const lockClient = makeLockClient();
