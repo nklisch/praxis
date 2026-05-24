@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction-step-4-spawn-from-passage
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-session-service-spawn-extraction
 depends_on: [feature-refactor-session-service-spawn-extraction-step-3-spawn-from-note]
@@ -115,3 +115,19 @@ Revert spawner additions; restore original bodies in `session-service.ts`.
 - All 1164 core tests pass; `session-service.spawn-from-passage.test.ts` (5 tests) all green.
 - `pnpm typecheck` clean across all 10 workspace packages.
 - Final line count: `session-service.ts` 665 lines; `session-spawner.ts` 329 lines.
+
+## Review
+
+Verdict: **done**
+
+Commit `5961c9e`. Pure move — no logic change.
+
+- `spawnFromPassage` body moved verbatim (~95 lines) into `SessionSpawner`. All preserved: document existence + student ownership check, chunk fetch with `asc(documentChunks.chunkIndex)` ordering, offset clamping (`safeStart`/`safeEndUncapped`/`safeEnd`), `MAX_PASSAGE_LENGTH = 100_000` cap, truncation warn, opening message composition, `documentScopes.attach(...)` with passageRange, fire-and-forget `sendMessage` drain.
+- `this.deps.toolServices.documentScopes` guard simplified to `if (this.deps.documentScopes)` inside spawner — cleaner, correct, as noted in the design.
+- `biome-ignore` cast on `this.send()` eliminated; `deps.sendMessage` fully typed.
+- Local `const MAX_PASSAGE_LENGTH` declaration in old service body removed; the module-level constant (from step 1) is used instead.
+- `documentChunks`, `documents` removed from `session-service.ts` artifact imports. `DocumentId` and `NoteId` remain in type imports (used in delegate method signatures) — correct.
+- `asc` confirmed still used at line 490 (`episodicEvents.ts` ordering in `list()`); import kept in `session-service.ts`.
+- `export { MAX_PASSAGE_LENGTH }` at the end of the file removed (no longer needed once method is inline in same file). The constant is module-local — no external consumers.
+- Final line counts: `session-service.ts` 665 lines, `session-spawner.ts` 329 lines — match story 4 acceptance criteria exactly.
+- All 1164 core tests pass; `session-service.spawn-from-passage.test.ts` (5 tests) all green.

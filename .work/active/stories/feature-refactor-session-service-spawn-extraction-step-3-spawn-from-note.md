@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction-step-3-spawn-from-note
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-session-service-spawn-extraction
 depends_on: [feature-refactor-session-service-spawn-extraction-step-2-spawn-from-assignment]
@@ -96,3 +96,18 @@ Imports moved from `session-service.ts` to `session-spawner.ts`:
 
 ## Rollback
 Revert spawner additions; restore original body in `session-service.ts`.
+
+## Review
+
+Verdict: **done**
+
+Commit `9999af2`. Pure move — no logic change.
+
+- `spawnFromNote` body moved verbatim (~87 lines) into `SessionSpawner`. Full note-body parsing path preserved: `parseNoteBody` dispatch by format (feynman/cornell/outline/free), cue/body extraction, opening message composition with XML tags, try/catch silently swallowing parse failures.
+- `sendMessage` port correctly replaces the inline `this.send(sessionId as any, openingMessage)` — the `biome-ignore lint/suspicious/noExplicitAny` comment is gone from the spawner, as required. `deps.sendMessage(sessionId, openingMessage)` is fully typed; no cast needed.
+- `studentId` fallback pattern (`input.studentId ?? getOrCreateDefaultStudentId(...) as StudentId`) preserved verbatim.
+- `notes` and `parseNoteBody` removed from `session-service.ts` imports; both confirmed unused elsewhere.
+- `and` added to spawner's drizzle imports (needed for `and(eq(notes.id,...), eq(notes.studentId,...))` query).
+- `NoteId`, `StudentId` type imports added to spawner correctly.
+- `spawnFromNote` in `SessionServiceImpl` is a clean one-line delegate.
+- 96 test files / 1164 tests green per implementation notes.

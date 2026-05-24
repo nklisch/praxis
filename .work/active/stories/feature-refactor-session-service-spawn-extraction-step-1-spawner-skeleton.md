@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction-step-1-spawner-skeleton
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-session-service-spawn-extraction
 depends_on: []
@@ -104,3 +104,16 @@ Delete `session-spawner.ts`; remove `this.spawner` field from `SessionServiceImp
   - The `biome-ignore lint/suspicious/noExplicitAny` comment carried into the `sendMessage` closure since the cast is at the same location as the existing inline casts.
 - `documentScopes` is non-optional in `ServiceDeps.toolServices` so no null-guard needed at construction.
 - `pnpm typecheck && pnpm --filter @praxis/core test`: all green (96 test files / 1164 tests).
+
+## Review
+
+Verdict: **done**
+
+Commit `46ac20b`. Reviewed against the SessionPromoter sibling-extract pattern.
+
+- `SessionSpawnerDeps` interface matches the design spec exactly: `db`, `log`, `startSession`, `sendMessage`, `documentScopes` ports.
+- `SessionSpawner` class is a clean stub — constructor only, empty body comment, ready for steps 2–4.
+- `MAX_PASSAGE_LENGTH = 100_000` correctly placed as a module-local constant in step 1 (needed by step 4); exported for cross-step visibility.
+- Wired in `SessionServiceImpl` constructor with closure ports over `this.start` and `this.send`. The `biome-ignore lint/suspicious/noExplicitAny` on the `sessionId as any` cast in `sendMessage` is correct — the cast is unavoidable at this boundary; it moves cleanly to the spawner-closure site.
+- Pattern match to `session-promoter.ts`: `private readonly spawner: SessionSpawner` field, constructed in constructor, deps via closure — identical structure.
+- Public `SessionService` interface unchanged; no tests required changes.

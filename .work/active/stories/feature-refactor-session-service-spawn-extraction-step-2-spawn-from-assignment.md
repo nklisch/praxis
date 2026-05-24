@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction-step-2-spawn-from-assignment
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-session-service-spawn-extraction
 depends_on: [feature-refactor-session-service-spawn-extraction-step-1-spawner-skeleton]
@@ -96,3 +96,17 @@ Revert `session-spawner.ts` additions; restore original body in `session-service
 - `SessionServiceImpl.spawnFromAssignment` is now a one-line delegate: `return this.spawner.spawnFromAssignment(input);`.
 - Parent-validation logic (check parent row exists + belongs to student) preserved verbatim.
 - All 96 core test files (1164 tests) passed, including `session-service.notify.test.ts` and the e2e `empty-session-cleanup-e2e.test.ts`.
+
+## Review
+
+Verdict: **done**
+
+Commit `44129ce`. Pure move — no logic change.
+
+- `spawnFromAssignment` body moved verbatim (~55 lines) into `SessionSpawner`. All DB queries, parent-validation block (`parentRow` not found + `parentRow.studentId !== studentId`), assignment lookup, mode derivation, `parentSessionId` update, and `return { ...handle, parentSessionId }` preserved exactly.
+- `this.start(...)` → `this.deps.startSession(...)` — only syntactic change.
+- `assignments` import removed from `session-service.ts`; `sessions` correctly kept (still used by `notifySession`, `send`, `end`, etc.).
+- `SessionServiceImpl.spawnFromAssignment` is a clean one-line delegate.
+- Parent-validation logic (two guard clauses) preserved verbatim as required.
+- Imports added to spawner: `assignments`, `sessions`, `eq`, `brandId`, `getOrCreateDefaultStudentId` — all correct.
+- `session-service.notify.test.ts` `spawnFromAssignment` block passes via delegate; no test structural changes needed.
