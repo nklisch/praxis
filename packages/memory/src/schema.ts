@@ -161,9 +161,14 @@ export const tabs = sqliteTable(
     kind: text("kind").notNull().default("session"),
     /**
      * The session this tab is bound to. Nullable — null for kind='document' tabs.
-     * Cascade-deletes the tab when the session is deleted (for kind='session').
+     *
+     * FK removed (migration 0026_drop_tabs_session_fk): the lazy-persist design
+     * defers session row creation until the first user_message, so this column
+     * must be insertable before the referenced sessions row exists. Orphan-tab
+     * cleanup (tabs whose session_id never materialises) is owned by the sweep
+     * job in feature-empty-session-cleanup-lazy-and-sweep.
      */
-    sessionId: text("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+    sessionId: text("session_id"),
     /**
      * The document this tab is bound to. Null for kind='session' tabs.
      * No FK — documents live in the artifacts package; cross-package FK not used here.
