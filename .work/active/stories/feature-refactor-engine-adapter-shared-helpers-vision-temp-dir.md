@@ -1,0 +1,62 @@
+---
+id: feature-refactor-engine-adapter-shared-helpers-vision-temp-dir
+kind: story
+stage: implementing
+tags: [refactor]
+parent: feature-refactor-engine-adapter-shared-helpers
+depends_on: []
+release_binding: null
+gate_origin: refactor-design
+created: 2026-05-23
+updated: 2026-05-23
+---
+
+# Extract `writeVisionImages` helper shared by Claude Code + Codex vision adapters
+
+## Brief
+`ClaudeCodeVision` (`packages/engines/src/claude-code/vision.ts`) and `CodexVision`
+(`packages/engines/src/codex/vision.ts`) duplicate the same temp-dir setup, ext-mapping,
+and image-write loop, with identical `finally` cleanup.
+
+## Current duplication
+
+**`packages/engines/src/claude-code/vision.ts:22–35`:**
+```ts
+const tempDir = await mkdtemp(join(tmpdir(), "praxis-vision-"));
+try {
+  const filePaths: string[] = [];
+  let imgIndex = 0;
+  for (const img of req.images) {
+    const ext =
+      img.mimeType === "image/jpeg" ? "jpg" : img.mimeType === "image/webp" ? "webp" : "png";
+    const filePath = join(tempDir, `image-${imgIndex}.${ext}`);
+    await writeFile(filePath, Buffer.from(img.data, "base64"));
+    filePaths.push(filePath);
+    imgIndex += 1;
+  }
+  ...
+} finally {
+  await rm(tempDir, { recursive: true, force: true });
+}
+```
+
+**`packages/engines/src/codex/vision.ts:28–40`:** identical setup; only the prompt
+construction and SDK call differ.
+
+## Target
+Extract a shared helper in `packages/engines/src/vision/temp-images.ts` (or similar):
+```ts
+export async function writeVisionImages(
+  images: ReadonlyArray<{ mimeType: string; data: string }>,
+): Promise<{ tempDir: string; filePaths: string[]; cleanup: () => Promise<void> }>;
+```
+
+Both adapters call `writeVisionImages(req.images)`, use the returned `filePaths`, and
+invoke `cleanup()` in their own `finally` blocks. Direct doesn't need this (no temp
+files required by its provider path).
+
+## Acceptance
+- `pnpm typecheck && pnpm lint && pnpm test` green
+- Both `ClaudeCodeVision.describe` and `CodexVision.describe` use the shared helper
+- Cleanup still runs on error paths
+- No behavior change to either adapter's `VisionDescribeResponse`
