@@ -4,6 +4,7 @@ import type {
   ProposedCourse,
   RetrievalCitation,
   Timestamp,
+  ToolResult,
 } from "@praxis/core/types";
 import { getToolLabel } from "@praxis/tools/labels";
 import type { ReviewCard } from "../components/flashcard-review.js";
@@ -31,6 +32,246 @@ type ToolResultValue =
     }
   | undefined;
 
+/** Mutable state threaded through all per-event helpers in one replay pass. */
+interface ReplayState {
+  items: ChatStreamItem[];
+  counter: number;
+  currentAssistantId: string | null;
+  lastAssistantId: string | null;
+  activeBubbleContent: string;
+  pendingByCallId: Map<string, string>;
+  pendingCitations: RetrievalCitation[];
+  pendingDrafts: ProposedCourse[];
+  pendingNotes: Note[];
+  pendingDueCards: ReviewCard[];
+}
+
+function nextId(state: ReplayState, kind: "user" | "asst"): string {
+  return `hist-${kind}-${++state.counter}`;
+}
+
+/**
+ * Open a new assistant bubble, draining any pending renderables into it
+ * immediately (Unit 3: renderables belong to the FIRST bubble after the tool).
+ */
+function openBubble(state: ReplayState): string {
+  const id = nextId(state, "asst");
+  state.activeBubbleContent = "";
+  const hasCitations = state.pendingCitations.length > 0;
+  const hasDrafts = state.pendingDrafts.length > 0;
+  const hasNotes = state.pendingNotes.length > 0;
+  const hasDueCards = state.pendingDueCards.length > 0;
+  const newItem: ChatStreamItem = {
+    kind: "message",
+    id,
+    role: "assistant",
+    content: "",
+    rawContent: "",
+    streaming: false,
+    ...(hasCitations && { citations: [...state.pendingCitations] }),
+    ...(hasDrafts && { drafts: [...state.pendingDrafts] }),
+    ...(hasNotes && { notes: [...state.pendingNotes] }),
+    ...(hasDueCards && { dueCards: [...state.pendingDueCards] }),
+  };
+  if (hasCitations) state.pendingCitations.length = 0;
+  if (hasDrafts) state.pendingDrafts.length = 0;
+  if (hasNotes) state.pendingNotes.length = 0;
+  if (hasDueCards) state.pendingDueCards.length = 0;
+  state.items.push(newItem);
+  state.currentAssistantId = id;
+  state.lastAssistantId = id;
+  return id;
+}
+
+/** Close the current bubble (no-op if none open). */
+function closeBubble(state: ReplayState): void {
+  if (state.currentAssistantId === null) return;
+  // Replay bubbles are never "streaming"; nothing to update on the item.
+  state.currentAssistantId = null;
+}
+
+/** Drain pending renderables into an already-pushed assistant bubble item. */
+function drainPendingInto(state: ReplayState, targetId: string): void {
+  if (
+    state.pendingCitations.length === 0 &&
+    state.pendingDrafts.length === 0 &&
+    state.pendingNotes.length === 0 &&
+    state.pendingDueCards.length === 0
+  ) {
+    return;
+  }
+  for (let i = state.items.length - 1; i >= 0; i--) {
+    const it = state.items[i];
+    if (it?.kind === "message" && it.id === targetId) {
+      if (state.pendingCitations.length > 0) {
+        it.citations = [...(it.citations ?? []), ...state.pendingCitations];
+        state.pendingCitations.length = 0;
+      }
+      if (state.pendingDrafts.length > 0) {
+        it.drafts = [...(it.drafts ?? []), ...state.pendingDrafts];
+        state.pendingDrafts.length = 0;
+      }
+      if (state.pendingNotes.length > 0) {
+        it.notes = [...(it.notes ?? []), ...state.pendingNotes];
+        state.pendingNotes.length = 0;
+      }
+      if (state.pendingDueCards.length > 0) {
+        it.dueCards = [...(it.dueCards ?? []), ...state.pendingDueCards];
+        state.pendingDueCards.length = 0;
+      }
+      break;
+    }
+  }
+}
+
+/**
+ * Seal any open reasoning block in the items array (walk backward, stop at
+ * user message boundary). Called on tool_call, model_message, and interrupted.
+ */
+function closeReasoningBlock(state: ReplayState): void {
+  for (let i = state.items.length - 1; i >= 0; i--) {
+    const it = state.items[i];
+    if (it?.kind === "thinking") {
+      it.streaming = false;
+      break;
+    }
+    if (it?.kind === "message" && it.role === "user") break;
+  }
+}
+
+/**
+ * Harvest renderable results from a successful tool_result into the pending
+ * arrays so they drain into the next assistant bubble (Unit 3 placement rule).
+ */
+function harvestToolResult(
+  state: ReplayState,
+  toolName: string | undefined,
+  value: ToolResultValue,
+): void {
+  if (toolName === "retrieve_from_documents") {
+    const v = value as { citations?: RetrievalCitation[] } | undefined;
+    if (v?.citations && Array.isArray(v.citations)) {
+      state.pendingCitations.push(...v.citations);
+    }
+  } else if (toolName === "course.show_draft") {
+    const v = value as
+      | { kind: "ok"; draft: { proposed: ProposedCourse } }
+      | { kind: "not_found" }
+      | undefined;
+    if (v?.kind === "ok" && v.draft?.proposed) state.pendingDrafts.push(v.draft.proposed);
+  } else if (toolName === "note.show") {
+    const v = value as { kind: "ok"; note: Note } | { kind: "not_found" } | undefined;
+    if (v?.kind === "ok" && v.note) state.pendingNotes.push(v.note);
+  } else if (toolName === "flashcard.review_next") {
+    const v = value as
+      | {
+          ok: true;
+          cards: Array<{
+            flashcardId: string;
+            front: string;
+            conceptId?: string;
+            preview?: {
+              again: { nextReviewAt: Timestamp };
+              hard: { nextReviewAt: Timestamp };
+              good: { nextReviewAt: Timestamp };
+              easy: { nextReviewAt: Timestamp };
+            };
+          }>;
+        }
+      | undefined;
+    if (v?.ok && Array.isArray(v.cards)) state.pendingDueCards.push(...v.cards);
+  }
+}
+
+/**
+ * Push the appropriate item for a tool_call event (sub-agent block, tool-entry,
+ * or nothing for hidden tools). Caller has already called closeBubble and
+ * registered the callId in pendingByCallId.
+ */
+function pushToolCallItem(
+  state: ReplayState,
+  toolName: string,
+  callId: string,
+  args: unknown,
+): void {
+  const label = getToolLabel(toolName);
+  if (label.spawnsSubAgent === true) {
+    state.items.push({ kind: "sub-agent", callId, toolName, status: "in_flight" });
+  } else if (!label.hidden) {
+    // Push as settled immediately — history is settled by definition.
+    // firstSeenAt is 0 for historical items (no pacing needed).
+    const toolEntry: ToolEntryItem = {
+      callId,
+      toolName,
+      status: "settled",
+      firstSeenAt: 0,
+      input: args,
+    };
+    state.items.push({ kind: "tool-entry", ...toolEntry });
+  }
+}
+
+/**
+ * Settle the tool-entry or sub-agent item that matches callId, updating its
+ * status and output/errorMessage fields in-place via index replacement.
+ */
+function settleToolEntry(state: ReplayState, callId: string, result: ToolResult): void {
+  for (let i = state.items.length - 1; i >= 0; i--) {
+    const item = state.items[i];
+    if (item?.kind === "tool-entry" && item.callId === callId) {
+      if (result.ok) {
+        state.items[i] = {
+          ...item,
+          status: "settled",
+          ...(result.value !== undefined && { output: result.value }),
+        };
+      } else {
+        state.items[i] = { ...item, status: "errored", errorMessage: result.error.message };
+      }
+      break;
+    }
+    if (item?.kind === "sub-agent" && item.callId === callId) {
+      state.items[i] = {
+        ...item,
+        status: "settled",
+        ...(result.ok === false && { errored: true }),
+      };
+      break;
+    }
+  }
+}
+
+/**
+ * Apply model_message content (partial accumulation or full replace) to the
+ * current open bubble and seal it if the message is non-partial.
+ */
+function applyModelMessage(
+  state: ReplayState,
+  content: string,
+  partial: boolean | undefined,
+): void {
+  if (state.currentAssistantId === null) openBubble(state);
+  if (partial === true) {
+    state.activeBubbleContent += content;
+  } else {
+    state.activeBubbleContent = content;
+  }
+  const targetId = state.currentAssistantId;
+  for (let i = state.items.length - 1; i >= 0; i--) {
+    const it = state.items[i];
+    if (it?.kind === "message" && it.id === targetId) {
+      it.content = state.activeBubbleContent;
+      it.rawContent = state.activeBubbleContent;
+      break;
+    }
+  }
+  if (partial !== true) {
+    // Non-partial seals this bubble; next model_message opens a new one.
+    closeBubble(state);
+  }
+  closeReasoningBlock(state);
+}
+
 /**
  * Reconstruct the rendered chat item log from a session's episodic events.
  *
@@ -57,105 +298,26 @@ type ToolResultValue =
  * noise. The live `lastError` channel handles errors from the active turn.
  */
 export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamItem[] {
-  const items: ChatStreamItem[] = [];
+  const state: ReplayState = {
+    items: [],
+    counter: 0,
+    currentAssistantId: null,
+    lastAssistantId: null,
+    activeBubbleContent: "",
+    pendingByCallId: new Map(),
+    pendingCitations: [],
+    pendingDrafts: [],
+    pendingNotes: [],
+    pendingDueCards: [],
+  };
+
   let currentTurn: number | null = null;
-  let counter = 0;
-  const nextId = (kind: "user" | "asst") => `hist-${kind}-${++counter}`;
-
-  // Bubble-pointer model — mirrors useStreamedSend.
-  let currentAssistantId: string | null = null;
-  let lastAssistantId: string | null = null;
-  let activeBubbleContent = "";
-
-  // callId → toolName — per-function scope (callIds are session-unique).
-  const pendingByCallId = new Map<string, string>();
-
-  // Pending renderables (Unit 3): drain into FIRST bubble after tool resolves.
-  const pendingCitations: RetrievalCitation[] = [];
-  const pendingDrafts: ProposedCourse[] = [];
-  const pendingNotes: Note[] = [];
-  const pendingDueCards: ReviewCard[] = [];
-
-  /** Drain pending renderables into an already-pushed assistant bubble item. */
-  const drainPendingInto = (targetId: string): void => {
-    if (
-      pendingCitations.length === 0 &&
-      pendingDrafts.length === 0 &&
-      pendingNotes.length === 0 &&
-      pendingDueCards.length === 0
-    ) {
-      return;
-    }
-    for (let i = items.length - 1; i >= 0; i--) {
-      const it = items[i];
-      if (it?.kind === "message" && it.id === targetId) {
-        if (pendingCitations.length > 0) {
-          it.citations = [...(it.citations ?? []), ...pendingCitations];
-          pendingCitations.length = 0;
-        }
-        if (pendingDrafts.length > 0) {
-          it.drafts = [...(it.drafts ?? []), ...pendingDrafts];
-          pendingDrafts.length = 0;
-        }
-        if (pendingNotes.length > 0) {
-          it.notes = [...(it.notes ?? []), ...pendingNotes];
-          pendingNotes.length = 0;
-        }
-        if (pendingDueCards.length > 0) {
-          it.dueCards = [...(it.dueCards ?? []), ...pendingDueCards];
-          pendingDueCards.length = 0;
-        }
-        break;
-      }
-    }
-  };
-
-  /**
-   * Open a new assistant bubble, draining any pending renderables into it
-   * immediately (Unit 3: renderables belong to the FIRST bubble after the tool).
-   */
-  const openBubble = (): string => {
-    const id = nextId("asst");
-    activeBubbleContent = "";
-    // Pre-attach pending renderables to the new bubble before pushing.
-    const hasCitations = pendingCitations.length > 0;
-    const hasDrafts = pendingDrafts.length > 0;
-    const hasNotes = pendingNotes.length > 0;
-    const hasDueCards = pendingDueCards.length > 0;
-    const newItem: ChatStreamItem = {
-      kind: "message",
-      id,
-      role: "assistant",
-      content: "",
-      rawContent: "",
-      streaming: false,
-      ...(hasCitations && { citations: [...pendingCitations] }),
-      ...(hasDrafts && { drafts: [...pendingDrafts] }),
-      ...(hasNotes && { notes: [...pendingNotes] }),
-      ...(hasDueCards && { dueCards: [...pendingDueCards] }),
-    };
-    if (hasCitations) pendingCitations.length = 0;
-    if (hasDrafts) pendingDrafts.length = 0;
-    if (hasNotes) pendingNotes.length = 0;
-    if (hasDueCards) pendingDueCards.length = 0;
-    items.push(newItem);
-    currentAssistantId = id;
-    lastAssistantId = id;
-    return id;
-  };
-
-  /** Close the current bubble (no-op if none open). */
-  const closeBubble = (): void => {
-    if (currentAssistantId === null) return;
-    // Replay bubbles are never "streaming"; nothing to update on the item.
-    currentAssistantId = null;
-  };
 
   for (const ep of events) {
     const turnIndex = ep.source.turnIndex;
     if (currentTurn !== null && turnIndex !== currentTurn) {
       // Turn boundary detected via turnIndex change — close any open bubble.
-      closeBubble();
+      closeBubble(state);
     }
     currentTurn = turnIndex;
     const event = ep.event;
@@ -163,10 +325,10 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
     switch (event.type) {
       case "user_message":
         // User message is a strong boundary — close any prior assistant bubble.
-        closeBubble();
-        items.push({
+        closeBubble(state);
+        state.items.push({
           kind: "message",
-          id: nextId("user"),
+          id: nextId(state, "user"),
           role: "user",
           content: event.content,
           rawContent: event.content,
@@ -174,15 +336,14 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         break;
 
       case "thinking": {
-        // Find if we have an open reasoning block to append to, or create a new one.
-        // We reuse nextId("asst") for reasoning blocks to keep IDs unique.
-        const lastItem = items[items.length - 1];
+        // Reuse or open a reasoning block.
+        const lastItem = state.items[state.items.length - 1];
         if (lastItem?.kind === "thinking" && lastItem.streaming) {
           lastItem.content += event.content;
         } else {
-          items.push({
+          state.items.push({
             kind: "thinking",
-            id: nextId("asst"),
+            id: nextId(state, "asst"),
             content: event.content,
             streaming: true, // will be sealed at turn boundary or next model_message
           });
@@ -190,202 +351,68 @@ export function episodicToItems(events: readonly EpisodicEvent[]): ChatStreamIte
         break;
       }
 
-      case "model_message": {
-        // Lazily open a bubble on the first model_message.
-        if (currentAssistantId === null) openBubble();
-        if (event.partial === true) {
-          activeBubbleContent += event.content;
-        } else {
-          activeBubbleContent = event.content;
-        }
-        // Mutate the bubble item in place (replay; fresh array, not React state).
-        const targetId = currentAssistantId;
-        for (let i = items.length - 1; i >= 0; i--) {
-          const it = items[i];
-          if (it?.kind === "message" && it.id === targetId) {
-            it.content = activeBubbleContent;
-            it.rawContent = activeBubbleContent;
-            break;
-          }
-        }
-        if (event.partial !== true) {
-          // Non-partial seals this bubble; next model_message opens a new one.
-          closeBubble();
-        }
-        // Also close any open reasoning block (look back to find it).
-        for (let i = items.length - 1; i >= 0; i--) {
-          const it = items[i];
-          if (it?.kind === "thinking") {
-            it.streaming = false;
-            break;
-          }
-          // Optimization: if we hit a user message, we've gone too far.
-          if (it?.kind === "message" && it.role === "user") break;
-        }
+      case "model_message":
+        // Lazily open a bubble on first model_message; seal on non-partial.
+        applyModelMessage(state, event.content, event.partial);
         break;
-      }
 
       case "tool_call": {
         // tool_call is a bubble boundary.
-        closeBubble();
+        closeBubble(state);
         const { toolName, callId } = event;
         // Always track for result harvesting, even for hidden tools.
-        pendingByCallId.set(callId, toolName);
-
-        const label = getToolLabel(toolName);
-        if (label.spawnsSubAgent === true) {
-          // Promote to sub-agent block.
-          items.push({
-            kind: "sub-agent",
-            callId,
-            toolName,
-            status: "in_flight",
-          });
-        } else if (!label.hidden) {
-          // Push as settled immediately — history is settled by definition.
-          // firstSeenAt is set to 0 for historical items (no pacing needed).
-          // input is populated at tool_call time; output is populated at tool_result.
-          const toolEntry: ToolEntryItem = {
-            callId,
-            toolName,
-            status: "settled",
-            firstSeenAt: 0,
-            input: event.args,
-          };
-          items.push({ kind: "tool-entry", ...toolEntry });
-        }
-        // Also close any open reasoning block (look back to find it).
-        for (let i = items.length - 1; i >= 0; i--) {
-          const it = items[i];
-          if (it?.kind === "thinking") {
-            it.streaming = false;
-            break;
-          }
-          if (it?.kind === "message" && it.role === "user") break;
-        }
+        state.pendingByCallId.set(callId, toolName);
+        pushToolCallItem(state, toolName, callId, event.args);
+        closeReasoningBlock(state);
         break;
       }
 
       case "tool_result": {
         const { callId } = event;
-        const toolName = pendingByCallId.get(callId);
-        pendingByCallId.delete(callId);
-
-        // Populate output/errorMessage on the matching tool entry (walk from end for recency).
-        for (let i = items.length - 1; i >= 0; i--) {
-          const item = items[i];
-          if (item?.kind === "tool-entry" && item.callId === callId) {
-            const result = event.result;
-            if (result.ok) {
-              items[i] = {
-                ...item,
-                status: "settled",
-                ...(result.value !== undefined && { output: result.value }),
-              };
-            } else {
-              items[i] = {
-                ...item,
-                status: "errored",
-                errorMessage: result.error.message,
-              };
-            }
-            break;
-          }
-          if (item?.kind === "sub-agent" && item.callId === callId) {
-            const result = event.result;
-            items[i] = {
-              ...item,
-              status: "settled",
-              ...(result.ok === false && { errored: true }),
-            };
-            break;
-          }
-        }
-
+        const toolName = state.pendingByCallId.get(callId);
+        state.pendingByCallId.delete(callId);
+        settleToolEntry(state, callId, event.result);
         if (!event.result.ok) break;
-        const value = event.result.value as ToolResultValue;
-
-        // Harvest into pending arrays (Unit 3) — drain on next bubble open.
-        if (toolName === "retrieve_from_documents") {
-          const v = value as { citations?: RetrievalCitation[] } | undefined;
-          if (v?.citations && Array.isArray(v.citations)) {
-            pendingCitations.push(...v.citations);
-          }
-        } else if (toolName === "course.show_draft") {
-          const v = value as
-            | { kind: "ok"; draft: { proposed: ProposedCourse } }
-            | { kind: "not_found" }
-            | undefined;
-          if (v?.kind === "ok" && v.draft?.proposed) pendingDrafts.push(v.draft.proposed);
-        } else if (toolName === "note.show") {
-          const v = value as { kind: "ok"; note: Note } | { kind: "not_found" } | undefined;
-          if (v?.kind === "ok" && v.note) pendingNotes.push(v.note);
-        } else if (toolName === "flashcard.review_next") {
-          const v = value as
-            | {
-                ok: true;
-                cards: Array<{
-                  flashcardId: string;
-                  front: string;
-                  conceptId?: string;
-                  preview?: {
-                    again: { nextReviewAt: Timestamp };
-                    hard: { nextReviewAt: Timestamp };
-                    good: { nextReviewAt: Timestamp };
-                    easy: { nextReviewAt: Timestamp };
-                  };
-                }>;
-              }
-            | undefined;
-          if (v?.ok && Array.isArray(v.cards)) pendingDueCards.push(...v.cards);
-        }
+        harvestToolResult(state, toolName, event.result.value as ToolResultValue);
         break;
       }
 
       case "system_note": {
         // system_note acts as a bubble boundary and renders as a visible card.
-        closeBubble();
+        closeBubble(state);
         const noteItem: SystemNoteItem = {
           kind: "system-note",
-          id: nextId("user"), // reuse counter; "user" prefix keeps ids unique
+          id: nextId(state, "user"), // reuse counter; "user" prefix keeps ids unique
           content: event.content,
           origin: event.origin,
         };
-        items.push(noteItem);
+        state.items.push(noteItem);
         break;
       }
 
       case "final":
       case "error":
         // final terminates the turn; error is not surfaced in replay.
-        closeBubble();
+        closeBubble(state);
         break;
 
       case "interrupted":
         // interrupted terminates the turn (user cancel); close any open bubble.
-        closeBubble();
-        items.push({ kind: "cancel-marker", id: nextId("asst") });
-        // Also close any open reasoning block (look back to find it).
-        for (let i = items.length - 1; i >= 0; i--) {
-          const it = items[i];
-          if (it?.kind === "thinking") {
-            it.streaming = false;
-            break;
-          }
-          if (it?.kind === "message" && it.role === "user") break;
-        }
+        closeBubble(state);
+        state.items.push({ kind: "cancel-marker", id: nextId(state, "asst") });
+        closeReasoningBlock(state);
         break;
     }
   }
 
   // End-of-stream: close any open bubble.
-  closeBubble();
+  closeBubble(state);
 
   // Drain any remaining pending renderables into the most-recent assistant
   // bubble (fallback: tool was the last thing and no subsequent bubble opened).
-  if (lastAssistantId !== null) {
-    drainPendingInto(lastAssistantId);
+  if (state.lastAssistantId !== null) {
+    drainPendingInto(state, state.lastAssistantId);
   }
 
-  return items;
+  return state.items;
 }

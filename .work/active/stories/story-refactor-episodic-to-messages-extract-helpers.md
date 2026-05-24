@@ -1,7 +1,7 @@
 ---
 id: story-refactor-episodic-to-messages-extract-helpers
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -51,3 +51,28 @@ main function.
 ## Risk: Low–Medium
 Pure-function extraction in a tested code path; the test suite for this hook is
 substantial enough to catch regressions.
+
+## Implementation notes
+
+### Helpers extracted (all module-scope, take `state: ReplayState` as first param)
+
+- **`ReplayState` interface** — captures all mutable loop state: `items`, `counter`, `currentAssistantId`, `lastAssistantId`, `activeBubbleContent`, `pendingByCallId`, and the four pending-renderable arrays.
+- **`nextId(state, kind)`** — id generator, increments `state.counter`.
+- **`openBubble(state)`** — opens a new assistant bubble, pre-attaches any pending renderables (Unit 3 rule), zeroes the pending arrays.
+- **`closeBubble(state)`** — seals the current bubble (no-op if none open).
+- **`drainPendingInto(state, targetId)`** — fallback drain of pending renderables into an already-pushed bubble, used at end-of-stream.
+- **`closeReasoningBlock(state)`** — walks backward to seal any open `thinking` item, stopping at a user-message boundary; deduplicates three identical inline loops.
+- **`harvestToolResult(state, toolName, value)`** — extracts renderable results (citations, drafts, notes, due-cards) from a successful `tool_result` value into the pending arrays.
+- **`pushToolCallItem(state, toolName, callId, args)`** — emits the appropriate item for a `tool_call` event (sub-agent block, tool-entry, or nothing for hidden tools).
+- **`settleToolEntry(state, callId, result)`** — mutates the matching `tool-entry` or `sub-agent` item in-place after a `tool_result` arrives.
+- **`applyModelMessage(state, content, partial)`** — handles `model_message`: lazy bubble open, partial accumulation vs. full replace, bubble sealing, reasoning-block close.
+
+### Line count
+- Before: `episodicToItems` was ~332 lines (lines 59–391 of the 391-line file).
+- After: `episodicToItems` is 118 lines (lines 300–418 of the 418-line file). The extra lines in the file are the extracted module-scope helpers.
+
+### Verification
+- 17 episodic-to-messages tests: all pass unchanged.
+- 1705 total UI tests: all pass.
+- `pnpm typecheck`: clean.
+- `pnpm biome check packages/ui/src/hooks/episodic-to-messages.ts`: no issues.
