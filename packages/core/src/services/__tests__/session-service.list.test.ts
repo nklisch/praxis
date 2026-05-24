@@ -202,6 +202,46 @@ describe("SessionServiceImpl.list() — excludeModeIds filter", () => {
     expect(ids).toEqual([mineId]);
   });
 
+  it("7. includeEnded:true + excludeModeIds: ended teach returned; configure never returned", async () => {
+    // ended configure — excluded by excludeModeIds regardless of includeEnded
+    insertSession(db, { studentId, modeId: "configure", endedAt: new Date() });
+    // ended teach — should survive: includeEnded:true keeps it, excludeModeIds doesn't filter it
+    const endedTeachId = insertSession(db, { studentId, modeId: "teach", endedAt: new Date() });
+    // active configure — excluded by excludeModeIds
+    insertSession(db, { studentId, modeId: "configure" });
+    // active teach — should survive: not excluded by either predicate
+    const activeTeachId = insertSession(db, { studentId, modeId: "teach" });
+    const svc = makeService(db);
+
+    const results = await svc.list({ includeEnded: true, excludeModeIds: ["configure"] });
+    const ids = results.map((s) => s.sessionId);
+    const modeIds = results.map((s) => s.modeId);
+
+    // Both teach sessions (ended and active) must appear
+    expect(ids).toContain(endedTeachId);
+    expect(ids).toContain(activeTeachId);
+    // No configure sessions — neither ended nor active
+    expect(modeIds).not.toContain("configure");
+    // Ended teach session should have a non-null endedAt (confirming includeEnded:true worked)
+    const endedTeachRow = results.find((s) => s.sessionId === endedTeachId);
+    expect(endedTeachRow?.endedAt).not.toBeNull();
+  });
+
+  it("8. includeEnded:false + excludeModeIds combine: only open non-configure sessions", async () => {
+    // ended teach — excluded by includeEnded:false
+    insertSession(db, { studentId, modeId: "teach", endedAt: new Date() });
+    // active configure — excluded by excludeModeIds
+    insertSession(db, { studentId, modeId: "configure" });
+    // active teach — the only survivor: open AND non-configure
+    const survivorId = insertSession(db, { studentId, modeId: "teach" });
+    const svc = makeService(db);
+
+    const results = await svc.list({ includeEnded: false, excludeModeIds: ["configure"] });
+    const ids = results.map((s) => s.sessionId);
+
+    expect(ids).toEqual([survivorId]);
+  });
+
   it("5. filter applies before LIMIT: 8 configure + 5 teach, limit 5 → 5 teach", async () => {
     // Insert 8 configure sessions with staggered timestamps
     for (let i = 0; i < 8; i++) {

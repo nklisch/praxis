@@ -1,14 +1,14 @@
 ---
 id: gate-tests-session-list-includeended-and-excludemodeids
 kind: story
-stage: implementing
+stage: review
 tags: [testing, sessions]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # `includeEnded: false` combined with `excludeModeIds` not tested
@@ -40,3 +40,12 @@ it("includeEnded:false + excludeModeIds combine: only open non-configure session
 
 ## Test location (suggested)
 `packages/core/src/services/__tests__/session-service.list.test.ts`
+
+## Implementation notes
+
+Added two tests to `packages/core/src/services/__tests__/session-service.list.test.ts` (tests 7 and 8):
+
+- **Test 7** (`includeEnded:true + excludeModeIds`): inserts ended-configure, ended-teach, active-configure, active-teach; asserts ended-teach and active-teach both appear (confirming `includeEnded:true` lets ended rows through), and no configure sessions appear in any state. This is the primary gap — the `includeEnded:true` branch combined with `excludeModeIds` was uncovered.
+- **Test 8** (`includeEnded:false + excludeModeIds`): mirrors the story's suggested test exactly — ended teach (excluded by `includeEnded:false`) and active configure (excluded by `excludeModeIds`) are both absent; only the open, non-configure teach session survives.
+
+All 1164 tests in `@praxis/core` pass.
