@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-6-extract-pack-course-creation
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -77,3 +77,19 @@ async createCourseFromPack(input) {
 ## Risk + Rollback
 Risk: Low — self-contained transaction, no shared state.
 Rollback: inline back into the service.
+
+## Implementation notes
+
+Created `packages/core/src/services/course-create/pack-course-creator.ts` (113 lines).
+
+Exported `createCourseFromPack(input: CreateCourseFromPackInput, db: PraxisDb)` as a
+standalone async function, faithfully transplanting all logic from the service method
+(lines 612–721). All schema imports (`courses`, `lessons`, `gates`, `concepts`),
+`LESSON_SIZE = 7`, `uuidv7`, `brandId`, `eq`, and `PraxisDb` are self-contained in the
+new module. No draft store, no listener, no engine access.
+
+Per the deviation instruction, `course-create-service.ts` was NOT modified — Step 7
+handles wiring the delegation.
+
+Verification: `pnpm typecheck` clean (all packages); `pnpm --filter @praxis/core test`
+— 96 test files, 1164 tests, all passed.
