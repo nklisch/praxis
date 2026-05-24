@@ -1,7 +1,7 @@
 ---
 id: feature-math-rendering-step-1-katex-macros
 kind: story
-stage: implementing
+stage: review
 tags: [content, rendering, math]
 parent: feature-math-rendering
 depends_on: []
@@ -35,3 +35,15 @@ Define the curated 11-macro set (the design's locked starter set: `\R`, `\Z`, `\
 ## References
 - Parent feature: `.work/active/features/feature-math-rendering.md` § Unit 1
 - File: `packages/ui/src/lib/katex-macros.ts`
+
+## Implementation notes (2026-05-24)
+
+### Files touched
+- `packages/ui/src/lib/katex-macros.ts` — created; exports `KATEX_MACROS` (frozen `Readonly<Record<string, string>>` with 11 macros) and `KATEX_MACRO_DOCS` (`ReadonlyArray<MacroDoc>` with shortcut/expansion/meaning).
+- `packages/ui/src/lib/__tests__/katex-macros.test.ts` — created; 17 tests covering sync validation, immutability, per-macro KaTeX render (throwOnError: true), and HTML output spot-check.
+
+### Test result
+17/17 tests pass. Full `@praxis/ui` suite: 164 test files, 1723 tests, all green.
+
+### Deviations
+None. All 11 macros rendered without KaTeX error. No design-flaw escape hatch triggered.
