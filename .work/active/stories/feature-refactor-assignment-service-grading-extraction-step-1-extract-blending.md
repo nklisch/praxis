@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction-step-1-extract-blending
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-assignment-service-grading-extraction
 depends_on: []
@@ -44,3 +44,10 @@ imports it from `./graders/blending.js`. `graders/index.ts` re-exports it.
 
 ## Rollback
 Revert the three file changes — no DB, IPC, or public-interface impact.
+
+## Implementation notes
+- Created `packages/core/src/services/graders/blending.ts` (38 lines) exporting `blendDeterministicAndWorkRubric` as a named export.
+- The function signature and JSDoc comment were copied verbatim from `assignment-service.ts` lines 320–344, with an added `import type { GraderResult } from "./types.js"` at the top.
+- Added `export { blendDeterministicAndWorkRubric } from "./blending.js"` to `graders/index.ts`.
+- `assignment-service.ts` was NOT modified per story instructions (Step 4 wires).
+- `pnpm typecheck` and `pnpm --filter @praxis/core test` both passed (96 test files / 1164 tests).

@@ -1,4 +1,5 @@
 export { enrichWithApproachFeedback } from "./approach-feedback.js";
+export { blendDeterministicAndWorkRubric } from "./blending.js";
 export { APPROACH_SYSTEM_PROMPT } from "./approach-prompt.js";
 export { CodeGrader } from "./code-grader.js";
 export { FreeResponseGrader } from "./free-response-grader.js";
