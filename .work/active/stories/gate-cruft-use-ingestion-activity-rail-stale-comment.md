@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-use-ingestion-activity-rail-stale-comment
 kind: story
-stage: review
+stage: done
 tags: [cleanup, documentation]
 parent: null
 depends_on: []
@@ -42,3 +42,6 @@ Change the comment to:
 
 ## Implementation notes
 Found the stale comment at line 187 in `packages/ui/src/hooks/use-ingestion.ts`, exactly matching the story's evidence. Replaced `// Progress events are reported via the ActivityRail — no local state needed.` with `// Progress events are surfaced through the StatusStrip via ActivityRegistry — no local state needed.` — the only change in this story. Typecheck and all 1710 UI tests pass with no issues.
+
+## Review
+Verdict: **done**. Single-line comment fix confirmed correct — old text referenced the unused `ActivityRail`, new text accurately names `StatusStrip via ActivityRegistry` per CLAUDE.md and the current architecture. Surrounding code unchanged. No blockers, no important findings, no nits.
