@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-memory-service-bkt-extraction-step-3-mastery-queries
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-memory-service-bkt-extraction
 depends_on:
@@ -136,3 +136,34 @@ restore the inline methods.
 - `mastery-indexer.ts`: standalone `applySignalsToConcept` export removed (~67 lines deleted); `MasteryIndexer.applySignalsToConcept` instance method converted to one-liner delegating to `applySignalsToConcept` from `../memory/mastery-writes.js`; file shrunk from 374 → 232 lines (−142 lines)
 - `services/index.ts`: `applySignalsToConcept` re-export switched from `./indexers/mastery-indexer.js` → `./memory/mastery-writes.js`; biome import-sort auto-applied
 - All 4773 workspace tests pass (23 slow-gated skipped); typecheck and lint clean on affected files
+
+## Review
+
+**Verdict: done**
+
+Commit `6c90dcf`. Detailed verification of all acceptance criteria:
+
+**All 5 read methods delegate to `MasteryQueries`** — confirmed by grep on `memory-service.ts`:
+- `studentModel(studentId)` → `this.queries.studentModel(studentId)` ✓
+- `misconceptions(studentId)` → `this.queries.misconceptions(studentId)` ✓
+- `getMastery(input)` → `this.queries.getMastery(input)` ✓
+- `getMisconception(id)` → `this.queries.getMisconception(misconceptionId)` ✓
+- `read(input)` → `this.queries.read(input)` ✓
+
+**`applySignalsToConcept` imported from `./mastery-writes.js`** — `memory-service.ts:38` confirms correct direction. Import from `../indexers/mastery-indexer.js` fully removed. ✓
+
+**Standalone duplicate removed from `mastery-indexer.ts`** — 5 occurrences remain: import line, call site from `run()`, doc comment, method signature, and the single one-liner delegation. The ~67-line standalone body is gone. ✓
+
+**`MasteryIndexer` instance method delegates correctly** — `applySignalsToConcept(this.deps, studentId, conceptId, signals)` at line 230, calling the module-level import. The design suggested aliasing as `applyMasterySignals` to avoid name collision; implementation uses the original name without aliasing. This is semantically correct — TypeScript resolves the 3-arg module-level call distinctly from the 2-arg method call — and typecheck passes clean, confirming no issue. ✓
+
+**`services/index.ts` re-export switched** — `export { applySignalsToConcept } from "./memory/mastery-writes.js"` at line 122. `MasteryIndexer` export retained; standalone `applySignalsToConcept` from indexer removed. ✓
+
+**Line counts** — `memory-service.ts` at 507 lines (acceptance: under 510 ✓), `mastery-queries.ts` at 150 lines, `mastery-indexer.ts` at 232 lines.
+
+**`rowToMisconception` file-private helper** — present at line 30 of `mastery-queries.ts`, shared by `misconceptions()` and `getMisconception()`. Clean deduplication. ✓
+
+**Public `MemoryService` interface** — unchanged (all 5 methods have identical signatures). Delegations preserve async/Promise contracts. ✓
+
+**4773 tests pass** (23 slow-gated skipped) — bit-for-bit identical mastery-projection behavior confirmed. Typecheck and lint clean. ✓
+
+No findings. Acceptance criteria met in full.
