@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-7-wire-and-delete
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on:
@@ -85,3 +85,13 @@ Then delete `packages/desktop/electron/main/author-channel.ts`.
 
 ## Rollback
 `git revert` the commit for this step; restore `author-channel.ts` from the prior step's state and revert `ipc-server.ts` to the single-import form.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All checks clean. Old `registerAuthorHandlers` import and call fully removed from `ipc-server.ts`; 6 new imports added in alphabetical order (configurator, course, gate, lesson, memory, prompt); 6 corresponding register calls added in course → lesson → gate → prompt → memory → configurator order matching the design. `author-channel.ts` deleted (537 lines removed). Zero stale references to `author-channel` or `registerAuthorHandlers` in the desktop package. All 25 `praxis.author.*` channels verified present and distinct across the 6 new modules. `pnpm --filter @praxis/desktop test`: 520/520 pass including the 34-test `author-channel-envelope.test.ts` suite. Item advances to `done`.
