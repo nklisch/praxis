@@ -184,7 +184,7 @@ export function useIngestion(
               outcome: { ok: false, message: event.error.message },
             };
           }
-          // Progress events are reported via the ActivityRail — no local state needed.
+          // Progress events are surfaced through the StatusStrip via ActivityRegistry — no local state needed.
         }
         // Stream ended without a done/error event — treat as an error.
         return {
