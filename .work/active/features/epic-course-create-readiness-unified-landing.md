@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing
 kind: feature
-stage: implementing
+stage: review
 tags: [ui, ingestion, bootstrap, configure, course-authoring]
 parent: epic-course-create-readiness
 depends_on: [epic-course-create-readiness-startup-invisible]
@@ -387,3 +387,39 @@ Per the routing matrix:
   story to add one.
 - **Inbound links to `/packs`** — exhaustive grep needed; missing one
   produces 404s. The acceptance criterion explicitly requires the audit.
+
+## Children complete (orchestrator, 2026-05-23)
+
+All 4 child stories landed and advanced to `stage: review`:
+
+- `epic-course-create-readiness-unified-landing-source-picker` — 3-tab
+  source picker (Pack / Upload / Paste), Or-bar, `?pack=` URL contract,
+  paste-via-temp-file ingestion path, stepper rename Explore → Create.
+  26 new tests + 7 updated existing. Commit: `aa5adfb`.
+- `epic-course-create-readiness-unified-landing-packs-into-library` —
+  /packs folded into Library section; top-level route removed with
+  redirect; zero inbound links to update. packs.tsx deleted. zod
+  dependency added to packages/ui. 10 new section tests + replaced
+  packs-route test. Commit: `a8b8b53`.
+- `epic-course-create-readiness-unified-landing-bypass-reroute` —
+  `handleNewCourse` → `/course-create`; `handleUsePack` →
+  `/course-create?pack=<id>`. Resume paths unchanged. Tests cover the
+  cold-start vs resume distinction. Commit: `f4a5c25`.
+- `epic-course-create-readiness-unified-landing-onboarding-slim` —
+  `CourseStep.handleStart` replaced with `navigate({ to: "/course-create",
+  search: { pack: <id> } })` for algebra/biology cards; syllabus card
+  navigates without param. `PRESEED_MESSAGES` constant removed. Card
+  busy/disabled props simplified. 3 new card-navigation tests, removed
+  stale pre-seed tests. Commit: `62f983b`.
+
+Integration verification: `pnpm typecheck` clean across the workspace;
+4672 tests pass (Wave 1 + Wave 2 combined). No file-overlap conflicts
+during parallel wave execution.
+
+Pack id format aligned: canonical pack JSONs use plain slugs
+(`"algebra-1"`, `"biology"`) — onboarding-slim uses these directly;
+bypass-reroute uses `packId` from the user's selection (test fixture
+uses `"math.algebra-1"` as a synthetic id; production wiring is
+parameterized).
+
+Feature advancing `implementing → review` for final pass.
