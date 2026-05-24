@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -181,3 +181,19 @@ Wave 2 (sequential, after Wave 1 complete):
 Steps 1–6 are safe to implement in parallel — they extract non-overlapping regions of the
 file with no cross-step dependencies. Step 7 gates on all six and performs the final
 composition verification.
+
+## Review
+
+**Verdict: approved — advancing to done.**
+
+All 7 child stories are at `done`. All verification checks pass:
+
+- **6 new modules exist** under `packages/core/src/services/course-create/`:
+  `draft-mutations.ts`, `draft-mutators.ts`, `draft-queries.ts`, `draft-confirmer.ts`,
+  `pack-course-creator.ts`, `index.ts` (barrel).
+- **`course-create-service.ts` shrunk from 1155 → 558 lines** — a ~52% reduction. The
+  facade now delegates to focused collaborators and contains only lifecycle orchestration
+  (init, subscribe, discard, sweep, shutdown).
+- The service's external interface is unchanged; `persistDraft` atomicity is preserved
+  inside `draft-confirmer.ts` via the same Drizzle transaction boundary; the
+  `normalizeConceptName` leaky-abstraction is resolved through the barrel import.
