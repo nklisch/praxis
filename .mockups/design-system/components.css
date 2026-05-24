@@ -541,7 +541,7 @@ body {
 .loading-state::after {
   content: "…";
   display: inline-block;
-  animation: editorial-ellipsis 1.4s steps(4, end) infinite;
+  animation: editorial-ellipsis var(--dur-pulse) steps(4, end) infinite;
   width: 1.2em;
   text-align: left;
   overflow: hidden;
@@ -747,7 +747,7 @@ body {
     var(--color-bg-tertiary) 100%
   );
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  animation: skeleton-shimmer var(--dur-pulse) var(--ease-standard) infinite;
   border-radius: var(--radius-sm);
   min-height: 1em;
 }
@@ -772,7 +772,7 @@ body {
   display: block;
   height: 100%;
   background: var(--color-text-secondary);
-  transition: width 200ms ease-out;
+  transition: width var(--dur-quick) var(--ease-standard);
 }
 
 .step-dots {
@@ -1007,7 +1007,7 @@ body {
   border-radius: var(--radius-sm);
   background: var(--color-bg-secondary);
   cursor: pointer;
-  transition: border-color 120ms ease-out;
+  transition: border-color var(--dur-quick) var(--ease-standard);
 }
 .assignment-card:hover {
   border-color: var(--color-border-strong);
