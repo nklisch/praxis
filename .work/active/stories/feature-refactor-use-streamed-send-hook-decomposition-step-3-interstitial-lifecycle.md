@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-3-interstitial-lifecycle
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on: []
@@ -164,3 +164,17 @@ must preserve the existing placement rules. The timer callbacks close over `setI
 passed at `onToolResult` time — ensure no stale-dispatch issue.
 
 **Rollback:** Revert new file and restore inline code in `use-streamed-send.ts`.
+
+## Implementation notes
+
+- New file: `packages/ui/src/hooks/use-interstitial-lifecycle.ts` — 300 lines.
+- All per-turn Maps and renderable arrays live in a single `InterstitialRef` object held by `useRef`, reset via `reset()`. `reset()` cancels orphaned timers before discarding the ref.
+- `MIN_INTERSTITIAL_VISIBLE_MS = 800` constant moved here and exported.
+- `ToolCallEvent` and `ToolResultEvent` interfaces are defined locally (subset of `EngineEvent`) to keep this hook self-contained.
+- `onToolResult` returns `BubbleRenderables` (harvested items from this specific result). The pending accumulators grow simultaneously so `drainRenderables()` returns the full pending set across all tool results. Step 5 (compose) decides which protocol to use per call site.
+- `BubbleRenderables` is imported from `use-streamed-bubbles.ts` (already defined there) to avoid duplication.
+- `getToolLabel` import stays in this hook — it's only needed here.
+- `setItems` is passed at each call site (not captured at construction) — satisfies the stale-closure concern for async timer callbacks. React guarantees `useState` setters are stable references so this is zero-cost.
+- `drainOnFinally` clears renderable accumulators after draining so calling it twice is safe.
+- `pendingRenderables` getter returns a snapshot copy (safe for consumer to iterate without mutation).
+- `pnpm typecheck` and `pnpm --filter @praxis/ui test` both pass (1711 tests, 164 files).
