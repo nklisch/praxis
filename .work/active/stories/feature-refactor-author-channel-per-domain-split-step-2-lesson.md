@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-2-lesson
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -67,6 +67,20 @@ export function registerAuthorLessonHandlers(services: Services, log: Logger): v
 
 ## Rollback
 `git revert` the commit for this step; the three handlers remain in `author-channel.ts`.
+
+## Review
+**Verdict: done** (commit `0f5cfd4`)
+
+Pattern conformance verified against `per-domain-channel-module`:
+- Exports exactly `registerAuthorLessonHandlers(services, log)`.
+- `createIpcHelpers(log)` + `handle` destructured at top — correct.
+- `requireUnlocked()` is local, not exported — matches pattern.
+- All three handlers use `handleEnvelope` with matching channel strings (`praxis.author.createLesson`, `praxis.author.updateLesson`, `praxis.author.deleteLesson`).
+- Spot-checked `updateLesson`: builds typed `patch` object with conditional property assignments, brands `lessonId` as `LessonId`, maps `conceptIds` through `brandId<"ConceptId">` — matches the description of the original verbatim copy.
+- Spot-checked `deleteLesson`: `brandId<"LessonId">` cast, optional `reason` spread — correct.
+- Both `ConceptId` and `LessonId` type imports present as required.
+- File is 104 lines (story said 103 — JSDoc block accounts for the delta); no other files touched.
+- 520 desktop tests pass per implementation notes.
 
 ## Implementation notes
 - Created `packages/desktop/electron/main/author-lesson-channel.ts` (103 lines) exporting only `registerAuthorLessonHandlers(services, log)`.

@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-1-course
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -103,6 +103,18 @@ export function registerAuthorCourseHandlers(services: Services, log: Logger): v
 
 ## Rollback
 `git revert` the commit for this step; the two handlers remain in `author-channel.ts`.
+
+## Review
+**Verdict: done** (commit `68b25a7`)
+
+Pattern conformance verified against `per-domain-channel-module`:
+- Exports exactly `registerAuthorCourseHandlers(services, log)` — matches the `register*Handlers(services, [, log])` signature.
+- `createIpcHelpers(log)` called at top of function; `handle` destructured — correct.
+- `requireUnlocked()` is local, not exported — matches spec and pattern.
+- Both handlers use `handleEnvelope(channel, log, schema, fn)` with matching channel strings (`praxis.author.updateCourse`, `praxis.author.getCourseSummary`).
+- Handler bodies match the target-state spec verbatim: `brandId<"CourseId">` usage, the `Parameters<...>` cast on `updateCourse`, the `as CourseId` cast on `getCourseSummary` — all correct.
+- File is 61 lines (story said 63 — close enough; the JSDoc header is the delta); only the new file was added, no other files touched.
+- 520 desktop tests pass per implementation notes.
 
 ## Implementation notes
 Created `packages/desktop/electron/main/author-course-channel.ts` (63 lines) exporting `registerAuthorCourseHandlers(services, log)`. Contains a local `requireUnlocked()` guard and the two handlers (`updateCourse`, `getCourseSummary`) extracted verbatim from `author-channel.ts`. Handlers are NOT removed from `author-channel.ts` — that is deferred to step 7. `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both pass (520 tests green).

@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-3-gate
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -69,6 +69,20 @@ export function registerAuthorGateHandlers(services: Services, log: Logger): voi
 
 ## Rollback
 `git revert` the commit for this step; the four handlers remain in `author-channel.ts`.
+
+## Review
+**Verdict: done** (commit `cb9cc51`)
+
+Pattern conformance verified against `per-domain-channel-module`:
+- Exports exactly `registerAuthorGateHandlers(services, log)`.
+- `createIpcHelpers(log)` + `handle` destructured at top — correct.
+- `requireUnlocked()` is local, not exported — matches pattern.
+- All four handlers use `handleEnvelope` with matching channel strings (`praxis.author.createGate`, `praxis.author.updateGate`, `praxis.author.deleteGate`, `praxis.author.overrideGate`).
+- Spot-checked `createGate`: `z.unknown()` on `guards` and `successCriteria` preserved (trust-boundary intent intact), casts to `GateTarget` and `SuccessCriteria` correct.
+- Spot-checked `updateGate`: conditional `patch` object construction, `brandId<"GateId">` on prerequisites array, `reason` optional spread — correct.
+- All required branded-type imports present: `CourseId`, `GateId`, `GateTarget`, `SuccessCriteria`.
+- File is 122 lines (story said 119 — JSDoc block accounts for delta); no other files touched.
+- 520 desktop tests pass per implementation notes.
 
 ## Implementation notes
 - Created `packages/desktop/electron/main/author-gate-channel.ts` (119 lines).
