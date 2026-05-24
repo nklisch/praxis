@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-4-embeddings
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -145,3 +145,16 @@ Rollback: revert the new file, restore the module-level constants and inline blo
   this cross-package use case.
 - `pnpm typecheck && pnpm --filter @praxis/desktop test` both green (520 tests, 34 files).
 - Biome import ordering was auto-fixed (organizeImports + inline of the tools/runtime import).
+
+## Review
+
+**Verdict: done.**
+
+Checked:
+- Factory `buildEmbeddingsServices` is exported and returns the full `EmbeddingsServices` interface covering all 10 services (vectorStore, ftsStore, embeddingsWorker, embeddings, pageImageStore, embeddedImageStore, documentsReader, conceptEmbeddings, packImportService, pedagogyPackService).
+- Module-level constants (`EMBEDDINGS_MODEL_ID`, `EMBEDDINGS_DIMENSION`, `requireFromHere`, `resolveDistPath`) are present in the new file with thorough inline documentation explaining the ESM/CommonJS rationale and the Electron packaging constraint.
+- Duplicates intentionally remaining in `services.ts` per the Step 10 cleanup plan — correct per design.
+- Parameter types use `PraxisDb` / `SqliteDatabase` aliases from `@praxis/core/db` (consistent with codebase convention; avoids missing `@types/better-sqlite3` devDep in `@praxis/desktop`).
+- `embeddingsWorker` typed as `NodeWorker` on the returned slice — wires through to `workers.embeddings` correctly at call-site.
+- Zero lint errors in the new file; lint failures are pre-existing `.mockups/` HTML issues unrelated to this story.
+- `pnpm typecheck` green (all packages pass).

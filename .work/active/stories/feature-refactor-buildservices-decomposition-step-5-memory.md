@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-5-memory
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -88,3 +88,14 @@ Rollback: revert the new file and restore the inline block in `buildServices()`.
   `PraxisDb`, and all other service factories in the codebase use that alias consistently.
 - `services.ts` is not modified per the step spec; Step 10 will wire the call-site.
 - `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both green (520 tests passed).
+
+## Review
+
+**Verdict: done.**
+
+Checked:
+- Factory `buildMemoryServices` is exported and returns `{ memoryService }` matching the `MemoryServices` interface.
+- `db` parameter typed as `PraxisDb` (from `@praxis/core/db`) rather than raw `BetterSQLite3Database` — correct codebase-aligned choice; `MemoryServiceImpl` expects `PraxisDb` and all sibling factories use the same alias.
+- `decayDaysFor: () => 14` lambda moved as-is; hardcoding is appropriate per design (future config thunk is out of scope).
+- `services.ts` not modified per plan — Step 10 handles wiring.
+- Zero lint errors in the new file; typecheck green.
