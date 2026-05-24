@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-2-secrets
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -78,3 +78,13 @@ is constructed (engine resolvers close over `secretStorage`).
 Low — no side-effects at construction time (`safeStorage` is called lazily on first
 encrypt/decrypt), no ordering constraints violated.
 Rollback: revert the new file and restore the two lines in `buildServices()`.
+
+## Implementation notes
+
+- Created `packages/desktop/electron/main/services/build-secret-services.ts` (23 lines).
+- The `services/` directory already existed (created by step 1 or prior setup) — no mkdir needed.
+- Exported `SecretServices` interface and `buildSecretServices(log: MainLogger)` function matching the target state exactly.
+- Added JSDoc on `buildSecretServices` documenting the `app.whenReady()` constraint and why it's safe.
+- `services.ts` not modified — wiring deferred to step 10 per the workflow.
+- `pnpm typecheck` green (all packages, including desktop Electron tsconfig).
+- `pnpm --filter @praxis/desktop test` green: 34 files, 520 tests.
