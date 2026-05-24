@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-3-sandbox
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on: []
@@ -92,3 +92,10 @@ if desired (no ordering constraint with DB). `pyodide` is also returned in the f
 Low — no side-effects at construction time (Pyodide WASM loads lazily on first call),
 no inter-service dependencies.
 Rollback: revert the new file and restore the four inline lines in `buildServices()`.
+
+## Implementation notes
+
+- Created `packages/desktop/electron/main/services/build-sandbox-services.ts` (27 lines).
+- Omitted the unused `gradeMathTool` import that appeared in the story's target-state snippet — `gradeMathTool` is not constructed here; only the four sandbox-related values are returned.
+- Retained the QuickJS comment from `services.ts` for context.
+- `pnpm typecheck` and `pnpm --filter @praxis/desktop test` both pass (520 tests, 34 files).
