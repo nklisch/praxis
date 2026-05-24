@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-memory-service-bkt-extraction-step-2-apply-signals-move
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-memory-service-bkt-extraction
 depends_on: []
@@ -99,3 +99,22 @@ method shrinks to a one-liner delegation. The import direction fix is a rename o
 the import path only. Easy to verify by running tests and diffing the function body.
 
 **Rollback**: Revert the three edited files and delete `mastery-writes.ts`.
+
+## Implementation notes
+
+Created `packages/core/src/services/memory/mastery-writes.ts` (93 lines) with
+the single canonical `applySignalsToConcept` export. Body is copied verbatim
+from the standalone exported function in `mastery-indexer.ts` (lines 307–373).
+
+`MAX_EVIDENCE = 50` is defined locally in the new file (duplicated scalar —
+acceptable per story guidance). Imports `bktInitial`, `bktUpdate`, `DEFAULT_BKT`,
+and `BktState` from `./bkt.js`; imports `studentMastery` schema from
+`@praxis/memory/schema`; drizzle `and`/`eq`; and types from `../../types/index.js`.
+
+Duplicate cleanup (deleting the standalone export from `mastery-indexer.ts`,
+rewiring `memory-service.ts` import, updating `services/index.ts` re-export,
+and delegating the instance method) is deferred to step 3 to avoid merge
+conflict risk with step 1.
+
+`pnpm typecheck` and `pnpm --filter @praxis/core test` both pass green (96 test
+files, 1164 tests).
