@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split-step-2-lesson
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-author-channel-per-domain-split
 depends_on: []
@@ -67,3 +67,11 @@ export function registerAuthorLessonHandlers(services: Services, log: Logger): v
 
 ## Rollback
 `git revert` the commit for this step; the three handlers remain in `author-channel.ts`.
+
+## Implementation notes
+- Created `packages/desktop/electron/main/author-lesson-channel.ts` (103 lines) exporting only `registerAuthorLessonHandlers(services, log)`.
+- Handler bodies copied verbatim from `author-channel.ts` lines 99–177 — no logic changes.
+- `requireUnlocked()` is local and not exported, matching the story spec.
+- Both `ConceptId` and `LessonId` branded-type imports included as required by `updateLesson` and `deleteLesson`.
+- `author-channel.ts` and `ipc-server.ts` left untouched per story instructions (Step 7 handles wiring and deletion).
+- `pnpm typecheck` clean; `pnpm --filter @praxis/desktop test` — 520 tests in 34 files, all pass.
