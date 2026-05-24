@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-attach-doc-modal-stuck
 kind: story
-stage: review
+stage: done
 tags: [ui, ingestion, bug]
 parent: epic-course-create-readiness
 depends_on: []
@@ -93,3 +93,33 @@ the existing describe block:
 
 Also added `vi.mock("../hooks/use-tabs.js")` to the existing test file since the pre-existing
 story changes added `useTabs` to `CourseCreateTabBody`.
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Both root causes identified and fixed cleanly. Bug 1 wraps the picker Modal
+in `{ingestion.state.status !== "batch_summary" && (...)}` so the component
+stays mounted (preserving ingestion state) while its Modal hides during the
+batch-summary modal — correct shape. Bug 2 uses the existing `useResource`
++ `onAttached` callback pattern (option 1 from the brief) rather than
+introducing a subscriber stream — appropriately scoped. Tests exercise the
+real end-to-end paths and would catch regressions.
+
+**Blockers**: none
+
+**Important**: none
+
+**Nits**:
+- The Bug 1 test exercises the upload-then-batch-summary path (drop file →
+  ingest → summary). The original user complaint described "Attach from
+  Library → pick a document → confirm" — likely the same code path under
+  the hood (both flow through the picker → ingestion state → summary), but
+  worth confirming the user's specific repro is fixed too.
+- `attachedLoader` re-creates on every `tab.sessionId` change — fine since
+  `tab.sessionId` is stable per tab, but the `useResource` re-fires if
+  `client` identity changes (it shouldn't, since it's from context).
+
+**Notes**: Both fixes are scoped and surgical. The picker's existing
+`onAttached` prop turned out to be the right hook — nice when the prior
+plumbing supports the new use case without modification.
