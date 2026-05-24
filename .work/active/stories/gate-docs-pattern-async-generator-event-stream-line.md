@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-async-generator-event-stream-line
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -31,3 +31,6 @@ and the exactOptional baseline cleanup.
 ## Required edit
 Change the file:line citation to:
 `packages/core/src/services/session-service.ts:166`
+
+## Implementation notes
+Updated the stale `:125` citation on line 15 of `.claude/skills/patterns/async-generator-event-stream.md` to `:166`, verified via `grep -n` that `SessionServiceImpl.send` is declared at line 166. The other two file:line citations in the doc (`packages/engines/src/types.ts:12` for `runOneShot` and `packages/engines/src/direct/adapter.ts` with no line number) were checked and remain accurate.
