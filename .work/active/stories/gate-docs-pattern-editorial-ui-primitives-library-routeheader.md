@@ -1,14 +1,14 @@
 ---
 id: gate-docs-pattern-editorial-ui-primitives-library-routeheader
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: docs
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # Pattern skill `editorial-ui-primitives` `<RouteHeader>` example for `library.tsx:97` no longer exists
@@ -47,3 +47,6 @@ the current line in `courses.tsx`.
 
 ## Implementation notes
 Replaced the stale `library.tsx:97` example (and the outdated `courses.tsx:28` citation) with the live `<RouteHeader>` call at `packages/ui/src/routes/courses.tsx:53`, which uses `route-meta.ts`-sourced props and an `actions` slot — a representative real-world usage. `library.tsx` no longer renders `<RouteHeader>` (Workbench layout), so it was dropped entirely from the doc.
+
+## Review
+Verdict: **done**. Cross-checked `packages/ui/src/routes/courses.tsx:53` — the `<RouteHeader>` call in the pattern skill exactly matches the live source (ornament/kicker/title/deck from `meta`, `actions` slot with `<ResumeDraftPicker>` + `+ New course` button). The stale `library.tsx:97` and `courses.tsx:28` references are fully replaced. No issues found.
