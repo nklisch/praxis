@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-1-extract-apply-edit
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -56,3 +56,9 @@ Rollback: revert the new file and inline the functions back; one-step revert.
 - Imports `normalizeConceptName` from `./helpers.js` and `validateProposed` from `./draft-validator.js` as designed.
 - `course-create-service.ts` is NOT modified yet — Step 7 will do all wiring in one pass.
 - `pnpm typecheck` passes (all 10 packages clean). `pnpm --filter @praxis/core test` passes (96 files, 1164 tests).
+
+## Review
+
+Verdict: **done**.
+
+`draft-mutations.ts` (272 lines in commit) correctly exports `applyEdit`, `buildSummary`, and the `EditResult` interface. The `ok` helper is correctly unexported. Imports follow the sibling pattern: `normalizeConceptName` from `./helpers.js`, `validateProposed` from `./draft-validator.js`. No DB access, no side effects — pure transformations on `ProposedCourse`. The exhaustive `switch` with `never` guard on the `default` branch is sound. All variants of `DraftEditOp` are covered. `pnpm typecheck` and 1164 core tests pass.
