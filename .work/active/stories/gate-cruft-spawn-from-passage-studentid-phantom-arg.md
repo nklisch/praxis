@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-spawn-from-passage-studentid-phantom-arg
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -73,3 +73,17 @@ Import cleanup: `StudentId` was only used by `spawnFromPassage` in `session-clie
 referenced by `spawnFromNote` so the import was retained there.
 
 All 440 test files pass; `@praxis/client` typechecks cleanly.
+
+## Review
+
+**Verdict: done.** No blockers or important findings.
+
+Verification checklist:
+- `studentId?: StudentId` removed from `spawnFromPassage` input in `session-client.ts` — confirmed.
+- Unused `StudentId` import removed in `session-client.ts` — confirmed.
+- `StudentId` import RETAINED in `types/session-client.ts` — confirmed; still used by `spawnFromNote`.
+- `studentId?` removed from `SessionService.spawnFromPassage` declaration in `types/session-client.ts` — confirmed.
+- No caller passes `studentId` to `spawnFromPassage` — confirmed; the only UI caller (`document-tab-body.tsx:261`) passes only `documentId` and `range`.
+- Server-side impl (`session-service.ts:773-779`) resolves `studentId` via `getOrCreateDefaultStudentId` fallback — the field was never reachable over the wire, and the impl's wider optional signature is valid TypeScript.
+
+No follow-up items required.
