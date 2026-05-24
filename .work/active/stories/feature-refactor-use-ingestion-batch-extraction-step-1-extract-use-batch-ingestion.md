@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-ingestion-batch-extraction-step-1-extract-use-batch-ingestion
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-use-ingestion-batch-extraction
 depends_on: []
@@ -118,3 +118,13 @@ four refs, `_startBatch`, `skipCurrentFile`, `cancelBatch`.
 
 **Low.** Additive-only in this step. `use-ingestion.ts` is untouched; no consumer
 is affected. Rollback: delete the new file.
+
+## Implementation notes
+
+- Created `packages/ui/src/hooks/use-batch-ingestion.ts` (222 lines).
+- Extracted the four batch refs (`tierDeferredRef`, `tierResultRef`, `cancelRequestedRef`, `batchCancelRef`) into the sub-hook.
+- `_startBatch` renamed to `startBatch`; `confirmTier`, `skipCurrentFile`, `cancelBatch`, and `resetRefs` all exported via `UseBatchIngestionResult`.
+- `skipCurrentFile` uses `getState()` getter arg instead of a captured closure over `state` — avoids stale-closure issues when the facade passes `() => stateRef.current`.
+- `mimeTypeFromPath` helper duplicated into the new file (Step 2 facade rewrite can deduplicate if desired).
+- Types (`PendingFile`, `BatchResult`, `IngestionState`) imported from `./use-ingestion.js` as specified.
+- `pnpm typecheck` passes clean; `pnpm --filter @praxis/ui test` passes (163 files / 1706 tests); new file is lint-clean (`biome check` reports no issues on the file itself).
