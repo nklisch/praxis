@@ -37,6 +37,7 @@ import {
   RecommendationServiceImpl,
   SessionPromotionRegistryImpl,
   SessionServiceImpl,
+  SessionSweepIndexer,
   SketchServiceImpl,
   SqliteDraftStore,
   SubAgentRegistryImpl,
@@ -175,6 +176,8 @@ export interface Services {
   library: LibraryServiceImpl;
   /** In-memory registry of not-yet-persisted (unpromoted) sessions. */
   sessionPromotion: SessionPromotionRegistryImpl;
+  /** Periodic sweep job: discards idle unpromoted sessions + cleans orphan tabs. */
+  sessionSweep: SessionSweepIndexer;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: WorkerEmbeddingService; // exposed so main can preload it
@@ -645,6 +648,16 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   // that sessionService is live. discard() thunks will resolve from here on.
   sessionServiceRef = sessionService;
 
+  // empty-session-cleanup: sweep indexer — start after sessionService is live
+  // so the registry ref-cell is resolved before any discard() calls.
+  const sessionSweepIndexer = new SessionSweepIndexer({
+    registry: sessionPromotionRegistry,
+    db,
+    log,
+    config: () => ({ cadenceMs: 10 * 60 * 1000, idleMs: 30 * 60 * 1000 }),
+  });
+  sessionSweepIndexer.start();
+
   // Phase 16: complete the ref-cell wiring now that sessionService is live.
   // Adapt the port signature (parentSessionId) to sessionService's (sessionId).
   notifyParentSessionRef = (input) =>
@@ -683,6 +696,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     recommendations: recommendationsService,
     library: libraryService,
     sessionPromotion: sessionPromotionRegistry,
+    sessionSweep: sessionSweepIndexer,
     ingestorRegistry,
     pyodide,
     embeddings,

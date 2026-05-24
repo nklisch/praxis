@@ -22,7 +22,9 @@ import type {
   Timestamp,
 } from "../types/index.js";
 import { brandId, engineError, parseNoteBody } from "../types/index.js";
-import { EngineSessionManager } from "./session/engine-session-manager.js";
+import { SessionDiscardedError } from "../types/session-discarded-error.js";
+import { type ActiveEntry, EngineSessionManager } from "./session/engine-session-manager.js";
+import type { UnpromotedSessionState } from "./session/session-promotion-registry.js";
 import { getOrCreateDefaultStudentId } from "./student.js";
 import type { ServiceDeps } from "./types.js";
 
@@ -62,6 +64,14 @@ export class SessionServiceImpl implements SessionService {
     courseId?: CourseId;
     assignmentId?: AssignmentId;
     modeId: string;
+    /**
+     * INTERNAL FLAG — do not expose via public IPC schema.
+     * When true, persist the session row immediately (used by parent-linked
+     * spawn paths: spawnFromAssignment, spawnFromNote, spawnFromPassage).
+     * When false/undefined, register with SessionPromotionRegistry instead
+     * (lazy-persist; only promoted on first user message).
+     */
+    _persistImmediately?: boolean;
   }): Promise<SessionHandle> {
     const mode = this.requireMode(opts.modeId);
 
@@ -80,20 +90,26 @@ export class SessionServiceImpl implements SessionService {
     const sessionId = uuidv7();
     const startedAt = new Date();
 
-    this.deps.db
-      .insert(sessions)
-      .values({
-        id: sessionId,
-        studentId,
-        modeId: mode.id,
-        engineId: engineConfig.engineId,
-        startedAt,
-        ...(opts.courseId !== undefined && { courseId: opts.courseId }),
-        ...(opts.assignmentId !== undefined && { assignmentId: opts.assignmentId }),
-      })
-      .run();
+    const state: UnpromotedSessionState = {
+      sessionId: brandId<"SessionId">(sessionId),
+      studentId: brandId<"StudentId">(studentId),
+      modeId: mode.id,
+      engineId: engineConfig.engineId,
+      startedAt: startedAt.getTime() as Timestamp,
+      ...(opts.courseId !== undefined && { courseId: opts.courseId }),
+      ...(opts.assignmentId !== undefined && { assignmentId: opts.assignmentId }),
+    };
+
+    if (opts._persistImmediately === true || this.deps.sessionPromotionRegistry === undefined) {
+      // Parent-linked sessions (and legacy paths without a registry) persist immediately.
+      this._persistSessionRow(state);
+    } else {
+      // Lazy-persist: register in the registry; the row is written on first send().
+      this.deps.sessionPromotionRegistry.register(state);
+    }
 
     // Eagerly open the engine session — surfaces config errors at start time.
+    // The registry knows the engine manager so discard() can close it later.
     await this.engineManager.openActive({
       sessionId,
       engineId: engineConfig.engineId,
@@ -113,11 +129,125 @@ export class SessionServiceImpl implements SessionService {
     };
   }
 
+  /**
+   * Insert the session row into the `sessions` table. Called either at
+   * `start()` time (when _persistImmediately is set or no registry available)
+   * or at first `send()` time (promote path) inside a transaction.
+   */
+  private _persistSessionRow(state: UnpromotedSessionState): void {
+    this.deps.db
+      .insert(sessions)
+      .values({
+        id: state.sessionId,
+        studentId: state.studentId,
+        modeId: state.modeId,
+        engineId: state.engineId,
+        startedAt: new Date(state.startedAt),
+        ...(state.courseId !== undefined && { courseId: state.courseId }),
+        ...(state.assignmentId !== undefined && { assignmentId: state.assignmentId }),
+      })
+      .run();
+  }
+
+  /**
+   * Discard a session if it has never been promoted (no user message was
+   * sent). Returns `{ discarded: true }` when the registry entry was found
+   * and cleaned up; `{ discarded: false }` otherwise (already promoted or
+   * never registered). Safe to call on already-promoted sessions.
+   */
+  async discardIfUnpromoted(sessionId: SessionId): Promise<{ discarded: boolean }> {
+    if (!this.deps.sessionPromotionRegistry) return { discarded: false };
+    const unpromoted = this.deps.sessionPromotionRegistry.get(sessionId);
+    if (unpromoted === null) return { discarded: false };
+    await this.deps.sessionPromotionRegistry.discard(sessionId);
+    return { discarded: true };
+  }
+
   async *send(
     sessionId: SessionId,
     message: string,
     signal?: AbortSignal,
   ): AsyncIterable<EngineEvent> {
+    // ── Lazy-persist: promote on first user message ───────────────────────────
+    // If the session is in the registry (unpromoted), persist the session row +
+    // first user_message episodic event in a single SQLite transaction.
+    // If neither the registry nor the DB has this session, it was discarded.
+    const registry = this.deps.sessionPromotionRegistry;
+    if (registry !== undefined) {
+      const unpromotedState = registry.get(sessionId);
+      if (unpromotedState !== null) {
+        // Promote: run the persist transaction, then remove from registry.
+        try {
+          const studentId = unpromotedState.studentId;
+          const engineId = unpromotedState.engineId;
+          const modeId = unpromotedState.modeId;
+          registry.promote(sessionId, (state) => {
+            // Single transaction: insert session row + first episodic event.
+            this.deps.db.transaction(() => {
+              this._persistSessionRow(state);
+              recordUserMessage({
+                db: this.deps.db,
+                sessionId,
+                studentId,
+                engineId,
+                modeId,
+                turnIndex: 0,
+                content: message,
+              });
+            });
+          });
+          // Echo the user message event; continue into the engine loop below.
+          yield { type: "user_message", content: message };
+          // Resolve the mode + entry for the engine loop (skip the DB lookup below).
+          const mode = this.requireMode(modeId);
+          const currentEngineId = readEngineConfig(
+            this.deps.db,
+            this.deps.secretStorage,
+            this.deps.log,
+          ).engineId;
+          const entry = await this.engineManager.acquire({
+            sessionId,
+            currentEngineId,
+            mode,
+            studentId,
+            ...(unpromotedState.courseId !== undefined && {
+              courseId: unpromotedState.courseId,
+            }),
+            ...(unpromotedState.assignmentId !== undefined && {
+              assignmentId: unpromotedState.assignmentId,
+            }),
+          });
+          yield* this._driveEngineTurn({
+            entry,
+            sessionId,
+            studentId,
+            mode,
+            message,
+            signal,
+          });
+          return;
+        } catch (err) {
+          // If promote or the transaction failed, surface as an error event.
+          const errMsg = err instanceof Error ? err.message : String(err);
+          yield {
+            type: "error",
+            error: engineError("session.promote_failed", errMsg, { cause: err }),
+          };
+          return;
+        }
+      } else {
+        // Not in registry — check whether the session was discarded (not in DB either).
+        const sessionExists = this.deps.db
+          .select({ id: sessions.id })
+          .from(sessions)
+          .where(eq(sessions.id, sessionId))
+          .get();
+        if (!sessionExists) {
+          throw new SessionDiscardedError(sessionId);
+        }
+      }
+    }
+    // ── Normal path (already-promoted or no registry) ─────────────────────────
     const turnIndex = nextTurnIndex(this.deps.db, sessionId);
     const turnLog = this.deps.log.child({
       component: "session-service",
@@ -175,6 +305,24 @@ export class SessionServiceImpl implements SessionService {
       content: message,
     });
     yield { type: "user_message", content: message };
+    yield* this._driveEngineTurn({ entry, sessionId, studentId, mode, message, signal });
+  }
+
+  /**
+   * Drive the engine session for a single turn; persist every event.
+   * Extracted so both the promote path and the normal path can share it.
+   */
+  private async *_driveEngineTurn(opts: {
+    entry: ActiveEntry;
+    sessionId: SessionId;
+    studentId: StudentId;
+    mode: Mode;
+    message: string;
+    signal?: AbortSignal | undefined;
+  }): AsyncIterable<EngineEvent> {
+    const { entry, sessionId, studentId, mode, message, signal } = opts;
+    // Resolve the turn index from the DB (the user_message was already written).
+    const turnIndex = nextTurnIndex(this.deps.db, sessionId) - 1;
 
     // 2. Drive the engine session for this turn; persist every event.
     const capturedEntry = entry;
@@ -495,10 +643,13 @@ export class SessionServiceImpl implements SessionService {
     const modeId = assignmentRow.kind; // "quiz" | "homework" | "exam" map 1:1 to mode ids
 
     // Start the session using the existing start() path (handles lock checks, engine open, etc.)
+    // _persistImmediately: true — parent-linked sessions have meaning before any student turn;
+    // skipping the registry avoids accidentally dropping them on tab-close.
     const handle = await this.start({
       modeId,
       assignmentId: input.assignmentId,
       courseId: brandId<"CourseId">(assignmentRow.courseId),
+      _persistImmediately: true,
     });
 
     // Update the session row to set parentSessionId.
@@ -592,8 +743,10 @@ export class SessionServiceImpl implements SessionService {
       `I'm looking at my ${noteRow.format} notes and have a question I'd like to work through with you.\n\n` +
       parts.join("\n\n");
 
-    // Start a teach session.
-    const handle = await this.start({ modeId: "teach" });
+    // Start a teach session. _persistImmediately: true — this spawn path injects
+    // an opening message before the student's first turn, so the session has meaning
+    // before the student interacts. Registering it lazily would risk a discard race.
+    const handle = await this.start({ modeId: "teach", _persistImmediately: true });
 
     // Inject the cue as the first user message turn (fire-and-forget, non-streaming).
     // This seeds the session transcript so when the student opens the tab, the
@@ -667,8 +820,10 @@ export class SessionServiceImpl implements SessionService {
         ? `<passage>${passageText}</passage>`
         : "<passage>[passage text unavailable]</passage>");
 
-    // Start a teach session.
-    const handle = await this.start({ modeId: "teach" });
+    // Start a teach session. _persistImmediately: true — this spawn path injects
+    // an opening message before the student's first turn, so the session has meaning
+    // before the student interacts.
+    const handle = await this.start({ modeId: "teach", _persistImmediately: true });
 
     // Attach the document to this session with the passage range so the viewer
     // can render the † marker later.

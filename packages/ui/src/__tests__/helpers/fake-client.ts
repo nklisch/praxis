@@ -10,7 +10,11 @@ import type { PraxisClient } from "@praxis/core/types";
  */
 export function makeFakeClient(overrides?: Partial<PraxisClient>): PraxisClient {
   return {
-    session: {} as PraxisClient["session"],
+    session: {
+      // empty-session-cleanup: closeTab fires discardIfUnpromoted; always no-op in tests
+      // unless the test overrides session entirely.
+      discardIfUnpromoted: async () => ({ discarded: false }),
+    } as PraxisClient["session"],
     artifacts: {} as PraxisClient["artifacts"],
     author: {} as PraxisClient["author"],
     memory: {} as PraxisClient["memory"],

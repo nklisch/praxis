@@ -139,6 +139,15 @@ export {
   SessionNotRegisteredError,
   SessionPromotionRegistryImpl,
 } from "./session/session-promotion-registry.js";
+// empty-session-cleanup: sweep indexer
+export type {
+  SessionSweepConfig,
+  SessionSweepIndexerDeps,
+} from "./session/session-sweep-indexer.js";
+export {
+  SESSION_SWEEP_CONFIG_DEFAULTS,
+  SessionSweepIndexer,
+} from "./session/session-sweep-indexer.js";
 export { SessionServiceImpl } from "./session-service.js";
 // Phase 15a: Sketch service
 export type { SketchServiceDeps } from "./sketch-service.js";

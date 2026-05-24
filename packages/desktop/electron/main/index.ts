@@ -116,6 +116,9 @@ app.on("before-quit", async (event) => {
   event.preventDefault();
   try {
     // 1. Stop accepting new work — close sessions.
+    // Stop the session sweep indexer before closing sessions so it doesn't
+    // try to discard entries while shutdown is in progress.
+    services.sessionSweep.stop();
     await services.session.shutdown();
     // 2. Cancel any in-flight ingestion / activity producers via their
     //    own AbortControllers. The activity registry's shutdown is purely

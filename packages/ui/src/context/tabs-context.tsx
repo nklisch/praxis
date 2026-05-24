@@ -178,6 +178,10 @@ function useTabsState(): UseTabsResult {
 
   const closeTab = useCallback(
     async (tabId: TabId): Promise<void> => {
+      // Capture the tab before removing it from state so we can fire the
+      // best-effort discardIfUnpromoted call after the server close.
+      const tab = openTabs.find((t) => t.id === tabId);
+
       setOpenTabs((prev) => {
         const remaining = prev.filter((t) => t.id !== tabId);
 
@@ -199,8 +203,19 @@ function useTabsState(): UseTabsResult {
         setError(err instanceof Error ? err.message : String(err));
         await refresh();
       }
+
+      // empty-session-cleanup: best-effort discard for session tabs that were
+      // closed without ever receiving a user message. The server returns
+      // { discarded: false } for already-promoted sessions — no harm calling
+      // on any session tab. Fire-and-forget; errors are non-blocking.
+      if (tab?.kind === "session" && tab.sessionId !== null) {
+        client.session.discardIfUnpromoted(tab.sessionId).catch(() => {
+          // Non-blocking: discard failure is tolerated; the sweep job is the
+          // safety net for window-close and app-crash cases.
+        });
+      }
     },
-    [client, refresh],
+    [client, openTabs, refresh],
   );
 
   const switchTo = useCallback(

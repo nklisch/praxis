@@ -68,6 +68,13 @@ export interface SessionService {
     documentId: DocumentId;
     range: { startOffset: number; endOffset: number };
   }): Promise<SessionHandle>;
+  /**
+   * Discard a session if it has never been promoted (no user message was sent).
+   * Returns `{ discarded: true }` when the registry entry was found and removed;
+   * `{ discarded: false }` when the session was already promoted or never registered.
+   * Safe to call on already-promoted sessions — the server returns false without error.
+   */
+  discardIfUnpromoted(sessionId: SessionId): Promise<{ discarded: boolean }>;
 }
 
 export interface SessionHandle {

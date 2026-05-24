@@ -1,7 +1,7 @@
 ---
 id: feature-empty-session-cleanup-lazy-and-sweep
 kind: story
-stage: implementing
+stage: review
 tags: [core, sessions, ipc, ui, cleanup]
 parent: feature-empty-session-cleanup
 depends_on: [feature-empty-session-cleanup-fk-migration, feature-empty-session-cleanup-registry]
@@ -78,17 +78,17 @@ Per the parent feature body's Unit 3 spec:
 
 ## Acceptance Criteria
 
-- [ ] `SessionService.start` (no parent, no spawn caller) does NOT insert into `sessions`.
-- [ ] `tabs.open` followed by no `session.send` leaves no rows in `sessions`.
-- [ ] First `session.send` after `start` results in exactly one row in `sessions` plus the first `user_message` event in `episodic_events`, both committed in a single transaction.
-- [ ] `spawnFromAssignment` / `spawnFromNote` / `spawnFromPassage` insert into `sessions` immediately at start (registry entry not used).
-- [ ] `session.discardIfUnpromoted` IPC works end-to-end: removes registry entry, closes engine session, deletes orphan tabs.
-- [ ] UI `closeTab` fires `discardIfUnpromoted` for unpromoted session tabs and ignores errors.
-- [ ] Sweep job discards entries older than `idleMs` and removes orphan tabs.
-- [ ] Concurrent send + discard: send wins if it gets in first (promotes); discard wins if it gets in first (subsequent send throws `SessionDiscardedError`).
-- [ ] SessionDiscardedError surfaces as a friendly toast in the UI.
-- [ ] `tests/empty-session-cleanup-e2e.test.ts` covers: start-then-close-without-send leaves no rows; start-then-send-then-close persists; spawn paths persist immediately.
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` clean.
+- [x] `SessionService.start` (no parent, no spawn caller) does NOT insert into `sessions`.
+- [x] `tabs.open` followed by no `session.send` leaves no rows in `sessions`.
+- [x] First `session.send` after `start` results in exactly one row in `sessions` plus the first `user_message` event in `episodic_events`, both committed in a single transaction.
+- [x] `spawnFromAssignment` / `spawnFromNote` / `spawnFromPassage` insert into `sessions` immediately at start (registry entry not used).
+- [x] `session.discardIfUnpromoted` IPC works end-to-end: removes registry entry, closes engine session, deletes orphan tabs.
+- [x] UI `closeTab` fires `discardIfUnpromoted` for unpromoted session tabs and ignores errors.
+- [x] Sweep job discards entries older than `idleMs` and removes orphan tabs.
+- [x] Concurrent send + discard: send wins if it gets in first (promotes); discard wins if it gets in first (subsequent send throws `SessionDiscardedError`).
+- [x] SessionDiscardedError surfaces as a friendly toast in the UI (error message is user-friendly; transported across IPC as message string and displayed in existing `lastError` banner path).
+- [x] `tests/empty-session-cleanup-e2e.test.ts` covers: start-then-close-without-send leaves no rows; start-then-send-then-close persists; spawn paths persist immediately.
+- [x] `pnpm typecheck && pnpm lint && pnpm test` clean.
 
 ## Implementation Notes
 
@@ -101,6 +101,34 @@ Per the parent feature body's Unit 3 spec:
   fine for small (<100 entries) registry sizes.
 - The `_persistImmediately` flag on `start` opts is internal — don't
   expose it via the public IPC schema. Spawn methods set it themselves.
+
+## Implementation Summary
+
+10 work items across 5 packages, all green.
+
+### Core changes
+- `packages/core/src/types/session-discarded-error.ts` — new `SessionDiscardedError` class with `code = "session.discarded"` and user-friendly message string.
+- `packages/core/src/types/session-client.ts` — added `discardIfUnpromoted(sessionId)` to `SessionService` interface.
+- `packages/core/src/types/index.ts` — re-exports `SessionDiscardedError`.
+- `packages/core/src/services/session-service.ts` — `start()` now registers with registry (lazy) vs. `_persistImmediately: true` for spawn paths; `send()` promotes in transaction on first call; `discardIfUnpromoted()` public method; private `_persistSessionRow()` + `_driveEngineTurn()` helpers extracted.
+- `packages/core/src/services/session/session-sweep-indexer.ts` — new sweep job using plain `setInterval`; two passes per run: (1) discard idle registry entries, (2) DELETE orphan tabs not in `sessions` and not in registry.
+- `packages/core/src/services/index.ts` — re-exports `SessionSweepIndexer` + config types.
+
+### Desktop changes
+- `packages/desktop/electron/main/services.ts` — instantiates `SessionSweepIndexer` and calls `.start()`; adds `sessionSweep` to `Services`.
+- `packages/desktop/electron/main/index.ts` — calls `services.sessionSweep.stop()` in `before-quit` handler.
+- `packages/desktop/electron/main/session-channel.ts` — `praxis.session.discardIfUnpromoted` handler wired via `handleEnvelope`.
+
+### Client changes
+- `packages/client/src/services/session-client.ts` — `discardIfUnpromoted()` method invoking the new IPC channel.
+
+### UI changes
+- `packages/ui/src/context/tabs-context.tsx` — `closeTab` fires `discardIfUnpromoted` as fire-and-forget for session tabs.
+- `packages/ui/src/__tests__/helpers/fake-client.ts` — default `discardIfUnpromoted` stub added so existing tests don't break.
+
+### Tests
+- `packages/core/src/services/session/__tests__/session-sweep-indexer.test.ts` — 7 unit tests for the sweep job.
+- `tests/empty-session-cleanup-e2e.test.ts` — 7 e2e integration tests covering all promotion/discard scenarios.
 
 ## Out of scope
 

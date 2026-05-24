@@ -95,4 +95,17 @@ export class SessionClient implements SessionService {
     );
     return unwrapEnvelope(result);
   }
+
+  /**
+   * Discard a session if it has never been promoted (no user message sent).
+   * Returns { discarded: true } when the registry entry was found and removed;
+   * { discarded: false } when the session was already promoted or not registered.
+   * Safe to call on already-promoted sessions — server returns false without error.
+   */
+  async discardIfUnpromoted(sessionId: SessionId): Promise<{ discarded: boolean }> {
+    const result = await this.transport.invoke<
+      IpcEnvelope<{ discarded: boolean }> | { discarded: boolean }
+    >(`${CHANNEL}.discardIfUnpromoted`, { sessionId });
+    return unwrapEnvelope(result);
+  }
 }

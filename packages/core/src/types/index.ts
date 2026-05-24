@@ -71,6 +71,7 @@ export type { SecretStorage } from "./secret-storage.js";
 // Security: at-rest secret storage port (Electron safeStorage adapter in @praxis/desktop).
 export { SecretStorageError } from "./secret-storage.js";
 export type * from "./session-client.js";
+export { SessionDiscardedError } from "./session-discarded-error.js";
 export type * from "./shell-client.js";
 // Phase 15a: Sketch types + client API.
 export type {

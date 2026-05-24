@@ -190,4 +190,19 @@ export function registerSessionHandlers(
       ),
     ),
   );
+
+  // empty-session-cleanup: discard an unpromoted session (best-effort, tab-close path).
+  // Input: { sessionId: string }. Output: { discarded: boolean }.
+  const discardIfUnpromotedSchema = z.object({ sessionId: z.string().min(1, "sessionId") });
+
+  handle(
+    "praxis.session.discardIfUnpromoted",
+    handleEnvelope(
+      "praxis.session.discardIfUnpromoted",
+      log,
+      discardIfUnpromotedSchema,
+      async (opts) =>
+        services.session.discardIfUnpromoted(brandId<"SessionId">(opts.sessionId) as SessionId),
+    ),
+  );
 }
