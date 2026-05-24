@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-author-channel-per-domain-split
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -165,3 +165,18 @@ Step 6 (configurator)─┘
 
 ## Notes on original handler count discrepancy
 The feature brief said 27 handlers; actual count is 25. The doc comment at the top of `author-channel.ts` lists 25 channels (counting correctly), but the summary in `.work/active/features/` said 27. The split is planned against the actual 25.
+
+## Implementation summary
+
+All 7 child stories advanced to `done` in this autopilot run:
+- Step 1 (course): `author-course-channel.ts`, 2 handlers, commit `68b25a7` → review `ce8e28b`
+- Step 2 (lesson): `author-lesson-channel.ts`, 3 handlers, commit `0f5cfd4` → review `ce8e28b`
+- Step 3 (gate): `author-gate-channel.ts`, 4 handlers, commit `cb9cc51` → review `ce8e28b`
+- Step 4 (prompt): `author-prompt-channel.ts`, 10 handlers + 2 shared schemas, commit `21cdfca` → review `9f51f3c`
+- Step 5 (memory): `author-memory-channel.ts`, 4 handlers (3 with `getStudentId`), commit `44f214e` → review `9f51f3c`
+- Step 6 (configurator): `author-configurator-channel.ts`, 2 handlers, commit `2046ec7` → review `9f51f3c`
+- Step 7 (wire + delete): ipc-server.ts updated + author-channel.ts deleted (537 lines removed), commit `2aca454` → review `58e12f1`
+
+**Final state**: `author-channel.ts` gone. 25 `praxis.author.*` channels served by 6 per-domain modules following the `per-domain-channel-module` pattern. 520 desktop tests pass; full workspace 4769 tests pass; typecheck clean.
+
+**No deviations** from the design — actual handler count was 25 (design corrected the brief's 27 during Phase 1). All other steps executed as planned.
