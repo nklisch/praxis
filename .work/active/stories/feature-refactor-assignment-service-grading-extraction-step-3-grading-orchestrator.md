@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction-step-3-grading-orchestrator
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-assignment-service-grading-extraction
 depends_on:
@@ -123,3 +123,20 @@ Updated `graders/index.ts` to export `GradingOrchestrator`, `GradingOrchestrator
 and `GradingOrchestratorImpl`.
 
 `pnpm typecheck` clean; all 1164 tests pass (96 files). `assignment-service.ts` untouched.
+
+## Review
+
+Verdict: **done**
+
+Verified:
+- `GradingOrchestratorDeps` interface matches design: `{ log, graderServices, enableApproachFeedback? }`.
+- `GradingOrchestrator` interface matches design: `gradeAssignment({ assignment, responses, mode }) => Promise<Grade>`.
+- `GradingOrchestratorImpl` constructor builds `this.registry = buildGraderRegistry()` synchronously.
+- `gradeAssignment` builds `responseByItemId` Map internally from `responses` parameter (not from a closure).
+- `GraderContext` constructed internally from `this.deps`.
+- All three enrichment branches (2a workRubric, 2b requireReasoning, 2c misconception stub) transplanted verbatim with their guards intact.
+- Phase 17.5 TODO comment preserved on misconception stub.
+- `enableApproachFeedback ?? true` default preserved.
+- `graders/index.ts` exports `GradingOrchestrator` (type), `GradingOrchestratorDeps` (type), and `GradingOrchestratorImpl` (value) correctly.
+- `assignment-service.ts` left untouched as designed — Step 4 owns wiring.
+- 96/96 test files, 1164/1164 tests pass.
