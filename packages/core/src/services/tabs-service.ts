@@ -17,10 +17,21 @@ import type {
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
 import { loadOrThrow } from "./db-helpers.js";
+import type { SessionPromotionRegistry } from "./session/session-promotion-registry.js";
 
 export interface TabsServiceDeps {
   readonly db: PraxisDb;
   readonly log: Logger;
+  /**
+   * empty-session-cleanup: the `sessions` row for a newly-started session is
+   * not written until the first `send()` call (lazy-persist). UI opens a tab
+   * immediately after `session.start`, so `open()` would otherwise throw
+   * "session not found". Pass a thunk returning the live promotion registry
+   * so `open()` can fall back to its in-memory state. Lazy thunk because
+   * the registry is constructed AFTER `TabsServiceImpl` in the orchestrator's
+   * step ordering (workspace step 8 → session precursors step 9).
+   */
+  readonly sessionPromotionRegistry?: () => SessionPromotionRegistry | undefined;
 }
 
 /**
@@ -116,7 +127,15 @@ function documentRowToSummary(row: DocumentTabSelectRow): DocumentTabSummary {
   };
 }
 
-function anyRowToSummary(row: AnyTabSelectRow): TabSummary {
+/**
+ * Map a left-joined tab row to a `TabSummary`. For session tabs whose
+ * `sessions` row has not yet been written (lazy-persist path), fall back to
+ * the in-memory promotion registry to fill in modeId / courseId / assignmentId.
+ */
+function anyRowToSummary(
+  row: AnyTabSelectRow,
+  registry?: SessionPromotionRegistry | undefined,
+): TabSummary {
   if (row.kind === "document") {
     if (!row.documentId) {
       throw new Error(`TabsService: document tab ${row.id} has no documentId`);
@@ -134,8 +153,20 @@ function anyRowToSummary(row: AnyTabSelectRow): TabSummary {
     });
   }
   // Default: "session" kind
-  if (!row.sessionId || row.modeId === null) {
-    throw new Error(`TabsService: session tab ${row.id} has no sessionId or modeId`);
+  if (!row.sessionId) {
+    throw new Error(`TabsService: session tab ${row.id} has no sessionId`);
+  }
+  let modeId = row.modeId;
+  let courseId = row.courseId;
+  let assignmentId = row.assignmentId;
+  if (modeId === null) {
+    const unpromoted = registry?.get(brandId<"SessionId">(row.sessionId)) ?? null;
+    if (!unpromoted) {
+      throw new Error(`TabsService: session tab ${row.id} has no modeId`);
+    }
+    modeId = unpromoted.modeId;
+    courseId = unpromoted.courseId ?? null;
+    assignmentId = unpromoted.assignmentId ?? null;
   }
   return sessionRowToSummary({
     id: row.id,
@@ -147,14 +178,19 @@ function anyRowToSummary(row: AnyTabSelectRow): TabSummary {
     openedAt: row.openedAt,
     lastSeenAt: row.lastSeenAt,
     closedAt: row.closedAt,
-    modeId: row.modeId,
-    courseId: row.courseId,
-    assignmentId: row.assignmentId,
+    modeId,
+    courseId,
+    assignmentId,
   });
 }
 
 export class TabsServiceImpl implements TabsService {
   constructor(private readonly deps: TabsServiceDeps) {}
+
+  /** Resolve the live promotion registry, if one is wired. */
+  private get registry(): SessionPromotionRegistry | undefined {
+    return this.deps.sessionPromotionRegistry?.();
+  }
 
   async listOpen(studentId: StudentId): Promise<TabSummary[]> {
     const rows = this.deps.db
@@ -177,7 +213,8 @@ export class TabsServiceImpl implements TabsService {
       .where(and(eq(tabs.studentId, studentId), isNull(tabs.closedAt)))
       .orderBy(asc(tabs.sortOrder))
       .all();
-    return rows.map(anyRowToSummary);
+    const registry = this.registry;
+    return rows.map((r) => anyRowToSummary(r, registry));
   }
 
   async list(
@@ -212,7 +249,8 @@ export class TabsServiceImpl implements TabsService {
       .orderBy(desc(tabs.lastSeenAt))
       .limit(limit)
       .all();
-    return rows.map(anyRowToSummary);
+    const registry = this.registry;
+    return rows.map((r) => anyRowToSummary(r, registry));
   }
 
   async get(tabId: TabId): Promise<TabSummary | null> {
@@ -235,7 +273,7 @@ export class TabsServiceImpl implements TabsService {
       .leftJoin(sessions, sql`${tabs.sessionId} = ${sessions.id}`)
       .where(eq(tabs.id, tabId))
       .get();
-    return row ? anyRowToSummary(row) : null;
+    return row ? anyRowToSummary(row, this.registry) : null;
   }
 
   async open(input: {
@@ -243,15 +281,25 @@ export class TabsServiceImpl implements TabsService {
     sessionId: SessionId;
     courseTitle?: string;
   }): Promise<SessionTabSummary> {
-    // Look up the session to get modeId.
+    // Resolve the session's modeId. Sessions are lazy-persisted: the row may
+    // not yet exist in the DB when the UI opens a tab right after
+    // `session.start`. Check the DB first, then fall back to the in-memory
+    // promotion registry.
+    let resolvedModeId: string;
     const sessionRow = this.deps.db
       .select({ modeId: sessions.modeId, courseId: sessions.courseId })
       .from(sessions)
       .where(eq(sessions.id, input.sessionId))
       .get();
 
-    if (!sessionRow) {
-      throw new Error(`TabsService.open: session not found: ${input.sessionId}`);
+    if (sessionRow) {
+      resolvedModeId = sessionRow.modeId;
+    } else {
+      const unpromoted = this.deps.sessionPromotionRegistry?.()?.get(input.sessionId) ?? null;
+      if (!unpromoted) {
+        throw new Error(`TabsService.open: session not found: ${input.sessionId}`);
+      }
+      resolvedModeId = unpromoted.modeId;
     }
 
     // Compute next sortOrder (max existing + 1, or 0 if none).
@@ -263,7 +311,7 @@ export class TabsServiceImpl implements TabsService {
     const nextOrder = (maxResult?.maxOrder ?? -1) + 1;
 
     const title = generateTitle({
-      modeId: sessionRow.modeId,
+      modeId: resolvedModeId,
       ...(input.courseTitle !== undefined && { courseTitle: input.courseTitle }),
     });
 

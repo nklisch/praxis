@@ -3,8 +3,12 @@ import { sessions } from "@praxis/memory/schema";
 import { v7 as uuidv7 } from "uuid";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useTempDb } from "../../../../../tests/helpers/db-setup.js";
-import type { DocumentId, SessionId, StudentId } from "../../types/index.js";
+import type { DocumentId, SessionId, StudentId, Timestamp } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
+import type {
+  SessionPromotionRegistry,
+  UnpromotedSessionState,
+} from "../session/session-promotion-registry.js";
 import { generateTitle, TabsServiceImpl } from "../tabs-service.js";
 
 const db = useTempDb();
@@ -224,6 +228,81 @@ describe("TabsServiceImpl", () => {
 
       const open = await service.list(studentId);
       expect(open).toHaveLength(0);
+    });
+  });
+
+  describe("open: lazy-persisted session (empty-session-cleanup regression)", () => {
+    /** Build a stub registry that only implements `get`. */
+    function makeStubRegistry(states: UnpromotedSessionState[]): SessionPromotionRegistry {
+      const byId = new Map(states.map((s) => [s.sessionId, s] as const));
+      return {
+        register: () => {},
+        get: (sessionId) => byId.get(sessionId) ?? null,
+        promote: () => {
+          throw new Error("not used");
+        },
+        discard: async () => {},
+        entries: () => byId.entries(),
+      };
+    }
+
+    it("succeeds when sessionId is only in the promotion registry (no DB row yet)", async () => {
+      const { db: drizzle2 } = openDb({ path: db.dbPath });
+      const sessionId = brandId<"SessionId">(uuidv7());
+      const studentId2 = makeStudentId("lazy-1");
+      const registry = makeStubRegistry([
+        {
+          sessionId,
+          studentId: studentId2,
+          modeId: "teach",
+          engineId: "direct.anthropic",
+          startedAt: Date.now() as Timestamp,
+        },
+      ]);
+
+      const svc = new TabsServiceImpl({
+        db: drizzle2,
+        log: makeLog(),
+        sessionPromotionRegistry: () => registry,
+      });
+
+      // Bug repro: without the registry fallback, this would throw
+      // "TabsService.open: session not found".
+      const tab = await svc.open({ studentId: studentId2, sessionId });
+      expect(tab.kind).toBe("session");
+      expect(tab.sessionId).toBe(sessionId);
+      expect(tab.modeId).toBe("teach");
+      expect(tab.title).toBe("teach · new chat");
+    });
+
+    it("still throws when sessionId is in neither DB nor registry", async () => {
+      const { db: drizzle2 } = openDb({ path: db.dbPath });
+      const sessionId = brandId<"SessionId">(uuidv7());
+      const studentId2 = makeStudentId("lazy-2");
+      const registry = makeStubRegistry([]);
+
+      const svc = new TabsServiceImpl({
+        db: drizzle2,
+        log: makeLog(),
+        sessionPromotionRegistry: () => registry,
+      });
+
+      await expect(svc.open({ studentId: studentId2, sessionId })).rejects.toThrow(
+        /session not found/,
+      );
+    });
+
+    it("still throws when no registry is wired and DB row is missing", async () => {
+      const { db: drizzle2 } = openDb({ path: db.dbPath });
+      const sessionId = brandId<"SessionId">(uuidv7());
+      const studentId2 = makeStudentId("lazy-3");
+
+      // No `sessionPromotionRegistry` dep — preserves legacy behavior.
+      const svc = new TabsServiceImpl({ db: drizzle2, log: makeLog() });
+
+      await expect(svc.open({ studentId: studentId2, sessionId })).rejects.toThrow(
+        /session not found/,
+      );
     });
   });
 

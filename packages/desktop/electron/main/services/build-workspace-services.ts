@@ -1,17 +1,18 @@
 import { join } from "node:path";
 import type { PraxisDb, SqliteDatabase } from "@praxis/core/db";
-import { FsEmbeddedImageStore, FsPageImageStore } from "@praxis/core/ingestion";
+import type { FsEmbeddedImageStore, FsPageImageStore } from "@praxis/core/ingestion";
 import {
-  ArtifactsServiceImpl,
+  type ArtifactsServiceImpl,
   FlashcardsServiceImpl,
   LibraryServiceImpl,
   LockServiceImpl,
-  MemoryServiceImpl,
+  type MemoryServiceImpl,
   NotesServiceImpl,
   ProgressServiceImpl,
   RecommendationServiceImpl,
+  type SessionPromotionRegistry,
   SketchServiceImpl,
-  SqliteDraftStore,
+  type SqliteDraftStore,
   TabsServiceImpl,
   VisionServiceImpl,
 } from "@praxis/core/services";
@@ -49,6 +50,15 @@ export interface WorkspaceServiceDeps {
   bootstrapEngineResolver: () => Engine;
   embeddedImageStore: FsEmbeddedImageStore;
   pageImageStore: FsPageImageStore;
+  /**
+   * Thunk resolving to the session promotion registry. Forwarded to
+   * `TabsServiceImpl` so `tabs.open` can resolve the modeId for sessions
+   * that have been started but not yet persisted (lazy-persist path). The
+   * thunk returns `undefined` while the registry is still being constructed
+   * (step 9 runs after this workspace builder), then resolves to the live
+   * registry once `buildSessionPrecursors` returns.
+   */
+  sessionPromotionRegistry: () => SessionPromotionRegistry | undefined;
 }
 
 export interface WorkspaceServices {
@@ -119,7 +129,14 @@ export function buildWorkspaceServices(deps: WorkspaceServiceDeps): WorkspaceSer
   const lockService = new LockServiceImpl({ db, log });
 
   // Phase 14: Tabs service — persists tab strip state to SQLite.
-  const tabsService = new TabsServiceImpl({ db, log });
+  // empty-session-cleanup: `sessionPromotionRegistry` lets `tabs.open`
+  // resolve the modeId for sessions that have not yet been promoted to a
+  // DB row (lazy-persist path).
+  const tabsService = new TabsServiceImpl({
+    db,
+    log,
+    sessionPromotionRegistry: deps.sessionPromotionRegistry,
+  });
 
   // Phase 15a: Sketch service — content-addressed PNG store + SQLite metadata.
   // `dataDir` and `sketchStore` are local helpers; not exported.

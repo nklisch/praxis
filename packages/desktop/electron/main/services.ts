@@ -178,6 +178,14 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     activityRegistry: infra.activityRegistry,
   });
 
+  // Ref-cell bridging workspace (step 8) → session precursors (step 9):
+  // `TabsServiceImpl` is built in step 8 but needs the promotion registry
+  // built in step 9 to resolve `tabs.open` for unpromoted sessions. The
+  // ref-cell starts `undefined` and is filled in immediately after step 9.
+  // The thunk is only called from `tabs.open`, which runs long after
+  // `buildServices()` returns.
+  let promotionRegistryRef: SessionPromotionRegistryImpl | undefined;
+
   // Step 8: Workspace productivity services (ingestors, scheduler, lock, tabs,
   //          sketch, vision, notes, flashcards, library, recommendations, progress)
   const workspace = buildWorkspaceServices({
@@ -192,6 +200,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     bootstrapEngineResolver: artifacts.bootstrapEngineResolver,
     embeddedImageStore: embeddings.embeddedImageStore,
     pageImageStore: embeddings.pageImageStore,
+    sessionPromotionRegistry: () => promotionRegistryRef,
   });
 
   // Step 9: Session precursors (promotion registry + ref-cell, prompt customization, authoring)
@@ -203,6 +212,10 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     conceptMapService: indexers.conceptMapService,
     conceptMapConfiguratorId: indexers.conceptMapConfiguratorId,
   });
+
+  // Close the workspace → session-precursors ref-cell. From here on,
+  // `tabs.open` can resolve unpromoted-session modeIds via the registry.
+  promotionRegistryRef = sessionPrecursors.sessionPromotionRegistry;
 
   // -------------------------------------------------------------------------
   // Modes + tool definitions (pure data — stay in the orchestrator)
