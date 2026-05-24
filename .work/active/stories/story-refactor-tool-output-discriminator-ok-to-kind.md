@@ -1,7 +1,7 @@
 ---
 id: story-refactor-tool-output-discriminator-ok-to-kind
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -68,3 +68,18 @@ returns one form". Drain only when there's budget for hygiene work.
 - `packages/tools/src/course/start-drafting.ts` — same schema change. Handler explicitly built return objects; added `kind: "success"/"error" as const` to both return paths.
 
 No consumer changes required. All consumers checked (`course-create-service.ts`, drafter, UI components) read `.ok` only — the new `kind` discriminator field is additive. `pnpm typecheck` and all 14 affected tests pass.
+
+## Review
+
+**Verdict: done**
+
+Reviewed commit df42f8b. Mechanical change is correct and complete.
+
+- All 4 `OutputSchema` declarations changed from `discriminatedUnion("ok", ...)` to `discriminatedUnion("kind", ...)` with `kind: z.literal("success"|"error")` added to each variant. The `ok` field is retained in all variants.
+- All handler return sites updated to include `kind: "success" as const` / `kind: "error" as const` alongside the original `ok` field.
+- `draft-add-unit.ts` and `draft-set-assessment-plan.ts`: direct delegation (previously `return ctx.services.bootstrap.addUnit(...)`) was correctly wrapped to map the service result to the new shape — neither a regression nor an unintended behavior change.
+- No `discriminatedUnion("ok"` remains in the codebase.
+- Consumers (`drafter.ts`, `course-create-service.ts`) read `.ok` only — confirmed no consumer changes needed.
+- `pnpm typecheck`: green. `pnpm test`: 4769 tests pass. Lint errors are pre-existing, none in the changed files.
+
+No blockers. No follow-ups.
