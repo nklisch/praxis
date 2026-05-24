@@ -1,7 +1,7 @@
 ---
 id: feature-empty-session-cleanup
 kind: feature
-stage: review
+stage: done
 tags: [core, sessions, cleanup]
 parent: null
 depends_on: []
@@ -484,3 +484,37 @@ Integration verification: `pnpm typecheck && pnpm test` clean across the
 workspace (4634+ tests passing).
 
 Feature advancing `implementing → review` for final pass.
+
+## Review (2026-05-23, feature-level)
+
+**Verdict**: Approve (epic-level review — per-line lenses skipped, exercised
+per-story during child reviews).
+
+All 3 child stories approved and at `stage: done`:
+- `feature-empty-session-cleanup-fk-migration` ✓
+- `feature-empty-session-cleanup-registry` ✓
+- `feature-empty-session-cleanup-lazy-and-sweep` ✓
+
+**Capability completeness check**: end-to-end the feature delivers on the
+brief — `SessionService.start` without a parent skips DB insert; first
+`send` promotes in a single transaction; tab-close fires `discardIfUnpromoted`;
+periodic sweep handles window-close / app-crash leaks. The 7 e2e tests
+in `tests/empty-session-cleanup-e2e.test.ts` exercise the full integration
+path. Parent-linked sessions (spawn paths) persist immediately per the
+locked decision.
+
+**Foundation-doc alignment check**: no `docs/` assertions invalidated by
+this change. The `tabs.sessionId` FK is removed, but no foundation doc
+asserts the FK exists (it was an implementation detail). `docs/SPEC.md`
+"Tab persistence" section describes a `tabs` table without making
+FK-specific claims.
+
+**Breaking changes check**: `SessionService.start` signature now accepts
+an internal `_persistImmediately` flag — internal use only, not exposed
+via IPC. No cross-cutting public-API shifts.
+
+**Notes**: One nit from the registry story's review (engineManager
+visibility change for the thunk) is non-blocking and can be addressed
+in a future cleanup if the registry's deps shape is revisited.
+
+Feature has no parent and no release_binding — archiving on completion.
