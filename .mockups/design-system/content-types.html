@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Educational content typography · Praxis design system</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="motion.css">
+  <link rel="stylesheet" href="components.css">
+  <style>
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-loose) var(--font-body); min-height: 100vh; padding-bottom: var(--space-16); }
+
+    .showcase-meta { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--color-bg-primary) 92%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-bottom: 1px solid var(--color-border); padding: var(--space-3) var(--space-6); display: grid; grid-template-columns: 1fr auto; gap: var(--space-4); align-items: center; }
+    .showcase-meta__title { font-family: var(--font-display); font-style: italic; font-size: var(--font-size-lg); margin: 0; display: flex; align-items: baseline; gap: var(--space-3); }
+    .showcase-meta__title small { font-family: var(--font-mono); font-style: normal; font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: var(--letter-spacing-kicker); color: var(--color-text-secondary); }
+
+    main { max-width: 60rem; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+
+    .anchor-nav { display: flex; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-4) 0; border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-12); }
+    .anchor-nav a { font-family: var(--font-mono); font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: var(--letter-spacing-kicker); color: var(--color-text-secondary); text-decoration: none; }
+    .anchor-nav a:hover { color: var(--color-text-primary); }
+
+    .section { margin-bottom: var(--space-16); }
+    .section > h2 { font-family: var(--font-display); font-style: italic; font-size: var(--font-size-2xl); color: var(--color-text-primary); margin: 0 0 var(--space-2); }
+    .section > .lede { font-family: var(--font-display); font-style: italic; color: var(--color-text-secondary); margin: 0 0 var(--space-6); max-width: 56ch; }
+
+    .demo { display: grid; grid-template-columns: 220px 1fr; gap: var(--space-6); padding: var(--space-4) 0; border-top: 1px solid var(--color-border); }
+    .demo:last-child { border-bottom: 1px solid var(--color-border); }
+    .demo__label { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); padding-top: var(--space-1); }
+    .demo__label code { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-regular); color: var(--color-text-secondary); display: block; margin-top: var(--space-1); text-transform: none; letter-spacing: 0; }
+    .demo__label .note { display: block; font-family: var(--font-display); font-style: italic; color: var(--color-text-secondary); margin-top: var(--space-2); text-transform: none; letter-spacing: 0; font-weight: var(--font-weight-regular); font-size: var(--font-size-sm); }
+    .demo__body { font-family: var(--font-body); font-size: var(--font-size-base); line-height: var(--line-height-loose); color: var(--color-text-primary); }
+    .demo__body p { margin: 0 0 var(--space-3); }
+    .demo__body p:last-child { margin-bottom: 0; }
+
+    /* ─── PROPOSED TREATMENTS — preview only; promote to components.css if approved ─── */
+
+    /* Math — inline, display, bare-glyph auto-detect */
+    .math-inline {
+      font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", "Iowan Old Style", serif;
+      font-style: italic;
+      font-feature-settings: "ss01" on, "ss20" on;
+      letter-spacing: 0.01em;
+    }
+    .math-inline sub, .math-inline sup { font-style: normal; }
+    .math-display {
+      display: block;
+      font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", "Iowan Old Style", serif;
+      font-style: italic;
+      font-size: var(--font-size-lg);
+      text-align: center;
+      margin: var(--space-4) 0;
+      padding: var(--space-3) var(--space-4);
+      color: var(--color-text-primary);
+    }
+    .math-display sub, .math-display sup { font-style: normal; }
+    .math-glyph {
+      /* The defensive auto-detect class wrapped around bare unicode math chars
+       * the agent forgot to wrap in LaTeX. Quiet typographic shift — math
+       * font fallback + tiny letter-spacing so the eye registers "math" */
+      font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", "Iowan Old Style", serif;
+      letter-spacing: 0.02em;
+      color: var(--color-text-primary);
+    }
+
+    /* Variables in prose — distinct from body italic */
+    .variable {
+      font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", "Iowan Old Style", serif;
+      font-style: italic;
+      letter-spacing: 0.01em;
+    }
+
+    /* Code — inline + block */
+    .code-inline {
+      font-family: var(--font-mono);
+      font-size: 0.92em;
+      background: var(--color-bg-tertiary);
+      padding: 1px var(--space-1);
+      border-radius: 3px;
+      color: var(--color-text-primary);
+    }
+    .code-block {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-base);
+      background: var(--color-bg-tertiary);
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-sm);
+      border-left: 2px solid var(--color-border-strong);
+      color: var(--color-text-primary);
+      overflow-x: auto;
+      margin: var(--space-3) 0;
+    }
+    .code-block .tok-keyword { color: var(--color-accent); }
+    .code-block .tok-string { color: var(--color-success); }
+    .code-block .tok-comment { color: var(--color-text-tertiary); font-style: italic; }
+    .code-block .tok-fn { color: var(--color-info); }
+
+    /* File path — distinct from inline code */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      color: var(--color-text-secondary);
+      border-bottom: 1px dotted var(--color-border-strong);
+    }
+
+    /* Citation chip — inline, clickable */
+    .citation-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px var(--space-2);
+      background: var(--color-accent-muted);
+      border: 1px solid transparent;
+      border-radius: var(--radius-full);
+      font-family: var(--font-mono);
+      font-size: 0.78em;
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: 0.04em;
+      color: var(--color-accent);
+      text-decoration: none;
+      vertical-align: 0.1em;
+      cursor: pointer;
+      transition: var(--t-quick);
+    }
+    .citation-chip:hover { border-color: var(--color-accent); }
+    .citation-chip::before { content: "†"; font-family: var(--font-display); font-style: italic; font-size: 0.95em; }
+
+    /* Definition — first introduction */
+    .definition {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-primary);
+      border-bottom: 1px solid var(--color-accent);
+    }
+
+    /* Concept reference — link to concept map */
+    .concept-ref {
+      font-style: italic;
+      color: var(--color-text-link);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--color-text-link);
+    }
+    .concept-ref::after { content: " §"; font-family: var(--font-display); font-style: italic; color: var(--color-text-tertiary); font-weight: var(--font-weight-regular); font-size: 0.85em; vertical-align: 0.1em; }
+
+    /* Glossary term — hover for definition (mocked static here) */
+    .glossary {
+      border-bottom: 1px dotted var(--color-text-tertiary);
+      cursor: help;
+    }
+
+    /* Units — "5 cm/s" — slight small-caps treatment on the unit */
+    .units { font-feature-settings: "tnum" on; }
+    .units .unit { font-variant-caps: all-small-caps; letter-spacing: 0.06em; color: var(--color-text-secondary); margin-left: 0.15em; font-style: normal; }
+
+    /* Numeric values — tabular figures for alignment */
+    .num { font-feature-settings: "tnum" on, "lnum" on; }
+
+    /* Callouts — theorem / hint / warning */
+    .callout {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-sm);
+      margin: var(--space-3) 0;
+      align-items: start;
+    }
+    .callout__icon { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; padding-top: 2px; min-width: 6ch; }
+    .callout__body { font-family: var(--font-body); font-size: var(--font-size-sm); line-height: var(--line-height-base); }
+    .callout__body strong { font-family: var(--font-display); font-style: italic; font-weight: var(--font-weight-semibold); font-size: var(--font-size-base); display: block; margin-bottom: var(--space-1); }
+    .callout--theorem { background: var(--color-bg-secondary); border-left: 3px solid var(--color-text-primary); }
+    .callout--theorem .callout__icon { color: var(--color-text-primary); }
+    .callout--lemma { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-text-secondary); }
+    .callout--lemma .callout__icon { color: var(--color-text-secondary); }
+    .callout--hint { background: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-secondary)); border-left: 3px solid var(--color-warning); }
+    .callout--hint .callout__icon { color: var(--color-warning); }
+    .callout--warning { background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-secondary)); border-left: 3px solid var(--color-danger); }
+    .callout--warning .callout__icon { color: var(--color-danger); }
+
+    /* Worked example — figure with caption / body / verdict */
+    .figure {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-4) var(--space-6);
+      margin: var(--space-4) 0;
+    }
+    .figure__caption { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: var(--space-2); display: flex; gap: var(--space-2); align-items: baseline; }
+    .figure__caption .num { color: var(--color-text-secondary); font-family: var(--font-display); font-style: italic; }
+    .figure__body { font-family: var(--font-body); font-size: var(--font-size-base); }
+    .figure__body p { margin: 0 0 var(--space-2); }
+    .figure__verdict { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-success); margin-top: var(--space-2); }
+    .figure__verdict--failed { color: var(--color-danger); }
+
+    /* Pseudocode — numbered procedural steps */
+    .procedure { counter-reset: step; padding: 0; margin: var(--space-3) 0; list-style: none; }
+    .procedure li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); align-items: baseline; }
+    .procedure li:last-child { border-bottom: 0; }
+    .procedure li::before { content: counter(step); font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); color: var(--color-text-tertiary); text-align: right; padding-top: 2px; }
+
+    /* Block quote / sourced passage */
+    .passage {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: var(--font-size-lg);
+      line-height: var(--line-height-loose);
+      color: var(--color-text-primary);
+      padding: var(--space-3) var(--space-6);
+      border-left: 2px solid var(--color-border-strong);
+      margin: var(--space-4) 0;
+    }
+    .passage__cite { display: block; font-family: var(--font-mono); font-size: var(--font-size-xs); font-style: normal; font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-text-tertiary); margin-top: var(--space-3); }
+    .passage__cite::before { content: "— "; }
+
+    /* Diagram placeholder */
+    .diagram-placeholder {
+      display: block;
+      background: var(--color-bg-secondary);
+      border: 1px dashed var(--color-border-strong);
+      border-radius: var(--radius-sm);
+      padding: var(--space-8);
+      text-align: center;
+      font-family: var(--font-display);
+      font-style: italic;
+      color: var(--color-text-tertiary);
+      margin: var(--space-3) 0;
+    }
+
+    .locked-banner {
+      background: var(--color-accent-muted);
+      border: 1px solid var(--color-accent);
+      border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-6);
+      margin: 0 0 var(--space-8);
+    }
+    .locked-banner__label { font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); letter-spacing: var(--letter-spacing-kicker); text-transform: uppercase; color: var(--color-accent); margin-bottom: var(--space-2); }
+    .locked-banner p { margin: 0 0 var(--space-2); font-family: var(--font-body); font-size: var(--font-size-sm); color: var(--color-text-primary); }
+    .locked-banner p:last-child { margin: 0; }
+    .locked-banner code { font-family: var(--font-mono); font-size: 12px; background: var(--color-bg-secondary); padding: 1px var(--space-1); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header class="showcase-meta">
+  <h1 class="showcase-meta__title">
+    Educational content typography
+    <small>· proposed treatments · 2026-05-24 · preview-only until promoted to components.css</small>
+  </h1>
+</header>
+
+<main>
+
+<p class="editorial-deck" style="margin: 0 0 var(--space-8);">
+  Praxis text isn't just chat prose — it carries math, code, citations, definitions, examples, theorems, and other educational content shapes that each deserve distinct typographic treatment. This mock catalogues the proposed treatments for each shape. The shapes themselves are universal (math is math whether it appears in a tutor turn, a question prompt, a flashcard, or a course material); the treatments here should apply uniformly across every text-bearing surface in the app.
+</p>
+
+<div class="locked-banner">
+  <div class="locked-banner__label">Direction confirmed · 2026-05-24</div>
+  <p><strong>Math:</strong> agent writes math in LaTeX (<code>$inline$</code> for inline, <code>$$display$$</code> for set-off). Production rendering pipeline uses KaTeX. The mode-prompt fragment that introduces the question tool will include this instruction alongside the per-mode length caps (per <code>idea-inline-question-density-layout-and-schema-caps</code> § 4).</p>
+  <p><strong>Bare-glyph auto-detect:</strong> a defensive secondary pass scans for unwrapped unicode math chars (∘ ∂ ∫ ∑ ≠ ≈ → ⇒ ± × ² ³ α β γ π, etc.) and applies the quiet <code>.math-glyph</code> typographic treatment. Cheap, no parser, catches agent omissions on single glyphs without pretending to detect full expressions.</p>
+</div>
+
+<nav class="anchor-nav">
+  <a href="#math">Math</a>
+  <a href="#code">Code & technical</a>
+  <a href="#citations">Citations & passages</a>
+  <a href="#concepts">Definitions & concepts</a>
+  <a href="#callouts">Callouts</a>
+  <a href="#examples">Examples & figures</a>
+  <a href="#procedural">Procedural steps</a>
+  <a href="#numerical">Numerical content</a>
+</nav>
+
+<section class="section" id="math">
+  <h2>Math</h2>
+  <p class="lede">Three tiers: explicit inline LaTeX, explicit display LaTeX, and defensive auto-detect for bare unicode math glyphs.</p>
+
+  <div class="demo">
+    <div class="demo__label">.math-inline
+      <code>$f(x) = x^2 + 1$</code>
+      <span class="note">Wrapped in <code>$...$</code> by the agent; rendered via KaTeX. Math font fallback chain + italic; sub/sup are upright per math convention.</span>
+    </div>
+    <div class="demo__body">
+      <p>The function <span class="math-inline">f(x) = x<sup>2</sup> + 1</span> is differentiable everywhere on <span class="math-inline">ℝ</span>, with derivative <span class="math-inline">f′(x) = 2x</span>. At <span class="math-inline">x = 3</span> the slope is <span class="math-inline">6</span> — a clean numeric anchor for the rate of change at that point.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.math-display
+      <code>$$\frac{dV}{dt} = 4πr^2 · \frac{dr}{dt}$$</code>
+      <span class="note">Block-level, centered, larger. Set off from prose with vertical breathing room. Used when the equation is itself the point.</span>
+    </div>
+    <div class="demo__body">
+      <p>For a sphere of radius <span class="math-inline">r</span> whose radius grows over time, the rate of volume change is</p>
+      <span class="math-display">dV/dt = 4πr<sup>2</sup> · dr/dt</span>
+      <p>which is the chain rule unpacked — the rate of <span class="math-inline">V</span> with respect to <span class="math-inline">r</span>, times the rate of <span class="math-inline">r</span> with respect to <span class="math-inline">t</span>.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.math-glyph
+      <code>auto-wrapped per char</code>
+      <span class="note">The bare-unicode-glyph auto-detect pass. Each loose math char in prose (composition, partial, integral, sum, etc.) gets a quiet typographic shift. No parser; just a unicode codepoint table.</span>
+    </div>
+    <div class="demo__body">
+      <p>The composition <span class="math-glyph">∘</span> is associative but not commutative: <span class="math-inline">(f <span class="math-glyph">∘</span> g) <span class="math-glyph">∘</span> h = f <span class="math-glyph">∘</span> (g <span class="math-glyph">∘</span> h)</span>, but in general <span class="math-inline">f <span class="math-glyph">∘</span> g <span class="math-glyph">≠</span> g <span class="math-glyph">∘</span> f</span>. Similarly the partial derivative <span class="math-glyph">∂</span>, the integral <span class="math-glyph">∫</span>, the sum <span class="math-glyph">∑</span>, and the gradient <span class="math-glyph">∇</span> all carry a slight typographic shift so the eye knows they're symbols, not punctuation.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.variable
+      <code>x, dV/dt, f(x)</code>
+      <span class="note">Distinct from prose body italic. Used for ad-hoc variable references in flowing text where wrapping in full LaTeX would be heavy.</span>
+    </div>
+    <div class="demo__body">
+      <p>Let <span class="variable">x</span> be the input. Define <span class="variable">f(x)</span> as the function we care about, and <span class="variable">g(x)</span> as the inner function. The composite <span class="variable">f(g(x))</span> takes <span class="variable">x</span> through <span class="variable">g</span> first, then through <span class="variable">f</span>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="code">
+  <h2>Code & technical</h2>
+  <p class="lede">Inline code for symbol references; blocks for snippets and pseudocode; file paths as a third register.</p>
+
+  <div class="demo">
+    <div class="demo__label">.code-inline
+      <code>&lt;code&gt;</code>
+      <span class="note">Monospace with quiet background tint. Used for function names, API symbols, command snippets, identifiers in prose.</span>
+    </div>
+    <div class="demo__body">
+      <p>The <span class="code-inline">SessionService.spawnFromAssignment()</span> method opens a child session whose <span class="code-inline">parentSessionId</span> links back to the tutor. Call it from any IPC handler that needs to spawn an assignment-typed session.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.code-block
+      <code>&lt;pre&gt;&lt;code&gt;</code>
+      <span class="note">Block-level monospace with left rule and syntax-tinted tokens. Tokens use accent / success / info colors from the palette — restrained, not rainbow.</span>
+    </div>
+    <div class="demo__body">
+      <p>Define a typed wrapper around the chain-rule application:</p>
+      <pre class="code-block"><span class="tok-keyword">function</span> <span class="tok-fn">chainRule</span>(f, g, x) {
+  <span class="tok-comment">// (f ∘ g)'(x) = f'(g(x)) · g'(x)</span>
+  <span class="tok-keyword">const</span> inner = <span class="tok-fn">g</span>(x);
+  <span class="tok-keyword">const</span> outer = <span class="tok-fn">derivative</span>(f, inner);
+  <span class="tok-keyword">const</span> innerRate = <span class="tok-fn">derivative</span>(g, x);
+  <span class="tok-keyword">return</span> outer * innerRate;
+}</pre>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.file-path
+      <code>packages/core/src/...</code>
+      <span class="note">Distinct from inline code — used when pointing at a file location. Dotted underline signals "this is a path you can open."</span>
+    </div>
+    <div class="demo__body">
+      <p>The session loop lives in <span class="file-path">packages/core/src/services/session/engine-session-manager.ts</span>; the engine adapters are under <span class="file-path">packages/engines/src/{claude-code,codex,direct}/</span>; tool registration happens in <span class="file-path">packages/tools/src/index.ts</span>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="citations">
+  <h2>Citations & passages</h2>
+  <p class="lede">Inline citation chips for sourced facts; passage blocks for quoted material with attribution.</p>
+
+  <div class="demo">
+    <div class="demo__label">.citation-chip
+      <code>&lt;a class="citation-chip"&gt;</code>
+      <span class="note">Pill chip with ornament dagger. Clickable — opens the source in the side panel per <code>docs/UX.md</code> § "Citations are first-class".</span>
+    </div>
+    <div class="demo__body">
+      <p>The chain rule for composite functions states that the derivative of a composition is the product of the outer derivative at the inner value and the inner derivative <a class="citation-chip" href="#">Stewart §3.5</a>. This generalizes cleanly to three or more nested functions <a class="citation-chip" href="#">Stewart §3.6</a>; the proof via the limit definition <a class="citation-chip" href="#">Apostol Vol. 1 Ch. 4</a> is the cleanest among the standard treatments.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.passage
+      <code>&lt;blockquote class="passage"&gt;</code>
+      <span class="note">Set-off italic block for direct quotation from source material. Source attribution as mono kicker beneath. Editorial register; uses display font.</span>
+    </div>
+    <div class="demo__body">
+      <p>From the textbook's introduction to the chain rule:</p>
+      <blockquote class="passage">
+        The chain rule is one of the most useful and most often misapplied rules of differentiation. The misapplication usually comes from forgetting that the derivative of the outer function must be evaluated at the inner function, not at the original variable.
+        <span class="passage__cite">Stewart, Calculus 8e · §3.5 · p. 197</span>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="concepts">
+  <h2>Definitions & concepts</h2>
+  <p class="lede">Three registers: first-introduction definition; concept reference (link to concept map); glossary term (hover for definition).</p>
+
+  <div class="demo">
+    <div class="demo__label">.definition
+      <code>first introduction</code>
+      <span class="note">Used the FIRST time a term is introduced in a session. Semibold + accent underline. Subsequent mentions revert to plain prose; the underline is the "this was just defined" marker.</span>
+    </div>
+    <div class="demo__body">
+      <p>A <span class="definition">derivative</span> of a function at a point is the instantaneous rate of change of the function's value with respect to its input. A <span class="definition">composite function</span> is a function built by applying one function to the output of another. The <span class="definition">chain rule</span> is the differentiation rule for composite functions: it relates the composite's derivative to the derivatives of its component functions.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.concept-ref
+      <code>&lt;a class="concept-ref"&gt;</code>
+      <span class="note">Link to a concept-map node. Italic + dashed underline + § sigil. Clicking opens the concept in the concept map panel.</span>
+    </div>
+    <div class="demo__body">
+      <p>The chain rule sits at the intersection of three concepts you've already worked through: <a class="concept-ref" href="#">composite functions</a>, <a class="concept-ref" href="#">derivatives as rates</a>, and <a class="concept-ref" href="#">function composition</a>. Linking to those nodes helps the tutor know what context to assume.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.glossary
+      <code>&lt;abbr class="glossary"&gt;</code>
+      <span class="note">Dotted underline; cursor: help. Hover (mocked here as static) reveals a definition popover. Used for jargon the student should know but might want to refresh on.</span>
+    </div>
+    <div class="demo__body">
+      <p>A function is <span class="glossary" title="Differentiable: has a defined derivative at every point in its domain.">differentiable</span> on an interval if its derivative exists at every point in that interval. We say a function is <span class="glossary" title="Continuous: the limit of f(x) as x approaches a equals f(a) for every a in the domain.">continuous</span> if small input changes produce small output changes — every differentiable function is continuous, but the reverse isn't true.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="callouts">
+  <h2>Callouts</h2>
+  <p class="lede">Four registers: theorem (primary assertion), lemma (supporting claim), hint (friendly nudge), warning (common pitfall).</p>
+
+  <div class="demo">
+    <div class="demo__label">.callout--theorem
+      <code>boxed primary assertion</code>
+      <span class="note">Named, full-weight border, dark icon. The big claims — theorems, propositions, formal statements. Title is display italic; body is body text.</span>
+    </div>
+    <div class="demo__body">
+      <div class="callout callout--theorem">
+        <div class="callout__icon">Theorem</div>
+        <div class="callout__body"><strong>Chain rule for differentiable functions</strong>If <span class="math-inline">g</span> is differentiable at <span class="math-inline">x</span> and <span class="math-inline">f</span> is differentiable at <span class="math-inline">g(x)</span>, then the composite <span class="math-inline">f ∘ g</span> is differentiable at <span class="math-inline">x</span>, and <span class="math-inline">(f ∘ g)′(x) = f′(g(x)) · g′(x)</span>.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.callout--lemma
+      <code>secondary support</code>
+      <span class="note">Subdued background, thinner border. Used for supporting claims, intermediate results, technical lemmas — anything supporting a bigger statement.</span>
+    </div>
+    <div class="demo__body">
+      <div class="callout callout--lemma">
+        <div class="callout__icon">Lemma</div>
+        <div class="callout__body"><strong>Continuity from differentiability</strong>If <span class="math-inline">f</span> is differentiable at a point <span class="math-inline">a</span>, then <span class="math-inline">f</span> is continuous at <span class="math-inline">a</span>. This is the standard precondition we use to ensure the chain rule's hypotheses are met.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.callout--hint
+      <code>amber tint, friendly</code>
+      <span class="note">Friendly nudge or suggestion. Amber tint pulled from <code>--color-warning</code> at 8% mix with surface. Used when the tutor offers a way to think about something without it being a hard correction.</span>
+    </div>
+    <div class="demo__body">
+      <div class="callout callout--hint">
+        <div class="callout__icon">Hint</div>
+        <div class="callout__body"><strong>Picture the balloon</strong>Whenever the chain rule formula feels abstract, picture a balloon inflating: the radius grows at some rate, and the volume grows at the radius rate times <em>how much</em> the volume changes per unit radius. Two rates, one product.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.callout--warning
+      <code>red tint, pitfall</code>
+      <span class="note">Common mistake or anti-pattern. Red tint from <code>--color-danger</code> at 8%. Used when the tutor wants to flag something students typically get wrong.</span>
+    </div>
+    <div class="demo__body">
+      <div class="callout callout--warning">
+        <div class="callout__icon">Pitfall</div>
+        <div class="callout__body"><strong>Forgetting to evaluate at the inner value</strong>The most common chain-rule mistake is writing <span class="math-inline">(f ∘ g)′(x) = f′(x) · g′(x)</span>. The outer derivative must be evaluated at <span class="math-inline">g(x)</span>, not at <span class="math-inline">x</span> — otherwise you're computing the wrong derivative entirely.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="examples">
+  <h2>Examples & figures</h2>
+  <p class="lede">Worked examples as numbered figures with caption, body, and verdict. Diagram placeholders for tldraw / sketch / canvas content.</p>
+
+  <div class="demo">
+    <div class="demo__label">.figure
+      <code>caption + body + verdict</code>
+      <span class="note">Standalone numbered example. Caption is mono kicker with figure number; body is regular prose / math; verdict is mono success/danger marker confirming the result.</span>
+    </div>
+    <div class="demo__body">
+      <div class="figure">
+        <div class="figure__caption"><span class="num">fig. 1</span> · Chain rule applied to a balloon</div>
+        <div class="figure__body">
+          <p>A spherical balloon's radius grows at <span class="units"><span class="num">2</span> <span class="unit">cm/s</span></span> when the radius is <span class="units"><span class="num">5</span> <span class="unit">cm</span></span>. Find the rate of volume change at that moment.</p>
+          <p>The volume formula is <span class="math-inline">V = (4/3)πr<sup>3</sup></span>. Differentiating with respect to <span class="math-inline">r</span> gives <span class="math-inline">dV/dr = 4πr<sup>2</sup></span>. Applying the chain rule:</p>
+          <span class="math-display">dV/dt = 4πr<sup>2</sup> · dr/dt = 4π(<span class="num">25</span>)(<span class="num">2</span>) = <span class="num">200</span>π ≈ <span class="num">628.3</span> cm<sup>3</sup>/s</span>
+        </div>
+        <div class="figure__verdict">✓ verified · sympy.diff(V.subs(r, r_t), t)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.diagram-placeholder
+      <code>tldraw / canvas content</code>
+      <span class="note">Where a sketch, concept-map fragment, plot, or other canvas-rendered visual would land. Dashed border + italic placeholder copy.</span>
+    </div>
+    <div class="demo__body">
+      <div class="diagram-placeholder">[ sketch of two nested circles — radius and volume rates ]</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="procedural">
+  <h2>Procedural steps</h2>
+  <p class="lede">Numbered step lists for sequential procedures, algorithms, proof outlines. Monospace step counter; body text per step.</p>
+
+  <div class="demo">
+    <div class="demo__label">.procedure
+      <code>&lt;ol class="procedure"&gt;</code>
+      <span class="note">Auto-numbered via CSS counter. Each step is a hairline-separated row with a mono number on the left and body content on the right. Replaces ad-hoc <code>&lt;ol&gt;</code> when the steps are substantive and benefit from visual separation.</span>
+    </div>
+    <div class="demo__body">
+      <p>Applying the chain rule in four steps:</p>
+      <ol class="procedure">
+        <li>Identify the outer and inner functions. For <span class="math-inline">y = sin(x<sup>2</sup>)</span>: outer is <span class="math-inline">sin(u)</span>, inner is <span class="math-inline">u = x<sup>2</sup></span>.</li>
+        <li>Differentiate the outer with respect to its own argument: <span class="math-inline">d/du [sin(u)] = cos(u)</span>.</li>
+        <li>Differentiate the inner with respect to <span class="math-inline">x</span>: <span class="math-inline">du/dx = 2x</span>.</li>
+        <li>Multiply, evaluating the outer derivative at the inner function: <span class="math-inline">dy/dx = cos(x<sup>2</sup>) · 2x = 2x · cos(x<sup>2</sup>)</span>.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="numerical">
+  <h2>Numerical content</h2>
+  <p class="lede">Units with small-caps treatment; tabular figures for column alignment in numeric content.</p>
+
+  <div class="demo">
+    <div class="demo__label">.units
+      <code>&lt;span class="units"&gt;&lt;span class="num"&gt;5&lt;/span&gt; &lt;span class="unit"&gt;cm/s&lt;/span&gt;&lt;/span&gt;</code>
+      <span class="note">Number + unit pair. The number gets tabular figures; the unit gets small-caps + secondary color for typographic separation without being loud.</span>
+    </div>
+    <div class="demo__body">
+      <p>At the moment the radius is <span class="units"><span class="num">5</span> <span class="unit">cm</span></span> and growing at <span class="units"><span class="num">2</span> <span class="unit">cm/s</span></span>, the volume is changing at approximately <span class="units"><span class="num">628.3</span> <span class="unit">cm³/s</span></span>. The pressure inside the balloon is <span class="units"><span class="num">1.2</span> <span class="unit">atm</span></span>, the surface temperature is <span class="units"><span class="num">22.4</span> <span class="unit">°C</span></span>, and the air viscosity is <span class="units"><span class="num">1.8</span> × 10<sup>−5</sup> <span class="unit">Pa·s</span></span>.</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="demo__label">.num
+      <code>tabular figures</code>
+      <span class="note">Number-only span with <code>font-feature-settings: "tnum" on, "lnum" on</code>. Aligns columns of numbers without monospace. Used in tables, comparison rows, anywhere numbers should line up.</span>
+    </div>
+    <div class="demo__body">
+      <p>Mastery scores from the last five sessions:</p>
+      <pre style="font-family: var(--font-body); background: transparent; padding: 0; font-size: var(--font-size-sm);">  derivatives      <span class="num">0.71</span>
+  chain rule       <span class="num">0.42</span>
+  composite fns    <span class="num">0.63</span>
+  related rates    <span class="num">0.48</span>
+  implicit diff    <span class="num">0.55</span></pre>
+    </div>
+  </div>
+</section>
+
+</main>
+
+</body>
+</html>
