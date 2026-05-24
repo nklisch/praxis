@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -119,3 +119,24 @@ After: `session-service.ts` 665 lines; `session-spawner.ts` 329 lines.
 Net reduction: ~211 lines from `session-service.ts`; all 1164 core tests pass; typecheck + lint green across all 10 workspace packages.
 
 All preserved invariants confirmed: parent-validation logic verbatim, offset-clamping + `MAX_PASSAGE_LENGTH` cap verbatim, `_persistImmediately: true` on all spawn calls, public `SessionService` interface unchanged, `notifySession` stays in `SessionServiceImpl`.
+
+## Review
+
+Verdict: **done**
+
+All 4 children done. Verified the full arc:
+
+- Design accurately predicted implementation: Option A (`SessionSpawner` utility, `session-promoter.ts` pattern), deps-injection seam with closure ports, module-local constant, three one-line delegates.
+- `session-spawner.ts` is the sole home for `spawnFromAssignment`, `spawnFromNote`, `spawnFromPassage` — all three methods present, correctly ordered, clean imports.
+- `SessionServiceImpl` retains exactly what the design specified: `start`, `send`, `_driveEngineTurn`, `end`, `active`, `list`, `shutdown`, `discardIfUnpromoted`, `notifySession`. No leakage.
+- `notifySession` correctly stayed in `SessionServiceImpl` (engine-turn machinery, no structural overlap with spawners).
+- Preserved invariants confirmed by source inspection:
+  - Parent-validation (two guard clauses) in `spawnFromAssignment` verbatim.
+  - Offset-clamping + `MAX_PASSAGE_LENGTH = 100_000` cap in `spawnFromPassage` verbatim.
+  - `_persistImmediately: true` on all three spawn paths.
+  - Public `SessionService` interface signatures unchanged.
+- Import hygiene clean: `documentChunks`, `documents`, `notes`, `assignments`, `parseNoteBody` all removed from `session-service.ts`; `asc` correctly retained (line 490, `episodicEvents.ts` ordering); `DocumentId`, `NoteId` retained in delegate signatures.
+- `export { MAX_PASSAGE_LENGTH }` correctly removed from final spawner (constant is module-local, no external consumers).
+- `biome-ignore` cast eliminated in spawner methods for `sendMessage`; retained in service constructor closure (`sessionId as any`) where the type boundary genuinely requires it.
+- 876 → 665 lines in `session-service.ts` (−211 lines); `session-spawner.ts` 329 lines. Matches acceptance criteria.
+- All 1164 core tests pass; `pnpm typecheck` clean across 10 workspace packages.
