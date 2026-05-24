@@ -31,5 +31,11 @@ The chat composer locks the send button while the tutor is mid-turn, blocking th
 - **Queue depth cap**: Unlimited. Trust the user; cancel is always available. Avoids re-introducing the kind of locked state this epic is removing.
 
 ## Mockups
-*To be filled in by the mockup pass paired with this `--only-questions` run.*
-- Screens: `.mockups/screens/feature-composer-async-behavior/` — state mocks for idle / in-flight / queued / failed / retrying composer states.
+- Inherits design system: `.mockups/design-system/tokens.css`
+- Screens · state mocks at `.mockups/screens/feature-composer-async-behavior/`:
+  - `index.html` — navigator (2×2 grid of states)
+  - `state-idle.html` — baseline; Send button; no in-flight turn
+  - `state-in-flight-empty.html` — tutor streaming; Send transformed to Stop; composer remains fully active
+  - `state-in-flight-queued.html` — tutor streaming; 2 queued ghost bubbles with per-bubble `edit` / `remove` affordances and ordered position pips
+  - `state-failed-retry.html` — queued #1 hit a transient engine error; inline failed-to-send badge + retry; activity-strip escalated the failure as a persistent banner after 38s
+- Shared interactive feel demo: `.mockups/flows/async-chat-interactions/01-composer-queue.html`

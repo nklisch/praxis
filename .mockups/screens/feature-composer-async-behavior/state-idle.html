@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Composer · idle · feature-composer-async-behavior</title>
+  <link rel="stylesheet" href="../../design-system/tokens.css">
+  <style>
+    .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui; border-bottom: 1px solid #30363d; }
+    .mock-meta strong { font-weight: 600; }
+    .mock-meta span { color: #8b949e; }
+    .mock-meta a { color: #6cf; text-decoration: none; margin-left: auto; }
+
+    body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-serif); min-height: 100vh; }
+
+    main.session { max-width: 720px; margin: 0 auto; padding: 48px 48px 220px; }
+    .session-head { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+    .session-head .kicker { font: 600 11px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-secondary); display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .session-head .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint-teach); }
+    .session-head h1 { font: 500 italic 28px/1.2 var(--font-display); margin: 0; }
+
+    .turn { margin-bottom: 28px; }
+    .turn .speaker { font: 600 10px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 8px; display: flex; gap: 8px; align-items: baseline; }
+    .turn .speaker .when { color: var(--color-text-tertiary); font-weight: 400; }
+    .turn.tutor p { font: 16px/1.7 var(--font-serif); margin: 0 0 10px; }
+    .turn.tutor p em { font-style: italic; }
+    .turn.student { padding-left: 28px; border-left: 2px solid var(--color-accent-muted); }
+    .turn.student p { font: italic 16px/1.65 var(--font-serif); color: var(--color-text-secondary); margin: 0; }
+
+    .composer-wrap { position: fixed; left: 0; right: 0; bottom: 0; padding: 16px 0 24px; background: linear-gradient(to bottom, transparent, var(--color-bg-primary) 32px); pointer-events: none; }
+    .composer { max-width: 720px; margin: 0 auto; padding: 0 48px; pointer-events: auto; }
+    .composer-field { display: flex; align-items: flex-end; gap: 10px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); padding: 12px 12px 12px 16px; }
+    .composer-field textarea { flex: 1; border: 0; background: transparent; font: 16px/1.55 var(--font-serif); resize: none; outline: none; color: var(--color-text-primary); min-height: 24px; }
+    .composer-field textarea::placeholder { color: var(--color-text-tertiary); font-style: italic; }
+    .composer-btn { background: var(--color-text-primary); color: var(--color-text-inverse); border: 0; border-radius: var(--radius-sm); padding: 9px 14px; font: 500 13px/1 var(--font-sans); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; min-width: 76px; justify-content: center; }
+    .composer-btn .glyph { font-family: var(--font-mono); font-size: 13px; }
+    .composer-hints { font: 11px/1 var(--font-mono); color: var(--color-text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; padding: 8px 4px 0; display: flex; gap: 16px; justify-content: space-between; }
+    .composer-hints .status { display: inline-flex; gap: 6px; align-items: center; }
+    .composer-hints .status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-text-tertiary); }
+
+    .state-note { background: var(--color-bg-tertiary); border-left: 2px solid var(--color-border-strong); padding: 10px 14px; margin: 24px 0; font: italic 13px/1.5 var(--font-serif); color: var(--color-text-secondary); }
+    .state-note strong { font-style: normal; font-weight: 600; color: var(--color-text-primary); }
+  </style>
+</head>
+<body>
+  <header class="mock-meta">
+    <strong>Composer · state-idle</strong>
+    <span>baseline · no in-flight turn · Send button visible</span>
+    <a href="index.html">← all states</a>
+  </header>
+
+  <main class="session">
+    <header class="session-head">
+      <div class="kicker"><span class="dot"></span>Teach · Lesson 3 of 12 · Calculus I</div>
+      <h1>Why the chain rule <em>actually works</em></h1>
+    </header>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor <span class="when">· 4 minutes ago</span></div>
+      <p>Volume depends on radius, radius depends on time — two nested rates. The chain rule is the product of those rates, and the formula compresses that idea into eight symbols.</p>
+    </div>
+
+    <div class="turn student">
+      <div class="speaker">You <span class="when">· 2 minutes ago</span></div>
+      <p>I can apply <em>(f ∘ g)' = f'(g) · g'</em> on autopilot but I don't really feel why it's the product.</p>
+    </div>
+
+    <div class="turn tutor">
+      <div class="speaker">Tutor <span class="when">· just now</span></div>
+      <p>That's the most common starting point and it's the one we're going to dismantle. Suppose a balloon is being inflated and you track its radius growing at 2 cm/s when it's 5 cm across — how fast is the volume changing right then?</p>
+    </div>
+
+    <div class="state-note">
+      <strong>State:</strong> tutor's turn finished streaming, no turn in flight, no queued messages. Composer shows the baseline <code>Send ↑</code> affordance. This is the only "calm" state — every other state in this folder is some variant of in-flight / queued / failed.
+    </div>
+  </main>
+
+  <div class="composer-wrap">
+    <div class="composer">
+      <div class="composer-field">
+        <textarea rows="1" placeholder="answer · or ask the tutor a question"></textarea>
+        <button class="composer-btn"><span class="glyph">↑</span>Send</button>
+      </div>
+      <div class="composer-hints">
+        <span>⌘↵ send · ⌘⇧K sketch · ⌘/ tools</span>
+        <span class="status"><span class="dot"></span>idle</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
