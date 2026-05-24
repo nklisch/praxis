@@ -1,7 +1,7 @@
 ---
 id: story-ask-student-question-surface-rendering
 kind: story
-stage: review
+stage: done
 tags: [ui, bug, tutor-ux, tools]
 parent: null
 depends_on: []
@@ -74,3 +74,24 @@ matching the placement pattern in `TeachChatTabBody`. Only
 2. `client.quickCheck.resolve` is called with the correct callId and answer on submit (course-create mode)
 3. `StructuredQuestionCard` renders in configure mode
 4. Events for other sessions are ignored (session filter in the hook)
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Smart consolidation: mounting `useQuickCheckBridge` in the shared
+`AuthoringChatPane` instead of duplicating in both `CourseCreateTabBody`
+and the configure tab body — single subscription, zero double-mounting
+risk, both modes pick it up. Card placement mirrors `TeachChatTabBody`
+exactly. The `sessionId ?? undefined` conversion is the correct way to
+defer subscription until the session is open. Tests cover render +
+round-trip in both modes plus the session-filter behavior — exactly what
+the story brief asked for.
+
+**Blockers**: none
+**Important**: none
+**Nits**:
+- Inline comment about `sessionId ?? undefined` is load-bearing — keep it
+  if the hook signature is ever refactored to accept null directly.
+
+**Notes**: Story has no parent — archive after review.
