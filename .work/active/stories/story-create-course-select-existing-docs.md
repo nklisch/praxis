@@ -1,0 +1,25 @@
+---
+id: story-create-course-select-existing-docs
+kind: story
+stage: implementing
+tags: [ui]
+parent: feature-course-create-improvements
+depends_on: []
+release_binding: null
+gate_origin: null
+created: 2026-05-24
+updated: 2026-05-24
+---
+
+# Add "select from existing documents" affordance to the course-create entry screen
+
+## Brief
+The course-create entry screen currently only offers upload / pack / create-your-own — there's no way to seed a new course from documents the user has already uploaded into the library. Add a "select from existing documents" affordance alongside the existing three paths so users can pick already-indexed sources (notes, PDFs, etc.) without re-uploading. The workspace already reuses the same documents across sessions and courses; the create flow is the outlier.
+
+## Implementation hints
+- Reuse the existing library document-picker component used elsewhere in the workspace (sketches, notes, attach-from-library flow per `gate-tests-library-picker-drag-overlay-child-leave-guard`).
+- The selected documents become session-scoped attachments on the new course-create session, identical to how uploaded docs land — they get promoted to course-scope on draft confirm via the same path.
+- UI placement: a fourth option in the entry row, OR a "browse library" secondary action below the three primary options. Feature-design tier above already decided this is a fourth-option-in-the-row; design choice is at story level.
+
+## Source idea
+`idea-create-course-select-existing-docs` (parked 2026-05-24).
