@@ -1,7 +1,7 @@
 ---
 id: story-refactor-remove-dead-use-current-sub-agent
 kind: story
-stage: review
+stage: done
 tags: [refactor, cleanup]
 parent: null
 depends_on: []
@@ -59,3 +59,13 @@ Result: exactly one line — the definition in `packages/ui/src/hooks/use-curren
 **Deleted test files:** None — no test file existed for this hook.
 
 **Verification:** `pnpm typecheck && pnpm test --reporter=basic` — 440 test files passed, 4750 tests passed, zero failures.
+
+## Review
+
+**Verdict: done** — no blockers, no findings.
+
+- File deleted cleanly across commits `6bc2591` (deletion) and `bfe08ab` (stage advance + notes).
+- Zero consumers confirmed: `grep -rn "useCurrentSubAgent"` across all `*.ts`/`*.tsx` source returns empty.
+- No index re-exports existed; nothing else required cleanup.
+- JSDoc comment claiming use by `<CourseCreateTabBody>` was stale — that import never existed in the component.
+- 440 test files / 4750 tests green per implementation notes.
