@@ -1,7 +1,7 @@
 ---
 id: feature-orphan-routes-audit-delete-dead-courses-component
 kind: story
-stage: review
+stage: done
 tags: [ui, cleanup]
 parent: feature-orphan-routes-audit
 depends_on: []
@@ -59,3 +59,13 @@ If `feature-orphan-routes-audit-connect-course-detail-from-library` is implement
 
 ### Discovered: hidden test dependency on Nav
 `packages/ui/src/__tests__/theme-tokens.test.tsx` imported `Nav` for a render smoke test (`Nav render smoke` describe block, 3 tests). Since `Nav` is dead, those 3 test cases were also dead — they were removed from `theme-tokens.test.tsx`. The CSS structure tests in the same file (7 tests) are live and were preserved. The file was edited in-place (not deleted).
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Three files correctly deleted: `routes/courses.tsx` (pre-Phase-14 dead route), `components/nav.tsx` (zero production imports), `__tests__/courses-route.test.tsx` (tests for the dead route). `courses-section.tsx` correctly preserved because sibling story `e5dc3b2` wired it into `library.tsx` — grep confirms active import. The hidden `theme-tokens.test.tsx` dependency on `Nav` was correctly discovered and cleaned: the 3 Nav-specific smoke tests removed, the 7 CSS-structure tests preserved. No dangling imports remain. All acceptance criteria met.
