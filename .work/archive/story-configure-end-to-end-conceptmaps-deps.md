@@ -1,7 +1,7 @@
 ---
 id: story-configure-end-to-end-conceptmaps-deps
 kind: story
-stage: review
+stage: done
 tags: [tech-debt, typecheck, testing]
 parent: null
 depends_on: []
@@ -54,3 +54,18 @@ Verification:
 - `pnpm vitest run tests/configure-end-to-end.test.ts`: 4/4 passed
 - `pnpm test`: 430 test files passed, 4609 tests passed
 - Lint errors (610) are pre-existing; none introduced by this change
+
+## Review (2026-05-23)
+
+**Verdict**: Approve
+
+Surgical typecheck fix; stub mirrors the canonical `makeStubConceptMaps()`
+shape from `authoring-service.test.ts`. Threshold check (3+ tests) was
+performed correctly — inline is appropriate.
+
+**Blockers**: none
+**Important**: none
+**Nits**: inline `import("...").ConceptMapService` could be a top-level
+`import type` for readability — truly minor.
+
+**Notes**: Archived: no parent feature/epic and no release_binding.
