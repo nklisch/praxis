@@ -135,3 +135,18 @@ Headline themes:
   CHANGELOG.md sanity passed for v0.1.0–v0.1.3; v0.1.4 entry skipped
   per orchestration note (drafted in Phase 5.5). No README drift, no
   doc misplacement, no generated-file regen needed.
+
+- **gate-patterns** (2026-05-23) — 4 new patterns extracted, 2
+  inconsistencies flagged. New patterns (codified directly, tracker at
+  `gate-patterns-v0.1.4` is `stage: done`):
+  `dynamic-where-predicate` (6+ Drizzle accumulator sites),
+  `use-resource-aggregation-loader` (6+ `Promise.all` loader sites),
+  `ipc-envelope-test-triad` (9+ test files repeating the 4-assertion
+  shape with path-leakage check),
+  `server-resolved-student-id` (14 handler files using
+  `getStudentId(services)`; Zod schema declares no `studentId`).
+  Inconsistencies (release-blocking, `stage: drafting`):
+  `gate-patterns-inconsistency-shared-test-fakes-logger` (~37
+  channel-envelope tests inline `makeFakeLogger()`; bundle entrenches
+  the drift). The `editorial-ui-primitives` Workbench divergence is
+  already tracked as the corresponding gate-docs item.

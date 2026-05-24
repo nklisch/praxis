@@ -27,6 +27,7 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [service-deps-injection.md](service-deps-injection.md) — `ServiceDeps` DI container; `engineFactory` for test injection
 - [lazy-resolver-thunk.md](lazy-resolver-thunk.md) — `() => T` / `(id) => T | null` thunks for late-bound deps (engine, vision, bootstrap config, course lookup); call per-use, never capture
 - [load-or-throw.md](load-or-throw.md) — `loadOrThrow(fetch, ctx)` after `db.insert/update/delete().run()`; uniform "X not found after Y: id" wording
+- [dynamic-where-predicate.md](dynamic-where-predicate.md) — Drizzle queries with optional filters seed a mutable `eq[]` accumulator and finalize with `.where(and(...predicates))`; never chain `.where().where()`
 
 ### Memory and indexer patterns
 - [indexer-class.md](indexer-class.md) — `Indexer` interface (`id`, `schedule: "post-turn" | "session-end"`, `run(ctx)`); orchestrator handles debounce + parallel + error isolation
@@ -34,6 +35,7 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 
 ### UI data patterns
 - [use-resource-hook.md](use-resource-hook.md) — `useResource(loader)` for load-on-mount + `{ data, loading, error, refresh, setData }`; layer mutations on top
+- [use-resource-aggregation-loader.md](use-resource-aggregation-loader.md) — page-level surfaces with N independent reads pass a `useCallback`'d `Promise.all` loader to `useResource`; one shared `loading`/`error`/`refresh`
 - [context-hook-pair.md](context-hook-pair.md) — `createContext(null)` + Provider + guard-throwing hook; `usePraxisClient`, `useAuthStatus`
 
 ### UI component patterns
@@ -46,6 +48,7 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 ### Communication patterns
 - [ipc-channel-convention.md](ipc-channel-convention.md) — `praxis.{domain}.{action}`; streaming adds `.start/.events.<id>/.cancel`
 - [ipc-envelope-handler.md](ipc-envelope-handler.md) — mutating / validating / trust-boundary channels use `wrapEnvelope(channel, log, withSchema(zod, fn))`; clients peel with `unwrapEnvelope` and catch `IpcError` with `.code` + `.requestId`
+- [server-resolved-student-id.md](server-resolved-student-id.md) — IPC handlers needing `studentId` resolve it via `getStudentId(services)`; the Zod schema declares no `studentId` field — never let the renderer pass it
 - [per-domain-channel-module.md](per-domain-channel-module.md) — cohesive IPC domains live in `<domain>-channel.ts` exporting `registerXxxHandlers(services, …, log)`; `createIpcHelpers(log)` is the single seam for timing + redacted error logging
 - [discriminated-union-dispatch.md](discriminated-union-dispatch.md) — `type` for events, `kind` for domain objects; `switch` for exhaustive dispatch
 - [subscriber-fanout-stream.md](subscriber-fanout-stream.md) — service `subscribe(listener)` (sends `snapshot` first) → `*-channel.ts` fanout with AbortController hold-open → client `events()` → UI hook iterating `for await` and folding `event.kind` into a Map
@@ -58,3 +61,4 @@ Structural patterns for the Praxis AI tutoring framework. Read individual patter
 - [slow-test-gating.md](slow-test-gating.md) — `describe.skipIf(!process.env.PRAXIS_RUN_SLOW_TESTS)` for Pyodide integration tests
 - [shared-test-fake-factories.md](shared-test-fake-factories.md) — port test doubles live in `tests/helpers/mocks.ts` as factory fns (`inMemorySecretStorage`, `noopLockService`, `recordingLogger`, `noopDocumentScopes`); new ports added to `ServiceDeps` get a factory here when 3+ tests will need it
 - [electron-ipc-test-harness.md](electron-ipc-test-harness.md) — stub `electron` at the module boundary so `ipcMain.handle/on` capture handlers; import `registerIpcHandlers` *after* the mock; invoke `handlers.get("praxis.x.y")?.({}, ...args)` with a minimal fake `Services`
+- [ipc-envelope-test-triad.md](ipc-envelope-test-triad.md) — each `handleEnvelope`-wrapped channel gets a per-`describe` block asserting four outcomes: `ok:true`, `VALIDATION_FAILED`, `INTERNAL` (never rejects), no host-path leakage in INTERNAL message
