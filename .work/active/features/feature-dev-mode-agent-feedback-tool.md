@@ -31,3 +31,16 @@ The tool registration and the prompt fragment are both env-gated (`process.env.N
 
 ## Strategic decisions
 None pre-locked — feature-design handles them all. Pre-decomposition is the only thing pinned (3 pieces above).
+
+## Design decisions
+*(captured 2026-05-24 via `feature-design --only-questions --all`. These lock in directional choices so the full design pass inherits them.)*
+
+- **No UI surface**: Reports land as files only. The goal is a tighter loop of improving the harness — agents (Claude Code etc) read the report files directly between turns to triage. No DB table, no UI panel, no inline-in-chat system messages. The "dev-side review surface" question is closed: the file system *is* the review surface.
+- **Output target**: `.praxis/dev-reports/<ISO-timestamp>-<slug>.md` — one markdown file per report. Filename example: `2026-05-24T14-32-19-confusing-tool-description.md`. Body is the report rendered as frontmatter + markdown sections. Easy to read with `Read`, easy to grep, easy to delete individually after acting on them. An `INDEX.md` is regenerated on each report write listing all current reports for quick scanning.
+- **Tool schema (minimally structured)**: User intent: "keep it pretty minimally structured, it's just an escape hatch to allow us to have agent communication outside of the system." Required: `kind` (enum: `confusing-tool` / `contradictory-prompt` / `missing-tool` / `broken-result` / `cant-execute` / `other`) + `summary` (one-line). Optional: `severity` (`low`/`med`/`high`), `tool_ref` (tool name being criticized), `fragment_ref` (prompt-fragment id being criticized), `details` (long-form markdown). No enforcement that a `tool_ref` OR `fragment_ref` must be present — the agent decides whether it has a concrete target.
+- **Production-safety gating**: Single source of truth — `process.env.PRAXIS_DEV === 'true'` checked at registry-build time. If false, neither the tool nor the dev-mode prompt fragment is constructed. Dedicated env var (not NODE_ENV) so it's intentional, not accidentally inherited from CI/staging. A test verifies that building the tool registry + composing the system prompt with `PRAXIS_DEV` unset produces zero `dev.*` tools and zero dev-mode prompt text.
+- **Prompt fragment scope**: One global fragment composed into every agent's system prompt in dev mode. Tells the agent: "you're in dev; use `dev.report_issue` when something is unclear / contradictory / missing / broken — don't guess or fail silently". Uniform across all modes. One place to maintain. No per-mode tuning.
+- **Tool name**: `dev.report_issue` (provisional — the `dev.*` namespace clearly signals the env-gating to anyone reading the registry).
+
+## Mockups
+No UI surface — no mocks. Documented for clarity: this feature deliberately produces no visual artifact.
