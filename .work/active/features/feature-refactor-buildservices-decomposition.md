@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -315,3 +315,7 @@ returns `{ sessionPromotionRegistry, setSessionServiceRef, promptCustomizationSe
 
 5. **`PromptCustomizationServiceImpl`**: only dep is `db`. Placed in step 9 because it is
    the direct input to `AuthoringServiceImpl` and used nowhere else before session assembly.
+
+## Children complete (2026-05-24)
+
+All 10 child stories advanced to `stage: done`. Feature advanced to `stage: review`.

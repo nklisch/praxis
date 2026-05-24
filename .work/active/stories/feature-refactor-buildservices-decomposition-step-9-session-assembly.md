@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-9-session-assembly
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -117,3 +117,18 @@ Created `packages/desktop/electron/main/services/build-session-precursors.ts` (1
 **services.ts not modified** — Step 10 orchestrator will wire the outputs.
 
 **Verification**: `pnpm typecheck` green (all packages); `pnpm --filter @praxis/desktop test --reporter=basic` green (34 files, 520 tests).
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Ref-cell shape is correct — `sessionServiceRef` declared as a `let`
+inside the factory body (not module-level), invisible outside the closure.
+`setSessionServiceRef` writes it; the `engineSessionManager` thunk reads it with
+a clear guard. `AuthoringServiceImpl`'s `studentId` thunk is lazy (no DB read at
+construction). All three services extracted match the story scope exactly.
+`services.ts` intentionally not modified — wired in step 10. 520/520 tests pass.

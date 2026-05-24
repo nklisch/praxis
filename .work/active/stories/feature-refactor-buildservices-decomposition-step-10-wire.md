@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-10-wire
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -192,3 +192,25 @@ Both are closed before `sessionSweepIndexer.start()`, satisfying the ordering co
 - `pnpm test --reporter=basic` — 4778 passed, 23 skipped (slow Pyodide tests behind env flag)
 - No remaining references to `EMBEDDINGS_MODEL_ID`, `EMBEDDINGS_DIMENSION`,
   `requireFromHere`, or `resolveDistPath` in services.ts
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: All 9 factories called in correct cascading dependency order (infra →
+secrets → sandbox → embeddings → memory → artifacts → indexers → workspace →
+sessionPrecursors). Both ref-cells closed in correct order: `setSessionServiceRef`
+first, `setNotifyParentSession` second, both before `sessionSweepIndexer.start()`.
+Exactly 6 terminal service `new` calls remain inline (IngestionService,
+DocumentsServiceImpl, SessionServiceImpl, SessionSweepIndexer, ConfigServiceImpl,
+UpdateServiceImpl — all explicitly called out in the story as staying in the
+orchestrator). No factory-owned services constructed inline. Duplicate module-level
+constants (`EMBEDDINGS_MODEL_ID`, `EMBEDDINGS_DIMENSION`, `requireFromHere`,
+`resolveDistPath`) confirmed absent. Line count 379 vs ≤200 target — deviation
+is documented and justified in implementation notes (67-line `Services` interface
+public contract + 50-line `ServiceDeps` block cannot be extracted without losing
+type safety or readability; ratified by story). 520/520 desktop tests pass.
