@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-engine-adapter-shared-helpers-close-bridge
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-engine-adapter-shared-helpers
 depends_on: []
@@ -55,3 +55,19 @@ Both adapters call `await closeBridgeIfPresent(this.bridge, this.log, "claudeCod
 - `pnpm typecheck && pnpm lint && pnpm test` green
 - Both adapters use the helper
 - Warn-log keys remain unique per adapter (preserves observability filters)
+
+## Implementation notes
+
+**Helper file**: `packages/engines/src/common/close-bridge.ts`
+
+The helper accepts `ToolBridgeHandle | null | undefined` (adapters store `null` for "no bridge") and calls `serializeError` on the caught error to match the existing inline patterns.
+
+**Warn keys preserved** (key = `${component}.tool_bridge_close_failed`):
+- Claude Code adapter passes `"engine.claude-code"` → key `"engine.claude-code.tool_bridge_close_failed"`
+- Codex adapter passes `"engine.codex"` → key `"engine.codex.tool_bridge_close_failed"`
+
+**Adapters updated**:
+- `packages/engines/src/claude-code/adapter.ts` — added `closeBridgeIfPresent` import; replaced 3-line `if (this.bridge) { await this.bridge.close().catch(...) }` in `close()` with single `await closeBridgeIfPresent(...)` call
+- `packages/engines/src/codex/adapter.ts` — same replacement pattern; `serializeError` import retained (still used in `open()` error path)
+
+**Verification**: `pnpm typecheck` green; `pnpm test` 4745 passed; no lint issues on changed files.

@@ -10,6 +10,7 @@ import type {
   VisionCapability,
 } from "@praxis/core/types";
 import { engineError, serializeError } from "@praxis/core/types";
+import { closeBridgeIfPresent } from "../common/close-bridge.js";
 import { SignalThreader } from "../common/signal-threader.js";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
@@ -177,10 +178,6 @@ class CodexEngineSession implements EngineSession {
     this.closed = true;
     // Codex Thread has no close API — the CLI subprocess persists thread state on disk.
     // Drop our reference. Bridge subprocess gets torn down.
-    if (this.bridge) {
-      await this.bridge.close().catch((err: unknown) => {
-        this.log.warn("engine.codex.tool_bridge_close_failed", { err: serializeError(err) });
-      });
-    }
+    await closeBridgeIfPresent(this.bridge, this.log, "engine.codex");
   }
 }

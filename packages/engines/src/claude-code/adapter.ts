@@ -10,6 +10,7 @@ import type {
   VisionCapability,
 } from "@praxis/core/types";
 import { engineError, serializeError } from "@praxis/core/types";
+import { closeBridgeIfPresent } from "../common/close-bridge.js";
 import { SignalThreader } from "../common/signal-threader.js";
 import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
@@ -279,10 +280,6 @@ class ClaudeCodeEngineSession implements EngineSession {
     await this.conv.close().catch((err: unknown) => {
       this.log.warn("engine.claude-code.conversation_close_failed", { err: serializeError(err) });
     });
-    if (this.bridge) {
-      await this.bridge.close().catch((err: unknown) => {
-        this.log.warn("engine.claude-code.tool_bridge_close_failed", { err: serializeError(err) });
-      });
-    }
+    await closeBridgeIfPresent(this.bridge, this.log, "engine.claude-code");
   }
 }
