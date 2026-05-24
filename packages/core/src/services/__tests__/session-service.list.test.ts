@@ -191,6 +191,17 @@ describe("SessionServiceImpl.list() — excludeModeIds filter", () => {
     expect(ids).toContain(teachId);
   });
 
+  it("6. excludeModeIds does not leak sessions from other students", async () => {
+    insertSession(db, { studentId: "other-student", modeId: "teach" });
+    const mineId = insertSession(db, { studentId, modeId: "teach" });
+    const svc = makeService(db);
+
+    const results = await svc.list({ excludeModeIds: ["configure"] });
+    const ids = results.map((s) => s.sessionId);
+
+    expect(ids).toEqual([mineId]);
+  });
+
   it("5. filter applies before LIMIT: 8 configure + 5 teach, limit 5 → 5 teach", async () => {
     // Insert 8 configure sessions with staggered timestamps
     for (let i = 0; i < 8; i++) {

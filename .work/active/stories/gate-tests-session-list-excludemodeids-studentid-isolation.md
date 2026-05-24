@@ -1,14 +1,14 @@
 ---
 id: gate-tests-session-list-excludemodeids-studentid-isolation
 kind: story
-stage: implementing
+stage: review
 tags: [testing, sessions]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 gate_origin: tests
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # `session.list({ excludeModeIds })` student-scoping not regression-guarded
@@ -40,3 +40,17 @@ it("excludeModeIds does not leak sessions from other students", async () => {
 
 ## Test location (suggested)
 `packages/core/src/services/__tests__/session-service.list.test.ts`
+
+## Implementation notes
+
+Added test 6 ("excludeModeIds does not leak sessions from other students") to
+`packages/core/src/services/__tests__/session-service.list.test.ts`.
+
+The test inserts a "teach" session for `"other-student"` and a "teach" session
+for the current student, then calls `svc.list({ excludeModeIds: ["configure"] })`
+and asserts the result contains exactly the current student's session ID — no
+leakage from the other student.
+
+Isolation is confirmed correct: `list()` seeds `conditions` with
+`eq(sessions.studentId, studentId)` before appending `notInArray(sessions.modeId, excludeModeIds)`,
+so the `and(...)` always scopes to the current student. All 1162 tests pass.
