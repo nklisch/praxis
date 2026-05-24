@@ -1,6 +1,3 @@
-import { courses, gates, lessons } from "@praxis/artifacts/schema";
-import { concepts } from "@praxis/curriculum/schema";
-import { eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import type { PraxisDb } from "../db/index.js";
 import type {
@@ -22,8 +19,6 @@ import type {
   LessonId,
   LessonsInUnit,
   Logger,
-  ProposedCourse,
-  ProposedUnit,
   Reference,
   SessionId,
   StrategyId,
@@ -33,9 +28,27 @@ import type {
   UnitListEntry,
 } from "../types/index.js";
 import { brandId } from "../types/index.js";
-import { persistDraftTx } from "./course-create/draft-persistence.js";
+import { type ConfirmDraftDeps, runConfirmDraft } from "./course-create/draft-confirmer.js";
+import { applyEdit, buildSummary } from "./course-create/draft-mutations.js";
+import {
+  addConceptMutation,
+  addEdgeMutation,
+  addLessonAssessmentMutation,
+  addLessonMutation,
+  addUnitMutation,
+  removeConceptMutation,
+  removeLessonMutation,
+  setAssessmentPlanMutation,
+  setMetadataMutation,
+} from "./course-create/draft-mutators.js";
+import {
+  getLessonDetailQuery,
+  listDanglingRefsQuery,
+  listLessonsInUnitQuery,
+  listUnitsQuery,
+} from "./course-create/draft-queries.js";
 import { type Issue, validateProposed } from "./course-create/draft-validator.js";
-import { normalizeConceptName } from "./course-create/helpers.js";
+import { createCourseFromPack as createCourseFromPackFn } from "./course-create/pack-course-creator.js";
 import { notifyListeners } from "./db-helpers.js";
 import { type DraftStore, SqliteDraftStore } from "./draft-store.js";
 
@@ -66,6 +79,12 @@ export interface CourseCreateServiceDeps {
  *
  * This class is mode-agnostic — it does not know whether the caller is in
  * course-create mode or configure mode. Methods accept inputs, return outputs.
+ *
+ * All mutation logic is delegated to `course-create/draft-mutators.ts`,
+ * query logic to `course-create/draft-queries.ts`, confirm logic to
+ * `course-create/draft-confirmer.ts`, and pack creation to
+ * `course-create/pack-course-creator.ts`. The service is a thin facade
+ * responsible only for draft lifecycle (load, touch, save, emit).
  */
 export class CourseCreateServiceImpl implements CourseCreateService {
   private readonly store: DraftStore;
@@ -207,18 +226,11 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: true; conceptCount: number } | { ok: false; reason: string }> {
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const lower = normalizeConceptName(input.name);
-    if (d.proposed.proposedConcepts.some((c) => normalizeConceptName(c.name) === lower)) {
-      return { ok: false, reason: `concept "${input.name}" already exists` };
-    }
-    d.proposed.proposedConcepts.push({
-      name: input.name.trim(),
-      description: input.description.trim(),
-      evidence: [],
-    });
+    const result = addConceptMutation(d, { name: input.name, description: input.description });
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
-    return { ok: true, conceptCount: d.proposed.proposedConcepts.length };
+    return { ok: true, conceptCount: result.conceptCount };
   }
 
   /** Phase 16: remove a concept (and all edges + lesson references to it). */
@@ -228,23 +240,8 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: boolean; reason?: string }> {
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const lower = normalizeConceptName(input.name);
-    const before = d.proposed.proposedConcepts.length;
-    d.proposed.proposedConcepts = d.proposed.proposedConcepts.filter(
-      (c) => normalizeConceptName(c.name) !== lower,
-    );
-    if (d.proposed.proposedConcepts.length === before) {
-      return { ok: false, reason: `concept "${input.name}" not found` };
-    }
-    // Remove edges referencing this concept.
-    d.proposed.proposedEdges = d.proposed.proposedEdges.filter(
-      (e) => normalizeConceptName(e.fromName) !== lower && normalizeConceptName(e.toName) !== lower,
-    );
-    // Remove concept from lessons.
-    d.proposed.proposedLessons = d.proposed.proposedLessons.map((l) => ({
-      ...l,
-      conceptNames: l.conceptNames.filter((n) => normalizeConceptName(n) !== lower),
-    }));
+    const result = removeConceptMutation(d, { name: input.name });
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
     return { ok: true };
@@ -260,26 +257,13 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const known = new Set(d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)));
-    const fromLower = normalizeConceptName(input.fromName);
-    const toLower = normalizeConceptName(input.toName);
-    if (!known.has(fromLower))
-      return { ok: false, reason: `concept "${input.fromName}" not found` };
-    if (!known.has(toLower)) return { ok: false, reason: `concept "${input.toName}" not found` };
-    if (fromLower === toLower) return { ok: false, reason: "self-edges are not allowed" };
-    // Check duplicate edge.
-    const exists = d.proposed.proposedEdges.some(
-      (e) =>
-        normalizeConceptName(e.fromName) === fromLower &&
-        normalizeConceptName(e.toName) === toLower,
-    );
-    if (exists) return { ok: false, reason: "edge already exists" };
-    d.proposed.proposedEdges.push({
-      fromName: input.fromName.trim(),
-      toName: input.toName.trim(),
-      strength: Math.max(0, Math.min(1, input.strength)),
-      rationale: input.rationale.trim(),
+    const result = addEdgeMutation(d, {
+      fromName: input.fromName,
+      toName: input.toName,
+      strength: input.strength,
+      rationale: input.rationale,
     });
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
     return { ok: true };
@@ -294,26 +278,14 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     suggestedStrategy?: StrategyId;
     estimatedMinutes?: number;
   }): Promise<{ ok: true; lessonIndex: number } | { ok: false; reason: string }> {
+    const { draftId: _lessonDraftId, ...lessonInput } = input;
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const known = new Set(d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)));
-    for (const cn of input.conceptNames) {
-      if (!known.has(normalizeConceptName(cn))) {
-        return { ok: false, reason: `concept "${cn}" not found — add it first` };
-      }
-    }
-    const newLesson = {
-      draftLessonId: `lesson-${uuidv7()}`,
-      title: input.title.trim(),
-      conceptNames: input.conceptNames.map((n) => n.trim()),
-      references: input.references as Reference[],
-      suggestedStrategy: input.suggestedStrategy ?? brandId<"StrategyId">("worked-examples"),
-      estimatedMinutes: input.estimatedMinutes ?? 45,
-    };
-    d.proposed.proposedLessons.push(newLesson);
+    const result = addLessonMutation(d, lessonInput);
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
-    return { ok: true, lessonIndex: d.proposed.proposedLessons.length - 1 };
+    return { ok: true, lessonIndex: result.lessonIndex };
   }
 
   /** Phase 16: remove a lesson by index. */
@@ -323,10 +295,8 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: boolean; reason?: string }> {
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    if (input.lessonIndex < 0 || input.lessonIndex >= d.proposed.proposedLessons.length) {
-      return { ok: false, reason: `lesson index ${input.lessonIndex} out of bounds` };
-    }
-    d.proposed.proposedLessons.splice(input.lessonIndex, 1);
+    const result = removeLessonMutation(d, { lessonIndex: input.lessonIndex });
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
     return { ok: true };
@@ -348,51 +318,14 @@ export class CourseCreateServiceImpl implements CourseCreateService {
       rationale: string;
     };
   }): Promise<{ ok: true; draftUnitId: string } | { ok: false; reason: string }> {
+    const { draftId: _unitDraftId, ...unitInput } = input;
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const knownLessons = new Set(d.proposed.proposedLessons.map((l) => l.draftLessonId));
-    for (const id of input.draftLessonIds) {
-      if (!knownLessons.has(id)) {
-        return { ok: false, reason: `lesson "${id}" not found in draft — add it first` };
-      }
-    }
-    if (input.summative) {
-      const knownConcepts = new Set(
-        d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)),
-      );
-      for (const cn of input.summative.conceptNames) {
-        if (!knownConcepts.has(normalizeConceptName(cn))) {
-          return {
-            ok: false,
-            reason: `summative references unknown concept "${cn}" — add it first`,
-          };
-        }
-      }
-    }
-    const draftUnitId = uuidv7();
-    const unit: ProposedUnit = {
-      draftUnitId,
-      name: input.name.trim(),
-      ...(input.summary !== undefined && { summary: input.summary.trim() }),
-      draftLessonIds: input.draftLessonIds,
-      ...(input.summative !== undefined && {
-        summative: {
-          draftAssessmentId: uuidv7(),
-          kind: input.summative.kind,
-          title: input.summative.title.trim(),
-          conceptNames: input.summative.conceptNames,
-          ...(input.summative.expectedItemCount !== undefined && {
-            expectedItemCount: input.summative.expectedItemCount,
-          }),
-          rationale: input.summative.rationale.trim(),
-        },
-      }),
-    };
-    if (!d.proposed.proposedUnits) d.proposed.proposedUnits = [];
-    d.proposed.proposedUnits.push(unit);
+    const result = addUnitMutation(d, unitInput);
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
-    return { ok: true, draftUnitId };
+    return { ok: true, draftUnitId: result.draftUnitId };
   }
 
   /** Phase 16: set the overall assessment scaffold plan. */
@@ -402,7 +335,8 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<{ ok: true } | { ok: false; reason: string }> {
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    d.proposed.assessmentPlan = input.plan;
+    const result = setAssessmentPlanMutation(d, { plan: input.plan });
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
     return { ok: true };
@@ -420,41 +354,14 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     rationale: string;
     title: string;
   }): Promise<{ ok: true; draftAssessmentId: string } | { ok: false; reason: string }> {
+    const { draftId: _assessmentDraftId, ...assessmentInput } = input;
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    const knownLessons = new Set(d.proposed.proposedLessons.map((l) => l.draftLessonId));
-    if (!knownLessons.has(input.draftLessonId)) {
-      return {
-        ok: false,
-        reason: `lesson "${input.draftLessonId}" not found in draft — add it first`,
-      };
-    }
-    const knownConcepts = new Set(
-      d.proposed.proposedConcepts.map((c) => normalizeConceptName(c.name)),
-    );
-    for (const cn of input.conceptNames) {
-      if (!knownConcepts.has(normalizeConceptName(cn))) {
-        return { ok: false, reason: `concept "${cn}" not found in draft — add it first` };
-      }
-    }
-    const draftAssessmentId = uuidv7();
-    if (!d.proposed.proposedLessonAssessments) d.proposed.proposedLessonAssessments = [];
-    d.proposed.proposedLessonAssessments.push({
-      draftAssessmentId,
-      draftLessonId: input.draftLessonId,
-      kind: input.kind,
-      timing: input.timing,
-      purpose: input.purpose,
-      title: input.title.trim(),
-      conceptNames: input.conceptNames,
-      ...(input.expectedItemCount !== undefined && {
-        expectedItemCount: input.expectedItemCount,
-      }),
-      rationale: input.rationale.trim(),
-    });
+    const result = addLessonAssessmentMutation(d, assessmentInput);
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
-    return { ok: true, draftAssessmentId };
+    return { ok: true, draftAssessmentId: result.draftAssessmentId };
   }
 
   /** Phase 16: update draft title/subject/gradeLevel/thresholds. */
@@ -465,14 +372,11 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     gradeLevel?: string;
     thresholds?: Partial<ThresholdConfig>;
   }): Promise<{ ok: boolean; reason?: string }> {
+    const { draftId: _metaDraftId, ...metaInput } = input;
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return { ok: false, reason: "draft not found or expired" };
-    if (input.title !== undefined) d.proposed.title = input.title.trim();
-    if (input.subject !== undefined) d.proposed.subject = input.subject.trim();
-    if (input.gradeLevel !== undefined) d.proposed.gradeLevel = input.gradeLevel.trim();
-    if (input.thresholds !== undefined) {
-      d.proposed.thresholds = { ...d.proposed.thresholds, ...input.thresholds };
-    }
+    const result = setMetadataMutation(d, metaInput);
+    if (!result.ok) return result;
     d.lastTouchedAt = Date.now() as Timestamp;
     this.saveAndEmitUpdate(d);
     return { ok: true };
@@ -537,52 +441,20 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     const issues = validateProposed(d.proposed);
     if (issues.length > 0) return { ok: false, issues };
 
-    const now = new Date();
-    // confirmDraft is atomic: persistDraftTx and markConfirmedTx run in the
-    // same Drizzle transaction. If the persist fails, the draft row stays active.
-    const result = this.deps.db.transaction((tx) => {
-      const r = persistDraftTx({ tx, draft: d, now });
-      this.store.markConfirmedTx(tx, brandId<"DraftId">(input.draftId) as DraftId, r.courseId);
-      return r;
-    });
+    const confirmDeps: ConfirmDraftDeps = {
+      db: this.deps.db,
+      documentScopes: this.deps.documentScopes,
+      log: this.deps.log,
+    };
 
-    // Phase 16: attach source documents to the new course.
-    // When the draft carries a sessionId (course-create-session-scoped-attachment
-    // feature), promote the session-scope rows to course-scope — both survive so
-    // the audit trail of "which docs this course-create session pulled in" is
-    // preserved. For legacy drafts without sessionId, fall back to the original
-    // attachMany path.
-    if (d.sessionId !== undefined) {
-      try {
-        await this.deps.documentScopes.promoteScope({
-          from: { kind: "session", id: d.sessionId },
-          to: { kind: "course", id: result.courseId },
-          source: "course-create",
-        });
-      } catch (err) {
-        this.deps.log.warn("confirmDraft.promoteScope_failed", {
-          courseId: result.courseId,
-          sessionId: d.sessionId,
-          err: String(err),
-        });
-        // Non-fatal — course is persisted; documents can be manually re-attached.
-      }
-    } else if (d.documentIds.length > 0) {
-      // Legacy path: draft predates session-scoped attachment; attach directly.
-      try {
-        await this.deps.documentScopes.attachMany({
-          scope: { kind: "course", id: result.courseId },
-          documentIds: d.documentIds,
-          source: "course-create",
-        });
-      } catch (err) {
-        this.deps.log.warn("confirmDraft.attachMany_failed", {
-          courseId: result.courseId,
-          err: String(err),
-        });
-        // Non-fatal: course is persisted; user can manually attach.
-      }
-    }
+    const result = await runConfirmDraft(
+      {
+        draft: d,
+        markConfirmedTx: (tx, draftId, courseId) =>
+          this.store.markConfirmedTx(tx, draftId, courseId),
+      },
+      confirmDeps,
+    );
 
     this.emit({
       kind: "finalized",
@@ -622,102 +494,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     courseTitle: string;
     gradeLevel: string;
   }): Promise<{ courseId: string; conceptCount: number }> {
-    // Read all concepts for the given graph in order (ordered by id — pack order preserved
-    // via lexicographic concept ids which encode pack sequence).
-    const conceptRows = this.deps.db
-      .select()
-      .from(concepts)
-      .where(eq(concepts.graphId, input.conceptGraphId))
-      .all();
-
-    if (conceptRows.length === 0) {
-      throw new Error(
-        `cannot create course from pack: no concepts found for conceptGraphId '${input.conceptGraphId}'. Has pack '${input.packId}' been imported?`,
-      );
-    }
-
-    const now = new Date();
-    const LESSON_SIZE = 7; // target ~7 concepts per lesson (5-8 range)
-
-    const result = this.deps.db.transaction((tx) => {
-      // 1. Course row.
-      const courseId = uuidv7();
-      tx.insert(courses)
-        .values({
-          id: courseId,
-          studentId: input.studentId,
-          title: input.courseTitle,
-          subject: input.packId, // pack id used as subject key
-          gradeLevel: input.gradeLevel,
-          sourceJson: { kind: "canonical_pack", packId: input.packId },
-          conceptGraphId: input.conceptGraphId,
-          thresholdsJson: {
-            conceptMastery: 0.8,
-            lessonMastery: 0.75,
-            decayDays: 14,
-          },
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
-
-      // 2. Group concepts into lessons (flat sequential grouping).
-      const groups: (typeof conceptRows)[] = [];
-      for (let i = 0; i < conceptRows.length; i += LESSON_SIZE) {
-        groups.push(conceptRows.slice(i, i + LESSON_SIZE));
-      }
-
-      const lessonRowValues = groups.map((group, i) => {
-        const firstConcept = group[0];
-        return {
-          id: uuidv7(),
-          courseId,
-          title: firstConcept ? `Lesson ${i + 1}: ${firstConcept.name}` : `Lesson ${i + 1}`,
-          orderIndex: i,
-          conceptIdsJson: group.map((c) => c.id),
-          referencesJson: [] as string[],
-          suggestedStrategy: brandId<"StrategyId">("worked-examples"),
-          estimatedMinutes: group.length * 10,
-        };
-      });
-
-      if (lessonRowValues.length > 0) {
-        tx.insert(lessons).values(lessonRowValues).run();
-      }
-
-      // 3. Skeleton gates — one per lesson, chained.
-      const gateIds = lessonRowValues.map(() => uuidv7());
-      const gateRowValues = lessonRowValues.map((l, i) => ({
-        // biome-ignore lint/style/noNonNullAssertion: gateIds is same-length as lessonRowValues
-        id: gateIds[i]!,
-        courseId,
-        guardsJson: { kind: "lesson", lessonId: l.id },
-        // biome-ignore lint/style/noNonNullAssertion: gateIds[i-1] exists for i > 0
-        prerequisitesJson: i > 0 ? [gateIds[i - 1]!] : [],
-        successCriteriaJson: {
-          kind: "mastery-threshold",
-          conceptIds: l.conceptIdsJson,
-          minScore: 0.8,
-        },
-        stateJson: {
-          kind: "locked",
-          // biome-ignore lint/style/noNonNullAssertion: gateIds[i-1] exists for i > 0
-          missingPrerequisites: i > 0 ? [gateIds[i - 1]!] : [],
-        },
-        evidenceJson: [],
-      }));
-
-      if (gateRowValues.length > 0) {
-        tx.insert(gates).values(gateRowValues).run();
-      }
-
-      return { courseId, conceptCount: conceptRows.length };
-    });
-
-    return {
-      courseId: result.courseId,
-      conceptCount: result.conceptCount,
-    };
+    return createCourseFromPackFn(input, this.deps.db);
   }
 
   // ── Chunked-query methods (expressive-draft-api) ─────────────────────────
@@ -725,14 +502,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   async listUnits(draftId: string): Promise<UnitListEntry[] | null> {
     const d = this.store.load(brandId<"DraftId">(draftId) as DraftId);
     if (!d) return null;
-    const p = d.proposed;
-    return (p.proposedUnits ?? []).map((u) => ({
-      draftUnitId: u.draftUnitId,
-      name: u.name,
-      ...(u.summary !== undefined && { summary: u.summary }),
-      lessonCount: u.draftLessonIds.length,
-      hasSummative: u.summative !== undefined,
-    }));
+    return listUnitsQuery(d.proposed);
   }
 
   async listLessonsInUnit(input: {
@@ -741,38 +511,7 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<LessonsInUnit | null> {
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return null;
-    const p = d.proposed;
-    const unit = (p.proposedUnits ?? []).find((u) => u.draftUnitId === input.draftUnitId);
-    if (!unit) return null;
-
-    // Count assessments per lesson from proposedLessonAssessments.
-    const assessmentsByLesson = new Map<string, number>();
-    for (const la of p.proposedLessonAssessments ?? []) {
-      assessmentsByLesson.set(
-        la.draftLessonId,
-        (assessmentsByLesson.get(la.draftLessonId) ?? 0) + 1,
-      );
-    }
-
-    const lessonMap = new Map(p.proposedLessons.map((l) => [l.draftLessonId, l]));
-    const lessons = unit.draftLessonIds.flatMap((id) => {
-      const lesson = lessonMap.get(id);
-      if (!lesson) return [];
-      return [
-        {
-          draftLessonId: lesson.draftLessonId,
-          title: lesson.title,
-          conceptCount: lesson.conceptNames.length,
-          assessmentCount: assessmentsByLesson.get(id) ?? 0,
-        },
-      ];
-    });
-
-    return {
-      draftUnitId: unit.draftUnitId,
-      unitName: unit.name,
-      lessons,
-    };
+    return listLessonsInUnitQuery(d.proposed, input.draftUnitId);
   }
 
   async getLessonDetail(input: {
@@ -781,79 +520,13 @@ export class CourseCreateServiceImpl implements CourseCreateService {
   }): Promise<LessonDetail | null> {
     const d = this.store.load(brandId<"DraftId">(input.draftId) as DraftId);
     if (!d) return null;
-    const p = d.proposed;
-
-    const lesson = p.proposedLessons.find((l) => l.draftLessonId === input.draftLessonId);
-    if (!lesson) return null;
-
-    const assessments = (p.proposedLessonAssessments ?? [])
-      .filter((la) => la.draftLessonId === input.draftLessonId)
-      .map((la) => ({
-        draftAssessmentId: la.draftAssessmentId,
-        kind: la.kind,
-        timing: la.timing,
-        purpose: la.purpose,
-        title: la.title,
-      }));
-
-    const parentUnit =
-      (p.proposedUnits ?? []).find((u) => u.draftLessonIds.includes(input.draftLessonId)) ?? null;
-
-    return {
-      draftLessonId: lesson.draftLessonId,
-      title: lesson.title,
-      conceptNames: lesson.conceptNames,
-      assessments,
-      parentUnit: parentUnit
-        ? { draftUnitId: parentUnit.draftUnitId, name: parentUnit.name }
-        : null,
-    };
+    return getLessonDetailQuery(d.proposed, input.draftLessonId);
   }
 
   async listDanglingRefs(draftId: string): Promise<DanglingRefsReport | null> {
     const d = this.store.load(brandId<"DraftId">(draftId) as DraftId);
     if (!d) return null;
-    const p = d.proposed;
-
-    // Orphan concepts: in proposedConcepts but referenced by zero lessons.
-    const conceptsInLessons = new Set<string>();
-    for (const lesson of p.proposedLessons) {
-      for (const cn of lesson.conceptNames) conceptsInLessons.add(cn);
-    }
-    const orphanConcepts = p.proposedConcepts
-      .filter((c) => !conceptsInLessons.has(c.name))
-      .map((c) => c.name);
-
-    // Dangling unit memberships: unit's draftLessonIds not in proposedLessons.
-    const knownLessonIds = new Set(p.proposedLessons.map((l) => l.draftLessonId));
-    const danglingUnitMemberships = (p.proposedUnits ?? [])
-      .map((u) => ({
-        draftUnitId: u.draftUnitId,
-        unitName: u.name,
-        badLessonIds: u.draftLessonIds.filter((id) => !knownLessonIds.has(id)),
-      }))
-      .filter((u) => u.badLessonIds.length > 0);
-
-    // Dangling lesson assessments.
-    const danglingLessonAssessments = (p.proposedLessonAssessments ?? [])
-      .filter((la) => !knownLessonIds.has(la.draftLessonId))
-      .map((la) => ({
-        draftAssessmentId: la.draftAssessmentId,
-        badLessonId: la.draftLessonId,
-      }));
-
-    // Edges referencing unknown concepts.
-    const knownConcepts = new Set(p.proposedConcepts.map((c) => c.name));
-    const edgesReferencingUnknownConcepts = p.proposedEdges
-      .filter((e) => !knownConcepts.has(e.fromName) || !knownConcepts.has(e.toName))
-      .map((e) => ({ fromName: e.fromName, toName: e.toName }));
-
-    return {
-      orphanConcepts,
-      danglingUnitMemberships,
-      danglingLessonAssessments,
-      edgesReferencingUnknownConcepts,
-    };
+    return listDanglingRefsQuery(d.proposed);
   }
 
   /** Test/observability handle: count active (non-confirmed, non-discarded) drafts. */
@@ -880,276 +553,6 @@ export class CourseCreateServiceImpl implements CourseCreateService {
     const sweptIds = this.store.sweepStale(cutoff);
     for (const id of sweptIds) {
       this.emit({ kind: "discarded", draftId: id, reason: "expired" });
-    }
-  }
-}
-
-// ── Pure helpers ──────────────────────────────────────────────────────────────
-
-function buildSummary(d: DraftCourseState): DraftSummary {
-  const p = d.proposed;
-  const units = p.proposedUnits ?? [];
-  const lessonAssessments = p.proposedLessonAssessments ?? [];
-  // Count summatives from all units + per-lesson assessments.
-  const summativeCount = units.filter((u) => u.summative !== undefined).length;
-  return {
-    draftId: d.draftId,
-    title: p.title,
-    lessonCount: p.proposedLessons.length,
-    conceptCount: p.proposedConcepts.length,
-    edgeCount: p.proposedEdges.length,
-    firstLessons: p.proposedLessons.slice(0, 5).map((l) => ({
-      title: l.title,
-      conceptCount: l.conceptNames.length,
-    })),
-    unitCount: units.length,
-    assessmentCount: summativeCount + lessonAssessments.length,
-  };
-}
-
-interface EditResult {
-  state: ProposedCourse;
-  warnings: readonly string[];
-}
-
-/** Convenience constructor for a result with no warnings. */
-function ok(state: ProposedCourse): EditResult {
-  return { state, warnings: [] };
-}
-
-/**
- * Apply a single edit operation to a ProposedCourse (pure function).
- * Returns `{ state, warnings }` — warnings are informational signals for the
- * model (e.g. "concept already exists"); they do not abort the operation.
- * Throws only on hard structural violations (index out of bounds, missing
- * endpoint for add-edge, etc.).
- *
- * Exhaustive switch — TypeScript will error if a new DraftEditOp variant is
- * added without adding a branch here.
- */
-function applyEdit(p: ProposedCourse, op: DraftEditOp): EditResult {
-  switch (op.kind) {
-    case "rename-course":
-      return ok({ ...p, title: op.title });
-
-    case "rename-lesson": {
-      const ls = [...p.proposedLessons];
-      const target = ls[op.lessonIndex];
-      if (!target) throw new Error(`Lesson index out of bounds: ${op.lessonIndex}`);
-      ls[op.lessonIndex] = { ...target, title: op.title };
-      return ok({ ...p, proposedLessons: ls });
-    }
-
-    case "reorder-lessons": {
-      if (op.newOrder.length !== p.proposedLessons.length) {
-        throw new Error(
-          `reorder-lessons: newOrder length ${op.newOrder.length} !== lesson count ${p.proposedLessons.length}`,
-        );
-      }
-      return ok({
-        ...p,
-        proposedLessons: op.newOrder.map((i) => {
-          const l = p.proposedLessons[i];
-          if (!l) throw new Error(`reorder-lessons: index ${i} out of bounds`);
-          return l;
-        }),
-      });
-    }
-
-    case "remove-lesson": {
-      const removed = p.proposedLessons[op.lessonIndex];
-      if (!removed) throw new Error(`remove-lesson: lessonIndex ${op.lessonIndex} out of bounds`);
-      const removedId = removed.draftLessonId;
-      const removedTitle = removed.title;
-
-      const ls = p.proposedLessons.filter((_, i) => i !== op.lessonIndex);
-
-      // Cascade: remove the lesson id from every unit's draftLessonIds.
-      let unitMembershipCount = 0;
-      const units = (p.proposedUnits ?? []).map((u) => {
-        const before = u.draftLessonIds.length;
-        const filtered = u.draftLessonIds.filter((id) => id !== removedId);
-        unitMembershipCount += before - filtered.length;
-        return { ...u, draftLessonIds: filtered };
-      });
-
-      // Cascade: drop lesson assessments that belong to the removed lesson.
-      const assessmentsBefore = p.proposedLessonAssessments ?? [];
-      const assessmentsAfter = assessmentsBefore.filter((a) => a.draftLessonId !== removedId);
-      const droppedAssessments = assessmentsBefore.length - assessmentsAfter.length;
-
-      const warning =
-        `removed lesson '${removedTitle}' (id ${removedId}); also dropped: ` +
-        `${unitMembershipCount} unit-membership ref${unitMembershipCount !== 1 ? "s" : ""}, ` +
-        `${droppedAssessments} lesson assessment${droppedAssessments !== 1 ? "s" : ""}`;
-
-      return {
-        state: {
-          ...p,
-          proposedLessons: ls,
-          proposedUnits: units,
-          proposedLessonAssessments: assessmentsAfter,
-        },
-        warnings: [warning],
-      };
-    }
-
-    case "add-lesson": {
-      const newLesson = {
-        draftLessonId: `lesson-${Date.now()}`,
-        title: op.title,
-        conceptNames: op.conceptNames,
-        references: [],
-        suggestedStrategy: brandId<"StrategyId">("worked-examples"),
-        estimatedMinutes: 45,
-      };
-      const ls = [...p.proposedLessons];
-      ls.splice(op.afterIndex + 1, 0, newLesson);
-      return ok({ ...p, proposedLessons: ls });
-    }
-
-    case "rename-concept": {
-      // Update the concept list and all lesson conceptNames references.
-      const cs = p.proposedConcepts.map((c) =>
-        c.name === op.conceptName ? { ...c, name: op.newName } : c,
-      );
-      const ls = p.proposedLessons.map((l) => ({
-        ...l,
-        conceptNames: l.conceptNames.map((n) => (n === op.conceptName ? op.newName : n)),
-      }));
-      const es = p.proposedEdges.map((e) => ({
-        ...e,
-        fromName: e.fromName === op.conceptName ? op.newName : e.fromName,
-        toName: e.toName === op.conceptName ? op.newName : e.toName,
-      }));
-      return ok({ ...p, proposedConcepts: cs, proposedLessons: ls, proposedEdges: es });
-    }
-
-    case "remove-concept": {
-      const cs = p.proposedConcepts.filter((c) => c.name !== op.conceptName);
-      const ls = p.proposedLessons.map((l) => ({
-        ...l,
-        conceptNames: l.conceptNames.filter((n) => n !== op.conceptName),
-      }));
-      const es = p.proposedEdges.filter(
-        (e) => e.fromName !== op.conceptName && e.toName !== op.conceptName,
-      );
-      return ok({ ...p, proposedConcepts: cs, proposedLessons: ls, proposedEdges: es });
-    }
-
-    case "add-concept": {
-      const known = new Set(p.proposedConcepts.map((c) => c.name));
-      if (known.has(op.name)) {
-        return {
-          state: p,
-          warnings: [
-            `concept '${op.name}' already exists in the draft; no new concept was added. ` +
-              `Use relink-concept if you want to associate it with lesson ${op.lessonIndex}.`,
-          ],
-        };
-      }
-      const newConcept = { name: op.name, description: op.description, evidence: [] };
-      const cs = [...p.proposedConcepts, newConcept];
-      const ls = [...p.proposedLessons];
-      const lessonTarget = ls[op.lessonIndex];
-      if (!lessonTarget)
-        throw new Error(`add-concept: lessonIndex ${op.lessonIndex} out of bounds`);
-      const names = [...lessonTarget.conceptNames];
-      const insertAt = op.afterConceptIndex !== undefined ? op.afterConceptIndex + 1 : names.length;
-      names.splice(insertAt, 0, op.name);
-      ls[op.lessonIndex] = { ...lessonTarget, conceptNames: names };
-      return ok({ ...p, proposedConcepts: cs, proposedLessons: ls });
-    }
-
-    case "set-thresholds":
-      return ok({ ...p, thresholds: op.thresholds });
-
-    case "relink-concept": {
-      const known = new Set(p.proposedConcepts.map((c) => c.name));
-      if (!known.has(op.conceptName)) {
-        return {
-          state: p,
-          warnings: [
-            `relink-concept: concept '${op.conceptName}' not found in draft; no change made.`,
-          ],
-        };
-      }
-
-      // Step 1: Remove the concept name from every lesson.
-      const stripped = p.proposedLessons.map((l) => ({
-        ...l,
-        conceptNames: l.conceptNames.filter((n) => n !== op.conceptName),
-      }));
-
-      if (op.lessonIndex === -1) {
-        // Orphan: remove from all lessons, keep node + edges.
-        return ok({ ...p, proposedLessons: stripped });
-      }
-
-      // Step 2: Insert into the destination lesson at afterConceptIndex+1 (or end).
-      const dest = stripped[op.lessonIndex];
-      if (!dest) throw new Error(`relink-concept: lessonIndex ${op.lessonIndex} out of bounds`);
-      const names = [...dest.conceptNames];
-      const insertAt = op.afterConceptIndex !== undefined ? op.afterConceptIndex + 1 : names.length;
-      names.splice(insertAt, 0, op.conceptName);
-      const ls = [...stripped];
-      ls[op.lessonIndex] = { ...dest, conceptNames: names };
-      return ok({ ...p, proposedLessons: ls });
-    }
-
-    case "add-edge": {
-      const known = new Set(p.proposedConcepts.map((c) => normalizeConceptName(c.name)));
-      const fromLower = normalizeConceptName(op.fromName);
-      const toLower = normalizeConceptName(op.toName);
-      if (!known.has(fromLower))
-        throw new Error(`add-edge: concept "${op.fromName}" not found in draft`);
-      if (!known.has(toLower))
-        throw new Error(`add-edge: concept "${op.toName}" not found in draft`);
-      if (fromLower === toLower) throw new Error("add-edge: self-edges are not allowed");
-      const duplicate = p.proposedEdges.some(
-        (e) =>
-          normalizeConceptName(e.fromName) === fromLower &&
-          normalizeConceptName(e.toName) === toLower,
-      );
-      if (duplicate)
-        throw new Error(`add-edge: edge from "${op.fromName}" to "${op.toName}" already exists`);
-      const newEdge = {
-        fromName: op.fromName.trim(),
-        toName: op.toName.trim(),
-        strength: Math.max(0, Math.min(1, op.strength)),
-        rationale: op.rationale?.trim() ?? "",
-      };
-      return ok({ ...p, proposedEdges: [...p.proposedEdges, newEdge] });
-    }
-
-    case "remove-unit": {
-      const unit = (p.proposedUnits ?? []).find((u) => u.draftUnitId === op.draftUnitId);
-      if (!unit) {
-        return {
-          state: p,
-          warnings: [`remove-unit: unit with id '${op.draftUnitId}' not found; no change made.`],
-        };
-      }
-      const lessonCount = unit.draftLessonIds.length;
-      const units = (p.proposedUnits ?? []).filter((u) => u.draftUnitId !== op.draftUnitId);
-      const warning =
-        `removed unit '${unit.name}' (id ${op.draftUnitId}); ` +
-        `it contained ${lessonCount} lesson reference${lessonCount !== 1 ? "s" : ""}`;
-      return { state: { ...p, proposedUnits: units }, warnings: [warning] };
-    }
-
-    case "validate-draft": {
-      const issues = validateProposed(p);
-      if (issues.length === 0) return ok(p);
-      const warnings = issues.map((issue) => `${issue.kind}: ${issue.message}`);
-      return { state: p, warnings };
-    }
-
-    default: {
-      // Exhaustiveness check: TypeScript will error here if a new op.kind is added
-      // without a case above.
-      const _exhaustive: never = op;
-      throw new Error(`Unknown DraftEditOp kind: ${JSON.stringify(_exhaustive)}`);
     }
   }
 }

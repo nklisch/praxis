@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-7-thin-facade-and-barrel
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on:
@@ -72,3 +72,12 @@ After steps 1, 3, 4, 5, 6, the barrel should also export the new modules' public
 ## Risk + Rollback
 Risk: Low — purely integrative; each module already verified in prior steps.
 Rollback: N/A at this point; each prior step has its own rollback.
+
+## Implementation notes
+- `course-create-service.ts`: 1155 → 558 lines (52% reduction)
+- All 6 modules wired: draft-mutations, draft-mutators, draft-queries, draft-confirmer, pack-course-creator, draft-persistence/draft-validator (already in place)
+- Barrel (`course-create/index.ts`) updated to export from draft-mutations, draft-confirmer, pack-course-creator (new); draft-mutators and draft-queries left as internal — only consumed by the service facade
+- Public `CourseCreateService` interface byte-for-byte unchanged
+- Type fix: optional-field mismatch when building input objects resolved by destructuring `draftId` out (`const { draftId: _, ...rest } = input`) and passing `rest` directly to mutators
+- `ProposedCourse` and `persistDraftTx` imports removed (no longer needed directly in service)
+- Tests: 4773 passed, 23 skipped (4796 total workspace); core alone: 1164 passed (96 files)
