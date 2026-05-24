@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction-step-4-wire-facade
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-assignment-service-grading-extraction
 depends_on:
@@ -125,3 +125,27 @@ harmlessly unused until Step 3 is also reverted.
 - `GradingOrchestrator`, `GradingOrchestratorDeps`, `GradingOrchestratorImpl` added to `services/index.ts` public surface
 - `pnpm typecheck && pnpm test` green: 4773 tests passed (full workspace)
 - No test changes required
+
+## Review
+
+Verdict: **done**
+
+Critical invariants verified:
+
+**Public interface unchanged**: `AssignmentService` interface in `packages/core/src/types/artifacts.ts` was not touched. `create`, `get`, `list`, `recordResponse`, `getResponses`, `submit`, `readGrade` signatures are identical. No IPC channel changes.
+
+**submit() atomicity preserved**: DB write (`update(assignments).set({ submittedAt, gradeJson: grade })`) remains in `submit()` at step 6, after `orchestrator.gradeAssignment()` returns. The orchestrator only computes the grade value; it does not write to the DB.
+
+**notifyParentSession stays in facade**: The fire-and-forget `notifyParentSession` call at step 7 is in `submit()`, not in the orchestrator. The comment "Fire-and-forget — don't block submit()" is retained inline.
+
+**No registry field in AssignmentServiceImpl**: Confirmed — the class now has `private readonly orchestrator: GradingOrchestrator` only; `registry` was removed.
+
+**submit() calls gradeAssignment exactly once**: Confirmed at line 271: `const grade: Grade = await this.orchestrator.gradeAssignment({ assignment, responses, mode })`.
+
+**Backward-compat escape hatch applied correctly**: `orchestrator?: GradingOrchestrator` is optional; constructor constructs `GradingOrchestratorImpl` internally when omitted — no downstream construction sites needed to change. TODO annotated for follow-on cleanup.
+
+**Re-exports**: `AssignmentItemSchema` and `validateItems` re-exported from `assignment-service.ts`; `GradingOrchestrator`, `GradingOrchestratorDeps`, `GradingOrchestratorImpl` added to `services/index.ts` public surface.
+
+**Line count**: 725 → 338 (−387 lines, −53%).
+
+**Tests**: 4773 tests passed (full workspace). `assignment-service.notify.test.ts` passes without modification.
