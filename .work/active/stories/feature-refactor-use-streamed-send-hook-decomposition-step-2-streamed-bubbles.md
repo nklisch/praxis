@@ -1,0 +1,144 @@
+---
+id: feature-refactor-use-streamed-send-hook-decomposition-step-2-streamed-bubbles
+kind: story
+stage: implementing
+tags: [refactor, ui]
+parent: feature-refactor-use-streamed-send-hook-decomposition
+depends_on: []
+created: 2026-05-24
+updated: 2026-05-24
+---
+
+# Step 2: Extract `useStreamedBubbles`
+
+## Goal
+
+Isolate the assistant-bubble open/close/split lifecycle into a focused
+`useStreamedBubbles` hook. This machine manages per-turn mutable locals
+(`activeBubbleContent`, `currentAssistantId`, `lastAssistantId`) and two
+imperative helpers (`openAssistantBubble`, `closeAssistantBubble`). Extracting
+it clarifies the bubble-splitting contract and makes the logic independently
+testable.
+
+## Current state (in `use-streamed-send.ts`)
+
+Lines 283–357 (inside `send()`):
+
+```ts
+let activeBubbleContent = "";
+let currentAssistantId: string | null = null;
+let lastAssistantId: string | null = null;
+
+const openAssistantBubble = (): string => { ... }  // lines 315–345
+const closeAssistantBubble = (): void => { ... }   // lines 347–357
+```
+
+`openAssistantBubble` drains pending renderables (citations/drafts/notes/cards)
+into the new bubble. This renderable-drain coupling means the bubble hook must
+either accept the pending arrays as input or the drain must stay in the caller.
+
+**Design decision**: Keep renderable-drain OUT of `useStreamedBubbles` —
+renderables belong to the interstitial/renderable hook (Step 3). Instead,
+`openAssistantBubble` accepts an optional `renderables` argument at call time.
+This removes the tight coupling to mutable arrays in the outer scope.
+
+## Target state
+
+New file: `packages/ui/src/hooks/use-streamed-bubbles.ts`
+
+```ts
+export interface BubbleRenderables {
+  citations?: RetrievalCitation[];
+  drafts?: ProposedCourse[];
+  notes?: Note[];
+  dueCards?: ReviewCard[];
+}
+
+export interface StreamedBubblesApi {
+  /**
+   * Open a new assistant bubble. Accepts pre-drained renderables to attach.
+   * Returns the new bubble id.
+   */
+  openAssistantBubble: (renderables?: BubbleRenderables) => string;
+  /**
+   * Close the current bubble (no-op if none open).
+   */
+  closeAssistantBubble: () => void;
+  /**
+   * Append a content delta to the active bubble (increments activeBubbleContent).
+   * Does NOT open a bubble — caller must call openAssistantBubble first.
+   */
+  appendContent: (delta: string) => void;
+  /**
+   * Replace the active bubble's content with a final snapshot.
+   */
+  setContent: (content: string) => void;
+  /**
+   * Current accumulated content for the active bubble (needed for the
+   * `activeBubbleContent.length > 0` thinking guard).
+   */
+  readonly activeBubbleContentLength: number;
+  /**
+   * Id of the currently open assistant bubble (null if none).
+   */
+  readonly currentAssistantId: string | null;
+  /**
+   * Id of the most-recently opened assistant bubble (for finally fallback drain).
+   */
+  readonly lastAssistantId: string | null;
+}
+
+export function useStreamedBubbles(
+  setItems: SetItems,
+  setThinking: (v: boolean) => void,
+): StreamedBubblesApi
+```
+
+The hook takes `setItems` and `setThinking` as stable callbacks from the outer
+hook's state. These are always-fresh because they come from `useState` setter
+refs — React guarantees setter identity is stable.
+
+`useStreamedBubbles` returns an imperative API object (not React state). The
+per-turn mutable locals (`activeBubbleContent`, `currentAssistantId`,
+`lastAssistantId`) become fields inside the hook, stored in a single `useRef`
+so they are per-instance mutable without triggering re-renders.
+
+## Files affected
+
+- `packages/ui/src/hooks/use-streamed-bubbles.ts` — new file
+- `packages/ui/src/hooks/use-streamed-send.ts` — replace inline bubble helpers
+  with hook; pass `renderables` arg from renderable arrays at open-site
+
+## Implementation notes
+
+- The hook exposes `activeBubbleContentLength` (not the string itself) so the
+  thinking guard `if (activeBubbleContent.length > 0) setThinking(false)` works
+  without exposing mutable internals.
+- `appendContent` and `setContent` directly write to `bubbleRef.current`
+  and then call `setItems`. The bubble open/close closures (inside the hook)
+  capture `bubbleRef` — no stale closure issue.
+- The `useRef` pattern: `const bubbleRef = useRef({ content: "", currentId: null, lastId: null })`.
+  Reading and writing these inside the hook's closures is safe — they are always
+  fresh via the ref.
+- `setItems` and `setThinking` passed at hook construction are stable setState
+  dispatchers — they don't change across renders, so no re-subscription needed.
+- Renderable draining: callers (the `model_message` handler and `openAssistantBubble`
+  call sites in Step 3 interstitial hook) pass the current renderable snapshot as
+  an argument. The bubble hook never touches the renderable arrays directly.
+
+## Acceptance
+
+- All existing tests in `use-streamed-send.test.tsx` pass unchanged.
+- `useStreamedSend` no longer declares `activeBubbleContent`, `currentAssistantId`,
+  `lastAssistantId`, `openAssistantBubble`, or `closeAssistantBubble` inline.
+- Bubble-splitting tests (Unit 1 section) all green.
+- `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Risk + Rollback
+
+**Risk: Low-Medium.** The bubble helpers are called from multiple event branches
+(`model_message`, `tool_call`, `system_note`, `interrupted`, `error`, finally).
+Each call site must be updated. The per-turn mutables moving to a ref is safe but
+requires careful snapshot-at-close semantics (same as current code).
+
+**Rollback:** Revert new file and restore inline helpers in `use-streamed-send.ts`.
