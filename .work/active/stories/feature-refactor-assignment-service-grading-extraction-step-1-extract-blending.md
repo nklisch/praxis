@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction-step-1-extract-blending
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-assignment-service-grading-extraction
 depends_on: []
@@ -51,3 +51,14 @@ Revert the three file changes — no DB, IPC, or public-interface impact.
 - Added `export { blendDeterministicAndWorkRubric } from "./blending.js"` to `graders/index.ts`.
 - `assignment-service.ts` was NOT modified per story instructions (Step 4 wires).
 - `pnpm typecheck` and `pnpm --filter @praxis/core test` both passed (96 test files / 1164 tests).
+
+## Review
+
+Verdict: **done**
+
+Verified:
+- `graders/blending.ts` is a clean 37-line extraction: function signature, JSDoc, and body match the original in `assignment-service.ts` verbatim; only the `import type { GraderResult }` header was added.
+- `graders/index.ts` re-exports `blendDeterministicAndWorkRubric` alphabetically (correct placement).
+- `assignment-service.ts` not modified per story scope (Step 4 owns wiring) — correct deviation.
+- No logic changes. Pure function move.
+- 96/96 test files, 1164/1164 tests pass.
