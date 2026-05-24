@@ -40,6 +40,7 @@ import {
   useCourseCreateBudget,
 } from "../hooks/use-course-create-budget.js";
 import { useDrafts } from "../hooks/use-drafts.js";
+import { useIngestion } from "../hooks/use-ingestion.js";
 import { useResource } from "../hooks/use-resource.js";
 import { useTabs } from "../hooks/use-tabs.js";
 import { consumeInitialMessage, openSessionInTab } from "../lib/open-session-in-tab.js";
@@ -76,6 +77,15 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
     [client, tab.sessionId],
   );
   const { data: attachedDocs, refresh: refreshAttached } = useResource(attachedLoader);
+
+  // Ingestion for the library picker — hoisted here so closing the picker does
+  // not abort an in-flight batch (see bug-picker-close-aborts-ingestion).
+  const pickerIngestion = useIngestion(
+    () => {
+      void refreshAttached();
+    },
+    { scope: { kind: "session", id: tab.sessionId } },
+  );
 
   // Consume any pending initial message stored by openSessionInTab before navigation.
   // This is the user's context text from the /course-create form. Stored by
@@ -226,6 +236,7 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
           scope={{ kind: "session", id: tab.sessionId }}
           onClose={() => setPickerOpen(false)}
           onAttached={() => void refreshAttached()}
+          ingestion={pickerIngestion}
         />
       )}
     </div>

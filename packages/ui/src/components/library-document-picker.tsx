@@ -1,7 +1,7 @@
 import type { DocumentId, DocumentScope } from "@praxis/core/types";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
-import { useIngestion } from "../hooks/use-ingestion.js";
+import type { UseIngestionResult } from "../hooks/use-ingestion.js";
 import { useResource } from "../hooks/use-resource.js";
 import { COPY } from "../lib/copy.js";
 import { BatchSummaryModal } from "./batch-summary-modal.js";
@@ -19,6 +19,12 @@ export interface LibraryDocumentPickerProps {
   onClose: () => void;
   /** Called after any document is successfully attached. */
   onAttached?: (documentId: DocumentId) => void;
+  /**
+   * Ingestion state machine hoisted from the parent so that closing the picker
+   * does not abort an in-flight batch. The parent must call `useIngestion` and
+   * pass the result here — this keeps ingestion alive across picker mount cycles.
+   */
+  ingestion: UseIngestionResult;
 }
 
 /**
@@ -29,7 +35,12 @@ export interface LibraryDocumentPickerProps {
  * Accepts any DocumentScope (course or session) — pass `scope` instead of
  * the old `courseId` prop.
  */
-export function LibraryDocumentPicker({ scope, onClose, onAttached }: LibraryDocumentPickerProps) {
+export function LibraryDocumentPicker({
+  scope,
+  onClose,
+  onAttached,
+  ingestion,
+}: LibraryDocumentPickerProps) {
   const client = usePraxisClient();
 
   // Load the full library and the currently-attached set in parallel.
@@ -44,14 +55,19 @@ export function LibraryDocumentPicker({ scope, onClose, onAttached }: LibraryDoc
 
   const { data, loading, error, setData, refresh } = useResource(loader);
 
-  // Ingestion hook — scoped to the picker's scope so dropped/uploaded files
-  // are auto-attached to the same scope. onDone refreshes the picker list.
-  const ingestion = useIngestion(
-    useCallback(async () => {
-      await refresh();
-    }, [refresh]),
-    { scope },
-  );
+  // Refresh the picker's document list whenever the hoisted ingestion completes
+  // a batch or a single file. We track the previous status to detect transitions
+  // into terminal states rather than re-running on every status string equality.
+  const prevIngestionStatusRef = useRef(ingestion.state.status);
+  useEffect(() => {
+    const prev = prevIngestionStatusRef.current;
+    const curr = ingestion.state.status;
+    prevIngestionStatusRef.current = curr;
+    // A transition into batch_summary or done means at least one file was processed.
+    if ((curr === "batch_summary" || curr === "done") && prev !== curr) {
+      void refresh();
+    }
+  }, [ingestion.state.status, refresh]);
 
   // Per-row loading state: maps documentId → true while attach is in-flight.
   const [attaching, setAttaching] = useState<Record<string, boolean>>({});

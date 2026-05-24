@@ -1,13 +1,13 @@
 ---
 id: bug-picker-close-aborts-ingestion
 kind: story
-stage: implementing
+stage: review
 tags: [bug, ui, ingestion]
 parent: null
 depends_on: []
 release_binding: v0.1.4
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-05-24
 ---
 
 # Bug: closing the picker modal mid-ingestion aborts the in-flight batch
@@ -63,3 +63,27 @@ intent (background work survives UI dismissal).
 ## Acceptance
 
 The skipped test in `library-document-picker.test.tsx` passes (un-skipped).
+
+## Implementation notes
+
+**Approach used**: Option 1 — hoisted `useIngestion` to parent components.
+
+**Parents updated**:
+- `packages/ui/src/routes/course-detail.tsx` — added `pickerIngestion` (`useIngestion` with course scope + `courseDocsRefresh` as `onDone`), passed as `ingestion` prop to `LibraryDocumentPicker`
+- `packages/ui/src/components/course-create-tab-body.tsx` — imported `useIngestion`, added `pickerIngestion` (session scope + `refreshAttached` as `onDone`), passed as `ingestion` prop to `LibraryDocumentPicker`
+
+**Picker changes** (`packages/ui/src/components/library-document-picker.tsx`):
+- Removed internal `useIngestion()` call
+- Added `ingestion: UseIngestionResult` as a required prop (type-only import from `use-ingestion.js`)
+- Added `useEffect` that watches `ingestion.state.status` for transitions into `batch_summary` or `done` and calls the picker's internal `refresh()` — this replaces the `onDone → refresh` coupling that existed when the hook was internal
+
+**Test changes** (`packages/ui/src/__tests__/library-document-picker.test.tsx`):
+- Imported `useIngestion`
+- Added `PickerWithIngestion` wrapper component (calls `useIngestion` inside `PraxisClientProvider`, passes result as `ingestion` prop) used by `renderPicker`
+- Un-skipped the acceptance test (`it.skip` → `it`)
+- Updated the acceptance test's `Wrapper` to hoist `useIngestion` into an `Inner` component (inside the provider) so it survives picker unmount — this is the pattern being tested
+- Corrected the assertion ordering: `expect(generatorAborted).toBe(false)` now fires BEFORE `resolveIngestion()` (the generator is still alive at that point in the fixed implementation; it was being aborted synchronously on close in the buggy implementation)
+
+**Un-skipped test passing**: yes — all 20 tests in the file pass; 1711 total UI tests pass.
+
+**Typecheck**: clean.

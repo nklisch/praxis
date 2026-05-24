@@ -38,6 +38,15 @@ export function CourseDetailRoute() {
   // Phase 16: track whether the library picker is open.
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  // Ingestion for the library picker — hoisted here so closing the picker
+  // does not abort an in-flight batch (see bug-picker-close-aborts-ingestion).
+  const pickerIngestion = useIngestion(
+    () => {
+      void courseDocsRefresh();
+    },
+    courseId ? { scope: { kind: "course" as const, id: courseId as CourseId } } : undefined,
+  );
+
   // Phase 16: load attached documents for this course.
   const courseDocsLoader = useCallback(
     () =>
@@ -187,6 +196,7 @@ export function CourseDetailRoute() {
           scope={{ kind: "course", id: courseId as CourseId }}
           onClose={() => setPickerOpen(false)}
           onAttached={() => void courseDocsRefresh()}
+          ingestion={pickerIngestion}
         />
       )}
 

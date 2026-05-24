@@ -32,6 +32,7 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LibraryDocumentPicker } from "../components/library-document-picker.js";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { useIngestion } from "../hooks/use-ingestion.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 afterEach(() => cleanup());
@@ -123,6 +124,31 @@ function makeClient(opts?: {
   });
 }
 
+/**
+ * Thin wrapper that calls useIngestion (a hook) so tests can render
+ * LibraryDocumentPicker — which now requires ingestion as a prop — without
+ * coupling each test to the hook's internals.
+ */
+function PickerWithIngestion({
+  scope,
+  onClose,
+  onAttached,
+}: {
+  scope: DocumentScope;
+  onClose: () => void;
+  onAttached?: (id: DocumentId) => void;
+}) {
+  const ingestion = useIngestion(undefined, { scope });
+  return (
+    <LibraryDocumentPicker
+      scope={scope}
+      onClose={onClose}
+      onAttached={onAttached}
+      ingestion={ingestion}
+    />
+  );
+}
+
 function renderPicker(
   client: PraxisClient,
   onClose = vi.fn(),
@@ -131,7 +157,7 @@ function renderPicker(
 ) {
   return render(
     <PraxisClientProvider client={client}>
-      <LibraryDocumentPicker scope={scope} onClose={onClose} onAttached={onAttached} />
+      <PickerWithIngestion scope={scope} onClose={onClose} onAttached={onAttached} />
     </PraxisClientProvider>,
   );
 }
@@ -482,7 +508,7 @@ describe("LibraryDocumentPicker", () => {
      * skipped until the bug is fixed; it documents the desired behavior.
      * See: .work/active/stories/bug-picker-close-aborts-ingestion.md
      */
-    it.skip("closing the picker modal mid-ingestion does NOT abort the in-flight batch", async () => {
+    it("closing the picker modal mid-ingestion does NOT abort the in-flight batch", async () => {
       // Arrange: a slow ingestion generator that hangs until explicitly resolved.
       // We track whether the generator's return() (abort) was invoked.
       let resolveIngestion!: () => void;
@@ -517,19 +543,31 @@ describe("LibraryDocumentPicker", () => {
 
       // Render inside a controlling wrapper so onClose behaves realistically
       // (parent toggles open state, component unmounts on close).
-      function Wrapper() {
+      // useIngestion is hoisted to the inner component (which is inside the
+      // provider) so it survives picker unmount — that's the fix being tested.
+      function Inner({ onClose: handleClose }: { onClose: () => void }) {
         const [open, setOpen] = useState(true);
+        const ingestion = useIngestion(undefined, { scope: COURSE_SCOPE });
         return (
-          <PraxisClientProvider client={client}>
+          <>
             {open && (
               <LibraryDocumentPicker
                 scope={COURSE_SCOPE}
                 onClose={() => {
                   setOpen(false);
-                  onClose();
+                  handleClose();
                 }}
+                ingestion={ingestion}
               />
             )}
+          </>
+        );
+      }
+
+      function Wrapper() {
+        return (
+          <PraxisClientProvider client={client}>
+            <Inner onClose={onClose} />
           </PraxisClientProvider>
         );
       }
@@ -570,16 +608,18 @@ describe("LibraryDocumentPicker", () => {
       // useIngestion broke (component unmount tears down the async loop).
       // The spec says closing must NOT cancel the batch — so if generatorAborted
       // is true here it means the current implementation violates the spec.
-      // We resolve the generator now to give React a chance to settle.
+      //
+      // We check generatorAborted BEFORE resolving — if it's already true at
+      // this point, the generator was forcibly aborted when the picker closed
+      // (the bug). In the fixed implementation (useIngestion hoisted to the
+      // parent), the generator is still alive and waiting here, so false.
+      expect(generatorAborted).toBe(false);
+
+      // Clean up: resolve the slow ingestion so the async batch finishes.
       resolveIngestion();
 
-      // Give a tick for the microtask queue.
+      // Give a tick for the microtask queue to flush the completed ingestion.
       await new Promise((r) => setTimeout(r, 0));
-
-      // The generator finishing (not being aborted mid-stream) is the key
-      // invariant: the batch ran to completion after close, not being killed.
-      // generatorAborted being false means the stream was consumed normally.
-      expect(generatorAborted).toBe(false);
     });
 
     it("after ingestion completes (onDone), the picker list is refreshed", async () => {
