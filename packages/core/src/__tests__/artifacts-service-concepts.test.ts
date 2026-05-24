@@ -17,6 +17,11 @@ import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { ArtifactsServiceImpl } from "../services/artifacts-service.js";
+import { CourseStateReaderImpl } from "../services/course-state-reader-impl.js";
+import { CoursesServiceImpl } from "../services/courses-service.js";
+import { GatesServiceImpl } from "../services/gates-service.js";
+import { LessonAssessmentsServiceImpl } from "../services/lesson-assessments-service.js";
+import { LessonsServiceImpl } from "../services/lessons-service.js";
 import { brandId } from "../types/index.js";
 
 const STUDENT_ID = brandId<"StudentId">("student-asc");
@@ -33,6 +38,32 @@ const MOCK_MASTERY_READER = { read: vi.fn().mockResolvedValue(0) };
 const MOCK_GRADE_READER = { readGrade: vi.fn().mockResolvedValue(null) };
 
 const dbCtx = useTempDb();
+
+function makeService(db: ReturnType<typeof openDb>["db"]) {
+  const coursesService = new CoursesServiceImpl({ db, log: MOCK_LOG });
+  const lessonsService = new LessonsServiceImpl({ db, log: MOCK_LOG });
+  const gatesService = new GatesServiceImpl({
+    db,
+    log: MOCK_LOG,
+    masteryReader: MOCK_MASTERY_READER,
+    gradeReader: MOCK_GRADE_READER,
+  });
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log: MOCK_LOG });
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log: MOCK_LOG,
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+  return new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
+  });
+}
 
 // ─── Seed helpers ─────────────────────────────────────────────────────────────
 
@@ -90,12 +121,7 @@ function seedConcepts(
 describe("ArtifactsServiceImpl.concepts()", () => {
   it("returns empty array when courseId does not exist", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: MOCK_MASTERY_READER,
-      gradeReader: MOCK_GRADE_READER,
-    });
+    const svc = makeService(db);
 
     const result = await svc.concepts(brandId<"CourseId">("nonexistent-course"));
     expect(result).toHaveLength(0);
@@ -113,12 +139,7 @@ describe("ArtifactsServiceImpl.concepts()", () => {
       { id: `${graphId}:concept-c`, name: "Concept C" },
     ]);
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: MOCK_MASTERY_READER,
-      gradeReader: MOCK_GRADE_READER,
-    });
+    const svc = makeService(db);
 
     const result = await svc.concepts(brandId<"CourseId">(courseId));
     expect(result).toHaveLength(3);
@@ -149,12 +170,7 @@ describe("ArtifactsServiceImpl.concepts()", () => {
       { id: `${otherGraphId}:other-2`, name: "Other 2" },
     ]);
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: MOCK_MASTERY_READER,
-      gradeReader: MOCK_GRADE_READER,
-    });
+    const svc = makeService(db);
 
     const result = await svc.concepts(brandId<"CourseId">(courseId));
     expect(result).toHaveLength(1);
@@ -169,12 +185,7 @@ describe("ArtifactsServiceImpl.concepts()", () => {
     seedGraphAndCourse(db, { courseId, graphId });
     seedConcepts(db, graphId, [{ id: `${graphId}:shape-concept`, name: "Shape Concept" }]);
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: MOCK_MASTERY_READER,
-      gradeReader: MOCK_GRADE_READER,
-    });
+    const svc = makeService(db);
 
     const result = await svc.concepts(brandId<"CourseId">(courseId));
     expect(result).toHaveLength(1);

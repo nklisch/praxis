@@ -15,7 +15,16 @@
 import { courses, gates as gatesTable, lessons } from "@praxis/artifacts/schema";
 import { openDb } from "@praxis/core/db";
 import { configKv } from "@praxis/core/schema";
-import { ArtifactsServiceImpl, MemoryServiceImpl, SessionServiceImpl } from "@praxis/core/services";
+import {
+  ArtifactsServiceImpl,
+  CourseStateReaderImpl,
+  CoursesServiceImpl,
+  GatesServiceImpl,
+  LessonAssessmentsServiceImpl,
+  LessonsServiceImpl,
+  MemoryServiceImpl,
+  SessionServiceImpl,
+} from "@praxis/core/services";
 import type {
   CodeSandbox,
   Engine,
@@ -188,14 +197,33 @@ function buildServices(db: ReturnType<typeof openDb>["db"], masteryScore: number
     decayDaysFor: () => 14,
   });
 
-  const artifactsService = new ArtifactsServiceImpl({
+  const coursesService = new CoursesServiceImpl({ db, log: noopLogger() });
+  const lessonsService = new LessonsServiceImpl({ db, log: noopLogger() });
+  const masteryReaderStub = {
+    // Stub: returns the seeded mastery score for the one concept we care about.
+    read: vi.fn().mockResolvedValue(masteryScore),
+  };
+  const gradeReaderStub = { readGrade: vi.fn().mockResolvedValue(null) };
+  const gatesService = new GatesServiceImpl({
     db,
     log: noopLogger(),
-    masteryReader: {
-      // Stub: returns the seeded mastery score for the one concept we care about.
-      read: vi.fn().mockResolvedValue(masteryScore),
-    },
-    gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
+    masteryReader: masteryReaderStub,
+    gradeReader: gradeReaderStub,
+  });
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log: noopLogger() });
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log: noopLogger(),
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+  const artifactsService = new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
   });
 
   const sessionService = new SessionServiceImpl({

@@ -38,6 +38,11 @@ import type {
 } from "../../types/index.js";
 import { brandId } from "../../types/index.js";
 import { ArtifactsServiceImpl } from "../artifacts-service.js";
+import { CourseStateReaderImpl } from "../course-state-reader-impl.js";
+import { CoursesServiceImpl } from "../courses-service.js";
+import { GatesServiceImpl } from "../gates-service.js";
+import { LessonAssessmentsServiceImpl } from "../lesson-assessments-service.js";
+import { LessonsServiceImpl } from "../lessons-service.js";
 import { AuthoringServiceImpl } from "../authoring-service.js";
 import { ConceptMapServiceImpl } from "../concept-map-service.js";
 import { MemoryServiceImpl } from "../memory/memory-service.js";
@@ -99,11 +104,28 @@ function seedCourse(db: ReturnType<typeof openDb>["db"], studentId: StudentId): 
 function buildServices() {
   const { db } = openDb({ path: dbCtx.dbPath });
 
-  const artifacts = new ArtifactsServiceImpl({
+  const coursesService = new CoursesServiceImpl({ db, log: noopLog() });
+  const lessonsService = new LessonsServiceImpl({ db, log: noopLog() });
+  const gatesService = new GatesServiceImpl({
     db,
     log: noopLog(),
     masteryReader: { read: vi.fn().mockResolvedValue(0.5) },
     gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
+  });
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log: noopLog() });
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log: noopLog(),
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+  const artifacts = new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
   });
 
   const memory = new MemoryServiceImpl({ db, log: noopLog(), decayDaysFor: () => 14 });

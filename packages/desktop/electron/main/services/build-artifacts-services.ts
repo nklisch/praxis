@@ -6,7 +6,12 @@ import {
   AssignmentServiceImpl,
   CitationsServiceImpl,
   CourseCreateServiceImpl,
+  CoursesServiceImpl,
+  CourseStateReaderImpl,
   DocumentScopesServiceImpl,
+  GatesServiceImpl,
+  LessonAssessmentsServiceImpl,
+  LessonsServiceImpl,
   MemoryServiceImpl,
   SqliteDraftStore,
 } from "@praxis/core/services";
@@ -169,14 +174,44 @@ export function buildArtifactsServices(deps: ArtifactsServiceDeps): ArtifactsSer
     notifyParentSession: (input) => notifyParentSessionRef?.(input) ?? Promise.resolve(),
   });
 
-  // Phase 6: ArtifactsServiceImpl (reads + progress writes).
+  // Domain decomposition: construct the five sub-services first, then
+  // wire the ArtifactsServiceImpl facade.
+
+  // Phase 1-decomp: CoursesServiceImpl (course reads, progress, documents, concepts).
+  const coursesService = new CoursesServiceImpl({ db, log });
+
+  // Phase 2-decomp: LessonsServiceImpl (lesson CRUD, units, upsert).
+  const lessonsService = new LessonsServiceImpl({ db, log });
+
+  // Phase 3-decomp: GatesServiceImpl (gate CRUD, evaluation, unlock events).
   // Phase 9: Constructed AFTER memoryService and assignmentService so they
   // can be injected as MasteryReader and GradeReader.
-  const artifactsService = new ArtifactsServiceImpl({
+  const gatesService = new GatesServiceImpl({
     db,
     log,
     masteryReader: memoryService, // Phase 9: MasteryReader adapter
     gradeReader: assignmentService, // Phase 9: GradeReader adapter
+  });
+
+  // Phase 4-decomp: LessonAssessmentsServiceImpl (lesson assessment reads).
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log });
+
+  // Phase 5-decomp: CourseStateReaderImpl (narrow read port for prompt composition).
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log,
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+
+  // Phase 6-decomp: ArtifactsServiceImpl as thin facade over the five sub-services.
+  const artifactsService = new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
   });
 
   return {

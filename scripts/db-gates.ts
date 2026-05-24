@@ -13,7 +13,12 @@ import { openDb } from "@praxis/core/db";
 import {
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
+  CourseStateReaderImpl,
+  CoursesServiceImpl,
+  GatesServiceImpl,
   getOrCreateDefaultStudentId,
+  LessonAssessmentsServiceImpl,
+  LessonsServiceImpl,
   MemoryServiceImpl,
 } from "@praxis/core/services";
 import { brandId } from "@praxis/core/types";
@@ -39,11 +44,28 @@ if (evaluateFlag) {
     resolveSubmissionMode: () => "quiz",
   });
 
-  const artifactsService = new ArtifactsServiceImpl({
+  const coursesService = new CoursesServiceImpl({ db, log });
+  const lessonsService = new LessonsServiceImpl({ db, log });
+  const gatesService = new GatesServiceImpl({
     db,
     log,
     masteryReader: memoryService,
     gradeReader: assignmentService,
+  });
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log });
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log,
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+  const artifactsService = new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
   });
 
   const studentId = brandId<"StudentId">(getOrCreateDefaultStudentId(db));

@@ -24,7 +24,12 @@ import type { PromptCustomizationService } from "@praxis/core/services";
 import {
   ArtifactsServiceImpl,
   AuthoringServiceImpl,
+  CourseStateReaderImpl,
+  CoursesServiceImpl,
+  GatesServiceImpl,
   getOrCreateDefaultStudentId,
+  LessonAssessmentsServiceImpl,
+  LessonsServiceImpl,
   LockServiceImpl,
   MemoryServiceImpl,
   SessionServiceImpl,
@@ -173,13 +178,28 @@ function seedMinimalCourse(db: ReturnType<typeof openDb>["db"]): void {
 function buildServices(db: ReturnType<typeof openDb>["db"]) {
   const memoryService = new MemoryServiceImpl({ db, log: noopLogger(), decayDaysFor: () => 14 });
 
-  const artifactsService = new ArtifactsServiceImpl({
+  const coursesService = new CoursesServiceImpl({ db, log: noopLogger() });
+  const lessonsService = new LessonsServiceImpl({ db, log: noopLogger() });
+  const gatesService = new GatesServiceImpl({
     db,
     log: noopLogger(),
-    masteryReader: {
-      read: vi.fn().mockResolvedValue(0.5),
-    },
+    masteryReader: { read: vi.fn().mockResolvedValue(0.5) },
     gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
+  });
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log: noopLogger() });
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log: noopLogger(),
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+  const artifactsService = new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
   });
 
   const lockService = new LockServiceImpl({ db, log: noopLogger() });

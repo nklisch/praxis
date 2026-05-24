@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-6-facade-composition
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on:
@@ -145,3 +145,13 @@ Medium — this is the integration step. The individual extractions (steps 1–5
 will have proven the logic; this step's risk is primarily wiring errors.
 Run `pnpm test --reporter=verbose` and fix any test setup code that
 constructs `ArtifactsServiceImpl` directly.
+
+## Implementation notes
+
+- Line count: 1062 → 222 (79% reduction)
+- Facade method count: 28 delegating methods + 1 cross-domain aggregator (`getCourseSummary`)
+- `getCourseSummary` kept at facade: fans out to `courses.course()`, `lessons.lessons()`, `gates.gates()`, `courses.concepts()` in parallel — kept because it spans 4 sub-services and would require circular deps to delegate
+- `CourseStateReaderImpl` added to `services/index.ts` exports (was missing)
+- Build wiring updated: `buildArtifactsServices` constructs 5 sub-services then wires the facade
+- Test wiring updated in 4 unit test files (`artifacts-service.test.ts`, `artifacts-service-writes.test.ts`, `artifacts-service-concepts.test.ts`, `artifacts-service-gates.test.ts`, `snapshot-restore.test.ts`) and 5 integration test files (`gates-end-to-end.test.ts`, `adaptive-routing-end-to-end.test.ts`, `configure-end-to-end.test.ts`, `mastery-end-to-end.test.ts`, `pack-import-end-to-end.test.ts`) plus `scripts/db-gates.ts`
+- All 4796 tests pass (4773 active + 23 skipped)

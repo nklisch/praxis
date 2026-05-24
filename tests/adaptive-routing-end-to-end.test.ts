@@ -24,6 +24,11 @@ import { configKv } from "@praxis/core/schema";
 import {
   ArtifactsServiceImpl,
   CourseCreateServiceImpl,
+  CourseStateReaderImpl,
+  CoursesServiceImpl,
+  GatesServiceImpl,
+  LessonAssessmentsServiceImpl,
+  LessonsServiceImpl,
   MemoryServiceImpl,
 } from "@praxis/core/services";
 import type {
@@ -250,11 +255,29 @@ async function callCurrentConcept(
     decayDaysFor: () => 14,
   });
 
-  const artifactsService = new ArtifactsServiceImpl({
+  const coursesService = new CoursesServiceImpl({ db, log: noopLogger() });
+  const lessonsService = new LessonsServiceImpl({ db, log: noopLogger() });
+  const gradeReaderStub = { readGrade: vi.fn().mockResolvedValue(null) };
+  const gatesService = new GatesServiceImpl({
     db,
     log: noopLogger(),
     masteryReader: memoryService,
-    gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
+    gradeReader: gradeReaderStub,
+  });
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log: noopLogger() });
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log: noopLogger(),
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+  const artifactsService = new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
   });
 
   const { currentConceptTool } = await import("@praxis/tools/course");

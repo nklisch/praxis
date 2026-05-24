@@ -13,7 +13,12 @@
 import { openDb } from "@praxis/core/db";
 import {
   ArtifactsServiceImpl,
+  CourseStateReaderImpl,
+  CoursesServiceImpl,
+  GatesServiceImpl,
   IndexerOrchestratorImpl,
+  LessonAssessmentsServiceImpl,
+  LessonsServiceImpl,
   MasteryIndexer,
   MemoryServiceImpl,
   SessionServiceImpl,
@@ -228,11 +233,32 @@ describe("mastery end-to-end", () => {
       log: noopLogger(),
       decayDaysFor: () => 14,
     });
-    const artifactsService = new ArtifactsServiceImpl({
+    const coursesService = new CoursesServiceImpl({ db: client, log: noopLogger() });
+    const lessonsService = new LessonsServiceImpl({ db: client, log: noopLogger() });
+    const gradeReaderStub = { readGrade: vi.fn().mockResolvedValue(null) };
+    const gatesService = new GatesServiceImpl({
       db: client,
       log: noopLogger(),
       masteryReader: memoryService,
-      gradeReader: { readGrade: vi.fn().mockResolvedValue(null) },
+      gradeReader: gradeReaderStub,
+    });
+    const lessonAssessmentsService = new LessonAssessmentsServiceImpl({
+      db: client,
+      log: noopLogger(),
+    });
+    const courseStateReader = new CourseStateReaderImpl({
+      db: client,
+      log: noopLogger(),
+      courses: coursesService,
+      lessons: lessonsService,
+      gates: gatesService,
+    });
+    const artifactsService = new ArtifactsServiceImpl({
+      courses: coursesService,
+      lessons: lessonsService,
+      gates: gatesService,
+      lessonAssessments: lessonAssessmentsService,
+      courseStateReader,
     });
 
     const masteryIndexer = new MasteryIndexer({

@@ -17,6 +17,11 @@ import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { ArtifactsServiceImpl } from "../services/artifacts-service.js";
+import { CourseStateReaderImpl } from "../services/course-state-reader-impl.js";
+import { CoursesServiceImpl } from "../services/courses-service.js";
+import { GatesServiceImpl } from "../services/gates-service.js";
+import { LessonAssessmentsServiceImpl } from "../services/lesson-assessments-service.js";
+import { LessonsServiceImpl } from "../services/lessons-service.js";
 import { brandId } from "../types/index.js";
 
 const MOCK_LOG = {
@@ -36,11 +41,28 @@ const CONFIGURATOR_ID = brandId<"ConfiguratorId">("default");
 const dbCtx = useTempDb();
 
 function makeService(db: ReturnType<typeof openDb>["db"]) {
-  return new ArtifactsServiceImpl({
+  const coursesService = new CoursesServiceImpl({ db, log: MOCK_LOG });
+  const lessonsService = new LessonsServiceImpl({ db, log: MOCK_LOG });
+  const gatesService = new GatesServiceImpl({
     db,
     log: MOCK_LOG,
     masteryReader: MOCK_MASTERY_READER,
     gradeReader: MOCK_GRADE_READER,
+  });
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log: MOCK_LOG });
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log: MOCK_LOG,
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+  return new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
   });
 }
 

@@ -17,6 +17,11 @@ import { describe, expect, it, vi } from "vitest";
 import { useTempDb } from "../../../../tests/helpers/db-setup.js";
 import { openDb } from "../db/index.js";
 import { ArtifactsServiceImpl } from "../services/artifacts-service.js";
+import { CourseStateReaderImpl } from "../services/course-state-reader-impl.js";
+import { CoursesServiceImpl } from "../services/courses-service.js";
+import { GatesServiceImpl } from "../services/gates-service.js";
+import { LessonAssessmentsServiceImpl } from "../services/lesson-assessments-service.js";
+import { LessonsServiceImpl } from "../services/lessons-service.js";
 import type { GradeReader, MasteryReader } from "../types/index.js";
 import { brandId } from "../types/index.js";
 
@@ -36,6 +41,31 @@ const noGradeReader: GradeReader = {
 };
 
 const dbCtx = useTempDb();
+
+function makeService(
+  db: ReturnType<typeof openDb>["db"],
+  masteryReader: MasteryReader,
+  gradeReader: GradeReader = noGradeReader,
+) {
+  const coursesService = new CoursesServiceImpl({ db, log: MOCK_LOG });
+  const lessonsService = new LessonsServiceImpl({ db, log: MOCK_LOG });
+  const gatesService = new GatesServiceImpl({ db, log: MOCK_LOG, masteryReader, gradeReader });
+  const lessonAssessmentsService = new LessonAssessmentsServiceImpl({ db, log: MOCK_LOG });
+  const courseStateReader = new CourseStateReaderImpl({
+    db,
+    log: MOCK_LOG,
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+  });
+  return new ArtifactsServiceImpl({
+    courses: coursesService,
+    lessons: lessonsService,
+    gates: gatesService,
+    lessonAssessments: lessonAssessmentsService,
+    courseStateReader,
+  });
+}
 
 // ─── Seed helpers ──────────────────────────────────────────────────────────────
 
@@ -118,12 +148,7 @@ describe("ArtifactsServiceImpl.gateView()", () => {
   it("returns empty array when no gates exist for the course", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     seedCourse(db);
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: { read: vi.fn().mockResolvedValue(0) },
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0) });
 
     const views = await svc.gateView({ studentId: STUDENT_ID, courseId: COURSE_ID });
     expect(views).toHaveLength(0);
@@ -136,12 +161,7 @@ describe("ArtifactsServiceImpl.gateView()", () => {
     seedGate(db, { id: "gate-g1", lessonId: "lesson-g1", conceptId: "concept-g1", minScore: 0.7 });
 
     const masteryReader: MasteryReader = { read: vi.fn().mockResolvedValue(0.35) };
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader,
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, masteryReader);
 
     const views = await svc.gateView({ studentId: STUDENT_ID, courseId: COURSE_ID });
     expect(views).toHaveLength(1);
@@ -172,12 +192,7 @@ describe("ArtifactsServiceImpl.gateView()", () => {
     });
 
     const masteryReader: MasteryReader = { read: vi.fn().mockResolvedValue(0.4) };
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader,
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, masteryReader);
 
     const views = await svc.gateView({ studentId: STUDENT_ID, courseId: COURSE_ID });
     expect(views).toHaveLength(2);
@@ -201,12 +216,7 @@ describe("ArtifactsServiceImpl.evaluateAndPersistGates()", () => {
       state: { kind: "unlocked", unlockedAt: Date.now(), evidence: [] },
     });
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: { read: vi.fn().mockResolvedValue(0.9) },
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0.9) });
 
     const result = await svc.evaluateAndPersistGates({
       studentId: STUDENT_ID,
@@ -228,12 +238,7 @@ describe("ArtifactsServiceImpl.evaluateAndPersistGates()", () => {
       conceptId: "concept-new-unlock",
     });
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: { read: vi.fn().mockResolvedValue(0.9) }, // above threshold → unlock
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0.9) }); // above threshold → unlock
 
     const result = await svc.evaluateAndPersistGates({
       studentId: STUDENT_ID,
@@ -263,12 +268,7 @@ describe("ArtifactsServiceImpl.evaluateAndPersistGates()", () => {
       conceptId: "concept-idem2",
     });
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: { read: vi.fn().mockResolvedValue(0.9) },
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0.9) });
 
     await svc.evaluateAndPersistGates({ studentId: STUDENT_ID, courseId: COURSE_ID });
     const result2 = await svc.evaluateAndPersistGates({
@@ -289,12 +289,7 @@ describe("ArtifactsServiceImpl.markGatesViewed() + newlyUnlockedCount()", () => 
   it("newlyUnlockedCount returns 0 when no unlock events exist", async () => {
     const { db } = openDb({ path: dbCtx.dbPath });
     seedCourse(db);
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: { read: vi.fn().mockResolvedValue(0) },
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0) });
 
     const count = await svc.newlyUnlockedCount({ studentId: STUDENT_ID, courseId: COURSE_ID });
     expect(count).toBe(0);
@@ -306,12 +301,7 @@ describe("ArtifactsServiceImpl.markGatesViewed() + newlyUnlockedCount()", () => 
     seedLesson(db, "lesson-view1", ["concept-view1"]);
     seedGate(db, { id: "gate-view1", lessonId: "lesson-view1", conceptId: "concept-view1" });
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: { read: vi.fn().mockResolvedValue(0.9) },
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0.9) });
 
     await svc.evaluateAndPersistGates({ studentId: STUDENT_ID, courseId: COURSE_ID });
 
@@ -325,12 +315,7 @@ describe("ArtifactsServiceImpl.markGatesViewed() + newlyUnlockedCount()", () => 
     seedLesson(db, "lesson-clear1", ["concept-clear1"]);
     seedGate(db, { id: "gate-clear1", lessonId: "lesson-clear1", conceptId: "concept-clear1" });
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: { read: vi.fn().mockResolvedValue(0.9) },
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0.9) });
 
     await svc.evaluateAndPersistGates({ studentId: STUDENT_ID, courseId: COURSE_ID });
     expect(await svc.newlyUnlockedCount({ studentId: STUDENT_ID, courseId: COURSE_ID })).toBe(1);
@@ -349,12 +334,7 @@ describe("ArtifactsServiceImpl.markGatesViewed() + newlyUnlockedCount()", () => 
     seedLesson(db, "lesson-idem3", ["concept-idem3"]);
     seedGate(db, { id: "gate-idem3", lessonId: "lesson-idem3", conceptId: "concept-idem3" });
 
-    const svc = new ArtifactsServiceImpl({
-      db,
-      log: MOCK_LOG,
-      masteryReader: { read: vi.fn().mockResolvedValue(0.9) },
-      gradeReader: noGradeReader,
-    });
+    const svc = makeService(db, { read: vi.fn().mockResolvedValue(0.9) });
 
     await svc.evaluateAndPersistGates({ studentId: STUDENT_ID, courseId: COURSE_ID });
     await svc.markGatesViewed({ studentId: STUDENT_ID, courseId: COURSE_ID });
