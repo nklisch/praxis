@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness
 kind: epic
-stage: implementing
+stage: done
 tags: [ui, tutor-ux, bootstrap, course-authoring]
 parent: null
 depends_on: []
@@ -144,3 +144,67 @@ Mocks queued for `feature-design` on unified-landing.
 - `idea-course-create-unified-landing` → child feature
 - `idea-sidekick-view-in-course-design` → child feature (renamed to
   -sidekick-fit to name the deliverable, not the question)
+
+## Children complete + Review (2026-05-23, epic-level)
+
+**Verdict**: Approve (epic-level review per the review skill — per-line
+lenses exercised on each child individually; epic scope focuses on
+capability completeness, foundation alignment, cross-cutting concerns).
+
+All 5 substantive children resolved:
+
+- `epic-course-create-readiness-startup-invisible` (story) — **done**.
+  Fixed two bugs in `openSessionInTab`: `client.tabs.open` was bypassing
+  TabsProvider state; `initialMessage` was sent fire-and-forget before
+  the tab body mounted. New `openTab` arg + `consumeInitialMessage`
+  module-level map. Commit `700a0b5`.
+- `epic-course-create-readiness-attach-doc-modal-stuck` (story) —
+  **done**. Bug 1: gated the picker `<Modal>` on `ingestion.state.status
+  !== "batch_summary"` to prevent two-dialog stacking. Bug 2: added
+  `useResource(attachedLoader)` to CourseCreateTabBody so attached
+  documents render on the canvas; wired `onAttached` callback for
+  refresh. Commit `d9fca8b`.
+- `epic-course-create-readiness-sidekick-fit` (feature) — **archived**
+  (collapsed to single story per locked decision).
+- `epic-course-create-readiness-sidekick-fit-hide` (story, replacement
+  for the collapsed feature) — **done**. Suppressed `ChatRightPanel`
+  when active tab is `course-create` mode. Layout collapses cleanly to
+  2 columns. Commit `b9e3c9e`.
+- `epic-course-create-readiness-unified-landing` (feature) — **done**
+  (4 child stories all done, all approved). `/course-create` is now
+  the single canonical landing for cold-start course-authoring entries;
+  3-tab source picker (Pack / Upload / Paste); `?pack=<id>` URL
+  contract; /packs folded into Library section; onboarding slimmed;
+  stepper reads `Material · Create · Confirm · Open`. Commits
+  `aa5adfb`, `a8b8b53`, `f4a5c25`, `62f983b`, `2b9ff76`, `4c8b642`.
+
+**Capability completeness check**: the brief's "make course-create feel
+finished and trustworthy" arc is delivered end-to-end. The startup
+handoff surfaces correctly (startup-invisible), the attach flow no
+longer stacks or hides documents (attach-doc-modal-stuck), the
+right-rail crowding is resolved (sidekick-fit-hide), the entry surface
+is unified with pack-picker source option and aligned naming
+(unified-landing).
+
+**Foundation-doc alignment check**: no `docs/` assertions invalidated.
+`docs/UX.md` 5-step K-12 onboarding arc and the 4-step within-/course-create
+stepper continue to describe the system as it ships (after the
+Explore → Create rename, which is internal to the 4-step micro-stepper).
+The phase-16 doc rename was deferred per rolling-foundation convention.
+The `tabs.sessionId` FK was removed (migration 0026, via feature-empty-
+session-cleanup which is now archived), but no foundation doc asserted
+that FK.
+
+**Breaking changes check**: `/packs` URL now redirects to `/library`
+(zero inbound links to update; external bookmarks survive via redirect).
+`openSessionInTab` signature gained a required `openTab` argument
+(internal API; all 5+ call sites updated). `SessionService.start`
+signature gained an internal `_persistImmediately` flag (not exposed
+via IPC).
+
+**Side-effect features absorbed**: the empty-session-cleanup feature
+(feature-empty-session-cleanup, archived) shipped alongside via the
+same autopilot run — net wins for the project beyond this epic's stated
+scope.
+
+**Notes**: Epic has no release_binding — archiving on completion.
