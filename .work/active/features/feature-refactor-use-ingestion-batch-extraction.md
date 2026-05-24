@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-ingestion-batch-extraction
 kind: feature
-stage: review
+stage: done
 tags: [refactor, ui]
 parent: null
 depends_on: []
@@ -142,3 +142,25 @@ Both child stories complete (stage: done).
 - **Step 2** (`f8e8953`): `use-ingestion.ts` rewritten as a thin facade. Line count 404 → 230 (174 lines removed). Four batch refs, `_startBatch`, `confirmTier`, `skipCurrentFile`, `cancelBatch` replaced by `const batch = useBatchIngestion(...)` delegation. Public `UseIngestionResult` API unchanged. `stateRef` + `useEffect` mirror provides stale-closure-free `getState` getter to sub-hook.
 - Picker-close fix (call-sites hoisting `useIngestion` to parent components) preserved — untouched by this refactor.
 - All 163 UI test files / 1706 tests pass; `pnpm typecheck` clean across all packages.
+
+## Review
+
+**Verdict: done.**
+
+Feature objective fully achieved: `useIngestion` is no longer a monolith. The refactor delivers exactly what was designed.
+
+**Structural verification:**
+- `packages/ui/src/hooks/use-batch-ingestion.ts` — 253 lines; exports `UseBatchIngestionResult` + `useBatchIngestion`. All four batch refs, `startBatch`, `confirmTier`, `skipCurrentFile`, `cancelBatch`, `resetRefs` owned here.
+- `packages/ui/src/hooks/use-ingestion.ts` — 230 lines; `UseIngestionResult` interface unchanged (41 unchanged lines of public API); `useBatchIngestion` composed at line 180; facade entry points call `batch.*` throughout.
+
+**Constraints verified:**
+- Public `useIngestion` API unchanged — `UseIngestionResult` has the same 7 fields.
+- Streaming behavior preserved — `ingestOneWithResult` `for await` loop untouched.
+- Picker-close fix preserved — call-sites untouched; API stable.
+- `tab-body-isolation` semantics preserved — hook still lives in parent components; `display:none` isolation unchanged.
+- All 4 key design decisions from the feature spec implemented correctly: `confirmTier` in sub-hook, `getState` getter via `useEffect`-mirrored ref, `resetRefs()` exposed, types SSOT in `use-ingestion.ts`.
+
+**Quality:**
+- `pnpm typecheck` clean across all packages.
+- 163 test files / 1706 tests pass (including `use-ingestion.test.tsx` × 11, `library-document-picker.test.tsx` × 20).
+- Minor: `mimeTypeFromPath` is duplicated in both files. This is acceptable per the Step 1 implementation note; a future cleanup can deduplicate if desired. Not a blocker.
