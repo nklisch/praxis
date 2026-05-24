@@ -1,7 +1,7 @@
 ---
 id: story-refactor-where-predicate-naming-consistency
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -64,3 +64,16 @@ Post-rename grep results:
 Verification: `pnpm --filter @praxis/core test` — 95 test files, 1146 tests passed.
 Typecheck pre-existing failure in `packages/engines/src/claude-code/adapter.ts` (unrelated
 to this rename; confirmed present before changes via git stash).
+
+## Review
+
+**Verdict: done**
+
+All acceptance criteria confirmed:
+- `grep -n "predicates" session-service.ts` → 0 hits (clean)
+- `grep -n "const conditions" session-service.ts` → 2 hits at lines 422 and 458 (`active()` and `list()` methods)
+- `grep -rn "const conditions" packages/core/src/services/` → 7 hits across 6 files — uniform pattern across the codebase
+
+The diff is a pure mechanical rename with no logic changes. The agent correctly identified and fixed a second `predicates` site (`list()` method) that the story's original site list missed — thoroughness over minimum viable scope.
+
+No findings. No follow-ups.
