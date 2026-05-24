@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-1-pending-queue
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on: []
@@ -94,6 +94,18 @@ The finally block auto-flush becomes `dequeueNext(setItems)`.
 - `useStreamedSend` no longer declares `pendingQueue` state, `pendingQueueRef`,
   `userCancelledRef`, `iteratorRef`, `cancel`, or `cancelPending` inline.
 - `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+
+Created `/home/nathan/dev/praxis/packages/ui/src/hooks/use-pending-queue.ts` (131 lines).
+
+Key decisions:
+- `PendingMessage` interface is defined and exported from `use-pending-queue.ts` (not re-exported from `use-streamed-send.ts`, which already has its own private `PendingMessage`). The existing private interface in `use-streamed-send.ts` remains until Step 5 wiring removes the inline code.
+- `iteratorRef` typed as `React.MutableRefObject` (not `RefObject`) since `send()` must write to `.current`.
+- `dequeueNext` encapsulates both the ref+state update and the pending-bubble removal from `setItems`, returning the dequeued entry for the caller to schedule `setTimeout(0, () => void send(...))`.
+- `userCancelledRef` is readable from the hook return; caller (step 5) clears it at `send()` start via `userCancelledRef.current = false`.
+- `use-streamed-send.ts` was NOT modified per the deviation from design — step 5 handles all wiring.
+- `pnpm typecheck && pnpm --filter @praxis/ui test` — 164 test files, 1711 tests, all passed.
 
 ## Risk + Rollback
 
