@@ -1,7 +1,7 @@
 ---
 id: feature-empty-session-cleanup
 kind: feature
-stage: implementing
+stage: review
 tags: [core, sessions, cleanup]
 parent: null
 depends_on: []
@@ -471,3 +471,16 @@ const closeTab = useCallback(async (tabId: TabId) => {
 - **Tab-close UX flicker.** If `discardIfUnpromoted` takes >100ms, the tab
   may "appear" briefly in the recent-tabs list. Mitigation: discard is
   fire-and-forget from the UI; the user has already navigated away.
+
+## Children complete (orchestrator, 2026-05-23)
+
+All 3 child stories landed and advanced to `stage: review`:
+
+- `feature-empty-session-cleanup-fk-migration` — migration 0026 dropped the tabs.sessionId FK; schema updated; verified on fresh DB. Commits: `25f8e59`, `0eacd0b`.
+- `feature-empty-session-cleanup-registry` — `SessionPromotionRegistry` service + impl + 16 unit tests; ServiceDeps wired in `services.ts`. Commit: `9c0bbe7`.
+- `feature-empty-session-cleanup-lazy-and-sweep` — lazy-persist in `SessionService.start`, promote-on-first-message in `send`, `discardIfUnpromoted` IPC, UI `closeTab` hook, `SessionSweepIndexer` (setInterval-based), 7 sweep unit tests + 7 e2e tests. Commit: `fc62c15`.
+
+Integration verification: `pnpm typecheck && pnpm test` clean across the
+workspace (4634+ tests passing).
+
+Feature advancing `implementing → review` for final pass.
