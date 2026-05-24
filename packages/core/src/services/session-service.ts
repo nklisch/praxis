@@ -24,6 +24,7 @@ import type {
 import { brandId, engineError, parseNoteBody } from "../types/index.js";
 import { SessionDiscardedError } from "../types/session-discarded-error.js";
 import { type ActiveEntry, EngineSessionManager } from "./session/engine-session-manager.js";
+import { SessionPromoter } from "./session/session-promoter.js";
 import type { UnpromotedSessionState } from "./session/session-promotion-registry.js";
 import { getOrCreateDefaultStudentId } from "./student.js";
 import type { ServiceDeps } from "./types.js";
@@ -40,6 +41,7 @@ import type { ServiceDeps } from "./types.js";
 export class SessionServiceImpl implements SessionService {
   /** Exposed for SessionPromotionRegistryImpl's lazy-resolver thunk in buildServices. */
   readonly engineManager: EngineSessionManager;
+  private readonly promoter: SessionPromoter | null;
 
   constructor(private readonly deps: ServiceDeps) {
     this.engineManager = new EngineSessionManager({
@@ -58,6 +60,15 @@ export class SessionServiceImpl implements SessionService {
       }),
       ...(deps.engineFactory !== undefined && { engineFactory: deps.engineFactory }),
     });
+    this.promoter =
+      deps.sessionPromotionRegistry !== undefined
+        ? new SessionPromoter({
+            db: deps.db,
+            log: deps.log,
+            registry: deps.sessionPromotionRegistry,
+            persistSessionRow: (state) => this._persistSessionRow(state),
+          })
+        : null;
   }
 
   async start(opts: {
@@ -169,92 +180,60 @@ export class SessionServiceImpl implements SessionService {
     signal?: AbortSignal,
   ): AsyncIterable<EngineEvent> {
     // ── Lazy-persist: promote on first user message ───────────────────────────
-    // If the session is in the registry (unpromoted), persist the session row +
-    // first user_message episodic event in a single SQLite transaction.
-    // If neither the registry nor the DB has this session, it was discarded.
-    const registry = this.deps.sessionPromotionRegistry;
-    if (registry !== undefined) {
-      const unpromotedState = registry.get(sessionId);
-      if (unpromotedState !== null) {
-        // Promote: run the persist transaction, then remove from registry.
-        try {
-          const studentId = unpromotedState.studentId;
-          const engineId = unpromotedState.engineId;
-          const modeId = unpromotedState.modeId;
-          registry.promote(sessionId, (state) => {
-            // Single transaction: insert session row + first episodic event.
-            this.deps.db.transaction(() => {
-              this._persistSessionRow(state);
-              recordUserMessage({
-                db: this.deps.db,
-                sessionId,
-                studentId,
-                engineId,
-                modeId,
-                turnIndex: 0,
-                content: message,
-              });
-            });
-          });
-          // Echo the user message event; continue into the engine loop below.
-          yield { type: "user_message", content: message };
-          // Resolve the mode + entry for the engine loop (skip the DB lookup below).
-          const mode = this.requireMode(modeId);
-          const currentEngineId = readEngineConfig(
-            this.deps.db,
-            this.deps.secretStorage,
-            this.deps.log,
-          ).engineId;
-          const entry = await this.engineManager.acquire({
-            sessionId,
-            currentEngineId,
-            mode,
-            studentId,
-            ...(unpromotedState.courseId !== undefined && {
-              courseId: unpromotedState.courseId,
-            }),
-            ...(unpromotedState.assignmentId !== undefined && {
-              assignmentId: unpromotedState.assignmentId,
-            }),
-          });
-          yield* this._driveEngineTurn({
-            entry,
-            sessionId,
-            studentId,
-            mode,
-            message,
-            signal,
-          });
-          return;
-        } catch (err) {
-          // If promote or the transaction failed, surface as an error event.
-          const errMsg = err instanceof Error ? err.message : String(err);
-          yield {
-            type: "error",
-            error: engineError("session.promote_failed", errMsg, { cause: err }),
-          };
-          return;
-        }
-      } else {
-        // Not in registry — check whether the session was discarded (not in DB either).
-        const sessionExists = this.deps.db
-          .select({ id: sessions.id })
-          .from(sessions)
-          .where(eq(sessions.id, sessionId))
-          .get();
-        if (!sessionExists) {
-          throw new SessionDiscardedError(sessionId);
-        }
+    if (this.promoter?.shouldPromote(sessionId)) {
+      try {
+        const promoted = this.promoter.promote(sessionId, message);
+        yield { type: "user_message", content: message };
+        const mode = this.requireMode(promoted.modeId);
+        const currentEngineId = readEngineConfig(
+          this.deps.db,
+          this.deps.secretStorage,
+          this.deps.log,
+        ).engineId;
+        const entry = await this.engineManager.acquire({
+          sessionId,
+          currentEngineId,
+          mode,
+          studentId: promoted.studentId,
+          ...(promoted.courseId !== undefined && { courseId: promoted.courseId }),
+          ...(promoted.assignmentId !== undefined && { assignmentId: promoted.assignmentId }),
+        });
+        yield* this._driveEngineTurn({
+          entry,
+          sessionId,
+          studentId: promoted.studentId,
+          mode,
+          message,
+          signal,
+        });
+        return;
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        yield {
+          type: "error",
+          error: engineError("session.promote_failed", errMsg, { cause: err }),
+        };
+        return;
       }
     }
+
+    // ── Check for discarded session (registry present but session unknown) ────
+    if (this.deps.sessionPromotionRegistry !== undefined) {
+      const sessionExists = this.deps.db
+        .select({ id: sessions.id })
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .get();
+      if (!sessionExists) {
+        throw new SessionDiscardedError(sessionId);
+      }
+    }
+
     // ── Normal path (already-promoted or no registry) ─────────────────────────
     const turnIndex = nextTurnIndex(this.deps.db, sessionId);
-    const turnLog = this.deps.log.child({
-      component: "session-service",
-      sessionId,
-      turnIndex,
-    });
+    const turnLog = this.deps.log.child({ component: "session-service", sessionId, turnIndex });
     turnLog.debug("turn.start", { messageLength: message.length });
+
     const sessionRow = this.deps.db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
     if (!sessionRow) {
       yield {
@@ -278,23 +257,18 @@ export class SessionServiceImpl implements SessionService {
       this.deps.secretStorage,
       this.deps.log,
     ).engineId;
-
-    // Engine session lifecycle — get-or-create-and-swap via manager.
     const entry = await this.engineManager.acquire({
       sessionId,
       currentEngineId,
       mode,
       studentId,
-      ...(sessionRow.courseId !== null && {
-        courseId: brandId<"CourseId">(sessionRow.courseId),
-      }),
+      ...(sessionRow.courseId !== null && { courseId: brandId<"CourseId">(sessionRow.courseId) }),
       ...(sessionRow.assignmentId !== null &&
         sessionRow.assignmentId !== undefined && {
           assignmentId: brandId<"AssignmentId">(sessionRow.assignmentId),
         }),
     });
 
-    // 1. Record + echo user message.
     recordUserMessage({
       db: this.deps.db,
       sessionId,

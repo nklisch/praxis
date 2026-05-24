@@ -1,7 +1,7 @@
 ---
 id: story-refactor-session-service-extract-promoter
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: null
 depends_on: []
@@ -53,3 +53,48 @@ then proceeds with normal turn orchestration as a clean linear path.
 ## Risk: Medium
 This touches the session loop — the hot path. Run the full session-service test suite
 and the engine-conformance suite. Verify with a manual `pnpm dev` session boot.
+
+## Implementation notes
+
+### SessionPromoter file
+- `packages/core/src/services/session/session-promoter.ts` — 95 lines
+- Key methods:
+  - `shouldPromote(sessionId)` — checks `registry.get(sessionId) !== null`
+  - `promote(sessionId, message)` — delegates to `registry.promote()` with a DB transaction
+    that calls `persistSessionRow` + `recordUserMessage`, then returns a `PromotionResult`
+    containing `{ studentId, modeId, engineId, courseId?, assignmentId? }`
+- `SessionPromoterDeps` takes `{ db, log, registry, persistSessionRow }` — the last is
+  a thunk injected from `SessionServiceImpl` so the promoter never owns the session row
+  insert logic itself (stays in `_persistSessionRow`)
+- `PromotionResult` interface exported for callers
+
+### send() line count
+- Before: 144 lines (lines 166–309 in the original file)
+- After: 87 lines — 40% reduction, well below the 100-line target
+
+### Test coverage
+- `packages/core/src/services/session/__tests__/session-promoter.test.ts` — 10 new tests:
+  - `shouldPromote()`: true when registered, false when not registered, false after promotion
+  - `promote()`: session row inserted, episodic event written at turnIndex 0, registry
+    cleared, PromotionResult correct (basic + with courseId/assignmentId), throws
+    `SessionNotRegisteredError` when not registered, `persistSessionRow` called once
+
+### Invariants preserved
+- `async-generator-event-stream`: events still yielded as they arrive (no buffering)
+- `episodic-append-ordering`: `recordUserMessage` inside the promotion transaction (turnIndex 0)
+  before `yield { type: "user_message" }` — ordering bit-for-bit identical to original
+- `notifySession` wiring: untouched — no changes to that method
+
+### Verification
+- `pnpm typecheck`: clean across all packages
+- `pnpm --filter @praxis/core test`: 96 test files, 1159 tests passed
+- `pnpm test` (full suite): 444 passed, 3 skipped (pre-existing), 4769 tests total
+- `tests/empty-session-cleanup-e2e.test.ts`: 7 tests passed (promotion path exercised end-to-end)
+
+### Design decisions
+- `persistSessionRow` is injected as a thunk rather than re-implemented in the promoter.
+  The promoter owns the "when to call it" (inside the transaction) but the `_persistSessionRow`
+  method stays as the single write path in `SessionServiceImpl`. This avoids duplicating
+  the insert logic and keeps the promoter side-effect-free about its DB schema knowledge.
+- The discarded-session check (formerly inside the `registry !== undefined` block) is now
+  a separate block in `send()`, keeping it visible as a distinct control-flow concern.
