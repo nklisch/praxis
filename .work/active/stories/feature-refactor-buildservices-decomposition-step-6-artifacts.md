@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-6-artifacts
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -125,3 +125,30 @@ direct assignment `notifyParentSessionRef = ...`.
 Medium — contains the most state (ref-cell, three closures, 5 service constructors).
 The ref-cell pattern is unchanged in semantics; only the _setter_ surface changes.
 Rollback: revert the new file and restore all inline blocks in `buildServices()`.
+
+## Implementation notes
+
+New file: `packages/desktop/electron/main/services/build-artifacts-services.ts` — 200 lines.
+
+**Ref-cell pattern shape**: `notifyParentSessionRef` is a module-internal `let` declared
+inside `buildArtifactsServices`. The factory returns `setNotifyParentSession: (fn) => void`
+as a setter closure. The orchestrator (`buildServices`) calls it after `SessionServiceImpl`
+is live:
+```ts
+setNotifyParentSession((input) =>
+  sessionService.notifySession({ sessionId: input.parentSessionId, ... })
+);
+```
+
+**Engine types**: `Engine` and `VisionCapability` are imported from `@praxis/core/types`
+(not `@praxis/engines`, which only exports the concrete adapter classes and `createEngine`).
+`MemoryServiceImpl` is imported directly from `@praxis/core/services` for use in the
+`ArtifactsServiceDeps` interface.
+
+**What is returned**: `{ documentScopesService, citationsService, draftStore, bootstrapService,
+assignmentService, artifactsService, visionResolver, bootstrapEngineResolver, setNotifyParentSession }`.
+`bootstrapEngineResolver` is surfaced in the return so Step 7 (indexers) can reuse it.
+
+**`services.ts` untouched**: no changes made to `services.ts` — Step 10 wires and cleans.
+
+`pnpm typecheck && pnpm --filter @praxis/desktop test` green (520 tests pass).
