@@ -11,6 +11,7 @@
  * - Recommendation CTA clicks dispatch to correct surface
  */
 import type {
+  PackSummaryClient,
   PraxisClient,
   Recommendation,
   SessionSummary,
@@ -97,10 +98,11 @@ interface MakeClientOpts {
   sessions?: SessionSummary[];
   openTabs?: TabSummary[];
   recommendations?: Recommendation[];
+  packs?: PackSummaryClient[];
 }
 
 function makeClient(opts: MakeClientOpts = {}): PraxisClient {
-  const { sessions = [], openTabs = [], recommendations = [] } = opts;
+  const { sessions = [], openTabs = [], recommendations = [], packs = [] } = opts;
 
   const newTab = makeTab({ id: brandId<"TabId">("tab-new") });
 
@@ -151,7 +153,7 @@ function makeClient(opts: MakeClientOpts = {}): PraxisClient {
       concepts: vi.fn().mockResolvedValue([]),
     } as PraxisClient["artifacts"],
     packs: {
-      listAvailable: vi.fn().mockResolvedValue([]),
+      listAvailable: vi.fn().mockResolvedValue(packs),
       listImported: vi.fn().mockResolvedValue([]),
       import: vi.fn().mockResolvedValue({
         packId: "algebra-1",
@@ -441,5 +443,38 @@ describe("LibraryRoute — Workbench", () => {
     await waitFor(() => {
       expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
+  });
+
+  // ── Pack use flow ────────────────────────────────────────────────────────────
+
+  it("'Use this pack' imports the pack then navigates to /course-create?pack=<packId>", async () => {
+    const pack: PackSummaryClient = {
+      id: "math.algebra-1",
+      version: "1.0.0",
+      name: "Algebra 1 (CCSS)",
+      subject: "math.algebra-1",
+      gradeLevel: "9-12",
+      conceptCount: 32,
+      edgeCount: 40,
+      imported: false,
+    };
+    const client = makeClient({ packs: [pack] });
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Use this pack/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Use this pack/i }));
+
+    await waitFor(() => {
+      expect(client.packs.import).toHaveBeenCalledWith("math.algebra-1");
+      expect(mockNavigate).toHaveBeenCalledWith({
+        to: "/course-create",
+        search: { pack: "math.algebra-1" },
+      });
+    });
+    // session.start is NOT called — the landing page owns session orchestration
+    expect(client.session.start).not.toHaveBeenCalled();
   });
 });

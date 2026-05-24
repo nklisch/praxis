@@ -16,13 +16,7 @@ export function CoursesRoute() {
   const meta = getRouteMeta("courses");
 
   const handleNewCourse = async () => {
-    try {
-      const handle = await client.session.start({ modeId: "course-create" });
-      await navigate({ to: "/", search: { sessionId: handle.sessionId } });
-    } catch (_err) {
-      // Navigate to chat anyway; the session error will surface there.
-      await navigate({ to: "/" });
-    }
+    await navigate({ to: "/course-create" });
   };
 
   const handleResumeDraft = async (draft: DraftCourseState) => {

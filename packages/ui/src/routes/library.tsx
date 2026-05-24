@@ -68,24 +68,18 @@ export function LibraryRoute() {
     await navigate({ to: "/course-create" });
   }, [navigate]);
 
-  /** "Use this pack" — import pack then open a course-create session. */
+  /** "Use this pack" — import pack then navigate to course-create with pack pre-selected. */
   const handleUsePack = useCallback(
-    async (packId: string, packName: string) => {
+    async (packId: string, _packName: string) => {
       setImporting(packId);
       try {
         await client.packs.import(packId);
-        await openSessionInTab({
-          client,
-          navigate,
-          openTab,
-          startOpts: { modeId: "course-create" },
-          courseTitle: packName,
-        });
+        await navigate({ to: "/course-create", search: { pack: packId } });
       } finally {
         setImporting(null);
       }
     },
-    [client, navigate, openTab],
+    [client, navigate],
   );
 
   // handleUsePack and importing are used by PacksSection below.

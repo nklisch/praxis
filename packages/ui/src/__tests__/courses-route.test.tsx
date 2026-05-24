@@ -7,8 +7,9 @@ import { CoursesRoute } from "../routes/courses.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
 // TanStack Router hooks used in CoursesRoute — mock at module level.
+const mockNavigate = vi.fn().mockResolvedValue(undefined);
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => vi.fn().mockResolvedValue(undefined),
+  useNavigate: () => mockNavigate,
   Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }));
 
@@ -118,7 +119,7 @@ describe("CoursesRoute", () => {
     });
   });
 
-  it("New course button calls session.start with modeId: course-create", async () => {
+  it("New course button navigates to /course-create (cold-start: no session.start)", async () => {
     const client = makeClient([]);
     renderRoute(client);
 
@@ -129,7 +130,9 @@ describe("CoursesRoute", () => {
     fireEvent.click(screen.getByRole("button", { name: /\+ New course/i }));
 
     await waitFor(() => {
-      expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/course-create" });
     });
+    // session.start is NOT called — the landing page owns session orchestration
+    expect(client.session.start).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing-bypass-reroute
 kind: story
-stage: implementing
+stage: review
 tags: [ui, navigation, course-authoring]
 parent: epic-course-create-readiness-unified-landing
 depends_on: [epic-course-create-readiness-unified-landing-source-picker]
@@ -63,3 +63,49 @@ Per the routing matrix in the parent feature body:
 - Source-picker UI changes (separate story).
 - Onboarding refactor (separate story).
 - /packs route removal (separate story).
+
+## Implementation notes
+
+### Navigate call shapes
+
+**`courses.tsx` — `handleNewCourse`** (`packages/ui/src/routes/courses.tsx:18`):
+```ts
+const handleNewCourse = async () => {
+  await navigate({ to: "/course-create" });
+};
+```
+Replaced the old `client.session.start({ modeId: "course-create" })` + navigate to `"/"` with sessionId.
+The landing page now owns session orchestration.
+
+**`library.tsx` — `handleUsePack`** (`packages/ui/src/routes/library.tsx:72`):
+```ts
+const handleUsePack = useCallback(
+  async (packId: string, _packName: string) => {
+    setImporting(packId);
+    try {
+      await client.packs.import(packId);
+      await navigate({ to: "/course-create", search: { pack: packId } });
+    } finally {
+      setImporting(null);
+    }
+  },
+  [client, navigate],
+);
+```
+Pack import still happens here (idempotent, packs data needs to be local before course-create
+mounts). Navigate passes `pack: packId` as the search param — matching the URL contract from the
+source-picker story (`validateSearch: z.object({ pack: z.string().optional() })`).
+
+### Resume paths confirmed unchanged
+
+- `handleResumeDraft` (`courses.tsx:22`) — still calls `client.session.start({ modeId: "course-create" })` + navigates to `"/"` with sessionId + seeds the conversation. No change.
+- `resume_draft` rec dispatch (`library.tsx:127`) — still calls `openSessionInTab({ ..., modeId: "course-create" })`. No change.
+
+### Test coverage
+
+- `packages/ui/src/__tests__/courses-route.test.tsx` — updated test "New course button" to assert `navigate({ to: "/course-create" })` is called and `session.start` is NOT called (cold-start vs resume distinction).
+- `packages/ui/src/__tests__/library-route.test.tsx` — added test "'Use this pack' imports the pack then navigates to /course-create?pack=<packId>" asserting `client.packs.import` called then `navigate({ to: "/course-create", search: { pack: "math.algebra-1" } })` and `session.start` NOT called.
+
+### Verification
+
+`pnpm typecheck && pnpm test` — green (4672 tests pass, 23 skipped by slow-test gates). Biome clean on changed TS files.
