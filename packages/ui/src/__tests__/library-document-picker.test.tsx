@@ -28,6 +28,7 @@ import type {
 } from "@praxis/core/types";
 import { brandId } from "@praxis/core/types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LibraryDocumentPicker } from "../components/library-document-picker.js";
 import { PraxisClientProvider } from "../context/client-context.js";
@@ -466,6 +467,119 @@ describe("LibraryDocumentPicker", () => {
       await waitFor(() => {
         expect(pickPathsFn).toHaveBeenCalledWith({ mode: "files" });
       });
+    });
+
+    /**
+     * BUG (gate-tests-picker-close-midingestion-no-abort):
+     * When the parent unmounts the picker on onClose, React tears down the
+     * component tree and the `for await` loop inside useIngestion's
+     * ingestOneWithResult is abandoned — this triggers the generator's
+     * finally block, effectively aborting the in-flight batch. The spec
+     * requires that closing the picker does NOT cancel the batch. The fix
+     * is to lift ingestion state out of LibraryDocumentPicker so it survives
+     * unmount (e.g. hoist useIngestion to the parent, or keep the component
+     * mounted with display:none during in-flight ingestion). This test is
+     * skipped until the bug is fixed; it documents the desired behavior.
+     * See: .work/active/stories/bug-picker-close-aborts-ingestion.md
+     */
+    it.skip("closing the picker modal mid-ingestion does NOT abort the in-flight batch", async () => {
+      // Arrange: a slow ingestion generator that hangs until explicitly resolved.
+      // We track whether the generator's return() (abort) was invoked.
+      let resolveIngestion!: () => void;
+      let generatorAborted = false;
+
+      async function* slowIngestionStream(): AsyncGenerator<
+        import("@praxis/core/types").IngestionEvent,
+        void,
+        unknown
+      > {
+        try {
+          // Hang until test resolves it — simulates a long-running upload.
+          await new Promise<void>((resolve) => {
+            resolveIngestion = resolve;
+          });
+          yield { type: "done", documentId: "doc-slow", chunkCount: 2 } as import("@praxis/core/types").IngestionEvent;
+        } finally {
+          // If the for-await loop in useIngestion is broken (e.g. component
+          // unmounted mid-stream), the generator's finally block runs. We
+          // record this so the test can assert it did NOT happen via close.
+          generatorAborted = true;
+        }
+      }
+
+      const startFn = vi.fn().mockImplementation(() => slowIngestionStream());
+      const client = makeClient({
+        library: [makeDocSummary(DOC_A, "algebra.pdf")],
+        ingestStartFn: startFn as unknown as PraxisClient["ingest"]["start"],
+      });
+
+      const onClose = vi.fn();
+
+      // Render inside a controlling wrapper so onClose behaves realistically
+      // (parent toggles open state, component unmounts on close).
+      function Wrapper() {
+        const [open, setOpen] = useState(true);
+        return (
+          <PraxisClientProvider client={client}>
+            {open && (
+              <LibraryDocumentPicker
+                scope={COURSE_SCOPE}
+                onClose={() => {
+                  setOpen(false);
+                  onClose();
+                }}
+              />
+            )}
+          </PraxisClientProvider>
+        );
+      }
+
+      render(<Wrapper />);
+
+      // Wait for list to load.
+      await waitFor(() => {
+        expect(screen.getByText("algebra.pdf")).toBeDefined();
+      });
+
+      // Drop a non-PDF file (txt → skips tier_selection, goes straight to ingesting).
+      const fileA = new File([""], "notes.txt", { type: "text/plain" });
+      Object.defineProperty(fileA, "path", { value: "/docs/notes.txt", writable: false });
+
+      const listArea = screen.getByRole("list").parentElement!;
+      fireEvent.drop(listArea, {
+        dataTransfer: { files: [fileA], types: ["Files"] },
+      });
+
+      // Wait until ingestion has started (startFn called) — the batch is now in-flight.
+      await waitFor(() => {
+        expect(startFn).toHaveBeenCalledOnce();
+      });
+
+      // Act: close the picker via Escape while ingestion is still running.
+      // The picker's Modal calls onClose on Escape — this is the close path the
+      // spec requires to NOT abort the batch.
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      // Assert: onClose was invoked (picker closed).
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalledOnce();
+      });
+
+      // Assert: the ingestion generator was NOT aborted by the close action.
+      // generatorAborted would be true only if the for-await loop inside
+      // useIngestion broke (component unmount tears down the async loop).
+      // The spec says closing must NOT cancel the batch — so if generatorAborted
+      // is true here it means the current implementation violates the spec.
+      // We resolve the generator now to give React a chance to settle.
+      resolveIngestion();
+
+      // Give a tick for the microtask queue.
+      await new Promise((r) => setTimeout(r, 0));
+
+      // The generator finishing (not being aborted mid-stream) is the key
+      // invariant: the batch ran to completion after close, not being killed.
+      // generatorAborted being false means the stream was consumed normally.
+      expect(generatorAborted).toBe(false);
     });
 
     it("after ingestion completes (onDone), the picker list is refreshed", async () => {

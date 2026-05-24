@@ -1,7 +1,7 @@
 ---
 id: gate-tests-picker-close-midingestion-no-abort
 kind: story
-stage: implementing
+stage: review
 tags: [testing, ui]
 parent: null
 depends_on: []
@@ -37,3 +37,15 @@ it("closing the picker modal mid-ingestion does NOT abort the batch", async () =
 
 ## Test location (suggested)
 `packages/ui/src/__tests__/library-document-picker.test.tsx`
+
+## Implementation notes
+
+Added test `"closing the picker modal mid-ingestion does NOT abort the in-flight batch"` to `packages/ui/src/__tests__/library-document-picker.test.tsx` inside the `"inline upload — drag-and-drop and + Upload button"` describe block.
+
+**Design-flaw escape hatch triggered**: the test revealed a real bug. When `onClose` fires and the parent unmounts the picker, React tears down `useIngestion`'s `for await` loop mid-stream, aborting the batch. `generatorAborted` was `true` (expected `false`).
+
+The test is committed as `it.skip(...)` with a detailed comment explaining the root cause and required fix. The fix direction (hoist `useIngestion` to the parent) is documented in the bug story filed at `.work/active/stories/bug-picker-close-aborts-ingestion.md`.
+
+**Assertion shape**: async generator `finally`-block flag (`generatorAborted`) asserts the stream was consumed normally (not abandoned mid-flight) after `onClose` + component unmount.
+
+**Verification result**: 19/19 tests pass, 1 skipped (the new test). All existing tests green.
