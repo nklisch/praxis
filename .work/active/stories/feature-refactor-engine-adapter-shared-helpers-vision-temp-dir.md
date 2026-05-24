@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-engine-adapter-shared-helpers-vision-temp-dir
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-engine-adapter-shared-helpers
 depends_on: []
@@ -72,3 +72,18 @@ Partial-write failures clean up before re-throwing; callers own the `finally { a
 **codex/vision.ts:** 85 lines → 71 lines (same removal; `tempDir` not destructured since Codex path doesn't need it for `workDir`)
 
 **Verification:** `pnpm typecheck` clean across all packages; `pnpm test` — 440 test files passed, 0 failures.
+
+## Review
+
+**Verdict: done** — clean extraction with no blockers.
+
+Verified:
+- Signature matches spec: `writeVisionImages(images): Promise<{ tempDir, filePaths, cleanup }>`
+- Partial-write error path: `try/catch` inside the helper runs `rm(tempDir, ...)` before re-throwing — no temp dir leak on partial failure
+- `cleanup` is returned as a callable; callers own `finally { await cleanup() }` — confirmed in both adapters
+- Both `ClaudeCodeVision` and `CodexVision` import `writeVisionImages` from `../vision/temp-images.js` and call it at the start of `describe()`; `finally { await cleanup() }` replaces the inline `rm` call in each
+- All five node stdlib imports (`mkdtemp`, `rm`, `writeFile`, `tmpdir`, `join`) removed from both adapters
+- Behavior preserved: `praxis-vision-` prefix, same ext-mapping (jpeg→jpg, webp→webp, default→png), same `image-${idx}.${ext}` filename pattern
+- 440 tests, 0 failures per implementation notes
+
+No findings.
