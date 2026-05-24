@@ -73,7 +73,7 @@ export function registerConceptMapsHandlers(services: Services, log: Logger): vo
         return services.conceptMaps.list({
           studentId,
           ...(opts.courseId !== undefined && { courseId: opts.courseId as CourseId }),
-          sort: opts.sort,
+          ...(opts.sort !== undefined && { sort: opts.sort }),
         });
       },
     ),
