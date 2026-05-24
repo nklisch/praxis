@@ -445,17 +445,17 @@ export class SessionServiceImpl implements SessionService {
 
   async active(opts?: { modeId?: string }): Promise<SessionHandle | null> {
     const studentId = getOrCreateDefaultStudentId(this.deps.db);
-    const predicates: ReturnType<typeof eq>[] = [
+    const conditions: ReturnType<typeof eq>[] = [
       eq(sessions.studentId, studentId),
       isNull(sessions.endedAt),
     ];
     if (opts?.modeId !== undefined) {
-      predicates.push(eq(sessions.modeId, opts.modeId));
+      conditions.push(eq(sessions.modeId, opts.modeId));
     }
     const row = this.deps.db
       .select()
       .from(sessions)
-      .where(and(...predicates))
+      .where(and(...conditions))
       .orderBy(desc(sessions.startedAt))
       .get();
     if (!row) return null;
@@ -481,18 +481,18 @@ export class SessionServiceImpl implements SessionService {
     const includeEnded = opts?.includeEnded ?? true;
     const excludeModeIds = opts?.excludeModeIds ?? [];
 
-    const predicates: ReturnType<typeof eq>[] = [eq(sessions.studentId, studentId)];
+    const conditions: ReturnType<typeof eq>[] = [eq(sessions.studentId, studentId)];
     if (!includeEnded) {
-      predicates.push(isNull(sessions.endedAt));
+      conditions.push(isNull(sessions.endedAt));
     }
     if (excludeModeIds.length > 0) {
-      predicates.push(notInArray(sessions.modeId, excludeModeIds));
+      conditions.push(notInArray(sessions.modeId, excludeModeIds));
     }
 
     const rows = this.deps.db
       .select()
       .from(sessions)
-      .where(and(...predicates))
+      .where(and(...conditions))
       .orderBy(desc(sessions.startedAt))
       .limit(limit)
       .all();
