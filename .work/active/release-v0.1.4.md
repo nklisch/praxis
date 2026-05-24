@@ -113,3 +113,25 @@ Headline themes:
   (`_packName` arg unused; tight interface forces it). Lows parked to
   backlog: `gate-cruft-library-handle-use-pack-orientation-comment`,
   `gate-cruft-library-double-fetch-documents`.
+
+- **gate-docs** (2026-05-23) — 8 findings, 6 High / 2 Medium / 0 Low.
+  Highs (release-blocking, `stage: implementing`):
+  `gate-docs-contract-session-active-modeid` (CONTRACT.md missing
+  `modeId?` arg),
+  `gate-docs-contract-session-list-excludemodeids` (CONTRACT.md
+  missing `excludeModeIds?` arg),
+  `gate-docs-pattern-ipc-channel-convention-session-active` (stale
+  `wrapEnvelope` example for `praxis.session.active`),
+  `gate-docs-pattern-async-generator-event-stream-line`,
+  `gate-docs-pattern-episodic-append-ordering-line`,
+  `gate-docs-pattern-streaming-ipc-channel-helpers-line` (3 stale
+  file:line citations now resolving to wrong lines post-bundle).
+  Mediums (release-blocking, `stage: drafting`):
+  `gate-docs-pattern-editorial-ui-primitives-library-routeheader`
+  (Workbench library has no `<RouteHeader>` — example must point at a
+  different consumer),
+  `gate-docs-pattern-session-tab-open-flow-library-handleopenintab`
+  (Workbench `handleRecAction` shape replaces old `handleOpenInTab`).
+  CHANGELOG.md sanity passed for v0.1.0–v0.1.3; v0.1.4 entry skipped
+  per orchestration note (drafted in Phase 5.5). No README drift, no
+  doc misplacement, no generated-file regen needed.
