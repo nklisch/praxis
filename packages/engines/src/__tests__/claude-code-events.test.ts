@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createEventState, mapClaudeCodeEvent } from "../claude-code/events.js";
+import { createClaudeCodeMapperState, mapClaudeCodeEvent } from "../claude-code/events.js";
 
 describe("mapClaudeCodeEvent — rate_limit_event", () => {
   it("drops informational events (status=allowed) and logs a warning instead of erroring the stream", () => {
@@ -339,7 +339,7 @@ describe("mapClaudeCodeEvent — tool_result", () => {
  */
 describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
   it("tool_use events with state produce sequential callIds matching bridge counter", () => {
-    const state = createEventState();
+    const state = createClaudeCodeMapperState();
     const ctx = { serverName: "praxis" };
 
     const event1 = mapClaudeCodeEvent(
@@ -379,7 +379,7 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
   });
 
   it("tool_result with state resolves to the same callId as the corresponding tool_use", () => {
-    const state = createEventState();
+    const state = createClaudeCodeMapperState();
     const ctx = { serverName: "praxis" };
 
     // Simulate a tool_use that gets callId "1".
@@ -410,7 +410,7 @@ describe("mapClaudeCodeEvent — cross-channel callId agreement", () => {
   });
 
   it("sequential tool_use/tool_result pairs maintain independent translation", () => {
-    const state = createEventState();
+    const state = createClaudeCodeMapperState();
     const ctx = { serverName: "praxis" };
 
     // Two tool_use events.

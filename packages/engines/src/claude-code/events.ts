@@ -36,17 +36,17 @@ export interface MapStreamEventInput {
  * it. This produces identical `callId` values on both sides:
  *   engine event `tool_call.callId === "1"` ⟺ handler `ctx.callId === "1"`.
  *
- * State is per-session: create a new `ClaudeCodeEventState` for each
+ * State is per-session: create a new `ClaudeCodeMapperState` for each
  * `ClaudeCodeEngineSession.send()` call.
  */
-export interface ClaudeCodeEventState {
+export interface ClaudeCodeMapperState {
   /** Monotonically increasing counter, mirrors the bridge's callCounter. */
   orderCounter: number;
   /** Maps Claude tool_use UUID → sequential callId string used by the bridge. */
   toolIdToCallId: Map<string, string>;
 }
 
-export function createEventState(): ClaudeCodeEventState {
+export function createClaudeCodeMapperState(): ClaudeCodeMapperState {
   return { orderCounter: 0, toolIdToCallId: new Map() };
 }
 
@@ -62,7 +62,7 @@ export function createEventState(): ClaudeCodeEventState {
 export function mapClaudeCodeEvent(
   event: StreamEvent,
   ctx: MapStreamEventInput,
-  state?: ClaudeCodeEventState,
+  state?: ClaudeCodeMapperState,
 ): EngineEvent | null {
   switch (event.type) {
     case "system":

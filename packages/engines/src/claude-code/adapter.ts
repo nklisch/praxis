@@ -14,7 +14,7 @@ import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
 import { buildTranscriptPreface } from "../util/transcript.js";
-import { createEventState, mapClaudeCodeEvent } from "./events.js";
+import { createClaudeCodeMapperState, mapClaudeCodeEvent } from "./events.js";
 import { ClaudeCodeVision } from "./vision.js";
 
 /**
@@ -211,7 +211,7 @@ class ClaudeCodeEngineSession implements EngineSession {
   // callCounter persists across all turns — so we must mirror that lifetime
   // here. A fresh state per send() would diverge starting on turn 2+ in any
   // conversation with multiple tool-calling turns.
-  private readonly eventState = createEventState();
+  private readonly eventState = createClaudeCodeMapperState();
 
   constructor(init: ClaudeCodeSessionInit) {
     this.placeholderId = init.placeholderId;

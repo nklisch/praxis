@@ -14,7 +14,7 @@ import { startToolBridge } from "../mcp/tool-bridge.js";
 import type { ToolBridgeHandle } from "../mcp/types.js";
 import type { EngineDeps } from "../types.js";
 import { buildTranscriptPreface } from "../util/transcript.js";
-import { mapCodexEvent, newMapState } from "./events.js";
+import { createCodexMapperState, mapCodexEvent } from "./events.js";
 import { CodexVision } from "./vision.js";
 
 export interface CodexEngineOptions {
@@ -166,7 +166,7 @@ class CodexEngineSession implements EngineSession {
       // mid-stream turn, SessionServiceImpl's defensive signal?.aborted check
       // still stops the generator on the next yielded event.
       const { events } = await this.thread.runStreamed(message, { signal });
-      const state = newMapState();
+      const state = createCodexMapperState();
       const itemIndex = { value: 0 };
       for await (const event of events) {
         const mapped = mapCodexEvent(event, { serverName: this.serverName }, state, itemIndex);

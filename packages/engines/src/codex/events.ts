@@ -1,12 +1,12 @@
 import type { EngineEvent, ToolResult } from "@praxis/core/types";
 import { newCallId } from "../util/event-id.js";
 
-interface MapState {
+export interface CodexMapperState {
   /** Maps Codex item index → synthesized callId for tool_call/tool_result pairing. */
   toolCallIds: Map<number, string>;
 }
 
-export function newMapState(): MapState {
+export function createCodexMapperState(): CodexMapperState {
   return { toolCallIds: new Map() };
 }
 
@@ -23,7 +23,7 @@ export interface MapCodexEventInput {
 export function mapCodexEvent(
   event: unknown,
   ctx: MapCodexEventInput,
-  state: MapState,
+  state: CodexMapperState,
   itemIndex: { value: number },
 ): EngineEvent[] {
   if (!event || typeof event !== "object" || !("type" in event)) return [];
@@ -72,7 +72,7 @@ export function mapCodexEvent(
 function mapItemCompleted(
   itemUnknown: unknown,
   ctx: MapCodexEventInput,
-  state: MapState,
+  state: CodexMapperState,
   itemIndex: { value: number },
 ): EngineEvent[] {
   if (!itemUnknown || typeof itemUnknown !== "object" || !("type" in itemUnknown)) return [];

@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-engine-adapter-shared-helpers-mapper-state-naming
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-engine-adapter-shared-helpers
 depends_on: []
@@ -40,3 +40,29 @@ naming scheme (e.g., `ClaudeCodeMapperState` / `CodexMapperState` with matching
 - No behavior change to event mapping
 - The state shape itself may stay per-adapter (this is a naming-only fix unless the
   shapes are actually compatible)
+
+## Implementation notes
+
+The two adapter state shapes are meaningfully different and cannot be unified:
+- Claude Code tracks `orderCounter: number` and `toolIdToCallId: Map<string, string>` to translate Claude's UUID tool IDs to sequential bridge callCounters.
+- Codex tracks `toolCallIds: Map<number, string>` mapping item indices to synthesized callIds from `newCallId()`.
+
+Parallel-naming approach applied:
+
+**Claude Code** (`packages/engines/src/claude-code/events.ts`):
+- `ClaudeCodeEventState` → `ClaudeCodeMapperState`
+- `createEventState()` → `createClaudeCodeMapperState()`
+- `MapState` interface made `export` (was already exported for Claude Code; now consistent)
+
+**Codex** (`packages/engines/src/codex/events.ts`):
+- `MapState` → `CodexMapperState` (also promoted from private to exported interface)
+- `newMapState()` → `createCodexMapperState()` (factory name prefix changed from `new` to `create`)
+
+**Call sites updated (5 files, 8 sites):**
+- `packages/engines/src/claude-code/events.ts` — 3 sites (type declaration, factory definition, `mapClaudeCodeEvent` parameter type)
+- `packages/engines/src/claude-code/adapter.ts` — 2 sites (import, `this.eventState` initializer)
+- `packages/engines/src/codex/events.ts` — 3 sites (interface declaration, factory definition, `mapItemCompleted` parameter type)
+- `packages/engines/src/codex/adapter.ts` — 2 sites (import, `const state =` in `send()`)
+- `packages/engines/src/__tests__/claude-code-events.test.ts` — 2 sites (import, 3 factory call sites via `replace_all`)
+
+Verification: `pnpm --filter @praxis/engines typecheck` passes clean; 19 tests pass.
