@@ -1,7 +1,7 @@
 ---
 id: gate-tests-configure-route-unmount-vs-reuse
 kind: story
-stage: implementing
+stage: review
 tags: [testing, bug, sessions]
 parent: null
 depends_on: []
@@ -57,3 +57,39 @@ it("navigating away from /configure does NOT end the session if reuse is the con
 
 ## Test location (suggested)
 `packages/ui/src/__tests__/configure-route.test.tsx`
+
+## Implementation notes
+
+### Investigation outcome: BUG
+
+The `session.end(...)` call in the unmount cleanup at `configure.tsx:291-293` (prior to fix)
+directly contradicts the reuse contract defined in `feature-configure-mode-session-hygiene`:
+
+> "Reuse a single global configure session per student. On configure-route mount, look up
+> the latest active (not-ended) configure session for the student; if one exists, re-attach."
+
+The code implemented the reuse-on-mount path (calling `client.session.active({ modeId: "configure" })`
+first), but then the unmount cleanup called `client.session.end(session.sessionId)`, ending the
+session that the next mount was supposed to find and re-attach to. The stale-closure comment in
+the code even acknowledged `session` was captured only for the cleanup — making the bug structurally
+intentional-looking but semantically wrong relative to the design.
+
+The JSDoc comment in the component also contradicted the feature spec, stating "Each navigation
+to /configure is a fresh session (no sharing across navigations)" — the opposite of what was designed.
+
+### Action taken
+
+**Bug fixed** — removed `client.session.end(...)` from the unmount cleanup in `configure.tsx`.
+
+**Files changed**:
+- `packages/ui/src/routes/configure.tsx` — removed `session.end` from effect cleanup (lines 291-293
+  before fix); updated JSDoc comment on session lifecycle; updated biome-ignore comment to reflect
+  that `session` is no longer read in cleanup at all.
+- `packages/ui/src/__tests__/configure-route.test.tsx` — added pinning test
+  "navigating away (unmount) does NOT end the session — reuse contract" that mounts the route,
+  waits for the session to become active, unmounts, and asserts `client.session.end` was NOT called.
+
+**Test added**: `"navigating away (unmount) does NOT end the session — reuse contract"` — would
+have failed before the fix (session.end was called in cleanup); passes after.
+
+**Verification**: `pnpm typecheck` PASS; `pnpm --filter @praxis/ui test --reporter=basic` 1707/1707 PASS.

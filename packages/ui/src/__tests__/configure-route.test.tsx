@@ -367,6 +367,33 @@ describe("ConfigureRoute", () => {
     });
   });
 
+  it("navigating away (unmount) does NOT end the session — reuse contract", async () => {
+    // The configure session must survive navigation so the next mount can re-attach.
+    // session.end must never be called in the unmount cleanup; only "Clear / restart" ends it.
+    const sessionId = brandId<"SessionId">("configure-session-persist");
+    const lockClient = makeLockClient();
+    const client = makeClient(lockClient, {
+      active: vi.fn().mockResolvedValue(null),
+      start: vi.fn().mockResolvedValue({
+        sessionId,
+        modeId: "configure",
+        startedAt: Date.now() as Timestamp,
+      } satisfies SessionHandle),
+    });
+    const { unmount } = renderRoute(client);
+
+    // Wait for the session to be active before unmounting.
+    await waitFor(() => {
+      expect(screen.getByText("Configure session active")).toBeDefined();
+    });
+
+    unmount();
+
+    // session.end must NOT have been called during unmount — the session stays alive
+    // so the next /configure mount can re-attach to it via session.active({ modeId: "configure" }).
+    expect(client.session.end).not.toHaveBeenCalled();
+  });
+
   it("cancels restart: does not call end or start (beyond initial mount)", async () => {
     const lockClient = makeLockClient();
     const client = makeClient(lockClient, {

@@ -226,9 +226,13 @@ function LessonInspectorStrip({ selectedLesson }: { selectedLesson: SelectedLess
  *    configurator chat, promoted from inside individual tab layouts.
  *
  * Session lifecycle:
- *  - When unlocked, auto-start a configure-mode session on mount.
- *  - End session on unmount.
- *  - Each navigation to /configure is a fresh session (no sharing across navigations).
+ *  - When unlocked, reuse the existing active configure session if one exists;
+ *    otherwise start a fresh one.
+ *  - The configure session is intentionally long-lived: navigating away from
+ *    /configure does NOT end it, so the next mount re-attaches to the same
+ *    session (preserving configure-mode history and context).
+ *  - The only way to end a configure session is the explicit "Clear / restart"
+ *    control, which ends the current session and starts a fresh one.
  *
  * Cross-tab state:
  *  - ConfigureStateContext holds selectedCourseId so Course → Gates tab switch preserves selection.
@@ -255,9 +259,10 @@ export function ConfigureRoute() {
 
   // Reuse-or-spawn: attach to an existing active configure session if one
   // exists, otherwise start a fresh one (React 19 Strict Mode double-mount safe).
-  // session is used only in the cleanup to call session.end; adding it to deps would
-  // cause the effect to re-run on every session state update, creating duplicate sessions.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: session accessed only in cleanup — intentional stale closure for end-on-unmount
+  // session is deliberately omitted from deps: the effect only runs on isAccessible/client
+  // changes. session state updates must not re-trigger this effect (they would spawn duplicate
+  // sessions). The cleanup no longer reads session — it only sets cancelled = true.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: session not used in effect body or cleanup; omitting to prevent spurious re-runs
   useEffect(() => {
     if (!isAccessible) return;
 
@@ -286,11 +291,11 @@ export function ConfigureRoute() {
     attachOrStartSession();
 
     return () => {
+      // Only cancel pending async work — do NOT call session.end here.
+      // The configure session is long-lived by design (reuse-per-student contract):
+      // navigating away must leave it open so the next mount can re-attach.
+      // The only intentional end is the "Clear / restart" control (handleClearRestart).
       cancelled = true;
-      // End session on unmount
-      if (session) {
-        client.session.end(session.sessionId).catch(() => {});
-      }
     };
     // isAccessible is the trigger; session ref tracks single-start
   }, [isAccessible, client]);
