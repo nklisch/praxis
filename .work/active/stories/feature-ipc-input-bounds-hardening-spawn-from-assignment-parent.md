@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-input-bounds-hardening-spawn-from-assignment-parent
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-ipc-input-bounds-hardening
 depends_on: []
@@ -63,3 +63,19 @@ lookup), the method now:
 
 Both tests were verified to fail before the fix and pass after (confirmed by running in isolation).
 Total suite: 1148 tests, all green. Typecheck: clean.
+
+## Review
+
+**Verdict: approved → done**
+
+Validation is correct and complete:
+- `getOrCreateDefaultStudentId` resolves the student server-side (consistent with `start()` and other service methods).
+- Parent row lookup uses `.select({ id, studentId })` — minimal projection, no over-fetch.
+- "Parent session not found" message includes the id for debuggability; "belongs to a different student" message intentionally omits the parent's studentId — correct security hygiene.
+- Validation runs before the assignment lookup, so a caller can't partially proceed past a bad parentSessionId.
+
+Tests are appropriate negative-path coverage for both failure branches.
+
+The e2e fallout fix (`3f616bd`) landed after `108df9b` and correctly replaces the hard-coded `"student-test"` studentId with a runtime-resolved one via `getOrCreateDefaultStudentId(db)`.
+
+No blockers. No follow-ups.
