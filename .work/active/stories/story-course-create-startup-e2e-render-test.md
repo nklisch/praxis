@@ -1,7 +1,7 @@
 ---
-id: idea-course-create-startup-e2e-render-test
-kind: idea
-stage: null
+id: story-course-create-startup-e2e-render-test
+kind: story
+stage: implementing
 tags: [testing, ui]
 parent: null
 depends_on: []
@@ -13,6 +13,7 @@ updated: 2026-05-23
 
 # Course-create startup: end-to-end render assertion
 
+## Brief
 The fix for `epic-course-create-readiness-startup-invisible` (commit 700a0b5)
 landed strong unit-level tests for `openSessionInTab` and the
 `consumeInitialMessage` store/consume semantics, plus mocked `useTabs` tests
@@ -35,5 +36,12 @@ integration layer (the unit-level tests would have passed even with the
 broken `client.tabs.open` direct-call shape, because they mocked the
 useTabs).
 
-Park as an idea, scope as a story under whichever epic is touching
-startup-flow integration tests next.
+## Acceptance
+- `pnpm typecheck && pnpm lint && pnpm test` green
+- New test exists that fails if `client.tabs.open` is bypassed (i.e. the
+  original 700a0b5 regression class is caught at the integration layer)
+- Test mounts `<CourseCreateRoute>` inside a real `<TabsProvider>` (no
+  `useTabs` mock) wrapped in `<PraxisClientProvider>` with `makeFakeClient`
+- Test drives "Start Praxis →" and asserts the chat tab body mounts and
+  renders at least one engine event from the fake client's `session.send`
+  stream
