@@ -5,6 +5,107 @@ All notable changes to Praxis are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.1.4 — 2026-05-24
+
+Smaller bundle than v0.1.3 — focused on follow-on hygiene from the UI
+redesign, two configure-mode features, and document-attachment polish.
+The release also runs the standard quality-gate sweeps (security,
+tests, cruft, docs, patterns) plus a project-wide patterns rerun that
+codifies eight additional pattern skills surfaced by the post-bind
+refactor wave.
+
+### Features
+
+- **Configure-mode session hygiene** — configure sessions stop
+  appearing in the library; the configure route now reuses one session
+  per (course × tab) instead of spawning a new one on every mount, and
+  exposes a "Clear / restart" control to wipe and start fresh. A
+  Drizzle migration deletes legacy configure sessions so the new
+  contract starts clean.
+- **Streamline document attachment UX** — inline upload inside the
+  "Attach from Library" picker (drop-zone overlay + a "+ Upload" button
+  that consumes the same ingestion pipeline) and multi-file upload on
+  the Library route's Upload button.
+- **`SessionService.active` mode filter** — adds an optional `modeId`
+  filter so callers can ask "is there an active session in this mode
+  for this student" rather than the full sweep.
+- **`SessionService.list` `excludeModeIds`** — adds an
+  `excludeModeIds: ModeId[]` option that the library wires up to hide
+  configure sessions from the recent-sessions strip.
+
+### Fixes
+
+- **`recordCitation` schema inverted-range validation** — the citation
+  tool's `passageRange` schema accepted `endOffset < startOffset`,
+  matching the bug that was just patched in `spawnFromPassage`. The
+  same inverted-range refinement now guards `recordCitation`.
+- **`session-service.ts` `exactOptionalPropertyTypes` baseline** — the
+  fourth and last baseline-tracked `exactOptional` error in
+  `session-service.ts` removed; the file now type-checks clean against
+  the strict-optional contract.
+- **`pnpm --filter @praxis/desktop test`** — vitest config in the
+  desktop package was pointed at a non-existent `tests/` directory,
+  silently passing with zero tests run. Config fixed; the desktop
+  suite now executes its 520 tests under the filter command.
+- **Workspace content hugs panel edges** — workspace surfaces had a
+  vestigial outer padding from the pre-redesign layout; content now
+  sits flush against the surrounding panels, matching the redesigned
+  shell.
+
+### Internal
+
+- **Configurator-mode UI shape clarity** — the configure-route reuse
+  contract surfaces a behaviour boundary (`session.end` in configure
+  unmount) that we explicitly tested against; the test program now
+  asserts the cleanup-on-unmount path rather than the implicit reuse-
+  on-remount path it used to.
+- **Pattern catalog expansion** — twelve new pattern skills codified
+  across two gate-patterns runs. From the original v0.1.4 sweep:
+  `dynamic-where-predicate`, `use-resource-aggregation-loader`,
+  `ipc-envelope-test-triad`, `server-resolved-student-id`. From the
+  full-project rerun: `builder-module-composition`,
+  `service-facade-sibling-dir`, `one-shot-llm-inference`,
+  `agent-prompt-sidecar`, `row-to-domain-mapper`,
+  `hook-decomposition-setitems-callback`, `ref-cell-bridge`,
+  `kind-adapter-registry`. The rerun surfaced these emergent shapes
+  from the post-bind refactor wave (artifacts service decomposition,
+  assignment grading extraction, author-channel per-domain split,
+  buildServices decomposition, course-create decomposition,
+  engine-adapter helpers, memory BKT extraction, session-service
+  spawn extraction, use-ingestion batch, use-streamed-send hook) —
+  none of those decompositions were in the v0.1.4 release binding but
+  the patterns they revealed are now codified for the agent's
+  reference.
+- **Shared test-fake factories sweep** — ~37 channel-envelope tests
+  that inlined a local `makeFakeLogger()` now uniformly import
+  `makeSpyLogger` from `tests/helpers/mocks.ts`; the pre-existing
+  systemic drift surfaced by gate-patterns at bind time is now
+  resolved.
+- **CONTRACT.md updates** — documents the new `modeId` and
+  `excludeModeIds` arguments on `SessionService.active` and
+  `SessionService.list`.
+
+### Quality-gate findings
+
+- **Security** — 3 Low findings parked to backlog (no Critical /
+  High / Medium); positive verifications recorded for migration 0025
+  cascade scope, Drizzle binding of new filter columns, full envelope
+  coverage on bundled channels, citation inverted-range test coverage,
+  and zero `package.json` / lockfile delta.
+- **Tests** — 17 findings (0 Critical / 4 High / 7 Medium / 6 Low);
+  release-blocking items driven to done in-cycle.
+- **Cruft** — 7 findings (3 High / 2 Medium / 2 Low); release-blocking
+  items driven to done in-cycle.
+- **Docs** — 8 findings (6 High / 2 Medium); release-blocking items
+  driven to done in-cycle.
+- **Patterns** — 4 new patterns codified at bind, 1 systemic
+  inconsistency resolved (`shared-test-fakes-logger` sweep). Rerun
+  pre-ship: 8 additional patterns codified, 3 new inconsistencies
+  filed as `[refactor]` stories at `stage: drafting` without release
+  binding so the rerun didn't add v0.1.4 readiness blockers —
+  `noop-dispatch-duplication`, `require-unlocked-duplication`,
+  `builder-positional-deps`.
+
 ## v0.1.3 — 2026-05-18
 
 Two parallel epics — a ground-up UI redesign against a swapped editorial

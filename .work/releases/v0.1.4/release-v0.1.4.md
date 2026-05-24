@@ -1,7 +1,7 @@
 ---
 id: release-v0.1.4
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
@@ -171,3 +171,14 @@ Headline themes:
   `gate-patterns-inconsistency-builder-positional-deps`
   (`buildMemoryServices` + `buildEmbeddingsServices` use positional
   params instead of typed deps object).
+
+## Ship summary
+
+- **Date shipped**: 2026-05-24
+- **Mapping**: tag-based (annotated tag `v0.1.4`)
+- **Total items shipped**: 41 (12 bound + 29 gate-produced)
+- **Gates run**: 5/5 (security, tests, cruft, docs, patterns)
+- **Gate findings**: 3 Low security (parked); 17 tests (0C/4H/7M/6L); 7
+  cruft (3H/2M/2L); 8 docs (6H/2M); 12 new patterns codified across
+  bind + rerun; 1 systemic test-fakes inconsistency resolved in-cycle;
+  3 new pattern inconsistencies filed unbound (deferred).
