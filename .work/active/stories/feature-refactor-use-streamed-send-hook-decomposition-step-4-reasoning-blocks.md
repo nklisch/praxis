@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-4-reasoning-blocks
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on: []
@@ -105,6 +105,15 @@ at the top of each turn so a stale id from a prior turn never leaks.
   - Two non-contiguous thinking events produce two separate reasoning blocks
   - In-progress reasoning block is closed (not deleted) on cancel/engine_abort
 - `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+
+- Created `packages/ui/src/hooks/use-reasoning-blocks.ts` (89 lines).
+- `currentReasoningId` lives in a `useRef<ReasoningState>` object; no re-renders triggered by open/close transitions — only the `setItems` calls cause React updates.
+- Used a module-level `reasoningCounter` (prefixed `reasoning-`) rather than importing or lifting `nextId` from `use-streamed-send.ts`. The two counters coexist safely; ids never collide in practice because the `thinking` kind is distinct from `message`.
+- `SetItems` type alias declared locally as `React.Dispatch<React.SetStateAction<ChatStreamItem[]>>` — imported `ChatStreamItem` from `use-streamed-send.ts` via the `.js` extension per ESM convention.
+- `use-streamed-send.ts` left untouched per the step-5 wiring constraint.
+- All 1711 `@praxis/ui` tests pass; `pnpm typecheck` clean across the workspace.
 
 ## Risk + Rollback
 
