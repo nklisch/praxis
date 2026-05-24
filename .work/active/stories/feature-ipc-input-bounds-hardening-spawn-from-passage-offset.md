@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-input-bounds-hardening-spawn-from-passage-offset
 kind: story
-stage: review
+stage: done
 tags: [security]
 parent: feature-ipc-input-bounds-hardening
 depends_on: []
@@ -72,3 +72,16 @@ when the document-bound clamp applies (that's normal clamping, not a pathologica
 All 12 `spawnFromPassage`-related tests pass. The 1 pre-existing test failure in
 `empty-session-cleanup-e2e.test.ts` is unrelated (different student-ID collision in a different
 method).
+
+## Review
+
+**Verdict: done** — no blockers.
+
+**Checklist:**
+- IPC schema (`session-channel.ts`): `MAX_PASSAGE_OFFSET = 10_000_000` constant present with rationale comment; `.max(MAX_PASSAGE_OFFSET)` applied to both `startOffset` and `endOffset`. Confirmed at lines 127, 133-134.
+- Service-side cap (`session-service.ts`): `MAX_PASSAGE_LENGTH = 100_000` declared; `safeEnd = Math.min(safeEndUncapped, safeStart + MAX_PASSAGE_LENGTH)` applied before slice. Confirmed at lines 804-807.
+- Log signal: `log.warn("spawn_from_passage.passage_truncated", { documentId, requestedLength, cappedLength })` fires only when the passage-length cap (not the doc-bound clamp) kicks in. Confirmed at lines 808-814.
+- IPC schema test: `endOffset: 10_000_001` → `VALIDATION_FAILED` — covers the IPC rejection path.
+- Service test: ~102k-char document, `endOffset: 200_000` → session opens, warn emitted, `cappedLength: 100_000` — fully exercises the truncation branch.
+
+**Findings:** None. The two-layer defense (10M IPC gate + 100k passage cap) is correctly implemented, the log signal fires with correct fields, and both test cases are targeted and would fail without the fix.
