@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -142,6 +142,23 @@ Two operations span multiple domain tables:
 
 No other cross-domain transactions exist. All other writes are single-table or
 self-contained within one domain's service.
+
+## Review
+
+**Verdict: approved — advancing to done.**
+
+All 6 child stories verified at `stage: done`. Physical checks pass:
+
+- 5 new focused service files created:
+  - `packages/core/src/services/courses-service.ts` (11 KB)
+  - `packages/core/src/services/lessons-service.ts` (10 KB)
+  - `packages/core/src/services/gates-service.ts` (13 KB)
+  - `packages/core/src/services/lesson-assessments-service.ts` (1.5 KB)
+  - `packages/core/src/services/course-state-reader-impl.ts` (5 KB)
+- `artifacts-service.ts` reduced from 1062 lines to 222 lines — now a thin delegating facade that preserves the existing `ArtifactsService` interface and `CourseStateReader` port unchanged.
+- No IPC channel or client SDK changes required; the decomposition is fully internal.
+
+The refactor achieves its goals: five well-bounded domain services replace a 37-method monolith, each independently testable via narrow deps. The facade owns `getCourseSummary` (cross-domain read aggregation) and `deleteLesson` cross-table transaction remains correctly housed in `LessonsServiceImpl`.
 
 ## Children complete (2026-05-24)
 
