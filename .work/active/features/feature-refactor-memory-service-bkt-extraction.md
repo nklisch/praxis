@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-memory-service-bkt-extraction
 kind: feature
-stage: review
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -141,3 +141,26 @@ Three sequential stories shipped across two parallel waves (steps 1+2 in paralle
 - `services/index.ts`: `applySignalsToConcept` re-export switched to `./memory/mastery-writes.js`
 
 **Net result**: +289 lines (3 new files), −267 lines (2 files shrunk), public `MemoryService` interface unchanged. 4773 tests pass, typecheck clean.
+
+## Review
+
+**Verdict: done**
+
+All four design goals fully addressed:
+
+1. **Row-mapper duplication eliminated** — `rowToConceptMastery` in `mastery-row-mapper.ts` is the single source for milli-int → float + brandId conversion, used by `mastery-queries.ts` at two call sites. ✓
+
+2. **Import direction fixed** — `memory-service.ts` no longer reaches into `indexers/`. `applySignalsToConcept` lives in `memory/mastery-writes.ts`; both `MemoryServiceImpl` and `MasteryIndexer` import from there. ✓
+
+3. **Duplicate `applySignalsToConcept` removed** — the ~67-line standalone in `mastery-indexer.ts` is gone. The instance method is a one-liner delegation. `services/index.ts` re-export switched to `mastery-writes.js`. ✓
+
+4. **Read/write separation made explicit** — `MasteryQueries` class holds all 5 read-only accessors; `MemoryServiceImpl` retains orchestration + write side only. ✓
+
+**Constraints verified:**
+- Public `MemoryService` interface unchanged — all 5 method signatures identical, callers unaffected.
+- BKT math behavior bit-for-bit identical — 4773 tests pass, mastery-projection tests unchanged.
+- Indexer orchestration intact — `MasteryIndexer` runs + `applySignalsToConcept` call path verified.
+- Episodic stream contract preserved — `memory-service.ts` stream methods untouched.
+- Typecheck and lint clean across all packages.
+
+The refactor is structurally clean. No blockers, no important findings, no nits.
