@@ -1,7 +1,7 @@
 ---
 id: gate-tests-multi-document-upload-positive-path
 kind: story
-stage: review
+stage: done
 tags: [testing, ui]
 parent: null
 depends_on: []
@@ -65,3 +65,18 @@ The test "Upload with 3 picked paths calls client.ingest.start 3 times and shows
 A `makeDoneStream` generator factory was added at the top of the file to produce valid `IngestionEvent` streams, matching the pattern used in `use-ingestion.test.tsx`.
 
 Verification: 25 tests pass in `library-route.test.tsx`; 1707 tests pass across `@praxis/ui`; typecheck clean.
+
+## Review
+
+Verdict: **done** (no blockers).
+
+Checklist:
+- `pickPaths` mocked to return 3 non-PDF paths (`/a.txt`, `/b.txt`, `/c.txt`) — confirmed.
+- `ingest.start` mocked with proper `makeDoneStream` async generator (not a stub) — confirmed.
+- "+ Add documents" button clicked — confirmed.
+- `expect(client.ingest.start).toHaveBeenCalledTimes(3)` asserted — confirmed.
+- `screen.getByText(/3 files added/i)` asserted — confirmed.
+- Regression detection: if batch logic regressed to single-file, the `toHaveBeenCalledTimes(3)` assertion fails immediately — confirmed.
+- Test counts: 25/25 in `library-route.test.tsx`, all workspace tests green.
+
+No findings.
