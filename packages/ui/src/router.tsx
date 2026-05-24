@@ -189,11 +189,15 @@ const courseCreateRoute = createRoute({
   }),
 });
 
-// Top-nav surface stubs — full implementations land in subsequent surface stories.
+// Top-nav surface: /concept-maps — Swiss Grid Catalog with filter + sort URL params.
 const conceptMapsSurfaceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/concept-maps",
   component: ConceptMapsRoute,
+  validateSearch: z.object({
+    course: z.string().optional(),
+    sort: z.enum(["recent", "coverage", "course"]).optional(),
+  }),
 });
 
 const progressRoute = createRoute({

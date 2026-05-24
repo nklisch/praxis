@@ -1,7 +1,7 @@
 ---
 id: feature-concept-maps-top-nav-route
 kind: story
-stage: implementing
+stage: review
 tags: [ui, content]
 parent: feature-concept-maps-top-nav
 depends_on: [feature-concept-maps-top-nav-list-extension, feature-concept-maps-top-nav-coverage-bar]
@@ -118,3 +118,44 @@ export function ConceptMapsRoute(): JSX.Element {
 - CoverageBar primitive (coverage-bar story).
 - Per-map editing surfaces (already exist at
   `/courses/$courseId/concept-maps/$conceptMapId`).
+
+## Implementation notes
+
+### Route component
+`packages/ui/src/routes/concept-maps.tsx` — `ConceptMapsRoute` (top-level) + `ConceptMapCard`
+(inner component). Two parallel `useResource` calls: maps loader (re-fetches on `course`/`sort`
+deps) and courses loader (stable). Derived `courseMap` (Map keyed by courseId) powers card course
+labels and filter pill generation.
+
+### URL contract
+`packages/ui/src/router.tsx` — `conceptMapsSurfaceRoute` gets `validateSearch: z.object({ course:
+z.string().optional(), sort: z.enum(["recent","coverage","course"]).optional() })`. Route reads
+params via `(useSearch as unknown as (...) => {...})({ strict: false })` matching the `course-create`
+pattern; navigate calls use `(navigate as any)({ to: "/concept-maps", search: { ... } })` to stay
+within TanStack Router's strict search-type system.
+
+### Filter / sort handlers
+- `onPickCourse(id)` — navigates to `/concept-maps` with `{ course: id, sort: activeSort }`.
+  Preserves the current sort when switching courses.
+- `onPickSort(s)` — navigates with `{ course, sort: s }`. Preserves the current filter.
+
+### Empty states
+- No courses → `<EmptyState>` + "Create a course" CTA to `/course-create`.
+- Has courses, no maps → `<EmptyState>` + course list links to each course's `/concept-maps` path.
+
+### CSS module
+`packages/ui/src/routes/concept-maps.module.css` — Swiss Grid Catalog layout: control bar
+(filter row left, sort row right), 2-col `ul.grid`, per-card coverage row with `<CoverageBar compact>`.
+
+### Tests
+`packages/ui/src/__tests__/concept-maps-route.test.tsx` — 20 tests covering:
+- Default load: cards render, coverage labels, `sort=recent` default, version count, divergence badge
+- Filter pills: all-courses + per-course pills render; click updates navigate call with `course` param
+- Sort tabs: tabs render; click updates navigate call with `sort` param
+- URL param load: `course`, `sort`, and both together forwarded to `client.conceptMaps.list`
+- Empty state (no courses): CTA message + navigate to `/course-create`
+- Empty state (has courses, no maps): message + course links navigate to per-course route
+- Card navigation: click navigates to `/courses/$courseId/concept-maps/$conceptMapId`
+
+### Verification
+`pnpm typecheck && pnpm lint && pnpm test` — all green (4750 tests pass, 23 slow tests skipped).
