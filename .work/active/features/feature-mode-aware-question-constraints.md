@@ -1,7 +1,7 @@
 ---
 id: feature-mode-aware-question-constraints
 kind: feature
-stage: drafting
+stage: implementing
 tags: [content, tool-schema, agent-prompt, cross-package]
 parent: epic-educational-content-rendering
 depends_on: []
@@ -78,3 +78,377 @@ The shared mode-config + the unified prompt fragment mean this feature touches s
 
 - `@praxis/curriculum` mode shape: this feature adds `questionConstraints?`; `feature-content-renderer-pipeline` adds `renderToggles?`. Both extensions are additive; coordinate file changes at design-pass time.
 - Unified prompt fragment: this feature creates it; `feature-math-rendering` contributes the LaTeX section; `feature-content-renderer-pipeline` contributes the markup convention sections. Design-pass coordination via shared fragment file.
+
+## Architectural choice
+
+**Validation runs in the tool handler against constraints threaded through `ToolContext`, not via dynamic per-mode Zod schemas.** The Zod input schema stays static — it accepts the maximum across all modes (essentially a sanity ceiling). Per-mode caps enforce at handler entry via a shared `validateQuestionConstraints(args, resolved): ValidationResult` helper. Violations return a `ToolResult.failure` whose `error.message` is written for the agent to learn from (matches the "tool_result error the agent reads" goal in the design decision).
+
+`ToolContext` gains an optional `questionConstraints: Required<QuestionConstraints>` field, populated by `SessionServiceImpl` when building the call context. Each session resolves once at open: looks up its mode → merges `mode.questionConstraints` with `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE[mode.id]` → seeds the call context. Tool handlers read `ctx.questionConstraints` and pass to the helper. Per-tool override is the schema decoration pattern (e.g., a tool that overrides via `overrideConstraints?: Partial<QuestionConstraints>` in its own input schema — merged at the validation step).
+
+The mode prompt fragment is a **factory** (matches the `mode-prompt-fragment-composition` pattern with parameterized fragments). `questionToolFragment(constraints): PromptFragment` returns a constraints-position fragment whose template interpolates the per-mode caps + all cross-cutting markup conventions from the parent epic's agent-contract section (LaTeX math, citations, definitions, callouts, concept refs, figures). Each mode that uses question tools calls this factory with its resolved constraints.
+
+Rejected alternatives:
+- **Dynamic per-mode Zod schemas built at dispatch** — clever but non-idiomatic for the project; static Zod + handler-level checks reads cleaner and matches `assignment/item-schema.ts`'s `.refine` precedent.
+- **Constraint check in the tool registry's dispatch layer** — leaks tool-specific concern up into the registry; better to keep it in each tool's handler with a shared helper for the actual check.
+- **Mode lookup at every tool call (via sessionId → session row → modeId → getMode)** — extra DB query per call; threading constraints into ToolContext at session-open time is O(1) per call.
+
+## Implementation Units
+
+### Unit 1: `QuestionConstraints` type + `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE` constant
+**File**: `packages/core/src/types/mode.ts` (extend), `packages/curriculum/src/question-constraints.ts` (NEW)
+**Story**: `feature-mode-aware-question-constraints-step-1-types-and-defaults`
+
+```typescript
+// packages/core/src/types/mode.ts — extend
+export interface QuestionConstraints {
+  promptMaxWords?: number;        // default per mode
+  choiceMaxWords?: number;        // default per mode
+  choiceCount?: number;           // max number of choices per question
+  multiSelectCap?: number;        // max number of selections in multi-select questions
+}
+
+export interface Mode {
+  // ...existing fields
+  questionConstraints?: QuestionConstraints;  // NEW
+}
+
+// packages/curriculum/src/question-constraints.ts — NEW
+export const DEFAULT_QUESTION_CONSTRAINTS_BY_MODE: Record<string, Required<QuestionConstraints>> = {
+  teach:          { promptMaxWords: 30, choiceMaxWords: 10, choiceCount: 4, multiSelectCap: 4 },
+  homework:       { promptMaxWords: 60, choiceMaxWords: 25, choiceCount: 5, multiSelectCap: 6 },
+  quiz:           { promptMaxWords: 60, choiceMaxWords: 25, choiceCount: 5, multiSelectCap: 6 },
+  exam:           { promptMaxWords: 60, choiceMaxWords: 25, choiceCount: 5, multiSelectCap: 6 },
+  "course-create":{ promptMaxWords: 50, choiceMaxWords: 15, choiceCount: 5, multiSelectCap: 6 },
+  configure:      { promptMaxWords: 50, choiceMaxWords: 15, choiceCount: 5, multiSelectCap: 6 },
+  "study-skills": { promptMaxWords: 40, choiceMaxWords: 12, choiceCount: 4, multiSelectCap: 4 },
+};
+
+export const FALLBACK_QUESTION_CONSTRAINTS: Required<QuestionConstraints> = {
+  promptMaxWords: 60, choiceMaxWords: 25, choiceCount: 5, multiSelectCap: 6,
+};
+
+export function resolveQuestionConstraints(
+  modeId: string,
+  override?: QuestionConstraints,
+): Required<QuestionConstraints> {
+  const base = DEFAULT_QUESTION_CONSTRAINTS_BY_MODE[modeId] ?? FALLBACK_QUESTION_CONSTRAINTS;
+  return { ...base, ...(override ?? {}) };
+}
+```
+
+**Implementation notes**:
+- The constants file is the single source of truth for tuning. Future updates = one-file edit.
+- `resolveQuestionConstraints` merges per-mode defaults under any `mode.questionConstraints` override.
+- `FALLBACK_QUESTION_CONSTRAINTS` covers any mode not in the lookup (defensive — should never hit in practice since all modes register).
+- Unit tests in `packages/curriculum/src/__tests__/question-constraints.test.ts` cover: every mode resolves; unknown mode falls back; override merges correctly.
+
+**Acceptance criteria**:
+- [ ] `QuestionConstraints` interface exported with 4 optional number fields
+- [ ] `Mode.questionConstraints?: QuestionConstraints` added
+- [ ] `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE` covers all 7 existing modes with the documented values
+- [ ] `resolveQuestionConstraints(modeId, override?)` merges correctly
+- [ ] Unknown mode falls back to `FALLBACK_QUESTION_CONSTRAINTS`
+- [ ] All existing modes typecheck unchanged (field is optional)
+- [ ] Unit tests cover each defaults-table entry + merge cases
+
+---
+
+### Unit 2: `ToolContext.questionConstraints` threading from SessionService
+**File**: `packages/core/src/types/tool.ts` (extend), `packages/core/src/services/session-service.ts` or `packages/core/src/services/session/engine-session-manager.ts` (modify call-context build)
+**Story**: `feature-mode-aware-question-constraints-step-2-toolcontext-threading`
+
+```typescript
+// packages/core/src/types/tool.ts — extend
+export interface ToolContext {
+  // ...existing fields (sessionId, courseId, assignmentId, draftId, parentSessionId, services, log, etc.)
+  questionConstraints?: Required<QuestionConstraints>;  // NEW — resolved at session-open
+}
+```
+
+**Implementation notes**:
+- In `SessionServiceImpl.openActive(...)` (or `EngineSessionManager.openActive` — locate via grep), after the mode is loaded, resolve constraints once via `resolveQuestionConstraints(mode.id, mode.questionConstraints)` and stash on the entry.
+- When building the per-turn `callContext` for the registry's `dispatch`, include `questionConstraints` from the entry.
+- Optional, not required — for sessions whose mode doesn't use question tools (rare), undefined is fine.
+- Existing tests should pass; new test asserts that a freshly opened session's call context carries the right constraints for its mode.
+
+**Acceptance criteria**:
+- [ ] `ToolContext.questionConstraints?` field added
+- [ ] `SessionServiceImpl` (or session-manager) resolves constraints at open and stashes them
+- [ ] Call context build includes `questionConstraints` for every dispatch
+- [ ] Test: opening a teach session yields ToolContext with teach defaults
+- [ ] Test: opening a session whose mode has `questionConstraints: { choiceCount: 3 }` yields merged result
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green
+
+---
+
+### Unit 3: Shared `validateQuestionConstraints` helper
+**File**: `packages/tools/src/dialog/validate-question-constraints.ts` (NEW)
+**Story**: `feature-mode-aware-question-constraints-step-3-validation-helper`
+
+```typescript
+import type { Required } from "...";
+import type { QuestionConstraints } from "@praxis/core/types";
+
+export interface QuestionPayloadForValidation {
+  prompt: string;
+  options: Array<{ label: string } | string>;
+  multiSelect?: boolean;
+}
+
+export interface ValidationFailure {
+  ok: false;
+  code: "QUESTION_CONSTRAINT_VIOLATION";
+  message: string;   // written for the agent to learn from
+  field: "prompt" | "options" | "choiceCount" | "multiSelectCap";
+}
+
+export type ValidationResult =
+  | { ok: true }
+  | ValidationFailure;
+
+export function validateQuestionConstraints(
+  payload: QuestionPayloadForValidation,
+  constraints: Required<QuestionConstraints>,
+  modeLabel: string,
+): ValidationResult {
+  const promptWords = countWords(payload.prompt);
+  if (promptWords > constraints.promptMaxWords) {
+    return {
+      ok: false,
+      code: "QUESTION_CONSTRAINT_VIOLATION",
+      field: "prompt",
+      message: `Question prompt too long for ${modeLabel} mode (${promptWords} words; max ${constraints.promptMaxWords}). Trim to the essential framing; move reasoning into the preceding tutor turn.`,
+    };
+  }
+  if (payload.options.length > constraints.choiceCount) {
+    return {
+      ok: false,
+      code: "QUESTION_CONSTRAINT_VIOLATION",
+      field: "choiceCount",
+      message: `Too many choices for ${modeLabel} mode (${payload.options.length}; max ${constraints.choiceCount}). Cut to the most discriminating options.`,
+    };
+  }
+  for (let i = 0; i < payload.options.length; i++) {
+    const labelText = typeof payload.options[i] === "string"
+      ? (payload.options[i] as string)
+      : (payload.options[i] as { label: string }).label;
+    const labelWords = countWords(labelText);
+    if (labelWords > constraints.choiceMaxWords) {
+      return {
+        ok: false,
+        code: "QUESTION_CONSTRAINT_VIOLATION",
+        field: "options",
+        message: `Choice ${i + 1} text too long for ${modeLabel} mode (${labelWords} words; max ${constraints.choiceMaxWords}). Compress to the choice's distinguishing feature; longer reasoning belongs in the preceding tutor turn.`,
+      };
+    }
+  }
+  // multiSelectCap not enforced at validation time — that's the *answer* cap, not the question shape
+  return { ok: true };
+}
+
+function countWords(s: string): number {
+  return s.trim().split(/\s+/).filter(Boolean).length;
+}
+```
+
+**Implementation notes**:
+- Word count = whitespace-split, ignoring leading/trailing whitespace. Markdown inline like `**bold**` counts as one word.
+- Error messages are written **for the agent** — second-person, instructive, suggests the correct action.
+- `multiSelectCap` is the cap on the student's _answer_ (how many selections allowed), not the question shape. Enforce at the multi-select handler's answer-validation step, not here.
+- Helper is package-internal to `@praxis/tools` (not exported beyond it).
+
+**Acceptance criteria**:
+- [ ] Helper accepts string or `{label}` option shapes
+- [ ] Returns success when within all caps
+- [ ] Returns failure for over-cap prompt with descriptive message
+- [ ] Returns failure for over-cap choice count
+- [ ] Returns failure for per-choice over-cap with index in message
+- [ ] `countWords` handles leading/trailing whitespace and empty
+- [ ] `packages/tools/src/dialog/__tests__/validate-question-constraints.test.ts` covers every branch with table-driven tests
+
+---
+
+### Unit 4: `questionToolFragment` factory
+**File**: `packages/curriculum/src/modes/fragments/question-tool.ts` (NEW)
+**Story**: `feature-mode-aware-question-constraints-step-4-prompt-fragment`
+
+```typescript
+import type { PromptFragment, QuestionConstraints } from "@praxis/core/types";
+
+export function questionToolFragment(
+  constraints: Required<QuestionConstraints>,
+  modeLabel: string,
+): PromptFragment {
+  return {
+    id: "question-tool-guidance",
+    position: "constraints",
+    customizable: false,
+    template: `## Questions and educational content
+
+When using the question tools (\`ask_student_question\`, \`quick_check.*\`), respect these caps for ${modeLabel} mode:
+- Question prompt: max ${constraints.promptMaxWords} words
+- Each choice text: max ${constraints.choiceMaxWords} words
+- Up to ${constraints.choiceCount} choices per question
+- Multi-select: students may select up to ${constraints.multiSelectCap}
+
+Over-cap calls fail with a descriptive error you can correct from. Compress to the essential framing; longer reasoning belongs in the preceding tutor turn.
+
+## Content conventions
+
+### Math
+- Inline: \`$f(x) = x^2$\`
+- Display: \`$$\\frac{dV}{dt} = ...$$\`
+- Bare unicode glyphs (∂, ∫, π, α, etc.) are auto-styled but use LaTeX for full typesetting
+
+### Citations
+Call the \`citation\` tool with \`source_id\` and \`passage\`. Do NOT inline-write \`[Stewart §3.5]\` markup — the tool emits the chip.
+
+### Definitions
+Wrap first-introduction terms in \`[[def:term-name]]\`. The renderer styles the first occurrence per student and falls through on subsequent mentions.
+
+### Callouts
+Use GitHub admonition syntax: \`> [!theorem]\`, \`> [!lemma]\`, \`> [!hint]\`, \`> [!warning]\`. One register per moment.
+
+### Concept references
+Link with the \`concept:\` scheme: \`[chain rule](concept:chain-rule)\`.
+
+### Figures
+For worked examples, use a container directive:
+\`\`\`
+::: figure {caption="Fig. 1 · convergence near x=0" verdict="ok"}
+<figure body — markdown, math, etc.>
+:::
+\`\`\`
+`,
+  };
+}
+```
+
+**Implementation notes**:
+- Position is `"constraints"` — slots in after the role/principles/tools sections, before user-global.
+- `customizable: false` — these are framework-level instructions; users shouldn't override them (the `customizable` precedent in `compose.ts:63` enforces this).
+- Template is plain text with backtick code fences for examples — agent-readable.
+- The content-conventions section is the **single SOT** for cross-cutting markup conventions; sibling features (`feature-math-rendering`, `feature-content-renderer-pipeline`) contribute their sections by editing this fragment, not by adding new fragments.
+- Future additions go here. Discoverability win.
+
+**Acceptance criteria**:
+- [ ] Factory returns a `PromptFragment` with `id: "question-tool-guidance"`, position `"constraints"`, `customizable: false`
+- [ ] Template interpolates `constraints.promptMaxWords`, `choiceMaxWords`, `choiceCount`, `multiSelectCap` correctly
+- [ ] Template includes math, citations, definitions, callouts, concept refs, figures sections
+- [ ] Unit test: factory output for teach constraints contains "max 30 words" and "max 10 words"
+- [ ] Unit test: factory output for exam constraints differs from teach (60 / 25 vs 30 / 10)
+
+---
+
+### Unit 5: Wire validation into `ask_student_question` handler
+**File**: `packages/tools/src/dialog/ask-student-question.ts`
+**Story**: `feature-mode-aware-question-constraints-step-5-ask-student-question-wire`
+
+**Implementation notes**:
+- In the handler, **before** awaiting QuickCheckService, iterate `args.questions` and validate each with `validateQuestionConstraints(question, ctx.questionConstraints ?? FALLBACK_QUESTION_CONSTRAINTS, modeLabel)`.
+- On the first failure, return `{ ok: false, error: { code: "QUESTION_CONSTRAINT_VIOLATION", message: failure.message } }` — short-circuit; don't enqueue any questions.
+- Add tests in `packages/tools/src/dialog/__tests__/ask-student-question.test.ts`:
+  - Over-cap prompt fails with descriptive message
+  - Over-cap choice fails with descriptive message + correct index
+  - Within-cap call succeeds (no change to existing behavior)
+  - Mixed valid-then-invalid questions: fails on first invalid, no partial enqueue
+
+**Acceptance criteria**:
+- [ ] Handler validates every question in the `questions` array
+- [ ] Over-cap returns failure tool-result with descriptive message
+- [ ] Within-cap is unchanged behavior (existing tests still pass)
+- [ ] Short-circuits on first failure (no partial side effects)
+- [ ] Tests cover prompt over-cap, choice over-cap, choice-count over-cap
+
+---
+
+### Unit 6: Wire validation into `quick_check.*` handlers
+**File**: `packages/tools/src/quick-check/single-choice.ts`, `multi-select.ts`, `short-answer.ts`, `matching.ts`, `confidence.ts`
+**Story**: `feature-mode-aware-question-constraints-step-6-quick-check-wire`
+
+**Implementation notes**:
+- Each quick_check variant has a slightly different schema. Apply validation appropriately:
+  - `single-choice`, `multi-select`, `matching`: validate prompt + options/items per the helper
+  - `short-answer`: validate prompt only (no options); `choiceCount` doesn't apply
+  - `confidence`: validate prompt only (the choices are domain-fixed: "high / medium / low")
+- The helper accepts string-or-object options; quick_check uses `string[]` for `options` so map to the right shape.
+- Add tests in `packages/tools/src/quick-check/__tests__/`:
+  - One per-variant over-cap prompt test
+  - For variants with choices: over-cap choice test
+- Mirror the short-circuit behavior of `ask_student_question`.
+
+**Acceptance criteria**:
+- [ ] All 5 quick_check variants validate against `ctx.questionConstraints`
+- [ ] Over-cap returns descriptive failure tool-result
+- [ ] Tests cover each variant's failure path + within-cap success
+- [ ] No regression on existing quick_check tests
+
+---
+
+### Unit 7: Per-mode wiring — backfill + fragment registration
+**File**: Every file under `packages/curriculum/src/modes/` that uses question tools (teach.ts, quiz.ts, homework.ts, exam.ts, course-create.ts, study-skills.ts; possibly configure.ts)
+**Story**: `feature-mode-aware-question-constraints-step-7-mode-wiring`
+
+**Implementation notes**:
+- For each mode that uses question tools, **register** the new fragment:
+  - Append `questionToolFragment(resolveQuestionConstraints(mode.id, mode.questionConstraints), mode.label)` to `mode.promptFragments`
+  - Verify position-`constraints` slot doesn't collide with an existing fragment; if so, rename or merge
+- Backfill `mode.questionConstraints` only where the default needs overriding — most modes inherit defaults via `DEFAULT_QUESTION_CONSTRAINTS_BY_MODE`. Leave fields undefined where the default is correct.
+- For modes that explicitly don't use question tools (configure, possibly others — verify), do NOT register the fragment.
+- Backfill task: read each mode file, decide constraints, register fragment.
+- Add integration tests in `packages/curriculum/src/__tests__/mode-question-fragment.test.ts`:
+  - Each question-using mode includes `questionToolGuidance` fragment after composition
+  - Composed system prompt for teach mode contains "max 30 words"
+  - Composed system prompt for exam mode contains "max 60 words"
+  - Non-question-using modes don't include the fragment
+
+**Acceptance criteria**:
+- [ ] All question-using modes register `questionToolFragment`
+- [ ] `composeSystemPrompt` for each mode includes the fragment text with correct caps
+- [ ] Non-question-using modes don't include it
+- [ ] Integration tests pass
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green
+
+---
+
+## Implementation Order
+
+1. **step-1-types-and-defaults** (deps: `[]`) — type + defaults + resolver
+2. **step-2-toolcontext-threading** (deps: `[step-1]`) — ToolContext gains field; SessionService threads
+3. **step-3-validation-helper** (deps: `[step-1]`) — shared validator
+4. **step-4-prompt-fragment** (deps: `[step-1]`) — `questionToolFragment` factory
+5. **step-5-ask-student-question-wire** (deps: `[step-2, step-3]`)
+6. **step-6-quick-check-wire** (deps: `[step-2, step-3]`)
+7. **step-7-mode-wiring** (deps: `[step-1, step-4]`) — register fragment in every relevant mode
+
+Parallel-friendly: step-1 unlocks 2/3/4 in parallel; 5/6 fan out after 2+3; 7 after 1+4. Steps 5/6/7 can all run in parallel once their deps land.
+
+## Testing
+
+### Unit tests (per story)
+- `packages/curriculum/src/__tests__/question-constraints.test.ts` — defaults + resolver
+- `packages/tools/src/dialog/__tests__/validate-question-constraints.test.ts` — every branch
+- `packages/tools/src/dialog/__tests__/ask-student-question.test.ts` (extend) — over-cap paths
+- `packages/tools/src/quick-check/__tests__/*-tool.test.ts` (extend each variant) — over-cap paths
+- `packages/curriculum/src/modes/fragments/__tests__/question-tool.test.ts` — factory output
+- `packages/curriculum/src/__tests__/mode-question-fragment.test.ts` — composed prompts contain correct caps
+
+### Integration
+- Tool-dispatch end-to-end: open session in teach mode → dispatch `ask_student_question` with 50-word prompt → expect failure with "max 30 words" message
+- Cross-mode: dispatch same call in exam mode → expect success (60 cap)
+
+### Test helpers
+- `makeToolContext` (`tests/helpers/tool-context.ts`) — extend with optional `questionConstraints` field defaulting to FALLBACK
+- Pattern: `temp-db-test-helper`, `shared-test-fake-factories`
+
+## Risks
+
+- **`configure` mode question-tool usage unknown.** The Explore agent's map says configure doesn't list question tools, but worth double-checking with grep before deciding whether to register the fragment. **Mitigation**: step-7 lists every mode + its question-tool usage explicitly before wiring.
+
+- **Existing modes don't include the `constraints`-position fragment slot today.** Adding one may interact with the fragment-order assertion in `composeSystemPromptWithAttribution`. **Mitigation**: integration test asserts the composed prompt under teach mode contains the question-tool fragment AND no FRAGMENT_ORDER violations are thrown.
+
+- **`mode.label` may not be agent-facing.** The validation helper uses `modeLabel` in error messages. If `mode.label` is the internal id ("teach") rather than human label ("Teach"), agent error reads weirdly. **Mitigation**: use `mode.displayName` if available, falling back to `mode.label`, falling back to `mode.id`. Check mode interface field for the best agent-facing string.
+
+- **Course-create's `ask_student_question` is the drafter's flow control.** Drafter uses these calls to pause-and-confirm with the user during course creation. Caps too tight here would block valid drafter behavior. **Mitigation**: course-create defaults (50/15/5/6) are generous; verify against existing drafter usage in production (`packages/core/src/services/course-create/` — flag any draft-time message that exceeds caps as a Risk to address before this feature lands).
+
+- **First-message validation timing.** The handler validates after Zod parse but before any side effect. Mid-call failure mid-iteration could leak partial state. **Mitigation**: validate all questions in `ask_student_question` upfront BEFORE any QuickCheckService.enqueue call. Confirmed in Unit 5 acceptance.
