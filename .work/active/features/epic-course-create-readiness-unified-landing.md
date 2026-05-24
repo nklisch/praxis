@@ -1,7 +1,7 @@
 ---
 id: epic-course-create-readiness-unified-landing
 kind: feature
-stage: drafting
+stage: implementing
 tags: [ui, ingestion, bootstrap, configure, course-authoring]
 parent: epic-course-create-readiness
 depends_on: [epic-course-create-readiness-startup-invisible]
@@ -204,3 +204,186 @@ align code to create as well so we don't have drift later"):
   to find pages with no user-reachable path. Parked at
   `.work/backlog/idea-orphan-routes-audit.md` (or equivalent slug).
   Not part of this feature's scope.
+
+## Design decisions (feature-design, 2026-05-23, autopilot)
+
+Resolved open questions:
+
+- **Paste source — full ingestion path.** Pasting creates a Document via
+  the existing ingestion path (text/plain content type). The Document
+  shows up in the documents list, is RAG-retrievable, and behaves
+  identically to an uploaded `.txt` file. SSOT preserved (one document
+  abstraction). Alternative one-shot context-only path was rejected as
+  duplicative of the existing context textarea AND inconsistent with
+  Upload's behavior.
+- **Pack source-attached state shape — URL search params.**
+  `/course-create?pack=algebra-1` is the contract. RESTful,
+  bookmarkable, survives reload, simplest navigation API. Onboarding's
+  path cards and any other "pre-select a pack" entry point set this
+  param. The route reads it on mount and pre-attaches the pack.
+- **Bypass paths routing matrix (confirmed)**:
+  - `courses.tsx:20` `handleNewCourse` → route through `/course-create`
+  - `courses.tsx:29` `handleResumeDraft` → skip landing (resume is
+    direct: re-pick source is pointless)
+  - `library.tsx:79` `handleUsePack` → route through
+    `/course-create?pack=<id>`
+  - `library.tsx:130` `resume_draft` recommendation → skip landing
+  - `onboarding-flow.tsx:341` → route through
+    `/course-create?pack=<id>` (or no param for syllabus card)
+- **phase-16 doc rename**: defer per rolling-foundation convention
+  (frozen history). Skip in this feature.
+
+## Architectural choice
+
+**4 stories**: a source-picker UI shell (which absorbs the stepper rename
+since both touch course-create.tsx), the bypass-routes reroute pass, the
+onboarding slim-down, and the /packs-fold-into-Library refactor.
+
+Sequencing:
+- Wave 1 (parallel): source-picker, packs-fold-into-library (disjoint
+  files; can run together).
+- Wave 2: bypass-routes-reroute and onboarding-slim-down both depend on
+  source-picker landing first (they consume the `?pack=` URL contract).
+
+## Implementation Units
+
+### Unit 1: Source-picker UI shell + paste source + stepper rename
+
+**File**: `packages/ui/src/routes/course-create.tsx` + new
+`source-picker.tsx` + new `paste-source.tsx`
+**Story**: `epic-course-create-readiness-unified-landing-source-picker`
+
+Per the locked Option 4 mock
+(`.mockups/screens/epic-course-create-readiness-unified-landing-source-picker/`),
+the source area is a 3-tab control:
+
+- **Pack tab (landing)**: list of canonical packs with "Use this pack"
+  rows. Selecting a pack sets it as the source.
+- **Upload tab** (carrying a `create your own` tag): existing drop zone
+  + file browse.
+- **Paste tab**: textarea + "Add as source" button that calls the
+  ingestion path to create a Document from the pasted text.
+- **Below the tabs**: italic "Or —" bar always names the OTHER two
+  source options as alternative paths; clicking switches tabs (not
+  modals — tab-switching per the Option 4 tweak).
+
+URL contract: `/course-create?pack=<packId>` pre-selects the Pack tab
+and pre-attaches that pack as source on mount.
+
+Stepper rename: `course-create.tsx:139` — change `Explore` → `Create`.
+Included in this story to avoid file conflict with the source-picker
+change (same file).
+
+**Acceptance Criteria**:
+- [ ] Source picker renders the 3 tabs (Pack landing, Upload, Paste).
+- [ ] Pack tab lists available packs via `client.packs.list` (or equiv).
+- [ ] Selecting a pack sets it as the attached source (visible in the
+  attached-files list area).
+- [ ] Upload tab preserves existing drop-zone + browse behavior.
+- [ ] Paste tab creates a Document via the ingestion path; the new
+  Document appears in the attached-files list.
+- [ ] "Or —" bar shows the OTHER two source options and switches tabs
+  on click.
+- [ ] `/course-create?pack=algebra-1` pre-selects the Pack tab and
+  pre-attaches the pack on mount.
+- [ ] Stepper reads `Material · Create · Confirm · Open`.
+- [ ] UI tests cover: tab switching, paste-creates-document, URL param
+  pre-selection.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+### Unit 2: /packs → Library section + remove top-level route
+
+**File**: `packages/ui/src/routes/library.tsx` + delete
+`packages/ui/src/routes/packs.tsx` + `packages/ui/src/router.tsx:155`
+**Story**: `epic-course-create-readiness-unified-landing-packs-into-library`
+
+- Create `PacksSection` component (extract from existing `packs.tsx`
+  content) and add it to the Library route.
+- Remove the top-level `/packs` route from `router.tsx:155`.
+- Audit and update any inbound links to `/packs` (search the codebase
+  for `to="/packs"` or `navigate("/packs")` and update to
+  `/library#packs` or whatever the Library section anchor is).
+- Delete `packs.tsx` once all references are gone.
+
+**Acceptance Criteria**:
+- [ ] Library route shows a Packs section listing canonical packs.
+- [ ] `/packs` URL no longer resolves; it 404s or redirects to
+  `/library` (pick redirect for backward-compat with any external
+  links).
+- [ ] All inbound links to `/packs` updated.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+### Unit 3: Bypass routes reroute pass
+
+**File**: `packages/ui/src/routes/courses.tsx`,
+`packages/ui/src/routes/library.tsx`
+**Story**: `epic-course-create-readiness-unified-landing-bypass-reroute`
+**Depends on**: source-picker (consumes the `?pack=` URL contract)
+
+Per the routing matrix:
+- `courses.tsx:20` `handleNewCourse` → `navigate({ to: "/course-create" })`
+  (replace the direct `session.start` dance).
+- `courses.tsx:29` `handleResumeDraft` → leave as-is (resume is direct).
+- `library.tsx:79` `handleUsePack` →
+  `navigate({ to: "/course-create", search: { pack: packId } })`
+  (replace `openSessionInTab`).
+- `library.tsx:130` `resume_draft` rec → leave as-is.
+
+**Acceptance Criteria**:
+- [ ] `handleNewCourse` navigates to `/course-create` instead of starting
+  a session directly.
+- [ ] `handleUsePack` navigates to `/course-create?pack=<id>`.
+- [ ] Resume paths unchanged.
+- [ ] UI tests cover: cold-start paths route through landing; resume
+  paths don't.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+### Unit 4: Onboarding slim-down
+
+**File**: `packages/ui/src/components/onboarding-flow.tsx`
+**Story**: `epic-course-create-readiness-unified-landing-onboarding-slim`
+**Depends on**: source-picker (consumes the `?pack=` URL contract)
+
+- Replace `CourseStep.handleStart`'s inline `session.start` + pre-seed +
+  `tabs.open` + `navigate` with a navigation to
+  `/course-create?pack=<id>` (Algebra/Biology cards) or just
+  `/course-create` (Syllabus card).
+- Remove the `PRESEED_MESSAGES` constant.
+- Onboarding remains a thin pre-step (3 path cards). After clicking a
+  card, the user lands on `/course-create` with the pack pre-attached
+  (or empty for syllabus path).
+
+**Acceptance Criteria**:
+- [ ] Onboarding's Algebra card navigates to
+  `/course-create?pack=algebra-1` (or the canonical id).
+- [ ] Biology card navigates to `/course-create?pack=biology-1`.
+- [ ] Syllabus card navigates to `/course-create` (no pre-attach).
+- [ ] `PRESEED_MESSAGES` constant removed.
+- [ ] `session.start` + `tabs.open` dance removed from
+  `CourseStep.handleStart`.
+- [ ] Onboarding tests cover the 3 paths' navigation targets.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation Order
+
+1. Wave 1 (parallel): source-picker + packs-into-library
+2. Wave 2 (parallel): bypass-reroute + onboarding-slim
+
+## Testing
+
+- UI tests per story (component-level + URL-param assertions).
+- E2E coverage: onboarding → /course-create with pack pre-attached →
+  start session and see the chat (relies on
+  `epic-course-create-readiness-startup-invisible`, done).
+
+## Risks
+
+- **Pack id contract** — what's the canonical id format
+  (`"algebra-1"`, `"algebra_1"`, course slug, etc.)? Check
+  `client.packs.list` shape during source-picker implementation;
+  document in story body.
+- **Paste content size** — large paste could overwhelm the ingestion
+  path. Existing limits apply; if there's no limit yet, this isn't the
+  story to add one.
+- **Inbound links to `/packs`** — exhaustive grep needed; missing one
+  produces 404s. The acceptance criterion explicitly requires the audit.
