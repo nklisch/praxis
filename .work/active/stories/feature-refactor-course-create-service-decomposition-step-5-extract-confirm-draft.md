@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-5-extract-confirm-draft
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -80,3 +80,11 @@ callback that `runConfirmDraft` invokes inside the same `db.transaction(tx => ..
 ## Risk + Rollback
 Risk: Medium — transaction boundary is load-bearing. Verify with integration tests.
 Rollback: inline `runConfirmDraft` back into the service method.
+
+## Implementation notes
+- Created `packages/core/src/services/course-create/draft-confirmer.ts` (90 lines).
+- `runConfirmDraft(ctx, deps)` opens the Drizzle transaction internally, calls `persistDraftTx` then `ctx.markConfirmedTx` in the same `tx` — atomicity preserved.
+- `draft.draftId` (plain `string` on `DraftCourseState`) is branded via `brandId<"DraftId">(...) as DraftId` before passing to `markConfirmedTx`, matching the pattern in the service.
+- Document-scope promotion (`promoteScope`/`attachMany`) is post-transaction and non-fatal, preserving the original error-handling semantics.
+- `course-create-service.ts` is NOT modified (Step 7 handles wiring).
+- `pnpm typecheck && pnpm --filter @praxis/core test` pass: 96 test files, 1164 tests.
