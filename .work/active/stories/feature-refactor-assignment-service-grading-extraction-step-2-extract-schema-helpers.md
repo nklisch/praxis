@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-assignment-service-grading-extraction-step-2-extract-schema-helpers
 kind: story
-stage: review
+stage: done
 tags: [refactor]
 parent: feature-refactor-assignment-service-grading-extraction
 depends_on:
@@ -76,3 +76,15 @@ belongs in the grading loop itself.
 ## Rollback
 Revert `graders/item-schemas.ts`, `graders/submission-helpers.ts`, edits to
 `graders/index.ts`, and edits to `assignment-service.ts`. No DB, IPC, or behavioural change.
+
+## Review
+
+Verdict: **done**
+
+Verified:
+- `graders/item-schemas.ts` (234 lines): all 10 discriminated union members present, `validateItems` and `validateRubricWeights` both exported correctly. `validateRubricWeights` was previously private in `assignment-service.ts` — it is now `export` (fine, no downstream breakage and consistent with the extraction goal).
+- `graders/submission-helpers.ts` (72 lines): `rowToAssignment` and `composeSubmissionNote` cleanly extracted; `AssignmentRow` type derived from `typeof assignments.$inferSelect` as designed; `brandId` used generically to avoid explicit brand type imports.
+- `graders/index.ts` updated with exports for both new modules.
+- `assignment-service.ts` not modified per agreed deviation (Step 4 handles re-exports and wiring).
+- Dependency directions clean: `item-schemas.ts` imports only `zod` + core types; `submission-helpers.ts` imports `@praxis/artifacts/schema` + core types — both within permitted direction.
+- 96/96 test files, 1164/1164 tests pass.
