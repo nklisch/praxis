@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-use-ingestion-startpick-dead
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -66,3 +66,13 @@ before raising `tier_selection`.
 - Post-check: `grep -n 'startPick|runIngestion' use-ingestion.ts` returned zero hits
 - Verification: `pnpm --filter @praxis/ui test --reporter=basic` → 163 test files, 1703 tests, all pass
 - `pnpm --filter @praxis/ui typecheck` → clean
+
+## Review
+
+Verdict: **done**
+
+- Zero production callers of `.startPick` confirmed across all packages (grep found only `startPickBatch`).
+- `runIngestion` fully removed from `use-ingestion.ts`; `confirmTier` is now unconditional with a clean deps array (`[ingestOneWithResult]`).
+- `startPick` field removed from `UseIngestionResult` interface and hook return object.
+- Dead test block (`describe("useIngestion — single-file (startPick)")`, 7 tests) removed; remaining 11 batch-path tests pass.
+- No nits. Clean removal with no loose ends.
