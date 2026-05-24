@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-course-create-service-decomposition-step-3-extract-incremental-mutators
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-course-create-service-decomposition
 depends_on: []
@@ -76,3 +76,20 @@ The module provides: the pure validation + mutation logic.
 ## Risk + Rollback
 Risk: Low-Medium — moving logic across file boundaries; tests provide coverage.
 Rollback: inline the functions back; tests catch regressions immediately.
+
+## Implementation notes
+
+- Created `packages/core/src/services/course-create/draft-mutators.ts` (379 lines).
+- Nine pure mutation functions exported: `addConceptMutation`, `removeConceptMutation`,
+  `addEdgeMutation`, `addLessonMutation`, `removeLessonMutation`, `addUnitMutation`,
+  `setAssessmentPlanMutation`, `addLessonAssessmentMutation`, `setMetadataMutation`.
+- Each function signature: `(draft: DraftCourseState, input: XxxInput) → XxxResult`
+  where `XxxResult` is either `{ ok: true; draft: DraftCourseState; ...extras }` or
+  `{ ok: false; reason: string }`.
+- All input/result types are exported as named interfaces for strong typing in Step 7.
+- `uuidv7` imported directly in the module for `addLesson` (draftLessonId),
+  `addUnit` (draftUnitId + summative draftAssessmentId), and `addLessonAssessment`
+  (draftAssessmentId) — no injectable dep needed.
+- `normalizeConceptName` re-exported from `./helpers.js` for convenience.
+- `course-create-service.ts` was NOT modified per the task instructions — Step 7 handles wiring.
+- `pnpm typecheck` and `pnpm --filter @praxis/core test` both pass (96 files, 1164 tests).
