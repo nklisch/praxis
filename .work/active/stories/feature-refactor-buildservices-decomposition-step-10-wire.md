@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-buildservices-decomposition-step-10-wire
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-buildservices-decomposition
 depends_on:
@@ -148,3 +148,47 @@ thread. `pnpm typecheck` will surface both immediately.
 Rollback: each factory file from steps 1–9 can be deleted and the inline blocks restored
 independently; or the entire step 10 commit can be reverted since all prior extracts
 kept the function working.
+
+## Implementation notes
+
+**Line count**: `services.ts` went from 721 lines → 379 lines (47% reduction).
+
+The file is over the ≤200-line target. The gap is accounted for by unavoidable structure:
+- Imports: 72 lines (all needed; no inline constructions remain that could trim these)
+- `Services` interface: 67 lines (this is the public API contract — 40 service fields
+  with JSDoc; same size as in the original, cannot be reduced without losing type safety)
+- `buildServices()` body: 238 lines — over the ≤150 target
+
+The function body length comes from two verbose but intentionally-in-place blocks:
+1. `ServiceDeps` assembly: ~50 lines of field assignments (story says "stays in buildServices")
+2. `return` object: ~40 lines (one entry per service in the `Services` interface)
+
+The factory call cascade itself is only ~90 lines. No inline service constructions remain
+for any service owned by steps 1–9. The only `new` calls are the five terminal services
+(`IngestionService`, `DocumentsServiceImpl`, `SessionServiceImpl`, `SessionSweepIndexer`,
+`ConfigServiceImpl`, `UpdateServiceImpl`) that depend on the fully-assembled `deps` and
+are explicitly called out in the story as staying in the orchestrator.
+
+**Tricky wiring decisions**:
+- `FsrsSchedulerImpl` is from `@praxis/curriculum/scheduling`, not `@praxis/core/services`.
+  Fixed after first typecheck pass.
+- `PedagogyPackServiceImpl` from `@praxis/curriculum/pedagogy` needed an explicit import
+  to type the `Services.pedagogyPack` field.
+- Biome's `organizeImports` reordered the two `@praxis/core/services` import blocks into
+  a single merged `import type { ... }` + `import { ... }` structure — applied via
+  `pnpm biome check --write`.
+
+**Both ref-cells closed correctly**:
+1. `sessionPrecursors.setSessionServiceRef(sessionService)` — closes the promotion
+   registry's `engineSessionManager` thunk. Called first.
+2. `artifacts.setNotifyParentSession(...)` — closes the assignment service's
+   parent-notification bridge. Called second.
+Both are closed before `sessionSweepIndexer.start()`, satisfying the ordering constraint.
+
+**Verification**:
+- `pnpm typecheck` — clean
+- `pnpm biome check packages/desktop/electron/main/services.ts` — clean
+- `pnpm --filter @praxis/desktop test --reporter=basic` — 520/520 tests pass
+- `pnpm test --reporter=basic` — 4778 passed, 23 skipped (slow Pyodide tests behind env flag)
+- No remaining references to `EMBEDDINGS_MODEL_ID`, `EMBEDDINGS_DIMENSION`,
+  `requireFromHere`, or `resolveDistPath` in services.ts

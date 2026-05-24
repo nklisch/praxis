@@ -1,54 +1,40 @@
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
-import { assignments } from "@praxis/artifacts/schema";
-import { readCourseCreateConfig, readEngineConfig } from "@praxis/core/config";
+import { readCourseCreateConfig } from "@praxis/core/config";
 import { openDb } from "@praxis/core/db";
-import { FsEmbeddedImageStore, FsPageImageStore, IngestionService } from "@praxis/core/ingestion";
+import { IngestionService } from "@praxis/core/ingestion";
 import type { NodeWorker } from "@praxis/core/runtime";
-import type { ServiceDeps } from "@praxis/core/services";
-import {
+import type {
   ActivityRegistryImpl,
-  AffectiveIndexer,
   ArtifactsServiceImpl,
   AssignmentServiceImpl,
   AuthoringServiceImpl,
   CitationsServiceImpl,
   ClaudeAuthServiceImpl,
-  ConceptMapDivergenceIndexer,
   ConceptMapServiceImpl,
-  ConceptMapSnapshotter,
-  ConfigServiceImpl,
   CourseCreateServiceImpl,
   DocumentScopesServiceImpl,
-  DocumentsServiceImpl,
-  DrizzleDocumentsReader,
   FlashcardsServiceImpl,
-  getOrCreateDefaultStudentId,
-  IndexerOrchestratorImpl,
   LibraryServiceImpl,
   LockServiceImpl,
-  MasteryIndexer,
   MemoryServiceImpl,
-  MisconceptionIndexer,
   NotesServiceImpl,
-  ProceduralIndexer,
   ProgressServiceImpl,
-  PromptCustomizationServiceImpl,
   QuickCheckServiceImpl,
   RecommendationServiceImpl,
+  ServiceDeps,
   SessionPromotionRegistryImpl,
-  SessionServiceImpl,
-  SessionSweepIndexer,
   SketchServiceImpl,
-  SqliteDraftStore,
   SubAgentRegistryImpl,
   TabsServiceImpl,
-  UpdateServiceImpl,
-  VisionServiceImpl,
 } from "@praxis/core/services";
-import { FsSketchStore } from "@praxis/core/sketch";
-import type { AssignmentId, ConfiguratorId, PackImportService } from "@praxis/core/types";
-import { brandId } from "@praxis/core/types";
+import {
+  ConfigServiceImpl,
+  DocumentsServiceImpl,
+  getOrCreateDefaultStudentId,
+  SessionServiceImpl,
+  SessionSweepIndexer,
+  UpdateServiceImpl,
+} from "@praxis/core/services";
+import type { PackImportService } from "@praxis/core/types";
 import {
   configureMode,
   courseCreateMode,
@@ -57,11 +43,8 @@ import {
   quizMode,
   teachMode,
 } from "@praxis/curriculum/modes";
-import { PackImportServiceImpl, SqliteConceptEmbeddingsStore } from "@praxis/curriculum/packs";
-import { PedagogyPackServiceImpl } from "@praxis/curriculum/pedagogy";
-import { FsrsSchedulerImpl } from "@praxis/curriculum/scheduling";
-import { createEngine } from "@praxis/engines";
-import { sessions } from "@praxis/memory/schema";
+import type { PedagogyPackServiceImpl } from "@praxis/curriculum/pedagogy";
+import type { FsrsSchedulerImpl } from "@praxis/curriculum/scheduling";
 import { ASSIGNMENT_TAKE_TOOLS, ASSIGNMENT_TUTOR_TOOLS } from "@praxis/tools/assignment";
 import { AUTHORING_TOOLS } from "@praxis/tools/authoring";
 import { COURSE_TOOLS } from "@praxis/tools/course";
@@ -70,63 +53,23 @@ import { DIALOG_TOOLS } from "@praxis/tools/dialog";
 import { DOCUMENT_TOOLS } from "@praxis/tools/document";
 import { EXAM_TOOLS } from "@praxis/tools/exam";
 import { FLASHCARD_TOOLS } from "@praxis/tools/flashcards";
-import { getToolLabel } from "@praxis/tools/labels";
-import { gradeMathTool, PyodideSymPyService } from "@praxis/tools/math";
+import { gradeMathTool } from "@praxis/tools/math";
 import { CONFIGURE_MEMORY_TOOLS, MEMORY_TOOLS } from "@praxis/tools/memory";
 import { NOTE_TOOLS } from "@praxis/tools/notes";
 import { QUICK_CHECK_TOOLS } from "@praxis/tools/quick-check";
 import { retrieveFromDocumentsTool } from "@praxis/tools/retrieval";
-import {
-  DocxIngestor,
-  EpubIngestor,
-  HtmlIngestor,
-  IngestorRegistry,
-  JsPdfIngestor,
-  MarkdownIngestor,
-  PlainTextIngestor,
-  PptxIngestor,
-  PyodideHost,
-  PyodideLanguageSandbox,
-  QuickJsLanguageSandbox,
-  SqliteFtsStore,
-  SqliteVecStore,
-  VisionPdfIngestor,
-  WorkerEmbeddingService,
-} from "@praxis/tools/runtime";
-import { CodeSandboxImpl, createCodeSandboxTool } from "@praxis/tools/sandbox";
+import type { IngestorRegistry, PyodideHost, WorkerEmbeddingService } from "@praxis/tools/runtime";
 import { sketchReadTool } from "@praxis/tools/sketch";
-import { eq } from "drizzle-orm";
-import { app } from "electron";
 import type { MainLogger } from "./logger.js";
-import { spawnNodeWorker } from "./runtime/spawn-node-worker.js";
-import { ElectronSafeStorageAdapter } from "./secret-storage.js";
-
-/**
- * Default model + dimension shared between the embeddings worker and its
- * host-side proxy. They MUST match — the worker is configured via env vars
- * derived from these and the proxy reports the same values synchronously to
- * `EmbeddingService` consumers.
- */
-const EMBEDDINGS_MODEL_ID = "Xenova/bge-small-en-v1.5";
-const EMBEDDINGS_DIMENSION = 384;
-
-/**
- * ESM-friendly equivalent of CommonJS `require`. Used to resolve the absolute
- * filesystem path of worker scripts shipped inside `@praxis/*` packages.
- *
- * Caveat: forked child processes run vanilla Node — they do NOT honor the
- * `praxis-source` export condition that Electron's main process resolves
- * with in dev. So we resolve to each package's `package.json` (always
- * available) and construct the explicit `dist/.../<script>.js` path
- * ourselves. This gives us the SAME path in dev and packaged builds.
- * `pnpm dev` runs `pnpm build` first, so `dist/` is always populated.
- */
-const requireFromHere = createRequire(import.meta.url);
-
-function resolveDistPath(packageName: string, distSubpath: string): string {
-  const pkgJson = requireFromHere.resolve(`${packageName}/package.json`);
-  return join(dirname(pkgJson), distSubpath);
-}
+import { buildArtifactsServices } from "./services/build-artifacts-services.js";
+import { buildEmbeddingsServices } from "./services/build-embeddings-services.js";
+import { buildIndexerServices } from "./services/build-indexer-services.js";
+import { buildInfraServices } from "./services/build-infra-services.js";
+import { buildMemoryServices } from "./services/build-memory-services.js";
+import { buildSandboxServices } from "./services/build-sandbox-services.js";
+import { buildSecretServices } from "./services/build-secret-services.js";
+import { buildSessionPrecursors } from "./services/build-session-precursors.js";
+import { buildWorkspaceServices } from "./services/build-workspace-services.js";
 
 export interface Services {
   session: SessionServiceImpl;
@@ -199,365 +142,71 @@ export interface Services {
 export function buildServices(dbPath: string, log: MainLogger): Services {
   const { db, sqlite } = openDb({ path: dbPath });
 
-  // Activity registry — constructed first so all producers can reference it.
-  const activityRegistry = new ActivityRegistryImpl({ log });
+  // Step 1: Infrastructure (activity registry, sub-agent registry, quick check)
+  const infra = buildInfraServices(log);
 
-  // Sub-agent transparency registry — resolves step labels from @praxis/tools/labels
-  // so the registry doesn't need to import from @praxis/tools itself.
-  const subAgentRegistry = new SubAgentRegistryImpl({
-    log,
-    resolveLabel: (toolName) => getToolLabel(toolName).present,
-  });
+  // Step 2: Secrets (safe storage, Claude auth)
+  const secrets = buildSecretServices(log);
 
-  // Phase 17: QuickCheckService — stateless in-process dispatch.
-  const quickCheckService = new QuickCheckServiceImpl(
-    log.child({ component: "quick-check-service" }),
-  );
+  // Step 3: Sandbox (Pyodide, QuickJS, code sandbox tool)
+  const sandbox = buildSandboxServices();
 
-  // Phase 4: Pyodide + sandbox
-  const pyodide = new PyodideHost({ packages: ["sympy"] });
-  const sympy = new PyodideSymPyService(pyodide);
-  // QuickJS (WASM) replaces isolated-vm for JavaScript. No native binding,
-  // no ABI dance, no forked worker needed. Each run() creates a fresh
-  // QuickJSRuntime + Context (~2-5ms) — same cost order as before.
-  const sandbox = new CodeSandboxImpl({
-    adapters: [new QuickJsLanguageSandbox(), new PyodideLanguageSandbox(pyodide)],
-  });
-  const codeSandboxTool = createCodeSandboxTool(sandbox);
+  // Step 4: Embeddings (vectors, FTS, worker, page/embedded images, packs, pedagogy)
+  const embeddings = buildEmbeddingsServices(db, sqlite, log);
 
-  // Phase 5: vectors + FTS + embeddings + page images
-  const vectorStore = new SqliteVecStore(sqlite);
-  const ftsStore = new SqliteFtsStore(sqlite);
-  // Embeddings live in a forked Node-mode child process. onnxruntime-node
-  // (the backend used by @huggingface/transformers) trips Electron's V8
-  // memory cage with SIGTRAP on inference if loaded into the GUI main
-  // process; the child is the same Electron binary launched in
-  // ELECTRON_RUN_AS_NODE mode, where the runtime sandbox check is gated on
-  // Chromium init paths that the Node-only mode skips. See
-  // ./runtime/spawn-node-worker.ts for the full rationale.
-  //
-  // Cache routing: in packaged builds the @huggingface/transformers default
-  // cache (`node_modules/@huggingface/transformers/.cache`) lives inside the
-  // read-only app.asar and crashes with ENOTDIR on first model fetch. We
-  // hand the worker an explicit cacheDir under userData/.
-  const embeddingsWorker = spawnNodeWorker({
-    scriptPath: resolveDistPath("@praxis/tools", "dist/runtime/embeddings-worker.js"),
-    name: "embeddings",
-    log,
-    env: {
-      PRAXIS_EMBEDDINGS_MODEL_ID: EMBEDDINGS_MODEL_ID,
-      PRAXIS_EMBEDDINGS_DIMENSION: String(EMBEDDINGS_DIMENSION),
-      ...(app.isPackaged && {
-        PRAXIS_EMBEDDINGS_CACHE_DIR: join(app.getPath("userData"), "transformers-cache"),
-      }),
-    },
-  });
-  const embeddings = new WorkerEmbeddingService({
-    worker: embeddingsWorker,
-    modelId: EMBEDDINGS_MODEL_ID,
-    dimension: EMBEDDINGS_DIMENSION,
-  });
-  const pageImageStore = new FsPageImageStore();
-  const embeddedImageStore = new FsEmbeddedImageStore();
-  const documentsReader = new DrizzleDocumentsReader(db, pageImageStore);
+  // Step 5: Memory (MemoryServiceImpl)
+  const memory = buildMemoryServices(db, log);
 
-  // Phase 10: concept embeddings + pack import service.
-  const conceptEmbeddings = new SqliteConceptEmbeddingsStore(sqlite, log);
-  const packImportService = new PackImportServiceImpl({
+  // Step 6: Artifacts (document scopes, citations, draft store, course-create,
+  //          assignment, artifacts — plus engine resolvers + notifyParentSession ref-cell)
+  const artifacts = buildArtifactsServices({
     db,
     log,
-    embeddings, // reuse the same LocalEmbeddingService (bge-small-en-v1.5, 384d)
-    conceptEmbeddings,
+    secretStorage: secrets.secretStorage,
+    memoryService: memory.memoryService,
+    sympy: sandbox.sympy,
+    sandbox: sandbox.sandbox,
   });
 
-  // Phase 18: pedagogy pack service — loads the bundled pack JSON at boot.
-  // Empty-pack mode when the v1 content file hasn't landed yet (no packPath override needed;
-  // the default path resolves to packages/curriculum/pedagogy/v1.json at runtime).
-  const pedagogyPackService = new PedagogyPackServiceImpl({ log });
-
-  // Vision resolver — looks up the active engine config at call time so swaps reflect immediately
-  const visionResolver = () => {
-    try {
-      const engineConfig = readEngineConfig(db, secretStorage, log);
-      const engine = createEngine({ config: engineConfig, deps: { log } });
-      return engine.vision;
-    } catch {
-      return undefined;
-    }
-  };
-
-  // Phase 6: Bootstrap engine resolver — same pattern as visionResolver above.
-  // Looks up the active engine at call time so engine swaps reflect immediately.
-  const bootstrapEngineResolver = () => {
-    const engineConfig = readEngineConfig(db, secretStorage, log);
-    return createEngine({ config: engineConfig, deps: { log } });
-  };
-
-  // Phase 16: DocumentScopesServiceImpl — must be constructed before CourseCreateServiceImpl.
-  const documentScopesService = new DocumentScopesServiceImpl({ db, log });
-
-  // Citations service — record and list document passage citations.
-  const citationsService = new CitationsServiceImpl({ db, log });
-
-  // Shared durable draft store — one instance used by both CourseCreateServiceImpl
-  // and RecommendationServiceImpl so they read from the same SQLite source.
-  const draftStore = new SqliteDraftStore(db);
-
-  const bootstrapService = new CourseCreateServiceImpl({
+  // Step 7: Indexers (concept map service + all six indexers + orchestrator)
+  const indexers = buildIndexerServices({
     db,
     log,
-    engineResolver: bootstrapEngineResolver,
-    documentScopes: documentScopesService,
-    draftStore,
+    artifactsService: artifacts.artifactsService,
+    bootstrapEngineResolver: artifacts.bootstrapEngineResolver,
+    pedagogyPackService: embeddings.pedagogyPackService,
+    activityRegistry: infra.activityRegistry,
   });
 
-  // Phase 7: helper to look up the courseId for a given session (used by indexers).
-  const readSessionCourseId = (sessionId: string): string | null => {
-    const row = db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
-    return row?.courseId ?? null;
-  };
+  // Step 8: Workspace productivity services (ingestors, scheduler, lock, tabs,
+  //          sketch, vision, notes, flashcards, library, recommendations, progress)
+  const workspace = buildWorkspaceServices({
+    db,
+    sqlite,
+    log,
+    secretStorage: secrets.secretStorage,
+    memoryService: memory.memoryService,
+    artifactsService: artifacts.artifactsService,
+    draftStore: artifacts.draftStore,
+    visionResolver: artifacts.visionResolver,
+    bootstrapEngineResolver: artifacts.bootstrapEngineResolver,
+    embeddedImageStore: embeddings.embeddedImageStore,
+    pageImageStore: embeddings.pageImageStore,
+  });
 
-  // Ingestor registry — all 8 ingestors
-  const ingestorRegistry = new IngestorRegistry([
-    new PlainTextIngestor(),
-    new MarkdownIngestor(),
-    new HtmlIngestor(),
-    new DocxIngestor({ embeddedImageStore }),
-    new EpubIngestor(),
-    new JsPdfIngestor(),
-    new PptxIngestor({ embeddedImageStore }),
-    new VisionPdfIngestor({ visionResolver, pageImageStore }),
-  ]);
-
-  // Phase 7: MemoryServiceImpl — decayDaysFor uses a global default of 14 days.
-  // Phase 9: MemoryServiceImpl must be constructed BEFORE ArtifactsServiceImpl
-  // because ArtifactsServiceImpl now receives it as MasteryReader.
-  const memoryService = new MemoryServiceImpl({
+  // Step 9: Session precursors (promotion registry + ref-cell, prompt customization, authoring)
+  const sessionPrecursors = buildSessionPrecursors({
     db,
     log,
-    decayDaysFor: () => 14,
+    artifactsService: artifacts.artifactsService,
+    memoryService: memory.memoryService,
+    conceptMapService: indexers.conceptMapService,
+    conceptMapConfiguratorId: indexers.conceptMapConfiguratorId,
   });
 
-  // Phase 8: AssignmentServiceImpl.
-  // Phase 9: Must be constructed BEFORE ArtifactsServiceImpl (GradeReader injection).
-  const assignmentEngineResolver = () => {
-    const engineConfig = readEngineConfig(db, secretStorage, log);
-    return createEngine({ config: engineConfig, deps: { log } });
-  };
-
-  // Phase 16: notifyParentSession ref-cell pattern.
-  // AssignmentServiceImpl is constructed BEFORE SessionServiceImpl (ordering
-  // constraint from Phase 9: assignment → artifacts → session). We bridge
-  // the dependency with a ref-cell: a mutable closure that starts as undefined
-  // and is pointed at sessionService.notifySession after SessionServiceImpl is
-  // constructed. This avoids a circular dep while keeping both services testable
-  // with simple mocks.
-  let notifyParentSessionRef:
-    | ((input: {
-        parentSessionId: import("@praxis/core/types").SessionId;
-        note: string;
-        origin: import("@praxis/core/types").SystemNoteOrigin;
-      }) => Promise<void>)
-    | undefined;
-
-  const assignmentService = new AssignmentServiceImpl({
-    db,
-    log,
-    graderServices: {
-      sympy,
-      sandbox,
-      engineResolver: assignmentEngineResolver,
-    },
-    // Read the assignment's kind column to resolve the submission mode.
-    resolveSubmissionMode: (assignmentId: AssignmentId) => {
-      const row = db.select().from(assignments).where(eq(assignments.id, assignmentId)).get();
-      return (row?.kind as "quiz" | "homework" | "exam") ?? "quiz";
-    },
-    // Phase 16: forward notifications to sessionService once it's ready.
-    notifyParentSession: (input) => notifyParentSessionRef?.(input) ?? Promise.resolve(),
-  });
-
-  // Phase 6: ArtifactsServiceImpl (reads + progress writes).
-  // Phase 9: Constructed AFTER memoryService and assignmentService so they can be
-  // injected as MasteryReader and GradeReader. Critical ordering: memory → assignment → artifacts.
-  const artifactsService = new ArtifactsServiceImpl({
-    db,
-    log,
-    masteryReader: memoryService, // Phase 9: MasteryReader adapter
-    gradeReader: assignmentService, // Phase 9: GradeReader adapter
-  });
-
-  // Phase 7: Indexers (use artifactsService after it's constructed above)
-  const masteryIndexer = new MasteryIndexer({
-    db,
-    log,
-    courseStateReader: artifactsService,
-    sessionCourseId: readSessionCourseId,
-  });
-
-  const misconceptionIndexer = new MisconceptionIndexer({
-    db,
-    log,
-    engineResolver: bootstrapEngineResolver,
-    courseStateReader: artifactsService,
-    sessionCourseId: readSessionCourseId,
-  });
-
-  // Phase 15b: Concept map indexers.
-  // NOTE: conceptMapService is constructed below — forward-declare the variable
-  // and assign it before the indexers reference it via the lazy lambda.
-  // We create conceptMapService early here so the indexers can reference it.
-  // v1: single configurator, always "default" (shared with AuthoringServiceImpl).
-  const conceptMapConfiguratorId = () => "default" as ConfiguratorId;
-  const conceptMapService = new ConceptMapServiceImpl({
-    db,
-    log,
-    configuratorId: conceptMapConfiguratorId,
-  });
-
-  const conceptMapSnapshotter = new ConceptMapSnapshotter({
-    log,
-    conceptMaps: conceptMapService,
-    sessionCourseId: readSessionCourseId,
-  });
-
-  const conceptMapDivergenceIndexer = new ConceptMapDivergenceIndexer({
-    db,
-    log,
-    conceptMaps: conceptMapService,
-    engineResolver: bootstrapEngineResolver,
-    sessionCourseId: readSessionCourseId,
-    courseStateReader: artifactsService,
-  });
-
-  // Phase 18: Affective indexer — walks events for quick_check.confidence
-  // check-ins and runs one-shot LLM inference over the transcript.
-  const affectiveIndexer = new AffectiveIndexer({
-    db,
-    log,
-    engineResolver: bootstrapEngineResolver,
-  });
-
-  // Phase 18: Procedural indexer — scores session outcome from deterministic
-  // event signals and updates strategy preferences for the current lesson's
-  // suggestedStrategy.
-  const proceduralIndexer = new ProceduralIndexer({
-    db,
-    log,
-    sessionCourseId: readSessionCourseId,
-    courseStateReader: artifactsService,
-    pedagogyPack: pedagogyPackService,
-  });
-
-  const indexerOrchestrator = new IndexerOrchestratorImpl({
-    db,
-    log,
-    indexers: [
-      masteryIndexer,
-      misconceptionIndexer,
-      affectiveIndexer, // Phase 18
-      proceduralIndexer, // Phase 18
-      conceptMapSnapshotter,
-      conceptMapDivergenceIndexer,
-    ],
-    activity: activityRegistry,
-  });
-
-  // Phase 12: FSRS scheduler — singleton, stateless.
-  const fsrsScheduler = new FsrsSchedulerImpl();
-
-  // Phase 11: LockServiceImpl — single instance, process-scoped unlock flag.
-  const lockService = new LockServiceImpl({ db, log });
-
-  // Security: wrap apiKey at rest via Electron safeStorage.
-  // Must be constructed after app.whenReady() — guaranteed by buildServices call site.
-  const secretStorage = new ElectronSafeStorageAdapter();
-
-  // Claude CLI auth service — stateless, no DB dependency.
-  const claudeAuthService = new ClaudeAuthServiceImpl({ log });
-
-  // Phase 14: Tabs service — persists tab strip state to SQLite.
-  const tabsService = new TabsServiceImpl({ db, log });
-
-  // Phase 15a: Sketch service — content-addressed PNG store + SQLite metadata.
-  const dataDir = join(app.getPath("userData"), "data");
-  const sketchStore = new FsSketchStore(join(dataDir, "sketches"));
-  const sketchService = new SketchServiceImpl({ db, log, store: sketchStore });
-
-  // Phase 15a: Vision service — thin wrapper around the configured engine's VisionCapability.
-  // Resolves the active engine at call time (same pattern as visionResolver above).
-  const visionService = new VisionServiceImpl({ db, log, secretStorage });
-
-  // Phase 12: Notes + Flashcards services.
-  // Notes service uses the bootstrap engine resolver for fromSessionSummary.
-  const notesService = new NotesServiceImpl({
-    db,
-    log,
-    engineResolver: bootstrapEngineResolver,
-    memory: memoryService,
-  });
-
-  const flashcardsService = new FlashcardsServiceImpl({
-    db,
-    log,
-    scheduler: fsrsScheduler,
-  });
-
-  // Library service — FTS5 search + saved filters across notes and flashcards.
-  const libraryService = new LibraryServiceImpl({ db, sqlite });
-
-  // Workbench recommendation engine — aggregates sessions, cards, mastery, drafts.
-  // Reuses the shared draftStore constructed above alongside CourseCreateServiceImpl.
-  const recommendationsService = new RecommendationServiceImpl({
-    db,
-    log,
-    draftStore,
-  });
-
-  // Per-course progress aggregator — rolls up mastery, lesson position,
-  // active gate, stuck concepts, and recent events for the /progress route.
-  // Constructed after artifactsService (its CourseStateReader implementation).
-  const progressService = new ProgressServiceImpl({
-    db,
-    log,
-    courseStateReader: artifactsService,
-  });
-
-  // Session promotion registry — in-memory map of sessions opened but not yet
-  // persisted. Constructed before SessionServiceImpl; its engineSessionManager
-  // thunk resolves via a ref-cell written after sessionService is live.
-  let sessionServiceRef: SessionServiceImpl | undefined;
-  const sessionPromotionRegistry = new SessionPromotionRegistryImpl({
-    db,
-    log,
-    engineSessionManager: () => {
-      // Safety: the thunk is only called from discard() or promote(), which
-      // happen after buildServices() returns and sessionService is live.
-      if (!sessionServiceRef) {
-        throw new Error("SessionPromotionRegistry: sessionService not yet initialised");
-      }
-      return sessionServiceRef.engineManager;
-    },
-  });
-
-  // Prompt customization service — global fragment + per-mode appends.
-  const promptCustomizationService = new PromptCustomizationServiceImpl({ db });
-
-  // Phase 11: AuthoringServiceImpl — orchestration layer for configurator writes.
-  // Constructed after memoryService and artifactsService (depends on both).
-  const authoringService = new AuthoringServiceImpl({
-    db,
-    log,
-    artifacts: artifactsService,
-    memory: memoryService,
-    // v1: single configurator, always "default".
-    configuratorId: conceptMapConfiguratorId,
-    // v1: resolve the default student at call time (lazy, so no DB read at construction).
-    studentId: () => brandId<"StudentId">(getOrCreateDefaultStudentId(db)),
-    promptCustomization: promptCustomizationService,
-    conceptMaps: conceptMapService,
-  });
-
+  // -------------------------------------------------------------------------
+  // Modes + tool definitions (pure data — stay in the orchestrator)
+  // -------------------------------------------------------------------------
   const modes = new Map([
     [teachMode.id, teachMode],
     [courseCreateMode.id, courseCreateMode], // ← Phase 6
@@ -569,7 +218,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
 
   const toolDefinitions = [
     gradeMathTool,
-    codeSandboxTool,
+    sandbox.codeSandboxTool,
     retrieveFromDocumentsTool,
     ...COURSE_TOOLS,
     startDraftingTool, // imported via its own subpath to avoid a course-barrel cycle
@@ -588,96 +237,105 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     ...DIALOG_TOOLS, // ← Phase 17 structured-question dialog
   ];
 
+  // -------------------------------------------------------------------------
+  // ServiceDeps assembly — the composition root's public contract
+  // -------------------------------------------------------------------------
   const deps: ServiceDeps = {
     db,
     log,
     modes,
     toolDefinitions,
-    recommendations: recommendationsService,
+    recommendations: workspace.recommendationsService,
     toolServices: {
-      sympy,
-      sandbox,
-      vectorStore,
-      ftsStore,
-      embeddings,
-      documents: documentsReader,
-      artifacts: artifactsService, // ← Phase 6
-      bootstrap: bootstrapService, // ← Phase 6
-      courseState: artifactsService, // same instance implements both interfaces
-      memory: memoryService, // ← Phase 7
-      assignments: assignmentService, // ← Phase 8
-      packs: packImportService, // ← Phase 10
-      pedagogyPack: pedagogyPackService, // ← Phase 18
-      lock: lockService, // ← Phase 11
-      authoring: authoringService, // ← Phase 11
-      notes: notesService, // ← Phase 12
-      flashcards: flashcardsService, // ← Phase 12
-      fsrsScheduler, // ← Phase 12
-      sketches: sketchService, // ← Phase 15a
-      vision: visionService, // ← Phase 15a
-      conceptMaps: conceptMapService, // ← Phase 15b
-      documentScopes: documentScopesService, // ← Phase 16
-      engineResolver: bootstrapEngineResolver, // ← Phase 16
+      sympy: sandbox.sympy,
+      sandbox: sandbox.sandbox,
+      vectorStore: embeddings.vectorStore,
+      ftsStore: embeddings.ftsStore,
+      embeddings: embeddings.embeddings,
+      documents: embeddings.documentsReader,
+      artifacts: artifacts.artifactsService, // ← Phase 6
+      bootstrap: artifacts.bootstrapService, // ← Phase 6
+      courseState: artifacts.artifactsService, // same instance implements both interfaces
+      memory: memory.memoryService, // ← Phase 7
+      assignments: artifacts.assignmentService, // ← Phase 8
+      packs: embeddings.packImportService, // ← Phase 10
+      pedagogyPack: embeddings.pedagogyPackService, // ← Phase 18
+      lock: workspace.lockService, // ← Phase 11
+      authoring: sessionPrecursors.authoringService, // ← Phase 11
+      notes: workspace.notesService, // ← Phase 12
+      flashcards: workspace.flashcardsService, // ← Phase 12
+      fsrsScheduler: workspace.fsrsScheduler, // ← Phase 12
+      sketches: workspace.sketchService, // ← Phase 15a
+      vision: workspace.visionService, // ← Phase 15a
+      conceptMaps: indexers.conceptMapService, // ← Phase 15b
+      documentScopes: artifacts.documentScopesService, // ← Phase 16
+      engineResolver: artifacts.bootstrapEngineResolver, // ← Phase 16
       // Lazy-read the user-set course-create budget so UI changes apply to the
       // next run without restarting the desktop app.
       courseCreateConfigResolver: () => readCourseCreateConfig(db),
-      quickCheck: quickCheckService, // ← Phase 17
-      subAgent: subAgentRegistry,
+      quickCheck: infra.quickCheckService, // ← Phase 17
+      subAgent: infra.subAgentRegistry,
     },
-    indexerOrchestrator, // ← Phase 7 (passed to SessionServiceImpl for scheduling)
-    lockService, // ← Phase 11 (session.start lock check for configure mode)
-    activity: activityRegistry,
-    subAgent: subAgentRegistry,
-    promptCustomization: promptCustomizationService, // ← prompt-customization-layers
-    secretStorage, // ← encrypt-api-key: apiKey wrapped at rest via Electron safeStorage
-    sessionPromotionRegistry, // ← empty-session-cleanup
+    indexerOrchestrator: indexers.indexerOrchestrator, // ← Phase 7
+    lockService: workspace.lockService, // ← Phase 11
+    activity: infra.activityRegistry,
+    subAgent: infra.subAgentRegistry,
+    promptCustomization: sessionPrecursors.promptCustomizationService,
+    secretStorage: secrets.secretStorage,
+    sessionPromotionRegistry: sessionPrecursors.sessionPromotionRegistry,
   };
 
+  // -------------------------------------------------------------------------
+  // Terminal services — depend on the fully-assembled deps or on sessionService
+  // -------------------------------------------------------------------------
   const ingestion = new IngestionService({
     db,
     log,
-    vectorStore,
-    ftsStore,
-    embeddings,
-    ingestorRegistry,
-    pageImageStore,
-    embeddedImageStore,
-    documentScopes: documentScopesService, // ← Phase 16
-    activity: activityRegistry,
+    vectorStore: embeddings.vectorStore,
+    ftsStore: embeddings.ftsStore,
+    embeddings: embeddings.embeddings,
+    ingestorRegistry: workspace.ingestorRegistry,
+    pageImageStore: embeddings.pageImageStore,
+    embeddedImageStore: embeddings.embeddedImageStore,
+    documentScopes: artifacts.documentScopesService, // ← Phase 16
+    activity: infra.activityRegistry,
   });
 
   const documentsService = new DocumentsServiceImpl({
     db,
-    vectorStore,
-    ftsStore,
-    pageImageStore,
-    embeddedImageStore,
+    vectorStore: embeddings.vectorStore,
+    ftsStore: embeddings.ftsStore,
+    pageImageStore: embeddings.pageImageStore,
+    embeddedImageStore: embeddings.embeddedImageStore,
   });
 
   const sessionService = new SessionServiceImpl(deps);
 
-  // empty-session-cleanup: close the SessionPromotionRegistry ref-cell now
-  // that sessionService is live. discard() thunks will resolve from here on.
-  sessionServiceRef = sessionService;
+  // -------------------------------------------------------------------------
+  // Close both ref-cells now that sessionService is live
+  // -------------------------------------------------------------------------
 
-  // empty-session-cleanup: sweep indexer — start after sessionService is live
-  // so the registry ref-cell is resolved before any discard() calls.
+  // empty-session-cleanup: promotion registry thunks resolve from here on.
+  sessionPrecursors.setSessionServiceRef(sessionService);
+
+  // Phase 16: forward parent-session notifications through the live session service.
+  artifacts.setNotifyParentSession((input) =>
+    sessionService.notifySession({
+      sessionId: input.parentSessionId,
+      note: input.note,
+      origin: input.origin,
+    }),
+  );
+
+  // Sweep indexer — start after ref-cells are closed so no discard() call
+  // can fire before sessionServiceRef is populated.
   const sessionSweepIndexer = new SessionSweepIndexer({
-    registry: sessionPromotionRegistry,
+    registry: sessionPrecursors.sessionPromotionRegistry,
     db,
     log,
     config: () => ({ cadenceMs: 10 * 60 * 1000, idleMs: 30 * 60 * 1000 }),
   });
   sessionSweepIndexer.start();
-
-  // Phase 16: complete the ref-cell wiring now that sessionService is live.
-  // Adapt the port signature (parentSessionId) to sessionService's (sessionId).
-  notifyParentSessionRef = (input) =>
-    sessionService.notifySession({
-      sessionId: input.parentSessionId,
-      note: input.note,
-      origin: input.origin,
-    });
 
   return {
     session: sessionService,
@@ -685,36 +343,36 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     update: new UpdateServiceImpl(deps),
     ingestion,
     documents: documentsService,
-    artifacts: artifactsService,
-    bootstrap: bootstrapService,
-    memory: memoryService, // ← Phase 7
-    assignments: assignmentService, // ← Phase 8
-    packs: packImportService, // ← Phase 10
-    pedagogyPack: pedagogyPackService, // ← Phase 18
-    lock: lockService, // ← Phase 11
-    claudeAuth: claudeAuthService,
-    tabs: tabsService, // ← Phase 14
-    authoring: authoringService, // ← Phase 11
-    notes: notesService, // ← Phase 12
-    flashcards: flashcardsService, // ← Phase 12
-    fsrsScheduler, // ← Phase 12
-    sketches: sketchService, // ← Phase 15a
-    conceptMaps: conceptMapService, // ← Phase 15b
-    documentScopes: documentScopesService, // ← Phase 16
-    citations: citationsService,
-    activity: activityRegistry,
-    subAgent: subAgentRegistry,
-    quickCheck: quickCheckService, // ← Phase 17
-    recommendations: recommendationsService,
-    progress: progressService,
-    library: libraryService,
-    sessionPromotion: sessionPromotionRegistry,
+    artifacts: artifacts.artifactsService,
+    bootstrap: artifacts.bootstrapService,
+    memory: memory.memoryService,
+    assignments: artifacts.assignmentService,
+    packs: embeddings.packImportService,
+    pedagogyPack: embeddings.pedagogyPackService,
+    lock: workspace.lockService,
+    claudeAuth: secrets.claudeAuthService,
+    tabs: workspace.tabsService,
+    authoring: sessionPrecursors.authoringService,
+    notes: workspace.notesService,
+    flashcards: workspace.flashcardsService,
+    fsrsScheduler: workspace.fsrsScheduler,
+    sketches: workspace.sketchService,
+    conceptMaps: indexers.conceptMapService,
+    documentScopes: artifacts.documentScopesService,
+    citations: artifacts.citationsService,
+    activity: infra.activityRegistry,
+    subAgent: infra.subAgentRegistry,
+    quickCheck: infra.quickCheckService,
+    recommendations: workspace.recommendationsService,
+    progress: workspace.progressService,
+    library: workspace.libraryService,
+    sessionPromotion: sessionPrecursors.sessionPromotionRegistry,
     sessionSweep: sessionSweepIndexer,
-    ingestorRegistry,
-    pyodide,
-    embeddings,
+    ingestorRegistry: workspace.ingestorRegistry,
+    pyodide: sandbox.pyodide,
+    embeddings: embeddings.embeddings,
     workers: {
-      embeddings: embeddingsWorker,
+      embeddings: embeddings.embeddingsWorker,
     },
     getDefaultStudentId: () => getOrCreateDefaultStudentId(db),
   };
