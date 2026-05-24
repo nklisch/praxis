@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-artifacts-service-domain-decomposition-step-3-gates-service
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-artifacts-service-domain-decomposition
 depends_on: []
@@ -70,3 +70,13 @@ Export `GatesServiceImpl` from `packages/core/src/services/index.ts`.
 
 Low — pure extraction. All transactions (overrideGate, evaluateAndPersistGates)
 are self-contained within `GatesServiceImpl`.
+
+## Implementation notes
+
+- Created `/home/nathan/dev/praxis/packages/core/src/services/gates-service.ts` (387 lines).
+- All 11 public methods extracted verbatim from `ArtifactsServiceImpl`: `gates`, `gateView`, `evaluateAndPersistGates`, `markGatesViewed`, `newlyUnlockedCount`, `createGate`, `updateGate`, `deleteGate`, `overrideGate`, `getGate`, `upsertGate`.
+- `rowToGate` row-to-domain helper moved into the new file (module-private).
+- `GatesServiceDeps` interface declared with `{ db, log, masteryReader, gradeReader }` as specified.
+- Exported `GatesServiceImpl` and `GatesServiceDeps` from `packages/core/src/services/index.ts`.
+- `artifacts-service.ts` left untouched per instructions (Step 6 wires).
+- `pnpm typecheck` and `pnpm --filter @praxis/core test` both pass (96 files / 1164 tests green).
