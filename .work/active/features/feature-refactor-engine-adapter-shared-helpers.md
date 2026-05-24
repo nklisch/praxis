@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-engine-adapter-shared-helpers
 kind: feature
-stage: drafting
+stage: done
 tags: [refactor]
 parent: null
 depends_on: []
@@ -54,3 +54,17 @@ See the four child stories for verified file:line evidence.
 Each child story is at `stage: implementing` and can be drained independently — no
 intra-cluster `depends_on` chains. Drain via
 `/agile-workflow:implement-orchestrator feature-refactor-engine-adapter-shared-helpers`.
+
+## Resolution
+
+This feature was scoped as a **cluster bucket** — the actual implementation lives in
+the four child stories. All children advanced to `done` in this autopilot run:
+
+- `feature-refactor-engine-adapter-shared-helpers-vision-temp-dir` (done)
+- `feature-refactor-engine-adapter-shared-helpers-signal-threader` (done)
+- `feature-refactor-engine-adapter-shared-helpers-close-bridge` (done)
+- `feature-refactor-engine-adapter-shared-helpers-mapper-state-naming` (done)
+
+No feature-level design pass ran (the children carried full implementation specs).
+Advancing the parent to `done` reflects that all the work this bucket tracked is
+complete.

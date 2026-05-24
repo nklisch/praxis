@@ -1,7 +1,7 @@
 ---
 id: feature-ipc-input-bounds-hardening
 kind: feature
-stage: drafting
+stage: done
 tags: [security]
 parent: null
 depends_on: []
@@ -66,3 +66,21 @@ re-deriving it.
 ## Next
 Per-feature design via `/agile-workflow:feature-design feature-ipc-input-bounds-hardening`
 to lock the convention, then drain the three child stories.
+
+## Resolution
+
+This feature was scoped as a **cluster bucket** with a hoped-for design pass to lock
+a codebase-wide convention for IPC input bounds. In practice the children were
+implemented standalone with reasonable inline values (`limit: 1000`, `excludeModeIds: 32`,
+`MAX_PASSAGE_OFFSET: 10_000_000`, `MAX_PASSAGE_LENGTH: 100_000`) and parent ownership
+validation.
+
+All children advanced to `done` in this autopilot run:
+
+- `feature-ipc-input-bounds-hardening-session-list-limit` (done)
+- `feature-ipc-input-bounds-hardening-spawn-from-assignment-parent` (done)
+- `feature-ipc-input-bounds-hardening-spawn-from-passage-offset` (done)
+
+A future story can extract these into a shared convention module if a similar bound
+is needed for another IPC schema. Until then, the inline values are reasonable and
+each schema documents its rationale via a comment.
