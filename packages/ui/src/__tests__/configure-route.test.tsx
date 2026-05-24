@@ -487,6 +487,120 @@ describe("ConfigureRoute", () => {
     });
   });
 
+  // --- Two-tab / rapid-remount race ---
+
+  it("second mount after first session established: reuses session, does NOT call start again", async () => {
+    // This tests the sequential-remount case: Mount 1 establishes sessionA,
+    // navigates away (unmount), then Mount 2 opens /configure and should attach
+    // to sessionA via session.active rather than spawning a duplicate session.
+    const sessionA: SessionHandle = {
+      sessionId: brandId<"SessionId">("configure-session-A"),
+      modeId: "configure",
+      startedAt: Date.now() as Timestamp,
+    };
+
+    const lockClient = makeLockClient();
+    // First call to active() returns null (no session yet).
+    // After Mount 1's start() resolves, subsequent active() calls return sessionA.
+    const activeMock = vi
+      .fn()
+      .mockResolvedValueOnce(null) // Mount 1: no session yet
+      .mockResolvedValue(sessionA); // Mount 2+: session now exists
+
+    const startMock = vi.fn().mockResolvedValue(sessionA);
+
+    const client = makeClient(lockClient, {
+      active: activeMock,
+      start: startMock,
+    });
+
+    // --- Mount 1: spawns fresh session ---
+    const { unmount: unmount1 } = renderRoute(client);
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(1);
+    });
+
+    unmount1();
+    cleanup(); // flush DOM between mounts
+
+    // --- Mount 2: should reuse sessionA (second active() call returns sessionA) ---
+    renderRoute(client);
+
+    await waitFor(() => {
+      expect(activeMock).toHaveBeenCalledTimes(2);
+    });
+
+    // start must NOT have been called a second time — session was reused
+    expect(startMock).toHaveBeenCalledTimes(1);
+
+    // The session status text confirms the session is active on Mount 2
+    await waitFor(() => {
+      expect(screen.getByText("Configure session active")).toBeDefined();
+    });
+  });
+
+  it("true simultaneous mounts: known limitation — both may call start (duplicate-session race accepted for v1)", async () => {
+    // Per feature-configure-mode-session-hygiene § Risks:
+    //   "Two configure tabs opened in the same ~50ms window: both active() queries
+    //    return null before either start() resolves — duplicate session is accepted for v1."
+    //
+    // This test documents and asserts the current behaviour so future fixes are
+    // visible as a test change rather than a silent regression in the other direction.
+    //
+    // Each mount has its own sessionStartedRef (ref is per-component-instance), so
+    // the guard only prevents a single mount from double-starting itself — it does NOT
+    // coordinate across two concurrent mount instances.
+    const sessionA: SessionHandle = {
+      sessionId: brandId<"SessionId">("configure-session-A"),
+      modeId: "configure",
+      startedAt: Date.now() as Timestamp,
+    };
+    const sessionB: SessionHandle = {
+      sessionId: brandId<"SessionId">("configure-session-B"),
+      modeId: "configure",
+      startedAt: (Date.now() + 1) as Timestamp,
+    };
+
+    const lockClient = makeLockClient();
+    // Both mounts fire active() before either start() resolves → both see null.
+    const activeMock = vi.fn().mockResolvedValue(null);
+    const startMock = vi
+      .fn()
+      .mockResolvedValueOnce(sessionA)
+      .mockResolvedValueOnce(sessionB);
+
+    const clientA = makeClient(lockClient, { active: activeMock, start: startMock });
+    // Use the same mock so call counts are shared across the two independent renders.
+    const clientB = makeClient(lockClient, { active: activeMock, start: startMock });
+
+    // Mount both routes simultaneously (no await between renders).
+    const { unmount: unmountA } = render(
+      <PraxisClientProvider client={clientA}>
+        <ConfigureRoute />
+      </PraxisClientProvider>,
+    );
+    const { unmount: unmountB } = render(
+      <PraxisClientProvider client={clientB}>
+        <ConfigureRoute />
+      </PraxisClientProvider>,
+    );
+
+    // Both mounts complete their active() + start() paths.
+    await waitFor(() => {
+      expect(startMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Current behaviour (v1 accepted limitation): two concurrent mounts that both
+    // see active()=null will each call start(), resulting in 2 start calls.
+    // If this assertion ever fails (only 1 call), the race has been fixed —
+    // update this test to assert start is called exactly once.
+    expect(startMock).toHaveBeenCalledTimes(2);
+
+    unmountA();
+    unmountB();
+  });
+
   it("cross-tab independence: Prompt dirty does NOT light dots on Course, Gates, or Memory", async () => {
     // Mark only the Prompt surface dirty (via listFragmentOverrides returning data).
     const lockClient = makeLockClient();
