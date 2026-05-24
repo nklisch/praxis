@@ -26,6 +26,7 @@ import { SessionDiscardedError } from "../types/session-discarded-error.js";
 import { type ActiveEntry, EngineSessionManager } from "./session/engine-session-manager.js";
 import { SessionPromoter } from "./session/session-promoter.js";
 import type { UnpromotedSessionState } from "./session/session-promotion-registry.js";
+import { SessionSpawner } from "./session/session-spawner.js";
 import { getOrCreateDefaultStudentId } from "./student.js";
 import type { ServiceDeps } from "./types.js";
 
@@ -42,6 +43,7 @@ export class SessionServiceImpl implements SessionService {
   /** Exposed for SessionPromotionRegistryImpl's lazy-resolver thunk in buildServices. */
   readonly engineManager: EngineSessionManager;
   private readonly promoter: SessionPromoter | null;
+  private readonly spawner: SessionSpawner;
 
   constructor(private readonly deps: ServiceDeps) {
     this.engineManager = new EngineSessionManager({
@@ -69,6 +71,15 @@ export class SessionServiceImpl implements SessionService {
             persistSessionRow: (state) => this._persistSessionRow(state),
           })
         : null;
+    this.spawner = new SessionSpawner({
+      db: deps.db,
+      log: deps.log,
+      startSession: (opts) => this.start(opts),
+      sendMessage: (sessionId, message) =>
+        // biome-ignore lint/suspicious/noExplicitAny: engine send is async-iterable; drain it
+        this.send(sessionId as any, message),
+      documentScopes: deps.toolServices.documentScopes,
+    });
   }
 
   async start(opts: {

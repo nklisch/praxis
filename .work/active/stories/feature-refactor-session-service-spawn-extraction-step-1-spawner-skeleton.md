@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-session-service-spawn-extraction-step-1-spawner-skeleton
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-session-service-spawn-extraction
 depends_on: []
@@ -91,3 +91,16 @@ this.spawner = new SessionSpawner({
 
 ## Rollback
 Delete `session-spawner.ts`; remove `this.spawner` field from `SessionServiceImpl`.
+
+## Implementation notes
+
+- Created `packages/core/src/services/session/session-spawner.ts` (67 lines):
+  - `MAX_PASSAGE_LENGTH = 100_000` as a module-local constant (also exported for step 4).
+  - `SessionSpawnerDeps` interface with `db`, `log`, `startSession`, `sendMessage`, `documentScopes` ports.
+  - `SessionSpawner` class with empty body (stub placeholder for steps 2–4).
+- Wired into `SessionServiceImpl`:
+  - Added `private readonly spawner: SessionSpawner` field.
+  - Constructed in constructor with closure ports over `this.start` and `this.send`.
+  - The `biome-ignore lint/suspicious/noExplicitAny` comment carried into the `sendMessage` closure since the cast is at the same location as the existing inline casts.
+- `documentScopes` is non-optional in `ServiceDeps.toolServices` so no null-guard needed at construction.
+- `pnpm typecheck && pnpm --filter @praxis/core test`: all green (96 test files / 1164 tests).
