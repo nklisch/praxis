@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-memory-service-bkt-extraction-step-1-row-mapper
 kind: story
-stage: implementing
+stage: review
 tags: [refactor]
 parent: feature-refactor-memory-service-bkt-extraction
 depends_on: []
@@ -70,3 +70,14 @@ Where `StudentMasteryRow` is `typeof studentMastery.$inferSelect`.
 
 Low — pure mechanical extraction. No logic change, only factoring repeated field
 access into a single function. Easy to verify by diff inspection.
+
+## Implementation notes
+
+Created `packages/core/src/services/memory/mastery-row-mapper.ts` (42 lines).
+
+- Exports `StudentMasteryRow` type alias (`typeof studentMastery.$inferSelect`) and `rowToConceptMastery(row)` pure function.
+- Handles all three milli-int → float conversions (`pKnown`, `uncertainty`, `effectivePKnown`) and `brandId` wrapping for `conceptId` and `evidence` EventIds.
+- `lastPracticedAt` converted from `Date | null` to `Timestamp | undefined` via `.getTime()`.
+- Returns stored `effectivePKnown` without decay; callers in `studentModel()` will apply `applyDecay` on top.
+- `pnpm typecheck` passes clean across all packages. All 96 core test files (1164 tests) pass without modification.
+- `memory-service.ts` not modified — Step 3 wires the integration.
