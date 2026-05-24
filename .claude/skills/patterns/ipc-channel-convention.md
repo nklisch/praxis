@@ -20,9 +20,12 @@ export function registerSessionHandlers(
   const { handle, on } = createIpcHelpers(log);
 
   // Non-streaming channels (invoke → single Promise response, envelope-wrapped):
+  const sessionActiveSchema = z.object({ modeId: z.string().optional() }).optional();
   handle(
     "praxis.session.active",
-    wrapEnvelope("praxis.session.active", log, async () => services.session.active()),
+    handleEnvelope("praxis.session.active", log, sessionActiveSchema, async (opts) =>
+      services.session.active(opts),
+    ),
   );
   handle(
     "praxis.session.start",
