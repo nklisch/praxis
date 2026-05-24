@@ -1,7 +1,7 @@
 ---
 id: feature-orphan-routes-audit-connect-course-detail-from-library
 kind: story
-stage: review
+stage: done
 tags: [ui, navigation]
 parent: feature-orphan-routes-audit
 depends_on: []
@@ -47,3 +47,13 @@ The `CoursesSection` component in `components/library/courses-section.tsx` alrea
 - Courses data comes from `useLibrary()` which already fetched `data.courses` in parallel with packs/docs/sessions — no new API call needed.
 - Fixed a pre-existing `exactOptionalPropertyTypes` violation in `courses-section.tsx`: replaced explicit `undefined` prop assignments for `headerAction`/`emptyAction` with a conditional spread so optional props are simply omitted when `onCreateCourse` is absent.
 - All 164 UI test files (1714 tests) pass; `pnpm typecheck` clean across all packages.
+
+## Review (2026-05-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: `CoursesSection` correctly wired into `library.tsx` between the greeting block and the two-column workbench. `handleOpenCourse` uses `useCallback` and navigates to `/courses/$courseId` as specified. Courses data reuses the existing `useLibrary()` fetch — no extra API call. The `exactOptionalPropertyTypes` fix in `courses-section.tsx` (conditional spread instead of explicit `undefined`) is a correct and clean repair of a pre-existing type violation. `onOpenInTab` prop name retention (deferring rename) is a reasonable pragmatic call noted in the story. All acceptance criteria met.
