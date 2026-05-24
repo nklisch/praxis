@@ -824,9 +824,20 @@ export class SessionServiceImpl implements SessionService {
 
     const fullText = chunkRows.map((c) => c.text).join("\n\n");
 
-    // Extract the passage text from the range — clamp to document bounds.
+    // Extract the passage text from the range — clamp to document bounds,
+    // then cap passage length so a huge offset range can't inject an unbounded
+    // string into the opening message.
+    const MAX_PASSAGE_LENGTH = 100_000;
     const safeStart = Math.max(0, Math.min(input.range.startOffset, fullText.length));
-    const safeEnd = Math.max(safeStart, Math.min(input.range.endOffset, fullText.length));
+    const safeEndUncapped = Math.max(safeStart, Math.min(input.range.endOffset, fullText.length));
+    const safeEnd = Math.min(safeEndUncapped, safeStart + MAX_PASSAGE_LENGTH);
+    if (safeEnd < safeEndUncapped) {
+      this.deps.log.warn("spawn_from_passage.passage_truncated", {
+        documentId: input.documentId,
+        requestedLength: safeEndUncapped - safeStart,
+        cappedLength: MAX_PASSAGE_LENGTH,
+      });
+    }
     const passageText = fullText.slice(safeStart, safeEnd).trim();
 
     // Compose the injected opening message.

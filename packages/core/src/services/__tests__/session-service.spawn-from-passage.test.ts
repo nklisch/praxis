@@ -228,4 +228,27 @@ describe("SessionServiceImpl.spawnFromPassage", () => {
     });
     expect(range).toEqual({ startOffset: 0, endOffset: 999 });
   });
+
+  it("truncates passage to MAX_PASSAGE_LENGTH (100k) and logs a warn when the clamped range is huge", async () => {
+    // Build a document whose full text is >100k chars so the passage-length cap triggers.
+    // Each chunk is ~51k chars of 'a'; two chunks joined by "\n\n" = ~102k chars total.
+    const bigChunk = "a".repeat(51_000);
+    const docId = insertDocumentWithChunks(db, studentId, [bigChunk, bigChunk]);
+    const { svc, log } = makeService(db);
+
+    // Request the entire document (startOffset 0, endOffset >> 100k) — passage
+    // should be capped at 100k chars and a warn logged.
+    const handle = await svc.spawnFromPassage({
+      studentId: brandId<"StudentId">(studentId) as StudentId,
+      documentId: docId,
+      range: { startOffset: 0, endOffset: 200_000 },
+    });
+
+    expect(handle.modeId).toBe("teach");
+    // The warn should have been emitted for passage truncation.
+    expect(log.warn).toHaveBeenCalledWith(
+      "spawn_from_passage.passage_truncated",
+      expect.objectContaining({ cappedLength: 100_000 }),
+    );
+  });
 });

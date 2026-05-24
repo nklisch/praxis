@@ -449,6 +449,19 @@ describe("praxis.session.spawnFromPassage — envelope wiring", () => {
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
   });
 
+  it("returns VALIDATION_FAILED when endOffset exceeds MAX_PASSAGE_OFFSET (10_000_000)", async () => {
+    const log = makeFakeLogger();
+    const services = makeServices();
+    registerIpcHandlers(services, () => null, log);
+
+    const handler = handlers.get("praxis.session.spawnFromPassage");
+    const result = await handler?.(
+      {},
+      { documentId: "doc-001", range: { startOffset: 0, endOffset: 10_000_001 } },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+  });
+
   it("returns INTERNAL (never rejects) when service throws", async () => {
     const spawnFromPassage = vi.fn().mockRejectedValue(new Error("document not found"));
     const log = makeFakeLogger();

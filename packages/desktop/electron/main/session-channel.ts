@@ -122,12 +122,16 @@ export function registerSessionHandlers(
     }),
   );
 
+  // Bound: documents > 10M chars are unrealistic for educational textbooks;
+  // protect against accidental 2^31 offsets that would load enormous slices.
+  const MAX_PASSAGE_OFFSET = 10_000_000;
+
   const SpawnFromPassageSchema = z.object({
     documentId: z.string().min(1, "documentId"),
     range: z
       .object({
-        startOffset: z.number().int().nonnegative(),
-        endOffset: z.number().int().nonnegative(),
+        startOffset: z.number().int().nonnegative().max(MAX_PASSAGE_OFFSET),
+        endOffset: z.number().int().nonnegative().max(MAX_PASSAGE_OFFSET),
       })
       .refine((r) => r.endOffset >= r.startOffset, {
         message: "endOffset must be >= startOffset",
