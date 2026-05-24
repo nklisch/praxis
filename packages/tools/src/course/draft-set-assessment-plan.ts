@@ -7,9 +7,9 @@ const InputSchema = z.object({
   plan: AssessmentPlanSchema.describe("Overall assessment scaffold shape for the course."),
 });
 
-const OutputSchema = z.discriminatedUnion("ok", [
-  z.object({ ok: z.literal(true) }),
-  z.object({ ok: z.literal(false), reason: z.string() }),
+const OutputSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("success"), ok: z.literal(true) }),
+  z.object({ kind: z.literal("error"), ok: z.literal(false), reason: z.string() }),
 ]);
 
 export const draftSetAssessmentPlanTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
@@ -22,10 +22,19 @@ export const draftSetAssessmentPlanTool: ToolDefinition<typeof InputSchema, type
   effects: ["artifact.mutate"],
   async handler(args, ctx: ToolContext) {
     const draftId = args.draftId ?? ctx.draftId;
-    if (!draftId) return { ok: false as const, reason: "no draftId in args or session context" };
-    return ctx.services.bootstrap.setAssessmentPlan({
+    if (!draftId)
+      return {
+        kind: "error" as const,
+        ok: false as const,
+        reason: "no draftId in args or session context",
+      };
+    const result = await ctx.services.bootstrap.setAssessmentPlan({
       draftId,
       plan: args.plan as AssessmentPlan,
     });
+    if (result.ok) {
+      return { kind: "success" as const, ok: true };
+    }
+    return { kind: "error" as const, ok: false, reason: result.reason };
   },
 };

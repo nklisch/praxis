@@ -62,8 +62,9 @@ const InputSchema = z.object({
     ),
 });
 
-const OutputSchema = z.discriminatedUnion("ok", [
+const OutputSchema = z.discriminatedUnion("kind", [
   z.object({
+    kind: z.literal("success"),
     ok: z.literal(true),
     draftId: z.string(),
     summary: z
@@ -87,6 +88,7 @@ const OutputSchema = z.discriminatedUnion("ok", [
     stepsUsed: z.number(),
   }),
   z.object({
+    kind: z.literal("error"),
     ok: z.literal(false),
     reason: z.enum(["no_draft_init", "engine_error", "interrupted"]),
     stepsUsed: z.number(),
@@ -201,6 +203,7 @@ export const startDraftingTool: ToolDefinition<typeof InputSchema, typeof Output
 
     if (result.ok && result.draftId !== undefined) {
       return {
+        kind: "success" as const,
         ok: true as const,
         draftId: result.draftId,
         ...(result.summary !== undefined && { summary: result.summary }),
@@ -210,6 +213,7 @@ export const startDraftingTool: ToolDefinition<typeof InputSchema, typeof Output
     }
 
     return {
+      kind: "error" as const,
       ok: false as const,
       reason: result.reason ?? "engine_error",
       stepsUsed: result.stepsUsed,

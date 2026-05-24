@@ -5,14 +5,16 @@ const InputSchema = z.object({
   draftId: z.string().describe("The draft ID to validate and persist."),
 });
 
-const OutputSchema = z.discriminatedUnion("ok", [
+const OutputSchema = z.discriminatedUnion("kind", [
   z.object({
+    kind: z.literal("success"),
     ok: z.literal(true),
     courseId: z.string(),
     lessonIds: z.array(z.string()),
     conceptGraphId: z.string(),
   }),
   z.object({
+    kind: z.literal("error"),
     ok: z.literal(false),
     issues: z.array(z.object({ kind: z.string(), message: z.string() })),
   }),
@@ -33,6 +35,7 @@ export const confirmDraftTool: ToolDefinition<typeof InputSchema, typeof OutputS
     });
     if (result.ok) {
       return {
+        kind: "success" as const,
         ok: true,
         courseId: result.courseId,
         lessonIds: result.lessonIds,
@@ -40,6 +43,7 @@ export const confirmDraftTool: ToolDefinition<typeof InputSchema, typeof OutputS
       };
     }
     return {
+      kind: "error" as const,
       ok: false,
       issues: result.issues.map((i) => ({ kind: i.kind, message: i.message })),
     };

@@ -33,9 +33,9 @@ const InputSchema = z.object({
   ),
 });
 
-const OutputSchema = z.discriminatedUnion("ok", [
-  z.object({ ok: z.literal(true), draftUnitId: z.string() }),
-  z.object({ ok: z.literal(false), reason: z.string() }),
+const OutputSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("success"), ok: z.literal(true), draftUnitId: z.string() }),
+  z.object({ kind: z.literal("error"), ok: z.literal(false), reason: z.string() }),
 ]);
 
 export const draftAddUnitTool: ToolDefinition<typeof InputSchema, typeof OutputSchema> = {
@@ -48,7 +48,12 @@ export const draftAddUnitTool: ToolDefinition<typeof InputSchema, typeof OutputS
   effects: ["artifact.mutate"],
   async handler(args, ctx: ToolContext) {
     const draftId = args.draftId ?? ctx.draftId;
-    if (!draftId) return { ok: false as const, reason: "no draftId in args or session context" };
+    if (!draftId)
+      return {
+        kind: "error" as const,
+        ok: false as const,
+        reason: "no draftId in args or session context",
+      };
     const summative =
       args.summative !== undefined
         ? {
@@ -62,12 +67,16 @@ export const draftAddUnitTool: ToolDefinition<typeof InputSchema, typeof OutputS
           }
         : undefined;
 
-    return ctx.services.bootstrap.addUnit({
+    const result = await ctx.services.bootstrap.addUnit({
       draftId,
       name: args.name,
       ...(args.summary !== undefined && { summary: args.summary }),
       draftLessonIds: args.draftLessonIds,
       ...(summative !== undefined && { summative }),
     });
+    if (result.ok) {
+      return { kind: "success" as const, ok: true, draftUnitId: result.draftUnitId };
+    }
+    return { kind: "error" as const, ok: false, reason: result.reason };
   },
 };
