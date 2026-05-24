@@ -1,7 +1,7 @@
 ---
 id: feature-refactor-use-streamed-send-hook-decomposition-step-2-streamed-bubbles
 kind: story
-stage: implementing
+stage: review
 tags: [refactor, ui]
 parent: feature-refactor-use-streamed-send-hook-decomposition
 depends_on: []
@@ -133,6 +133,18 @@ so they are per-instance mutable without triggering re-renders.
   `lastAssistantId`, `openAssistantBubble`, or `closeAssistantBubble` inline.
 - Bubble-splitting tests (Unit 1 section) all green.
 - `pnpm typecheck && pnpm lint && pnpm test` green.
+
+## Implementation notes
+
+- Created `packages/ui/src/hooks/use-streamed-bubbles.ts` (159 lines).
+- Per-turn mutable state (`content`, `currentId`, `lastId`) stored in a single `useRef<BubbleRef>` object — no re-renders on mutation.
+- `openAssistantBubble(renderables?)` accepts pre-drained renderables as an argument (pull-based); the hook never touches renderable arrays directly.
+- `appendContent` and `setContent` both accept a `setItems` parameter at call time (rather than capturing at construction) to match the caller-passed pattern described in the feature design and avoid stale closure issues in async timer callbacks.
+- `setThinking(false)` is called inside `appendContent`/`setContent` when `contentSnapshot.length > 0`, mirroring the thinking-guard from the original inline code.
+- `activeBubbleContentLength`, `currentAssistantId`, `lastAssistantId` are exposed as getter properties on the returned object — they read from `bubbleRef.current` live so callers always see the latest values.
+- `reset()` zeroes all three ref fields; Step 5 will call it at the top of each `send()` turn.
+- Module-level `bubbleCounter` for id generation; ids are session-locally unique.
+- `pnpm typecheck` and `pnpm --filter @praxis/ui test` both pass (1711 tests green).
 
 ## Risk + Rollback
 
