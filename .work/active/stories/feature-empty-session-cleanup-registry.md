@@ -1,7 +1,7 @@
 ---
 id: feature-empty-session-cleanup-registry
 kind: story
-stage: implementing
+stage: review
 tags: [core, sessions, cleanup]
 parent: feature-empty-session-cleanup
 depends_on: []
@@ -81,3 +81,28 @@ export class SessionPromotionRegistryImpl implements SessionPromotionRegistry {
 - Wiring into `SessionService.start` / `send` (that's the lazy-and-sweep story).
 - The sweep indexer (also the lazy-and-sweep story).
 - Any IPC changes.
+
+## Implementation notes
+
+**Service file**: `packages/core/src/services/session/session-promotion-registry.ts`
+- `SessionPromotionRegistryImpl` — map-based impl of `SessionPromotionRegistry`.
+- `SessionNotRegisteredError` — typed error thrown by `promote()` on unknown session.
+- `UnpromotedSessionState` — holds all fields needed to lazily persist the session row.
+- `engineSessionManager` injected as `() => EngineSessionManager` per lazy-resolver-thunk pattern.
+- `discard()` is best-effort: catches per-step errors, logs warnings, proceeds to next step.
+
+**ServiceDeps wiring**: `packages/core/src/services/types.ts` — optional field `sessionPromotionRegistry?: SessionPromotionRegistry` added at the bottom of `ServiceDeps`.
+
+**buildServices wiring**: `packages/desktop/electron/main/services.ts`
+- `SessionPromotionRegistryImpl` instantiated before `SessionServiceImpl` using a ref-cell (`sessionServiceRef`) for the `engineSessionManager` thunk.
+- Ref-cell closed after `SessionServiceImpl` construction (same pattern as `notifyParentSessionRef`).
+- `SessionServiceImpl.engineManager` made package-accessible (was `private`, now `readonly`) to allow the thunk to resolve it.
+- `sessionPromotion: SessionPromotionRegistryImpl` added to both `Services` interface and the returned services object.
+
+**Exports**: `packages/core/src/services/index.ts` — `SessionPromotionRegistry`, `SessionPromotionRegistryDeps`, `UnpromotedSessionState`, `SessionNotRegisteredError`, `SessionPromotionRegistryImpl` all exported.
+
+**Test coverage**: `packages/core/src/services/session/__tests__/session-promotion-registry.test.ts` — 16 tests across 4 describe blocks:
+- `register + get`: 4 tests (null for unknown, round-trip equality, overwrite, optional fields)
+- `promote`: 4 tests (return value, txFn receives correct state, not-registered error, txFn-throw preserves entry)
+- `discard`: 6 tests (idempotency, no-op for unregistered, engine close called, tab rows deleted, entry removed from map, continues cleanup on engine close failure)
+- `entries`: 2 tests (reflects only unpromoted sessions, empty iterator)

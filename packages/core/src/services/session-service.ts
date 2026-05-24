@@ -36,7 +36,8 @@ import type { ServiceDeps } from "./types.js";
  * runtime — see CLAUDE.md Phase 3 dependency exception.
  */
 export class SessionServiceImpl implements SessionService {
-  private readonly engineManager: EngineSessionManager;
+  /** Exposed for SessionPromotionRegistryImpl's lazy-resolver thunk in buildServices. */
+  readonly engineManager: EngineSessionManager;
 
   constructor(private readonly deps: ServiceDeps) {
     this.engineManager = new EngineSessionManager({

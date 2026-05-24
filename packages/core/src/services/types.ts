@@ -36,6 +36,7 @@ import type {
   VisionService,
 } from "../types/index.js";
 import type { PromptCustomizationService } from "./prompt-customization-service.js";
+import type { SessionPromotionRegistry } from "./session/session-promotion-registry.js";
 
 export interface ServiceDeps {
   db: PraxisDb;
@@ -159,4 +160,10 @@ export interface ServiceDeps {
    * Tests use `inMemorySecretStorage()` from `tests/helpers/mocks.ts`.
    */
   secretStorage: SecretStorage;
+  /**
+   * In-memory registry of sessions that have been started (tab + engine
+   * session opened) but not yet persisted to the `sessions` table.
+   * Optional so existing tests that don't exercise lazy-persist stay unaffected.
+   */
+  sessionPromotionRegistry?: SessionPromotionRegistry;
 }

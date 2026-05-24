@@ -129,6 +129,16 @@ export {
   scoreResumeSession,
   scoreReviewCards,
 } from "./recommendation-service.js";
+// empty-session-cleanup: promotion registry
+export type {
+  SessionPromotionRegistry,
+  SessionPromotionRegistryDeps,
+  UnpromotedSessionState,
+} from "./session/session-promotion-registry.js";
+export {
+  SessionNotRegisteredError,
+  SessionPromotionRegistryImpl,
+} from "./session/session-promotion-registry.js";
 export { SessionServiceImpl } from "./session-service.js";
 // Phase 15a: Sketch service
 export type { SketchServiceDeps } from "./sketch-service.js";

@@ -35,6 +35,7 @@ import {
   PromptCustomizationServiceImpl,
   QuickCheckServiceImpl,
   RecommendationServiceImpl,
+  SessionPromotionRegistryImpl,
   SessionServiceImpl,
   SketchServiceImpl,
   SqliteDraftStore,
@@ -172,6 +173,8 @@ export interface Services {
   recommendations: RecommendationServiceImpl;
   /** Catalogue search + FTS5 filters across notes and flashcards. */
   library: LibraryServiceImpl;
+  /** In-memory registry of not-yet-persisted (unpromoted) sessions. */
+  sessionPromotion: SessionPromotionRegistryImpl;
   ingestorRegistry: IngestorRegistry;
   pyodide: PyodideHost; // exposed so main can preload it
   embeddings: WorkerEmbeddingService; // exposed so main can preload it
@@ -505,6 +508,23 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     draftStore,
   });
 
+  // Session promotion registry — in-memory map of sessions opened but not yet
+  // persisted. Constructed before SessionServiceImpl; its engineSessionManager
+  // thunk resolves via a ref-cell written after sessionService is live.
+  let sessionServiceRef: SessionServiceImpl | undefined;
+  const sessionPromotionRegistry = new SessionPromotionRegistryImpl({
+    db,
+    log,
+    engineSessionManager: () => {
+      // Safety: the thunk is only called from discard() or promote(), which
+      // happen after buildServices() returns and sessionService is live.
+      if (!sessionServiceRef) {
+        throw new Error("SessionPromotionRegistry: sessionService not yet initialised");
+      }
+      return sessionServiceRef.engineManager;
+    },
+  });
+
   // Prompt customization service — global fragment + per-mode appends.
   const promptCustomizationService = new PromptCustomizationServiceImpl({ db });
 
@@ -595,6 +615,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     subAgent: subAgentRegistry,
     promptCustomization: promptCustomizationService, // ← prompt-customization-layers
     secretStorage, // ← encrypt-api-key: apiKey wrapped at rest via Electron safeStorage
+    sessionPromotionRegistry, // ← empty-session-cleanup
   };
 
   const ingestion = new IngestionService({
@@ -619,6 +640,10 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
   });
 
   const sessionService = new SessionServiceImpl(deps);
+
+  // empty-session-cleanup: close the SessionPromotionRegistry ref-cell now
+  // that sessionService is live. discard() thunks will resolve from here on.
+  sessionServiceRef = sessionService;
 
   // Phase 16: complete the ref-cell wiring now that sessionService is live.
   // Adapt the port signature (parentSessionId) to sessionService's (sessionId).
@@ -657,6 +682,7 @@ export function buildServices(dbPath: string, log: MainLogger): Services {
     quickCheck: quickCheckService, // ← Phase 17
     recommendations: recommendationsService,
     library: libraryService,
+    sessionPromotion: sessionPromotionRegistry,
     ingestorRegistry,
     pyodide,
     embeddings,
