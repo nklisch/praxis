@@ -1,7 +1,7 @@
 ---
 id: story-library-route-hygiene-pass
 kind: story
-stage: review
+stage: done
 tags: [cleanup, perf, ui]
 parent: null
 depends_on: []
@@ -89,3 +89,16 @@ removed.
 files / 1703 tests pass. The pre-existing `@praxis/curriculum` typecheck
 failure (`draft-add-unit.ts` kind-field mismatch) is unrelated and was present
 before this change.
+
+## Review
+
+**Verdict: done** (2026-05-23)
+
+All checks pass:
+- `useDocuments` import and call fully removed — `grep` returns empty.
+- `useIngestion` callback calls only `refresh()` from `useLibrary` — confirmed at line 43-45.
+- Orientation comment removed — diff confirms 1 line deleted at the `// handleUsePack...` location.
+- `useLibrary` (`use-library.ts:37-43`) confirmed to load documents via `client.documents.list()` in its `Promise.all` — the single `refresh()` is sufficient.
+- 163 ui test files / 1703 tests pass per implementation notes; library-route test suite (24 tests) provides the relevant safety net.
+
+No blockers, no important findings, no nits. Change is minimal, correct, and well-scoped.
