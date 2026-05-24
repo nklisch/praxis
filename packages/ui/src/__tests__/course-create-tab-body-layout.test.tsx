@@ -45,6 +45,21 @@ vi.mock("../hooks/use-course-create-budget.js", () => ({
   COURSE_CREATE_BUDGET_MAX: 200,
   useCourseCreateBudget: () => ({ maxSteps: 100, saving: false, setMaxSteps: vi.fn() }),
 }));
+vi.mock("../hooks/use-tabs.js", () => ({
+  useTabs: () => ({
+    openTab: vi.fn().mockResolvedValue({
+      kind: "session",
+      id: "tab-new",
+      sessionId: "session-new",
+      modeId: "course-create",
+      title: "course-create",
+      sortOrder: 0,
+      openedAt: Date.now(),
+      lastSeenAt: Date.now(),
+      closedAt: null,
+    }),
+  }),
+}));
 
 // Import after mocks (Vitest hoists vi.mock calls).
 const { CourseCreateTabBody } = await import("../components/course-create-tab-body.js");

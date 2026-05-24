@@ -14,6 +14,22 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }));
 
+vi.mock("../hooks/use-tabs.js", () => ({
+  useTabs: () => ({
+    openTab: vi.fn().mockResolvedValue({
+      kind: "session",
+      id: "tab-new",
+      sessionId: "s2",
+      modeId: "teach",
+      title: "algebra · teach",
+      sortOrder: 0,
+      openedAt: Date.now(),
+      lastSeenAt: Date.now(),
+      closedAt: null,
+    }),
+  }),
+}));
+
 afterEach(() => {
   cleanup();
 });

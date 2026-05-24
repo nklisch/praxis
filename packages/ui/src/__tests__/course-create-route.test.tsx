@@ -1,15 +1,18 @@
 /**
- * Tests for <CourseCreateRoute> — focused on the ingestion status sync.
+ * Tests for <CourseCreateRoute> — focused on the ingestion status sync and
+ * context-text forwarding via consumeInitialMessage.
  *
  * Verifies:
  * - Files added via startPickBatch land with "indexing" status while ingesting.
  * - After batch_summary fires, files transition to "ready" (ok) or "error" (!ok).
  * - Mixed-outcome batches: ok → ready, error → error, no file left at indexing.
+ * - Context text is stored for consumeInitialMessage (not fire-and-forget sent).
  */
 import type {
   IngestionEvent,
   PraxisClient,
   SessionHandle,
+  SessionId,
   SessionTabSummary,
   Timestamp,
 } from "@praxis/core/types";
@@ -17,6 +20,7 @@ import { brandId } from "@praxis/core/types";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PraxisClientProvider } from "../context/client-context.js";
+import { consumeInitialMessage } from "../lib/open-session-in-tab.js";
 import { CourseCreateRoute } from "../routes/course-create.js";
 import { makeFakeClient } from "./helpers/fake-client.js";
 
@@ -29,6 +33,22 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
     Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   };
 });
+
+vi.mock("../hooks/use-tabs.js", () => ({
+  useTabs: () => ({
+    openTab: vi.fn().mockResolvedValue({
+      kind: "session",
+      id: brandId<"TabId">("tab-1"),
+      sessionId: brandId<"SessionId">("s1"),
+      modeId: "course-create",
+      title: "test tab",
+      sortOrder: 0,
+      openedAt: Date.now() as Timestamp,
+      lastSeenAt: Date.now() as Timestamp,
+      closedAt: null,
+    }),
+  }),
+}));
 
 afterEach(() => cleanup());
 
@@ -106,15 +126,7 @@ function renderRoute(client: PraxisClient) {
 }
 
 /** Build a client wired for the context-forwarding tests (no ingest needed). */
-function makeClientWithSend(sendSpy?: ReturnType<typeof vi.fn>): PraxisClient {
-  const send =
-    sendSpy ??
-    vi.fn().mockReturnValue(
-      (async function* () {
-        // empty — simulates a session that yields no events
-      })(),
-    );
-
+function makeClientForContext(): PraxisClient {
   return makeFakeClient({
     session: {
       active: vi.fn().mockResolvedValue(null),
@@ -129,7 +141,7 @@ function makeClientWithSend(sendSpy?: ReturnType<typeof vi.fn>): PraxisClient {
         unlockedGates: [],
         newMisconceptions: 0,
       }),
-      send: send as PraxisClient["session"]["send"],
+      send: vi.fn(),
     } as PraxisClient["session"],
     tabs: {
       open: vi.fn().mockResolvedValue({
@@ -157,9 +169,8 @@ function makeClientWithSend(sendSpy?: ReturnType<typeof vi.fn>): PraxisClient {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("CourseCreateRoute — context textarea forwarding", () => {
-  it("does NOT call session.send when context is empty", async () => {
-    const sendSpy = vi.fn().mockReturnValue((async function* () {})());
-    const client = makeClientWithSend(sendSpy);
+  it("does NOT store initialMessage when context is empty", async () => {
+    const client = makeClientForContext();
     renderRoute(client);
 
     // Context textarea is empty by default — click Start Praxis immediately.
@@ -171,16 +182,15 @@ describe("CourseCreateRoute — context textarea forwarding", () => {
       expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
 
-    // Allow microtasks to flush so any fire-and-forget would have fired.
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(sendSpy).not.toHaveBeenCalled();
+    // Empty context: no initial message stored, session.send never called.
+    expect(
+      consumeInitialMessage(brandId<"SessionId">("s1") as unknown as SessionId),
+    ).toBeUndefined();
+    expect(client.session.send).not.toHaveBeenCalled();
   });
 
-  it("does NOT call session.send when context is whitespace-only", async () => {
-    const sendSpy = vi.fn().mockReturnValue((async function* () {})());
-    const client = makeClientWithSend(sendSpy);
+  it("does NOT store initialMessage when context is whitespace-only", async () => {
+    const client = makeClientForContext();
     const { getByRole } = renderRoute(client);
 
     fireEvent.change(getByRole("textbox"), { target: { value: "   " } });
@@ -193,16 +203,15 @@ describe("CourseCreateRoute — context textarea forwarding", () => {
       expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
 
-    // Allow microtasks to flush so any fire-and-forget would have fired.
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(sendSpy).not.toHaveBeenCalled();
+    // Whitespace-only context: no initial message stored, session.send never called.
+    expect(
+      consumeInitialMessage(brandId<"SessionId">("s1") as unknown as SessionId),
+    ).toBeUndefined();
+    expect(client.session.send).not.toHaveBeenCalled();
   });
 
-  it("calls session.send with context text when context is non-empty", async () => {
-    const sendSpy = vi.fn().mockReturnValue((async function* () {})());
-    const client = makeClientWithSend(sendSpy);
+  it("stores context text for consumeInitialMessage when context is non-empty", async () => {
+    const client = makeClientForContext();
     const { getByRole } = renderRoute(client);
 
     const contextText = "I'm an adult learner returning to calculus to prep for an actuarial exam.";
@@ -217,15 +226,15 @@ describe("CourseCreateRoute — context textarea forwarding", () => {
       expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
 
-    // The fire-and-forget send is async — wait for it to be called.
-    await waitFor(() => {
-      expect(sendSpy).toHaveBeenCalledWith(brandId<"SessionId">("s1"), contextText);
-    });
+    // Context text is stored for the tab body to pick up — never fire-and-forget sent.
+    expect(client.session.send).not.toHaveBeenCalled();
+    expect(consumeInitialMessage(brandId<"SessionId">("s1") as unknown as SessionId)).toBe(
+      contextText,
+    );
   });
 
-  it("trims whitespace before sending context", async () => {
-    const sendSpy = vi.fn().mockReturnValue((async function* () {})());
-    const client = makeClientWithSend(sendSpy);
+  it("trims whitespace before storing context", async () => {
+    const client = makeClientForContext();
     const { getByRole } = renderRoute(client);
 
     fireEvent.change(getByRole("textbox"), { target: { value: "  learn calculus deeply  " } });
@@ -235,8 +244,12 @@ describe("CourseCreateRoute — context textarea forwarding", () => {
     });
 
     await waitFor(() => {
-      expect(sendSpy).toHaveBeenCalledWith(brandId<"SessionId">("s1"), "learn calculus deeply");
+      expect(client.session.start).toHaveBeenCalledWith({ modeId: "course-create" });
     });
+
+    expect(consumeInitialMessage(brandId<"SessionId">("s1") as unknown as SessionId)).toBe(
+      "learn calculus deeply",
+    );
   });
 });
 

@@ -20,6 +20,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
+import { useTabs } from "../hooks/use-tabs.js";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import styles from "./course-create.module.css";
 
@@ -33,6 +34,7 @@ interface AttachedFile {
 export function CourseCreateRoute() {
   const navigate = useNavigate();
   const client = usePraxisClient();
+  const { openTab } = useTabs();
   const [context, setContext] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [starting, setStarting] = useState(false);
@@ -105,13 +107,14 @@ export function CourseCreateRoute() {
       await openSessionInTab({
         client,
         navigate,
+        openTab,
         startOpts: { modeId: "course-create" },
         ...(trimmedContext !== "" && { initialMessage: trimmedContext }),
       });
     } finally {
       setStarting(false);
     }
-  }, [client, navigate, context]);
+  }, [client, navigate, openTab, context]);
 
   const indexingCount = attachedFiles.filter((f) => f.status === "indexing").length;
 

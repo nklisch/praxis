@@ -76,6 +76,7 @@ export function LibraryRoute() {
         await openSessionInTab({
           client,
           navigate,
+          openTab,
           startOpts: { modeId: "course-create" },
           courseTitle: packName,
         });
@@ -83,7 +84,7 @@ export function LibraryRoute() {
         setImporting(null);
       }
     },
-    [client, navigate],
+    [client, navigate, openTab],
   );
 
   // Keep packName accessible but avoid lint warning if it's not used yet.
@@ -107,6 +108,7 @@ export function LibraryRoute() {
           await openSessionInTab({
             client,
             navigate,
+            openTab,
             startOpts: {
               modeId: "study-skills",
               ...(rec.courseId != null && { courseId: rec.courseId as CourseId }),
@@ -118,6 +120,7 @@ export function LibraryRoute() {
           await openSessionInTab({
             client,
             navigate,
+            openTab,
             startOpts: { modeId: "teach", courseId: rec.courseId as CourseId },
           });
           break;
@@ -127,6 +130,7 @@ export function LibraryRoute() {
           await openSessionInTab({
             client,
             navigate,
+            openTab,
             startOpts: { modeId: "course-create" },
           });
           break;
@@ -137,13 +141,14 @@ export function LibraryRoute() {
           await openSessionInTab({
             client,
             navigate,
+            openTab,
             startOpts: { modeId: "quiz" },
           });
           break;
         }
       }
     },
-    [client, navigate, openTabs, handleOpenSession],
+    [client, navigate, openTab, openTabs, handleOpenSession],
   );
 
   // ── Greeting copy ──────────────────────────────────────────────────────────

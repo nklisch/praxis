@@ -82,7 +82,6 @@ export function CourseCreateTabBody({ tab }: CourseCreateTabBodyProps): JSX.Elem
   // openSessionInTab, read once on mount via useState initializer, then passed to
   // AuthoringChatPane as prefillMessage so it sends through the pane's own
   // useStreamedSend — engine events flow to the UI correctly.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: consumeInitialMessage is a pure module fn with no reactive deps; tab.sessionId is stable per tab instance
   const [startupPrefill] = useState(() => consumeInitialMessage(tab.sessionId));
 
   // ── Finalization handler — open first teach session on draft finalized ────────

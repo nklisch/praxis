@@ -11,6 +11,7 @@ import { usePraxisClient } from "../context/client-context.js";
 import { useCourseDetail } from "../hooks/use-course-detail.js";
 import { useIngestion } from "../hooks/use-ingestion.js";
 import { useResource } from "../hooks/use-resource.js";
+import { useTabs } from "../hooks/use-tabs.js";
 import { COPY } from "../lib/copy.js";
 import { openSessionInTab } from "../lib/open-session-in-tab.js";
 import styles from "./course-detail.module.css";
@@ -23,6 +24,7 @@ export function CourseDetailRoute() {
   const client = usePraxisClient();
   const { course, lessons, loading, error } = useCourseDetail(courseId as CourseId | undefined);
   const navigate = useNavigate();
+  const { openTab } = useTabs();
 
   // Phase 16: course-scoped ingestion — auto-attaches when courseId is set.
   const ingestion = useIngestion(
@@ -104,6 +106,7 @@ export function CourseDetailRoute() {
     await openSessionInTab({
       client,
       navigate,
+      openTab,
       startOpts: { modeId: "teach", courseId },
       courseTitle: course.title,
     });
