@@ -1,10 +1,12 @@
 import type { ConfiguratorActionRow, SessionId, Timestamp } from "@praxis/core/types";
 import { useEffect, useRef, useState } from "react";
 import { usePraxisClient } from "../context/client-context.js";
+import { useQuickCheckBridge } from "../hooks/use-quick-check-bridge.js";
 import { useStreamedSend } from "../hooks/use-streamed-send.js";
 import styles from "./authoring-chat-pane.module.css";
 import { Composer } from "./composer.js";
 import { MessageBubble } from "./message.js";
+import { StructuredQuestionCard } from "./structured-question-card.js";
 import { SubAgentBlock } from "./sub-agent-block.js";
 import { ToolCallEntry } from "./tool-call-entry.js";
 
@@ -58,6 +60,13 @@ export function AuthoringChatPane({
   const client = usePraxisClient();
   const { items, isStreaming, lastError, send, loadHistory } = useStreamedSend(client);
   const [composerValue, setComposerValue] = useState("");
+
+  // Subscribe to ask_student_question quick-check events for this session.
+  // sessionId is null while the session is starting; the hook accepts undefined,
+  // so convert null → undefined to signal "no session yet".
+  const { pending: quickChecks, resolve: resolveQuickCheck } = useQuickCheckBridge(
+    sessionId ?? undefined,
+  );
 
   // ── Configurator actions correlation ───────────────────────────────────────
   // Load the audit log once per session and refresh at the end of each
@@ -272,6 +281,23 @@ export function AuthoringChatPane({
           );
         })}
       </div>
+
+      {/* ask_student_question cards — appended after the message log in arrival
+          order. Only structured-question items are issued by this tool; the
+          card locks after the student submits (resolved === true). */}
+      {quickChecks.map((check) => {
+        if (check.item.kind === "structured-question") {
+          return (
+            <StructuredQuestionCard
+              key={check.callId}
+              callId={check.callId}
+              item={check.item}
+              onResolve={resolveQuickCheck}
+            />
+          );
+        }
+        return null;
+      })}
 
       {lastError && (
         <div className={styles.errorBanner} role="alert">

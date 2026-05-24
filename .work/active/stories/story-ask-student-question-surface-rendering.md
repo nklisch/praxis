@@ -1,7 +1,7 @@
 ---
 id: story-ask-student-question-surface-rendering
 kind: story
-stage: implementing
+stage: review
 tags: [ui, bug, tutor-ux, tools]
 parent: null
 depends_on: []
@@ -45,3 +45,32 @@ round-trip (the renderer signals but the dispatch doesn't resolve).
 4. Audit configure mode too — same tool is scoped there. Confirm whichever
    surface exists works in both modes after the fix.
 5. Add a UI test covering the dispatch → render → respond round-trip.
+
+## Implementation notes
+
+**Root cause:** `CourseCreateTabBody` delegates all chat rendering to
+`AuthoringChatPane`, which is also used by configure mode. Neither component
+mounted `useQuickCheckBridge` or rendered `StructuredQuestionCard`, so
+pending `ask_student_question` events were dropped — the tool call hung
+forever waiting for a response that never came.
+
+**Fix:** Added `useQuickCheckBridge(sessionId ?? undefined)` and
+`StructuredQuestionCard` rendering to `AuthoringChatPane`
+(`packages/ui/src/components/authoring-chat-pane.tsx`). Placing the bridge
+in `AuthoringChatPane` (the shared component) means both course-create and
+configure modes pick it up in one change with no double-mounting risk —
+`CourseCreateTabBody` passes its session id down to `AuthoringChatPane`,
+which is the single place that owns the pane's event subscription.
+
+The cards are rendered after the messages list, before the error banner,
+matching the placement pattern in `TeachChatTabBody`. Only
+`structured-question` items are filtered through (the only kind the
+`ask_student_question` tool produces); unrecognized kinds render `null`.
+
+**Test added:**
+`packages/ui/src/__tests__/authoring-chat-pane-quick-check.test.tsx`
+— 4 tests covering:
+1. `StructuredQuestionCard` renders when a `pending` event arrives (course-create mode)
+2. `client.quickCheck.resolve` is called with the correct callId and answer on submit (course-create mode)
+3. `StructuredQuestionCard` renders in configure mode
+4. Events for other sessions are ignored (session filter in the hook)
